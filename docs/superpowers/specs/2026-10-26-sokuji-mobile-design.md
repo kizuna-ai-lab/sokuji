@@ -36,6 +36,8 @@ phone locked or in their pocket for most of it, and a document to keep at the en
 | R10 | Name and scheme | "Sokuji", URL scheme `sokuji`. |
 | R11 | Sign-in | Email and password accounts, as the desktop (revised by the owner on 2026-10-27; the 2026-10-26 ruling was one-time code only): sign-up with email and password, then a 6-digit code sent to the address verifies it inside the app, which is what grants the trial credit; sign-in with the password, which sends no mail, so the mail quota is spent on registrations and password resets only; a forgotten password is reset with a code. No code-only sign-in. No third-party sign-in in the first version (§8.7). |
 | R12 | Purchases | The first version shows the balance only: sells nothing, links nowhere (§5.4). |
+| R13 | Hearing the translation (owner, 2026-10-27) | The first version also reads the other side's translation aloud to the listener, as the desktop's "Voice I hear" does: the backend's `participant-spoken` shape (`par_stt` + `par_tts`), Soniox speech synthesis streamed as PCM and played by the app. A setting, off by default; the subtitles stay on while it is on. Proposed by the builder and standing until the owner says otherwise: spoken only through headphones (wired or Bluetooth), since the phone's loudspeaker would feed the spoken translation back into the microphone; on the loudspeaker the app shows subtitles only and says so. The user's own speech translated for others (§3.2) stays out. |
+| R14 | Audio devices (owner, 2026-10-27) | The user may choose the microphone in the app: the phone's own (the default), a wired headset's, or a USB microphone — never a Bluetooth headset's, since that needs the hands-free profile, which drops playback to call quality and hurts far-field pickup. The output device is chosen through the system's own picker, opened from the app (iOS does not let an app pick the output itself). |
 
 ## 3. The product, as decided
 
@@ -53,6 +55,11 @@ phone locked or in their pocket for most of it, and a document to keep at the en
 - **One job**: pick the language you will hear and the language you read (the desktop's
   "participant" leg, through the microphone), press Start, and read. Subtitles are bilingual by
   default (what was said, then the translation), with a translation-only toggle.
+- **Hear the translation** (R13): with the setting on and headphones connected, the translation is
+  also read aloud to the listener (the desktop's "Voice I hear"), with a choice of voice and speed
+  worded as the desktop words them; the subtitles stay. On the loudspeaker the app falls back to
+  subtitles and says why. The session then costs the speech synthesis on top, and the hours
+  estimate follows the setting.
 - **Keeps running**: with the phone locked, in the pocket, or while another app is in front, for
   the whole session (one to two hours is the target; §6 sets the gate). The OS shows its own
   "microphone in use" indicator; on Android a persistent notification names the session.
@@ -65,9 +72,10 @@ phone locked or in their pocket for most of it, and a document to keep at the en
   top-up button and no store purchase (§5.4 says why). The balance screen says, in words, that
   top-ups are made on the website.
 - **Languages and copy**: the 30 catalogs the desktop ships, through the same i18next setup.
-- **Settings**: source and target language, bilingual or translation-only, subtitle text size,
-  appearance (light, dark or the system's), keep the screen awake while the app is in front, Soniox
-  region (the desktop's setting), sign out.
+- **Settings**: source and target language, bilingual or translation-only, hearing the translation
+  (R13: on or off, the voice, the speed), subtitle text size, appearance (light, dark or the
+  system's), keep the screen awake while the app is in front, Soniox region (the desktop's
+  setting), audio devices (R14: the microphone, and the system's output picker), sign out.
 - **Analytics**: PostHog through its React Native SDK, the same event names as the desktop, with
   `platform` = `ios` or `android`.
 
@@ -76,8 +84,9 @@ phone locked or in their pocket for most of it, and a document to keep at the en
 - **Translating the audio of other apps on the phone** (Zoom, Teams): iOS does not let an app
   record another app's audio without a ReplayKit broadcast extension written in Swift, and the
   desktop data shows almost nobody does this (§1). Second version at the earliest.
-- **Speaking out loud / TTS** ("speaker" leg): not part of the scene, and it is the half of the
-  desktop pipeline that needs the audio output graph.
+- **Speaking for the user / TTS of the user's own words** ("speaker" leg): not part of the scene.
+  (Reading the *other* side's translation aloud to the listener is in, R13; it reuses the desktop's
+  TTS stream and needs playback, but not the speaker leg's capture-and-send path.)
 - **Offline models**: no demand, slower, hot and heavy on a phone.
 - **A floating window or picture-in-picture** (the iPad wish): iOS allows PiP only for video
   content; apps do it by rendering text into a video layer. Live Activities cannot carry a subtitle
@@ -262,6 +271,12 @@ was sized for runs out, so a long session is a chain of leases (§5.3); and draw
 transcript into text blocks is what froze the Android phone and grew memory on iOS — with nothing
 drawn while the app is not in the foreground, memory stayed flat for 30 minutes, so the first
 version renders subtitles as a virtualized list and draws nothing in the background.
+
+**Gate A addendum (R13).** Hearing the translation changes the iOS audio session from `record` to
+`playAndRecord` (Bluetooth output over A2DP, the phone's own microphone kept as input), so the
+60-minute locked run is repeated on the iPhone in that mode with the setting on, and the echo rule
+is checked once on each phone: with headphones the spoken translation is not transcribed again; on
+the loudspeaker the app does not speak.
 
 **Gate B, before TestFlight / Play internal testing.** The MVP checklist in §3.1 on both devices,
 in a real 90-minute session on cellular, phone in a pocket, with battery and heat written down,
