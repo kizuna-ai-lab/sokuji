@@ -1716,7 +1716,9 @@
         "starting": "Startar…",
         "stopped": "Stoppad",
         "spoken": "Lyssnar · uppläst",
-        "subtitlesOnly": "Lyssnar · bara undertexter (inga hörlurar)"
+        "subtitlesOnly": "Lyssnar · bara undertexter (inga hörlurar)",
+        "invalidConfig": "Språkinställningarna godtogs inte. Kontrollera språkparet i Inställningar.",
+        "paused": "Pausad"
       }
     },
     "common": {

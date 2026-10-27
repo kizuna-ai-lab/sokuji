@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { accountEmail, sessionToken, signOut } from './src/auth/client';
+import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
 import { applyAppearance } from './src/screens/Settings';
 import SignIn from './src/auth/SignIn';
@@ -38,7 +39,15 @@ export default function App() {
       <View style={styles.content}>
         {(!ready || token === undefined) && <Text>…</Text>}
         {ready && token === null && <SignIn onSignedIn={refresh} />}
-        {ready && !!token && <Main token={token} email={email} onSignOut={async () => { await signOut(); await refresh(); }} onAccountDeleted={refresh} />}
+        {ready && !!token && (
+          <Main
+            token={token}
+            email={email}
+            onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
+            onAccountDeleted={refresh}
+            onSignInRequired={() => setToken(null)}
+          />
+        )}
       </View>
       <StatusBar style="auto" />
     </SafeAreaView>

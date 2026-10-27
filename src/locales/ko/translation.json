@@ -1716,7 +1716,9 @@
         "starting": "시작하는 중…",
         "stopped": "중지됨",
         "spoken": "듣는 중 · 읽어 주기",
-        "subtitlesOnly": "듣는 중 · 자막만 (헤드폰 없음)"
+        "subtitlesOnly": "듣는 중 · 자막만 (헤드폰 없음)",
+        "invalidConfig": "언어 설정이 거부되었습니다. 설정에서 언어 쌍을 확인하세요.",
+        "paused": "일시정지됨"
       }
     },
     "common": {

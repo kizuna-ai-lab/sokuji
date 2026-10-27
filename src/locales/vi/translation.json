@@ -1716,7 +1716,9 @@
         "starting": "Đang bắt đầu…",
         "stopped": "Đã dừng",
         "spoken": "Đang nghe · đọc to",
-        "subtitlesOnly": "Đang nghe · chỉ phụ đề (không có tai nghe)"
+        "subtitlesOnly": "Đang nghe · chỉ phụ đề (không có tai nghe)",
+        "invalidConfig": "Cài đặt ngôn ngữ không được chấp nhận. Hãy kiểm tra cặp ngôn ngữ trong Cài đặt.",
+        "paused": "Đã tạm dừng"
       }
     },
     "common": {

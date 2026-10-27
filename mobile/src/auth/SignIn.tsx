@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, signUp, verifyEmail } from './client';
+import { authErrorKey } from './unwrap';
 
 type Mode = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
 
@@ -43,7 +44,8 @@ export default function SignIn({
       await action();
       after?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const key = authErrorKey(err);
+      setError(key ? t(key) : err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }

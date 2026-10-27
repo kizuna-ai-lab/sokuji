@@ -1716,7 +1716,9 @@
         "starting": "Démarrage…",
         "stopped": "Arrêté",
         "spoken": "À l'écoute · lue à voix haute",
-        "subtitlesOnly": "À l'écoute · sous-titres seulement (pas de casque)"
+        "subtitlesOnly": "À l'écoute · sous-titres seulement (pas de casque)",
+        "invalidConfig": "Paramètres de langue refusés. Vérifiez la paire de langues dans les réglages.",
+        "paused": "En pause"
       }
     },
     "common": {

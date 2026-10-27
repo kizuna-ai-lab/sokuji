@@ -49,7 +49,7 @@ export function startSession(o: {
   source: string;
   target: string;
   /** Where every Soniox message goes (Task 4): the desktop's transcript model. */
-  transcript: Pick<Transcript, 'message' | 'reconnected'> & Partial<Pick<Transcript, 'setSpeech'>>;
+  transcript: Pick<Transcript, 'message' | 'reconnected'> & Partial<Pick<Transcript, 'setSpeech' | 'setClock'>>;
   onEvent: (e: SessionEvent) => void;
   /** R13: the other side's translation read aloud to me; null for subtitles only. */
   listen?: { voice: string | null; speed: number } | null;
@@ -90,12 +90,18 @@ export function startSession(o: {
   let reconnectAfter = false;
   // The OS subscriptions a running session holds; released in teardown.
   let subscriptions: Array<{ remove(): void }> = [];
+  // The last attempt's failure, kept on the status line through the next
+  // attempt: a minute of 409s says "another session" until a grant arrives.
+  let lastFailure: string | undefined;
+  // Soniox's last error_code before a close: a 400 is a refused configuration.
+  let lastErrorCode: string | null = null;
+  let stopping: Promise<void> | null = null;
   // stop() aborts the lease request in flight: a stopped session never waits
   // out a 409 and never wins a lease it will not use.
   const abort = new AbortController();
   // R13: speech goes through headphones only. Whether the lease asks for the
-  // spoken shape is decided at Start; a route change later only mutes or
-  // unmutes what the grant carries.
+  // spoken shape is decided at Start; headphones out later mute what the grant
+  // carries, headphones in on a grant without the voice take a new grant.
   const headphones = (r: Route) => r === 'headphones' || r === 'bluetooth';
   let spokenWanted = false;
   let route: Route = 'speaker';
@@ -176,18 +182,48 @@ export function startSession(o: {
     clearInterval(driver);
   }
 
+  // The running stream is ended for a fresh grant: Soniox flushes the last
+  // words and closes, and the close reconnects with a new lease; forced if the
+  // close never comes.
+  function rotate(why: string): void {
+    const s = stream;
+    if (!s || !s.isOpen() || rotating) return;
+    rotating = true;
+    log(`rotation: ${why}`);
+    s.end();
+    ticker.after(5000, () => {
+      if (stream === s && rotating) s.close();
+    });
+  }
+
   // R13: the headphones came out → the voice stops and the subtitles stay;
-  // back in → the voice resumes at the next sentence. The lease is not touched.
+  // back in → the voice resumes at the next sentence. Headphones in on a
+  // session that never asked for the voice → the next grant asks for it,
+  // taken now when a stream is running.
   function applyRoute(next: Route): void {
     route = next;
     if (!o.listen || !running) return;
     if (!headphones(next)) {
       player?.stop();
       speech?.setOn(false);
-    } else {
-      speech?.setOn(true);
+    } else if (speech) {
+      speech.setOn(true);
+    } else if (!spokenWanted) {
+      spokenWanted = true;
+      rotate('headphones in: asking for the spoken shape');
+      return;
     }
     if (stream?.isOpen()) status('listening', spokenDetail());
+  }
+
+  async function stopSession(): Promise<void> {
+    if (closed) return;
+    stopping ??= (async () => {
+      await teardown();
+      status('stopped');
+      closed = true;
+    })();
+    return stopping;
   }
 
   async function fail(detail: string): Promise<void> {
@@ -201,7 +237,7 @@ export function startSession(o: {
     connecting = true;
     let s: SonioxSttStream | null = null;
     try {
-      status(droppedAt ? 'reconnecting' : 'leasing');
+      status(droppedAt ? 'reconnecting' : 'leasing', lastFailure);
       if (droppedAt && grant) {
         // Release the old lease before asking for a new one, never after: the backend
         // ends the account's session, so a late session-end would end the new lease.
@@ -224,7 +260,8 @@ export function startSession(o: {
         return;
       }
       status('connecting');
-      s = new SonioxSttStream();
+      lastErrorCode = null;
+      s = new SonioxSttStream({ clock: tickerClock });
       stream = s;
       const me = s;
       s.setHandlers({
@@ -239,12 +276,21 @@ export function startSession(o: {
             o.transcript.message(m.tokens);
           }
         },
-        onError: (code, message) => log(`error ${code} ${message}`),
+        onError: (code, message) => {
+          lastErrorCode = code;
+          log(`error ${code} ${message}`);
+        },
         onClose: ({ code, reason: why }) => {
           const since = ((Date.now() - lastTokenAt) / 1000).toFixed(1);
           log(`close ${code ?? '-'} ${why ?? ''} — ${since}s since last token`);
           if (stream !== me || !running) return;
           stream = null;
+          if (lastErrorCode === '400') {
+            // A refused configuration (a bad language pair, say): no retry can fix it.
+            log('configuration refused by Soniox');
+            void fail('invalid_config');
+            return;
+          }
           droppedAt = Date.now();
           gapFrom = droppedAt;
           awaitingFirstTokens = true;
@@ -299,6 +345,7 @@ export function startSession(o: {
       }
       failures = 0;
       rotating = false;
+      lastFailure = undefined;
       log(`${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
       status('listening', spokenDetail());
     } catch (err) {
@@ -323,7 +370,8 @@ export function startSession(o: {
       log(`connect failed (#${failures}): ${message} — retrying in ${delay / 1000} s`);
       // A minute of 409s: another device holds the account's one lease. Said on
       // screen, and the retries go on, since that session may end any moment.
-      status('reconnecting', message === 'lease_conflict' ? 'other_session' : message);
+      lastFailure = message === 'lease_conflict' ? 'other_session' : message;
+      status('reconnecting', lastFailure);
       if (droppedAt === null) droppedAt = Date.now();
       // A close that landed during this attempt is answered by this retry, not
       // by a second connect() after it.
@@ -344,6 +392,8 @@ export function startSession(o: {
   async function begin(): Promise<void> {
     const where = openLogFile();
     log(`log file ${where}`);
+    // The transcript's fin grace runs on the ticker too.
+    o.transcript.setClock?.(tickerClock);
     // Phone microphone only, even with a headset connected (ruling for the first
     // version): a headset mic is far from the speaker in a lecture hall.
     // Record only, unless the translation is to be heard: then play and record,
@@ -390,14 +440,7 @@ export function startSession(o: {
       }
       // Checked here, not on a timer: iOS slows timers in the background, audio keeps coming.
       if (!rotating && stream?.isOpen() && Date.now() >= expiresAt - ROTATE_BEFORE_MS) {
-        rotating = true;
-        log('rotation: grant ends in 15 s');
-        const s = stream;
-        s.end();
-        // end() lets Soniox flush the last words and close; force it if that never comes.
-        ticker.after(5000, () => {
-          if (stream === s && rotating) s.close();
-        });
+        rotate('grant ends in 15 s');
         return;
       }
       if (stream?.isOpen()) stream.sendAudio(floatToInt16(buffer.getChannelData(0)));
@@ -416,6 +459,25 @@ export function startSession(o: {
         await RecordingNotificationManager.hide();
         return;
       }
+      // The notification's own actions. Stop ends the recording natively and
+      // tells the app: the session ends with it, or the lease stays held and
+      // the next foreground reconnects into a dead microphone. Pause and
+      // Resume act on the recorder natively; the screen is told which.
+      const onNotification = [
+        RecordingNotificationManager.addEventListener('recordingNotificationStop', () => {
+          log('notification: stop');
+          void stopSession();
+        }),
+        RecordingNotificationManager.addEventListener('recordingNotificationPause', () => {
+          log('notification: pause');
+          status('listening', 'paused');
+        }),
+        RecordingNotificationManager.addEventListener('recordingNotificationResume', () => {
+          log('notification: resume');
+          status('listening', spokenDetail());
+        }),
+      ];
+      for (const sub of onNotification) if (sub) subscriptions.push(sub);
     }
     const started = await r.start();
     if (started.status === 'error') {
@@ -468,12 +530,5 @@ export function startSession(o: {
     void fail(reason(err));
   });
 
-  return {
-    async stop() {
-      if (closed) return;
-      await teardown();
-      status('stopped');
-      closed = true;
-    },
-  };
+  return { stop: stopSession };
 }

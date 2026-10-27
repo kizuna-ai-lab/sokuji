@@ -1716,7 +1716,9 @@
         "starting": "Aloitetaan…",
         "stopped": "Pysäytetty",
         "spoken": "Kuuntelee · ääneen",
-        "subtitlesOnly": "Kuuntelee · vain tekstitys (ei kuulokkeita)"
+        "subtitlesOnly": "Kuuntelee · vain tekstitys (ei kuulokkeita)",
+        "invalidConfig": "Kieliasetuksia ei hyväksytty. Tarkista kielipari asetuksista.",
+        "paused": "Tauolla"
       }
     },
     "common": {

@@ -23,6 +23,8 @@ export interface Transcript {
   setSpeech(sink: SpeechSink | null): void;
   /** A new socket numbers speakers from 1 again: open utterances are abandoned. */
   reconnected(): void;
+  /** The session's clock (its ticker) for the fin grace: timers armed from now on go there. */
+  setClock(clock: Clock): void;
   entries(): readonly Entry[];
   leg(): Leg;
   /** Called once per message that changed something, not once per token. */
@@ -32,7 +34,10 @@ export interface Transcript {
 }
 
 export function createTranscript(o: { source: string; target: string; sessionId: string; clock?: Clock }): Transcript {
-  const clock = o.clock ?? realClock;
+  // Delegates, so the clock can be swapped after construction: the transcript
+  // is created before the session whose ticker it should run on.
+  let inner: Clock = o.clock ?? realClock;
+  const clock: Clock = { now: () => inner.now(), setTimeout: (fn, ms) => inner.setTimeout(fn, ms) };
   const conversation = new Conversation({
     leg: 'participant',
     session: o.sessionId,
@@ -82,6 +87,7 @@ export function createTranscript(o: { source: string; target: string; sessionId:
   return {
     message: (tokens) => settle(() => utterances.message(tokens)),
     setSpeech: (sink) => { speech = sink; },
+    setClock: (c) => { inner = c; },
     reconnected: () => settle(() => utterances.abandon()),
     entries: () => {
       const leg = conversation.snapshot();

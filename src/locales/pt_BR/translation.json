@@ -1716,7 +1716,9 @@
         "starting": "Iniciando…",
         "stopped": "Parado",
         "spoken": "Ouvindo · em voz alta",
-        "subtitlesOnly": "Ouvindo · só legendas (sem fones)"
+        "subtitlesOnly": "Ouvindo · só legendas (sem fones)",
+        "invalidConfig": "As configurações de idioma não foram aceitas. Verifique o par de idiomas em Configurações.",
+        "paused": "Pausado"
       }
     },
     "common": {

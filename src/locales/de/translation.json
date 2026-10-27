@@ -1716,7 +1716,9 @@
         "starting": "Startet…",
         "stopped": "Gestoppt",
         "spoken": "Hört zu · gesprochen",
-        "subtitlesOnly": "Hört zu · nur Untertitel (keine Kopfhörer)"
+        "subtitlesOnly": "Hört zu · nur Untertitel (keine Kopfhörer)",
+        "invalidConfig": "Spracheinstellungen nicht akzeptiert. Prüfe das Sprachpaar in den Einstellungen.",
+        "paused": "Pausiert"
       }
     },
     "common": {

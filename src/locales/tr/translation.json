@@ -1716,7 +1716,9 @@
         "starting": "Başlatılıyor…",
         "stopped": "Durduruldu",
         "spoken": "Dinliyor · sesli",
-        "subtitlesOnly": "Dinliyor · yalnızca altyazı (kulaklık yok)"
+        "subtitlesOnly": "Dinliyor · yalnızca altyazı (kulaklık yok)",
+        "invalidConfig": "Dil ayarları kabul edilmedi. Ayarlar'da dil çiftini kontrol edin.",
+        "paused": "Duraklatıldı"
       }
     },
     "common": {

@@ -1716,7 +1716,9 @@
         "starting": "Uruchamianie…",
         "stopped": "Zatrzymano",
         "spoken": "Słucham · na głos",
-        "subtitlesOnly": "Słucham · tylko napisy (bez słuchawek)"
+        "subtitlesOnly": "Słucham · tylko napisy (bez słuchawek)",
+        "invalidConfig": "Ustawienia języka nie zostały przyjęte. Sprawdź parę języków w Ustawieniach.",
+        "paused": "Wstrzymano"
       }
     },
     "common": {

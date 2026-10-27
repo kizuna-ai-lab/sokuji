@@ -1716,7 +1716,9 @@
         "starting": "Starten…",
         "stopped": "Gestopt",
         "spoken": "Luistert · voorgelezen",
-        "subtitlesOnly": "Luistert · alleen ondertitels (geen koptelefoon)"
+        "subtitlesOnly": "Luistert · alleen ondertitels (geen koptelefoon)",
+        "invalidConfig": "Taalinstellingen niet geaccepteerd. Controleer het talenpaar in Instellingen.",
+        "paused": "Gepauzeerd"
       }
     },
     "common": {

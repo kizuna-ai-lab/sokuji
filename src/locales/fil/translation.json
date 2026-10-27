@@ -1716,7 +1716,9 @@
         "starting": "Nagsisimula…",
         "stopped": "Huminto",
         "spoken": "Nakikinig · binabasa",
-        "subtitlesOnly": "Nakikinig · subtitle lang (walang headphones)"
+        "subtitlesOnly": "Nakikinig · subtitle lang (walang headphones)",
+        "invalidConfig": "Hindi tinanggap ang mga setting ng wika. Suriin ang pares ng wika sa Mga Setting.",
+        "paused": "Naka-pause"
       }
     },
     "common": {

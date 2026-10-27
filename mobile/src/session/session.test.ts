@@ -7,7 +7,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // session-started fails after the socket opened, and after a close during connect().
 const audio = vi.hoisted(() => ({
   recorders: [] as Array<{ cb: ((e: { buffer: unknown }) => void) | null; stopped: boolean; cleared: boolean }>,
-  notification: { show: vi.fn(async () => {}), hide: vi.fn(async () => {}) },
+  notification: {
+    show: vi.fn(async () => {}),
+    hide: vi.fn(async () => {}),
+    listeners: {} as Record<string, () => void>,
+    addEventListener: vi.fn((name: string, cb: () => void) => {
+      audio.notification.listeners[name] = cb;
+      return { remove: () => { delete audio.notification.listeners[name]; } };
+    }),
+  },
   manager: {
     setAudioSessionOptions: vi.fn(),
     observeAudioInterruptions: vi.fn(),
@@ -47,14 +55,16 @@ const lease = vi.hoisted(() => ({
   sessionEnd: vi.fn(),
 }));
 vi.mock('./lease', () => lease);
-const streams = vi.hoisted(() => [] as Array<{ handlers: Record<string, (...a: never[]) => void>; open: boolean; closed: boolean; ended: boolean }>);
+type FakeClock = { now(): number; setTimeout(fn: () => void, ms: number): () => void };
+const streams = vi.hoisted(() => [] as Array<{ handlers: Record<string, (...a: never[]) => void>; open: boolean; closed: boolean; ended: boolean; deps?: { clock?: FakeClock } }>);
 vi.mock('@shared/providers/soniox/sttStream', () => ({
   SonioxSttStream: class {
     handlers: Record<string, (...a: never[]) => void> = {};
     open = false;
     closed = false;
     ended = false;
-    constructor() { streams.push(this); }
+    deps?: { clock?: FakeClock };
+    constructor(deps?: { clock?: FakeClock }) { this.deps = deps; streams.push(this); }
     setHandlers(h: Record<string, (...a: never[]) => void>) { this.handlers = h; }
     async connect() { this.open = true; }
     sendAudio() {}
@@ -87,6 +97,7 @@ async function boot(events: SessionEvent[]) {
 beforeEach(() => {
   vi.clearAllMocks();
   audio.recorders.length = 0;
+  audio.notification.listeners = {};
   streams.length = 0;
   network.listeners.length = 0;
   lease.leaseKey.mockResolvedValue(grant);
@@ -268,6 +279,27 @@ describe('another device holds the account', () => {
     expect(statuses(events).at(-1)?.status).toBe('listening');
     await s.stop();
   });
+
+  // The next attempt spends another minute in leaseKey's 409 loop: the sentence
+  // must stay on screen for all of it, not give way to "Reconnecting…" at the retry.
+  it('keeps saying so while the next attempts wait out their 409s', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(3_500_000);
+    lease.leaseKey.mockRejectedValueOnce(new Error('lease_conflict')).mockRejectedValueOnce(new Error('lease_conflict'));
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    const first = statuses(events).findIndex((e) => e.detail === 'other_session');
+    expect(first).toBeGreaterThanOrEqual(0);
+    await vi.advanceTimersByTimeAsync(2500); // retry 1: 409s again
+    await flush();
+    await vi.advanceTimersByTimeAsync(5500); // retry 2: a grant
+    await flush();
+    expect(lease.leaseKey).toHaveBeenCalledTimes(3);
+    const after = statuses(events).slice(first);
+    expect(after.filter((e) => e.status === 'reconnecting').every((e) => e.detail === 'other_session')).toBe(true);
+    expect(after.at(-1)?.status).toBe('listening');
+    await s.stop();
+  });
 });
 
 describe('the checkpoint', () => {
@@ -350,3 +382,109 @@ describe('hearing the translation', () => {
   });
 });
 
+
+describe('the Android notification', () => {
+  // Its Stop action ends the recording natively and tells a live app: the
+  // session must end with it (lease released, 'stopped' said), or the account's
+  // one lease stays held and the next foreground reconnects into a dead mic.
+  it("Stop ends the session like the screen's Stop", async () => {
+    const events: SessionEvent[] = [];
+    await boot(events);
+    expect(audio.notification.listeners.recordingNotificationStop).toBeTypeOf('function');
+    audio.notification.listeners.recordingNotificationStop();
+    await flush();
+    expect(lease.sessionEnd).toHaveBeenCalledWith(expect.objectContaining({ leaseId: 'L1' }));
+    expect(audio.notification.hide).toHaveBeenCalledTimes(1);
+    expect(statuses(events).at(-1)?.status).toBe('stopped');
+  });
+
+  it('Pause and Resume are shown on screen', async () => {
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    audio.notification.listeners.recordingNotificationPause();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'paused' });
+    audio.notification.listeners.recordingNotificationResume();
+    expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'listening', detail: undefined });
+    await s.stop();
+  });
+});
+
+describe('the shared modules\' timers', () => {
+  // The socket-open cut-off and the keepalive live in the shared stream, the
+  // fin grace in the shared Utterances: all of them on the session's ticker.
+  it('gives the stream the ticker as its clock', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(5_000_000);
+    const events: SessionEvent[] = [];
+    const { s, rec } = await boot(events);
+    const clock = streams.at(-1)!.deps?.clock;
+    expect(clock).toBeDefined();
+    let fired = 0;
+    clock!.setTimeout(() => { fired += 1; }, 1000);
+    // time passes but no JS timer fires (none is advanced): nothing yet
+    vi.setSystemTime(5_001_000);
+    await flush();
+    expect(fired).toBe(0);
+    rec.cb!({ buffer }); // the audio callback ticks, and the timer fires
+    expect(fired).toBe(1);
+    await s.stop();
+  });
+
+  it('gives the transcript the same clock', async () => {
+    const tr = { message: vi.fn(), reconnected: vi.fn(), setClock: vi.fn() };
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript: tr, onEvent: (e) => events.push(e) });
+    await flush();
+    expect(tr.setClock).toHaveBeenCalledWith(expect.objectContaining({ setTimeout: expect.any(Function), now: expect.any(Function) }));
+    await s.stop();
+  });
+});
+
+describe('a refused configuration', () => {
+  // Soniox answers a bad language pair with a 400 and closes: retrying cannot
+  // help, so the session ends with a named error instead of reconnecting forever.
+  it('ends the session as invalid_config on a 400 from Soniox', async () => {
+    const events: SessionEvent[] = [];
+    const { rec } = await boot(events);
+    streams.at(-1)!.handlers.onError('400' as never, 'invalid target_language' as never);
+    streams.at(-1)!.handlers.onClose({ code: 1000, reason: '' } as never);
+    await flush();
+    expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'invalid_config' });
+    expect(rec.stopped).toBe(true);
+    expect(lease.sessionEnd).toHaveBeenCalledWith(expect.objectContaining({ leaseId: 'L1' }));
+    expect(lease.leaseKey).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('headphones plugged in mid-session', () => {
+  const spokenGrant = { ...grant, leaseId: 'L2', streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0 });
+
+  it('takes a new grant with the spoken shape and then speaks', async () => {
+    lease.leaseKey.mockResolvedValueOnce(grant).mockResolvedValueOnce(spokenGrant);
+    const routeCb: { fn: ((r: 'headphones' | 'bluetooth' | 'speaker' | 'other') => void) | null } = { fn: null };
+    const events: SessionEvent[] = [];
+    const s = startSession({
+      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 },
+      getRoute: async () => 'speaker',
+      onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
+      createPlayer: player,
+      onEvent: (e) => events.push(e),
+    });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    const first = streams.at(-1)!;
+    routeCb.fn?.('headphones');
+    await flush();
+    // the running stream is ended for a fresh grant; Soniox then closes it
+    expect(first.ended).toBe(true);
+    first.handlers.onClose({ code: 1000, reason: '' } as never);
+    await flush();
+    expect(lease.leaseKey).toHaveBeenCalledTimes(2);
+    expect(lease.leaseKey.mock.calls[1][0]).toMatchObject({ participantSpeech: true });
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    await s.stop();
+  });
+});

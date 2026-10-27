@@ -1716,7 +1716,9 @@
         "starting": "Avvio…",
         "stopped": "Fermato",
         "spoken": "In ascolto · ad alta voce",
-        "subtitlesOnly": "In ascolto · solo sottotitoli (senza cuffie)"
+        "subtitlesOnly": "In ascolto · solo sottotitoli (senza cuffie)",
+        "invalidConfig": "Impostazioni della lingua non accettate. Controlla la coppia di lingue nelle Impostazioni.",
+        "paused": "In pausa"
       }
     },
     "common": {

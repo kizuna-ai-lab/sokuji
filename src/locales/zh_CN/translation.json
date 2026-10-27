@@ -1716,7 +1716,9 @@
         "starting": "正在开始…",
         "stopped": "已停止",
         "spoken": "收听中 · 朗读",
-        "subtitlesOnly": "收听中 · 只显示字幕（未戴耳机）"
+        "subtitlesOnly": "收听中 · 只显示字幕（未戴耳机）",
+        "invalidConfig": "语言设置未被接受，请在设置里检查语言组合。",
+        "paused": "已暂停"
       }
     },
     "common": {

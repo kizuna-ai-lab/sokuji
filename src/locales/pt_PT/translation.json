@@ -1716,7 +1716,9 @@
         "starting": "A iniciar…",
         "stopped": "Parado",
         "spoken": "A ouvir · em voz alta",
-        "subtitlesOnly": "A ouvir · só legendas (sem auscultadores)"
+        "subtitlesOnly": "A ouvir · só legendas (sem auscultadores)",
+        "invalidConfig": "As definições de idioma não foram aceites. Verifique o par de idiomas nas Definições.",
+        "paused": "Em pausa"
       }
     },
     "common": {

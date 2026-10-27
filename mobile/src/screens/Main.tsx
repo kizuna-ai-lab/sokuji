@@ -4,6 +4,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
+import { endReason } from '../session/endReason';
 import { createTranscript, type Transcript } from '../session/transcript';
 import { createEntriesFeed } from '../session/entriesFeed';
 import { useSettings } from '../store/useSettings';
@@ -25,7 +26,9 @@ type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices'
 const CHECKPOINT_MS = 60000;
 const history = createHistoryStore(documentFs);
 
-export default function Main({ token, email, onSignOut, onAccountDeleted }: { token: string; email: string; onSignOut: () => void; onAccountDeleted: () => void }) {
+export default function Main({ token, email, onSignOut, onAccountDeleted, onSignInRequired }: { token: string; email: string; onSignOut: () => void; onAccountDeleted: () => void;
+  /** The sign-in session is gone (a 401 mid-session): the app drops the token and shows the sign-in screen. */
+  onSignInRequired: () => void }) {
   const { t } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const setSettings = useSettings((s) => s.set);
@@ -40,6 +43,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
   const stored = useRef<StoredSession | null>(null);
   const errors = useRef(0);
   const started = useRef(false);
+  const lastEvent = useRef<{ status: string; detail?: string } | null>(null);
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
@@ -52,8 +56,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
     return { ...base, leg: tr.leg(), lastStatus, endedAt };
   }
 
-  function ended() {
-    const last = snapshot(status === 'error' ? detail || 'error' : 'stopped', Date.now());
+  function ended(reason: string) {
+    const last = snapshot(reason, Date.now());
     if (last && last.leg.segments.length > 0) void history.save(last);
     if (started.current && stored.current) {
       capture('translation_session_end', sessionEndProperties({ sessionId: stored.current.id, durationMs: Date.now() - stored.current.startedAt, errorCount: errors.current }));
@@ -94,6 +98,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
     stored.current = { id: `s-${startedAt}`, startedAt, endedAt: null, source, target, leg: tr.leg(), lastStatus: 'leasing' };
     errors.current = 0;
     started.current = false;
+    lastEvent.current = null;
     setEntries([]);
     setStatus('leasing');
     setDetail('');
@@ -119,8 +124,13 @@ export default function Main({ token, email, onSignOut, onAccountDeleted }: { to
           started.current = true;
           capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform }));
         }
-        if (e.status === 'reconnecting' && e.detail) errors.current += 1;
-        if (e.status === 'error' || e.status === 'stopped') ended();
+        // A failure counts once: the retry that follows repeats its detail on the status line.
+        const prev = lastEvent.current;
+        if (e.status === 'reconnecting' && e.detail && !(prev?.status === 'reconnecting' && prev.detail === e.detail)) errors.current += 1;
+        lastEvent.current = e;
+        if (e.status === 'error' || e.status === 'stopped') ended(endReason(e.status, e.detail));
+        // The sign-in session is gone: the transcript is saved above; the app shows the sign-in screen.
+        if (e.status === 'error' && e.detail === 'sign_in_required') onSignInRequired();
         // The balance ran out: the account screen says so and how to top up.
         if (e.status === 'error' && e.detail === 'balance_exhausted') setScreen('account');
       },
@@ -184,11 +194,13 @@ function statusLine(t: (key: string) => string, status: Status | 'idle', detail:
     if (detail === 'sign_in_required') return t('mobile.main.status.signInRequired');
     if (detail === 'balance_exhausted') return t('mobile.main.status.balanceExhausted');
     if (detail === 'microphone_denied') return t('mobile.main.status.micDenied');
+    if (detail === 'invalid_config') return t('mobile.main.status.invalidConfig');
     return detail;
   }
   if (status === 'listening') {
     if (detail === 'spoken') return t('mobile.main.status.spoken');
     if (detail === 'subtitles_only') return t('mobile.main.status.subtitlesOnly');
+    if (detail === 'paused') return t('mobile.main.status.paused');
     return t('mobile.main.status.listening');
   }
   if (status === 'reconnecting') return detail === 'other_session' ? t('mobile.main.status.otherSession') : t('mobile.main.status.reconnecting');

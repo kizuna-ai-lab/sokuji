@@ -1716,7 +1716,9 @@
         "starting": "Iniciando…",
         "stopped": "Detenido",
         "spoken": "Escuchando · en voz alta",
-        "subtitlesOnly": "Escuchando · solo subtítulos (sin auriculares)"
+        "subtitlesOnly": "Escuchando · solo subtítulos (sin auriculares)",
+        "invalidConfig": "No se aceptó la configuración de idioma. Revisa el par de idiomas en Ajustes.",
+        "paused": "En pausa"
       }
     },
     "common": {

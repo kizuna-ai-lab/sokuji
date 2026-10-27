@@ -1716,7 +1716,9 @@
         "starting": "Starting…",
         "stopped": "Stopped",
         "spoken": "Listening · spoken",
-        "subtitlesOnly": "Listening · subtitles only (no headphones)"
+        "subtitlesOnly": "Listening · subtitles only (no headphones)",
+        "invalidConfig": "Language settings not accepted. Check the language pair in Settings.",
+        "paused": "Paused"
       }
     },
     "common": {

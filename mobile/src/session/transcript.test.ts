@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createTranscript } from './transcript';
+import type { Clock } from '@shared/lib/contract/clock';
 
 const tok = (text: string, status: 'original' | 'translation', is_final = true) => ({
   text,
@@ -33,5 +34,17 @@ describe('createTranscript', () => {
     t.subscribe(() => { n += 1; });
     t.message([tok('a', 'original'), tok('b', 'original'), tok('c', 'original')]);
     expect(n).toBe(1);
+  });
+
+  // The fin grace is a timer; the session hands the transcript its ticker so
+  // the grace does not run on a JS timer that Android pauses in the background.
+  it('arms the fin grace on the clock given to setClock', () => {
+    const t = createTranscript({ source: 'en', target: 'zh', sessionId: 's1' });
+    const armed: number[] = [];
+    const clock: Clock = { now: () => 0, setTimeout: (_fn, ms) => { armed.push(ms); return () => {}; } };
+    t.setClock(clock);
+    t.message([tok('Good morning.', 'original'), tok('<fin>', 'original')]);
+    t.message([tok('早上好。', 'translation')]);
+    expect(armed).toHaveLength(1);
   });
 });

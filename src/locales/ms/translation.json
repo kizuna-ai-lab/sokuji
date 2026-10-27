@@ -1716,7 +1716,9 @@
         "starting": "Memulakan…",
         "stopped": "Dihentikan",
         "spoken": "Mendengar · dibacakan",
-        "subtitlesOnly": "Mendengar · sari kata sahaja (tiada fon kepala)"
+        "subtitlesOnly": "Mendengar · sari kata sahaja (tiada fon kepala)",
+        "invalidConfig": "Tetapan bahasa tidak diterima. Semak pasangan bahasa dalam Tetapan.",
+        "paused": "Dijeda"
       }
     },
     "common": {

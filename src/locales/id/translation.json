@@ -1716,7 +1716,9 @@
         "starting": "Memulai…",
         "stopped": "Berhenti",
         "spoken": "Mendengarkan · dibacakan",
-        "subtitlesOnly": "Mendengarkan · hanya subtitel (tanpa headphone)"
+        "subtitlesOnly": "Mendengarkan · hanya subtitel (tanpa headphone)",
+        "invalidConfig": "Pengaturan bahasa tidak diterima. Periksa pasangan bahasa di Pengaturan.",
+        "paused": "Dijeda"
       }
     },
     "common": {
