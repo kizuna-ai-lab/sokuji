@@ -16,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createSonioxAdapter } from '../../../src/providers/soniox/adapter';
-import { SONIOX_STT_MODEL } from '../../../src/providers/soniox/config';
+import { SONIOX_STT_MODEL } from '../../../src/providers/soniox/sttStream';
 import { SONIOX_DEFAULT_VOICE } from '../../../src/lib/soniox/ttsCatalog';
 import { realClock } from '../../../src/lib/contract/clock';
 import { SAMPLE_RATE, type AdapterEvents } from '../../../src/lib/contract/adapter';

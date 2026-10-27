@@ -10,7 +10,9 @@ describe('Soniox wire modules without a DOM', () => {
 
   it('imports the lease client and the model constant', async () => {
     const { createKizunaLease } = await import('./lease');
-    const { SONIOX_STT_MODEL } = await import('./model');
+    // The model name lives with the protocol layer the app already shares,
+    // not in config.ts, which reaches the log store and React.
+    const { SONIOX_STT_MODEL } = await import('./sttStream');
     expect(typeof createKizunaLease({ apiUrl: () => 'https://example.test/api' })).toBe('function');
     expect(SONIOX_STT_MODEL).toBe('stt-rt-v5');
   });

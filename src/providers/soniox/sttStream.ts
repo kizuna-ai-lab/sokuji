@@ -23,6 +23,9 @@ import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contract/clock';
 import { nativeSocket, sonioxProtocols, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
 
+/** The Soniox real-time model this app transcribes with, shared with the mobile app. */
+export const SONIOX_STT_MODEL = 'stt-rt-v5';
+
 export interface SonioxToken {
   text: string;
   is_final?: boolean;
