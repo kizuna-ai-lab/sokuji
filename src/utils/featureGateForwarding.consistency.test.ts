@@ -109,6 +109,26 @@ describe('feature gates reach the builds that need them', () => {
 
     expect(wrongNamespace).toEqual([]);
   });
+
+  // The backend a build talks to when the repository variable is unset. It
+  // must be the one the code itself falls back to: the workflow's own fallback
+  // once named a host that no longer answers (522), so a deleted variable
+  // would have shipped a client that cannot reach its backend.
+  it('falls back to the same backend as environment.ts', () => {
+    const codeDefault = repoFile('src/utils/environment.ts').match(
+      /import\.meta\.env\.VITE_BACKEND_URL \|\| '([^']+)'/
+    )?.[1];
+    expect(codeDefault).toBe('https://sokuji.kizuna.ai');
+
+    const buildBlocks = envBlocks(repoFile('.github/workflows/build.yml')).filter((block) =>
+      block.env.has('VITE_BACKEND_URL')
+    );
+    const otherFallback = buildBlocks
+      .filter((block) => block.env.get('VITE_BACKEND_URL') !== `\${{ vars.VITE_BACKEND_URL || '${codeDefault}' }}`)
+      .map((block) => ({ line: block.line, value: block.env.get('VITE_BACKEND_URL') }));
+
+    expect(otherFallback).toEqual([]);
+  });
 });
 
 /**
