@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { auditRoot } from '../../scripts/mobile-shared-audit.mjs';
 
 // The audit itself, on a throwaway tree: what it must catch and what it must resolve.
@@ -25,6 +26,13 @@ beforeAll(() => {
   write('src/unresolved.ts', "import { x } from './does-not-exist';\nexport const u = x;\n");
   write('src/jsspec.ts', "import { mode } from './vite-only.js';\nexport const j = mode;\n");
   write('src/dir/index.ts', 'export const d = 1;\n');
+  // A quote inside a regex literal is not the start of a string.
+  write('src/regex-quote.ts', "const re = /[\"']/;\n// window.alert is only named in this comment\nexport const q = re;\n");
+  // Nor is a `/*` inside one the start of a comment that could hide real code.
+  write('src/regex-star.ts', "const re = /a\\/*b/;\nwindow.alert(1);\nexport const s = re; /* end */\n");
+  write('src/window-key.ts', "const o = { window: 1 };\nwindow.addEventListener('x', () => o);\nexport const w = o;\n");
+  write('src/window-local.ts', 'export function f(tail: string) {\n  const window = tail.slice(1);\n  return window.length;\n}\n');
+  write('src/node-builtin.ts', "import { readFileSync } from 'node:fs';\nimport path from 'path';\nexport const n = [readFileSync, path];\n");
 });
 afterAll(() => rmSync(repo, { recursive: true, force: true }));
 
@@ -70,5 +78,31 @@ describe('mobile-shared-audit', () => {
 
   it('reports a root that does not exist', () => {
     expect(auditRoot(repo, 'src/nope.ts').findings).toEqual([{ file: 'src/nope.ts', flag: 'missing file' }]);
+  });
+
+  it('reads a regex literal with quotes in it as a regex, not a string', () => {
+    expect(auditRoot(repo, 'src/regex-quote.ts').findings).toEqual([]);
+  });
+
+  it('does not let a regex literal hide the code after it', () => {
+    expect(auditRoot(repo, 'src/regex-star.ts').findings).toEqual([{ file: 'src/regex-star.ts', flag: 'window' }]);
+  });
+
+  it('exempts a file from the window flag only when it declares a variable named window', () => {
+    expect(auditRoot(repo, 'src/window-key.ts').findings).toEqual([{ file: 'src/window-key.ts', flag: 'window' }]);
+    expect(auditRoot(repo, 'src/window-local.ts').findings).toEqual([]);
+  });
+
+  it('flags Node built-in modules, with or without the node: prefix', () => {
+    expect(auditRoot(repo, 'src/node-builtin.ts').findings).toEqual([
+      { file: 'src/node-builtin.ts', flag: 'node built-in node:fs' },
+      { file: 'src/node-builtin.ts', flag: 'node built-in path' },
+    ]);
+  });
+
+  it('fails when run with nothing to audit, rather than reporting a pass', () => {
+    const script = resolve(__dirname, '../../scripts/mobile-shared-audit.mjs');
+    expect(spawnSync(process.execPath, [script], { encoding: 'utf8' }).status).not.toBe(0);
+    expect(spawnSync(process.execPath, [script, repo], { encoding: 'utf8' }).status).not.toBe(0);
   });
 });

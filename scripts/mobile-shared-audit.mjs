@@ -4,16 +4,19 @@
 // workers, stylesheet imports, DOM/Electron/extension globals, Web Audio, and
 // packages that must not be duplicated or do not exist on a phone.
 //
-// Scope and limits: comments are stripped before anything is matched; string
-// contents are not, so a global named inside a string literal is still a
-// finding. Type-only statements (`import type`, `export type … from`) are
+// Scope and limits: comments are stripped before anything is matched, by
+// TypeScript's own parser, so regex literals and templates are read as such;
+// string contents are kept, so a global named inside a string literal is still
+// a finding. Type-only statements (`import type`, `export type … from`) are
 // skipped; a value import that happens to carry only `type` specifiers is
 // treated as a value import. Path aliases (`@/…`) are not resolved and show up
-// as packages. A file that declares its own `window` variable is exempt from
-// the `window` flag as a whole.
+// as packages. A file that declares its own variable named `window`
+// (`const`/`let`/`var window`) is exempt from the `window` flag as a whole.
 import { readFileSync, existsSync, statSync } from 'node:fs';
+import { isBuiltin } from 'node:module';
 import { dirname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 export const FLAGS = {
   'import.meta': /import\.meta\b/,
@@ -31,35 +34,23 @@ export const FORBIDDEN_PACKAGES = new Set([
   'react', 'react-dom', 'posthog-js', 'electron', 'i18next-browser-languagedetector', 'vite',
 ]);
 
-const LOCAL_WINDOW_RE = /\b(?:const|let|var)\s+window\b|\bwindow\s*(?::|=[^=])/;
+const LOCAL_WINDOW_RE = /\b(?:const|let|var)\s+window\b/;
 // A static import/export-from clause: names, braces, commas, `* as`, newlines; never `=`, `(`, `;` or quotes,
 // so an `export const` statement cannot be swallowed up to a later `from`.
 const STATIC_RE = /(?:^|[;\n])\s*(import|export)\s+(type\s+)?([\w*{}\s,$]*?)\s*from\s*['"]([^'"]+)['"]/g;
 const BARE_RE = /(?:^|[;\n])\s*import\s*['"]([^'"]+)['"]/g;
 const DYNAMIC_RE = /\b(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
-/** Source without `//` and `/* *\/` comments; strings (including templates) are left intact. */
-export function stripComments(src) {
-  let out = '';
-  let i = 0;
-  let quote = null;
-  while (i < src.length) {
-    const ch = src[i];
-    const next = src[i + 1];
-    if (quote) {
-      out += ch;
-      if (ch === '\\') { out += next ?? ''; i += 2; continue; }
-      if (ch === quote) quote = null;
-      i += 1;
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; out += ch; i += 1; continue; }
-    if (ch === '/' && next === '/') { while (i < src.length && src[i] !== '\n') i += 1; continue; }
-    if (ch === '/' && next === '*') { const end = src.indexOf('*/', i + 2); i = end === -1 ? src.length : end + 2; continue; }
-    out += ch;
-    i += 1;
-  }
-  return out;
+/**
+ * Source without `//` and `/* *\/` comments; strings, templates and regex
+ * literals are left intact. Parsed and reprinted by TypeScript: telling a
+ * regex literal from a division, or a quote inside one from the start of a
+ * string, takes a parser.
+ */
+export function stripComments(src, fileName = 'module.ts') {
+  const kind = /\.[jt]sx$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const file = ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, false, kind);
+  return ts.createPrinter({ removeComments: true }).printFile(file);
 }
 
 /** The value-import specifiers of a (comment-stripped) module source. */
@@ -105,7 +96,7 @@ export function auditRoot(repoRoot, root) {
     seen.add(file);
     if (file.endsWith('.json')) continue;
     const rel = relative(repoRoot, file);
-    const src = stripComments(readFileSync(file, 'utf8'));
+    const src = stripComments(readFileSync(file, 'utf8'), file);
     const localWindow = LOCAL_WINDOW_RE.test(src);
     for (const [name, re] of Object.entries(FLAGS)) {
       if (name === 'window' && localWindow) continue;
@@ -116,6 +107,11 @@ export function auditRoot(repoRoot, root) {
         const resolved = resolveRelative(file, spec);
         if (resolved) stack.push(resolved);
         else findings.push({ file: rel, flag: `unresolved import '${spec}'` });
+        continue;
+      }
+      // Node's own modules do not exist on a phone, with or without `node:`.
+      if (isBuiltin(spec)) {
+        findings.push({ file: rel, flag: `node built-in ${spec}` });
         continue;
       }
       const pkg = packageName(spec);
@@ -143,6 +139,11 @@ export function auditRoots(repoRoot, roots) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) {
   const [repoRoot, ...roots] = process.argv.slice(2);
+  if (!repoRoot || roots.length === 0) {
+    // Nothing audited must not read as a pass in CI.
+    console.error('usage: node scripts/mobile-shared-audit.mjs <repo-root> <root>...');
+    process.exit(2);
+  }
   for (const root of roots) {
     const r = auditRoot(repoRoot, root);
     console.log(`== ${root}: ${r.files.length} files; packages: ${Object.keys(r.packages).join(', ') || '(none)'}`);
