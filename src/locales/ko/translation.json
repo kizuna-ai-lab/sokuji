@@ -1694,7 +1694,11 @@
       "textSizeMedium": "보통",
       "textSizeLarge": "크게",
       "listen": "번역 읽어 주기",
-      "devices": "오디오 기기"
+      "devices": "오디오 기기",
+      "groupLanguages": "언어",
+      "groupDisplay": "표시",
+      "groupAudio": "읽어 주기 및 기기",
+      "locked": "변경하려면 세션을 중지하세요."
     },
     "history": {
       "rename": "이름 바꾸기",
@@ -1720,8 +1724,12 @@
         "spoken": "듣는 중 · 읽어 주기",
         "subtitlesOnly": "듣는 중 · 자막만 (헤드폰 없음)",
         "invalidConfig": "언어 설정이 거부되었습니다. 설정에서 언어 쌍을 확인하세요.",
-        "paused": "일시정지됨"
-      }
+        "paused": "일시정지됨",
+        "stopping": "중지하는 중…"
+      },
+      "idleHint": "시작을 누르면 들리는 말을 번역합니다. 번역 언어: {{language}}",
+      "menu": "메뉴",
+      "changeLanguages": "설정에서 언어 변경"
     },
     "common": {
       "back": "뒤로"
@@ -1739,6 +1747,10 @@
       "usb": "USB 마이크",
       "noBluetoothMic": "블루투스 헤드셋은 번역 재생에만 쓰고 마이크로는 쓰지 않습니다.",
       "output": "재생 기기"
+    },
+    "languages": {
+      "search": "언어 검색",
+      "none": "일치하는 언어가 없습니다"
     }
   }
 }

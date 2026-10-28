@@ -1,5 +1,7 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import type { Entry } from '@shared/lib/projection/types';
+import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
 
 // Subtitle size per the setting: the translation is what is read, the source
 // sits above it smaller and quieter (design: direction C).
@@ -8,6 +10,15 @@ const SIZES = {
   medium: { source: 15, translation: 22 },
   large: { source: 17, translation: 28 },
 } as const;
+
+// How far each line follows the system's text size. The translation grows the
+// most; the source and the notices less, so at the largest sizes they do not
+// crowd the current translation off the screen (design scope: Subtitles).
+const SOURCE_MAX_SCALE = 1.5;
+const TRANSLATION_MAX_SCALE = 2.5;
+
+// Scrolled back further than this, a new line does not pull the list down to it.
+const FOLLOW_WITHIN = 48;
 
 export default function Subtitles({
   entries,
@@ -22,7 +33,7 @@ export default function Subtitles({
   const size = SIZES[textSize];
   return (
     <FlatList
-      style={styles.list}
+      className="w-full flex-1"
       data={entries}
       inverted
       keyExtractor={(e) => e.id}
@@ -30,35 +41,28 @@ export default function Subtitles({
       maxToRenderPerBatch={10}
       windowSize={5}
       removeClippedSubviews
+      // Reading older lines: they stay where they are as new ones arrive below.
+      maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: FOLLOW_WITHIN }}
       renderItem={({ item }) =>
         item.kind === 'exchange' ? (
-          <View style={styles.row}>
+          <View className="border-border gap-1 border-b px-4 py-3">
             {bilingual && (
-              <Text style={[styles.source, { fontSize: size.source }]}>
+              <Text className="text-muted-foreground" style={{ fontSize: size.source }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
                 {item.source.map((r) => (
-                  <Text key={r.key} style={r.final ? undefined : styles.pending}>{r.text}</Text>
+                  <Text key={r.key} className={cn(!r.final && 'opacity-60')} style={{ fontSize: size.source }}>{r.text}</Text>
                 ))}
               </Text>
             )}
-            <Text style={[styles.translation, { fontSize: size.translation }]}>
+            <Text className="font-medium" style={{ fontSize: size.translation }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
               {item.translation.map((r) => (
-                <Text key={r.key} style={r.final ? undefined : styles.pending}>{r.text}</Text>
+                <Text key={r.key} className={cn(!r.final && 'text-muted-foreground')} style={{ fontSize: size.translation }}>{r.text}</Text>
               ))}
             </Text>
           </View>
         ) : (
-          <Text style={styles.notice}>{item.message}</Text>
+          <Text className="text-destructive px-4 py-2 text-sm" maxFontSizeMultiplier={SOURCE_MAX_SCALE}>{item.message}</Text>
         )
       }
     />
   );
 }
-
-const styles = StyleSheet.create({
-  list: { flex: 1, width: '100%' },
-  row: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e5e5', gap: 4 },
-  source: { color: '#777' },
-  translation: { color: '#111', fontWeight: '500' },
-  pending: { color: '#999' },
-  notice: { paddingHorizontal: 16, paddingVertical: 6, color: '#b00', fontSize: 13 },
-});

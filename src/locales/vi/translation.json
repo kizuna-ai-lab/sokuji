@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Vừa",
       "textSizeLarge": "Lớn",
       "listen": "Nghe bản dịch",
-      "devices": "Thiết bị âm thanh"
+      "devices": "Thiết bị âm thanh",
+      "groupLanguages": "Ngôn ngữ",
+      "groupDisplay": "Hiển thị",
+      "groupAudio": "Đọc và thiết bị",
+      "locked": "Hãy dừng phiên để thay đổi mục này."
     },
     "history": {
       "rename": "Đổi tên",
@@ -1720,8 +1724,12 @@
         "spoken": "Đang nghe · đọc to",
         "subtitlesOnly": "Đang nghe · chỉ phụ đề (không có tai nghe)",
         "invalidConfig": "Cài đặt ngôn ngữ không được chấp nhận. Hãy kiểm tra cặp ngôn ngữ trong Cài đặt.",
-        "paused": "Đã tạm dừng"
-      }
+        "paused": "Đã tạm dừng",
+        "stopping": "Đang dừng…"
+      },
+      "idleHint": "Chạm Bắt đầu để dịch những gì bạn nghe sang {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Đổi ngôn ngữ trong Cài đặt"
     },
     "common": {
       "back": "Quay lại"
@@ -1739,6 +1747,10 @@
       "usb": "Micrô USB",
       "noBluetoothMic": "Tai nghe Bluetooth phát bản dịch nhưng không dùng làm micrô.",
       "output": "Thiết bị phát"
+    },
+    "languages": {
+      "search": "Tìm ngôn ngữ",
+      "none": "Không có ngôn ngữ phù hợp"
     }
   }
 }

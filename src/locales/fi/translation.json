@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Keskikoko",
       "textSizeLarge": "Suuri",
       "listen": "Kuule käännös",
-      "devices": "Äänilaitteet"
+      "devices": "Äänilaitteet",
+      "groupLanguages": "Kielet",
+      "groupDisplay": "Näyttö",
+      "groupAudio": "Puhe ja laitteet",
+      "locked": "Pysäytä istunto muuttaaksesi tätä."
     },
     "history": {
       "rename": "Nimeä uudelleen",
@@ -1720,8 +1724,12 @@
         "spoken": "Kuuntelee · ääneen",
         "subtitlesOnly": "Kuuntelee · vain tekstitys (ei kuulokkeita)",
         "invalidConfig": "Kieliasetuksia ei hyväksytty. Tarkista kielipari asetuksista.",
-        "paused": "Tauolla"
-      }
+        "paused": "Tauolla",
+        "stopping": "Pysäytetään…"
+      },
+      "idleHint": "Napauta Aloita, niin kuulemasi käännetään. Kohdekieli: {{language}}.",
+      "menu": "Valikko",
+      "changeLanguages": "Vaihda kielet asetuksista"
     },
     "common": {
       "back": "Takaisin"
@@ -1739,6 +1747,10 @@
       "usb": "USB-mikrofoni",
       "noBluetoothMic": "Bluetooth-kuulokkeet toistavat käännöksen, mutta niitä ei käytetä mikrofonina.",
       "output": "Toistolaite"
+    },
+    "languages": {
+      "search": "Hae kieliä",
+      "none": "Ei vastaavia kieliä"
     }
   }
 }

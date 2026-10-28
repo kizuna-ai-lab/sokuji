@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Sedang",
       "textSizeLarge": "Besar",
       "listen": "Dengar terjemahan",
-      "devices": "Perangkat audio"
+      "devices": "Perangkat audio",
+      "groupLanguages": "Bahasa",
+      "groupDisplay": "Layar",
+      "groupAudio": "Suara dan perangkat",
+      "locked": "Hentikan sesi untuk mengubah ini."
     },
     "history": {
       "rename": "Ganti nama",
@@ -1720,8 +1724,12 @@
         "spoken": "Mendengarkan · dibacakan",
         "subtitlesOnly": "Mendengarkan · hanya subtitel (tanpa headphone)",
         "invalidConfig": "Pengaturan bahasa tidak diterima. Periksa pasangan bahasa di Pengaturan.",
-        "paused": "Dijeda"
-      }
+        "paused": "Dijeda",
+        "stopping": "Menghentikan…"
+      },
+      "idleHint": "Ketuk Mulai untuk menerjemahkan yang Anda dengar. Bahasa terjemahan: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Ubah bahasa di Pengaturan"
     },
     "common": {
       "back": "Kembali"
@@ -1739,6 +1747,10 @@
       "usb": "Mikrofon USB",
       "noBluetoothMic": "Headset Bluetooth memutar terjemahan tetapi tidak dipakai sebagai mikrofon.",
       "output": "Perangkat pemutar"
+    },
+    "languages": {
+      "search": "Cari bahasa",
+      "none": "Tidak ada bahasa yang cocok"
     }
   }
 }

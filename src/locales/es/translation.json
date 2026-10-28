@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Mediano",
       "textSizeLarge": "Grande",
       "listen": "Oír la traducción",
-      "devices": "Dispositivos de audio"
+      "devices": "Dispositivos de audio",
+      "groupLanguages": "Idiomas",
+      "groupDisplay": "Pantalla",
+      "groupAudio": "Voz y dispositivos",
+      "locked": "Detén la sesión para cambiar esto."
     },
     "history": {
       "rename": "Renombrar",
@@ -1720,8 +1724,12 @@
         "spoken": "Escuchando · en voz alta",
         "subtitlesOnly": "Escuchando · solo subtítulos (sin auriculares)",
         "invalidConfig": "No se aceptó la configuración de idioma. Revisa el par de idiomas en Ajustes.",
-        "paused": "En pausa"
-      }
+        "paused": "En pausa",
+        "stopping": "Deteniendo…"
+      },
+      "idleHint": "Toca Iniciar para traducir lo que oyes al {{language}}.",
+      "menu": "Menú",
+      "changeLanguages": "Cambiar los idiomas en Ajustes"
     },
     "common": {
       "back": "Atrás"
@@ -1739,6 +1747,10 @@
       "usb": "Micrófono USB",
       "noBluetoothMic": "Los auriculares Bluetooth reproducen la traducción pero no se usan como micrófono.",
       "output": "Dispositivo de reproducción"
+    },
+    "languages": {
+      "search": "Buscar idiomas",
+      "none": "Ningún idioma coincide"
     }
   }
 }

@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Normaal",
       "textSizeLarge": "Groot",
       "listen": "Vertaling horen",
-      "devices": "Audioapparaten"
+      "devices": "Audioapparaten",
+      "groupLanguages": "Talen",
+      "groupDisplay": "Scherm",
+      "groupAudio": "Spraak en apparaten",
+      "locked": "Stop de sessie om dit te wijzigen."
     },
     "history": {
       "rename": "Naam wijzigen",
@@ -1720,8 +1724,12 @@
         "spoken": "Luistert · voorgelezen",
         "subtitlesOnly": "Luistert · alleen ondertitels (geen koptelefoon)",
         "invalidConfig": "Taalinstellingen niet geaccepteerd. Controleer het talenpaar in Instellingen.",
-        "paused": "Gepauzeerd"
-      }
+        "paused": "Gepauzeerd",
+        "stopping": "Stoppen…"
+      },
+      "idleHint": "Tik op Start om wat je hoort te vertalen naar het {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Talen wijzigen in Instellingen"
     },
     "common": {
       "back": "Terug"
@@ -1739,6 +1747,10 @@
       "usb": "USB-microfoon",
       "noBluetoothMic": "Bluetooth-koptelefoons spelen de vertaling af maar dienen niet als microfoon.",
       "output": "Afspeelapparaat"
+    },
+    "languages": {
+      "search": "Talen zoeken",
+      "none": "Geen overeenkomende talen"
     }
   }
 }

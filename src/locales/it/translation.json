@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Medio",
       "textSizeLarge": "Grande",
       "listen": "Ascolta la traduzione",
-      "devices": "Dispositivi audio"
+      "devices": "Dispositivi audio",
+      "groupLanguages": "Lingue",
+      "groupDisplay": "Visualizzazione",
+      "groupAudio": "Voce e dispositivi",
+      "locked": "Ferma la sessione per modificarlo."
     },
     "history": {
       "rename": "Rinomina",
@@ -1720,8 +1724,12 @@
         "spoken": "In ascolto · ad alta voce",
         "subtitlesOnly": "In ascolto · solo sottotitoli (senza cuffie)",
         "invalidConfig": "Impostazioni della lingua non accettate. Controlla la coppia di lingue nelle Impostazioni.",
-        "paused": "In pausa"
-      }
+        "paused": "In pausa",
+        "stopping": "Arresto…"
+      },
+      "idleHint": "Tocca Avvia per tradurre ciò che senti in {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Cambia le lingue nelle Impostazioni"
     },
     "common": {
       "back": "Indietro"
@@ -1739,6 +1747,10 @@
       "usb": "Microfono USB",
       "noBluetoothMic": "Le cuffie Bluetooth riproducono la traduzione ma non fanno da microfono.",
       "output": "Dispositivo di riproduzione"
+    },
+    "languages": {
+      "search": "Cerca lingue",
+      "none": "Nessuna lingua corrispondente"
     }
   }
 }

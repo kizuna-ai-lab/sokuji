@@ -1694,7 +1694,11 @@
       "textSizeMedium": "בינוני",
       "textSizeLarge": "גדול",
       "listen": "לשמוע את התרגום",
-      "devices": "התקני שמע"
+      "devices": "התקני שמע",
+      "groupLanguages": "שפות",
+      "groupDisplay": "תצוגה",
+      "groupAudio": "הקראה והתקנים",
+      "locked": "יש לעצור את הסשן כדי לשנות זאת."
     },
     "history": {
       "rename": "שינוי שם",
@@ -1720,8 +1724,12 @@
         "spoken": "מאזין · בקול",
         "subtitlesOnly": "מאזין · כתוביות בלבד (ללא אוזניות)",
         "invalidConfig": "הגדרות השפה לא התקבלו. בדקו את צמד השפות בהגדרות.",
-        "paused": "מושהה"
-      }
+        "paused": "מושהה",
+        "stopping": "עוצר…"
+      },
+      "idleHint": "הקישו על „התחלה” כדי לתרגם את מה שאתם שומעים. שפת התרגום: {{language}}.",
+      "menu": "תפריט",
+      "changeLanguages": "שינוי השפות בהגדרות"
     },
     "common": {
       "back": "חזרה"
@@ -1739,6 +1747,10 @@
       "usb": "מיקרופון USB",
       "noBluetoothMic": "אוזניות Bluetooth משמיעות את התרגום אך אינן משמשות כמיקרופון.",
       "output": "התקן השמעה"
+    },
+    "languages": {
+      "search": "חיפוש שפות",
+      "none": "אין שפות תואמות"
     }
   }
 }

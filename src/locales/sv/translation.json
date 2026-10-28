@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Mellan",
       "textSizeLarge": "Stor",
       "listen": "Hör översättningen",
-      "devices": "Ljudenheter"
+      "devices": "Ljudenheter",
+      "groupLanguages": "Språk",
+      "groupDisplay": "Visning",
+      "groupAudio": "Uppläsning och enheter",
+      "locked": "Stoppa sessionen för att ändra detta."
     },
     "history": {
       "rename": "Byt namn",
@@ -1720,8 +1724,12 @@
         "spoken": "Lyssnar · uppläst",
         "subtitlesOnly": "Lyssnar · bara undertexter (inga hörlurar)",
         "invalidConfig": "Språkinställningarna godtogs inte. Kontrollera språkparet i Inställningar.",
-        "paused": "Pausad"
-      }
+        "paused": "Pausad",
+        "stopping": "Stoppar…"
+      },
+      "idleHint": "Tryck på Starta för att översätta det du hör till {{language}}.",
+      "menu": "Meny",
+      "changeLanguages": "Ändra språken i Inställningar"
     },
     "common": {
       "back": "Tillbaka"
@@ -1739,6 +1747,10 @@
       "usb": "USB-mikrofon",
       "noBluetoothMic": "Bluetooth-hörlurar spelar översättningen men används inte som mikrofon.",
       "output": "Uppspelningsenhet"
+    },
+    "languages": {
+      "search": "Sök språk",
+      "none": "Inga matchande språk"
     }
   }
 }

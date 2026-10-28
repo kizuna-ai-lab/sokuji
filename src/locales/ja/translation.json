@@ -1694,7 +1694,11 @@
       "textSizeMedium": "中",
       "textSizeLarge": "大",
       "listen": "翻訳を読み上げる",
-      "devices": "オーディオ機器"
+      "devices": "オーディオ機器",
+      "groupLanguages": "言語",
+      "groupDisplay": "表示",
+      "groupAudio": "読み上げと機器",
+      "locked": "変更するにはセッションを停止してください。"
     },
     "history": {
       "rename": "名前を変更",
@@ -1720,8 +1724,12 @@
         "spoken": "聞き取り中 · 読み上げ",
         "subtitlesOnly": "聞き取り中 · 字幕のみ（ヘッドホンなし）",
         "invalidConfig": "言語設定が受け付けられませんでした。設定で言語の組み合わせを確認してください。",
-        "paused": "一時停止中"
-      }
+        "paused": "一時停止中",
+        "stopping": "停止しています…"
+      },
+      "idleHint": "「開始」をタップすると、聞こえた音声を{{language}}に翻訳します。",
+      "menu": "メニュー",
+      "changeLanguages": "設定で言語を変更します"
     },
     "common": {
       "back": "戻る"
@@ -1739,6 +1747,10 @@
       "usb": "USB マイク",
       "noBluetoothMic": "Bluetooth ヘッドホンは翻訳の再生に使い、マイクとしては使いません。",
       "output": "再生先"
+    },
+    "languages": {
+      "search": "言語を検索",
+      "none": "一致する言語がありません"
     }
   }
 }

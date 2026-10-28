@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Medium",
       "textSizeLarge": "Large",
       "listen": "Hear the translation",
-      "devices": "Audio devices"
+      "devices": "Audio devices",
+      "groupLanguages": "Languages",
+      "groupDisplay": "Display",
+      "groupAudio": "Speech and devices",
+      "locked": "Stop the session to change this."
     },
     "history": {
       "rename": "Rename",
@@ -1720,8 +1724,12 @@
         "spoken": "Listening · spoken",
         "subtitlesOnly": "Listening · subtitles only (no headphones)",
         "invalidConfig": "Language settings not accepted. Check the language pair in Settings.",
-        "paused": "Paused"
-      }
+        "paused": "Paused",
+        "stopping": "Stopping…"
+      },
+      "idleHint": "Tap Start to translate what you hear into {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Change the languages in Settings"
     },
     "common": {
       "back": "Back"
@@ -1739,6 +1747,10 @@
       "usb": "USB microphone",
       "noBluetoothMic": "Bluetooth headsets play the translation but are not used as the microphone.",
       "output": "Playback device"
+    },
+    "languages": {
+      "search": "Search languages",
+      "none": "No matching languages"
     }
   }
 }

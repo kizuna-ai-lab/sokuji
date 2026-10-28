@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Katamtaman",
       "textSizeLarge": "Malaki",
       "listen": "Pakinggan ang salin",
-      "devices": "Mga audio device"
+      "devices": "Mga audio device",
+      "groupLanguages": "Mga wika",
+      "groupDisplay": "Display",
+      "groupAudio": "Pagbasa at mga device",
+      "locked": "Ihinto ang session para mabago ito."
     },
     "history": {
       "rename": "Palitan ang pangalan",
@@ -1720,8 +1724,12 @@
         "spoken": "Nakikinig · binabasa",
         "subtitlesOnly": "Nakikinig · subtitle lang (walang headphones)",
         "invalidConfig": "Hindi tinanggap ang mga setting ng wika. Suriin ang pares ng wika sa Mga Setting.",
-        "paused": "Naka-pause"
-      }
+        "paused": "Naka-pause",
+        "stopping": "Humihinto…"
+      },
+      "idleHint": "I-tap ang Simulan para isalin ang naririnig mo. Wika ng salin: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Palitan ang mga wika sa Mga setting"
     },
     "common": {
       "back": "Bumalik"
@@ -1739,6 +1747,10 @@
       "usb": "USB na mikropono",
       "noBluetoothMic": "Nagpapatugtog ng salin ang Bluetooth headset pero hindi ginagamit bilang mikropono.",
       "output": "Playback device"
+    },
+    "languages": {
+      "search": "Maghanap ng wika",
+      "none": "Walang tugmang wika"
     }
   }
 }

@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Orta",
       "textSizeLarge": "Büyük",
       "listen": "Çeviriyi duy",
-      "devices": "Ses aygıtları"
+      "devices": "Ses aygıtları",
+      "groupLanguages": "Diller",
+      "groupDisplay": "Görüntü",
+      "groupAudio": "Seslendirme ve aygıtlar",
+      "locked": "Bunu değiştirmek için oturumu durdurun."
     },
     "history": {
       "rename": "Yeniden adlandır",
@@ -1720,8 +1724,12 @@
         "spoken": "Dinliyor · sesli",
         "subtitlesOnly": "Dinliyor · yalnızca altyazı (kulaklık yok)",
         "invalidConfig": "Dil ayarları kabul edilmedi. Ayarlar'da dil çiftini kontrol edin.",
-        "paused": "Duraklatıldı"
-      }
+        "paused": "Duraklatıldı",
+        "stopping": "Durduruluyor…"
+      },
+      "idleHint": "Duyduğunuzu çevirmek için Başlat'a dokunun. Çeviri dili: {{language}}.",
+      "menu": "Menü",
+      "changeLanguages": "Dilleri Ayarlar'da değiştirin"
     },
     "common": {
       "back": "Geri"
@@ -1739,6 +1747,10 @@
       "usb": "USB mikrofon",
       "noBluetoothMic": "Bluetooth kulaklıklar çeviriyi çalar ama mikrofon olarak kullanılmaz.",
       "output": "Çalma aygıtı"
+    },
+    "languages": {
+      "search": "Dil ara",
+      "none": "Eşleşen dil yok"
     }
   }
 }

@@ -1694,7 +1694,11 @@
       "textSizeMedium": "中",
       "textSizeLarge": "大",
       "listen": "聆聽翻譯朗讀",
-      "devices": "聲音裝置"
+      "devices": "聲音裝置",
+      "groupLanguages": "語言",
+      "groupDisplay": "顯示",
+      "groupAudio": "朗讀與裝置",
+      "locked": "停止對話後才能變更。"
     },
     "history": {
       "rename": "重新命名",
@@ -1720,8 +1724,12 @@
         "spoken": "聆聽中 · 朗讀",
         "subtitlesOnly": "聆聽中 · 只顯示字幕（未戴耳機）",
         "invalidConfig": "語言設定未被接受，請在設定中檢查語言組合。",
-        "paused": "已暫停"
-      }
+        "paused": "已暫停",
+        "stopping": "正在停止…"
+      },
+      "idleHint": "點「開始」，將聽到的語音翻譯成{{language}}。",
+      "menu": "選單",
+      "changeLanguages": "在設定中變更語言"
     },
     "common": {
       "back": "返回"
@@ -1739,6 +1747,10 @@
       "usb": "USB 麥克風",
       "noBluetoothMic": "藍牙耳機只用來播放譯文，不作為麥克風。",
       "output": "播放裝置"
+    },
+    "languages": {
+      "search": "搜尋語言",
+      "none": "沒有相符的語言"
     }
   }
 }

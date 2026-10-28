@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, BackHandler, Button, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, BackHandler, useWindowDimensions, View, type HostInstance } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
+import { CircleAlert, History as HistoryIcon, Menu, Play, Settings as SettingsIcon, Square, UserRound } from 'lucide-react-native';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Icon } from '@/components/ui/icon';
+import { Text } from '@/components/ui/text';
+import { refocus } from '@/components/focus';
+import { useBusy } from '@/lib/useBusy';
+import { cn } from '@/lib/utils';
+import { languageName } from '../i18n/languages';
+import { idleHint, pairLabel, statusLine, statusTone } from './mainText';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
 import { endReason } from '../session/endReason';
@@ -20,6 +31,9 @@ import { capture, platform, sessionEndProperties, sessionStartProperties } from 
 
 const KEEP_AWAKE_TAG = 'sokuji-session';
 
+// From about the first accessibility size the pair takes its own line above Start.
+const STACK_FROM_FONT_SCALE = 1.35;
+
 type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices';
 
 // The history store writes the running session every minute (ticker time) and at its end.
@@ -29,14 +43,16 @@ const history = createHistoryStore(documentFs);
 export default function Main({ token, email, onSignOut, onAccountDeleted, onSignInRequired }: { token: string; email: string; onSignOut: () => void; onAccountDeleted: () => void;
   /** The sign-in session is gone (a 401 mid-session): the app drops the token and shows the sign-in screen. */
   onSignInRequired: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const settings = useSettings((s) => s.settings);
-  const setSettings = useSettings((s) => s.set);
   const [status, setStatus] = useState<Status | 'idle'>('idle');
   const [detail, setDetail] = useState('');
   const [entries, setEntries] = useState<readonly Entry[]>([]);
   const [screen, setScreen] = useState<Screen>('main');
-  const [menu, setMenu] = useState(false);
+  const [stopping, runStop] = useBusy();
+  const menuButton = useRef<HostInstance>(null);
+  const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const session = useRef<{ stop(): Promise<void> } | null>(null);
   const feed = useRef<{ stop(): void } | null>(null);
   const transcript = useRef<Transcript | null>(null);
@@ -47,13 +63,10 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
 
-  // Android's Back: close the sheet, leave a sub-screen; on the main screen the system has it.
+  // Android's Back: leave a sub-screen; on the main screen the system has it. An
+  // open menu is closed by the menu itself, whose handler is registered later and runs first.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (menu) {
-        setMenu(false);
-        return true;
-      }
       if (screen === 'listen' || screen === 'devices') {
         setScreen('settings');
         return true;
@@ -65,7 +78,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       return false;
     });
     return () => sub.remove();
-  }, [menu, screen]);
+  }, [screen]);
 
   // Unmounted with a session running (the app dropped the token): nothing outlives the screen.
   useEffect(() => () => { void session.current?.stop(); }, []);
@@ -178,69 +191,81 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
   if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} />;
   if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
 
-  const open = (next: Screen) => {
-    setMenu(false);
-    setScreen(next);
-  };
+  const shown = stopping ? 'stopping' : status;
+  const line = statusLine(t, shown, detail);
+  const tone = statusTone(shown);
+  const ui = i18n.language;
+  const autoLabel = t('common.autoDetect');
+  const target = languageName(settings.target, ui);
+  const pair = pairLabel(languageName(settings.source, ui, autoLabel), target, i18n.dir(ui) === 'rtl');
+  const stacked = fontScale >= STACK_FROM_FONT_SCALE;
 
   return (
-    <View style={styles.box}>
-      <View style={styles.statusLine}>
-        <Text style={styles.status}>{statusLine(t, status, detail) || 'Sokuji'}</Text>
+    <View className="bg-background w-full flex-1">
+      <View className="border-border min-h-14 flex-row items-center gap-2 border-b pe-1 ps-4">
+        <View className="flex-1 flex-row items-center gap-2" accessibilityLiveRegion="polite">
+          {tone === 'error' ? <Icon as={CircleAlert} size={18} className="text-destructive" /> : null}
+          {line ? (
+            <Text className={cn('flex-1 text-sm', tone === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{line}</Text>
+          ) : (
+            <Text role="heading" className="flex-1 text-lg font-semibold">Sokuji</Text>
+          )}
+        </View>
+        <DropdownMenu onOpenChange={(open) => { if (!open) refocus(menuButton); }}>
+          <DropdownMenuTrigger asChild>
+            <Button ref={menuButton} variant="ghost" size="icon" accessibilityLabel={t('mobile.main.menu')}>
+              <Icon as={Menu} size={24} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" insets={{ top: insets.top, bottom: insets.bottom, left: 12, right: 12 }} className="max-w-[90%]">
+            {email ? <DropdownMenuLabel className="text-muted-foreground">{email}</DropdownMenuLabel> : null}
+            {email ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem onPress={() => setScreen('history')}>
+              <Icon as={HistoryIcon} size={20} />
+              <Text>{t('mobile.menu.history')}</Text>
+            </DropdownMenuItem>
+            <DropdownMenuItem onPress={() => setScreen('account')}>
+              <Icon as={UserRound} size={20} />
+              <Text>{t('mobile.menu.account')}</Text>
+            </DropdownMenuItem>
+            <DropdownMenuItem onPress={() => setScreen('settings')}>
+              <Icon as={SettingsIcon} size={20} />
+              <Text>{t('mobile.menu.settings')}</Text>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </View>
-      <Subtitles entries={entries} bilingual={settings.bilingual} textSize={settings.textSize} />
-      <View style={styles.toolbar}>
-        <Text accessibilityRole="button" style={styles.menuButton} onPress={() => setMenu(true)}>≡</Text>
-        <Text accessibilityRole="button" style={styles.pair} onPress={() => !active && setScreen('settings')}>
-          {settings.source} → {settings.target}
-        </Text>
-        <Button title={active ? t('mobile.main.stop') : t('mobile.main.start')} onPress={active ? stop : start} />
+      {/* Nothing to read yet (before the first Start, or after a session that heard nothing): what Start does. */}
+      {!active && entries.length === 0 ? (
+        <View className="flex-1 justify-center px-8">
+          <Text className="text-muted-foreground text-center text-lg">{idleHint(t, target)}</Text>
+        </View>
+      ) : (
+        <Subtitles entries={entries} bilingual={settings.bilingual} textSize={settings.textSize} />
+      )}
+      <View className={cn('border-border gap-2 border-t px-4 py-3', !stacked && 'flex-row items-center')}>
+        {/* Open in a session too: the settings say there why the languages are locked. */}
+        <Button
+          variant="outline"
+          className={cn('justify-start', stacked ? 'self-stretch' : 'flex-1')}
+          accessibilityHint={t('mobile.main.changeLanguages')}
+          onPress={() => setScreen('settings')}
+        >
+          {/* text-left is the start side: React Native swaps left and right in a right-to-left layout. */}
+          <Text className="shrink text-left">{pair}</Text>
+        </Button>
+        {active ? (
+          <Button size="lg" variant="destructive" disabled={stopping} onPress={() => { void runStop(stop); }}>
+            <Icon as={Square} size={18} />
+            <Text>{stopping ? t('mobile.main.status.stopping') : t('mobile.main.stop')}</Text>
+          </Button>
+        ) : (
+          <Button size="lg" onPress={() => { void start(); }}>
+            <Icon as={Play} size={18} />
+            <Text>{t('mobile.main.start')}</Text>
+          </Button>
+        )}
       </View>
-      <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setMenu(false)} accessible={false}>
-          <View style={styles.sheet} accessibilityViewIsModal>
-            <Text style={styles.sheetAccount}>{email}</Text>
-            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => open('history')}>{t('mobile.menu.history')}  ›</Text>
-            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => open('account')}>{t('mobile.menu.account')}  ›</Text>
-            <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => open('settings')}>{t('mobile.menu.settings')}  ›</Text>
-          </View>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
-
-// What the status line says: a key per state, the terminal details by name,
-// any other detail (a developer message) as it is.
-function statusLine(t: (key: string) => string, status: Status | 'idle', detail: string): string {
-  if (status === 'idle') return '';
-  if (status === 'error') {
-    if (detail === 'sign_in_required') return t('mobile.main.status.signInRequired');
-    if (detail === 'balance_exhausted') return t('mobile.main.status.balanceExhausted');
-    if (detail === 'microphone_denied') return t('mobile.main.status.micDenied');
-    if (detail === 'invalid_config') return t('mobile.main.status.invalidConfig');
-    return detail;
-  }
-  if (status === 'listening') {
-    if (detail === 'spoken') return t('mobile.main.status.spoken');
-    if (detail === 'subtitles_only') return t('mobile.main.status.subtitlesOnly');
-    if (detail === 'paused') return t('mobile.main.status.paused');
-    return t('mobile.main.status.listening');
-  }
-  if (status === 'reconnecting') return detail === 'other_session' ? t('mobile.main.status.otherSession') : t('mobile.main.status.reconnecting');
-  if (status === 'stopped') return t('mobile.main.status.stopped');
-  return t('mobile.main.status.starting');
-}
-
-const styles = StyleSheet.create({
-  box: { flex: 1, width: '100%' },
-  statusLine: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  status: { fontSize: 13, color: '#666' },
-  toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 56, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ddd' },
-  menuButton: { fontSize: 24, paddingHorizontal: 8 },
-  pair: { fontWeight: '600', fontSize: 15 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 4 },
-  sheetAccount: { fontSize: 12, color: '#666', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  sheetRow: { fontSize: 17, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-});

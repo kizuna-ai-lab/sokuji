@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Mittel",
       "textSizeLarge": "Groß",
       "listen": "Übersetzung hören",
-      "devices": "Audiogeräte"
+      "devices": "Audiogeräte",
+      "groupLanguages": "Sprachen",
+      "groupDisplay": "Anzeige",
+      "groupAudio": "Sprachausgabe und Geräte",
+      "locked": "Beende die Sitzung, um das zu ändern."
     },
     "history": {
       "rename": "Umbenennen",
@@ -1720,8 +1724,12 @@
         "spoken": "Hört zu · gesprochen",
         "subtitlesOnly": "Hört zu · nur Untertitel (keine Kopfhörer)",
         "invalidConfig": "Spracheinstellungen nicht akzeptiert. Prüfe das Sprachpaar in den Einstellungen.",
-        "paused": "Pausiert"
-      }
+        "paused": "Pausiert",
+        "stopping": "Wird gestoppt…"
+      },
+      "idleHint": "Tippe auf „Start“, um Gehörtes zu übersetzen. Zielsprache: {{language}}.",
+      "menu": "Menü",
+      "changeLanguages": "Sprachen in den Einstellungen ändern"
     },
     "common": {
       "back": "Zurück"
@@ -1739,6 +1747,10 @@
       "usb": "USB-Mikrofon",
       "noBluetoothMic": "Bluetooth-Kopfhörer spielen die Übersetzung ab, dienen aber nicht als Mikrofon.",
       "output": "Wiedergabegerät"
+    },
+    "languages": {
+      "search": "Sprachen suchen",
+      "none": "Keine passenden Sprachen"
     }
   }
 }

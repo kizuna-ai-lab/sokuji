@@ -1,92 +1,129 @@
-import { Appearance, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Appearance, type HostInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { SonioxRegion } from '@shared/lib/soniox/regions';
+import { SONIOX_REGION_LABELS, SONIOX_REGIONS } from '@shared/lib/soniox/regions';
+import { ChoiceList } from '@/components/ChoiceList';
+import { LanguagePicker } from '@/components/LanguagePicker';
+import { Row, RowGroup } from '@/components/Row';
+import { Screen } from '@/components/ScreenHeader';
+import { SwitchRow } from '@/components/SwitchRow';
+import { refocus } from '@/components/focus';
+import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
 import { useSettings } from '../store/useSettings';
 import { colorSchemeOverride, type Settings as SettingsValues } from '../store/settings';
 
-const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const SIZES: SettingsValues['textSize'][] = ['small', 'medium', 'large'];
 const APPEARANCES: SettingsValues['appearance'][] = ['system', 'light', 'dark'];
 
-// An override of the system's scheme; the app's own palette for dark is a
-// follow-up, so for now this only changes what useColorScheme() reports.
+// The dark palette reaches only the screens moved to the shared controls so
+// far; until every screen has moved, the app stays light and the setting is
+// not offered (design scope: only choices that work). True once they all have.
+export const APPEARANCE_READY = false;
+
+// An override of the system's scheme, which NativeWind's dark variables follow.
 export function applyAppearance(appearance: SettingsValues['appearance']): void {
-  Appearance.setColorScheme(colorSchemeOverride(appearance));
+  Appearance.setColorScheme(APPEARANCE_READY ? colorSchemeOverride(appearance) : 'light');
 }
 
 // Its own screen (owner, 2026-10-27: the settings will grow). Each takes
 // effect at once, except the region and the pair, which the next Start reads.
 export default function Settings({ onBack, locked, onOpen }: { onBack: () => void; locked: boolean; onOpen: (screen: 'listen' | 'devices') => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
-  const sizeLabel = { small: t('mobile.settings.textSizeSmall'), medium: t('mobile.settings.textSizeMedium'), large: t('mobile.settings.textSizeLarge') };
-  const appearanceLabel = { system: t('mobile.settings.appearanceSystem'), light: t('mobile.settings.appearanceLight'), dark: t('mobile.settings.appearanceDark') };
+  const [picking, setPicking] = useState<'source' | 'target' | null>(null);
+  const sourceRow = useRef<HostInstance>(null);
+  const targetRow = useRef<HostInstance>(null);
+  const ui = i18n.language;
+  const autoLabel = t('common.autoDetect');
+  const lockedReason = t('mobile.settings.locked');
 
-  const choices = <T extends string>(values: readonly T[], current: T, label: (v: T) => string, onPick: (v: T) => void, disabled = false) => (
-    <View style={styles.choices}>
-      {values.map((v) => (
-        <Text accessibilityRole="button" key={v} style={[styles.choice, v === current && styles.choiceOn, disabled && styles.disabled]} onPress={() => !disabled && onPick(v)}>
-          {label(v)}
-        </Text>
-      ))}
-    </View>
-  );
+  const closePicker = () => {
+    refocus(picking === 'source' ? sourceRow : targetRow);
+    setPicking(null);
+  };
 
   return (
-    <View style={styles.box}>
-      <View style={styles.header}>
-        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
-        <Text style={styles.title}>{t('mobile.menu.settings')}</Text>
-        <Text style={styles.link}> </Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.main.hear')}</Text>
-        <TextInput style={styles.input} value={settings.source} onChangeText={(v) => set({ source: v.trim() })} autoCapitalize="none" editable={!locked} />
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.main.read')}</Text>
-        <TextInput style={styles.input} value={settings.target} onChangeText={(v) => set({ target: v.trim() })} autoCapitalize="none" editable={!locked} />
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.main.bilingual')}</Text>
-        <Switch value={settings.bilingual} onValueChange={(v) => set({ bilingual: v })} />
-      </View>
-      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, styles.rowLink, locked && styles.disabled]} onPress={locked ? undefined : () => onOpen('listen')}>
-        {t('mobile.settings.listen')}  ›  {settings.listen ? t('common.on') : t('common.off')}
-      </Text>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.settings.textSize')}</Text>
-        {choices(SIZES, settings.textSize, (v) => sizeLabel[v], (v) => set({ textSize: v }))}
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.settings.appearance')}</Text>
-        {choices(APPEARANCES, settings.appearance, (v) => appearanceLabel[v], (v) => { set({ appearance: v }); applyAppearance(v); })}
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.settings.keepAwake')}</Text>
-        <Switch value={settings.keepAwake} onValueChange={(v) => set({ keepAwake: v })} />
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.settings.region')}</Text>
-        {choices(REGIONS, settings.region, (v) => v.toUpperCase(), (v) => set({ region: v }), locked)}
-      </View>
-      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, styles.rowLink, locked && styles.disabled]} onPress={locked ? undefined : () => onOpen('devices')}>{t('mobile.settings.devices')}  ›</Text>
-    </View>
+    <Screen title={t('mobile.menu.settings')} onBack={onBack}>
+      <RowGroup title={t('mobile.settings.groupLanguages')}>
+        <Row
+          ref={sourceRow}
+          label={t('mobile.main.hear')}
+          value={languageName(settings.source, ui, autoLabel)}
+          disabled={locked}
+          disabledReason={lockedReason}
+          onPress={() => setPicking('source')}
+        />
+        <Row
+          ref={targetRow}
+          label={t('mobile.main.read')}
+          value={languageName(settings.target, ui)}
+          disabled={locked}
+          disabledReason={lockedReason}
+          onPress={() => setPicking('target')}
+        />
+      </RowGroup>
+
+      <ChoiceList
+        title={t('mobile.settings.textSize')}
+        choices={SIZES.map((v) => ({
+          value: v,
+          label: { small: t('mobile.settings.textSizeSmall'), medium: t('mobile.settings.textSizeMedium'), large: t('mobile.settings.textSizeLarge') }[v],
+        }))}
+        value={settings.textSize}
+        onChange={(v) => set({ textSize: v })}
+      />
+
+      <RowGroup title={t('mobile.settings.groupDisplay')}>
+        <SwitchRow label={t('mobile.main.bilingual')} checked={settings.bilingual} onCheckedChange={(v) => set({ bilingual: v })} />
+        <SwitchRow label={t('mobile.settings.keepAwake')} checked={settings.keepAwake} onCheckedChange={(v) => set({ keepAwake: v })} />
+      </RowGroup>
+
+      {APPEARANCE_READY ? (
+        <ChoiceList
+          title={t('mobile.settings.appearance')}
+          choices={APPEARANCES.map((v) => ({
+            value: v,
+            label: { system: t('mobile.settings.appearanceSystem'), light: t('mobile.settings.appearanceLight'), dark: t('mobile.settings.appearanceDark') }[v],
+          }))}
+          value={settings.appearance}
+          onChange={(v) => set({ appearance: v })}
+        />
+      ) : null}
+
+      <RowGroup title={t('mobile.settings.groupAudio')}>
+        <Row
+          label={t('mobile.settings.listen')}
+          value={settings.listen ? t('common.on') : t('common.off')}
+          disabled={locked}
+          disabledReason={lockedReason}
+          onPress={() => onOpen('listen')}
+        />
+        <Row label={t('mobile.settings.devices')} disabled={locked} disabledReason={lockedReason} onPress={() => onOpen('devices')} />
+      </RowGroup>
+
+      <ChoiceList
+        title={t('mobile.settings.region')}
+        // What the region does, as the desktop says it: where the audio is processed, from the next session.
+        footer={t('settings.sonioxRegionTooltip')}
+        choices={SONIOX_REGIONS.map((r) => ({ value: r, label: SONIOX_REGION_LABELS[r] }))}
+        value={settings.region}
+        onChange={(v) => set({ region: v })}
+        disabled={locked}
+        disabledReason={lockedReason}
+      />
+
+      <LanguagePicker
+        visible={picking !== null}
+        title={picking === 'target' ? t('mobile.main.read') : t('mobile.main.hear')}
+        options={picking === 'target' ? targetOptions(ui) : sourceOptions(ui, autoLabel)}
+        value={picking === 'target' ? settings.target : settings.source}
+        onPick={(code) => {
+          set(picking === 'target' ? { target: code } : { source: code });
+          closePicker();
+        }}
+        onClose={closePicker}
+      />
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { flex: 1, width: '100%', padding: 12, gap: 4 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  title: { fontWeight: '600', fontSize: 17 },
-  link: { color: '#1e63c4', minWidth: 60 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd', gap: 8 },
-  label: { fontSize: 16, flexShrink: 1 },
-  rowLink: { fontSize: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, minWidth: 72, textAlign: 'right' },
-  choices: { flexDirection: 'row', gap: 4 },
-  choice: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, color: '#555' },
-  choiceOn: { backgroundColor: '#e3eefb', color: '#1e63c4', fontWeight: '600' },
-  disabled: { opacity: 0.5 },
-});

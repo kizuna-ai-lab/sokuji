@@ -1694,7 +1694,11 @@
       "textSizeMedium": "Moyenne",
       "textSizeLarge": "Grande",
       "listen": "Entendre la traduction",
-      "devices": "Appareils audio"
+      "devices": "Appareils audio",
+      "groupLanguages": "Langues",
+      "groupDisplay": "Affichage",
+      "groupAudio": "Voix et appareils",
+      "locked": "Arrêtez la session pour modifier ce réglage."
     },
     "history": {
       "rename": "Renommer",
@@ -1720,8 +1724,12 @@
         "spoken": "À l'écoute · lue à voix haute",
         "subtitlesOnly": "À l'écoute · sous-titres seulement (pas de casque)",
         "invalidConfig": "Paramètres de langue refusés. Vérifiez la paire de langues dans les réglages.",
-        "paused": "En pause"
-      }
+        "paused": "En pause",
+        "stopping": "Arrêt…"
+      },
+      "idleHint": "Touchez Démarrer pour traduire ce que vous entendez en {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Modifier les langues dans les réglages"
     },
     "common": {
       "back": "Retour"
@@ -1739,6 +1747,10 @@
       "usb": "Micro USB",
       "noBluetoothMic": "Les casques Bluetooth diffusent la traduction mais ne servent pas de micro.",
       "output": "Appareil de lecture"
+    },
+    "languages": {
+      "search": "Rechercher une langue",
+      "none": "Aucune langue ne correspond"
     }
   }
 }
