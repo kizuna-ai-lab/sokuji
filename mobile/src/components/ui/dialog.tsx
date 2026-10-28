@@ -1,11 +1,12 @@
 import { Icon } from '@/components/ui/icon';
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
 import { cn } from '@/lib/utils';
+import { useDialogWidth } from '@/lib/useDialogWidth';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import * as DialogPrimitive from '@rn-primitives/dialog';
 import { X } from 'lucide-react-native';
 import * as React from 'react';
 import { Platform, ScrollView, useWindowDimensions, View, type GestureResponderEvent, type ViewProps } from 'react-native';
-import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 
 const Dialog = DialogPrimitive.Root;
@@ -79,13 +80,13 @@ function DialogContent({
   // Sokuji: a set width (the registry's calc() max-width does nothing on native, so
   // large text made the dialog wider than the screen), the content scrolling within
   // the space above the keyboard, and the dialog centred in that space.
-  const { width, height } = useWindowDimensions();
+  const { height } = useWindowDimensions();
+  const width = useDialogWidth();
   const keyboard = useKeyboardHeight();
   return (
     <DialogPortal hostName={portalHost}>
       <DialogOverlay style={{ paddingBottom: keyboard }}>
         <DialogPrimitive.Content
-          style={{ width: Math.min(width - 32, 512) }}
           className={cn(
             'bg-background border-border z-50 mx-auto flex flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5',
             Platform.select({
@@ -93,7 +94,8 @@ function DialogContent({
             }),
             className
           )}
-          {...props}>
+          {...props}
+          style={[{ width }, props.style]}>
           <ScrollView style={{ maxHeight: (height - keyboard) * 0.8 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4">
             {children}
           </ScrollView>
