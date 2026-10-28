@@ -16,6 +16,8 @@ export interface ReadingLine {
   translation: readonly Row[];
   /** The session ended before this line was final. */
   unfinished: boolean;
+  /** The line has translated text: a source can stand without one (it was never translated). */
+  translated: boolean;
 }
 
 const minute = (t: number) => Math.floor(t / 60000);
@@ -42,6 +44,7 @@ export function readingLines(entries: readonly Entry[]): ReadingLine[] {
       source: e.source,
       translation: e.translation,
       unfinished: [...e.source, ...e.translation].some((r) => !r.final),
+      translated: e.translation.some((r) => r.text.trim() !== ''),
     };
     lines.push(line);
     prev = line;

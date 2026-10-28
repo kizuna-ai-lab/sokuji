@@ -51,3 +51,12 @@ describe('a saved session as reading lines', () => {
     expect(lines.map((l) => l.unfinished)).toEqual([false, true]);
   });
 });
+
+describe('a line with no translation', () => {
+  it('says so, so the reader can show the source instead of an empty line', () => {
+    const untranslated = { ...exchange('a', t0), translation: [] } as Entry;
+    const blank = { ...exchange('b', t0 + 1000), translation: [row('bt', '  ')] } as Entry;
+    const lines = readingLines([untranslated, blank, exchange('c', t0 + 2000)]);
+    expect(lines.map((l) => l.translated)).toEqual([false, false, true]);
+  });
+});

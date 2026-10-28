@@ -25,7 +25,8 @@ export function ScreenHeader({ title, onBack, backLabel, end }: { title: string;
           <Text>{backLabel ?? t('mobile.common.back')}</Text>
         </Button>
       ) : null}
-      <Text role="heading" className={cn('text-xl font-semibold', stacked ? 'px-2' : 'flex-1 px-2')}>{title}</Text>
+      {/* At most three lines (a long session name at AX5 would push the content away); read in full. */}
+      <Text role="heading" numberOfLines={3} accessibilityLabel={title} className={cn('text-xl font-semibold', stacked ? 'px-2' : 'flex-1 px-2')}>{title}</Text>
       {end ? <View className={cn(stacked && 'self-start')}>{end}</View> : null}
     </View>
   );

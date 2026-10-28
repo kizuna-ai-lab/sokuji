@@ -17,7 +17,6 @@ import { Spinner } from '@/components/Spinner';
 import { SwitchRow } from '@/components/SwitchRow';
 import { refocus } from '@/components/focus';
 import { useIconSize } from '@/lib/useIconSize';
-import { formatUsd } from '../account/money';
 import type { PreviewState } from '../session/preview';
 import { createNativeVoicePreview } from '../session/previewNative';
 import { useSettings } from '../store/useSettings';
@@ -96,7 +95,7 @@ export default function Listen({ token, onBack }: { token: string; onBack: () =>
     );
   };
   const failure = previewState.status === 'failed' ? <Notice tone="error">{t(previewFailureKey(previewState.reason))}</Notice> : null;
-  const cost = `${t('voiceLibrary.previewChargedToBalance')} ${t('mobile.listen.previewEstimate', { amount: formatUsd(PREVIEW_ESTIMATE_USD) })}`;
+  const cost = `${t('voiceLibrary.previewChargedToBalance')} ${t('mobile.listen.previewEstimate', { amount: `$${PREVIEW_ESTIMATE_USD.toFixed(4)}` })}`;
 
   return (
     <Screen title={t('mobile.settings.listen')} onBack={onBack} backLabel={t('mobile.menu.settings')}>

@@ -63,12 +63,17 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
           {[time.format(new Date(item.t)), item.person !== undefined ? t('mainPanel.displayMode.person', { n: item.person }) : null].filter(Boolean).join(' · ')}
         </Text>
       ) : null}
-      <Text selectable className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
-        {item.translation.map((r) => (
-          <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
-        ))}
-      </Text>
-      {settings.bilingual ? (
+      {item.translated ? (
+        <Text selectable className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
+          {item.translation.map((r) => (
+            <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
+          ))}
+        </Text>
+      ) : (
+        // Never translated: the source is the line, whichever languages are shown, and it says so.
+        <Text className="text-muted-foreground text-xs font-medium">{t('mainPanel.export.noTranslation')}</Text>
+      )}
+      {settings.bilingual || !item.translated ? (
         <Text selectable className="text-muted-foreground" style={{ fontSize: size.source, lineHeight: lineHeight(size.source) }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
           {item.source.map((r) => (
             <Span key={r.key}>{r.text}</Span>
