@@ -161,12 +161,46 @@ describe('the clip cache lives as long as the app, not the screen', () => {
 });
 
 describe('the preview log', () => {
-  it('says whether a clip was new (charged) or came from the cache, so testers can count', async () => {
+  it('says a miss before the request and a clip only once it arrived, so a failed request is not read as a charge', async () => {
     const lines: string[] = [];
     const { deps } = setup({ log: (l: string) => lines.push(l) });
     const preview = createVoicePreview(deps, new Map());
     await preview.play('Grace', sample, 1);
     await preview.play('Grace', sample, 1);
-    expect(lines).toEqual(['preview Grace ja 1: new (charged)', 'preview Grace ja 1: from cache']);
+    expect(lines).toEqual(['preview Grace ja 1: not cached, requesting', 'preview Grace ja 1: received', 'preview Grace ja 1: from cache']);
+
+    const failed: string[] = [];
+    const refused = setup({ log: (l: string) => failed.push(l), mintKey: vi.fn(async () => { throw new PreviewHttpError(402); }) });
+    await createVoicePreview(refused.deps, new Map()).play('Grace', sample, 1);
+    expect(failed).toEqual(['preview Grace ja 1: not cached, requesting', 'preview Grace ja 1: failed (balance)']);
+  });
+});
+
+describe('a key the backend may have minted is always settled (Codex review, PR #665)', () => {
+  it('lets a key request in flight finish when the preview is stopped, then settles it without synthesizing', async () => {
+    let answer!: (g: { apiKey: string; region: 'us' }) => void;
+    const mintKey = vi.fn(() => new Promise<{ apiKey: string; region: 'us' }>((resolve) => { answer = resolve; }));
+    const { preview, deps, played } = setup({ mintKey });
+    const running = preview.play('Grace', sample, 1);
+    await vi.waitFor(() => expect(mintKey).toHaveBeenCalled());
+    preview.stop();
+    answer({ apiKey: 'k', region: 'us' });
+    await running;
+    expect(deps.synthesize).not.toHaveBeenCalled();
+    expect(deps.done).toHaveBeenCalledTimes(1);
+    expect(played).toHaveLength(0);
+    expect(preview.state()).toEqual({ status: 'idle' });
+  });
+
+  it('settles after a key request whose outcome is unknown (no answer, a dropped connection)', async () => {
+    const { preview, deps } = setup({ mintKey: vi.fn(async () => { throw new Error('preview session-key timeout'); }) });
+    await preview.play('Grace', sample, 1);
+    expect(deps.done).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not settle after a refusal: no key was minted', async () => {
+    const { preview, deps } = setup({ mintKey: vi.fn(async () => { throw new PreviewHttpError(402); }) });
+    await preview.play('Grace', sample, 1);
+    expect(deps.done).not.toHaveBeenCalled();
   });
 });

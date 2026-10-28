@@ -17,8 +17,13 @@ export type PreviewState =
   | { status: 'failed'; voice: string; reason: PreviewFailure };
 
 export interface PreviewDeps {
-  /** A single-use TTS key from the backend (`POST /soniox/session-key`, mode voice_preview). */
-  mintKey(signal: AbortSignal): Promise<{ apiKey: string; region: SonioxRegion }>;
+  /**
+   * A single-use TTS key from the backend (`POST /soniox/session-key`, mode
+   * voice_preview). Not cancellable on purpose: once sent, the backend may
+   * have minted the key and holds the account until `done()`, so its answer
+   * is waited for even when the user has stopped (Codex review, PR #665).
+   */
+  mintKey(): Promise<{ apiKey: string; region: SonioxRegion }>;
   /** `POST /soniox/preview-done`: bills the preview and frees the account for the next one or a session. */
   done(): Promise<void>;
   synthesize(o: { apiKey: string; region: SonioxRegion; voice: string; language: string; text: string; speed: number; signal: AbortSignal }): Promise<Int16Array>;
@@ -26,9 +31,12 @@ export interface PreviewDeps {
   play(pcm: Int16Array, onEnded: () => void): () => void;
   wait(ms: number): Promise<void>;
   onChange(state: PreviewState): void;
-  /** One line per preview: new (charged) or from the cache, for testers counting requests. */
+  /** For testers counting requests: a miss before the request, then what came of it; or a cache hit. */
   log?(line: string): void;
 }
+
+/** A stop, not a failure: what this module (and previewNative) throws once the user has moved on. */
+const isStop = (err: unknown) => err instanceof Error && err.message === 'aborted';
 
 function reasonOf(err: unknown): PreviewFailure {
   if (err instanceof PreviewHttpError) {
@@ -82,16 +90,30 @@ export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Ar
     stopClip = null;
   }
 
-  async function clip(voice: string, sample: { language: string; text: string }, speed: number, signal: AbortSignal): Promise<Int16Array> {
-    let grant: { apiKey: string; region: SonioxRegion };
+  async function mint(signal: AbortSignal): Promise<{ apiKey: string; region: SonioxRegion }> {
     try {
-      grant = await deps.mintKey(signal);
+      return await deps.mintKey();
     } catch (err) {
       // The account is briefly held (a preview just ended, or one is still settling): wait as told, once.
       if (!(err instanceof PreviewHttpError && err.status === 409 && err.retryAfterMs !== undefined)) throw err;
       await deps.wait(err.retryAfterMs);
       if (signal.aborted) throw new Error('aborted');
-      grant = await deps.mintKey(signal);
+      return deps.mintKey();
+    }
+  }
+
+  async function clip(voice: string, sample: { language: string; text: string }, speed: number, signal: AbortSignal): Promise<Int16Array> {
+    let grant: { apiKey: string; region: SonioxRegion };
+    try {
+      grant = await mint(signal);
+    } catch (err) {
+      // A refusal (an HTTP answer) minted nothing. Anything else — no answer in time, a
+      // dropped connection — may have minted a key the backend now holds: settle it
+      // (preview-done answers 404 when there was nothing).
+      if (!(err instanceof PreviewHttpError) && !isStop(err)) {
+        await deps.done().catch(() => {});
+      }
+      throw err;
     }
     try {
       if (signal.aborted) throw new Error('aborted');
@@ -109,7 +131,9 @@ export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Ar
       const mine = current;
       const key = [voice, sample.language, speed, sample.text].join('|');
       let pcm = cache.get(key);
-      deps.log?.(`preview ${voice} ${sample.language} ${speed}: ${pcm ? 'from cache' : 'new (charged)'}`);
+      const tag = `preview ${voice} ${sample.language} ${speed}`;
+      // A miss is not a charge: the request can still be refused. "received" is the paid one.
+      deps.log?.(`${tag}: ${pcm ? 'from cache' : 'not cached, requesting'}`);
       if (!pcm) {
         set({ status: 'requesting', voice });
         const controller = new AbortController();
@@ -124,11 +148,14 @@ export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Ar
         try {
           pcm = await fetching;
         } catch (err) {
+          deps.log?.(`${tag}: ${isStop(err) ? 'stopped' : `failed (${reasonOf(err)})`}`);
           if (mine === current) set({ status: 'failed', voice, reason: reasonOf(err) });
           return;
         }
-        if (mine !== current) return;
+        deps.log?.(`${tag}: received`);
+        // Paid for even if the user moved on meanwhile: kept, so hearing it later costs nothing.
         cache.set(key, pcm);
+        if (mine !== current) return;
         abort = null;
       }
       set({ status: 'playing', voice });

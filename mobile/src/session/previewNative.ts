@@ -32,9 +32,11 @@ export function createNativeVoicePreview(o: {
   let context: InstanceType<typeof audio.AudioContext> | null = null;
 
   const deps: PreviewDeps = {
-    async mintKey(signal) {
+    // No cancel signal: a key request in flight is waited for (bounded by post's own timeout),
+    // so a key the backend minted is always followed by preview-done.
+    async mintKey() {
       const region = o.region();
-      const res = await post(fetch, `${BACKEND_URL}/api/soniox/session-key`, { mode: 'voice_preview', region }, { token: o.token(), signal }, 'preview session-key');
+      const res = await post(fetch, `${BACKEND_URL}/api/soniox/session-key`, { mode: 'voice_preview', region }, { token: o.token() }, 'preview session-key');
       if (res.status !== 200) throw await httpError(res);
       const body = (await res.json()) as { ttsApiKey?: unknown; region?: unknown };
       if (typeof body?.ttsApiKey !== 'string' || !body.ttsApiKey) throw new Error('preview key missing');
