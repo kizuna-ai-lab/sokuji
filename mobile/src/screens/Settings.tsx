@@ -31,16 +31,23 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
   const { t, i18n } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
-  const [picking, setPicking] = useState<'source' | 'target' | null>(null);
+  // Which side the sheet is for outlives its closing, so the sheet keeps its
+  // title and list while it slides away.
+  const [picking, setPicking] = useState(false);
+  const [side, setSide] = useState<'source' | 'target'>('source');
   const sourceRow = useRef<HostInstance>(null);
   const targetRow = useRef<HostInstance>(null);
   const ui = i18n.language;
   const autoLabel = t('common.autoDetect');
   const lockedReason = t('mobile.settings.locked');
 
+  const openPicker = (which: 'source' | 'target') => {
+    setSide(which);
+    setPicking(true);
+  };
   const closePicker = () => {
-    refocus(picking === 'source' ? sourceRow : targetRow);
-    setPicking(null);
+    refocus(side === 'source' ? sourceRow : targetRow);
+    setPicking(false);
   };
 
   return (
@@ -52,7 +59,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
           value={languageName(settings.source, ui, autoLabel)}
           disabled={locked}
           disabledReason={lockedReason}
-          onPress={() => setPicking('source')}
+          onPress={() => openPicker('source')}
         />
         <Row
           ref={targetRow}
@@ -60,7 +67,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
           value={languageName(settings.target, ui)}
           disabled={locked}
           disabledReason={lockedReason}
-          onPress={() => setPicking('target')}
+          onPress={() => openPicker('target')}
         />
       </RowGroup>
 
@@ -114,12 +121,12 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
       />
 
       <LanguagePicker
-        visible={picking !== null}
-        title={picking === 'target' ? t('mobile.main.read') : t('mobile.main.hear')}
-        options={picking === 'target' ? targetOptions(ui) : sourceOptions(ui, autoLabel)}
-        value={picking === 'target' ? settings.target : settings.source}
+        visible={picking}
+        title={side === 'target' ? t('mobile.main.read') : t('mobile.main.hear')}
+        options={side === 'target' ? targetOptions(ui) : sourceOptions(ui, autoLabel)}
+        value={side === 'target' ? settings.target : settings.source}
         onPick={(code) => {
-          set(picking === 'target' ? { target: code } : { source: code });
+          set(side === 'target' ? { target: code } : { source: code });
           closePicker();
         }}
         onClose={closePicker}

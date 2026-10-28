@@ -1,4 +1,4 @@
-import { FlatList, View } from 'react-native';
+import { FlatList, Text as Span, View } from 'react-native';
 import type { Entry } from '@shared/lib/projection/types';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,10 @@ const TRANSLATION_MAX_SCALE = 2.5;
 
 // Scrolled back further than this, a new line does not pull the list down to it.
 const FOLLOW_WITHIN = 48;
+
+// A size set inline replaces the class's font size but not its 24-unit line
+// height, which a 28-unit line overlaps: each line carries its own.
+const lineHeight = (fontSize: number) => Math.round(fontSize * 1.35);
 
 export default function Subtitles({
   entries,
@@ -46,16 +50,19 @@ export default function Subtitles({
       renderItem={({ item }) =>
         item.kind === 'exchange' ? (
           <View className="border-border gap-1 border-b px-4 py-3">
+            {/* The spans are React Native's own Text, which inherits the line's colour and size;
+                the themed Text would reset each span to the foreground colour. Words not yet
+                final are fainter: opacity has no effect on a nested span, a colour does. */}
             {bilingual && (
-              <Text className="text-muted-foreground" style={{ fontSize: size.source }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
+              <Text className="text-muted-foreground" style={{ fontSize: size.source, lineHeight: lineHeight(size.source) }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
                 {item.source.map((r) => (
-                  <Text key={r.key} className={cn(!r.final && 'opacity-60')} style={{ fontSize: size.source }}>{r.text}</Text>
+                  <Span key={r.key} className={cn(!r.final && 'text-muted-foreground/60')}>{r.text}</Span>
                 ))}
               </Text>
             )}
-            <Text className="font-medium" style={{ fontSize: size.translation }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
+            <Text className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
               {item.translation.map((r) => (
-                <Text key={r.key} className={cn(!r.final && 'text-muted-foreground')} style={{ fontSize: size.translation }}>{r.text}</Text>
+                <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
               ))}
             </Text>
           </View>
