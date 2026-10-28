@@ -1649,7 +1649,9 @@
       "setNewPassword": "Ange nytt lösenord",
       "back": "Tillbaka till inloggning",
       "later": "Senare: verifiera från kontoskärmen",
-      "registerNote": "Du får en 6-siffrig kod via e-post; när du anger den verifieras kontot och provkrediten läggs till."
+      "registerNote": "Du får en 6-siffrig kod via e-post; när du anger den verifieras kontot och provkrediten läggs till.",
+      "sendingCode": "Skickar en 6-siffrig kod till {{email}}…",
+      "codeNotSent": "Koden kunde inte skickas till {{email}}. Ditt konto är skapat: tryck på Skicka igen."
     },
     "account": {
       "verify": "Verifiera din e-post för att få provkrediten",

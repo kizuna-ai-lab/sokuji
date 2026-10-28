@@ -10,6 +10,8 @@ import { Spinner } from '@/components/Spinner';
 import { cn } from '@/lib/utils';
 import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, signUp, verifyEmail } from './client';
 import { authErrorKey } from './unwrap';
+import { codeLine } from './signInText';
+import { createPageGate } from './pageGate';
 
 // 'verifyStart' and 'forgot' are the two code flows' first page: the address and a
 // Send code button, and no request until it is pressed.
@@ -44,6 +46,14 @@ export default function SignIn({
   const busy = busyFor !== null;
   const [error, setError] = useState('');
   const [resendIn, setResendIn] = useState(0);
+  // Whether a verification code has gone out in this flow: a new account is on
+  // the code page before its first one is sent. Opened on the code page, the
+  // caller has sent it.
+  const [sent, setSent] = useState(initialMode === 'verify');
+  // A request belongs to the page it was sent from: leave the page (another
+  // tab, Back, the screen closes) and its result no longer moves or tells anyone.
+  const [gate] = useState(createPageGate);
+  useEffect(() => () => gate.leave(), [gate]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -51,33 +61,42 @@ export default function SignIn({
     return () => clearTimeout(t);
   }, [resendIn]);
 
-  async function run(action: () => Promise<void>, after?: () => void, which: 'primary' | 'resend' = 'primary') {
+  function run(action: () => Promise<unknown>, after?: () => void, which: 'primary' | 'resend' = 'primary') {
     setBusyFor(which);
     setError('');
-    try {
-      await action();
-      after?.();
-    } catch (err) {
-      const key = authErrorKey(err);
-      setError(key ? t(key) : err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusyFor(null);
-    }
+    void gate.run(action, {
+      done: () => after?.(),
+      failed: (err) => {
+        // A known failure in its own words; anything else in general words, the detail to the log.
+        const key = authErrorKey(err);
+        if (!key) console.warn(`sign-in: ${err instanceof Error ? err.message : String(err)}`);
+        setError(key ? t(key) : t('mobile.common.failed'));
+      },
+      settled: () => setBusyFor(null),
+    });
   }
 
   const address = email.trim();
   const otp = code.trim();
 
   function go(next: Mode) {
+    // Whatever the last page still has running is dropped (and its spinner with it).
+    gate.leave();
+    setBusyFor(null);
     setError('');
     setCode('');
+    // Only the code page carries over whether its code was sent.
+    if (next !== 'verify') setSent(false);
     setMode(next);
   }
 
-  async function sendCode() {
-    await sendVerificationCode(address);
+  const sendCode = () => sendVerificationCode(address);
+  const sendReset = () => requestPasswordReset(address);
+  // After a send succeeded (on the page that sent it).
+  const codeWentOut = () => {
+    setSent(true);
     setResendIn(RESEND_WAIT_S);
-  }
+  };
 
   const emailField = lockEmail ? (
     <View className="gap-1.5">
@@ -129,8 +148,8 @@ export default function SignIn({
       <Text className="text-left">{title}</Text>
     </Button>
   );
-  const resend = (send: () => Promise<void>) => (
-    <Button variant="outline" disabled={busy || resendIn > 0} accessibilityState={{ busy: busyFor === 'resend' }} onPress={() => run(send, undefined, 'resend')}>
+  const resend = (send: () => Promise<unknown>) => (
+    <Button variant="outline" disabled={busy || resendIn > 0} accessibilityState={{ busy: busyFor === 'resend' }} onPress={() => run(send, codeWentOut, 'resend')}>
       {busyFor === 'resend' ? <Spinner /> : null}
       <Text>{resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}</Text>
     </Button>
@@ -181,12 +200,15 @@ export default function SignIn({
             {emailField}
             {passwordField(true)}
             {errorLine}
-            {primary(t('mobile.signIn.register'), !address || password.length < 8, () => run(async () => {
-              // The account exists once sign-up returns: the code screen from here on, even if this send fails (it has Send again).
-              await signUp(address, password);
-              go('verify');
-              await sendCode();
-            }))}
+            {primary(t('mobile.signIn.register'), !address || password.length < 8, () => run(
+              () => signUp(address, password),
+              () => {
+                // The account exists once sign-up returns: the code page from here on, which
+                // sends the first code itself and says whether it went out (it has Send again).
+                go('verify');
+                run(sendCode, codeWentOut, 'resend');
+              },
+            ))}
             <Text className="text-muted-foreground text-sm">{t('mobile.signIn.registerNote')}</Text>
           </>
         )}
@@ -194,7 +216,7 @@ export default function SignIn({
         {mode === 'verify' && (
           <>
             {pageTitle(t('mobile.signIn.verifyTitle'))}
-            <Text className="text-muted-foreground">{t('mobile.signIn.codeSent', { email: address })}</Text>
+            <Text className="text-muted-foreground">{codeLine(t, { email: address, sent, sending: busyFor === 'resend' })}</Text>
             {codeField}
             {errorLine}
             {primary(t('mobile.signIn.verify'), otp.length !== 6, () => run(() => verifyEmail(address, otp), () => onSignedIn(address)))}
@@ -209,7 +231,7 @@ export default function SignIn({
             <Text className="text-muted-foreground">{t('mobile.signIn.willSendCode', { email: address })}</Text>
             {!lockEmail && emailField}
             {errorLine}
-            {primary(t('mobile.signIn.sendCode'), !address, () => run(sendCode, () => go('verify')))}
+            {primary(t('mobile.signIn.sendCode'), !address, () => run(sendCode, () => { codeWentOut(); go('verify'); }))}
             {backLink}
           </>
         )}
@@ -220,7 +242,7 @@ export default function SignIn({
             {lockEmail && <Text className="text-muted-foreground">{t('mobile.signIn.willSendCode', { email: address })}</Text>}
             {!lockEmail && emailField}
             {errorLine}
-            {primary(t('mobile.signIn.sendCode'), !address, () => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); }, () => go('reset')))}
+            {primary(t('mobile.signIn.sendCode'), !address, () => run(sendReset, () => { codeWentOut(); go('reset'); }))}
             {backLink}
           </>
         )}
@@ -233,7 +255,7 @@ export default function SignIn({
             {passwordField(true)}
             {errorLine}
             {primary(t('mobile.signIn.setNewPassword'), otp.length !== 6 || password.length < 8, () => run(async () => { await resetPassword(address, otp, password); await signIn(address, password); }, () => onSignedIn(address)))}
-            {resend(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); })}
+            {resend(sendReset)}
             {backLink}
           </>
         )}

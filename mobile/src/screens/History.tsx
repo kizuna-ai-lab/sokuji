@@ -36,6 +36,8 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
   const [renameError, setRenameError] = useState('');
+  // The list could not be read: not the same as having no sessions.
+  const [listFailed, setListFailed] = useState(false);
   const [, runShare] = useBusy();
   const [saving, runSave] = useBusy();
   const [, runDelete] = useBusy();
@@ -48,8 +50,10 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   const load = useCallback(async () => {
     try {
       setSessions(await store.list());
+      setListFailed(false);
     } catch (err) {
-      setError(fail('list')(err));
+      console.warn(`history list: ${err instanceof Error ? err.message : String(err)}`);
+      setListFailed(true);
       setSessions((s) => s ?? []);
     }
   }, [store]);
@@ -138,13 +142,26 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   return (
     <Screen title={t('mobile.history.title')} onBack={onBack} scroll={false}>
       {error ? <Notice tone="error" className="px-4 pb-2">{error}</Notice> : null}
+      {/* A reload that failed over a list already shown: the list stays, and says it may be out of date. */}
+      {!error && listFailed && (sessions?.length ?? 0) > 0 ? <Notice tone="error" className="px-4 pb-2">{t('mobile.common.failed')}</Notice> : null}
       <FlatList
         className="flex-1"
         data={sessions ?? []}
         keyExtractor={(s) => s.id}
         ItemSeparatorComponent={RowSeparator}
         ListEmptyComponent={
-          sessions === null ? <Spinner size="large" className="py-10" /> : <Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.empty')}</Text>
+          sessions === null ? (
+            <Spinner size="large" className="py-10" />
+          ) : listFailed ? (
+            <View className="gap-3 px-4 py-10">
+              <Notice tone="error">{t('mobile.common.failed')}</Notice>
+              <Button variant="outline" onPress={() => { setSessions(null); void load(); }}>
+                <Text>{t('common.retry')}</Text>
+              </Button>
+            </View>
+          ) : (
+            <Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.empty')}</Text>
+          )
         }
         renderItem={({ item }) => {
           const { name: label, meta } = lines(item);

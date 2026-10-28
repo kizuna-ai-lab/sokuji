@@ -1649,7 +1649,9 @@
       "setNewPassword": "Aseta uusi salasana",
       "back": "Takaisin kirjautumiseen",
       "later": "Myöhemmin: vahvista tilinäkymästä",
-      "registerNote": "Saat 6-numeroisen koodin sähköpostitse; sen syöttäminen vahvistaa tilin, ja kokeilusaldo lisätään."
+      "registerNote": "Saat 6-numeroisen koodin sähköpostitse; sen syöttäminen vahvistaa tilin, ja kokeilusaldo lisätään.",
+      "sendingCode": "Lähetetään 6-numeroista koodia osoitteeseen {{email}}…",
+      "codeNotSent": "Koodia ei voitu lähettää osoitteeseen {{email}}. Tilisi on luotu: napauta Lähetä uudelleen."
     },
     "account": {
       "verify": "Vahvista sähköpostisi saadaksesi kokeilusaldon",

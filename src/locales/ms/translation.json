@@ -1649,7 +1649,9 @@
       "setNewPassword": "Tetapkan kata laluan baharu",
       "back": "Kembali ke log masuk",
       "later": "Kemudian: sahkan dari skrin akaun",
-      "registerNote": "Anda akan menerima kod 6 digit melalui e-mel; setelah dimasukkan, akaun disahkan dan kredit percubaan ditambah."
+      "registerNote": "Anda akan menerima kod 6 digit melalui e-mel; setelah dimasukkan, akaun disahkan dan kredit percubaan ditambah.",
+      "sendingCode": "Menghantar kod 6 digit ke {{email}}…",
+      "codeNotSent": "Kod tidak dapat dihantar ke {{email}}. Akaun anda telah dicipta: ketik Hantar semula."
     },
     "account": {
       "verify": "Sahkan e-mel anda untuk menerima kredit percubaan",

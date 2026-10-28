@@ -1649,7 +1649,9 @@
       "setNewPassword": "Yeni parolayı ayarla",
       "back": "Girişe dön",
       "later": "Sonra: hesap ekranından doğrulayın",
-      "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır ve deneme kredisi eklenir."
+      "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır ve deneme kredisi eklenir.",
+      "sendingCode": "{{email}} adresine 6 haneli kod gönderiliyor…",
+      "codeNotSent": "Kod {{email}} adresine gönderilemedi. Hesabınız oluşturuldu: Yeniden gönder'e dokunun."
     },
     "account": {
       "verify": "Deneme kredisini almak için e-postanızı doğrulayın",

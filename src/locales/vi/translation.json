@@ -1649,7 +1649,9 @@
       "setNewPassword": "Đặt mật khẩu mới",
       "back": "Quay lại đăng nhập",
       "later": "Để sau: xác minh từ màn hình tài khoản",
-      "registerNote": "Bạn sẽ nhận được mã 6 chữ số qua email; nhập mã là tài khoản được xác minh và tín dụng dùng thử được cộng vào."
+      "registerNote": "Bạn sẽ nhận được mã 6 chữ số qua email; nhập mã là tài khoản được xác minh và tín dụng dùng thử được cộng vào.",
+      "sendingCode": "Đang gửi mã 6 chữ số tới {{email}}…",
+      "codeNotSent": "Không gửi được mã tới {{email}}. Tài khoản của bạn đã được tạo: hãy chạm Gửi lại."
     },
     "account": {
       "verify": "Xác minh email để nhận tín dụng dùng thử",

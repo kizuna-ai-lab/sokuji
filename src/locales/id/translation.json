@@ -1649,7 +1649,9 @@
       "setNewPassword": "Atur kata sandi baru",
       "back": "Kembali ke halaman masuk",
       "later": "Nanti: verifikasi dari layar akun",
-      "registerNote": "Anda akan menerima kode 6 digit lewat email; setelah dimasukkan, akun terverifikasi dan kredit percobaan ditambahkan."
+      "registerNote": "Anda akan menerima kode 6 digit lewat email; setelah dimasukkan, akun terverifikasi dan kredit percobaan ditambahkan.",
+      "sendingCode": "Mengirim kode 6 digit ke {{email}}…",
+      "codeNotSent": "Kode tidak dapat dikirim ke {{email}}. Akun Anda sudah dibuat: ketuk Kirim lagi."
     },
     "account": {
       "verify": "Verifikasi email Anda untuk menerima kredit percobaan",
