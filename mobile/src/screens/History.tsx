@@ -280,8 +280,9 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
           const { name: label, meta } = lines(item);
           return (
             // Reading is what a row is for: the row (label, date, padding, chevron) opens the
-            // reader; the more button beside it, a separate target, holds the rest.
-            <View className="flex-row items-center pe-1">
+            // reader; the more button beside it, a separate target, holds the rest. It sits at
+            // the row's top, beside the title: centred beside a long title at AX5 it was off screen.
+            <View className="flex-row items-start pe-1 pt-1">
               <Row className="flex-1 pe-1" label={label} value={meta} onPress={() => setReading(item)} />
               {actions(item)}
             </View>
