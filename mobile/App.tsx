@@ -50,7 +50,8 @@ export default function App() {
               email={email}
               onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
               onAccountDeleted={refresh}
-              onSignInRequired={() => setToken(null)}
+              // A request that was already in flight when the account changed must not sign the new one out.
+              onSignInRequired={() => setToken((current) => (current === token ? null : current))}
             />
           )}
         </View>

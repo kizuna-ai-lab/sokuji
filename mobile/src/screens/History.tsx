@@ -98,7 +98,7 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
       />
       {!!error && <Text style={styles.error}>{error}</Text>}
       <Modal visible={selected !== null} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
-        <Pressable style={styles.backdrop} onPress={() => setSelected(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setSelected(null)} accessible={false}>
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>{selected ? name(selected) : ''}</Text>
             <Text accessibilityRole="button" style={styles.sheetRow} onPress={() => { if (selected) { setTitle(selected.title ?? ''); setRenaming(selected); setSelected(null); } }}>{t('mobile.history.rename')}</Text>

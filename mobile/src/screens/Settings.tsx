@@ -52,7 +52,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
         <Text style={styles.label}>{t('mobile.main.bilingual')}</Text>
         <Switch value={settings.bilingual} onValueChange={(v) => set({ bilingual: v })} />
       </View>
-      <Text accessibilityRole="button" style={[styles.row, styles.rowLink]} onPress={() => onOpen('listen')}>
+      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, styles.rowLink, locked && styles.disabled]} onPress={locked ? undefined : () => onOpen('listen')}>
         {t('mobile.settings.listen')}  ›  {settings.listen ? t('common.on') : t('common.off')}
       </Text>
       <View style={styles.row}>
@@ -71,7 +71,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
         <Text style={styles.label}>{t('mobile.settings.region')}</Text>
         {choices(REGIONS, settings.region, (v) => v.toUpperCase(), (v) => set({ region: v }), locked)}
       </View>
-      <Text accessibilityRole="button" style={[styles.row, styles.rowLink]} onPress={() => onOpen('devices')}>{t('mobile.settings.devices')}  ›</Text>
+      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, styles.rowLink, locked && styles.disabled]} onPress={locked ? undefined : () => onOpen('devices')}>{t('mobile.settings.devices')}  ›</Text>
     </View>
   );
 }
@@ -84,6 +84,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd', gap: 8 },
   label: { fontSize: 16, flexShrink: 1 },
   rowLink: { fontSize: 16 },
+  disabled: { color: '#aaa' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, minWidth: 72, textAlign: 'right' },
   choices: { flexDirection: 'row', gap: 4 },
   choice: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, color: '#555' },

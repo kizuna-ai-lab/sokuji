@@ -40,7 +40,10 @@ export default function Account({
   const show = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
     if (message === 'sign_in_required') onSignInRequired();
-    else setError(message);
+    else {
+      console.warn(`account: ${message}`);
+      setError(message);
+    }
   };
   const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
 

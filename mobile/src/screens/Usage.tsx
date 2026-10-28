@@ -39,7 +39,10 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (message === 'sign_in_required') onSignInRequired();
-      else setError(message);
+      else {
+        console.warn(`ledger: ${message}`);
+        setError(message);
+      }
     } finally {
       setBusy(false);
     }
