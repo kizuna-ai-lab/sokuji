@@ -1712,7 +1712,9 @@
       "empty": "还没有会话。每次会话都保存在这里，只存在这台手机上。",
       "minutes": "{{minutes}} 分钟",
       "name": "名称",
-      "renameHint": "留空则以日期作为会话名称。"
+      "renameHint": "留空则以日期作为会话名称。",
+      "unfinished": "未说完",
+      "nothingHeard": "这次会话没有听到内容。"
     },
     "main": {
       "hear": "我听的语言",

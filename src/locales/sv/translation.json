@@ -1712,7 +1712,9 @@
       "empty": "Inga sessioner än. Varje session sparas här, på den här telefonen.",
       "minutes": "{{minutes}} min",
       "name": "Namn",
-      "renameHint": "Lämna tomt för att ge sessionen datumet som namn."
+      "renameHint": "Lämna tomt för att ge sessionen datumet som namn.",
+      "unfinished": "Ofullständig",
+      "nothingHeard": "Inget hördes under den här sessionen."
     },
     "main": {
       "hear": "Jag hör",

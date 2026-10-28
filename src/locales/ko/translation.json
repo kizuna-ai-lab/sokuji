@@ -1712,7 +1712,9 @@
       "empty": "아직 세션이 없습니다. 진행한 세션은 이 휴대전화의 여기에 보관됩니다.",
       "minutes": "{{minutes}}분",
       "name": "이름",
-      "renameHint": "비워 두면 날짜가 세션 이름이 됩니다."
+      "renameHint": "비워 두면 날짜가 세션 이름이 됩니다.",
+      "unfinished": "미완료",
+      "nothingHeard": "이 세션에서는 들린 내용이 없습니다."
     },
     "main": {
       "hear": "듣는 언어",

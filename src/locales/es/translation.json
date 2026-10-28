@@ -1712,7 +1712,9 @@
       "empty": "Aún no hay sesiones. Cada sesión que inicies se guarda aquí, en este teléfono.",
       "minutes": "{{minutes}} min",
       "name": "Nombre",
-      "renameHint": "Déjalo vacío para que la sesión se llame por su fecha."
+      "renameHint": "Déjalo vacío para que la sesión se llame por su fecha.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "En esta sesión no se oyó nada."
     },
     "main": {
       "hear": "Escucho",

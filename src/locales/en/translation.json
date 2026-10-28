@@ -1712,7 +1712,9 @@
       "empty": "No sessions yet. Each session you run is kept here, on this phone.",
       "minutes": "{{minutes}} min",
       "name": "Name",
-      "renameHint": "Leave it empty to name the session by its date."
+      "renameHint": "Leave it empty to name the session by its date.",
+      "unfinished": "Unfinished",
+      "nothingHeard": "Nothing was heard in this session."
     },
     "main": {
       "hear": "I hear",

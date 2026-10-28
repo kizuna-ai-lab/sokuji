@@ -1712,7 +1712,9 @@
       "empty": "Nie ma jeszcze sesji. Każda sesja jest przechowywana tutaj, na tym telefonie.",
       "minutes": "{{minutes}} min",
       "name": "Nazwa",
-      "renameHint": "Zostaw puste, aby sesja nazywała się datą."
+      "renameHint": "Zostaw puste, aby sesja nazywała się datą.",
+      "unfinished": "Niedokończone",
+      "nothingHeard": "W tej sesji nic nie usłyszano."
     },
     "main": {
       "hear": "Słyszę",

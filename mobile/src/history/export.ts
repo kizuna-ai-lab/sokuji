@@ -8,7 +8,8 @@ import {
 } from '@shared/lib/export/transcript';
 import type { StoredSession } from './store';
 
-const entriesOf = (s: StoredSession) => createProjector().project([s.leg], DEFAULT_PROJECTION);
+/** A stored session's entries, as the live screen projects them: what the exporters and the reader render. */
+export const entriesOf = (s: StoredSession) => createProjector().project([s.leg], DEFAULT_PROJECTION);
 
 const formatTime = (ms: number) => new Date(ms).toLocaleTimeString();
 const formatDateTime = (ms: number) => new Date(ms).toLocaleString();

@@ -1712,7 +1712,9 @@
       "empty": "Nog geen sessies. Elke sessie wordt hier bewaard, op deze telefoon.",
       "minutes": "{{minutes}} min",
       "name": "Naam",
-      "renameHint": "Laat leeg om de sessie naar de datum te noemen."
+      "renameHint": "Laat leeg om de sessie naar de datum te noemen.",
+      "unfinished": "Onvolledig",
+      "nothingHeard": "In deze sessie is niets gehoord."
     },
     "main": {
       "hear": "Ik hoor",

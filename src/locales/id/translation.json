@@ -1712,7 +1712,9 @@
       "empty": "Belum ada sesi. Setiap sesi yang Anda jalankan disimpan di sini, di ponsel ini.",
       "minutes": "{{minutes}} mnt",
       "name": "Nama",
-      "renameHint": "Biarkan kosong agar sesi dinamai dengan tanggalnya."
+      "renameHint": "Biarkan kosong agar sesi dinamai dengan tanggalnya.",
+      "unfinished": "Belum selesai",
+      "nothingHeard": "Tidak ada yang terdengar di sesi ini."
     },
     "main": {
       "hear": "Saya mendengar",

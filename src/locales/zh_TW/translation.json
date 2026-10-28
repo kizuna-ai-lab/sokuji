@@ -1712,7 +1712,9 @@
       "empty": "還沒有對話。每次對話都保存在這裡，只存在這支手機上。",
       "minutes": "{{minutes}} 分鐘",
       "name": "名稱",
-      "renameHint": "留空則以日期作為對話名稱。"
+      "renameHint": "留空則以日期作為對話名稱。",
+      "unfinished": "未說完",
+      "nothingHeard": "這次對話沒有聽到內容。"
     },
     "main": {
       "hear": "我聽的語言",

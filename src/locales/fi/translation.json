@@ -1712,7 +1712,9 @@
       "empty": "Ei vielä istuntoja. Jokainen istunto säilytetään täällä, tässä puhelimessa.",
       "minutes": "{{minutes}} min",
       "name": "Nimi",
-      "renameHint": "Jätä tyhjäksi, niin istunto nimetään päivämäärän mukaan."
+      "renameHint": "Jätä tyhjäksi, niin istunto nimetään päivämäärän mukaan.",
+      "unfinished": "Kesken",
+      "nothingHeard": "Tässä istunnossa ei kuultu mitään."
     },
     "main": {
       "hear": "Kuulen",

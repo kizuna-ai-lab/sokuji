@@ -1712,7 +1712,9 @@
       "empty": "Chưa có phiên nào. Mỗi phiên bạn chạy được lưu ở đây, trên điện thoại này.",
       "minutes": "{{minutes}} phút",
       "name": "Tên",
-      "renameHint": "Để trống để đặt tên phiên theo ngày."
+      "renameHint": "Để trống để đặt tên phiên theo ngày.",
+      "unfinished": "Chưa hoàn tất",
+      "nothingHeard": "Không nghe thấy gì trong phiên này."
     },
     "main": {
       "hear": "Tôi nghe",

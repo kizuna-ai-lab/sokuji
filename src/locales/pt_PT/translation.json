@@ -1712,7 +1712,9 @@
       "empty": "Ainda não há sessões. Cada sessão fica guardada aqui, neste telemóvel.",
       "minutes": "{{minutes}} min",
       "name": "Nome",
-      "renameHint": "Deixe em branco para dar à sessão o nome da data."
+      "renameHint": "Deixe em branco para dar à sessão o nome da data.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "Nada foi ouvido nesta sessão."
     },
     "main": {
       "hear": "Eu ouço",

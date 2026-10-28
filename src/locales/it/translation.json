@@ -1712,7 +1712,9 @@
       "empty": "Ancora nessuna sessione. Ogni sessione viene conservata qui, su questo telefono.",
       "minutes": "{{minutes}} min",
       "name": "Nome",
-      "renameHint": "Lascia vuoto per chiamare la sessione con la sua data."
+      "renameHint": "Lascia vuoto per chiamare la sessione con la sua data.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "In questa sessione non si è sentito nulla."
     },
     "main": {
       "hear": "Ascolto",

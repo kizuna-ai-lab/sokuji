@@ -1712,7 +1712,9 @@
       "empty": "Wala pang session. Ang bawat session mo ay itinatabi rito, sa teleponong ito.",
       "minutes": "{{minutes}} min",
       "name": "Pangalan",
-      "renameHint": "Iwanang blangko para ang petsa ang maging pangalan ng session."
+      "renameHint": "Iwanang blangko para ang petsa ang maging pangalan ng session.",
+      "unfinished": "Hindi tapos",
+      "nothingHeard": "Walang narinig sa session na ito."
     },
     "main": {
       "hear": "Naririnig ko",

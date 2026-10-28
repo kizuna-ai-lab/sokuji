@@ -1712,7 +1712,9 @@
       "empty": "Henüz oturum yok. Başlattığınız her oturum burada, bu telefonda saklanır.",
       "minutes": "{{minutes}} dk",
       "name": "Ad",
-      "renameHint": "Oturuma tarihinin ad olarak verilmesi için boş bırakın."
+      "renameHint": "Oturuma tarihinin ad olarak verilmesi için boş bırakın.",
+      "unfinished": "Tamamlanmadı",
+      "nothingHeard": "Bu oturumda hiçbir şey duyulmadı."
     },
     "main": {
       "hear": "Duyduğum dil",

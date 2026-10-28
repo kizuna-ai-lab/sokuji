@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { BackHandler, FlatList, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import { Ellipsis, FileJson, FileText, Pencil, Trash2 } from 'lucide-react-native';
@@ -16,22 +16,26 @@ import { Row } from '@/components/Row';
 import { Screen } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { useBusy } from '@/lib/useBusy';
+import { useIconSize } from '@/lib/useIconSize';
 import { languageName } from '../i18n/languages';
 import { exportJson, exportText } from '../history/export';
 import { shareExport } from '../history/share';
 import type { HistoryStore, SessionSummary } from '../history/store';
 import { pairLabel } from './mainText';
 import { sessionLines } from './historyText';
+import SessionReader from './SessionReader';
 
 const RowSeparator = () => <Separator />;
 
-// The sessions on the device, newest first: rename, export, delete.
+// The sessions on the device, newest first: a row opens the session to read;
+// its more button renames, exports or deletes it.
 export default function History({ store, onBack }: { store: HistoryStore; onBack: () => void }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.replace('_', '-');
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
   const [renaming, setRenaming] = useState<SessionSummary | null>(null);
+  const [reading, setReading] = useState<SessionSummary | null>(null);
   const [deleting, setDeleting] = useState<SessionSummary | null>(null);
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
@@ -41,6 +45,7 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   const [, runShare] = useBusy();
   const [saving, runSave] = useBusy();
   const [, runDelete] = useBusy();
+  const moreIcon = useIconSize(22);
   // The detail is for the log; the screen says it in words (design scope: no raw errors).
   const fail = (what: string) => (err: unknown) => {
     console.warn(`history ${what}: ${err instanceof Error ? err.message : String(err)}`);
@@ -60,6 +65,17 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Android's Back in the reader goes back to the list. Registered after Main's
+  // handler, so it runs first.
+  useEffect(() => {
+    if (!reading) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setReading(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [reading]);
 
   const ui = i18n.language;
   const autoLabel = t('common.autoDetect');
@@ -119,6 +135,9 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
       setRenameError('');
       try {
         await store.rename(renaming.id, title.trim());
+        // The reader's title follows a rename made from it.
+        const next = title.trim();
+        setReading((r) => (r && r.id === renaming.id ? { ...r, title: next || undefined } : r));
         setRenaming(null);
         await load();
       } catch (err) {
@@ -132,6 +151,8 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
       setError('');
       try {
         await store.delete(s.id);
+        // Deleted from the reader: back to the list.
+        setReading((r) => (r && r.id === s.id ? null : r));
         await load();
       } catch (err) {
         setError(fail('delete')(err));
@@ -139,61 +160,38 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
     });
   }
 
-  return (
-    <Screen title={t('mobile.history.title')} onBack={onBack} scroll={false}>
-      {error ? <Notice tone="error" className="px-4 pb-2">{error}</Notice> : null}
-      {/* A reload that failed over a list already shown: the list stays, and says it may be out of date. */}
-      {!error && listFailed && (sessions?.length ?? 0) > 0 ? <Notice tone="error" className="px-4 pb-2">{t('mobile.common.failed')}</Notice> : null}
-      <FlatList
-        className="flex-1"
-        data={sessions ?? []}
-        keyExtractor={(s) => s.id}
-        ItemSeparatorComponent={RowSeparator}
-        ListEmptyComponent={
-          sessions === null ? (
-            <Spinner size="large" className="py-10" />
-          ) : listFailed ? (
-            <View className="gap-3 px-4 py-10">
-              <Notice tone="error">{t('mobile.common.failed')}</Notice>
-              <Button variant="outline" onPress={() => { setSessions(null); void load(); }}>
-                <Text>{t('common.retry')}</Text>
-              </Button>
-            </View>
-          ) : (
-            <Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.empty')}</Text>
-          )
-        }
-        renderItem={({ item }) => {
-          const { name: label, meta } = lines(item);
-          return (
-            // The whole row opens what can be done with the session.
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Row label={label} value={meta} accessibilityHint={t('mobile.history.actions')} accessory={<Icon as={Ellipsis} size={20} className="text-muted-foreground" />} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onPress={() => { setTitle(item.title ?? ''); setRenameError(''); setRenaming(item); }}>
-                  <Icon as={Pencil} size={20} />
-                  <Text>{t('mobile.history.rename')}</Text>
-                </DropdownMenuItem>
-                <DropdownMenuItem onPress={() => { void runShare(() => share(item, 'txt')); }}>
-                  <Icon as={FileText} size={20} />
-                  <Text>{t('mobile.history.export')} (.txt)</Text>
-                </DropdownMenuItem>
-                <DropdownMenuItem onPress={() => { void runShare(() => share(item, 'json')); }}>
-                  <Icon as={FileJson} size={20} />
-                  <Text>{t('mobile.history.export')} (.json)</Text>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onPress={() => setDeleting(item)}>
-                  <Icon as={Trash2} size={20} className="text-destructive" />
-                  <Text>{t('mobile.history.delete')}</Text>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        }}
-      />
+  // Rename, export (.txt, .json) and delete, behind a more button: on each row, and in the reader's header.
+  const actions = (item: SessionSummary) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" accessibilityLabel={t('mobile.history.actions')}>
+          <Icon as={Ellipsis} size={moreIcon} className="text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onPress={() => { setTitle(item.title ?? ''); setRenameError(''); setRenaming(item); }}>
+          <Icon as={Pencil} size={20} />
+          <Text>{t('mobile.history.rename')}</Text>
+        </DropdownMenuItem>
+        <DropdownMenuItem onPress={() => { void runShare(() => share(item, 'txt')); }}>
+          <Icon as={FileText} size={20} />
+          <Text>{t('mobile.history.export')} (.txt)</Text>
+        </DropdownMenuItem>
+        <DropdownMenuItem onPress={() => { void runShare(() => share(item, 'json')); }}>
+          <Icon as={FileJson} size={20} />
+          <Text>{t('mobile.history.export')} (.json)</Text>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onPress={() => setDeleting(item)}>
+          <Icon as={Trash2} size={20} className="text-destructive" />
+          <Text>{t('mobile.history.delete')}</Text>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const dialogs = (
+    <>
       <Dialog open={renaming !== null} onOpenChange={(open) => { if (!open) setRenaming(null); }}>
         <DialogContent closeLabel={t('common.close')}>
           <DialogHeader>
@@ -233,6 +231,57 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
           if (deleting) deleteNow(deleting);
         }}
       />
+    </>
+  );
+
+  if (reading) {
+    const { name: readingTitle, meta } = lines(reading);
+    return (
+      <>
+        <SessionReader store={store} id={reading.id} title={readingTitle} meta={meta} onBack={() => setReading(null)} actions={actions(reading)} />
+        {error ? <Notice tone="error" className="px-4 pb-2">{error}</Notice> : null}
+        {dialogs}
+      </>
+    );
+  }
+
+  return (
+    <Screen title={t('mobile.history.title')} onBack={onBack} scroll={false}>
+      {error ? <Notice tone="error" className="px-4 pb-2">{error}</Notice> : null}
+      {/* A reload that failed over a list already shown: the list stays, and says it may be out of date. */}
+      {!error && listFailed && (sessions?.length ?? 0) > 0 ? <Notice tone="error" className="px-4 pb-2">{t('mobile.common.failed')}</Notice> : null}
+      <FlatList
+        className="flex-1"
+        data={sessions ?? []}
+        keyExtractor={(s) => s.id}
+        ItemSeparatorComponent={RowSeparator}
+        ListEmptyComponent={
+          sessions === null ? (
+            <Spinner size="large" className="py-10" />
+          ) : listFailed ? (
+            <View className="gap-3 px-4 py-10">
+              <Notice tone="error">{t('mobile.common.failed')}</Notice>
+              <Button variant="outline" onPress={() => { setSessions(null); void load(); }}>
+                <Text>{t('common.retry')}</Text>
+              </Button>
+            </View>
+          ) : (
+            <Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.empty')}</Text>
+          )
+        }
+        renderItem={({ item }) => {
+          const { name: label, meta } = lines(item);
+          return (
+            // Reading is what a row is for: the row (label, date, padding, chevron) opens the
+            // reader; the more button beside it, a separate target, holds the rest.
+            <View className="flex-row items-center pe-1">
+              <Row className="flex-1 pe-1" label={label} value={meta} onPress={() => setReading(item)} />
+              {actions(item)}
+            </View>
+          );
+        }}
+      />
+      {dialogs}
     </Screen>
   );
 }
