@@ -1759,6 +1759,7 @@
       "usb": "USB マイク",
       "noBluetoothMic": "Bluetooth ヘッドホンは翻訳の再生に使い、マイクとしては使いません。",
       "output": "再生先",
+      "chooseOutput": "システムの再生先一覧を開きます",
       "route": {
         "speaker": "本体のスピーカー",
         "headphones": "ヘッドホン",

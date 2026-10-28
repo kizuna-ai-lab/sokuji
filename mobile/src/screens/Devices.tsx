@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AudioManager } from 'react-native-audio-api';
 import { ChoiceList } from '@/components/ChoiceList';
@@ -8,11 +9,12 @@ import { Screen } from '@/components/ScreenHeader';
 import { microphoneChoices, routeOf, type MicrophoneKind, type Route } from '../session/route';
 import { useSettings } from '../store/useSettings';
 import { outputLines } from './deviceText';
+import { RoutePickerView, showOutputSwitcher } from '../../modules/route-picker/src/RoutePickerModule';
 
 // R14: the microphone is the user's choice among the phone's own, a wired
-// headset's and a USB one (never Bluetooth); the output device is shown as
-// the system routes it. The system's own output picker is a native view
-// still to be added on the macOS machine; until then the route is read-only here.
+// headset's and a USB one (never Bluetooth); the output device is the one the
+// system routes to, changed in the system's own picker, which the output row
+// opens (modules/route-picker). The route change event refreshes the row.
 export default function Devices({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   const settings = useSettings((s) => s.settings);
@@ -66,9 +68,28 @@ export default function Devices({ onBack }: { onBack: () => void }) {
         }}
       />
       <RowGroup title={t('mobile.devices.output')}>
-        <Row label={output.label} value={output.value} />
+        <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} />
       </RowGroup>
       <Notice className="px-4">{t('mobile.listen.headphones')}</Notice>
     </Screen>
   );
+}
+
+// The output row opens the system's picker. On iOS the picker is a native view
+// laid over the row (no API opens it from code); it is the one element a screen
+// reader meets, so the row under it is hidden from one. On Android a press opens
+// the media output panel.
+function OutputRow({ label, value, hint }: { label: string; value?: string; hint: string }) {
+  if (Platform.OS === 'ios' && RoutePickerView) {
+    const Picker = RoutePickerView;
+    return (
+      <View>
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">
+          <Row label={label} value={value} chevron />
+        </View>
+        <Picker label={[label, value, hint].filter(Boolean).join(', ')} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
+      </View>
+    );
+  }
+  return <Row label={label} value={value} accessibilityHint={hint} onPress={() => { showOutputSwitcher(); }} />;
 }

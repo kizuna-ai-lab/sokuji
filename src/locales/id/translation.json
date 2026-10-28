@@ -1759,6 +1759,7 @@
       "usb": "Mikrofon USB",
       "noBluetoothMic": "Headset Bluetooth memutar terjemahan tetapi tidak dipakai sebagai mikrofon.",
       "output": "Perangkat pemutar",
+      "chooseOutput": "Membuka daftar perangkat pemutar sistem",
       "route": {
         "speaker": "Speaker ponsel",
         "headphones": "Headphone",

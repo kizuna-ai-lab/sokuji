@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["RoutePickerModule"]
+  },
+  "android": {
+    "modules": ["ai.kizunaai.sokuji.routepicker.RoutePickerModule"]
+  }
+}

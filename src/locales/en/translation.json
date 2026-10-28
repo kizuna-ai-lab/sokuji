@@ -1759,6 +1759,7 @@
       "usb": "USB microphone",
       "noBluetoothMic": "Bluetooth headsets play the translation but are not used as the microphone.",
       "output": "Playback device",
+      "chooseOutput": "Opens the system's list of playback devices",
       "route": {
         "speaker": "Phone speaker",
         "headphones": "Headphones",

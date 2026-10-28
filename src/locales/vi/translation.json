@@ -1759,6 +1759,7 @@
       "usb": "Micrô USB",
       "noBluetoothMic": "Tai nghe Bluetooth phát bản dịch nhưng không dùng làm micrô.",
       "output": "Thiết bị phát",
+      "chooseOutput": "Mở danh sách thiết bị phát của hệ thống",
       "route": {
         "speaker": "Loa điện thoại",
         "headphones": "Tai nghe",

@@ -1759,6 +1759,7 @@
       "usb": "Micro USB",
       "noBluetoothMic": "Les casques Bluetooth diffusent la traduction mais ne servent pas de micro.",
       "output": "Appareil de lecture",
+      "chooseOutput": "Ouvre la liste des appareils de lecture du système",
       "route": {
         "speaker": "Haut-parleur du téléphone",
         "headphones": "Casque",

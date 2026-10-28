@@ -1759,6 +1759,7 @@
       "usb": "USB 麦克风",
       "noBluetoothMic": "蓝牙耳机只用来播放译文，不作为麦克风。",
       "output": "播放设备",
+      "chooseOutput": "打开系统的播放设备列表",
       "route": {
         "speaker": "手机扬声器",
         "headphones": "耳机",

@@ -1759,6 +1759,7 @@
       "usb": "USB 麥克風",
       "noBluetoothMic": "藍牙耳機只用來播放譯文，不作為麥克風。",
       "output": "播放裝置",
+      "chooseOutput": "開啟系統的播放裝置清單",
       "route": {
         "speaker": "手機揚聲器",
         "headphones": "耳機",
