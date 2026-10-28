@@ -1651,7 +1651,9 @@
       "later": "稍后再说：可在账户页验证",
       "registerNote": "你会收到一封 6 位验证码邮件；输入后账号即验证完成，试用额度随即到账。",
       "sendingCode": "正在向 {{email}} 发送验证码…",
-      "codeNotSent": "验证码未能发到 {{email}}。账户已经创建，请点“重新发送”。"
+      "codeNotSent": "验证码未能发到 {{email}}。账户已经创建，请点“重新发送”。",
+      "showPassword": "显示密码",
+      "hidePassword": "隐藏密码"
     },
     "account": {
       "verify": "验证邮箱即可领取试用额度",

@@ -1651,7 +1651,9 @@
       "later": "Später: im Kontobildschirm bestätigen",
       "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt und das Testguthaben folgt.",
       "sendingCode": "Ein 6-stelliger Code wird an {{email}} gesendet…",
-      "codeNotSent": "Der Code konnte nicht an {{email}} gesendet werden. Dein Konto ist angelegt: Tippe auf „Erneut senden“."
+      "codeNotSent": "Der Code konnte nicht an {{email}} gesendet werden. Dein Konto ist angelegt: Tippe auf „Erneut senden“.",
+      "showPassword": "Passwort anzeigen",
+      "hidePassword": "Passwort verbergen"
     },
     "account": {
       "verify": "Bestätige deine E-Mail, um das Testguthaben zu erhalten",

@@ -1651,7 +1651,9 @@
       "later": "Più tardi: verifica dalla schermata dell'account",
       "registerNote": "Riceverai un codice a 6 cifre via e-mail; inserendolo l'account viene verificato e il credito di prova viene aggiunto.",
       "sendingCode": "Invio di un codice a 6 cifre a {{email}}…",
-      "codeNotSent": "Non è stato possibile inviare il codice a {{email}}. Il tuo account è stato creato: tocca Invia di nuovo."
+      "codeNotSent": "Non è stato possibile inviare il codice a {{email}}. Il tuo account è stato creato: tocca Invia di nuovo.",
+      "showPassword": "Mostra password",
+      "hidePassword": "Nascondi password"
     },
     "account": {
       "verify": "Verifica la tua e-mail per ricevere il credito di prova",

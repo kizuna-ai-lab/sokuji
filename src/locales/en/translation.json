@@ -1651,7 +1651,9 @@
       "later": "Later: verify from the account screen",
       "registerNote": "You will get a 6-digit code by email; entering it verifies the account, and the trial credit follows.",
       "sendingCode": "Sending a 6-digit code to {{email}}…",
-      "codeNotSent": "The code could not be sent to {{email}}. Your account is created: tap Send again."
+      "codeNotSent": "The code could not be sent to {{email}}. Your account is created: tap Send again.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
     },
     "account": {
       "verify": "Verify your email to receive the trial credit",

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Field } from '@/components/Field';
 import { Notice } from '@/components/Notice';
@@ -50,6 +52,9 @@ export default function SignIn({
   // the code page before its first one is sent. Opened on the code page, the
   // caller has sent it.
   const [sent, setSent] = useState(initialMode === 'verify');
+  // Whether the password is shown as typed: the phone's usual answer to a mistyped
+  // password, instead of typing it twice (owner, 2026-10-28). Hidden again on each page.
+  const [showPassword, setShowPassword] = useState(false);
   // A request belongs to the page it was sent from: leave the page (another
   // tab, Back, the screen closes) and its result no longer moves or tells anyone.
   const [gate] = useState(createPageGate);
@@ -87,6 +92,7 @@ export default function SignIn({
     setCode('');
     // Only the code page carries over whether its code was sent.
     if (next !== 'verify') setSent(false);
+    setShowPassword(false);
     setMode(next);
   }
 
@@ -120,7 +126,7 @@ export default function SignIn({
     <Field
       label={newPassword ? t('mobile.signIn.newPassword') : t('mobile.signIn.password')}
       hint={newPassword ? t('mobile.signIn.passwordHint') : undefined}
-      secureTextEntry
+      secureTextEntry={!showPassword}
       autoComplete={newPassword ? 'new-password' : 'password'}
       // 'password' for a new one too: with 'newPassword', iOS fills an Automatic Strong
       // Password the app never receives (React Native gets no change), so the field could
@@ -129,6 +135,16 @@ export default function SignIn({
       editable={!busy}
       value={password}
       onChangeText={setPassword}
+      end={
+        <Button
+          variant="ghost"
+          size="icon"
+          accessibilityLabel={showPassword ? t('mobile.signIn.hidePassword') : t('mobile.signIn.showPassword')}
+          onPress={() => setShowPassword((v) => !v)}
+        >
+          <Icon as={showPassword ? EyeOff : Eye} size={22} className="text-muted-foreground" />
+        </Button>
+      }
     />
   );
   const codeField = (

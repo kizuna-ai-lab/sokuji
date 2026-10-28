@@ -1651,7 +1651,9 @@
       "later": "Mamaya: i-verify mula sa screen ng account",
       "registerNote": "Makakatanggap ka ng 6-digit na code sa email; kapag inilagay ito, na-verify na ang account at susunod ang trial credit.",
       "sendingCode": "Ipinapadala ang 6-digit na code sa {{email}}…",
-      "codeNotSent": "Hindi maipadala ang code sa {{email}}. Nagawa na ang account mo: i-tap ang Ipadala muli."
+      "codeNotSent": "Hindi maipadala ang code sa {{email}}. Nagawa na ang account mo: i-tap ang Ipadala muli.",
+      "showPassword": "Ipakita ang password",
+      "hidePassword": "Itago ang password"
     },
     "account": {
       "verify": "I-verify ang iyong email para matanggap ang trial credit",
