@@ -1675,7 +1675,8 @@
         "refund": "Remboursement",
         "expired": "Expiré",
         "voicePreview": "Aperçu de voix"
-      }
+      },
+      "empty": "Rien pour l'instant."
     },
     "menu": {
       "history": "Historique",
@@ -1704,7 +1705,12 @@
       "rename": "Renommer",
       "title": "Sessions",
       "export": "Exporter",
-      "delete": "Supprimer"
+      "delete": "Supprimer",
+      "actions": "Renommer, exporter ou supprimer",
+      "empty": "Aucune session pour l'instant. Chaque session est conservée ici, sur ce téléphone.",
+      "minutes": "{{minutes}} min",
+      "name": "Nom",
+      "renameHint": "Laissez vide pour nommer la session d'après sa date."
     },
     "main": {
       "hear": "J'entends",
@@ -1738,7 +1744,8 @@
       "toggle": "Lire à voix haute ce que dit l'autre personne",
       "voice": "Voix que j'entends",
       "speed": "Vitesse de parole",
-      "headphones": "Lue seulement au casque. Sur le haut-parleur, vous avez les sous-titres."
+      "headphones": "Lue seulement au casque. Sur le haut-parleur, vous avez les sous-titres.",
+      "searchVoices": "Rechercher une voix"
     },
     "devices": {
       "microphone": "Micro",
@@ -1746,7 +1753,13 @@
       "wired": "Micro du casque filaire",
       "usb": "Micro USB",
       "noBluetoothMic": "Les casques Bluetooth diffusent la traduction mais ne servent pas de micro.",
-      "output": "Appareil de lecture"
+      "output": "Appareil de lecture",
+      "route": {
+        "speaker": "Haut-parleur du téléphone",
+        "headphones": "Casque",
+        "bluetooth": "Appareil Bluetooth",
+        "other": "Autre appareil"
+      }
     },
     "languages": {
       "search": "Rechercher une langue",

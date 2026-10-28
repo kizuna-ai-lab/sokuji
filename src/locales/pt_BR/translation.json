@@ -1675,7 +1675,8 @@
         "refund": "Reembolso",
         "expired": "Expirado",
         "voicePreview": "Prévia de voz"
-      }
+      },
+      "empty": "Ainda não há nada aqui."
     },
     "menu": {
       "history": "Histórico",
@@ -1704,7 +1705,12 @@
       "rename": "Renomear",
       "title": "Sessões",
       "export": "Exportar",
-      "delete": "Excluir"
+      "delete": "Excluir",
+      "actions": "Renomear, exportar ou excluir",
+      "empty": "Ainda não há sessões. Cada sessão fica guardada aqui, neste telefone.",
+      "minutes": "{{minutes}} min",
+      "name": "Nome",
+      "renameHint": "Deixe em branco para nomear a sessão pela data."
     },
     "main": {
       "hear": "Eu ouço",
@@ -1738,7 +1744,8 @@
       "toggle": "Ler em voz alta o que a outra pessoa diz",
       "voice": "Voz que eu ouço",
       "speed": "Velocidade da fala",
-      "headphones": "Lida apenas com fones. No alto-falante você tem legendas."
+      "headphones": "Lida apenas com fones. No alto-falante você tem legendas.",
+      "searchVoices": "Buscar vozes"
     },
     "devices": {
       "microphone": "Microfone",
@@ -1746,7 +1753,13 @@
       "wired": "Microfone do fone com fio",
       "usb": "Microfone USB",
       "noBluetoothMic": "Fones Bluetooth tocam a tradução, mas não são usados como microfone.",
-      "output": "Dispositivo de reprodução"
+      "output": "Dispositivo de reprodução",
+      "route": {
+        "speaker": "Alto-falante do telefone",
+        "headphones": "Fones de ouvido",
+        "bluetooth": "Dispositivo Bluetooth",
+        "other": "Outro dispositivo"
+      }
     },
     "languages": {
       "search": "Buscar idiomas",

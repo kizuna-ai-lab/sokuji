@@ -1675,7 +1675,8 @@
         "refund": "Erstattung",
         "expired": "Verfallen",
         "voicePreview": "Stimmvorschau"
-      }
+      },
+      "empty": "Noch keine Einträge."
     },
     "menu": {
       "history": "Verlauf",
@@ -1704,7 +1705,12 @@
       "rename": "Umbenennen",
       "title": "Sitzungen",
       "export": "Exportieren",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "actions": "Umbenennen, exportieren oder löschen",
+      "empty": "Noch keine Sitzungen. Jede Sitzung wird hier auf diesem Telefon gespeichert.",
+      "minutes": "{{minutes}} Min.",
+      "name": "Name",
+      "renameHint": "Leer lassen, um die Sitzung nach ihrem Datum zu benennen."
     },
     "main": {
       "hear": "Ich höre",
@@ -1738,7 +1744,8 @@
       "toggle": "Die Worte der anderen Seite mir vorlesen",
       "voice": "Stimme, die ich höre",
       "speed": "Sprechtempo",
-      "headphones": "Nur über Kopfhörer gesprochen. Über den Lautsprecher gibt es Untertitel."
+      "headphones": "Nur über Kopfhörer gesprochen. Über den Lautsprecher gibt es Untertitel.",
+      "searchVoices": "Stimmen suchen"
     },
     "devices": {
       "microphone": "Mikrofon",
@@ -1746,7 +1753,13 @@
       "wired": "Mikrofon des Kabel-Headsets",
       "usb": "USB-Mikrofon",
       "noBluetoothMic": "Bluetooth-Kopfhörer spielen die Übersetzung ab, dienen aber nicht als Mikrofon.",
-      "output": "Wiedergabegerät"
+      "output": "Wiedergabegerät",
+      "route": {
+        "speaker": "Telefonlautsprecher",
+        "headphones": "Kopfhörer",
+        "bluetooth": "Bluetooth-Gerät",
+        "other": "Anderes Gerät"
+      }
     },
     "languages": {
       "search": "Sprachen suchen",

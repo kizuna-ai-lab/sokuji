@@ -1,68 +1,68 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import type { HostInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SONIOX_PARTICIPANT_DEFAULT_VOICE, SONIOX_VOICES } from '@shared/lib/soniox/ttsCatalog';
+import { SONIOX_PARTICIPANT_DEFAULT_VOICE } from '@shared/lib/soniox/ttsCatalog';
+import { SONIOX_VOICE_ROSTER } from '@shared/lib/soniox/sonioxVoiceRoster';
+import { ChoiceList } from '@/components/ChoiceList';
+import { Notice } from '@/components/Notice';
+import { OptionSheet } from '@/components/OptionSheet';
+import { Row, RowGroup } from '@/components/Row';
+import { Screen } from '@/components/ScreenHeader';
+import { SwitchRow } from '@/components/SwitchRow';
+import { refocus } from '@/components/focus';
 import { useSettings } from '../store/useSettings';
 
 const SPEEDS = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
 
 // R13: the other side's translation read aloud to me, through headphones.
-// The words are the desktop's "Speech" panel's.
+// The words are the desktop's "Speech" panel's; a voice is described by the
+// desktop voice library's accent and gender labels.
 export default function Listen({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
-  const [voices, setVoices] = useState<Array<{ name: string; value: string }>>([]);
-  useEffect(() => {
-    setVoices(SONIOX_VOICES);
-  }, []);
+  const [picking, setPicking] = useState(false);
+  const voiceRow = useRef<HostInstance>(null);
   const current = settings.voice ?? SONIOX_PARTICIPANT_DEFAULT_VOICE;
+  const voices = SONIOX_VOICE_ROSTER.map((v) => ({
+    value: v.id,
+    label: v.id,
+    description: `${t(`voiceLibrary.filter.accent.${v.accent}`)} · ${t(`voiceLibrary.filter.gender.${v.gender}`)}`,
+  }));
+  const chosen = voices.find((v) => v.value === current);
+  const close = () => {
+    setPicking(false);
+    refocus(voiceRow);
+  };
 
   return (
-    <View style={styles.box}>
-      <View style={styles.header}>
-        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.menu.settings')}</Text>
-        <Text style={styles.title}>{t('mobile.settings.listen')}</Text>
-        <Text style={styles.link}> </Text>
-      </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>{t('mobile.listen.toggle')}</Text>
-        <Switch value={settings.listen} onValueChange={(v) => set({ listen: v })} />
-      </View>
-      <Text style={styles.note}>{t('mobile.listen.headphones')}</Text>
-      <Text style={styles.section}>{t('mobile.listen.speed')}</Text>
-      <View style={styles.choices}>
-        {SPEEDS.map((v) => (
-          <Text accessibilityRole="button" key={v} style={[styles.choice, v === settings.speed && styles.choiceOn]} onPress={() => set({ speed: v })}>
-            {v.toFixed(1)}×
-          </Text>
-        ))}
-      </View>
-      <Text style={styles.section}>{t('mobile.listen.voice')}</Text>
-      <ScrollView style={styles.voices}>
-        {voices.map((v) => (
-          <Text accessibilityRole="button" key={v.value} style={[styles.voice, v.value === current && styles.voiceOn]} onPress={() => set({ voice: v.value })}>
-            {v.name}
-          </Text>
-        ))}
-      </ScrollView>
-    </View>
+    <Screen title={t('mobile.settings.listen')} onBack={onBack} backLabel={t('mobile.menu.settings')}>
+      <RowGroup>
+        <SwitchRow label={t('mobile.listen.toggle')} checked={settings.listen} onCheckedChange={(v) => set({ listen: v })} />
+      </RowGroup>
+      <Notice className="px-4">{t('mobile.listen.headphones')}</Notice>
+      <ChoiceList
+        title={t('mobile.listen.speed')}
+        choices={SPEEDS.map((v) => ({ value: String(v), label: `${v.toFixed(1)}×` }))}
+        value={String(settings.speed)}
+        onChange={(v) => set({ speed: Number(v) })}
+      />
+      <RowGroup title={t('mobile.listen.voice')}>
+        <Row ref={voiceRow} label={chosen?.label ?? current} value={chosen?.description} onPress={() => setPicking(true)} />
+      </RowGroup>
+      <OptionSheet
+        visible={picking}
+        title={t('mobile.listen.voice')}
+        options={voices}
+        value={current}
+        searchLabel={t('mobile.listen.searchVoices')}
+        emptyLabel={t('voiceLibrary.filter.empty')}
+        onPick={(voice) => {
+          set({ voice });
+          close();
+        }}
+        onClose={close}
+      />
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { flex: 1, width: '100%', padding: 12, gap: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  title: { fontWeight: '600', fontSize: 17 },
-  link: { color: '#1e63c4', minWidth: 60 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, gap: 8 },
-  label: { fontSize: 16, flexShrink: 1 },
-  note: { fontSize: 12, color: '#666' },
-  section: { fontSize: 12, color: '#666', marginTop: 12 },
-  choices: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
-  choice: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, color: '#555' },
-  choiceOn: { backgroundColor: '#e3eefb', color: '#1e63c4', fontWeight: '600' },
-  voices: { flex: 1 },
-  voice: { fontSize: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  voiceOn: { color: '#1e63c4', fontWeight: '600' },
-});

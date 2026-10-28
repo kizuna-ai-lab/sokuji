@@ -1675,7 +1675,8 @@
         "refund": "Rimborso",
         "expired": "Scaduto",
         "voicePreview": "Anteprima voce"
-      }
+      },
+      "empty": "Ancora niente qui."
     },
     "menu": {
       "history": "Cronologia",
@@ -1704,7 +1705,12 @@
       "rename": "Rinomina",
       "title": "Sessioni",
       "export": "Esporta",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "actions": "Rinomina, esporta o elimina",
+      "empty": "Ancora nessuna sessione. Ogni sessione viene conservata qui, su questo telefono.",
+      "minutes": "{{minutes}} min",
+      "name": "Nome",
+      "renameHint": "Lascia vuoto per chiamare la sessione con la sua data."
     },
     "main": {
       "hear": "Ascolto",
@@ -1738,7 +1744,8 @@
       "toggle": "Leggimi ad alta voce ciò che dice l'altra persona",
       "voice": "Voce che sento",
       "speed": "Velocità del parlato",
-      "headphones": "Letta solo con le cuffie. Con l'altoparlante hai i sottotitoli."
+      "headphones": "Letta solo con le cuffie. Con l'altoparlante hai i sottotitoli.",
+      "searchVoices": "Cerca voci"
     },
     "devices": {
       "microphone": "Microfono",
@@ -1746,7 +1753,13 @@
       "wired": "Microfono delle cuffie con filo",
       "usb": "Microfono USB",
       "noBluetoothMic": "Le cuffie Bluetooth riproducono la traduzione ma non fanno da microfono.",
-      "output": "Dispositivo di riproduzione"
+      "output": "Dispositivo di riproduzione",
+      "route": {
+        "speaker": "Altoparlante del telefono",
+        "headphones": "Cuffie",
+        "bluetooth": "Dispositivo Bluetooth",
+        "other": "Altro dispositivo"
+      }
     },
     "languages": {
       "search": "Cerca lingue",

@@ -1675,7 +1675,8 @@
         "refund": "환불",
         "expired": "만료",
         "voicePreview": "음성 미리 듣기"
-      }
+      },
+      "empty": "아직 기록이 없습니다."
     },
     "menu": {
       "history": "기록",
@@ -1704,7 +1705,12 @@
       "rename": "이름 바꾸기",
       "title": "세션",
       "export": "내보내기",
-      "delete": "삭제"
+      "delete": "삭제",
+      "actions": "이름 바꾸기, 내보내기 또는 삭제",
+      "empty": "아직 세션이 없습니다. 진행한 세션은 이 휴대전화의 여기에 보관됩니다.",
+      "minutes": "{{minutes}}분",
+      "name": "이름",
+      "renameHint": "비워 두면 날짜가 세션 이름이 됩니다."
     },
     "main": {
       "hear": "듣는 언어",
@@ -1738,7 +1744,8 @@
       "toggle": "상대방의 말을 번역해서 읽어 줍니다",
       "voice": "내가 듣는 목소리",
       "speed": "말하기 속도",
-      "headphones": "헤드폰을 꼈을 때만 읽어 줍니다. 스피커에서는 자막만 표시됩니다."
+      "headphones": "헤드폰을 꼈을 때만 읽어 줍니다. 스피커에서는 자막만 표시됩니다.",
+      "searchVoices": "목소리 검색"
     },
     "devices": {
       "microphone": "마이크",
@@ -1746,7 +1753,13 @@
       "wired": "유선 헤드셋 마이크",
       "usb": "USB 마이크",
       "noBluetoothMic": "블루투스 헤드셋은 번역 재생에만 쓰고 마이크로는 쓰지 않습니다.",
-      "output": "재생 기기"
+      "output": "재생 기기",
+      "route": {
+        "speaker": "휴대전화 스피커",
+        "headphones": "헤드폰",
+        "bluetooth": "블루투스 기기",
+        "other": "다른 기기"
+      }
     },
     "languages": {
       "search": "언어 검색",

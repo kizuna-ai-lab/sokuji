@@ -1675,7 +1675,8 @@
         "refund": "Refund",
         "expired": "Expired",
         "voicePreview": "Preview ng boses"
-      }
+      },
+      "empty": "Wala pang laman dito."
     },
     "menu": {
       "history": "History",
@@ -1704,7 +1705,12 @@
       "rename": "Palitan ang pangalan",
       "title": "Mga session",
       "export": "I-export",
-      "delete": "Tanggalin"
+      "delete": "Tanggalin",
+      "actions": "Palitan ang pangalan, i-export o burahin",
+      "empty": "Wala pang session. Ang bawat session mo ay itinatabi rito, sa teleponong ito.",
+      "minutes": "{{minutes}} min",
+      "name": "Pangalan",
+      "renameHint": "Iwanang blangko para ang petsa ang maging pangalan ng session."
     },
     "main": {
       "hear": "Naririnig ko",
@@ -1738,7 +1744,8 @@
       "toggle": "Basahin nang malakas sa akin ang sinasabi ng kabila",
       "voice": "Boses na naririnig ko",
       "speed": "Bilis ng pagsasalita",
-      "headphones": "Binabasa lang kapag may headphones. Sa loudspeaker, subtitle ang makukuha mo."
+      "headphones": "Binabasa lang kapag may headphones. Sa loudspeaker, subtitle ang makukuha mo.",
+      "searchVoices": "Maghanap ng boses"
     },
     "devices": {
       "microphone": "Mikropono",
@@ -1746,7 +1753,13 @@
       "wired": "Mikropono ng wired headset",
       "usb": "USB na mikropono",
       "noBluetoothMic": "Nagpapatugtog ng salin ang Bluetooth headset pero hindi ginagamit bilang mikropono.",
-      "output": "Playback device"
+      "output": "Playback device",
+      "route": {
+        "speaker": "Speaker ng telepono",
+        "headphones": "Headphones",
+        "bluetooth": "Bluetooth device",
+        "other": "Ibang device"
+      }
     },
     "languages": {
       "search": "Maghanap ng wika",

@@ -1675,7 +1675,8 @@
         "refund": "Reembolso",
         "expired": "Caducado",
         "voicePreview": "Vista previa de voz"
-      }
+      },
+      "empty": "Aún no hay nada aquí."
     },
     "menu": {
       "history": "Historial",
@@ -1704,7 +1705,12 @@
       "rename": "Renombrar",
       "title": "Sesiones",
       "export": "Exportar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "actions": "Renombrar, exportar o eliminar",
+      "empty": "Aún no hay sesiones. Cada sesión que inicies se guarda aquí, en este teléfono.",
+      "minutes": "{{minutes}} min",
+      "name": "Nombre",
+      "renameHint": "Déjalo vacío para que la sesión se llame por su fecha."
     },
     "main": {
       "hear": "Escucho",
@@ -1738,7 +1744,8 @@
       "toggle": "Leerme en voz alta lo que dice la otra persona",
       "voice": "Voz que oigo",
       "speed": "Velocidad de habla",
-      "headphones": "Solo se lee con auriculares. Con el altavoz tienes subtítulos."
+      "headphones": "Solo se lee con auriculares. Con el altavoz tienes subtítulos.",
+      "searchVoices": "Buscar voces"
     },
     "devices": {
       "microphone": "Micrófono",
@@ -1746,7 +1753,13 @@
       "wired": "Micrófono de los auriculares con cable",
       "usb": "Micrófono USB",
       "noBluetoothMic": "Los auriculares Bluetooth reproducen la traducción pero no se usan como micrófono.",
-      "output": "Dispositivo de reproducción"
+      "output": "Dispositivo de reproducción",
+      "route": {
+        "speaker": "Altavoz del teléfono",
+        "headphones": "Auriculares",
+        "bluetooth": "Dispositivo Bluetooth",
+        "other": "Otro dispositivo"
+      }
     },
     "languages": {
       "search": "Buscar idiomas",

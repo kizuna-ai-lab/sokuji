@@ -1675,7 +1675,8 @@
         "refund": "退款",
         "expired": "已到期",
         "voicePreview": "試聽聲音"
-      }
+      },
+      "empty": "尚無紀錄。"
     },
     "menu": {
       "history": "歷史",
@@ -1704,7 +1705,12 @@
       "rename": "重新命名",
       "title": "對話",
       "export": "匯出",
-      "delete": "刪除"
+      "delete": "刪除",
+      "actions": "重新命名、匯出或刪除",
+      "empty": "還沒有對話。每次對話都保存在這裡，只存在這支手機上。",
+      "minutes": "{{minutes}} 分鐘",
+      "name": "名稱",
+      "renameHint": "留空則以日期作為對話名稱。"
     },
     "main": {
       "hear": "我聽的語言",
@@ -1738,7 +1744,8 @@
       "toggle": "對方說的話翻譯後朗讀給我",
       "voice": "我聽到的聲音",
       "speed": "語速",
-      "headphones": "只在戴耳機時朗讀；外放時只顯示字幕。"
+      "headphones": "只在戴耳機時朗讀；外放時只顯示字幕。",
+      "searchVoices": "搜尋聲音"
     },
     "devices": {
       "microphone": "麥克風",
@@ -1746,7 +1753,13 @@
       "wired": "有線耳機麥克風",
       "usb": "USB 麥克風",
       "noBluetoothMic": "藍牙耳機只用來播放譯文，不作為麥克風。",
-      "output": "播放裝置"
+      "output": "播放裝置",
+      "route": {
+        "speaker": "手機揚聲器",
+        "headphones": "耳機",
+        "bluetooth": "藍牙裝置",
+        "other": "其他裝置"
+      }
     },
     "languages": {
       "search": "搜尋語言",

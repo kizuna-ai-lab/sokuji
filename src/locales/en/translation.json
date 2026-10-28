@@ -1675,7 +1675,8 @@
         "refund": "Refund",
         "expired": "Expired",
         "voicePreview": "Voice preview"
-      }
+      },
+      "empty": "Nothing here yet."
     },
     "menu": {
       "history": "History",
@@ -1704,7 +1705,12 @@
       "rename": "Rename",
       "title": "Sessions",
       "export": "Export",
-      "delete": "Delete"
+      "delete": "Delete",
+      "actions": "Rename, export or delete",
+      "empty": "No sessions yet. Each session you run is kept here, on this phone.",
+      "minutes": "{{minutes}} min",
+      "name": "Name",
+      "renameHint": "Leave it empty to name the session by its date."
     },
     "main": {
       "hear": "I hear",
@@ -1738,7 +1744,8 @@
       "toggle": "Read the other side's words aloud to me",
       "voice": "Voice I hear",
       "speed": "Speech speed",
-      "headphones": "Spoken through headphones only. On the loudspeaker you get subtitles."
+      "headphones": "Spoken through headphones only. On the loudspeaker you get subtitles.",
+      "searchVoices": "Search voices"
     },
     "devices": {
       "microphone": "Microphone",
@@ -1746,7 +1753,13 @@
       "wired": "Wired headset microphone",
       "usb": "USB microphone",
       "noBluetoothMic": "Bluetooth headsets play the translation but are not used as the microphone.",
-      "output": "Playback device"
+      "output": "Playback device",
+      "route": {
+        "speaker": "Phone speaker",
+        "headphones": "Headphones",
+        "bluetooth": "Bluetooth device",
+        "other": "Another device"
+      }
     },
     "languages": {
       "search": "Search languages",

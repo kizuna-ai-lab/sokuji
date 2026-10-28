@@ -1675,7 +1675,8 @@
         "refund": "Terugbetaling",
         "expired": "Verlopen",
         "voicePreview": "Stemvoorbeeld"
-      }
+      },
+      "empty": "Nog niets te zien."
     },
     "menu": {
       "history": "Geschiedenis",
@@ -1704,7 +1705,12 @@
       "rename": "Naam wijzigen",
       "title": "Sessies",
       "export": "Exporteren",
-      "delete": "Verwijderen"
+      "delete": "Verwijderen",
+      "actions": "Naam wijzigen, exporteren of verwijderen",
+      "empty": "Nog geen sessies. Elke sessie wordt hier bewaard, op deze telefoon.",
+      "minutes": "{{minutes}} min",
+      "name": "Naam",
+      "renameHint": "Laat leeg om de sessie naar de datum te noemen."
     },
     "main": {
       "hear": "Ik hoor",
@@ -1738,7 +1744,8 @@
       "toggle": "Lees me voor wat de ander zegt",
       "voice": "Stem die ik hoor",
       "speed": "Spreeksnelheid",
-      "headphones": "Alleen via een koptelefoon. Via de luidspreker krijg je ondertitels."
+      "headphones": "Alleen via een koptelefoon. Via de luidspreker krijg je ondertitels.",
+      "searchVoices": "Stemmen zoeken"
     },
     "devices": {
       "microphone": "Microfoon",
@@ -1746,7 +1753,13 @@
       "wired": "Microfoon van bedrade headset",
       "usb": "USB-microfoon",
       "noBluetoothMic": "Bluetooth-koptelefoons spelen de vertaling af maar dienen niet als microfoon.",
-      "output": "Afspeelapparaat"
+      "output": "Afspeelapparaat",
+      "route": {
+        "speaker": "Telefoonluidspreker",
+        "headphones": "Koptelefoon",
+        "bluetooth": "Bluetooth-apparaat",
+        "other": "Ander apparaat"
+      }
     },
     "languages": {
       "search": "Talen zoeken",

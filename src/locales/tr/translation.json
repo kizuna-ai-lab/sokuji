@@ -1675,7 +1675,8 @@
         "refund": "İade",
         "expired": "Süresi doldu",
         "voicePreview": "Ses önizleme"
-      }
+      },
+      "empty": "Henüz bir şey yok."
     },
     "menu": {
       "history": "Geçmiş",
@@ -1704,7 +1705,12 @@
       "rename": "Yeniden adlandır",
       "title": "Oturumlar",
       "export": "Dışa aktar",
-      "delete": "Sil"
+      "delete": "Sil",
+      "actions": "Yeniden adlandır, dışa aktar veya sil",
+      "empty": "Henüz oturum yok. Başlattığınız her oturum burada, bu telefonda saklanır.",
+      "minutes": "{{minutes}} dk",
+      "name": "Ad",
+      "renameHint": "Oturuma tarihinin ad olarak verilmesi için boş bırakın."
     },
     "main": {
       "hear": "Duyduğum dil",
@@ -1738,7 +1744,8 @@
       "toggle": "Karşı tarafın sözlerini bana sesli oku",
       "voice": "Duyduğum ses",
       "speed": "Konuşma hızı",
-      "headphones": "Yalnızca kulaklıkla seslendirilir. Hoparlörde altyazı alırsınız."
+      "headphones": "Yalnızca kulaklıkla seslendirilir. Hoparlörde altyazı alırsınız.",
+      "searchVoices": "Ses ara"
     },
     "devices": {
       "microphone": "Mikrofon",
@@ -1746,7 +1753,13 @@
       "wired": "Kablolu kulaklık mikrofonu",
       "usb": "USB mikrofon",
       "noBluetoothMic": "Bluetooth kulaklıklar çeviriyi çalar ama mikrofon olarak kullanılmaz.",
-      "output": "Çalma aygıtı"
+      "output": "Çalma aygıtı",
+      "route": {
+        "speaker": "Telefon hoparlörü",
+        "headphones": "Kulaklık",
+        "bluetooth": "Bluetooth aygıtı",
+        "other": "Başka bir aygıt"
+      }
     },
     "languages": {
       "search": "Dil ara",

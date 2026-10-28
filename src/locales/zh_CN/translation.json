@@ -1675,7 +1675,8 @@
         "refund": "退款",
         "expired": "已过期",
         "voicePreview": "试听声音"
-      }
+      },
+      "empty": "暂无记录。"
     },
     "menu": {
       "history": "历史",
@@ -1704,7 +1705,12 @@
       "rename": "改名",
       "title": "会话",
       "export": "导出",
-      "delete": "删除"
+      "delete": "删除",
+      "actions": "改名、导出或删除",
+      "empty": "还没有会话。每次会话都保存在这里，只存在这台手机上。",
+      "minutes": "{{minutes}} 分钟",
+      "name": "名称",
+      "renameHint": "留空则以日期作为会话名称。"
     },
     "main": {
       "hear": "我听的语言",
@@ -1738,7 +1744,8 @@
       "toggle": "对方说的话翻译后朗读给我",
       "voice": "我听到的声音",
       "speed": "语速",
-      "headphones": "只在戴耳机时朗读；外放时只显示字幕。"
+      "headphones": "只在戴耳机时朗读；外放时只显示字幕。",
+      "searchVoices": "搜索声音"
     },
     "devices": {
       "microphone": "麦克风",
@@ -1746,7 +1753,13 @@
       "wired": "有线耳机麦克风",
       "usb": "USB 麦克风",
       "noBluetoothMic": "蓝牙耳机只用来播放译文，不作为麦克风。",
-      "output": "播放设备"
+      "output": "播放设备",
+      "route": {
+        "speaker": "手机扬声器",
+        "headphones": "耳机",
+        "bluetooth": "蓝牙设备",
+        "other": "其他设备"
+      }
     },
     "languages": {
       "search": "搜索语言",

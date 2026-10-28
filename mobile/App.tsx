@@ -1,9 +1,11 @@
 import './global.css';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { PortalHost } from '@rn-primitives/portal';
+import { useColorScheme } from 'nativewind';
+import { Spinner } from './src/components/Spinner';
 import { accountEmail, sessionToken, signOut } from './src/auth/client';
 import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
@@ -16,6 +18,8 @@ export default function App() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState('');
+  // The scheme the app is drawn in: the appearance setting, or the system's.
+  const { colorScheme } = useColorScheme();
 
   async function refresh() {
     try {
@@ -42,9 +46,9 @@ export default function App() {
     // gesture bar overlap the window. The insets come from the native module;
     // React Native's own SafeAreaView only knows iOS.
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-        <View style={styles.content}>
-          {(!ready || token === undefined) && <ActivityIndicator style={styles.loading} />}
+      <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom', 'left', 'right']}>
+        <View className="flex-1 items-center py-3">
+          {(!ready || token === undefined) && <Spinner size="large" className="mt-32" />}
           {ready && token === null && <SignIn onSignedIn={refresh} />}
           {ready && !!token && (
             <Main
@@ -57,19 +61,13 @@ export default function App() {
             />
           )}
         </View>
-        {/* Dark icons on the app's light background. "auto" follows the system scheme, so a
-            phone in dark mode drew white time and icons over our white bar; this follows the
-            app's own scheme once it has a dark palette. */}
-        <StatusBar style="dark" />
+        {/* The bar's time and icons in the app's own scheme, not the system's: with the
+            appearance set to Light on a phone in dark mode, "auto" drew white icons over our
+            white bar. */}
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       </SafeAreaView>
       {/* Where menus, dialogs and alerts render: above every screen, outside the safe-area padding. */}
       <PortalHost />
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  loading: { marginTop: 120 },
-});

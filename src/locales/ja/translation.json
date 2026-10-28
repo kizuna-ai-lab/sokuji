@@ -1675,7 +1675,8 @@
         "refund": "返金",
         "expired": "失効",
         "voicePreview": "声の試聴"
-      }
+      },
+      "empty": "まだ記録はありません。"
     },
     "menu": {
       "history": "履歴",
@@ -1704,7 +1705,12 @@
       "rename": "名前を変更",
       "title": "セッション",
       "export": "書き出し",
-      "delete": "削除"
+      "delete": "削除",
+      "actions": "名前の変更、書き出し、削除",
+      "empty": "まだセッションはありません。行ったセッションはこの端末内のここに保存されます。",
+      "minutes": "{{minutes}}分",
+      "name": "名前",
+      "renameHint": "空欄にすると、日時がセッション名になります。"
     },
     "main": {
       "hear": "聞く言語",
@@ -1738,7 +1744,8 @@
       "toggle": "相手の言葉を翻訳して読み上げる",
       "voice": "聞く声",
       "speed": "読み上げ速度",
-      "headphones": "読み上げはヘッドホン使用時のみ。スピーカーでは字幕だけになります。"
+      "headphones": "読み上げはヘッドホン使用時のみ。スピーカーでは字幕だけになります。",
+      "searchVoices": "声を検索"
     },
     "devices": {
       "microphone": "マイク",
@@ -1746,7 +1753,13 @@
       "wired": "有線ヘッドセットのマイク",
       "usb": "USB マイク",
       "noBluetoothMic": "Bluetooth ヘッドホンは翻訳の再生に使い、マイクとしては使いません。",
-      "output": "再生先"
+      "output": "再生先",
+      "route": {
+        "speaker": "本体のスピーカー",
+        "headphones": "ヘッドホン",
+        "bluetooth": "Bluetooth 機器",
+        "other": "その他の機器"
+      }
     },
     "languages": {
       "search": "言語を検索",

@@ -15,14 +15,10 @@ import { colorSchemeOverride, type Settings as SettingsValues } from '../store/s
 const SIZES: SettingsValues['textSize'][] = ['small', 'medium', 'large'];
 const APPEARANCES: SettingsValues['appearance'][] = ['system', 'light', 'dark'];
 
-// The dark palette reaches only the screens moved to the shared controls so
-// far; until every screen has moved, the app stays light and the setting is
-// not offered (design scope: only choices that work). True once they all have.
-export const APPEARANCE_READY = false;
-
-// An override of the system's scheme, which NativeWind's dark variables follow.
+// An override of the system's scheme, which NativeWind's dark variables (and so
+// every screen) follow.
 export function applyAppearance(appearance: SettingsValues['appearance']): void {
-  Appearance.setColorScheme(APPEARANCE_READY ? colorSchemeOverride(appearance) : 'light');
+  Appearance.setColorScheme(colorSchemeOverride(appearance));
 }
 
 // Its own screen (owner, 2026-10-27: the settings will grow). Each takes
@@ -86,17 +82,15 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
         <SwitchRow label={t('mobile.settings.keepAwake')} checked={settings.keepAwake} onCheckedChange={(v) => set({ keepAwake: v })} />
       </RowGroup>
 
-      {APPEARANCE_READY ? (
-        <ChoiceList
-          title={t('mobile.settings.appearance')}
-          choices={APPEARANCES.map((v) => ({
-            value: v,
-            label: { system: t('mobile.settings.appearanceSystem'), light: t('mobile.settings.appearanceLight'), dark: t('mobile.settings.appearanceDark') }[v],
-          }))}
-          value={settings.appearance}
-          onChange={(v) => set({ appearance: v })}
-        />
-      ) : null}
+      <ChoiceList
+        title={t('mobile.settings.appearance')}
+        choices={APPEARANCES.map((v) => ({
+          value: v,
+          label: { system: t('mobile.settings.appearanceSystem'), light: t('mobile.settings.appearanceLight'), dark: t('mobile.settings.appearanceDark') }[v],
+        }))}
+        value={settings.appearance}
+        onChange={(v) => set({ appearance: v })}
+      />
 
       <RowGroup title={t('mobile.settings.groupAudio')}>
         <Row

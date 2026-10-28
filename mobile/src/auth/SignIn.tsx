@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
+import { Field } from '@/components/Field';
+import { Notice } from '@/components/Notice';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Spinner } from '@/components/Spinner';
+import { cn } from '@/lib/utils';
 import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, signUp, verifyEmail } from './client';
 import { authErrorKey } from './unwrap';
 
@@ -32,7 +39,9 @@ export default function SignIn({
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
+  // Which request is running, so the spinner is on the button that started it.
+  const [busyFor, setBusyFor] = useState<'primary' | 'resend' | null>(null);
+  const busy = busyFor !== null;
   const [error, setError] = useState('');
   const [resendIn, setResendIn] = useState(0);
 
@@ -42,8 +51,8 @@ export default function SignIn({
     return () => clearTimeout(t);
   }, [resendIn]);
 
-  async function run(action: () => Promise<void>, after?: () => void) {
-    setBusy(true);
+  async function run(action: () => Promise<void>, after?: () => void, which: 'primary' | 'resend' = 'primary') {
+    setBusyFor(which);
     setError('');
     try {
       await action();
@@ -52,7 +61,7 @@ export default function SignIn({
       const key = authErrorKey(err);
       setError(key ? t(key) : err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setBusyFor(null);
     }
   }
 
@@ -71,32 +80,35 @@ export default function SignIn({
   }
 
   const emailField = lockEmail ? (
-    <Text style={styles.fixedEmail}>{address}</Text>
+    <View className="gap-1.5">
+      <Text className="text-muted-foreground text-sm">{t('mobile.signIn.email')}</Text>
+      <Text>{address}</Text>
+    </View>
   ) : (
-    <TextInput
-      style={styles.input}
-      placeholder={t('mobile.signIn.email')}
+    <Field
+      label={t('mobile.signIn.email')}
       autoCapitalize="none"
       autoComplete="email"
       keyboardType="email-address"
+      textContentType="emailAddress"
       value={email}
       onChangeText={setEmail}
     />
   );
   const passwordField = (newPassword = false) => (
-    <TextInput
-      style={styles.input}
-      placeholder={newPassword ? `${t('mobile.signIn.newPassword')} (${t('mobile.signIn.passwordHint')})` : t('mobile.signIn.password')}
+    <Field
+      label={newPassword ? t('mobile.signIn.newPassword') : t('mobile.signIn.password')}
+      hint={newPassword ? t('mobile.signIn.passwordHint') : undefined}
       secureTextEntry
       autoComplete={newPassword ? 'new-password' : 'password'}
+      textContentType={newPassword ? 'newPassword' : 'password'}
       value={password}
       onChangeText={setPassword}
     />
   );
   const codeField = (
-    <TextInput
-      style={styles.input}
-      placeholder={t('mobile.signIn.code')}
+    <Field
+      label={t('mobile.signIn.code')}
       keyboardType="number-pad"
       textContentType="oneTimeCode"
       autoComplete="one-time-code"
@@ -105,127 +117,127 @@ export default function SignIn({
       onChangeText={setCode}
     />
   );
-  const resend = (
-    <Button
-      title={resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}
-      disabled={busy || resendIn > 0}
-      onPress={() => run(sendCode)}
-    />
+  // The one action a page is for: full width, a spinner while its request runs.
+  const primary = (title: string, disabled: boolean, onPress: () => void) => (
+    <Button size="lg" disabled={busy || disabled} accessibilityState={{ busy: busyFor === 'primary' }} onPress={onPress}>
+      {busyFor === 'primary' ? <Spinner /> : null}
+      <Text>{title}</Text>
+    </Button>
   );
+  const link = (title: string, onPress: () => void) => (
+    <Button variant="link" className="self-start px-0" onPress={onPress}>
+      <Text className="text-left">{title}</Text>
+    </Button>
+  );
+  const resend = (send: () => Promise<void>) => (
+    <Button variant="outline" disabled={busy || resendIn > 0} accessibilityState={{ busy: busyFor === 'resend' }} onPress={() => run(send, undefined, 'resend')}>
+      {busyFor === 'resend' ? <Spinner /> : null}
+      <Text>{resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}</Text>
+    </Button>
+  );
+  // Opened from the account screen, a page has the app's header; on its own, a title and a link back to sign in.
+  const back = onBack ?? (() => go('signin'));
+  const pageTitle = (title: string) => (onBack ? null : <Text role="heading" className="text-2xl font-semibold">{title}</Text>);
+  const backLink = onBack ? null : link(t('mobile.signIn.back'), back);
+  const headerTitle = mode === 'verify' || mode === 'verifyStart' ? t('mobile.signIn.verifyTitle') : t('mobile.signIn.resetTitle');
+  const errorLine = error ? <Notice tone="error">{error}</Notice> : null;
 
   return (
-    <View style={styles.box}>
-      {(mode === 'signin' || mode === 'register') && (
-        <View style={styles.tabs}>
-          <Text accessibilityRole="button" style={[styles.tab, mode === 'signin' && styles.tabOn]} onPress={() => go('signin')}>{t('mobile.signIn.title')}</Text>
-          <Text accessibilityRole="button" style={[styles.tab, mode === 'register' && styles.tabOn]} onPress={() => go('register')}>{t('mobile.signIn.register')}</Text>
-        </View>
-      )}
+    <KeyboardAvoidingView className="bg-background w-full flex-1" behavior="padding">
+      {onBack ? <ScreenHeader title={headerTitle} onBack={onBack} /> : null}
+      <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-10 pt-4" keyboardShouldPersistTaps="handled">
+        {(mode === 'signin' || mode === 'register') && (
+          <>
+            <Text role="heading" className="text-3xl font-semibold">Sokuji</Text>
+            <View role="tablist" className="bg-muted flex-row gap-1 rounded-lg p-1">
+              {(['signin', 'register'] as const).map((m) => (
+                <Button
+                  key={m}
+                  role="tab"
+                  accessibilityState={{ selected: mode === m }}
+                  variant={mode === m ? 'outline' : 'ghost'}
+                  className={cn('flex-1 px-2', mode !== m && 'border border-transparent')}
+                  onPress={() => go(m)}
+                >
+                  <Text className={cn(mode !== m && 'text-muted-foreground')}>{m === 'signin' ? t('mobile.signIn.title') : t('mobile.signIn.register')}</Text>
+                </Button>
+              ))}
+            </View>
+          </>
+        )}
 
-      {mode === 'signin' && (
-        <>
-          {emailField}
-          {passwordField()}
-          <Button
-            title={t('mobile.signIn.submit')}
-            disabled={busy || !address || !password}
-            onPress={() => run(() => signIn(address, password), () => onSignedIn(address))}
-          />
-          <Text accessibilityRole="button" style={styles.link} onPress={() => go('forgot')}>{t('mobile.signIn.forgot')}</Text>
-        </>
-      )}
+        {mode === 'signin' && (
+          <>
+            {emailField}
+            {passwordField()}
+            {errorLine}
+            {primary(t('mobile.signIn.submit'), !address || !password, () => run(() => signIn(address, password), () => onSignedIn(address)))}
+            {link(t('mobile.signIn.forgot'), () => go('forgot'))}
+          </>
+        )}
 
-      {mode === 'register' && (
-        <>
-          {emailField}
-          {passwordField(true)}
-          <Button
-            title={t('mobile.signIn.register')}
-            disabled={busy || !address || password.length < 8}
-            onPress={() => run(async () => {
+        {mode === 'register' && (
+          <>
+            {emailField}
+            {passwordField(true)}
+            {errorLine}
+            {primary(t('mobile.signIn.register'), !address || password.length < 8, () => run(async () => {
               // The account exists once sign-up returns: the code screen from here on, even if this send fails (it has Send again).
               await signUp(address, password);
               go('verify');
               await sendCode();
-            })}
-          />
-          <Text style={styles.note}>{t('mobile.signIn.registerNote')}</Text>
-        </>
-      )}
+            }))}
+            <Text className="text-muted-foreground text-sm">{t('mobile.signIn.registerNote')}</Text>
+          </>
+        )}
 
-      {mode === 'verify' && (
-        <>
-          <Text style={styles.title}>{t('mobile.signIn.verifyTitle')}</Text>
-          <Text style={styles.note}>{t('mobile.signIn.codeSent', { email: address })}</Text>
-          {codeField}
-          <Button
-            title={t('mobile.signIn.verify')}
-            disabled={busy || otp.length !== 6}
-            onPress={() => run(() => verifyEmail(address, otp), () => onSignedIn(address))}
-          />
-          {resend}
-          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : onSignedIn(address))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.later')}</Text>
-        </>
-      )}
+        {mode === 'verify' && (
+          <>
+            {pageTitle(t('mobile.signIn.verifyTitle'))}
+            <Text className="text-muted-foreground">{t('mobile.signIn.codeSent', { email: address })}</Text>
+            {codeField}
+            {errorLine}
+            {primary(t('mobile.signIn.verify'), otp.length !== 6, () => run(() => verifyEmail(address, otp), () => onSignedIn(address)))}
+            {resend(sendCode)}
+            {onBack ? null : link(t('mobile.signIn.later'), () => onSignedIn(address))}
+          </>
+        )}
 
-      {mode === 'verifyStart' && (
-        <>
-          <Text style={styles.title}>{t('mobile.signIn.verifyTitle')}</Text>
-          <Text style={styles.note}>{t('mobile.signIn.willSendCode', { email: address })}</Text>
-          {!lockEmail && emailField}
-          <Button title={t('mobile.signIn.sendCode')} disabled={busy || !address} onPress={() => run(sendCode, () => go('verify'))} />
-          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : go('signin'))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.back')}</Text>
-        </>
-      )}
+        {mode === 'verifyStart' && (
+          <>
+            {pageTitle(t('mobile.signIn.verifyTitle'))}
+            <Text className="text-muted-foreground">{t('mobile.signIn.willSendCode', { email: address })}</Text>
+            {!lockEmail && emailField}
+            {errorLine}
+            {primary(t('mobile.signIn.sendCode'), !address, () => run(sendCode, () => go('verify')))}
+            {backLink}
+          </>
+        )}
 
-      {mode === 'forgot' && (
-        <>
-          <Text style={styles.title}>{t('mobile.signIn.resetTitle')}</Text>
-          {lockEmail && <Text style={styles.note}>{t('mobile.signIn.willSendCode', { email: address })}</Text>}
-          {!lockEmail && emailField}
-          <Button
-            title={t('mobile.signIn.sendCode')}
-            disabled={busy || !address}
-            onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); }, () => go('reset'))}
-          />
-          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : go('signin'))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.back')}</Text>
-        </>
-      )}
+        {mode === 'forgot' && (
+          <>
+            {pageTitle(t('mobile.signIn.resetTitle'))}
+            {lockEmail && <Text className="text-muted-foreground">{t('mobile.signIn.willSendCode', { email: address })}</Text>}
+            {!lockEmail && emailField}
+            {errorLine}
+            {primary(t('mobile.signIn.sendCode'), !address, () => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); }, () => go('reset')))}
+            {backLink}
+          </>
+        )}
 
-      {mode === 'reset' && (
-        <>
-          <Text style={styles.title}>{t('mobile.signIn.resetTitle')}</Text>
-          <Text style={styles.note}>{t('mobile.signIn.codeSent', { email: address })}</Text>
-          {codeField}
-          {passwordField(true)}
-          <Button
-            title={t('mobile.signIn.setNewPassword')}
-            disabled={busy || otp.length !== 6 || password.length < 8}
-            onPress={() => run(async () => { await resetPassword(address, otp, password); await signIn(address, password); }, () => onSignedIn(address))}
-          />
-          <Button
-            title={resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}
-            disabled={busy || resendIn > 0}
-            onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); })}
-          />
-          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : go('signin'))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.back')}</Text>
-        </>
-      )}
-
-      {!!error && <Text style={styles.error}>{error}</Text>}
-    </View>
+        {mode === 'reset' && (
+          <>
+            {pageTitle(t('mobile.signIn.resetTitle'))}
+            <Text className="text-muted-foreground">{t('mobile.signIn.codeSent', { email: address })}</Text>
+            {codeField}
+            {passwordField(true)}
+            {errorLine}
+            {primary(t('mobile.signIn.setNewPassword'), otp.length !== 6 || password.length < 8, () => run(async () => { await resetPassword(address, otp, password); await signIn(address, password); }, () => onSignedIn(address)))}
+            {resend(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); })}
+            {backLink}
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { padding: 24, gap: 12, width: '100%' },
-  tabs: { flexDirection: 'row', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, overflow: 'hidden' },
-  tab: { flex: 1, textAlign: 'center', paddingVertical: 8, color: '#333' },
-  tabOn: { backgroundColor: '#e3eefb', color: '#1e63c4', fontWeight: '600' },
-  title: { fontSize: 20, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, fontSize: 16 },
-  note: { fontSize: 12, color: '#666' },
-  fixedEmail: { fontSize: 16, color: '#333', paddingVertical: 4 },
-  link: { color: '#1e63c4', paddingVertical: 4 },
-  error: { color: '#c0392b' },
-});

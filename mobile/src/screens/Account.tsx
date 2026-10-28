@@ -1,6 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, type HostInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { KeyRound, LogOut, ReceiptText, Trash2 } from 'lucide-react-native';
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Notice } from '@/components/Notice';
+import { Row, RowGroup } from '@/components/Row';
+import { Screen } from '@/components/ScreenHeader';
+import { Spinner } from '@/components/Spinner';
+import { useBusy } from '@/lib/useBusy';
 import { deleteAccount, emailVerified } from '../auth/client';
 import { authErrorKey } from '../auth/unwrap';
 import SignIn from '../auth/SignIn';
@@ -37,6 +46,9 @@ export default function Account({
   const [verified, setVerified] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, runDelete] = useBusy();
+  const deleteRow = useRef<HostInstance>(null);
   // A lost session goes to the sign-in screen; anything else is shown.
   const show = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -72,22 +84,16 @@ export default function Account({
     void load();
   }, [load]);
 
-  function confirmDelete() {
-    Alert.alert(t('mobile.account.deleteAccount'), t('mobile.account.deleteConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('mobile.account.deleteAccount'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteAccount();
-            onDeleted();
-          } catch (err) {
-            show(err);
-          }
-        },
-      },
-    ]);
+  function deleteNow() {
+    void runDelete(async () => {
+      setError('');
+      try {
+        await deleteAccount();
+        onDeleted();
+      } catch (err) {
+        show(err);
+      }
+    });
   }
 
   if (view === 'usage') return <Usage token={token} onBack={() => setView('account')} onSignInRequired={onSignInRequired} />;
@@ -106,69 +112,68 @@ export default function Account({
     );
   }
 
+  const lockedReason = t('mobile.settings.locked');
   return (
-    <View style={styles.box}>
-      <View style={styles.header}>
-        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
-        <Text style={styles.title}>{t('mobile.menu.account')}</Text>
-        <Text style={styles.link}> </Text>
-      </View>
-      <Text style={styles.quiet}>{email}</Text>
-      {!wallet && !error && <ActivityIndicator style={styles.loading} />}
-      {wallet && (
-        <View style={styles.balance}>
-          <View style={styles.stats}>
-            <View>
-              <Text style={styles.quiet}>{t('mobile.account.balance')}</Text>
-              <Text style={styles.big}>{formatUsd(wallet.balanceUsd)}</Text>
+    <Screen title={t('mobile.menu.account')} onBack={onBack}>
+      <View className="gap-3 px-4">
+        <Text className="text-muted-foreground">{email}</Text>
+        {!wallet && !error ? <Spinner size="large" className="py-6" /> : null}
+        {wallet ? (
+          // Balance first and largest; the rest under it, one line each, so a narrow screen or large text never squeezes them side by side.
+          <View className="border-border bg-card gap-2 rounded-lg border p-4">
+            <Text className="text-muted-foreground text-sm">{t('mobile.account.balance')}</Text>
+            <Text className="text-4xl font-semibold">{formatUsd(wallet.balanceUsd)}</Text>
+            {hours !== null ? <Text>{t('mobile.account.hoursLeft', { hours })}</Text> : null}
+            <View className="border-border mt-1 gap-0.5 border-t pt-3">
+              <Text className="text-muted-foreground text-sm">{t('mobile.account.usage30d')}</Text>
+              <Text className="text-lg font-semibold">{formatUsd(wallet.last30DaysUsd)}</Text>
             </View>
-            <View style={styles.right}>
-              <Text style={styles.quiet}>{t('mobile.account.usage30d')}</Text>
-              <Text style={styles.mid}>{formatUsd(wallet.last30DaysUsd)}</Text>
-            </View>
+            {wallet.frozen ? <Notice tone="error">{t('mobile.account.frozen')}</Notice> : null}
+            {wallet.expiringSoon ? (
+              <Notice>{t('mobile.account.expiring', { amount: formatUsd(wallet.expiringSoon.usd), date: day.format(new Date(wallet.expiringSoon.expiresAt)) })}</Notice>
+            ) : null}
+            <Text className="text-muted-foreground text-sm">{t('mobile.account.topUp')}</Text>
           </View>
-          {hours !== null && <Text style={styles.quiet}>{t('mobile.account.hoursLeft', { hours })}</Text>}
-          {wallet.frozen && <Text style={styles.warn}>{t('mobile.account.frozen')}</Text>}
-          {wallet.expiringSoon && (
-            <Text style={styles.quiet}>
-              {t('mobile.account.expiring', { amount: formatUsd(wallet.expiringSoon.usd), date: day.format(new Date(wallet.expiringSoon.expiresAt)) })}
-            </Text>
-          )}
-          <Text style={styles.quiet}>{t('mobile.account.topUp')}</Text>
-        </View>
-      )}
-      {verified === false && (
-        <View style={styles.verify}>
-          <Text style={styles.verifyText}>{t('mobile.account.verify')}</Text>
-          <Button title={t('mobile.signIn.verify')} onPress={() => setView('verify')} />
-        </View>
-      )}
-      <Text accessibilityRole="button" style={styles.row} onPress={() => setView('usage')}>{t('mobile.account.usage')}  ›</Text>
-      <Text accessibilityRole="button" style={styles.row} onPress={() => setView('password')}>{t('mobile.signIn.password')}  ›</Text>
-      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked ? styles.disabled : styles.danger]} onPress={locked ? undefined : onSignOut}>{t('mobile.account.signOut')}</Text>
-      <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked && styles.disabled]} onPress={locked ? undefined : confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
-      {!!error && <Text style={styles.error}>{error}</Text>}
-    </View>
+        ) : null}
+        {verified === false ? (
+          <View className="border-border gap-3 rounded-lg border p-4">
+            <Notice>{t('mobile.account.verify')}</Notice>
+            <Button variant="outline" onPress={() => setView('verify')}>
+              <Text>{t('mobile.signIn.verify')}</Text>
+            </Button>
+          </View>
+        ) : null}
+        {error ? <Notice tone="error">{error}</Notice> : null}
+      </View>
+      <RowGroup>
+        <Row icon={ReceiptText} label={t('mobile.account.usage')} onPress={() => setView('usage')} />
+        <Row icon={KeyRound} label={t('mobile.signIn.password')} onPress={() => setView('password')} />
+      </RowGroup>
+      <RowGroup>
+        <Row icon={LogOut} label={t('mobile.account.signOut')} destructive disabled={locked} disabledReason={lockedReason} chevron={false} onPress={onSignOut} />
+        <Row
+          ref={deleteRow}
+          icon={Trash2}
+          label={t('mobile.account.deleteAccount')}
+          destructive
+          disabled={locked || deleting}
+          disabledReason={locked ? lockedReason : undefined}
+          accessory={deleting ? <Spinner /> : undefined}
+          chevron={false}
+          onPress={() => setConfirming(true)}
+        />
+      </RowGroup>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t('mobile.account.deleteAccount')}
+        description={t('mobile.account.deleteConfirm')}
+        confirmLabel={t('mobile.account.deleteAccount')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={deleteNow}
+        returnTo={deleteRow}
+      />
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { flex: 1, width: '100%', padding: 12, gap: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontWeight: '600', fontSize: 17 },
-  link: { color: '#1e63c4', minWidth: 60 },
-  quiet: { color: '#666', fontSize: 13 },
-  loading: { paddingVertical: 24 },
-  balance: { gap: 6, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  stats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  right: { alignItems: 'flex-end' },
-  big: { fontSize: 28, fontWeight: '600' },
-  mid: { fontSize: 17, fontWeight: '600' },
-  warn: { color: '#b00', fontWeight: '600' },
-  verify: { gap: 6, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  verifyText: { color: '#8a5a00' },
-  row: { fontSize: 17, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  danger: { color: '#c0392b' },
-  disabled: { color: '#aaa' },
-  error: { color: '#c0392b' },
-});

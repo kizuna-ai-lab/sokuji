@@ -1675,7 +1675,8 @@
         "refund": "Zwrot",
         "expired": "Wygasło",
         "voicePreview": "Podgląd głosu"
-      }
+      },
+      "empty": "Na razie nic tu nie ma."
     },
     "menu": {
       "history": "Historia",
@@ -1704,7 +1705,12 @@
       "rename": "Zmień nazwę",
       "title": "Sesje",
       "export": "Eksportuj",
-      "delete": "Usuń"
+      "delete": "Usuń",
+      "actions": "Zmień nazwę, eksportuj lub usuń",
+      "empty": "Nie ma jeszcze sesji. Każda sesja jest przechowywana tutaj, na tym telefonie.",
+      "minutes": "{{minutes}} min",
+      "name": "Nazwa",
+      "renameHint": "Zostaw puste, aby sesja nazywała się datą."
     },
     "main": {
       "hear": "Słyszę",
@@ -1738,7 +1744,8 @@
       "toggle": "Czytaj mi na głos słowa drugiej strony",
       "voice": "Głos, który słyszę",
       "speed": "Tempo mowy",
-      "headphones": "Czytane tylko w słuchawkach. Na głośniku dostajesz napisy."
+      "headphones": "Czytane tylko w słuchawkach. Na głośniku dostajesz napisy.",
+      "searchVoices": "Szukaj głosów"
     },
     "devices": {
       "microphone": "Mikrofon",
@@ -1746,7 +1753,13 @@
       "wired": "Mikrofon zestawu przewodowego",
       "usb": "Mikrofon USB",
       "noBluetoothMic": "Słuchawki Bluetooth odtwarzają tłumaczenie, ale nie służą jako mikrofon.",
-      "output": "Urządzenie odtwarzające"
+      "output": "Urządzenie odtwarzające",
+      "route": {
+        "speaker": "Głośnik telefonu",
+        "headphones": "Słuchawki",
+        "bluetooth": "Urządzenie Bluetooth",
+        "other": "Inne urządzenie"
+      }
     },
     "languages": {
       "search": "Szukaj języków",

@@ -1675,7 +1675,8 @@
         "refund": "Pengembalian dana",
         "expired": "Kedaluwarsa",
         "voicePreview": "Pratinjau suara"
-      }
+      },
+      "empty": "Belum ada apa pun di sini."
     },
     "menu": {
       "history": "Riwayat",
@@ -1704,7 +1705,12 @@
       "rename": "Ganti nama",
       "title": "Sesi",
       "export": "Ekspor",
-      "delete": "Hapus"
+      "delete": "Hapus",
+      "actions": "Ganti nama, ekspor, atau hapus",
+      "empty": "Belum ada sesi. Setiap sesi yang Anda jalankan disimpan di sini, di ponsel ini.",
+      "minutes": "{{minutes}} mnt",
+      "name": "Nama",
+      "renameHint": "Biarkan kosong agar sesi dinamai dengan tanggalnya."
     },
     "main": {
       "hear": "Saya mendengar",
@@ -1738,7 +1744,8 @@
       "toggle": "Bacakan ucapan pihak lain untuk saya",
       "voice": "Suara yang saya dengar",
       "speed": "Kecepatan bicara",
-      "headphones": "Hanya dibacakan lewat headphone. Lewat pengeras suara Anda mendapat subtitel."
+      "headphones": "Hanya dibacakan lewat headphone. Lewat pengeras suara Anda mendapat subtitel.",
+      "searchVoices": "Cari suara"
     },
     "devices": {
       "microphone": "Mikrofon",
@@ -1746,7 +1753,13 @@
       "wired": "Mikrofon headset kabel",
       "usb": "Mikrofon USB",
       "noBluetoothMic": "Headset Bluetooth memutar terjemahan tetapi tidak dipakai sebagai mikrofon.",
-      "output": "Perangkat pemutar"
+      "output": "Perangkat pemutar",
+      "route": {
+        "speaker": "Speaker ponsel",
+        "headphones": "Headphone",
+        "bluetooth": "Perangkat Bluetooth",
+        "other": "Perangkat lain"
+      }
     },
     "languages": {
       "search": "Cari bahasa",

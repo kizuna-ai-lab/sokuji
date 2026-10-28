@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Text } from '@/components/ui/text';
+import { Notice } from '@/components/Notice';
+import { Screen } from '@/components/ScreenHeader';
+import { Spinner } from '@/components/Spinner';
+import { cn } from '@/lib/utils';
 import { fetchLedger, type LedgerCursor, type LedgerGroup } from '../account/ledger';
 import { formatUsd } from '../account/money';
 
@@ -52,46 +59,50 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
     void load();
   }, [load]);
 
+  const label = (item: LedgerGroup) =>
+    item.kind === 'session'
+      ? `${t('mobile.usage.session')}${item.textOnly ? ` · ${t('mobile.usage.textOnly')}` : ''}${item.durationSeconds !== null ? ` · ${duration(item.durationSeconds)}` : ''}`
+      : t(KIND_KEY[item.kind] ?? 'mobile.usage.kind.adjustment');
+
   return (
-    <View style={styles.box}>
-      <View style={styles.header}>
-        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.common.back')}</Text>
-        <Text style={styles.title}>{t('mobile.account.usage')}</Text>
-        <Text style={styles.link}> </Text>
-      </View>
+    <Screen title={t('mobile.account.usage')} onBack={onBack} scroll={false}>
       <FlatList
+        className="flex-1"
         data={groups}
         keyExtractor={(g) => g.id}
+        ItemSeparatorComponent={() => <Separator />}
         renderItem={({ item }) => (
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.label}>
-                {item.kind === 'session'
-                  ? `${t('mobile.usage.session')}${item.textOnly ? ` · ${t('mobile.usage.textOnly')}` : ''}${item.durationSeconds !== null ? ` · ${duration(item.durationSeconds)}` : ''}`
-                  : t(KIND_KEY[item.kind] ?? 'mobile.usage.kind.adjustment')}
-              </Text>
-              <Text style={styles.when}>{when.format(new Date(item.occurredAt))}</Text>
+          // The amount wraps under the label rather than squeezing it when the text is large.
+          <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3" accessible>
+            <View className="min-w-[60%] flex-1 gap-0.5">
+              <Text>{label(item)}</Text>
+              <Text className="text-muted-foreground text-sm">{when.format(new Date(item.occurredAt))}</Text>
             </View>
-            <Text style={[styles.amount, item.amountUsd > 0 && styles.credit]}>{formatUsd(item.amountUsd)}</Text>
+            <Text className={cn('font-medium', item.amountUsd > 0 && 'text-green-700 dark:text-green-400')} style={{ fontVariant: ['tabular-nums'] }}>
+              {formatUsd(item.amountUsd)}
+            </Text>
           </View>
         )}
-        ListFooterComponent={next ? <Button title={t('mobile.usage.loadMore')} disabled={busy} onPress={() => load(next)} /> : undefined}
+        ListEmptyComponent={
+          busy ? <Spinner size="large" className="py-10" /> : !error ? <Text className="text-muted-foreground px-4 py-10 text-center">{t('mobile.usage.empty')}</Text> : undefined
+        }
+        ListFooterComponent={
+          <View className="gap-3 px-4 py-4">
+            {error ? <Notice tone="error">{error}</Notice> : null}
+            {error ? (
+              <Button variant="outline" disabled={busy} onPress={() => load(groups.length > 0 && next ? next : undefined)}>
+                {busy ? <Spinner /> : null}
+                <Text>{t('common.retry')}</Text>
+              </Button>
+            ) : next && groups.length > 0 ? (
+              <Button variant="outline" disabled={busy} accessibilityState={{ busy }} onPress={() => load(next)}>
+                {busy ? <Spinner /> : null}
+                <Text>{t('mobile.usage.loadMore')}</Text>
+              </Button>
+            ) : null}
+          </View>
+        }
       />
-      {!!error && <Text style={styles.error}>{error}</Text>}
-    </View>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { flex: 1, width: '100%', padding: 12, gap: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontWeight: '600', fontSize: 17 },
-  link: { color: '#1e63c4', minWidth: 60 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e5e5', gap: 8 },
-  rowText: { flex: 1, gap: 2 },
-  label: { fontSize: 15 },
-  when: { fontSize: 12, color: '#777' },
-  amount: { fontVariant: ['tabular-nums'], fontSize: 15 },
-  credit: { color: '#1b7f3b' },
-  error: { color: '#c0392b' },
-});

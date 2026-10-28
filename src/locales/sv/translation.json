@@ -1675,7 +1675,8 @@
         "refund": "Återbetalning",
         "expired": "Utgånget",
         "voicePreview": "Röstprov"
-      }
+      },
+      "empty": "Inget här ännu."
     },
     "menu": {
       "history": "Historik",
@@ -1704,7 +1705,12 @@
       "rename": "Byt namn",
       "title": "Sessioner",
       "export": "Exportera",
-      "delete": "Radera"
+      "delete": "Radera",
+      "actions": "Byt namn, exportera eller ta bort",
+      "empty": "Inga sessioner än. Varje session sparas här, på den här telefonen.",
+      "minutes": "{{minutes}} min",
+      "name": "Namn",
+      "renameHint": "Lämna tomt för att ge sessionen datumet som namn."
     },
     "main": {
       "hear": "Jag hör",
@@ -1738,7 +1744,8 @@
       "toggle": "Läs upp vad den andra säger för mig",
       "voice": "Rösten jag hör",
       "speed": "Talhastighet",
-      "headphones": "Läses bara upp i hörlurar. I högtalaren får du undertexter."
+      "headphones": "Läses bara upp i hörlurar. I högtalaren får du undertexter.",
+      "searchVoices": "Sök röster"
     },
     "devices": {
       "microphone": "Mikrofon",
@@ -1746,7 +1753,13 @@
       "wired": "Trådbundet headsets mikrofon",
       "usb": "USB-mikrofon",
       "noBluetoothMic": "Bluetooth-hörlurar spelar översättningen men används inte som mikrofon.",
-      "output": "Uppspelningsenhet"
+      "output": "Uppspelningsenhet",
+      "route": {
+        "speaker": "Telefonens högtalare",
+        "headphones": "Hörlurar",
+        "bluetooth": "Bluetooth-enhet",
+        "other": "Annan enhet"
+      }
     },
     "languages": {
       "search": "Sök språk",

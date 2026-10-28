@@ -1675,7 +1675,8 @@
         "refund": "Hoàn tiền",
         "expired": "Đã hết hạn",
         "voicePreview": "Nghe thử giọng"
-      }
+      },
+      "empty": "Chưa có gì ở đây."
     },
     "menu": {
       "history": "Lịch sử",
@@ -1704,7 +1705,12 @@
       "rename": "Đổi tên",
       "title": "Các phiên",
       "export": "Xuất",
-      "delete": "Xóa"
+      "delete": "Xóa",
+      "actions": "Đổi tên, xuất hoặc xóa",
+      "empty": "Chưa có phiên nào. Mỗi phiên bạn chạy được lưu ở đây, trên điện thoại này.",
+      "minutes": "{{minutes}} phút",
+      "name": "Tên",
+      "renameHint": "Để trống để đặt tên phiên theo ngày."
     },
     "main": {
       "hear": "Tôi nghe",
@@ -1738,7 +1744,8 @@
       "toggle": "Đọc to cho tôi lời của người kia",
       "voice": "Giọng tôi nghe",
       "speed": "Tốc độ nói",
-      "headphones": "Chỉ đọc qua tai nghe. Qua loa ngoài bạn chỉ có phụ đề."
+      "headphones": "Chỉ đọc qua tai nghe. Qua loa ngoài bạn chỉ có phụ đề.",
+      "searchVoices": "Tìm giọng"
     },
     "devices": {
       "microphone": "Micrô",
@@ -1746,7 +1753,13 @@
       "wired": "Micrô tai nghe có dây",
       "usb": "Micrô USB",
       "noBluetoothMic": "Tai nghe Bluetooth phát bản dịch nhưng không dùng làm micrô.",
-      "output": "Thiết bị phát"
+      "output": "Thiết bị phát",
+      "route": {
+        "speaker": "Loa điện thoại",
+        "headphones": "Tai nghe",
+        "bluetooth": "Thiết bị Bluetooth",
+        "other": "Thiết bị khác"
+      }
     },
     "languages": {
       "search": "Tìm ngôn ngữ",

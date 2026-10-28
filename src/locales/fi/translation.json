@@ -1675,7 +1675,8 @@
         "refund": "Palautus",
         "expired": "Vanhentunut",
         "voicePreview": "Ääninäyte"
-      }
+      },
+      "empty": "Täällä ei ole vielä mitään."
     },
     "menu": {
       "history": "Historia",
@@ -1704,7 +1705,12 @@
       "rename": "Nimeä uudelleen",
       "title": "Istunnot",
       "export": "Vie",
-      "delete": "Poista"
+      "delete": "Poista",
+      "actions": "Nimeä uudelleen, vie tai poista",
+      "empty": "Ei vielä istuntoja. Jokainen istunto säilytetään täällä, tässä puhelimessa.",
+      "minutes": "{{minutes}} min",
+      "name": "Nimi",
+      "renameHint": "Jätä tyhjäksi, niin istunto nimetään päivämäärän mukaan."
     },
     "main": {
       "hear": "Kuulen",
@@ -1738,7 +1744,8 @@
       "toggle": "Lue toisen osapuolen sanat minulle ääneen",
       "voice": "Ääni, jonka kuulen",
       "speed": "Puhenopeus",
-      "headphones": "Luetaan vain kuulokkeisiin. Kaiuttimesta saat tekstityksen."
+      "headphones": "Luetaan vain kuulokkeisiin. Kaiuttimesta saat tekstityksen.",
+      "searchVoices": "Hae ääniä"
     },
     "devices": {
       "microphone": "Mikrofoni",
@@ -1746,7 +1753,13 @@
       "wired": "Langallisen kuulokemikrofonin mikrofoni",
       "usb": "USB-mikrofoni",
       "noBluetoothMic": "Bluetooth-kuulokkeet toistavat käännöksen, mutta niitä ei käytetä mikrofonina.",
-      "output": "Toistolaite"
+      "output": "Toistolaite",
+      "route": {
+        "speaker": "Puhelimen kaiutin",
+        "headphones": "Kuulokkeet",
+        "bluetooth": "Bluetooth-laite",
+        "other": "Muu laite"
+      }
     },
     "languages": {
       "search": "Hae kieliä",

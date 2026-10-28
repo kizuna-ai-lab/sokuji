@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AudioManager } from 'react-native-audio-api';
+import { ChoiceList } from '@/components/ChoiceList';
+import { Notice } from '@/components/Notice';
+import { Row, RowGroup } from '@/components/Row';
+import { Screen } from '@/components/ScreenHeader';
 import { microphoneChoices, routeOf, type MicrophoneKind, type Route } from '../session/route';
 import { useSettings } from '../store/useSettings';
+import { outputLines } from './deviceText';
 
 // R14: the microphone is the user's choice among the phone's own, a wired
 // headset's and a USB one (never Bluetooth); the output device is shown as
@@ -39,38 +43,31 @@ export default function Devices({ onBack }: { onBack: () => void }) {
     wired: t('mobile.devices.wired'),
     usb: t('mobile.devices.usb'),
   };
-  const chosen = settings.inputDeviceId;
+  // The phone's own microphone is one choice (null: the system picks among its
+  // built-in ones), shown once; a wired or USB one by its name.
+  const firstBuiltin = mics.findIndex((m) => m.kind === 'builtin');
+  const shown = mics.filter((m, i) => m.kind !== 'builtin' || i === firstBuiltin);
+  const chosen = settings.inputDeviceId ?? mics[firstBuiltin]?.id ?? '';
+  const output = outputLines(t, route, outputName);
 
   return (
-    <View style={styles.box}>
-      <View style={styles.header}>
-        <Text accessibilityRole="button" style={styles.link} onPress={onBack}>‹ {t('mobile.menu.settings')}</Text>
-        <Text style={styles.title}>{t('mobile.settings.devices')}</Text>
-        <Text style={styles.link}> </Text>
-      </View>
-      <Text style={styles.section}>{t('mobile.devices.microphone')}</Text>
-      {mics.map((m, i) => {
-        const selected = chosen === null ? m.kind === 'builtin' && i === mics.findIndex((x) => x.kind === 'builtin') : chosen === m.id;
-        return (
-          <Text accessibilityRole="button" key={m.id} style={styles.row} onPress={() => set({ inputDeviceId: m.kind === 'builtin' ? null : m.id })}>
-            {kindLabel[m.kind]}{m.kind !== 'builtin' ? ` · ${m.name}` : ''}{selected ? '  ✓' : ''}
-          </Text>
-        );
-      })}
-      <Text style={styles.note}>{t('mobile.devices.noBluetoothMic')}</Text>
-      <Text style={styles.section}>{t('mobile.devices.output')}</Text>
-      <Text style={styles.row}>{outputName || route}</Text>
-      <Text style={styles.note}>{t('mobile.listen.headphones')}</Text>
-    </View>
+    <Screen title={t('mobile.settings.devices')} onBack={onBack} backLabel={t('mobile.menu.settings')}>
+      {shown.length > 0 ? (
+        <ChoiceList
+          title={t('mobile.devices.microphone')}
+          footer={t('mobile.devices.noBluetoothMic')}
+          choices={shown.map((m) => ({ value: m.id, label: kindLabel[m.kind], description: m.kind !== 'builtin' ? m.name : undefined }))}
+          value={chosen}
+          onChange={(id) => {
+            const m = mics.find((x) => x.id === id);
+            set({ inputDeviceId: m?.kind === 'builtin' ? null : id });
+          }}
+        />
+      ) : null}
+      <RowGroup title={t('mobile.devices.output')}>
+        <Row label={output.label} value={output.value} />
+      </RowGroup>
+      <Notice className="px-4">{t('mobile.listen.headphones')}</Notice>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { flex: 1, width: '100%', padding: 12, gap: 6 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  title: { fontWeight: '600', fontSize: 17 },
-  link: { color: '#1e63c4', minWidth: 60 },
-  section: { fontSize: 12, color: '#666', marginTop: 12 },
-  row: { fontSize: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd' },
-  note: { fontSize: 12, color: '#666' },
-});
