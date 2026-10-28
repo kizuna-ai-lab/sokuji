@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Text as Span, View } from 'react-native';
+import { FlatList, ScrollView, Text as Span, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -7,6 +7,7 @@ import { Notice } from '@/components/Notice';
 import { Screen } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { cn } from '@/lib/utils';
+import { leadTrimmed } from '@/lib/spans';
 import { entriesOf } from '../history/export';
 import { readingLines, type ReadingLine } from '../history/reading';
 import type { HistoryStore, StoredSession } from '../history/store';
@@ -65,7 +66,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
       ) : null}
       {item.translated ? (
         <Text selectable className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
-          {item.translation.map((r) => (
+          {leadTrimmed(item.translation).map((r) => (
             <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
           ))}
         </Text>
@@ -75,7 +76,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
       )}
       {settings.bilingual || !item.translated ? (
         <Text selectable className="text-muted-foreground" style={{ fontSize: size.source, lineHeight: lineHeight(size.source) }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
-          {item.source.map((r) => (
+          {leadTrimmed(item.source).map((r) => (
             <Span key={r.key}>{r.text}</Span>
           ))}
         </Text>
@@ -85,18 +86,32 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
     </View>
   );
 
+  const heading = (
+    <View className="gap-1 px-4 pb-2">
+      <Text role="heading" className="text-2xl font-semibold">{title}</Text>
+      <Text className="text-muted-foreground text-sm">{meta}</Text>
+      {notice ? <View className="pt-1">{notice}</View> : null}
+    </View>
+  );
+
   return (
-    <Screen title={title} onBack={onBack} end={actions} scroll={false}>
-      <Text className="text-muted-foreground px-4 pb-2 text-sm">{meta}</Text>
-      {notice ? <View className="px-4 pb-2">{notice}</View> : null}
-      {session === undefined && !failed ? <Spinner size="large" className="py-10" /> : null}
-      {failed ? (
-        <View className="gap-3 px-4 py-6">
-          <Notice tone="error">{t('mobile.common.failed')}</Notice>
-          <Button variant="outline" onPress={() => { setSession(undefined); void load(); }}>
-            <Text>{t('common.retry')}</Text>
-          </Button>
-        </View>
+    // The title and the date scroll with the text: in a fixed header, at AX5 a long
+    // name and its date filled the whole screen and the text could not be reached (Sophie).
+    <Screen onBack={onBack} end={actions} scroll={false}>
+      {session === undefined || failed ? (
+        <ScrollView className="flex-1">
+          {heading}
+          {failed ? (
+            <View className="gap-3 px-4 py-6">
+              <Notice tone="error">{t('mobile.common.failed')}</Notice>
+              <Button variant="outline" onPress={() => { setSession(undefined); void load(); }}>
+                <Text>{t('common.retry')}</Text>
+              </Button>
+            </View>
+          ) : (
+            <Spinner size="large" className="py-10" />
+          )}
+        </ScrollView>
       ) : null}
       {session !== undefined && !failed ? (
         <FlatList
@@ -105,6 +120,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
           keyExtractor={(l) => l.id}
           renderItem={renderLine}
           initialNumToRender={20}
+          ListHeaderComponent={heading}
           ListEmptyComponent={<Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.nothingHeard')}</Text>}
         />
       ) : null}

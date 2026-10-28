@@ -51,31 +51,39 @@ function reasonOf(err: unknown): PreviewFailure {
 }
 
 /**
- * The clips already paid for, for the app's life (owner, 2026-10-28: the same
- * voice, language, speed and text is charged once while the app is open).
- * Module-level, not per controller: each Listen screen makes its own
- * controller, and coming back to it must not charge again.
+ * What every preview controller shares for the app's life. Each Listen screen
+ * makes its own controller, so both live here, not in one:
+ * - `cache`: the clips already paid for (owner, 2026-10-28: the same voice,
+ *   language, speed and text is charged once while the app is open);
+ * - `inflight`: the last request, its done() included. The backend holds one
+ *   preview per account, so a preview on a screen opened again waits for a
+ *   request the last screen left in flight (Adolf).
  */
-const appCache = new Map<string, Int16Array>();
+export interface PreviewShared {
+  cache: Map<string, Int16Array>;
+  inflight: Promise<unknown>;
+}
+
+export const newPreviewShared = (): PreviewShared => ({ cache: new Map(), inflight: Promise.resolve() });
+
+const appShared = newPreviewShared();
 
 /**
  * Plays a voice saying a short sample, the desktop's managed preview on the
  * phone. One at a time: a new preview, or stop(), ends the one before. Each
  * key that was minted is followed by `done()`, whatever happens after, or the
  * account would stay held (up to about 45 s) and the next Start would wait.
- * A clip is kept for the app's life (`cache`, the app's by default), by
- * voice, language, speed and text, so hearing it again costs nothing.
+ * A clip is kept for the app's life, by voice, language, speed and text, so
+ * hearing it again costs nothing. `shared` is the app's by default.
  */
-export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Array> = appCache) {
+export function createVoicePreview(deps: PreviewDeps, shared: PreviewShared = appShared) {
+  const { cache } = shared;
   let state: PreviewState = { status: 'idle' };
   // The current preview's number: stop() and each new preview move it on, and
   // whatever an older one finishes with is dropped.
   let current = 0;
   let abort: AbortController | null = null;
   let stopClip: (() => void) | null = null;
-  // The last request, its done() included: the backend holds one preview per
-  // account, so a new one starts only once the one before has settled.
-  let inflight: Promise<unknown> = Promise.resolve();
 
   const set = (next: PreviewState) => {
     state = next;
@@ -138,13 +146,13 @@ export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Ar
         set({ status: 'requesting', voice });
         const controller = new AbortController();
         abort = controller;
-        const previous = inflight;
+        const previous = shared.inflight;
         const fetching = (async () => {
           await previous;
           if (mine !== current) throw new Error('aborted');
           return clip(voice, sample, speed, controller.signal);
         })();
-        inflight = fetching.catch(() => {});
+        shared.inflight = fetching.catch(() => {});
         try {
           pcm = await fetching;
         } catch (err) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createVoicePreview, PreviewHttpError, type PreviewDeps, type PreviewState } from './preview';
+import { createVoicePreview, newPreviewShared, PreviewHttpError, type PreviewDeps, type PreviewState } from './preview';
 
 const sample = { language: 'ja', text: 'こんにちは' };
 
@@ -20,7 +20,7 @@ function setup(over: Partial<PreviewDeps> = {}) {
     ...over,
   };
   // A cache of the test's own: the app's is shared by every controller for the app's life.
-  return { preview: createVoicePreview(deps, new Map()), deps, states, played };
+  return { preview: createVoicePreview(deps, newPreviewShared()), deps, states, played };
 }
 
 describe('a voice preview', () => {
@@ -145,14 +145,14 @@ describe('when the phone cannot play the clip', () => {
 
 describe('the clip cache lives as long as the app, not the screen', () => {
   it('does not charge again when the Listen screen is left and opened again', async () => {
-    const cache = new Map<string, Int16Array>();
+    const shared = newPreviewShared();
     const first = setup();
     const again = setup();
-    const a = createVoicePreview(first.deps, cache);
+    const a = createVoicePreview(first.deps, shared);
     await a.play('Grace', sample, 1);
     // Leaving the screen ends its controller; coming back makes a new one.
     a.stop();
-    const b = createVoicePreview(again.deps, cache);
+    const b = createVoicePreview(again.deps, shared);
     await b.play('Grace', sample, 1);
     expect(first.deps.mintKey).toHaveBeenCalledTimes(1);
     expect(again.deps.mintKey).not.toHaveBeenCalled();
@@ -164,14 +164,14 @@ describe('the preview log', () => {
   it('says a miss before the request and a clip only once it arrived, so a failed request is not read as a charge', async () => {
     const lines: string[] = [];
     const { deps } = setup({ log: (l: string) => lines.push(l) });
-    const preview = createVoicePreview(deps, new Map());
+    const preview = createVoicePreview(deps, newPreviewShared());
     await preview.play('Grace', sample, 1);
     await preview.play('Grace', sample, 1);
     expect(lines).toEqual(['preview Grace ja 1: not cached, requesting', 'preview Grace ja 1: received', 'preview Grace ja 1: from cache']);
 
     const failed: string[] = [];
     const refused = setup({ log: (l: string) => failed.push(l), mintKey: vi.fn(async () => { throw new PreviewHttpError(402); }) });
-    await createVoicePreview(refused.deps, new Map()).play('Grace', sample, 1);
+    await createVoicePreview(refused.deps, newPreviewShared()).play('Grace', sample, 1);
     expect(failed).toEqual(['preview Grace ja 1: not cached, requesting', 'preview Grace ja 1: failed (balance)']);
   });
 });
@@ -202,5 +202,32 @@ describe('a key the backend may have minted is always settled (Codex review, PR 
     const { preview, deps } = setup({ mintKey: vi.fn(async () => { throw new PreviewHttpError(402); }) });
     await preview.play('Grace', sample, 1);
     expect(deps.done).not.toHaveBeenCalled();
+  });
+});
+
+describe('one preview at a time across screens (Adolf)', () => {
+  it('a preview on a new Listen screen waits for a key request the last screen left in flight', async () => {
+    const shared = newPreviewShared();
+    const order: string[] = [];
+    let answer!: (g: { apiKey: string; region: 'us' }) => void;
+    const left = setup({
+      mintKey: vi.fn(() => { order.push('mint left'); return new Promise<{ apiKey: string; region: 'us' }>((r) => { answer = r; }); }),
+      done: vi.fn(async () => { order.push('done left'); }),
+    });
+    const back = setup({
+      mintKey: vi.fn(async () => { order.push('mint back'); return { apiKey: 'k', region: 'us' as const }; }),
+      done: vi.fn(async () => { order.push('done back'); }),
+    });
+    const a = createVoicePreview(left.deps, shared);
+    const first = a.play('Grace', sample, 1);
+    await vi.waitFor(() => expect(order).toEqual(['mint left']));
+    a.stop(); // the screen is left with the key request still out
+    const b = createVoicePreview(back.deps, shared);
+    const second = b.play('Adrian', sample, 1);
+    await Promise.resolve();
+    expect(order).toEqual(['mint left']);
+    answer({ apiKey: 'k', region: 'us' });
+    await Promise.all([first, second]);
+    expect(order).toEqual(['mint left', 'done left', 'mint back', 'done back']);
   });
 });
