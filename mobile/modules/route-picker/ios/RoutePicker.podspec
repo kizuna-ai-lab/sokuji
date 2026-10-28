@@ -1,13 +1,12 @@
 Pod::Spec.new do |s|
   s.name           = 'RoutePicker'
   s.version        = '1.0.0'
-  s.summary        = 'A sample project summary'
-  s.description    = 'A sample project description'
+  s.summary        = "The system's audio output picker for Sokuji"
+  s.description    = 'Wraps AVRoutePickerView so the Playback device row opens the system list of outputs.'
   s.author         = ''
   s.homepage       = 'https://docs.expo.dev/modules/'
   s.platforms      = {
-    :ios => '16.4',
-    :tvos => '16.4'
+    :ios => '16.4'
   }
   s.source         = { git: '' }
   s.static_framework = true

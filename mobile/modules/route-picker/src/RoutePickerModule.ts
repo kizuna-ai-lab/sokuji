@@ -7,7 +7,7 @@ export type SwitcherResult = 'system' | 'bluetooth-settings' | 'none';
 type AndroidModule = { showOutputSwitcher(): SwitcherResult };
 
 // iOS: the system picker is a view the user taps (no API opens it from code).
-export const RoutePickerView: ComponentType<ViewProps & { label?: string }> | null =
+export const RoutePickerView: ComponentType<ViewProps & { label?: string; hint?: string }> | null =
   Platform.OS === 'ios' ? requireNativeView('RoutePicker') : null;
 
 // Android: the system's media output panel, opened from code.

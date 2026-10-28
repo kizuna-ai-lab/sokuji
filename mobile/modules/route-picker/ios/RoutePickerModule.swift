@@ -9,9 +9,13 @@ public class RoutePickerModule: Module {
     Name("RoutePicker")
 
     View(RoutePickerView.self) {
-      // What a screen reader says for the row the view covers.
+      // What a screen reader says for the row the view covers: the name and
+      // current device, then (after a pause, and only if hints are on) what it does.
       Prop("label") { (view: RoutePickerView, label: String?) in
         view.accessibilityLabel = label
+      }
+      Prop("hint") { (view: RoutePickerView, hint: String?) in
+        view.accessibilityHint = hint
       }
     }
   }

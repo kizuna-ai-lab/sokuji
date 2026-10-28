@@ -1,5 +1,6 @@
 package ai.kizunaai.sokuji.routepicker
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.media.MediaRouter2
 import android.os.Build
@@ -7,34 +8,50 @@ import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-// The system's own output switcher (the "Media output" panel): Android 14 opens
-// it for any app through MediaRouter2; Android 11 to 13 through SystemUI's
-// broadcast; older ones have no such panel, so the Bluetooth settings stand in.
-// Returns which of the three was opened.
+// The system's own output switcher (the "Media output" panel), by the way each
+// Android version offers it (each checked on an emulator image):
+//  - 14 and later: MediaRouter2.showSystemOutputSwitcher();
+//  - 12 and 13: SystemUI's dialog, opened by a broadcast to its receiver,
+//    sent only when the receiver exists (a broadcast with no receiver fails
+//    silently; Settings' panel action is gone on 13);
+//  - 11: the Settings panel, by its action;
+//  - otherwise, or when none of these answers: the Bluetooth settings.
+// Returns which was opened.
 class RoutePickerModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("RoutePicker")
 
     Function("showOutputSwitcher") {
       val context = appContext.reactContext ?: return@Function "none"
-      if (Build.VERSION.SDK_INT >= 34) {
-        if (MediaRouter2.getInstance(context).showSystemOutputSwitcher()) return@Function "system"
+      if (Build.VERSION.SDK_INT >= 34 && MediaRouter2.getInstance(context).showSystemOutputSwitcher()) {
+        return@Function "system"
       }
-      if (Build.VERSION.SDK_INT >= 30) {
-        val intent = Intent("com.android.systemui.action.LAUNCH_MEDIA_OUTPUT_DIALOG")
+      if (Build.VERSION.SDK_INT >= 31) {
+        val dialog = Intent("com.android.systemui.action.LAUNCH_MEDIA_OUTPUT_DIALOG")
           .setPackage("com.android.systemui")
           .putExtra("package_name", context.packageName)
-        try {
-          context.sendBroadcast(intent)
+        @Suppress("DEPRECATION")
+        if (context.packageManager.queryBroadcastReceivers(dialog, 0).isNotEmpty()) {
+          context.sendBroadcast(dialog)
           return@Function "system"
-        } catch (_: Exception) {
+        }
+      }
+      if (Build.VERSION.SDK_INT >= 30) {
+        val panel = Intent("com.android.settings.panel.action.MEDIA_OUTPUT")
+          .putExtra("com.android.settings.panel.extra.PACKAGE_NAME", context.packageName)
+          .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+          context.startActivity(panel)
+          return@Function "system"
+        } catch (_: ActivityNotFoundException) {
+        } catch (_: SecurityException) {
         }
       }
       val settings = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       return@Function try {
         context.startActivity(settings)
         "bluetooth-settings"
-      } catch (_: Exception) {
+      } catch (_: ActivityNotFoundException) {
         "none"
       }
     }

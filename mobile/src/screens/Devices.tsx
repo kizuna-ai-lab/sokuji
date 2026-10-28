@@ -87,7 +87,7 @@ function OutputRow({ label, value, hint }: { label: string; value?: string; hint
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">
           <Row label={label} value={value} chevron />
         </View>
-        <Picker label={[label, value, hint].filter(Boolean).join(', ')} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
+        <Picker label={[label, value].filter(Boolean).join(', ')} hint={hint} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
       </View>
     );
   }
