@@ -1737,7 +1737,7 @@
         "paused": "Pausado",
         "stopping": "Parando…"
       },
-      "idleHint": "Toque em Iniciar para traduzir o que você ouve para o {{language}}.",
+      "idleHint": "Toque em Iniciar para traduzir o que você ouve. Idioma da tradução: {{language}}.",
       "menu": "Menu",
       "changeLanguages": "Alterar os idiomas em Configurações"
     },

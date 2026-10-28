@@ -1737,7 +1737,7 @@
         "paused": "Đã tạm dừng",
         "stopping": "Đang dừng…"
       },
-      "idleHint": "Chạm Bắt đầu để dịch những gì bạn nghe sang {{language}}.",
+      "idleHint": "Chạm Bắt đầu để dịch những gì bạn nghe. Ngôn ngữ dịch: {{language}}.",
       "menu": "Menu",
       "changeLanguages": "Đổi ngôn ngữ trong Cài đặt"
     },

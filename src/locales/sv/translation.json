@@ -1737,7 +1737,7 @@
         "paused": "Pausad",
         "stopping": "Stoppar…"
       },
-      "idleHint": "Tryck på Starta för att översätta det du hör till {{language}}.",
+      "idleHint": "Tryck på Starta för att översätta det du hör. Översättningsspråk: {{language}}.",
       "menu": "Meny",
       "changeLanguages": "Ändra språken i Inställningar"
     },

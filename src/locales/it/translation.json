@@ -1737,7 +1737,7 @@
         "paused": "In pausa",
         "stopping": "Arresto…"
       },
-      "idleHint": "Tocca Avvia per tradurre ciò che senti in {{language}}.",
+      "idleHint": "Tocca Avvia per tradurre ciò che senti. Lingua di traduzione: {{language}}.",
       "menu": "Menu",
       "changeLanguages": "Cambia le lingue nelle Impostazioni"
     },

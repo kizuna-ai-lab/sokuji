@@ -1737,7 +1737,7 @@
         "paused": "En pause",
         "stopping": "Arrêt…"
       },
-      "idleHint": "Touchez Démarrer pour traduire ce que vous entendez en {{language}}.",
+      "idleHint": "Touchez Démarrer pour traduire ce que vous entendez. Langue de traduction : {{language}}.",
       "menu": "Menu",
       "changeLanguages": "Modifier les langues dans les réglages"
     },
