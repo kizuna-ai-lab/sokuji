@@ -133,3 +133,11 @@ describe('one preview at a time at the backend', () => {
     expect(order).toEqual(['mint', 'synth Grace', 'done', 'mint', 'synth Adrian', 'done']);
   });
 });
+
+describe('when the phone cannot play the clip', () => {
+  it('says the preview failed instead of staying on "playing"', async () => {
+    const { preview } = setup({ play: () => { throw new Error('audio session'); } });
+    await preview.play('Grace', sample, 1);
+    expect(preview.state()).toEqual({ status: 'failed', voice: 'Grace', reason: 'failed' });
+  });
+});

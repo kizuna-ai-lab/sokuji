@@ -133,10 +133,10 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
     void runSave(async () => {
       if (!renaming) return;
       setRenameError('');
+      const next = title.trim();
       try {
-        await store.rename(renaming.id, title.trim());
+        await store.rename(renaming.id, next);
         // The reader's title follows a rename made from it.
-        const next = title.trim();
         setReading((r) => (r && r.id === renaming.id ? { ...r, title: next || undefined } : r));
         setRenaming(null);
         await load();
@@ -238,8 +238,15 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
     const { name: readingTitle, meta } = lines(reading);
     return (
       <>
-        <SessionReader store={store} id={reading.id} title={readingTitle} meta={meta} onBack={() => setReading(null)} actions={actions(reading)} />
-        {error ? <Notice tone="error" className="px-4 pb-2">{error}</Notice> : null}
+        <SessionReader
+          store={store}
+          id={reading.id}
+          title={readingTitle}
+          meta={meta}
+          onBack={() => setReading(null)}
+          actions={actions(reading)}
+          notice={error ? <Notice tone="error">{error}</Notice> : undefined}
+        />
         {dialogs}
       </>
     );

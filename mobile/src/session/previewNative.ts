@@ -21,22 +21,31 @@ async function httpError(res: Response): Promise<PreviewHttpError> {
 }
 
 /** The preview on this phone: the account's token, the chosen region, react-native-audio-api for playback. */
-export function createNativeVoicePreview(o: { token: string; region: SonioxRegion; onChange: (s: PreviewState) => void }) {
+export function createNativeVoicePreview(o: {
+  /** Read at each request, so a refreshed sign-in or a changed region is what the next preview uses. */
+  token: () => string;
+  region: () => SonioxRegion;
+  onChange: (s: PreviewState) => void;
+}) {
   // Loaded here, not at the top: the node tests never construct a context.
   const audio = require('react-native-audio-api') as typeof import('react-native-audio-api');
   let context: InstanceType<typeof audio.AudioContext> | null = null;
 
   const deps: PreviewDeps = {
     async mintKey(signal) {
-      const res = await post(fetch, `${BACKEND_URL}/api/soniox/session-key`, { mode: 'voice_preview', region: o.region }, { token: o.token, signal }, 'preview session-key');
+      const region = o.region();
+      const res = await post(fetch, `${BACKEND_URL}/api/soniox/session-key`, { mode: 'voice_preview', region }, { token: o.token(), signal }, 'preview session-key');
       if (res.status !== 200) throw await httpError(res);
       const body = (await res.json()) as { ttsApiKey?: unknown; region?: unknown };
       if (typeof body?.ttsApiKey !== 'string' || !body.ttsApiKey) throw new Error('preview key missing');
-      return { apiKey: body.ttsApiKey, region: (typeof body.region === 'string' ? body.region : o.region) as SonioxRegion };
+      return { apiKey: body.ttsApiKey, region: (typeof body.region === 'string' ? body.region : region) as SonioxRegion };
     },
     async done() {
-      // 204 when billed, 404 when there was nothing to complete: both settle the account.
-      await post(fetch, `${BACKEND_URL}/api/soniox/preview-done`, {}, { token: o.token }, 'preview-done');
+      // 204 when billed, 404 when there was nothing to complete: both settle the account. Any
+      // other answer leaves it held until the key expires (about 45 s): said in the log, since
+      // the next preview or Start would then wait.
+      const res = await post(fetch, `${BACKEND_URL}/api/soniox/preview-done`, {}, { token: o.token() }, 'preview-done');
+      if (res.status !== 204 && res.status !== 404) console.warn(`preview-done ${res.status}`);
     },
     async synthesize({ apiKey, region, voice, language, text, speed, signal }) {
       const controller = new AbortController();

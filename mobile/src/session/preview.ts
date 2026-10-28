@@ -122,11 +122,17 @@ export function createVoicePreview(deps: PreviewDeps) {
         abort = null;
       }
       set({ status: 'playing', voice });
-      stopClip = deps.play(pcm, () => {
-        if (mine !== current) return;
-        stopClip = null;
-        set({ status: 'idle' });
-      });
+      try {
+        stopClip = deps.play(pcm, () => {
+          if (mine !== current) return;
+          stopClip = null;
+          set({ status: 'idle' });
+        });
+      } catch (err) {
+        // The audio could not start (the audio session, a context): a failure, not a clip that never ends.
+        console.warn(`preview play: ${err instanceof Error ? err.message : String(err)}`);
+        if (mine === current) set({ status: 'failed', voice, reason: 'failed' });
+      }
     },
 
     /** Stops what is playing or being fetched (leaving the screen, a session starting). */

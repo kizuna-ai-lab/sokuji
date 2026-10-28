@@ -47,7 +47,11 @@ export default function Listen({ token, onBack }: { token: string; onBack: () =>
   // The preview lives as long as this screen: leaving it stops what plays.
   // A session cannot start from here, and the screen is locked while one runs.
   const [previewState, setPreviewState] = useState<PreviewState>({ status: 'idle' });
-  const [preview] = useState(() => createNativeVoicePreview({ token, region: settings.region, onChange: setPreviewState }));
+  const latest = useRef({ token, region: settings.region });
+  latest.current = { token, region: settings.region };
+  const [preview] = useState(() =>
+    createNativeVoicePreview({ token: () => latest.current.token, region: () => latest.current.region, onChange: setPreviewState }),
+  );
   useEffect(() => () => { void preview.close(); }, [preview]);
   // The voice waiting for the one-time "this is charged" confirmation.
   const [confirming, setConfirming] = useState<string | null>(null);

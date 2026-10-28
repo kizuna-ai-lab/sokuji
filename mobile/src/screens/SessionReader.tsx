@@ -11,7 +11,7 @@ import { entriesOf } from '../history/export';
 import { readingLines, type ReadingLine } from '../history/reading';
 import type { HistoryStore, StoredSession } from '../history/store';
 import { useSettings } from '../store/useSettings';
-import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from './Subtitles';
+import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from '@/lib/subtitleText';
 
 /**
  * A saved session to read, top to bottom: the translation first, the source
@@ -19,7 +19,7 @@ import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from './Su
  * speaker changes. The text is selectable, so a long press copies it. Local
  * only: nothing is sent anywhere.
  */
-export default function SessionReader({ store, id, title, meta, onBack, actions }: {
+export default function SessionReader({ store, id, title, meta, onBack, actions, notice }: {
   store: HistoryStore;
   id: string;
   title: string;
@@ -28,6 +28,8 @@ export default function SessionReader({ store, id, title, meta, onBack, actions 
   onBack: () => void;
   /** The header's more button: rename, export, delete. */
   actions: React.ReactNode;
+  /** What one of those actions has to say (a failed export or delete), under the header. */
+  notice?: React.ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const settings = useSettings((s) => s.settings);
@@ -39,7 +41,10 @@ export default function SessionReader({ store, id, title, meta, onBack, actions 
   const load = useCallback(async () => {
     setFailed(false);
     try {
-      setSession(await store.load(id));
+      // A file that is gone or cannot be read is a failure, not an empty session.
+      const loaded = await store.load(id);
+      if (loaded === null) setFailed(true);
+      else setSession(loaded);
     } catch (err) {
       console.warn(`history read: ${err instanceof Error ? err.message : String(err)}`);
       setFailed(true);
@@ -78,6 +83,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions 
   return (
     <Screen title={title} onBack={onBack} end={actions} scroll={false}>
       <Text className="text-muted-foreground px-4 pb-2 text-sm">{meta}</Text>
+      {notice ? <View className="px-4 pb-2">{notice}</View> : null}
       {session === undefined && !failed ? <Spinner size="large" className="py-10" /> : null}
       {failed ? (
         <View className="gap-3 px-4 py-6">
