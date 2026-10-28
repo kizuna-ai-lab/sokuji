@@ -24,12 +24,13 @@ export interface PreviewDeps {
    * is waited for even when the user has stopped (Codex review, PR #665).
    */
   mintKey(): Promise<{ apiKey: string; region: SonioxRegion }>;
-  /** `POST /soniox/preview-done`: bills the preview and frees the account for the next one or a session. */
+  /** `POST /soniox/preview-done`: bills the preview and frees the account for the next one or a session. Rejects when it did not settle. */
   done(): Promise<void>;
   synthesize(o: { apiKey: string; region: SonioxRegion; voice: string; language: string; text: string; speed: number; signal: AbortSignal }): Promise<Int16Array>;
   /** Starts the clip; calls onEnded when it has played out; returns its stop. */
   play(pcm: Int16Array, onEnded: () => void): () => void;
-  wait(ms: number): Promise<void>;
+  /** Resolves after `ms`, or at once when `signal` aborts. */
+  wait(ms: number, signal: AbortSignal): Promise<void>;
   onChange(state: PreviewState): void;
   /** For testers counting requests: a miss before the request, then what came of it; or a cache hit. */
   log?(line: string): void;
@@ -62,9 +63,11 @@ function reasonOf(err: unknown): PreviewFailure {
 export interface PreviewShared {
   cache: Map<string, Int16Array>;
   inflight: Promise<unknown>;
+  /** The last preview-done failed: the account may still be held, so it is tried again before the next key. */
+  unsettled: boolean;
 }
 
-export const newPreviewShared = (): PreviewShared => ({ cache: new Map(), inflight: Promise.resolve() });
+export const newPreviewShared = (): PreviewShared => ({ cache: new Map(), inflight: Promise.resolve(), unsettled: false });
 
 const appShared = newPreviewShared();
 
@@ -98,13 +101,25 @@ export function createVoicePreview(deps: PreviewDeps, shared: PreviewShared = ap
     stopClip = null;
   }
 
+  // preview-done, remembering a failure: the account may then still be held, and the
+  // next preview settles it first rather than asking for a key and meeting "busy".
+  async function settle(): Promise<void> {
+    try {
+      await deps.done();
+      shared.unsettled = false;
+    } catch {
+      shared.unsettled = true;
+    }
+  }
+
   async function mint(signal: AbortSignal): Promise<{ apiKey: string; region: SonioxRegion }> {
+    if (shared.unsettled) await settle();
     try {
       return await deps.mintKey();
     } catch (err) {
       // The account is briefly held (a preview just ended, or one is still settling): wait as told, once.
       if (!(err instanceof PreviewHttpError && err.status === 409 && err.retryAfterMs !== undefined)) throw err;
-      await deps.wait(err.retryAfterMs);
+      await deps.wait(err.retryAfterMs, signal);
       if (signal.aborted) throw new Error('aborted');
       return deps.mintKey();
     }
@@ -119,7 +134,7 @@ export function createVoicePreview(deps: PreviewDeps, shared: PreviewShared = ap
       // dropped connection — may have minted a key the backend now holds: settle it
       // (preview-done answers 404 when there was nothing).
       if (!(err instanceof PreviewHttpError) && !isStop(err)) {
-        await deps.done().catch(() => {});
+        await settle();
       }
       throw err;
     }
@@ -127,7 +142,7 @@ export function createVoicePreview(deps: PreviewDeps, shared: PreviewShared = ap
       if (signal.aborted) throw new Error('aborted');
       return await deps.synthesize({ ...grant, voice, language: sample.language, text: sample.text, speed, signal });
     } finally {
-      await deps.done().catch(() => {});
+      await settle();
     }
   }
 

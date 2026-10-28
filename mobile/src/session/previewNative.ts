@@ -47,7 +47,10 @@ export function createNativeVoicePreview(o: {
       // other answer leaves it held until the key expires (about 45 s): said in the log, since
       // the next preview or Start would then wait.
       const res = await post(fetch, `${BACKEND_URL}/api/soniox/preview-done`, {}, { token: o.token() }, 'preview-done');
-      if (res.status !== 204 && res.status !== 404) console.warn(`preview-done ${res.status}`);
+      if (res.status !== 204 && res.status !== 404) {
+        console.warn(`preview-done ${res.status}`);
+        throw new Error(`preview-done ${res.status}`);
+      }
     },
     async synthesize({ apiKey, region, voice, language, text, speed, signal }) {
       const controller = new AbortController();
@@ -106,7 +109,11 @@ export function createNativeVoicePreview(o: {
         }
       };
     },
-    wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    wait: (ms, signal) =>
+      new Promise((resolve) => {
+        const timer = setTimeout(resolve, ms);
+        signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
+      }),
     onChange: o.onChange,
     log: (line) => console.log(line),
   };

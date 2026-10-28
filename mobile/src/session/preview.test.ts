@@ -57,7 +57,7 @@ describe('a voice preview', () => {
       .mockResolvedValueOnce({ apiKey: 'k', region: 'us' });
     const { preview, deps } = setup({ mintKey });
     await preview.play('Grace', sample, 1);
-    expect(deps.wait).toHaveBeenCalledWith(1500);
+    expect(deps.wait).toHaveBeenCalledWith(1500, expect.any(AbortSignal));
     expect(preview.state().status).toBe('playing');
   });
 
@@ -229,5 +229,31 @@ describe('one preview at a time across screens (Adolf)', () => {
     answer({ apiKey: 'k', region: 'us' });
     await Promise.all([first, second]);
     expect(order).toEqual(['mint left', 'done left', 'mint back', 'done back']);
+  });
+});
+
+describe('CodeRabbit review, PR #665', () => {
+  it('a stop during the wait after "busy" ends the wait at once and asks for no key', async () => {
+    const mintKey = vi.fn().mockRejectedValueOnce(new PreviewHttpError(409, 3000));
+    const wait = vi.fn((_ms: number, signal: AbortSignal) => new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve())));
+    const { preview, deps } = setup({ mintKey, wait });
+    const running = preview.play('Grace', sample, 1);
+    await vi.waitFor(() => expect(wait).toHaveBeenCalled());
+    preview.stop();
+    await running;
+    expect(mintKey).toHaveBeenCalledTimes(1);
+    expect(deps.done).not.toHaveBeenCalled();
+  });
+
+  it('a preview-done that failed is tried again before the next key is asked for', async () => {
+    const order: string[] = [];
+    const done = vi.fn()
+      .mockImplementationOnce(async () => { order.push('done (fails)'); throw new Error('network'); })
+      .mockImplementation(async () => { order.push('done'); });
+    const mintKey = vi.fn(async () => { order.push('mint'); return { apiKey: 'k', region: 'us' as const }; });
+    const { preview } = setup({ done, mintKey });
+    await preview.play('Grace', sample, 1);
+    await preview.play('Adrian', sample, 1);
+    expect(order).toEqual(['mint', 'done (fails)', 'done', 'mint', 'done']);
   });
 });

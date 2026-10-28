@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, ScrollView, Text as Span, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { leadTrimmed } from '@/lib/spans';
 import { entriesOf } from '../history/export';
 import { readingLines, type ReadingLine } from '../history/reading';
-import type { HistoryStore, StoredSession } from '../history/store';
+import type { HistoryStore } from '../history/store';
 import { useSettings } from '../store/useSettings';
 import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from '@/lib/subtitleText';
 
@@ -36,7 +36,9 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
   const settings = useSettings((s) => s.settings);
   const size = SIZES[settings.textSize];
   const time = new Intl.DateTimeFormat(i18n.language.replace('_', '-'), { timeStyle: 'short' });
-  const [session, setSession] = useState<StoredSession | null | undefined>(undefined);
+  // The session as reading lines, made while loading: a stored session the
+  // projector cannot read fails there, with Retry, rather than in a render.
+  const [lines, setLines] = useState<ReadingLine[] | undefined>(undefined);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
@@ -45,7 +47,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
       // A file that is gone or cannot be read is a failure, not an empty session.
       const loaded = await store.load(id);
       if (loaded === null) setFailed(true);
-      else setSession(loaded);
+      else setLines(readingLines(entriesOf(loaded)));
     } catch (err) {
       console.warn(`history read: ${err instanceof Error ? err.message : String(err)}`);
       setFailed(true);
@@ -55,7 +57,6 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
     void load();
   }, [load]);
 
-  const lines = useMemo(() => (session ? readingLines(entriesOf(session)) : []), [session]);
 
   const renderLine = ({ item }: { item: ReadingLine }) => (
     <View className="gap-1 px-4 py-3">
@@ -98,13 +99,13 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
     // The title and the date scroll with the text: in a fixed header, at AX5 a long
     // name and its date filled the whole screen and the text could not be reached (Sophie).
     <Screen onBack={onBack} end={actions} scroll={false}>
-      {session === undefined || failed ? (
+      {lines === undefined || failed ? (
         <ScrollView className="flex-1">
           {heading}
           {failed ? (
             <View className="gap-3 px-4 py-6">
               <Notice tone="error">{t('mobile.common.failed')}</Notice>
-              <Button variant="outline" onPress={() => { setSession(undefined); void load(); }}>
+              <Button variant="outline" onPress={() => { setLines(undefined); void load(); }}>
                 <Text>{t('common.retry')}</Text>
               </Button>
             </View>
@@ -113,7 +114,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
           )}
         </ScrollView>
       ) : null}
-      {session !== undefined && !failed ? (
+      {lines !== undefined && !failed ? (
         <FlatList
           className="flex-1"
           data={lines}
