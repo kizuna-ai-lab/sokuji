@@ -42,6 +42,10 @@ describe('authErrorKey', () => {
     expect(authErrorKey(new AuthError('OTP expired', 'OTP_EXPIRED', 400))).toBe('mobile.signIn.wrongCode');
   });
 
+  it('maps an address the backend does not accept (better-auth INVALID_EMAIL, Sophie)', () => {
+    expect(authErrorKey(new AuthError('Invalid email', 'INVALID_EMAIL', 400))).toBe('auth.invalidEmail');
+  });
+
   it('maps the backend\'s rate limit on sending codes', () => {
     expect(authErrorKey(new AuthError('Too many requests', undefined, 429))).toBe('mobile.signIn.tooManyRequests');
   });

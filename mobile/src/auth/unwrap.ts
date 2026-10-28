@@ -19,10 +19,12 @@ export function unwrap<T>(result: { data: T; error: { code?: string; message?: s
   return result.data;
 }
 
-// The two errors a user actually meets, by better-auth's codes; anything else
-// shows the server's own words.
+// The errors a user actually meets, by better-auth's codes; anything else
+// reads as a general failure.
 const AUTH_ERROR_KEYS: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: 'mobile.signIn.wrongPassword',
+  // An address that does not parse (sign-up and every email-otp route check it): the desktop's words.
+  INVALID_EMAIL: 'auth.invalidEmail',
   INVALID_OTP: 'mobile.signIn.wrongCode',
   OTP_EXPIRED: 'mobile.signIn.wrongCode',
 };
