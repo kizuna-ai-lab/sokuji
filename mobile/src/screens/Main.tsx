@@ -245,10 +245,10 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       </View>
       {/* Nothing to read yet (before the first Start, or after a session that heard nothing): what Start does. */}
       {!active && entries.length === 0 ? (
-        // It scrolls and grows at most twice the base size: at AX5 it was cut at the right
-        // and after three lines (Sophie, iOS). Centred at normal sizes, from the start beyond.
+        // It scrolls, at the system's text size: at AX5 it was cut at the right and after
+        // three lines (Sophie, iOS). Centred at normal sizes, from the start beyond.
         <ScrollView className="flex-1" contentContainerClassName="flex-grow justify-center px-8 py-4">
-          <Text className={cn('text-muted-foreground text-lg', stacked ? 'text-left' : 'text-center')} maxFontSizeMultiplier={2}>
+          <Text className={cn('text-muted-foreground text-lg', stacked ? 'text-left' : 'text-center')}>
             {idleHint(t, target)}
           </Text>
         </ScrollView>
