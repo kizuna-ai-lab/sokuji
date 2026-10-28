@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +35,7 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const list = useRef<FlatList<SheetOption>>(null);
   const shown = useMemo(() => {
     if (filter) return filter(query);
     const q = query.trim().toLowerCase();
@@ -44,9 +45,14 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
     setQuery('');
     onClose();
   };
+  // The sheet opens at the current choice, not at the top of a long list.
+  const showCurrent = () => {
+    const index = shown.findIndex((o) => o.value === value);
+    if (index > 0) list.current?.scrollToIndex({ index, viewPosition: 0.3, animated: false });
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={close} onShow={showCurrent}>
       <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom', 'left', 'right']}>
         <ScreenHeader
           title={title}
@@ -69,7 +75,13 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
           />
         </View>
         <FlatList
+          ref={list}
           data={shown}
+          // Every row is drawn, so the current one can be scrolled to at once (the longest list is about 150 voices).
+          initialNumToRender={shown.length}
+          onScrollToIndexFailed={({ index, averageItemLength }) => {
+            list.current?.scrollToOffset({ offset: index * averageItemLength, animated: false });
+          }}
           keyExtractor={(o) => o.value}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

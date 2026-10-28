@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { refocus } from '@/components/focus';
 import { useBusy } from '@/lib/useBusy';
+import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
 import { languageName } from '../i18n/languages';
 import { idleHint, pairLabel, statusLine, statusTone } from './mainText';
@@ -53,6 +54,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
   const menuButton = useRef<HostInstance>(null);
   const { fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const menuIcon = useIconSize(24);
   const session = useRef<{ stop(): Promise<void> } | null>(null);
   const feed = useRef<{ stop(): void } | null>(null);
   const transcript = useRef<Transcript | null>(null);
@@ -215,7 +217,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
         <DropdownMenu onOpenChange={(open) => { if (!open) refocus(menuButton); }}>
           <DropdownMenuTrigger asChild>
             <Button ref={menuButton} variant="ghost" size="icon" accessibilityLabel={t('mobile.main.menu')}>
-              <Icon as={Menu} size={24} />
+              <Icon as={Menu} size={menuIcon} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" insets={{ top: insets.top, bottom: insets.bottom, left: 12, right: 12 }} className="max-w-[90%]">

@@ -164,7 +164,8 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/withFontScaleConfigChanges"
     ],
     "scheme": "sokuji",
     "locales": {
