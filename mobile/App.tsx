@@ -1,7 +1,9 @@
+import './global.css';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { PortalHost } from '@rn-primitives/portal';
 import { accountEmail, sessionToken, signOut } from './src/auth/client';
 import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
@@ -60,6 +62,8 @@ export default function App() {
             app's own scheme once it has a dark palette. */}
         <StatusBar style="dark" />
       </SafeAreaView>
+      {/* Where menus, dialogs and alerts render: above every screen, outside the safe-area padding. */}
+      <PortalHost />
     </SafeAreaProvider>
   );
 }
