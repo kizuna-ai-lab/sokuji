@@ -22,11 +22,15 @@ export function targetOptions(uiLanguage: string): LanguageOption[] {
   return rows(uiLanguage).map(([code, name]) => ({ code, name }));
 }
 
-/** The options whose shown name, English name or code contains the query, ignoring case. */
+/**
+ * The options whose shown name, English name or code contains the query,
+ * ignoring case. Both sides are lowered without the device's locale: a
+ * Turkish device would lower "FIL" to "fıl" and miss the code.
+ */
 export function searchLanguages(options: readonly LanguageOption[], query: string): LanguageOption[] {
-  const q = query.trim().toLocaleLowerCase();
+  const q = query.trim().toLowerCase();
   if (!q) return [...options];
   return options.filter((o) =>
-    [o.name, english.get(o.code) ?? '', o.code].some((s) => s.toLocaleLowerCase().includes(q)),
+    [o.name, english.get(o.code) ?? '', o.code].some((s) => s.toLowerCase().includes(q)),
   );
 }

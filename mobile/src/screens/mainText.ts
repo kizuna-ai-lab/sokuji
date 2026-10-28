@@ -16,7 +16,8 @@ export function pairLabel(sourceName: string, targetName: string, rtl: boolean):
 }
 
 // What the status line says: a key per state, the terminal details by name,
-// any other detail (a developer message) as it is.
+// any other failure in words (design scope: no raw service errors on screen;
+// the session logs the detail itself).
 export function statusLine(t: T, status: MainState, detail: string): string {
   if (status === 'idle') return '';
   if (status === 'stopping') return t('mobile.main.status.stopping');
@@ -25,7 +26,7 @@ export function statusLine(t: T, status: MainState, detail: string): string {
     if (detail === 'balance_exhausted') return t('mobile.main.status.balanceExhausted');
     if (detail === 'microphone_denied') return t('mobile.main.status.micDenied');
     if (detail === 'invalid_config') return t('mobile.main.status.invalidConfig');
-    return detail;
+    return t('mobile.common.failed');
   }
   if (status === 'listening') {
     if (detail === 'spoken') return t('mobile.main.status.spoken');

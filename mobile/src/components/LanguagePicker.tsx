@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { searchLanguages, type LanguageOption } from '../i18n/languages';
 import { OptionSheet } from './OptionSheet';
@@ -14,13 +15,15 @@ export function LanguagePicker({ visible, title, options, value, onPick, onClose
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const sheet = useMemo(() => options.map(toSheet), [options]);
+  const filter = useCallback((query: string) => searchLanguages(options, query).map(toSheet), [options]);
   return (
     <OptionSheet
       visible={visible}
       title={title}
-      options={options.map(toSheet)}
+      options={sheet}
       value={value}
-      filter={(query) => searchLanguages(options, query).map(toSheet)}
+      filter={filter}
       searchLabel={t('mobile.languages.search')}
       emptyLabel={t('mobile.languages.none')}
       onPick={onPick}

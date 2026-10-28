@@ -1738,7 +1738,8 @@
       "changeLanguages": "在設定中變更語言"
     },
     "common": {
-      "back": "返回"
+      "back": "返回",
+      "failed": "發生問題，請再試一次。"
     },
     "listen": {
       "toggle": "對方說的話翻譯後朗讀給我",

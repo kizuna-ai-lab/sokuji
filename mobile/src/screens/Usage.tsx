@@ -20,6 +20,8 @@ const KIND_KEY: Record<string, string> = {
   voice_preview: 'mobile.usage.kind.voicePreview',
 };
 
+const RowSeparator = () => <Separator />;
+
 function duration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -50,7 +52,7 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
       if (message === 'sign_in_required') onSignInRequired();
       else {
         console.warn(`ledger: ${message}`);
-        setError(message);
+        setError(t('mobile.common.failed'));
       }
     } finally {
       setBusy(false);
@@ -73,7 +75,7 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
         className="flex-1"
         data={groups}
         keyExtractor={(g) => g.id}
-        ItemSeparatorComponent={() => <Separator />}
+        ItemSeparatorComponent={RowSeparator}
         renderItem={({ item }) => (
           // The amount wraps under the label rather than squeezing it when the text is large.
           <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3" accessible>

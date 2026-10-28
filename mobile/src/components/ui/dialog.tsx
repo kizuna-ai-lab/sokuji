@@ -65,13 +65,13 @@ function DialogOverlay({
 function DialogContent({
   className,
   portalHost,
-  closeLabel = 'Close',
+  closeLabel,
   children,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   portalHost?: string;
   /** Sokuji: what a screen reader calls the close button, in the interface language. */
-  closeLabel?: string;
+  closeLabel: string;
 }) {
   return (
     <DialogPortal hostName={portalHost}>
@@ -126,7 +126,8 @@ function DialogFooter({ className, ...props }: ViewProps) {
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-foreground text-lg font-semibold leading-none', className)}
+      // Sokuji: no leading-none, so a title that wraps at large text sizes keeps its line spacing.
+      className={cn('text-foreground text-lg font-semibold', className)}
       {...props}
     />
   );

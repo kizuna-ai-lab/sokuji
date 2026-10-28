@@ -14,6 +14,7 @@ import { Field } from '@/components/Field';
 import { Notice } from '@/components/Notice';
 import { Row } from '@/components/Row';
 import { Screen } from '@/components/ScreenHeader';
+import { Spinner } from '@/components/Spinner';
 import { useBusy } from '@/lib/useBusy';
 import { languageName } from '../i18n/languages';
 import { exportJson, exportText } from '../history/export';
@@ -21,6 +22,8 @@ import { shareExport } from '../history/share';
 import type { HistoryStore, SessionSummary } from '../history/store';
 import { pairLabel } from './mainText';
 import { sessionLines } from './historyText';
+
+const RowSeparator = () => <Separator />;
 
 // The sessions on the device, newest first: rename, export, delete.
 export default function History({ store, onBack }: { store: HistoryStore; onBack: () => void }) {
@@ -32,9 +35,24 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
   const [deleting, setDeleting] = useState<SessionSummary | null>(null);
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
+  const [renameError, setRenameError] = useState('');
   const [, runShare] = useBusy();
+  const [saving, runSave] = useBusy();
+  const [, runDelete] = useBusy();
+  // The detail is for the log; the screen says it in words (design scope: no raw errors).
+  const fail = (what: string) => (err: unknown) => {
+    console.warn(`history ${what}: ${err instanceof Error ? err.message : String(err)}`);
+    return t('mobile.common.failed');
+  };
 
-  const load = useCallback(async () => setSessions(await store.list()), [store]);
+  const load = useCallback(async () => {
+    try {
+      setSessions(await store.list());
+    } catch (err) {
+      setError(fail('list')(err));
+      setSessions((s) => s ?? []);
+    }
+  }, [store]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -84,21 +102,37 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
         : exportJson(full, meta);
       await shareExport(full, kind, body);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(fail('export')(err));
     }
   }
 
-  async function saveTitle() {
-    // An empty name gives the session back its date as its name.
-    setError('');
-    try {
-      if (renaming) await store.rename(renaming.id, title.trim());
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setRenaming(null);
-    }
+  function saveTitle() {
+    // One save at a time (the button and the keyboard's Done both save). An
+    // empty name gives the session back its date as its name. A failure keeps
+    // the dialog and what was typed, and says so there.
+    void runSave(async () => {
+      if (!renaming) return;
+      setRenameError('');
+      try {
+        await store.rename(renaming.id, title.trim());
+        setRenaming(null);
+        await load();
+      } catch (err) {
+        setRenameError(fail('rename')(err));
+      }
+    });
+  }
+
+  function deleteNow(s: SessionSummary) {
+    void runDelete(async () => {
+      setError('');
+      try {
+        await store.delete(s.id);
+        await load();
+      } catch (err) {
+        setError(fail('delete')(err));
+      }
+    });
   }
 
   return (
@@ -108,8 +142,10 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
         className="flex-1"
         data={sessions ?? []}
         keyExtractor={(s) => s.id}
-        ItemSeparatorComponent={() => <Separator />}
-        ListEmptyComponent={sessions === null ? undefined : <Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.empty')}</Text>}
+        ItemSeparatorComponent={RowSeparator}
+        ListEmptyComponent={
+          sessions === null ? <Spinner size="large" className="py-10" /> : <Text className="text-muted-foreground px-6 py-10 text-center">{t('mobile.history.empty')}</Text>
+        }
         renderItem={({ item }) => {
           const { name: label, meta } = lines(item);
           return (
@@ -119,7 +155,7 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
                 <Row label={label} value={meta} accessibilityHint={t('mobile.history.actions')} accessory={<Icon as={Ellipsis} size={20} className="text-muted-foreground" />} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onPress={() => { setTitle(item.title ?? ''); setRenaming(item); }}>
+                <DropdownMenuItem onPress={() => { setTitle(item.title ?? ''); setRenameError(''); setRenaming(item); }}>
                   <Icon as={Pencil} size={20} />
                   <Text>{t('mobile.history.rename')}</Text>
                 </DropdownMenuItem>
@@ -154,13 +190,15 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
             onChangeText={setTitle}
             autoFocus
             returnKeyType="done"
-            onSubmitEditing={() => { void saveTitle(); }}
+            onSubmitEditing={saveTitle}
           />
+          {renameError ? <Notice tone="error">{renameError}</Notice> : null}
           <DialogFooter>
             <Button variant="outline" onPress={() => setRenaming(null)}>
               <Text>{t('common.cancel')}</Text>
             </Button>
-            <Button onPress={() => { void saveTitle(); }}>
+            <Button disabled={saving} accessibilityState={{ busy: saving }} onPress={saveTitle}>
+              {saving ? <Spinner /> : null}
               <Text>{t('mobile.history.rename')}</Text>
             </Button>
           </DialogFooter>
@@ -175,8 +213,7 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
         cancelLabel={t('common.cancel')}
         destructive
         onConfirm={() => {
-          const s = deleting;
-          if (s) void store.delete(s.id).then(load).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+          if (deleting) deleteNow(deleting);
         }}
       />
     </Screen>

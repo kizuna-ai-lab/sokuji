@@ -11,12 +11,12 @@ export function createBusyGuard(onChange: (busy: boolean) => void) {
   };
   return {
     busy: () => running,
-    /** The action's promise, or null when one is already running. */
+    /** The action's promise (it rejects as the action does: catch it), or null when one is already running. */
     run<T>(action: () => Promise<T> | T): Promise<T> | null {
       if (running) return null;
-      set(true);
       let result: Promise<T>;
       try {
+        set(true);
         result = Promise.resolve(action());
       } catch (e) {
         result = Promise.reject(e);

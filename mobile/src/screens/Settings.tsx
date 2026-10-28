@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Appearance, type HostInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SONIOX_REGION_LABELS, SONIOX_REGIONS } from '@shared/lib/soniox/regions';
@@ -36,6 +36,8 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
   const ui = i18n.language;
   const autoLabel = t('common.autoDetect');
   const lockedReason = t('mobile.settings.locked');
+  const sources = useMemo(() => sourceOptions(ui, autoLabel), [ui, autoLabel]);
+  const targets = useMemo(() => targetOptions(ui), [ui]);
 
   const openPicker = (which: 'source' | 'target') => {
     setSide(which);
@@ -117,7 +119,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
       <LanguagePicker
         visible={picking}
         title={side === 'target' ? t('mobile.main.read') : t('mobile.main.hear')}
-        options={side === 'target' ? targetOptions(ui) : sourceOptions(ui, autoLabel)}
+        options={side === 'target' ? targets : sources}
         value={side === 'target' ? settings.target : settings.source}
         onPick={(code) => {
           set(side === 'target' ? { target: code } : { source: code });

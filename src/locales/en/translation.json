@@ -1738,7 +1738,8 @@
       "changeLanguages": "Change the languages in Settings"
     },
     "common": {
-      "back": "Back"
+      "back": "Back",
+      "failed": "Something went wrong. Please try again."
     },
     "listen": {
       "toggle": "Read the other side's words aloud to me",

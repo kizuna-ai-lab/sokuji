@@ -13,7 +13,7 @@ export type RowProps = Omit<React.ComponentProps<typeof Pressable>, 'children'> 
   label: string;
   /** The current value or a line about the row, under the label: it wraps rather than squeezing the label. */
   value?: string;
-  /** Why the row cannot be used now; shown under it and read with it. */
+  /** Why the row cannot be used now; shown in the row and read with it. */
   disabledReason?: string;
   /** What sits at the end: a switch, a check. A row with one shows no chevron. */
   accessory?: React.ReactNode;
@@ -38,7 +38,8 @@ export function Row({ label, value, disabledReason, accessory, chevron, icon, de
       {...props}
       disabled={disabled}
       accessibilityState={{ ...accessibilityState, disabled: !!disabled }}
-      accessibilityHint={reason ?? accessibilityHint}
+      // The reason is in the row's own text, which a screen reader reads with it; not repeated as a hint.
+      accessibilityHint={accessibilityHint}
       className={cn('min-h-14 flex-row items-center gap-3 px-4 py-3', !disabled && props.onPress && 'active:bg-accent', className)}
     >
       {icon ? <Icon as={icon} size={20} className={cn('text-muted-foreground', disabled && 'opacity-60')} /> : null}

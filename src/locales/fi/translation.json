@@ -1738,7 +1738,8 @@
       "changeLanguages": "Vaihda kielet asetuksista"
     },
     "common": {
-      "back": "Takaisin"
+      "back": "Takaisin",
+      "failed": "Jokin meni vikaan. Yritä uudelleen."
     },
     "listen": {
       "toggle": "Lue toisen osapuolen sanat minulle ääneen",

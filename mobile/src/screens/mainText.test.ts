@@ -25,9 +25,9 @@ describe('the status line', () => {
     expect(statusLine(t, 'stopping', '')).toBe('mobile.main.status.stopping');
   });
 
-  it('names the known ends and passes any other detail through', () => {
+  it('names the known ends, and any other failure in words rather than the raw detail', () => {
     expect(statusLine(t, 'error', 'balance_exhausted')).toBe('mobile.main.status.balanceExhausted');
-    expect(statusLine(t, 'error', 'socket closed 1006')).toBe('socket closed 1006');
+    expect(statusLine(t, 'error', 'socket closed 1006')).toBe('mobile.common.failed');
     expect(statusLine(t, 'leasing', '')).toBe('mobile.main.status.starting');
   });
 

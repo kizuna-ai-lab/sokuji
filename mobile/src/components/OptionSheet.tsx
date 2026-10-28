@@ -14,9 +14,12 @@ import { ScreenHeader } from './ScreenHeader';
 
 export type SheetOption = { value: string; label: string; description?: string };
 
+const RowSeparator = () => <Separator />;
+
 /**
  * A long list to choose one from, in a sheet with a search field: too many
- * rows to scroll for one. The chosen one is checked; picking closes the sheet.
+ * rows to scroll for one. The chosen one is checked. `onPick` reports the
+ * choice; the caller closes the sheet (`visible`), as it does for `onClose`.
  */
 export function OptionSheet({ visible, title, options, value, filter, searchLabel, emptyLabel, onPick, onClose }: {
   visible: boolean;
@@ -34,8 +37,8 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
   const [query, setQuery] = useState('');
   const shown = useMemo(() => {
     if (filter) return filter(query);
-    const q = query.trim().toLocaleLowerCase();
-    return q ? options.filter((o) => [o.label, o.description ?? ''].some((s) => s.toLocaleLowerCase().includes(q))) : options;
+    const q = query.trim().toLowerCase();
+    return q ? options.filter((o) => [o.label, o.description ?? ''].some((s) => s.toLowerCase().includes(q))) : options;
   }, [filter, options, query]);
   const close = () => {
     setQuery('');
@@ -70,7 +73,7 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
           keyExtractor={(o) => o.value}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          ItemSeparatorComponent={() => <Separator />}
+          ItemSeparatorComponent={RowSeparator}
           ListEmptyComponent={<Text className="text-muted-foreground px-4 py-6">{emptyLabel}</Text>}
           renderItem={({ item }) => {
             const on = item.value === value;

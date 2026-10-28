@@ -57,8 +57,9 @@ export default function Account({
     if (key) setError(t(key));
     else if (message === 'sign_in_required') onSignInRequired();
     else {
+      // The detail is for the log; the screen says it in words (design scope: no raw service errors).
       console.warn(`account: ${message}`);
-      setError(message);
+      setError(t('mobile.common.failed'));
     }
   };
   const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
@@ -159,7 +160,15 @@ export default function Account({
           disabledReason={locked ? lockedReason : undefined}
           accessory={signingOut ? <Spinner /> : undefined}
           chevron={false}
-          onPress={() => { void runSignOut(async () => onSignOut()); }}
+          onPress={() => {
+            void runSignOut(async () => {
+              try {
+                await onSignOut();
+              } catch (err) {
+                show(err);
+              }
+            });
+          }}
         />
         <Row
           ref={deleteRow}

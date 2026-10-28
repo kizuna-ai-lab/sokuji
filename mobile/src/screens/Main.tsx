@@ -3,7 +3,7 @@ import { AppState, BackHandler, useWindowDimensions, View, type HostInstance } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
-import { CircleAlert, History as HistoryIcon, Menu, Play, Settings as SettingsIcon, Square, UserRound } from 'lucide-react-native';
+import { CircleAlert, History as HistoryIcon, Menu, Play, RefreshCw, Settings as SettingsIcon, Square, UserRound } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Icon } from '@/components/ui/icon';
@@ -205,8 +205,9 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       <View className="border-border min-h-14 flex-row items-center gap-2 border-b pe-1 ps-4">
         <View className="flex-1 flex-row items-center gap-2" accessibilityLiveRegion="polite">
           {tone === 'error' ? <Icon as={CircleAlert} size={18} className="text-destructive" /> : null}
+          {tone === 'warning' ? <Icon as={RefreshCw} size={18} className="text-foreground" /> : null}
           {line ? (
-            <Text className={cn('flex-1 text-sm', tone === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{line}</Text>
+            <Text className={cn('flex-1 text-sm', tone === 'error' && 'text-destructive', tone === 'warning' && 'text-foreground font-medium', tone === 'normal' && 'text-muted-foreground')}>{line}</Text>
           ) : (
             <Text role="heading" className="flex-1 text-lg font-semibold">Sokuji</Text>
           )}
@@ -218,8 +219,12 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" insets={{ top: insets.top, bottom: insets.bottom, left: 12, right: 12 }} className="max-w-[90%]">
-            {email ? <DropdownMenuLabel className="text-muted-foreground">{email}</DropdownMenuLabel> : null}
-            {email ? <DropdownMenuSeparator /> : null}
+            {email ? (
+              <>
+                <DropdownMenuLabel className="text-muted-foreground">{email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
             <DropdownMenuItem onPress={() => setScreen('history')}>
               <Icon as={HistoryIcon} size={20} />
               <Text>{t('mobile.menu.history')}</Text>

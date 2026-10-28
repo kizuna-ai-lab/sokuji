@@ -58,6 +58,18 @@ describe('searchLanguages', () => {
     expect(searchLanguages(options, 'fil').map((o) => o.code)).toContain('fil');
   });
 
+  it('matches codes and English names the same on any device language (no Turkish dotless i)', () => {
+    const original = String.prototype.toLocaleLowerCase;
+    // What a Turkish device's default casing does to a capital I.
+    String.prototype.toLocaleLowerCase = function (this: string) { return original.call(this, 'tr'); };
+    try {
+      expect(searchLanguages(options, 'FIL').map((o) => o.code)).toContain('fil');
+      expect(searchLanguages(options, 'INDONESIAN').map((o) => o.code)).toEqual(['id']);
+    } finally {
+      String.prototype.toLocaleLowerCase = original;
+    }
+  });
+
   it('returns everything for an empty query', () => {
     expect(searchLanguages(options, '  ')).toHaveLength(options.length);
   });

@@ -1738,7 +1738,8 @@
       "changeLanguages": "Ubah bahasa di Pengaturan"
     },
     "common": {
-      "back": "Kembali"
+      "back": "Kembali",
+      "failed": "Terjadi kesalahan. Silakan coba lagi."
     },
     "listen": {
       "toggle": "Bacakan ucapan pihak lain untuk saya",

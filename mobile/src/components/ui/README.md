@@ -20,7 +20,7 @@ Android's touch-size guidance), so fixed heights become minimums with padding.
 - `input.tsx`: `min-h-12 py-2` instead of `h-10 sm:h-9`, and no `leading-5`, which clipped large text.
 - `switch.tsx`: 28×48 with a 24-unit thumb (was the web's 18×32).
 - `dropdown-menu.tsx`: items are `min-h-12` with `text-base`; the menu is at least `12rem` wide.
-- `dialog.tsx`: the close button is 48×48 with a translated `closeLabel` (was a 16-unit icon with `hitSlop` 12 and an
-  English sr-only "Close").
+- `dialog.tsx`: the close button is 48×48 with a required, translated `closeLabel` (was a 16-unit icon with `hitSlop` 12
+  and an English sr-only "Close"); the title drops `leading-none`, so it keeps its line spacing when it wraps.
 
 Project composites built on these (rows, headers, option lists, the language picker) live in `src/components/`.

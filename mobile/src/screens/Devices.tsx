@@ -47,7 +47,9 @@ export default function Devices({ onBack }: { onBack: () => void }) {
   // built-in ones), shown once; a wired or USB one by its name.
   const firstBuiltin = mics.findIndex((m) => m.kind === 'builtin');
   const shown = mics.filter((m, i) => m.kind !== 'builtin' || i === firstBuiltin);
-  const chosen = settings.inputDeviceId ?? mics[firstBuiltin]?.id ?? '';
+  // A stored microphone that is not plugged in now is not what records: the phone's own is.
+  const stored = shown.some((m) => m.id === settings.inputDeviceId) ? settings.inputDeviceId : null;
+  const chosen = stored ?? mics[firstBuiltin]?.id ?? '';
   const output = outputLines(t, route, outputName);
 
   return (

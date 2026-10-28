@@ -1738,7 +1738,8 @@
       "changeLanguages": "Sprachen in den Einstellungen ändern"
     },
     "common": {
-      "back": "Zurück"
+      "back": "Zurück",
+      "failed": "Etwas ist schiefgelaufen. Bitte versuche es noch einmal."
     },
     "listen": {
       "toggle": "Die Worte der anderen Seite mir vorlesen",
