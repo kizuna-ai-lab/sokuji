@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { refocus } from '@/components/focus';
+import { Onward } from '@/components/Row';
 import { useBusy } from '@/lib/useBusy';
 import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
@@ -262,7 +263,9 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
           onPress={() => setScreen('settings')}
         >
           {/* text-left is the start side: React Native swaps left and right in a right-to-left layout. */}
-          <Text className={cn('shrink text-left', stacked && 'text-muted-foreground')}>{pair}</Text>
+          <Text className={cn('shrink text-left', stacked && 'text-muted-foreground flex-1')}>{pair}</Text>
+          {/* Without its card the line still says it opens something. */}
+          {stacked ? <Icon as={Onward} size={20} className="text-muted-foreground" /> : null}
         </Button>
         {active ? (
           <Button size={stacked ? 'default' : 'lg'} variant="destructive" disabled={stopping} onPress={() => { void runStop(stop); }}>
