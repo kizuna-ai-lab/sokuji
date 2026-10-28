@@ -27,6 +27,7 @@
     "react-i18next": "^17.1.9",
     "react-native": "0.88.0",
     "react-native-audio-api": "^0.13.6",
+    "react-native-safe-area-context": "~5.10.1",
     "zustand": "^5.0.16"
   },
   "devDependencies": {

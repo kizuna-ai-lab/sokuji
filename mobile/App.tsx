@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, SafeAreaView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { accountEmail, sessionToken, signOut } from './src/auth/client';
 import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
@@ -35,22 +36,27 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {(!ready || token === undefined) && <ActivityIndicator style={styles.loading} />}
-        {ready && token === null && <SignIn onSignedIn={refresh} />}
-        {ready && !!token && (
-          <Main
-            token={token}
-            email={email}
-            onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
-            onAccountDeleted={refresh}
-            onSignInRequired={() => setToken(null)}
-          />
-        )}
-      </View>
-      <StatusBar style="auto" />
-    </SafeAreaView>
+    // The app draws edge to edge: the status bar, a camera cutout and the
+    // gesture bar overlap the window. The insets come from the native module;
+    // React Native's own SafeAreaView only knows iOS.
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.content}>
+          {(!ready || token === undefined) && <ActivityIndicator style={styles.loading} />}
+          {ready && token === null && <SignIn onSignedIn={refresh} />}
+          {ready && !!token && (
+            <Main
+              token={token}
+              email={email}
+              onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
+              onAccountDeleted={refresh}
+              onSignInRequired={() => setToken(null)}
+            />
+          )}
+        </View>
+        <StatusBar style="auto" />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
