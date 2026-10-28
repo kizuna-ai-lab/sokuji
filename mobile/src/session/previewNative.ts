@@ -29,7 +29,11 @@ export function createNativeVoicePreview(o: {
 }) {
   // Loaded here, not at the top: the node tests never construct a context.
   const audio = require('react-native-audio-api') as typeof import('react-native-audio-api');
-  let context: InstanceType<typeof audio.AudioContext> | null = null;
+  // The clip playing now, if any, with its own audio context: closed when the clip
+  // ends or is stopped, so no audio stream stays open while the screen just sits
+  // there (Sophie: the player stayed "started" after a preview). One per clip, so
+  // a stopped clip's late end cannot close the next clip's audio.
+  let playing: { stop(): void } | null = null;
 
   const deps: PreviewDeps = {
     // No cancel signal: a key request in flight is waited for (bounded by post's own timeout),
@@ -91,23 +95,45 @@ export function createNativeVoicePreview(o: {
     play(pcm, onEnded) {
       // A preview plays without a session: through whatever is connected, even with the ringer off.
       audio.AudioManager.setAudioSessionOptions({ iosCategory: 'playback', iosMode: 'default', iosOptions: [] });
-      context ??= new audio.AudioContext({ sampleRate: SAMPLE_RATE });
-      const samples = new Float32Array(pcm.length);
-      for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
-      const buffer = context.createBuffer(1, pcm.length, SAMPLE_RATE);
-      buffer.copyToChannel(samples, 0);
-      const source = context.createBufferSource();
-      source.buffer = buffer;
-      source.connect(context.destination);
-      source.onEnded = () => onEnded();
-      source.start();
-      return () => {
-        try {
-          source.stop();
-        } catch {
-          // Already ended.
-        }
+      const context = new audio.AudioContext({ sampleRate: SAMPLE_RATE });
+      let closed = false;
+      const release = () => {
+        if (closed) return;
+        closed = true;
+        void context.close().catch(() => {});
       };
+      try {
+        const samples = new Float32Array(pcm.length);
+        for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
+        const buffer = context.createBuffer(1, pcm.length, SAMPLE_RATE);
+        buffer.copyToChannel(samples, 0);
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.onEnded = () => {
+          release();
+          onEnded();
+        };
+        source.start();
+        const clip = {
+          stop() {
+            try {
+              source.stop();
+            } catch {
+              // Already ended.
+            }
+            release();
+          },
+        };
+        playing = clip;
+        return () => {
+          clip.stop();
+          if (playing === clip) playing = null;
+        };
+      } catch (err) {
+        release();
+        throw err;
+      }
     },
     wait: (ms, signal) =>
       new Promise((resolve) => {
@@ -133,8 +159,8 @@ export function createNativeVoicePreview(o: {
     /** Stops any preview and lets the audio go (leaving the screen). */
     async close() {
       preview.stop();
-      await context?.close().catch(() => {});
-      context = null;
+      playing?.stop();
+      playing = null;
     },
   };
 }
