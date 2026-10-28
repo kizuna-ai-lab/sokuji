@@ -3,6 +3,7 @@ import type { Entry } from '@shared/lib/projection/types';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from '@/lib/subtitleText';
+import { leadTrimmed } from '@/lib/spans';
 
 // Scrolled back further than this, a new line does not pull the list down to it.
 const FOLLOW_WITHIN = 48;
@@ -38,13 +39,13 @@ export default function Subtitles({
                 final are fainter: opacity has no effect on a nested span, a colour does. */}
             {bilingual && (
               <Text className="text-muted-foreground" style={{ fontSize: size.source, lineHeight: lineHeight(size.source) }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
-                {item.source.map((r) => (
+                {leadTrimmed(item.source).map((r) => (
                   <Span key={r.key} className={cn(!r.final && 'text-muted-foreground/60')}>{r.text}</Span>
                 ))}
               </Text>
             )}
             <Text className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
-              {item.translation.map((r) => (
+              {leadTrimmed(item.translation).map((r) => (
                 <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
               ))}
             </Text>

@@ -14,7 +14,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { FadeIn, ReduceMotion } from 'react-native-reanimated';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 
@@ -85,7 +84,10 @@ function DropdownMenuSubContent({
   );
 }
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+// Sokuji: no FullWindowOverlay. On iOS it drew the overlay in a separate native
+// window, which UI tests (Maestro) could not see into, and this app has no native
+// screens or modals for it to rise above: a sheet hosts its own portal.
+const FullWindowOverlay = React.Fragment;
 
 function DropdownMenuContent({
   className,

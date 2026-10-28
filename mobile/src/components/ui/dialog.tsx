@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@rn-primitives/dialog';
 import { X } from 'lucide-react-native';
 import * as React from 'react';
-import { Platform, View, type GestureResponderEvent, type ViewProps } from 'react-native';
+import { Platform, ScrollView, useWindowDimensions, View, type GestureResponderEvent, type ViewProps } from 'react-native';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
 const Dialog = DialogPrimitive.Root;
 
@@ -16,7 +16,10 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+// Sokuji: no FullWindowOverlay. On iOS it drew the overlay in a separate native
+// window, which UI tests (Maestro) could not see into, and this app has no native
+// screens or modals for it to rise above: a sheet hosts its own portal.
+const FullWindowOverlay = React.Fragment;
 
 function DialogOverlay({
   className,
@@ -73,19 +76,27 @@ function DialogContent({
   /** Sokuji: what a screen reader calls the close button, in the interface language. */
   closeLabel: string;
 }) {
+  // Sokuji: a set width (the registry's calc() max-width does nothing on native, so
+  // large text made the dialog wider than the screen), the content scrolling within
+  // the space above the keyboard, and the dialog centred in that space.
+  const { width, height } = useWindowDimensions();
+  const keyboard = useKeyboardHeight();
   return (
     <DialogPortal hostName={portalHost}>
-      <DialogOverlay>
+      <DialogOverlay style={{ paddingBottom: keyboard }}>
         <DialogPrimitive.Content
+          style={{ width: Math.min(width - 32, 512) }}
           className={cn(
-            'bg-background border-border z-50 mx-auto flex w-full max-w-[calc(100%-2rem)] flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5 sm:max-w-lg',
+            'bg-background border-border z-50 mx-auto flex flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5',
             Platform.select({
               web: 'animate-in fade-in-0 zoom-in-95 duration-200',
             }),
             className
           )}
           {...props}>
-          <>{children}</>
+          <ScrollView style={{ maxHeight: (height - keyboard) * 0.8 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4">
+            {children}
+          </ScrollView>
           {/* Sokuji: a 48-unit button with a translated label, instead of a 16-unit icon with hitSlop and an English sr-only text. */}
           <DialogPrimitive.Close
             accessibilityLabel={closeLabel}
