@@ -2,9 +2,10 @@ import { buttonTextVariants, buttonVariants } from '@/components/ui/button';
 import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
 import { TextClassContext } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import { useDialogWidth } from '@/lib/useDialogWidth';
 import * as AlertDialogPrimitive from '@rn-primitives/alert-dialog';
 import * as React from 'react';
-import { Platform, useWindowDimensions, View, type ViewProps } from 'react-native';
+import { Platform, View, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 
 const AlertDialog = AlertDialogPrimitive.Root;
@@ -55,13 +56,13 @@ function AlertDialogContent({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
     portalHost?: string;
   }) {
-  // Sokuji: a set width; the registry's calc() max-width does nothing on native.
-  const { width } = useWindowDimensions();
+  // Sokuji: a set width (lib/useDialogWidth); the registry's calc() max-width does nothing on native.
+  // Its text scrolls in ConfirmDialog, the app's one use.
+  const width = useDialogWidth();
   return (
     <AlertDialogPortal hostName={portalHost}>
       <AlertDialogOverlay>
         <AlertDialogPrimitive.Content
-          style={{ width: Math.min(width - 32, 512) }}
           className={cn(
             'bg-background border-border z-50 flex flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5',
             Platform.select({
@@ -70,6 +71,7 @@ function AlertDialogContent({
             className
           )}
           {...props}
+          style={[{ width }, props.style]}
         />
       </AlertDialogOverlay>
     </AlertDialogPortal>
