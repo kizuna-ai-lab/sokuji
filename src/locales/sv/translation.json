@@ -1633,6 +1633,7 @@
       "submit": "Logga in",
       "forgot": "Glömt lösenordet?",
       "codeSent": "Vi skickade en 6-siffrig kod till {{email}}",
+      "willSendCode": "Vi skickar en 6-siffrig kod till {{email}}",
       "code": "Koden från e-posten",
       "verify": "Verifiera",
       "sendAgain": "Skicka igen",

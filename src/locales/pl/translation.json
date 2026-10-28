@@ -1633,6 +1633,7 @@
       "submit": "Zaloguj się",
       "forgot": "Nie pamiętasz hasła?",
       "codeSent": "Wysłaliśmy 6-cyfrowy kod na {{email}}",
+      "willSendCode": "Wyślemy 6-cyfrowy kod na {{email}}",
       "code": "Kod z wiadomości",
       "verify": "Zweryfikuj",
       "sendAgain": "Wyślij ponownie",

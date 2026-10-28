@@ -1633,6 +1633,7 @@
       "submit": "Đăng nhập",
       "forgot": "Quên mật khẩu?",
       "codeSent": "Chúng tôi đã gửi mã 6 chữ số tới {{email}}",
+      "willSendCode": "Chúng tôi sẽ gửi mã 6 chữ số tới {{email}}",
       "code": "Mã trong email",
       "verify": "Xác minh",
       "sendAgain": "Gửi lại",

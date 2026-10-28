@@ -1633,6 +1633,7 @@
       "submit": "Kirjaudu",
       "forgot": "Unohditko salasanan?",
       "codeSent": "Lähetimme 6-numeroisen koodin osoitteeseen {{email}}",
+      "willSendCode": "Lähetämme 6-numeroisen koodin osoitteeseen {{email}}",
       "code": "Sähköpostin koodi",
       "verify": "Vahvista",
       "sendAgain": "Lähetä uudelleen",

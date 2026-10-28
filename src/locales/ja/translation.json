@@ -1633,6 +1633,7 @@
       "submit": "サインイン",
       "forgot": "パスワードをお忘れですか？",
       "codeSent": "{{email}} に 6 桁のコードを送りました",
+      "willSendCode": "{{email}} に 6 桁のコードを送信します",
       "code": "メールのコード",
       "verify": "確認",
       "sendAgain": "再送信",

@@ -1633,6 +1633,7 @@
       "submit": "登入",
       "forgot": "忘記密碼？",
       "codeSent": "驗證碼已寄到 {{email}}",
+      "willSendCode": "我們會向 {{email}} 傳送 6 位數驗證碼",
       "code": "郵件中的驗證碼",
       "verify": "驗證",
       "sendAgain": "重新寄送",

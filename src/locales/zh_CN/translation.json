@@ -1633,6 +1633,7 @@
       "submit": "登录",
       "forgot": "忘记密码？",
       "codeSent": "验证码已发到 {{email}}",
+      "willSendCode": "我们会向 {{email}} 发送 6 位验证码",
       "code": "邮件里的验证码",
       "verify": "验证",
       "sendAgain": "重新发送",

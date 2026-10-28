@@ -1633,6 +1633,7 @@
       "submit": "Entrar",
       "forgot": "Esqueceu a senha?",
       "codeSent": "Enviamos um código de 6 dígitos para {{email}}",
+      "willSendCode": "Enviaremos um código de 6 dígitos para {{email}}",
       "code": "Código do e-mail",
       "verify": "Verificar",
       "sendAgain": "Enviar novamente",

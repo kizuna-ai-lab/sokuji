@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { deleteAccount, emailVerified, requestPasswordReset, sendVerificationCode } from '../auth/client';
+import { deleteAccount, emailVerified } from '../auth/client';
 import { authErrorKey } from '../auth/unwrap';
 import SignIn from '../auth/SignIn';
 import { fetchFallbackUsdPerHour, fetchUsagePerHour, fetchWallet, type Wallet } from '../account/wallet';
@@ -37,7 +37,6 @@ export default function Account({
   const [verified, setVerified] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
-  const [busy, setBusy] = useState<'verify' | 'password' | null>(null);
   // A lost session goes to the sign-in screen; anything else is shown.
   const show = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -73,24 +72,6 @@ export default function Account({
     void load();
   }, [load]);
 
-  // Verify the address, or set / change the password: a code to the address
-  // first (a network round trip and an email), then the code screen. One
-  // request at a time, and the row says so: a second tap while the first is
-  // on its way would send a second code and run into the backend's cap.
-  async function sendCodeThen(kind: 'verify' | 'password') {
-    if (busy) return;
-    setBusy(kind);
-    setError('');
-    try {
-      await (kind === 'verify' ? sendVerificationCode(email) : requestPasswordReset(email));
-      setView(kind);
-    } catch (err) {
-      show(err);
-    } finally {
-      setBusy(null);
-    }
-  }
-
   function confirmDelete() {
     Alert.alert(t('mobile.account.deleteAccount'), t('mobile.account.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -110,11 +91,15 @@ export default function Account({
   }
 
   if (view === 'usage') return <Usage token={token} onBack={() => setView('account')} onSignInRequired={onSignInRequired} />;
+  // Verify the address, or set / change the password (the owner's ruling,
+  // 2026-10-28): opening the page sends nothing; the page shows the address and
+  // a Send code button, and the code field appears once the code is on its way.
   if (view === 'verify' || view === 'password') {
     return (
       <SignIn
-        initialMode={view === 'verify' ? 'verify' : 'reset'}
+        initialMode={view === 'verify' ? 'verifyStart' : 'forgot'}
         initialEmail={email}
+        lockEmail
         onSignedIn={() => { setView('account'); void load(); }}
         onBack={() => setView('account')}
       />
@@ -155,13 +140,11 @@ export default function Account({
       {verified === false && (
         <View style={styles.verify}>
           <Text style={styles.verifyText}>{t('mobile.account.verify')}</Text>
-          <Button title={t('mobile.signIn.verify')} disabled={busy !== null} onPress={() => sendCodeThen('verify')} />
+          <Button title={t('mobile.signIn.verify')} onPress={() => setView('verify')} />
         </View>
       )}
       <Text accessibilityRole="button" style={styles.row} onPress={() => setView('usage')}>{t('mobile.account.usage')}  ›</Text>
-      <Text accessibilityRole="button" accessibilityState={{ busy: busy === 'password', disabled: busy !== null }} style={[styles.row, busy && styles.disabled]} onPress={busy ? undefined : () => sendCodeThen('password')}>
-        {t('mobile.signIn.password')}  {busy === 'password' ? '…' : '›'}
-      </Text>
+      <Text accessibilityRole="button" style={styles.row} onPress={() => setView('password')}>{t('mobile.signIn.password')}  ›</Text>
       <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked ? styles.disabled : styles.danger]} onPress={locked ? undefined : onSignOut}>{t('mobile.account.signOut')}</Text>
       <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked && styles.disabled]} onPress={locked ? undefined : confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}

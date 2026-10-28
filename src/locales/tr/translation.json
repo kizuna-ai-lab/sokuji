@@ -1633,6 +1633,7 @@
       "submit": "Giriş yap",
       "forgot": "Parolanızı mı unuttunuz?",
       "codeSent": "{{email}} adresine 6 haneli bir kod gönderdik",
+      "willSendCode": "{{email}} adresine 6 haneli bir kod göndereceğiz",
       "code": "E-postadaki kod",
       "verify": "Doğrula",
       "sendAgain": "Yeniden gönder",

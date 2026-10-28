@@ -1633,6 +1633,7 @@
       "submit": "Inloggen",
       "forgot": "Wachtwoord vergeten?",
       "codeSent": "We hebben een 6-cijferige code naar {{email}} gestuurd",
+      "willSendCode": "We sturen een 6-cijferige code naar {{email}}",
       "code": "Code uit de e-mail",
       "verify": "Verifiëren",
       "sendAgain": "Opnieuw sturen",

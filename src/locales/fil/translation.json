@@ -1633,6 +1633,7 @@
       "submit": "Mag-sign in",
       "forgot": "Nakalimutan ang password?",
       "codeSent": "Nagpadala kami ng 6-digit na code sa {{email}}",
+      "willSendCode": "Magpapadala kami ng 6-digit na code sa {{email}}",
       "code": "Code mula sa email",
       "verify": "I-verify",
       "sendAgain": "Ipadala muli",

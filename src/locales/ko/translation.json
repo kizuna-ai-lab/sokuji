@@ -1633,6 +1633,7 @@
       "submit": "로그인",
       "forgot": "비밀번호를 잊으셨나요?",
       "codeSent": "{{email}}(으)로 6자리 코드를 보냈습니다",
+      "willSendCode": "{{email}}(으)로 6자리 코드를 보냅니다",
       "code": "이메일의 코드",
       "verify": "확인",
       "sendAgain": "다시 보내기",

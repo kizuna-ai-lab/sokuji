@@ -1633,6 +1633,7 @@
       "submit": "Sign in",
       "forgot": "Forgot your password?",
       "codeSent": "We sent a 6-digit code to {{email}}",
+      "willSendCode": "We'll send a 6-digit code to {{email}}",
       "code": "Code from the email",
       "verify": "Verify",
       "sendAgain": "Send again",

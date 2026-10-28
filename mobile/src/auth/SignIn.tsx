@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, signUp, verifyEmail } from './client';
 import { authErrorKey } from './unwrap';
 
-type Mode = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
+// 'verifyStart' and 'forgot' are the two code flows' first page: the address and a
+// Send code button, and no request until it is pressed.
+type Mode = 'signin' | 'register' | 'verifyStart' | 'verify' | 'forgot' | 'reset';
 
 // Sending a code is rate-limited by the backend; the button waits this long
 // between sends and says so.
@@ -15,12 +17,15 @@ export default function SignIn({
   initialMode = 'signin',
   initialEmail = '',
   onBack,
+  lockEmail = false,
 }: {
   onSignedIn: (email: string) => void;
   /** The account screen opens the code screen for an address whose code was just sent. */
   initialMode?: Mode;
   initialEmail?: string;
   onBack?: () => void;
+  /** The account screen's flows: the address is the account's, shown but not editable. */
+  lockEmail?: boolean;
 }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -65,7 +70,9 @@ export default function SignIn({
     setResendIn(RESEND_WAIT_S);
   }
 
-  const emailField = (
+  const emailField = lockEmail ? (
+    <Text style={styles.fixedEmail}>{address}</Text>
+  ) : (
     <TextInput
       style={styles.input}
       placeholder={t('mobile.signIn.email')}
@@ -161,16 +168,27 @@ export default function SignIn({
         </>
       )}
 
+      {mode === 'verifyStart' && (
+        <>
+          <Text style={styles.title}>{t('mobile.signIn.verifyTitle')}</Text>
+          <Text style={styles.note}>{t('mobile.signIn.willSendCode', { email: address })}</Text>
+          {!lockEmail && emailField}
+          <Button title={t('mobile.signIn.sendCode')} disabled={busy || !address} onPress={() => run(sendCode, () => go('verify'))} />
+          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : go('signin'))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.back')}</Text>
+        </>
+      )}
+
       {mode === 'forgot' && (
         <>
           <Text style={styles.title}>{t('mobile.signIn.resetTitle')}</Text>
-          {emailField}
+          {lockEmail && <Text style={styles.note}>{t('mobile.signIn.willSendCode', { email: address })}</Text>}
+          {!lockEmail && emailField}
           <Button
             title={t('mobile.signIn.sendCode')}
             disabled={busy || !address}
             onPress={() => run(async () => { await requestPasswordReset(address); setResendIn(RESEND_WAIT_S); }, () => go('reset'))}
           />
-          <Text accessibilityRole="button" style={styles.link} onPress={() => go('signin')}>{t('mobile.signIn.back')}</Text>
+          <Text accessibilityRole="button" style={styles.link} onPress={() => (onBack ? onBack() : go('signin'))}>{onBack ? t('mobile.common.back') : t('mobile.signIn.back')}</Text>
         </>
       )}
 
@@ -207,6 +225,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, fontSize: 16 },
   note: { fontSize: 12, color: '#666' },
+  fixedEmail: { fontSize: 16, color: '#333', paddingVertical: 4 },
   link: { color: '#1e63c4', paddingVertical: 4 },
   error: { color: '#c0392b' },
 });

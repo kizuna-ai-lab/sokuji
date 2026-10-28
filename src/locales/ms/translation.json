@@ -1633,6 +1633,7 @@
       "submit": "Log masuk",
       "forgot": "Lupa kata laluan?",
       "codeSent": "Kami menghantar kod 6 digit ke {{email}}",
+      "willSendCode": "Kami akan menghantar kod 6 digit ke {{email}}",
       "code": "Kod daripada e-mel",
       "verify": "Sahkan",
       "sendAgain": "Hantar semula",

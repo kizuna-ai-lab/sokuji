@@ -1633,6 +1633,7 @@
       "submit": "Masuk",
       "forgot": "Lupa kata sandi?",
       "codeSent": "Kami mengirim kode 6 digit ke {{email}}",
+      "willSendCode": "Kami akan mengirim kode 6 digit ke {{email}}",
       "code": "Kode dari email",
       "verify": "Verifikasi",
       "sendAgain": "Kirim lagi",

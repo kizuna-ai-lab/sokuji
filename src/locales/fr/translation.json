@@ -1633,6 +1633,7 @@
       "submit": "Se connecter",
       "forgot": "Mot de passe oublié ?",
       "codeSent": "Nous avons envoyé un code à 6 chiffres à {{email}}",
+      "willSendCode": "Nous enverrons un code à 6 chiffres à {{email}}",
       "code": "Code reçu par e-mail",
       "verify": "Vérifier",
       "sendAgain": "Renvoyer",
