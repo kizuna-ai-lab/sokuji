@@ -33,7 +33,7 @@ export default function Account({
   token: string;
   email: string;
   onBack: () => void;
-  onSignOut: () => void;
+  onSignOut: () => void | Promise<void>;
   onDeleted: () => void;
   /** A session is running: signing out or deleting would leave it recording behind the sign-in screen. */
   locked: boolean;
@@ -48,6 +48,7 @@ export default function Account({
   const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
   const [confirming, setConfirming] = useState(false);
   const [deleting, runDelete] = useBusy();
+  const [signingOut, runSignOut] = useBusy();
   const deleteRow = useRef<HostInstance>(null);
   // A lost session goes to the sign-in screen; anything else is shown.
   const show = (err: unknown) => {
@@ -150,7 +151,16 @@ export default function Account({
         <Row icon={KeyRound} label={t('mobile.signIn.password')} onPress={() => setView('password')} />
       </RowGroup>
       <RowGroup>
-        <Row icon={LogOut} label={t('mobile.account.signOut')} destructive disabled={locked} disabledReason={lockedReason} chevron={false} onPress={onSignOut} />
+        <Row
+          icon={LogOut}
+          label={t('mobile.account.signOut')}
+          destructive
+          disabled={locked || signingOut}
+          disabledReason={locked ? lockedReason : undefined}
+          accessory={signingOut ? <Spinner /> : undefined}
+          chevron={false}
+          onPress={() => { void runSignOut(async () => onSignOut()); }}
+        />
         <Row
           ref={deleteRow}
           icon={Trash2}

@@ -33,6 +33,8 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
   const [groups, setGroups] = useState<LedgerGroup[]>([]);
   const [next, setNext] = useState<LedgerCursor | null>(null);
   const [busy, setBusy] = useState(false);
+  // Until the first page has answered, an empty list means "loading", not "nothing".
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -52,6 +54,7 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
       }
     } finally {
       setBusy(false);
+      setLoaded(true);
     }
   }, [token]);
 
@@ -84,7 +87,7 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
           </View>
         )}
         ListEmptyComponent={
-          busy ? <Spinner size="large" className="py-10" /> : !error ? <Text className="text-muted-foreground px-4 py-10 text-center">{t('mobile.usage.empty')}</Text> : undefined
+          busy || !loaded ? <Spinner size="large" className="py-10" /> : !error ? <Text className="text-muted-foreground px-4 py-10 text-center">{t('mobile.usage.empty')}</Text> : undefined
         }
         ListFooterComponent={
           <View className="gap-3 px-4 py-4">

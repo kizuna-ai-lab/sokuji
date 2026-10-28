@@ -1,10 +1,12 @@
 # src/components/ui
 
 React Native Reusables components, copied by `npx @react-native-reusables/cli@0.7.1 add --styling-library nativewind`
-on 2026-10-28 (the CLI reports itself as 1.0.0): alert-dialog, button, dialog, dropdown-menu, icon, input, label,
+on 2026-10-28 (the CLI reports itself as 1.0.0): alert-dialog, button, dialog, dropdown-menu, icon, input,
 native-only-animated-view, separator, switch, text. They are this project's source now; when taking a newer version
-from the registry, re-apply the changes below (each is marked `Sokuji:` in the file). radio-group was added too and
-removed again: the option lists draw their own checked rows (src/components/ChoiceList.tsx).
+from the registry, re-apply the changes below (each is marked `Sokuji:` in the file). radio-group and label were added
+too and removed again: the option lists draw their own checked rows (src/components/ChoiceList.tsx), and a field's
+label is plain text the input reads as its own name (src/components/Field.tsx), so a screen reader does not stop on it
+twice.
 
 ## Local changes
 

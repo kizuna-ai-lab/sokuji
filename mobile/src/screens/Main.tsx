@@ -40,7 +40,7 @@ type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices'
 const CHECKPOINT_MS = 60000;
 const history = createHistoryStore(documentFs);
 
-export default function Main({ token, email, onSignOut, onAccountDeleted, onSignInRequired }: { token: string; email: string; onSignOut: () => void; onAccountDeleted: () => void;
+export default function Main({ token, email, onSignOut, onAccountDeleted, onSignInRequired }: { token: string; email: string; onSignOut: () => void | Promise<void>; onAccountDeleted: () => void;
   /** The sign-in session is gone (a 401 mid-session): the app drops the token and shows the sign-in screen. */
   onSignInRequired: () => void }) {
   const { t, i18n } = useTranslation();

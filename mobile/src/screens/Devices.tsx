@@ -52,18 +52,17 @@ export default function Devices({ onBack }: { onBack: () => void }) {
 
   return (
     <Screen title={t('mobile.settings.devices')} onBack={onBack} backLabel={t('mobile.menu.settings')}>
-      {shown.length > 0 ? (
-        <ChoiceList
-          title={t('mobile.devices.microphone')}
-          footer={t('mobile.devices.noBluetoothMic')}
-          choices={shown.map((m) => ({ value: m.id, label: kindLabel[m.kind], description: m.kind !== 'builtin' ? m.name : undefined }))}
-          value={chosen}
-          onChange={(id) => {
-            const m = mics.find((x) => x.id === id);
-            set({ inputDeviceId: m?.kind === 'builtin' ? null : id });
-          }}
-        />
-      ) : null}
+      {/* Before the devices are listed, or if listing fails, the phone's own microphone (no stored choice) is what is used. */}
+      <ChoiceList
+        title={t('mobile.devices.microphone')}
+        footer={t('mobile.devices.noBluetoothMic')}
+        choices={shown.length > 0 ? shown.map((m) => ({ value: m.id, label: kindLabel[m.kind], description: m.kind !== 'builtin' ? m.name : undefined })) : [{ value: '', label: kindLabel.builtin }]}
+        value={chosen}
+        onChange={(id) => {
+          const m = mics.find((x) => x.id === id);
+          set({ inputDeviceId: !m || m.kind === 'builtin' ? null : id });
+        }}
+      />
       <RowGroup title={t('mobile.devices.output')}>
         <Row label={output.label} value={output.value} />
       </RowGroup>

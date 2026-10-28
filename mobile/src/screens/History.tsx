@@ -90,9 +90,15 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
 
   async function saveTitle() {
     // An empty name gives the session back its date as its name.
-    if (renaming) await store.rename(renaming.id, title.trim());
-    setRenaming(null);
-    await load();
+    setError('');
+    try {
+      if (renaming) await store.rename(renaming.id, title.trim());
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRenaming(null);
+    }
   }
 
   return (
