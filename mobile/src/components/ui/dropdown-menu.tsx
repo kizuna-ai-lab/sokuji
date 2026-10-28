@@ -116,7 +116,7 @@ function DropdownMenuContent({
             <TextClassContext.Provider value="text-popover-foreground">
               <DropdownMenuPrimitive.Content
                 className={cn(
-                  'bg-popover border-border min-w-[8rem] overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
+                  'bg-popover border-border min-w-[12rem] overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
                   Platform.select({
                     web: cn(
                       'animate-in fade-in-0 zoom-in-95 max-h-(--radix-context-menu-content-available-height) origin-(--radix-context-menu-content-transform-origin) z-50 cursor-default',
@@ -149,12 +149,13 @@ function DropdownMenuItem({
   return (
     <TextClassContext.Provider
       value={cn(
-        'select-none text-sm text-popover-foreground group-active:text-popover-foreground',
+        // Sokuji: text-base and a 48-unit row, like every other touch target in the app.
+        'select-none text-base text-popover-foreground group-active:text-popover-foreground',
         variant === 'destructive' && 'text-destructive group-active:text-destructive'
       )}>
       <DropdownMenuPrimitive.Item
         className={cn(
-          'active:bg-accent group relative flex flex-row items-center gap-2 rounded-sm px-2 py-2 sm:py-1.5',
+          'active:bg-accent group relative flex min-h-12 flex-row items-center gap-3 rounded-sm px-3 py-3',
           Platform.select({
             web: cn(
               'focus:bg-accent focus:text-accent-foreground cursor-default outline-none data-[disabled]:pointer-events-none',

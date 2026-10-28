@@ -40,10 +40,11 @@ const buttonVariants = cva(
         link: '',
       },
       size: {
-        default: cn('h-10 px-4 py-2 sm:h-9', Platform.select({ web: 'has-[>svg]:px-3' })),
-        sm: cn('h-9 gap-1.5 rounded-md px-3 sm:h-8', Platform.select({ web: 'has-[>svg]:px-2.5' })),
-        lg: cn('h-11 rounded-md px-6 sm:h-10', Platform.select({ web: 'has-[>svg]:px-4' })),
-        icon: 'h-10 w-10 sm:h-9 sm:w-9',
+        // Sokuji: a 48-unit minimum that grows with the text (design scope §1), not a fixed height.
+        default: cn('min-h-12 px-5 py-3', Platform.select({ web: 'has-[>svg]:px-3' })),
+        sm: cn('min-h-12 gap-1.5 rounded-md px-3 py-2', Platform.select({ web: 'has-[>svg]:px-2.5' })),
+        lg: cn('min-h-14 rounded-md px-6 py-3', Platform.select({ web: 'has-[>svg]:px-4' })),
+        icon: 'min-h-12 min-w-12',
       },
     },
     defaultVariants: {
@@ -55,7 +56,8 @@ const buttonVariants = cva(
 
 const buttonTextVariants = cva(
   cn(
-    'text-foreground text-sm font-medium',
+    // Sokuji: text-base, so a label scales with the system font like the rest of the app.
+    'text-foreground text-base font-medium text-center',
     Platform.select({ web: 'pointer-events-none transition-colors' })
   ),
   {
@@ -88,7 +90,9 @@ const buttonTextVariants = cva(
   }
 );
 
-type ButtonProps = React.ComponentProps<typeof Pressable> & React.RefAttributes<typeof Pressable> & VariantProps<typeof buttonVariants>;
+// Sokuji: React Native 0.88's Pressable props carry its ref already; the registry's
+// `React.RefAttributes<typeof Pressable>` typed the ref as the component itself.
+type ButtonProps = React.ComponentProps<typeof Pressable> & VariantProps<typeof buttonVariants>;
 
 function Button({ className, variant, size, ...props }: ButtonProps) {
   return (
