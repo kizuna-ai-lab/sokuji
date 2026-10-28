@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, BackHandler, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -40,12 +40,16 @@ type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices'
 
 // The history store writes the running session every minute (ticker time) and at its end.
 const CHECKPOINT_MS = 60000;
-const history = createHistoryStore(documentFs);
 
-export default function Main({ token, email, onSignOut, onAccountDeleted, onSignInRequired }: { token: string; email: string; onSignOut: () => void | Promise<void>; onAccountDeleted: () => void;
+export default function Main({ accountId, token, email, onSignOut, onAccountDeleted, onSignInRequired }: {
+  /** The signed-in account's user id: the sessions on this phone are kept per account. */
+  accountId: string;
+  token: string; email: string; onSignOut: () => void | Promise<void>; onAccountDeleted: () => void;
   /** The sign-in session is gone (a 401 mid-session): the app drops the token and shows the sign-in screen. */
   onSignInRequired: () => void }) {
   const { t, i18n } = useTranslation();
+  // This account's sessions only (owner, 2026-10-28: history is kept per account).
+  const history = useMemo(() => createHistoryStore(documentFs, accountId), [accountId]);
   const settings = useSettings((s) => s.settings);
   const [status, setStatus] = useState<Status | 'idle'>('idle');
   const [detail, setDetail] = useState('');

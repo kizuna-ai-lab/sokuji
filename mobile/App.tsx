@@ -6,7 +6,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { PortalHost } from '@rn-primitives/portal';
 import { useColorScheme } from 'nativewind';
 import { Spinner } from './src/components/Spinner';
-import { accountEmail, sessionToken, signOut } from './src/auth/client';
+import { accountEmail, accountId, sessionToken, signOut } from './src/auth/client';
 import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
 import { applyAppearance } from './src/screens/Settings';
@@ -18,6 +18,7 @@ export default function App() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState('');
+  const [account, setAccount] = useState('');
   // The scheme the app is drawn in: the appearance setting, or the system's.
   const { colorScheme } = useColorScheme();
 
@@ -25,6 +26,7 @@ export default function App() {
     try {
       const token = await sessionToken();
       setEmail(token ? (await accountEmail()) ?? '' : '');
+      setAccount(token ? (await accountId()) ?? '' : '');
       setToken(token);
     } catch {
       setToken(null);
@@ -52,6 +54,9 @@ export default function App() {
           {ready && token === null && <SignIn onSignedIn={refresh} />}
           {ready && !!token && (
             <Main
+              // Another account is another Main: nothing of the last one's (its history) carries over.
+              key={account}
+              accountId={account}
               token={token}
               email={email}
               onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}

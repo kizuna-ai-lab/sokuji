@@ -57,6 +57,12 @@ export async function accountEmail(): Promise<string | null> {
   return data?.user.email ?? null;
 }
 
+/** The signed-in account's user id: what the history on this phone is kept under. */
+export async function accountId(): Promise<string | null> {
+  const data = unwrap(await authClient.getSession());
+  return data?.user.id ?? null;
+}
+
 export async function sessionToken(): Promise<string | null> {
   const data = unwrap(await authClient.getSession());
   return data?.session.token ?? null;

@@ -23,10 +23,17 @@ export interface HistoryFs {
   listDirs(path: string): Promise<string[]>;
 }
 
-const ROOT = 'sessions';
-const file = (id: string) => `${ROOT}/${id}/session.json`;
+/**
+ * The sessions of one account (its user id): a phone two people sign in to,
+ * or an account that changes hands, shows each account only its own (owner,
+ * 2026-10-28). They stay through sign-out. The id is encoded, so it stays one
+ * folder whatever it holds. What builds before this kept under `sessions/`
+ * belonged to no account and is not shown (the app had not shipped).
+ */
+export function createHistoryStore(fs: HistoryFs, accountId: string) {
+  const ROOT = `accounts/${encodeURIComponent(accountId)}/sessions`;
+  const file = (id: string) => `${ROOT}/${id}/session.json`;
 
-export function createHistoryStore(fs: HistoryFs) {
   async function load(id: string): Promise<StoredSession | null> {
     const body = await fs.read(file(id));
     if (!body) return null;
