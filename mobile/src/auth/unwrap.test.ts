@@ -47,7 +47,8 @@ describe('authErrorKey', () => {
   });
 
   it('has no line for anything else', () => {
-    expect(authErrorKey(new AuthError('rate limited', 'TOO_MANY_ATTEMPTS', 429))).toBeNull();
+    expect(authErrorKey(new AuthError('server error', undefined, 500))).toBeNull();
+    expect(authErrorKey(new AuthError('too many attempts', 'TOO_MANY_ATTEMPTS', 400))).toBeNull();
     expect(authErrorKey(new Error('network request failed'))).toBeNull();
   });
 });
