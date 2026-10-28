@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, ScrollView, Text as Span, View } from 'react-native';
+import { FlatList, ScrollView, Text as Span, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { leadTrimmed } from '@/lib/spans';
 import { entriesOf } from '../history/export';
 import { readingLines, type ReadingLine } from '../history/reading';
+import { scaledLine } from './subtitleSize';
 import type { HistoryStore } from '../history/store';
 import { useSettings } from '../store/useSettings';
 import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from '@/lib/subtitleText';
@@ -58,15 +59,21 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
   }, [load]);
 
 
+  const { fontScale } = useWindowDimensions();
+  const sourceStyle = scaledLine(size.source, lineHeight(size.source), fontScale, SOURCE_MAX_SCALE);
+  const translationStyle = scaledLine(size.translation, lineHeight(size.translation), fontScale, TRANSLATION_MAX_SCALE);
+  // text-sm: 14 on 20.
+  const timeStyle = scaledLine(14, 20, fontScale, SOURCE_MAX_SCALE);
+
   const renderLine = ({ item }: { item: ReadingLine }) => (
     <View className="gap-1 px-4 py-3">
       {item.showTime ? (
-        <Text className="text-muted-foreground text-sm" maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
+        <Text className="text-muted-foreground" style={timeStyle} allowFontScaling={false}>
           {[time.format(new Date(item.t)), item.person !== undefined ? t('mainPanel.displayMode.person', { n: item.person }) : null].filter(Boolean).join(' · ')}
         </Text>
       ) : null}
       {item.translated ? (
-        <Text selectable className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
+        <Text selectable className="font-medium" style={translationStyle} allowFontScaling={false}>
           {leadTrimmed(item.translation).map((r) => (
             <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
           ))}
@@ -76,7 +83,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
         <Text className="text-muted-foreground text-xs font-medium">{t('mainPanel.export.noTranslation')}</Text>
       )}
       {settings.bilingual || !item.translated ? (
-        <Text selectable className="text-muted-foreground" style={{ fontSize: size.source, lineHeight: lineHeight(size.source) }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
+        <Text selectable className="text-muted-foreground" style={sourceStyle} allowFontScaling={false}>
           {leadTrimmed(item.source).map((r) => (
             <Span key={r.key}>{r.text}</Span>
           ))}
