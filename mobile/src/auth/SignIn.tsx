@@ -110,6 +110,8 @@ export default function SignIn({
       autoComplete="email"
       keyboardType="email-address"
       textContentType="emailAddress"
+      // Fixed while a request runs: the page after it names the address the request went to.
+      editable={!busy}
       value={email}
       onChangeText={setEmail}
     />
@@ -121,6 +123,7 @@ export default function SignIn({
       secureTextEntry
       autoComplete={newPassword ? 'new-password' : 'password'}
       textContentType={newPassword ? 'newPassword' : 'password'}
+      editable={!busy}
       value={password}
       onChangeText={setPassword}
     />
@@ -132,6 +135,7 @@ export default function SignIn({
       textContentType="oneTimeCode"
       autoComplete="one-time-code"
       maxLength={6}
+      editable={!busy}
       value={code}
       onChangeText={setCode}
     />
