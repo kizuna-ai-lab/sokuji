@@ -116,6 +116,9 @@ export default function SignIn({
       autoComplete="email"
       keyboardType="email-address"
       textContentType="emailAddress"
+      // An address is not a word: no corrections and no red underlines (Sophie, iOS).
+      autoCorrect={false}
+      spellCheck={false}
       // Fixed while a request runs: the page after it names the address the request went to.
       editable={!busy}
       value={email}
