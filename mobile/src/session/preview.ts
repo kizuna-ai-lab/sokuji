@@ -41,15 +41,22 @@ function reasonOf(err: unknown): PreviewFailure {
 }
 
 /**
+ * The clips already paid for, for the app's life (owner, 2026-10-28: the same
+ * voice, language, speed and text is charged once while the app is open).
+ * Module-level, not per controller: each Listen screen makes its own
+ * controller, and coming back to it must not charge again.
+ */
+const appCache = new Map<string, Int16Array>();
+
+/**
  * Plays a voice saying a short sample, the desktop's managed preview on the
  * phone. One at a time: a new preview, or stop(), ends the one before. Each
  * key that was minted is followed by `done()`, whatever happens after, or the
  * account would stay held (up to about 45 s) and the next Start would wait.
- * A clip is kept for the app's life, by voice, language, speed and text, so
- * hearing it again costs nothing.
+ * A clip is kept for the app's life (`cache`, the app's by default), by
+ * voice, language, speed and text, so hearing it again costs nothing.
  */
-export function createVoicePreview(deps: PreviewDeps) {
-  const cache = new Map<string, Int16Array>();
+export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Array> = appCache) {
   let state: PreviewState = { status: 'idle' };
   // The current preview's number: stop() and each new preview move it on, and
   // whatever an older one finishes with is dropped.

@@ -19,7 +19,8 @@ function setup(over: Partial<PreviewDeps> = {}) {
     onChange: (s) => states.push(s),
     ...over,
   };
-  return { preview: createVoicePreview(deps), deps, states, played };
+  // A cache of the test's own: the app's is shared by every controller for the app's life.
+  return { preview: createVoicePreview(deps, new Map()), deps, states, played };
 }
 
 describe('a voice preview', () => {
@@ -139,5 +140,22 @@ describe('when the phone cannot play the clip', () => {
     const { preview } = setup({ play: () => { throw new Error('audio session'); } });
     await preview.play('Grace', sample, 1);
     expect(preview.state()).toEqual({ status: 'failed', voice: 'Grace', reason: 'failed' });
+  });
+});
+
+describe('the clip cache lives as long as the app, not the screen', () => {
+  it('does not charge again when the Listen screen is left and opened again', async () => {
+    const cache = new Map<string, Int16Array>();
+    const first = setup();
+    const again = setup();
+    const a = createVoicePreview(first.deps, cache);
+    await a.play('Grace', sample, 1);
+    // Leaving the screen ends its controller; coming back makes a new one.
+    a.stop();
+    const b = createVoicePreview(again.deps, cache);
+    await b.play('Grace', sample, 1);
+    expect(first.deps.mintKey).toHaveBeenCalledTimes(1);
+    expect(again.deps.mintKey).not.toHaveBeenCalled();
+    expect(b.state()).toEqual({ status: 'playing', voice: 'Grace' });
   });
 });
