@@ -2,6 +2,7 @@ import { FlatList, Text as Span, View } from 'react-native';
 import type { Entry } from '@shared/lib/projection/types';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import { leadTrimmed } from '@/lib/spans';
 
 // Subtitle size per the setting: the translation is what is read, the source
 // sits above it smaller and quieter (design: direction C).
@@ -55,13 +56,13 @@ export default function Subtitles({
                 final are fainter: opacity has no effect on a nested span, a colour does. */}
             {bilingual && (
               <Text className="text-muted-foreground" style={{ fontSize: size.source, lineHeight: lineHeight(size.source) }} maxFontSizeMultiplier={SOURCE_MAX_SCALE}>
-                {item.source.map((r) => (
+                {leadTrimmed(item.source).map((r) => (
                   <Span key={r.key} className={cn(!r.final && 'text-muted-foreground/60')}>{r.text}</Span>
                 ))}
               </Text>
             )}
             <Text className="font-medium" style={{ fontSize: size.translation, lineHeight: lineHeight(size.translation) }} maxFontSizeMultiplier={TRANSLATION_MAX_SCALE}>
-              {item.translation.map((r) => (
+              {leadTrimmed(item.translation).map((r) => (
                 <Span key={r.key} className={cn(!r.final && 'text-muted-foreground')}>{r.text}</Span>
               ))}
             </Text>

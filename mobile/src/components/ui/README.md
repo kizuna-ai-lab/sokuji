@@ -24,3 +24,9 @@ Android's touch-size guidance), so fixed heights become minimums with padding.
   and an English sr-only "Close"); the title drops `leading-none`, so it keeps its line spacing when it wraps.
 
 Project composites built on these (rows, headers, option lists, the language picker) live in `src/components/`.
+- `dialog.tsx`, `alert-dialog.tsx`: a set width (`min(screen − 32, 512)`) instead of `max-w-[calc(100%-2rem)]`,
+  which does nothing on native (at the largest text sizes the dialog grew wider than the screen); the dialog's content
+  scrolls within the space above the keyboard and the dialog is centred in that space.
+- `dialog.tsx`, `alert-dialog.tsx`, `dropdown-menu.tsx`: no `FullWindowOverlay`. On iOS it drew the overlay in a
+  separate native window that UI tests could not see into, and the app has no native screens or modals for it to rise
+  above (a sheet hosts its own portal).

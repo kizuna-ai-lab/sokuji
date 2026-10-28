@@ -4,9 +4,8 @@ import { TextClassContext } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import * as AlertDialogPrimitive from '@rn-primitives/alert-dialog';
 import * as React from 'react';
-import { Platform, View, type ViewProps } from 'react-native';
+import { Platform, useWindowDimensions, View, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
@@ -14,7 +13,10 @@ const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+// Sokuji: no FullWindowOverlay. On iOS it drew the overlay in a separate native
+// window, which UI tests (Maestro) could not see into, and this app has no native
+// screens or modals for it to rise above: a sheet hosts its own portal.
+const FullWindowOverlay = React.Fragment;
 
 function AlertDialogOverlay({
   className,
@@ -53,12 +55,15 @@ function AlertDialogContent({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
     portalHost?: string;
   }) {
+  // Sokuji: a set width; the registry's calc() max-width does nothing on native.
+  const { width } = useWindowDimensions();
   return (
     <AlertDialogPortal hostName={portalHost}>
       <AlertDialogOverlay>
         <AlertDialogPrimitive.Content
+          style={{ width: Math.min(width - 32, 512) }}
           className={cn(
-            'bg-background border-border z-50 flex w-full max-w-[calc(100%-2rem)] flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5 sm:max-w-lg',
+            'bg-background border-border z-50 flex flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5',
             Platform.select({
               web: 'animate-in fade-in-0 zoom-in-95 duration-200',
             }),

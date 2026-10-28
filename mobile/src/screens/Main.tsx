@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, BackHandler, useWindowDimensions, View, type HostInstance } from 'react-native';
+import { AppState, BackHandler, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
@@ -245,9 +245,13 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       </View>
       {/* Nothing to read yet (before the first Start, or after a session that heard nothing): what Start does. */}
       {!active && entries.length === 0 ? (
-        <View className="flex-1 justify-center px-8">
-          <Text className="text-muted-foreground text-center text-lg">{idleHint(t, target)}</Text>
-        </View>
+        // It scrolls and grows at most twice the base size: at AX5 it was cut at the right
+        // and after three lines (Sophie, iOS). Centred at normal sizes, from the start beyond.
+        <ScrollView className="flex-1" contentContainerClassName="flex-grow justify-center px-8 py-4">
+          <Text className={cn('text-muted-foreground text-lg', stacked ? 'text-left' : 'text-center')} maxFontSizeMultiplier={2}>
+            {idleHint(t, target)}
+          </Text>
+        </ScrollView>
       ) : (
         <Subtitles entries={entries} bilingual={settings.bilingual} textSize={settings.textSize} />
       )}
