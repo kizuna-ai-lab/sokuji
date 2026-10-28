@@ -113,7 +113,11 @@ export function createVoicePreview(deps: PreviewDeps, shared: PreviewShared = ap
   }
 
   async function mint(signal: AbortSignal): Promise<{ apiKey: string; region: SonioxRegion }> {
-    if (shared.unsettled) await settle();
+    if (shared.unsettled) {
+      await settle();
+      // Stopped while that settle was out: no new key.
+      if (signal.aborted) throw new Error('aborted');
+    }
     try {
       return await deps.mintKey();
     } catch (err) {

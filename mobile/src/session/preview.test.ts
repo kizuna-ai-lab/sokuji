@@ -278,3 +278,20 @@ describe('the cache is checked again after waiting (Adolf)', () => {
     expect(b.state()).toEqual({ status: 'playing', voice: 'Grace' });
   });
 });
+
+describe('a stop while re-settling a failed preview-done (Adolf)', () => {
+  it('asks for no new key once the settle comes back', async () => {
+    let settleAgain!: () => void;
+    const done = vi.fn()
+      .mockImplementationOnce(async () => { throw new Error('network'); })
+      .mockImplementationOnce(() => new Promise<void>((r) => { settleAgain = r; }));
+    const { preview, deps } = setup({ done });
+    await preview.play('Grace', sample, 1); // its done fails: unsettled
+    const second = preview.play('Adrian', sample, 1);
+    await vi.waitFor(() => expect(done).toHaveBeenCalledTimes(2)); // re-settling
+    preview.stop();
+    settleAgain();
+    await second;
+    expect(deps.mintKey).toHaveBeenCalledTimes(1);
+  });
+});
