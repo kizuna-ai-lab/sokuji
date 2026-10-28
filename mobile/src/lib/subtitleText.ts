@@ -10,6 +10,7 @@ export const SIZES = {
 // How far each line follows the system's text size. The translation grows the
 // most; the source and the notices less, so at the largest sizes they do not
 // crowd the current translation off the screen (design scope: Subtitles).
+// Applied by scaledLine (screens/subtitleSize), which caps the line height too.
 export const SOURCE_MAX_SCALE = 1.5;
 export const TRANSLATION_MAX_SCALE = 2.5;
 
