@@ -5,6 +5,7 @@ import { deleteAccount, emailVerified, requestPasswordReset, sendVerificationCod
 import SignIn from '../auth/SignIn';
 import { fetchFallbackUsdPerHour, fetchUsagePerHour, fetchWallet, type Wallet } from '../account/wallet';
 import { formatHours, hoursLeft } from '../account/hours';
+import { formatUsd } from '../account/money';
 import Usage from './Usage';
 
 // The account screen: the balance and what it buys, as the website's billing
@@ -35,7 +36,6 @@ export default function Account({
   const [verified, setVerified] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
-  const money = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' });
   // A lost session goes to the sign-in screen; anything else is shown.
   const show = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -136,18 +136,18 @@ export default function Account({
           <View style={styles.stats}>
             <View>
               <Text style={styles.quiet}>{t('mobile.account.balance')}</Text>
-              <Text style={styles.big}>{money.format(wallet.balanceUsd)}</Text>
+              <Text style={styles.big}>{formatUsd(wallet.balanceUsd)}</Text>
             </View>
             <View style={styles.right}>
               <Text style={styles.quiet}>{t('mobile.account.usage30d')}</Text>
-              <Text style={styles.mid}>{money.format(wallet.last30DaysUsd)}</Text>
+              <Text style={styles.mid}>{formatUsd(wallet.last30DaysUsd)}</Text>
             </View>
           </View>
           {hours !== null && <Text style={styles.quiet}>{t('mobile.account.hoursLeft', { hours })}</Text>}
           {wallet.frozen && <Text style={styles.warn}>{t('mobile.account.frozen')}</Text>}
           {wallet.expiringSoon && (
             <Text style={styles.quiet}>
-              {t('mobile.account.expiring', { amount: money.format(wallet.expiringSoon.usd), date: day.format(new Date(wallet.expiringSoon.expiresAt)) })}
+              {t('mobile.account.expiring', { amount: formatUsd(wallet.expiringSoon.usd), date: day.format(new Date(wallet.expiringSoon.expiresAt)) })}
             </Text>
           )}
           <Text style={styles.quiet}>{t('mobile.account.topUp')}</Text>

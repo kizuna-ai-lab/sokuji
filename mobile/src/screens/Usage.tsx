@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { fetchLedger, type LedgerCursor, type LedgerGroup } from '../account/ledger';
+import { formatUsd } from '../account/money';
 
 const KIND_KEY: Record<string, string> = {
   topup: 'mobile.usage.kind.topup',
@@ -26,7 +27,6 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
   const [next, setNext] = useState<LedgerCursor | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const money = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', signDisplay: 'exceptZero' });
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
 
   const load = useCallback(async (before?: LedgerCursor) => {
@@ -72,7 +72,7 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
               </Text>
               <Text style={styles.when}>{when.format(new Date(item.occurredAt))}</Text>
             </View>
-            <Text style={[styles.amount, item.amountUsd > 0 && styles.credit]}>{money.format(item.amountUsd)}</Text>
+            <Text style={[styles.amount, item.amountUsd > 0 && styles.credit]}>{formatUsd(item.amountUsd)}</Text>
           </View>
         )}
         ListFooterComponent={next ? <Button title={t('mobile.usage.loadMore')} disabled={busy} onPress={() => load(next)} /> : undefined}
