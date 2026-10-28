@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { StateStorage } from 'zustand/middleware';
-import { createSettingsStore, DEFAULT_SETTINGS } from './settings';
+import { colorSchemeOverride, createSettingsStore, DEFAULT_SETTINGS } from './settings';
 
 // A fake of the async key-value store the phone has: what one store writes,
 // a second store on the same storage must read back.
@@ -40,5 +40,19 @@ describe('settings store', () => {
     const store = createSettingsStore(memoryStorage({ 'sokuji.settings': stored }));
     await settle();
     expect(store.getState().settings).toEqual({ ...DEFAULT_SETTINGS, textSize: 'large' });
+  });
+});
+
+// React Native's Appearance.setColorScheme takes 'light' | 'dark' | 'unspecified'
+// (follow the system). A null reached Android's native module and crashed the
+// app at every launch with the default setting; iOS tolerated it.
+describe('colorSchemeOverride', () => {
+  it("is 'unspecified', never null, for following the system", () => {
+    expect(colorSchemeOverride('system')).toBe('unspecified');
+  });
+
+  it('passes an explicit scheme through', () => {
+    expect(colorSchemeOverride('light')).toBe('light');
+    expect(colorSchemeOverride('dark')).toBe('dark');
   });
 });

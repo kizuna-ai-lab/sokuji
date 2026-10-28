@@ -75,3 +75,12 @@ export function createSettingsStore(storage: StateStorage) {
     ),
   );
 }
+
+/** React Native's Appearance.setColorScheme value for the setting: 'unspecified' follows the system. */
+export type ColorSchemeOverride = 'light' | 'dark' | 'unspecified';
+
+// Never null: Android's AppearanceModule throws on it (a crash at every launch
+// with the default setting), while iOS tolerated it.
+export function colorSchemeOverride(appearance: Settings['appearance']): ColorSchemeOverride {
+  return appearance === 'system' ? 'unspecified' : appearance;
+}

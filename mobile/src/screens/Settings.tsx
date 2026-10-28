@@ -2,7 +2,7 @@ import { Appearance, StyleSheet, Switch, Text, TextInput, View } from 'react-nat
 import { useTranslation } from 'react-i18next';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
 import { useSettings } from '../store/useSettings';
-import type { Settings as SettingsValues } from '../store/settings';
+import { colorSchemeOverride, type Settings as SettingsValues } from '../store/settings';
 
 const REGIONS: SonioxRegion[] = ['us', 'eu', 'jp'];
 const SIZES: SettingsValues['textSize'][] = ['small', 'medium', 'large'];
@@ -11,8 +11,7 @@ const APPEARANCES: SettingsValues['appearance'][] = ['system', 'light', 'dark'];
 // An override of the system's scheme; the app's own palette for dark is a
 // follow-up, so for now this only changes what useColorScheme() reports.
 export function applyAppearance(appearance: SettingsValues['appearance']): void {
-  const api = Appearance as unknown as { setColorScheme?: (scheme: 'light' | 'dark' | null) => void };
-  api.setColorScheme?.(appearance === 'system' ? null : appearance);
+  Appearance.setColorScheme(colorSchemeOverride(appearance));
 }
 
 // Its own screen (owner, 2026-10-27: the settings will grow). Each takes
