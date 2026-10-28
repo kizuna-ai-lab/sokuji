@@ -1750,7 +1750,12 @@
       "voice": "Suara yang saya dengar",
       "speed": "Kelajuan pertuturan",
       "headphones": "Hanya dibacakan melalui fon kepala. Melalui pembesar suara anda dapat sari kata.",
-      "searchVoices": "Cari suara"
+      "searchVoices": "Cari suara",
+      "preview": "Dengar",
+      "previewVoice": "Dengar {{voice}}",
+      "stopPreview": "Hentikan",
+      "previewConfirmTitle": "Dengar suara ini?",
+      "previewEstimate": "Kira-kira {{amount}} setiap kali (anggaran)."
     },
     "devices": {
       "microphone": "Mikrofon",

@@ -1750,7 +1750,12 @@
       "voice": "الصوت الذي أسمعه",
       "speed": "سرعة الكلام",
       "headphones": "يُقرأ عبر سماعات الرأس فقط. عبر مكبر الصوت تحصل على الترجمة النصية.",
-      "searchVoices": "البحث عن صوت"
+      "searchVoices": "البحث عن صوت",
+      "preview": "استماع تجريبي",
+      "previewVoice": "استماع تجريبي إلى {{voice}}",
+      "stopPreview": "إيقاف الاستماع التجريبي",
+      "previewConfirmTitle": "هل تريد الاستماع إلى هذا الصوت؟",
+      "previewEstimate": "حوالي {{amount}} لكل مرة (تقديري)."
     },
     "devices": {
       "microphone": "الميكروفون",

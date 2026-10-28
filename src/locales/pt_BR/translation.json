@@ -1750,7 +1750,12 @@
       "voice": "Voz que eu ouço",
       "speed": "Velocidade da fala",
       "headphones": "Lida apenas com fones. No alto-falante você tem legendas.",
-      "searchVoices": "Buscar vozes"
+      "searchVoices": "Buscar vozes",
+      "preview": "Ouvir",
+      "previewVoice": "Ouvir {{voice}}",
+      "stopPreview": "Parar",
+      "previewConfirmTitle": "Ouvir esta voz?",
+      "previewEstimate": "Cerca de {{amount}} por vez (estimativa)."
     },
     "devices": {
       "microphone": "Microfone",

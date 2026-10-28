@@ -1750,7 +1750,12 @@
       "voice": "我听到的声音",
       "speed": "语速",
       "headphones": "只在戴耳机时朗读；外放时只显示字幕。",
-      "searchVoices": "搜索声音"
+      "searchVoices": "搜索声音",
+      "preview": "试听",
+      "previewVoice": "试听 {{voice}}",
+      "stopPreview": "停止试听",
+      "previewConfirmTitle": "试听这个声音？",
+      "previewEstimate": "每次约 {{amount}}（估算）。"
     },
     "devices": {
       "microphone": "麦克风",

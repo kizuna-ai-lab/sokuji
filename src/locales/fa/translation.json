@@ -1750,7 +1750,12 @@
       "voice": "صدایی که می‌شنوم",
       "speed": "سرعت گفتار",
       "headphones": "فقط با هدفون خوانده می‌شود. با بلندگو فقط زیرنویس دارید.",
-      "searchVoices": "جستجوی صدا"
+      "searchVoices": "جستجوی صدا",
+      "preview": "پیش‌شنود",
+      "previewVoice": "پیش‌شنود {{voice}}",
+      "stopPreview": "توقف پیش‌شنود",
+      "previewConfirmTitle": "این صدا را پیش‌شنود می‌کنید؟",
+      "previewEstimate": "هر بار حدود {{amount}} (تخمینی)."
     },
     "devices": {
       "microphone": "میکروفون",

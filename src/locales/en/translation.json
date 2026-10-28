@@ -1750,7 +1750,12 @@
       "voice": "Voice I hear",
       "speed": "Speech speed",
       "headphones": "Spoken through headphones only. On the loudspeaker you get subtitles.",
-      "searchVoices": "Search voices"
+      "searchVoices": "Search voices",
+      "preview": "Preview",
+      "previewVoice": "Preview {{voice}}",
+      "stopPreview": "Stop the preview",
+      "previewConfirmTitle": "Preview this voice?",
+      "previewEstimate": "About {{amount}} each (an estimate)."
     },
     "devices": {
       "microphone": "Microphone",

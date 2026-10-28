@@ -1750,7 +1750,12 @@
       "voice": "Голос, который я слышу",
       "speed": "Скорость речи",
       "headphones": "Озвучивается только в наушниках. Через динамик — только субтитры.",
-      "searchVoices": "Поиск голосов"
+      "searchVoices": "Поиск голосов",
+      "preview": "Прослушать",
+      "previewVoice": "Прослушать {{voice}}",
+      "stopPreview": "Остановить прослушивание",
+      "previewConfirmTitle": "Прослушать этот голос?",
+      "previewEstimate": "Около {{amount}} за раз (оценка)."
     },
     "devices": {
       "microphone": "Микрофон",

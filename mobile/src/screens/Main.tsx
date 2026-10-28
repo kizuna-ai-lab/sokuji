@@ -190,7 +190,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
     return <Account token={token} email={email} locked={active} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} onSignInRequired={onSignInRequired} />;
   }
   if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} onOpen={setScreen} />;
-  if (screen === 'listen') return <Listen onBack={() => setScreen('settings')} />;
+  if (screen === 'listen') return <Listen token={token} onBack={() => setScreen('settings')} />;
   if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} />;
   if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
 

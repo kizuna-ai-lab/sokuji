@@ -1750,7 +1750,12 @@
       "voice": "నేను వినే గొంతు",
       "speed": "మాట్లాడే వేగం",
       "headphones": "హెడ్‌ఫోన్‌లతో మాత్రమే చదివి వినిపిస్తుంది. లౌడ్‌స్పీకర్‌లో సబ్‌టైటిల్స్ మాత్రమే.",
-      "searchVoices": "గొంతులను వెతకండి"
+      "searchVoices": "గొంతులను వెతకండి",
+      "preview": "విని చూడండి",
+      "previewVoice": "{{voice}} విని చూడండి",
+      "stopPreview": "వినడం ఆపండి",
+      "previewConfirmTitle": "ఈ గొంతును విని చూడాలా?",
+      "previewEstimate": "ప్రతిసారి సుమారు {{amount}} (అంచనా)."
     },
     "devices": {
       "microphone": "మైక్రోఫోన్",

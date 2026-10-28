@@ -1750,7 +1750,12 @@
       "voice": "הקול שאני שומע",
       "speed": "מהירות הדיבור",
       "headphones": "מוקרא רק באוזניות. ברמקול מתקבלות כתוביות.",
-      "searchVoices": "חיפוש קולות"
+      "searchVoices": "חיפוש קולות",
+      "preview": "האזנה",
+      "previewVoice": "האזנה ל־{{voice}}",
+      "stopPreview": "עצירת ההאזנה",
+      "previewConfirmTitle": "להאזין לקול הזה?",
+      "previewEstimate": "בערך {{amount}} לכל האזנה (הערכה)."
     },
     "devices": {
       "microphone": "מיקרופון",

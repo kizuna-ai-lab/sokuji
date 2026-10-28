@@ -1750,7 +1750,12 @@
       "voice": "Suara yang saya dengar",
       "speed": "Kecepatan bicara",
       "headphones": "Hanya dibacakan lewat headphone. Lewat pengeras suara Anda mendapat subtitel.",
-      "searchVoices": "Cari suara"
+      "searchVoices": "Cari suara",
+      "preview": "Dengarkan",
+      "previewVoice": "Dengarkan {{voice}}",
+      "stopPreview": "Hentikan",
+      "previewConfirmTitle": "Dengarkan suara ini?",
+      "previewEstimate": "Sekitar {{amount}} per kali (perkiraan)."
     },
     "devices": {
       "microphone": "Mikrofon",

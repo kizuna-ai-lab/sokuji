@@ -1750,7 +1750,12 @@
       "voice": "Ääni, jonka kuulen",
       "speed": "Puhenopeus",
       "headphones": "Luetaan vain kuulokkeisiin. Kaiuttimesta saat tekstityksen.",
-      "searchVoices": "Hae ääniä"
+      "searchVoices": "Hae ääniä",
+      "preview": "Kuuntele",
+      "previewVoice": "Kuuntele {{voice}}",
+      "stopPreview": "Lopeta kuuntelu",
+      "previewConfirmTitle": "Kuunnellaanko tätä ääntä?",
+      "previewEstimate": "Noin {{amount}} kerralta (arvio)."
     },
     "devices": {
       "microphone": "Mikrofoni",

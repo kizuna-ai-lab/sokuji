@@ -1750,7 +1750,12 @@
       "voice": "Głos, który słyszę",
       "speed": "Tempo mowy",
       "headphones": "Czytane tylko w słuchawkach. Na głośniku dostajesz napisy.",
-      "searchVoices": "Szukaj głosów"
+      "searchVoices": "Szukaj głosów",
+      "preview": "Odsłuchaj",
+      "previewVoice": "Odsłuchaj głos {{voice}}",
+      "stopPreview": "Zatrzymaj odsłuch",
+      "previewConfirmTitle": "Odsłuchać ten głos?",
+      "previewEstimate": "Około {{amount}} za każdym razem (szacunkowo)."
     },
     "devices": {
       "microphone": "Mikrofon",

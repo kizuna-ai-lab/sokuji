@@ -1750,7 +1750,12 @@
       "voice": "내가 듣는 목소리",
       "speed": "말하기 속도",
       "headphones": "헤드폰을 꼈을 때만 읽어 줍니다. 스피커에서는 자막만 표시됩니다.",
-      "searchVoices": "목소리 검색"
+      "searchVoices": "목소리 검색",
+      "preview": "미리 듣기",
+      "previewVoice": "{{voice}} 미리 듣기",
+      "stopPreview": "미리 듣기 중지",
+      "previewConfirmTitle": "이 목소리를 미리 들어 볼까요?",
+      "previewEstimate": "한 번에 약 {{amount}}(예상)."
     },
     "devices": {
       "microphone": "마이크",

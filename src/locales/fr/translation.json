@@ -1750,7 +1750,12 @@
       "voice": "Voix que j'entends",
       "speed": "Vitesse de parole",
       "headphones": "Lue seulement au casque. Sur le haut-parleur, vous avez les sous-titres.",
-      "searchVoices": "Rechercher une voix"
+      "searchVoices": "Rechercher une voix",
+      "preview": "Écouter",
+      "previewVoice": "Écouter {{voice}}",
+      "stopPreview": "Arrêter l'écoute",
+      "previewConfirmTitle": "Écouter cette voix ?",
+      "previewEstimate": "Environ {{amount}} à chaque fois (estimation)."
     },
     "devices": {
       "microphone": "Micro",

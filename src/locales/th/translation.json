@@ -1750,7 +1750,12 @@
       "voice": "เสียงที่ฉันได้ยิน",
       "speed": "ความเร็วในการพูด",
       "headphones": "อ่านออกเสียงเฉพาะเมื่อใช้หูฟัง ผ่านลำโพงจะมีเฉพาะคำบรรยาย",
-      "searchVoices": "ค้นหาเสียง"
+      "searchVoices": "ค้นหาเสียง",
+      "preview": "ฟังตัวอย่าง",
+      "previewVoice": "ฟังตัวอย่าง {{voice}}",
+      "stopPreview": "หยุดฟังตัวอย่าง",
+      "previewConfirmTitle": "ฟังตัวอย่างเสียงนี้ไหม",
+      "previewEstimate": "ประมาณ {{amount}} ต่อครั้ง (โดยประมาณ)"
     },
     "devices": {
       "microphone": "ไมโครโฟน",

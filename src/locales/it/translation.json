@@ -1750,7 +1750,12 @@
       "voice": "Voce che sento",
       "speed": "Velocità del parlato",
       "headphones": "Letta solo con le cuffie. Con l'altoparlante hai i sottotitoli.",
-      "searchVoices": "Cerca voci"
+      "searchVoices": "Cerca voci",
+      "preview": "Ascolta",
+      "previewVoice": "Ascolta {{voice}}",
+      "stopPreview": "Interrompi l'ascolto",
+      "previewConfirmTitle": "Ascoltare questa voce?",
+      "previewEstimate": "Circa {{amount}} ogni volta (stima)."
     },
     "devices": {
       "microphone": "Microfono",

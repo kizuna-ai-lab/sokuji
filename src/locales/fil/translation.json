@@ -1750,7 +1750,12 @@
       "voice": "Boses na naririnig ko",
       "speed": "Bilis ng pagsasalita",
       "headphones": "Binabasa lang kapag may headphones. Sa loudspeaker, subtitle ang makukuha mo.",
-      "searchVoices": "Maghanap ng boses"
+      "searchVoices": "Maghanap ng boses",
+      "preview": "Pakinggan",
+      "previewVoice": "Pakinggan si {{voice}}",
+      "stopPreview": "Ihinto ang pakikinig",
+      "previewConfirmTitle": "Pakinggan ang boses na ito?",
+      "previewEstimate": "Mga {{amount}} bawat isa (tantiya)."
     },
     "devices": {
       "microphone": "Mikropono",

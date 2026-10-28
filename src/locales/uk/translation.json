@@ -1750,7 +1750,12 @@
       "voice": "Голос, який я чую",
       "speed": "Швидкість мовлення",
       "headphones": "Озвучується лише в навушниках. Через динамік — лише субтитри.",
-      "searchVoices": "Пошук голосів"
+      "searchVoices": "Пошук голосів",
+      "preview": "Прослухати",
+      "previewVoice": "Прослухати {{voice}}",
+      "stopPreview": "Зупинити прослуховування",
+      "previewConfirmTitle": "Прослухати цей голос?",
+      "previewEstimate": "Близько {{amount}} за раз (оцінка)."
     },
     "devices": {
       "microphone": "Мікрофон",

@@ -1750,7 +1750,12 @@
       "voice": "聞く声",
       "speed": "読み上げ速度",
       "headphones": "読み上げはヘッドホン使用時のみ。スピーカーでは字幕だけになります。",
-      "searchVoices": "声を検索"
+      "searchVoices": "声を検索",
+      "preview": "試聴する",
+      "previewVoice": "{{voice}} を試聴",
+      "stopPreview": "試聴を止める",
+      "previewConfirmTitle": "この声を試聴しますか？",
+      "previewEstimate": "1 回あたり約 {{amount}}（概算）。"
     },
     "devices": {
       "microphone": "マイク",

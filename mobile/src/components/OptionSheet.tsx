@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PortalHost } from '@rn-primitives/portal';
 import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
@@ -17,11 +18,18 @@ export type SheetOption = { value: string; label: string; description?: string }
 const RowSeparator = () => <Separator />;
 
 /**
+ * Where a dialog opened from inside the sheet renders. The sheet is its own
+ * native window (on Android a dialog window), above the app's root portal, so
+ * a dialog drawn there would sit behind it.
+ */
+export const SHEET_PORTAL = 'option-sheet';
+
+/**
  * A long list to choose one from, in a sheet with a search field: too many
  * rows to scroll for one. The chosen one is checked. `onPick` reports the
  * choice; the caller closes the sheet (`visible`), as it does for `onClose`.
  */
-export function OptionSheet({ visible, title, options, value, filter, searchLabel, emptyLabel, onPick, onClose }: {
+export function OptionSheet({ visible, title, options, value, filter, searchLabel, emptyLabel, onPick, onClose, note, renderAction }: {
   visible: boolean;
   title: string;
   options: readonly SheetOption[];
@@ -32,6 +40,10 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
   emptyLabel: string;
   onPick: (value: string) => void;
   onClose: () => void;
+  /** A line under the search field (what an action costs, say). */
+  note?: React.ReactNode;
+  /** A button beside each row, a separate target from choosing the row (a voice's preview). */
+  renderAction?: (option: SheetOption) => React.ReactNode;
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -73,6 +85,7 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
+          {note ? <View className="pt-2">{note}</View> : null}
         </View>
         <FlatList
           ref={list}
@@ -89,7 +102,7 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
           ListEmptyComponent={<Text className="text-muted-foreground px-4 py-6">{emptyLabel}</Text>}
           renderItem={({ item }) => {
             const on = item.value === value;
-            return (
+            const row = (
               <Row
                 label={item.label}
                 value={item.description}
@@ -103,9 +116,17 @@ export function OptionSheet({ visible, title, options, value, filter, searchLabe
                 accessory={<Icon as={Check} size={20} className={cn('text-primary', !on && 'opacity-0')} />}
               />
             );
+            if (!renderAction) return row;
+            return (
+              <View className="flex-row items-center pe-1">
+                <View className="flex-1">{row}</View>
+                {renderAction(item)}
+              </View>
+            );
           }}
         />
       </SafeAreaView>
+      <PortalHost name={SHEET_PORTAL} />
     </Modal>
   );
 }

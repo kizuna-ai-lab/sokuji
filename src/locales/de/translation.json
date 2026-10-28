@@ -1750,7 +1750,12 @@
       "voice": "Stimme, die ich höre",
       "speed": "Sprechtempo",
       "headphones": "Nur über Kopfhörer gesprochen. Über den Lautsprecher gibt es Untertitel.",
-      "searchVoices": "Stimmen suchen"
+      "searchVoices": "Stimmen suchen",
+      "preview": "Probehören",
+      "previewVoice": "{{voice}} probehören",
+      "stopPreview": "Probehören beenden",
+      "previewConfirmTitle": "Diese Stimme probehören?",
+      "previewEstimate": "Etwa {{amount}} pro Mal (geschätzt)."
     },
     "devices": {
       "microphone": "Mikrofon",

@@ -19,6 +19,8 @@ export interface Settings {
   speed: number;
   /** R14: the microphone's device id, or null for the phone's own. */
   inputDeviceId: string | null;
+  /** The user has been told, and agreed, that a voice preview is charged to the balance. */
+  previewCostSeen: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   voice: null,
   speed: 1,
   inputDeviceId: null,
+  previewCostSeen: false,
 };
 
 export interface SettingsState {

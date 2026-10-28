@@ -1750,7 +1750,12 @@
       "voice": "जो आवाज़ मैं सुनता हूँ",
       "speed": "बोलने की गति",
       "headphones": "सिर्फ़ हेडफ़ोन में पढ़ा जाता है। लाउडस्पीकर पर आपको सबटाइटल मिलते हैं।",
-      "searchVoices": "आवाज़ें खोजें"
+      "searchVoices": "आवाज़ें खोजें",
+      "preview": "सुनकर देखें",
+      "previewVoice": "{{voice}} सुनकर देखें",
+      "stopPreview": "सुनना रोकें",
+      "previewConfirmTitle": "यह आवाज़ सुनकर देखें?",
+      "previewEstimate": "हर बार लगभग {{amount}} (अनुमानित)।"
     },
     "devices": {
       "microphone": "माइक्रोफ़ोन",

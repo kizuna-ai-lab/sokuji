@@ -1750,7 +1750,12 @@
       "voice": "Duyduğum ses",
       "speed": "Konuşma hızı",
       "headphones": "Yalnızca kulaklıkla seslendirilir. Hoparlörde altyazı alırsınız.",
-      "searchVoices": "Ses ara"
+      "searchVoices": "Ses ara",
+      "preview": "Dinle",
+      "previewVoice": "{{voice}} sesini dinle",
+      "stopPreview": "Dinlemeyi durdur",
+      "previewConfirmTitle": "Bu ses dinlensin mi?",
+      "previewEstimate": "Her seferinde yaklaşık {{amount}} (tahmini)."
     },
     "devices": {
       "microphone": "Mikrofon",

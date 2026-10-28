@@ -1750,7 +1750,12 @@
       "voice": "Rösten jag hör",
       "speed": "Talhastighet",
       "headphones": "Läses bara upp i hörlurar. I högtalaren får du undertexter.",
-      "searchVoices": "Sök röster"
+      "searchVoices": "Sök röster",
+      "preview": "Lyssna",
+      "previewVoice": "Lyssna på {{voice}}",
+      "stopPreview": "Sluta lyssna",
+      "previewConfirmTitle": "Lyssna på den här rösten?",
+      "previewEstimate": "Ungefär {{amount}} per gång (uppskattning)."
     },
     "devices": {
       "microphone": "Mikrofon",

@@ -1750,7 +1750,12 @@
       "voice": "যে কণ্ঠ আমি শুনি",
       "speed": "কথার গতি",
       "headphones": "শুধু হেডফোনে পড়ে শোনানো হয়। লাউডস্পিকারে আপনি সাবটাইটেল পাবেন।",
-      "searchVoices": "কণ্ঠ খুঁজুন"
+      "searchVoices": "কণ্ঠ খুঁজুন",
+      "preview": "শুনে দেখুন",
+      "previewVoice": "{{voice}} শুনে দেখুন",
+      "stopPreview": "শোনা থামান",
+      "previewConfirmTitle": "এই কণ্ঠটি শুনে দেখবেন?",
+      "previewEstimate": "প্রতিবার প্রায় {{amount}} (আনুমানিক)।"
     },
     "devices": {
       "microphone": "মাইক্রোফোন",

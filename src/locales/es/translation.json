@@ -1750,7 +1750,12 @@
       "voice": "Voz que oigo",
       "speed": "Velocidad de habla",
       "headphones": "Solo se lee con auriculares. Con el altavoz tienes subtítulos.",
-      "searchVoices": "Buscar voces"
+      "searchVoices": "Buscar voces",
+      "preview": "Escuchar",
+      "previewVoice": "Escuchar {{voice}}",
+      "stopPreview": "Detener",
+      "previewConfirmTitle": "¿Escuchar esta voz?",
+      "previewEstimate": "Unos {{amount}} cada vez (estimado)."
     },
     "devices": {
       "microphone": "Micrófono",

@@ -1750,7 +1750,12 @@
       "voice": "Stem die ik hoor",
       "speed": "Spreeksnelheid",
       "headphones": "Alleen via een koptelefoon. Via de luidspreker krijg je ondertitels.",
-      "searchVoices": "Stemmen zoeken"
+      "searchVoices": "Stemmen zoeken",
+      "preview": "Beluisteren",
+      "previewVoice": "{{voice}} beluisteren",
+      "stopPreview": "Stoppen met beluisteren",
+      "previewConfirmTitle": "Deze stem beluisteren?",
+      "previewEstimate": "Ongeveer {{amount}} per keer (schatting)."
     },
     "devices": {
       "microphone": "Microfoon",

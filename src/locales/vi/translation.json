@@ -1750,7 +1750,12 @@
       "voice": "Giọng tôi nghe",
       "speed": "Tốc độ nói",
       "headphones": "Chỉ đọc qua tai nghe. Qua loa ngoài bạn chỉ có phụ đề.",
-      "searchVoices": "Tìm giọng"
+      "searchVoices": "Tìm giọng",
+      "preview": "Nghe thử",
+      "previewVoice": "Nghe thử {{voice}}",
+      "stopPreview": "Dừng nghe thử",
+      "previewConfirmTitle": "Nghe thử giọng này?",
+      "previewEstimate": "Khoảng {{amount}} mỗi lần (ước tính)."
     },
     "devices": {
       "microphone": "Micrô",

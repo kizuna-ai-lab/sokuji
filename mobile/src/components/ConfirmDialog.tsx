@@ -18,7 +18,7 @@ import { refocus } from './focus';
  * "Are you sure?" before an action that cannot be undone. Cancel does nothing;
  * when it closes, the screen reader goes back to `returnTo`, what opened it.
  */
-export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel, cancelLabel, destructive, onConfirm, returnTo }: {
+export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel, cancelLabel, destructive, onConfirm, returnTo, portalHost }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -28,6 +28,8 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
   destructive?: boolean;
   onConfirm: () => void;
   returnTo?: React.RefObject<HostInstance | null>;
+  /** The portal to render in, when opened from inside a sheet (OptionSheet's SHEET_PORTAL). */
+  portalHost?: string;
 }) {
   return (
     <AlertDialog
@@ -37,7 +39,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
         if (!next && returnTo) refocus(returnTo);
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent portalHost={portalHost}>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description ? <AlertDialogDescription className="text-base">{description}</AlertDialogDescription> : null}
