@@ -26,6 +26,8 @@ export interface PreviewDeps {
   play(pcm: Int16Array, onEnded: () => void): () => void;
   wait(ms: number): Promise<void>;
   onChange(state: PreviewState): void;
+  /** One line per preview: new (charged) or from the cache, for testers counting requests. */
+  log?(line: string): void;
 }
 
 function reasonOf(err: unknown): PreviewFailure {
@@ -107,6 +109,7 @@ export function createVoicePreview(deps: PreviewDeps, cache: Map<string, Int16Ar
       const mine = current;
       const key = [voice, sample.language, speed, sample.text].join('|');
       let pcm = cache.get(key);
+      deps.log?.(`preview ${voice} ${sample.language} ${speed}: ${pcm ? 'from cache' : 'new (charged)'}`);
       if (!pcm) {
         set({ status: 'requesting', voice });
         const controller = new AbortController();

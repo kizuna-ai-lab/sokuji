@@ -159,3 +159,14 @@ describe('the clip cache lives as long as the app, not the screen', () => {
     expect(b.state()).toEqual({ status: 'playing', voice: 'Grace' });
   });
 });
+
+describe('the preview log', () => {
+  it('says whether a clip was new (charged) or came from the cache, so testers can count', async () => {
+    const lines: string[] = [];
+    const { deps } = setup({ log: (l: string) => lines.push(l) });
+    const preview = createVoicePreview(deps, new Map());
+    await preview.play('Grace', sample, 1);
+    await preview.play('Grace', sample, 1);
+    expect(lines).toEqual(['preview Grace ja 1: new (charged)', 'preview Grace ja 1: from cache']);
+  });
+});

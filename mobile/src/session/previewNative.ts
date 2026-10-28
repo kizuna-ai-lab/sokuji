@@ -106,6 +106,7 @@ export function createNativeVoicePreview(o: {
     },
     wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     onChange: o.onChange,
+    log: (line) => console.log(line),
   };
 
   const preview = createVoicePreview(deps);
