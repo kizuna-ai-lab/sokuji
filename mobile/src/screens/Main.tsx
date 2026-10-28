@@ -250,24 +250,27 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       ) : (
         <Subtitles entries={entries} bilingual={settings.bilingual} textSize={settings.textSize} />
       )}
-      <View className={cn('border-border gap-2 border-t px-4 py-3', !stacked && 'flex-row items-center')}>
+      {/* At the largest text sizes the bar gives the subtitles room: the pair is a plain line
+          rather than a bordered card and the spacing tightens; the text still follows the system size. */}
+      <View className={cn('border-border border-t px-4', stacked ? 'gap-1 py-2' : 'flex-row items-center gap-2 py-3')}>
         {/* Open in a session too: the settings say there why the languages are locked. */}
         <Button
-          variant="outline"
-          className={cn('justify-start', stacked ? 'self-stretch' : 'flex-1')}
+          variant={stacked ? 'ghost' : 'outline'}
+          size={stacked ? 'sm' : 'default'}
+          className={cn('justify-start', stacked ? 'self-stretch px-1' : 'flex-1')}
           accessibilityHint={t('mobile.main.changeLanguages')}
           onPress={() => setScreen('settings')}
         >
           {/* text-left is the start side: React Native swaps left and right in a right-to-left layout. */}
-          <Text className="shrink text-left">{pair}</Text>
+          <Text className={cn('shrink text-left', stacked && 'text-muted-foreground')}>{pair}</Text>
         </Button>
         {active ? (
-          <Button size="lg" variant="destructive" disabled={stopping} onPress={() => { void runStop(stop); }}>
+          <Button size={stacked ? 'default' : 'lg'} variant="destructive" disabled={stopping} onPress={() => { void runStop(stop); }}>
             <Icon as={Square} size={18} />
             <Text>{stopping ? t('mobile.main.status.stopping') : t('mobile.main.stop')}</Text>
           </Button>
         ) : (
-          <Button size="lg" onPress={() => { void start(); }}>
+          <Button size={stacked ? 'default' : 'lg'} onPress={() => { void start(); }}>
             <Icon as={Play} size={18} />
             <Text>{t('mobile.main.start')}</Text>
           </Button>
