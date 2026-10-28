@@ -84,7 +84,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd', gap: 8 },
   label: { fontSize: 16, flexShrink: 1 },
   rowLink: { fontSize: 16 },
-  disabled: { color: '#aaa' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, minWidth: 72, textAlign: 'right' },
   choices: { flexDirection: 'row', gap: 4 },
   choice: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, color: '#555' },
