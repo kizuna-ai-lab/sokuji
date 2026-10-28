@@ -33,7 +33,7 @@ export function createNativeVoicePreview(o: {
   // ends or is stopped, so no audio stream stays open while the screen just sits
   // there (Sophie: the player stayed "started" after a preview). One per clip, so
   // a stopped clip's late end cannot close the next clip's audio.
-  let playing: { stop(): void } | null = null;
+  let playing: { stop(): Promise<void> } | null = null;
 
   const deps: PreviewDeps = {
     // No cancel signal: a key request in flight is waited for (bounded by post's own timeout),
@@ -95,13 +95,12 @@ export function createNativeVoicePreview(o: {
     play(pcm, onEnded) {
       // A preview plays without a session: through whatever is connected, even with the ringer off.
       audio.AudioManager.setAudioSessionOptions({ iosCategory: 'playback', iosMode: 'default', iosOptions: [] });
+      // One clip at a time: a clip still held is let go before this one starts.
+      void playing?.stop();
+      playing = null;
       const context = new audio.AudioContext({ sampleRate: SAMPLE_RATE });
-      let closed = false;
-      const release = () => {
-        if (closed) return;
-        closed = true;
-        void context.close().catch(() => {});
-      };
+      let closing: Promise<void> | null = null;
+      const release = () => (closing ??= context.close().catch(() => {}));
       try {
         const samples = new Float32Array(pcm.length);
         for (let i = 0; i < pcm.length; i++) samples[i] = pcm[i] / 32768;
@@ -110,11 +109,6 @@ export function createNativeVoicePreview(o: {
         const source = context.createBufferSource();
         source.buffer = buffer;
         source.connect(context.destination);
-        source.onEnded = () => {
-          release();
-          onEnded();
-        };
-        source.start();
         const clip = {
           stop() {
             try {
@@ -122,16 +116,22 @@ export function createNativeVoicePreview(o: {
             } catch {
               // Already ended.
             }
-            release();
+            return release();
           },
         };
+        source.onEnded = () => {
+          void release();
+          if (playing === clip) playing = null;
+          onEnded();
+        };
+        source.start();
         playing = clip;
         return () => {
-          clip.stop();
+          void clip.stop();
           if (playing === clip) playing = null;
         };
       } catch (err) {
-        release();
+        void release();
         throw err;
       }
     },
@@ -159,8 +159,10 @@ export function createNativeVoicePreview(o: {
     /** Stops any preview and lets the audio go (leaving the screen). */
     async close() {
       preview.stop();
-      playing?.stop();
+      // Waits until the audio stream is closed, so whatever comes next starts clean.
+      const clip = playing;
       playing = null;
+      await clip?.stop();
     },
   };
 }
