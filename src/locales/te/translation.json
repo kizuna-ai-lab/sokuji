@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} విని చూడండి",
       "stopPreview": "వినడం ఆపండి",
       "previewConfirmTitle": "ఈ గొంతును విని చూడాలా?",
-      "previewEstimate": "ప్రతిసారి సుమారు {{amount}} (అంచనా)."
+      "previewEstimate": "కొత్తగా వినడానికి సుమారు {{amount}} (అంచనా); యాప్ తెరిచి ఉన్నంత వరకు అదే మళ్లీ వినడం ఉచితం."
     },
     "devices": {
       "microphone": "మైక్రోఫోన్",

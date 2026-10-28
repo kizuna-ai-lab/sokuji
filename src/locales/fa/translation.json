@@ -1755,7 +1755,7 @@
       "previewVoice": "پیش‌شنود {{voice}}",
       "stopPreview": "توقف پیش‌شنود",
       "previewConfirmTitle": "این صدا را پیش‌شنود می‌کنید؟",
-      "previewEstimate": "هر بار حدود {{amount}} (تخمینی)."
+      "previewEstimate": "هر پیش‌شنود تازه حدود {{amount}} هزینه دارد (تخمینی)؛ پخش دوبارهٔ همان نمونه تا وقتی برنامه باز است رایگان است."
     },
     "devices": {
       "microphone": "میکروفون",

@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} を試聴",
       "stopPreview": "試聴を止める",
       "previewConfirmTitle": "この声を試聴しますか？",
-      "previewEstimate": "1 回あたり約 {{amount}}（概算）。"
+      "previewEstimate": "新しい試聴は 1 回約 {{amount}}（概算）。アプリを開いている間、同じ試聴の再生は無料です。"
     },
     "devices": {
       "microphone": "マイク",

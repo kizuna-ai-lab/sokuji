@@ -1755,7 +1755,7 @@
       "previewVoice": "استماع تجريبي إلى {{voice}}",
       "stopPreview": "إيقاف الاستماع التجريبي",
       "previewConfirmTitle": "هل تريد الاستماع إلى هذا الصوت؟",
-      "previewEstimate": "حوالي {{amount}} لكل مرة (تقديري)."
+      "previewEstimate": "تكلف المعاينة الجديدة حوالي {{amount}} (تقديري)؛ وإعادة تشغيل المعاينة نفسها أثناء فتح التطبيق مجانية."
     },
     "devices": {
       "microphone": "الميكروفون",

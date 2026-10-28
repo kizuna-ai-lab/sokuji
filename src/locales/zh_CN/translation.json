@@ -1755,7 +1755,7 @@
       "previewVoice": "试听 {{voice}}",
       "stopPreview": "停止试听",
       "previewConfirmTitle": "试听这个声音？",
-      "previewEstimate": "每次约 {{amount}}（估算）。"
+      "previewEstimate": "生成新试听约 {{amount}}（估算）；本次应用运行期间，重播相同试听不重复扣费。"
     },
     "devices": {
       "microphone": "麦克风",

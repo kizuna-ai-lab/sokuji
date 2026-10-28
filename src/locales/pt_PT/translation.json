@@ -1755,7 +1755,7 @@
       "previewVoice": "Ouvir {{voice}}",
       "stopPreview": "Parar",
       "previewConfirmTitle": "Ouvir esta voz?",
-      "previewEstimate": "Cerca de {{amount}} de cada vez (estimativa)."
+      "previewEstimate": "Uma nova pré-audição custa cerca de {{amount}} (estimativa); voltar a ouvir a mesma enquanto a app está aberta é grátis."
     },
     "devices": {
       "microphone": "Microfone",

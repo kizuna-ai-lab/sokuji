@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} শুনে দেখুন",
       "stopPreview": "শোনা থামান",
       "previewConfirmTitle": "এই কণ্ঠটি শুনে দেখবেন?",
-      "previewEstimate": "প্রতিবার প্রায় {{amount}} (আনুমানিক)।"
+      "previewEstimate": "নতুন করে শুনতে প্রায় {{amount}} লাগে (আনুমানিক); অ্যাপ খোলা থাকাকালীন একই নমুনা আবার শোনা বিনামূল্যে।"
     },
     "devices": {
       "microphone": "মাইক্রোফোন",

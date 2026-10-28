@@ -1755,7 +1755,7 @@
       "previewVoice": "האזנה ל־{{voice}}",
       "stopPreview": "עצירת ההאזנה",
       "previewConfirmTitle": "להאזין לקול הזה?",
-      "previewEstimate": "בערך {{amount}} לכל האזנה (הערכה)."
+      "previewEstimate": "האזנה חדשה עולה בערך {{amount}} (הערכה); השמעה חוזרת של אותה האזנה כל עוד האפליקציה פתוחה היא ללא עלות."
     },
     "devices": {
       "microphone": "מיקרופון",

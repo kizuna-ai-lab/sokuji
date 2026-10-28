@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} probehören",
       "stopPreview": "Probehören beenden",
       "previewConfirmTitle": "Diese Stimme probehören?",
-      "previewEstimate": "Etwa {{amount}} pro Mal (geschätzt)."
+      "previewEstimate": "Ein neues Probehören kostet etwa {{amount}} (geschätzt); dasselbe noch einmal abzuspielen, solange die App offen ist, kostet nichts."
     },
     "devices": {
       "microphone": "Mikrofon",

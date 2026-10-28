@@ -1755,7 +1755,7 @@
       "previewVoice": "Lyssna på {{voice}}",
       "stopPreview": "Sluta lyssna",
       "previewConfirmTitle": "Lyssna på den här rösten?",
-      "previewEstimate": "Ungefär {{amount}} per gång (uppskattning)."
+      "previewEstimate": "En ny lyssning kostar ungefär {{amount}} (uppskattning); att spela samma igen medan appen är öppen är gratis."
     },
     "devices": {
       "microphone": "Mikrofon",

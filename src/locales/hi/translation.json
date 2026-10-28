@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} सुनकर देखें",
       "stopPreview": "सुनना रोकें",
       "previewConfirmTitle": "यह आवाज़ सुनकर देखें?",
-      "previewEstimate": "हर बार लगभग {{amount}} (अनुमानित)।"
+      "previewEstimate": "नया नमूना सुनने पर लगभग {{amount}} लगता है (अनुमानित); ऐप खुला रहते वही नमूना दोबारा सुनना मुफ़्त है।"
     },
     "devices": {
       "microphone": "माइक्रोफ़ोन",

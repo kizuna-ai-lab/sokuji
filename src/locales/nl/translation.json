@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} beluisteren",
       "stopPreview": "Stoppen met beluisteren",
       "previewConfirmTitle": "Deze stem beluisteren?",
-      "previewEstimate": "Ongeveer {{amount}} per keer (schatting)."
+      "previewEstimate": "Een nieuwe beluistering kost ongeveer {{amount}} (schatting); dezelfde opnieuw afspelen terwijl de app open is, is gratis."
     },
     "devices": {
       "microphone": "Microfoon",

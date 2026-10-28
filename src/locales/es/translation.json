@@ -1755,7 +1755,7 @@
       "previewVoice": "Escuchar {{voice}}",
       "stopPreview": "Detener",
       "previewConfirmTitle": "¿Escuchar esta voz?",
-      "previewEstimate": "Unos {{amount}} cada vez (estimado)."
+      "previewEstimate": "Una escucha nueva cuesta unos {{amount}} (estimado); volver a escuchar la misma mientras la app está abierta es gratis."
     },
     "devices": {
       "microphone": "Micrófono",

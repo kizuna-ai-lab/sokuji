@@ -1755,7 +1755,7 @@
       "previewVoice": "Nghe thử {{voice}}",
       "stopPreview": "Dừng nghe thử",
       "previewConfirmTitle": "Nghe thử giọng này?",
-      "previewEstimate": "Khoảng {{amount}} mỗi lần (ước tính)."
+      "previewEstimate": "Mỗi lần nghe thử mới tốn khoảng {{amount}} (ước tính); phát lại cùng mẫu khi ứng dụng còn mở thì miễn phí."
     },
     "devices": {
       "microphone": "Micrô",

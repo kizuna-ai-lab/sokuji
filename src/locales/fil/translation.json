@@ -1755,7 +1755,7 @@
       "previewVoice": "Pakinggan si {{voice}}",
       "stopPreview": "Ihinto ang pakikinig",
       "previewConfirmTitle": "Pakinggan ang boses na ito?",
-      "previewEstimate": "Mga {{amount}} bawat isa (tantiya)."
+      "previewEstimate": "Mga {{amount}} ang bawat bagong pakinig (tantiya); libre ang pakikinig ulit sa parehong sample habang bukas ang app."
     },
     "devices": {
       "microphone": "Mikropono",

@@ -1755,7 +1755,7 @@
       "previewVoice": "Dengarkan {{voice}}",
       "stopPreview": "Hentikan",
       "previewConfirmTitle": "Dengarkan suara ini?",
-      "previewEstimate": "Sekitar {{amount}} per kali (perkiraan)."
+      "previewEstimate": "Pratinjau baru sekitar {{amount}} (perkiraan); memutar ulang pratinjau yang sama selama aplikasi terbuka gratis."
     },
     "devices": {
       "microphone": "Mikrofon",

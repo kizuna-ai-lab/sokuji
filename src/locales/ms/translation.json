@@ -1755,7 +1755,7 @@
       "previewVoice": "Dengar {{voice}}",
       "stopPreview": "Hentikan",
       "previewConfirmTitle": "Dengar suara ini?",
-      "previewEstimate": "Kira-kira {{amount}} setiap kali (anggaran)."
+      "previewEstimate": "Pratonton baharu berharga kira-kira {{amount}} (anggaran); memainkan semula pratonton yang sama semasa apl dibuka adalah percuma."
     },
     "devices": {
       "microphone": "Mikrofon",

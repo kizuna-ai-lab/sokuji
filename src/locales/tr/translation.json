@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} sesini dinle",
       "stopPreview": "Dinlemeyi durdur",
       "previewConfirmTitle": "Bu ses dinlensin mi?",
-      "previewEstimate": "Her seferinde yaklaşık {{amount}} (tahmini)."
+      "previewEstimate": "Yeni bir dinleme yaklaşık {{amount}} tutar (tahmini); uygulama açıkken aynısını yeniden dinlemek ücretsizdir."
     },
     "devices": {
       "microphone": "Mikrofon",

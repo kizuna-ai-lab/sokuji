@@ -1755,7 +1755,7 @@
       "previewVoice": "Preview {{voice}}",
       "stopPreview": "Stop the preview",
       "previewConfirmTitle": "Preview this voice?",
-      "previewEstimate": "About {{amount}} each (an estimate)."
+      "previewEstimate": "A new preview costs about {{amount}} (an estimate); playing the same preview again while the app is open is free."
     },
     "devices": {
       "microphone": "Microphone",

@@ -1755,7 +1755,7 @@
       "previewVoice": "{{voice}} 미리 듣기",
       "stopPreview": "미리 듣기 중지",
       "previewConfirmTitle": "이 목소리를 미리 들어 볼까요?",
-      "previewEstimate": "한 번에 약 {{amount}}(예상)."
+      "previewEstimate": "새 미리 듣기는 약 {{amount}}입니다(예상). 앱이 열려 있는 동안 같은 미리 듣기를 다시 재생하는 것은 무료입니다."
     },
     "devices": {
       "microphone": "마이크",
