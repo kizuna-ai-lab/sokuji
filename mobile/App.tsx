@@ -54,7 +54,10 @@ export default function App() {
             />
           )}
         </View>
-        <StatusBar style="auto" />
+        {/* Dark icons on the app's light background. "auto" follows the system scheme, so a
+            phone in dark mode drew white time and icons over our white bar; this follows the
+            app's own scheme once it has a dark palette. */}
+        <StatusBar style="dark" />
       </SafeAreaView>
     </SafeAreaProvider>
   );
