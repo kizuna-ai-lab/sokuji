@@ -1,4 +1,4 @@
-import type { HostInstance } from 'react-native';
+import { ScrollView, useWindowDimensions, type HostInstance } from 'react-native';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
   onConfirm: () => void;
   returnTo?: React.RefObject<HostInstance | null>;
 }) {
+  const { height } = useWindowDimensions();
   return (
     <AlertDialog
       open={open}
@@ -38,10 +39,13 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
       }}
     >
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description ? <AlertDialogDescription className="text-base">{description}</AlertDialogDescription> : null}
-        </AlertDialogHeader>
+        {/* At the largest text sizes the words scroll and the buttons stay on screen. */}
+        <ScrollView style={{ maxHeight: height * 0.5 }} bounces={false}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{title}</AlertDialogTitle>
+            {description ? <AlertDialogDescription className="text-base">{description}</AlertDialogDescription> : null}
+          </AlertDialogHeader>
+        </ScrollView>
         <AlertDialogFooter>
           <AlertDialogCancel>
             <Text>{cancelLabel}</Text>
