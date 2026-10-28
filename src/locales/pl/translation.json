@@ -1651,7 +1651,9 @@
       "later": "Później: zweryfikuj z ekranu konta",
       "registerNote": "Otrzymasz 6-cyfrowy kod e-mailem; po jego wpisaniu konto zostanie zweryfikowane, a środki próbne dodane.",
       "sendingCode": "Wysyłanie 6-cyfrowego kodu na {{email}}…",
-      "codeNotSent": "Nie udało się wysłać kodu na {{email}}. Konto zostało utworzone: dotknij Wyślij ponownie."
+      "codeNotSent": "Nie udało się wysłać kodu na {{email}}. Konto zostało utworzone: dotknij Wyślij ponownie.",
+      "showPassword": "Pokaż hasło",
+      "hidePassword": "Ukryj hasło"
     },
     "account": {
       "verify": "Zweryfikuj e-mail, aby otrzymać środki próbne",

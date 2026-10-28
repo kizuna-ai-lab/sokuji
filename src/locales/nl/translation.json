@@ -1651,7 +1651,9 @@
       "later": "Later: verifieer vanuit het accountscherm",
       "registerNote": "Je krijgt een 6-cijferige code per e-mail; na invoer is het account geverifieerd en volgt het proeftegoed.",
       "sendingCode": "Een 6-cijferige code wordt naar {{email}} gestuurd…",
-      "codeNotSent": "De code kon niet naar {{email}} worden gestuurd. Je account is aangemaakt: tik op Opnieuw sturen."
+      "codeNotSent": "De code kon niet naar {{email}} worden gestuurd. Je account is aangemaakt: tik op Opnieuw sturen.",
+      "showPassword": "Wachtwoord tonen",
+      "hidePassword": "Wachtwoord verbergen"
     },
     "account": {
       "verify": "Verifieer je e-mail om het proeftegoed te ontvangen",

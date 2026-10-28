@@ -1651,7 +1651,9 @@
       "later": "Mais tarde: verifique no ecrã da conta",
       "registerNote": "Receberá um código de 6 dígitos por e-mail; ao introduzi-lo, a conta fica verificada e o crédito de teste é adicionado.",
       "sendingCode": "A enviar um código de 6 dígitos para {{email}}…",
-      "codeNotSent": "Não foi possível enviar o código para {{email}}. A sua conta já foi criada: toque em Enviar novamente."
+      "codeNotSent": "Não foi possível enviar o código para {{email}}. A sua conta já foi criada: toque em Enviar novamente.",
+      "showPassword": "Mostrar palavra-passe",
+      "hidePassword": "Ocultar palavra-passe"
     },
     "account": {
       "verify": "Verifique o seu e-mail para receber o crédito de teste",

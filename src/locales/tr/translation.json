@@ -1651,7 +1651,9 @@
       "later": "Sonra: hesap ekranından doğrulayın",
       "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır ve deneme kredisi eklenir.",
       "sendingCode": "{{email}} adresine 6 haneli kod gönderiliyor…",
-      "codeNotSent": "Kod {{email}} adresine gönderilemedi. Hesabınız oluşturuldu: Yeniden gönder'e dokunun."
+      "codeNotSent": "Kod {{email}} adresine gönderilemedi. Hesabınız oluşturuldu: Yeniden gönder'e dokunun.",
+      "showPassword": "Şifreyi göster",
+      "hidePassword": "Şifreyi gizle"
     },
     "account": {
       "verify": "Deneme kredisini almak için e-postanızı doğrulayın",
