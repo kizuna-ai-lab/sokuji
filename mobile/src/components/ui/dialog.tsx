@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@rn-primitives/dialog';
 import { X } from 'lucide-react-native';
 import * as React from 'react';
-import { Platform, Text, View, type GestureResponderEvent, type ViewProps } from 'react-native';
+import { Platform, View, type GestureResponderEvent, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
@@ -65,10 +65,13 @@ function DialogOverlay({
 function DialogContent({
   className,
   portalHost,
+  closeLabel = 'Close',
   children,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   portalHost?: string;
+  /** Sokuji: what a screen reader calls the close button, in the interface language. */
+  closeLabel?: string;
 }) {
   return (
     <DialogPortal hostName={portalHost}>
@@ -83,19 +86,21 @@ function DialogContent({
           )}
           {...props}>
           <>{children}</>
+          {/* Sokuji: a 48-unit button with a translated label, instead of a 16-unit icon with hitSlop and an English sr-only text. */}
           <DialogPrimitive.Close
+            accessibilityLabel={closeLabel}
+            role="button"
             className={cn(
-              'absolute right-4 top-4 rounded opacity-70 active:opacity-100',
+              'absolute right-2 top-2 min-h-12 min-w-12 items-center justify-center rounded opacity-70 active:opacity-100',
               Platform.select({
                 web: 'ring-offset-background focus:ring-ring data-[state=open]:bg-accent transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2',
               })
             )}
-            hitSlop={12}>
+          >
             <Icon
               as={X}
-              className={cn('text-accent-foreground web:pointer-events-none size-4 shrink-0')}
+              className={cn('text-accent-foreground web:pointer-events-none size-5 shrink-0')}
             />
-            <Text className="sr-only">Close</Text>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </DialogOverlay>

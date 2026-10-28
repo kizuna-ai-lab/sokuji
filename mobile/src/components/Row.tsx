@@ -33,12 +33,13 @@ export function Row({ label, value, disabledReason, accessory, chevron, icon, de
   const reason = disabled && disabledReason ? disabledReason : undefined;
   return (
     <Pressable
-      role="button"
+      // A row that does something is a button; one that only shows a value is read as text.
+      role={props.onPress ? 'button' : undefined}
       {...props}
       disabled={disabled}
       accessibilityState={{ ...accessibilityState, disabled: !!disabled }}
       accessibilityHint={reason ?? accessibilityHint}
-      className={cn('min-h-14 flex-row items-center gap-3 px-4 py-3', !disabled && 'active:bg-accent', className)}
+      className={cn('min-h-14 flex-row items-center gap-3 px-4 py-3', !disabled && props.onPress && 'active:bg-accent', className)}
     >
       {icon ? <Icon as={icon} size={20} className={cn('text-muted-foreground', disabled && 'opacity-60')} /> : null}
       <View className="flex-1 gap-0.5">

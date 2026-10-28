@@ -2,8 +2,9 @@
 
 React Native Reusables components, copied by `npx @react-native-reusables/cli@0.7.1 add --styling-library nativewind`
 on 2026-10-28 (the CLI reports itself as 1.0.0): alert-dialog, button, dialog, dropdown-menu, icon, input, label,
-native-only-animated-view, radio-group, separator, switch, text. They are this project's source now; when taking a
-newer version from the registry, re-apply the changes below (each is marked `Sokuji:` in the file).
+native-only-animated-view, separator, switch, text. They are this project's source now; when taking a newer version
+from the registry, re-apply the changes below (each is marked `Sokuji:` in the file). radio-group was added too and
+removed again: the option lists draw their own checked rows (src/components/ChoiceList.tsx).
 
 ## Local changes
 
@@ -17,5 +18,7 @@ Android's touch-size guidance), so fixed heights become minimums with padding.
 - `input.tsx`: `min-h-12 py-2` instead of `h-10 sm:h-9`, and no `leading-5`, which clipped large text.
 - `switch.tsx`: 28×48 with a 24-unit thumb (was the web's 18×32).
 - `dropdown-menu.tsx`: items are `min-h-12` with `text-base`; the menu is at least `12rem` wide.
+- `dialog.tsx`: the close button is 48×48 with a translated `closeLabel` (was a 16-unit icon with `hitSlop` 12 and an
+  English sr-only "Close").
 
 Project composites built on these (rows, headers, option lists, the language picker) live in `src/components/`.
