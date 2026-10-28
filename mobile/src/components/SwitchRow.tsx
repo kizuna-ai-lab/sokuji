@@ -25,8 +25,18 @@ export function SwitchRow({ label, value, checked, onCheckedChange, disabled, di
       disabledReason={disabledReason}
       onPress={() => onCheckedChange(!checked)}
       accessory={
-        <View style={{ pointerEvents: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+        // The switch is a picture of the row's state, not a second stop: hidden on its own too,
+        // and the wrapper kept (not flattened away), since TalkBack still stopped on it and read
+        // only "on" (Sophie, Android).
+        <View collapsable={false} style={{ pointerEvents: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Switch
+            checked={checked}
+            onCheckedChange={onCheckedChange}
+            disabled={disabled}
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+            accessibilityElementsHidden
+          />
         </View>
       }
     />
