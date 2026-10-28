@@ -6,7 +6,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { PortalHost } from '@rn-primitives/portal';
 import { useColorScheme } from 'nativewind';
 import { Spinner } from './src/components/Spinner';
-import { accountEmail, accountId, sessionToken, signOut } from './src/auth/client';
+import { currentAccount, signOut } from './src/auth/client';
 import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
 import { applyAppearance } from './src/screens/Settings';
@@ -24,10 +24,11 @@ export default function App() {
 
   async function refresh() {
     try {
-      const token = await sessionToken();
-      setEmail(token ? (await accountEmail()) ?? '' : '');
-      setAccount(token ? (await accountId()) ?? '' : '');
-      setToken(token);
+      // One session read: a token without an account id counts as signed out.
+      const current = await currentAccount();
+      setEmail(current?.email ?? '');
+      setAccount(current?.id ?? '');
+      setToken(current?.token ?? null);
     } catch {
       setToken(null);
     }

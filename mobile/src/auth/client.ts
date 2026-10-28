@@ -52,20 +52,16 @@ export async function emailVerified(): Promise<boolean> {
   return data?.user.emailVerified ?? false;
 }
 
-export async function accountEmail(): Promise<string | null> {
+/**
+ * The signed-in account in one session read: its token, its user id (what the
+ * history on this phone is kept under) and its email. Null when signed out, or
+ * when the session lacks either (no history may be kept under no account).
+ */
+export async function currentAccount(): Promise<{ token: string; id: string; email: string } | null> {
   const data = unwrap(await authClient.getSession());
-  return data?.user.email ?? null;
-}
-
-/** The signed-in account's user id: what the history on this phone is kept under. */
-export async function accountId(): Promise<string | null> {
-  const data = unwrap(await authClient.getSession());
-  return data?.user.id ?? null;
-}
-
-export async function sessionToken(): Promise<string | null> {
-  const data = unwrap(await authClient.getSession());
-  return data?.session.token ?? null;
+  const token = data?.session.token;
+  const id = data?.user.id;
+  return token && id ? { token, id, email: data.user.email ?? '' } : null;
 }
 
 export async function signOut(): Promise<void> {
