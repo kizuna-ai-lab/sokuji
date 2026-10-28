@@ -164,20 +164,26 @@ export function createVoicePreview(deps: PreviewDeps, shared: PreviewShared = ap
         const previous = shared.inflight;
         const fetching = (async () => {
           await previous;
+          // The request ahead may have paid for this very clip (Adolf: leave while it
+          // settles, come back, preview the same voice): checked again after the wait.
+          const ahead = cache.get(key);
+          if (ahead) return { clip: ahead, fresh: false };
           if (mine !== current) throw new Error('aborted');
-          return clip(voice, sample, speed, controller.signal);
+          const fresh = await clip(voice, sample, speed, controller.signal);
+          // Kept before the queue moves on, and even if the user moved on meanwhile: it was paid.
+          cache.set(key, fresh);
+          return { clip: fresh, fresh: true };
         })();
         shared.inflight = fetching.catch(() => {});
         try {
-          pcm = await fetching;
+          const got = await fetching;
+          pcm = got.clip;
+          deps.log?.(`${tag}: ${got.fresh ? 'received' : 'from cache (after waiting)'}`);
         } catch (err) {
           deps.log?.(`${tag}: ${isStop(err) ? 'stopped' : `failed (${reasonOf(err)})`}`);
           if (mine === current) set({ status: 'failed', voice, reason: reasonOf(err) });
           return;
         }
-        deps.log?.(`${tag}: received`);
-        // Paid for even if the user moved on meanwhile: kept, so hearing it later costs nothing.
-        cache.set(key, pcm);
         if (mine !== current) return;
         abort = null;
       }

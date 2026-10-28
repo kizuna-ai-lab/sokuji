@@ -257,3 +257,24 @@ describe('CodeRabbit review, PR #665', () => {
     expect(order).toEqual(['mint', 'done (fails)', 'done', 'mint', 'done']);
   });
 });
+
+describe('the cache is checked again after waiting (Adolf)', () => {
+  it('a same preview queued behind one still settling plays its clip instead of asking again', async () => {
+    const shared = newPreviewShared();
+    let settled!: () => void;
+    const left = setup({ done: vi.fn(() => new Promise<void>((r) => { settled = r; })) });
+    const back = setup();
+    const a = createVoicePreview(left.deps, shared);
+    const first = a.play('Grace', sample, 1);
+    await vi.waitFor(() => expect(left.deps.done).toHaveBeenCalled()); // the clip is in; done is out
+    a.stop(); // the screen is left
+    const b = createVoicePreview(back.deps, shared);
+    const second = b.play('Grace', sample, 1);
+    settled();
+    await Promise.all([first, second]);
+    expect(left.deps.mintKey).toHaveBeenCalledTimes(1);
+    expect(back.deps.mintKey).not.toHaveBeenCalled();
+    expect(back.deps.synthesize).not.toHaveBeenCalled();
+    expect(b.state()).toEqual({ status: 'playing', voice: 'Grace' });
+  });
+});
