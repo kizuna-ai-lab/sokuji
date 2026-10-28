@@ -122,7 +122,10 @@ export default function SignIn({
       hint={newPassword ? t('mobile.signIn.passwordHint') : undefined}
       secureTextEntry
       autoComplete={newPassword ? 'new-password' : 'password'}
-      textContentType={newPassword ? 'newPassword' : 'password'}
+      // 'password' for a new one too: with 'newPassword', iOS fills an Automatic Strong
+      // Password the app never receives (React Native gets no change), so the field could
+      // not be edited and Set new password stayed disabled (Sophie, iOS simulator).
+      textContentType="password"
       editable={!busy}
       value={password}
       onChangeText={setPassword}
