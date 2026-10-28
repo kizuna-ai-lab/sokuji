@@ -42,6 +42,10 @@ describe('authErrorKey', () => {
     expect(authErrorKey(new AuthError('OTP expired', 'OTP_EXPIRED', 400))).toBe('mobile.signIn.wrongCode');
   });
 
+  it('maps the backend\'s rate limit on sending codes', () => {
+    expect(authErrorKey(new AuthError('Too many requests', undefined, 429))).toBe('mobile.signIn.tooManyRequests');
+  });
+
   it('has no line for anything else', () => {
     expect(authErrorKey(new AuthError('rate limited', 'TOO_MANY_ATTEMPTS', 429))).toBeNull();
     expect(authErrorKey(new Error('network request failed'))).toBeNull();

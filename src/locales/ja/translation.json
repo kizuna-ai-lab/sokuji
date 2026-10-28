@@ -1641,6 +1641,7 @@
       "passwordHint": "8 文字以上",
       "wrongPassword": "メールアドレスまたはパスワードが違います",
       "wrongCode": "コードが違うか、期限切れです",
+      "tooManyRequests": "コードの送信回数が多すぎます。しばらく待ってからもう一度お試しください。",
       "verifyTitle": "メールアドレスの確認",
       "resetTitle": "パスワードの再設定",
       "sendCode": "コードを送信",

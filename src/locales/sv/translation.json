@@ -1641,6 +1641,7 @@
       "passwordHint": "minst 8 tecken",
       "wrongPassword": "Fel e-post eller lösenord",
       "wrongCode": "Koden är fel eller har gått ut",
+      "tooManyRequests": "För många kodförfrågningar. Vänta en stund och försök igen.",
       "verifyTitle": "Verifiera din e-post",
       "resetTitle": "Återställ lösenordet",
       "sendCode": "Skicka kod",

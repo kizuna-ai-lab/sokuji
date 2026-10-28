@@ -1641,6 +1641,7 @@
       "passwordHint": "ít nhất 8 ký tự",
       "wrongPassword": "Email hoặc mật khẩu không đúng",
       "wrongCode": "Mã không đúng hoặc đã hết hạn",
+      "tooManyRequests": "Yêu cầu mã quá nhiều. Vui lòng đợi một lát rồi thử lại.",
       "verifyTitle": "Xác minh email của bạn",
       "resetTitle": "Đặt lại mật khẩu",
       "sendCode": "Gửi mã",

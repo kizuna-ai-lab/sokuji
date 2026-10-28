@@ -1641,6 +1641,7 @@
       "passwordHint": "minimal 8 karakter",
       "wrongPassword": "Email atau kata sandi salah",
       "wrongCode": "Kode salah atau sudah kedaluwarsa",
+      "tooManyRequests": "Terlalu banyak permintaan kode. Tunggu sebentar lalu coba lagi.",
       "verifyTitle": "Verifikasi email Anda",
       "resetTitle": "Atur ulang kata sandi",
       "sendCode": "Kirim kode",

@@ -1641,6 +1641,7 @@
       "passwordHint": "hindi bababa sa 8 character",
       "wrongPassword": "Mali ang email o password",
       "wrongCode": "Mali ang code o expired na",
+      "tooManyRequests": "Masyadong maraming kahilingan ng code. Maghintay sandali at subukang muli.",
       "verifyTitle": "I-verify ang iyong email",
       "resetTitle": "I-reset ang password",
       "sendCode": "Ipadala ang code",

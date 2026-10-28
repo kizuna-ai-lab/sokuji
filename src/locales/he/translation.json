@@ -1641,6 +1641,7 @@
       "passwordHint": "לפחות 8 תווים",
       "wrongPassword": "אימייל או סיסמה שגויים",
       "wrongCode": "הקוד שגוי או שפג תוקפו",
+      "tooManyRequests": "יותר מדי בקשות לקוד. המתינו מעט ונסו שוב.",
       "verifyTitle": "אימות האימייל",
       "resetTitle": "איפוס סיסמה",
       "sendCode": "שליחת קוד",

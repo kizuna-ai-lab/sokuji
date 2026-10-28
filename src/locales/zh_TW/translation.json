@@ -1641,6 +1641,7 @@
       "passwordHint": "至少 8 個字元",
       "wrongPassword": "電子郵件或密碼不正確",
       "wrongCode": "驗證碼不正確或已過期",
+      "tooManyRequests": "驗證碼請求過於頻繁，請稍後再試。",
       "verifyTitle": "驗證電子郵件",
       "resetTitle": "重設密碼",
       "sendCode": "寄送驗證碼",

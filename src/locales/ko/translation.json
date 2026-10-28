@@ -1641,6 +1641,7 @@
       "passwordHint": "8자 이상",
       "wrongPassword": "이메일 또는 비밀번호가 틀렸습니다",
       "wrongCode": "코드가 틀렸거나 만료되었습니다",
+      "tooManyRequests": "코드 요청이 너무 많습니다. 잠시 후 다시 시도하세요.",
       "verifyTitle": "이메일 확인",
       "resetTitle": "비밀번호 재설정",
       "sendCode": "코드 보내기",

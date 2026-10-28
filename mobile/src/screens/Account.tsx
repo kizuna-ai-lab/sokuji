@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { deleteAccount, emailVerified, requestPasswordReset, sendVerificationCode } from '../auth/client';
+import { authErrorKey } from '../auth/unwrap';
 import SignIn from '../auth/SignIn';
 import { fetchFallbackUsdPerHour, fetchUsagePerHour, fetchWallet, type Wallet } from '../account/wallet';
 import { formatHours, hoursLeft } from '../account/hours';
@@ -36,10 +37,13 @@ export default function Account({
   const [verified, setVerified] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
+  const [busy, setBusy] = useState<'verify' | 'password' | null>(null);
   // A lost session goes to the sign-in screen; anything else is shown.
   const show = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
-    if (message === 'sign_in_required') onSignInRequired();
+    const key = authErrorKey(err);
+    if (key) setError(t(key));
+    else if (message === 'sign_in_required') onSignInRequired();
     else {
       console.warn(`account: ${message}`);
       setError(message);
@@ -69,26 +73,21 @@ export default function Account({
     void load();
   }, [load]);
 
-  async function startVerify() {
+  // Verify the address, or set / change the password: a code to the address
+  // first (a network round trip and an email), then the code screen. One
+  // request at a time, and the row says so: a second tap while the first is
+  // on its way would send a second code and run into the backend's cap.
+  async function sendCodeThen(kind: 'verify' | 'password') {
+    if (busy) return;
+    setBusy(kind);
     setError('');
     try {
-      await sendVerificationCode(email);
-      setView('verify');
+      await (kind === 'verify' ? sendVerificationCode(email) : requestPasswordReset(email));
+      setView(kind);
     } catch (err) {
       show(err);
-    }
-  }
-
-  // Set or change the password: a code to the address, then the new password —
-  // the same reset flow as "forgot", so an account that only ever signed in
-  // with a code gets a password here too.
-  async function startPasswordChange() {
-    setError('');
-    try {
-      await requestPasswordReset(email);
-      setView('password');
-    } catch (err) {
-      show(err);
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -156,11 +155,13 @@ export default function Account({
       {verified === false && (
         <View style={styles.verify}>
           <Text style={styles.verifyText}>{t('mobile.account.verify')}</Text>
-          <Button title={t('mobile.signIn.verify')} onPress={startVerify} />
+          <Button title={t('mobile.signIn.verify')} disabled={busy !== null} onPress={() => sendCodeThen('verify')} />
         </View>
       )}
       <Text accessibilityRole="button" style={styles.row} onPress={() => setView('usage')}>{t('mobile.account.usage')}  ›</Text>
-      <Text accessibilityRole="button" style={styles.row} onPress={startPasswordChange}>{t('mobile.signIn.password')}  ›</Text>
+      <Text accessibilityRole="button" accessibilityState={{ busy: busy === 'password', disabled: busy !== null }} style={[styles.row, busy && styles.disabled]} onPress={busy ? undefined : () => sendCodeThen('password')}>
+        {t('mobile.signIn.password')}  {busy === 'password' ? '…' : '›'}
+      </Text>
       <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked ? styles.disabled : styles.danger]} onPress={locked ? undefined : onSignOut}>{t('mobile.account.signOut')}</Text>
       <Text accessibilityRole="button" accessibilityState={{ disabled: locked }} style={[styles.row, locked && styles.disabled]} onPress={locked ? undefined : confirmDelete}>{t('mobile.account.deleteAccount')}  ›</Text>
       {!!error && <Text style={styles.error}>{error}</Text>}

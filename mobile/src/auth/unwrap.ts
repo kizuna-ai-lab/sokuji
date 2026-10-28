@@ -28,7 +28,10 @@ const AUTH_ERROR_KEYS: Record<string, string> = {
 };
 
 export function authErrorKey(err: unknown): string | null {
-  return err instanceof AuthError && err.code ? AUTH_ERROR_KEYS[err.code] ?? null : null;
+  if (!(err instanceof AuthError)) return null;
+  // The backend caps code emails per address; a 429 is that cap, whatever the body says.
+  if (err.status === 429) return 'mobile.signIn.tooManyRequests';
+  return err.code ? AUTH_ERROR_KEYS[err.code] ?? null : null;
 }
 
 // The backend requires a name on sign-up; the app has no name field.

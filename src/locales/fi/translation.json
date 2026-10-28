@@ -1641,6 +1641,7 @@
       "passwordHint": "vähintään 8 merkkiä",
       "wrongPassword": "Väärä sähköposti tai salasana",
       "wrongCode": "Koodi on väärä tai vanhentunut",
+      "tooManyRequests": "Liian monta koodipyyntöä. Odota hetki ja yritä uudelleen.",
       "verifyTitle": "Vahvista sähköpostisi",
       "resetTitle": "Nollaa salasana",
       "sendCode": "Lähetä koodi",

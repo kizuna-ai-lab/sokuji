@@ -1641,6 +1641,7 @@
       "passwordHint": "co najmniej 8 znaków",
       "wrongPassword": "Błędny e-mail lub hasło",
       "wrongCode": "Ten kod jest błędny lub wygasł",
+      "tooManyRequests": "Zbyt wiele próśb o kod. Odczekaj chwilę i spróbuj ponownie.",
       "verifyTitle": "Zweryfikuj e-mail",
       "resetTitle": "Zresetuj hasło",
       "sendCode": "Wyślij kod",

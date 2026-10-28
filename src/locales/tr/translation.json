@@ -1641,6 +1641,7 @@
       "passwordHint": "en az 8 karakter",
       "wrongPassword": "E-posta veya parola yanlış",
       "wrongCode": "Bu kod yanlış veya süresi dolmuş",
+      "tooManyRequests": "Çok fazla kod isteği. Biraz bekleyip tekrar deneyin.",
       "verifyTitle": "E-postanızı doğrulayın",
       "resetTitle": "Parolayı sıfırla",
       "sendCode": "Kod gönder",

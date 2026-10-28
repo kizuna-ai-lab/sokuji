@@ -1641,6 +1641,7 @@
       "passwordHint": "至少 8 位",
       "wrongPassword": "邮箱或密码不对",
       "wrongCode": "验证码不对或已过期",
+      "tooManyRequests": "验证码请求过于频繁，请稍后再试。",
       "verifyTitle": "验证邮箱",
       "resetTitle": "重设密码",
       "sendCode": "发送验证码",

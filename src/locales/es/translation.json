@@ -1641,6 +1641,7 @@
       "passwordHint": "al menos 8 caracteres",
       "wrongPassword": "Correo o contraseña incorrectos",
       "wrongCode": "Ese código es incorrecto o ha caducado",
+      "tooManyRequests": "Demasiadas solicitudes de código. Espera un momento y vuelve a intentarlo.",
       "verifyTitle": "Verifica tu correo",
       "resetTitle": "Restablecer la contraseña",
       "sendCode": "Enviar código",

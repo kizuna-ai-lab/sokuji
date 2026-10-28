@@ -1641,6 +1641,7 @@
       "passwordHint": "sekurang-kurangnya 8 aksara",
       "wrongPassword": "E-mel atau kata laluan salah",
       "wrongCode": "Kod itu salah atau telah tamat tempoh",
+      "tooManyRequests": "Terlalu banyak permintaan kod. Tunggu sebentar dan cuba lagi.",
       "verifyTitle": "Sahkan e-mel anda",
       "resetTitle": "Tetapkan semula kata laluan",
       "sendCode": "Hantar kod",

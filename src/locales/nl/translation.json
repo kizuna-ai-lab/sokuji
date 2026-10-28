@@ -1641,6 +1641,7 @@
       "passwordHint": "minstens 8 tekens",
       "wrongPassword": "E-mail of wachtwoord onjuist",
       "wrongCode": "Die code is onjuist of verlopen",
+      "tooManyRequests": "Te veel codeaanvragen. Wacht even en probeer het opnieuw.",
       "verifyTitle": "Verifieer je e-mail",
       "resetTitle": "Wachtwoord opnieuw instellen",
       "sendCode": "Code sturen",
