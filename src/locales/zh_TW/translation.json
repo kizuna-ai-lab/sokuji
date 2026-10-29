@@ -821,6 +821,8 @@
     "importStep2": "加入您的檔案",
     "importStep3": "檔案",
     "importRepo": "倉庫",
+    "importSource": "下載來源",
+    "importMirrorHint": "適用於無法連上 huggingface.co 的網路——指令將改為透過 hf-mirror.com 鏡像下載。",
     "importCopy": "複製",
     "importCopied": "已複製",
     "importChooseFolder": "選擇資料夾",

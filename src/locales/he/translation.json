@@ -821,6 +821,8 @@
     "importStep2": "הוסף את הקבצים שלך",
     "importStep3": "קבצים",
     "importRepo": "מאגר",
+    "importSource": "מקור ההורדה",
+    "importMirrorHint": "לרשתות שבהן huggingface.co אינו נגיש — הפקודות מורידות דרך המראה hf-mirror.com במקום.",
     "importCopy": "העתק",
     "importCopied": "הועתק",
     "importChooseFolder": "בחר תיקייה",

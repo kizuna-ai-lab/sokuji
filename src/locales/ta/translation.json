@@ -821,6 +821,8 @@
     "importStep2": "உங்கள் கோப்புகளைச் சேர்க்கவும்",
     "importStep3": "கோப்புகள்",
     "importRepo": "களஞ்சியம்",
+    "importSource": "பதிவிறக்க மூலம்",
+    "importMirrorHint": "huggingface.co அணுக முடியாத நெட்வொர்க்குகளுக்கு — கட்டளைகள் பதிலாக hf-mirror.com மிரர் வழியாகப் பெறுகின்றன.",
     "importCopy": "நகலெடு",
     "importCopied": "நகலெடுக்கப்பட்டது",
     "importChooseFolder": "கோப்புறையைத் தேர்வு செய்",

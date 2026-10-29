@@ -106,6 +106,32 @@ describe('buildDownloadCommand', () => {
     expect(cmd).toContain('--cut-dirs=4');
     expect(cmd).not.toContain('--cut-dirs=5');
   });
+
+  it('prefixes HF_ENDPOINT for the mirror on the hf tab, defaulting to none', () => {
+    const mirrored = buildDownloadCommand('hf', 'org/repo', 'my-model', files, 'hf-mirror');
+    expect(mirrored).toContain('HF_ENDPOINT=https://hf-mirror.com HF_HUB_DISABLE_XET=1 hf download org/repo');
+    const direct = buildDownloadCommand('hf', 'org/repo', 'my-model', files);
+    expect(direct).not.toContain('HF_ENDPOINT');
+  });
+
+  it('rewrites huggingface.co URLs to hf-mirror.com for curl and wget', () => {
+    const curl = buildDownloadCommand('curl', 'org/repo', 'my-model', files, 'hf-mirror');
+    expect(curl).toContain('https://hf-mirror.com/org/repo/resolve/main/config.json');
+    expect(curl).not.toContain('huggingface.co');
+    const wget = buildDownloadCommand('wget', 'org/repo', 'my-model', files, 'hf-mirror');
+    expect(wget).toContain('wget -x -nH --cut-dirs=4 https://hf-mirror.com/org/repo/resolve/main/onnx/audio_encoder_q4.onnx');
+    expect(wget).not.toContain('huggingface.co');
+  });
+
+  it('rewrites datasets/ URLs too and leaves other hosts untouched under the mirror', () => {
+    const mixed = [
+      { filename: 'a.bin', url: 'https://huggingface.co/datasets/org/ds/resolve/main/a.bin' },
+      { filename: 'b.bin', url: 'https://self-hosted.example.org/datasets/org/ds/resolve/main/b.bin' },
+    ];
+    const cmd = buildDownloadCommand('curl', undefined, 'my-model', mixed, 'hf-mirror');
+    expect(cmd).toContain('https://hf-mirror.com/datasets/org/ds/resolve/main/a.bin');
+    expect(cmd).toContain('https://self-hosted.example.org/datasets/org/ds/resolve/main/b.bin');
+  });
 });
 
 describe('ModelImportError', () => {

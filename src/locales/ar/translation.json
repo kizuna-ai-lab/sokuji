@@ -821,6 +821,8 @@
     "importStep2": "أضف ملفاتك",
     "importStep3": "الملفات",
     "importRepo": "المستودع",
+    "importSource": "مصدر التنزيل",
+    "importMirrorHint": "للشبكات التي لا يمكن فيها الوصول إلى huggingface.co — تجلب الأوامر عبر مرآة hf-mirror.com بدلاً من ذلك.",
     "importCopy": "نسخ",
     "importCopied": "تم النسخ",
     "importChooseFolder": "اختر مجلدًا",

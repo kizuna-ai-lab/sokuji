@@ -114,4 +114,26 @@ describe('ModelImportModal', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('switches the shown commands to the hf-mirror.com source when picked (#539)', async () => {
+    render(
+      <ModelImportModal isOpen modelId="voxtral-mini-4b-webgpu" modelName="Voxtral" onClose={() => {}} />,
+    );
+    await screen.findByText('config.json');
+
+    // Default source is huggingface.co: no HF_ENDPOINT prefix on the hf command.
+    expect(screen.getByText(/hf download/)).toBeInTheDocument();
+    expect(screen.queryByText(/HF_ENDPOINT/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'hf-mirror.com' }));
+
+    // hf tab prefixes the mirror endpoint the mirror documents for the CLI.
+    expect(screen.getByText(/HF_ENDPOINT=https:\/\/hf-mirror\.com/)).toBeInTheDocument();
+
+    // curl tab rewrites the huggingface.co URLs to the mirror host.
+    fireEvent.click(screen.getByRole('tab', { name: 'curl' }));
+    const term = document.querySelector('.import-cmd__term pre');
+    expect(term?.textContent).toContain('https://hf-mirror.com/x/resolve/main/config.json');
+    expect(term?.textContent).not.toContain('huggingface.co');
+  });
 });

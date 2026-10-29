@@ -821,6 +821,8 @@
     "importStep2": "Dodaj swoje pliki",
     "importStep3": "Pliki",
     "importRepo": "Repozytorium",
+    "importSource": "Źródło pobierania",
+    "importMirrorHint": "W sieciach, w których huggingface.co jest nieosiągalne — polecenia pobierają przez serwer lustrzany hf-mirror.com.",
     "importCopy": "Kopiuj",
     "importCopied": "Skopiowano",
     "importChooseFolder": "Wybierz folder",

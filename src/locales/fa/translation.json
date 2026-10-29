@@ -821,6 +821,8 @@
     "importStep2": "افزودن فایل‌ها",
     "importStep3": "فایل‌ها",
     "importRepo": "مخزن",
+    "importSource": "منبع دانلود",
+    "importMirrorHint": "برای شبکه‌هایی که huggingface.co در آن‌ها در دسترس نیست — دستورها به‌جای آن از میرور hf-mirror.com دریافت می‌کنند.",
     "importCopy": "کپی",
     "importCopied": "کپی شد",
     "importChooseFolder": "انتخاب پوشه",

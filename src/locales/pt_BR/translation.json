@@ -821,6 +821,8 @@
     "importStep2": "Adicione seus arquivos",
     "importStep3": "Arquivos",
     "importRepo": "Repositório",
+    "importSource": "Fonte de download",
+    "importMirrorHint": "Para redes onde huggingface.co está inacessível — os comandos baixam pelo espelho hf-mirror.com.",
     "importCopy": "Copiar",
     "importCopied": "Copiado",
     "importChooseFolder": "Escolher pasta",

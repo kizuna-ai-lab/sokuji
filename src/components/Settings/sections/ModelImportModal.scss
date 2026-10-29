@@ -146,7 +146,25 @@
     code { font-family: ui-monospace, Menlo, Consolas, monospace; color: vars.$text-secondary; }
   }
 
+  &__srcrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+
   &__tabs { display: flex; gap: 4px; }
+
+  // Download-source picker (#539): huggingface.co or the hf-mirror.com mirror.
+  &__src { display: inline-flex; align-items: center; gap: 5px; padding-bottom: 6px; }
+  &__src-label { font-size: 11px; color: vars.$text-tertiary; }
+  &__src-btn {
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    color: vars.$text-muted;
+    border: 1px solid vars.$border-default;
+    &.is-active { background: vars.$bg-page; color: vars.$text-primary; border-color: vars.$border-strong; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
 
   &__tab {
     font: inherit;

@@ -821,6 +821,8 @@
     "importStep2": "Dosyalarınızı ekleyin",
     "importStep3": "Dosyalar",
     "importRepo": "Depo",
+    "importSource": "İndirme kaynağı",
+    "importMirrorHint": "huggingface.co'ya erişilemeyen ağlar için — komutlar bunun yerine hf-mirror.com yansısını kullanır.",
     "importCopy": "Kopyala",
     "importCopied": "Kopyalandı",
     "importChooseFolder": "Klasör seç",
