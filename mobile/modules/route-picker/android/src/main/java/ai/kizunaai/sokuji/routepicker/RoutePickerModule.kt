@@ -23,6 +23,13 @@ class RoutePickerModule : Module() {
 
     Function("showOutputSwitcher") {
       val context = appContext.reactContext ?: return@Function "none"
+      // From the app's own activity, a panel opens over it (back returns to the
+      // app); only without one does it need a new task.
+      val activity = appContext.currentActivity
+      fun start(intent: Intent) {
+        if (activity != null) activity.startActivity(intent)
+        else context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      }
       if (Build.VERSION.SDK_INT >= 34 && MediaRouter2.getInstance(context).showSystemOutputSwitcher()) {
         return@Function "system"
       }
@@ -39,17 +46,16 @@ class RoutePickerModule : Module() {
       if (Build.VERSION.SDK_INT >= 30) {
         val panel = Intent("com.android.settings.panel.action.MEDIA_OUTPUT")
           .putExtra("com.android.settings.panel.extra.PACKAGE_NAME", context.packageName)
-          .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
-          context.startActivity(panel)
+          start(panel)
           return@Function "system"
         } catch (_: ActivityNotFoundException) {
         } catch (_: SecurityException) {
         }
       }
-      val settings = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      val settings = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
       return@Function try {
-        context.startActivity(settings)
+        start(settings)
         "bluetooth-settings"
       } catch (_: ActivityNotFoundException) {
         "none"

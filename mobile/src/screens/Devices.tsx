@@ -9,7 +9,7 @@ import { Screen } from '@/components/ScreenHeader';
 import { microphoneChoices, routeOf, type MicrophoneKind, type Route } from '../session/route';
 import { useSettings } from '../store/useSettings';
 import { outputLines } from './deviceText';
-import { RoutePickerView, showOutputSwitcher } from '../../modules/route-picker/src/RoutePickerModule';
+import { RoutePickerView, showOutputSwitcher, type SwitcherResult } from '../../modules/route-picker/src/RoutePickerModule';
 
 // R14: the microphone is the user's choice among the phone's own, a wired
 // headset's and a USB one (never Bluetooth); the output device is the one the
@@ -70,7 +70,8 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
           set({ inputDeviceId: !m || m.kind === 'builtin' ? null : id });
         }}
         disabled={locked}
-        disabledReason={t('mobile.settings.locked')}
+        // Locked, the footer still says a Bluetooth headset is never the microphone.
+        disabledReason={`${t('mobile.settings.locked')} ${t('mobile.devices.noBluetoothMic')}`}
       />
       <RowGroup title={t('mobile.devices.output')}>
         <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} onOpened={(opened) => {
@@ -92,18 +93,17 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
 // onOpened says whether a press opened a panel (none on this phone, or the call throws: false).
 function OutputRow({ label, value, hint, onOpened }: { label: string; value?: string; hint: string; onOpened: (opened: boolean) => void }) {
   if (Platform.OS === 'ios' && RoutePickerView) {
-    const Picker = RoutePickerView;
     return (
       <View>
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">
           <Row label={label} value={value} chevron />
         </View>
-        <Picker label={[label, value].filter(Boolean).join(', ')} hint={hint} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
+        <RoutePickerView label={[label, value].filter(Boolean).join(', ')} hint={hint} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
       </View>
     );
   }
   const open = () => {
-    let result: ReturnType<typeof showOutputSwitcher> = 'none';
+    let result: SwitcherResult = 'none';
     try { result = showOutputSwitcher(); } catch { /* reported below */ }
     onOpened(result !== 'none');
   };
