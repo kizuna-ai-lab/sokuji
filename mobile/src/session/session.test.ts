@@ -398,13 +398,31 @@ describe('the Android notification', () => {
     expect(statuses(events).at(-1)?.status).toBe('stopped');
   });
 
-  it('Pause and Resume are shown on screen', async () => {
+  it('Pause and Resume are shown on screen, with the voice flag', async () => {
     const events: SessionEvent[] = [];
     const { s } = await boot(events);
     audio.notification.listeners.recordingNotificationPause();
-    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'paused' });
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'paused', voice: false });
     audio.notification.listeners.recordingNotificationResume();
-    expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'listening', detail: undefined });
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: undefined, voice: false });
+    await s.stop();
+  });
+
+  // A Pause tapped before the first grant must not look like the session
+  // started: the screen's first 'listening' is what the analytics count.
+  it('Pause before the stream is up reports nothing', async () => {
+    let grantIt!: () => void;
+    lease.leaseKey.mockImplementationOnce(() => new Promise((resolve) => { grantIt = () => resolve(grant); }));
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    audio.notification.listeners.recordingNotificationPause();
+    expect(statuses(events).some((e) => e.status === 'listening')).toBe(false);
+    grantIt();
+    await flush();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', voice: false });
     await s.stop();
   });
 });
