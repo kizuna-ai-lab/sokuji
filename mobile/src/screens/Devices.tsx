@@ -73,9 +73,10 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
         disabledReason={t('mobile.settings.locked')}
       />
       <RowGroup title={t('mobile.devices.output')}>
-        <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} onFailed={() => {
-          setOutputFailed(true);
-          AccessibilityInfo.announceForAccessibility(t('mobile.devices.outputUnavailable'));
+        <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} onOpened={(opened) => {
+          // Each press decides afresh: a retry that opens clears an earlier failure.
+          setOutputFailed(!opened);
+          if (!opened) AccessibilityInfo.announceForAccessibility(t('mobile.devices.outputUnavailable'));
         }} />
       </RowGroup>
       {outputFailed ? <Notice className="px-4">{t('mobile.devices.outputUnavailable')}</Notice> : null}
@@ -88,8 +89,8 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
 // laid over the row (no API opens it from code); it is the one element a screen
 // reader meets, so the row under it is hidden from one. On Android a press opens
 // the media output panel.
-// If no panel opens (none on this phone, or the call throws), onFailed says so.
-function OutputRow({ label, value, hint, onFailed }: { label: string; value?: string; hint: string; onFailed: () => void }) {
+// onOpened says whether a press opened a panel (none on this phone, or the call throws: false).
+function OutputRow({ label, value, hint, onOpened }: { label: string; value?: string; hint: string; onOpened: (opened: boolean) => void }) {
   if (Platform.OS === 'ios' && RoutePickerView) {
     const Picker = RoutePickerView;
     return (
@@ -104,7 +105,7 @@ function OutputRow({ label, value, hint, onFailed }: { label: string; value?: st
   const open = () => {
     let result: ReturnType<typeof showOutputSwitcher> = 'none';
     try { result = showOutputSwitcher(); } catch { /* reported below */ }
-    if (result === 'none') onFailed();
+    onOpened(result !== 'none');
   };
   return <Row label={label} value={value} accessibilityHint={hint} onPress={open} />;
 }
