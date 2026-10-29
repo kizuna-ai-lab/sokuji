@@ -32,7 +32,7 @@ export function sessionStartProperties(o: {
   source: string;
   target: string;
   platform: 'ios' | 'android';
-  /** R13: the translation is read aloud (the listen setting). */
+  /** R13: the translation is read aloud: the shape the backend granted at the first listening. */
   participantSpeech?: boolean;
 }): SessionStartProperties {
   return {
