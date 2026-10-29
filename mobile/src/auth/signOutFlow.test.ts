@@ -18,3 +18,11 @@ describe('signOutAndForget', () => {
     expect(logged[0]).toContain('offline');
   });
 });
+
+describe('signOutAndForget when forgetting fails', () => {
+  it('does not throw, and logs it', async () => {
+    const logged: string[] = [];
+    await expect(signOutAndForget({ signOut: async () => {}, forget: async () => { throw new Error('storage'); }, log: (l) => logged.push(l) })).resolves.toBeUndefined();
+    expect(logged.join(' ')).toContain('storage');
+  });
+});

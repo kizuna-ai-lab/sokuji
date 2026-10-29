@@ -25,5 +25,6 @@ export function exportJson(s: StoredSession, meta: TranscriptMeta): string {
 const pad = (n: number) => n.toString().padStart(2, '0');
 export function exportFileName(startedAt: number, kind: 'txt' | 'json'): string {
   const d = new Date(startedAt);
-  return `Sokuji-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.${kind}`;
+  // Down to the second: two exports in the same minute share the cache directory.
+  return `Sokuji-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${kind}`;
 }

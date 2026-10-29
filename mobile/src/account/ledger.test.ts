@@ -39,3 +39,17 @@ describe('fetchLedger', () => {
     await expect(fetchLedger({ token: 'tok', fetch })).rejects.toThrow('sign_in_required');
   });
 });
+
+describe('fetchLedger with a bad entry', () => {
+  it('ignores an entry without a numeric amount instead of poisoning the group', async () => {
+    const { fetch } = respond(200, {
+      groups: [{ groupId: 'g1', kind: 'session', occurredAt: 1, textOnly: false, entries: [
+        { id: 'e1', kind: 'stt', amountMicroUsd: -600000, billableSeconds: 10, at: 1 },
+        { id: 'e2', kind: 'mt', amountMicroUsd: 'oops', billableSeconds: 10, at: 1 },
+      ] }],
+      nextCursor: null,
+    });
+    const page = await fetchLedger({ token: 'tok', fetch });
+    expect(page.groups[0].amountUsd).toBe(-0.6);
+  });
+});

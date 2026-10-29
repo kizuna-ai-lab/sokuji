@@ -10,7 +10,8 @@ export { pickLanguage, CATALOGS };
 // and English (the fallback) are loaded.
 export async function initI18n(): Promise<void> {
   const lng = pickLanguage(getLocales().map((l) => l.languageTag), Object.keys(CATALOGS));
-  const [picked, en] = await Promise.all([CATALOGS[lng](), CATALOGS.en()]);
+  // A catalog that fails to load (a broken chunk) falls back to English rather than raw keys.
+  const [picked, en] = await Promise.all([CATALOGS[lng]().catch(() => CATALOGS.en()), CATALOGS.en()]);
   const resources: Record<string, { translation: Record<string, unknown> }> = { en: { translation: en.default } };
   if (lng !== 'en') resources[lng] = { translation: picked.default };
   await i18next.use(initReactI18next).init({

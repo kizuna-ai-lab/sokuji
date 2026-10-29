@@ -2,7 +2,7 @@ import './global.css';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
 import { PortalHost } from '@rn-primitives/portal';
 import { useColorScheme } from 'nativewind';
 import { Spinner } from './src/components/Spinner';
@@ -24,15 +24,16 @@ export default function App() {
   async function refresh() {
     try {
       const token = await sessionToken();
-      setEmail(token ? (await accountEmail()) ?? '' : '');
       setToken(token);
+      // The address is decoration: its lookup failing must not sign the user out.
+      setEmail(token ? (await accountEmail().catch(() => null)) ?? '' : '');
     } catch {
       setToken(null);
     }
   }
 
   useEffect(() => {
-    initI18n().finally(() => setReady(true));
+    initI18n().catch((err) => console.error('i18n init failed', err)).finally(() => setReady(true));
     refresh();
     // The appearance setting is an override of the system's: applied as stored, and on change.
     applyAppearance(settingsStore.getState().settings.appearance);
@@ -45,7 +46,7 @@ export default function App() {
     // The app draws edge to edge: the status bar, a camera cutout and the
     // gesture bar overlap the window. The insets come from the native module;
     // React Native's own SafeAreaView only knows iOS.
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom', 'left', 'right']}>
         <View className="flex-1 items-center py-3">
           {(!ready || token === undefined) && <Spinner size="large" className="mt-32" />}
