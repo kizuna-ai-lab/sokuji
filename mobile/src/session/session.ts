@@ -476,13 +476,16 @@ export function startSession(o: {
           log('notification: stop');
           void stopSession();
         }),
+        // Said only while a stream is up: before the first grant the session is
+        // not listening, and the screen's first 'listening' is what the
+        // analytics count as the start.
         RecordingNotificationManager.addEventListener('recordingNotificationPause', () => {
           log('notification: pause');
-          status('listening', 'paused');
+          if (stream?.isOpen()) status('listening', 'paused', speech !== null);
         }),
         RecordingNotificationManager.addEventListener('recordingNotificationResume', () => {
           log('notification: resume');
-          status('listening', spokenDetail());
+          if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
         }),
       ];
       for (const sub of onNotification) if (sub) subscriptions.push(sub);
