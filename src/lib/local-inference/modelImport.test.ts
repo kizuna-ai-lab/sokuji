@@ -107,6 +107,23 @@ describe('buildDownloadCommand', () => {
     expect(cmd).not.toContain('--cut-dirs=5');
   });
 
+  it('derives the wget --cut-dirs count for dataset-hosted files', () => {
+    // Self-hosted dataset URLs carry a cdnPath segment after the revision:
+    // /datasets/<org>/<repo>/resolve/main/<cdnPath>/<file>. A fixed cut of 4
+    // would keep "main/<cdnPath>/" in the saved path.
+    const datasetFiles = [
+      { filename: 'model.onnx', url: 'https://huggingface.co/datasets/org/ds/resolve/main/wasm/model.onnx' },
+      { filename: 'onnx/encoder.onnx', url: 'https://huggingface.co/datasets/org/ds/resolve/main/wasm/onnx/encoder.onnx' },
+    ];
+    const cmd = buildDownloadCommand('wget', undefined, 'my-model', datasetFiles);
+    expect(cmd).toContain('--cut-dirs=6 https://huggingface.co/datasets/org/ds/resolve/main/wasm/model.onnx');
+    expect(cmd).toContain('--cut-dirs=6 https://huggingface.co/datasets/org/ds/resolve/main/wasm/onnx/encoder.onnx');
+
+    // The mirror only rewrites the host, so the count must not change.
+    const mirrored = buildDownloadCommand('wget', undefined, 'my-model', datasetFiles, 'hf-mirror');
+    expect(mirrored).toContain('--cut-dirs=6 https://hf-mirror.com/datasets/org/ds/resolve/main/wasm/model.onnx');
+  });
+
   it('prefixes HF_ENDPOINT for the mirror on the hf tab, defaulting to none', () => {
     const mirrored = buildDownloadCommand('hf', 'org/repo', 'my-model', files, 'hf-mirror');
     expect(mirrored).toContain('HF_ENDPOINT=https://hf-mirror.com HF_HUB_DISABLE_XET=1 hf download org/repo');

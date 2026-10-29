@@ -119,11 +119,18 @@ export function buildDownloadCommand(
       + names;
   }
   if (tab === 'wget') {
-    // HF resolve URL path is /org/repo/resolve/main/<file>: 4 directory segments
-    // before the file. --cut-dirs=4 strips exactly those, preserving any onnx/
-    // subdir; over-cutting flattens onnx/x.onnx into the root and breaks layout.
+    // The number of directory segments before the repo-relative filename depends
+    // on where the file is hosted: HF hub files use /<org>/<repo>/resolve/<rev>/<file>,
+    // while self-hosted dataset files add a cdnPath segment after the revision
+    // (/datasets/<org>/<repo>/resolve/<rev>/<cdnPath>/<file>). Cut exactly the
+    // segments that precede the filename's own path so its subdirectories (e.g.
+    // onnx/) are preserved instead of flattening the local layout.
     return `# run inside an empty "${localDir}" folder\n`
-      + files.map((f) => `wget -x -nH --cut-dirs=4 ${urlForSource(f.url, source)}`).join('\n');
+      + files.map((f) => {
+        const cutDirs = new URL(f.url).pathname.split('/').filter(Boolean).length
+          - f.filename.split('/').length;
+        return `wget -x -nH --cut-dirs=${cutDirs} ${urlForSource(f.url, source)}`;
+      }).join('\n');
   }
   // curl (default / fallback, incl. self-hosted models with no HF repo)
   return files.map((f) => `curl -L --create-dirs -o ${localDir}/${f.filename} \\\n  ${urlForSource(f.url, source)}`).join('\n');
