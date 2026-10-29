@@ -170,13 +170,16 @@ describe('ModelImportModal', () => {
       );
       await screen.findByText('model.onnx');
 
-      // The hf CLI tab still honours HF_ENDPOINT, so the mirror stays available.
-      expect(screen.getByRole('button', { name: 'hf-mirror.com' })).toBeEnabled();
+      // The hf CLI tab still honours HF_ENDPOINT, so the mirror stays selectable.
+      fireEvent.click(screen.getByRole('button', { name: 'hf-mirror.com' }));
+      expect(screen.getByText(/HF_ENDPOINT=https:\/\/hf-mirror\.com/)).toBeInTheDocument();
 
       // curl/wget leave non-huggingface.co URLs untouched, so the option is a
-      // no-op there and must not look selectable.
+      // no-op there: it must not look selectable nor pressed.
       fireEvent.click(screen.getByRole('tab', { name: 'curl' }));
-      expect(screen.getByRole('button', { name: 'hf-mirror.com' })).toBeDisabled();
+      const mirrorButton = screen.getByRole('button', { name: 'hf-mirror.com' });
+      expect(mirrorButton).toBeDisabled();
+      expect(mirrorButton).toHaveAttribute('aria-pressed', 'false');
     } finally {
       mockTargets = targets;
     }
