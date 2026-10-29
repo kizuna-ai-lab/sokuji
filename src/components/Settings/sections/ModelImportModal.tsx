@@ -167,9 +167,16 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     }
   }, [importModel, modelId, selected, onClose, t, refreshStored, expectedNames]);
 
+  // The mirror only changes curl/wget commands when the file hosts are on
+  // huggingface.co (the hf CLI tab always accepts HF_ENDPOINT). For a
+  // custom/self-hosted base the option would be a no-op, so it is disabled.
+  const mirrorApplies = tab === 'hf'
+    || targets.some((f) => f.url.startsWith('https://huggingface.co/'));
+  const effectiveSource: DownloadSource = mirrorApplies ? source : 'huggingface';
+
   const command = useMemo(
-    () => buildDownloadCommand(tab, repo, modelId, targets, source),
-    [tab, repo, modelId, targets, source],
+    () => buildDownloadCommand(tab, repo, modelId, targets, effectiveSource),
+    [tab, repo, modelId, targets, effectiveSource],
   );
 
   const handleCopy = useCallback(async () => {
@@ -243,13 +250,14 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
                   <button
                     className={`import-cmd__src-btn ${source === 'huggingface' ? 'is-active' : ''}`}
                     aria-pressed={source === 'huggingface'}
-                    onClick={() => setSource('huggingface')}
+                    onClick={() => { setSource('huggingface'); setCopied(false); }}
                   >huggingface.co</button>
                   <button
-                    className={`import-cmd__src-btn ${source === 'hf-mirror' ? 'is-active' : ''}`}
-                    aria-pressed={source === 'hf-mirror'}
-                    title={t('models.importMirrorHint', 'For networks where huggingface.co is unreachable — the commands fetch through the hf-mirror.com mirror instead.')}
-                    onClick={() => setSource('hf-mirror')}
+                    className={`import-cmd__src-btn ${mirrorApplies && source === 'hf-mirror' ? 'is-active' : ''}`}
+                    aria-pressed={mirrorApplies && source === 'hf-mirror'}
+                    disabled={!mirrorApplies}
+                    title={mirrorApplies ? t('models.importMirrorHint', 'For networks where huggingface.co is unreachable — the commands fetch through the hf-mirror.com mirror instead.') : undefined}
+                    onClick={() => { setSource('hf-mirror'); setCopied(false); }}
                   >hf-mirror.com</button>
                 </div>
               </div>
