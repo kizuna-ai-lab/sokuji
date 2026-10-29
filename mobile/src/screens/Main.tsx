@@ -191,7 +191,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
   }
   if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} onOpen={setScreen} />;
   if (screen === 'listen') return <Listen onBack={() => setScreen('settings')} />;
-  if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} />;
+  if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} locked={active} />;
   if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
 
   const shown = stopping ? 'stopping' : status;

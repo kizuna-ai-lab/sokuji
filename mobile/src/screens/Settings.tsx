@@ -102,7 +102,8 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
           disabledReason={lockedReason}
           onPress={() => onOpen('listen')}
         />
-        <Row label={t('mobile.settings.devices')} disabled={locked} disabledReason={lockedReason} onPress={() => onOpen('devices')} />
+        {/* Open during a session too: the output can be switched then; Devices locks the microphone itself. */}
+        <Row label={t('mobile.settings.devices')} onPress={() => onOpen('devices')} />
       </RowGroup>
 
       <ChoiceList

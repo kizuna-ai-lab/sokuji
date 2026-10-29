@@ -15,7 +15,9 @@ import { RoutePickerView, showOutputSwitcher } from '../../modules/route-picker/
 // headset's and a USB one (never Bluetooth); the output device is the one the
 // system routes to, changed in the system's own picker, which the output row
 // opens (modules/route-picker). The route change event refreshes the row.
-export default function Devices({ onBack }: { onBack: () => void }) {
+// During a session (locked) the microphone is fixed, as the session opened it;
+// the output can still be switched.
+export default function Devices({ onBack, locked }: { onBack: () => void; locked: boolean }) {
   const { t } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
@@ -66,6 +68,8 @@ export default function Devices({ onBack }: { onBack: () => void }) {
           const m = mics.find((x) => x.id === id);
           set({ inputDeviceId: !m || m.kind === 'builtin' ? null : id });
         }}
+        disabled={locked}
+        disabledReason={t('mobile.settings.locked')}
       />
       <RowGroup title={t('mobile.devices.output')}>
         <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} />
