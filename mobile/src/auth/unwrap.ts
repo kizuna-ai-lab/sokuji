@@ -8,12 +8,20 @@ export class AuthError extends Error {
   }
 }
 
-export function unwrap<T>(result: { data: T; error: { code?: string; message?: string; status?: number } | null }): T {
+// The backend caps code emails per address; a 429 on a request that sends a
+// code is that cap, whatever the body says. Other requests have limits of their own.
+const CODE_REQUESTS_LIMITED = 'CODE_REQUESTS_LIMITED';
+
+export function unwrap<T>(
+  result: { data: T; error: { code?: string; message?: string; status?: number } | null },
+  opts: { sendsCode?: boolean } = {},
+): T {
   if (result.error) {
+    const { message, code, status } = result.error;
     throw new AuthError(
-      result.error.message || `request failed${result.error.status ? ` (${result.error.status})` : ''}`,
-      result.error.code,
-      result.error.status,
+      message || `request failed${status ? ` (${status})` : ''}`,
+      opts.sendsCode && status === 429 ? CODE_REQUESTS_LIMITED : code,
+      status,
     );
   }
   return result.data;
@@ -27,13 +35,15 @@ const AUTH_ERROR_KEYS: Record<string, string> = {
   INVALID_EMAIL: 'auth.invalidEmail',
   INVALID_OTP: 'mobile.signIn.wrongCode',
   OTP_EXPIRED: 'mobile.signIn.wrongCode',
+  [CODE_REQUESTS_LIMITED]: 'mobile.signIn.tooManyRequests',
 };
 
 export function authErrorKey(err: unknown): string | null {
   if (!(err instanceof AuthError)) return null;
-  // The backend caps code emails per address; a 429 is that cap, whatever the body says.
-  if (err.status === 429) return 'mobile.signIn.tooManyRequests';
-  return err.code ? AUTH_ERROR_KEYS[err.code] ?? null : null;
+  if (err.code && AUTH_ERROR_KEYS[err.code]) return AUTH_ERROR_KEYS[err.code];
+  // Any other rate limit (password sign-in, say): the desktop's general words.
+  if (err.status === 429) return 'auth.rateLimitExceeded';
+  return null;
 }
 
 // The backend requires a name on sign-up; the app has no name field.

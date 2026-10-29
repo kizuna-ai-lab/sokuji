@@ -46,8 +46,21 @@ describe('authErrorKey', () => {
     expect(authErrorKey(new AuthError('Invalid email', 'INVALID_EMAIL', 400))).toBe('auth.invalidEmail');
   });
 
+  // The backend caps code emails per address; a 429 on a request that sends one is that cap.
   it('maps the backend\'s rate limit on sending codes', () => {
-    expect(authErrorKey(new AuthError('Too many requests', undefined, 429))).toBe('mobile.signIn.tooManyRequests');
+    const limited = { data: null, error: { message: 'Too many requests', status: 429 } };
+    let thrown: unknown;
+    try {
+      unwrap(limited, { sendsCode: true });
+    } catch (e) {
+      thrown = e;
+    }
+    expect(authErrorKey(thrown)).toBe('mobile.signIn.tooManyRequests');
+  });
+
+  // Any other request (password sign-in, say) is limited too, but not for sending codes (CodeRabbit, #663).
+  it('says a general rate limit for a request that sends no code', () => {
+    expect(authErrorKey(new AuthError('Too many requests', undefined, 429))).toBe('auth.rateLimitExceeded');
   });
 
   it('has no line for anything else', () => {
