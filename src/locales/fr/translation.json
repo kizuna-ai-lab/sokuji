@@ -1649,14 +1649,14 @@
       "setNewPassword": "Définir le nouveau mot de passe",
       "back": "Retour à la connexion",
       "later": "Plus tard : vérifiez depuis l'écran du compte",
-      "registerNote": "Vous recevrez un code à 6 chiffres par e-mail ; en le saisissant, le compte est vérifié et le crédit d'essai est ajouté.",
+      "registerNote": "Vous recevrez un code à 6 chiffres par e-mail ; en le saisissant, le compte est vérifié. Les comptes éligibles reçoivent ensuite un crédit d'essai.",
       "sendingCode": "Envoi d'un code à 6 chiffres à {{email}}…",
       "codeNotSent": "Le code n'a pas pu être envoyé à {{email}}. Votre compte est créé : touchez Renvoyer.",
       "showPassword": "Afficher le mot de passe",
       "hidePassword": "Masquer le mot de passe"
     },
     "account": {
-      "verify": "Vérifiez votre e-mail pour recevoir le crédit d'essai",
+      "verify": "Vérifiez votre e-mail : les comptes éligibles reçoivent un crédit d'essai",
       "usage30d": "Dépensé sur les 30 derniers jours",
       "hoursLeft": "Environ {{hours}} h restantes",
       "frozen": "Ce compte est gelé",

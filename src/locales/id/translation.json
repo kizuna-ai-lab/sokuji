@@ -1649,14 +1649,14 @@
       "setNewPassword": "Atur kata sandi baru",
       "back": "Kembali ke halaman masuk",
       "later": "Nanti: verifikasi dari layar akun",
-      "registerNote": "Anda akan menerima kode 6 digit lewat email; setelah dimasukkan, akun terverifikasi dan kredit percobaan ditambahkan.",
+      "registerNote": "Anda akan menerima kode 6 digit lewat email; setelah dimasukkan, akun terverifikasi. Akun yang memenuhi syarat lalu mendapat kredit percobaan.",
       "sendingCode": "Mengirim kode 6 digit ke {{email}}…",
       "codeNotSent": "Kode tidak dapat dikirim ke {{email}}. Akun Anda sudah dibuat: ketuk Kirim lagi.",
       "showPassword": "Tampilkan kata sandi",
       "hidePassword": "Sembunyikan kata sandi"
     },
     "account": {
-      "verify": "Verifikasi email Anda untuk menerima kredit percobaan",
+      "verify": "Verifikasi email Anda; akun yang memenuhi syarat mendapat kredit percobaan",
       "usage30d": "Terpakai dalam 30 hari terakhir",
       "hoursLeft": "Sekitar {{hours}} jam tersisa",
       "frozen": "Akun ini dibekukan",

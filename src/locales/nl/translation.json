@@ -1649,14 +1649,14 @@
       "setNewPassword": "Nieuw wachtwoord instellen",
       "back": "Terug naar inloggen",
       "later": "Later: verifieer vanuit het accountscherm",
-      "registerNote": "Je krijgt een 6-cijferige code per e-mail; na invoer is het account geverifieerd en volgt het proeftegoed.",
+      "registerNote": "Je krijgt een 6-cijferige code per e-mail; na invoer is het account geverifieerd. Accounts die in aanmerking komen, krijgen daarna proeftegoed.",
       "sendingCode": "Een 6-cijferige code wordt naar {{email}} gestuurd…",
       "codeNotSent": "De code kon niet naar {{email}} worden gestuurd. Je account is aangemaakt: tik op Opnieuw sturen.",
       "showPassword": "Wachtwoord tonen",
       "hidePassword": "Wachtwoord verbergen"
     },
     "account": {
-      "verify": "Verifieer je e-mail om het proeftegoed te ontvangen",
+      "verify": "Verifieer je e-mail; accounts die in aanmerking komen, krijgen proeftegoed",
       "usage30d": "Uitgegeven in de laatste 30 dagen",
       "hoursLeft": "Nog ongeveer {{hours}} u",
       "frozen": "Dit account is bevroren",

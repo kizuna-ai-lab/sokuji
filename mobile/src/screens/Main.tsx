@@ -166,7 +166,8 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
         // The desktop's two session events: at the first listening, and at the end.
         if (e.status === 'listening' && !started.current && stored.current) {
           started.current = true;
-          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: settings.listen }));
+          // What the backend granted (a voice only with headphones in, and only if granted), not the setting.
+          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: e.voice === true }));
         }
         // A failure counts once: the retry that follows repeats its detail on the status line.
         const prev = lastEvent.current;

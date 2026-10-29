@@ -1649,14 +1649,14 @@
       "setNewPassword": "設定新密碼",
       "back": "返回登入",
       "later": "稍後再說：可在帳戶頁驗證",
-      "registerNote": "你會收到一封 6 位數驗證碼郵件；輸入後帳號即完成驗證，試用額度隨即入帳。",
+      "registerNote": "你會收到一封 6 位數驗證碼郵件；輸入後帳戶即完成驗證，符合條件的帳戶可獲得試用額度。",
       "sendingCode": "正在寄送驗證碼到 {{email}}…",
       "codeNotSent": "驗證碼未能寄到 {{email}}。帳戶已經建立，請點「重新寄送」。",
       "showPassword": "顯示密碼",
       "hidePassword": "隱藏密碼"
     },
     "account": {
-      "verify": "驗證電子郵件即可領取試用額度",
+      "verify": "驗證電子郵件後，符合條件的帳戶可獲得試用額度",
       "usage30d": "最近 30 天用量",
       "hoursLeft": "約可用 {{hours}} 小時",
       "frozen": "此帳戶已凍結",

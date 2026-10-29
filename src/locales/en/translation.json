@@ -1649,14 +1649,14 @@
       "setNewPassword": "Set new password",
       "back": "Back to sign in",
       "later": "Later: verify from the account screen",
-      "registerNote": "You will get a 6-digit code by email; entering it verifies the account, and the trial credit follows.",
+      "registerNote": "You will get a 6-digit code by email; entering it verifies the account. Eligible accounts then get a trial credit.",
       "sendingCode": "Sending a 6-digit code to {{email}}…",
       "codeNotSent": "The code could not be sent to {{email}}. Your account is created: tap Send again.",
       "showPassword": "Show password",
       "hidePassword": "Hide password"
     },
     "account": {
-      "verify": "Verify your email to receive the trial credit",
+      "verify": "Verify your email; eligible accounts get a trial credit",
       "usage30d": "Spent in the last 30 days",
       "hoursLeft": "About {{hours}} h left",
       "frozen": "This account is frozen",
