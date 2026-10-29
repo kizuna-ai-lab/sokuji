@@ -24,6 +24,7 @@ import type { HistoryStore, SessionSummary } from '../history/store';
 import { pairLabel } from './mainText';
 import { sessionLines } from './historyText';
 import SessionReader from './SessionReader';
+import { SONIOX_STT_MODEL } from '@shared/providers/soniox/sttStream';
 
 const RowSeparator = () => <Separator />;
 
@@ -96,7 +97,7 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
         exportedAt: Date.now(),
         appVersion: Constants.expoConfig?.version ?? null,
         provider: 'soniox',
-        models: { asr: 'stt-rt-v5' },
+        models: { asr: SONIOX_STT_MODEL },
       };
       const body = kind === 'txt'
         ? exportText(

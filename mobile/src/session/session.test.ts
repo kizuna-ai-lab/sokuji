@@ -56,8 +56,9 @@ const lease = vi.hoisted(() => ({
 }));
 vi.mock('./lease', () => lease);
 type FakeClock = { now(): number; setTimeout(fn: () => void, ms: number): () => void };
-const streams = vi.hoisted(() => [] as Array<{ handlers: Record<string, (...a: never[]) => void>; open: boolean; closed: boolean; ended: boolean; deps?: { clock?: FakeClock } }>);
+const streams = vi.hoisted(() => [] as Array<{ handlers: Record<string, (...a: never[]) => void>; open: boolean; closed: boolean; ended: boolean; deps?: { clock?: FakeClock }; cfg: Record<string, unknown> | null }>);
 vi.mock('@shared/providers/soniox/sttStream', () => ({
+  SONIOX_STT_MODEL: 'stt-rt-v5',
   SonioxSttStream: class {
     handlers: Record<string, (...a: never[]) => void> = {};
     open = false;
@@ -66,7 +67,8 @@ vi.mock('@shared/providers/soniox/sttStream', () => ({
     deps?: { clock?: FakeClock };
     constructor(deps?: { clock?: FakeClock }) { this.deps = deps; streams.push(this); }
     setHandlers(h: Record<string, (...a: never[]) => void>) { this.handlers = h; }
-    async connect() { this.open = true; }
+    cfg: Record<string, unknown> | null = null;
+    async connect(cfg: Record<string, unknown>) { this.cfg = cfg; this.open = true; }
     sendAudio() {}
     end() { this.ended = true; }
     close() { this.closed = true; this.open = false; }
@@ -576,5 +578,49 @@ describe('headphones plugged in mid-session', () => {
     expect(lease.leaseKey.mock.calls[1][0]).toMatchObject({ participantSpeech: true });
     expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
     await s.stop();
+  });
+});
+
+describe('the grant\'s streams', () => {
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
+
+  it('opens the recognition socket with the par_stt stream whatever the order', async () => {
+    lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [{ role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }, ...grant.streams] });
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(streams.at(-1)!.cfg).toMatchObject({ apiKey: 'k', clientReferenceId: 'r1' });
+    expect(lease.sessionStarted).toHaveBeenCalledWith(expect.objectContaining({ role: 'par_stt' }));
+    await s.stop();
+  });
+
+  it('reports a grant without a recognition stream by name', async () => {
+    lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [{ role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }] });
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'reconnecting', detail: 'missing_stt_stream' });
+    await s.stop();
+  });
+});
+
+describe('stop during the route lookup', () => {
+  it('creates no player and no route subscription', async () => {
+    let routeIt!: () => void;
+    const created = { players: 0, subscriptions: 0 };
+    const events: SessionEvent[] = [];
+    const s = startSession({
+      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 },
+      getRoute: () => new Promise((resolve) => { routeIt = () => resolve('speaker'); }),
+      onRouteChange: () => { created.subscriptions += 1; return () => {}; },
+      createPlayer: () => { created.players += 1; return { play() {}, stop() {}, queuedSeconds: () => 0, held: () => 0 }; },
+      onEvent: (e) => events.push(e),
+    });
+    await flush();
+    await s.stop();
+    routeIt();
+    await flush();
+    expect(created).toEqual({ players: 0, subscriptions: 0 });
   });
 });

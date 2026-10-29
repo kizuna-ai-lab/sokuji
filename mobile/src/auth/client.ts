@@ -49,7 +49,7 @@ export async function deleteAccount(): Promise<void> {
 
 export async function emailVerified(): Promise<boolean> {
   const data = unwrap(await authClient.getSession());
-  return data?.user.emailVerified ?? false;
+  return data?.user?.emailVerified ?? false;
 }
 
 /**
@@ -59,9 +59,10 @@ export async function emailVerified(): Promise<boolean> {
  */
 export async function currentAccount(): Promise<{ token: string; id: string; email: string } | null> {
   const data = unwrap(await authClient.getSession());
-  const token = data?.session.token;
-  const id = data?.user.id;
-  return token && id ? { token, id, email: data.user.email ?? '' } : null;
+  // A 200 with no session is what an expired or revoked session answers.
+  const token = data?.session?.token;
+  const id = data?.user?.id;
+  return token && id ? { token, id, email: data?.user?.email ?? '' } : null;
 }
 
 export async function signOut(): Promise<void> {

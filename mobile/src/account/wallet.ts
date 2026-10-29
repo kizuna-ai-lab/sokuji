@@ -18,6 +18,8 @@ export async function fetchWallet(o: { token: string; fetch?: typeof fetch }): P
     expiringSoon?: { microUsd: number; expiresAt: number } | null;
   }>('/api/wallet/status', { token: o.token, fetch: o.fetch, label: 'wallet-status' });
   const balanceUsd = typeof body.balanceMicroUsd === 'number' ? body.balanceMicroUsd / 1e6 : Number(body.balanceUsd ?? 0);
+  // "0" on the screen means no money left: a balance that cannot be read is an error.
+  if (!Number.isFinite(balanceUsd)) throw new Error('wallet-status malformed');
   return {
     balanceUsd,
     frozen: body.frozen ?? false,

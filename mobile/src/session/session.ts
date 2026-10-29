@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react-native-audio-api';
 import { addNetworkStateListener } from 'expo-network';
 import i18next from 'i18next';
-import { SonioxSttStream } from '@shared/providers/soniox/sttStream';
+import { SonioxSttStream, SONIOX_STT_MODEL } from '@shared/providers/soniox/sttStream';
 import { LegSpeech } from '@shared/providers/soniox/speech';
 import { nativeSocket } from '@shared/providers/soniox/socket';
 import { eventsFrom } from '@shared/lib/contract/events';
@@ -25,9 +25,6 @@ export type SessionEvent =
   /** `voice`, with 'listening': whether the current grant carries the spoken translation (the shape the backend granted, for the analytics). */
   | { type: 'status'; status: Status; detail?: string; voice?: boolean }
   | { type: 'log'; line: string };
-
-// The model name is a literal here: src/providers/soniox/config.ts is not DOM-free.
-const MODEL = 'stt-rt-v5';
 
 // While running, every failure but these is retried: 2 s, 5 s, 10 s, then every 15 s.
 const TERMINAL = new Set(['sign_in_required', 'microphone_denied', 'balance_exhausted']);
@@ -304,11 +301,13 @@ export function startSession(o: {
           else void connect();
         },
       });
-      const st = grant.streams[0];
+      // By role, never by position: a voiced grant carries par_tts beside par_stt.
+      const st = grant.streams.find((x) => x.role === 'par_stt');
+      if (!st) throw new Error('missing_stt_stream');
       await s.connect({
         apiKey: st.apiKey,
         region: grant.region,
-        model: MODEL,
+        model: SONIOX_STT_MODEL,
         sampleRate,
         // Language identification is always on; a hint only when the user chose a language.
         ...(o.source === 'auto' ? {} : { languageHints: [o.source] }),
@@ -428,10 +427,11 @@ export function startSession(o: {
     }
     if (o.listen) {
       route = await (o.getRoute ?? nativeRoute)();
+      // Stopped during the lookup: teardown has run, and would not see what is created below.
+      if (!running) return;
       spokenWanted = headphones(route);
       player = (o.createPlayer ?? defaultPlayer)();
       subscriptions.push({ remove: (o.onRouteChange ?? nativeRouteChange)(applyRoute) });
-      if (!running) return;
     }
     const r = new AudioRecorder();
     const ready = r.onAudioReady({ sampleRate: 16000, bufferLength: 1600, channelCount: 1 }, ({ buffer }) => {

@@ -34,20 +34,30 @@ export function createHistoryStore(fs: HistoryFs, accountId: string) {
   const ROOT = `accounts/${encodeURIComponent(accountId)}/sessions`;
   const file = (id: string) => `${ROOT}/${id}/session.json`;
 
+  // One unreadable or truncated file must not take the whole list down.
   async function load(id: string): Promise<StoredSession | null> {
-    const body = await fs.read(file(id));
-    if (!body) return null;
     try {
-      return JSON.parse(body) as StoredSession;
+      const body = await fs.read(file(id));
+      if (!body) return null;
+      const s = JSON.parse(body) as Partial<StoredSession> | null;
+      return s && typeof s.id === 'string' && typeof s.startedAt === 'number' && Array.isArray(s.leg?.segments) ? (s as StoredSession) : null;
     } catch {
       return null;
     }
   }
-  async function save(session: StoredSession): Promise<void> {
+  // A failed write (a full disk, say) is logged, never thrown into the screen
+  // that called it from a checkpoint; the next checkpoint tries again.
+  async function save(session: StoredSession): Promise<boolean> {
     // No audio is kept in the first version; a segment's speech entries would
     // not survive JSON anyway (typed arrays), so they are dropped on the way out.
     const leg: Leg = { ...session.leg, segments: session.leg.segments.map((s) => ({ ...s, speech: [] })) };
-    await fs.write(file(session.id), JSON.stringify({ ...session, leg }));
+    try {
+      await fs.write(file(session.id), JSON.stringify({ ...session, leg }));
+      return true;
+    } catch (err) {
+      console.warn(`history: save ${session.id} failed: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
   }
   return {
     save,

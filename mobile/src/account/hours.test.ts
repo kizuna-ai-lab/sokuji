@@ -27,3 +27,11 @@ describe('formatHours', () => {
     expect(formatHours(hours)).toBe(shown);
   });
 });
+
+describe('non-finite input', () => {
+  it('is treated as nothing, never shown as NaN', () => {
+    expect(hoursLeft(Number.NaN, 2, 1)).toBe(0);
+    expect(formatHours(Number.NaN)).toBe('0');
+    expect(formatHours(Number.POSITIVE_INFINITY)).toBe('0');
+  });
+});

@@ -6,5 +6,11 @@ export async function signOutAndForget(o: { signOut(): Promise<void>; forget(): 
   } catch (err) {
     o.log(`sign-out refused: ${err instanceof Error ? err.message : String(err)}`);
   }
-  await o.forget();
+  // Dropping the local session must not fail the call either: the screen
+  // that called this is already gone.
+  try {
+    await o.forget();
+  } catch (err) {
+    o.log(`forget failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }

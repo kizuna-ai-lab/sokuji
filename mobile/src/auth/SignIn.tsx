@@ -14,6 +14,7 @@ import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, sign
 import { authErrorKey } from './unwrap';
 import { codeLine } from './signInText';
 import { createPageGate } from './pageGate';
+import { resetThenSignIn } from './resetFlow';
 
 // 'verifyStart' and 'forgot' are the two code flows' first page: the address and a
 // Send code button, and no request until it is pressed.
@@ -47,6 +48,8 @@ export default function SignIn({
   const [busyFor, setBusyFor] = useState<'primary' | 'resend' | null>(null);
   const busy = busyFor !== null;
   const [error, setError] = useState('');
+  // Not an error: what the last step did (the password was changed, sign in with it).
+  const [notice, setNotice] = useState('');
   const [resendIn, setResendIn] = useState(0);
   // Whether a verification code has gone out in this flow: a new account is on
   // the code page before its first one is sent. Opened on the code page, the
@@ -66,11 +69,12 @@ export default function SignIn({
     return () => clearTimeout(t);
   }, [resendIn]);
 
-  function run(action: () => Promise<unknown>, after?: () => void, which: 'primary' | 'resend' = 'primary') {
+  function run<T>(action: () => Promise<T>, after?: (value: T) => void, which: 'primary' | 'resend' = 'primary') {
     setBusyFor(which);
     setError('');
+    setNotice('');
     void gate.run(action, {
-      done: () => after?.(),
+      done: (value) => after?.(value),
       failed: (err) => {
         // A known failure in its own words; anything else in general words, the detail to the log.
         const key = authErrorKey(err);
@@ -89,7 +93,11 @@ export default function SignIn({
     gate.leave();
     setBusyFor(null);
     setError('');
+    setNotice('');
     setCode('');
+    // A password typed on one page is not carried to the next: on the reset page it
+    // would fill the new-password field with the one that did not work (Walter's OCR).
+    setPassword('');
     // Only the code page carries over whether its code was sent.
     if (next !== 'verify') setSent(false);
     setShowPassword(false);
@@ -186,6 +194,7 @@ export default function SignIn({
   const backLink = onBack ? null : link(t('mobile.signIn.back'), back);
   const headerTitle = mode === 'verify' || mode === 'verifyStart' ? t('mobile.signIn.verifyTitle') : t('mobile.signIn.resetTitle');
   const errorLine = error ? <Notice tone="error">{error}</Notice> : null;
+  const noticeLine = notice ? <Notice>{notice}</Notice> : null;
 
   return (
     <KeyboardAvoidingView className="bg-background w-full flex-1" behavior="padding">
@@ -213,6 +222,7 @@ export default function SignIn({
 
         {mode === 'signin' && (
           <>
+            {noticeLine}
             {emailField}
             {passwordField()}
             {errorLine}
@@ -280,7 +290,19 @@ export default function SignIn({
             {codeField}
             {passwordField(true)}
             {errorLine}
-            {primary(t('mobile.signIn.setNewPassword'), otp.length !== 6 || password.length < 8, () => run(async () => { await resetPassword(address, otp, password); await signIn(address, password); }, () => onSignedIn(address)))}
+            {primary(t('mobile.signIn.setNewPassword'), otp.length !== 6 || password.length < 8, () => run(
+              () => resetThenSignIn({ reset: () => resetPassword(address, otp, password), signIn: () => signIn(address, password), log: console.warn }),
+              (result) => {
+                // From the account screen the user is still signed in: done either way.
+                if (result === 'signedIn' || onBack) return onSignedIn(address);
+                // The password is changed but the sign-in did not go through: sign in from
+                // the sign-in page, the new password still filled in, not with the spent code.
+                const changed = password;
+                go('signin');
+                setPassword(changed);
+                setNotice(t('auth.passwordResetSuccess'));
+              },
+            ))}
             {resend(sendReset)}
             {backLink}
           </>

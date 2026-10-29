@@ -121,7 +121,9 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
     // before the first await, and Start is Stop from the same render on.
     if (session.current) return;
     const { source, target, region } = settings;
-    const tr = createTranscript({ source, target, sessionId: `s-${Date.now()}` });
+    // One clock reading for the session: the transcript's id and the saved session's are the same.
+    const startedAt = Date.now();
+    const tr = createTranscript({ source, target, sessionId: `s-${startedAt}` });
     transcript.current = tr;
     const f = createEntriesFeed({
       transcript: tr,
@@ -138,7 +140,6 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
     });
     f.subscribe(setEntries);
     feed.current = f;
-    const startedAt = Date.now();
     stored.current = { id: `s-${startedAt}`, startedAt, endedAt: null, source, target, leg: tr.leg(), lastStatus: 'leasing' };
     errors.current = 0;
     started.current = false;
@@ -181,9 +182,14 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
       },
     });
     if (settings.keepAwake) {
-      await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
-      // Ended before the keep-awake was granted: give it back.
-      if (!session.current) deactivateKeepAwake(KEEP_AWAKE_TAG);
+      try {
+        await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
+        // Ended before the keep-awake was granted: give it back.
+        if (!session.current) deactivateKeepAwake(KEEP_AWAKE_TAG);
+      } catch (err) {
+        // The session runs either way; the screen may dim.
+        console.warn(`keep awake: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 
