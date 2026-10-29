@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
-import type { SonioxRegion } from '@shared/lib/soniox/regions';
+import { SONIOX_REGIONS, type SonioxRegion } from '@shared/lib/soniox/regions';
 
 // What the user chose, kept on the device (Task 3). `source` is a Soniox
 // language code or 'auto'; the pair is the desktop's initial pair for Soniox.
@@ -43,14 +43,13 @@ export interface SettingsState {
   set(partial: Partial<Settings>): void;
 }
 
-// Only the keys Settings has survive a read: a stored key from a version that
-// no longer exists, or a stray one, is dropped rather than carried along.
+
 // The enum-like keys accept their own values only: a stale or corrupted
 // 'sepia' would otherwise reach the native appearance API.
 const ALLOWED: { [K in keyof Settings]?: readonly Settings[K][] } = {
   appearance: ['system', 'light', 'dark'],
   textSize: ['small', 'medium', 'large'],
-  region: ['us', 'eu', 'jp'],
+  region: SONIOX_REGIONS,
 };
 function allowed(key: keyof Settings, value: unknown): boolean {
   const set = ALLOWED[key] as readonly unknown[] | undefined;
@@ -59,6 +58,8 @@ function allowed(key: keyof Settings, value: unknown): boolean {
   return true;
 }
 
+// Only the keys Settings has survive a read: a stored key from a version that
+// no longer exists, or a stray one, is dropped rather than carried along.
 function known(stored: unknown): Partial<Settings> {
   const out: Partial<Settings> = {};
   if (!stored || typeof stored !== 'object') return out;

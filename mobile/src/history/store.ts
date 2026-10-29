@@ -69,9 +69,10 @@ export function createHistoryStore(fs: HistoryFs, accountId: string) {
         .sort((a, b) => b.startedAt - a.startedAt)
         .map(({ id, title, startedAt, endedAt, source, target }) => ({ id, title, startedAt, endedAt, source, target }));
     },
+    // Unlike a checkpoint, a rename is the user's own action: a failed write is reported.
     async rename(id: string, title: string): Promise<void> {
       const session = await load(id);
-      if (session) await save({ ...session, title });
+      if (session && !(await save({ ...session, title }))) throw new Error('history_save_failed');
     },
     async delete(id: string): Promise<void> {
       await fs.removeDir(`${ROOT}/${id}`);
