@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createHistoryStore, type StoredSession } from './store';
 import { createTranscript } from '../session/transcript';
 
@@ -47,5 +47,37 @@ describe('history store', () => {
     await store.delete('a');
     expect(await store.list()).toEqual([]);
     expect(fs.files.size).toBe(0);
+  });
+});
+
+describe('history store under a bad file system', () => {
+  const broken = () => {
+    const fs = memoryFs();
+    return { fs, store: createHistoryStore(fs) };
+  };
+
+  it('skips a session whose file cannot be read, and keeps the rest', async () => {
+    const { fs, store } = broken();
+    await store.save(session('s1', 1000));
+    await store.save(session('s2', 2000));
+    const read = fs.read;
+    fs.read = async (path: string) => { if (path.includes('/s1/')) throw new Error('EIO'); return read(path); };
+    expect((await store.list()).map((s) => s.id)).toEqual(['s2']);
+  });
+
+  it('skips a session whose JSON has no leg', async () => {
+    const { fs, store } = broken();
+    await store.save(session('s1', 1000));
+    fs.files.set('sessions/s2/session.json', JSON.stringify({ id: 's2', startedAt: 2000 }));
+    expect((await store.list()).map((s) => s.id)).toEqual(['s1']);
+  });
+
+  it('does not throw out of save when the write fails', async () => {
+    const { fs, store } = broken();
+    fs.write = async () => { throw new Error('ENOSPC'); };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(store.save(session('s1', 1000))).resolves.toBe(false);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

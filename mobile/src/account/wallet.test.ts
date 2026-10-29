@@ -61,3 +61,11 @@ describe('fetchFallbackUsdPerHour', () => {
     expect(await fetchFallbackUsdPerHour({ fetch })).toBeCloseTo(0.5, 10);
   });
 });
+
+describe('fetchWallet with a malformed balance', () => {
+  // "0" on this screen means no money left: a balance that cannot be read is an error, not a zero.
+  it('rejects instead of showing zero', async () => {
+    const { fetch } = respond(200, { balanceUsd: 'abc', frozen: false });
+    await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
+  });
+});

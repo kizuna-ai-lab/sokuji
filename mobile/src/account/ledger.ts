@@ -48,7 +48,8 @@ export async function fetchLedger(o: {
         occurredAt: g.occurredAt,
         durationSeconds: g.kind === 'session' && seconds.length ? Math.max(...seconds) : null,
         textOnly: g.textOnly === true,
-        amountUsd: g.entries.reduce((sum, e) => sum + e.amountMicroUsd, 0) / 1e6,
+        // One entry without a readable amount must not turn the group's total into nothing.
+        amountUsd: g.entries.reduce((sum, e) => sum + (typeof e.amountMicroUsd === 'number' && Number.isFinite(e.amountMicroUsd) ? e.amountMicroUsd : 0), 0) / 1e6,
       };
     }),
     next: body.nextCursor ?? null,

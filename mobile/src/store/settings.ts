@@ -42,6 +42,20 @@ export interface SettingsState {
 
 // Only the keys Settings has survive a read: a stored key from a version that
 // no longer exists, or a stray one, is dropped rather than carried along.
+// The enum-like keys accept their own values only: a stale or corrupted
+// 'sepia' would otherwise reach the native appearance API.
+const ALLOWED: { [K in keyof Settings]?: readonly Settings[K][] } = {
+  appearance: ['system', 'light', 'dark'],
+  textSize: ['small', 'medium', 'large'],
+  region: ['us', 'eu', 'jp'],
+};
+function allowed(key: keyof Settings, value: unknown): boolean {
+  const set = ALLOWED[key] as readonly unknown[] | undefined;
+  if (set) return set.includes(value);
+  if (key === 'speed') return typeof value === 'number' && Number.isFinite(value) && value > 0;
+  return true;
+}
+
 function known(stored: unknown): Partial<Settings> {
   const out: Partial<Settings> = {};
   if (!stored || typeof stored !== 'object') return out;
@@ -51,7 +65,7 @@ function known(stored: unknown): Partial<Settings> {
     const value = s[key];
     const fallback = DEFAULT_SETTINGS[key];
     const fits = fallback === null ? value === null || typeof value === 'string' : typeof value === typeof fallback;
-    if (fits) (out as Record<string, unknown>)[key] = value;
+    if (fits && allowed(key, value)) (out as Record<string, unknown>)[key] = value;
   }
   return out;
 }

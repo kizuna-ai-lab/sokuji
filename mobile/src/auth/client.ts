@@ -49,17 +49,18 @@ export async function deleteAccount(): Promise<void> {
 
 export async function emailVerified(): Promise<boolean> {
   const data = unwrap(await authClient.getSession());
-  return data?.user.emailVerified ?? false;
+  return data?.user?.emailVerified ?? false;
 }
 
 export async function accountEmail(): Promise<string | null> {
   const data = unwrap(await authClient.getSession());
-  return data?.user.email ?? null;
+  return data?.user?.email ?? null;
 }
 
 export async function sessionToken(): Promise<string | null> {
   const data = unwrap(await authClient.getSession());
-  return data?.session.token ?? null;
+  // A 200 with no session is what an expired or revoked session answers.
+  return data?.session?.token ?? null;
 }
 
 export async function signOut(): Promise<void> {
