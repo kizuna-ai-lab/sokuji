@@ -456,6 +456,78 @@ describe('a refused configuration', () => {
   });
 });
 
+describe('what the screen is told about the voice', () => {
+  const spokenGrant = { ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
+
+  it('says whether the grant carries the voice, for the analytics', async () => {
+    lease.leaseKey.mockResolvedValueOnce(spokenGrant);
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', voice: true });
+    await s.stop();
+  });
+
+  it('says so too when there is no voice', async () => {
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', voice: false });
+    await s.stop();
+  });
+});
+
+describe('headphones plugged in while the lease is pending', () => {
+  const spokenGrant = { ...grant, leaseId: 'L2', streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
+  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
+  const listening = (events: SessionEvent[]) => statuses(events).filter((e) => e.status === 'listening');
+
+  // The first lease was asked for without the voice before the headphones came
+  // in; once that grant is connected, the session takes a new one with it.
+  it('takes a voiced grant right after the voiceless one connects', async () => {
+    let grantIt!: () => void;
+    lease.leaseKey.mockImplementationOnce(() => new Promise((resolve) => { grantIt = () => resolve(grant); })).mockResolvedValueOnce(spokenGrant);
+    const routeCb: { fn: ((r: 'headphones' | 'bluetooth' | 'speaker' | 'other') => void) | null } = { fn: null };
+    const events: SessionEvent[] = [];
+    const s = startSession({
+      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 },
+      getRoute: async () => 'speaker',
+      onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
+      createPlayer: player,
+      onEvent: (e) => events.push(e),
+    });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    routeCb.fn?.('headphones'); // while leaseKey is still pending
+    await flush();
+    grantIt();
+    await flush();
+    const first = streams.at(-1)!;
+    expect(first.ended).toBe(true); // the voiceless grant is rotated out as soon as it is up
+    first.handlers.onClose({ code: 1000, reason: '' } as never);
+    await flush();
+    expect(lease.leaseKey).toHaveBeenCalledTimes(2);
+    expect(lease.leaseKey.mock.calls[1][0]).toMatchObject({ participantSpeech: true });
+    expect(listening(events).at(-1)).toMatchObject({ detail: 'spoken', voice: true });
+    await s.stop();
+  });
+
+  it('does not keep rotating when the backend grants no voice although it was asked for', async () => {
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(lease.leaseKey.mock.calls[0][0]).toMatchObject({ participantSpeech: true });
+    expect(streams.at(-1)!.ended).toBe(false);
+    expect(lease.leaseKey).toHaveBeenCalledTimes(1);
+    await s.stop();
+  });
+});
+
 describe('headphones plugged in mid-session', () => {
   const spokenGrant = { ...grant, leaseId: 'L2', streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
   const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
