@@ -81,3 +81,15 @@ describe('history store under a bad file system', () => {
     warn.mockRestore();
   });
 });
+
+describe('rename when the write fails', () => {
+  it('rejects, so the screen can say so', async () => {
+    const fs = memoryFs();
+    const store = createHistoryStore(fs);
+    await store.save(session('s1', 1000));
+    fs.write = async () => { throw new Error('ENOSPC'); };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(store.rename('s1', 'Lecture')).rejects.toThrow('history_save_failed');
+    warn.mockRestore();
+  });
+});

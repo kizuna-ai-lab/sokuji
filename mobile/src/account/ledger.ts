@@ -18,6 +18,9 @@ export interface LedgerCursor {
 }
 
 // The website's records card's own endpoint, one page at a time, newest first.
+// One entry without a readable amount must not turn its group's total into nothing.
+const readableMicroUsd = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
 export async function fetchLedger(o: {
   token: string;
   limit?: number;
@@ -48,8 +51,7 @@ export async function fetchLedger(o: {
         occurredAt: g.occurredAt,
         durationSeconds: g.kind === 'session' && seconds.length ? Math.max(...seconds) : null,
         textOnly: g.textOnly === true,
-        // One entry without a readable amount must not turn the group's total into nothing.
-        amountUsd: g.entries.reduce((sum, e) => sum + (typeof e.amountMicroUsd === 'number' && Number.isFinite(e.amountMicroUsd) ? e.amountMicroUsd : 0), 0) / 1e6,
+        amountUsd: g.entries.reduce((sum, e) => sum + readableMicroUsd(e.amountMicroUsd), 0) / 1e6,
       };
     }),
     next: body.nextCursor ?? null,

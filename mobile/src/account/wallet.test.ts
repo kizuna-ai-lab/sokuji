@@ -69,3 +69,15 @@ describe('fetchWallet with a malformed balance', () => {
     await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
   });
 });
+
+describe('fetchWallet with other malformed amounts', () => {
+  it('rejects a non-numeric 30-day spend', async () => {
+    const { fetch } = respond(200, { balanceMicroUsd: 1000000, last30DaysUsageMicroUsd: 'x' });
+    await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
+  });
+
+  it('rejects a non-numeric expiring amount', async () => {
+    const { fetch } = respond(200, { balanceMicroUsd: 1000000, expiringSoon: { microUsd: null, expiresAt: 1 } });
+    await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
+  });
+});
