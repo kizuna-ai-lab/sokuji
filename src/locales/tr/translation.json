@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Bluetooth kulaklıklar çeviriyi çalar ama mikrofon olarak kullanılmaz.",
       "output": "Çalma aygıtı",
       "chooseOutput": "Sistemin çalma aygıtları listesini açar",
+      "outputUnavailable": "Oynatma cihazları listesi açılamadı. Sistem ayarlarından birini seçin.",
       "route": {
         "speaker": "Telefon hoparlörü",
         "headphones": "Kulaklık",

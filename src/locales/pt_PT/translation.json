@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Os auscultadores Bluetooth reproduzem a tradução mas não servem de microfone.",
       "output": "Dispositivo de reprodução",
       "chooseOutput": "Abre a lista de dispositivos de reprodução do sistema",
+      "outputUnavailable": "Não foi possível abrir a lista de dispositivos de reprodução. Escolha um nas definições do sistema.",
       "route": {
         "speaker": "Altifalante do telemóvel",
         "headphones": "Auscultadores",

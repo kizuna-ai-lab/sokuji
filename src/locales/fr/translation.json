@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Les casques Bluetooth diffusent la traduction mais ne servent pas de micro.",
       "output": "Appareil de lecture",
       "chooseOutput": "Ouvre la liste des appareils de lecture du système",
+      "outputUnavailable": "Impossible d'ouvrir la liste des appareils de lecture. Choisissez-en un dans les réglages du système.",
       "route": {
         "speaker": "Haut-parleur du téléphone",
         "headphones": "Casque",

@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Los auriculares Bluetooth reproducen la traducción pero no se usan como micrófono.",
       "output": "Dispositivo de reproducción",
       "chooseOutput": "Abre la lista de dispositivos de reproducción del sistema",
+      "outputUnavailable": "No se pudo abrir la lista de dispositivos de reproducción. Elige uno en los ajustes del sistema.",
       "route": {
         "speaker": "Altavoz del teléfono",
         "headphones": "Auriculares",

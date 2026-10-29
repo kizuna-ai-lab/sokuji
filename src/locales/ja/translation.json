@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Bluetooth ヘッドホンは翻訳の再生に使い、マイクとしては使いません。",
       "output": "再生先",
       "chooseOutput": "システムの再生先一覧を開きます",
+      "outputUnavailable": "再生先の一覧を開けませんでした。システムの設定で選んでください。",
       "route": {
         "speaker": "本体のスピーカー",
         "headphones": "ヘッドホン",

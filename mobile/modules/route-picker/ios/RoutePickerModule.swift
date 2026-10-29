@@ -22,7 +22,7 @@ public class RoutePickerModule: Module {
 }
 
 class RoutePickerView: ExpoView {
-  let picker = AVRoutePickerView()
+  let picker = RowRoutePickerView()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -54,5 +54,17 @@ class RoutePickerView: ExpoView {
       if let found = firstButton(in: sub) { return found }
     }
     return nil
+  }
+}
+
+// The picker's own button need not fill the picker; stretched to
+// the picker's bounds, a tap anywhere on the row (its words, either margin, the
+// chevron) lands on the button.
+class RowRoutePickerView: AVRoutePickerView {
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    for sub in subviews where sub is UIButton {
+      sub.frame = bounds
+    }
   }
 }

@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Słuchawki Bluetooth odtwarzają tłumaczenie, ale nie służą jako mikrofon.",
       "output": "Urządzenie odtwarzające",
       "chooseOutput": "Otwiera systemową listę urządzeń odtwarzających",
+      "outputUnavailable": "Nie udało się otworzyć listy urządzeń odtwarzania. Wybierz urządzenie w ustawieniach systemu.",
       "route": {
         "speaker": "Głośnik telefonu",
         "headphones": "Słuchawki",

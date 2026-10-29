@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Tai nghe Bluetooth phát bản dịch nhưng không dùng làm micrô.",
       "output": "Thiết bị phát",
       "chooseOutput": "Mở danh sách thiết bị phát của hệ thống",
+      "outputUnavailable": "Không mở được danh sách thiết bị phát. Hãy chọn một thiết bị trong cài đặt hệ thống.",
       "route": {
         "speaker": "Loa điện thoại",
         "headphones": "Tai nghe",

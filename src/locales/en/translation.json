@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Bluetooth headsets play the translation but are not used as the microphone.",
       "output": "Playback device",
       "chooseOutput": "Opens the system's list of playback devices",
+      "outputUnavailable": "Couldn't open the list of playback devices. Choose one in the system's settings.",
       "route": {
         "speaker": "Phone speaker",
         "headphones": "Headphones",

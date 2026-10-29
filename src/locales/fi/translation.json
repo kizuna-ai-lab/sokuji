@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Bluetooth-kuulokkeet toistavat käännöksen, mutta niitä ei käytetä mikrofonina.",
       "output": "Toistolaite",
       "chooseOutput": "Avaa järjestelmän toistolaiteluettelon",
+      "outputUnavailable": "Toistolaitteiden luetteloa ei voitu avata. Valitse laite järjestelmän asetuksista.",
       "route": {
         "speaker": "Puhelimen kaiutin",
         "headphones": "Kuulokkeet",

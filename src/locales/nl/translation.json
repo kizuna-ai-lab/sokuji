@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "Bluetooth-koptelefoons spelen de vertaling af maar dienen niet als microfoon.",
       "output": "Afspeelapparaat",
       "chooseOutput": "Opent de lijst met afspeelapparaten van het systeem",
+      "outputUnavailable": "Kan de lijst met afspeelapparaten niet openen. Kies er een in de systeeminstellingen.",
       "route": {
         "speaker": "Telefoonluidspreker",
         "headphones": "Koptelefoon",

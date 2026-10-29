@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AudioManager } from 'react-native-audio-api';
 import { ChoiceList } from '@/components/ChoiceList';
@@ -24,6 +24,7 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
   const [mics, setMics] = useState<Array<{ id: string; kind: MicrophoneKind; name: string }>>([]);
   const [route, setRoute] = useState<Route>('speaker');
   const [outputName, setOutputName] = useState('');
+  const [outputFailed, setOutputFailed] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -72,8 +73,12 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
         disabledReason={t('mobile.settings.locked')}
       />
       <RowGroup title={t('mobile.devices.output')}>
-        <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} />
+        <OutputRow label={output.label} value={output.value} hint={t('mobile.devices.chooseOutput')} onFailed={() => {
+          setOutputFailed(true);
+          AccessibilityInfo.announceForAccessibility(t('mobile.devices.outputUnavailable'));
+        }} />
       </RowGroup>
+      {outputFailed ? <Notice className="px-4">{t('mobile.devices.outputUnavailable')}</Notice> : null}
       <Notice className="px-4">{t('mobile.listen.headphones')}</Notice>
     </Screen>
   );
@@ -83,7 +88,8 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
 // laid over the row (no API opens it from code); it is the one element a screen
 // reader meets, so the row under it is hidden from one. On Android a press opens
 // the media output panel.
-function OutputRow({ label, value, hint }: { label: string; value?: string; hint: string }) {
+// If no panel opens (none on this phone, or the call throws), onFailed says so.
+function OutputRow({ label, value, hint, onFailed }: { label: string; value?: string; hint: string; onFailed: () => void }) {
   if (Platform.OS === 'ios' && RoutePickerView) {
     const Picker = RoutePickerView;
     return (
@@ -95,5 +101,10 @@ function OutputRow({ label, value, hint }: { label: string; value?: string; hint
       </View>
     );
   }
-  return <Row label={label} value={value} accessibilityHint={hint} onPress={() => { showOutputSwitcher(); }} />;
+  const open = () => {
+    let result: ReturnType<typeof showOutputSwitcher> = 'none';
+    try { result = showOutputSwitcher(); } catch { /* reported below */ }
+    if (result === 'none') onFailed();
+  };
+  return <Row label={label} value={value} accessibilityHint={hint} onPress={open} />;
 }

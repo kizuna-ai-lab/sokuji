@@ -53,6 +53,8 @@ class RoutePickerModule : Module() {
         "bluetooth-settings"
       } catch (_: ActivityNotFoundException) {
         "none"
+      } catch (_: SecurityException) {
+        "none"
       }
     }
   }

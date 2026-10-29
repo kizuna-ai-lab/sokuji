@@ -1760,6 +1760,7 @@
       "noBluetoothMic": "블루투스 헤드셋은 번역 재생에만 쓰고 마이크로는 쓰지 않습니다.",
       "output": "재생 기기",
       "chooseOutput": "시스템의 재생 기기 목록을 엽니다",
+      "outputUnavailable": "재생 기기 목록을 열 수 없습니다. 시스템 설정에서 선택하세요.",
       "route": {
         "speaker": "휴대전화 스피커",
         "headphones": "헤드폰",
