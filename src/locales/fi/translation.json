@@ -1649,14 +1649,14 @@
       "setNewPassword": "Aseta uusi salasana",
       "back": "Takaisin kirjautumiseen",
       "later": "Myöhemmin: vahvista tilinäkymästä",
-      "registerNote": "Saat 6-numeroisen koodin sähköpostitse; sen syöttäminen vahvistaa tilin, ja kokeilusaldo lisätään.",
+      "registerNote": "Saat 6-numeroisen koodin sähköpostitse; sen syöttäminen vahvistaa tilin. Ehdot täyttävät tilit saavat sen jälkeen kokeilusaldon.",
       "sendingCode": "Lähetetään 6-numeroista koodia osoitteeseen {{email}}…",
       "codeNotSent": "Koodia ei voitu lähettää osoitteeseen {{email}}. Tilisi on luotu: napauta Lähetä uudelleen.",
       "showPassword": "Näytä salasana",
       "hidePassword": "Piilota salasana"
     },
     "account": {
-      "verify": "Vahvista sähköpostisi saadaksesi kokeilusaldon",
+      "verify": "Vahvista sähköpostisi – ehdot täyttävät tilit saavat kokeilusaldon",
       "usage30d": "Käytetty viimeisen 30 päivän aikana",
       "hoursLeft": "Noin {{hours}} h jäljellä",
       "frozen": "Tämä tili on jäädytetty",

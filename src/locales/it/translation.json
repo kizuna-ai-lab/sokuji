@@ -1649,14 +1649,14 @@
       "setNewPassword": "Imposta la nuova password",
       "back": "Torna all'accesso",
       "later": "Più tardi: verifica dalla schermata dell'account",
-      "registerNote": "Riceverai un codice a 6 cifre via e-mail; inserendolo l'account viene verificato e il credito di prova viene aggiunto.",
+      "registerNote": "Riceverai un codice a 6 cifre via e-mail; inserendolo l'account viene verificato. Gli account idonei ricevono poi un credito di prova.",
       "sendingCode": "Invio di un codice a 6 cifre a {{email}}…",
       "codeNotSent": "Non è stato possibile inviare il codice a {{email}}. Il tuo account è stato creato: tocca Invia di nuovo.",
       "showPassword": "Mostra password",
       "hidePassword": "Nascondi password"
     },
     "account": {
-      "verify": "Verifica la tua e-mail per ricevere il credito di prova",
+      "verify": "Verifica la tua e-mail: gli account idonei ricevono un credito di prova",
       "usage30d": "Speso negli ultimi 30 giorni",
       "hoursLeft": "Circa {{hours}} h rimanenti",
       "frozen": "Questo account è bloccato",

@@ -1649,14 +1649,14 @@
       "setNewPassword": "设置新密码",
       "back": "返回登录",
       "later": "稍后再说：可在账户页验证",
-      "registerNote": "你会收到一封 6 位验证码邮件；输入后账号即验证完成，试用额度随即到账。",
+      "registerNote": "你会收到一封 6 位验证码邮件；输入后账户即验证完成，符合条件的账户可获得试用额度。",
       "sendingCode": "正在向 {{email}} 发送验证码…",
       "codeNotSent": "验证码未能发到 {{email}}。账户已经创建，请点“重新发送”。",
       "showPassword": "显示密码",
       "hidePassword": "隐藏密码"
     },
     "account": {
-      "verify": "验证邮箱即可领取试用额度",
+      "verify": "验证邮箱后，符合条件的账户可获得试用额度",
       "usage30d": "最近 30 天用量",
       "hoursLeft": "约可用 {{hours}} 小时",
       "frozen": "此账户已冻结",

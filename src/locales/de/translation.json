@@ -1649,14 +1649,14 @@
       "setNewPassword": "Neues Passwort festlegen",
       "back": "Zurück zur Anmeldung",
       "later": "Später: im Kontobildschirm bestätigen",
-      "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt und das Testguthaben folgt.",
+      "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt. Berechtigte Konten erhalten dann ein Testguthaben.",
       "sendingCode": "Ein 6-stelliger Code wird an {{email}} gesendet…",
       "codeNotSent": "Der Code konnte nicht an {{email}} gesendet werden. Dein Konto ist angelegt: Tippe auf „Erneut senden“.",
       "showPassword": "Passwort anzeigen",
       "hidePassword": "Passwort verbergen"
     },
     "account": {
-      "verify": "Bestätige deine E-Mail, um das Testguthaben zu erhalten",
+      "verify": "Bestätige deine E-Mail – berechtigte Konten erhalten ein Testguthaben",
       "usage30d": "Ausgegeben in den letzten 30 Tagen",
       "hoursLeft": "Noch etwa {{hours}} h",
       "frozen": "Dieses Konto ist eingefroren",
