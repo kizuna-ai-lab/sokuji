@@ -6,7 +6,8 @@
  * element.
  */
 import { realClock, type Clock } from '../contract/clock';
-import { RESUME_DEADLINE_MS, type SinkElement } from './graph';
+import { describeCause, reportWarning } from '../diagnostics/report';
+import { MAX_REBUILDS, RESUME_DEADLINE_MS, WEDGE_GRACE_MS, type SinkElement } from './graph';
 
 export interface ContextSinkDeps {
   /** A new context at the app's rate, on the browser's default device. */
@@ -31,8 +32,16 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
   let ran = context.state === 'running';
   /** A context not yet adopted. A newer one replaces it, so a device that hangs holds nothing. */
   let pending: AudioContext | null = null;
-  /** Each switch takes a turn; only the latest may land. */
+  /** Each switch and rebuild takes a turn; only the latest may land. */
   let turn = 0;
+  /** `pause()` was asked: this 'suspended' is ours, not a wedge. */
+  let resting = false;
+  /** Rebuilds since a context last ran. */
+  let rebuilds = 0;
+  /** The cap was reached and said so, once. */
+  let gaveUp = false;
+  let cancelGrace: (() => void) | null = null;
+  let cancelDeadline: (() => void) | null = null;
 
   const connect = (ctx: AudioContext, from: MediaStream) => {
     const node = ctx.createMediaStreamSource(from);
@@ -59,16 +68,87 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     return next;
   };
 
+  const clearWatch = () => {
+    cancelGrace?.();
+    cancelDeadline?.();
+    cancelGrace = cancelDeadline = null;
+  };
+
+  /** The graph's watch sees only its own context (#246), so each sink keeps one of the same shape. */
+  const armDeadline = () => {
+    if (cancelDeadline) return;
+    cancelDeadline = clock.setTimeout(() => {
+      cancelDeadline = null;
+      if (context.state !== 'running' && !resting) void rebuild();
+    }, RESUME_DEADLINE_MS);
+  };
+
+  const onState = () => {
+    if (context.state === 'running') {
+      ran = true;
+      clearWatch();
+      rebuilds = 0;
+      gaveUp = false;
+      return;
+    }
+    if (context.state !== 'suspended' || !ran || resting || cancelGrace || cancelDeadline) return;
+    cancelGrace = clock.setTimeout(() => {
+      cancelGrace = null;
+      if (context.state !== 'suspended' || resting) return;
+      context.resume().catch((error: unknown) => {
+        reportWarning('ContextSink', `The ${deps.label} output did not resume: ${describeCause(error)}`, { dedupeKey: `sink:${deps.label}:resume` });
+      });
+      armDeadline();
+    }, WEDGE_GRACE_MS);
+  };
+
   /** The stream moves first, so the old context, if it is wedged, holds nothing up. */
   const adopt = (next: AudioContext, id: string) => {
     if (pending === next) pending = null;
     const old = context;
+    clearWatch();
+    old.removeEventListener('statechange', onState);
     source?.disconnect();
     context = next;
     device = id;
+    next.addEventListener('statechange', onState);
     source = current ? connect(next, current) : null;
     abandon(old);
   };
+
+  /**
+   * A new context on the same device. A device that is gone stays lost until
+   * `deviceWatch` resolves another and the graph calls `setSinkId`.
+   */
+  const rebuild = async () => {
+    if (current === null) return;
+    if (rebuilds >= MAX_REBUILDS) {
+      if (!gaveUp) reportWarning('ContextSink', `The ${deps.label} output stopped responding and could not be recovered`, { dedupeKey: `sink:${deps.label}:gave-up` });
+      gaveUp = true;
+      return;
+    }
+    rebuilds += 1;
+    turn += 1;
+    const mine = turn;
+    const key = `sink:${deps.label}:rebuild`;
+    reportWarning('ContextSink', `The ${deps.label} output stopped responding and was rebuilt (attempt ${rebuilds} of ${MAX_REBUILDS})`, { dedupeKey: key });
+    let next: AudioContext;
+    try {
+      next = await openOn(device);
+    } catch (error) {
+      reportWarning('ContextSink', `The ${deps.label} output could not be rebuilt: ${describeCause(error)}`, { dedupeKey: key });
+      return;
+    }
+    if (mine !== turn || current === null) {
+      abandon(next);
+      return;
+    }
+    adopt(next, device);
+    void next.resume().catch(() => {});
+    armDeadline();
+  };
+
+  context.addEventListener('statechange', onState);
 
   /** Whether `ctx` runs before the deadline. */
   const startsInTime = async (ctx: AudioContext): Promise<boolean> => {
@@ -95,6 +175,8 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
         source = connect(context, current);
         return;
       }
+      clearWatch();
+      context.removeEventListener('statechange', onState);
       abandon(context);
       if (pending) abandon(pending);
       pending = null;
@@ -146,6 +228,7 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     /** Asked again on a later play() when refused: a context waits for the first user gesture. */
     async play() {
       if (current === null) return;
+      resting = false;
       let cancel = () => {};
       const deadline = new Promise<void>((resolve) => { cancel = clock.setTimeout(resolve, RESUME_DEADLINE_MS); });
       try {
@@ -157,6 +240,8 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     },
 
     pause() {
+      resting = true;
+      clearWatch();
       void context.suspend().catch(() => {});
     },
   };
