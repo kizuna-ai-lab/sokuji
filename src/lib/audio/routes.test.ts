@@ -32,6 +32,16 @@ describe('routesFor', () => {
     expect(edges).toEqual([{ from: 'participant', to: 'them', gain: 1 }]);
   });
 
+  it('sends passthrough to the virtual bus and nowhere else', () => {
+    const on = { ...OFF, speak: ALL, meeting: true, passthrough: { on: true, ratio: 1 } };
+    for (const s of [on, { ...on, faceToFace: true }, { ...on, passthrough: { on: true, ratio: 1, gate: 'held' as const } }]) {
+      for (const held of [false, true]) {
+        const to = routesFor(s, held).filter((e) => e.from === 'passthrough').map((e) => e.to);
+        expect(to.filter((bus) => bus !== 'virtual')).toEqual([]);
+      }
+    }
+  });
+
   it('mixes passthrough into the meeting at its ratio, and closes it while push-to-translate is held', () => {
     const s = { ...OFF, speak: { ...OFF.speak, other: true }, passthrough: { on: true, ratio: 0.3 } };
     expect(routesFor(s, false)).toContainEqual({ from: 'passthrough', to: 'virtual', gain: 0.3 });

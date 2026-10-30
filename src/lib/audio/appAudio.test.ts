@@ -150,7 +150,8 @@ describe('getAppAudio', () => {
     }
     vi.stubGlobal('AudioContext', LiveContext);
     vi.stubGlobal('OfflineAudioContext', OfflineContext);
-    vi.stubGlobal('Audio', class extends FakeSink { constructor() { super(null); } });
+    const audios: FakeSink[] = [];
+    vi.stubGlobal('Audio', class extends FakeSink { constructor() { super(null); audios.push(this); } });
     vi.stubGlobal('AudioWorkletNode', class {
       constructor(_ctx: unknown, name: string, options: { processorOptions: { chunk: number } }) {
         return new FakeWorkletNode(name, options.processorOptions.chunk);
@@ -163,8 +164,20 @@ describe('getAppAudio', () => {
 
     vi.resetModules();
     const { getAppAudio } = await import('./appAudio');
-    return { audio: await getAppAudio(), live, offline, offlineDecode };
+    return { audio: await getAppAudio(), live, offline, offlineDecode, audios };
   }
+
+  it('gives each outlet a context and the virtual bus an element', async () => {
+    environment.value = 'electron';
+    try {
+      const { live, audios } = await toneAudio();
+      expect(live).toHaveLength(4); // the graph's, then other, me, them
+      expect(audios).toHaveLength(1);
+      expect(live.slice(1).map((ctx) => ctx.streamSources.length)).toEqual([1, 1, 1]);
+    } finally {
+      environment.value = 'web';
+    }
+  });
 
   it('decodes the test tone on an offline context of its own, never on the live one (a rebuild may have closed it)', async () => {
     const { audio, live, offline, offlineDecode } = await toneAudio();

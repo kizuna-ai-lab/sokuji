@@ -2,10 +2,11 @@
  * One Web Audio graph for everything the app plays (spec: "Playback"): five
  * feeds, one bus per outlet and one for the meeting, the route table applied
  * as a diff of gain edges, each outlet's pan on its own path, and a
- * tap of the translated speech for the echo monitor. Output leaves through
- * `<audio>` elements, as the old `ModernAudioPlayer`'s did (deleted in plan
- * 1e-3c), so the browser's echo canceller sees it; the context runs at
- * 24 kHz, the system rate. A
+ * tap of the translated speech for the echo monitor. Each outlet leaves through
+ * a context of its own (`contextSink.ts`): the browser's echo canceller takes an
+ * AudioContext's output as its reference, and not an `<audio>` element's. The
+ * virtual bus stays on an `<audio>` element, so the user's own voice never
+ * becomes a reference. The context runs at 24 kHz, the system rate. A
  * context the renderer wedges is rebuilt on a fresh one (#246), behind the
  * same graph object.
  */
@@ -17,7 +18,7 @@ import { createPcmTap, TAP_CHUNK_SAMPLES, type PcmTap } from './pcmTap';
 import { OUTLET_NAMES, type OutletName, type OutletSink } from './outlets';
 import type { Edge, Feed, Outlet } from './routes';
 
-/** An output element: an `HTMLAudioElement` in the app. */
+/** An output: a context sink for an outlet, an `HTMLAudioElement` for the virtual bus. */
 export interface SinkElement {
   srcObject: MediaProvider | null;
   readonly paused: boolean;
@@ -39,7 +40,7 @@ export interface GraphDeps {
   /** Loads `pcm-tap-processor` into the context; its URL differs by platform. */
   addTapModule(context: AudioContext): Promise<void>;
   createTapNode(context: AudioContext, chunk: number): AudioWorkletNode;
-  createSink(stream: MediaStream): SinkElement;
+  createSink(stream: MediaStream, bus: Outlet): SinkElement;
   /** Electron: a virtual speaker device. Extension: the tabs' virtual microphone. Web: none. */
   virtual: VirtualOutput;
   /** Times the wedge watch; `realClock` by default. */
@@ -205,7 +206,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       outs[bus] = out;
       // Only the first build makes the elements. A rebuild leaves them alone
       // until its swap, so a build that throws leaves them where they were.
-      elements[bus] ??= deps.createSink(out.stream);
+      elements[bus] ??= deps.createSink(out.stream, bus);
     };
     for (const name of OUTLET_NAMES) {
       toElement(name);

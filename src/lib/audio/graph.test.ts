@@ -6,6 +6,7 @@ import {
 } from './fakeWebAudio';
 import { CLOSE_WAIT_MS, createAudioGraph, MAX_REBUILDS, SINK_SWITCH_DEADLINE_MS } from './graph';
 import { createPlayback, type RoutingSource } from './playback';
+import type { Outlet } from './routes';
 
 const reportWarningSpy = vi.hoisted(() => vi.fn());
 const reportErrorSpy = vi.hoisted(() => vi.fn());
@@ -17,6 +18,7 @@ vi.mock('../diagnostics/report', async (importOriginal) => {
 async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
   const ctx = new FakeAudioContext();
   const sinks: FakeSink[] = [];
+  const buses: Outlet[] = [];
   const taps: FakeWorkletNode[] = [];
   const sent: Float32Array[] = [];
   const graph = await createAudioGraph({
@@ -27,9 +29,10 @@ async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
       taps.push(node);
       return node as unknown as AudioWorkletNode;
     },
-    createSink: (stream) => {
+    createSink: (stream, bus) => {
       const sink = new FakeSink(stream);
       sinks.push(sink);
+      buses.push(bus);
       return sink;
     },
     virtual: virtual === 'tabs' ? { kind: 'tabs', send: (chunk) => { sent.push(chunk); } } : { kind: virtual },
@@ -44,7 +47,7 @@ async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
     graph.timeline(feed).play(new Int16Array(2400), 0, () => {});
     return ctx.sources[ctx.sources.length - 1];
   };
-  return { ctx, graph, sinks, other, me, them, virtualSink, on, taps, sent, destinationOf, clip };
+  return { ctx, graph, sinks, buses, other, me, them, virtualSink, on, taps, sent, destinationOf, clip };
 }
 
 describe('createAudioGraph — routes', () => {
@@ -140,6 +143,18 @@ describe('createAudioGraph — routes', () => {
 });
 
 describe('createAudioGraph — outputs', () => {
+  it('tells createSink which bus each output is for', async () => {
+    const { buses } = await setup('device');
+    expect(buses).toEqual(['other', 'me', 'them', 'virtual']);
+  });
+
+  it('resting the graph leaves the outputs running', async () => {
+    const { graph, me } = await setup();
+    await graph.resume();
+    await graph.suspend();
+    expect(me.paused).toBe(false);
+  });
+
   it('plays every outlet element from the start, each on its own device', async () => {
     const { graph, other, me, them } = await setup();
     expect([other.paused, me.paused, them.paused]).toEqual([false, false, false]);

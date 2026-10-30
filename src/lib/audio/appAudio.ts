@@ -16,6 +16,7 @@ import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
+import { createContextSink } from './contextSink';
 import { createAudioGraph, type VirtualOutput } from './graph';
 import { OUTLET_NAMES, resolveOutlet, type OutletName, type OutletSink, type Speak } from './outlets';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
@@ -150,7 +151,10 @@ async function build(): Promise<AppAudio> {
       replaceContext: () => new AudioContext({ sampleRate: SAMPLE_RATE }),
       addTapModule: (ctx) => ctx.audioWorklet.addModule(tapModuleUrl(platform)),
       createTapNode: (ctx, chunk) => new AudioWorkletNode(ctx, 'pcm-tap-processor', { processorOptions: { chunk } }),
-      createSink: (stream) => {
+      createSink: (stream, bus) => {
+        if (bus !== 'virtual') {
+          return createContextSink(stream, { label: bus, createContext: () => new AudioContext({ sampleRate: SAMPLE_RATE }) });
+        }
         const element = new Audio();
         element.srcObject = stream;
         return element;

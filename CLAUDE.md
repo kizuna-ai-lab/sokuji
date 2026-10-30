@@ -147,7 +147,8 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      reads it, so Translation I hear falls silent live instead of being recaptured.
    - `src/lib/audio/outlets.ts`: the outlets — `other` (face-to-face's other person), `me`
      (I hear it too), `them` (Translation I hear) — each a stored device and channel (`audio.outlet.<name>.*`)
-     resolved to a sink; `graph.ts` keeps one `<audio>` element per outlet and the virtual one,
+     resolved to a sink; each outlet leaves through its own `AudioContext` (`contextSink.ts`), which
+     the echo canceller takes as a reference, and the virtual bus through an `<audio>` element,
      the pan on the outlet's path
 
 6. **Native runtime (`native/`)**
