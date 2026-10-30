@@ -13,14 +13,21 @@ const Backward = I18nManager.isRTL ? ChevronRight : ChevronLeft;
 const STACK_FROM_FONT_SCALE = 1.35;
 
 /** Back (when there is somewhere to go back to), the title, and an optional action at the end. */
-export function ScreenHeader({ title, onBack, backLabel, end }: { title: string; onBack?: () => void; backLabel?: string; end?: React.ReactNode }) {
+export function ScreenHeader({ title, onBack, backLabel, end, backDisabled = false }: {
+  title: string;
+  onBack?: () => void;
+  backLabel?: string;
+  end?: React.ReactNode;
+  /** Back held while the screen's own request runs (the sign-in flows). */
+  backDisabled?: boolean;
+}) {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale >= STACK_FROM_FONT_SCALE;
   return (
     <View className={cn('px-2 pb-2', stacked ? 'gap-1' : 'min-h-14 flex-row items-center gap-1')}>
       {onBack ? (
-        <Button variant="ghost" className="self-start px-2" onPress={onBack}>
+        <Button variant="ghost" className="self-start px-2" disabled={backDisabled} onPress={onBack}>
           <Icon as={Backward} size={22} />
           <Text>{backLabel ?? t('mobile.common.back')}</Text>
         </Button>
