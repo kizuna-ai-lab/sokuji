@@ -52,17 +52,31 @@ export interface ConversationListProps {
 
 type RowItem = Extract<DisplayItem, { kind: 'row' }>;
 
+/** The row's translation language: the detected one, else the leg's target. Exact app codes, as the adapter compares them. */
+function rowLanguageOf(item: RowItem): string {
+  return item.row.language || item.languages.target;
+}
+
+/** A translation into the leg's own source (a code-switched line): the adapter hands it to the other leg's voice, into that ear. */
+function spokenAbroad(item: RowItem): boolean {
+  const language = rowLanguageOf(item);
+  return language !== item.languages.target && language === item.languages.source;
+}
+
 /**
- * A translation's ear, or 'muted' when it is not in its leg's target language: a code-switched line the
- * adapter skips. Exact app codes, as the adapter compares them (variants such as zh-Hans and zh-Hant are peers).
- * It states what the adapter will speak, not that audio played: a degraded TTS is not reflected.
- * Null on a leg that is never voiced: nothing on it plays, so nothing on it is "not played" either.
+ * A translation's ear: its leg's when it is in the leg's target language; the other leg's when it is in the
+ * leg's source and that leg is voiced (the adapter routes by the translation's language); 'muted' otherwise — a
+ * third language, or a code-switched line with nobody to read it. Exact app codes, as the adapter compares them
+ * (variants such as zh-Hans and zh-Hant are peers). It states what the adapter will speak, not that audio played:
+ * a degraded TTS is not reflected. Null on a leg that is never voiced, unless the other leg reads the row:
+ * nothing on it plays, so nothing on it is "not played" either.
  */
 function earTagOf(item: RowItem, ears: Readonly<Partial<Record<LegName, Ear | 'centre'>>>): Ear | 'centre' | 'muted' | null {
-  const ear = ears[item.leg];
-  if (!ear) return null;
-  const language = item.row.language || item.languages.target;
-  return language === item.languages.target ? ear : 'muted';
+  const own = ears[item.leg];
+  if (rowLanguageOf(item) === item.languages.target) return own ?? null;
+  const other = ears[item.leg === 'speaker' ? 'participant' : 'speaker'];
+  if (spokenAbroad(item) && other) return other;
+  return own ? 'muted' : null;
 }
 
 function formatTime(ts: number): string {
@@ -108,8 +122,13 @@ export function ConversationList({
                 : null;
               // The slot is decided here, session-wide, so a row without one never
               // re-renders for a replay-state change (plan 1e-3b-1 ruling 14). A
-              // translation face-to-face does not play has no audio, so no slot either.
-              const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg) && ear !== 'muted';
+              // translation face-to-face does not play has no audio, so no slot either;
+              // nor has one read abroad: its audio belongs to the other leg, paired with no row.
+              const abroad = ear !== null && ear !== 'muted' && spokenAbroad(item);
+              const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg) && ear !== 'muted' && !abroad;
+              // Coloured by the listener: a speaker-leg translation is heard by the other person, unless it was
+              // read abroad — into the speaker's own language, so by the speaker.
+              const listener: LegName = (item.leg === 'speaker') !== abroad ? 'participant' : 'speaker';
               const id = item.row.segmentId;
               const rowLanguage = item.row.language || (item.row.side === 'translation' ? item.languages.target : item.languages.source);
               const rowReading = readings && readings.size > 0 ? readingLanguage(rowLanguage) : null;
@@ -126,6 +145,7 @@ export function ConversationList({
                   blocked={slot ? replayBlocked ?? null : null}
                   onReplay={replay}
                   ear={ear}
+                  listener={listener}
                   compact={compact}
                   readingLang={readingLang}
                   holdTail={!item.row.final && item.endsSegment}
@@ -163,6 +183,8 @@ interface RowBubbleProps {
   blocked: string | null;
   onReplay(leg: LegName, segmentId: SegmentId): void;
   ear: Ear | 'centre' | 'muted' | null;
+  /** Who hears the ear tag's translation: the colour of the tag. */
+  listener: LegName;
   compact: boolean;
   /** The row's reading language when it gets readings, else null. */
   readingLang: ReadingLanguage | null;
@@ -170,7 +192,7 @@ interface RowBubbleProps {
   holdTail: boolean;
 }
 
-const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, ear, compact, readingLang, holdTail }: RowBubbleProps) {
+const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, ear, listener, compact, readingLang, holdTail }: RowBubbleProps) {
   const { t } = useTranslation();
   const { row, leg, languages } = item;
   const isTranslation = row.side === 'translation';
@@ -246,9 +268,8 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
           </span>
         )}
         {(ear === 'left' || ear === 'right') && (
-          // Coloured by the listener: a speaker-leg translation is heard by the other person.
           <span
-            className={`ear-tag ear-tag--${ear} listener-${leg === 'speaker' ? 'participant' : 'speaker'}`}
+            className={`ear-tag ear-tag--${ear} listener-${listener}`}
             title={ear === 'left' ? t('faceToFace.playedLeft', 'Played in the left ear') : t('faceToFace.playedRight', 'Played in the right ear')}
           >
             {ear === 'left' ? t('faceToFace.earLeft', 'L') : t('faceToFace.earRight', 'R')}

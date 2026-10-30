@@ -231,11 +231,11 @@ describe('Utterances', () => {
     expect(spoken()).toEqual([[2, 'Hello again', [0, 11], 'en']]);
   });
 
-  it("speaks in the first final translation token's language, else the leg's target", () => {
+  it("speaks each run of final translation tokens in its own language, else the leg's target", () => {
     const named = setup();
     named.machine.message([orig('x'), tr('Hola', true, 'es')]);
     named.machine.message([tr(' mundo', true, 'pt')]);
-    expect(named.spoken()).toEqual([[2, 'Hola', [0, 4], 'es'], [2, ' mundo', [4, 10], 'es']]);
+    expect(named.spoken()).toEqual([[2, 'Hola', [0, 4], 'es'], [2, ' mundo', [4, 10], 'pt']]);
 
     const unnamed = setup();
     unnamed.machine.message([orig('x'), tr('Hola', true, '')]);
@@ -316,6 +316,19 @@ describe('Utterances', () => {
     expect(late).toContainEqual({ leg: 'speaker', endSpeech: 2 });
     expect(late.findIndex(said('。'))).toBeLessThan(late.findIndex(ended(2)));
     expect(calls.filter(seg('segmentClosed', 2))).toHaveLength(1);
+  });
+
+  it('speaks each run of final translation tokens in its own language: a stray tail of the last utterance, in the other direction, does not set the next one\'s', () => {
+    const { machine, spoken } = setup();
+    machine.message([orig('Hi.'), END]);
+    // The next person has begun: their first original clears the ended utterance (choice 3).
+    machine.message([{ ...orig('こんにちは'), language: 'ja' }]);
+    // The last utterance's late translation lands on the new one, then the new one's own translation follows, in the other language.
+    machine.message([tr('やあ。', true, 'ja'), tr('Hello', true, 'en'), tr(' there', true, 'en')]);
+    expect(spoken()).toEqual([
+      [3, 'やあ。', [0, 3], 'ja'],
+      [3, 'Hello there', [3, 14], 'en'],
+    ]);
   });
 
   it('a late partial translation opens nothing; the late final that follows opens the translation', () => {

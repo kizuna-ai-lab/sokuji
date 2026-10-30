@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
+    "translationInto": "译成{{language}}",
     "title": "音频设置",
     "virtualMicrophone": "虚拟麦克风",
     "virtualMicrophoneNotice": "虚拟麦克风说明",

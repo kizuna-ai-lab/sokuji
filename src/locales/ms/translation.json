@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Terjemahan ke {{language}}",
     "title": "Tetapan Audio",
     "virtualMicrophone": "Mikrofon maya",
     "virtualMicrophoneNotice": "Notis mikrofon maya",

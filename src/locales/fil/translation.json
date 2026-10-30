@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Salin sa {{language}}",
     "title": "Mga Setting ng Audio",
     "virtualMicrophone": "Virtual na mikropono",
     "virtualMicrophoneNotice": "Paalala sa Virtual Microphone",

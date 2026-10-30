@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "คำแปลเป็นภาษา{{language}}",
     "title": "การตั้งค่าเสียง",
     "virtualMicrophone": "ไมโครโฟนเสมือน",
     "virtualMicrophoneNotice": "ประกาศไมโครโฟนเสมือน",

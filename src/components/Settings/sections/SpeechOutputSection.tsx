@@ -24,6 +24,7 @@ import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSe
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
+import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import VbCableNotice from '../../VbCable/VbCableNotice';
 import { useVbCablePresence } from '../../../stores/vbCableStore';
 
@@ -89,6 +90,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const mode = useMode();
   const f2f = useFaceToFace();
   const faceToFace = f2f.active;
+  const languageName = useLanguageLabel();
   // Subscribed to what the provider lookup reads, so the rows follow a selection or a load.
   useProviderStore((s) => s.selected);
   useProviderStore((s) => s.entries);
@@ -179,8 +181,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
     </>
   );
 
-  const otherLabel = t('audioPanel.otherHears', 'Translation the other side hears');
-  const themLabel = t('audioPanel.iHear', 'Translation I hear');
+  // Face-to-face, each row is one language's voice — the adapter routes by the translation's language — so it is named by it.
+  const into = (code: string | null, fallback: string) => (faceToFace && code ? t('audioPanel.translationInto', 'Translation into {{language}}', { language: languageName(code) }) : fallback);
+  const otherLabel = into(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears'));
+  const themLabel = into(f2f.me, t('audioPanel.iHear', 'Translation I hear'));
   const meLabel = t('audioPanel.meToo', 'I hear it too');
   // The field is nowrap + ellipsis; its title keeps the full text reachable.
   const virtualMicField = platform === 'extension'

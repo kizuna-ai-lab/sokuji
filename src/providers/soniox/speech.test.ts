@@ -58,6 +58,25 @@ describe('tileSpan', () => {
 });
 
 describe('LegSpeech', () => {
+  it("a foreign chunk — another leg's translation, read in this leg's voice — is spoken, but its audio carries no ref and fills in no ranges", async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(7, 'Hola.', [0, 5], 'es', true);
+    expect(tts().sentJson<Json>().some((m) => m.text === 'Hola.')).toBe(true);
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    const audio = kinds('audio').map((e) => e.payload as { ref?: number; pcm: Int16Array; range?: unknown });
+    expect(audio).toHaveLength(1);
+    expect(audio[0].pcm).toHaveLength(2400);
+    expect(audio[0]).not.toHaveProperty('ref');
+    expect(audio[0]).not.toHaveProperty('range');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(kinds('speechRanges')).toHaveLength(0);
+    // Its own chunk afterwards is ranged as ever: the foreign one taught the pace nothing and counts for nothing.
+    speech.speak(8, 'Adiós.', [0, 6], 'es');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-2', audio: b64(2400) }));
+    const own = kinds('audio').map((e) => e.payload as { ref?: number }).at(-1);
+    expect(own?.ref).toBe(8);
+  });
+
   it('streams each chunk as audio on its ref as it arrives, with a provisional range from the prior', async () => {
     const { speech, tts, kinds, frames } = await setup();
     speech.speak(2, 'Hello. ', [0, 7], 'en');

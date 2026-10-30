@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "{{language}} çevirisi",
     "title": "Ses Ayarları",
     "virtualMicrophone": "Sanal mikrofon",
     "virtualMicrophoneNotice": "Sanal Mikrofon Uyarısı",

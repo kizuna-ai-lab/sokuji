@@ -59,7 +59,7 @@ All runs on `stt-rt-v5`, production config unless stated.
 | D7 | Where labels show | main conversation, subtitle window (expanded and compact), LAN viewer, JSON and TXT export, auto-save |
 | D8 | Face-to-face's place | a Both "other side" choice, "beside me (same microphone)" (option C); not a fourth mode, not a Me switch; the setup wizard offers it |
 | D9 | Face-to-face speech | the existing participant-speech path: each leg its own TTS socket and key |
-| D10 | Ears | left = me, right = the other person, swappable; route by the translation's language; a translation into the speaker's own language is not played |
+| D10 | Ears | left = me, right = the other person, swappable; route by the translation's language: a translation into the other leg's target (a code-switched line) is read by that leg's voice, into its ear (2026-10-31: it used not to be played) |
 | D11 | Managed Soniox | the backend mints `par_tts` inside slice 3 (option b); managed and own-key face-to-face ship speaking together |
 | D12 | The participant's voice | a new built-in-only "other party's voice" setting, default a built-in voice unlike mine (option a) |
 | D13 | Endpoint detection | stays on in v1; client-side cuts belong to #580 |
@@ -198,9 +198,13 @@ Face-to-face is Both: two legs, nothing new in the runner.
   utterance's language (the pair's source → speaker, target → participant) into the
   label → side map; a label with an established side decides; language decides before that. This
   is the spike's 12/12 rule.
-- **A leg speaks only translations into its own target.** When a translation's language is the leg's
-  source (someone code-switched), the leg does not speak it. This holds in every mode: in shared Both
-  today a line I say in the other language comes back in mine and is spoken into the meeting.
+- **A translation is read by the voice of its language.** A leg speaks translations into its own target;
+  one whose language is the leg's source (someone code-switched, or a tail of the last utterance that landed
+  on this one) goes to the other leg's voice, into that leg's ear, as audio paired with no row — the row stays
+  on the leg that was spoken to. This holds in shared Both as well. A lone leg, with nobody to hand it to,
+  does not speak it. (2026-10-31, after a mixed-language room: a Chinese speaker's English lines were
+  translated into Chinese and never voiced, since the speaker leg's target is English. Until then a
+  code-switched line was not played at all.)
 
 ### Speech and the participant's voice
 
@@ -233,8 +237,11 @@ Face-to-face is Both: two legs, nothing new in the runner.
 - No person labels in face-to-face: each side is one person, so `labelled()` is false for both legs
   whatever the labels say (a phantom label must not show "Speaker 2").
 - The conversation: each spoken translation row carries an ear tag (L/R, the listener's colour); a
-  translation not spoken under the "own target" rule carries a small icon-only tag whose tooltip
-  says why (D14); the status bar holds an ears legend.
+  translation read by the other leg carries that leg's ear, coloured by its own side; one nobody reads (a
+  third language, or the other leg unvoiced) carries a small icon-only tag whose tooltip says why (D14); the
+  status bar holds an ears legend. Face-to-face, the two speech rows in the audio panel and the Speech
+  settings are named by the language each one voices ("Translation into English"), since that is what
+  each row is.
 - All new words in the 30 catalogs.
 
 ### Managed participant speech (sokuji-backend, then the client)

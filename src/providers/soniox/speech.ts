@@ -90,7 +90,12 @@ export class LegSpeech {
     return this.ensure(true);
   }
 
-  speak(ref: Ref, text: string, span: TextRange, language: string): void {
+  /**
+   * `foreign`: another leg's translation, read in this leg's voice (adapter, "route by the translation's
+   * language"): spoken as any chunk, but its audio pairs with no segment of this leg — it carries no ref and
+   * no range — and its segment fills in no ranges and teaches the pace nothing.
+   */
+  speak(ref: Ref, text: string, span: TextRange, language: string, foreign = false): void {
     if (this.closed) return;
     const continues = this.openSentence === ref;
     this.openSentence = classifyChunkEnd(text) === 'sentence' ? null : ref;
@@ -99,8 +104,8 @@ export class LegSpeech {
       if (continues && this.skipping === ref) return;
       this.skipping = null;
     }
-    const tag: TextTag = { ref, span };
-    this.hold(tag, text);
+    const tag: TextTag = { ref, span, ...(foreign ? { foreign: true as const } : {}) };
+    if (!foreign) this.hold(tag, text);
     this.spoken += text;
     if (this.stream?.isOpen()) {
       this.stream.sendText(text, language, tag);
@@ -169,7 +174,7 @@ export class LegSpeech {
       { clock: this.o.clock, openSocket: this.o.openSocket },
     );
     stream.setHandlers({
-      onAudio: (pcm, info) => { if (stream === this.stream) this.onAudio(pcm, info.streamId, info.ref, info.span); },
+      onAudio: (pcm, info) => { if (stream === this.stream) this.onAudio(pcm, info.streamId, info.ref, info.span, info.foreign); },
       onSegmentEnd: (end) => { if (stream === this.stream) this.onSegmentEnd(end); },
       onError: (code, message, hadActiveStream, scope) => { if (stream === this.stream) this.failure(code, message, hadActiveStream, scope); },
       onUnreadable: (error) => { if (stream === this.stream) this.unreadable(error); },
@@ -233,8 +238,16 @@ export class LegSpeech {
     if (retry) void this.ensure();
   }
 
-  private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined): void {
+  private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined, foreign?: true): void {
     if (this.closed || ref === undefined || pcm.length === 0) return;
+    if (foreign) {
+      // Plays, pairs with nothing (the contract's ref-less audio): the row it speaks is another leg's.
+      this.reported = null;
+      this.readable = true;
+      this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
+      this.o.events.audio({ pcm });
+      return;
+    }
     const index = this.counts.get(ref) ?? 0;
     this.counts.set(ref, index + 1);
     const entries = this.segments.get(streamId) ?? [];
@@ -266,6 +279,8 @@ export class LegSpeech {
     const sweep = this.sweeps.get(end.streamId);
     this.segments.delete(end.streamId);
     this.sweeps.delete(end.streamId);
+    // A foreign segment ranged nothing and teaches nothing: its text was never held here.
+    if (end.foreign) return;
     // Filled in or lost, the segment's text is done with either way. Speech switched off let it go
     // already: the text its chunks were placed in stands in, so a boundary still snaps past a surrogate pair.
     const held = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';

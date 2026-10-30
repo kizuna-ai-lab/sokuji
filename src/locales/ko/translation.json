@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "{{language}} 번역",
     "title": "오디오 설정",
     "virtualMicrophone": "가상 마이크",
     "virtualMicrophoneNotice": "가상 마이크 안내",

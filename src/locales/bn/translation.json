@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "{{language}}-এ অনুবাদ",
     "title": "অডিও সেটিংস",
     "virtualMicrophone": "ভার্চুয়াল মাইক্রোফোন",
     "virtualMicrophoneNotice": "ভার্চুয়াল মাইক্রোফোন নোটিশ",

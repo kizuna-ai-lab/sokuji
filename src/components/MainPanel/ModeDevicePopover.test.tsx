@@ -227,12 +227,12 @@ describe('ModeDevicePopover — Both, the other side', () => {
     f2f.active = true;
     store.otherSide = 'beside';
     mountBoth();
-    expect(order()).toEqual(['Microphone', 'choice', 'Translation the other side hears', 'Translation I hear']);
+    expect(order()).toEqual(['Microphone', 'choice', 'Translation into EN', 'Translation into JA']);
     expect(document.querySelector('.mode-device-popover__ears')).toBeNull();
     expect(screen.queryByRole('button', { name: /Swap/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Preview Translation the other side hears' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Translation into EN' }));
     await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('other'));
-    fireEvent.click(screen.getByRole('button', { name: 'Preview Translation I hear' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Translation into JA' }));
     await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('them'));
   });
 
@@ -241,7 +241,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     mountBoth();
     const rows = Array.from(document.querySelectorAll('.mode-device-popover__row'));
-    const them = rows.find((r) => r.textContent?.includes('Translation I hear'))!;
+    const them = rows.find((r) => r.textContent?.includes('Translation into JA'))!;
     expect(them.querySelector('.mode-device-popover__summary')?.textContent).toBe('Follow default · left channel');
     fireEvent.click(them.querySelector('.mode-device-popover__row-main')!);
     const options = Array.from(document.querySelectorAll('.mode-device-popover__device-row')).map((el) => el.textContent);
@@ -261,7 +261,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     outletsState.outlets = { ...outletsState.outlets, other: { device: 'usb-gone', channel: 'right' } };
     mountBoth();
-    const other = Array.from(document.querySelectorAll('.mode-device-popover__row')).find((r) => r.textContent?.includes('Translation the other side hears'))!;
+    const other = Array.from(document.querySelectorAll('.mode-device-popover__row')).find((r) => r.textContent?.includes('Translation into EN'))!;
     expect(other.querySelector('.mode-device-popover__summary')?.textContent).toBe('Follow default · right channel');
   });
 
@@ -270,7 +270,7 @@ describe('ModeDevicePopover — Both, the other side', () => {
     store.otherSide = 'beside';
     tone.mockRejectedValue(new Error('no output device'));
     mountBoth();
-    fireEvent.click(screen.getByRole('button', { name: 'Preview Translation I hear' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview Translation into JA' }));
     await vi.waitFor(() => expect(report.error).toHaveBeenCalledTimes(1));
     const [source, message, options] = report.error.mock.calls[0];
     expect(source).toBe('ModeDevicePopover');

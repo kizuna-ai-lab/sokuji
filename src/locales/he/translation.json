@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "תרגום ל-{{language}}",
     "title": "הגדרות שמע",
     "virtualMicrophone": "מיקרופון וירטואלי",
     "virtualMicrophoneNotice": "הודעת מיקרופון וירטואלי",

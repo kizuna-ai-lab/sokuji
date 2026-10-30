@@ -51,6 +51,9 @@ function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst
   return { sockets, clock, timers, controller, rec, starting, sttSockets, ttsSockets, openAll, kinds, of };
 }
 
+/** The TTS stream the adapter opened last on this socket. */
+const lastStream = (x: FakeSocket) => x.sentJson<{ stream_id?: string; model?: string }>().filter((m) => m.model !== undefined).map((m) => m.stream_id!).pop();
+
 /** A 100-ms frame's worth of one level (the mixer's frame). */
 const level = (v: number) => new Int16Array(2400).fill(v);
 
@@ -437,17 +440,36 @@ describe('Soniox startBoth: shared', () => {
 });
 
 describe('Soniox startBoth: shared, languages', () => {
-  it("shared: a translation into the speaker's own language is not spoken, and the leg still speaks after it", async () => {
-    const h = await live();
+  it("shared: a translation into the speaker's own language is read by the participant's voice, into their ear, ref-less; the speaker's leg speaks on after it", async () => {
+    const h = await live({ participantSpeaks: true });
     speak(h, 'speaker', 10);
-    // The speaker's source is 'en'; they said a Japanese line, so Soniox translated it into English.
+    // The speaker's source is 'en'; they said a Japanese line, so Soniox translated it into English — the participant leg's target.
     h.sttSockets()[0].receive(msg({ ...orig('Daijōbu.'), language: 'ja' }, tr('It is fine.', 'en', 'ja'), END));
     expect(opened(h, 'speaker')).toEqual([1, 2]);
-    const [speakerTts] = h.ttsSockets();
+    expect(opened(h, 'participant')).toEqual([]);
+    const [speakerTts, participantTts] = h.ttsSockets();
     expect(speakerTts.sentJson<Json>().some((m) => m.text === 'It is fine.')).toBe(false);
-    // A normal line afterwards is spoken: the skip did not close the leg's speech.
+    const sent = participantTts.sentJson<Json>();
+    expect(sent.find((m) => m.model !== undefined)).toMatchObject({ language: 'en' });
+    expect(sent.some((m) => m.text === 'It is fine.')).toBe(true);
+    // The utterance's end reaches the participant's voice too: its segment is closed with text_end.
+    expect(sent.some((m) => m.text === '' && m.text_end === true)).toBe(true);
+    // Its audio plays on the participant leg, paired with no segment there.
+    participantTts.receive(JSON.stringify({ stream_id: lastStream(participantTts), audio: b64(2400) }));
+    const audio = h.of('participant', 'audio');
+    expect(audio).toHaveLength(1);
+    expect(audio[0].payload).not.toHaveProperty('ref');
+    expect(h.of('speaker', 'audio')).toHaveLength(0);
+    // A normal line afterwards is spoken by the speaker's own voice.
     h.sttSockets()[0].receive(msg(orig('Good morning.'), tr('おはよう。'), END));
     expect(speakerTts.sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
+  });
+
+  it("shared: a translation into the speaker's own language is not spoken when the participant's leg has no voice", async () => {
+    const h = await live();
+    speak(h, 'speaker', 10);
+    h.sttSockets()[0].receive(msg({ ...orig('Daijōbu.'), language: 'ja' }, tr('It is fine.', 'en', 'ja'), END));
+    for (const tts of h.ttsSockets()) expect(tts.sentJson<Json>().some((m) => m.text === 'It is fine.')).toBe(false);
   });
 
   it("shared: the token and the pair are both in app codes, so Soniox's 'tl' meets the source 'fil'", async () => {
@@ -476,19 +498,23 @@ describe('Soniox startBoth: cancelled', () => {
 });
 
 describe('Soniox startBoth: face-to-face', () => {
-  it("face-to-face: the other person's code-switched line is not read back to them, and they are still spoken to after it", async () => {
+  it("face-to-face: the other person's code-switched line is read by the voice of its language — the speaker's — and they are still spoken to after it", async () => {
     const h = await live({ faceToFace: true, participantSpeaks: true });
     const stt = h.sttSockets()[0];
     // Label '2' speaks Japanese (the participant's source): two lines establish it as the participant.
     stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, END));
     stt.receive(msg({ ...orig('Arigatō.'), language: 'ja', speaker: '2' }, END));
-    // They now say an English line; Soniox translates it into Japanese — their own language.
+    // They now say an English line; Soniox translates it into Japanese — their own language, and the speaker leg's target.
     stt.receive(msg({ ...orig('Thank you.'), language: 'en', speaker: '2' }, tr('Dōmo arigatō.', 'ja', 'en'), END));
     expect(opened(h, 'participant')).toEqual([1, 2, 3, 4]);
-    for (const tts of h.ttsSockets()) expect(tts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(false);
-    // A normal line afterwards is spoken to the speaker: the skip did not close the participant's speech.
+    expect(opened(h, 'speaker')).toEqual([]);
+    const [speakerTts, participantTts] = h.ttsSockets();
+    expect(participantTts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(false);
+    expect(speakerTts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(true);
+    expect(speakerTts.sentJson<Json>().find((m) => m.model !== undefined)).toMatchObject({ language: 'ja' });
+    // A normal line afterwards is spoken to the speaker by the participant's own voice.
     stt.receive(msg({ ...orig('Mata ne.'), language: 'ja', speaker: '2' }, tr('See you.', 'en', 'ja'), END));
-    expect(h.ttsSockets().some((tts) => tts.sentJson<Json>().some((m) => m.text === 'See you.'))).toBe(true);
+    expect(participantTts.sentJson<Json>().some((m) => m.text === 'See you.')).toBe(true);
   });
 
   it('attributes by label and language, not energy: a code-switched line stays with its speaker', async () => {

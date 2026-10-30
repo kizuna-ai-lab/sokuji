@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "الترجمة إلى {{language}}",
     "title": "إعدادات الصوت",
     "virtualMicrophone": "ميكروفون افتراضي",
     "virtualMicrophoneNotice": "إشعار الميكروفون الافتراضي",

@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Käännös kielelle {{language}}",
     "title": "Ääniasetukset",
     "virtualMicrophone": "Virtuaalimikrofoni",
     "virtualMicrophoneNotice": "Virtuaalimikrofonin ilmoitus",

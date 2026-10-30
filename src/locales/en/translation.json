@@ -345,6 +345,7 @@
     "apiKeyHelpTooltip2": "Step-by-step guide:"
   },
   "audioPanel": {
+    "translationInto": "Translation into {{language}}",
     "title": "Audio Settings",
     "virtualMicrophone": "Virtual microphone",
     "virtualMicrophoneNotice": "Virtual Microphone Notice",

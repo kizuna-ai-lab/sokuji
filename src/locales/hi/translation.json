@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "{{language}} में अनुवाद",
     "title": "ऑडियो सेटिंग्स",
     "virtualMicrophone": "वर्चुअल माइक्रोफ़ोन",
     "virtualMicrophoneNotice": "वर्चुअल माइक्रोफ़ोन सूचना",

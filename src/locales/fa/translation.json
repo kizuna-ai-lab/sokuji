@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "ترجمه به {{language}}",
     "title": "تنظیمات صدا",
     "virtualMicrophone": "میکروفون مجازی",
     "virtualMicrophoneNotice": "اطلاعیه میکروفون مجازی",

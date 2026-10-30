@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
+    "translationInto": "{{language}}への翻訳",
     "title": "オーディオ設定",
     "virtualMicrophone": "仮想マイク",
     "virtualMicrophoneNotice": "仮想マイクについて",

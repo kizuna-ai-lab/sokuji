@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Traducción al {{language}}",
     "title": "Configuración de audio",
     "virtualMicrophone": "Micrófono virtual",
     "virtualMicrophoneNotice": "Aviso sobre micrófono virtual",

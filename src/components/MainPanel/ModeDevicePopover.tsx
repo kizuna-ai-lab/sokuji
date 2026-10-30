@@ -22,6 +22,7 @@ import {
   useOutlets, useSetOutletDevice, useSetOutletChannel, useSelectedMonitorDevice,
 } from '../../stores/audioStore';
 import { useFaceToFace } from './useFaceToFace';
+import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import OtherSideChoice from '../FaceToFace/OtherSideChoice';
 import { getAppAudio } from '../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../lib/audio/outletOptions';
@@ -98,6 +99,9 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
   const f2f = useFaceToFace();
   const beside = mode === 'both' && f2f.active;
+  const languageName = useLanguageLabel();
+  // Beside me, each row is one language's voice — the adapter routes by the translation's language — so it is named by it.
+  const into = (code: string | null, fallback: string) => (code ? t('audioPanel.translationInto', 'Translation into {{language}}', { language: languageName(code) }) : fallback);
 
   const outlets = useOutlets();
   const setOutletDevice = useSetOutletDevice();
@@ -280,15 +284,15 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (beside) {
-      list.push(outletRow('other', 'other', t('audioPanel.otherHears', 'Translation the other side hears'), { onPreview: () => previewOn('other') }));
-      list.push(outletRow('them', 'them', t('audioPanel.iHear', 'Translation I hear'), { onPreview: () => previewOn('them') }));
+      list.push(outletRow('other', 'other', into(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears')), { onPreview: () => previewOn('other') }));
+      list.push(outletRow('them', 'them', into(f2f.me, t('audioPanel.iHear', 'Translation I hear')), { onPreview: () => previewOn('them') }));
     }
 
     return list;
     // outletRow and previewOn close over the values listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mode, beside, locked, provider, textOnly, outlets, defaultDevice, participantSpeech, heard, runSpeech,
+    mode, beside, f2f.me, f2f.other, languageName, locked, provider, textOnly, outlets, defaultDevice, participantSpeech, heard, runSpeech,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,

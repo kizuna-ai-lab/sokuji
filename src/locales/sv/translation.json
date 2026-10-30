@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Översättning till {{language}}",
     "title": "Ljudinställningar",
     "virtualMicrophone": "Virtuell mikrofon",
     "virtualMicrophoneNotice": "Meddelande om virtuell mikrofon",

@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Bản dịch sang {{language}}",
     "title": "Cài đặt âm thanh",
     "virtualMicrophone": "Micro ảo",
     "virtualMicrophoneNotice": "Thông Báo Micro Ảo",

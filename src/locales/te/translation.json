@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "{{language}} అనువాదం",
     "title": "ఆడియో సెట్టింగ్‌లు",
     "virtualMicrophone": "వర్చువల్ మైక్రోఫోన్",
     "virtualMicrophoneNotice": "వర్చువల్ మైక్రోఫోన్ నోటీసు",

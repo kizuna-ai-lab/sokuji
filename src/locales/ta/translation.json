@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "{{language}} மொழிபெயர்ப்பு",
     "title": "ஆடியோ அமைப்புகள்",
     "virtualMicrophone": "மெய்நிகர் மைக்ரோஃபோன்",
     "virtualMicrophoneNotice": "மெய்நிகர் மைக்ரோஃபோன் அறிவிப்பு",

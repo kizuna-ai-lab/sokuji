@@ -345,6 +345,7 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "translationInto": "Terjemahan ke {{language}}",
     "title": "Pengaturan audio",
     "virtualMicrophone": "Mikrofon virtual",
     "virtualMicrophoneNotice": "Pemberitahuan mikrofon virtual",
