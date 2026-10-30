@@ -21,6 +21,38 @@ import type { Clip, Sentence } from './segments';
 /** A clip's Ogg Opus as the contract's 24 kHz mono Int16. */
 export type OggDecoder = (ogg: Uint8Array) => Promise<Int16Array>;
 
+const OGG_PAGE = [0x4f, 0x67, 0x67, 0x53]; // "OggS"
+const OPUS_HEAD = 'OpusHead';
+const OPUS_TAGS = 'OpusTags';
+
+/**
+ * Whether an Ogg Opus clip carries any audio page. Doubao closes a silent
+ * stretch (the speaker paused for seconds, then went on) as an empty sentence
+ * whose "clip" is the two header pages alone — OpusHead and OpusTags, ~129
+ * bytes, no audio tokens billed — which no decoder can turn into sound. Such
+ * a clip is nothing to say, not a failure. A clip that does not parse as Ogg
+ * pages is left to the decoder, as before.
+ */
+export function hasOpusAudio(ogg: Uint8Array): boolean {
+  let at = 0;
+  let pages = 0;
+  while (at + 27 <= ogg.length) {
+    if (!OGG_PAGE.every((b, i) => ogg[at + i] === b)) return true;
+    const segments = ogg[at + 26];
+    const table = at + 27;
+    const body = table + segments;
+    if (body > ogg.length) return true;
+    let size = 0;
+    for (let i = 0; i < segments; i++) size += ogg[table + i];
+    const head = String.fromCharCode(...ogg.subarray(body, Math.min(body + 8, ogg.length)));
+    if (size > 0 && head !== OPUS_HEAD && head !== OPUS_TAGS) return true;
+    pages += 1;
+    at = body + size;
+  }
+  // No page past the headers: silence. Anything unparseable before a page boundary went to the decoder above.
+  return pages === 0 && ogg.length > 0;
+}
+
 export type SpeechSink = Pick<AdapterEvents, 'audio' | 'degraded'>;
 
 /** A clip's translation and range, asked for as the clip is emitted (`Ast2Segments.clipFor`). */
@@ -49,8 +81,12 @@ export class Ast2Speech {
     if (data.length > 0) this.chunks.push(new Uint8Array(data));
   }
 
-  /** `TTSSentenceEnd`, or `TTSEnded` for what is left: the clip goes to the decoder; answers what it held, for the adapter's frame — nothing once stopped. */
-  flush(): { chunks: number; bytes: number } {
+  /**
+   * `TTSSentenceEnd`, or `TTSEnded` for what is left: the clip goes to the decoder; answers what it held, for the
+   * adapter's frame — nothing once stopped. A clip of header pages alone (`hasOpusAudio`) is skipped, said only
+   * by the frame's `empty`: it is a silent stretch Doubao closed as a sentence, not a decode to fail.
+   */
+  flush(): { chunks: number; bytes: number; empty?: true } {
     const held = this.chunks;
     this.chunks = [];
     if (this.stopped) return { chunks: 0, bytes: 0 };
@@ -59,6 +95,7 @@ export class Ast2Speech {
     const clip = new Uint8Array(bytes);
     let at = 0;
     for (const c of held) { clip.set(c, at); at += c.length; }
+    if (!hasOpusAudio(clip)) return { chunks: held.length, bytes, empty: true };
     const sentence = this.sentence;
     this.chain = this.chain
       // A clip still waiting when the session stops is never decoded: the empty pcm is dropped below.
