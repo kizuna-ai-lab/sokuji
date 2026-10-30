@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "Terjemahan {{language}} diputar di",
-    "playsOnTip": "Di mana terjemahan {{language}} diputar: perangkat dan, dengan headphone, telinga yang mana. Yang mendengarkan dalam {{language}} memakai sisi itu.",
+    "playsOnTip": "Terjemahan {{language}} diputar di sini: pilih perangkat dan sisi (kiri atau kanan) yang dipakai pendengar {{language}}.",
     "title": "Pengaturan audio",
     "virtualMicrophone": "Mikrofon virtual",
     "virtualMicrophoneNotice": "Pemberitahuan mikrofon virtual",

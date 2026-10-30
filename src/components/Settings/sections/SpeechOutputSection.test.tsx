@@ -360,8 +360,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(screen.getByText(/Use headphones, one side each/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Preview/ })).toHaveLength(2);
     // Each row's help says where that language's translation plays, not what the row is in a meeting.
-    expect(tooltips).toContain('Where the English translation is played: the device and, with headphones, the ear. Whoever listens in English wears that side.');
-    expect(tooltips).toContain('Where the Japanese translation is played: the device and, with headphones, the ear. Whoever listens in Japanese wears that side.');
+    expect(tooltips).toContain('The English translation plays here: pick the device and the side (left or right) the English listener wears.');
+    expect(tooltips).toContain('The Japanese translation plays here: pick the device and the side (left or right) the Japanese listener wears.');
   });
 
   it('Both · beside me: an auto source keeps the generic name and tooltip, since it names no language', () => {

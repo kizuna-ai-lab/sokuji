@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "Pinapatugtog ang salin sa {{language}} sa",
-    "playsOnTip": "Kung saan pinapatugtog ang salin sa {{language}}: ang device at, kung may headphones, aling tainga. Ang nakikinig sa {{language}} ang nagsusuot ng gilid na iyon.",
+    "playsOnTip": "Dito pinapatugtog ang salin sa {{language}}: piliin ang device at ang gilid (kaliwa o kanan) na suot ng nakikinig sa {{language}}.",
     "title": "Mga Setting ng Audio",
     "virtualMicrophone": "Virtual na mikropono",
     "virtualMicrophoneNotice": "Paalala sa Virtual Microphone",

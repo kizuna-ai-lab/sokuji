@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "{{language}} 번역 재생 장치",
-    "playsOnTip": "{{language}} 번역을 재생할 장치와, 헤드폰이면 어느 쪽 귀인지. {{language}}로 듣는 사람이 그쪽을 착용합니다.",
+    "playsOnTip": "{{language}} 번역이 여기서 재생됩니다. 장치와, {{language}}를 듣는 사람이 끼는 쪽(왼쪽/오른쪽)을 고르세요.",
     "title": "오디오 설정",
     "virtualMicrophone": "가상 마이크",
     "virtualMicrophoneNotice": "가상 마이크 안내",

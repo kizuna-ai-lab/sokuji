@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "{{language}} çevirisinin çalındığı yer",
-    "playsOnTip": "{{language}} çevirisinin çalındığı yer: cihaz ve kulaklıkla hangi kulak. {{language}} dinleyen kişi o tarafı takar.",
+    "playsOnTip": "{{language}} çevirisi buradan çalar: cihazı ve {{language}} dinleyen kişinin taktığı tarafı (sol veya sağ) seçin.",
     "title": "Ses Ayarları",
     "virtualMicrophone": "Sanal mikrofon",
     "virtualMicrophoneNotice": "Sanal Mikrofon Uyarısı",

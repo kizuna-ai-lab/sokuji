@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "Lecture de la traduction en {{language}}",
-    "playsOnTip": "Où la traduction en {{language}} est lue : l’appareil et, avec un casque, l’oreille. La personne qui écoute en {{language}} porte ce côté.",
+    "playsOnTip": "La traduction en {{language}} est lue ici : choisissez l’appareil et le côté (gauche ou droite) que porte la personne qui écoute en {{language}}.",
     "title": "Paramètres audio",
     "virtualMicrophone": "Microphone virtuel",
     "virtualMicrophoneNotice": "Avis sur le microphone virtuel",

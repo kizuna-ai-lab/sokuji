@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "Riproduzione della traduzione in {{language}}",
-    "playsOnTip": "Dove viene riprodotta la traduzione in {{language}}: il dispositivo e, con le cuffie, l’orecchio. Chi ascolta in {{language}} indossa quel lato.",
+    "playsOnTip": "La traduzione in {{language}} si sente qui: scegli il dispositivo e il lato (sinistro o destro) che indossa chi ascolta in {{language}}.",
     "title": "Impostazioni audio",
     "virtualMicrophone": "Microfono virtuale",
     "virtualMicrophoneNotice": "Avviso microfono virtuale",

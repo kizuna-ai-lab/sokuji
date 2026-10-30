@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "{{language}}訳の再生先",
-    "playsOnTip": "{{language}}訳を再生するデバイスと、ヘッドホンなら左右どちらの耳か。{{language}}で聞く人がその側を着けます。",
+    "playsOnTip": "{{language}}訳はここから再生されます。デバイスと、{{language}}を聞く人が着ける側（左か右）を選んでください。",
     "title": "オーディオ設定",
     "virtualMicrophone": "仮想マイク",
     "virtualMicrophoneNotice": "仮想マイクについて",
