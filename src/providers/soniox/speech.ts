@@ -169,6 +169,7 @@ export class LegSpeech {
     this.segments.clear();
     this.sweeps.clear();
     this.texts.clear();
+    this.homes.clear();
     // A close while CONNECTING rejects its connect(); ensure()'s catch sees `closed` and says nothing.
     this.opening?.close();
     this.opening = null;
@@ -281,13 +282,16 @@ export class LegSpeech {
     // Filled in or lost, the segment's text is done with either way. Speech switched off let it go
     // already: the text its chunks were placed in stands in, so a boundary still snaps past a surrogate pair.
     const held = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
+    // The home of a ref whose chunks are all spoken is let go with them; a late chunk names it again (`speak`).
+    const home = end.ref !== undefined ? this.homes.get(end.ref) : undefined;
+    if (end.ref !== undefined && !this.texts.has(end.ref)) this.homes.delete(end.ref);
     const text = held.length > 0 ? held : sweep?.text ?? '';
     if (this.closed || !end.span || end.ref === undefined || !entries || entries.length === 0) return;
     // Clean or not, the chunks that arrived take the span: an unclean end (a kill, a lost socket,
     // speech switched off) would otherwise leave its row lit part way after the voice stopped.
     const [a, b] = end.span;
     const ranges = tileSpan([0, b - a], entries.map((e) => e.samples), text).map(([s, e]): TextRange => [a + s, a + e]);
-    (this.homes.get(end.ref) ?? this.o.events).speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
+    (home ?? this.o.events).speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
     // Only a whole segment says how long its text takes to speak.
     if (end.clean) this.pace.learn(text, entries.reduce((n, e) => n + e.samples, 0));
   }

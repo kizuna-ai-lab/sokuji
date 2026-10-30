@@ -57,6 +57,11 @@ function rowLanguageOf(item: RowItem): string {
   return item.row.language || item.languages.target;
 }
 
+/** The other side of a face-to-face pair. */
+function otherLeg(leg: LegName): LegName {
+  return leg === 'speaker' ? 'participant' : 'speaker';
+}
+
 /** A translation into the leg's own source (a code-switched line): the adapter hands it to the other leg's voice, into that ear. */
 function spokenAbroad(item: RowItem): boolean {
   const language = rowLanguageOf(item);
@@ -74,7 +79,7 @@ function spokenAbroad(item: RowItem): boolean {
 function earTagOf(item: RowItem, ears: Readonly<Partial<Record<LegName, Ear | 'centre'>>>): Ear | 'centre' | 'muted' | null {
   const own = ears[item.leg];
   if (rowLanguageOf(item) === item.languages.target) return own ?? null;
-  const other = ears[item.leg === 'speaker' ? 'participant' : 'speaker'];
+  const other = ears[otherLeg(item.leg)];
   if (spokenAbroad(item) && other) return other;
   return own ? 'muted' : null;
 }
@@ -125,11 +130,11 @@ export function ConversationList({
               // translation face-to-face does not play has no audio, so no slot either. One read
               // abroad has its audio on this row, in the other leg's voice: the slot follows that leg.
               const abroad = ear !== null && ear !== 'muted' && spokenAbroad(item);
-              const voiceLeg: LegName = abroad ? (item.leg === 'speaker' ? 'participant' : 'speaker') : item.leg;
+              const voiceLeg = abroad ? otherLeg(item.leg) : item.leg;
               const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(voiceLeg) && ear !== 'muted';
-              // Coloured by the listener: a speaker-leg translation is heard by the other person, unless it was
-              // read abroad — into the speaker's own language, so by the speaker.
-              const listener: LegName = (item.leg === 'speaker') !== abroad ? 'participant' : 'speaker';
+              // Coloured by the listener: the voice's other side — a speaker-leg translation is heard by the other
+              // person, unless it was read abroad, into the speaker's own language, so by the speaker.
+              const listener = otherLeg(voiceLeg);
               const id = item.row.segmentId;
               const rowLanguage = item.row.language || (item.row.side === 'translation' ? item.languages.target : item.languages.source);
               const rowReading = readings && readings.size > 0 ? readingLanguage(rowLanguage) : null;

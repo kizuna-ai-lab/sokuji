@@ -139,6 +139,9 @@ describe('createPlayback — live audio', () => {
     expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
     playback.replay('speaker', translation(6, [{ pcm: pcm(100), voice: 'participant' }]));
     expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'them', gain: 1 });
+    // The voice of an entry that will play decides, not one retention dropped.
+    playback.replay('speaker', translation(7, [{ pcm: EMPTY_PCM, voice: 'participant' }, { pcm: pcm(100) }]));
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
   });
 
   it('keys audio that names no segment with none', () => {
