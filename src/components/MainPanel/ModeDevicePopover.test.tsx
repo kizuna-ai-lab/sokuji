@@ -236,6 +236,18 @@ describe('ModeDevicePopover — Both, the other side', () => {
     await vi.waitFor(() => expect(tone).toHaveBeenCalledWith('them'));
   });
 
+  it('beside me: an auto source keeps the generic name, since it names no language', () => {
+    f2f.active = true;
+    f2f.me = 'auto';
+    store.otherSide = 'beside';
+    try {
+      mountBoth();
+      expect(order()).toEqual(['Microphone', 'choice', 'EN translation plays on', 'Translation I hear']);
+    } finally {
+      f2f.me = 'ja';
+    }
+  });
+
   it('beside me: the translation rows list follow-default and each device three ways, summarise the resolved entry, and a pick writes the outlet without touching a switch', () => {
     f2f.active = true;
     store.otherSide = 'beside';

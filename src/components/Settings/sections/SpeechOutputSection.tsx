@@ -25,6 +25,7 @@ import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
+import { AUTO } from '../../../lib/provider/languages';
 import VbCableNotice from '../../VbCable/VbCableNotice';
 import { useVbCablePresence } from '../../../stores/vbCableStore';
 
@@ -183,8 +184,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
   // Face-to-face, each row picks where one language's translation plays — the adapter routes by the translation's
   // language — so it is named by it, and its tooltip says where that voice goes.
-  const playsOn = (code: string | null, fallback: string) => (faceToFace && code ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
-  const playsOnTip = (code: string | null): string | null => (faceToFace && code
+  // An auto source names no language (Both refuses it at start anyway): the generic name and tooltip stay.
+  const named = (code: string | null): code is string => faceToFace && code !== null && code !== AUTO;
+  const playsOn = (code: string | null, fallback: string) => (named(code) ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
+  const playsOnTip = (code: string | null): string | null => (named(code)
     ? t('audioPanel.playsOnTip', 'Where the {{language}} translation is played: the device and, with headphones, the ear. Whoever listens in {{language}} wears that side.', { language: languageName(code) })
     : null);
   const otherLabel = playsOn(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears'));

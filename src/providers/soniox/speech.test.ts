@@ -77,6 +77,21 @@ describe('LegSpeech', () => {
     expect(own[own.length - 1].ref).toBe(8);
   });
 
+  it('a foreign chunk that waited for the socket is spoken when it opens, still ref-less', async () => {
+    const made = create();
+    made.speech.speak(7, 'Hola.', [0, 5], 'es', true);
+    made.sockets.last().open();
+    await made.opening;
+    const tts = made.sockets.last();
+    expect(tts.sentJson<Json>().some((m) => m.text === 'Hola.')).toBe(true);
+    tts.receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    const audio = made.kinds('audio').map((e) => e.payload as { ref?: number; range?: unknown });
+    expect(audio).toHaveLength(1);
+    expect(audio[0]).not.toHaveProperty('ref');
+    tts.receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(made.kinds('speechRanges')).toHaveLength(0);
+  });
+
   it('streams each chunk as audio on its ref as it arrives, with a provisional range from the prior', async () => {
     const { speech, tts, kinds, frames } = await setup();
     speech.speak(2, 'Hello. ', [0, 7], 'en');

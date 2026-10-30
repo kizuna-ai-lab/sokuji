@@ -319,7 +319,8 @@ export class LegSpeech {
   /** Only the text still waiting to be sent can end in a segment now: a socket that was let go took its live segments with it, unreported. */
   private holdOnlyPending(): void {
     this.texts = new Map();
-    for (const op of this.pending) if (op.kind === 'text') this.hold(op.tag, op.text);
+    // A foreign chunk is never held (`speak`): its segment ranges nothing and releases nothing.
+    for (const op of this.pending) if (op.kind === 'text' && !op.tag.foreign) this.hold(op.tag, op.text);
   }
 
   private failure(code: string, message: string, hadActiveStream: boolean, scope: SonioxTtsErrorScope): void {

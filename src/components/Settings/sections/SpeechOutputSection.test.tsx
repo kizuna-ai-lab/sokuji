@@ -364,6 +364,15 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(tooltips).toContain('Where the Japanese translation is played: the device and, with headphones, the ear. Whoever listens in Japanese wears that side.');
   });
 
+  it('Both · beside me: an auto source keeps the generic name and tooltip, since it names no language', () => {
+    useProviderStore.setState({ selected: 'soniox', entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } } as never);
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    mount();
+    expect(row('English translation plays on')).toBeInTheDocument();
+    expect(row('Translation I hear')).toBeInTheDocument();
+    expect(tooltips).toContain('What the other side says, translated and read aloud to me.');
+  });
+
   it('the preview plays on the row\'s outlet whatever its switch (Review Focus 3)', async () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     useRoutingStore.setState({ participantSpeech: false });

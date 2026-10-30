@@ -23,6 +23,7 @@ import {
 } from '../../stores/audioStore';
 import { useFaceToFace } from './useFaceToFace';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
+import { AUTO } from '../../lib/provider/languages';
 import OtherSideChoice from '../FaceToFace/OtherSideChoice';
 import { getAppAudio } from '../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../lib/audio/outletOptions';
@@ -101,7 +102,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const beside = mode === 'both' && f2f.active;
   const languageName = useLanguageLabel();
   // Beside me, each row picks where one language's translation plays — the adapter routes by the translation's language — so it is named by it.
-  const playsOn = (code: string | null, fallback: string) => (code ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
+  // An auto source names no language (Both refuses it at start anyway): the generic name stays.
+  const playsOn = (code: string | null, fallback: string) => (code && code !== AUTO ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
 
   const outlets = useOutlets();
   const setOutletDevice = useSetOutletDevice();
