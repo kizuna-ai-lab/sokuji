@@ -177,8 +177,13 @@ export default function SignIn({
       <Text>{title}</Text>
     </Button>
   );
+  // While a page's own action runs, the page is not left by its tabs or links: that
+  // action may sign the user in (sign-in, sign-up, a new password), and a result
+  // dropped for a page already left would leave a signed-in user on the sign-in
+  // screen (CodeRabbit, #664). A code being sent again does not hold the page.
+  const holding = busyFor === 'primary';
   const link = (title: string, onPress: () => void) => (
-    <Button variant="link" className="self-start px-0" onPress={onPress}>
+    <Button variant="link" className="self-start px-0" disabled={holding} onPress={onPress}>
       <Text className="text-left">{title}</Text>
     </Button>
   );
@@ -211,6 +216,7 @@ export default function SignIn({
                   accessibilityState={{ selected: mode === m }}
                   variant={mode === m ? 'outline' : 'ghost'}
                   className={cn('flex-1 px-2', mode !== m && 'border border-transparent')}
+                  disabled={holding}
                   onPress={() => go(m)}
                 >
                   <Text className={cn(mode !== m && 'text-muted-foreground')}>{m === 'signin' ? t('mobile.signIn.title') : t('mobile.signIn.register')}</Text>
