@@ -17,14 +17,21 @@ const STACK_FROM_FONT_SCALE = 1.35;
  * Without a title (a screen that shows its own, in its scrolling content),
  * back and the action share one row at every text size.
  */
-export function ScreenHeader({ title, onBack, backLabel, end }: { title?: string; onBack?: () => void; backLabel?: string; end?: React.ReactNode }) {
+export function ScreenHeader({ title, onBack, backLabel, end, backDisabled = false }: {
+  title?: string;
+  onBack?: () => void;
+  backLabel?: string;
+  end?: React.ReactNode;
+  /** Back held while the screen's own request runs (the sign-in flows). */
+  backDisabled?: boolean;
+}) {
   const { t } = useTranslation();
   const { fontScale } = useWindowDimensions();
   const stacked = title !== undefined && fontScale >= STACK_FROM_FONT_SCALE;
   return (
     <View className={cn('px-2 pb-2', stacked ? 'gap-1' : 'min-h-14 flex-row items-center gap-1')}>
       {onBack ? (
-        <Button variant="ghost" className="self-start px-2" onPress={onBack}>
+        <Button variant="ghost" className="self-start px-2" disabled={backDisabled} onPress={onBack}>
           <Icon as={Backward} size={22} />
           <Text>{backLabel ?? t('mobile.common.back')}</Text>
         </Button>

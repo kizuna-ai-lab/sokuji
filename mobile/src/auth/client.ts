@@ -7,8 +7,13 @@ import { localPart, unwrap } from './unwrap';
 
 export { BACKEND_URL };
 
+// A request that stalls fails after this, as the app's other requests do
+// (account/http.ts): a sign-in page holds its tabs and Back while one runs.
+const AUTH_TIMEOUT_MS = 15000;
+
 export const authClient = createAuthClient({
   baseURL: BACKEND_URL,
+  fetchOptions: { timeout: AUTH_TIMEOUT_MS },
   plugins: [
     emailOTPClient(),
     expoClient({ scheme: 'sokuji', storagePrefix: 'sokuji', storage: SecureStore }),

@@ -177,10 +177,11 @@ export default function SignIn({
       <Text>{title}</Text>
     </Button>
   );
-  // While a page's own action runs, the page is not left by its tabs or links: that
-  // action may sign the user in (sign-in, sign-up, a new password), and a result
-  // dropped for a page already left would leave a signed-in user on the sign-in
-  // screen (CodeRabbit, #664). A code being sent again does not hold the page.
+  // While a page's own action runs, the page is not left by its tabs, links or the
+  // header's Back: that action may sign the user in (sign-in, sign-up, a new
+  // password) or verify the address, and a result dropped for a page already left
+  // would leave the app showing the state before it (CodeRabbit, #664). A code being
+  // sent again does not hold the page; the auth client's timeout bounds the hold.
   const holding = busyFor === 'primary';
   const link = (title: string, onPress: () => void) => (
     <Button variant="link" className="self-start px-0" disabled={holding} onPress={onPress}>
@@ -203,7 +204,7 @@ export default function SignIn({
 
   return (
     <KeyboardAvoidingView className="bg-background w-full flex-1" behavior="padding">
-      {onBack ? <ScreenHeader title={headerTitle} onBack={onBack} /> : null}
+      {onBack ? <ScreenHeader title={headerTitle} onBack={onBack} backDisabled={holding} /> : null}
       <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-10 pt-4" keyboardShouldPersistTaps="handled">
         {(mode === 'signin' || mode === 'register') && (
           <>
