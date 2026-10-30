@@ -154,6 +154,7 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     try {
       next = await openOn(device);
     } catch (error) {
+      if (mine !== turn || current === null) return;
       reportWarning('ContextSink', `The ${deps.label} output could not be rebuilt: ${describeCause(error)}`, { dedupeKey: `sink:${deps.label}:rebuild-failed` });
       armDeadline();
       return;

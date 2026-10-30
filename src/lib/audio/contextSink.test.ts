@@ -242,6 +242,18 @@ describe('createContextSink — a device that vanishes (#246)', () => {
     expect(plays(contexts[contexts.length - 1], 'a')).toBe(true);
   });
 
+  it('a rebuild a switch overtook says nothing about failing', async () => {
+    const { sink, contexts, clock } = setup({ prepare: (ctx, i) => { if (i === 2) { ctx.holdSink = true; ctx.sinkFails = true; } } });
+    await sink.setSinkId!('usb');
+    lose(contexts[1]);
+    clock.advance(WEDGE_GRACE_MS + RESUME_DEADLINE_MS);
+    await flush();
+    await sink.setSinkId!('speakers');
+    contexts[2].releaseSink();
+    await flush();
+    expect(withKey('sink:them:rebuild-failed')).toHaveLength(0);
+  });
+
   it('a switch whose device never answers gives up, and recovery goes on', async () => {
     const { sink, contexts, clock, plays } = setup({ prepare: (ctx, i) => { ctx.holdSink = i === 2; } });
     await sink.setSinkId!('usb');
