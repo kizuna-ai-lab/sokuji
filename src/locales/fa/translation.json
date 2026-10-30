@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "پخش ترجمه به {{language}}",
-    "playsOnTip": "ترجمه به {{language}} اینجا پخش می‌شود: دستگاه و سمتی (چپ یا راست) را که شنونده {{language}} می‌گذارد انتخاب کنید.",
+    "playsOnTip": "ترجمه به {{language}} اینجا پخش می‌شود: دستگاه و سمتی (چپ یا راست) را که شنونده {{language}} گذاشته انتخاب کنید.",
     "title": "تنظیمات صدا",
     "virtualMicrophone": "میکروفون مجازی",
     "virtualMicrophoneNotice": "اطلاعیه میکروفون مجازی",

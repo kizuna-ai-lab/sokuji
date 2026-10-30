@@ -188,7 +188,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const named = (code: string | null): code is string => faceToFace && code !== null && code !== AUTO;
   const playsOn = (code: string | null, fallback: string) => (named(code) ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
   const playsOnTip = (code: string | null): string | null => (named(code)
-    ? t('audioPanel.playsOnTip', 'The {{language}} translation plays here: pick the device and the side (left or right) the {{language}} listener wears.', { language: languageName(code) })
+    ? t('audioPanel.playsOnTip', 'The {{language}} translation plays here: choose the device and side (left or right) the {{language}} listener wears.', { language: languageName(code) })
     : null);
   const otherLabel = playsOn(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears'));
   const themLabel = playsOn(f2f.me, t('audioPanel.iHear', 'Translation I hear'));

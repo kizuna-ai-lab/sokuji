@@ -346,7 +346,7 @@
   },
   "audioPanel": {
     "playsOn": "{{language}}译文从这里播放",
-    "playsOnTip": "{{language}}译文从这里播放：选设备，再选听{{language}}的人戴的那一边（左或右）。",
+    "playsOnTip": "{{language}}译文从这里播放：选听{{language}}的人戴的那个设备和那一边（左或右）。",
     "title": "音频设置",
     "virtualMicrophone": "虚拟麦克风",
     "virtualMicrophoneNotice": "虚拟麦克风说明",
