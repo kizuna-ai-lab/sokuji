@@ -1038,6 +1038,8 @@
     "importStep2": "Add your files",
     "importStep3": "Files",
     "importRepo": "Repository",
+    "importSource": "Download source",
+    "importMirrorHint": "For networks where huggingface.co is unreachable — the commands fetch through the hf-mirror.com mirror instead.",
     "importCopy": "Copy",
     "importCopied": "Copied",
     "importChooseFolder": "Choose folder",

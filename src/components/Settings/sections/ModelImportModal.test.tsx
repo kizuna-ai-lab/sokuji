@@ -19,8 +19,11 @@ const targets = {
   ],
 };
 
+// Swapped by tests that need a different hosting setup (e.g. non-huggingface.co targets).
+let mockTargets = targets;
+
 vi.mock('../../../lib/local-inference/ModelManager', () => ({
-  ModelManager: { getInstance: () => ({ getModelFileTargets: () => targets }) },
+  ModelManager: { getInstance: () => ({ getModelFileTargets: () => mockTargets }) },
 }));
 
 const mockImportModel = vi.fn();
@@ -113,5 +116,72 @@ describe('ModelImportModal', () => {
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches the shown commands to the hf-mirror.com source when picked (#539)', async () => {
+    render(
+      <ModelImportModal isOpen modelId="voxtral-mini-4b-webgpu" modelName="Voxtral" onClose={() => {}} />,
+    );
+    await screen.findByText('config.json');
+
+    // Default source is huggingface.co: no HF_ENDPOINT prefix on the hf command.
+    expect(screen.getByText(/hf download/)).toBeInTheDocument();
+    expect(screen.queryByText(/HF_ENDPOINT/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'hf-mirror.com' }));
+
+    // hf tab prefixes the mirror endpoint the mirror documents for the CLI.
+    expect(screen.getByText(/HF_ENDPOINT=https:\/\/hf-mirror\.com/)).toBeInTheDocument();
+
+    // curl tab rewrites the huggingface.co URLs to the mirror host.
+    fireEvent.click(screen.getByRole('tab', { name: 'curl' }));
+    const term = document.querySelector('.import-cmd__term pre');
+    expect(term?.textContent).toContain('https://hf-mirror.com/x/resolve/main/config.json');
+    expect(term?.textContent).not.toContain('huggingface.co');
+  });
+
+  it('resets the copy confirmation when the download source changes', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    render(
+      <ModelImportModal isOpen modelId="voxtral-mini-4b-webgpu" modelName="Voxtral" onClose={() => {}} />,
+    );
+    await screen.findByText('config.json');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+
+    // Switching source replaces the command, so "Copied" would refer to a
+    // command the clipboard no longer holds.
+    fireEvent.click(screen.getByRole('button', { name: 'hf-mirror.com' }));
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+  });
+
+  it('disables the mirror option when curl/wget targets are not hosted on huggingface.co', async () => {
+    mockTargets = {
+      ...targets,
+      files: [{ filename: 'model.onnx', url: 'https://self-hosted.example.org/models/model.onnx', sizeBytes: 10 }],
+    } as any;
+    try {
+      render(
+        <ModelImportModal isOpen modelId="voxtral-mini-4b-webgpu" modelName="Voxtral" onClose={() => {}} />,
+      );
+      await screen.findByText('model.onnx');
+
+      // The hf CLI tab still honours HF_ENDPOINT, so the mirror stays selectable.
+      fireEvent.click(screen.getByRole('button', { name: 'hf-mirror.com' }));
+      expect(screen.getByText(/HF_ENDPOINT=https:\/\/hf-mirror\.com/)).toBeInTheDocument();
+
+      // curl/wget leave non-huggingface.co URLs untouched, so the option is a
+      // no-op there: it must not look selectable nor pressed.
+      fireEvent.click(screen.getByRole('tab', { name: 'curl' }));
+      const mirrorButton = screen.getByRole('button', { name: 'hf-mirror.com' });
+      expect(mirrorButton).toBeDisabled();
+      expect(mirrorButton).toHaveAttribute('aria-pressed', 'false');
+    } finally {
+      mockTargets = targets;
+    }
   });
 });

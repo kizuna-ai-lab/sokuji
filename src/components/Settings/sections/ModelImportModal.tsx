@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { Check, ArrowDownToLine, X, AlertTriangle, Copy, FolderInput, Files, Loader } from 'lucide-react';
 import { ModelManager, type ModelFileTarget } from '../../../lib/local-inference/ModelManager';
-import { matchImportedFiles, filesToImportMap, buildDownloadCommand, ModelImportError, type NamedBlob, type CommandTab } from '../../../lib/local-inference/modelImport';
+import { matchImportedFiles, filesToImportMap, buildDownloadCommand, ModelImportError, type NamedBlob, type CommandTab, type DownloadSource } from '../../../lib/local-inference/modelImport';
 import { validateModelFile, ModelFileValidationError } from '../../../lib/local-inference/modelFileValidation';
 import * as modelStorage from '../../../lib/local-inference/modelStorage';
 import { useModelStore } from '../../../stores/modelStore';
@@ -33,6 +33,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
   const [targets, setTargets] = useState<ModelFileTarget[]>([]);
   const [repo, setRepo] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<CmdTab>('hf');
+  const [source, setSource] = useState<DownloadSource>('huggingface');
   const [copied, setCopied] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -75,6 +76,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     setValidation({});
     setError(null);
     setCopied(false);
+    setSource('huggingface');
     try {
       const info = ModelManager.getInstance().getModelFileTargets(modelId);
       setTargets(info.files);
@@ -165,9 +167,16 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     }
   }, [importModel, modelId, selected, onClose, t, refreshStored, expectedNames]);
 
+  // The mirror only changes curl/wget commands when the file hosts are on
+  // huggingface.co (the hf CLI tab always accepts HF_ENDPOINT). For a
+  // custom/self-hosted base the option would be a no-op, so it is disabled.
+  const mirrorApplies = tab === 'hf'
+    || targets.some((f) => f.url.startsWith('https://huggingface.co/'));
+  const effectiveSource: DownloadSource = mirrorApplies ? source : 'huggingface';
+
   const command = useMemo(
-    () => buildDownloadCommand(tab, repo, modelId, targets),
-    [tab, repo, modelId, targets],
+    () => buildDownloadCommand(tab, repo, modelId, targets, effectiveSource),
+    [tab, repo, modelId, targets, effectiveSource],
   );
 
   const handleCopy = useCallback(async () => {
@@ -222,18 +231,35 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
                   {t('models.importRepo', 'Repository')} <code>{repo}</code>
                 </div>
               )}
-              <div className="import-cmd__tabs" role="tablist">
-                {tabs.map((tb) => (
+              <div className="import-cmd__srcrow">
+                <div className="import-cmd__tabs" role="tablist">
+                  {tabs.map((tb) => (
+                    <button
+                      key={tb}
+                      role="tab"
+                      aria-selected={tab === tb}
+                      className={`import-cmd__tab ${tab === tb ? 'is-active' : ''}`}
+                      onClick={() => setTab(tb)}
+                    >
+                      {tb === 'hf' ? 'hf CLI' : tb}
+                    </button>
+                  ))}
+                </div>
+                <div className="import-cmd__src" role="group" aria-label={t('models.importSource', 'Download source')}>
+                  <span className="import-cmd__src-label">{t('models.importSource', 'Source')}</span>
                   <button
-                    key={tb}
-                    role="tab"
-                    aria-selected={tab === tb}
-                    className={`import-cmd__tab ${tab === tb ? 'is-active' : ''}`}
-                    onClick={() => setTab(tb)}
-                  >
-                    {tb === 'hf' ? 'hf CLI' : tb}
-                  </button>
-                ))}
+                    className={`import-cmd__src-btn ${source === 'huggingface' ? 'is-active' : ''}`}
+                    aria-pressed={source === 'huggingface'}
+                    onClick={() => { setSource('huggingface'); setCopied(false); }}
+                  >huggingface.co</button>
+                  <button
+                    className={`import-cmd__src-btn ${mirrorApplies && source === 'hf-mirror' ? 'is-active' : ''}`}
+                    aria-pressed={mirrorApplies && source === 'hf-mirror'}
+                    disabled={!mirrorApplies}
+                    title={mirrorApplies ? t('models.importMirrorHint', 'For networks where huggingface.co is unreachable — the commands fetch through the hf-mirror.com mirror instead.') : undefined}
+                    onClick={() => { setSource('hf-mirror'); setCopied(false); }}
+                  >hf-mirror.com</button>
+                </div>
               </div>
               <div className="import-cmd__term">
                 <button className="import-cmd__copy" onClick={handleCopy}>

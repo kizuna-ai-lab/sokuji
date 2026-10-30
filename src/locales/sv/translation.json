@@ -821,6 +821,8 @@
     "importStep2": "Lägg till dina filer",
     "importStep3": "Filer",
     "importRepo": "Repository",
+    "importSource": "Nedladdningskälla",
+    "importMirrorHint": "För nätverk där huggingface.co inte nås — kommandona hämtar via hf-mirror.com-spegeln istället.",
     "importCopy": "Kopiera",
     "importCopied": "Kopierat",
     "importChooseFolder": "Välj mapp",

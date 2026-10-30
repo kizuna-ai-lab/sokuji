@@ -821,6 +821,8 @@
     "importStep2": "Idagdag ang iyong mga file",
     "importStep3": "Mga File",
     "importRepo": "Repository",
+    "importSource": "Pinagmulan ng download",
+    "importMirrorHint": "Para sa mga network na hindi maabot ang huggingface.co — kakunin ng mga utos ang mga file sa hf-mirror.com mirror sa halip.",
     "importCopy": "Kopyahin",
     "importCopied": "Nakopya",
     "importChooseFolder": "Pumili ng folder",

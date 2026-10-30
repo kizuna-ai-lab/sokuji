@@ -821,6 +821,8 @@
     "importStep2": "మీ ఫైల్‌లను జోడించండి",
     "importStep3": "ఫైల్‌లు",
     "importRepo": "రిపాజిటరీ",
+    "importSource": "డౌన్‌లోడ్ మూలం",
+    "importMirrorHint": "huggingface.co అందుబాటులో లేని నెట్‌వర్క్‌ల కోసం — కమాండ్‌లు బదులుగా hf-mirror.com మిర్రర్ ద్వారా డౌన్‌లోడ్ చేస్తాయి.",
     "importCopy": "కాపీ",
     "importCopied": "కాపీ అయింది",
     "importChooseFolder": "ఫోల్డర్ ఎంచుకోండి",

@@ -821,6 +821,8 @@
     "importStep2": "Tambah fail anda",
     "importStep3": "Fail",
     "importRepo": "Repositori",
+    "importSource": "Sumber muat turun",
+    "importMirrorHint": "Untuk rangkaian yang tidak dapat mengakses huggingface.co — arahan memuat turun melalui cermin hf-mirror.com.",
     "importCopy": "Salin",
     "importCopied": "Disalin",
     "importChooseFolder": "Pilih folder",

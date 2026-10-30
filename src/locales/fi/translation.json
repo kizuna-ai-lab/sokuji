@@ -821,6 +821,8 @@
     "importStep2": "Lisää tiedostosi",
     "importStep3": "Tiedostot",
     "importRepo": "Tietovarasto",
+    "importSource": "Latauslähde",
+    "importMirrorHint": "Verkoissa, joissa huggingface.co ei ole tavoitettavissa — komennot hakevat sen sijaan hf-mirror.com-peilipalvelimesta.",
     "importCopy": "Kopioi",
     "importCopied": "Kopioitu",
     "importChooseFolder": "Valitse kansio",

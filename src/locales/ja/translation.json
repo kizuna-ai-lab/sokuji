@@ -821,6 +821,8 @@
     "importStep2": "ファイルを追加",
     "importStep3": "ファイル",
     "importRepo": "リポジトリ",
+    "importSource": "ダウンロード元",
+    "importMirrorHint": "huggingface.co に接続できないネットワーク向け — コマンドは代わりに hf-mirror.com ミラー経由で取得します。",
     "importCopy": "コピー",
     "importCopied": "コピー完了",
     "importChooseFolder": "フォルダを選択",

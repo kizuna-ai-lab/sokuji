@@ -70,6 +70,22 @@ export function matchImportedFiles(expected: string[], providedKeys: string[]): 
 
 export type CommandTab = 'hf' | 'curl' | 'wget';
 
+/** Host the import dialog's download commands fetch from (#539). */
+export type DownloadSource = 'huggingface' | 'hf-mirror';
+
+const HF_ORIGIN = 'https://huggingface.co';
+const HF_MIRROR_ORIGIN = 'https://hf-mirror.com';
+
+/**
+ * Point a huggingface.co URL at the chosen source. Only that exact origin is
+ * rewritten — hf-mirror.com is a read-through mirror of the Hub, so the path
+ * stays identical; any other host (a self-hosted base) is left untouched.
+ */
+function urlForSource(url: string, source: DownloadSource): string {
+  if (source !== 'hf-mirror' || !url.startsWith(HF_ORIGIN + '/')) return url;
+  return HF_MIRROR_ORIGIN + url.slice(HF_ORIGIN.length);
+}
+
 /** One expected file: its repo-relative path and full download URL. */
 export interface DownloadCommandFile {
   filename: string;
@@ -83,29 +99,41 @@ export interface DownloadCommandFile {
  * after it makes them positional FILENAMES and silently ignores `--include`
  * (dropping the first listed file). So we pass every file positionally, which is
  * also the documented form (`hf download REPO config.json tokenizer.json`).
+ *
+ * `source: 'hf-mirror'` swaps the URL host for curl/wget and prefixes
+ * `HF_ENDPOINT=https://hf-mirror.com` for `hf`, the mirror's documented usage.
  */
 export function buildDownloadCommand(
   tab: CommandTab,
   repo: string | undefined,
   localDir: string,
   files: readonly DownloadCommandFile[],
+  source: DownloadSource = 'huggingface',
 ): string {
   if (tab === 'hf' && repo) {
     const names = files.map((f) => `  ${f.filename}`).join(' \\\n');
+    const endpoint = source === 'hf-mirror' ? `HF_ENDPOINT=${HF_MIRROR_ORIGIN} ` : '';
     return `# Disable Xet if the CDN is blocked on your network\n`
-      + `HF_HUB_DISABLE_XET=1 hf download ${repo} \\\n`
+      + `${endpoint}HF_HUB_DISABLE_XET=1 hf download ${repo} \\\n`
       + `  --local-dir ${localDir} \\\n`
       + names;
   }
   if (tab === 'wget') {
-    // HF resolve URL path is /org/repo/resolve/main/<file>: 4 directory segments
-    // before the file. --cut-dirs=4 strips exactly those, preserving any onnx/
-    // subdir; over-cutting flattens onnx/x.onnx into the root and breaks layout.
+    // The number of directory segments before the repo-relative filename depends
+    // on where the file is hosted: HF hub files use /<org>/<repo>/resolve/<rev>/<file>,
+    // while self-hosted dataset files add a cdnPath segment after the revision
+    // (/datasets/<org>/<repo>/resolve/<rev>/<cdnPath>/<file>). Cut exactly the
+    // segments that precede the filename's own path so its subdirectories (e.g.
+    // onnx/) are preserved instead of flattening the local layout.
     return `# run inside an empty "${localDir}" folder\n`
-      + files.map((f) => `wget -x -nH --cut-dirs=4 ${f.url}`).join('\n');
+      + files.map((f) => {
+        const cutDirs = new URL(f.url).pathname.split('/').filter(Boolean).length
+          - f.filename.split('/').length;
+        return `wget -x -nH --cut-dirs=${cutDirs} ${urlForSource(f.url, source)}`;
+      }).join('\n');
   }
   // curl (default / fallback, incl. self-hosted models with no HF repo)
-  return files.map((f) => `curl -L --create-dirs -o ${localDir}/${f.filename} \\\n  ${f.url}`).join('\n');
+  return files.map((f) => `curl -L --create-dirs -o ${localDir}/${f.filename} \\\n  ${urlForSource(f.url, source)}`).join('\n');
 }
 
 /** Minimal shape of a picked file — a Blob plus its display name and (for dir picks) relative path. */

@@ -821,6 +821,8 @@
     "importStep2": "파일 추가",
     "importStep3": "파일",
     "importRepo": "저장소",
+    "importSource": "다운로드 소스",
+    "importMirrorHint": "huggingface.co에 접근할 수 없는 네트워크용 — 명령이 대신 hf-mirror.com 미러를 통해 다운로드합니다.",
     "importCopy": "복사",
     "importCopied": "복사됨",
     "importChooseFolder": "폴더 선택",

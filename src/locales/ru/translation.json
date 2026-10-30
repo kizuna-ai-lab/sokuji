@@ -821,6 +821,8 @@
     "importStep2": "Добавьте свои файлы",
     "importStep3": "Файлы",
     "importRepo": "Репозиторий",
+    "importSource": "Источник загрузки",
+    "importMirrorHint": "Для сетей, где huggingface.co недоступен — команды загружают через зеркало hf-mirror.com.",
     "importCopy": "Копировать",
     "importCopied": "Скопировано",
     "importChooseFolder": "Выбрать папку",

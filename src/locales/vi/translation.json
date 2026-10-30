@@ -821,6 +821,8 @@
     "importStep2": "Thêm tệp của bạn",
     "importStep3": "Tệp",
     "importRepo": "Kho lưu trữ",
+    "importSource": "Nguồn tải xuống",
+    "importMirrorHint": "Dành cho mạng không truy cập được huggingface.co — các lệnh sẽ tải qua bản mirror hf-mirror.com.",
     "importCopy": "Sao chép",
     "importCopied": "Đã sao chép",
     "importChooseFolder": "Chọn thư mục",

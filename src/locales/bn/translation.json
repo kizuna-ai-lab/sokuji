@@ -821,6 +821,8 @@
     "importStep2": "আপনার ফাইল যোগ করুন",
     "importStep3": "ফাইল",
     "importRepo": "রিপোজিটরি",
+    "importSource": "ডাউনলোড সোর্স",
+    "importMirrorHint": "huggingface.co অ্যাক্সেস করা যায় না এমন নেটওয়ার্কের জন্য — কমান্ডগুলো এর পরিবর্তে hf-mirror.com মিরর থেকে নামায়।",
     "importCopy": "কপি",
     "importCopied": "কপি হয়েছে",
     "importChooseFolder": "ফোল্ডার বেছে নিন",
