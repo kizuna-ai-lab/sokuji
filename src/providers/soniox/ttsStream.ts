@@ -79,8 +79,6 @@ export type SonioxTtsErrorScope = 'segment' | 'all';
 export interface TextTag {
   ref: number;
   span: TextRange;
-  /** Another leg's translation, read in this leg's voice: its audio pairs with no segment here (`speech.ts`). */
-  foreign?: true;
 }
 
 /** Which stream — and, if the caller tagged its text, which ref and which span of it so far — a chunk of audio belongs to. */
@@ -89,8 +87,6 @@ export interface SonioxTtsAudioInfo {
   ref?: number;
   /** The union of the spans of the tagged text sent to this stream so far; absent when its text was never tagged. */
   span?: TextRange;
-  /** The stream speaks a foreign tag (`TextTag.foreign`). */
-  foreign?: true;
 }
 
 /** How a TTS segment ended: its ref and the union of its chunks' spans
@@ -102,8 +98,6 @@ export interface SonioxTtsSegmentEnd {
   streamId: string;
   ref?: number;
   span?: TextRange;
-  /** The segment spoke a foreign tag (`TextTag.foreign`). */
-  foreign?: true;
   clean: boolean;
 }
 
@@ -196,7 +190,7 @@ export class SonioxTtsStream {
   private readonly dropped = new Set<string>();
   /** Per stream this component opened: the ref its text carries and the
    *  union of its chunks' spans. Deleted at the stream's end. */
-  private readonly segments = new Map<string, { ref?: number; span?: TextRange; foreign?: true }>();
+  private readonly segments = new Map<string, { ref?: number; span?: TextRange }>();
   private queue: QueuedItem[] = [];
   private utteranceCounter = 0;
   private segmentCounter = 0;
@@ -270,7 +264,7 @@ export class SonioxTtsStream {
         } else if (data.audio && isLive && !wasDropped) {
           if (id === this.activeStreamId) this.activeHasAudio = true;
           const record = this.segments.get(id!);
-          this.handlers.onAudio?.(this.base64ToInt16(data.audio), { streamId: id!, ref: record?.ref, ...(record?.span ? { span: [record.span[0], record.span[1]] as TextRange } : {}), ...(record?.foreign ? { foreign: true as const } : {}) });
+          this.handlers.onAudio?.(this.base64ToInt16(data.audio), { streamId: id!, ref: record?.ref, ...(record?.span ? { span: [record.span[0], record.span[1]] as TextRange } : {}) });
         }
         // terminated must always be processed, even when the same message also
         // carried an error — otherwise a combined error+terminated frame would
@@ -387,7 +381,7 @@ export class SonioxTtsStream {
       this.queue.unshift(item);
       return;
     }
-    if (!this.activeStreamId) this.openSegment(item.language!, item.at!, item.tag?.ref, item.tag?.foreign);
+    if (!this.activeStreamId) this.openSegment(item.language!, item.at!, item.tag?.ref);
     this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text: item.text, text_end: false }));
     const record = this.segments.get(this.activeStreamId!);
     if (record && item.tag) {
@@ -424,7 +418,7 @@ export class SonioxTtsStream {
     }, TTS_SEGMENT_TIMING.idleMs);
   }
 
-  private openSegment(language: string, firstTextAt: number, ref?: number, foreign?: true): void {
+  private openSegment(language: string, firstTextAt: number, ref?: number): void {
     if (!this.utteranceOpen) {
       this.utteranceCounter += 1;
       this.segmentCounter = 0;
@@ -451,7 +445,7 @@ export class SonioxTtsStream {
     this.activeLanguage = language;
     this.activeHasAudio = false;
     this.activeRef = ref;
-    this.segments.set(streamId, { ref, ...(foreign ? { foreign } : {}) });
+    this.segments.set(streamId, { ref });
     // Rule 4. Counted from ARRIVAL: text that waited behind a draining segment
     // has already spent part of its budget.
     const left = Math.max(0, firstTextAt + TTS_SEGMENT_TIMING.maxAgeMs - this.clock.now());
@@ -480,7 +474,7 @@ export class SonioxTtsStream {
     const record = this.segments.get(streamId);
     if (!record) return;
     this.segments.delete(streamId);
-    this.handlers.onSegmentEnd?.({ streamId, ref: record.ref, span: record.span, ...(record.foreign ? { foreign: record.foreign } : {}), clean });
+    this.handlers.onSegmentEnd?.({ streamId, ref: record.ref, span: record.span, clean });
   }
 
   /**

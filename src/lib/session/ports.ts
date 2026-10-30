@@ -13,9 +13,10 @@ import type { RunShape } from './types';
 export interface PlaybackPort {
   /**
    * One piece of a leg's translated audio: one clip, which is one speech entry
-   * of the segment `ref` names (absent: it names none).
+   * of the segment `ref` names (absent: it names none). `voice`: the leg whose
+   * voice read it and whose outlet plays it, when not `leg`'s own.
    */
-  audio(leg: LegName, ref: number | undefined, pcm: Int16Array): void;
+  audio(leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName): void;
   /** Push-to-translate only: the original-voice route is closed while the key is held. */
   held(held: boolean): void;
   /** The run ended or the conversation was cleared: stop, and drop what is queued. */
@@ -108,9 +109,9 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
   let framesFailing = false;
   return {
     playback: {
-      audio: (leg: LegName, ref: number | undefined, pcm: Int16Array) => {
+      audio: (leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName) => {
         try {
-          playback.audio(leg, ref, pcm);
+          playback.audio(leg, ref, pcm, voice);
           audioFailing = false;
         } catch (error) {
           if (!audioFailing) report('playback.audio', error);

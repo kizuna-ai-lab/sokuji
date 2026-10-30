@@ -200,9 +200,10 @@ Face-to-face is Both: two legs, nothing new in the runner.
   is the spike's 12/12 rule.
 - **A translation is read by the voice of its language.** A leg speaks translations into its own target;
   one whose language is the leg's source (someone code-switched, or a tail of the last utterance that landed
-  on this one) goes to the other leg's voice, into that leg's ear, as audio paired with no row — the row stays
-  on the leg that was spoken to. This holds in shared Both as well. A lone leg, with nobody to hand it to,
-  does not speak it. (2026-10-31, after a mixed-language room: a Chinese speaker's English lines were
+  on this one) goes to the other leg's voice, into that leg's ear; the audio and its karaoke ranges come
+  back on the row's own leg, naming that voice (`audio.voice`), so the row keeps its highlight and its
+  replay, which plays on the voice's outlet. This holds in shared Both as well. A lone leg, with nobody to
+  hand it to, does not speak it. (2026-10-31, after a mixed-language room: a Chinese speaker's English lines were
   translated into Chinese and never voiced, since the speaker leg's target is English. Until then a
   code-switched line was not played at all.)
 
@@ -237,7 +238,7 @@ Face-to-face is Both: two legs, nothing new in the runner.
 - No person labels in face-to-face: each side is one person, so `labelled()` is false for both legs
   whatever the labels say (a phantom label must not show "Speaker 2").
 - The conversation: each spoken translation row carries an ear tag (L/R, the listener's colour); a
-  translation read by the other leg carries that leg's ear, coloured by its own side; one nobody reads (a
+  translation read by the other leg carries that leg's ear, coloured by its own side, and replays there; one nobody reads (a
   third language, or the other leg unvoiced) carries a small icon-only tag whose tooltip says why (D14); the
   status bar holds an ears legend. Face-to-face, the two speech rows in the audio panel and the Speech
   settings are named by where each language's translation plays ("English translation plays on"), with a

@@ -105,6 +105,16 @@ describe('Conversation — audio', () => {
     expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 6], pcm: pcm(240) }]);
   });
 
+  it("keeps the voice that read an entry, on a segment and on audio held for one", () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 2, text: 'Hello there.' } });
+    apply({ kind: 'audio', payload: { ref: 2, range: [0, 6], pcm: pcm(240), voice: 'participant' } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 6], pcm: pcm(240), voice: 'participant' }]);
+    apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(240), voice: 'speaker' } });
+    apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } });
+    expect(conv.snapshot().segments[1].speech).toEqual([{ range: undefined, pcm: pcm(240), voice: 'speaker' }]);
+  });
+
   it('holds audio that arrives before its segment opens, and attaches it on open', () => {
     const { conv, apply } = make();
     apply({ kind: 'audio', payload: { ref: 2, pcm: pcm(240) } });

@@ -16,6 +16,7 @@
  */
 import { SAMPLE_RATE, type AdapterEvents, type Ref, type TextRange } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
+import type { LegName } from '../../lib/conversation/types';
 import { framePayload } from '../../lib/contract/framePayload';
 import { SpeechPace, tileSpan } from '../../lib/contract/ranges';
 import { describeCause } from '../../lib/diagnostics/describeCause';
@@ -25,6 +26,8 @@ import type { OpenSocket } from './socket';
 import { classifyChunkEnd, SonioxTtsStream, type SonioxTtsErrorScope, type SonioxTtsSegmentEnd, type TextTag } from './ttsStream';
 
 export interface LegSpeechOptions {
+  /** The leg this voice belongs to: named as `voice` on audio it reads for another leg's row. */
+  leg: LegName;
   region: SonioxRegion;
   /** The TTS socket's key (an own key: the STT key). */
   key: string;
@@ -68,6 +71,8 @@ export class LegSpeech {
   private texts = new Map<Ref, Array<{ span: TextRange; text: string }>>();
   /** What this utterance handed to speech, for the Logs' `tts.speak`. */
   private spoken = '';
+  /** Per ref read for another leg's row: that leg's events, where the audio and its ranges go (the row is there). */
+  private readonly homes = new Map<Ref, AdapterEvents>();
   /** Translation I hear, live (#595): while off, nothing is sent to synthesis. */
   private on = true;
   /** The ref whose last chunk left a sentence open; null after a sentence or an utterance ended. */
@@ -91,12 +96,13 @@ export class LegSpeech {
   }
 
   /**
-   * `foreign`: another leg's translation, read in this leg's voice (adapter, "route by the translation's
-   * language"): spoken as any chunk, but its audio pairs with no segment of this leg — it carries no ref and
-   * no range — and its segment fills in no ranges and teaches the pace nothing.
+   * `home`: another leg's row, read in this leg's voice (adapter, "route by the translation's language"):
+   * spoken as any chunk, but its audio and its ranges go to that leg's events, named with this leg as the
+   * `voice`, so the row keeps its karaoke and its replay and the sound reaches this leg's ear.
    */
-  speak(ref: Ref, text: string, span: TextRange, language: string, foreign = false): void {
+  speak(ref: Ref, text: string, span: TextRange, language: string, home?: AdapterEvents): void {
     if (this.closed) return;
+    if (home) this.homes.set(ref, home);
     const continues = this.openSentence === ref;
     this.openSentence = classifyChunkEnd(text) === 'sentence' ? null : ref;
     if (!this.on) return;
@@ -104,8 +110,8 @@ export class LegSpeech {
       if (continues && this.skipping === ref) return;
       this.skipping = null;
     }
-    const tag: TextTag = { ref, span, ...(foreign ? { foreign: true as const } : {}) };
-    if (!foreign) this.hold(tag, text);
+    const tag: TextTag = { ref, span };
+    this.hold(tag, text);
     this.spoken += text;
     if (this.stream?.isOpen()) {
       this.stream.sendText(text, language, tag);
@@ -174,7 +180,7 @@ export class LegSpeech {
       { clock: this.o.clock, openSocket: this.o.openSocket },
     );
     stream.setHandlers({
-      onAudio: (pcm, info) => { if (stream === this.stream) this.onAudio(pcm, info.streamId, info.ref, info.span, info.foreign); },
+      onAudio: (pcm, info) => { if (stream === this.stream) this.onAudio(pcm, info.streamId, info.ref, info.span); },
       onSegmentEnd: (end) => { if (stream === this.stream) this.onSegmentEnd(end); },
       onError: (code, message, hadActiveStream, scope) => { if (stream === this.stream) this.failure(code, message, hadActiveStream, scope); },
       onUnreadable: (error) => { if (stream === this.stream) this.unreadable(error); },
@@ -238,16 +244,8 @@ export class LegSpeech {
     if (retry) void this.ensure();
   }
 
-  private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined, foreign?: true): void {
+  private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined): void {
     if (this.closed || ref === undefined || pcm.length === 0) return;
-    if (foreign) {
-      // Plays, pairs with nothing (the contract's ref-less audio): the row it speaks is another leg's.
-      this.reported = null;
-      this.readable = true;
-      this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
-      this.o.events.audio({ pcm });
-      return;
-    }
     const index = this.counts.get(ref) ?? 0;
     this.counts.set(ref, index + 1);
     const entries = this.segments.get(streamId) ?? [];
@@ -258,7 +256,8 @@ export class LegSpeech {
     this.readable = true;
     this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
     const range = span ? this.provisional(streamId, ref, span, pcm.length) : undefined;
-    this.o.events.audio(range ? { ref, pcm, range } : { ref, pcm });
+    const home = this.homes.get(ref);
+    (home ?? this.o.events).audio({ ref, pcm, ...(range ? { range } : {}), ...(home ? { voice: this.o.leg } : {}) });
   }
 
   /** Where this chunk reaches in the span sent to its segment so far, at the leg's rate; none while the span has no letters. */
@@ -279,8 +278,6 @@ export class LegSpeech {
     const sweep = this.sweeps.get(end.streamId);
     this.segments.delete(end.streamId);
     this.sweeps.delete(end.streamId);
-    // A foreign segment ranged nothing and teaches nothing: its text was never held here.
-    if (end.foreign) return;
     // Filled in or lost, the segment's text is done with either way. Speech switched off let it go
     // already: the text its chunks were placed in stands in, so a boundary still snaps past a surrogate pair.
     const held = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
@@ -290,7 +287,7 @@ export class LegSpeech {
     // speech switched off) would otherwise leave its row lit part way after the voice stopped.
     const [a, b] = end.span;
     const ranges = tileSpan([0, b - a], entries.map((e) => e.samples), text).map(([s, e]): TextRange => [a + s, a + e]);
-    this.o.events.speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
+    (this.homes.get(end.ref) ?? this.o.events).speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
     // Only a whole segment says how long its text takes to speak.
     if (end.clean) this.pace.learn(text, entries.reduce((n, e) => n + e.samples, 0));
   }
@@ -319,8 +316,7 @@ export class LegSpeech {
   /** Only the text still waiting to be sent can end in a segment now: a socket that was let go took its live segments with it, unreported. */
   private holdOnlyPending(): void {
     this.texts = new Map();
-    // A foreign chunk is never held (`speak`): its segment ranges nothing and releases nothing.
-    for (const op of this.pending) if (op.kind === 'text' && !op.tag.foreign) this.hold(op.tag, op.text);
+    for (const op of this.pending) if (op.kind === 'text') this.hold(op.tag, op.text);
   }
 
   private failure(code: string, message: string, hadActiveStream: boolean, scope: SonioxTtsErrorScope): void {

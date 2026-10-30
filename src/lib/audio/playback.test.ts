@@ -123,6 +123,24 @@ describe('createPlayback — live audio', () => {
     expect(playback.queues.speaker.position()?.key).toBe('speaker:2:1');
   });
 
+  it("plays audio through the voice's queue, keyed by the row's leg", () => {
+    const { graph, advance } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    playback.audio('participant', 4, pcm(100), 'speaker');
+    advance(LEAD_S + 0.01);
+    expect(playback.queues.speaker.position()?.key).toBe('participant:4:0');
+    expect(playback.queues.participant.position()).toBeNull();
+  });
+
+  it("replays a segment another voice read on that voice's outlet", () => {
+    const { graph, routes } = fakeGraph();
+    const playback = createPlayback(graph, routing({ ...ROUTING, faceToFace: true }).source);
+    playback.replay('participant', translation(5, [{ pcm: pcm(100), voice: 'speaker' }]));
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'other', gain: 1 });
+    playback.replay('speaker', translation(6, [{ pcm: pcm(100), voice: 'participant' }]));
+    expect(routes[routes.length - 1]).toContainEqual({ from: 'replay', to: 'them', gain: 1 });
+  });
+
   it('keys audio that names no segment with none', () => {
     const { graph, advance } = fakeGraph();
     const playback = createPlayback(graph, routing().source);

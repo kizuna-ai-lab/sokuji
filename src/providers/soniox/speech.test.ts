@@ -20,7 +20,7 @@ function create(options: Partial<LegSpeechOptions> = {}) {
   const clock = createVirtualClock(0);
   const sockets = fakeSockets();
   const { events, log } = recordEvents();
-  const speech = new LegSpeech({ region: 'us', key: 'k', voice: 'Adrian', speed: 1, events, clock, openSocket: sockets.create, ...options });
+  const speech = new LegSpeech({ leg: 'speaker', region: 'us', key: 'k', voice: 'Adrian', speed: 1, events, clock, openSocket: sockets.create, ...options });
   const opening = speech.open();
   const kinds = (k: AdapterEvent['kind']) => log.filter((e) => e.kind === k);
   const frames = (type: string): AdapterFrame[] => log.flatMap((e) => (e.kind === 'frame' && e.payload.type === type ? [e.payload] : []));
@@ -58,38 +58,44 @@ describe('tileSpan', () => {
 });
 
 describe('LegSpeech', () => {
-  it("a foreign chunk — another leg's translation, read in this leg's voice — is spoken, but its audio carries no ref and fills in no ranges", async () => {
+  it("a chunk read for another leg's row goes to that leg's events — ref, range and this leg as the voice — and ranges fill in there", async () => {
     const { speech, tts, kinds } = await setup();
-    speech.speak(7, 'Hola.', [0, 5], 'es', true);
+    const home = recordEvents();
+    speech.speak(7, 'Hola.', [0, 5], 'es', home.events);
     expect(tts().sentJson<Json>().some((m) => m.text === 'Hola.')).toBe(true);
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
-    const audio = kinds('audio').map((e) => e.payload as { ref?: number; pcm: Int16Array; range?: unknown });
+    // Nothing of it on this leg's own log but the frames.
+    expect(kinds('audio')).toHaveLength(0);
+    const audio = home.log.filter((e) => e.kind === 'audio').map((e) => e.payload as { ref?: number; pcm: Int16Array; range?: unknown; voice?: string });
     expect(audio).toHaveLength(1);
+    expect(audio[0]).toMatchObject({ ref: 7, voice: 'speaker' });
     expect(audio[0].pcm).toHaveLength(2400);
-    expect(audio[0]).not.toHaveProperty('ref');
-    expect(audio[0]).not.toHaveProperty('range');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
     expect(kinds('speechRanges')).toHaveLength(0);
-    // Its own chunk afterwards is ranged as ever: the foreign one taught the pace nothing and counts for nothing.
+    const ranges = home.log.filter((e) => e.kind === 'speechRanges').map((e) => e.payload as { ref: number; ranges: unknown[] });
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0].ref).toBe(7);
+    // This leg's own chunk afterwards stays on its own log, unnamed.
     speech.speak(8, 'Adiós.', [0, 6], 'es');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-2', audio: b64(2400) }));
-    const own = kinds('audio').map((e) => e.payload as { ref?: number });
-    expect(own[own.length - 1].ref).toBe(8);
+    const own = kinds('audio').map((e) => e.payload as { ref?: number; voice?: string });
+    expect(own).toHaveLength(1);
+    expect(own[0].ref).toBe(8);
+    expect(own[0]).not.toHaveProperty('voice');
   });
 
-  it('a foreign chunk that waited for the socket is spoken when it opens, still ref-less', async () => {
+  it("a chunk for another leg's row that waited for the socket goes to that leg's events when it opens", async () => {
     const made = create();
-    made.speech.speak(7, 'Hola.', [0, 5], 'es', true);
+    const home = recordEvents();
+    made.speech.speak(7, 'Hola.', [0, 5], 'es', home.events);
     made.sockets.last().open();
     await made.opening;
     const tts = made.sockets.last();
     expect(tts.sentJson<Json>().some((m) => m.text === 'Hola.')).toBe(true);
     tts.receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
-    const audio = made.kinds('audio').map((e) => e.payload as { ref?: number; range?: unknown });
-    expect(audio).toHaveLength(1);
-    expect(audio[0]).not.toHaveProperty('ref');
-    tts.receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
-    expect(made.kinds('speechRanges')).toHaveLength(0);
+    expect(made.kinds('audio')).toHaveLength(0);
+    const audio = home.log.filter((e) => e.kind === 'audio').map((e) => e.payload as { ref?: number; voice?: string });
+    expect(audio).toEqual([expect.objectContaining({ ref: 7, voice: 'speaker' })]);
   });
 
   it('streams each chunk as audio on its ref as it arrives, with a provisional range from the prior', async () => {

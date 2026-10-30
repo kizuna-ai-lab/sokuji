@@ -100,7 +100,7 @@ function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCreden
   const tts = request.config.tts;
   const key = request.credentials.tts;
   const speech = tts && key
-    ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
+    ? new LegSpeech({ leg: name, region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
     : null;
   return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
 }
@@ -169,8 +169,8 @@ class SonioxCore {
           }
           // Shared Both and face-to-face: a translation into the other leg's target (someone code-switched, a
           // tail of the last utterance that landed on this one) is read by that leg's voice, into its ear —
-          // "route by the translation's language" (face-to-face design, D10). Its audio pairs with no
-          // segment there (the row is this leg's), so it goes ref-less. A lone leg has nobody to hand it to.
+          // "route by the translation's language" (face-to-face design, D10). The row stays this leg's: the
+          // audio and its ranges come back on this leg's events, naming that voice. A lone leg has nobody to hand it to.
           if (!this.o.shared) return;
           const other = this.o.legs.find((l) => l !== core && l.context.direction.target === language);
           if (!other?.speech) return;
@@ -180,7 +180,7 @@ class SonioxCore {
             this.abroad.set(ref, abroad);
           }
           abroad.add(other.name);
-          other.speech.speak(ref, text, span, wire, true);
+          other.speech.speak(ref, text, span, wire, core.events);
         },
         endSpeech: (leg, ref) => {
           if (this.ended) return;

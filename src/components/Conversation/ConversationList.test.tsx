@@ -343,14 +343,17 @@ describe('ConversationList — face-to-face ears', () => {
     expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
   });
 
-  it('offers no replay on a not-played translation, nor on one read by the other leg (its audio pairs with no row); a played one and every row outside face-to-face keep theirs', () => {
+  it('offers no replay on a not-played translation; one read by the other leg keeps its replay (its audio is on the row); every row outside face-to-face keeps theirs', () => {
     const third = rowItem({ row: row({ language: 'de' }) });
     const { container, rerender } = render(<ConversationList {...props({ ears, items: [third] })} />);
     expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
     expect(container.querySelector('.row-play-btn')).toBeNull();
     const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja': read in the participant's ear
-    rerender(<ConversationList {...props({ ears, items: [own] })} />);
+    rerender(<ConversationList {...props({ ears, items: [own], replayLegs: new Set(['speaker', 'participant']) })} />);
     expect(container.querySelector('.ear-tag--left')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+    // The slot follows the voice that read it: with the participant's voice keeping no replay audio, none.
+    rerender(<ConversationList {...props({ ears, items: [own], replayLegs: new Set(['speaker']) })} />);
     expect(container.querySelector('.row-play-btn')).toBeNull();
     rerender(<ConversationList {...props({ ears })} />);
     expect(container.querySelector('.ear-tag--right')).not.toBeNull();
@@ -390,7 +393,8 @@ describe('ConversationList — face-to-face ears', () => {
     expect(container.querySelectorAll('.ear-tag')).toHaveLength(1);
     expect(container.querySelector('.ear-tag--muted')).toBeNull();
     expect(container.querySelector('.ear-tag--right')?.classList.contains('listener-participant')).toBe(true);
-    expect(container.querySelector('.row-play-btn')).toBeNull();
+    // The line the speaker's voice read replays, as the speaker leg keeps replay audio; the other has no audio at all.
+    expect(container.querySelectorAll('.row-play-btn')).toHaveLength(1);
     // The voiced leg keeps its ear.
     const { container: mine } = render(<ConversationList {...props({ ears: { speaker: 'right' } })} />);
     expect(mine.querySelector('.ear-tag--right')).not.toBeNull();

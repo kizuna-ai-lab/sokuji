@@ -440,7 +440,7 @@ describe('Soniox startBoth: shared', () => {
 });
 
 describe('Soniox startBoth: shared, languages', () => {
-  it("shared: a translation into the speaker's own language is read by the participant's voice, into their ear, ref-less; the speaker's leg speaks on after it", async () => {
+  it("shared: a translation into the speaker's own language is read by the participant's voice, on the speaker's row, naming that voice; the speaker's leg speaks on after it", async () => {
     const h = await live({ participantSpeaks: true });
     speak(h, 'speaker', 10);
     // The speaker's source is 'en'; they said a Japanese line, so Soniox translated it into English — the participant leg's target.
@@ -454,12 +454,16 @@ describe('Soniox startBoth: shared, languages', () => {
     expect(sent.some((m) => m.text === 'It is fine.')).toBe(true);
     // The utterance's end reaches the participant's voice too: its segment is closed with text_end.
     expect(sent.some((m) => m.text === '' && m.text_end === true)).toBe(true);
-    // Its audio plays on the participant leg, paired with no segment there.
+    // Its audio comes back on the speaker's row (ref 2), named with the participant's voice: karaoke and replay stay on the row,
+    // and playback sends it to the participant's ear.
     participantTts.receive(JSON.stringify({ stream_id: lastStream(participantTts), audio: b64(2400) }));
-    const audio = h.of('participant', 'audio');
+    const audio = h.of('speaker', 'audio');
     expect(audio).toHaveLength(1);
-    expect(audio[0].payload).not.toHaveProperty('ref');
-    expect(h.of('speaker', 'audio')).toHaveLength(0);
+    expect(audio[0].payload).toMatchObject({ ref: 2, voice: 'participant' });
+    expect(h.of('participant', 'audio')).toHaveLength(0);
+    participantTts.receive(JSON.stringify({ stream_id: lastStream(participantTts), terminated: true }));
+    expect(h.of('speaker', 'speechRanges').map((e) => e.payload.ref)).toEqual([2]);
+    expect(h.of('participant', 'speechRanges')).toHaveLength(0);
     // A normal line afterwards is spoken by the speaker's own voice.
     h.sttSockets()[0].receive(msg(orig('Good morning.'), tr('おはよう。'), END));
     expect(speakerTts.sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
@@ -512,6 +516,10 @@ describe('Soniox startBoth: face-to-face', () => {
     expect(participantTts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(false);
     expect(speakerTts.sentJson<Json>().some((m) => m.text === 'Dōmo arigatō.')).toBe(true);
     expect(speakerTts.sentJson<Json>().find((m) => m.model !== undefined)).toMatchObject({ language: 'ja' });
+    // Its audio comes back on the participant's row (ref 4), named with the speaker's voice.
+    speakerTts.receive(JSON.stringify({ stream_id: lastStream(speakerTts), audio: b64(2400) }));
+    expect(h.of('participant', 'audio').map((e) => e.payload)).toEqual([expect.objectContaining({ ref: 4, voice: 'speaker' })]);
+    expect(h.of('speaker', 'audio')).toHaveLength(0);
     // A normal line afterwards is spoken to the speaker by the participant's own voice.
     stt.receive(msg({ ...orig('Mata ne.'), language: 'ja', speaker: '2' }, tr('See you.', 'en', 'ja'), END));
     expect(participantTts.sentJson<Json>().some((m) => m.text === 'See you.')).toBe(true);

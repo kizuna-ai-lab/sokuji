@@ -104,8 +104,11 @@ export interface AdapterEvents {
   segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string }): void;
   segmentClosed(e: { ref: Ref; origin?: string }): void;
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
-   *  `range` absent: this segment's audio, which characters unknown. */
-  audio(e: { pcm: Int16Array; ref?: Ref; range?: TextRange }): void;
+   *  `range` absent: this segment's audio, which characters unknown.
+   *  `voice`: the leg whose voice reads this audio and whose ear plays it, when it is not this leg's — a
+   *  translation into the other leg's language, read by that leg (Soniox face-to-face). The segment, its
+   *  ranges and its replay stay on this leg. Absent: this leg's own voice. */
+  audio(e: { pcm: Int16Array; ref?: Ref; range?: TextRange; voice?: LegName }): void;
   /**
    * Sets the ranges of speech this adapter already emitted for `ref`
    * (Stage 2 Soniox, ruling 2): `index` is the entry's place among this

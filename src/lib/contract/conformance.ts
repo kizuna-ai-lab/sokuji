@@ -147,8 +147,9 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         break;
       }
       case 'audio': {
-        const { ref, range, pcm } = entry.payload;
-        if (!context.speech) flag('no-audio-when-silent', 'audio with speech: false', index);
+        const { ref, range, pcm, voice } = entry.payload;
+        // Another leg's voice may read this leg's row (`voice`): that leg speaks, not this one.
+        if (!context.speech && voice === undefined) flag('no-audio-when-silent', 'audio with speech: false', index);
         if (!(pcm instanceof Int16Array)) flag('audio-int16', 'pcm is not an Int16Array', index);
         if (ref !== undefined && sideOf.get(ref) === 'source') flag('audio-on-source', `audio on source-side ref ${ref}`, index);
         // This entry's place among the ref's audio: what a later `speechRanges` names it by.

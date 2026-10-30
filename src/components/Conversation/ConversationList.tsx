@@ -122,10 +122,11 @@ export function ConversationList({
                 : null;
               // The slot is decided here, session-wide, so a row without one never
               // re-renders for a replay-state change (plan 1e-3b-1 ruling 14). A
-              // translation face-to-face does not play has no audio, so no slot either;
-              // nor has one read abroad: its audio belongs to the other leg, paired with no row.
+              // translation face-to-face does not play has no audio, so no slot either. One read
+              // abroad has its audio on this row, in the other leg's voice: the slot follows that leg.
               const abroad = ear !== null && ear !== 'muted' && spokenAbroad(item);
-              const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg) && ear !== 'muted' && !abroad;
+              const voiceLeg: LegName = abroad ? (item.leg === 'speaker' ? 'participant' : 'speaker') : item.leg;
+              const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(voiceLeg) && ear !== 'muted';
               // Coloured by the listener: a speaker-leg translation is heard by the other person, unless it was
               // read abroad — into the speaker's own language, so by the speaker.
               const listener: LegName = (item.leg === 'speaker') !== abroad ? 'participant' : 'speaker';
