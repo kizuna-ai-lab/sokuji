@@ -6,7 +6,10 @@ export interface ReadingLine {
   id: string;
   /** When the line was first heard (ms since the epoch). */
   t: number;
-  /** A heading with the time: on the first line, when the minute changes, and when someone else starts speaking. */
+  /**
+   * A heading with the time: on the first line, when the minute changes, and when someone else starts speaking.
+   * Never for a line whose time is not a number (a damaged file); its heading then names only the speaker.
+   */
   showTime: boolean;
   /** The speaker's number, when the session had two or more (the desktop's numbering). */
   person?: number;
@@ -38,7 +41,7 @@ export function readingLines(entries: readonly Entry[]): ReadingLine[] {
     const line: ReadingLine = {
       id: e.id,
       t: e.t,
-      showTime: !prev || minute(e.t) !== minute(prev.t) || showPerson,
+      showTime: (Number.isFinite(e.t) && (!prev || !Number.isFinite(prev.t) || minute(e.t) !== minute(prev.t))) || showPerson,
       ...(person !== undefined ? { person } : {}),
       showPerson,
       source: e.source,

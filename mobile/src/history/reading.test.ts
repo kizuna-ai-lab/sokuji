@@ -46,6 +46,13 @@ describe('a saved session as reading lines', () => {
     expect(two.map((l) => l.showTime)).toEqual([true, false, true]);
   });
 
+  // A damaged file (a segment with no opening time) must not take the reader down:
+  // formatting NaN as a time throws (CodeRabbit, #665).
+  it('shows no time for a line whose time is not a number, and the time again after it', () => {
+    const lines = readingLines([exchange('a', Number.NaN), exchange('b', t0)]);
+    expect(lines.map((l) => l.showTime)).toEqual([false, true]);
+  });
+
   it('marks a line the session ended in the middle of', () => {
     const lines = readingLines([exchange('a', t0), exchange('b', t0 + 1000, { final: false })]);
     expect(lines.map((l) => l.unfinished)).toEqual([false, true]);

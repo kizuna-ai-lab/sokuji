@@ -69,7 +69,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
     <View className="gap-1 px-4 py-3">
       {item.showTime ? (
         <Text className="text-muted-foreground" style={timeStyle} allowFontScaling={false}>
-          {[time.format(new Date(item.t)), item.person !== undefined ? t('mainPanel.displayMode.person', { n: item.person }) : null].filter(Boolean).join(' · ')}
+          {[Number.isFinite(item.t) ? time.format(new Date(item.t)) : null, item.person !== undefined ? t('mainPanel.displayMode.person', { n: item.person }) : null].filter(Boolean).join(' · ')}
         </Text>
       ) : null}
       {item.translated ? (
