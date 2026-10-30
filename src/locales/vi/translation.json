@@ -1649,14 +1649,14 @@
       "setNewPassword": "Đặt mật khẩu mới",
       "back": "Quay lại đăng nhập",
       "later": "Để sau: xác minh từ màn hình tài khoản",
-      "registerNote": "Bạn sẽ nhận được mã 6 chữ số qua email; nhập mã là tài khoản được xác minh và tín dụng dùng thử được cộng vào.",
+      "registerNote": "Bạn sẽ nhận được mã 6 chữ số qua email; nhập mã là tài khoản được xác minh. Sau đó, tài khoản đủ điều kiện sẽ được cộng tín dụng dùng thử.",
       "sendingCode": "Đang gửi mã 6 chữ số tới {{email}}…",
       "codeNotSent": "Không gửi được mã tới {{email}}. Tài khoản của bạn đã được tạo: hãy chạm Gửi lại.",
       "showPassword": "Hiện mật khẩu",
       "hidePassword": "Ẩn mật khẩu"
     },
     "account": {
-      "verify": "Xác minh email để nhận tín dụng dùng thử",
+      "verify": "Xác minh email; tài khoản đủ điều kiện sẽ nhận tín dụng dùng thử",
       "usage30d": "Đã dùng trong 30 ngày qua",
       "hoursLeft": "Còn khoảng {{hours}} giờ",
       "frozen": "Tài khoản này đã bị đóng băng",
@@ -1714,7 +1714,9 @@
       "empty": "Chưa có phiên nào. Mỗi phiên bạn chạy được lưu ở đây, trên điện thoại này.",
       "minutes": "{{minutes}} phút",
       "name": "Tên",
-      "renameHint": "Để trống để đặt tên phiên theo ngày."
+      "renameHint": "Để trống để đặt tên phiên theo ngày.",
+      "unfinished": "Chưa hoàn tất",
+      "nothingHeard": "Không nghe thấy gì trong phiên này."
     },
     "main": {
       "hear": "Tôi nghe",
@@ -1750,7 +1752,12 @@
       "voice": "Giọng tôi nghe",
       "speed": "Tốc độ nói",
       "headphones": "Chỉ đọc qua tai nghe. Qua loa ngoài bạn chỉ có phụ đề.",
-      "searchVoices": "Tìm giọng"
+      "searchVoices": "Tìm giọng",
+      "preview": "Nghe thử",
+      "previewVoice": "Nghe thử {{voice}}",
+      "stopPreview": "Dừng nghe thử",
+      "previewConfirmTitle": "Nghe thử giọng này?",
+      "previewEstimate": "Mỗi lần nghe thử mới tốn khoảng {{amount}} (ước tính); phát lại cùng mẫu khi ứng dụng còn mở thì miễn phí."
     },
     "devices": {
       "microphone": "Micrô",

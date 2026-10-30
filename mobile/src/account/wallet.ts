@@ -18,11 +18,16 @@ export async function fetchWallet(o: { token: string; fetch?: typeof fetch }): P
     expiringSoon?: { microUsd: number; expiresAt: number } | null;
   }>('/api/wallet/status', { token: o.token, fetch: o.fetch, label: 'wallet-status' });
   const balanceUsd = typeof body.balanceMicroUsd === 'number' ? body.balanceMicroUsd / 1e6 : Number(body.balanceUsd ?? 0);
+  const last30DaysUsd = (body.last30DaysUsageMicroUsd ?? 0) / 1e6;
+  // null would divide to 0: only a number is an amount.
+  const expiringUsd = body.expiringSoon ? (typeof body.expiringSoon.microUsd === 'number' ? body.expiringSoon.microUsd / 1e6 : Number.NaN) : null;
+  // "0" on the screen means no money left: an amount that cannot be read is an error.
+  if (![balanceUsd, last30DaysUsd, expiringUsd ?? 0].every(Number.isFinite)) throw new Error('wallet-status malformed');
   return {
     balanceUsd,
     frozen: body.frozen ?? false,
-    last30DaysUsd: (body.last30DaysUsageMicroUsd ?? 0) / 1e6,
-    expiringSoon: body.expiringSoon ? { usd: body.expiringSoon.microUsd / 1e6, expiresAt: body.expiringSoon.expiresAt } : null,
+    last30DaysUsd,
+    expiringSoon: body.expiringSoon && expiringUsd !== null ? { usd: expiringUsd, expiresAt: body.expiringSoon.expiresAt } : null,
   };
 }
 

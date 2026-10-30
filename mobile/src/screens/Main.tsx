@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, BackHandler, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -40,12 +40,16 @@ type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices'
 
 // The history store writes the running session every minute (ticker time) and at its end.
 const CHECKPOINT_MS = 60000;
-const history = createHistoryStore(documentFs);
 
-export default function Main({ token, email, onSignOut, onAccountDeleted, onSignInRequired }: { token: string; email: string; onSignOut: () => void | Promise<void>; onAccountDeleted: () => void;
+export default function Main({ accountId, token, email, onSignOut, onAccountDeleted, onSignInRequired }: {
+  /** The signed-in account's user id: the sessions on this phone are kept per account. */
+  accountId: string;
+  token: string; email: string; onSignOut: () => void | Promise<void>; onAccountDeleted: () => void;
   /** The sign-in session is gone (a 401 mid-session): the app drops the token and shows the sign-in screen. */
   onSignInRequired: () => void }) {
   const { t, i18n } = useTranslation();
+  // This account's sessions only (owner, 2026-10-28: history is kept per account).
+  const history = useMemo(() => createHistoryStore(documentFs, accountId), [accountId]);
   const settings = useSettings((s) => s.settings);
   const [status, setStatus] = useState<Status | 'idle'>('idle');
   const [detail, setDetail] = useState('');
@@ -117,7 +121,9 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
     // before the first await, and Start is Stop from the same render on.
     if (session.current) return;
     const { source, target, region } = settings;
-    const tr = createTranscript({ source, target, sessionId: `s-${Date.now()}` });
+    // One clock reading for the session: the transcript's id and the saved session's are the same.
+    const startedAt = Date.now();
+    const tr = createTranscript({ source, target, sessionId: `s-${startedAt}` });
     transcript.current = tr;
     const f = createEntriesFeed({
       transcript: tr,
@@ -134,7 +140,6 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
     });
     f.subscribe(setEntries);
     feed.current = f;
-    const startedAt = Date.now();
     stored.current = { id: `s-${startedAt}`, startedAt, endedAt: null, source, target, leg: tr.leg(), lastStatus: 'leasing' };
     errors.current = 0;
     started.current = false;
@@ -162,7 +167,8 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
         // The desktop's two session events: at the first listening, and at the end.
         if (e.status === 'listening' && !started.current && stored.current) {
           started.current = true;
-          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: settings.listen }));
+          // What the backend granted (a voice only with headphones in, and only if granted), not the setting.
+          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: e.voice === true }));
         }
         // A failure counts once: the retry that follows repeats its detail on the status line.
         const prev = lastEvent.current;
@@ -176,9 +182,14 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
       },
     });
     if (settings.keepAwake) {
-      await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
-      // Ended before the keep-awake was granted: give it back.
-      if (!session.current) deactivateKeepAwake(KEEP_AWAKE_TAG);
+      try {
+        await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
+        // Ended before the keep-awake was granted: give it back.
+        if (!session.current) deactivateKeepAwake(KEEP_AWAKE_TAG);
+      } catch (err) {
+        // The session runs either way; the screen may dim.
+        console.warn(`keep awake: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 
@@ -190,7 +201,7 @@ export default function Main({ token, email, onSignOut, onAccountDeleted, onSign
     return <Account token={token} email={email} locked={active} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} onSignInRequired={onSignInRequired} />;
   }
   if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} onOpen={setScreen} />;
-  if (screen === 'listen') return <Listen onBack={() => setScreen('settings')} />;
+  if (screen === 'listen') return <Listen token={token} onBack={() => setScreen('settings')} onSignInRequired={onSignInRequired} />;
   if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} locked={active} />;
   if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
 

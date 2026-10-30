@@ -35,6 +35,15 @@ describe('settings store', () => {
     expect(second.getState().settings.source).toBe('auto');
   });
 
+  it('has not shown the preview charge yet for settings stored before it existed', async () => {
+    const { previewCostSeen: _omit, ...older } = DEFAULT_SETTINGS;
+    const stored = JSON.stringify({ state: { settings: { ...older, target: 'ja' } }, version: 0 });
+    const store = createSettingsStore(memoryStorage({ 'sokuji.settings': stored }));
+    await settle();
+    expect(store.getState().settings.previewCostSeen).toBe(false);
+    expect(store.getState().settings.target).toBe('ja');
+  });
+
   it('ignores unknown keys in what was stored', async () => {
     const stored = JSON.stringify({ state: { settings: { ...DEFAULT_SETTINGS, textSize: 'large', bogus: 1 } }, version: 0 });
     const store = createSettingsStore(memoryStorage({ 'sokuji.settings': stored }));
@@ -54,5 +63,16 @@ describe('colorSchemeOverride', () => {
   it('passes an explicit scheme through', () => {
     expect(colorSchemeOverride('light')).toBe('light');
     expect(colorSchemeOverride('dark')).toBe('dark');
+  });
+});
+
+describe('stored values outside the allowed sets', () => {
+  // A corrupted or stale value such as appearance 'sepia' would reach the
+  // native appearance API; the enum-like keys keep their defaults instead.
+  it('fall back to the defaults', async () => {
+    const stored = JSON.stringify({ state: { settings: { ...DEFAULT_SETTINGS, appearance: 'sepia', textSize: 'huge', region: 'mars', speed: -1, target: 'ja' } }, version: 0 });
+    const store = createSettingsStore(memoryStorage({ 'sokuji.settings': stored }));
+    await settle();
+    expect(store.getState().settings).toEqual({ ...DEFAULT_SETTINGS, target: 'ja' });
   });
 });

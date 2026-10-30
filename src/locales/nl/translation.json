@@ -1649,14 +1649,14 @@
       "setNewPassword": "Nieuw wachtwoord instellen",
       "back": "Terug naar inloggen",
       "later": "Later: verifieer vanuit het accountscherm",
-      "registerNote": "Je krijgt een 6-cijferige code per e-mail; na invoer is het account geverifieerd en volgt het proeftegoed.",
+      "registerNote": "Je krijgt een 6-cijferige code per e-mail; na invoer is het account geverifieerd. Accounts die in aanmerking komen, krijgen daarna proeftegoed.",
       "sendingCode": "Een 6-cijferige code wordt naar {{email}} gestuurd…",
       "codeNotSent": "De code kon niet naar {{email}} worden gestuurd. Je account is aangemaakt: tik op Opnieuw sturen.",
       "showPassword": "Wachtwoord tonen",
       "hidePassword": "Wachtwoord verbergen"
     },
     "account": {
-      "verify": "Verifieer je e-mail om het proeftegoed te ontvangen",
+      "verify": "Verifieer je e-mail; accounts die in aanmerking komen, krijgen proeftegoed",
       "usage30d": "Uitgegeven in de laatste 30 dagen",
       "hoursLeft": "Nog ongeveer {{hours}} u",
       "frozen": "Dit account is bevroren",
@@ -1714,7 +1714,9 @@
       "empty": "Nog geen sessies. Elke sessie wordt hier bewaard, op deze telefoon.",
       "minutes": "{{minutes}} min",
       "name": "Naam",
-      "renameHint": "Laat leeg om de sessie naar de datum te noemen."
+      "renameHint": "Laat leeg om de sessie naar de datum te noemen.",
+      "unfinished": "Onvolledig",
+      "nothingHeard": "In deze sessie is niets gehoord."
     },
     "main": {
       "hear": "Ik hoor",
@@ -1750,7 +1752,12 @@
       "voice": "Stem die ik hoor",
       "speed": "Spreeksnelheid",
       "headphones": "Alleen via een koptelefoon. Via de luidspreker krijg je ondertitels.",
-      "searchVoices": "Stemmen zoeken"
+      "searchVoices": "Stemmen zoeken",
+      "preview": "Beluisteren",
+      "previewVoice": "{{voice}} beluisteren",
+      "stopPreview": "Stoppen met beluisteren",
+      "previewConfirmTitle": "Deze stem beluisteren?",
+      "previewEstimate": "Een nieuwe beluistering kost ongeveer {{amount}} (schatting); dezelfde opnieuw afspelen terwijl de app open is, is gratis."
     },
     "devices": {
       "microphone": "Microfoon",

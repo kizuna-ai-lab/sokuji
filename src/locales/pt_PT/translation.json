@@ -1649,14 +1649,14 @@
       "setNewPassword": "Definir nova palavra-passe",
       "back": "Voltar ao início de sessão",
       "later": "Mais tarde: verifique no ecrã da conta",
-      "registerNote": "Receberá um código de 6 dígitos por e-mail; ao introduzi-lo, a conta fica verificada e o crédito de teste é adicionado.",
+      "registerNote": "Receberá um código de 6 dígitos por e-mail; ao introduzi-lo, a conta fica verificada. Depois, as contas elegíveis recebem um crédito de teste.",
       "sendingCode": "A enviar um código de 6 dígitos para {{email}}…",
       "codeNotSent": "Não foi possível enviar o código para {{email}}. A sua conta já foi criada: toque em Enviar novamente.",
       "showPassword": "Mostrar palavra-passe",
       "hidePassword": "Ocultar palavra-passe"
     },
     "account": {
-      "verify": "Verifique o seu e-mail para receber o crédito de teste",
+      "verify": "Verifique o seu e-mail: as contas elegíveis recebem um crédito de teste",
       "usage30d": "Gasto nos últimos 30 dias",
       "hoursLeft": "Cerca de {{hours}} h restantes",
       "frozen": "Esta conta está congelada",
@@ -1714,7 +1714,9 @@
       "empty": "Ainda não há sessões. Cada sessão fica guardada aqui, neste telemóvel.",
       "minutes": "{{minutes}} min",
       "name": "Nome",
-      "renameHint": "Deixe em branco para dar à sessão o nome da data."
+      "renameHint": "Deixe em branco para dar à sessão o nome da data.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "Nada foi ouvido nesta sessão."
     },
     "main": {
       "hear": "Eu ouço",
@@ -1750,7 +1752,12 @@
       "voice": "Voz que ouço",
       "speed": "Velocidade da fala",
       "headphones": "Lida apenas com auscultadores. No altifalante tem legendas.",
-      "searchVoices": "Pesquisar vozes"
+      "searchVoices": "Pesquisar vozes",
+      "preview": "Ouvir",
+      "previewVoice": "Ouvir {{voice}}",
+      "stopPreview": "Parar",
+      "previewConfirmTitle": "Ouvir esta voz?",
+      "previewEstimate": "Uma nova pré-audição custa cerca de {{amount}} (estimativa); voltar a ouvir a mesma enquanto a app está aberta é grátis."
     },
     "devices": {
       "microphone": "Microfone",

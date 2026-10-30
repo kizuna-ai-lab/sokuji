@@ -1649,14 +1649,14 @@
       "setNewPassword": "Itakda ang bagong password",
       "back": "Bumalik sa pag-sign in",
       "later": "Mamaya: i-verify mula sa screen ng account",
-      "registerNote": "Makakatanggap ka ng 6-digit na code sa email; kapag inilagay ito, na-verify na ang account at susunod ang trial credit.",
+      "registerNote": "Makakatanggap ka ng 6-digit na code sa email; kapag inilagay ito, na-verify na ang account. Pagkatapos, makakatanggap ng trial credit ang mga kwalipikadong account.",
       "sendingCode": "Ipinapadala ang 6-digit na code sa {{email}}…",
       "codeNotSent": "Hindi maipadala ang code sa {{email}}. Nagawa na ang account mo: i-tap ang Ipadala muli.",
       "showPassword": "Ipakita ang password",
       "hidePassword": "Itago ang password"
     },
     "account": {
-      "verify": "I-verify ang iyong email para matanggap ang trial credit",
+      "verify": "I-verify ang iyong email; makakatanggap ng trial credit ang mga kwalipikadong account",
       "usage30d": "Nagastos sa nakalipas na 30 araw",
       "hoursLeft": "Humigit-kumulang {{hours}} oras na lang",
       "frozen": "Naka-freeze ang account na ito",
@@ -1714,7 +1714,9 @@
       "empty": "Wala pang session. Ang bawat session mo ay itinatabi rito, sa teleponong ito.",
       "minutes": "{{minutes}} min",
       "name": "Pangalan",
-      "renameHint": "Iwanang blangko para ang petsa ang maging pangalan ng session."
+      "renameHint": "Iwanang blangko para ang petsa ang maging pangalan ng session.",
+      "unfinished": "Hindi tapos",
+      "nothingHeard": "Walang narinig sa session na ito."
     },
     "main": {
       "hear": "Naririnig ko",
@@ -1750,7 +1752,12 @@
       "voice": "Boses na naririnig ko",
       "speed": "Bilis ng pagsasalita",
       "headphones": "Binabasa lang kapag may headphones. Sa loudspeaker, subtitle ang makukuha mo.",
-      "searchVoices": "Maghanap ng boses"
+      "searchVoices": "Maghanap ng boses",
+      "preview": "Pakinggan",
+      "previewVoice": "Pakinggan si {{voice}}",
+      "stopPreview": "Ihinto ang pakikinig",
+      "previewConfirmTitle": "Pakinggan ang boses na ito?",
+      "previewEstimate": "Mga {{amount}} ang bawat bagong pakinig (tantiya); libre ang pakikinig ulit sa parehong sample habang bukas ang app."
     },
     "devices": {
       "microphone": "Mikropono",

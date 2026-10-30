@@ -1649,14 +1649,14 @@
       "setNewPassword": "設定新密碼",
       "back": "返回登入",
       "later": "稍後再說：可在帳戶頁驗證",
-      "registerNote": "你會收到一封 6 位數驗證碼郵件；輸入後帳號即完成驗證，試用額度隨即入帳。",
+      "registerNote": "你會收到一封 6 位數驗證碼郵件；輸入後帳戶即完成驗證，符合條件的帳戶可獲得試用額度。",
       "sendingCode": "正在寄送驗證碼到 {{email}}…",
       "codeNotSent": "驗證碼未能寄到 {{email}}。帳戶已經建立，請點「重新寄送」。",
       "showPassword": "顯示密碼",
       "hidePassword": "隱藏密碼"
     },
     "account": {
-      "verify": "驗證電子郵件即可領取試用額度",
+      "verify": "驗證電子郵件後，符合條件的帳戶可獲得試用額度",
       "usage30d": "最近 30 天用量",
       "hoursLeft": "約可用 {{hours}} 小時",
       "frozen": "此帳戶已凍結",
@@ -1714,7 +1714,9 @@
       "empty": "還沒有對話。每次對話都保存在這裡，只存在這支手機上。",
       "minutes": "{{minutes}} 分鐘",
       "name": "名稱",
-      "renameHint": "留空則以日期作為對話名稱。"
+      "renameHint": "留空則以日期作為對話名稱。",
+      "unfinished": "未說完",
+      "nothingHeard": "這次對話沒有聽到內容。"
     },
     "main": {
       "hear": "我聽的語言",
@@ -1750,7 +1752,12 @@
       "voice": "我聽到的聲音",
       "speed": "語速",
       "headphones": "只在戴耳機時朗讀；外放時只顯示字幕。",
-      "searchVoices": "搜尋聲音"
+      "searchVoices": "搜尋聲音",
+      "preview": "試聽",
+      "previewVoice": "試聽 {{voice}}",
+      "stopPreview": "停止試聽",
+      "previewConfirmTitle": "試聽這個聲音？",
+      "previewEstimate": "產生新試聽約 {{amount}}（估算）；本次應用程式執行期間，重播相同試聽不重複扣費。"
     },
     "devices": {
       "microphone": "麥克風",

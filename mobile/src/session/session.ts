@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react-native-audio-api';
 import { addNetworkStateListener } from 'expo-network';
 import i18next from 'i18next';
-import { SonioxSttStream } from '@shared/providers/soniox/sttStream';
+import { SonioxSttStream, SONIOX_STT_MODEL } from '@shared/providers/soniox/sttStream';
 import { LegSpeech } from '@shared/providers/soniox/speech';
 import { nativeSocket } from '@shared/providers/soniox/socket';
 import { eventsFrom } from '@shared/lib/contract/events';
@@ -22,11 +22,9 @@ import type { Route } from './route';
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
 export type SessionEvent =
-  | { type: 'status'; status: Status; detail?: string }
+  /** `voice`, with 'listening': whether the current grant carries the spoken translation (the shape the backend granted, for the analytics). */
+  | { type: 'status'; status: Status; detail?: string; voice?: boolean }
   | { type: 'log'; line: string };
-
-// The model name is a literal here: src/providers/soniox/config.ts is not DOM-free.
-const MODEL = 'stt-rt-v5';
 
 // While running, every failure but these is retried: 2 s, 5 s, 10 s, then every 15 s.
 const TERMINAL = new Set(['sign_in_required', 'microphone_denied', 'balance_exhausted']);
@@ -104,6 +102,9 @@ export function startSession(o: {
   // carries, headphones in on a grant without the voice take a new grant.
   const headphones = (r: Route) => r === 'headphones' || r === 'bluetooth';
   let spokenWanted = false;
+  // What the current lease was asked for: a grant without the voice although
+  // it was asked for is the backend's answer, not a reason to rotate again.
+  let leaseAskedVoice = false;
   let route: Route = 'speaker';
   let speech: LegSpeech | null = null;
   let player: (SpeechPlayer & { close?(): Promise<void> | void }) | null = null;
@@ -118,7 +119,7 @@ export function startSession(o: {
   const emit = (e: SessionEvent) => {
     if (!closed) o.onEvent(e);
   };
-  const status = (s: Status, detail?: string) => emit({ type: 'status', status: s, detail });
+  const status = (s: Status, detail?: string, voice?: boolean) => emit({ type: 'status', status: s, detail, ...(voice === undefined ? {} : { voice }) });
   const spokenDetail = () => (o.listen ? (speech && headphones(route) ? 'spoken' : 'subtitles_only') : undefined);
   // The ticker as the shared modules' clock: their timers must not be JS timers either.
   const tickerClock = { now: () => Date.now(), setTimeout: (fn: () => void, ms: number) => ticker.after(ms, fn) };
@@ -213,7 +214,7 @@ export function startSession(o: {
       rotate('headphones in: asking for the spoken shape');
       return;
     }
-    if (stream?.isOpen()) status('listening', spokenDetail());
+    if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
   }
 
   async function stopSession(): Promise<void> {
@@ -248,6 +249,7 @@ export function startSession(o: {
         log(`session-end ${ended ? 'ok' : 'gave up'} after ${Date.now() - t0} ms (${Date.now() - droppedAt} ms since drop)`);
         if (!running) return;
       }
+      leaseAskedVoice = spokenWanted;
       grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal, sleep: (ms) => ticker.sleep(ms, abort.signal), timer: ticker, ...(spokenWanted ? { participantSpeech: true } : {}) });
       expiresAt = Date.now() + grant.maxSessionDurationSeconds * 1000;
       log(`lease granted: ${(grant.maxSessionDurationSeconds / 60).toFixed(1)} min`);
@@ -299,11 +301,13 @@ export function startSession(o: {
           else void connect();
         },
       });
-      const st = grant.streams[0];
+      // By role, never by position: a voiced grant carries par_tts beside par_stt.
+      const st = grant.streams.find((x) => x.role === 'par_stt');
+      if (!st) throw new Error('missing_stt_stream');
       await s.connect({
         apiKey: st.apiKey,
         region: grant.region,
-        model: MODEL,
+        model: SONIOX_STT_MODEL,
         sampleRate,
         // Language identification is always on; a hint only when the user chose a language.
         ...(o.source === 'auto' ? {} : { languageHints: [o.source] }),
@@ -347,7 +351,10 @@ export function startSession(o: {
       rotating = false;
       lastFailure = undefined;
       log(`${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
-      status('listening', spokenDetail());
+      status('listening', spokenDetail(), !!tts);
+      // The headphones came in while this lease was on its way (asked for
+      // without the voice): a grant with it, now that the stream is up.
+      if (o.listen && spokenWanted && !leaseAskedVoice && !tts) rotate('headphones in while connecting: asking for the spoken shape');
     } catch (err) {
       const message = reason(err);
       // A socket that opened before the failure (session-started refused, say)
@@ -420,10 +427,11 @@ export function startSession(o: {
     }
     if (o.listen) {
       route = await (o.getRoute ?? nativeRoute)();
+      // Stopped during the lookup: teardown has run, and would not see what is created below.
+      if (!running) return;
       spokenWanted = headphones(route);
       player = (o.createPlayer ?? defaultPlayer)();
       subscriptions.push({ remove: (o.onRouteChange ?? nativeRouteChange)(applyRoute) });
-      if (!running) return;
     }
     const r = new AudioRecorder();
     const ready = r.onAudioReady({ sampleRate: 16000, bufferLength: 1600, channelCount: 1 }, ({ buffer }) => {
@@ -468,13 +476,16 @@ export function startSession(o: {
           log('notification: stop');
           void stopSession();
         }),
+        // Said only while a stream is up: before the first grant the session is
+        // not listening, and the screen's first 'listening' is what the
+        // analytics count as the start.
         RecordingNotificationManager.addEventListener('recordingNotificationPause', () => {
           log('notification: pause');
-          status('listening', 'paused');
+          if (stream?.isOpen()) status('listening', 'paused', speech !== null);
         }),
         RecordingNotificationManager.addEventListener('recordingNotificationResume', () => {
           log('notification: resume');
-          status('listening', spokenDetail());
+          if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
         }),
       ];
       for (const sub of onNotification) if (sub) subscriptions.push(sub);

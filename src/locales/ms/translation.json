@@ -1649,14 +1649,14 @@
       "setNewPassword": "Tetapkan kata laluan baharu",
       "back": "Kembali ke log masuk",
       "later": "Kemudian: sahkan dari skrin akaun",
-      "registerNote": "Anda akan menerima kod 6 digit melalui e-mel; setelah dimasukkan, akaun disahkan dan kredit percubaan ditambah.",
+      "registerNote": "Anda akan menerima kod 6 digit melalui e-mel; setelah dimasukkan, akaun disahkan. Akaun yang layak kemudian menerima kredit percubaan.",
       "sendingCode": "Menghantar kod 6 digit ke {{email}}…",
       "codeNotSent": "Kod tidak dapat dihantar ke {{email}}. Akaun anda telah dicipta: ketik Hantar semula.",
       "showPassword": "Tunjukkan kata laluan",
       "hidePassword": "Sembunyikan kata laluan"
     },
     "account": {
-      "verify": "Sahkan e-mel anda untuk menerima kredit percubaan",
+      "verify": "Sahkan e-mel anda; akaun yang layak menerima kredit percubaan",
       "usage30d": "Dibelanjakan dalam 30 hari lepas",
       "hoursLeft": "Kira-kira {{hours}} jam lagi",
       "frozen": "Akaun ini dibekukan",
@@ -1714,7 +1714,9 @@
       "empty": "Belum ada sesi. Setiap sesi yang anda jalankan disimpan di sini, pada telefon ini.",
       "minutes": "{{minutes}} min",
       "name": "Nama",
-      "renameHint": "Biarkan kosong untuk menamakan sesi mengikut tarikhnya."
+      "renameHint": "Biarkan kosong untuk menamakan sesi mengikut tarikhnya.",
+      "unfinished": "Belum selesai",
+      "nothingHeard": "Tiada apa-apa didengar dalam sesi ini."
     },
     "main": {
       "hear": "Saya dengar",
@@ -1750,7 +1752,12 @@
       "voice": "Suara yang saya dengar",
       "speed": "Kelajuan pertuturan",
       "headphones": "Hanya dibacakan melalui fon kepala. Melalui pembesar suara anda dapat sari kata.",
-      "searchVoices": "Cari suara"
+      "searchVoices": "Cari suara",
+      "preview": "Dengar",
+      "previewVoice": "Dengar {{voice}}",
+      "stopPreview": "Hentikan",
+      "previewConfirmTitle": "Dengar suara ini?",
+      "previewEstimate": "Pratonton baharu berharga kira-kira {{amount}} (anggaran); memainkan semula pratonton yang sama semasa apl dibuka adalah percuma."
     },
     "devices": {
       "microphone": "Mikrofon",

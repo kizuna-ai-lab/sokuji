@@ -1649,14 +1649,14 @@
       "setNewPassword": "새 비밀번호 설정",
       "back": "로그인으로 돌아가기",
       "later": "나중에: 계정 화면에서 확인할 수 있습니다",
-      "registerNote": "이메일로 6자리 코드가 전송됩니다. 입력하면 계정이 확인되고 체험 크레딧이 지급됩니다.",
+      "registerNote": "이메일로 6자리 코드가 전송됩니다. 입력하면 계정이 확인되고, 조건을 충족하는 계정에는 체험 크레딧이 지급됩니다.",
       "sendingCode": "{{email}}(으)로 6자리 코드를 보내는 중…",
       "codeNotSent": "{{email}}(으)로 코드를 보내지 못했습니다. 계정은 만들어졌습니다. 다시 보내기를 누르세요.",
       "showPassword": "비밀번호 표시",
       "hidePassword": "비밀번호 숨기기"
     },
     "account": {
-      "verify": "이메일을 확인하면 체험 크레딧을 받습니다",
+      "verify": "이메일을 확인하면 조건을 충족하는 계정에 체험 크레딧이 지급됩니다",
       "usage30d": "최근 30일 사용액",
       "hoursLeft": "약 {{hours}}시간 남음",
       "frozen": "이 계정은 동결되었습니다",
@@ -1714,7 +1714,9 @@
       "empty": "아직 세션이 없습니다. 진행한 세션은 이 휴대전화의 여기에 보관됩니다.",
       "minutes": "{{minutes}}분",
       "name": "이름",
-      "renameHint": "비워 두면 날짜가 세션 이름이 됩니다."
+      "renameHint": "비워 두면 날짜가 세션 이름이 됩니다.",
+      "unfinished": "미완료",
+      "nothingHeard": "이 세션에서는 들린 내용이 없습니다."
     },
     "main": {
       "hear": "듣는 언어",
@@ -1750,7 +1752,12 @@
       "voice": "내가 듣는 목소리",
       "speed": "말하기 속도",
       "headphones": "헤드폰을 꼈을 때만 읽어 줍니다. 스피커에서는 자막만 표시됩니다.",
-      "searchVoices": "목소리 검색"
+      "searchVoices": "목소리 검색",
+      "preview": "미리 듣기",
+      "previewVoice": "{{voice}} 미리 듣기",
+      "stopPreview": "미리 듣기 중지",
+      "previewConfirmTitle": "이 목소리를 미리 들어 볼까요?",
+      "previewEstimate": "새 미리 듣기는 약 {{amount}}입니다(예상). 앱이 열려 있는 동안 같은 미리 듣기를 다시 재생하는 것은 무료입니다."
     },
     "devices": {
       "microphone": "마이크",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportJson, exportText } from './export';
+import { exportJson, exportText, exportFileName } from './export';
 import type { StoredSession } from './store';
 import { createTranscript } from '../session/transcript';
 
@@ -34,5 +34,12 @@ describe('exportJson', () => {
     expect(json.provider).toBe('soniox');
     expect(json.exportedAt).toBeDefined();
     expect(JSON.stringify(json)).toContain('早上好。');
+  });
+});
+
+describe('exportFileName', () => {
+  // Two exports in the same minute (or one re-exported) must not overwrite each other in the cache.
+  it('names the file down to the second', () => {
+    expect(exportFileName(new Date(2026, 0, 2, 3, 4, 5).getTime(), 'txt')).toBe('Sokuji-20260102-030405.txt');
   });
 });

@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
-import type { SonioxRegion } from '@shared/lib/soniox/regions';
+import { SONIOX_REGIONS, type SonioxRegion } from '@shared/lib/soniox/regions';
 
 // What the user chose, kept on the device (Task 3). `source` is a Soniox
 // language code or 'auto'; the pair is the desktop's initial pair for Soniox.
@@ -19,6 +19,8 @@ export interface Settings {
   speed: number;
   /** R14: the microphone's device id, or null for the phone's own. */
   inputDeviceId: string | null;
+  /** The user has been told, and agreed, that a voice preview is charged to the balance. */
+  previewCostSeen: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -33,11 +35,27 @@ export const DEFAULT_SETTINGS: Settings = {
   voice: null,
   speed: 1,
   inputDeviceId: null,
+  previewCostSeen: false,
 };
 
 export interface SettingsState {
   settings: Settings;
   set(partial: Partial<Settings>): void;
+}
+
+
+// The enum-like keys accept their own values only: a stale or corrupted
+// 'sepia' would otherwise reach the native appearance API.
+const ALLOWED: { [K in keyof Settings]?: readonly Settings[K][] } = {
+  appearance: ['system', 'light', 'dark'],
+  textSize: ['small', 'medium', 'large'],
+  region: SONIOX_REGIONS,
+};
+function allowed(key: keyof Settings, value: unknown): boolean {
+  const set = ALLOWED[key] as readonly unknown[] | undefined;
+  if (set) return set.includes(value);
+  if (key === 'speed') return typeof value === 'number' && Number.isFinite(value) && value > 0;
+  return true;
 }
 
 // Only the keys Settings has survive a read: a stored key from a version that
@@ -51,7 +69,7 @@ function known(stored: unknown): Partial<Settings> {
     const value = s[key];
     const fallback = DEFAULT_SETTINGS[key];
     const fits = fallback === null ? value === null || typeof value === 'string' : typeof value === typeof fallback;
-    if (fits) (out as Record<string, unknown>)[key] = value;
+    if (fits && allowed(key, value)) (out as Record<string, unknown>)[key] = value;
   }
   return out;
 }

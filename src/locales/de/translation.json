@@ -1649,14 +1649,14 @@
       "setNewPassword": "Neues Passwort festlegen",
       "back": "Zurück zur Anmeldung",
       "later": "Später: im Kontobildschirm bestätigen",
-      "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt und das Testguthaben folgt.",
+      "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt. Berechtigte Konten erhalten dann ein Testguthaben.",
       "sendingCode": "Ein 6-stelliger Code wird an {{email}} gesendet…",
       "codeNotSent": "Der Code konnte nicht an {{email}} gesendet werden. Dein Konto ist angelegt: Tippe auf „Erneut senden“.",
       "showPassword": "Passwort anzeigen",
       "hidePassword": "Passwort verbergen"
     },
     "account": {
-      "verify": "Bestätige deine E-Mail, um das Testguthaben zu erhalten",
+      "verify": "Bestätige deine E-Mail – berechtigte Konten erhalten ein Testguthaben",
       "usage30d": "Ausgegeben in den letzten 30 Tagen",
       "hoursLeft": "Noch etwa {{hours}} h",
       "frozen": "Dieses Konto ist eingefroren",
@@ -1714,7 +1714,9 @@
       "empty": "Noch keine Sitzungen. Jede Sitzung wird hier auf diesem Telefon gespeichert.",
       "minutes": "{{minutes}} Min.",
       "name": "Name",
-      "renameHint": "Leer lassen, um die Sitzung nach ihrem Datum zu benennen."
+      "renameHint": "Leer lassen, um die Sitzung nach ihrem Datum zu benennen.",
+      "unfinished": "Unvollständig",
+      "nothingHeard": "In dieser Sitzung wurde nichts gehört."
     },
     "main": {
       "hear": "Ich höre",
@@ -1750,7 +1752,12 @@
       "voice": "Stimme, die ich höre",
       "speed": "Sprechtempo",
       "headphones": "Nur über Kopfhörer gesprochen. Über den Lautsprecher gibt es Untertitel.",
-      "searchVoices": "Stimmen suchen"
+      "searchVoices": "Stimmen suchen",
+      "preview": "Probehören",
+      "previewVoice": "{{voice}} probehören",
+      "stopPreview": "Probehören beenden",
+      "previewConfirmTitle": "Diese Stimme probehören?",
+      "previewEstimate": "Ein neues Probehören kostet etwa {{amount}} (geschätzt); dasselbe noch einmal abzuspielen, solange die App offen ist, kostet nichts."
     },
     "devices": {
       "microphone": "Mikrofon",

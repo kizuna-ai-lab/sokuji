@@ -1649,14 +1649,14 @@
       "setNewPassword": "Yeni parolayı ayarla",
       "back": "Girişe dön",
       "later": "Sonra: hesap ekranından doğrulayın",
-      "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır ve deneme kredisi eklenir.",
+      "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır. Ardından koşulları karşılayan hesaplara deneme kredisi eklenir.",
       "sendingCode": "{{email}} adresine 6 haneli kod gönderiliyor…",
       "codeNotSent": "Kod {{email}} adresine gönderilemedi. Hesabınız oluşturuldu: Yeniden gönder'e dokunun.",
       "showPassword": "Şifreyi göster",
       "hidePassword": "Şifreyi gizle"
     },
     "account": {
-      "verify": "Deneme kredisini almak için e-postanızı doğrulayın",
+      "verify": "E-postanızı doğrulayın; koşulları karşılayan hesaplar deneme kredisi alır",
       "usage30d": "Son 30 günde harcanan",
       "hoursLeft": "Yaklaşık {{hours}} sa kaldı",
       "frozen": "Bu hesap donduruldu",
@@ -1714,7 +1714,9 @@
       "empty": "Henüz oturum yok. Başlattığınız her oturum burada, bu telefonda saklanır.",
       "minutes": "{{minutes}} dk",
       "name": "Ad",
-      "renameHint": "Oturuma tarihinin ad olarak verilmesi için boş bırakın."
+      "renameHint": "Oturuma tarihinin ad olarak verilmesi için boş bırakın.",
+      "unfinished": "Tamamlanmadı",
+      "nothingHeard": "Bu oturumda hiçbir şey duyulmadı."
     },
     "main": {
       "hear": "Duyduğum dil",
@@ -1750,7 +1752,12 @@
       "voice": "Duyduğum ses",
       "speed": "Konuşma hızı",
       "headphones": "Yalnızca kulaklıkla seslendirilir. Hoparlörde altyazı alırsınız.",
-      "searchVoices": "Ses ara"
+      "searchVoices": "Ses ara",
+      "preview": "Dinle",
+      "previewVoice": "{{voice}} sesini dinle",
+      "stopPreview": "Dinlemeyi durdur",
+      "previewConfirmTitle": "Bu ses dinlensin mi?",
+      "previewEstimate": "Yeni bir dinleme yaklaşık {{amount}} tutar (tahmini); uygulama açıkken aynısını yeniden dinlemek ücretsizdir."
     },
     "devices": {
       "microphone": "Mikrofon",

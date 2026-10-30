@@ -61,3 +61,23 @@ describe('fetchFallbackUsdPerHour', () => {
     expect(await fetchFallbackUsdPerHour({ fetch })).toBeCloseTo(0.5, 10);
   });
 });
+
+describe('fetchWallet with a malformed balance', () => {
+  // "0" on this screen means no money left: a balance that cannot be read is an error, not a zero.
+  it('rejects instead of showing zero', async () => {
+    const { fetch } = respond(200, { balanceUsd: 'abc', frozen: false });
+    await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
+  });
+});
+
+describe('fetchWallet with other malformed amounts', () => {
+  it('rejects a non-numeric 30-day spend', async () => {
+    const { fetch } = respond(200, { balanceMicroUsd: 1000000, last30DaysUsageMicroUsd: 'x' });
+    await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
+  });
+
+  it('rejects a non-numeric expiring amount', async () => {
+    const { fetch } = respond(200, { balanceMicroUsd: 1000000, expiringSoon: { microUsd: null, expiresAt: 1 } });
+    await expect(fetchWallet({ token: 'tok', fetch })).rejects.toThrow('wallet-status malformed');
+  });
+});

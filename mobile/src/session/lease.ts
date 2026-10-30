@@ -40,7 +40,7 @@ const nativeTimer: WaitTimer = {
 
 // `signal` is the session's: stop() aborts whatever request is in flight, and
 // the caller sees 'aborted' rather than a result it would have to throw away.
-async function post(
+export async function post(
   doFetch: typeof fetch,
   url: string,
   body: unknown,

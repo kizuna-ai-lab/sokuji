@@ -1649,14 +1649,14 @@
       "setNewPassword": "Ustaw nowe hasło",
       "back": "Wróć do logowania",
       "later": "Później: zweryfikuj z ekranu konta",
-      "registerNote": "Otrzymasz 6-cyfrowy kod e-mailem; po jego wpisaniu konto zostanie zweryfikowane, a środki próbne dodane.",
+      "registerNote": "Otrzymasz 6-cyfrowy kod e-mailem; po jego wpisaniu konto zostanie zweryfikowane. Uprawnione konta otrzymują wtedy środki próbne.",
       "sendingCode": "Wysyłanie 6-cyfrowego kodu na {{email}}…",
       "codeNotSent": "Nie udało się wysłać kodu na {{email}}. Konto zostało utworzone: dotknij Wyślij ponownie.",
       "showPassword": "Pokaż hasło",
       "hidePassword": "Ukryj hasło"
     },
     "account": {
-      "verify": "Zweryfikuj e-mail, aby otrzymać środki próbne",
+      "verify": "Zweryfikuj e-mail – uprawnione konta otrzymują środki próbne",
       "usage30d": "Wydano w ostatnich 30 dniach",
       "hoursLeft": "Pozostało około {{hours}} h",
       "frozen": "To konto jest zablokowane",
@@ -1714,7 +1714,9 @@
       "empty": "Nie ma jeszcze sesji. Każda sesja jest przechowywana tutaj, na tym telefonie.",
       "minutes": "{{minutes}} min",
       "name": "Nazwa",
-      "renameHint": "Zostaw puste, aby sesja nazywała się datą."
+      "renameHint": "Zostaw puste, aby sesja nazywała się datą.",
+      "unfinished": "Niedokończone",
+      "nothingHeard": "W tej sesji nic nie usłyszano."
     },
     "main": {
       "hear": "Słyszę",
@@ -1750,7 +1752,12 @@
       "voice": "Głos, który słyszę",
       "speed": "Tempo mowy",
       "headphones": "Czytane tylko w słuchawkach. Na głośniku dostajesz napisy.",
-      "searchVoices": "Szukaj głosów"
+      "searchVoices": "Szukaj głosów",
+      "preview": "Odsłuchaj",
+      "previewVoice": "Odsłuchaj głos {{voice}}",
+      "stopPreview": "Zatrzymaj odsłuch",
+      "previewConfirmTitle": "Odsłuchać ten głos?",
+      "previewEstimate": "Nowy odsłuch kosztuje około {{amount}} (szacunkowo); ponowne odtworzenie tego samego, gdy aplikacja jest otwarta, jest bezpłatne."
     },
     "devices": {
       "microphone": "Mikrofon",
