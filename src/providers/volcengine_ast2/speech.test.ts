@@ -56,6 +56,12 @@ describe('hasOpusAudio', () => {
     expect(hasOpusAudio(Uint8Array.from([1, 2, 3]))).toBe(true);
     expect(hasOpusAudio(new Uint8Array(0))).toBe(false);
   });
+
+  it('leaves a clip with anything past whole header pages to the decoder: trailing bytes, a partial page, a body that overruns', () => {
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, Uint8Array.from([0x4f, 0x67, 0x67])))).toBe(true);
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, AUDIO_PAGE.subarray(0, 20)))).toBe(true);
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE.subarray(0, OPUS_TAGS_PAGE.length - 5)))).toBe(true);
+  });
 });
 
 describe("Doubao's spoken sentences (ruling 10)", () => {

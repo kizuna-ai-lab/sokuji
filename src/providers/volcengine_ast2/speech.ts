@@ -35,7 +35,6 @@ const OPUS_TAGS = 'OpusTags';
  */
 export function hasOpusAudio(ogg: Uint8Array): boolean {
   let at = 0;
-  let pages = 0;
   while (at + 27 <= ogg.length) {
     if (!OGG_PAGE.every((b, i) => ogg[at + i] === b)) return true;
     const segments = ogg[at + 26];
@@ -44,13 +43,14 @@ export function hasOpusAudio(ogg: Uint8Array): boolean {
     if (body > ogg.length) return true;
     let size = 0;
     for (let i = 0; i < segments; i++) size += ogg[table + i];
-    const head = String.fromCharCode(...ogg.subarray(body, Math.min(body + 8, ogg.length)));
+    // A page whose declared body runs past the clip is not a whole page: the decoder's to judge.
+    if (body + size > ogg.length) return true;
+    const head = String.fromCharCode(...ogg.subarray(body, body + Math.min(8, size)));
     if (size > 0 && head !== OPUS_HEAD && head !== OPUS_TAGS) return true;
-    pages += 1;
     at = body + size;
   }
-  // No page past the headers: silence. Anything unparseable before a page boundary went to the decoder above.
-  return pages === 0 && ogg.length > 0;
+  // Silence only when every byte belonged to a whole header page; trailing bytes, a partial page, go to the decoder.
+  return at !== ogg.length;
 }
 
 export type SpeechSink = Pick<AdapterEvents, 'audio' | 'degraded'>;
