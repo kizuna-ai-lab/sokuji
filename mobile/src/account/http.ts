@@ -2,7 +2,7 @@ import { BACKEND_URL } from '../backend';
 
 // React Native's fetch has no timeout of its own. These are foreground
 // screens, so a JS timer is the right cut-off (the session's waits are not).
-const REQUEST_TIMEOUT_MS = 15000;
+export const REQUEST_TIMEOUT_MS = 15000;
 
 // One GET against the backend's JSON API. A lost session is the one error the
 // screens act on by name; anything else carries its status, a stall its label.
