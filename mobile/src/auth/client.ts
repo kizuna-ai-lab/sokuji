@@ -3,17 +3,18 @@ import { createAuthClient } from 'better-auth/react';
 import { emailOTPClient } from 'better-auth/client/plugins';
 import { expoClient } from '@better-auth/expo/client';
 import { BACKEND_URL } from '../backend';
+import { REQUEST_TIMEOUT_MS } from '../account/http';
 import { localPart, unwrap } from './unwrap';
 
 export { BACKEND_URL };
 
-// A request that stalls fails after this, as the app's other requests do
-// (account/http.ts): a sign-in page holds its tabs and Back while one runs.
-const AUTH_TIMEOUT_MS = 15000;
+// A request that stalls fails after the app's request timeout, as its other
+// requests do: a sign-in page holds its tabs and Back while one runs.
+// better-fetch aborts the request at `timeout` (its own AbortController).
 
 export const authClient = createAuthClient({
   baseURL: BACKEND_URL,
-  fetchOptions: { timeout: AUTH_TIMEOUT_MS },
+  fetchOptions: { timeout: REQUEST_TIMEOUT_MS },
   plugins: [
     emailOTPClient(),
     expoClient({ scheme: 'sokuji', storagePrefix: 'sokuji', storage: SecureStore }),
