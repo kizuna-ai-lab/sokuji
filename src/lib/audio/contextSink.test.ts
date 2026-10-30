@@ -201,6 +201,7 @@ describe('createContextSink — a device that vanishes (#246)', () => {
 
   it('a context that never ran is waiting for a gesture, not wedged', async () => {
     const { sink, contexts, clock } = setup({ state: 'suspended', prepare: (ctx) => { ctx.stuck = true; } });
+    contexts[0].wedge();
     void sink.play();
     clock.advance(10_000);
     await flush();
