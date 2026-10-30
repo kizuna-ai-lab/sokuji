@@ -152,6 +152,8 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
       setError('');
       try {
         await store.delete(s.id);
+        // Gone from the list at once: a tap before the reload finishes must not open it.
+        setSessions((list) => list?.filter((x) => x.id !== s.id) ?? list);
         // Deleted from the reader: back to the list.
         setReading((r) => (r && r.id === s.id ? null : r));
         await load();
