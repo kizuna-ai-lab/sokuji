@@ -1766,6 +1766,8 @@
       "usb": "Microfono USB",
       "noBluetoothMic": "Le cuffie Bluetooth riproducono la traduzione ma non fanno da microfono.",
       "output": "Dispositivo di riproduzione",
+      "chooseOutput": "Apre l'elenco dei dispositivi di riproduzione del sistema",
+      "outputUnavailable": "Impossibile aprire l'elenco dei dispositivi di riproduzione. Scegline uno nelle impostazioni di sistema.",
       "route": {
         "speaker": "Altoparlante del telefono",
         "headphones": "Cuffie",

@@ -1766,6 +1766,8 @@
       "usb": "USB na mikropono",
       "noBluetoothMic": "Nagpapatugtog ng salin ang Bluetooth headset pero hindi ginagamit bilang mikropono.",
       "output": "Playback device",
+      "chooseOutput": "Binubuksan ang listahan ng system ng mga playback device",
+      "outputUnavailable": "Hindi mabuksan ang listahan ng mga playback device. Pumili ng isa sa mga setting ng system.",
       "route": {
         "speaker": "Speaker ng telepono",
         "headphones": "Headphones",

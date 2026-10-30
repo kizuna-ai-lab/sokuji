@@ -1766,6 +1766,8 @@
       "usb": "USB-mikrofon",
       "noBluetoothMic": "Bluetooth-hörlurar spelar översättningen men används inte som mikrofon.",
       "output": "Uppspelningsenhet",
+      "chooseOutput": "Öppnar systemets lista över uppspelningsenheter",
+      "outputUnavailable": "Det gick inte att öppna listan med uppspelningsenheter. Välj en i systeminställningarna.",
       "route": {
         "speaker": "Telefonens högtalare",
         "headphones": "Hörlurar",
