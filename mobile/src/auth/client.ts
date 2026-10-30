@@ -2,8 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { createAuthClient } from 'better-auth/react';
 import { emailOTPClient } from 'better-auth/client/plugins';
 import { expoClient } from '@better-auth/expo/client';
-import { BACKEND_URL } from '../backend';
-import { REQUEST_TIMEOUT_MS } from '../account/http';
+import { BACKEND_URL, REQUEST_TIMEOUT_MS } from '../backend';
 import { localPart, unwrap } from './unwrap';
 
 export { BACKEND_URL };
@@ -11,7 +10,6 @@ export { BACKEND_URL };
 // A request that stalls fails after the app's request timeout, as its other
 // requests do: a sign-in page holds its tabs and Back while one runs.
 // better-fetch aborts the request at `timeout` (its own AbortController).
-
 export const authClient = createAuthClient({
   baseURL: BACKEND_URL,
   fetchOptions: { timeout: REQUEST_TIMEOUT_MS },
