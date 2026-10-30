@@ -34,6 +34,8 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
   let pending: AudioContext | null = null;
   /** Each switch and rebuild takes a turn; only the latest may land. */
   let turn = 0;
+  /** The turn of a switch in flight, or 0. A rebuild gives way to it. */
+  let switching = 0;
   /** `pause()` was asked: this 'suspended' is ours, not a wedge. */
   let resting = false;
   /** Rebuilds since a context last ran. */
@@ -114,6 +116,8 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     next.addEventListener('statechange', onState);
     source = current ? connect(next, current) : null;
     abandon(old);
+    // It may have started before the listener, so no event will say so.
+    if (next.state === 'running') onState();
   };
 
   /**
@@ -123,7 +127,7 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
   const rebuild = async () => {
     if (current === null) return;
     // A switch in flight wins: it replaces this context anyway, and the graph counts on it landing.
-    if (pending) {
+    if (switching) {
       armDeadline();
       return;
     }
@@ -137,6 +141,8 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     const mine = turn;
     const key = `sink:${deps.label}:rebuild`;
     reportWarning('ContextSink', `The ${deps.label} output stopped responding and was rebuilt (attempt ${rebuilds} of ${MAX_REBUILDS})`, { dedupeKey: key });
+    // A device that does not answer counts as a failed attempt: the next one abandons this.
+    armDeadline();
     let next: AudioContext;
     try {
       next = await openOn(device);
@@ -201,26 +207,31 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     async setSinkId(id: string) {
       turn += 1;
       const mine = turn;
+      switching = mine;
       const stale = () => mine !== turn || current === null;
       const overtaken = (ctx: AudioContext) => {
         abandon(ctx);
         return new Error('a newer switch overtook this one');
       };
-      const next = await openOn(id);
-      if (stale()) throw overtaken(next);
-      if (ran) {
-        const started = await startsInTime(next);
+      try {
+        const next = await openOn(id);
         if (stale()) throw overtaken(next);
-        if (!started) {
-          pending = null;
-          abandon(next);
-          throw new Error('the output would not start');
+        if (ran) {
+          const started = await startsInTime(next);
+          if (stale()) throw overtaken(next);
+          if (!started) {
+            pending = null;
+            abandon(next);
+            throw new Error('the output would not start');
+          }
+        } else {
+          // Before the first gesture a start cannot land yet: `play()` asks again.
+          void next.resume().catch(() => {});
         }
-      } else {
-        // Before the first gesture a start cannot land yet: `play()` asks again.
-        void next.resume().catch(() => {});
+        adopt(next, id);
+      } finally {
+        if (switching === mine) switching = 0;
       }
-      adopt(next, id);
     },
 
     /** Asked again on a later play() when refused: a context waits for the first user gesture. */

@@ -255,6 +255,32 @@ describe('createContextSink — a device that vanishes (#246)', () => {
     expect(plays(contexts[3], 'a')).toBe(true);
   });
 
+  it('the cap counts rebuilds in a row, not over a lifetime', async () => {
+    const { contexts, clock } = setup();
+    for (let i = 0; i <= MAX_REBUILDS; i += 1) {
+      lose(contexts[contexts.length - 1]);
+      clock.advance(WEDGE_GRACE_MS + RESUME_DEADLINE_MS);
+      await flush();
+      expect(contexts).toHaveLength(i + 2);
+    }
+    expect(withKey('sink:them:gave-up')).toHaveLength(0);
+  });
+
+  it('a rebuild that hangs gives way to the next attempt', async () => {
+    const { sink, contexts, clock, plays } = setup({ prepare: (ctx, i) => { ctx.holdSink = i === 2; } });
+    await sink.setSinkId!('usb');
+    lose(contexts[1]);
+    clock.advance(WEDGE_GRACE_MS + RESUME_DEADLINE_MS);
+    await flush();
+    expect(contexts).toHaveLength(3);
+    clock.advance(RESUME_DEADLINE_MS);
+    await flush();
+    expect(contexts).toHaveLength(4);
+    expect(contexts[2].closed).toBe(1);
+    expect(contexts[3].sinkIds).toEqual(['usb']);
+    expect(plays(contexts[3], 'a')).toBe(true);
+  });
+
   it('a context replaced by a switch is no longer watched', async () => {
     const { sink, contexts, clock } = setup();
     await sink.setSinkId!('usb');
