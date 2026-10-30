@@ -284,7 +284,13 @@ export default function History({ store, onBack }: { store: HistoryStore; onBack
             // reader; the more button beside it, a separate target, holds the rest. It sits at
             // the row's top, beside the title: centred beside a long title at AX5 it was off screen.
             <View className="flex-row items-start pe-1 pt-1">
-              <Row className="flex-1 pe-1" label={label} value={meta} onPress={() => setReading(item)} />
+              <Row
+                className="flex-1 pe-1"
+                label={label}
+                value={meta}
+                // A failure shown for another session (an export, a delete) is not this one's.
+                onPress={() => { setError(''); setReading(item); }}
+              />
               {actions(item)}
             </View>
           );

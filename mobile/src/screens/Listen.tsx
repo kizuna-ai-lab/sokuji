@@ -29,7 +29,7 @@ const SPEEDS = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
 // desktop voice library's accent and gender labels. A voice can be heard
 // before it is chosen: a short sample in the language I read, charged to the
 // balance like the desktop's preview (owner, 2026-10-28).
-export default function Listen({ token, onBack }: { token: string; onBack: () => void }) {
+export default function Listen({ token, onBack, onSignInRequired }: { token: string; onBack: () => void; onSignInRequired: () => void }) {
   const { t } = useTranslation();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
@@ -46,10 +46,19 @@ export default function Listen({ token, onBack }: { token: string; onBack: () =>
   // The preview lives as long as this screen: leaving it stops what plays.
   // A session cannot start from here, and the screen is locked while one runs.
   const [previewState, setPreviewState] = useState<PreviewState>({ status: 'idle' });
-  const latest = useRef({ token, region: settings.region });
-  latest.current = { token, region: settings.region };
+  const latest = useRef({ token, region: settings.region, onSignInRequired });
+  latest.current = { token, region: settings.region, onSignInRequired };
   const [preview] = useState(() =>
-    createNativeVoicePreview({ token: () => latest.current.token, region: () => latest.current.region, onChange: setPreviewState }),
+    createNativeVoicePreview({
+      token: () => latest.current.token,
+      region: () => latest.current.region,
+      onChange: (s) => {
+        setPreviewState(s);
+        // The session is gone (a 401): the app shows the sign-in screen, as a live
+        // session and the account screen do, instead of each later tap failing the same way.
+        if (s.status === 'failed' && s.reason === 'sign_in') latest.current.onSignInRequired();
+      },
+    }),
   );
   useEffect(() => () => { void preview.close(); }, [preview]);
   // The voice waiting for the one-time "this is charged" confirmation.
