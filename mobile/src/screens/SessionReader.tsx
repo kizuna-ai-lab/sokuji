@@ -9,7 +9,7 @@ import { Spinner } from '@/components/Spinner';
 import { cn } from '@/lib/utils';
 import { leadTrimmed } from '@/lib/spans';
 import { entriesOf } from '../history/export';
-import { readingLines, type ReadingLine } from '../history/reading';
+import { isReadableTime, readingLines, type ReadingLine } from '../history/reading';
 import { scaledLine } from './subtitleSize';
 import type { HistoryStore } from '../history/store';
 import { useSettings } from '../store/useSettings';
@@ -69,7 +69,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
     <View className="gap-1 px-4 py-3">
       {item.showTime ? (
         <Text className="text-muted-foreground" style={timeStyle} allowFontScaling={false}>
-          {[Number.isFinite(item.t) ? time.format(new Date(item.t)) : null, item.person !== undefined ? t('mainPanel.displayMode.person', { n: item.person }) : null].filter(Boolean).join(' · ')}
+          {[isReadableTime(item.t) ? time.format(new Date(item.t)) : null, item.person !== undefined ? t('mainPanel.displayMode.person', { n: item.person }) : null].filter(Boolean).join(' · ')}
         </Text>
       ) : null}
       {item.translated ? (

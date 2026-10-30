@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Entry, Row } from '@shared/lib/projection/types';
-import { readingLines } from './reading';
+import { isReadableTime, readingLines } from './reading';
 
 const MIN = 60000;
 const t0 = Date.UTC(2026, 9, 28, 1, 0, 5);
@@ -51,6 +51,14 @@ describe('a saved session as reading lines', () => {
   it('shows no time for a line whose time is not a number, and the time again after it', () => {
     const lines = readingLines([exchange('a', Number.NaN), exchange('b', t0)]);
     expect(lines.map((l) => l.showTime)).toEqual([false, true]);
+  });
+
+  // Finite but past what a Date holds (±8.64e15 ms): an Invalid Date, which throws when formatted too.
+  it('shows no time for a time a Date cannot hold', () => {
+    const lines = readingLines([exchange('a', 1e16), exchange('b', t0)]);
+    expect(lines.map((l) => l.showTime)).toEqual([false, true]);
+    expect(isReadableTime(1e16)).toBe(false);
+    expect(isReadableTime(t0)).toBe(true);
   });
 
   it('marks a line the session ended in the middle of', () => {
