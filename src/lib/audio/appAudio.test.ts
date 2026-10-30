@@ -124,6 +124,31 @@ describe('getAppAudio', () => {
     expect(constructed).toBe(2);
   });
 
+  it('closes the sink contexts a failed build opened', async () => {
+    const live: FakeAudioContext[] = [];
+    class LiveContext extends FakeAudioContext {
+      audioWorklet = { addModule: vi.fn(async () => {}) };
+      constructor() {
+        if (live.length === 3) throw new Error('no more contexts'); // the graph's, other, me, and not them
+        super();
+        live.push(this);
+      }
+    }
+    vi.stubGlobal('AudioContext', LiveContext);
+    vi.stubGlobal('Audio', class extends FakeSink { constructor() { super(null); } });
+    vi.stubGlobal('AudioWorkletNode', class {
+      constructor(_ctx: unknown, name: string, options: { processorOptions: { chunk: number } }) {
+        return new FakeWorkletNode(name, options.processorOptions.chunk);
+      }
+    });
+
+    vi.resetModules();
+    const { getAppAudio } = await import('./appAudio');
+
+    await expect(getAppAudio()).rejects.toThrow('no more contexts');
+    expect(live.map((ctx) => ctx.closed)).toEqual([1, 1, 1]);
+  });
+
   /**
    * A fresh `getAppAudio` over fake Web Audio, for the test tone: the live
    * contexts it opens, the offline contexts it decodes on, and the decode.

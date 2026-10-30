@@ -1,6 +1,6 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
-import { createContextSink } from './contextSink';
+import { createContextSink, SWITCH_GIVE_UP_MS } from './contextSink';
 import { FakeAudioContext, FakeSink, FakeWorkletNode, reaches } from './fakeWebAudio';
 import { createAudioGraph, MAX_REBUILDS, RESUME_DEADLINE_MS, SINK_SWITCH_DEADLINE_MS, WEDGE_GRACE_MS } from './graph';
 import type { OutletName } from './outlets';
@@ -237,8 +237,24 @@ describe('createContextSink — a device that vanishes (#246)', () => {
     clock.advance(WEDGE_GRACE_MS + RESUME_DEADLINE_MS);
     await flush();
     expect(contexts[2].closed).toBe(1);
+    expect(withKey('sink:them:rebuild-failed')).toHaveLength(1);
     await sink.setSinkId!('speakers');
     expect(plays(contexts[contexts.length - 1], 'a')).toBe(true);
+  });
+
+  it('a switch whose device never answers gives up, and recovery goes on', async () => {
+    const { sink, contexts, clock, plays } = setup({ prepare: (ctx, i) => { ctx.holdSink = i === 2; } });
+    await sink.setSinkId!('usb');
+    lose(contexts[1]);
+    const hung = sink.setSinkId!('dead');
+    await flush();
+    clock.advance(SWITCH_GIVE_UP_MS);
+    await expect(hung).rejects.toThrow();
+    expect(contexts[2].closed).toBe(1);
+    clock.advance(RESUME_DEADLINE_MS);
+    await flush();
+    expect(contexts[3].sinkIds).toEqual(['usb']);
+    expect(plays(contexts[3], 'a')).toBe(true);
   });
 
   it('a rebuild that fails tries again', async () => {

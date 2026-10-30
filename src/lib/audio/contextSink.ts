@@ -9,6 +9,13 @@ import { realClock, type Clock } from '../contract/clock';
 import { describeCause, reportWarning } from '../diagnostics/report';
 import { MAX_REBUILDS, RESUME_DEADLINE_MS, WEDGE_GRACE_MS, type SinkElement } from './graph';
 
+/**
+ * How long a device may take to answer a switch. Past the graph's own switch
+ * deadline, because a Bluetooth output can be slow and a slow one is not a dead
+ * one; a switch that never answers would otherwise hold recovery off for good.
+ */
+export const SWITCH_GIVE_UP_MS = 5_000;
+
 export interface ContextSinkDeps {
   /** A new context at the app's rate, on the browser's default device. */
   createContext(): AudioContext;
@@ -147,7 +154,7 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
     try {
       next = await openOn(device);
     } catch (error) {
-      reportWarning('ContextSink', `The ${deps.label} output could not be rebuilt: ${describeCause(error)}`, { dedupeKey: key });
+      reportWarning('ContextSink', `The ${deps.label} output could not be rebuilt: ${describeCause(error)}`, { dedupeKey: `sink:${deps.label}:rebuild-failed` });
       armDeadline();
       return;
     }
@@ -161,6 +168,18 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
   };
 
   context.addEventListener('statechange', onState);
+
+  const answersInTime = async (opening: Promise<AudioContext>): Promise<AudioContext> => {
+    let cancel = () => {};
+    const late = new Promise<never>((_resolve, reject) => {
+      cancel = clock.setTimeout(() => reject(new Error('the device did not answer')), SWITCH_GIVE_UP_MS);
+    });
+    try {
+      return await Promise.race([opening, late]);
+    } finally {
+      cancel();
+    }
+  };
 
   /** Whether `ctx` runs before the deadline. */
   const startsInTime = async (ctx: AudioContext): Promise<boolean> => {
@@ -214,7 +233,13 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
         return new Error('a newer switch overtook this one');
       };
       try {
-        const next = await openOn(id);
+        const next = await answersInTime(openOn(id)).catch((error: unknown) => {
+          if (!stale() && pending) {
+            abandon(pending);
+            pending = null;
+          }
+          throw error;
+        });
         if (stale()) throw overtaken(next);
         if (ran) {
           const started = await startsInTime(next);
