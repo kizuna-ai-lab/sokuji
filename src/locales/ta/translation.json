@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "{{language}} மொழிபெயர்ப்பு",
+    "playsOn": "{{language}} மொழிபெயர்ப்பு இங்கே ஒலிக்கும்",
+    "playsOnTip": "{{language}} மொழிபெயர்ப்பு எங்கே ஒலிக்கும்: சாதனம் மற்றும் ஹெட்ஃபோனில் எந்தக் காது. {{language}} கேட்பவர் அந்தப் பக்கத்தை அணிவார்.",
     "title": "ஆடியோ அமைப்புகள்",
     "virtualMicrophone": "மெய்நிகர் மைக்ரோஃபோன்",
     "virtualMicrophoneNotice": "மெய்நிகர் மைக்ரோஃபோன் அறிவிப்பு",

@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "תרגום ל-{{language}}",
+    "playsOn": "השמעת התרגום ל-{{language}}",
+    "playsOnTip": "היכן מושמע התרגום ל-{{language}}: המכשיר, ועם אוזניות, האוזן. מי שמאזין ב-{{language}} עונד את הצד הזה.",
     "title": "הגדרות שמע",
     "virtualMicrophone": "מיקרופון וירטואלי",
     "virtualMicrophoneNotice": "הודעת מיקרופון וירטואלי",

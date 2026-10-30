@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "Käännös kielelle {{language}}",
+    "playsOn": "Käännöksen toisto: {{language}}",
+    "playsOnTip": "Mistä {{language}}-käännös toistetaan: laite ja kuulokkeilla korva. {{language}}-kielinen kuuntelija käyttää sitä puolta.",
     "title": "Ääniasetukset",
     "virtualMicrophone": "Virtuaalimikrofoni",
     "virtualMicrophoneNotice": "Virtuaalimikrofonin ilmoitus",

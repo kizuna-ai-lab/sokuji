@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "ترجمه به {{language}}",
+    "playsOn": "پخش ترجمه به {{language}}",
+    "playsOnTip": "محل پخش ترجمه به {{language}}: دستگاه و، با هدفون، کدام گوش. کسی که به {{language}} گوش می‌دهد آن سمت را می‌گذارد.",
     "title": "تنظیمات صدا",
     "virtualMicrophone": "میکروفون مجازی",
     "virtualMicrophoneNotice": "اطلاعیه میکروفون مجازی",

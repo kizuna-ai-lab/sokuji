@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "Tłumaczenie na {{language}}",
+    "playsOn": "Odtwarzanie tłumaczenia na {{language}}",
+    "playsOnTip": "Gdzie odtwarzane jest tłumaczenie na {{language}}: urządzenie i, w słuchawkach, ucho. Osoba słuchająca w języku {{language}} nosi tę stronę.",
     "title": "Ustawienia audio",
     "virtualMicrophone": "Wirtualny mikrofon",
     "virtualMicrophoneNotice": "Powiadomienie o wirtualnym mikrofonie",

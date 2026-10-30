@@ -240,8 +240,8 @@ Face-to-face is Both: two legs, nothing new in the runner.
   translation read by the other leg carries that leg's ear, coloured by its own side; one nobody reads (a
   third language, or the other leg unvoiced) carries a small icon-only tag whose tooltip says why (D14); the
   status bar holds an ears legend. Face-to-face, the two speech rows in the audio panel and the Speech
-  settings are named by the language each one voices ("Translation into English"), since that is what
-  each row is.
+  settings are named by where each language's translation plays ("English translation plays on"), with a
+  tooltip saying the device and ear are that listener's, since that is what each row picks.
 - All new words in the 30 catalogs.
 
 ### Managed participant speech (sokuji-backend, then the client)

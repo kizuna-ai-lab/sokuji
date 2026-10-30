@@ -347,27 +347,30 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(sw('Translation I hear')).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('Both · beside me: device·channel selects with previews on both rows, no I hear it too, no Passthrough, the headphones hint; Translation into Japanese on by auto', () => {
+  it('Both · beside me: device·channel selects with previews on both rows, no I hear it too, no Passthrough, the headphones hint; Japanese translation plays on on by auto', () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     mount();
     expect(screen.queryByText('I hear it too')).toBeNull();
     expect(screen.queryByText('Passthrough')).toBeNull();
-    const other = within(row('Translation into English')).getByRole('combobox') as HTMLSelectElement;
+    const other = within(row('English translation plays on')).getByRole('combobox') as HTMLSelectElement;
     expect(other.value).toBe('#right');
-    const them = within(row('Translation into Japanese')).getByRole('combobox') as HTMLSelectElement;
+    const them = within(row('Japanese translation plays on')).getByRole('combobox') as HTMLSelectElement;
     expect(them.value).toBe('#left');
-    expect(sw('Translation into Japanese')).toHaveAttribute('aria-checked', 'true');
+    expect(sw('Japanese translation plays on')).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText(/Use headphones, one side each/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Preview/ })).toHaveLength(2);
+    // Each row's help says where that language's translation plays, not what the row is in a meeting.
+    expect(tooltips).toContain('Where the English translation is played: the device and, with headphones, the ear. Whoever listens in English wears that side.');
+    expect(tooltips).toContain('Where the Japanese translation is played: the device and, with headphones, the ear. Whoever listens in Japanese wears that side.');
   });
 
   it('the preview plays on the row\'s outlet whatever its switch (Review Focus 3)', async () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     useRoutingStore.setState({ participantSpeech: false });
     mount();
-    fireEvent.click(within(row('Translation into Japanese')).getByRole('button', { name: /Preview/ }));
+    fireEvent.click(within(row('Japanese translation plays on')).getByRole('button', { name: /Preview/ }));
     await vi.waitFor(() => expect(preview).toHaveBeenCalledWith('them'));
-    fireEvent.click(within(row('Translation into English')).getByRole('button', { name: /Preview/ }));
+    fireEvent.click(within(row('English translation plays on')).getByRole('button', { name: /Preview/ }));
     await vi.waitFor(() => expect(preview).toHaveBeenCalledWith('other'));
   });
 
@@ -423,8 +426,8 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
       expect(line.firstElementChild).toHaveTextContent('Voice');
       return within(line).getByRole('button').textContent;
     };
-    expect(named('Translation into English')).toBe('Adrian');
-    expect(named('Translation into Japanese')).toBe('Grace');
+    expect(named('English translation plays on')).toBe('Adrian');
+    expect(named('Japanese translation plays on')).toBe('Grace');
   });
 
   it('draws no line under a row that is off or not in this mode', () => {

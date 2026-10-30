@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "الترجمة إلى {{language}}",
+    "playsOn": "تشغيل الترجمة إلى {{language}}",
+    "playsOnTip": "مكان تشغيل الترجمة إلى {{language}}: الجهاز، ومع سماعات الرأس، الأذن. من يستمع بـ{{language}} يضع ذلك الجانب.",
     "title": "إعدادات الصوت",
     "virtualMicrophone": "ميكروفون افتراضي",
     "virtualMicrophoneNotice": "إشعار الميكروفون الافتراضي",

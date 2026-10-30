@@ -73,8 +73,8 @@ describe('LegSpeech', () => {
     // Its own chunk afterwards is ranged as ever: the foreign one taught the pace nothing and counts for nothing.
     speech.speak(8, 'Adiós.', [0, 6], 'es');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-2', audio: b64(2400) }));
-    const own = kinds('audio').map((e) => e.payload as { ref?: number }).at(-1);
-    expect(own?.ref).toBe(8);
+    const own = kinds('audio').map((e) => e.payload as { ref?: number });
+    expect(own[own.length - 1].ref).toBe(8);
   });
 
   it('streams each chunk as audio on its ref as it arrives, with a provisional range from the prior', async () => {

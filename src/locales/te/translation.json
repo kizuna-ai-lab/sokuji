@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "{{language}} అనువాదం",
+    "playsOn": "{{language}} అనువాదం ఇక్కడ వినిపిస్తుంది",
+    "playsOnTip": "{{language}} అనువాదం ఎక్కడ వినిపిస్తుంది: పరికరం మరియు హెడ్‌ఫోన్‌లో ఏ చెవి. {{language}} వినేవారు ఆ వైపు ధరిస్తారు.",
     "title": "ఆడియో సెట్టింగ్‌లు",
     "virtualMicrophone": "వర్చువల్ మైక్రోఫోన్",
     "virtualMicrophoneNotice": "వర్చువల్ మైక్రోఫోన్ నోటీసు",

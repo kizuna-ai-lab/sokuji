@@ -345,7 +345,8 @@
     "apiKeyHelpTooltip2": "Step-by-step guide:"
   },
   "audioPanel": {
-    "translationInto": "Translation into {{language}}",
+    "playsOn": "{{language}} translation plays on",
+    "playsOnTip": "Where the {{language}} translation is played: the device and, with headphones, the ear. Whoever listens in {{language}} wears that side.",
     "title": "Audio Settings",
     "virtualMicrophone": "Virtual microphone",
     "virtualMicrophoneNotice": "Virtual Microphone Notice",

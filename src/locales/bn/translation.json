@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "{{language}}-এ অনুবাদ",
+    "playsOn": "{{language}} অনুবাদ এখানে বাজবে",
+    "playsOnTip": "{{language}} অনুবাদ কোথায় বাজবে: ডিভাইস এবং হেডফোনে কোন কান। যিনি {{language}} শোনেন তিনি সেই দিকটি পরেন।",
     "title": "অডিও সেটিংস",
     "virtualMicrophone": "ভার্চুয়াল মাইক্রোফোন",
     "virtualMicrophoneNotice": "ভার্চুয়াল মাইক্রোফোন নোটিশ",

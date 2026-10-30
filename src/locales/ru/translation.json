@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "Перевод на {{language}}",
+    "playsOn": "Воспроизведение перевода на {{language}}",
+    "playsOnTip": "Где воспроизводится перевод на {{language}}: устройство и, в наушниках, ухо. Тот, кто слушает на {{language}}, надевает эту сторону.",
     "title": "Настройки аудио",
     "virtualMicrophone": "Виртуальный микрофон",
     "virtualMicrophoneNotice": "Уведомление о виртуальном микрофоне",

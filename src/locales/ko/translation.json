@@ -345,7 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
-    "translationInto": "{{language}} 번역",
+    "playsOn": "{{language}} 번역 재생 장치",
+    "playsOnTip": "{{language}} 번역을 재생할 장치와, 헤드폰이면 어느 쪽 귀인지. {{language}}로 듣는 사람이 그쪽을 착용합니다.",
     "title": "오디오 설정",
     "virtualMicrophone": "가상 마이크",
     "virtualMicrophoneNotice": "가상 마이크 안내",

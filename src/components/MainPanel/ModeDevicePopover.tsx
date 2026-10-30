@@ -100,8 +100,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const f2f = useFaceToFace();
   const beside = mode === 'both' && f2f.active;
   const languageName = useLanguageLabel();
-  // Beside me, each row is one language's voice — the adapter routes by the translation's language — so it is named by it.
-  const into = (code: string | null, fallback: string) => (code ? t('audioPanel.translationInto', 'Translation into {{language}}', { language: languageName(code) }) : fallback);
+  // Beside me, each row picks where one language's translation plays — the adapter routes by the translation's language — so it is named by it.
+  const playsOn = (code: string | null, fallback: string) => (code ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
 
   const outlets = useOutlets();
   const setOutletDevice = useSetOutletDevice();
@@ -284,8 +284,8 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     }
 
     if (beside) {
-      list.push(outletRow('other', 'other', into(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears')), { onPreview: () => previewOn('other') }));
-      list.push(outletRow('them', 'them', into(f2f.me, t('audioPanel.iHear', 'Translation I hear')), { onPreview: () => previewOn('them') }));
+      list.push(outletRow('other', 'other', playsOn(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears')), { onPreview: () => previewOn('other') }));
+      list.push(outletRow('them', 'them', playsOn(f2f.me, t('audioPanel.iHear', 'Translation I hear')), { onPreview: () => previewOn('them') }));
     }
 
     return list;
