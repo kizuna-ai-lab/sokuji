@@ -3,7 +3,7 @@ import { flush } from '../../lib/contract/testing/drive';
 import { recordEvents } from '../../lib/contract/events';
 import type { TextRange } from '../../lib/contract/adapter';
 import type { Clip, Sentence } from './segments';
-import { Ast2Speech, type ClipFor, type OggDecoder } from './speech';
+import { Ast2Speech, hasOpusAudio, type ClipFor, type OggDecoder } from './speech';
 
 /** A decoder whose answers the test releases one by one: a clip's pcm has one sample per byte. */
 function heldDecoder() {
@@ -24,7 +24,70 @@ const setup = (decode: OggDecoder, clipFor?: ClipFor) => {
   return { speech: new Ast2Speech(decode, events, clipFor), log, audio: () => log.filter((e) => e.kind === 'audio').map((e) => e.payload as { pcm: Int16Array; ref?: number; range?: TextRange }) };
 };
 
+/** One Ogg page: the 27-byte header, one segment per 255 bytes of body, then the body. */
+function oggPage(body: Uint8Array): Uint8Array {
+  const segments: number[] = [];
+  for (let left = body.length; left >= 255; left -= 255) segments.push(255);
+  segments.push(body.length % 255);
+  const header = new Uint8Array(27 + segments.length);
+  header.set([0x4f, 0x67, 0x67, 0x53]);
+  header[26] = segments.length;
+  header.set(segments, 27);
+  const page = new Uint8Array(header.length + body.length);
+  page.set(header);
+  page.set(body, header.length);
+  return page;
+}
+const ascii = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
+const OPUS_HEAD_PAGE = oggPage(ascii('OpusHead' + '\u0001'.repeat(11)));
+const OPUS_TAGS_PAGE = oggPage(ascii('OpusTags' + '\u0000'.repeat(60)));
+const AUDIO_PAGE = oggPage(Uint8Array.from([0xfc, 0xff, 0xfe, 1, 2, 3]));
+const concat = (...parts: Uint8Array[]) => {
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.length; }
+  return out;
+};
+
+describe('hasOpusAudio', () => {
+  it('is false for the two header pages alone, true once an audio page follows, and true for what is not Ogg at all', () => {
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE))).toBe(false);
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, AUDIO_PAGE))).toBe(true);
+    expect(hasOpusAudio(Uint8Array.from([1, 2, 3]))).toBe(true);
+    expect(hasOpusAudio(new Uint8Array(0))).toBe(false);
+  });
+
+  it('leaves a clip with anything past whole header pages to the decoder: trailing bytes, a partial page, a body that overruns', () => {
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, Uint8Array.from([0x4f, 0x67, 0x67])))).toBe(true);
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, AUDIO_PAGE.subarray(0, 20)))).toBe(true);
+    expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE.subarray(0, OPUS_TAGS_PAGE.length - 5)))).toBe(true);
+    // A page of a stream structure version this does not read (only 0 is defined) is the decoder's too.
+    const versioned = concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE);
+    versioned[4] = 1;
+    expect(hasOpusAudio(versioned)).toBe(true);
+  });
+});
+
 describe("Doubao's spoken sentences (ruling 10)", () => {
+  it("skips a clip of header pages alone — a silent stretch Doubao closed as a sentence — with no decode and no notice, and says so in the frame", async () => {
+    const decode = vi.fn(async (clip: Uint8Array) => new Int16Array(clip.length));
+    const { speech, log, audio } = setup(decode);
+    speech.sentenceStart(lock(8));
+    speech.chunk(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE));
+    expect(speech.flush()).toEqual({ chunks: 1, bytes: OPUS_HEAD_PAGE.length + OPUS_TAGS_PAGE.length, empty: true });
+    await flush();
+    expect(decode).not.toHaveBeenCalled();
+    expect(audio()).toEqual([]);
+    expect(log.filter((e) => e.kind === 'degraded')).toEqual([]);
+    // The next sentence, with audio, is decoded as ever.
+    speech.sentenceStart(lock(12));
+    speech.chunk(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, AUDIO_PAGE));
+    expect(speech.flush()).not.toHaveProperty('empty');
+    await flush();
+    expect(decode).toHaveBeenCalledTimes(1);
+    expect(audio().map((a) => a.ref)).toEqual([12]);
+  });
+
   it('decodes the chunks of one sentence as one clip, emitted rangeless on the ref locked at its start', async () => {
     const decode = vi.fn(async (clip: Uint8Array) => new Int16Array(clip.length));
     const { speech, audio } = setup(decode);
