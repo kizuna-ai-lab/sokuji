@@ -1,10 +1,11 @@
 /**
  * The page's playback — the one module in `src/lib/audio` that reads the
  * stores, as `session/appShape.ts` is for the runner. One graph per page, on
- * a 24 kHz context; `<audio>` elements as its outputs; the tap worklet from
- * the platform's URL; the virtual output per platform (Electron's virtual
- * speaker, the extension's tabs, nothing on the web); the routing settings
- * read live from `audioStore`, `routingStore` and `turnModeStore`.
+ * a 24 kHz context; a context per outlet and an `<audio>` element for the
+ * virtual bus as its outputs; the tap worklet from the platform's URL; the
+ * virtual output per platform (Electron's virtual speaker, the extension's
+ * tabs, nothing on the web); the routing settings read live from `audioStore`,
+ * `routingStore` and `turnModeStore`.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
 import type { Platform } from '../provider/types';

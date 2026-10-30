@@ -122,6 +122,11 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
    */
   const rebuild = async () => {
     if (current === null) return;
+    // A switch in flight wins: it replaces this context anyway, and the graph counts on it landing.
+    if (pending) {
+      armDeadline();
+      return;
+    }
     if (rebuilds >= MAX_REBUILDS) {
       if (!gaveUp) reportWarning('ContextSink', `The ${deps.label} output stopped responding and could not be recovered`, { dedupeKey: `sink:${deps.label}:gave-up` });
       gaveUp = true;
@@ -137,6 +142,7 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
       next = await openOn(device);
     } catch (error) {
       reportWarning('ContextSink', `The ${deps.label} output could not be rebuilt: ${describeCause(error)}`, { dedupeKey: key });
+      armDeadline();
       return;
     }
     if (mine !== turn || current === null) {
@@ -188,31 +194,23 @@ export function createContextSink(stream: MediaStream, deps: ContextSinkDeps): S
 
     /**
      * A new context rather than `setSinkId` on the running one: a wedged context
-     * can report success (#246). Rejects only when the sink stayed where it was,
-     * which is what `switchBus` expects of an element; a switch a newer one
-     * overtook resolves.
+     * can report success (#246). It resolves only if the sink moved: the graph
+     * records a resolved switch as landed. A switch a newer one overtook rejects,
+     * and `switchBus` knows it is stale and lets that go.
      */
     async setSinkId(id: string) {
       turn += 1;
       const mine = turn;
       const stale = () => mine !== turn || current === null;
-      let next: AudioContext;
-      try {
-        next = await openOn(id);
-      } catch (error) {
-        if (stale()) return;
-        throw error;
-      }
-      if (stale()) {
-        abandon(next);
-        return;
-      }
+      const overtaken = (ctx: AudioContext) => {
+        abandon(ctx);
+        return new Error('a newer switch overtook this one');
+      };
+      const next = await openOn(id);
+      if (stale()) throw overtaken(next);
       if (ran) {
         const started = await startsInTime(next);
-        if (stale()) {
-          abandon(next);
-          return;
-        }
+        if (stale()) throw overtaken(next);
         if (!started) {
           pending = null;
           abandon(next);

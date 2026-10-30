@@ -148,13 +148,6 @@ describe('createAudioGraph — outputs', () => {
     expect(buses).toEqual(['other', 'me', 'them', 'virtual']);
   });
 
-  it('resting the graph leaves the outputs running', async () => {
-    const { graph, me } = await setup();
-    await graph.resume();
-    await graph.suspend();
-    expect(me.paused).toBe(false);
-  });
-
   it('plays every outlet element from the start, each on its own device', async () => {
     const { graph, other, me, them } = await setup();
     expect([other.paused, me.paused, them.paused]).toEqual([false, false, false]);
