@@ -83,14 +83,14 @@
       ],
       "category": "public.app-category.utilities",
       "icon": "assets/icon.icns",
-      "identity": "Sokuji Code Signing",
+      "identity": "jiang zhuo (48ST7Q3ACJ)",
       "hardenedRuntime": true,
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.plist",
       "extendInfo": {
         "NSDownloadsFolderUsageDescription": "Sokuji saves conversation transcripts to your Downloads folder when auto-save is on."
       },
-      "notarize": false
+      "notarize": true
     },
     "pkg": {
       "scripts": "../pkg-scripts",
@@ -117,8 +117,7 @@
       "owner": "kizuna-ai-lab",
       "repo": "sokuji"
     },
-    "afterPack": "./scripts/electron-builder-fuses.js",
-    "afterSign": "./scripts/macos-transitional-requirement.js"
+    "afterPack": "./scripts/electron-builder-fuses.js"
   },
   "dependencies": {
     "electron-audio-loopback": "^1.0.6",
@@ -129,7 +128,10 @@
     "tar-stream": "^3.2.0"
   },
   "overrides": {
-    "onnxruntime-node": "npm:empty-npm-package@1.0.0"
+    "onnxruntime-node": "npm:empty-npm-package@1.0.0",
+    "app-builder-lib": {
+      "@electron/notarize": "^3.1.2"
+    }
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",
