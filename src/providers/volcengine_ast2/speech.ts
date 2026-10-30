@@ -37,6 +37,8 @@ export function hasOpusAudio(ogg: Uint8Array): boolean {
   let at = 0;
   while (at + 27 <= ogg.length) {
     if (!OGG_PAGE.every((b, i) => ogg[at + i] === b)) return true;
+    // Only stream structure version 0 is defined: any other is not Ogg this reads, so the decoder judges.
+    if (ogg[at + 4] !== 0) return true;
     const segments = ogg[at + 26];
     const table = at + 27;
     const body = table + segments;

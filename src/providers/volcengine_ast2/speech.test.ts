@@ -61,6 +61,10 @@ describe('hasOpusAudio', () => {
     expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, Uint8Array.from([0x4f, 0x67, 0x67])))).toBe(true);
     expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE, AUDIO_PAGE.subarray(0, 20)))).toBe(true);
     expect(hasOpusAudio(concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE.subarray(0, OPUS_TAGS_PAGE.length - 5)))).toBe(true);
+    // A page of a stream structure version this does not read (only 0 is defined) is the decoder's too.
+    const versioned = concat(OPUS_HEAD_PAGE, OPUS_TAGS_PAGE);
+    versioned[4] = 1;
+    expect(hasOpusAudio(versioned)).toBe(true);
   });
 });
 
