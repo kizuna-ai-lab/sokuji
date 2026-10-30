@@ -180,6 +180,11 @@ describe('ModelImportModal', () => {
       const mirrorButton = screen.getByRole('button', { name: 'hf-mirror.com' });
       expect(mirrorButton).toBeDisabled();
       expect(mirrorButton).toHaveAttribute('aria-pressed', 'false');
+      // ...and the source the commands actually use is the one shown as picked:
+      // the picker must never show neither button selected.
+      const hfButton = screen.getByRole('button', { name: 'huggingface.co' });
+      expect(hfButton).toHaveAttribute('aria-pressed', 'true');
+      expect(hfButton).toHaveClass('is-active');
     } finally {
       mockTargets = targets;
     }
