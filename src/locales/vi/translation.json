@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "Phát bản dịch {{language}} trên",
+    "playsOnTip": "Bản dịch {{language}} phát ở đây: chọn thiết bị và bên (trái hoặc phải) mà người nghe {{language}} đeo.",
     "title": "Cài đặt âm thanh",
     "virtualMicrophone": "Micro ảo",
     "virtualMicrophoneNotice": "Thông Báo Micro Ảo",

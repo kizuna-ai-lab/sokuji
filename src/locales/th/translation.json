@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "เล่นคำแปลภาษา{{language}}ที่",
+    "playsOnTip": "คำแปลภาษา{{language}}เล่นที่นี่: เลือกอุปกรณ์และข้าง (ซ้ายหรือขวา) ที่คนฟังภาษา{{language}}ใส่",
     "title": "การตั้งค่าเสียง",
     "virtualMicrophone": "ไมโครโฟนเสมือน",
     "virtualMicrophoneNotice": "ประกาศไมโครโฟนเสมือน",

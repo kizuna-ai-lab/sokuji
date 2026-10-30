@@ -69,7 +69,7 @@ interface Utterance {
   translationFinal: string;
   translationLanguage?: string;
   translationShown?: string;
-  /** The first final translation token's language: what speech speaks this utterance in. */
+  /** The language of the final translation tokens not yet handed to speech: what speech speaks them in. A run in another language is handed over first. */
   speechLanguage?: string;
   /** How much of `translationFinal` speech has been handed. */
   spokenUpTo: number;
@@ -128,6 +128,13 @@ export class Utterances {
         if (token.language) u.translationLanguage = token.language;
         this.openTranslation(u);
         if (token.is_final) {
+          // Each run of final tokens is spoken in its own language: a tail of the utterance that just ended,
+          // landing here after the next person's first word (the other direction), is handed to speech before
+          // this utterance's own translation, so neither is spoken in the other's language.
+          if (token.language && u.speechLanguage !== undefined && token.language !== u.speechLanguage) {
+            this.speakFinals(u);
+            u.speechLanguage = token.language;
+          }
           u.translationFinal += text;
           if (token.language) u.speechLanguage ??= token.language;
         } else if (u === this.current) {

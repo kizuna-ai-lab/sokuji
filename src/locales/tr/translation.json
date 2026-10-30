@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "{{language}} çevirisinin çalındığı yer",
+    "playsOnTip": "{{language}} çevirisi buradan çalar: {{language}} dinleyen kişinin taktığı cihazı ve tarafı (sol veya sağ) seçin.",
     "title": "Ses Ayarları",
     "virtualMicrophone": "Sanal mikrofon",
     "virtualMicrophoneNotice": "Sanal Mikrofon Uyarısı",

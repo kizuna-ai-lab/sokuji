@@ -85,7 +85,7 @@ export class Conversation {
       case 'segmentOpened': return this.open(event.payload.ref, event.payload.side, event.payload.origin, event.payload.person);
       case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language, event.payload.person);
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
-      case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
+      case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm, event.payload.voice);
       case 'speechRanges': return this.ranges(event.payload.ref, event.payload.ranges);
       case 'failed': {
         this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code ?? 'leg_failed' });
@@ -236,12 +236,12 @@ export class Conversation {
     if (!seg.final) this.markFinal(i);
   }
 
-  private audio(ref: number | undefined, range: TextRange | undefined, pcm: Int16Array): void {
+  private audio(ref: number | undefined, range: TextRange | undefined, pcm: Int16Array, voice?: LegName): void {
     if (ref === undefined) return;
     const i = this.indexByRef.get(ref);
     if (i === undefined) {
       const list = this.pending.get(ref) ?? [];
-      list.push({ range, pcm: this.retain(pcm) });
+      list.push({ range, pcm: this.retain(pcm), ...(voice ? { voice } : {}) });
       this.pending.set(ref, list);
       this.afterAudio();
       return;
@@ -259,7 +259,7 @@ export class Conversation {
     // After fill-in the adapter still measures against the text it sent: re-anchored from that text onto the filled
     // one, as `ranges` does, through the one shared `measure` (Gemini/AST2 follow-up, choice 19).
     kept = this.measure(ref, seg, [kept])[0];
-    this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm) }] });
+    this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm), ...(voice ? { voice } : {}) }] });
     // A range on an already-closed segment is checked against its settled text right away, as `ranges` does — the same
     // check `clampRanges` repeats on every later revision.
     if (seg.final) this.clampRanges(i);

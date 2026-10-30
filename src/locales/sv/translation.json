@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "Uppspelning av översättningen till {{language}}",
+    "playsOnTip": "Översättningen till {{language}} spelas här: välj enheten och sidan (vänster eller höger) som den som lyssnar på {{language}} bär.",
     "title": "Ljudinställningar",
     "virtualMicrophone": "Virtuell mikrofon",
     "virtualMicrophoneNotice": "Meddelande om virtuell mikrofon",

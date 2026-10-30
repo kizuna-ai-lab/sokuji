@@ -538,7 +538,7 @@ export class Run {
         this.host.loading(leg, event.payload);
         return;
       case 'audio':
-        playback.audio(leg, event.payload.ref, event.payload.pcm);
+        playback.audio(leg, event.payload.ref, event.payload.pcm, event.payload.voice);
         return;
       case 'reconnecting':
         this.setLegState(leg, 'reconnecting');

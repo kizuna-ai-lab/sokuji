@@ -24,6 +24,8 @@ import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSe
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
+import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
+import { AUTO } from '../../../lib/provider/languages';
 import VbCableNotice from '../../VbCable/VbCableNotice';
 import { useVbCablePresence } from '../../../stores/vbCableStore';
 
@@ -89,6 +91,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const mode = useMode();
   const f2f = useFaceToFace();
   const faceToFace = f2f.active;
+  const languageName = useLanguageLabel();
   // Subscribed to what the provider lookup reads, so the rows follow a selection or a load.
   useProviderStore((s) => s.selected);
   useProviderStore((s) => s.entries);
@@ -179,8 +182,16 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
     </>
   );
 
-  const otherLabel = t('audioPanel.otherHears', 'Translation the other side hears');
-  const themLabel = t('audioPanel.iHear', 'Translation I hear');
+  // Face-to-face, each row picks where one language's translation plays — the adapter routes by the translation's
+  // language — so it is named by it, and its tooltip says where that voice goes.
+  // An auto source names no language (Both refuses it at start anyway): the generic name and tooltip stay.
+  const named = (code: string | null): code is string => faceToFace && code !== null && code !== AUTO;
+  const playsOn = (code: string | null, fallback: string) => (named(code) ? t('audioPanel.playsOn', '{{language}} translation plays on', { language: languageName(code) }) : fallback);
+  const playsOnTip = (code: string | null): string | null => (named(code)
+    ? t('audioPanel.playsOnTip', 'The {{language}} translation plays here: choose the device and side (left or right) the {{language}} listener wears.', { language: languageName(code) })
+    : null);
+  const otherLabel = playsOn(f2f.other, t('audioPanel.otherHears', 'Translation the other side hears'));
+  const themLabel = playsOn(f2f.me, t('audioPanel.iHear', 'Translation I hear'));
   const meLabel = t('audioPanel.meToo', 'I hear it too');
   // The field is nowrap + ellipsis; its title keeps the full text reachable.
   const virtualMicField = platform === 'extension'
@@ -223,7 +234,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       <SettingRow
         label={otherLabel}
-        tooltip={speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.')}
+        tooltip={playsOnTip(f2f.other) ?? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.'))}
         greyed={myLegRuns ? undefined : notInMode}
         switch={{ checked: otherOn, onChange: () => setTextOnly(!textOnly), disabled: isSessionActive || speech !== 'optional', title: isSessionActive ? lockedByRun : undefined }}
         footer={otherOn && (
@@ -291,7 +302,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       <SettingRow
         label={themLabel}
-        tooltip={!participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.") : t('audioPanel.iHearTip', 'What the other side says, translated and read aloud to me.')}
+        tooltip={playsOnTip(f2f.me) ?? (!participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.") : t('audioPanel.iHearTip', 'What the other side says, translated and read aloud to me.'))}
         greyed={!theirLegRuns ? notInMode : recaptured ? blockedWholeSystem : undefined}
         switch={{
           checked: themOn,

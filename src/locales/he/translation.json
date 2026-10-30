@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "השמעת התרגום ל-{{language}}",
+    "playsOnTip": "התרגום ל-{{language}} מושמע כאן: בחרו את המכשיר ואת הצד (שמאל או ימין) שעונד מי שמאזין ב-{{language}}.",
     "title": "הגדרות שמע",
     "virtualMicrophone": "מיקרופון וירטואלי",
     "virtualMicrophoneNotice": "הודעת מיקרופון וירטואלי",

@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "Reproducción de la traducción al {{language}}",
+    "playsOnTip": "La traducción al {{language}} se reproduce aquí: elige el dispositivo y el lado (izquierdo o derecho) que lleva quien escucha en {{language}}.",
     "title": "Configuración de audio",
     "virtualMicrophone": "Micrófono virtual",
     "virtualMicrophoneNotice": "Aviso sobre micrófono virtual",

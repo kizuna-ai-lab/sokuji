@@ -141,7 +141,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       return openLeg!(leg, signal);
     },
     playback: {
-      audio: (leg, ref, pcm) => playback?.audio(leg, ref, pcm),
+      audio: (leg, ref, pcm, voice) => playback?.audio(leg, ref, pcm, voice),
       held: (held) => playback?.held(held),
       clear: () => playback?.clear(),
       live: (on) => playback?.live(on),

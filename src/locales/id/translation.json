@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "Terjemahan {{language}} diputar di",
+    "playsOnTip": "Terjemahan {{language}} diputar di sini: pilih perangkat dan sisi (kiri atau kanan) yang dipakai pendengar {{language}}.",
     "title": "Pengaturan audio",
     "virtualMicrophone": "Mikrofon virtual",
     "virtualMicrophoneNotice": "Pemberitahuan mikrofon virtual",

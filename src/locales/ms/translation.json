@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "Terjemahan {{language}} dimainkan di",
+    "playsOnTip": "Terjemahan {{language}} dimainkan di sini: pilih peranti dan sebelah (kiri atau kanan) yang dipakai pendengar {{language}}.",
     "title": "Tetapan Audio",
     "virtualMicrophone": "Mikrofon maya",
     "virtualMicrophoneNotice": "Notis mikrofon maya",

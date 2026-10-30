@@ -11,6 +11,8 @@ export interface Speech {
   range?: TextRange;
   /** 24 kHz mono. Empty when retention dropped it. */
   pcm: Int16Array;
+  /** The leg whose voice read it and whose ear plays it, when not the segment's own (the adapter's `audio.voice`): a replay goes there too. */
+  voice?: LegName;
 }
 
 export interface Segment {

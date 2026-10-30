@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "Weergave van de vertaling naar het {{language}}",
+    "playsOnTip": "De vertaling naar het {{language}} speelt hier: kies het apparaat en de kant (links of rechts) die de luisteraar in het {{language}} draagt.",
     "title": "Audio instellingen",
     "virtualMicrophone": "Virtuele microfoon",
     "virtualMicrophoneNotice": "Virtuele microfoon kennisgeving",

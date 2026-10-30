@@ -20,13 +20,13 @@ function create(options: Partial<LegSpeechOptions> = {}) {
   const clock = createVirtualClock(0);
   const sockets = fakeSockets();
   const { events, log } = recordEvents();
-  const speech = new LegSpeech({ region: 'us', key: 'k', voice: 'Adrian', speed: 1, events, clock, openSocket: sockets.create, ...options });
+  const speech = new LegSpeech({ leg: 'speaker', region: 'us', key: 'k', voice: 'Adrian', speed: 1, events, clock, openSocket: sockets.create, ...options });
   const opening = speech.open();
   const kinds = (k: AdapterEvent['kind']) => log.filter((e) => e.kind === k);
   const frames = (type: string): AdapterFrame[] => log.flatMap((e) => (e.kind === 'frame' && e.payload.type === type ? [e.payload] : []));
   const degraded = () => log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.code] : []));
   const reasons = () => log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.reason] : []));
-  return { clock, sockets, log, speech, opening, kinds, frames, degraded, reasons };
+  return { clock, sockets, events, log, speech, opening, kinds, frames, degraded, reasons };
 }
 
 async function setup(options: Partial<LegSpeechOptions> = {}) {
@@ -58,6 +58,61 @@ describe('tileSpan', () => {
 });
 
 describe('LegSpeech', () => {
+  it("a chunk read for another leg's row goes to that leg's events — ref, range and this leg as the voice — and ranges fill in there", async () => {
+    const { speech, tts, kinds } = await setup();
+    const home = recordEvents();
+    speech.speak(7, 'Hola.', [0, 5], 'es', home.events);
+    expect(tts().sentJson<Json>().some((m) => m.text === 'Hola.')).toBe(true);
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    // Nothing of it on this leg's own log but the frames.
+    expect(kinds('audio')).toHaveLength(0);
+    const audio = home.log.filter((e) => e.kind === 'audio').map((e) => e.payload as { ref?: number; pcm: Int16Array; range?: unknown; voice?: string });
+    expect(audio).toHaveLength(1);
+    expect(audio[0]).toMatchObject({ ref: 7, voice: 'speaker' });
+    expect(audio[0].pcm).toHaveLength(2400);
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(kinds('speechRanges')).toHaveLength(0);
+    const ranges = home.log.filter((e) => e.kind === 'speechRanges').map((e) => e.payload as { ref: number; ranges: unknown[] });
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0].ref).toBe(7);
+    // This leg's own chunk afterwards stays on its own log, unnamed.
+    speech.speak(8, 'Adiós.', [0, 6], 'es');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-2', audio: b64(2400) }));
+    const own = kinds('audio').map((e) => e.payload as { ref?: number; voice?: string });
+    expect(own).toHaveLength(1);
+    expect(own[0].ref).toBe(8);
+    expect(own[0]).not.toHaveProperty('voice');
+  });
+
+  it("two voices sharing `counts` number one row's entries once, so each one's ranges name its own", async () => {
+    const counts = new Map<number, number>();
+    const mine = await setup({ counts });
+    const theirs = await setup({ leg: 'participant', counts });
+    // Ref 7 is my row: my voice reads its first run, theirs the second (a tail in their language).
+    mine.speech.speak(7, 'Hello.', [0, 6], 'en');
+    theirs.speech.speak(7, 'Hola.', [6, 11], 'es', mine.events);
+    mine.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    theirs.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    mine.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    theirs.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    const ranges = mine.kinds('speechRanges').map((e) => (e.payload as unknown as { ranges: Array<{ index: number }> }).ranges.map((r) => r.index));
+    expect(ranges).toEqual([[0], [1]]);
+  });
+
+  it("a chunk for another leg's row that waited for the socket goes to that leg's events when it opens", async () => {
+    const made = create();
+    const home = recordEvents();
+    made.speech.speak(7, 'Hola.', [0, 5], 'es', home.events);
+    made.sockets.last().open();
+    await made.opening;
+    const tts = made.sockets.last();
+    expect(tts.sentJson<Json>().some((m) => m.text === 'Hola.')).toBe(true);
+    tts.receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    expect(made.kinds('audio')).toHaveLength(0);
+    const audio = home.log.filter((e) => e.kind === 'audio').map((e) => e.payload as { ref?: number; voice?: string });
+    expect(audio).toEqual([expect.objectContaining({ ref: 7, voice: 'speaker' })]);
+  });
+
   it('streams each chunk as audio on its ref as it arrives, with a provisional range from the prior', async () => {
     const { speech, tts, kinds, frames } = await setup();
     speech.speak(2, 'Hello. ', [0, 7], 'en');

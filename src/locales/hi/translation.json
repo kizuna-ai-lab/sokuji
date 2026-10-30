@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "{{language}} अनुवाद यहाँ चलेगा",
+    "playsOnTip": "{{language}} अनुवाद यहाँ चलता है: वह डिवाइस और तरफ़ (बाएँ या दाएँ) चुनें जो {{language}} सुनने वाला पहनता है।",
     "title": "ऑडियो सेटिंग्स",
     "virtualMicrophone": "वर्चुअल माइक्रोफ़ोन",
     "virtualMicrophoneNotice": "वर्चुअल माइक्रोफ़ोन सूचना",

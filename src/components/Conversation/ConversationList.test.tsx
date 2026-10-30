@@ -318,21 +318,42 @@ describe('ConversationList — face-to-face ears', () => {
     expect(tag?.textContent).toBe('R');
   });
 
-  it("marks a translation outside the leg's target as not played, the reason on hover", () => {
-    const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja'
+  it("tags a translation into the leg's own source with the other leg's ear, coloured by its own side: the adapter reads it there", () => {
+    const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja'; 'en' is the participant leg's
     const { container } = render(<ConversationList {...props({ ears, items: [own] })} />);
+    expect(container.querySelector('.ear-tag--muted')).toBeNull();
+    const tag = container.querySelector('.ear-tag');
+    expect(tag?.classList.contains('ear-tag--left')).toBe(true);
+    expect(tag?.classList.contains('listener-speaker')).toBe(true);
+    expect(tag?.textContent).toBe('L');
+  });
+
+  it('marks a translation nobody reads as not played, the reason on hover: a third language, or the other leg unvoiced', () => {
+    const third = rowItem({ row: row({ language: 'de' }) });
+    const { container, rerender } = render(<ConversationList {...props({ ears, items: [third] })} />);
     const tag = container.querySelector('.ear-tag--muted');
     expect(tag).not.toBeNull();
     expect(tag?.textContent).toBe('');
     expect(tag?.getAttribute('title')).toMatch(/Not played/);
     expect(tag?.getAttribute('aria-label')).toMatch(/Not played/);
     expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
+    const own = rowItem({ row: row({ language: 'en' }) });
+    rerender(<ConversationList {...props({ ears: { speaker: 'right' }, items: [own] })} />);
+    expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.ear-tag--left, .ear-tag--right')).toBeNull();
   });
 
-  it('offers no replay on a not-played translation, which never has audio; a played one and every row outside face-to-face keep theirs', () => {
-    const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja'
-    const { container, rerender } = render(<ConversationList {...props({ ears, items: [own] })} />);
+  it('offers no replay on a not-played translation; one read by the other leg keeps its replay (its audio is on the row); every row outside face-to-face keeps theirs', () => {
+    const third = rowItem({ row: row({ language: 'de' }) });
+    const { container, rerender } = render(<ConversationList {...props({ ears, items: [third] })} />);
     expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+    const own = rowItem({ row: row({ language: 'en' }) }); // the speaker leg's target is 'ja': read in the participant's ear
+    rerender(<ConversationList {...props({ ears, items: [own], replayLegs: new Set(['speaker', 'participant']) })} />);
+    expect(container.querySelector('.ear-tag--left')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).not.toBeNull();
+    // The slot follows the voice that read it: with the participant's voice keeping no replay audio, none.
+    rerender(<ConversationList {...props({ ears, items: [own], replayLegs: new Set(['speaker']) })} />);
     expect(container.querySelector('.row-play-btn')).toBeNull();
     rerender(<ConversationList {...props({ ears })} />);
     expect(container.querySelector('.ear-tag--right')).not.toBeNull();
@@ -362,24 +383,32 @@ describe('ConversationList — face-to-face ears', () => {
     expect(container.querySelector('.ear-tag')).toBeNull();
   });
 
-  // A leg that never speaks (Kizuna Soniox's participant today): nothing on it plays, so nothing on it is "not played" either.
-  it('draws neither an ear nor the not-played mark on a leg the ears leave out', () => {
+  // A leg that never speaks (Kizuna Soniox's participant today): nothing on it plays, so nothing on it is "not played" either —
+  // except a line into the voiced leg's language, which that leg reads, in its ear.
+  it("draws neither an ear nor the not-played mark on a leg the ears leave out, but the voiced leg's ear on a line it reads", () => {
     const theirs = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'en' }) });
     const codeSwitched = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ key: 'k2', language: 'ja' }) });
     const { container } = render(<ConversationList {...props({ ears: { speaker: 'right' }, items: [theirs, codeSwitched], replayLegs: new Set(['speaker']) })} />);
     expect(container.querySelectorAll('.conversation-row')).toHaveLength(2);
-    expect(container.querySelector('.ear-tag')).toBeNull();
-    expect(container.querySelector('.row-play-btn')).toBeNull();
+    expect(container.querySelectorAll('.ear-tag')).toHaveLength(1);
+    expect(container.querySelector('.ear-tag--muted')).toBeNull();
+    expect(container.querySelector('.ear-tag--right')?.classList.contains('listener-participant')).toBe(true);
+    // The line the speaker's voice read replays, as the speaker leg keeps replay audio; the other has no audio at all.
+    expect(container.querySelectorAll('.row-play-btn')).toHaveLength(1);
     // The voiced leg keeps its ear.
     const { container: mine } = render(<ConversationList {...props({ ears: { speaker: 'right' } })} />);
     expect(mine.querySelector('.ear-tag--right')).not.toBeNull();
   });
 
-  it("keeps the not-played mark on a voiced leg whose outlet is centred, and draws no letter on a played line", () => {
+  it("keeps the not-played mark on a voiced leg whose outlet is centred, and draws no letter on a played line — read here or by the other leg", () => {
     const centred = { speaker: 'centre', participant: 'centre' } as const;
-    const codeSwitched = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'ja' }) });
-    const { container, rerender } = render(<ConversationList {...props({ ears: centred, items: [codeSwitched], replayLegs: new Set(['participant']) })} />);
+    const third = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'de' }) });
+    const { container, rerender } = render(<ConversationList {...props({ ears: centred, items: [third], replayLegs: new Set(['participant']) })} />);
     expect(container.querySelector('.ear-tag--muted')).not.toBeNull();
+    expect(container.querySelector('.row-play-btn')).toBeNull();
+    const codeSwitched = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'ja' }) });
+    rerender(<ConversationList {...props({ ears: centred, items: [codeSwitched], replayLegs: new Set(['participant']) })} />);
+    expect(container.querySelector('.ear-tag')).toBeNull();
     expect(container.querySelector('.row-play-btn')).toBeNull();
     const normal = rowItem({ leg: 'participant', languages: { source: 'ja', target: 'en' }, row: row({ language: 'en' }) });
     rerender(<ConversationList {...props({ ears: centred, items: [normal], replayLegs: new Set(['participant']) })} />);

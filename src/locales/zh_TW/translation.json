@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
+    "playsOn": "{{language}}譯文從這裡播放",
+    "playsOnTip": "{{language}}譯文從這裡播放：選聽{{language}}的人戴的那個裝置和那一邊（左或右）。",
     "title": "音訊設定",
     "virtualMicrophone": "虛擬麥克風",
     "virtualMicrophoneNotice": "虛擬麥克風說明",

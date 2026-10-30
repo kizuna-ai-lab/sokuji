@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}} ({{label}})"
   },
   "audioPanel": {
+    "playsOn": "{{language}} மொழிபெயர்ப்பு இங்கே ஒலிக்கும்",
+    "playsOnTip": "{{language}} மொழிபெயர்ப்பு இங்கே ஒலிக்கும்: {{language}} கேட்பவர் அணியும் சாதனத்தையும் பக்கத்தையும் (இடது அல்லது வலது) தேர்வு செய்யுங்கள்.",
     "title": "ஆடியோ அமைப்புகள்",
     "virtualMicrophone": "மெய்நிகர் மைக்ரோஃபோன்",
     "virtualMicrophoneNotice": "மெய்நிகர் மைக்ரோஃபோன் அறிவிப்பு",

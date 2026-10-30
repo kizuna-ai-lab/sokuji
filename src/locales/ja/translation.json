@@ -345,6 +345,8 @@
     "recommendedOption": "{{name}}（{{label}}）"
   },
   "audioPanel": {
+    "playsOn": "{{language}}訳の再生先",
+    "playsOnTip": "{{language}}訳はここから再生されます。{{language}}を聞く人が着けているデバイスと側（左か右）を選んでください。",
     "title": "オーディオ設定",
     "virtualMicrophone": "仮想マイク",
     "virtualMicrophoneNotice": "仮想マイクについて",

@@ -150,16 +150,17 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
   return {
     queues: { speaker: queues.speaker, participant: queues.participant, replay: replayQueue },
 
-    audio(leg, ref, pcm) {
+    audio(leg, ref, pcm, voice = leg) {
       const id = `${leg}:${ref ?? 'none'}`;
       const index = counts.get(id) ?? 0;
       counts.set(id, index + 1);
-      if (leg === 'participant' && (!themOn || (ref !== undefined && unheard.has(ref)))) {
+      // The clip is keyed by the row's leg (L1 counts it there) and plays through the voice's queue and outlet.
+      if (voice === 'participant' && (!themOn || (ref !== undefined && unheard.has(ref)))) {
         if (!themOn && ref !== undefined) unheard.add(ref);
         return;
       }
       void graph.resume();
-      queues[leg].enqueue(clipKey(leg, ref, index), pcm);
+      queues[voice].enqueue(clipKey(leg, ref, index), pcm);
     },
 
     held(next) {
@@ -190,7 +191,10 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
 
     replay(leg, segment) {
       replayQueue.clear();
-      const outlet: OutletName = leg === 'participant' ? 'them' : routing.get().faceToFace ? 'other' : 'me';
+      // A segment another leg's voice read replays on that voice's outlet: the voice of an entry that will play
+      // (retention may have dropped the voiced one; what is left is the row's own), else the row's own.
+      const voice = segment.speech.find((entry) => entry.voice !== undefined && entry.pcm.length > 0)?.voice ?? leg;
+      const outlet: OutletName = voice === 'participant' ? 'them' : routing.get().faceToFace ? 'other' : 'me';
       if (outlet !== replayOutlet) {
         replayOutlet = outlet;
         apply();

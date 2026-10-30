@@ -16,6 +16,7 @@
  */
 import { SAMPLE_RATE, type AdapterEvents, type Ref, type TextRange } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
+import type { LegName } from '../../lib/conversation/types';
 import { framePayload } from '../../lib/contract/framePayload';
 import { SpeechPace, tileSpan } from '../../lib/contract/ranges';
 import { describeCause } from '../../lib/diagnostics/describeCause';
@@ -25,6 +26,14 @@ import type { OpenSocket } from './socket';
 import { classifyChunkEnd, SonioxTtsStream, type SonioxTtsErrorScope, type SonioxTtsSegmentEnd, type TextTag } from './ttsStream';
 
 export interface LegSpeechOptions {
+  /** The leg this voice belongs to: named as `voice` on audio it reads for another leg's row. */
+  leg: LegName;
+  /**
+   * Per ref, the next audio entry's index — the place L1 gives it among the ref's `audio` events. Shared
+   * between the two voices of one core: a row both read (a tail in the other language) numbers its entries
+   * once, so each voice's `speechRanges` names its own.
+   */
+  counts?: Map<Ref, number>;
   region: SonioxRegion;
   /** The TTS socket's key (an own key: the STT key). */
   key: string;
@@ -48,8 +57,8 @@ export class LegSpeech {
   private opening: SonioxTtsStream | null = null;
   private closed = false;
   private pending: Pending[] = [];
-  /** Per ref, the speech entries so far: the next audio's index (L1 appends one per `audio`). */
-  private readonly counts = new Map<Ref, number>();
+  /** Per ref, the speech entries so far: the next audio's index (L1 appends one per `audio`); a core's voices share it. */
+  private readonly counts: Map<Ref, number>;
   /** Per live stream of the current socket: its chunks' entry indices and sample counts. A new socket restarts the ids. */
   private segments = new Map<string, Array<{ index: number; samples: number }>>();
   /**
@@ -68,6 +77,8 @@ export class LegSpeech {
   private texts = new Map<Ref, Array<{ span: TextRange; text: string }>>();
   /** What this utterance handed to speech, for the Logs' `tts.speak`. */
   private spoken = '';
+  /** Per ref read for another leg's row: that leg's events, where the audio and its ranges go (the row is there). */
+  private readonly homes = new Map<Ref, AdapterEvents>();
   /** Translation I hear, live (#595): while off, nothing is sent to synthesis. */
   private on = true;
   /** The ref whose last chunk left a sentence open; null after a sentence or an utterance ended. */
@@ -83,6 +94,7 @@ export class LegSpeech {
 
   constructor(private readonly o: LegSpeechOptions) {
     this.pace = new SpeechPace(o.speed);
+    this.counts = o.counts ?? new Map();
   }
 
   /** Opens the socket at start; never rejects: a failure is said only in the Logs, and the first text reconnects (ruling 3, choice 6). */
@@ -90,8 +102,14 @@ export class LegSpeech {
     return this.ensure(true);
   }
 
-  speak(ref: Ref, text: string, span: TextRange, language: string): void {
+  /**
+   * `home`: another leg's row, read in this leg's voice (adapter, "route by the translation's language"):
+   * spoken as any chunk, but its audio and its ranges go to that leg's events, named with this leg as the
+   * `voice`, so the row keeps its karaoke and its replay and the sound reaches this leg's ear.
+   */
+  speak(ref: Ref, text: string, span: TextRange, language: string, home?: AdapterEvents): void {
     if (this.closed) return;
+    if (home) this.homes.set(ref, home);
     const continues = this.openSentence === ref;
     this.openSentence = classifyChunkEnd(text) === 'sentence' ? null : ref;
     if (!this.on) return;
@@ -158,6 +176,7 @@ export class LegSpeech {
     this.segments.clear();
     this.sweeps.clear();
     this.texts.clear();
+    this.homes.clear();
     // A close while CONNECTING rejects its connect(); ensure()'s catch sees `closed` and says nothing.
     this.opening?.close();
     this.opening = null;
@@ -245,7 +264,8 @@ export class LegSpeech {
     this.readable = true;
     this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
     const range = span ? this.provisional(streamId, ref, span, pcm.length) : undefined;
-    this.o.events.audio(range ? { ref, pcm, range } : { ref, pcm });
+    const home = this.homes.get(ref);
+    (home ?? this.o.events).audio({ ref, pcm, ...(range ? { range } : {}), ...(home ? { voice: this.o.leg } : {}) });
   }
 
   /** Where this chunk reaches in the span sent to its segment so far, at the leg's rate; none while the span has no letters. */
@@ -269,13 +289,16 @@ export class LegSpeech {
     // Filled in or lost, the segment's text is done with either way. Speech switched off let it go
     // already: the text its chunks were placed in stands in, so a boundary still snaps past a surrogate pair.
     const held = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
+    // The home of a ref whose chunks are all spoken is let go with them; a late chunk names it again (`speak`).
+    const home = end.ref !== undefined ? this.homes.get(end.ref) : undefined;
+    if (end.ref !== undefined && !this.texts.has(end.ref)) this.homes.delete(end.ref);
     const text = held.length > 0 ? held : sweep?.text ?? '';
     if (this.closed || !end.span || end.ref === undefined || !entries || entries.length === 0) return;
     // Clean or not, the chunks that arrived take the span: an unclean end (a kill, a lost socket,
     // speech switched off) would otherwise leave its row lit part way after the voice stopped.
     const [a, b] = end.span;
     const ranges = tileSpan([0, b - a], entries.map((e) => e.samples), text).map(([s, e]): TextRange => [a + s, a + e]);
-    this.o.events.speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
+    (home ?? this.o.events).speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
     // Only a whole segment says how long its text takes to speak.
     if (end.clean) this.pace.learn(text, entries.reduce((n, e) => n + e.samples, 0));
   }

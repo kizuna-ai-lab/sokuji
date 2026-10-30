@@ -16,6 +16,7 @@ import {
   type Adapter,
   type AdapterEvents,
   type AdapterSession,
+  type Ref,
   type SessionContext,
   type StartRequest,
 } from '../../lib/contract/adapter';
@@ -95,11 +96,11 @@ function withoutPerson(event: SegmentEvent): SegmentEvent {
   return { ...event, payload } as SegmentEvent;
 }
 
-function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket): CoreLeg {
+function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket, counts?: Map<Ref, number>): CoreLeg {
   const tts = request.config.tts;
   const key = request.credentials.tts;
   const speech = tts && key
-    ? new LegSpeech({ region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
+    ? new LegSpeech({ leg: name, region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket, ...(counts ? { counts } : {}) })
     : null;
   return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
 }
@@ -128,6 +129,8 @@ class SonioxCore {
   private readonly tracker: SonioxSideTracker | null;
   /** Shared Both only: the speaker as channel A, the participant as B, 100-ms frames at 0.5 gain (`SonioxClient.ts:400-417`). */
   private readonly mixer: PcmMixer | null;
+  /** Per translation ref, the other legs reading it (shared Both, face-to-face): told when its speech ends. */
+  private readonly abroad = new Map<Ref, Set<LegName>>();
 
   constructor(private readonly o: CoreOptions) {
     this.tracker = o.shared ? new SonioxSideTracker({ energy: !o.faceToFace }) : null;
@@ -158,12 +161,36 @@ class SonioxCore {
         speak: (leg, ref, text, span, language) => {
           if (this.ended) return;
           const core = this.leg(leg);
-          // A leg speaks only into its own target: a translation into any other language
-          // (a code-switch came back in the speaker's own) is not read aloud. App codes on both sides.
-          if (language !== core.context.direction.target) return;
-          core.speech?.speak(ref, text, span, sonioxWire.toWire(language));
+          const wire = sonioxWire.toWire(language);
+          // A leg speaks into its own target. App codes on both sides.
+          if (language === core.context.direction.target) {
+            core.speech?.speak(ref, text, span, wire);
+            return;
+          }
+          // Shared Both and face-to-face: a translation into the other leg's target (someone code-switched, a
+          // tail of the last utterance that landed on this one) is read by that leg's voice, into its ear —
+          // "route by the translation's language" (face-to-face design, D10). The row stays this leg's: the
+          // audio and its ranges come back on this leg's events, naming that voice. A lone leg has nobody to hand it to.
+          if (!this.o.shared) return;
+          const other = this.o.legs.find((l) => l !== core && l.context.direction.target === language);
+          if (!other?.speech) return;
+          let abroad = this.abroad.get(ref);
+          if (!abroad) {
+            abroad = new Set();
+            this.abroad.set(ref, abroad);
+          }
+          abroad.add(other.name);
+          other.speech.speak(ref, text, span, wire, core.events);
         },
-        endSpeech: (leg) => { if (!this.ended) this.leg(leg).speech?.endUtterance(); },
+        endSpeech: (leg, ref) => {
+          if (this.ended) return;
+          this.leg(leg).speech?.endUtterance();
+          // The legs that read this translation abroad end its utterance too, so their segments close now.
+          const abroad = this.abroad.get(ref);
+          if (!abroad) return;
+          this.abroad.delete(ref);
+          for (const name of abroad) this.leg(name).speech?.endUtterance();
+        },
       },
       legFor: (token) => this.legFor(token),
       targetFor: (leg) => this.leg(leg).context.direction.target,
@@ -551,11 +578,13 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
       if (signal.aborted) throw signal.reason ?? new Error('aborted');
       if (!requests.speaker.config.sharedBoth) return startSplit(requests, events);
       // Shared Both: one socket on the speaker's key; each leg speaks through its own TTS socket and key (ruling 4).
+      // The two voices number a row's audio entries together: either may read it (route by language).
+      const counts = new Map<Ref, number>();
       const core = new SonioxCore({
         primary: requests.speaker,
         legs: [
-          coreLeg('speaker', requests.speaker, events.speaker, openSocket),
-          coreLeg('participant', requests.participant, events.participant, openSocket),
+          coreLeg('speaker', requests.speaker, events.speaker, openSocket, counts),
+          coreLeg('participant', requests.participant, events.participant, openSocket, counts),
         ],
         openSocket,
         shared: true,
