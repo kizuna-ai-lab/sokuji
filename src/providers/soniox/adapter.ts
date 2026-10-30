@@ -96,11 +96,11 @@ function withoutPerson(event: SegmentEvent): SegmentEvent {
   return { ...event, payload } as SegmentEvent;
 }
 
-function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket): CoreLeg {
+function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket, counts?: Map<Ref, number>): CoreLeg {
   const tts = request.config.tts;
   const key = request.credentials.tts;
   const speech = tts && key
-    ? new LegSpeech({ leg: name, region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket })
+    ? new LegSpeech({ leg: name, region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket, ...(counts ? { counts } : {}) })
     : null;
   return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
 }
@@ -578,11 +578,13 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
       if (signal.aborted) throw signal.reason ?? new Error('aborted');
       if (!requests.speaker.config.sharedBoth) return startSplit(requests, events);
       // Shared Both: one socket on the speaker's key; each leg speaks through its own TTS socket and key (ruling 4).
+      // The two voices number a row's audio entries together: either may read it (route by language).
+      const counts = new Map<Ref, number>();
       const core = new SonioxCore({
         primary: requests.speaker,
         legs: [
-          coreLeg('speaker', requests.speaker, events.speaker, openSocket),
-          coreLeg('participant', requests.participant, events.participant, openSocket),
+          coreLeg('speaker', requests.speaker, events.speaker, openSocket, counts),
+          coreLeg('participant', requests.participant, events.participant, openSocket, counts),
         ],
         openSocket,
         shared: true,

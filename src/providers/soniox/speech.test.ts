@@ -26,7 +26,7 @@ function create(options: Partial<LegSpeechOptions> = {}) {
   const frames = (type: string): AdapterFrame[] => log.flatMap((e) => (e.kind === 'frame' && e.payload.type === type ? [e.payload] : []));
   const degraded = () => log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.code] : []));
   const reasons = () => log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.reason] : []));
-  return { clock, sockets, log, speech, opening, kinds, frames, degraded, reasons };
+  return { clock, sockets, events, log, speech, opening, kinds, frames, degraded, reasons };
 }
 
 async function setup(options: Partial<LegSpeechOptions> = {}) {
@@ -82,6 +82,21 @@ describe('LegSpeech', () => {
     expect(own).toHaveLength(1);
     expect(own[0].ref).toBe(8);
     expect(own[0]).not.toHaveProperty('voice');
+  });
+
+  it("two voices sharing `counts` number one row's entries once, so each one's ranges name its own", async () => {
+    const counts = new Map<number, number>();
+    const mine = await setup({ counts });
+    const theirs = await setup({ leg: 'participant', counts });
+    // Ref 7 is my row: my voice reads its first run, theirs the second (a tail in their language).
+    mine.speech.speak(7, 'Hello.', [0, 6], 'en');
+    theirs.speech.speak(7, 'Hola.', [6, 11], 'es', mine.events);
+    mine.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    theirs.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    mine.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    theirs.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    const ranges = mine.kinds('speechRanges').map((e) => (e.payload as unknown as { ranges: Array<{ index: number }> }).ranges.map((r) => r.index));
+    expect(ranges).toEqual([[0], [1]]);
   });
 
   it("a chunk for another leg's row that waited for the socket goes to that leg's events when it opens", async () => {

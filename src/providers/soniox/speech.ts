@@ -28,6 +28,12 @@ import { classifyChunkEnd, SonioxTtsStream, type SonioxTtsErrorScope, type Sonio
 export interface LegSpeechOptions {
   /** The leg this voice belongs to: named as `voice` on audio it reads for another leg's row. */
   leg: LegName;
+  /**
+   * Per ref, the next audio entry's index — the place L1 gives it among the ref's `audio` events. Shared
+   * between the two voices of one core: a row both read (a tail in the other language) numbers its entries
+   * once, so each voice's `speechRanges` names its own.
+   */
+  counts?: Map<Ref, number>;
   region: SonioxRegion;
   /** The TTS socket's key (an own key: the STT key). */
   key: string;
@@ -51,8 +57,8 @@ export class LegSpeech {
   private opening: SonioxTtsStream | null = null;
   private closed = false;
   private pending: Pending[] = [];
-  /** Per ref, the speech entries so far: the next audio's index (L1 appends one per `audio`). */
-  private readonly counts = new Map<Ref, number>();
+  /** Per ref, the speech entries so far: the next audio's index (L1 appends one per `audio`); a core's voices share it. */
+  private readonly counts: Map<Ref, number>;
   /** Per live stream of the current socket: its chunks' entry indices and sample counts. A new socket restarts the ids. */
   private segments = new Map<string, Array<{ index: number; samples: number }>>();
   /**
@@ -88,6 +94,7 @@ export class LegSpeech {
 
   constructor(private readonly o: LegSpeechOptions) {
     this.pace = new SpeechPace(o.speed);
+    this.counts = o.counts ?? new Map();
   }
 
   /** Opens the socket at start; never rejects: a failure is said only in the Logs, and the first text reconnects (ruling 3, choice 6). */
