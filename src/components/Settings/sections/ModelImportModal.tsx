@@ -248,8 +248,8 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
                 <div className="import-cmd__src" role="group" aria-label={t('models.importSource', 'Download source')}>
                   <span className="import-cmd__src-label">{t('models.importSource', 'Source')}</span>
                   <button
-                    className={`import-cmd__src-btn ${source === 'huggingface' ? 'is-active' : ''}`}
-                    aria-pressed={source === 'huggingface'}
+                    className={`import-cmd__src-btn ${effectiveSource === 'huggingface' ? 'is-active' : ''}`}
+                    aria-pressed={effectiveSource === 'huggingface'}
                     onClick={() => { setSource('huggingface'); setCopied(false); }}
                   >huggingface.co</button>
                   <button
