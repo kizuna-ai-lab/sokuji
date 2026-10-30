@@ -38,7 +38,10 @@
  * `scripts/fetch-soniox-voices.mjs`, and SONIOX_VOICES below is derived from
  * it, so a refresh cannot leave a retired voice selectable.
  */
-import type { VoiceOption } from '../../services/providers/ProviderConfig';
+// Structurally ProviderConfig's VoiceOption, restated here so this catalog
+// (which the mobile app shares) does not pull the client interfaces into its
+// type graph.
+type VoiceOption = { name: string; value: string };
 import { SONIOX_VOICE_ROSTER } from './sonioxVoiceRoster';
 
 /** The only TTS model id Sokuji sends. Every call site imports this one. */

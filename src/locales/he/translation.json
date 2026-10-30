@@ -1623,5 +1623,159 @@
       "lostHint": "המקור אינו זמין עוד; התמונה האחרונה נשמרת עד לבחירה מחדש.",
       "lostExtension": "התמונה של לשונית הפגישה אינה זמינה עוד; התרגום ממשיך באמצעות אודיו בלבד."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "כניסה",
+      "register": "יצירת חשבון",
+      "email": "אימייל",
+      "password": "סיסמה",
+      "submit": "כניסה",
+      "forgot": "שכחת את הסיסמה?",
+      "codeSent": "שלחנו קוד בן 6 ספרות אל {{email}}",
+      "willSendCode": "נשלח קוד בן 6 ספרות אל {{email}}",
+      "code": "הקוד מהאימייל",
+      "verify": "אימות",
+      "sendAgain": "שליחה חוזרת",
+      "sendAgainIn": "שליחה חוזרת ({{seconds}} שנ')",
+      "newPassword": "סיסמה חדשה",
+      "passwordHint": "לפחות 8 תווים",
+      "wrongPassword": "אימייל או סיסמה שגויים",
+      "wrongCode": "הקוד שגוי או שפג תוקפו",
+      "tooManyRequests": "יותר מדי בקשות לקוד. המתינו מעט ונסו שוב.",
+      "verifyTitle": "אימות האימייל",
+      "resetTitle": "איפוס סיסמה",
+      "sendCode": "שליחת קוד",
+      "setNewPassword": "הגדרת סיסמה חדשה",
+      "back": "חזרה לכניסה",
+      "later": "אחר כך: אפשר לאמת ממסך החשבון",
+      "registerNote": "יישלח אליך קוד בן 6 ספרות באימייל; הזנתו מאמתת את החשבון. לאחר מכן חשבונות זכאים מקבלים אשראי ניסיון.",
+      "sendingCode": "שולחים קוד בן 6 ספרות אל {{email}}…",
+      "codeNotSent": "לא הצלחנו לשלוח את הקוד אל {{email}}. החשבון נוצר: הקישו על „שליחה חוזרת”.",
+      "showPassword": "הצגת הסיסמה",
+      "hidePassword": "הסתרת הסיסמה"
+    },
+    "account": {
+      "verify": "יש לאמת את האימייל; חשבונות זכאים מקבלים אשראי ניסיון",
+      "usage30d": "הוצאה ב-30 הימים האחרונים",
+      "hoursLeft": "נותרו כ-{{hours}} שעות",
+      "frozen": "החשבון הזה מוקפא",
+      "expiring": "{{amount}} מהיתרה שלך יפוג ב-{{date}}",
+      "usage": "שימוש",
+      "deleteAccount": "מחיקת החשבון",
+      "deleteConfirm": "למחוק את החשבון הזה ואת יתרתו? אי אפשר לבטל זאת.",
+      "balance": "יתרה",
+      "topUp": "טעינה מתבצעת באתר Sokuji.",
+      "signOut": "יציאה"
+    },
+    "usage": {
+      "session": "סשן",
+      "textOnly": "טקסט בלבד",
+      "loadMore": "הצגת עוד",
+      "kind": {
+        "topup": "טעינה",
+        "grant": "זיכוי",
+        "adjustment": "התאמה",
+        "refund": "החזר",
+        "expired": "פג תוקף",
+        "voicePreview": "תצוגה מקדימה של קול"
+      },
+      "empty": "עדיין אין כאן כלום."
+    },
+    "menu": {
+      "history": "היסטוריה",
+      "account": "חשבון",
+      "settings": "הגדרות"
+    },
+    "settings": {
+      "appearance": "מראה",
+      "appearanceSystem": "לפי המערכת",
+      "appearanceLight": "בהיר",
+      "appearanceDark": "כהה",
+      "region": "אזור Soniox",
+      "textSize": "גודל הכתוביות",
+      "keepAwake": "להשאיר את המסך דולק",
+      "textSizeSmall": "קטן",
+      "textSizeMedium": "בינוני",
+      "textSizeLarge": "גדול",
+      "listen": "לשמוע את התרגום",
+      "devices": "התקני שמע",
+      "groupLanguages": "שפות",
+      "groupDisplay": "תצוגה",
+      "groupAudio": "הקראה והתקנים",
+      "locked": "יש לעצור את הסשן כדי לשנות זאת."
+    },
+    "history": {
+      "rename": "שינוי שם",
+      "title": "סשנים",
+      "export": "ייצוא",
+      "delete": "מחיקה",
+      "actions": "שינוי שם, ייצוא או מחיקה",
+      "empty": "עדיין אין סשנים. כל סשן שתפעילו נשמר כאן, בטלפון הזה.",
+      "minutes": "{{minutes}} דק׳",
+      "name": "שם",
+      "renameHint": "השאירו ריק כדי שהסשן ייקרא לפי התאריך שלו.",
+      "unfinished": "לא הושלם",
+      "nothingHeard": "בסשן הזה לא נשמע דבר."
+    },
+    "main": {
+      "hear": "אני שומע",
+      "read": "אני קורא",
+      "start": "התחלה",
+      "stop": "עצירה",
+      "bilingual": "הצגת שתי השפות",
+      "status": {
+        "listening": "מאזין",
+        "reconnecting": "מתחבר מחדש…",
+        "signInRequired": "יש להיכנס שוב",
+        "balanceExhausted": "היתרה שלך נגמרה",
+        "micDenied": "Sokuji זקוק למיקרופון",
+        "otherSession": "סשן אחר פועל בחשבון הזה",
+        "starting": "מתחיל…",
+        "stopped": "נעצר",
+        "spoken": "מאזין · בקול",
+        "subtitlesOnly": "מאזין · כתוביות בלבד (ללא אוזניות)",
+        "invalidConfig": "הגדרות השפה לא התקבלו. בדקו את צמד השפות בהגדרות.",
+        "paused": "מושהה",
+        "stopping": "עוצר…"
+      },
+      "idleHint": "הקישו על „התחלה” כדי לתרגם את מה שאתם שומעים. שפת התרגום: {{language}}.",
+      "menu": "תפריט",
+      "changeLanguages": "שינוי השפות בהגדרות"
+    },
+    "common": {
+      "back": "חזרה",
+      "failed": "משהו השתבש. נסו שוב."
+    },
+    "listen": {
+      "toggle": "להקריא לי בקול את דברי הצד השני",
+      "voice": "הקול שאני שומע",
+      "speed": "מהירות הדיבור",
+      "headphones": "מוקרא רק באוזניות. ברמקול מתקבלות כתוביות.",
+      "searchVoices": "חיפוש קולות",
+      "preview": "האזנה",
+      "previewVoice": "האזנה ל־{{voice}}",
+      "stopPreview": "עצירת ההאזנה",
+      "previewConfirmTitle": "להאזין לקול הזה?",
+      "previewEstimate": "האזנה חדשה עולה בערך {{amount}} (הערכה); השמעה חוזרת של אותה האזנה כל עוד האפליקציה פתוחה היא ללא עלות."
+    },
+    "devices": {
+      "microphone": "מיקרופון",
+      "builtIn": "מיקרופון הטלפון",
+      "wired": "מיקרופון אוזניות חוטיות",
+      "usb": "מיקרופון USB",
+      "noBluetoothMic": "אוזניות Bluetooth משמיעות את התרגום אך אינן משמשות כמיקרופון.",
+      "output": "התקן השמעה",
+      "route": {
+        "speaker": "רמקול הטלפון",
+        "headphones": "אוזניות",
+        "bluetooth": "התקן Bluetooth",
+        "other": "התקן אחר"
+      }
+    },
+    "languages": {
+      "search": "חיפוש שפות",
+      "none": "אין שפות תואמות"
+    }
   }
 }

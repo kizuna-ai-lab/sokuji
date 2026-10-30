@@ -1623,5 +1623,159 @@
       "lostHint": "来源已不存在；在你重新选择之前，会保留最后一张画面。",
       "lostExtension": "会议标签页的画面已不可用，翻译将仅凭音频继续。"
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "登录",
+      "register": "创建账号",
+      "email": "邮箱",
+      "password": "密码",
+      "submit": "登录",
+      "forgot": "忘记密码？",
+      "codeSent": "验证码已发到 {{email}}",
+      "willSendCode": "我们会向 {{email}} 发送 6 位验证码",
+      "code": "邮件里的验证码",
+      "verify": "验证",
+      "sendAgain": "重新发送",
+      "sendAgainIn": "重新发送（{{seconds}} 秒）",
+      "newPassword": "新密码",
+      "passwordHint": "至少 8 位",
+      "wrongPassword": "邮箱或密码不对",
+      "wrongCode": "验证码不对或已过期",
+      "tooManyRequests": "验证码请求过于频繁，请稍后再试。",
+      "verifyTitle": "验证邮箱",
+      "resetTitle": "重设密码",
+      "sendCode": "发送验证码",
+      "setNewPassword": "设置新密码",
+      "back": "返回登录",
+      "later": "稍后再说：可在账户页验证",
+      "registerNote": "你会收到一封 6 位验证码邮件；输入后账户即验证完成，符合条件的账户可获得试用额度。",
+      "sendingCode": "正在向 {{email}} 发送验证码…",
+      "codeNotSent": "验证码未能发到 {{email}}。账户已经创建，请点“重新发送”。",
+      "showPassword": "显示密码",
+      "hidePassword": "隐藏密码"
+    },
+    "account": {
+      "verify": "验证邮箱后，符合条件的账户可获得试用额度",
+      "usage30d": "最近 30 天用量",
+      "hoursLeft": "约可用 {{hours}} 小时",
+      "frozen": "此账户已冻结",
+      "expiring": "余额中的 {{amount}} 将于 {{date}} 过期",
+      "usage": "用量明细",
+      "deleteAccount": "删除账户",
+      "deleteConfirm": "删除这个账户和它的余额？此操作无法撤销。",
+      "balance": "余额",
+      "topUp": "充值请在 Sokuji 网站完成。",
+      "signOut": "退出登录"
+    },
+    "usage": {
+      "session": "会话",
+      "textOnly": "仅文字",
+      "loadMore": "显示更多",
+      "kind": {
+        "topup": "充值",
+        "grant": "赠送额度",
+        "adjustment": "调整",
+        "refund": "退款",
+        "expired": "已过期",
+        "voicePreview": "试听声音"
+      },
+      "empty": "暂无记录。"
+    },
+    "menu": {
+      "history": "历史",
+      "account": "账户",
+      "settings": "设置"
+    },
+    "settings": {
+      "appearance": "外观",
+      "appearanceSystem": "跟随系统",
+      "appearanceLight": "浅色",
+      "appearanceDark": "深色",
+      "region": "Soniox 区域",
+      "textSize": "字幕字号",
+      "keepAwake": "保持屏幕常亮",
+      "textSizeSmall": "小",
+      "textSizeMedium": "中",
+      "textSizeLarge": "大",
+      "listen": "听翻译朗读",
+      "devices": "声音设备",
+      "groupLanguages": "语言",
+      "groupDisplay": "显示",
+      "groupAudio": "朗读与设备",
+      "locked": "停止会话后才能更改。"
+    },
+    "history": {
+      "rename": "改名",
+      "title": "会话",
+      "export": "导出",
+      "delete": "删除",
+      "actions": "改名、导出或删除",
+      "empty": "还没有会话。每次会话都保存在这里，只存在这台手机上。",
+      "minutes": "{{minutes}} 分钟",
+      "name": "名称",
+      "renameHint": "留空则以日期作为会话名称。",
+      "unfinished": "未说完",
+      "nothingHeard": "这次会话没有听到内容。"
+    },
+    "main": {
+      "hear": "我听的语言",
+      "read": "我读的语言",
+      "start": "开始",
+      "stop": "停止",
+      "bilingual": "同时显示两种语言",
+      "status": {
+        "listening": "收听中",
+        "reconnecting": "正在重连…",
+        "signInRequired": "请重新登录",
+        "balanceExhausted": "余额已用完",
+        "micDenied": "Sokuji 需要使用麦克风",
+        "otherSession": "此账户有另一个会话正在进行",
+        "starting": "正在开始…",
+        "stopped": "已停止",
+        "spoken": "收听中 · 朗读",
+        "subtitlesOnly": "收听中 · 只显示字幕（未戴耳机）",
+        "invalidConfig": "语言设置未被接受，请在设置里检查语言组合。",
+        "paused": "已暂停",
+        "stopping": "正在停止…"
+      },
+      "idleHint": "点“开始”，将听到的语音翻译成{{language}}。",
+      "menu": "菜单",
+      "changeLanguages": "在设置中更改语言"
+    },
+    "common": {
+      "back": "返回",
+      "failed": "出了点问题，请重试。"
+    },
+    "listen": {
+      "toggle": "对方说的话翻译后朗读给我",
+      "voice": "我听到的声音",
+      "speed": "语速",
+      "headphones": "只在戴耳机时朗读；外放时只显示字幕。",
+      "searchVoices": "搜索声音",
+      "preview": "试听",
+      "previewVoice": "试听 {{voice}}",
+      "stopPreview": "停止试听",
+      "previewConfirmTitle": "试听这个声音？",
+      "previewEstimate": "生成新试听约 {{amount}}（估算）；本次应用运行期间，重播相同试听不重复扣费。"
+    },
+    "devices": {
+      "microphone": "麦克风",
+      "builtIn": "手机自带麦克风",
+      "wired": "有线耳机麦克风",
+      "usb": "USB 麦克风",
+      "noBluetoothMic": "蓝牙耳机只用来播放译文，不作为麦克风。",
+      "output": "播放设备",
+      "route": {
+        "speaker": "手机扬声器",
+        "headphones": "耳机",
+        "bluetooth": "蓝牙设备",
+        "other": "其他设备"
+      }
+    },
+    "languages": {
+      "search": "搜索语言",
+      "none": "没有匹配的语言"
+    }
   }
 }

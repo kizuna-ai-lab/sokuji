@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji ฟังเสียงในห้องเพื่อแสดงคำบรรยายให้คุณ"
+  }
+}

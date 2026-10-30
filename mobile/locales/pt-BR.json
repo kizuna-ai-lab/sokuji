@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "O Sokuji ouve o ambiente para mostrar legendas."
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji słucha otoczenia, aby pokazywać napisy."
+  }
+}

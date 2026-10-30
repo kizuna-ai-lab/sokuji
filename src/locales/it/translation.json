@@ -1623,5 +1623,159 @@
       "lostHint": "La sorgente non c'è più; l'ultima immagine resta finché non scegli di nuovo.",
       "lostExtension": "L'immagine della scheda della riunione non è più disponibile; la traduzione continua solo con l'audio."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Accedi",
+      "register": "Crea account",
+      "email": "E-mail",
+      "password": "Password",
+      "submit": "Accedi",
+      "forgot": "Password dimenticata?",
+      "codeSent": "Abbiamo inviato un codice a 6 cifre a {{email}}",
+      "willSendCode": "Invieremo un codice a 6 cifre a {{email}}",
+      "code": "Codice ricevuto via e-mail",
+      "verify": "Verifica",
+      "sendAgain": "Invia di nuovo",
+      "sendAgainIn": "Invia di nuovo ({{seconds}} s)",
+      "newPassword": "Nuova password",
+      "passwordHint": "almeno 8 caratteri",
+      "wrongPassword": "E-mail o password errati",
+      "wrongCode": "Il codice è errato o è scaduto",
+      "tooManyRequests": "Troppe richieste di codice. Attendi un momento e riprova.",
+      "verifyTitle": "Verifica la tua e-mail",
+      "resetTitle": "Reimposta la password",
+      "sendCode": "Invia codice",
+      "setNewPassword": "Imposta la nuova password",
+      "back": "Torna all'accesso",
+      "later": "Più tardi: verifica dalla schermata dell'account",
+      "registerNote": "Riceverai un codice a 6 cifre via e-mail; inserendolo l'account viene verificato. Gli account idonei ricevono poi un credito di prova.",
+      "sendingCode": "Invio di un codice a 6 cifre a {{email}}…",
+      "codeNotSent": "Non è stato possibile inviare il codice a {{email}}. Il tuo account è stato creato: tocca Invia di nuovo.",
+      "showPassword": "Mostra password",
+      "hidePassword": "Nascondi password"
+    },
+    "account": {
+      "verify": "Verifica la tua e-mail: gli account idonei ricevono un credito di prova",
+      "usage30d": "Speso negli ultimi 30 giorni",
+      "hoursLeft": "Circa {{hours}} h rimanenti",
+      "frozen": "Questo account è bloccato",
+      "expiring": "{{amount}} del tuo saldo scade il {{date}}",
+      "usage": "Consumo",
+      "deleteAccount": "Elimina account",
+      "deleteConfirm": "Eliminare questo account e il suo saldo? L'operazione non può essere annullata.",
+      "balance": "Saldo",
+      "topUp": "Le ricariche si fanno sul sito web di Sokuji.",
+      "signOut": "Esci"
+    },
+    "usage": {
+      "session": "Sessione",
+      "textOnly": "Solo testo",
+      "loadMore": "Mostra altro",
+      "kind": {
+        "topup": "Ricarica",
+        "grant": "Credito",
+        "adjustment": "Rettifica",
+        "refund": "Rimborso",
+        "expired": "Scaduto",
+        "voicePreview": "Anteprima voce"
+      },
+      "empty": "Ancora niente qui."
+    },
+    "menu": {
+      "history": "Cronologia",
+      "account": "Account",
+      "settings": "Impostazioni"
+    },
+    "settings": {
+      "appearance": "Aspetto",
+      "appearanceSystem": "Sistema",
+      "appearanceLight": "Chiaro",
+      "appearanceDark": "Scuro",
+      "region": "Regione Soniox",
+      "textSize": "Dimensione dei sottotitoli",
+      "keepAwake": "Mantieni lo schermo acceso",
+      "textSizeSmall": "Piccolo",
+      "textSizeMedium": "Medio",
+      "textSizeLarge": "Grande",
+      "listen": "Ascolta la traduzione",
+      "devices": "Dispositivi audio",
+      "groupLanguages": "Lingue",
+      "groupDisplay": "Visualizzazione",
+      "groupAudio": "Voce e dispositivi",
+      "locked": "Ferma la sessione per modificarlo."
+    },
+    "history": {
+      "rename": "Rinomina",
+      "title": "Sessioni",
+      "export": "Esporta",
+      "delete": "Elimina",
+      "actions": "Rinomina, esporta o elimina",
+      "empty": "Ancora nessuna sessione. Ogni sessione viene conservata qui, su questo telefono.",
+      "minutes": "{{minutes}} min",
+      "name": "Nome",
+      "renameHint": "Lascia vuoto per chiamare la sessione con la sua data.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "In questa sessione non si è sentito nulla."
+    },
+    "main": {
+      "hear": "Ascolto",
+      "read": "Leggo",
+      "start": "Avvia",
+      "stop": "Ferma",
+      "bilingual": "Mostra entrambe le lingue",
+      "status": {
+        "listening": "In ascolto",
+        "reconnecting": "Riconnessione…",
+        "signInRequired": "Accedi di nuovo",
+        "balanceExhausted": "Il tuo saldo è esaurito",
+        "micDenied": "Sokuji ha bisogno del microfono",
+        "otherSession": "Un'altra sessione è in corso su questo account",
+        "starting": "Avvio…",
+        "stopped": "Fermato",
+        "spoken": "In ascolto · ad alta voce",
+        "subtitlesOnly": "In ascolto · solo sottotitoli (senza cuffie)",
+        "invalidConfig": "Impostazioni della lingua non accettate. Controlla la coppia di lingue nelle Impostazioni.",
+        "paused": "In pausa",
+        "stopping": "Arresto…"
+      },
+      "idleHint": "Tocca Avvia per tradurre ciò che senti. Lingua di traduzione: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Cambia le lingue nelle Impostazioni"
+    },
+    "common": {
+      "back": "Indietro",
+      "failed": "Qualcosa è andato storto. Riprova."
+    },
+    "listen": {
+      "toggle": "Leggimi ad alta voce ciò che dice l'altra persona",
+      "voice": "Voce che sento",
+      "speed": "Velocità del parlato",
+      "headphones": "Letta solo con le cuffie. Con l'altoparlante hai i sottotitoli.",
+      "searchVoices": "Cerca voci",
+      "preview": "Ascolta",
+      "previewVoice": "Ascolta {{voice}}",
+      "stopPreview": "Interrompi l'ascolto",
+      "previewConfirmTitle": "Ascoltare questa voce?",
+      "previewEstimate": "Un nuovo ascolto costa circa {{amount}} (stima); riascoltare lo stesso mentre l'app è aperta è gratis."
+    },
+    "devices": {
+      "microphone": "Microfono",
+      "builtIn": "Microfono del telefono",
+      "wired": "Microfono delle cuffie con filo",
+      "usb": "Microfono USB",
+      "noBluetoothMic": "Le cuffie Bluetooth riproducono la traduzione ma non fanno da microfono.",
+      "output": "Dispositivo di riproduzione",
+      "route": {
+        "speaker": "Altoparlante del telefono",
+        "headphones": "Cuffie",
+        "bluetooth": "Dispositivo Bluetooth",
+        "other": "Altro dispositivo"
+      }
+    },
+    "languages": {
+      "search": "Cerca lingue",
+      "none": "Nessuna lingua corrispondente"
+    }
   }
 }

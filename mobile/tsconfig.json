@@ -5,7 +5,14 @@
     "paths": {
       "@shared/*": [
         "../src/*"
+      ],
+      "@/*": [
+        "./src/*"
       ]
     }
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "scripts"
+  ]
 }

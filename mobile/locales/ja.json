@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji は周囲の音声を聞き取って字幕を表示します。"
+  }
+}

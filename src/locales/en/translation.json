@@ -1623,5 +1623,159 @@
       "lostHint": "The source is gone; the last picture is kept until you choose again.",
       "lostExtension": "The meeting tab's picture is no longer available; translation continues on audio alone."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Sign in",
+      "register": "Create account",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "codeSent": "We sent a 6-digit code to {{email}}",
+      "willSendCode": "We'll send a 6-digit code to {{email}}",
+      "code": "Code from the email",
+      "verify": "Verify",
+      "sendAgain": "Send again",
+      "sendAgainIn": "Send again ({{seconds}} s)",
+      "newPassword": "New password",
+      "passwordHint": "at least 8 characters",
+      "wrongPassword": "Wrong email or password",
+      "wrongCode": "That code is wrong or has expired",
+      "tooManyRequests": "Too many code requests. Please wait a while and try again.",
+      "verifyTitle": "Verify your email",
+      "resetTitle": "Reset your password",
+      "sendCode": "Send code",
+      "setNewPassword": "Set new password",
+      "back": "Back to sign in",
+      "later": "Later: verify from the account screen",
+      "registerNote": "You will get a 6-digit code by email; entering it verifies the account. Eligible accounts then get a trial credit.",
+      "sendingCode": "Sending a 6-digit code to {{email}}…",
+      "codeNotSent": "The code could not be sent to {{email}}. Your account is created: tap Send again.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "account": {
+      "verify": "Verify your email; eligible accounts get a trial credit",
+      "usage30d": "Spent in the last 30 days",
+      "hoursLeft": "About {{hours}} h left",
+      "frozen": "This account is frozen",
+      "expiring": "{{amount}} of your balance expires on {{date}}",
+      "usage": "Usage",
+      "deleteAccount": "Delete account",
+      "deleteConfirm": "Delete this account and its balance? This cannot be undone.",
+      "balance": "Balance",
+      "topUp": "Top-ups are made on the Sokuji website.",
+      "signOut": "Sign out"
+    },
+    "usage": {
+      "session": "Session",
+      "textOnly": "Text only",
+      "loadMore": "Show more",
+      "kind": {
+        "topup": "Top-up",
+        "grant": "Credit",
+        "adjustment": "Adjustment",
+        "refund": "Refund",
+        "expired": "Expired",
+        "voicePreview": "Voice preview"
+      },
+      "empty": "Nothing here yet."
+    },
+    "menu": {
+      "history": "History",
+      "account": "Account",
+      "settings": "Settings"
+    },
+    "settings": {
+      "appearance": "Appearance",
+      "appearanceSystem": "System",
+      "appearanceLight": "Light",
+      "appearanceDark": "Dark",
+      "region": "Soniox region",
+      "textSize": "Subtitle size",
+      "keepAwake": "Keep the screen on",
+      "textSizeSmall": "Small",
+      "textSizeMedium": "Medium",
+      "textSizeLarge": "Large",
+      "listen": "Hear the translation",
+      "devices": "Audio devices",
+      "groupLanguages": "Languages",
+      "groupDisplay": "Display",
+      "groupAudio": "Speech and devices",
+      "locked": "Stop the session to change this."
+    },
+    "history": {
+      "rename": "Rename",
+      "title": "Sessions",
+      "export": "Export",
+      "delete": "Delete",
+      "actions": "Rename, export or delete",
+      "empty": "No sessions yet. Each session you run is kept here, on this phone.",
+      "minutes": "{{minutes}} min",
+      "name": "Name",
+      "renameHint": "Leave it empty to name the session by its date.",
+      "unfinished": "Unfinished",
+      "nothingHeard": "Nothing was heard in this session."
+    },
+    "main": {
+      "hear": "I hear",
+      "read": "I read",
+      "start": "Start",
+      "stop": "Stop",
+      "bilingual": "Show both languages",
+      "status": {
+        "listening": "Listening",
+        "reconnecting": "Reconnecting…",
+        "signInRequired": "Please sign in again",
+        "balanceExhausted": "Your balance is used up",
+        "micDenied": "Sokuji needs the microphone",
+        "otherSession": "Another session is running on this account",
+        "starting": "Starting…",
+        "stopped": "Stopped",
+        "spoken": "Listening · spoken",
+        "subtitlesOnly": "Listening · subtitles only (no headphones)",
+        "invalidConfig": "Language settings not accepted. Check the language pair in Settings.",
+        "paused": "Paused",
+        "stopping": "Stopping…"
+      },
+      "idleHint": "Tap Start to translate what you hear into {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Change the languages in Settings"
+    },
+    "common": {
+      "back": "Back",
+      "failed": "Something went wrong. Please try again."
+    },
+    "listen": {
+      "toggle": "Read the other side's words aloud to me",
+      "voice": "Voice I hear",
+      "speed": "Speech speed",
+      "headphones": "Spoken through headphones only. On the loudspeaker you get subtitles.",
+      "searchVoices": "Search voices",
+      "preview": "Preview",
+      "previewVoice": "Preview {{voice}}",
+      "stopPreview": "Stop the preview",
+      "previewConfirmTitle": "Preview this voice?",
+      "previewEstimate": "A new preview costs about {{amount}} (an estimate); playing the same preview again while the app is open is free."
+    },
+    "devices": {
+      "microphone": "Microphone",
+      "builtIn": "Phone microphone",
+      "wired": "Wired headset microphone",
+      "usb": "USB microphone",
+      "noBluetoothMic": "Bluetooth headsets play the translation but are not used as the microphone.",
+      "output": "Playback device",
+      "route": {
+        "speaker": "Phone speaker",
+        "headphones": "Headphones",
+        "bluetooth": "Bluetooth device",
+        "other": "Another device"
+      }
+    },
+    "languages": {
+      "search": "Search languages",
+      "none": "No matching languages"
+    }
   }
 }

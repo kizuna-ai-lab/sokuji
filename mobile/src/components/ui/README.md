@@ -1,0 +1,32 @@
+# src/components/ui
+
+React Native Reusables components, copied by `npx @react-native-reusables/cli@0.7.1 add --styling-library nativewind`
+on 2026-10-28 (the CLI reports itself as 1.0.0): alert-dialog, button, dialog, dropdown-menu, icon, input,
+native-only-animated-view, separator, switch, text. They are this project's source now; when taking a newer version
+from the registry, re-apply the changes below (each is marked `Sokuji:` in the file). radio-group and label were added
+too and removed again: the option lists draw their own checked rows (src/components/ChoiceList.tsx), and a field's
+label is plain text the input reads as its own name (src/components/Field.tsx), so a screen reader does not stop on it
+twice.
+
+## Local changes
+
+The touch baseline is 48×48 logical units and text follows the system size (design scope §1: Apple's and
+Android's touch-size guidance), so fixed heights become minimums with padding.
+
+- `button.tsx`: every size has a minimum height (`min-h-12`, icon `min-h-12 min-w-12`, lg `min-h-14`) and vertical
+  padding instead of a fixed `h-*`; the text is `text-base` (was `text-sm`) and centred. `ButtonProps` drops the
+  registry's `React.RefAttributes<typeof Pressable>`, which typed the ref as the component: React Native 0.88's
+  Pressable props carry the right ref already.
+- `input.tsx`: `min-h-12 py-2` instead of `h-10 sm:h-9`, and no `leading-5`, which clipped large text.
+- `switch.tsx`: 28×48 with a 24-unit thumb (was the web's 18×32).
+- `dropdown-menu.tsx`: items are `min-h-12` with `text-base`; the menu is at least `12rem` wide.
+- `dialog.tsx`: the close button is 48×48 with a required, translated `closeLabel` (was a 16-unit icon with `hitSlop` 12
+  and an English sr-only "Close"); the title drops `leading-none`, so it keeps its line spacing when it wraps.
+
+Project composites built on these (rows, headers, option lists, the language picker) live in `src/components/`.
+- `dialog.tsx`, `alert-dialog.tsx`: a set width (`min(screen − 32, 512)`) instead of `max-w-[calc(100%-2rem)]`,
+  which does nothing on native (at the largest text sizes the dialog grew wider than the screen); the dialog's content
+  scrolls within the space above the keyboard and the dialog is centred in that space.
+- `dialog.tsx`, `alert-dialog.tsx`, `dropdown-menu.tsx`: no `FullWindowOverlay`. On iOS it drew the overlay in a
+  separate native window that UI tests could not see into, and the app has no native screens or modals for it to rise
+  above (a sheet hosts its own portal).

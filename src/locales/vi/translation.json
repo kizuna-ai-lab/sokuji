@@ -1623,5 +1623,159 @@
       "lostHint": "Nguồn không còn nữa; hình ảnh cuối cùng được giữ cho đến khi bạn chọn lại.",
       "lostExtension": "Hình ảnh của tab cuộc họp không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Đăng nhập",
+      "register": "Tạo tài khoản",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "submit": "Đăng nhập",
+      "forgot": "Quên mật khẩu?",
+      "codeSent": "Chúng tôi đã gửi mã 6 chữ số tới {{email}}",
+      "willSendCode": "Chúng tôi sẽ gửi mã 6 chữ số tới {{email}}",
+      "code": "Mã trong email",
+      "verify": "Xác minh",
+      "sendAgain": "Gửi lại",
+      "sendAgainIn": "Gửi lại ({{seconds}} giây)",
+      "newPassword": "Mật khẩu mới",
+      "passwordHint": "ít nhất 8 ký tự",
+      "wrongPassword": "Email hoặc mật khẩu không đúng",
+      "wrongCode": "Mã không đúng hoặc đã hết hạn",
+      "tooManyRequests": "Yêu cầu mã quá nhiều. Vui lòng đợi một lát rồi thử lại.",
+      "verifyTitle": "Xác minh email của bạn",
+      "resetTitle": "Đặt lại mật khẩu",
+      "sendCode": "Gửi mã",
+      "setNewPassword": "Đặt mật khẩu mới",
+      "back": "Quay lại đăng nhập",
+      "later": "Để sau: xác minh từ màn hình tài khoản",
+      "registerNote": "Bạn sẽ nhận được mã 6 chữ số qua email; nhập mã là tài khoản được xác minh. Sau đó, tài khoản đủ điều kiện sẽ được cộng tín dụng dùng thử.",
+      "sendingCode": "Đang gửi mã 6 chữ số tới {{email}}…",
+      "codeNotSent": "Không gửi được mã tới {{email}}. Tài khoản của bạn đã được tạo: hãy chạm Gửi lại.",
+      "showPassword": "Hiện mật khẩu",
+      "hidePassword": "Ẩn mật khẩu"
+    },
+    "account": {
+      "verify": "Xác minh email; tài khoản đủ điều kiện sẽ nhận tín dụng dùng thử",
+      "usage30d": "Đã dùng trong 30 ngày qua",
+      "hoursLeft": "Còn khoảng {{hours}} giờ",
+      "frozen": "Tài khoản này đã bị đóng băng",
+      "expiring": "{{amount}} trong số dư của bạn hết hạn vào {{date}}",
+      "usage": "Mức dùng",
+      "deleteAccount": "Xóa tài khoản",
+      "deleteConfirm": "Xóa tài khoản này và số dư của nó? Không thể hoàn tác.",
+      "balance": "Số dư",
+      "topUp": "Nạp tiền được thực hiện trên trang web Sokuji.",
+      "signOut": "Đăng xuất"
+    },
+    "usage": {
+      "session": "Phiên",
+      "textOnly": "Chỉ văn bản",
+      "loadMore": "Hiện thêm",
+      "kind": {
+        "topup": "Nạp tiền",
+        "grant": "Tín dụng",
+        "adjustment": "Điều chỉnh",
+        "refund": "Hoàn tiền",
+        "expired": "Đã hết hạn",
+        "voicePreview": "Nghe thử giọng"
+      },
+      "empty": "Chưa có gì ở đây."
+    },
+    "menu": {
+      "history": "Lịch sử",
+      "account": "Tài khoản",
+      "settings": "Cài đặt"
+    },
+    "settings": {
+      "appearance": "Giao diện",
+      "appearanceSystem": "Theo hệ thống",
+      "appearanceLight": "Sáng",
+      "appearanceDark": "Tối",
+      "region": "Khu vực Soniox",
+      "textSize": "Cỡ chữ phụ đề",
+      "keepAwake": "Giữ màn hình luôn bật",
+      "textSizeSmall": "Nhỏ",
+      "textSizeMedium": "Vừa",
+      "textSizeLarge": "Lớn",
+      "listen": "Nghe bản dịch",
+      "devices": "Thiết bị âm thanh",
+      "groupLanguages": "Ngôn ngữ",
+      "groupDisplay": "Hiển thị",
+      "groupAudio": "Đọc và thiết bị",
+      "locked": "Hãy dừng phiên để thay đổi mục này."
+    },
+    "history": {
+      "rename": "Đổi tên",
+      "title": "Các phiên",
+      "export": "Xuất",
+      "delete": "Xóa",
+      "actions": "Đổi tên, xuất hoặc xóa",
+      "empty": "Chưa có phiên nào. Mỗi phiên bạn chạy được lưu ở đây, trên điện thoại này.",
+      "minutes": "{{minutes}} phút",
+      "name": "Tên",
+      "renameHint": "Để trống để đặt tên phiên theo ngày.",
+      "unfinished": "Chưa hoàn tất",
+      "nothingHeard": "Không nghe thấy gì trong phiên này."
+    },
+    "main": {
+      "hear": "Tôi nghe",
+      "read": "Tôi đọc",
+      "start": "Bắt đầu",
+      "stop": "Dừng",
+      "bilingual": "Hiện cả hai ngôn ngữ",
+      "status": {
+        "listening": "Đang nghe",
+        "reconnecting": "Đang kết nối lại…",
+        "signInRequired": "Vui lòng đăng nhập lại",
+        "balanceExhausted": "Số dư của bạn đã hết",
+        "micDenied": "Sokuji cần micrô",
+        "otherSession": "Có một phiên khác đang chạy trên tài khoản này",
+        "starting": "Đang bắt đầu…",
+        "stopped": "Đã dừng",
+        "spoken": "Đang nghe · đọc to",
+        "subtitlesOnly": "Đang nghe · chỉ phụ đề (không có tai nghe)",
+        "invalidConfig": "Cài đặt ngôn ngữ không được chấp nhận. Hãy kiểm tra cặp ngôn ngữ trong Cài đặt.",
+        "paused": "Đã tạm dừng",
+        "stopping": "Đang dừng…"
+      },
+      "idleHint": "Chạm Bắt đầu để dịch những gì bạn nghe. Ngôn ngữ dịch: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Đổi ngôn ngữ trong Cài đặt"
+    },
+    "common": {
+      "back": "Quay lại",
+      "failed": "Đã xảy ra lỗi. Vui lòng thử lại."
+    },
+    "listen": {
+      "toggle": "Đọc to cho tôi lời của người kia",
+      "voice": "Giọng tôi nghe",
+      "speed": "Tốc độ nói",
+      "headphones": "Chỉ đọc qua tai nghe. Qua loa ngoài bạn chỉ có phụ đề.",
+      "searchVoices": "Tìm giọng",
+      "preview": "Nghe thử",
+      "previewVoice": "Nghe thử {{voice}}",
+      "stopPreview": "Dừng nghe thử",
+      "previewConfirmTitle": "Nghe thử giọng này?",
+      "previewEstimate": "Mỗi lần nghe thử mới tốn khoảng {{amount}} (ước tính); phát lại cùng mẫu khi ứng dụng còn mở thì miễn phí."
+    },
+    "devices": {
+      "microphone": "Micrô",
+      "builtIn": "Micrô điện thoại",
+      "wired": "Micrô tai nghe có dây",
+      "usb": "Micrô USB",
+      "noBluetoothMic": "Tai nghe Bluetooth phát bản dịch nhưng không dùng làm micrô.",
+      "output": "Thiết bị phát",
+      "route": {
+        "speaker": "Loa điện thoại",
+        "headphones": "Tai nghe",
+        "bluetooth": "Thiết bị Bluetooth",
+        "other": "Thiết bị khác"
+      }
+    },
+    "languages": {
+      "search": "Tìm ngôn ngữ",
+      "none": "Không có ngôn ngữ phù hợp"
+    }
   }
 }

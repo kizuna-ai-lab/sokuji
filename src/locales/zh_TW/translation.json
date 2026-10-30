@@ -1623,5 +1623,159 @@
       "lostHint": "來源已不存在；在你重新選擇之前，會保留最後一張畫面。",
       "lostExtension": "會議分頁的畫面已無法使用，翻譯將僅憑音訊繼續。"
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "登入",
+      "register": "建立帳號",
+      "email": "電子郵件",
+      "password": "密碼",
+      "submit": "登入",
+      "forgot": "忘記密碼？",
+      "codeSent": "驗證碼已寄到 {{email}}",
+      "willSendCode": "我們會向 {{email}} 傳送 6 位數驗證碼",
+      "code": "郵件中的驗證碼",
+      "verify": "驗證",
+      "sendAgain": "重新寄送",
+      "sendAgainIn": "重新寄送（{{seconds}} 秒）",
+      "newPassword": "新密碼",
+      "passwordHint": "至少 8 個字元",
+      "wrongPassword": "電子郵件或密碼不正確",
+      "wrongCode": "驗證碼不正確或已過期",
+      "tooManyRequests": "驗證碼請求過於頻繁，請稍後再試。",
+      "verifyTitle": "驗證電子郵件",
+      "resetTitle": "重設密碼",
+      "sendCode": "寄送驗證碼",
+      "setNewPassword": "設定新密碼",
+      "back": "返回登入",
+      "later": "稍後再說：可在帳戶頁驗證",
+      "registerNote": "你會收到一封 6 位數驗證碼郵件；輸入後帳戶即完成驗證，符合條件的帳戶可獲得試用額度。",
+      "sendingCode": "正在寄送驗證碼到 {{email}}…",
+      "codeNotSent": "驗證碼未能寄到 {{email}}。帳戶已經建立，請點「重新寄送」。",
+      "showPassword": "顯示密碼",
+      "hidePassword": "隱藏密碼"
+    },
+    "account": {
+      "verify": "驗證電子郵件後，符合條件的帳戶可獲得試用額度",
+      "usage30d": "最近 30 天用量",
+      "hoursLeft": "約可用 {{hours}} 小時",
+      "frozen": "此帳戶已凍結",
+      "expiring": "餘額中的 {{amount}} 將於 {{date}} 到期",
+      "usage": "用量明細",
+      "deleteAccount": "刪除帳戶",
+      "deleteConfirm": "刪除這個帳戶和它的餘額？此操作無法復原。",
+      "balance": "餘額",
+      "topUp": "儲值請在 Sokuji 網站完成。",
+      "signOut": "登出"
+    },
+    "usage": {
+      "session": "對話",
+      "textOnly": "僅文字",
+      "loadMore": "顯示更多",
+      "kind": {
+        "topup": "儲值",
+        "grant": "贈送額度",
+        "adjustment": "調整",
+        "refund": "退款",
+        "expired": "已到期",
+        "voicePreview": "試聽聲音"
+      },
+      "empty": "尚無紀錄。"
+    },
+    "menu": {
+      "history": "歷史",
+      "account": "帳戶",
+      "settings": "設定"
+    },
+    "settings": {
+      "appearance": "外觀",
+      "appearanceSystem": "跟隨系統",
+      "appearanceLight": "淺色",
+      "appearanceDark": "深色",
+      "region": "Soniox 區域",
+      "textSize": "字幕字級",
+      "keepAwake": "保持螢幕常亮",
+      "textSizeSmall": "小",
+      "textSizeMedium": "中",
+      "textSizeLarge": "大",
+      "listen": "聆聽翻譯朗讀",
+      "devices": "聲音裝置",
+      "groupLanguages": "語言",
+      "groupDisplay": "顯示",
+      "groupAudio": "朗讀與裝置",
+      "locked": "停止對話後才能變更。"
+    },
+    "history": {
+      "rename": "重新命名",
+      "title": "對話",
+      "export": "匯出",
+      "delete": "刪除",
+      "actions": "重新命名、匯出或刪除",
+      "empty": "還沒有對話。每次對話都保存在這裡，只存在這支手機上。",
+      "minutes": "{{minutes}} 分鐘",
+      "name": "名稱",
+      "renameHint": "留空則以日期作為對話名稱。",
+      "unfinished": "未說完",
+      "nothingHeard": "這次對話沒有聽到內容。"
+    },
+    "main": {
+      "hear": "我聽的語言",
+      "read": "我讀的語言",
+      "start": "開始",
+      "stop": "停止",
+      "bilingual": "同時顯示兩種語言",
+      "status": {
+        "listening": "聆聽中",
+        "reconnecting": "正在重新連線…",
+        "signInRequired": "請重新登入",
+        "balanceExhausted": "餘額已用完",
+        "micDenied": "Sokuji 需要使用麥克風",
+        "otherSession": "此帳戶有另一個對話正在進行",
+        "starting": "正在開始…",
+        "stopped": "已停止",
+        "spoken": "聆聽中 · 朗讀",
+        "subtitlesOnly": "聆聽中 · 只顯示字幕（未戴耳機）",
+        "invalidConfig": "語言設定未被接受，請在設定中檢查語言組合。",
+        "paused": "已暫停",
+        "stopping": "正在停止…"
+      },
+      "idleHint": "點「開始」，將聽到的語音翻譯成{{language}}。",
+      "menu": "選單",
+      "changeLanguages": "在設定中變更語言"
+    },
+    "common": {
+      "back": "返回",
+      "failed": "發生問題，請再試一次。"
+    },
+    "listen": {
+      "toggle": "對方說的話翻譯後朗讀給我",
+      "voice": "我聽到的聲音",
+      "speed": "語速",
+      "headphones": "只在戴耳機時朗讀；外放時只顯示字幕。",
+      "searchVoices": "搜尋聲音",
+      "preview": "試聽",
+      "previewVoice": "試聽 {{voice}}",
+      "stopPreview": "停止試聽",
+      "previewConfirmTitle": "試聽這個聲音？",
+      "previewEstimate": "產生新試聽約 {{amount}}（估算）；本次應用程式執行期間，重播相同試聽不重複扣費。"
+    },
+    "devices": {
+      "microphone": "麥克風",
+      "builtIn": "手機內建麥克風",
+      "wired": "有線耳機麥克風",
+      "usb": "USB 麥克風",
+      "noBluetoothMic": "藍牙耳機只用來播放譯文，不作為麥克風。",
+      "output": "播放裝置",
+      "route": {
+        "speaker": "手機揚聲器",
+        "headphones": "耳機",
+        "bluetooth": "藍牙裝置",
+        "other": "其他裝置"
+      }
+    },
+    "languages": {
+      "search": "搜尋語言",
+      "none": "沒有相符的語言"
+    }
   }
 }

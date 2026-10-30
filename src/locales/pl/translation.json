@@ -1623,5 +1623,159 @@
       "lostHint": "Źródło zniknęło; ostatni obraz zostaje zachowany, dopóki nie wybierzesz ponownie.",
       "lostExtension": "Obraz karty spotkania nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Zaloguj się",
+      "register": "Utwórz konto",
+      "email": "E-mail",
+      "password": "Hasło",
+      "submit": "Zaloguj się",
+      "forgot": "Nie pamiętasz hasła?",
+      "codeSent": "Wysłaliśmy 6-cyfrowy kod na {{email}}",
+      "willSendCode": "Wyślemy 6-cyfrowy kod na {{email}}",
+      "code": "Kod z wiadomości",
+      "verify": "Zweryfikuj",
+      "sendAgain": "Wyślij ponownie",
+      "sendAgainIn": "Wyślij ponownie ({{seconds}} s)",
+      "newPassword": "Nowe hasło",
+      "passwordHint": "co najmniej 8 znaków",
+      "wrongPassword": "Błędny e-mail lub hasło",
+      "wrongCode": "Ten kod jest błędny lub wygasł",
+      "tooManyRequests": "Zbyt wiele próśb o kod. Odczekaj chwilę i spróbuj ponownie.",
+      "verifyTitle": "Zweryfikuj e-mail",
+      "resetTitle": "Zresetuj hasło",
+      "sendCode": "Wyślij kod",
+      "setNewPassword": "Ustaw nowe hasło",
+      "back": "Wróć do logowania",
+      "later": "Później: zweryfikuj z ekranu konta",
+      "registerNote": "Otrzymasz 6-cyfrowy kod e-mailem; po jego wpisaniu konto zostanie zweryfikowane. Uprawnione konta otrzymują wtedy środki próbne.",
+      "sendingCode": "Wysyłanie 6-cyfrowego kodu na {{email}}…",
+      "codeNotSent": "Nie udało się wysłać kodu na {{email}}. Konto zostało utworzone: dotknij Wyślij ponownie.",
+      "showPassword": "Pokaż hasło",
+      "hidePassword": "Ukryj hasło"
+    },
+    "account": {
+      "verify": "Zweryfikuj e-mail – uprawnione konta otrzymują środki próbne",
+      "usage30d": "Wydano w ostatnich 30 dniach",
+      "hoursLeft": "Pozostało około {{hours}} h",
+      "frozen": "To konto jest zablokowane",
+      "expiring": "{{amount}} z Twojego salda wygasa {{date}}",
+      "usage": "Zużycie",
+      "deleteAccount": "Usuń konto",
+      "deleteConfirm": "Usunąć to konto i jego saldo? Tego nie można cofnąć.",
+      "balance": "Saldo",
+      "topUp": "Doładowania robi się na stronie Sokuji.",
+      "signOut": "Wyloguj się"
+    },
+    "usage": {
+      "session": "Sesja",
+      "textOnly": "Tylko tekst",
+      "loadMore": "Pokaż więcej",
+      "kind": {
+        "topup": "Doładowanie",
+        "grant": "Środki",
+        "adjustment": "Korekta",
+        "refund": "Zwrot",
+        "expired": "Wygasło",
+        "voicePreview": "Podgląd głosu"
+      },
+      "empty": "Na razie nic tu nie ma."
+    },
+    "menu": {
+      "history": "Historia",
+      "account": "Konto",
+      "settings": "Ustawienia"
+    },
+    "settings": {
+      "appearance": "Wygląd",
+      "appearanceSystem": "Systemowy",
+      "appearanceLight": "Jasny",
+      "appearanceDark": "Ciemny",
+      "region": "Region Soniox",
+      "textSize": "Rozmiar napisów",
+      "keepAwake": "Nie wygaszaj ekranu",
+      "textSizeSmall": "Mały",
+      "textSizeMedium": "Średni",
+      "textSizeLarge": "Duży",
+      "listen": "Słuchaj tłumaczenia",
+      "devices": "Urządzenia audio",
+      "groupLanguages": "Języki",
+      "groupDisplay": "Wyświetlanie",
+      "groupAudio": "Mowa i urządzenia",
+      "locked": "Zatrzymaj sesję, aby to zmienić."
+    },
+    "history": {
+      "rename": "Zmień nazwę",
+      "title": "Sesje",
+      "export": "Eksportuj",
+      "delete": "Usuń",
+      "actions": "Zmień nazwę, eksportuj lub usuń",
+      "empty": "Nie ma jeszcze sesji. Każda sesja jest przechowywana tutaj, na tym telefonie.",
+      "minutes": "{{minutes}} min",
+      "name": "Nazwa",
+      "renameHint": "Zostaw puste, aby sesja nazywała się datą.",
+      "unfinished": "Niedokończone",
+      "nothingHeard": "W tej sesji nic nie usłyszano."
+    },
+    "main": {
+      "hear": "Słyszę",
+      "read": "Czytam",
+      "start": "Start",
+      "stop": "Stop",
+      "bilingual": "Pokaż oba języki",
+      "status": {
+        "listening": "Słucham",
+        "reconnecting": "Ponowne łączenie…",
+        "signInRequired": "Zaloguj się ponownie",
+        "balanceExhausted": "Saldo zostało wyczerpane",
+        "micDenied": "Sokuji potrzebuje mikrofonu",
+        "otherSession": "Na tym koncie trwa inna sesja",
+        "starting": "Uruchamianie…",
+        "stopped": "Zatrzymano",
+        "spoken": "Słucham · na głos",
+        "subtitlesOnly": "Słucham · tylko napisy (bez słuchawek)",
+        "invalidConfig": "Ustawienia języka nie zostały przyjęte. Sprawdź parę języków w Ustawieniach.",
+        "paused": "Wstrzymano",
+        "stopping": "Zatrzymywanie…"
+      },
+      "idleHint": "Dotknij Start, aby tłumaczyć to, co słyszysz. Język tłumaczenia: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Zmień języki w Ustawieniach"
+    },
+    "common": {
+      "back": "Wstecz",
+      "failed": "Coś poszło nie tak. Spróbuj ponownie."
+    },
+    "listen": {
+      "toggle": "Czytaj mi na głos słowa drugiej strony",
+      "voice": "Głos, który słyszę",
+      "speed": "Tempo mowy",
+      "headphones": "Czytane tylko w słuchawkach. Na głośniku dostajesz napisy.",
+      "searchVoices": "Szukaj głosów",
+      "preview": "Odsłuchaj",
+      "previewVoice": "Odsłuchaj głos {{voice}}",
+      "stopPreview": "Zatrzymaj odsłuch",
+      "previewConfirmTitle": "Odsłuchać ten głos?",
+      "previewEstimate": "Nowy odsłuch kosztuje około {{amount}} (szacunkowo); ponowne odtworzenie tego samego, gdy aplikacja jest otwarta, jest bezpłatne."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Mikrofon telefonu",
+      "wired": "Mikrofon zestawu przewodowego",
+      "usb": "Mikrofon USB",
+      "noBluetoothMic": "Słuchawki Bluetooth odtwarzają tłumaczenie, ale nie służą jako mikrofon.",
+      "output": "Urządzenie odtwarzające",
+      "route": {
+        "speaker": "Głośnik telefonu",
+        "headphones": "Słuchawki",
+        "bluetooth": "Urządzenie Bluetooth",
+        "other": "Inne urządzenie"
+      }
+    },
+    "languages": {
+      "search": "Szukaj języków",
+      "none": "Brak pasujących języków"
+    }
   }
 }

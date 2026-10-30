@@ -1623,5 +1623,159 @@
       "lostHint": "Die Quelle ist weg; das letzte Bild bleibt erhalten, bis Sie erneut wählen.",
       "lostExtension": "Das Bild des Meeting-Tabs ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Anmelden",
+      "register": "Konto erstellen",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "forgot": "Passwort vergessen?",
+      "codeSent": "Wir haben einen 6-stelligen Code an {{email}} gesendet",
+      "willSendCode": "Wir senden einen 6-stelligen Code an {{email}}",
+      "code": "Code aus der E-Mail",
+      "verify": "Bestätigen",
+      "sendAgain": "Erneut senden",
+      "sendAgainIn": "Erneut senden ({{seconds}} s)",
+      "newPassword": "Neues Passwort",
+      "passwordHint": "mindestens 8 Zeichen",
+      "wrongPassword": "E-Mail oder Passwort falsch",
+      "wrongCode": "Dieser Code ist falsch oder abgelaufen",
+      "tooManyRequests": "Zu viele Code-Anfragen. Bitte warte etwas und versuche es erneut.",
+      "verifyTitle": "E-Mail bestätigen",
+      "resetTitle": "Passwort zurücksetzen",
+      "sendCode": "Code senden",
+      "setNewPassword": "Neues Passwort festlegen",
+      "back": "Zurück zur Anmeldung",
+      "later": "Später: im Kontobildschirm bestätigen",
+      "registerNote": "Du erhältst einen 6-stelligen Code per E-Mail; mit der Eingabe ist das Konto bestätigt. Berechtigte Konten erhalten dann ein Testguthaben.",
+      "sendingCode": "Ein 6-stelliger Code wird an {{email}} gesendet…",
+      "codeNotSent": "Der Code konnte nicht an {{email}} gesendet werden. Dein Konto ist angelegt: Tippe auf „Erneut senden“.",
+      "showPassword": "Passwort anzeigen",
+      "hidePassword": "Passwort verbergen"
+    },
+    "account": {
+      "verify": "Bestätige deine E-Mail – berechtigte Konten erhalten ein Testguthaben",
+      "usage30d": "Ausgegeben in den letzten 30 Tagen",
+      "hoursLeft": "Noch etwa {{hours}} h",
+      "frozen": "Dieses Konto ist eingefroren",
+      "expiring": "{{amount}} deines Guthabens verfällt am {{date}}",
+      "usage": "Verbrauch",
+      "deleteAccount": "Konto löschen",
+      "deleteConfirm": "Dieses Konto und sein Guthaben löschen? Das lässt sich nicht rückgängig machen.",
+      "balance": "Guthaben",
+      "topUp": "Aufladen geht auf der Sokuji-Website.",
+      "signOut": "Abmelden"
+    },
+    "usage": {
+      "session": "Sitzung",
+      "textOnly": "Nur Text",
+      "loadMore": "Mehr anzeigen",
+      "kind": {
+        "topup": "Aufladung",
+        "grant": "Guthaben",
+        "adjustment": "Korrektur",
+        "refund": "Erstattung",
+        "expired": "Verfallen",
+        "voicePreview": "Stimmvorschau"
+      },
+      "empty": "Noch keine Einträge."
+    },
+    "menu": {
+      "history": "Verlauf",
+      "account": "Konto",
+      "settings": "Einstellungen"
+    },
+    "settings": {
+      "appearance": "Erscheinungsbild",
+      "appearanceSystem": "System",
+      "appearanceLight": "Hell",
+      "appearanceDark": "Dunkel",
+      "region": "Soniox-Region",
+      "textSize": "Untertitelgröße",
+      "keepAwake": "Bildschirm anlassen",
+      "textSizeSmall": "Klein",
+      "textSizeMedium": "Mittel",
+      "textSizeLarge": "Groß",
+      "listen": "Übersetzung hören",
+      "devices": "Audiogeräte",
+      "groupLanguages": "Sprachen",
+      "groupDisplay": "Anzeige",
+      "groupAudio": "Sprachausgabe und Geräte",
+      "locked": "Beende die Sitzung, um das zu ändern."
+    },
+    "history": {
+      "rename": "Umbenennen",
+      "title": "Sitzungen",
+      "export": "Exportieren",
+      "delete": "Löschen",
+      "actions": "Umbenennen, exportieren oder löschen",
+      "empty": "Noch keine Sitzungen. Jede Sitzung wird hier auf diesem Telefon gespeichert.",
+      "minutes": "{{minutes}} Min.",
+      "name": "Name",
+      "renameHint": "Leer lassen, um die Sitzung nach ihrem Datum zu benennen.",
+      "unfinished": "Unvollständig",
+      "nothingHeard": "In dieser Sitzung wurde nichts gehört."
+    },
+    "main": {
+      "hear": "Ich höre",
+      "read": "Ich lese",
+      "start": "Start",
+      "stop": "Stopp",
+      "bilingual": "Beide Sprachen anzeigen",
+      "status": {
+        "listening": "Hört zu",
+        "reconnecting": "Verbindet neu…",
+        "signInRequired": "Bitte erneut anmelden",
+        "balanceExhausted": "Dein Guthaben ist aufgebraucht",
+        "micDenied": "Sokuji braucht das Mikrofon",
+        "otherSession": "Auf diesem Konto läuft eine andere Sitzung",
+        "starting": "Startet…",
+        "stopped": "Gestoppt",
+        "spoken": "Hört zu · gesprochen",
+        "subtitlesOnly": "Hört zu · nur Untertitel (keine Kopfhörer)",
+        "invalidConfig": "Spracheinstellungen nicht akzeptiert. Prüfe das Sprachpaar in den Einstellungen.",
+        "paused": "Pausiert",
+        "stopping": "Wird gestoppt…"
+      },
+      "idleHint": "Tippe auf „Start“, um Gehörtes zu übersetzen. Zielsprache: {{language}}.",
+      "menu": "Menü",
+      "changeLanguages": "Sprachen in den Einstellungen ändern"
+    },
+    "common": {
+      "back": "Zurück",
+      "failed": "Etwas ist schiefgelaufen. Bitte versuche es noch einmal."
+    },
+    "listen": {
+      "toggle": "Die Worte der anderen Seite mir vorlesen",
+      "voice": "Stimme, die ich höre",
+      "speed": "Sprechtempo",
+      "headphones": "Nur über Kopfhörer gesprochen. Über den Lautsprecher gibt es Untertitel.",
+      "searchVoices": "Stimmen suchen",
+      "preview": "Probehören",
+      "previewVoice": "{{voice}} probehören",
+      "stopPreview": "Probehören beenden",
+      "previewConfirmTitle": "Diese Stimme probehören?",
+      "previewEstimate": "Ein neues Probehören kostet etwa {{amount}} (geschätzt); dasselbe noch einmal abzuspielen, solange die App offen ist, kostet nichts."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Telefonmikrofon",
+      "wired": "Mikrofon des Kabel-Headsets",
+      "usb": "USB-Mikrofon",
+      "noBluetoothMic": "Bluetooth-Kopfhörer spielen die Übersetzung ab, dienen aber nicht als Mikrofon.",
+      "output": "Wiedergabegerät",
+      "route": {
+        "speaker": "Telefonlautsprecher",
+        "headphones": "Kopfhörer",
+        "bluetooth": "Bluetooth-Gerät",
+        "other": "Anderes Gerät"
+      }
+    },
+    "languages": {
+      "search": "Sprachen suchen",
+      "none": "Keine passenden Sprachen"
+    }
   }
 }

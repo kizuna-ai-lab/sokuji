@@ -303,7 +303,7 @@ describe('createTranscript', () => {
 ### Task 10: Store readiness
 
 **Files:**
-- Modify: `mobile/app.json` (production identifiers, icons, splash, `locales` for the microphone permission string, `android.permission`s unchanged), `mobile/eas.json` (create: `preview` and `production` profiles) or the local build scripts the macOS machine uses
+- Modify: `mobile/app.json` (production identifiers, icons, splash, `locales` for the microphone permission string, `android.permission`s unchanged), the local build steps the macOS machine uses (no EAS)
 - Create: `mobile/assets/` (icon, adaptive icon, splash), `mobile/PrivacyInfo.xcprivacy` through `expo-build-properties` or the config plugin
 
 - [ ] **Step 1: Set the identifier `ai.kizunaai.sokuji` on both platforms, the display name "Sokuji", version `1.0.0`, build numbers; register the explicit App ID `ai.kizunaai.sokuji` in the Apple developer portal (Identifiers → +; no capabilities needed in the first version) — App Store Connect's "new app" form lists only registered bundle IDs, and the wildcard profile used for development registers none**
@@ -311,7 +311,7 @@ describe('createTranscript', () => {
 - [ ] **Step 3: Permission strings** — `NSMicrophoneUsageDescription` localized (`app.json` `locales`), the Android foreground-service notification title from `mobile.main.status.listening`
 - [ ] **Step 4: Build release candidates for both platforms (iOS archive for TestFlight; Android `.aab`)**
 
-Run: on the macOS machine, `eas build --profile production` for both platforms (or the local equivalents: `xcodebuild -exportArchive`, `./gradlew bundleRelease`).
+Run: on the macOS machine, `xcodebuild -exportArchive` for iOS and `./gradlew bundleRelease` for Android (EAS is not used).
 Expected: an installable TestFlight build and a Play internal-testing bundle.
 
 - [ ] **Step 5: Commit** — `chore(mobile): store identifiers, artwork, permission strings, build profiles`

@@ -1623,5 +1623,159 @@
       "lostHint": "La fuente ya no está; se conserva la última imagen hasta que elijas de nuevo.",
       "lostExtension": "La imagen de la pestaña de la reunión ya no está disponible; la traducción continúa solo con el audio."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Iniciar sesión",
+      "register": "Crear cuenta",
+      "email": "Correo",
+      "password": "Contraseña",
+      "submit": "Iniciar sesión",
+      "forgot": "¿Olvidaste la contraseña?",
+      "codeSent": "Enviamos un código de 6 dígitos a {{email}}",
+      "willSendCode": "Enviaremos un código de 6 dígitos a {{email}}",
+      "code": "Código del correo",
+      "verify": "Verificar",
+      "sendAgain": "Enviar de nuevo",
+      "sendAgainIn": "Enviar de nuevo ({{seconds}} s)",
+      "newPassword": "Nueva contraseña",
+      "passwordHint": "al menos 8 caracteres",
+      "wrongPassword": "Correo o contraseña incorrectos",
+      "wrongCode": "Ese código es incorrecto o ha caducado",
+      "tooManyRequests": "Demasiadas solicitudes de código. Espera un momento y vuelve a intentarlo.",
+      "verifyTitle": "Verifica tu correo",
+      "resetTitle": "Restablecer la contraseña",
+      "sendCode": "Enviar código",
+      "setNewPassword": "Establecer nueva contraseña",
+      "back": "Volver al inicio de sesión",
+      "later": "Más tarde: verifica desde la pantalla de cuenta",
+      "registerNote": "Recibirás un código de 6 dígitos por correo; al introducirlo la cuenta queda verificada. Después, las cuentas que cumplan los requisitos reciben un crédito de prueba.",
+      "sendingCode": "Enviando un código de 6 dígitos a {{email}}…",
+      "codeNotSent": "No se pudo enviar el código a {{email}}. Tu cuenta ya está creada: toca Enviar de nuevo.",
+      "showPassword": "Mostrar contraseña",
+      "hidePassword": "Ocultar contraseña"
+    },
+    "account": {
+      "verify": "Verifica tu correo: las cuentas que cumplan los requisitos reciben un crédito de prueba",
+      "usage30d": "Gastado en los últimos 30 días",
+      "hoursLeft": "Quedan unas {{hours}} h",
+      "frozen": "Esta cuenta está congelada",
+      "expiring": "{{amount}} de tu saldo caduca el {{date}}",
+      "usage": "Consumo",
+      "deleteAccount": "Eliminar cuenta",
+      "deleteConfirm": "¿Eliminar esta cuenta y su saldo? No se puede deshacer.",
+      "balance": "Saldo",
+      "topUp": "Las recargas se hacen en el sitio web de Sokuji.",
+      "signOut": "Cerrar sesión"
+    },
+    "usage": {
+      "session": "Sesión",
+      "textOnly": "Solo texto",
+      "loadMore": "Mostrar más",
+      "kind": {
+        "topup": "Recarga",
+        "grant": "Crédito",
+        "adjustment": "Ajuste",
+        "refund": "Reembolso",
+        "expired": "Caducado",
+        "voicePreview": "Vista previa de voz"
+      },
+      "empty": "Aún no hay nada aquí."
+    },
+    "menu": {
+      "history": "Historial",
+      "account": "Cuenta",
+      "settings": "Ajustes"
+    },
+    "settings": {
+      "appearance": "Apariencia",
+      "appearanceSystem": "Sistema",
+      "appearanceLight": "Claro",
+      "appearanceDark": "Oscuro",
+      "region": "Región de Soniox",
+      "textSize": "Tamaño de los subtítulos",
+      "keepAwake": "Mantener la pantalla encendida",
+      "textSizeSmall": "Pequeño",
+      "textSizeMedium": "Mediano",
+      "textSizeLarge": "Grande",
+      "listen": "Oír la traducción",
+      "devices": "Dispositivos de audio",
+      "groupLanguages": "Idiomas",
+      "groupDisplay": "Pantalla",
+      "groupAudio": "Voz y dispositivos",
+      "locked": "Detén la sesión para cambiar esto."
+    },
+    "history": {
+      "rename": "Renombrar",
+      "title": "Sesiones",
+      "export": "Exportar",
+      "delete": "Eliminar",
+      "actions": "Renombrar, exportar o eliminar",
+      "empty": "Aún no hay sesiones. Cada sesión que inicies se guarda aquí, en este teléfono.",
+      "minutes": "{{minutes}} min",
+      "name": "Nombre",
+      "renameHint": "Déjalo vacío para que la sesión se llame por su fecha.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "En esta sesión no se oyó nada."
+    },
+    "main": {
+      "hear": "Escucho",
+      "read": "Leo",
+      "start": "Iniciar",
+      "stop": "Detener",
+      "bilingual": "Mostrar ambos idiomas",
+      "status": {
+        "listening": "Escuchando",
+        "reconnecting": "Reconectando…",
+        "signInRequired": "Vuelve a iniciar sesión",
+        "balanceExhausted": "Se ha agotado tu saldo",
+        "micDenied": "Sokuji necesita el micrófono",
+        "otherSession": "Hay otra sesión en curso en esta cuenta",
+        "starting": "Iniciando…",
+        "stopped": "Detenido",
+        "spoken": "Escuchando · en voz alta",
+        "subtitlesOnly": "Escuchando · solo subtítulos (sin auriculares)",
+        "invalidConfig": "No se aceptó la configuración de idioma. Revisa el par de idiomas en Ajustes.",
+        "paused": "En pausa",
+        "stopping": "Deteniendo…"
+      },
+      "idleHint": "Toca Iniciar para traducir lo que oyes. Idioma de traducción: {{language}}.",
+      "menu": "Menú",
+      "changeLanguages": "Cambiar los idiomas en Ajustes"
+    },
+    "common": {
+      "back": "Atrás",
+      "failed": "Algo salió mal. Inténtalo de nuevo."
+    },
+    "listen": {
+      "toggle": "Leerme en voz alta lo que dice la otra persona",
+      "voice": "Voz que oigo",
+      "speed": "Velocidad de habla",
+      "headphones": "Solo se lee con auriculares. Con el altavoz tienes subtítulos.",
+      "searchVoices": "Buscar voces",
+      "preview": "Escuchar",
+      "previewVoice": "Escuchar {{voice}}",
+      "stopPreview": "Detener",
+      "previewConfirmTitle": "¿Escuchar esta voz?",
+      "previewEstimate": "Una escucha nueva cuesta unos {{amount}} (estimado); volver a escuchar la misma mientras la app está abierta es gratis."
+    },
+    "devices": {
+      "microphone": "Micrófono",
+      "builtIn": "Micrófono del teléfono",
+      "wired": "Micrófono de los auriculares con cable",
+      "usb": "Micrófono USB",
+      "noBluetoothMic": "Los auriculares Bluetooth reproducen la traducción pero no se usan como micrófono.",
+      "output": "Dispositivo de reproducción",
+      "route": {
+        "speaker": "Altavoz del teléfono",
+        "headphones": "Auriculares",
+        "bluetooth": "Dispositivo Bluetooth",
+        "other": "Otro dispositivo"
+      }
+    },
+    "languages": {
+      "search": "Buscar idiomas",
+      "none": "Ningún idioma coincide"
+    }
   }
 }

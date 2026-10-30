@@ -25,6 +25,12 @@ export const MOBILE_SHARED_ROOTS = [
   'src/lib/segmentation/sentenceEnd.ts',
   'src/lib/segmentation/silenceDeferral.ts',
   'src/lib/export/transcript.ts',
+  'src/lib/conversation/Conversation.ts',
+  'src/lib/projection/project.ts',
+  'src/lib/projection/types.ts',
+  'src/lib/contract/events.ts',
+  'src/providers/soniox/ttsStream.ts',
+  'src/providers/soniox/speech.ts',
 ];
 
 describe('mobile shared code', () => {

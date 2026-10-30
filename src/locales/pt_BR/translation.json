@@ -1623,5 +1623,159 @@
       "lostHint": "A fonte não está mais disponível; a última imagem fica guardada até você escolher de novo.",
       "lostExtension": "A imagem da aba da reunião não está mais disponível; a tradução continua só com o áudio."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Entrar",
+      "register": "Criar conta",
+      "email": "E-mail",
+      "password": "Senha",
+      "submit": "Entrar",
+      "forgot": "Esqueceu a senha?",
+      "codeSent": "Enviamos um código de 6 dígitos para {{email}}",
+      "willSendCode": "Enviaremos um código de 6 dígitos para {{email}}",
+      "code": "Código do e-mail",
+      "verify": "Verificar",
+      "sendAgain": "Enviar novamente",
+      "sendAgainIn": "Enviar novamente ({{seconds}} s)",
+      "newPassword": "Nova senha",
+      "passwordHint": "pelo menos 8 caracteres",
+      "wrongPassword": "E-mail ou senha incorretos",
+      "wrongCode": "Esse código está incorreto ou expirou",
+      "tooManyRequests": "Muitas solicitações de código. Aguarde um pouco e tente novamente.",
+      "verifyTitle": "Verifique seu e-mail",
+      "resetTitle": "Redefinir senha",
+      "sendCode": "Enviar código",
+      "setNewPassword": "Definir nova senha",
+      "back": "Voltar ao login",
+      "later": "Depois: verifique na tela da conta",
+      "registerNote": "Você receberá um código de 6 dígitos por e-mail; ao digitá-lo, a conta é verificada. Depois, contas elegíveis recebem um crédito de teste.",
+      "sendingCode": "Enviando um código de 6 dígitos para {{email}}…",
+      "codeNotSent": "Não foi possível enviar o código para {{email}}. Sua conta já foi criada: toque em Enviar novamente.",
+      "showPassword": "Mostrar senha",
+      "hidePassword": "Ocultar senha"
+    },
+    "account": {
+      "verify": "Verifique seu e-mail: contas elegíveis recebem um crédito de teste",
+      "usage30d": "Gasto nos últimos 30 dias",
+      "hoursLeft": "Cerca de {{hours}} h restantes",
+      "frozen": "Esta conta está congelada",
+      "expiring": "{{amount}} do seu saldo expira em {{date}}",
+      "usage": "Consumo",
+      "deleteAccount": "Excluir conta",
+      "deleteConfirm": "Excluir esta conta e seu saldo? Isso não pode ser desfeito.",
+      "balance": "Saldo",
+      "topUp": "As recargas são feitas no site do Sokuji.",
+      "signOut": "Sair"
+    },
+    "usage": {
+      "session": "Sessão",
+      "textOnly": "Somente texto",
+      "loadMore": "Mostrar mais",
+      "kind": {
+        "topup": "Recarga",
+        "grant": "Crédito",
+        "adjustment": "Ajuste",
+        "refund": "Reembolso",
+        "expired": "Expirado",
+        "voicePreview": "Prévia de voz"
+      },
+      "empty": "Ainda não há nada aqui."
+    },
+    "menu": {
+      "history": "Histórico",
+      "account": "Conta",
+      "settings": "Configurações"
+    },
+    "settings": {
+      "appearance": "Aparência",
+      "appearanceSystem": "Sistema",
+      "appearanceLight": "Claro",
+      "appearanceDark": "Escuro",
+      "region": "Região Soniox",
+      "textSize": "Tamanho das legendas",
+      "keepAwake": "Manter a tela ligada",
+      "textSizeSmall": "Pequeno",
+      "textSizeMedium": "Médio",
+      "textSizeLarge": "Grande",
+      "listen": "Ouvir a tradução",
+      "devices": "Dispositivos de áudio",
+      "groupLanguages": "Idiomas",
+      "groupDisplay": "Exibição",
+      "groupAudio": "Voz e dispositivos",
+      "locked": "Pare a sessão para alterar isto."
+    },
+    "history": {
+      "rename": "Renomear",
+      "title": "Sessões",
+      "export": "Exportar",
+      "delete": "Excluir",
+      "actions": "Renomear, exportar ou excluir",
+      "empty": "Ainda não há sessões. Cada sessão fica guardada aqui, neste telefone.",
+      "minutes": "{{minutes}} min",
+      "name": "Nome",
+      "renameHint": "Deixe em branco para nomear a sessão pela data.",
+      "unfinished": "Incompleto",
+      "nothingHeard": "Nada foi ouvido nesta sessão."
+    },
+    "main": {
+      "hear": "Eu ouço",
+      "read": "Eu leio",
+      "start": "Iniciar",
+      "stop": "Parar",
+      "bilingual": "Mostrar os dois idiomas",
+      "status": {
+        "listening": "Ouvindo",
+        "reconnecting": "Reconectando…",
+        "signInRequired": "Entre novamente",
+        "balanceExhausted": "Seu saldo acabou",
+        "micDenied": "O Sokuji precisa do microfone",
+        "otherSession": "Outra sessão está em andamento nesta conta",
+        "starting": "Iniciando…",
+        "stopped": "Parado",
+        "spoken": "Ouvindo · em voz alta",
+        "subtitlesOnly": "Ouvindo · só legendas (sem fones)",
+        "invalidConfig": "As configurações de idioma não foram aceitas. Verifique o par de idiomas em Configurações.",
+        "paused": "Pausado",
+        "stopping": "Parando…"
+      },
+      "idleHint": "Toque em Iniciar para traduzir o que você ouve. Idioma da tradução: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Alterar os idiomas em Configurações"
+    },
+    "common": {
+      "back": "Voltar",
+      "failed": "Algo deu errado. Tente novamente."
+    },
+    "listen": {
+      "toggle": "Ler em voz alta o que a outra pessoa diz",
+      "voice": "Voz que eu ouço",
+      "speed": "Velocidade da fala",
+      "headphones": "Lida apenas com fones. No alto-falante você tem legendas.",
+      "searchVoices": "Buscar vozes",
+      "preview": "Ouvir",
+      "previewVoice": "Ouvir {{voice}}",
+      "stopPreview": "Parar",
+      "previewConfirmTitle": "Ouvir esta voz?",
+      "previewEstimate": "Uma nova prévia custa cerca de {{amount}} (estimativa); ouvir a mesma de novo enquanto o app está aberto é grátis."
+    },
+    "devices": {
+      "microphone": "Microfone",
+      "builtIn": "Microfone do telefone",
+      "wired": "Microfone do fone com fio",
+      "usb": "Microfone USB",
+      "noBluetoothMic": "Fones Bluetooth tocam a tradução, mas não são usados como microfone.",
+      "output": "Dispositivo de reprodução",
+      "route": {
+        "speaker": "Alto-falante do telefone",
+        "headphones": "Fones de ouvido",
+        "bluetooth": "Dispositivo Bluetooth",
+        "other": "Outro dispositivo"
+      }
+    },
+    "languages": {
+      "search": "Buscar idiomas",
+      "none": "Nenhum idioma corresponde"
+    }
   }
 }

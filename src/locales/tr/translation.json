@@ -1623,5 +1623,159 @@
       "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur.",
       "lostExtension": "Toplantı sekmesinin görüntüsü artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Giriş yap",
+      "register": "Hesap oluştur",
+      "email": "E-posta",
+      "password": "Parola",
+      "submit": "Giriş yap",
+      "forgot": "Parolanızı mı unuttunuz?",
+      "codeSent": "{{email}} adresine 6 haneli bir kod gönderdik",
+      "willSendCode": "{{email}} adresine 6 haneli bir kod göndereceğiz",
+      "code": "E-postadaki kod",
+      "verify": "Doğrula",
+      "sendAgain": "Yeniden gönder",
+      "sendAgainIn": "Yeniden gönder ({{seconds}} sn)",
+      "newPassword": "Yeni parola",
+      "passwordHint": "en az 8 karakter",
+      "wrongPassword": "E-posta veya parola yanlış",
+      "wrongCode": "Bu kod yanlış veya süresi dolmuş",
+      "tooManyRequests": "Çok fazla kod isteği. Biraz bekleyip tekrar deneyin.",
+      "verifyTitle": "E-postanızı doğrulayın",
+      "resetTitle": "Parolayı sıfırla",
+      "sendCode": "Kod gönder",
+      "setNewPassword": "Yeni parolayı ayarla",
+      "back": "Girişe dön",
+      "later": "Sonra: hesap ekranından doğrulayın",
+      "registerNote": "E-postayla 6 haneli bir kod alacaksınız; girince hesap doğrulanır. Ardından koşulları karşılayan hesaplara deneme kredisi eklenir.",
+      "sendingCode": "{{email}} adresine 6 haneli kod gönderiliyor…",
+      "codeNotSent": "Kod {{email}} adresine gönderilemedi. Hesabınız oluşturuldu: Yeniden gönder'e dokunun.",
+      "showPassword": "Şifreyi göster",
+      "hidePassword": "Şifreyi gizle"
+    },
+    "account": {
+      "verify": "E-postanızı doğrulayın; koşulları karşılayan hesaplar deneme kredisi alır",
+      "usage30d": "Son 30 günde harcanan",
+      "hoursLeft": "Yaklaşık {{hours}} sa kaldı",
+      "frozen": "Bu hesap donduruldu",
+      "expiring": "Bakiyenizin {{amount}} kadarı {{date}} tarihinde sona eriyor",
+      "usage": "Kullanım",
+      "deleteAccount": "Hesabı sil",
+      "deleteConfirm": "Bu hesap ve bakiyesi silinsin mi? Bu geri alınamaz.",
+      "balance": "Bakiye",
+      "topUp": "Yükleme Sokuji web sitesinden yapılır.",
+      "signOut": "Çıkış yap"
+    },
+    "usage": {
+      "session": "Oturum",
+      "textOnly": "Yalnızca metin",
+      "loadMore": "Daha fazla göster",
+      "kind": {
+        "topup": "Yükleme",
+        "grant": "Kredi",
+        "adjustment": "Düzeltme",
+        "refund": "İade",
+        "expired": "Süresi doldu",
+        "voicePreview": "Ses önizleme"
+      },
+      "empty": "Henüz bir şey yok."
+    },
+    "menu": {
+      "history": "Geçmiş",
+      "account": "Hesap",
+      "settings": "Ayarlar"
+    },
+    "settings": {
+      "appearance": "Görünüm",
+      "appearanceSystem": "Sistem",
+      "appearanceLight": "Açık",
+      "appearanceDark": "Koyu",
+      "region": "Soniox bölgesi",
+      "textSize": "Altyazı boyutu",
+      "keepAwake": "Ekranı açık tut",
+      "textSizeSmall": "Küçük",
+      "textSizeMedium": "Orta",
+      "textSizeLarge": "Büyük",
+      "listen": "Çeviriyi duy",
+      "devices": "Ses aygıtları",
+      "groupLanguages": "Diller",
+      "groupDisplay": "Görüntü",
+      "groupAudio": "Seslendirme ve aygıtlar",
+      "locked": "Bunu değiştirmek için oturumu durdurun."
+    },
+    "history": {
+      "rename": "Yeniden adlandır",
+      "title": "Oturumlar",
+      "export": "Dışa aktar",
+      "delete": "Sil",
+      "actions": "Yeniden adlandır, dışa aktar veya sil",
+      "empty": "Henüz oturum yok. Başlattığınız her oturum burada, bu telefonda saklanır.",
+      "minutes": "{{minutes}} dk",
+      "name": "Ad",
+      "renameHint": "Oturuma tarihinin ad olarak verilmesi için boş bırakın.",
+      "unfinished": "Tamamlanmadı",
+      "nothingHeard": "Bu oturumda hiçbir şey duyulmadı."
+    },
+    "main": {
+      "hear": "Duyduğum dil",
+      "read": "Okuduğum dil",
+      "start": "Başlat",
+      "stop": "Durdur",
+      "bilingual": "İki dili de göster",
+      "status": {
+        "listening": "Dinliyor",
+        "reconnecting": "Yeniden bağlanıyor…",
+        "signInRequired": "Lütfen yeniden giriş yapın",
+        "balanceExhausted": "Bakiyeniz tükendi",
+        "micDenied": "Sokuji'nin mikrofona ihtiyacı var",
+        "otherSession": "Bu hesapta başka bir oturum sürüyor",
+        "starting": "Başlatılıyor…",
+        "stopped": "Durduruldu",
+        "spoken": "Dinliyor · sesli",
+        "subtitlesOnly": "Dinliyor · yalnızca altyazı (kulaklık yok)",
+        "invalidConfig": "Dil ayarları kabul edilmedi. Ayarlar'da dil çiftini kontrol edin.",
+        "paused": "Duraklatıldı",
+        "stopping": "Durduruluyor…"
+      },
+      "idleHint": "Duyduğunuzu çevirmek için Başlat'a dokunun. Çeviri dili: {{language}}.",
+      "menu": "Menü",
+      "changeLanguages": "Dilleri Ayarlar'da değiştirin"
+    },
+    "common": {
+      "back": "Geri",
+      "failed": "Bir sorun oluştu. Lütfen tekrar deneyin."
+    },
+    "listen": {
+      "toggle": "Karşı tarafın sözlerini bana sesli oku",
+      "voice": "Duyduğum ses",
+      "speed": "Konuşma hızı",
+      "headphones": "Yalnızca kulaklıkla seslendirilir. Hoparlörde altyazı alırsınız.",
+      "searchVoices": "Ses ara",
+      "preview": "Dinle",
+      "previewVoice": "{{voice}} sesini dinle",
+      "stopPreview": "Dinlemeyi durdur",
+      "previewConfirmTitle": "Bu ses dinlensin mi?",
+      "previewEstimate": "Yeni bir dinleme yaklaşık {{amount}} tutar (tahmini); uygulama açıkken aynısını yeniden dinlemek ücretsizdir."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Telefon mikrofonu",
+      "wired": "Kablolu kulaklık mikrofonu",
+      "usb": "USB mikrofon",
+      "noBluetoothMic": "Bluetooth kulaklıklar çeviriyi çalar ama mikrofon olarak kullanılmaz.",
+      "output": "Çalma aygıtı",
+      "route": {
+        "speaker": "Telefon hoparlörü",
+        "headphones": "Kulaklık",
+        "bluetooth": "Bluetooth aygıtı",
+        "other": "Başka bir aygıt"
+      }
+    },
+    "languages": {
+      "search": "Dil ara",
+      "none": "Eşleşen dil yok"
+    }
   }
 }

@@ -1623,5 +1623,159 @@
       "lostHint": "Källan är borta; den senaste bilden behålls tills du väljer igen.",
       "lostExtension": "Mötesflikens bild är inte längre tillgänglig; översättningen fortsätter med enbart ljud."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Logga in",
+      "register": "Skapa konto",
+      "email": "E-post",
+      "password": "Lösenord",
+      "submit": "Logga in",
+      "forgot": "Glömt lösenordet?",
+      "codeSent": "Vi skickade en 6-siffrig kod till {{email}}",
+      "willSendCode": "Vi skickar en 6-siffrig kod till {{email}}",
+      "code": "Koden från e-posten",
+      "verify": "Verifiera",
+      "sendAgain": "Skicka igen",
+      "sendAgainIn": "Skicka igen ({{seconds}} s)",
+      "newPassword": "Nytt lösenord",
+      "passwordHint": "minst 8 tecken",
+      "wrongPassword": "Fel e-post eller lösenord",
+      "wrongCode": "Koden är fel eller har gått ut",
+      "tooManyRequests": "För många kodförfrågningar. Vänta en stund och försök igen.",
+      "verifyTitle": "Verifiera din e-post",
+      "resetTitle": "Återställ lösenordet",
+      "sendCode": "Skicka kod",
+      "setNewPassword": "Ange nytt lösenord",
+      "back": "Tillbaka till inloggning",
+      "later": "Senare: verifiera från kontoskärmen",
+      "registerNote": "Du får en 6-siffrig kod via e-post; när du anger den verifieras kontot. Konton som uppfyller villkoren får sedan en provkredit.",
+      "sendingCode": "Skickar en 6-siffrig kod till {{email}}…",
+      "codeNotSent": "Koden kunde inte skickas till {{email}}. Ditt konto är skapat: tryck på Skicka igen.",
+      "showPassword": "Visa lösenord",
+      "hidePassword": "Dölj lösenord"
+    },
+    "account": {
+      "verify": "Verifiera din e-post – konton som uppfyller villkoren får en provkredit",
+      "usage30d": "Förbrukat de senaste 30 dagarna",
+      "hoursLeft": "Ungefär {{hours}} h kvar",
+      "frozen": "Det här kontot är fryst",
+      "expiring": "{{amount}} av ditt saldo går ut {{date}}",
+      "usage": "Förbrukning",
+      "deleteAccount": "Radera konto",
+      "deleteConfirm": "Radera det här kontot och dess saldo? Det går inte att ångra.",
+      "balance": "Saldo",
+      "topUp": "Påfyllning görs på Sokujis webbplats.",
+      "signOut": "Logga ut"
+    },
+    "usage": {
+      "session": "Session",
+      "textOnly": "Endast text",
+      "loadMore": "Visa fler",
+      "kind": {
+        "topup": "Påfyllning",
+        "grant": "Kredit",
+        "adjustment": "Justering",
+        "refund": "Återbetalning",
+        "expired": "Utgånget",
+        "voicePreview": "Röstprov"
+      },
+      "empty": "Inget här ännu."
+    },
+    "menu": {
+      "history": "Historik",
+      "account": "Konto",
+      "settings": "Inställningar"
+    },
+    "settings": {
+      "appearance": "Utseende",
+      "appearanceSystem": "System",
+      "appearanceLight": "Ljust",
+      "appearanceDark": "Mörkt",
+      "region": "Soniox-region",
+      "textSize": "Textstorlek för undertexter",
+      "keepAwake": "Håll skärmen tänd",
+      "textSizeSmall": "Liten",
+      "textSizeMedium": "Mellan",
+      "textSizeLarge": "Stor",
+      "listen": "Hör översättningen",
+      "devices": "Ljudenheter",
+      "groupLanguages": "Språk",
+      "groupDisplay": "Visning",
+      "groupAudio": "Uppläsning och enheter",
+      "locked": "Stoppa sessionen för att ändra detta."
+    },
+    "history": {
+      "rename": "Byt namn",
+      "title": "Sessioner",
+      "export": "Exportera",
+      "delete": "Radera",
+      "actions": "Byt namn, exportera eller ta bort",
+      "empty": "Inga sessioner än. Varje session sparas här, på den här telefonen.",
+      "minutes": "{{minutes}} min",
+      "name": "Namn",
+      "renameHint": "Lämna tomt för att ge sessionen datumet som namn.",
+      "unfinished": "Ofullständig",
+      "nothingHeard": "Inget hördes under den här sessionen."
+    },
+    "main": {
+      "hear": "Jag hör",
+      "read": "Jag läser",
+      "start": "Starta",
+      "stop": "Stoppa",
+      "bilingual": "Visa båda språken",
+      "status": {
+        "listening": "Lyssnar",
+        "reconnecting": "Återansluter…",
+        "signInRequired": "Logga in igen",
+        "balanceExhausted": "Ditt saldo är slut",
+        "micDenied": "Sokuji behöver mikrofonen",
+        "otherSession": "En annan session pågår på det här kontot",
+        "starting": "Startar…",
+        "stopped": "Stoppad",
+        "spoken": "Lyssnar · uppläst",
+        "subtitlesOnly": "Lyssnar · bara undertexter (inga hörlurar)",
+        "invalidConfig": "Språkinställningarna godtogs inte. Kontrollera språkparet i Inställningar.",
+        "paused": "Pausad",
+        "stopping": "Stoppar…"
+      },
+      "idleHint": "Tryck på Starta för att översätta det du hör. Översättningsspråk: {{language}}.",
+      "menu": "Meny",
+      "changeLanguages": "Ändra språken i Inställningar"
+    },
+    "common": {
+      "back": "Tillbaka",
+      "failed": "Något gick fel. Försök igen."
+    },
+    "listen": {
+      "toggle": "Läs upp vad den andra säger för mig",
+      "voice": "Rösten jag hör",
+      "speed": "Talhastighet",
+      "headphones": "Läses bara upp i hörlurar. I högtalaren får du undertexter.",
+      "searchVoices": "Sök röster",
+      "preview": "Lyssna",
+      "previewVoice": "Lyssna på {{voice}}",
+      "stopPreview": "Sluta lyssna",
+      "previewConfirmTitle": "Lyssna på den här rösten?",
+      "previewEstimate": "En ny lyssning kostar ungefär {{amount}} (uppskattning); att spela samma igen medan appen är öppen är gratis."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Telefonens mikrofon",
+      "wired": "Trådbundet headsets mikrofon",
+      "usb": "USB-mikrofon",
+      "noBluetoothMic": "Bluetooth-hörlurar spelar översättningen men används inte som mikrofon.",
+      "output": "Uppspelningsenhet",
+      "route": {
+        "speaker": "Telefonens högtalare",
+        "headphones": "Hörlurar",
+        "bluetooth": "Bluetooth-enhet",
+        "other": "Annan enhet"
+      }
+    },
+    "languages": {
+      "search": "Sök språk",
+      "none": "Inga matchande språk"
+    }
   }
 }

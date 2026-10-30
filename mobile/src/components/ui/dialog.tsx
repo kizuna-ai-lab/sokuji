@@ -1,0 +1,172 @@
+import { Icon } from '@/components/ui/icon';
+import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
+import { cn } from '@/lib/utils';
+import { useDialogWidth } from '@/lib/useDialogWidth';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
+import * as DialogPrimitive from '@rn-primitives/dialog';
+import { X } from 'lucide-react-native';
+import * as React from 'react';
+import { Platform, ScrollView, useWindowDimensions, View, type GestureResponderEvent, type ViewProps } from 'react-native';
+import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
+
+const Dialog = DialogPrimitive.Root;
+
+const DialogTrigger = DialogPrimitive.Trigger;
+
+const DialogPortal = DialogPrimitive.Portal;
+
+const DialogClose = DialogPrimitive.Close;
+
+// Sokuji: no FullWindowOverlay. On iOS it drew the overlay in a separate native
+// window, which UI tests (Maestro) could not see into, and this app has no native
+// screens or modals for it to rise above: a sheet hosts its own portal.
+const FullWindowOverlay = React.Fragment;
+
+function DialogOverlay({
+  className,
+  children,
+  onPress,
+  ...props
+}: Omit<React.ComponentProps<typeof DialogPrimitive.Overlay>, 'asChild'> & {
+  children?: React.ReactNode;
+}) {
+  const { onOpenChange } = DialogPrimitive.useRootContext();
+
+  function onOverlayPress(event: GestureResponderEvent) {
+    onPress?.(event);
+    if (event.target === event.currentTarget && !event.isDefaultPrevented()) {
+      onOpenChange(false);
+    }
+  }
+
+  return (
+    <FullWindowOverlay>
+      <DialogPrimitive.Overlay
+        className={cn(
+          'absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center bg-black/50 p-2',
+          Platform.select({
+            web: 'animate-in fade-in-0 fixed cursor-default [&>*]:cursor-auto',
+          }),
+          className
+        )}
+        {...props}
+        onPress={Platform.select({ web: onOverlayPress, native: onPress })}
+        asChild={Platform.OS !== 'web'}>
+        <NativeOnlyAnimatedView
+          entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+          exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
+          as="Pressable">
+          <NativeOnlyAnimatedView
+            entering={FadeIn.delay(50).reduceMotion(ReduceMotion.System)}
+            exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}>
+            <>{children}</>
+          </NativeOnlyAnimatedView>
+        </NativeOnlyAnimatedView>
+      </DialogPrimitive.Overlay>
+    </FullWindowOverlay>
+  );
+}
+function DialogContent({
+  className,
+  portalHost,
+  closeLabel,
+  children,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  portalHost?: string;
+  /** Sokuji: what a screen reader calls the close button, in the interface language. */
+  closeLabel: string;
+}) {
+  // Sokuji: a set width (the registry's calc() max-width does nothing on native, so
+  // large text made the dialog wider than the screen), the content scrolling within
+  // the space above the keyboard, and the dialog centred in that space.
+  const { height } = useWindowDimensions();
+  const width = useDialogWidth();
+  const keyboard = useKeyboardHeight();
+  return (
+    <DialogPortal hostName={portalHost}>
+      <DialogOverlay style={{ paddingBottom: keyboard }}>
+        <DialogPrimitive.Content
+          className={cn(
+            'bg-background border-border z-50 mx-auto flex flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5',
+            Platform.select({
+              web: 'animate-in fade-in-0 zoom-in-95 duration-200',
+            }),
+            className
+          )}
+          {...props}
+          style={[{ width }, props.style]}>
+          <ScrollView style={{ maxHeight: (height - keyboard) * 0.8 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4">
+            {children}
+          </ScrollView>
+          {/* Sokuji: a 48-unit button with a translated label, instead of a 16-unit icon with hitSlop and an English sr-only text. */}
+          <DialogPrimitive.Close
+            accessibilityLabel={closeLabel}
+            role="button"
+            className={cn(
+              'absolute right-2 top-2 min-h-12 min-w-12 items-center justify-center rounded opacity-70 active:opacity-100',
+              Platform.select({
+                web: 'ring-offset-background focus:ring-ring data-[state=open]:bg-accent transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2',
+              })
+            )}
+          >
+            <Icon
+              as={X}
+              className={cn('text-accent-foreground web:pointer-events-none size-5 shrink-0')}
+            />
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </DialogOverlay>
+    </DialogPortal>
+  );
+}
+
+function DialogHeader({ className, ...props }: ViewProps) {
+  return (
+    <View className={cn('flex flex-col gap-2 text-center sm:text-left', className)} {...props} />
+  );
+}
+
+function DialogFooter({ className, ...props }: ViewProps) {
+  return (
+    <View
+      className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
+      {...props}
+    />
+  );
+}
+
+function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      // Sokuji: no leading-none, so a title that wraps at large text sizes keeps its line spacing.
+      className={cn('text-foreground text-lg font-semibold', className)}
+      {...props}
+    />
+  );
+}
+
+function DialogDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+  return (
+    <DialogPrimitive.Description
+      className={cn('text-muted-foreground text-sm', className)}
+      {...props}
+    />
+  );
+}
+
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+};

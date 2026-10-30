@@ -1623,5 +1623,159 @@
       "lostHint": "La source a disparu ; la dernière image est conservée jusqu'à ce que vous choisissiez à nouveau.",
       "lostExtension": "L'image de l'onglet de la réunion n'est plus disponible ; la traduction continue avec l'audio seul."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Se connecter",
+      "register": "Créer un compte",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "forgot": "Mot de passe oublié ?",
+      "codeSent": "Nous avons envoyé un code à 6 chiffres à {{email}}",
+      "willSendCode": "Nous enverrons un code à 6 chiffres à {{email}}",
+      "code": "Code reçu par e-mail",
+      "verify": "Vérifier",
+      "sendAgain": "Renvoyer",
+      "sendAgainIn": "Renvoyer ({{seconds}} s)",
+      "newPassword": "Nouveau mot de passe",
+      "passwordHint": "au moins 8 caractères",
+      "wrongPassword": "E-mail ou mot de passe incorrect",
+      "wrongCode": "Ce code est incorrect ou a expiré",
+      "tooManyRequests": "Trop de demandes de code. Patientez un peu, puis réessayez.",
+      "verifyTitle": "Vérifiez votre e-mail",
+      "resetTitle": "Réinitialiser le mot de passe",
+      "sendCode": "Envoyer le code",
+      "setNewPassword": "Définir le nouveau mot de passe",
+      "back": "Retour à la connexion",
+      "later": "Plus tard : vérifiez depuis l'écran du compte",
+      "registerNote": "Vous recevrez un code à 6 chiffres par e-mail ; en le saisissant, le compte est vérifié. Les comptes éligibles reçoivent ensuite un crédit d'essai.",
+      "sendingCode": "Envoi d'un code à 6 chiffres à {{email}}…",
+      "codeNotSent": "Le code n'a pas pu être envoyé à {{email}}. Votre compte est créé : touchez Renvoyer.",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe"
+    },
+    "account": {
+      "verify": "Vérifiez votre e-mail : les comptes éligibles reçoivent un crédit d'essai",
+      "usage30d": "Dépensé sur les 30 derniers jours",
+      "hoursLeft": "Environ {{hours}} h restantes",
+      "frozen": "Ce compte est gelé",
+      "expiring": "{{amount}} de votre solde expire le {{date}}",
+      "usage": "Consommation",
+      "deleteAccount": "Supprimer le compte",
+      "deleteConfirm": "Supprimer ce compte et son solde ? Cette action est irréversible.",
+      "balance": "Solde",
+      "topUp": "Les recharges se font sur le site web de Sokuji.",
+      "signOut": "Se déconnecter"
+    },
+    "usage": {
+      "session": "Session",
+      "textOnly": "Texte seul",
+      "loadMore": "Afficher plus",
+      "kind": {
+        "topup": "Recharge",
+        "grant": "Crédit",
+        "adjustment": "Ajustement",
+        "refund": "Remboursement",
+        "expired": "Expiré",
+        "voicePreview": "Aperçu de voix"
+      },
+      "empty": "Rien pour l'instant."
+    },
+    "menu": {
+      "history": "Historique",
+      "account": "Compte",
+      "settings": "Réglages"
+    },
+    "settings": {
+      "appearance": "Apparence",
+      "appearanceSystem": "Système",
+      "appearanceLight": "Clair",
+      "appearanceDark": "Sombre",
+      "region": "Région Soniox",
+      "textSize": "Taille des sous-titres",
+      "keepAwake": "Garder l'écran allumé",
+      "textSizeSmall": "Petite",
+      "textSizeMedium": "Moyenne",
+      "textSizeLarge": "Grande",
+      "listen": "Entendre la traduction",
+      "devices": "Appareils audio",
+      "groupLanguages": "Langues",
+      "groupDisplay": "Affichage",
+      "groupAudio": "Voix et appareils",
+      "locked": "Arrêtez la session pour modifier ce réglage."
+    },
+    "history": {
+      "rename": "Renommer",
+      "title": "Sessions",
+      "export": "Exporter",
+      "delete": "Supprimer",
+      "actions": "Renommer, exporter ou supprimer",
+      "empty": "Aucune session pour l'instant. Chaque session est conservée ici, sur ce téléphone.",
+      "minutes": "{{minutes}} min",
+      "name": "Nom",
+      "renameHint": "Laissez vide pour nommer la session d'après sa date.",
+      "unfinished": "Inachevé",
+      "nothingHeard": "Rien n'a été entendu pendant cette session."
+    },
+    "main": {
+      "hear": "J'entends",
+      "read": "Je lis",
+      "start": "Démarrer",
+      "stop": "Arrêter",
+      "bilingual": "Afficher les deux langues",
+      "status": {
+        "listening": "À l'écoute",
+        "reconnecting": "Reconnexion…",
+        "signInRequired": "Veuillez vous reconnecter",
+        "balanceExhausted": "Votre solde est épuisé",
+        "micDenied": "Sokuji a besoin du micro",
+        "otherSession": "Une autre session est en cours sur ce compte",
+        "starting": "Démarrage…",
+        "stopped": "Arrêté",
+        "spoken": "À l'écoute · lue à voix haute",
+        "subtitlesOnly": "À l'écoute · sous-titres seulement (pas de casque)",
+        "invalidConfig": "Paramètres de langue refusés. Vérifiez la paire de langues dans les réglages.",
+        "paused": "En pause",
+        "stopping": "Arrêt…"
+      },
+      "idleHint": "Touchez Démarrer pour traduire ce que vous entendez. Langue de traduction : {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Modifier les langues dans les réglages"
+    },
+    "common": {
+      "back": "Retour",
+      "failed": "Un problème est survenu. Veuillez réessayer."
+    },
+    "listen": {
+      "toggle": "Lire à voix haute ce que dit l'autre personne",
+      "voice": "Voix que j'entends",
+      "speed": "Vitesse de parole",
+      "headphones": "Lue seulement au casque. Sur le haut-parleur, vous avez les sous-titres.",
+      "searchVoices": "Rechercher une voix",
+      "preview": "Écouter",
+      "previewVoice": "Écouter {{voice}}",
+      "stopPreview": "Arrêter l'écoute",
+      "previewConfirmTitle": "Écouter cette voix ?",
+      "previewEstimate": "Une nouvelle écoute coûte environ {{amount}} (estimation) ; réécouter la même tant que l'app est ouverte est gratuit."
+    },
+    "devices": {
+      "microphone": "Micro",
+      "builtIn": "Micro du téléphone",
+      "wired": "Micro du casque filaire",
+      "usb": "Micro USB",
+      "noBluetoothMic": "Les casques Bluetooth diffusent la traduction mais ne servent pas de micro.",
+      "output": "Appareil de lecture",
+      "route": {
+        "speaker": "Haut-parleur du téléphone",
+        "headphones": "Casque",
+        "bluetooth": "Appareil Bluetooth",
+        "other": "Autre appareil"
+      }
+    },
+    "languages": {
+      "search": "Rechercher une langue",
+      "none": "Aucune langue ne correspond"
+    }
   }
 }

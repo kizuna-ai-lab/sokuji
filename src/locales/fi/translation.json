@@ -1623,5 +1623,159 @@
       "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen.",
       "lostExtension": "Kokouksen välilehden kuva ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Kirjaudu",
+      "register": "Luo tili",
+      "email": "Sähköposti",
+      "password": "Salasana",
+      "submit": "Kirjaudu",
+      "forgot": "Unohditko salasanan?",
+      "codeSent": "Lähetimme 6-numeroisen koodin osoitteeseen {{email}}",
+      "willSendCode": "Lähetämme 6-numeroisen koodin osoitteeseen {{email}}",
+      "code": "Sähköpostin koodi",
+      "verify": "Vahvista",
+      "sendAgain": "Lähetä uudelleen",
+      "sendAgainIn": "Lähetä uudelleen ({{seconds}} s)",
+      "newPassword": "Uusi salasana",
+      "passwordHint": "vähintään 8 merkkiä",
+      "wrongPassword": "Väärä sähköposti tai salasana",
+      "wrongCode": "Koodi on väärä tai vanhentunut",
+      "tooManyRequests": "Liian monta koodipyyntöä. Odota hetki ja yritä uudelleen.",
+      "verifyTitle": "Vahvista sähköpostisi",
+      "resetTitle": "Nollaa salasana",
+      "sendCode": "Lähetä koodi",
+      "setNewPassword": "Aseta uusi salasana",
+      "back": "Takaisin kirjautumiseen",
+      "later": "Myöhemmin: vahvista tilinäkymästä",
+      "registerNote": "Saat 6-numeroisen koodin sähköpostitse; sen syöttäminen vahvistaa tilin. Ehdot täyttävät tilit saavat sen jälkeen kokeilusaldon.",
+      "sendingCode": "Lähetetään 6-numeroista koodia osoitteeseen {{email}}…",
+      "codeNotSent": "Koodia ei voitu lähettää osoitteeseen {{email}}. Tilisi on luotu: napauta Lähetä uudelleen.",
+      "showPassword": "Näytä salasana",
+      "hidePassword": "Piilota salasana"
+    },
+    "account": {
+      "verify": "Vahvista sähköpostisi – ehdot täyttävät tilit saavat kokeilusaldon",
+      "usage30d": "Käytetty viimeisen 30 päivän aikana",
+      "hoursLeft": "Noin {{hours}} h jäljellä",
+      "frozen": "Tämä tili on jäädytetty",
+      "expiring": "{{amount}} saldostasi vanhenee {{date}}",
+      "usage": "Käyttö",
+      "deleteAccount": "Poista tili",
+      "deleteConfirm": "Poistetaanko tämä tili ja sen saldo? Tätä ei voi perua.",
+      "balance": "Saldo",
+      "topUp": "Saldoa lisätään Sokujin verkkosivustolla.",
+      "signOut": "Kirjaudu ulos"
+    },
+    "usage": {
+      "session": "Istunto",
+      "textOnly": "Vain teksti",
+      "loadMore": "Näytä lisää",
+      "kind": {
+        "topup": "Lataus",
+        "grant": "Hyvitys",
+        "adjustment": "Oikaisu",
+        "refund": "Palautus",
+        "expired": "Vanhentunut",
+        "voicePreview": "Ääninäyte"
+      },
+      "empty": "Täällä ei ole vielä mitään."
+    },
+    "menu": {
+      "history": "Historia",
+      "account": "Tili",
+      "settings": "Asetukset"
+    },
+    "settings": {
+      "appearance": "Ulkoasu",
+      "appearanceSystem": "Järjestelmä",
+      "appearanceLight": "Vaalea",
+      "appearanceDark": "Tumma",
+      "region": "Soniox-alue",
+      "textSize": "Tekstityksen koko",
+      "keepAwake": "Pidä näyttö päällä",
+      "textSizeSmall": "Pieni",
+      "textSizeMedium": "Keskikoko",
+      "textSizeLarge": "Suuri",
+      "listen": "Kuule käännös",
+      "devices": "Äänilaitteet",
+      "groupLanguages": "Kielet",
+      "groupDisplay": "Näyttö",
+      "groupAudio": "Puhe ja laitteet",
+      "locked": "Pysäytä istunto muuttaaksesi tätä."
+    },
+    "history": {
+      "rename": "Nimeä uudelleen",
+      "title": "Istunnot",
+      "export": "Vie",
+      "delete": "Poista",
+      "actions": "Nimeä uudelleen, vie tai poista",
+      "empty": "Ei vielä istuntoja. Jokainen istunto säilytetään täällä, tässä puhelimessa.",
+      "minutes": "{{minutes}} min",
+      "name": "Nimi",
+      "renameHint": "Jätä tyhjäksi, niin istunto nimetään päivämäärän mukaan.",
+      "unfinished": "Kesken",
+      "nothingHeard": "Tässä istunnossa ei kuultu mitään."
+    },
+    "main": {
+      "hear": "Kuulen",
+      "read": "Luen",
+      "start": "Aloita",
+      "stop": "Lopeta",
+      "bilingual": "Näytä molemmat kielet",
+      "status": {
+        "listening": "Kuuntelee",
+        "reconnecting": "Yhdistetään uudelleen…",
+        "signInRequired": "Kirjaudu uudelleen",
+        "balanceExhausted": "Saldosi on käytetty",
+        "micDenied": "Sokuji tarvitsee mikrofonin",
+        "otherSession": "Tällä tilillä on toinen istunto käynnissä",
+        "starting": "Aloitetaan…",
+        "stopped": "Pysäytetty",
+        "spoken": "Kuuntelee · ääneen",
+        "subtitlesOnly": "Kuuntelee · vain tekstitys (ei kuulokkeita)",
+        "invalidConfig": "Kieliasetuksia ei hyväksytty. Tarkista kielipari asetuksista.",
+        "paused": "Tauolla",
+        "stopping": "Pysäytetään…"
+      },
+      "idleHint": "Napauta Aloita, niin kuulemasi käännetään. Kohdekieli: {{language}}.",
+      "menu": "Valikko",
+      "changeLanguages": "Vaihda kielet asetuksista"
+    },
+    "common": {
+      "back": "Takaisin",
+      "failed": "Jokin meni vikaan. Yritä uudelleen."
+    },
+    "listen": {
+      "toggle": "Lue toisen osapuolen sanat minulle ääneen",
+      "voice": "Ääni, jonka kuulen",
+      "speed": "Puhenopeus",
+      "headphones": "Luetaan vain kuulokkeisiin. Kaiuttimesta saat tekstityksen.",
+      "searchVoices": "Hae ääniä",
+      "preview": "Kuuntele",
+      "previewVoice": "Kuuntele {{voice}}",
+      "stopPreview": "Lopeta kuuntelu",
+      "previewConfirmTitle": "Kuunnellaanko tätä ääntä?",
+      "previewEstimate": "Uusi kuuntelu maksaa noin {{amount}} (arvio); saman näytteen kuunteleminen uudelleen sovelluksen ollessa auki on maksutonta."
+    },
+    "devices": {
+      "microphone": "Mikrofoni",
+      "builtIn": "Puhelimen mikrofoni",
+      "wired": "Langallisen kuulokemikrofonin mikrofoni",
+      "usb": "USB-mikrofoni",
+      "noBluetoothMic": "Bluetooth-kuulokkeet toistavat käännöksen, mutta niitä ei käytetä mikrofonina.",
+      "output": "Toistolaite",
+      "route": {
+        "speaker": "Puhelimen kaiutin",
+        "headphones": "Kuulokkeet",
+        "bluetooth": "Bluetooth-laite",
+        "other": "Muu laite"
+      }
+    },
+    "languages": {
+      "search": "Hae kieliä",
+      "none": "Ei vastaavia kieliä"
+    }
   }
 }

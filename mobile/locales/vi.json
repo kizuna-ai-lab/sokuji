@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "Sokuji nghe âm thanh trong phòng để hiển thị phụ đề cho bạn."
+  }
+}

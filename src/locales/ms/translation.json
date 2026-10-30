@@ -1623,5 +1623,159 @@
       "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula.",
       "lostExtension": "Gambar tab mesyuarat tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
     }
+  },
+  "mobile": {
+    "signIn": {
+      "title": "Log masuk",
+      "register": "Cipta akaun",
+      "email": "E-mel",
+      "password": "Kata laluan",
+      "submit": "Log masuk",
+      "forgot": "Lupa kata laluan?",
+      "codeSent": "Kami menghantar kod 6 digit ke {{email}}",
+      "willSendCode": "Kami akan menghantar kod 6 digit ke {{email}}",
+      "code": "Kod daripada e-mel",
+      "verify": "Sahkan",
+      "sendAgain": "Hantar semula",
+      "sendAgainIn": "Hantar semula ({{seconds}} s)",
+      "newPassword": "Kata laluan baharu",
+      "passwordHint": "sekurang-kurangnya 8 aksara",
+      "wrongPassword": "E-mel atau kata laluan salah",
+      "wrongCode": "Kod itu salah atau telah tamat tempoh",
+      "tooManyRequests": "Terlalu banyak permintaan kod. Tunggu sebentar dan cuba lagi.",
+      "verifyTitle": "Sahkan e-mel anda",
+      "resetTitle": "Tetapkan semula kata laluan",
+      "sendCode": "Hantar kod",
+      "setNewPassword": "Tetapkan kata laluan baharu",
+      "back": "Kembali ke log masuk",
+      "later": "Kemudian: sahkan dari skrin akaun",
+      "registerNote": "Anda akan menerima kod 6 digit melalui e-mel; setelah dimasukkan, akaun disahkan. Akaun yang layak kemudian menerima kredit percubaan.",
+      "sendingCode": "Menghantar kod 6 digit ke {{email}}…",
+      "codeNotSent": "Kod tidak dapat dihantar ke {{email}}. Akaun anda telah dicipta: ketik Hantar semula.",
+      "showPassword": "Tunjukkan kata laluan",
+      "hidePassword": "Sembunyikan kata laluan"
+    },
+    "account": {
+      "verify": "Sahkan e-mel anda; akaun yang layak menerima kredit percubaan",
+      "usage30d": "Dibelanjakan dalam 30 hari lepas",
+      "hoursLeft": "Kira-kira {{hours}} jam lagi",
+      "frozen": "Akaun ini dibekukan",
+      "expiring": "{{amount}} daripada baki anda tamat tempoh pada {{date}}",
+      "usage": "Penggunaan",
+      "deleteAccount": "Padam akaun",
+      "deleteConfirm": "Padam akaun ini dan bakinya? Ini tidak boleh dibuat asal.",
+      "balance": "Baki",
+      "topUp": "Tambah nilai dibuat di laman web Sokuji.",
+      "signOut": "Log keluar"
+    },
+    "usage": {
+      "session": "Sesi",
+      "textOnly": "Teks sahaja",
+      "loadMore": "Tunjukkan lagi",
+      "kind": {
+        "topup": "Tambah nilai",
+        "grant": "Kredit",
+        "adjustment": "Pelarasan",
+        "refund": "Bayaran balik",
+        "expired": "Tamat tempoh",
+        "voicePreview": "Pratonton suara"
+      },
+      "empty": "Belum ada apa-apa di sini."
+    },
+    "menu": {
+      "history": "Sejarah",
+      "account": "Akaun",
+      "settings": "Tetapan"
+    },
+    "settings": {
+      "appearance": "Penampilan",
+      "appearanceSystem": "Ikut sistem",
+      "appearanceLight": "Cerah",
+      "appearanceDark": "Gelap",
+      "region": "Wilayah Soniox",
+      "textSize": "Saiz sari kata",
+      "keepAwake": "Biarkan skrin hidup",
+      "textSizeSmall": "Kecil",
+      "textSizeMedium": "Sederhana",
+      "textSizeLarge": "Besar",
+      "listen": "Dengar terjemahan",
+      "devices": "Peranti audio",
+      "groupLanguages": "Bahasa",
+      "groupDisplay": "Paparan",
+      "groupAudio": "Bacaan suara dan peranti",
+      "locked": "Hentikan sesi untuk menukar ini."
+    },
+    "history": {
+      "rename": "Namakan semula",
+      "title": "Sesi",
+      "export": "Eksport",
+      "delete": "Padam",
+      "actions": "Namakan semula, eksport atau padam",
+      "empty": "Belum ada sesi. Setiap sesi yang anda jalankan disimpan di sini, pada telefon ini.",
+      "minutes": "{{minutes}} min",
+      "name": "Nama",
+      "renameHint": "Biarkan kosong untuk menamakan sesi mengikut tarikhnya.",
+      "unfinished": "Belum selesai",
+      "nothingHeard": "Tiada apa-apa didengar dalam sesi ini."
+    },
+    "main": {
+      "hear": "Saya dengar",
+      "read": "Saya baca",
+      "start": "Mula",
+      "stop": "Berhenti",
+      "bilingual": "Tunjukkan kedua-dua bahasa",
+      "status": {
+        "listening": "Mendengar",
+        "reconnecting": "Menyambung semula…",
+        "signInRequired": "Sila log masuk semula",
+        "balanceExhausted": "Baki anda telah habis",
+        "micDenied": "Sokuji memerlukan mikrofon",
+        "otherSession": "Sesi lain sedang berjalan pada akaun ini",
+        "starting": "Memulakan…",
+        "stopped": "Dihentikan",
+        "spoken": "Mendengar · dibacakan",
+        "subtitlesOnly": "Mendengar · sari kata sahaja (tiada fon kepala)",
+        "invalidConfig": "Tetapan bahasa tidak diterima. Semak pasangan bahasa dalam Tetapan.",
+        "paused": "Dijeda",
+        "stopping": "Menghentikan…"
+      },
+      "idleHint": "Ketik Mula untuk menterjemah apa yang anda dengar. Bahasa terjemahan: {{language}}.",
+      "menu": "Menu",
+      "changeLanguages": "Tukar bahasa dalam Tetapan"
+    },
+    "common": {
+      "back": "Kembali",
+      "failed": "Sesuatu tidak kena. Sila cuba lagi."
+    },
+    "listen": {
+      "toggle": "Bacakan kata-kata pihak lain kepada saya",
+      "voice": "Suara yang saya dengar",
+      "speed": "Kelajuan pertuturan",
+      "headphones": "Hanya dibacakan melalui fon kepala. Melalui pembesar suara anda dapat sari kata.",
+      "searchVoices": "Cari suara",
+      "preview": "Dengar",
+      "previewVoice": "Dengar {{voice}}",
+      "stopPreview": "Hentikan",
+      "previewConfirmTitle": "Dengar suara ini?",
+      "previewEstimate": "Pratonton baharu berharga kira-kira {{amount}} (anggaran); memainkan semula pratonton yang sama semasa apl dibuka adalah percuma."
+    },
+    "devices": {
+      "microphone": "Mikrofon",
+      "builtIn": "Mikrofon telefon",
+      "wired": "Mikrofon set kepala berwayar",
+      "usb": "Mikrofon USB",
+      "noBluetoothMic": "Set kepala Bluetooth memainkan terjemahan tetapi tidak digunakan sebagai mikrofon.",
+      "output": "Peranti main balik",
+      "route": {
+        "speaker": "Pembesar suara telefon",
+        "headphones": "Fon kepala",
+        "bluetooth": "Peranti Bluetooth",
+        "other": "Peranti lain"
+      }
+    },
+    "languages": {
+      "search": "Cari bahasa",
+      "none": "Tiada bahasa yang sepadan"
+    }
   }
 }
