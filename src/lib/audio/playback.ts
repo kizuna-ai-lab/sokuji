@@ -192,10 +192,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     replay(leg, segment) {
       replayQueue.clear();
       // A segment another leg's voice read replays on that voice's outlet: the voice of an entry that will play
-      // (retention may have dropped some), else of any entry, else the row's own.
-      const voice = segment.speech.find((entry) => entry.voice !== undefined && entry.pcm.length > 0)?.voice
-        ?? segment.speech.find((entry) => entry.voice !== undefined)?.voice
-        ?? leg;
+      // (retention may have dropped the voiced one; what is left is the row's own), else the row's own.
+      const voice = segment.speech.find((entry) => entry.voice !== undefined && entry.pcm.length > 0)?.voice ?? leg;
       const outlet: OutletName = voice === 'participant' ? 'them' : routing.get().faceToFace ? 'other' : 'me';
       if (outlet !== replayOutlet) {
         replayOutlet = outlet;
