@@ -127,7 +127,18 @@ export class FakeAudioContext {
   closed = 0;
   /** A wedged renderer (#246): while true, `resume()` is counted but never settles and leaves `state` alone. */
   stuck = false;
+  /** Every id `setSinkId` was given. */
+  readonly sinkIds: string[] = [];
+  /** A device that is gone: `setSinkId` rejects. */
+  sinkFails = false;
+  /** A device that does not answer: `setSinkId` waits for `releaseSink()`. */
+  holdSink = false;
+  private release: (() => void) | null = null;
   private readonly stateListeners = new Set<() => void>();
+
+  constructor(state: AudioContextState = 'running') {
+    this.state = state;
+  }
 
   addEventListener(type: string, listener: () => void): void {
     if (type === 'statechange') this.stateListeners.add(listener);
@@ -195,6 +206,18 @@ export class FakeAudioContext {
     const analyser = new FakeAnalyser();
     this.analysers.push(analyser);
     return analyser;
+  }
+
+  async setSinkId(id: string): Promise<void> {
+    this.sinkIds.push(id);
+    if (this.holdSink) await new Promise<void>((resolve) => { this.release = resolve; });
+    if (this.sinkFails) throw new DOMException('no such device', 'NotFoundError');
+  }
+
+  /** Lets a held `setSinkId` go on. */
+  releaseSink(): void {
+    this.release?.();
+    this.release = null;
   }
 
   /** As a real context: `state` changes only once the returned promise settles, not when it is asked. */

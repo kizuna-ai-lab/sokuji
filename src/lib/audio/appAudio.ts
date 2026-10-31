@@ -1,10 +1,11 @@
 /**
  * The page's playback — the one module in `src/lib/audio` that reads the
  * stores, as `session/appShape.ts` is for the runner. One graph per page, on
- * a 24 kHz context; `<audio>` elements as its outputs; the tap worklet from
- * the platform's URL; the virtual output per platform (Electron's virtual
- * speaker, the extension's tabs, nothing on the web); the routing settings
- * read live from `audioStore`, `routingStore` and `turnModeStore`.
+ * a 24 kHz context; a context per outlet and an `<audio>` element for the
+ * virtual bus as its outputs; the tap worklet from the platform's URL; the
+ * virtual output per platform (Electron's virtual speaker, the extension's
+ * tabs, nothing on the web); the routing settings read live from `audioStore`,
+ * `routingStore` and `turnModeStore`.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
 import type { Platform } from '../provider/types';
@@ -16,7 +17,8 @@ import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
-import { createAudioGraph, type VirtualOutput } from './graph';
+import { createContextSink } from './contextSink';
+import { createAudioGraph, type SinkElement, type VirtualOutput } from './graph';
 import { OUTLET_NAMES, resolveOutlet, type OutletName, type OutletSink, type Speak } from './outlets';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
 import type { RoutingSettings } from './routes';
@@ -140,9 +142,16 @@ function virtualOutput(platform: Platform): VirtualOutput {
   };
 }
 
+function elementSink(stream: MediaStream): SinkElement {
+  const element = new Audio();
+  element.srcObject = stream;
+  return element;
+}
+
 async function build(): Promise<AppAudio> {
   const platform = getEnvironment();
   const context = new AudioContext({ sampleRate: SAMPLE_RATE });
+  const sinks: SinkElement[] = [];
   let graph;
   try {
     graph = await createAudioGraph({
@@ -150,17 +159,20 @@ async function build(): Promise<AppAudio> {
       replaceContext: () => new AudioContext({ sampleRate: SAMPLE_RATE }),
       addTapModule: (ctx) => ctx.audioWorklet.addModule(tapModuleUrl(platform)),
       createTapNode: (ctx, chunk) => new AudioWorkletNode(ctx, 'pcm-tap-processor', { processorOptions: { chunk } }),
-      createSink: (stream) => {
-        const element = new Audio();
-        element.srcObject = stream;
-        return element;
+      createSink: (stream, bus) => {
+        const sink = bus === 'virtual'
+          ? elementSink(stream)
+          : createContextSink(stream, { label: bus, createContext: () => new AudioContext({ sampleRate: SAMPLE_RATE }) });
+        sinks.push(sink);
+        return sink;
       },
       virtual: virtualOutput(platform),
     });
   } catch (error) {
-    // The worklet module failed to load: nothing else opened this context, so
-    // nothing else will close it. Without this, every retry through
-    // getAppAudio leaks another one.
+    // The graph could not be built: nothing else opened these contexts, so
+    // nothing else will close them. Without this, every retry through
+    // getAppAudio leaks another set.
+    for (const sink of sinks) sink.srcObject = null;
     void context.close();
     throw error;
   }
