@@ -343,9 +343,9 @@ export function startSession(o: {
         });
         speech.setOn(headphones(route));
         o.transcript.setSpeech?.(speech);
-        void sessionStarted({ token: o.token, leaseId: grant.leaseId, role: tts.role, signal: abort.signal, timer: ticker }).catch((err) =>
-          log(`session-started (${tts.role}) failed: ${reason(err)}`),
-        );
+        // No session-started for the TTS stream: the backend reports the start of
+        // transcription streams only (a TTS role carries no started bit there and
+        // is refused with 400); the par_stt report above already extended the lease.
       }
       failures = 0;
       rotating = false;
