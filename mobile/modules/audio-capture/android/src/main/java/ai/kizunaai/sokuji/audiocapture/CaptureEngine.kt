@@ -143,7 +143,12 @@ class CaptureEngine(
 
   // One silent frame each way: the canceller says here, not mid-session, if it refuses its format.
   private fun openCanceller(): Long {
-    val handle = Aec3.nativeCreate(Aec3.RATE)
+    // 32-bit phones have no libaec3: without a vendor canceller, subtitles only (spec §8).
+    val handle = try {
+      Aec3.nativeCreate(Aec3.RATE)
+    } catch (e: LinkageError) {
+      throw IllegalStateException("the echo canceller is not built for this phone", e)
+    }
     val silence = ShortArray(TEN_MS)
     val render = Aec3.nativeFeedRender(handle, silence)
     val capture = Aec3.nativeProcess(handle, silence, ShortArray(TEN_MS))

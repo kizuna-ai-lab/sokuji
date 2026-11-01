@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds webrtc-audio-processing for Android and installs the static libraries
 # and headers into modules/audio-capture/android/libs. Needs git, meson, ninja
-# and the NDK. The result is committed; rerun only to change the version.
+# and the NDK. Rerun only to change the version: then tar the result as a release
+# asset and update apmUrl and apmSha256 in that module's build.gradle.
 set -euo pipefail
 
 VERSION=v2.1

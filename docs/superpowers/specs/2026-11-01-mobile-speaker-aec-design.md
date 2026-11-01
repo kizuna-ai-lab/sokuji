@@ -235,6 +235,8 @@ code is not unit tested.
 - **Android playback moves into the module.** The library's player is no longer exercised there during
   sessions, so the module owns everything that used to be the library's: scheduling, pan, volume.
 
+**32-bit Android (accepted by the owner, 2026-11-01).** AEC3 is built for arm64-v8a and x86_64 only. A 32-bit phone with no vendor canceller keeps subtitles and does not speak on the loudspeaker.
+
 ## 9. The owner's answers (2026-11-01)
 
 1. Build it now; there is no first-version split.
