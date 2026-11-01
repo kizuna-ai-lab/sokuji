@@ -16,7 +16,7 @@ import { useBusy } from '@/lib/useBusy';
 import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
 import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
-import { idleHint, PAIR_STACK_FROM_FONT_SCALE, pairArrow, pairLayout, statusLine, statusTone } from './mainText';
+import { headerLine, idleHint, PAIR_STACK_FROM_FONT_SCALE, pairArrow, pairLayout, statusTone } from './mainText';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
 import { endReason } from '../session/endReason';
@@ -152,6 +152,9 @@ export default function Main() {
     started.current = false;
     lastEvent.current = null;
     setEntries([]);
+    // A note from the last session must not outlive it into this one's start.
+    setLockedNote(false);
+    if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current);
     setStatus('leasing');
     setDetail('');
     session.current = startSession({
@@ -214,7 +217,7 @@ export default function Main() {
   };
 
   const shown = stopping ? 'stopping' : status;
-  const line = lockedNote && active ? t('mobile.settings.locked') : statusLine(t, shown, detail);
+  const line = headerLine(t, shown, detail, lockedNote);
   const tone = statusTone(shown);
   const stacked = layout !== 'row';
   // The idle hint reads from the start only at the accessibility sizes (Sophie, iOS):

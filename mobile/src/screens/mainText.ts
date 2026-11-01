@@ -55,6 +55,15 @@ export function pairLabel(sourceName: string, targetName: string, rtl: boolean):
 // What the status line says: a key per state, the terminal details by name,
 // any other failure in words (design scope: no raw service errors on screen;
 // the session logs the detail itself).
+/**
+ * The line at the top: a press on the locked pair puts its reason there for a
+ * moment, but only while the session simply listens. A start, a reconnect, a
+ * Stop under way or a failure has something more pressing to say.
+ */
+export function headerLine(t: T, status: MainState, detail: string, lockedNote: boolean): string {
+  return lockedNote && status === 'listening' ? t('mobile.settings.locked') : statusLine(t, status, detail);
+}
+
 export function statusLine(t: T, status: MainState, detail: string): string {
   if (status === 'idle') return '';
   if (status === 'stopping') return t('mobile.main.status.stopping');
