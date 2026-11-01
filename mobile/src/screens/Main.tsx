@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
+import { AccessibilityInfo, AppState, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -298,6 +298,8 @@ export default function Main() {
             onPressSource={() => openPicker('source')}
             onPressTarget={() => openPicker('target')}
             onPressLocked={() => {
+              // A screen reader does not activate a side it hears as disabled; said here for the ones that do.
+              AccessibilityInfo.announceForAccessibility(t('mobile.settings.locked'));
               setLockedNote(true);
               if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current);
               lockedNoteTimer.current = setTimeout(() => setLockedNote(false), 3000);
