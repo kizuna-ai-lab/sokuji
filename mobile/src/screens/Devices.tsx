@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { AudioManager } from 'react-native-audio-api';
 import { ChoiceList } from '@/components/ChoiceList';
 import { Notice } from '@/components/Notice';
 import { Row, RowGroup } from '@/components/Row';
 import { Screen } from '@/components/ScreenHeader';
 import { microphoneChoices, routeOf, type MicrophoneKind, type Route } from '../session/route';
+import { devicesInfo, onOutputChange } from '../session/routeNative';
 import { useSettings } from '../store/useSettings';
 import { outputLines } from './deviceText';
 import { RoutePickerView, showOutputSwitcher, type SwitcherResult } from '../../modules/route-picker/src/RoutePickerModule';
@@ -28,7 +28,7 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
 
   const refresh = useCallback(async () => {
     try {
-      const info = await AudioManager.getDevicesInfo();
+      const info = await devicesInfo();
       setMics(microphoneChoices(info));
       setRoute(routeOf(info));
       setOutputName(info.currentOutputs[0]?.name ?? '');
@@ -39,8 +39,7 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
 
   useEffect(() => {
     void refresh();
-    const sub = AudioManager.addSystemEventListener('routeChange', () => { void refresh(); });
-    return () => sub?.remove();
+    return onOutputChange(() => { void refresh(); });
   }, [refresh]);
 
   const kindLabel: Record<MicrophoneKind, string> = {
