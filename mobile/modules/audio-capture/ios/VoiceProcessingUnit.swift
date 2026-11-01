@@ -111,6 +111,9 @@ final class VoiceProcessingUnit {
   func stop() {
     guard let unit else { return }
     AudioOutputUnitStop(unit)
+    // A route change restarts mid-sentence: what the ring holds still goes out,
+    // on `queue`, or it could cross the timer's own delivery.
+    queue.sync { deliver() }
     AudioUnitUninitialize(unit)
     AudioComponentInstanceDispose(unit)
     self.unit = nil
