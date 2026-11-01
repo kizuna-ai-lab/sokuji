@@ -1752,7 +1752,7 @@
       "toggle": "상대방의 말을 번역해서 읽어 줍니다",
       "voice": "내가 듣는 목소리",
       "speed": "말하기 속도",
-      "headphones": "헤드폰이나 스피커로 읽어 줍니다. 스피커에서는 Sokuji가 자신의 음성을 마이크에서 제거합니다.",
+      "headphones": "헤드폰이나 스피커로 읽어 줍니다. 에코 제거가 켜져 있으면 Sokuji가 자신의 음성을 마이크에서 제거합니다.",
       "searchVoices": "목소리 검색",
       "preview": "미리 듣기",
       "previewVoice": "{{voice}} 미리 듣기",

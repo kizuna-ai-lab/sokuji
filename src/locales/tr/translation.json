@@ -1752,7 +1752,7 @@
       "toggle": "Karşı tarafın sözlerini bana sesli oku",
       "voice": "Duyduğum ses",
       "speed": "Konuşma hızı",
-      "headphones": "Kulaklıkla veya hoparlörden seslendirilir. Hoparlörde Sokuji kendi sesini mikrofondan çıkarır.",
+      "headphones": "Kulaklıkla veya hoparlörden seslendirilir. Yankı giderme açıkken Sokuji kendi sesini mikrofondan çıkarır.",
       "searchVoices": "Ses ara",
       "preview": "Dinle",
       "previewVoice": "{{voice}} sesini dinle",

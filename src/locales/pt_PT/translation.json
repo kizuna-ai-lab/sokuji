@@ -1752,7 +1752,7 @@
       "toggle": "Ler em voz alta o que a outra pessoa diz",
       "voice": "Voz que ouço",
       "speed": "Velocidade da fala",
-      "headphones": "Lida com auscultadores ou no altifalante. No altifalante, o Sokuji retira a própria voz do microfone.",
+      "headphones": "Lida com auscultadores ou no altifalante. Com o cancelamento de eco ligado, o Sokuji retira a própria voz do microfone.",
       "searchVoices": "Pesquisar vozes",
       "preview": "Ouvir",
       "previewVoice": "Ouvir {{voice}}",

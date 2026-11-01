@@ -1752,7 +1752,7 @@
       "toggle": "Die Worte der anderen Seite mir vorlesen",
       "voice": "Stimme, die ich höre",
       "speed": "Sprechtempo",
-      "headphones": "Über Kopfhörer oder den Lautsprecher gesprochen. Über den Lautsprecher entfernt Sokuji die eigene Stimme aus dem Mikrofon.",
+      "headphones": "Über Kopfhörer oder den Lautsprecher gesprochen. Mit Echounterdrückung entfernt Sokuji die eigene Stimme aus dem Mikrofon.",
       "searchVoices": "Stimmen suchen",
       "preview": "Probehören",
       "previewVoice": "{{voice}} probehören",

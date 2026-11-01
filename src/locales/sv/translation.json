@@ -1752,7 +1752,7 @@
       "toggle": "Läs upp vad den andra säger för mig",
       "voice": "Rösten jag hör",
       "speed": "Talhastighet",
-      "headphones": "Läses upp i hörlurar eller i högtalaren. I högtalaren tar Sokuji bort sin egen röst från mikrofonen.",
+      "headphones": "Läses upp i hörlurar eller i högtalaren. Med ekoreducering på tar Sokuji bort sin egen röst från mikrofonen.",
       "searchVoices": "Sök röster",
       "preview": "Lyssna",
       "previewVoice": "Lyssna på {{voice}}",

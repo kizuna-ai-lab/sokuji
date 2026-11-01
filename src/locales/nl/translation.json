@@ -1752,7 +1752,7 @@
       "toggle": "Lees me voor wat de ander zegt",
       "voice": "Stem die ik hoor",
       "speed": "Spreeksnelheid",
-      "headphones": "Via een koptelefoon of de luidspreker. Via de luidspreker haalt Sokuji de eigen stem uit de microfoon.",
+      "headphones": "Via een koptelefoon of de luidspreker. Met echo-onderdrukking aan haalt Sokuji de eigen stem uit de microfoon.",
       "searchVoices": "Stemmen zoeken",
       "preview": "Beluisteren",
       "previewVoice": "{{voice}} beluisteren",

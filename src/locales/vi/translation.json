@@ -1752,7 +1752,7 @@
       "toggle": "Đọc to cho tôi lời của người kia",
       "voice": "Giọng tôi nghe",
       "speed": "Tốc độ nói",
-      "headphones": "Đọc qua tai nghe hoặc loa ngoài. Trên loa ngoài, Sokuji loại giọng của chính nó khỏi micrô.",
+      "headphones": "Đọc qua tai nghe hoặc loa ngoài. Khi bật khử tiếng vang, Sokuji loại giọng của chính nó khỏi micrô.",
       "searchVoices": "Tìm giọng",
       "preview": "Nghe thử",
       "previewVoice": "Nghe thử {{voice}}",

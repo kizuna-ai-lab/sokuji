@@ -1752,7 +1752,7 @@
       "toggle": "Basahin nang malakas sa akin ang sinasabi ng kabila",
       "voice": "Boses na naririnig ko",
       "speed": "Bilis ng pagsasalita",
-      "headphones": "Binabasa sa headphones o sa loudspeaker. Sa loudspeaker, inaalis ng Sokuji ang sarili nitong boses sa mikropono.",
+      "headphones": "Binabasa sa headphones o sa loudspeaker. Kapag naka-on ang echo cancellation, inaalis ng Sokuji ang sarili nitong boses sa mikropono.",
       "searchVoices": "Maghanap ng boses",
       "preview": "Pakinggan",
       "previewVoice": "Pakinggan si {{voice}}",

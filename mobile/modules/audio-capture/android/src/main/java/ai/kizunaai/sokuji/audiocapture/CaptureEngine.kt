@@ -108,12 +108,11 @@ class CaptureEngine(
 
   fun stop() {
     running = false
-    thread?.join()
+    // Stopped first: that is what wakes a read blocked on a dead microphone.
+    record?.let { runCatching { it.stop() } }
+    thread?.join(JOIN_MS)
     thread = null
-    record?.let {
-      runCatching { it.stop() }
-      it.release()
-    }
+    record?.release()
     record = null
     echo?.release()
     echo = null
@@ -235,6 +234,7 @@ class CaptureEngine(
     const val RATE = 16000
     private const val TEN_MS = RATE / 100
     private const val FRAME = RATE / 10
+    private const val JOIN_MS = 1000L
     private const val SEED_EVERY = 10
     // Buffers neither timestamp sees: the canceller settled 110-140 ms above them on a Pixel 9a.
     private const val SEED_MARGIN_MS = 120

@@ -11,7 +11,7 @@ def opt(name, dflt):
     return dflt
 clips = [float(x) for x in opt('--clips', '4,18,32').split(',')]
 clen = float(opt('--len', '9'))
-if not args:
+if len(args) < 2:
     sys.exit(__doc__)
 data = json.load(open(args[0], encoding='utf-8'))
 ref = re.sub(r'[^一-鿿]', '', open(args[1], encoding='utf-8').read())

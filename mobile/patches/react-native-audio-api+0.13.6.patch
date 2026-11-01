@@ -1,17 +1,30 @@
+diff --git a/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotification.kt b/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotification.kt
+index ca97de4..919e161 100644
+--- a/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotification.kt
++++ b/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotification.kt
+@@ -306,6 +306,7 @@ class RecordingNotification(
+       state.startedAtMs = null
+       state.pausedAtMs = null
+       state.paused = false
++      RecordingNotificationReceiver.lastPaused = false
+     }
+   }
+ 
 diff --git a/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotificationReceiver.kt b/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotificationReceiver.kt
-index 4aaed67..b75c8fe 100644
+index 4aaed67..798a043 100644
 --- a/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotificationReceiver.kt
 +++ b/node_modules/react-native-audio-api/android/src/main/java/com/swmansion/audioapi/system/notification/RecordingNotificationReceiver.kt
-@@ -26,6 +26,8 @@ class RecordingNotificationReceiver(
+@@ -26,6 +26,9 @@ class RecordingNotificationReceiver(
      private const val TAG = "RecordingNotificationReceiver"
  
      private val controlExecutor = Executors.newSingleThreadExecutor()
 +
-+    @Volatile private var lastPaused = false
++    /** The app's own state while no library recorder runs; cleared when the notification goes. */
++    @Volatile var lastPaused = false
    }
  
    override fun onReceive(
-@@ -86,7 +88,8 @@ class RecordingNotificationReceiver(
+@@ -86,7 +89,8 @@ class RecordingNotificationReceiver(
          when (NativeRecorderControl.currentState()) {
            RecorderState.RECORDING -> MediaSessionManager.setRecordingNotificationPaused(false)
            RecorderState.PAUSED -> MediaSessionManager.setRecordingNotificationPaused(true)
@@ -21,7 +34,7 @@ index 4aaed67..b75c8fe 100644
          }
        } catch (e: LinkageError) {
          Log.e(TAG, "Native library unavailable, cannot restore the recording notification: ${e.message}", e)
-@@ -114,6 +117,14 @@ class RecordingNotificationReceiver(
+@@ -114,6 +118,14 @@ class RecordingNotificationReceiver(
      controlExecutor.execute {
        try {
          val state = action()

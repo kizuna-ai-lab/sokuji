@@ -1752,7 +1752,7 @@
       "toggle": "Czytaj mi na głos słowa drugiej strony",
       "voice": "Głos, który słyszę",
       "speed": "Tempo mowy",
-      "headphones": "Czytane w słuchawkach lub na głośniku. Na głośniku Sokuji usuwa własny głos z mikrofonu.",
+      "headphones": "Czytane w słuchawkach lub na głośniku. Gdy redukcja echa jest włączona, Sokuji usuwa własny głos z mikrofonu.",
       "searchVoices": "Szukaj głosów",
       "preview": "Odsłuchaj",
       "previewVoice": "Odsłuchaj głos {{voice}}",

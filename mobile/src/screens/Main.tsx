@@ -172,7 +172,7 @@ export default function Main() {
         if (e.status === 'listening' && !started.current && stored.current) {
           started.current = true;
           // What the backend granted (a voice only if granted), not the setting.
-          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: e.voice === true, speechRoute: e.route, aecChain: e.chain }));
+          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: e.voice === true, speechRoute: e.detail === 'spoken' ? e.route : undefined, aecChain: e.chain }));
         }
         // A failure counts once: the retry that follows repeats its detail on the status line.
         const prev = lastEvent.current;

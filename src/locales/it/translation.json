@@ -1752,7 +1752,7 @@
       "toggle": "Leggimi ad alta voce ciò che dice l'altra persona",
       "voice": "Voce che sento",
       "speed": "Velocità del parlato",
-      "headphones": "Letta con le cuffie o con l'altoparlante. Con l'altoparlante Sokuji toglie la propria voce dal microfono.",
+      "headphones": "Letta con le cuffie o con l'altoparlante. Con la cancellazione dell'eco attiva, Sokuji toglie la propria voce dal microfono.",
       "searchVoices": "Cerca voci",
       "preview": "Ascolta",
       "previewVoice": "Ascolta {{voice}}",

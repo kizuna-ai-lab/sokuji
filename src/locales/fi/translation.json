@@ -1752,7 +1752,7 @@
       "toggle": "Lue toisen osapuolen sanat minulle ääneen",
       "voice": "Ääni, jonka kuulen",
       "speed": "Puhenopeus",
-      "headphones": "Luetaan kuulokkeisiin tai kaiuttimesta. Kaiuttimella Sokuji poistaa oman äänensä mikrofonista.",
+      "headphones": "Luetaan kuulokkeisiin tai kaiuttimesta. Kun kaiunpoisto on päällä, Sokuji poistaa oman äänensä mikrofonista.",
       "searchVoices": "Hae ääniä",
       "preview": "Kuuntele",
       "previewVoice": "Kuuntele {{voice}}",

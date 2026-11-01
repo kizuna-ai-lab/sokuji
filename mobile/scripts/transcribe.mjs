@@ -57,6 +57,7 @@ function transcribe(path) {
       if (m.finished) { clearTimeout(timer); ws.close(); resolve({ seconds, text: finals.map((t) => t.text).join(''), languages: [...new Set(finals.map((t) => t.language).filter(Boolean))], tokens: finals.map((t) => ({ text: t.text, start_ms: t.start_ms, end_ms: t.end_ms, language: t.language })) }); }
     };
     ws.onerror = (e) => { clearTimeout(timer); reject(new Error(`socket error ${e.message ?? ''}`)); };
+    ws.onclose = (e) => { clearTimeout(timer); reject(new Error(`socket closed ${e.code}`)); };
   });
 }
 

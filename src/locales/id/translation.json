@@ -1752,7 +1752,7 @@
       "toggle": "Bacakan ucapan pihak lain untuk saya",
       "voice": "Suara yang saya dengar",
       "speed": "Kecepatan bicara",
-      "headphones": "Dibacakan lewat headphone atau pengeras suara. Lewat pengeras suara, Sokuji menghapus suaranya sendiri dari mikrofon.",
+      "headphones": "Dibacakan lewat headphone atau pengeras suara. Saat peredam gema aktif, Sokuji menghapus suaranya sendiri dari mikrofon.",
       "searchVoices": "Cari suara",
       "preview": "Dengarkan",
       "previewVoice": "Dengarkan {{voice}}",

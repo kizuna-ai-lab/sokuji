@@ -80,8 +80,6 @@ class SpeechTrack(private val rate: Int) {
   fun close() {
     running.set(false)
     writer.join(1000)
-    runCatching { track.stop() }
-    track.release()
   }
 
   private fun writeLoop() {
@@ -136,7 +134,17 @@ class SpeechTrack(private val rate: Int) {
           }
         }
       }
-      val wrote = track.write(stereo, 0, stereo.size)
+      write(stereo)
+    }
+    // Here, not in close(): only this thread may still be rebuilding the track.
+    runCatching { track.stop() }
+    track.release()
+  }
+
+  private fun write(stereo: ShortArray) {
+    var offset = 0
+    while (offset < stereo.size && running.get()) {
+      val wrote = track.write(stereo, offset, stereo.size - offset)
       if (wrote < 0) {
         // Dead after an audioserver restart: a new track, unhurried, or this spins at audio priority.
         Log.w("AudioCapture", "speech track write failed: $wrote")
@@ -146,13 +154,16 @@ class SpeechTrack(private val rate: Int) {
           track = newTrack().also { it.play() }
         }
         synchronized(this) { framesWritten = 0 }
-        continue
+        return
       }
-      synchronized(this) { framesWritten += frame }
+      if (wrote == 0) Thread.sleep(SHORT_WRITE_WAIT_MS)
+      offset += wrote
+      synchronized(this) { framesWritten += wrote / 2 }
     }
   }
 
   private companion object {
     const val REBUILD_WAIT_MS = 200L
+    const val SHORT_WRITE_WAIT_MS = 5L
   }
 }

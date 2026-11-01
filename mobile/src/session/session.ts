@@ -37,9 +37,12 @@ const ROTATE_BEFORE_MS = 15000;
 const RETRY_DELAYS_MS = [2000, 5000, 10000];
 const RETRY_EVERY_MS = 15000;
 
-function defaultPlayer(log: (line: string) => void): SpeechPlayer & { close(): Promise<void> } {
+function defaultPlayer(log: (line: string) => void, onFailed: () => void): SpeechPlayer & { close(): Promise<void> } {
   // Android: the module plays, since its canceller needs every sample (spec §5).
-  if (Platform.OS === 'android') return createNativeSpeechPlayer(TTS_SAMPLE_RATE, (message) => log(`speech track failed: ${message}`));
+  if (Platform.OS === 'android') return createNativeSpeechPlayer(TTS_SAMPLE_RATE, (message) => {
+    log(`speech track failed: ${message}`);
+    onFailed();
+  });
   // Loaded here, not at the top: the node tests never construct a context.
   const { AudioContext } = require('react-native-audio-api') as { AudioContext: new (o: { sampleRate: number }) => { close(): Promise<void> } & Parameters<typeof createSpeechPlayer>[0]['context'] };
   const context = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
@@ -88,6 +91,8 @@ export function startSession(o: {
   let captureInfo: CaptureInfo | null = null;
   // The OS has the microphone (a phone call): nothing starts until it gives it back.
   let capturePaused = false;
+  // The speech track would not open: nothing will be heard, whatever the route allows.
+  let trackFailed = false;
   // The capture itself is stopped for that. Apart from `capturePaused`: the OS can
   // give the microphone back while a restart is still ending in a pause.
   let captureHalted = false;
@@ -150,7 +155,7 @@ export function startSession(o: {
   const echoWanted = () => echoCancellationFor({ ...o.echo, listen: !!o.listen, route });
   const chain = () => captureInfo?.chain ?? null;
   const spoken = () => speakable({ ...o.echo, listen: !!o.listen, route, chain: chain() });
-  const spokenDetail = () => (o.listen && speech ? (spoken() ? 'spoken' : 'subtitles_only') : undefined);
+  const spokenDetail = () => (o.listen && speech ? (spoken() && !trackFailed ? 'spoken' : 'subtitles_only') : undefined);
   // The ticker as the shared modules' clock: their timers must not be JS timers either.
   const tickerClock = { now: () => Date.now(), setTimeout: (fn: () => void, ms: number) => ticker.after(ms, fn) };
   const log = (line: string) => {
@@ -602,7 +607,10 @@ export function startSession(o: {
       route = await (o.getRoute ?? nativeRoute)();
       // Stopped during the lookup: teardown has run, and would not see what is created below.
       if (!running) return;
-      player = o.createPlayer?.() ?? defaultPlayer(log);
+      player = o.createPlayer?.() ?? defaultPlayer(log, () => {
+        trackFailed = true;
+        if (stream?.isOpen() && !connecting) status('listening', heldByUser ? 'paused' : spokenDetail(), speech !== null);
+      });
       subscriptions.push({ remove: (o.onRouteChange ?? nativeRouteChange)(applyRoute) });
     }
     if (Platform.OS === 'android') {

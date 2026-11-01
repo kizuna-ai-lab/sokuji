@@ -23,6 +23,7 @@ const audio = vi.hoisted(() => ({
   fail: null as null | 'always' | 'processed',
   pending: null as null | Promise<void>,
   pausing: null as null | Promise<void>,
+  trackFailed: (_message: string) => {},
   notification: {
     show: vi.fn(async () => {}),
     hide: vi.fn(async () => {}),
@@ -68,7 +69,7 @@ vi.mock('./captureNative', () => ({
     return c;
   },
 }));
-vi.mock('./speechNative', () => ({ createNativeSpeechPlayer: () => ({ play() {}, stop() {}, queuedSeconds: () => 0, held: () => 0, close: async () => {} }) }));
+vi.mock('./speechNative', () => ({ createNativeSpeechPlayer: (_rate: number, onFailed: (message: string) => void) => (audio.trackFailed = onFailed, { play() {}, stop() {}, queuedSeconds: () => 0, held: () => 0, close: async () => {} }) }));
 vi.mock('../../modules/route-picker/src/RoutePickerModule', () => ({ currentOutput: () => null, addOutputListener: () => ({ remove() {} }) }));
 vi.mock('../../modules/audio-capture/src/AudioCaptureModule', () => ({ listInputs: async () => [] }));
 vi.mock('./logFile', () => ({ openLogFile: () => 'memory', appendLog: () => {} }));
@@ -367,7 +368,7 @@ describe('hearing the translation', () => {
   type R = 'headphones' | 'bluetooth' | 'speaker' | 'other';
 
   // A listening session on `first`, up to its first 'listening'.
-  async function spoken(first: R, opts: { echo?: typeof echo; p?: ReturnType<typeof player> } = {}) {
+  async function spoken(first: R, opts: { defaultPlayer?: boolean; echo?: typeof echo; p?: ReturnType<typeof player> } = {}) {
     lease.leaseKey.mockResolvedValue(spokenGrant);
     const events: SessionEvent[] = [];
     const routeCb: { fn: ((r: R) => void) | null } = { fn: null };
@@ -376,7 +377,7 @@ describe('hearing the translation', () => {
       token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo: opts.echo ?? echo, listen,
       getRoute: async () => first,
       onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
-      createPlayer: () => p,
+      ...(opts.defaultPlayer ? {} : { createPlayer: () => p }),
       onEvent: (e) => events.push(e),
     });
     await flush();
@@ -551,6 +552,14 @@ describe('hearing the translation', () => {
     paused();
     await flush();
     expect(audio.starts).toHaveLength(starts + 1);
+    await s.stop();
+  });
+
+  it('says subtitles only when the speech track will not open', async () => {
+    const { s, events } = await spoken('speaker', { defaultPlayer: true });
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    audio.trackFailed('no track');
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
     await s.stop();
   });
 

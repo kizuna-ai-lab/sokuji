@@ -1752,7 +1752,7 @@
       "toggle": "Lire à voix haute ce que dit l'autre personne",
       "voice": "Voix que j'entends",
       "speed": "Vitesse de parole",
-      "headphones": "Lue au casque ou sur le haut-parleur. Sur le haut-parleur, Sokuji retire sa propre voix du micro.",
+      "headphones": "Lue au casque ou sur le haut-parleur. Avec l'annulation d'écho activée, Sokuji retire sa propre voix du micro.",
       "searchVoices": "Rechercher une voix",
       "preview": "Écouter",
       "previewVoice": "Écouter {{voice}}",

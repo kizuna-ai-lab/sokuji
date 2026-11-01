@@ -1752,7 +1752,7 @@
       "toggle": "对方说的话翻译后朗读给我",
       "voice": "我听到的声音",
       "speed": "语速",
-      "headphones": "通过耳机或扬声器朗读。使用扬声器时，Sokuji 会从麦克风中去掉自己的声音。",
+      "headphones": "通过耳机或扬声器朗读。开启回声消除时，Sokuji 会从麦克风中去掉自己的声音。",
       "searchVoices": "搜索声音",
       "preview": "试听",
       "previewVoice": "试听 {{voice}}",

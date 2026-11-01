@@ -1752,7 +1752,7 @@
       "toggle": "Leerme en voz alta lo que dice la otra persona",
       "voice": "Voz que oigo",
       "speed": "Velocidad de habla",
-      "headphones": "Se lee con auriculares o con el altavoz. Con el altavoz, Sokuji quita su propia voz del micrófono.",
+      "headphones": "Se lee con auriculares o con el altavoz. Con la cancelación de eco activada, Sokuji quita su propia voz del micrófono.",
       "searchVoices": "Buscar voces",
       "preview": "Escuchar",
       "previewVoice": "Escuchar {{voice}}",
