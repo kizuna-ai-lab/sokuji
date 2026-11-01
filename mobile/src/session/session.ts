@@ -18,6 +18,7 @@ import { createInterruptionHandler } from './interruptions';
 import { createSpeechPlayer, type SpeechPlayer } from './speech';
 import { currentRoute as nativeRoute, onRouteChange as nativeRouteChange } from './routeNative';
 import type { Route } from './route';
+import { headphones } from './capture';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
@@ -100,7 +101,6 @@ export function startSession(o: {
   // R13: speech goes through headphones only. Whether the lease asks for the
   // spoken shape is decided at Start; headphones out later mute what the grant
   // carries, headphones in on a grant without the voice take a new grant.
-  const headphones = (r: Route) => r === 'headphones' || r === 'bluetooth';
   let spokenWanted = false;
   // What the current lease was asked for: a grant without the voice although
   // it was asked for is the backend's answer, not a reason to rotate again.
