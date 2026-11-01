@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Pressable, View, type TextLayoutEvent } from 'react-native';
+import { nameWeight } from '../screens/mainText';
 import { ChevronDown } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -22,6 +23,8 @@ type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPr
   onWrap?: () => void;
   /** Changes whenever the name must be measured afresh (a new layout, text size or width). */
   measureKey: string;
+  /** Side by side, this side's share of the width (see nameWeight); nothing in a column. */
+  weight?: number;
 };
 
 /**
@@ -30,7 +33,7 @@ type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPr
  * saying it opens a list; at least 48 units tall, growing with the name. The
  * ref reaches the Pressable, so focus can return here when the list closes.
  */
-function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey, className, ...props }: SideProps) {
+function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey, weight, className, ...props }: SideProps) {
   const onTextLayout = (e: TextLayoutEvent) => {
     if (e.nativeEvent.lines.length > 1) onWrap?.();
   };
@@ -43,7 +46,11 @@ function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey
       accessibilityState={{ disabled: locked }}
       disabled={locked}
       onPress={onPress}
-      // Squared off: the box around the pair carries the rounding.
+      // Squared off: the box around the pair carries the rounding. Side by side the
+      // share is a grow factor from zero width, so the name is measured at the width
+      // it gets: measured from its own width first (flex-basis auto), a name that fit
+      // on one line could keep a two-line height (iOS), the box outgrowing Start.
+      style={weight === undefined ? undefined : { flexGrow: weight, flexShrink: 1, flexBasis: 0 }}
       className={cn('gap-1 rounded-none px-2 py-2', className)}
     >
       {/* Remounted on each change of layout, text size or width: a text laid out again
@@ -85,18 +92,20 @@ export function LanguagePair({ source, target, arrow, layout, onWrap, measureKey
 }) {
   const column = layout === 'column';
   const iconSize = useIconSize(16);
-  // Side by side, each side starts from its name's width and the spare width is
-  // shared: a long name beside a short one fits where equal halves would not.
-  const side = column ? 'self-stretch' : 'grow shrink basis-auto';
+  // Side by side, the width is shared by the names' widths: a long name beside
+  // a short one fits where equal halves would not.
+  const side = column ? 'self-stretch' : undefined;
+  const sourceWeight = column ? undefined : nameWeight(source);
+  const targetWeight = column ? undefined : nameWeight(target);
   return (
     <View className={cn('border-border bg-background overflow-hidden rounded-md border', column ? 'items-stretch' : 'flex-row items-stretch', className)}>
-      <Side ref={sourceRef} className={side} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
+      <Side ref={sourceRef} className={side} weight={sourceWeight} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
       {/* Decoration between the two buttons, hidden from screen readers with its text
           (the sides' labels already say which is which): a stop on it would be one too many. */}
       <View className={column ? 'items-center' : 'justify-center'} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text className="text-muted-foreground">{column ? '↓' : arrow}</Text>
       </View>
-      <Side ref={targetRef} className={side} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
+      <Side ref={targetRef} className={side} weight={targetWeight} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
     </View>
   );
 }

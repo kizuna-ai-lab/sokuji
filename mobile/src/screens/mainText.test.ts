@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idleHint, pairArrow, pairLabel, pairLayout, statusLine, statusTone } from './mainText';
+import { idleHint, nameWeight, pairArrow, pairLabel, pairLayout, statusLine, statusTone } from './mainText';
 
 // A t() that shows which key and values were asked for.
 const t = (key: string, values?: Record<string, string>) => (values ? `${key}(${Object.values(values).join(',')})` : key);
@@ -33,6 +33,18 @@ describe('the bar at the bottom of the main screen', () => {
   it('stacks the sides outright at the accessibility text sizes', () => {
     expect(pairLayout(1.35, 0)).toBe('column');
     expect(pairLayout(1.3, 0)).toBe('row');
+  });
+});
+
+describe('how the two sides of the pair share the width', () => {
+  it('weighs a name by how wide its characters are: a Han or kana character about one em, a Latin letter about half', () => {
+    expect(nameWeight('日本語')).toBe(3);
+    expect(nameWeight('ab')).toBeCloseTo(1.1);
+    expect(nameWeight('Auto Detect')).toBeCloseTo(6.05);
+  });
+
+  it('never weighs nothing', () => {
+    expect(nameWeight('')).toBe(1);
   });
 });
 
