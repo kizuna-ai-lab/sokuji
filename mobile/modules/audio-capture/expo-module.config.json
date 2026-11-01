@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["AudioCaptureModule"]
+  },
+  "android": {
+    "modules": ["ai.kizunaai.sokuji.audiocapture.AudioCaptureModule"]
+  }
+}

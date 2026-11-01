@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { AudioManager, AudioRecorder, RecordingNotificationManager } from 'react-native-audio-api';
+import { AudioManager, RecordingNotificationManager } from 'react-native-audio-api';
 import { addNetworkStateListener } from 'expo-network';
 import i18next from 'i18next';
 import { SonioxSttStream, SONIOX_STT_MODEL } from '@shared/providers/soniox/sttStream';
@@ -9,7 +9,6 @@ import { eventsFrom } from '@shared/lib/contract/events';
 import { SAMPLE_RATE as TTS_SAMPLE_RATE } from '@shared/lib/contract/adapter';
 import { SONIOX_PARTICIPANT_DEFAULT_VOICE } from '@shared/lib/soniox/ttsCatalog';
 import type { SonioxRegion } from '@shared/lib/soniox/regions';
-import { floatToInt16 } from './pcm';
 import { leaseKey, sessionEnd, sessionStarted, type Grant } from './lease';
 import { appendLog, openLogFile } from './logFile';
 import { createTicker } from './ticker';
@@ -18,12 +17,17 @@ import { createInterruptionHandler } from './interruptions';
 import { createSpeechPlayer, type SpeechPlayer } from './speech';
 import { currentRoute as nativeRoute, onRouteChange as nativeRouteChange } from './routeNative';
 import type { Route } from './route';
+import { echoCancellationFor, headphones, speakable, type CaptureChain, type EchoSettings } from './capture';
+import type { Capture } from './captureAdapter';
+import { createCapture } from './captureNative';
+import { createNativeSpeechPlayer } from './speechNative';
+import type { CaptureInfo } from '../../modules/audio-capture/src/AudioCaptureModule';
 
 export type Status = 'leasing' | 'connecting' | 'listening' | 'reconnecting' | 'stopped' | 'error';
 
 export type SessionEvent =
-  /** `voice`, with 'listening': whether the current grant carries the spoken translation (the shape the backend granted, for the analytics). */
-  | { type: 'status'; status: Status; detail?: string; voice?: boolean }
+  /** With 'listening', for the analytics: `voice`, whether the current grant carries the spoken translation (the shape the backend granted); `route`, where speech goes (with `listen` on); `chain`, the canceller running. */
+  | { type: 'status'; status: Status; detail?: string; voice?: boolean; route?: Route; chain?: CaptureChain }
   | { type: 'log'; line: string };
 
 // While running, every failure but these is retried: 2 s, 5 s, 10 s, then every 15 s.
@@ -33,7 +37,12 @@ const ROTATE_BEFORE_MS = 15000;
 const RETRY_DELAYS_MS = [2000, 5000, 10000];
 const RETRY_EVERY_MS = 15000;
 
-function defaultPlayer(): SpeechPlayer & { close(): Promise<void> } {
+function defaultPlayer(log: (line: string) => void, onFailed: () => void): SpeechPlayer & { close(): Promise<void> } {
+  // Android: the module plays, since its canceller needs every sample (spec §5).
+  if (Platform.OS === 'android') return createNativeSpeechPlayer(TTS_SAMPLE_RATE, (message) => {
+    log(`speech track failed: ${message}`);
+    onFailed();
+  });
   // Loaded here, not at the top: the node tests never construct a context.
   const { AudioContext } = require('react-native-audio-api') as { AudioContext: new (o: { sampleRate: number }) => { close(): Promise<void> } & Parameters<typeof createSpeechPlayer>[0]['context'] };
   const context = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
@@ -53,6 +62,10 @@ export function startSession(o: {
   listen?: { voice: string | null; speed: number } | null;
   /** R14: the microphone to record with; null for the phone's own. */
   inputDeviceId?: string | null;
+  /** D7, D8: echo cancellation, for the phone's speaker and for every other output. */
+  echo: EchoSettings;
+  /** The capture — the native module unless a test supplies one. */
+  createCapture?: (o: Parameters<typeof createCapture>[0]) => Capture;
   /** The output route now, and its changes — the native lookups unless a test supplies them. */
   getRoute?: () => Promise<Route>;
   onRouteChange?: (cb: (route: Route) => void) => () => void;
@@ -70,7 +83,26 @@ export function startSession(o: {
   let connecting = false;
   let stream: SonioxSttStream | null = null;
   let grant: Grant | null = null;
-  let recorder: AudioRecorder | null = null;
+  // The capture running or paused, the mode it was asked for (null: reopen it
+  // whatever the route says) and what it reports. No info: a mode change is on
+  // its way, so no frame is sent and no chain counts.
+  let capture: Capture | null = null;
+  let captureMode: boolean | null = null;
+  let captureInfo: CaptureInfo | null = null;
+  // The OS has the microphone (a phone call): nothing starts until it gives it back.
+  let capturePaused = false;
+  // The speech track would not open: nothing will be heard, whatever the route allows.
+  let trackFailed = false;
+  // The capture itself is stopped for that. Apart from `capturePaused`: the OS can
+  // give the microphone back while a restart is still ending in a pause.
+  let captureHalted = false;
+  // The notification's Pause: only its Resume ends this, not a call ending.
+  let heldByUser = false;
+  // The first start is begin()'s: a route change before it only moves `route`.
+  let captureBegun = false;
+  let syncingCapture = false;
+  // A frame came since the last start: a capture error then is worth one restart.
+  let heardSinceStart = false;
   let sampleRate = 0;
   let lastTokenAt = Date.now();
   let droppedAt: number | null = null;
@@ -97,14 +129,9 @@ export function startSession(o: {
   // stop() aborts the lease request in flight: a stopped session never waits
   // out a 409 and never wins a lease it will not use.
   const abort = new AbortController();
-  // R13: speech goes through headphones only. Whether the lease asks for the
-  // spoken shape is decided at Start; headphones out later mute what the grant
-  // carries, headphones in on a grant without the voice take a new grant.
-  const headphones = (r: Route) => r === 'headphones' || r === 'bluetooth';
-  let spokenWanted = false;
-  // What the current lease was asked for: a grant without the voice although
-  // it was asked for is the backend's answer, not a reason to rotate again.
-  let leaseAskedVoice = false;
+  // R13: the lease asks for the spoken shape whenever the translation is to be
+  // heard; what it may do on the current route is decided by spoken() below.
+  const spokenWanted = !!o.listen;
   let route: Route = 'speaker';
   let speech: LegSpeech | null = null;
   let player: (SpeechPlayer & { close?(): Promise<void> | void }) | null = null;
@@ -119,8 +146,16 @@ export function startSession(o: {
   const emit = (e: SessionEvent) => {
     if (!closed) o.onEvent(e);
   };
-  const status = (s: Status, detail?: string, voice?: boolean) => emit({ type: 'status', status: s, detail, ...(voice === undefined ? {} : { voice }) });
-  const spokenDetail = () => (o.listen ? (speech && headphones(route) ? 'spoken' : 'subtitles_only') : undefined);
+  const status = (s: Status, detail?: string, voice?: boolean) => emit({
+    type: 'status',
+    status: s,
+    detail,
+    ...(voice === undefined ? {} : { voice, ...(o.listen ? { route } : {}), ...(captureInfo ? { chain: captureInfo.chain } : {}) }),
+  });
+  const echoWanted = () => echoCancellationFor({ ...o.echo, listen: !!o.listen, route });
+  const chain = () => captureInfo?.chain ?? null;
+  const spoken = () => speakable({ ...o.echo, listen: !!o.listen, route, chain: chain() });
+  const spokenDetail = () => (o.listen && speech ? (spoken() && !trackFailed ? 'spoken' : 'subtitles_only') : undefined);
   // The ticker as the shared modules' clock: their timers must not be JS timers either.
   const tickerClock = { now: () => Date.now(), setTimeout: (fn: () => void, ms: number) => ticker.after(ms, fn) };
   const log = (line: string) => {
@@ -148,14 +183,13 @@ export function startSession(o: {
     subscriptions = [];
     abort.abort();
     stream?.end();
-    const r = recorder;
-    recorder = null;
-    if (r) {
-      r.clearOnAudioReady();
+    const c = capture;
+    capture = null;
+    if (c) {
       try {
-        await r.stop();
+        await c.stop();
       } catch (err) {
-        log(`recorder stop failed: ${reason(err)}`);
+        log(`capture stop failed: ${reason(err)}`);
       }
     }
     if (Platform.OS === 'android') {
@@ -197,24 +231,177 @@ export function startSession(o: {
     });
   }
 
-  // R13: the headphones came out → the voice stops and the subtitles stay;
-  // back in → the voice resumes at the next sentence. Headphones in on a
-  // session that never asked for the voice → the next grant asks for it,
-  // taken now when a stream is running.
-  function applyRoute(next: Route): void {
-    route = next;
-    if (!o.listen || !running) return;
-    if (!headphones(next)) {
-      player?.stop();
-      speech?.setOn(false);
-    } else if (speech) {
-      speech.setOn(true);
-    } else if (!spokenWanted) {
-      spokenWanted = true;
-      rotate('headphones in: asking for the spoken shape');
+  // Every frame the capture delivers.
+  function onAudio(pcm: Int16Array): void {
+    // The one thing that keeps running with the screen off on Android: it
+    // advances every wait the session has pending.
+    ticker.tick();
+    heardSinceStart = true;
+    if (!running || !captureInfo) return;
+    if (!sampleRate) {
+      // What the module reports it delivers, never assumed.
+      sampleRate = captureInfo.sampleRate;
+      log(`first frame: ${sampleRate} Hz, ${pcm.length} samples, chain ${captureInfo.chain}`);
+      void connect();
       return;
     }
-    if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
+    // Checked here, not on a timer: iOS slows timers in the background, audio keeps coming.
+    if (!rotating && stream?.isOpen() && Date.now() >= expiresAt - ROTATE_BEFORE_MS) {
+      rotate('grant ends in 15 s');
+      return;
+    }
+    if (stream?.isOpen()) stream.sendAudio(pcm);
+  }
+
+  function onCaptureStopped(why: string, message?: string): void {
+    log(`capture stopped: ${why}${message ? ` (${message})` : ''}`);
+    if (!running) return;
+    if (why === 'interrupted') {
+      capturePaused = true;
+      captureHalted = true;
+      return;
+    }
+    // A capture that dies again before a single frame will not come back.
+    if (!heardSinceStart) {
+      void fail('microphone_denied');
+      return;
+    }
+    captureMode = null;
+    void syncCapture();
+  }
+
+  // Bluetooth output over A2DP, never HFP: that would make playback mono and take
+  // the microphone (R14). voiceChat and the loudspeaker only with the switch on
+  // (spec §4.1); the library must ask for what the module set, or its next
+  // activation undoes it.
+  function setSessionOptions(echoCancellation: boolean): void {
+    AudioManager.setAudioSessionOptions(
+      !o.listen
+        ? { iosCategory: 'record', iosMode: 'default', iosOptions: [] }
+        : echoCancellation
+          ? { iosCategory: 'playAndRecord', iosMode: 'voiceChat', iosOptions: ['defaultToSpeaker', 'allowBluetoothA2DP'] }
+          : { iosCategory: 'playAndRecord', iosMode: 'default', iosOptions: ['defaultToSpeaker', 'allowBluetoothA2DP'] },
+    );
+  }
+
+  async function startCapture(echoCancellation: boolean): Promise<Capture> {
+    log(`capture wanted: echo cancellation ${echoCancellation ? 'on' : 'off'}, route ${route}, listen ${!!o.listen}`);
+    setSessionOptions(echoCancellation);
+    const c = (o.createCapture ?? createCapture)({
+      options: { echoCancellation, sampleRate: 16000, inputDeviceId: o.inputDeviceId ?? null },
+      onAudio,
+      onStopped: onCaptureStopped,
+    });
+    heardSinceStart = false;
+    captureInfo = await c.start();
+    return c;
+  }
+
+  // Stop, start in the asked mode, keep what it reports. A processed start the
+  // module refuses leaves plain capture: the session stays up with subtitles,
+  // since the chain then says `none`. Only a plain start refused as well throws.
+  async function restartCapture(echoCancellation: boolean): Promise<void> {
+    const t0 = Date.now();
+    const old = capture;
+    capture = null;
+    captureInfo = null;
+    captureMode = null;
+    if (old) {
+      try {
+        await old.stop();
+      } catch (err) {
+        log(`capture stop failed: ${reason(err)}`);
+      }
+      if (!running) return;
+    }
+    let c: Capture;
+    try {
+      c = await startCapture(echoCancellation);
+    } catch (err) {
+      if (!echoCancellation) throw err;
+      log(`processed capture refused: ${reason(err)}`);
+      c = await startCapture(false);
+    }
+    if (!running) {
+      // Stopped while it was starting: teardown saw no capture.
+      await c.stop();
+      return;
+    }
+    capture = c;
+    captureMode = echoCancellation;
+    captureHalted = false;
+    if (old) log(`capture restarted in ${Date.now() - t0} ms: echo cancellation ${echoCancellation ? 'on' : 'off'}, chain ${chain()}`);
+    // The OS took the microphone while this was starting.
+    if (capturePaused) {
+      captureHalted = true;
+      await c.pause();
+    }
+  }
+
+  // Brings the capture to the mode the route asks for, however many routes went
+  // by meanwhile: the pass in flight reads the latest one before it ends.
+  async function syncCapture(): Promise<void> {
+    if (!captureBegun || syncingCapture) return;
+    syncingCapture = true;
+    try {
+      while (running && !capturePaused) {
+        if (!capture || captureMode !== echoWanted()) await restartCapture(echoWanted());
+        else if (captureHalted) await resumeHalted(capture);
+        else break;
+      }
+    } catch (err) {
+      log(`capture failed: ${reason(err)}`);
+      // During an interruption that is the OS's doing: the resume tries again.
+      if (!capturePaused) {
+        await fail('microphone_denied');
+        return;
+      }
+    } finally {
+      syncingCapture = false;
+    }
+    if (!running) return;
+    speech?.setOn(spoken());
+    if (stream?.isOpen() && !connecting) status('listening', heldByUser ? 'paused' : spokenDetail(), speech !== null);
+  }
+
+  // An interruption stops the module and resuming starts it again. The route may
+  // have moved meanwhile: the mode is decided again, not resumed blindly.
+  function pauseCapture(): void {
+    if (capturePaused) return;
+    capturePaused = true;
+    captureHalted = true;
+    capture?.pause().catch((err) => log(`capture pause failed: ${reason(err)}`));
+  }
+
+  async function resumeCapture(): Promise<void> {
+    if (!capturePaused || !running || heldByUser) return;
+    capturePaused = false;
+    await syncCapture();
+  }
+
+  async function resumeHalted(c: Capture): Promise<void> {
+    captureHalted = false;
+    try {
+      captureInfo = await c.resume();
+      if (!running) await c.stop();
+    } catch (err) {
+      log(`capture resume failed: ${reason(err)}`);
+      captureMode = null;
+    }
+  }
+
+  // Spec §6: the voice stops before the output changes under it (it must not
+  // jump to the loudspeaker mid-sentence through an unprocessed microphone), the
+  // capture restarts in the new route's mode with the socket and the lease kept,
+  // then the voice follows what the capture reports.
+  function applyRoute(next: Route): void {
+    const leftHeadphones = headphones(route) && !headphones(next);
+    route = next;
+    if (!o.listen || !running) return;
+    if (leftHeadphones) player?.stop();
+    if (captureMode !== null && captureMode !== echoWanted()) captureInfo = null;
+    speech?.setOn(spoken());
+    void syncCapture();
   }
 
   async function stopSession(): Promise<void> {
@@ -249,7 +436,6 @@ export function startSession(o: {
         log(`session-end ${ended ? 'ok' : 'gave up'} after ${Date.now() - t0} ms (${Date.now() - droppedAt} ms since drop)`);
         if (!running) return;
       }
-      leaseAskedVoice = spokenWanted;
       grant = await leaseKey({ token: o.token, region: o.region, signal: abort.signal, sleep: (ms) => ticker.sleep(ms, abort.signal), timer: ticker, ...(spokenWanted ? { participantSpeech: true } : {}) });
       expiresAt = Date.now() + grant.maxSessionDurationSeconds * 1000;
       log(`lease granted: ${(grant.maxSessionDurationSeconds / 60).toFixed(1)} min`);
@@ -336,12 +522,12 @@ export function startSession(o: {
           voice: o.listen.voice ?? SONIOX_PARTICIPANT_DEFAULT_VOICE,
           speed: o.listen.speed,
           events: eventsFrom((e) => {
-            if (e.kind === 'audio' && headphones(route)) player?.play(e.payload.pcm);
+            if (e.kind === 'audio' && spoken()) player?.play(e.payload.pcm);
           }),
           clock: tickerClock,
           openSocket: nativeSocket,
         });
-        speech.setOn(headphones(route));
+        speech.setOn(spoken());
         o.transcript.setSpeech?.(speech);
         // No session-started for the TTS stream: the backend reports the start of
         // transcription streams only (a TTS role carries no started bit there and
@@ -352,9 +538,7 @@ export function startSession(o: {
       lastFailure = undefined;
       log(`${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
       status('listening', spokenDetail(), !!tts);
-      // The headphones came in while this lease was on its way (asked for
-      // without the voice): a grant with it, now that the stream is up.
-      if (o.listen && spokenWanted && !leaseAskedVoice && !tts) rotate('headphones in while connecting: asking for the spoken shape');
+      if (heldByUser) status('listening', 'paused', !!tts);
     } catch (err) {
       const message = reason(err);
       // A socket that opened before the failure (session-started refused, say)
@@ -403,14 +587,8 @@ export function startSession(o: {
     o.transcript.setClock?.(tickerClock);
     // Phone microphone only, even with a headset connected (ruling for the first
     // version): a headset mic is far from the speaker in a lecture hall.
-    // Record only, unless the translation is to be heard: then play and record,
-    // with Bluetooth output over A2DP (never HFP: that would make playback mono
-    // and take the microphone, R14) and no loudspeaker by default.
-    AudioManager.setAudioSessionOptions(
-      o.listen
-        ? { iosCategory: 'playAndRecord', iosMode: 'default', iosOptions: ['allowBluetoothA2DP'] }
-        : { iosCategory: 'record', iosMode: 'default', iosOptions: [] },
-    );
+    // Record only, unless the translation is to be heard: then play and record.
+    setSessionOptions(false);
     AudioManager.observeAudioInterruptions(true);
     const permission = await AudioManager.requestRecordingPermissions();
     if (!running) return;
@@ -418,7 +596,8 @@ export function startSession(o: {
       await fail('microphone_denied');
       return;
     }
-    if (o.inputDeviceId) {
+    // On Android the module takes the device itself (spec §4.2).
+    if (o.inputDeviceId && Platform.OS === 'ios') {
       try {
         await AudioManager.setInputDevice(o.inputDeviceId);
       } catch (err) {
@@ -429,33 +608,11 @@ export function startSession(o: {
       route = await (o.getRoute ?? nativeRoute)();
       // Stopped during the lookup: teardown has run, and would not see what is created below.
       if (!running) return;
-      spokenWanted = headphones(route);
-      player = (o.createPlayer ?? defaultPlayer)();
+      player = o.createPlayer?.() ?? defaultPlayer(log, () => {
+        trackFailed = true;
+        if (stream?.isOpen() && !connecting) status('listening', heldByUser ? 'paused' : spokenDetail(), speech !== null);
+      });
       subscriptions.push({ remove: (o.onRouteChange ?? nativeRouteChange)(applyRoute) });
-    }
-    const r = new AudioRecorder();
-    const ready = r.onAudioReady({ sampleRate: 16000, bufferLength: 1600, channelCount: 1 }, ({ buffer }) => {
-      // The one thing that keeps running with the screen off on Android: it
-      // advances every wait the session has pending.
-      ticker.tick();
-      if (!running) return;
-      if (!sampleRate) {
-        // The config's sampleRate is what the recorder actually delivers, never assumed.
-        sampleRate = buffer.sampleRate;
-        log(`first buffer: ${buffer.sampleRate} Hz, ${buffer.length} samples`);
-        void connect();
-        return;
-      }
-      // Checked here, not on a timer: iOS slows timers in the background, audio keeps coming.
-      if (!rotating && stream?.isOpen() && Date.now() >= expiresAt - ROTATE_BEFORE_MS) {
-        rotate('grant ends in 15 s');
-        return;
-      }
-      if (stream?.isOpen()) stream.sendAudio(floatToInt16(buffer.getChannelData(0)));
-    });
-    if (ready.status === 'error') {
-      await fail(ready.message);
-      return;
     }
     if (Platform.OS === 'android') {
       await AudioManager.requestNotificationPermissions();
@@ -467,10 +624,10 @@ export function startSession(o: {
         await RecordingNotificationManager.hide();
         return;
       }
-      // The notification's own actions. Stop ends the recording natively and
-      // tells the app: the session ends with it, or the lease stays held and
-      // the next foreground reconnects into a dead microphone. Pause and
-      // Resume act on the recorder natively; the screen is told which.
+      // The notification's own actions. Stop tells the app: the session ends with
+      // it, or the lease stays held and the next foreground reconnects into a dead
+      // microphone. Pause and Resume reach us through patches/react-native-audio-api:
+      // the library's recorder is idle, the capture is the module's.
       const onNotification = [
         RecordingNotificationManager.addEventListener('recordingNotificationStop', () => {
           log('notification: stop');
@@ -481,32 +638,28 @@ export function startSession(o: {
         // analytics count as the start.
         RecordingNotificationManager.addEventListener('recordingNotificationPause', () => {
           log('notification: pause');
-          if (stream?.isOpen()) status('listening', 'paused', speech !== null);
+          heldByUser = true;
+          pauseCapture();
+          if (stream?.isOpen() && !connecting) status('listening', 'paused', speech !== null);
         }),
         RecordingNotificationManager.addEventListener('recordingNotificationResume', () => {
           log('notification: resume');
-          if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
+          heldByUser = false;
+          void resumeCapture();
+          if (stream?.isOpen() && !connecting) status('listening', spokenDetail(), speech !== null);
         }),
       ];
       for (const sub of onNotification) if (sub) subscriptions.push(sub);
     }
-    const started = await r.start();
-    if (started.status === 'error') {
-      await fail(started.message);
-      return;
-    }
-    if (!running) {
-      // Stopped while the recorder was starting: teardown saw no recorder.
-      r.clearOnAudioReady();
-      await r.stop();
-      return;
-    }
-    recorder = r;
+    captureBegun = true;
+    await syncCapture();
+    // Stopped while the capture was starting, or it could not start at all.
+    if (!running) return;
     // A phone call or Siri: capture pauses and, when the OS allows, resumes;
     // the socket and the lease are kept.
     const interruptions = createInterruptionHandler({
-      pauseCapture: () => recorder?.pause(),
-      resumeCapture: () => recorder?.resume(),
+      pauseCapture,
+      resumeCapture: () => { void resumeCapture(); },
       log,
     });
     const onInterruption = AudioManager.addSystemEventListener('interruption', (e) => {

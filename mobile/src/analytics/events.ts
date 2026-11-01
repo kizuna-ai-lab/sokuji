@@ -1,3 +1,6 @@
+import type { CaptureChain } from '../session/capture';
+import type { Route } from '../session/route';
+
 // The desktop's event names and properties (src/lib/analytics.ts:
 // translation_session_start / translation_session_end), so one PostHog insight
 // covers both apps. The fields are restated here rather than imported: even a
@@ -12,6 +15,10 @@ export interface SessionStartProperties {
   transport: string;
   platform: 'ios' | 'android';
   participant_speech: boolean;
+  /** Where the speech goes; absent for subtitles only. */
+  speech_route?: 'speaker' | 'headphones' | 'bluetooth';
+  /** Which canceller ran. */
+  aec_chain?: CaptureChain;
 }
 
 export interface SessionEndProperties {
@@ -34,6 +41,8 @@ export function sessionStartProperties(o: {
   platform: 'ios' | 'android';
   /** R13: the translation is read aloud: the shape the backend granted at the first listening. */
   participantSpeech?: boolean;
+  speechRoute?: Route;
+  aecChain?: CaptureChain;
 }): SessionStartProperties {
   return {
     session_id: o.sessionId,
@@ -43,6 +52,9 @@ export function sessionStartProperties(o: {
     transport: 'websocket',
     platform: o.platform,
     participant_speech: o.participantSpeech ?? false,
+    // The earpiece never plays (spec §6): any other route is the loudspeaker's behaviour.
+    ...(o.speechRoute ? { speech_route: o.speechRoute === 'other' ? 'speaker' : o.speechRoute } : {}),
+    ...(o.aecChain ? { aec_chain: o.aecChain } : {}),
   };
 }
 

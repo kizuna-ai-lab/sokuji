@@ -1,16 +1,17 @@
 import { Platform } from 'react-native';
 import { AudioManager } from 'react-native-audio-api';
+import { listInputs } from '../../modules/audio-capture/src/AudioCaptureModule';
 import { addOutputListener, currentOutput } from '../../modules/route-picker/src/RoutePickerModule';
 import { routeOf, type Route } from './route';
 
 // Kept apart from route.ts, which the node tests import: this module is native.
 
-/** The library's device list with the output in use, which it leaves empty on Android. */
+/** The library's device list with the output in use, which it leaves empty on Android, and the module's inputs there (USB appears). */
 export async function devicesInfo() {
   const info = await AudioManager.getDevicesInfo();
   if (Platform.OS !== 'android') return info;
   const output = currentOutput();
-  return { ...info, currentOutputs: output ? [output] : [] };
+  return { ...info, availableInputs: await listInputs(), currentOutputs: output ? [output] : [] };
 }
 
 export async function currentRoute(): Promise<Route> {

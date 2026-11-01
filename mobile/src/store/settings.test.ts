@@ -17,6 +17,18 @@ function memoryStorage(initial: Record<string, string> = {}): StateStorage & { d
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe('settings store', () => {
+  it("cancels echo on the phone's speaker by default and not on other outputs, and keeps a stored change", async () => {
+    const storage = memoryStorage();
+    const first = createSettingsStore(storage);
+    await settle();
+    expect([first.getState().settings.echoCancellation, first.getState().settings.echoCancellationOther]).toEqual([true, false]);
+    first.getState().set({ echoCancellation: false, echoCancellationOther: true });
+    await settle();
+    const second = createSettingsStore(storage);
+    await settle();
+    expect([second.getState().settings.echoCancellation, second.getState().settings.echoCancellationOther]).toEqual([false, true]);
+  });
+
   it('starts from the defaults when nothing is stored', async () => {
     const store = createSettingsStore(memoryStorage());
     await settle();

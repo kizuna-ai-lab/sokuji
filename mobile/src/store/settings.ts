@@ -12,13 +12,17 @@ export interface Settings {
   textSize: 'small' | 'medium' | 'large';
   appearance: 'system' | 'light' | 'dark';
   keepAwake: boolean;
-  /** R13: the other side's translation read aloud to me, through headphones. */
+  /** R13: the other side's translation read aloud to me. */
   listen: boolean;
   /** A Soniox voice id, or null for the participant default. */
   voice: string | null;
   speed: number;
   /** R14: the microphone's device id, or null for the phone's own. */
   inputDeviceId: string | null;
+  /** D7: cancel the speaker's echo from the microphone. */
+  echoCancellation: boolean;
+  /** D8: the same on any other output, for one that plays aloud (a Bluetooth speaker, a car); off for headphones. */
+  echoCancellationOther: boolean;
   /** The user has been told, and agreed, that a voice preview is charged to the balance. */
   previewCostSeen: boolean;
 }
@@ -35,6 +39,8 @@ export const DEFAULT_SETTINGS: Settings = {
   voice: null,
   speed: 1,
   inputDeviceId: null,
+  echoCancellation: true,
+  echoCancellationOther: false,
   previewCostSeen: false,
 };
 

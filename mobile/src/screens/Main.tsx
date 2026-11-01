@@ -165,6 +165,7 @@ export default function Main() {
       transcript: tr,
       listen: settings.listen ? { voice: settings.voice, speed: settings.speed } : null,
       inputDeviceId: settings.inputDeviceId,
+      echo: { echoCancellation: settings.echoCancellation, echoCancellationOther: settings.echoCancellationOther },
       checkpointMs: CHECKPOINT_MS,
       onCheckpoint: () => {
         const snap = snapshot('listening', null);
@@ -177,8 +178,8 @@ export default function Main() {
         // The desktop's two session events: at the first listening, and at the end.
         if (e.status === 'listening' && !started.current && stored.current) {
           started.current = true;
-          // What the backend granted (a voice only with headphones in, and only if granted), not the setting.
-          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: e.voice === true }));
+          // What the backend granted (a voice only if granted), not the setting.
+          capture('translation_session_start', sessionStartProperties({ sessionId: stored.current.id, source, target, platform, participantSpeech: e.voice === true, speechRoute: e.detail === 'spoken' ? e.route : undefined, aecChain: e.chain }));
         }
         // A failure counts once: the retry that follows repeats its detail on the status line.
         const prev = lastEvent.current;

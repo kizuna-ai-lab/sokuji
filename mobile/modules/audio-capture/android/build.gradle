@@ -1,0 +1,56 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'ai.kizunaai.sokuji.audiocapture'
+version = '0.1.0'
+
+android {
+  namespace "ai.kizunaai.sokuji.audiocapture"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+    ndk {
+      abiFilters "arm64-v8a", "x86_64"
+    }
+    externalNativeBuild {
+      cmake {
+        cppFlags "-std=c++20"
+      }
+    }
+  }
+  externalNativeBuild {
+    cmake {
+      path "src/main/cpp/CMakeLists.txt"
+    }
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+// The prebuilt libraries are a release asset, not in git: mobile/scripts/build-apm-android.sh
+// makes them. A new build means a new asset and these two lines.
+def apmUrl = 'https://github.com/kizuna-ai-lab/sokuji/releases/download/webrtc-apm-v2.1/webrtc-apm-v2.1.tar.gz'
+def apmSha256 = '8388774ddebb4e0d3843be81bb69fd1352bac04f2f3f2861f35a68e7a6525ac1'
+
+tasks.register('fetchApm') {
+  def libs = file('libs')
+  def stamp = new File(libs, ".${apmSha256}")
+  outputs.file stamp
+  doLast {
+    def archive = new File(temporaryDir, 'apm.tar.gz')
+    archive.withOutputStream { out -> new URL(apmUrl).withInputStream { out << it } }
+    def digest = java.security.MessageDigest.getInstance('SHA-256').digest(archive.bytes).encodeHex().toString()
+    if (digest != apmSha256) throw new GradleException("webrtc-apm: expected ${apmSha256}, got ${digest}")
+    project.delete(libs)
+    project.copy {
+      from tarTree(resources.gzip(archive))
+      into libs
+    }
+    stamp.text = ''
+  }
+}
+
+tasks.named('preBuild') { dependsOn 'fetchApm' }

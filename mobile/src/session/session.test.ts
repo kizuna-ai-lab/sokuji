@@ -1,12 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// The native pieces are stood in for: a recorder that hands its callback back,
+// The native pieces are stood in for: a capture that records how it was started,
 // a notification that records show/hide, a stream that records close/end. The
 // lease calls are mocked per test. What is under test is the session's own
 // sequencing: what it does on a terminal error, after stop(), when
 // session-started fails after the socket opened, and after a close during connect().
+type FakeCapture = {
+  options: { echoCancellation: boolean; inputDeviceId?: string | null };
+  stopped: boolean;
+  paused: number;
+  emit(pcm?: Int16Array): void;
+  onStopped: (reason: string, message?: string) => void;
+  stop(): Promise<void>;
+};
 const audio = vi.hoisted(() => ({
-  recorders: [] as Array<{ cb: ((e: { buffer: unknown }) => void) | null; stopped: boolean; cleared: boolean }>,
+  captures: [] as FakeCapture[],
+  // Every start the module was asked for, resumes included.
+  starts: [] as Array<{ echoCancellation: boolean; inputDeviceId?: string | null }>,
+  // What the next start reports; `chain` undefined: vendor when processed, none when not.
+  chain: undefined as string | undefined,
+  // Starts refused: 'always', or only those asking for echo cancellation.
+  fail: null as null | 'always' | 'processed',
+  pending: null as null | Promise<void>,
+  pausing: null as null | Promise<void>,
+  trackFailed: (_message: string) => {},
   notification: {
     show: vi.fn(async () => {}),
     hide: vi.fn(async () => {}),
@@ -28,20 +45,33 @@ vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 vi.mock('react-native-audio-api', () => ({
   AudioManager: audio.manager,
   RecordingNotificationManager: audio.notification,
-  AudioRecorder: class {
-    cb: ((e: { buffer: unknown }) => void) | null = null;
-    stopped = false;
-    cleared = false;
-    constructor() { audio.recorders.push(this); }
-    onAudioReady(_cfg: unknown, cb: (e: { buffer: unknown }) => void) { this.cb = cb; return { status: 'ok' }; }
-    async start() { return { status: 'ok' }; }
-    async stop() { this.stopped = true; }
-    pause() {}
-    resume() {}
-    clearOnAudioReady() { this.cleared = true; }
+}));
+vi.mock('./captureNative', () => ({
+  createCapture: (o: { options: FakeCapture['options']; onAudio: (pcm: Int16Array) => void; onStopped: FakeCapture['onStopped'] }) => {
+    const info = () => ({ chain: audio.chain ?? (o.options.echoCancellation ? 'vendor' : 'none'), sampleRate: 16000 });
+    const begin = async () => {
+      audio.starts.push(o.options);
+      if (audio.pending) await audio.pending;
+      if (audio.fail === 'always' || (audio.fail === 'processed' && o.options.echoCancellation)) throw new Error('refused');
+      return info();
+    };
+    const c = {
+      options: o.options,
+      stopped: false,
+      paused: 0,
+      emit: (pcm = new Int16Array(1600)) => o.onAudio(pcm),
+      onStopped: o.onStopped,
+      async start() { audio.captures.push(c); return begin(); },
+      async stop() { c.stopped = true; },
+      async pause() { c.paused += 1; if (audio.pausing) await audio.pausing; },
+      resume: begin,
+    };
+    return c;
   },
 }));
+vi.mock('./speechNative', () => ({ createNativeSpeechPlayer: (_rate: number, onFailed: (message: string) => void) => (audio.trackFailed = onFailed, { play() {}, stop() {}, queuedSeconds: () => 0, held: () => 0, close: async () => {} }) }));
 vi.mock('../../modules/route-picker/src/RoutePickerModule', () => ({ currentOutput: () => null, addOutputListener: () => ({ remove() {} }) }));
+vi.mock('../../modules/audio-capture/src/AudioCaptureModule', () => ({ listInputs: async () => [] }));
 vi.mock('./logFile', () => ({ openLogFile: () => 'memory', appendLog: () => {} }));
 const network = vi.hoisted(() => ({ listeners: [] as Array<(state: { isConnected: boolean | null }) => void> }));
 vi.mock('expo-network', () => ({
@@ -83,23 +113,28 @@ const grant = {
   leaseId: 'L1', clientReferenceId: 'r', region: 'us' as const, maxSessionDurationSeconds: 3600,
   streams: [{ role: 'par_stt', apiKey: 'k', clientReferenceId: 'r1' }],
 };
-const buffer = { sampleRate: 16000, length: 1600, getChannelData: () => new Float32Array(1600) };
+const echo = { echoCancellation: true, echoCancellationOther: false };
 const flush = async () => { for (let i = 0; i < 100; i++) await Promise.resolve(); };
 const statuses = (events: SessionEvent[]) => events.filter((e) => e.type === 'status');
-const transcript = { message: vi.fn(), reconnected: vi.fn() };
+const transcript = { message: vi.fn(), reconnected: vi.fn(), setSpeech: vi.fn() };
 
 async function boot(events: SessionEvent[]) {
-  const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, onEvent: (e) => events.push(e) });
+  const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, onEvent: (e) => events.push(e) });
   await flush();
-  const rec = audio.recorders.at(-1)!;
-  rec.cb!({ buffer });
+  const rec = audio.captures.at(-1)!;
+  rec.emit();
   await flush();
   return { s, rec };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  audio.recorders.length = 0;
+  audio.captures.length = 0;
+  audio.starts.length = 0;
+  audio.chain = undefined;
+  audio.fail = null;
+  audio.pending = null;
+  audio.pausing = null;
   audio.notification.listeners = {};
   streams.length = 0;
   network.listeners.length = 0;
@@ -115,7 +150,6 @@ describe('a terminal error', () => {
     const events: SessionEvent[] = [];
     const { s, rec } = await boot(events);
     expect(rec.stopped).toBe(true);
-    expect(rec.cleared).toBe(true);
     expect(audio.notification.hide).toHaveBeenCalledTimes(1);
     expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'balance_exhausted' });
     // stop() after that has nothing left to do and says nothing more
@@ -200,10 +234,10 @@ describe('a close while connect() is still running', () => {
 });
 
 describe('stop()', () => {
-  it('still hides the notification, ends the lease and reports stopped when the recorder refuses to stop', async () => {
+  it('still hides the notification, ends the lease and reports stopped when the capture refuses to stop', async () => {
     const events: SessionEvent[] = [];
     const { s, rec } = await boot(events);
-    (rec as unknown as { stop: () => Promise<void> }).stop = async () => { throw new Error('busy'); };
+    rec.stop = async () => { throw new Error('busy'); };
     await s.stop();
     expect(audio.notification.hide).toHaveBeenCalledTimes(1);
     expect(lease.sessionEnd).toHaveBeenCalledWith(expect.objectContaining({ leaseId: 'L1' }));
@@ -215,7 +249,7 @@ describe('a throw while starting', () => {
   it('ends the session with an error instead of an unhandled rejection', async () => {
     audio.manager.requestNotificationPermissions.mockRejectedValueOnce(new Error('boom'));
     const events: SessionEvent[] = [];
-    startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, onEvent: (e) => events.push(e) });
+    startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, onEvent: (e) => events.push(e) });
     await flush();
     expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'boom' });
   });
@@ -225,7 +259,7 @@ describe('Android background: setTimeout never fires', () => {
   // React Native pauses JS timers with the activity on Android, while the audio
   // callback keeps coming. Every wait must be driven by the audio callback (the
   // ticker): here the fake timers are never advanced, time moves only through
-  // Date.now(), and the recorder's callback is the only thing that ticks.
+  // Date.now(), and the capture's frames are the only thing that ticks.
   it('still reconnects after a drop when only the audio callback runs', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000_000);
@@ -240,7 +274,7 @@ describe('Android background: setTimeout never fires', () => {
     // audio keeps coming for 20 s of wall-clock time; no timer is ever fired
     for (let i = 0; i < 200; i++) {
       vi.setSystemTime(1_000_000 + (i + 1) * 100);
-      rec.cb!({ buffer });
+      rec.emit();
       await flush();
     }
     expect(lease.leaseKey).toHaveBeenCalledTimes(3);
@@ -313,12 +347,12 @@ describe('the checkpoint', () => {
     vi.setSystemTime(4_000_000);
     const checkpoints: number[] = [];
     const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, checkpointMs: 60000, onCheckpoint: () => checkpoints.push(Date.now()), onEvent: (e) => events.push(e) });
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, checkpointMs: 60000, onCheckpoint: () => checkpoints.push(Date.now()), onEvent: (e) => events.push(e) });
     await flush();
-    const rec = audio.recorders.at(-1)!;
+    const rec = audio.captures.at(-1)!;
     for (let i = 0; i <= 1300; i++) {
       vi.setSystemTime(4_000_000 + i * 100);
-      rec.cb!({ buffer });
+      rec.emit();
       if (i % 50 === 0) await flush();
     }
     expect(checkpoints.map((t) => t - 4_000_000)).toEqual([60000, 120000]);
@@ -331,60 +365,275 @@ describe('hearing the translation', () => {
   const spokenGrant = { ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
   const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
   const listen = { voice: null, speed: 1 };
+  type R = 'headphones' | 'bluetooth' | 'speaker' | 'other';
 
-  it('asks for the spoken shape and says so when headphones are in', async () => {
-    lease.leaseKey.mockResolvedValueOnce(spokenGrant);
+  // A listening session on `first`, up to its first 'listening'.
+  async function spoken(first: R, opts: { defaultPlayer?: boolean; echo?: typeof echo; p?: ReturnType<typeof player> } = {}) {
+    lease.leaseKey.mockResolvedValue(spokenGrant);
     const events: SessionEvent[] = [];
-    const p = player();
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen, getRoute: async () => 'bluetooth', onRouteChange: () => () => {}, createPlayer: () => p, onEvent: (e) => events.push(e) });
-    await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
-    await flush();
-    expect(lease.leaseKey.mock.calls[0][0]).toMatchObject({ participantSpeech: true });
-    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
-    await s.stop();
-  });
-
-  it('asks for subtitles only, and says so, on the loudspeaker', async () => {
-    const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen, getRoute: async () => 'speaker', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
-    await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
-    await flush();
-    expect(lease.leaseKey.mock.calls[0][0].participantSpeech).toBeUndefined();
-    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
-    await s.stop();
-  });
-
-  it('falls back to subtitles when the headphones come out mid-session, and speaks again when they return', async () => {
-    lease.leaseKey.mockResolvedValueOnce(spokenGrant);
-    let route = 'bluetooth';
-    const routeCb: { fn: ((r: 'headphones' | 'bluetooth' | 'speaker' | 'other') => void) | null } = { fn: null };
-    const events: SessionEvent[] = [];
-    const p = player();
+    const routeCb: { fn: ((r: R) => void) | null } = { fn: null };
+    const p = opts.p ?? player();
     const s = startSession({
-      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen,
-      getRoute: async () => route as never,
+      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo: opts.echo ?? echo, listen,
+      getRoute: async () => first,
       onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
-      createPlayer: () => p,
+      ...(opts.defaultPlayer ? {} : { createPlayer: () => p }),
       onEvent: (e) => events.push(e),
     });
     await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
+    audio.captures.at(-1)?.emit();
     await flush();
-    route = 'speaker';
-    routeCb.fn?.('speaker');
-    await flush();
-    expect(p.stopped).toBe(1);
-    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
-    route = 'bluetooth';
-    routeCb.fn?.('bluetooth');
-    await flush();
+    const route = async (r: R) => { routeCb.fn?.(r); await flush(); };
+    return { s, events, p, route };
+  }
+  const interruption = (e: { type: string; shouldResume?: boolean }) => {
+    const on = audio.manager.addSystemEventListener.mock.calls as unknown as Array<[string, (e: unknown) => void]>;
+    on.filter(([name]) => name === 'interruption').at(-1)![1](e);
+  };
+
+  it('asks for the spoken shape whenever the translation is to be heard, on any route', async () => {
+    const { s } = await spoken('speaker');
+    expect(lease.leaseKey.mock.calls[0][0]).toMatchObject({ participantSpeech: true });
+    await s.stop();
+  });
+
+  it('asks for subtitles alone without the setting', async () => {
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    expect(lease.leaseKey.mock.calls[0][0].participantSpeech).toBeUndefined();
+    expect(audio.starts[0].echoCancellation).toBe(false);
+    await s.stop();
+  });
+
+  it('starts capture processed on the loudspeaker and plain with headphones', async () => {
+    for (const [route, processed] of [['speaker', true], ['bluetooth', false], ['headphones', false]] as const) {
+      audio.starts.length = 0;
+      const { s, events } = await spoken(route);
+      expect(audio.starts[0].echoCancellation).toBe(processed);
+      expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken', voice: true });
+      await s.stop();
+    }
+  });
+
+  it("processes another output only by the user's choice", async () => {
+    const chosen = { ...echo, echoCancellationOther: true };
+    audio.chain = 'vendor';
+    const first = await spoken('bluetooth', { echo: chosen });
+    expect(audio.starts[0].echoCancellation).toBe(true);
+    expect(statuses(first.events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    await first.s.stop();
+    audio.chain = 'none';
+    const second = await spoken('bluetooth', { echo: chosen });
+    expect(statuses(second.events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    await second.s.stop();
+  });
+
+  it('keeps the microphone plain when the setting is off, and still speaks', async () => {
+    const { s, events } = await spoken('speaker', { echo: { ...echo, echoCancellation: false } });
+    expect(audio.starts[0].echoCancellation).toBe(false);
     expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
     await s.stop();
   });
-});
 
+  it('shows subtitles only when no chain could run on the loudspeaker', async () => {
+    audio.chain = 'none';
+    const { s, events } = await spoken('speaker');
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    await s.stop();
+  });
+
+  it('falls back to plain capture and subtitles when the processed start is refused', async () => {
+    audio.fail = 'processed';
+    const { s, events } = await spoken('speaker');
+    expect(audio.starts.map((o) => o.echoCancellation)).toEqual([true, false]);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    await s.stop();
+  });
+
+  it('does not say echo cancellation is unavailable when the backend granted no voice', async () => {
+    lease.leaseKey.mockResolvedValue(grant);
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, listen, getRoute: async () => 'speaker', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.captures.at(-1)!.emit();
+    await flush();
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: undefined, voice: false });
+    expect(streams.at(-1)!.ended).toBe(false);
+    expect(lease.leaseKey).toHaveBeenCalledTimes(1);
+    await s.stop();
+  });
+
+  it('restarts capture when the route changes, keeps the socket, and stops the player on the way out of the headphones', async () => {
+    const { s, events, p, route } = await spoken('bluetooth');
+    const sockets = streams.length;
+    const before = audio.captures.at(-1)!;
+    await route('speaker');
+    expect(p.stopped).toBe(1);
+    expect(before.stopped).toBe(true);
+    expect(audio.starts.map((o) => o.echoCancellation)).toEqual([false, true]);
+    expect(streams.length).toBe(sockets);
+    expect(lease.leaseKey).toHaveBeenCalledTimes(1);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    await s.stop();
+  });
+
+  it('does not restart capture when the route changes but the mode does not', async () => {
+    const { s, p, route } = await spoken('bluetooth');
+    await route('headphones');
+    expect(audio.starts).toHaveLength(1);
+    expect(p.stopped).toBe(0);
+    await s.stop();
+  });
+
+  it('restarts capture plain and keeps speaking when Bluetooth connects on the loudspeaker', async () => {
+    const { s, events, route } = await spoken('speaker');
+    await route('bluetooth');
+    expect(audio.starts.map((o) => o.echoCancellation)).toEqual([true, false]);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    await s.stop();
+  });
+
+  it('keeps the voice off while capture is changing to the processed mode', async () => {
+    const { s, route } = await spoken('bluetooth');
+    let open!: () => void;
+    audio.pending = new Promise((resolve) => { open = resolve; });
+    const setOn = vi.fn();
+    const speech = transcript.setSpeech.mock.calls.at(-1)![0] as { setOn(on: boolean): void };
+    const original = speech.setOn.bind(speech);
+    speech.setOn = (on) => { setOn(on); original(on); };
+    await route('speaker');
+    expect(setOn.mock.calls.at(-1)).toEqual([false]);
+    open();
+    await flush();
+    expect(setOn.mock.calls.at(-1)).toEqual([true]);
+    await s.stop();
+  });
+
+  it('settles on the last route when routes change during a restart', async () => {
+    const { s, route } = await spoken('bluetooth');
+    let open!: () => void;
+    audio.pending = new Promise((resolve) => { open = resolve; });
+    await route('speaker');
+    await route('headphones');
+    audio.pending = null;
+    open();
+    await flush();
+    expect(audio.starts.map((o) => o.echoCancellation)).toEqual([false, true, false]);
+    expect(audio.captures.filter((c) => !c.stopped)).toHaveLength(1);
+    await s.stop();
+  });
+
+  it('applies a route change that arrives while capture is paused when it resumes', async () => {
+    const { s, route } = await spoken('bluetooth');
+    interruption({ type: 'began' });
+    await flush();
+    await route('speaker');
+    expect(audio.starts).toHaveLength(1);
+    interruption({ type: 'ended', shouldResume: true });
+    await flush();
+    expect(audio.starts.map((o) => o.echoCancellation)).toEqual([false, true]);
+    await s.stop();
+  });
+
+  // The screen says listening: the capture paused at the end of a restart must not stay paused.
+  it('resumes a capture paused at the end of a restart when the call ends meanwhile', async () => {
+    const { s, route } = await spoken('bluetooth');
+    let open!: () => void;
+    let paused!: () => void;
+    audio.pending = new Promise((resolve) => { open = resolve; });
+    audio.pausing = new Promise((resolve) => { paused = resolve; });
+    await route('speaker');
+    interruption({ type: 'began' });
+    open();
+    await flush();
+    expect(audio.captures.at(-1)!.paused).toBe(1);
+    const starts = audio.starts.length;
+    interruption({ type: 'ended', shouldResume: true });
+    paused();
+    await flush();
+    expect(audio.starts).toHaveLength(starts + 1);
+    await s.stop();
+  });
+
+  it('says subtitles only when the speech track will not open', async () => {
+    const { s, events } = await spoken('speaker', { defaultPlayer: true });
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    audio.trackFailed('no track');
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    await s.stop();
+  });
+
+  it('resumes in the same mode through the same capture, and re-reads the chain', async () => {
+    const { s, events } = await spoken('speaker');
+    const c = audio.captures.at(-1)!;
+    interruption({ type: 'began' });
+    await flush();
+    expect(c.paused).toBe(1);
+    audio.chain = 'none';
+    interruption({ type: 'ended', shouldResume: true });
+    await flush();
+    expect(audio.captures).toHaveLength(1);
+    expect(audio.starts.map((o) => o.echoCancellation)).toEqual([true, true]);
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    await s.stop();
+  });
+
+  it('counts the module stopping itself for an interruption as the pause, and resumes once', async () => {
+    const { s } = await spoken('speaker');
+    const c = audio.captures.at(-1)!;
+    c.onStopped('interrupted');
+    interruption({ type: 'began' });
+    await flush();
+    expect(c.paused).toBe(0);
+    interruption({ type: 'ended', shouldResume: true });
+    await flush();
+    expect(audio.starts).toHaveLength(2);
+    await s.stop();
+  });
+
+  it('survives a capture error with a restart, and gives up when no frame came since', async () => {
+    const { s, events } = await spoken('speaker');
+    audio.captures.at(-1)!.onStopped('error', 'read failed');
+    await flush();
+    expect(audio.starts).toHaveLength(2);
+    expect(statuses(events).at(-1)?.status).toBe('listening');
+    audio.captures.at(-1)!.onStopped('error', 'read failed');
+    await flush();
+    expect(audio.starts).toHaveLength(2);
+    expect(statuses(events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'microphone_denied' });
+    await s.stop();
+  });
+
+  it('ends with microphone_denied only when the module refuses to start, not when a chain is missing', async () => {
+    audio.fail = 'always';
+    const refused = await spoken('speaker');
+    expect(statuses(refused.events).at(-1)).toEqual({ type: 'status', status: 'error', detail: 'microphone_denied' });
+    audio.fail = null;
+    audio.chain = 'none';
+    const missing = await spoken('speaker');
+    expect(statuses(missing.events).at(-1)?.status).toBe('listening');
+    await missing.s.stop();
+  });
+
+  it('tells the screen the route and the chain with the listening status', async () => {
+    const { s, events } = await spoken('speaker');
+    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', route: 'speaker', chain: 'vendor' });
+    await s.stop();
+  });
+
+  it('stops a capture that started after the session stopped', async () => {
+    let open!: () => void;
+    audio.pending = new Promise((resolve) => { open = resolve; });
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, onEvent: (e) => events.push(e) });
+    await flush();
+    await s.stop();
+    open();
+    await flush();
+    expect(audio.captures.at(-1)!.stopped).toBe(true);
+  });
+
+});
 
 describe('the Android notification', () => {
   // Its Stop action ends the recording natively and tells a live app: the
@@ -411,15 +660,63 @@ describe('the Android notification', () => {
     await s.stop();
   });
 
+  // The library's recorder is idle: capture is the module's, so Pause has to stop it here.
+  it('Pause stops the capture and Resume starts it again', async () => {
+    const { s, rec } = await boot([]);
+    const starts = audio.starts.length;
+    audio.notification.listeners.recordingNotificationPause();
+    await flush();
+    expect(rec.paused).toBe(1);
+    audio.notification.listeners.recordingNotificationResume();
+    await flush();
+    expect(audio.starts).toHaveLength(starts + 1);
+    await s.stop();
+  });
+
+  it('a call ending does not undo Pause', async () => {
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    const starts = audio.starts.length;
+    audio.notification.listeners.recordingNotificationPause();
+    await flush();
+    const on = audio.manager.addSystemEventListener.mock.calls as unknown as Array<[string, (e: unknown) => void]>;
+    const interruption = on.filter(([name]) => name === 'interruption').at(-1)![1];
+    interruption({ type: 'began' });
+    interruption({ type: 'ended', shouldResume: true });
+    await flush();
+    expect(audio.starts).toHaveLength(starts);
+    expect(statuses(events).at(-1)).toMatchObject({ detail: 'paused' });
+    await s.stop();
+  });
+
+  // The first listening is what the analytics count, with its detail: Pause during connect comes after it.
+  it('Pause while connecting reports after the first listening', async () => {
+    let settle!: () => void;
+    lease.sessionStarted.mockImplementationOnce(() => new Promise<void>((resolve) => { settle = resolve; }));
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.captures.at(-1)!.emit();
+    await flush();
+    audio.notification.listeners.recordingNotificationPause();
+    expect(statuses(events).some((e) => e.status === 'listening')).toBe(false);
+    settle();
+    await flush();
+    const listening = statuses(events).filter((e) => e.status === 'listening');
+    expect(listening[0].detail).toBeUndefined();
+    expect(listening.at(-1)).toMatchObject({ detail: 'paused' });
+    await s.stop();
+  });
+
   // A Pause tapped before the first grant must not look like the session
   // started: the screen's first 'listening' is what the analytics count.
   it('Pause before the stream is up reports nothing', async () => {
     let grantIt!: () => void;
     lease.leaseKey.mockImplementationOnce(() => new Promise((resolve) => { grantIt = () => resolve(grant); }));
     const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, onEvent: (e) => events.push(e) });
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, onEvent: (e) => events.push(e) });
     await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
+    audio.captures.at(-1)!.emit();
     await flush();
     audio.notification.listeners.recordingNotificationPause();
     expect(statuses(events).some((e) => e.status === 'listening')).toBe(false);
@@ -446,7 +743,7 @@ describe('the shared modules\' timers', () => {
     vi.setSystemTime(5_001_000);
     await flush();
     expect(fired).toBe(0);
-    rec.cb!({ buffer }); // the audio callback ticks, and the timer fires
+    rec.emit(); // the audio callback ticks, and the timer fires
     expect(fired).toBe(1);
     await s.stop();
   });
@@ -454,7 +751,7 @@ describe('the shared modules\' timers', () => {
   it('gives the transcript the same clock', async () => {
     const tr = { message: vi.fn(), reconnected: vi.fn(), setClock: vi.fn() };
     const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript: tr, onEvent: (e) => events.push(e) });
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript: tr, echo, onEvent: (e) => events.push(e) });
     await flush();
     expect(tr.setClock).toHaveBeenCalledWith(expect.objectContaining({ setTimeout: expect.any(Function), now: expect.any(Function) }));
     await s.stop();
@@ -484,9 +781,9 @@ describe('what the screen is told about the voice', () => {
   it('says whether the grant carries the voice, for the analytics', async () => {
     lease.leaseKey.mockResolvedValueOnce(spokenGrant);
     const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
     await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
+    audio.captures.at(-1)!.emit();
     await flush();
     expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', voice: true });
     await s.stop();
@@ -500,97 +797,15 @@ describe('what the screen is told about the voice', () => {
   });
 });
 
-describe('headphones plugged in while the lease is pending', () => {
-  const spokenGrant = { ...grant, leaseId: 'L2', streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
-  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
-  const listening = (events: SessionEvent[]) => statuses(events).filter((e) => e.status === 'listening');
-
-  // The first lease was asked for without the voice before the headphones came
-  // in; once that grant is connected, the session takes a new one with it.
-  it('takes a voiced grant right after the voiceless one connects', async () => {
-    let grantIt!: () => void;
-    lease.leaseKey.mockImplementationOnce(() => new Promise((resolve) => { grantIt = () => resolve(grant); })).mockResolvedValueOnce(spokenGrant);
-    const routeCb: { fn: ((r: 'headphones' | 'bluetooth' | 'speaker' | 'other') => void) | null } = { fn: null };
-    const events: SessionEvent[] = [];
-    const s = startSession({
-      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 },
-      getRoute: async () => 'speaker',
-      onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
-      createPlayer: player,
-      onEvent: (e) => events.push(e),
-    });
-    await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
-    await flush();
-    routeCb.fn?.('headphones'); // while leaseKey is still pending
-    await flush();
-    grantIt();
-    await flush();
-    const first = streams.at(-1)!;
-    expect(first.ended).toBe(true); // the voiceless grant is rotated out as soon as it is up
-    first.handlers.onClose({ code: 1000, reason: '' } as never);
-    await flush();
-    expect(lease.leaseKey).toHaveBeenCalledTimes(2);
-    expect(lease.leaseKey.mock.calls[1][0]).toMatchObject({ participantSpeech: true });
-    expect(listening(events).at(-1)).toMatchObject({ detail: 'spoken', voice: true });
-    await s.stop();
-  });
-
-  it('does not keep rotating when the backend grants no voice although it was asked for', async () => {
-    const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
-    await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
-    await flush();
-    expect(lease.leaseKey.mock.calls[0][0]).toMatchObject({ participantSpeech: true });
-    expect(streams.at(-1)!.ended).toBe(false);
-    expect(lease.leaseKey).toHaveBeenCalledTimes(1);
-    await s.stop();
-  });
-});
-
-describe('headphones plugged in mid-session', () => {
-  const spokenGrant = { ...grant, leaseId: 'L2', streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r1' }] };
-  const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
-
-  it('takes a new grant with the spoken shape and then speaks', async () => {
-    lease.leaseKey.mockResolvedValueOnce(grant).mockResolvedValueOnce(spokenGrant);
-    const routeCb: { fn: ((r: 'headphones' | 'bluetooth' | 'speaker' | 'other') => void) | null } = { fn: null };
-    const events: SessionEvent[] = [];
-    const s = startSession({
-      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 },
-      getRoute: async () => 'speaker',
-      onRouteChange: (cb) => { routeCb.fn = cb; return () => { routeCb.fn = null; }; },
-      createPlayer: player,
-      onEvent: (e) => events.push(e),
-    });
-    await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
-    await flush();
-    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
-    const first = streams.at(-1)!;
-    routeCb.fn?.('headphones');
-    await flush();
-    // the running stream is ended for a fresh grant; Soniox then closes it
-    expect(first.ended).toBe(true);
-    first.handlers.onClose({ code: 1000, reason: '' } as never);
-    await flush();
-    expect(lease.leaseKey).toHaveBeenCalledTimes(2);
-    expect(lease.leaseKey.mock.calls[1][0]).toMatchObject({ participantSpeech: true });
-    expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
-    await s.stop();
-  });
-});
-
 describe('the grant\'s streams', () => {
   const player = () => ({ played: 0, stopped: 0, play() { this.played += 1; }, stop() { this.stopped += 1; }, queuedSeconds: () => 0, held: () => 0 });
 
   it('opens the recognition socket with the par_stt stream whatever the order', async () => {
     lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [{ role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }, ...grant.streams] });
     const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
     await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
+    audio.captures.at(-1)!.emit();
     await flush();
     expect(streams.at(-1)!.cfg).toMatchObject({ apiKey: 'k', clientReferenceId: 'r1' });
     expect(lease.sessionStarted).toHaveBeenCalledWith(expect.objectContaining({ role: 'par_stt' }));
@@ -600,9 +815,9 @@ describe('the grant\'s streams', () => {
   it('reports the start for the recognition stream only: the backend refuses a TTS role', async () => {
     lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }] });
     const events: SessionEvent[] = [];
-    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
     await flush();
-    audio.recorders.at(-1)!.cb!({ buffer });
+    audio.captures.at(-1)!.emit();
     await flush();
     expect(lease.sessionStarted).toHaveBeenCalledTimes(1);
     expect(lease.sessionStarted).not.toHaveBeenCalledWith(expect.objectContaining({ role: 'par_tts' }));
@@ -624,7 +839,7 @@ describe('stop during the route lookup', () => {
     const created = { players: 0, subscriptions: 0 };
     const events: SessionEvent[] = [];
     const s = startSession({
-      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 },
+      token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, listen: { voice: null, speed: 1 },
       getRoute: () => new Promise((resolve) => { routeIt = () => resolve('speaker'); }),
       onRouteChange: () => { created.subscriptions += 1; return () => {}; },
       createPlayer: () => { created.players += 1; return { play() {}, stop() {}, queuedSeconds: () => 0, held: () => 0 }; },

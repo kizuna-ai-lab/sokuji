@@ -19,6 +19,17 @@ describe('sessionStartProperties', () => {
   it('reports a spoken session (R13) as such', () => {
     expect(sessionStartProperties({ sessionId: 's-1', source: 'en', target: 'zh', platform: 'android', participantSpeech: true }).participant_speech).toBe(true);
   });
+
+  it('carries where the speech goes and which canceller ran', () => {
+    const base = { sessionId: 's-1', source: 'en', target: 'zh', platform: 'ios' as const };
+    const p = sessionStartProperties({ ...base, speechRoute: 'speaker', aecChain: 'vendor' });
+    expect(p.speech_route).toBe('speaker');
+    expect(p.aec_chain).toBe('vendor');
+    const bare = sessionStartProperties(base);
+    expect('speech_route' in bare).toBe(false);
+    expect('aec_chain' in bare).toBe(false);
+    expect(sessionStartProperties({ ...base, speechRoute: 'other' }).speech_route).toBe('speaker');
+  });
 });
 
 describe('sessionEndProperties', () => {
