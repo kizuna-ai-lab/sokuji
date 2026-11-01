@@ -79,7 +79,12 @@ class SpeechTrack(private val rate: Int) {
 
   fun close() {
     running.set(false)
-    writer.join(1000)
+    writer.join(CLOSE_WAIT_MS)
+    if (writer.isAlive) {
+      // Blocked in a write: stopping the track is what returns it.
+      runCatching { track.stop() }
+      writer.join(CLOSE_WAIT_MS)
+    }
   }
 
   private fun writeLoop() {
@@ -164,6 +169,7 @@ class SpeechTrack(private val rate: Int) {
 
   private companion object {
     const val REBUILD_WAIT_MS = 200L
+    const val CLOSE_WAIT_MS = 1000L
     const val SHORT_WRITE_WAIT_MS = 5L
   }
 }

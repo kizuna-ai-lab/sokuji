@@ -538,6 +538,7 @@ export function startSession(o: {
       lastFailure = undefined;
       log(`${Math.max(0, Math.round((expiresAt - Date.now()) / 60000))} min left in this grant`);
       status('listening', spokenDetail(), !!tts);
+      if (heldByUser) status('listening', 'paused', !!tts);
     } catch (err) {
       const message = reason(err);
       // A socket that opened before the failure (session-started refused, say)
@@ -639,13 +640,13 @@ export function startSession(o: {
           log('notification: pause');
           heldByUser = true;
           pauseCapture();
-          if (stream?.isOpen()) status('listening', 'paused', speech !== null);
+          if (stream?.isOpen() && !connecting) status('listening', 'paused', speech !== null);
         }),
         RecordingNotificationManager.addEventListener('recordingNotificationResume', () => {
           log('notification: resume');
           heldByUser = false;
           void resumeCapture();
-          if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
+          if (stream?.isOpen() && !connecting) status('listening', spokenDetail(), speech !== null);
         }),
       ];
       for (const sub of onNotification) if (sub) subscriptions.push(sub);

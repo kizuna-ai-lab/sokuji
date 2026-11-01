@@ -689,6 +689,25 @@ describe('the Android notification', () => {
     await s.stop();
   });
 
+  // The first listening is what the analytics count, with its detail: Pause during connect comes after it.
+  it('Pause while connecting reports after the first listening', async () => {
+    let settle!: () => void;
+    lease.sessionStarted.mockImplementationOnce(() => new Promise<void>((resolve) => { settle = resolve; }));
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, echo, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.captures.at(-1)!.emit();
+    await flush();
+    audio.notification.listeners.recordingNotificationPause();
+    expect(statuses(events).some((e) => e.status === 'listening')).toBe(false);
+    settle();
+    await flush();
+    const listening = statuses(events).filter((e) => e.status === 'listening');
+    expect(listening[0].detail).toBeUndefined();
+    expect(listening.at(-1)).toMatchObject({ detail: 'paused' });
+    await s.stop();
+  });
+
   // A Pause tapped before the first grant must not look like the session
   // started: the screen's first 'listening' is what the analytics count.
   it('Pause before the stream is up reports nothing', async () => {
