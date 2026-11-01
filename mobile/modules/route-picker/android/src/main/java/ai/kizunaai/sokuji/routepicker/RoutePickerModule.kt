@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import androidx.annotation.RequiresApi
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -97,6 +98,7 @@ class RoutePickerModule : Module() {
   // The route callback is what registers the app with the system; without it
   // the controller never updates. (On the Pixel, Android 17, a switch in the
   // panel reached these and never the older MediaRouter.)
+  @RequiresApi(30)
   private fun observeRouter2(context: Context, changed: () -> Unit): () -> Unit {
     val router = MediaRouter2.getInstance(context)
     val executor = context.mainExecutor
@@ -135,6 +137,12 @@ class RoutePickerModule : Module() {
     OnStartObserving { appContext.reactContext?.let { startObserving(it) } }
 
     OnStopObserving {
+      observers?.invoke()
+      observers = null
+    }
+
+    // A reload destroys the module without stopping observation first.
+    OnDestroy {
       observers?.invoke()
       observers = null
     }
