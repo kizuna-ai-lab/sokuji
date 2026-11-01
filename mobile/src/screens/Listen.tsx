@@ -20,6 +20,7 @@ import { useIconSize } from '@/lib/useIconSize';
 import type { PreviewState } from '../session/preview';
 import { createNativeVoicePreview } from '../session/previewNative';
 import { useSettings } from '../store/useSettings';
+import { useApp } from '../navigation/context';
 import { PREVIEW_ESTIMATE_USD, previewFailureKey } from './previewText';
 
 const SPEEDS = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
@@ -29,8 +30,9 @@ const SPEEDS = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
 // desktop voice library's accent and gender labels. A voice can be heard
 // before it is chosen: a short sample in the language I read, charged to the
 // balance like the desktop's preview (owner, 2026-10-28).
-export default function Listen({ token, onBack, onSignInRequired }: { token: string; onBack: () => void; onSignInRequired: () => void }) {
+export default function Listen() {
   const { t } = useTranslation();
+  const { token, onSignInRequired } = useApp();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
   const [picking, setPicking] = useState(false);
@@ -107,7 +109,7 @@ export default function Listen({ token, onBack, onSignInRequired }: { token: str
   const cost = `${t('voiceLibrary.previewChargedToBalance')} ${t('mobile.listen.previewEstimate', { amount: `$${PREVIEW_ESTIMATE_USD.toFixed(4)}` })}`;
 
   return (
-    <Screen title={t('mobile.settings.listen')} onBack={onBack} backLabel={t('mobile.menu.settings')}>
+    <Screen>
       <RowGroup>
         <SwitchRow label={t('mobile.listen.toggle')} checked={settings.listen} onCheckedChange={(v) => set({ listen: v })} />
       </RowGroup>

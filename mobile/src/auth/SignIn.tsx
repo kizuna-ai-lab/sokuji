@@ -7,7 +7,6 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Field } from '@/components/Field';
 import { Notice } from '@/components/Notice';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { cn } from '@/lib/utils';
 import { requestPasswordReset, resetPassword, sendVerificationCode, signIn, signUp, verifyEmail } from './client';
@@ -28,14 +27,18 @@ export default function SignIn({
   onSignedIn,
   initialMode = 'signin',
   initialEmail = '',
-  onBack,
+  embedded = false,
+  onHoldingChange,
   lockEmail = false,
 }: {
   onSignedIn: (email: string) => void;
   /** The account screen opens the code screen for an address whose code was just sent. */
   initialMode?: Mode;
   initialEmail?: string;
-  onBack?: () => void;
+  /** Opened from the account screen, under the system's bar: no title or link of its own. */
+  embedded?: boolean;
+  /** Whether the page's own action is running, for the caller to hold the bar's Back. */
+  onHoldingChange?: (holding: boolean) => void;
   /** The account screen's flows: the address is the account's, shown but not editable. */
   lockEmail?: boolean;
 }) {
@@ -183,6 +186,7 @@ export default function SignIn({
   // would leave the app showing the state before it (CodeRabbit, #664). A code being
   // sent again does not hold the page; the auth client's timeout bounds the hold.
   const holding = busyFor === 'primary';
+  useEffect(() => { onHoldingChange?.(holding); }, [holding, onHoldingChange]);
   const link = (title: string, onPress: () => void) => (
     <Button variant="link" className="self-start px-0" disabled={holding} onPress={onPress}>
       <Text className="text-left">{title}</Text>
@@ -194,17 +198,15 @@ export default function SignIn({
       <Text>{resendIn > 0 ? t('mobile.signIn.sendAgainIn', { seconds: resendIn }) : t('mobile.signIn.sendAgain')}</Text>
     </Button>
   );
-  // Opened from the account screen, a page has the app's header; on its own, a title and a link back to sign in.
-  const back = onBack ?? (() => go('signin'));
-  const pageTitle = (title: string) => (onBack ? null : <Text role="heading" className="text-2xl font-semibold">{title}</Text>);
-  const backLink = onBack ? null : link(t('mobile.signIn.back'), back);
-  const headerTitle = mode === 'verify' || mode === 'verifyStart' ? t('mobile.signIn.verifyTitle') : t('mobile.signIn.resetTitle');
+  // Opened from the account screen, the system's bar carries the title and Back; on its own, a title and a link back to sign in.
+  const back = () => go('signin');
+  const pageTitle = (title: string) => (embedded ? null : <Text role="heading" className="text-2xl font-semibold">{title}</Text>);
+  const backLink = embedded ? null : link(t('mobile.signIn.back'), back);
   const errorLine = error ? <Notice tone="error">{error}</Notice> : null;
   const noticeLine = notice ? <Notice>{notice}</Notice> : null;
 
   return (
     <KeyboardAvoidingView className="bg-background w-full flex-1" behavior="padding">
-      {onBack ? <ScreenHeader title={headerTitle} onBack={onBack} backDisabled={holding} /> : null}
       <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-10 pt-4" keyboardShouldPersistTaps="handled">
         {(mode === 'signin' || mode === 'register') && (
           <>
@@ -264,7 +266,7 @@ export default function SignIn({
             {errorLine}
             {primary(t('mobile.signIn.verify'), otp.length !== 6, () => run(() => verifyEmail(address, otp), () => onSignedIn(address)))}
             {resend(sendCode)}
-            {onBack ? null : link(t('mobile.signIn.later'), () => onSignedIn(address))}
+            {embedded ? null : link(t('mobile.signIn.later'), () => onSignedIn(address))}
           </>
         )}
 
@@ -301,7 +303,7 @@ export default function SignIn({
               () => resetThenSignIn({ reset: () => resetPassword(address, otp, password), signIn: () => signIn(address, password), log: console.warn }),
               (result) => {
                 // From the account screen the user is still signed in: done either way.
-                if (result === 'signedIn' || onBack) return onSignedIn(address);
+                if (result === 'signedIn' || embedded) return onSignedIn(address);
                 // The password is changed but the sign-in did not go through: sign in from
                 // the sign-in page, the new password still filled in, not with the spent code.
                 const changed = password;

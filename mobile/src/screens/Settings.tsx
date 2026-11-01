@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Appearance, type HostInstance } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { SONIOX_REGION_LABELS, SONIOX_REGIONS } from '@shared/lib/soniox/regions';
 import { ChoiceList } from '@/components/ChoiceList';
@@ -10,7 +11,9 @@ import { SwitchRow } from '@/components/SwitchRow';
 import { refocus } from '@/components/focus';
 import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
 import { useSettings } from '../store/useSettings';
+import { useSessionActive } from '../store/useSessionActive';
 import { colorSchemeOverride, type Settings as SettingsValues } from '../store/settings';
+import type { AppNavigation } from '../navigation/routes';
 
 const SIZES: SettingsValues['textSize'][] = ['small', 'medium', 'large'];
 const APPEARANCES: SettingsValues['appearance'][] = ['system', 'light', 'dark'];
@@ -23,8 +26,11 @@ export function applyAppearance(appearance: SettingsValues['appearance']): void 
 
 // Its own screen (owner, 2026-10-27: the settings will grow). Each takes
 // effect at once, except the region and the pair, which the next Start reads.
-export default function Settings({ onBack, locked, onOpen }: { onBack: () => void; locked: boolean; onOpen: (screen: 'listen' | 'devices') => void }) {
+export default function Settings() {
   const { t, i18n } = useTranslation();
+  const navigation = useNavigation<AppNavigation>();
+  // A session is running: the pair, the region and hearing lock until it stops.
+  const locked = useSessionActive();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
   // Which side the sheet is for outlives its closing, so the sheet keeps its
@@ -49,7 +55,7 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
   };
 
   return (
-    <Screen title={t('mobile.menu.settings')} onBack={onBack}>
+    <Screen>
       <RowGroup title={t('mobile.settings.groupLanguages')}>
         <Row
           ref={sourceRow}
@@ -100,10 +106,10 @@ export default function Settings({ onBack, locked, onOpen }: { onBack: () => voi
           value={settings.listen ? t('common.on') : t('common.off')}
           disabled={locked}
           disabledReason={lockedReason}
-          onPress={() => onOpen('listen')}
+          onPress={() => navigation.navigate('Listen')}
         />
         {/* Open during a session too: the output can be switched then; Devices locks the microphone itself. */}
-        <Row label={t('mobile.settings.devices')} onPress={() => onOpen('devices')} />
+        <Row label={t('mobile.settings.devices')} onPress={() => navigation.navigate('Devices')} />
       </RowGroup>
 
       <ChoiceList

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, BackHandler, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppState, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTranslation } from 'react-i18next';
 import { CircleAlert, History as HistoryIcon, Menu, Play, RefreshCw, Settings as SettingsIcon, Square, UserRound } from 'lucide-react-native';
@@ -22,38 +23,29 @@ import { endReason } from '../session/endReason';
 import { createTranscript, type Transcript } from '../session/transcript';
 import { createEntriesFeed } from '../session/entriesFeed';
 import { useSettings } from '../store/useSettings';
+import { sessionStore } from '../store/useSessionActive';
+import { useApp } from '../navigation/context';
+import type { AppNavigation } from '../navigation/routes';
 import Subtitles from './Subtitles';
-import Account from './Account';
-import Settings from './Settings';
-import History from './History';
-import Listen from './Listen';
-import Devices from './Devices';
-import { createHistoryStore, type StoredSession } from '../history/store';
-import { documentFs } from '../history/fs';
+import type { StoredSession } from '../history/store';
 import { capture, platform, sessionEndProperties, sessionStartProperties } from '../analytics';
 
 const KEEP_AWAKE_TAG = 'sokuji-session';
 
-type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices';
-
 // The history store writes the running session every minute (ticker time) and at its end.
 const CHECKPOINT_MS = 60000;
 
-export default function Main({ accountId, token, email, onSignOut, onAccountDeleted, onSignInRequired }: {
-  /** The signed-in account's user id: the sessions on this phone are kept per account. */
-  accountId: string;
-  token: string; email: string; onSignOut: () => void | Promise<void>; onAccountDeleted: () => void;
-  /** The sign-in session is gone (a 401 mid-session): the app drops the token and shows the sign-in screen. */
-  onSignInRequired: () => void }) {
+// The main screen: the only one without the system's bar (its own one-line
+// bar carries the status and the menu); the others are routes beside it.
+export default function Main() {
   const { t, i18n } = useTranslation();
-  // This account's sessions only (owner, 2026-10-28: history is kept per account).
-  const history = useMemo(() => createHistoryStore(documentFs, accountId), [accountId]);
+  const { token, email, history, onSignInRequired } = useApp();
+  const navigation = useNavigation<AppNavigation>();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
   const [status, setStatus] = useState<Status | 'idle'>('idle');
   const [detail, setDetail] = useState('');
   const [entries, setEntries] = useState<readonly Entry[]>([]);
-  const [screen, setScreen] = useState<Screen>('main');
   const [stopping, runStop] = useBusy();
   const menuButton = useRef<HostInstance>(null);
   // The language lists open from the main screen (owner, 2026-11-01): which
@@ -91,23 +83,12 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
   const lastEvent = useRef<{ status: string; detail?: string } | null>(null);
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
-
-  // Android's Back: leave a sub-screen; on the main screen the system has it. An
-  // open menu is closed by the menu itself, whose handler is registered later and runs first.
+  // The other screens lock what a running session holds (see store/session.ts);
+  // a Main that goes mid-session (the token dropped) takes the flag with it.
   useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (screen === 'listen' || screen === 'devices') {
-        setScreen('settings');
-        return true;
-      }
-      if (screen !== 'main') {
-        setScreen('main');
-        return true;
-      }
-      return false;
-    });
-    return () => sub.remove();
-  }, [screen]);
+    sessionStore.getState().setActive(active);
+    return () => { sessionStore.getState().setActive(false); };
+  }, [active]);
 
   // Unmounted with a session running (the app dropped the token): nothing outlives the screen.
   useEffect(() => () => { void session.current?.stop(); }, []);
@@ -200,7 +181,7 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
         // The sign-in session is gone: the transcript is saved above; the app shows the sign-in screen.
         if (e.status === 'error' && e.detail === 'sign_in_required') onSignInRequired();
         // The balance ran out: the account screen says so and how to top up.
-        if (e.status === 'error' && e.detail === 'balance_exhausted') setScreen('account');
+        if (e.status === 'error' && e.detail === 'balance_exhausted') navigation.navigate('Account');
       },
     });
     if (settings.keepAwake) {
@@ -228,14 +209,6 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
     setPicking(false);
   };
 
-  if (screen === 'account') {
-    return <Account token={token} email={email} locked={active} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} onSignInRequired={onSignInRequired} />;
-  }
-  if (screen === 'settings') return <Settings onBack={() => setScreen('main')} locked={active} onOpen={setScreen} />;
-  if (screen === 'listen') return <Listen token={token} onBack={() => setScreen('settings')} onSignInRequired={onSignInRequired} />;
-  if (screen === 'devices') return <Devices onBack={() => setScreen('settings')} locked={active} />;
-  if (screen === 'history') return <History store={history} onBack={() => setScreen('main')} />;
-
   const shown = stopping ? 'stopping' : status;
   const line = statusLine(t, shown, detail);
   const tone = statusTone(shown);
@@ -245,7 +218,8 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
   const large = fontScale >= PAIR_STACK_FROM_FONT_SCALE;
 
   return (
-    <View className="bg-background w-full flex-1">
+    // Without the system's bar, the screen keeps off the status bar itself.
+    <SafeAreaView className="bg-background w-full flex-1" edges={['top', 'bottom', 'left', 'right']}>
       <View className="border-border min-h-12 flex-row items-center gap-2 border-b pe-1 ps-4">
         <View className="flex-1 flex-row items-center gap-2" accessibilityLiveRegion="polite">
           {tone === 'error' ? <Icon as={CircleAlert} size={18} className="text-destructive" /> : null}
@@ -269,15 +243,15 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
                 <DropdownMenuSeparator />
               </>
             ) : null}
-            <DropdownMenuItem onPress={() => setScreen('history')}>
+            <DropdownMenuItem onPress={() => navigation.navigate('History')}>
               <Icon as={HistoryIcon} size={20} />
               <Text>{t('mobile.menu.history')}</Text>
             </DropdownMenuItem>
-            <DropdownMenuItem onPress={() => setScreen('account')}>
+            <DropdownMenuItem onPress={() => navigation.navigate('Account')}>
               <Icon as={UserRound} size={20} />
               <Text>{t('mobile.menu.account')}</Text>
             </DropdownMenuItem>
-            <DropdownMenuItem onPress={() => setScreen('settings')}>
+            <DropdownMenuItem onPress={() => navigation.navigate('Settings')}>
               <Icon as={SettingsIcon} size={20} />
               <Text>{t('mobile.menu.settings')}</Text>
             </DropdownMenuItem>
@@ -348,6 +322,6 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
         }}
         onClose={closePicker}
       />
-    </View>
+    </SafeAreaView>
   );
 }

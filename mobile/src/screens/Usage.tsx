@@ -10,6 +10,7 @@ import { Spinner } from '@/components/Spinner';
 import { cn } from '@/lib/utils';
 import { fetchLedger, type LedgerCursor, type LedgerGroup } from '../account/ledger';
 import { formatUsd } from '../account/money';
+import { useApp } from '../navigation/context';
 
 const KIND_KEY: Record<string, string> = {
   topup: 'mobile.usage.kind.topup',
@@ -29,8 +30,9 @@ function duration(seconds: number): string {
 }
 
 // The ledger as the website's records card shows it: newest first, a page at a time.
-export default function Usage({ token, onBack, onSignInRequired }: { token: string; onBack: () => void; onSignInRequired: () => void }) {
+export default function Usage() {
   const { t, i18n } = useTranslation();
+  const { token, onSignInRequired } = useApp();
   const locale = i18n.language.replace('_', '-');
   const [groups, setGroups] = useState<LedgerGroup[]>([]);
   const [next, setNext] = useState<LedgerCursor | null>(null);
@@ -70,7 +72,7 @@ export default function Usage({ token, onBack, onSignInRequired }: { token: stri
       : t(KIND_KEY[item.kind] ?? 'mobile.usage.kind.adjustment');
 
   return (
-    <Screen title={t('mobile.account.usage')} onBack={onBack} scroll={false}>
+    <Screen scroll={false}>
       <FlatList
         className="flex-1"
         data={groups}
