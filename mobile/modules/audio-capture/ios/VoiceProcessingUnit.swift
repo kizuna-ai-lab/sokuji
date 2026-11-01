@@ -19,6 +19,8 @@ final class VoiceProcessingUnit {
   private let queue = DispatchQueue(label: "ai.kizunaai.sokuji.audiocapture")
   private var unit: AudioUnit?
   private var drain: DispatchSourceTimer?
+  // On `queue`: a failing unit is reported once, not on every drain.
+  private var reported = false
 
   // The render callback may not allocate or wait, so it hands samples over
   // through a ring. It writes ahead of `published` and moves that on when the
@@ -140,7 +142,10 @@ final class VoiceProcessingUnit {
     os_unfair_lock_lock(lock)
     consumed = at
     os_unfair_lock_unlock(lock)
-    if status != noErr { onFailure("audio unit render error \(status)") }
+    if status != noErr && !reported {
+      reported = true
+      onFailure("audio unit render error \(status)")
+    }
   }
 
   fileprivate func capture(

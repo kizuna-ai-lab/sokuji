@@ -36,7 +36,7 @@ public class AudioCaptureModule: Module {
         onFrame: { [weak self] frame in self?.sendEvent("audio", ["bytes": frame]) },
         onFailure: { [weak self] message in
           self?.control.async {
-            guard let self, self.unit === failed else { return }
+            guard let self, let failed, self.unit === failed else { return }
             self.stop()
             self.sendEvent("stopped", ["reason": "error", "message": message])
           }
