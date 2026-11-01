@@ -219,8 +219,9 @@ class CaptureEngine(
     // How long ago the newest frame read reached the microphone.
     val capturedAt = stamp.nanoTime + (framesRead - stamp.framePosition) * 1_000_000_000L / RATE
     val input = ((System.nanoTime() - capturedAt) / 1_000_000L).toInt().coerceAtLeast(0)
-    Aec3.nativeSetDelayMs(aec3, output + input)
-    Log.i(TAG, "seeded delay ${output + input} ms (output $output, input $input)")
+    val delay = output + input + SEED_MARGIN_MS
+    Aec3.nativeSetDelayMs(aec3, delay)
+    Log.i(TAG, "seeded delay $delay ms (output $output, input $input)")
     return true
   }
 
@@ -235,6 +236,8 @@ class CaptureEngine(
     private const val TEN_MS = RATE / 100
     private const val FRAME = RATE / 10
     private const val SEED_EVERY = 10
+    // Buffers neither timestamp sees: the canceller settled 110-140 ms above them on a Pixel 9a.
+    private const val SEED_MARGIN_MS = 120
     private const val LOG_EVERY = 500
     private const val TAG = "AudioCapture"
   }
