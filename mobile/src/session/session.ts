@@ -154,8 +154,8 @@ export function startSession(o: {
   });
   const echoWanted = () => echoCancellationFor({ ...o.echo, listen: !!o.listen, route });
   const chain = () => captureInfo?.chain ?? null;
-  const spoken = () => speakable({ ...o.echo, listen: !!o.listen, route, chain: chain() });
-  const spokenDetail = () => (o.listen && speech ? (spoken() && !trackFailed ? 'spoken' : 'subtitles_only') : undefined);
+  const spoken = () => !trackFailed && speakable({ ...o.echo, listen: !!o.listen, route, chain: chain() });
+  const spokenDetail = () => (o.listen && speech ? (spoken() ? 'spoken' : 'subtitles_only') : undefined);
   // The ticker as the shared modules' clock: their timers must not be JS timers either.
   const tickerClock = { now: () => Date.now(), setTimeout: (fn: () => void, ms: number) => ticker.after(ms, fn) };
   const log = (line: string) => {
@@ -610,6 +610,7 @@ export function startSession(o: {
       if (!running) return;
       player = o.createPlayer?.() ?? defaultPlayer(log, () => {
         trackFailed = true;
+        speech?.setOn(false);
         if (stream?.isOpen() && !connecting) status('listening', heldByUser ? 'paused' : spokenDetail(), speech !== null);
       });
       subscriptions.push({ remove: (o.onRouteChange ?? nativeRouteChange)(applyRoute) });

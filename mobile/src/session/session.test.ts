@@ -558,8 +558,13 @@ describe('hearing the translation', () => {
   it('says subtitles only when the speech track will not open', async () => {
     const { s, events } = await spoken('speaker', { defaultPlayer: true });
     expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'spoken' });
+    const setOn = vi.fn();
+    const speech = transcript.setSpeech.mock.calls.at(-1)![0] as { setOn(on: boolean): void };
+    speech.setOn = setOn;
     audio.trackFailed('no track');
     expect(statuses(events).at(-1)).toMatchObject({ status: 'listening', detail: 'subtitles_only' });
+    // Nothing would be heard: the synthesis stops being paid for.
+    expect(setOn.mock.calls.at(-1)).toEqual([false]);
     await s.stop();
   });
 
