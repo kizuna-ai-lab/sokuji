@@ -65,8 +65,9 @@ export function LanguagePair({ source, target, arrow, hearLabel, readLabel, hear
   return (
     <View className={cn('border-border bg-background flex-row items-stretch overflow-hidden rounded-md border', className)}>
       <Side ref={sourceRef} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} />
-      {/* Decoration between the two buttons: the sides' labels already say which is which. */}
-      <View className="justify-center" accessible={false} importantForAccessibility="no">
+      {/* Decoration between the two buttons, hidden from screen readers with its text
+          (the sides' labels already say which is which): a stop on it would be one too many. */}
+      <View className="justify-center" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text className="text-muted-foreground">{arrow}</Text>
       </View>
       <Side ref={targetRef} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} />
