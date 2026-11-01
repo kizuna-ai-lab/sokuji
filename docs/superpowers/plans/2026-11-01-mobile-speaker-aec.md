@@ -56,7 +56,7 @@
 | `docs/superpowers/specs/2026-10-26-sokuji-mobile-design.md` | R13 row, §3.1 bullet, Gate A addendum amended |
 | `mobile/scripts/transcribe.mjs`, `mobile/scripts/score.py` | The Soniox recognition pipeline used for verification |
 
-Phases: Tasks 1–7 are TypeScript and docs (parallel, no device). Tasks 8–10 are the native module (Sophie's Mac, the phones). Task 11 is verification. Tasks 1–7 can land before 8–10 behind the existing library recorder only if `createCapture` keeps a library-backed fallback; this plan does not do that: the session switches to the module in Task 5, so Tasks 5 and 8–10 merge together, and Tasks 1–4, 6, 7 may merge first.
+Phases: Tasks 1–7 are TypeScript and docs (parallel, no device). Tasks 8–10 are the native module (a Mac with Xcode and the NDK, the phones). Task 11 is verification. Tasks 1–7 can land before 8–10 behind the existing library recorder only if `createCapture` keeps a library-backed fallback; this plan does not do that: the session switches to the module in Task 5, so Tasks 5 and 8–10 merge together, and Tasks 1–4, 6, 7 may merge first.
 
 ---
 

@@ -19,7 +19,7 @@ export function createInterruptionHandler(o: {
       // Ended. The OS says whether the app may take the microphone back; without
       // that permission (another app kept it) capture stays paused, and the log says so.
       if (e.shouldResume) o.resumeCapture();
-      else o.log('interruption ended without permission to resume: capture stays paused');
+      else o.log('interruption ended without permission to resume');
     },
     // The input stays the phone's own microphone whatever is plugged in or paired
     // (R14), so a route change is noted and nothing else.

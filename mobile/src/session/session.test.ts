@@ -22,6 +22,7 @@ const audio = vi.hoisted(() => ({
   // Starts refused: 'always', or only those asking for echo cancellation.
   fail: null as null | 'always' | 'processed',
   pending: null as null | Promise<void>,
+  pausing: null as null | Promise<void>,
   notification: {
     show: vi.fn(async () => {}),
     hide: vi.fn(async () => {}),
@@ -61,7 +62,7 @@ vi.mock('./captureNative', () => ({
       onStopped: o.onStopped,
       async start() { audio.captures.push(c); return begin(); },
       async stop() { c.stopped = true; },
-      async pause() { c.paused += 1; },
+      async pause() { c.paused += 1; if (audio.pausing) await audio.pausing; },
       resume: begin,
     };
     return c;
@@ -132,6 +133,7 @@ beforeEach(() => {
   audio.chain = undefined;
   audio.fail = null;
   audio.pending = null;
+  audio.pausing = null;
   audio.notification.listeners = {};
   streams.length = 0;
   network.listeners.length = 0;
@@ -529,6 +531,26 @@ describe('hearing the translation', () => {
     interruption({ type: 'ended', shouldResume: true });
     await flush();
     expect(audio.starts.map((o) => o.echoCancellation)).toEqual([false, true]);
+    await s.stop();
+  });
+
+  // The screen says listening: the capture paused at the end of a restart must not stay paused.
+  it('resumes a capture paused at the end of a restart when the call ends meanwhile', async () => {
+    const { s, route } = await spoken('bluetooth');
+    let open!: () => void;
+    let paused!: () => void;
+    audio.pending = new Promise((resolve) => { open = resolve; });
+    audio.pausing = new Promise((resolve) => { paused = resolve; });
+    await route('speaker');
+    interruption({ type: 'began' });
+    open();
+    await flush();
+    expect(audio.captures.at(-1)!.paused).toBe(1);
+    const starts = audio.starts.length;
+    interruption({ type: 'ended', shouldResume: true });
+    paused();
+    await flush();
+    expect(audio.starts).toHaveLength(starts + 1);
     await s.stop();
   });
 

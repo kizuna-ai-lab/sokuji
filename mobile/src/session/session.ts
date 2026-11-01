@@ -88,6 +88,9 @@ export function startSession(o: {
   let captureInfo: CaptureInfo | null = null;
   // The OS has the microphone (a phone call): nothing starts until it gives it back.
   let capturePaused = false;
+  // The capture itself is stopped for that. Apart from `capturePaused`: the OS can
+  // give the microphone back while a restart is still ending in a pause.
+  let captureHalted = false;
   // The notification's Pause: only its Resume ends this, not a call ending.
   let heldByUser = false;
   // The first start is begin()'s: a route change before it only moves `route`.
@@ -250,6 +253,7 @@ export function startSession(o: {
     if (!running) return;
     if (why === 'interrupted') {
       capturePaused = true;
+      captureHalted = true;
       return;
     }
     // A capture that dies again before a single frame will not come back.
@@ -271,7 +275,7 @@ export function startSession(o: {
         ? { iosCategory: 'record', iosMode: 'default', iosOptions: [] }
         : echoCancellation
           ? { iosCategory: 'playAndRecord', iosMode: 'voiceChat', iosOptions: ['defaultToSpeaker', 'allowBluetoothA2DP'] }
-          : { iosCategory: 'playAndRecord', iosMode: 'default', iosOptions: ['allowBluetoothA2DP'] },
+          : { iosCategory: 'playAndRecord', iosMode: 'default', iosOptions: ['defaultToSpeaker', 'allowBluetoothA2DP'] },
     );
   }
 
@@ -320,9 +324,13 @@ export function startSession(o: {
     }
     capture = c;
     captureMode = echoCancellation;
+    captureHalted = false;
     if (old) log(`capture restarted in ${Date.now() - t0} ms: echo cancellation ${echoCancellation ? 'on' : 'off'}, chain ${chain()}`);
     // The OS took the microphone while this was starting.
-    if (capturePaused) await c.pause();
+    if (capturePaused) {
+      captureHalted = true;
+      await c.pause();
+    }
   }
 
   // Brings the capture to the mode the route asks for, however many routes went
@@ -331,7 +339,11 @@ export function startSession(o: {
     if (!captureBegun || syncingCapture) return;
     syncingCapture = true;
     try {
-      while (running && !capturePaused && (!capture || captureMode !== echoWanted())) await restartCapture(echoWanted());
+      while (running && !capturePaused) {
+        if (!capture || captureMode !== echoWanted()) await restartCapture(echoWanted());
+        else if (captureHalted) await resumeHalted(capture);
+        else break;
+      }
     } catch (err) {
       log(`capture failed: ${reason(err)}`);
       // During an interruption that is the OS's doing: the resume tries again.
@@ -352,23 +364,25 @@ export function startSession(o: {
   function pauseCapture(): void {
     if (capturePaused) return;
     capturePaused = true;
+    captureHalted = true;
     capture?.pause().catch((err) => log(`capture pause failed: ${reason(err)}`));
   }
 
   async function resumeCapture(): Promise<void> {
     if (!capturePaused || !running || heldByUser) return;
     capturePaused = false;
-    const c = capture;
-    if (c && captureMode === echoWanted() && !syncingCapture) {
-      try {
-        captureInfo = await c.resume();
-        if (!running) await c.stop();
-      } catch (err) {
-        log(`capture resume failed: ${reason(err)}`);
-        captureMode = null;
-      }
-    }
     await syncCapture();
+  }
+
+  async function resumeHalted(c: Capture): Promise<void> {
+    captureHalted = false;
+    try {
+      captureInfo = await c.resume();
+      if (!running) await c.stop();
+    } catch (err) {
+      log(`capture resume failed: ${reason(err)}`);
+      captureMode = null;
+    }
   }
 
   // Spec §6: the voice stops before the output changes under it (it must not
