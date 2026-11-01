@@ -1,6 +1,6 @@
 # Sokuji mobile: speech on the loudspeaker with echo cancellation — design
 
-**Status:** owner's answers applied, 2026-11-01. Nothing here is built. The spike code lives on
+**Status:** approved by the owner, 2026-11-01. Nothing here is built. The spike code lives on
 local branches and is not meant to merge.
 **Scope:** `mobile/` only. A new native capture module for iOS and Android (on Android also the speech
 player), the session changes it needs, and the change to ruling R13. No backend change.
@@ -163,8 +163,8 @@ Devices screen become: "Spoken through headphones or the loudspeaker. On the lou
 its own voice from the microphone." Thirty catalogs. The design spec's R13 row, §3.1's "Hear the
 translation" bullet and the Gate A addendum are amended in the same change; R14 is untouched.
 
-**Settings.** One new switch, on the Listen screen under "Hear the translation", on by default, on both
-platforms (`settings.echoCancellation`), worded like "Remove echo on the loudspeaker", with a footnote that
+**Settings.** One new row, "Echo cancellation", on the Devices screen, on by default, on both
+platforms (`settings.echoCancellation`), with a footnote that
 turning it off lets the speaker's translation back into the microphone. It cannot be changed during a
 session, like the other session settings.
 Noise suppression has no row of its own: on iOS the system offers no way to control it apart from echo
@@ -229,6 +229,6 @@ code is not unit tested.
 3. Android playback in the module: no objection.
 4. No self-test.
 5. One echo cancellation switch, no auto/software/off choice.
-6. Android microphone: the module honours it (§4.2), as Sophie and Walter recommend. Awaiting the owner's confirmation.
+6. Android microphone: the module honours it (§4.2).
 7. Bluetooth speakers and car systems: not handled.
 8. No further test phones.
