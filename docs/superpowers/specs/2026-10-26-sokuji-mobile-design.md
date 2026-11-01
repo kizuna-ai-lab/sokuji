@@ -36,7 +36,7 @@ phone locked or in their pocket for most of it, and a document to keep at the en
 | R10 | Name and scheme | "Sokuji", URL scheme `sokuji`. |
 | R11 | Sign-in | Email and password accounts, as the desktop (revised by the owner on 2026-10-27; the 2026-10-26 ruling was one-time code only): sign-up with email and password, then a 6-digit code sent to the address verifies it inside the app, which is what grants the trial credit; sign-in with the password, which sends no mail, so the mail quota is spent on registrations and password resets only; a forgotten password is reset with a code. No code-only sign-in. No third-party sign-in in the first version (§8.7). |
 | R12 | Purchases | The first version shows the balance only: sells nothing, links nowhere (§5.4). |
-| R13 | Hearing the translation (owner, 2026-10-27) | The first version also reads the other side's translation aloud to the listener, as the desktop's "Voice I hear" does: the backend's `participant-spoken` shape (`par_stt` + `par_tts`), Soniox speech synthesis streamed as PCM and played by the app. A setting, off by default; the subtitles stay on while it is on. Confirmed by the owner (2026-10-27, 08:17): spoken only through headphones (wired or Bluetooth), since the phone's loudspeaker would feed the spoken translation back into the microphone; on the loudspeaker the app shows subtitles only and says so. The user's own speech translated for others (§3.2) stays out. |
+| R13 | Hearing the translation (owner, 2026-10-27) | The first version also reads the other side's translation aloud to the listener, as the desktop's "Voice I hear" does: the backend's `participant-spoken` shape (`par_stt` + `par_tts`), Soniox speech synthesis streamed as PCM and played by the app. A setting, off by default; the subtitles stay on while it is on. Amended by the owner (2026-11-01): spoken through headphones (wired or Bluetooth) and, with the echo cancellation setting on, the loudspeaker; the microphone is processed on the loudspeaker so that the spoken translation is not transcribed again (`2026-11-01-mobile-speaker-aec-design.md`). When no echo cancellation can run there, the app shows subtitles only and says so. The user's own speech translated for others (§3.2) stays out. |
 | R14 | Audio devices (owner, 2026-10-27) | The user may choose the microphone in the app: the phone's own (the default), a wired headset's, or a USB microphone. No Bluetooth headset microphone (owner, 08:23): it needs the hands-free profile, which turns playback mono and uses one earbud's microphone only, and playback must keep its two channels — the later face-to-face scene (not in the first version) plays each translation to one ear, with the phone between the two people on its own microphone, the desktop's face-to-face shape: one mixed stream, the language telling who speaks. So the player is stereo from the first version: the translation plays on both channels, and the player can pan a voice to one ear. The output device is chosen through the system's own picker, opened from the app (iOS does not let an app pick the output itself). |
 
 ## 3. The product, as decided
@@ -55,10 +55,11 @@ phone locked or in their pocket for most of it, and a document to keep at the en
 - **One job**: pick the language you will hear and the language you read (the desktop's
   "participant" leg, through the microphone), press Start, and read. Subtitles are bilingual by
   default (what was said, then the translation), with a translation-only toggle.
-- **Hear the translation** (R13): with the setting on and headphones connected, the translation is
-  also read aloud to the listener (the desktop's "Voice I hear"), with a choice of voice and speed
-  worded as the desktop words them; the subtitles stay. On the loudspeaker the app falls back to
-  subtitles and says why. The session then costs the speech synthesis on top, and the hours
+- **Hear the translation** (R13): with the setting on, the translation is also read aloud to the
+  listener through headphones or the loudspeaker (the desktop's "Voice I hear"), with a choice of
+  voice and speed worded as the desktop words them; the subtitles stay. On the loudspeaker the app
+  speaks and cancels its own voice from the microphone; when no echo cancellation can run there it
+  falls back to subtitles and says why. The session then costs the speech synthesis on top, and the hours
   estimate follows the setting.
 - **Keeps running**: with the phone locked, in the pocket, or while another app is in front, for
   the whole session (one to two hours is the target; §6 sets the gate). The OS shows its own
@@ -279,7 +280,7 @@ version renders subtitles as a virtualized list and draws nothing in the backgro
 `playAndRecord` (Bluetooth output over A2DP, the phone's own microphone kept as input), so the
 60-minute locked run is repeated on the iPhone in that mode with the setting on, and the echo rule
 is checked once on each phone: with headphones the spoken translation is not transcribed again; on
-the loudspeaker the app does not speak.
+the loudspeaker the app speaks and cancels its own voice.
 
 **Gate B, before TestFlight / Play internal testing.** The MVP checklist in §3.1 on both devices,
 in a real 90-minute session on cellular, phone in a pocket, with battery and heat written down,
