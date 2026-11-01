@@ -127,3 +127,10 @@ describe('rename when the write fails', () => {
     warn.mockRestore();
   });
 });
+
+describe('rename of a session that no longer exists', () => {
+  it('rejects instead of pretending the title was saved', async () => {
+    const store = createHistoryStore(memoryFs(), 'u1');
+    await expect(store.rename('gone', 'Lecture')).rejects.toThrow('history_missing');
+  });
+});

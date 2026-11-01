@@ -1,6 +1,8 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
+import { useNavigation, usePreventRemove, useRoute, type RouteProp } from '@react-navigation/native';
 import { Notice } from '@/components/Notice';
+import { leaveState } from '@/lib/leave';
 import { useApp } from '../navigation/context';
 import type { AppNavigation, RootStackParamList } from '../navigation/routes';
 import SessionReader from './SessionReader';
@@ -15,17 +17,30 @@ export default function ReaderScreen() {
   // The session as opened; a rename made here follows in the title.
   const [session, setSession] = useState(params.session);
   const { lines } = useSessionLines();
-  const { actions, dialogs, error } = useHistoryActions(history, {
+  // Deleted from the reader: back to the list, once the delete has released its hold.
+  const [leaving, setLeaving] = useState(false);
+  const { actions, dialogs, error, busy } = useHistoryActions(history, {
     onRenamed: (id, title) => { if (id === session.id) setSession((s) => ({ ...s, title: title || undefined })); },
-    // Deleted from the reader: back to the list.
-    onDeleted: (id) => { if (id === session.id) navigation.goBack(); },
+    onDeleted: (id) => { if (id === session.id) setLeaving(true); },
   });
-  // The bar's button calls the current menu, whichever render it came from.
+  // A rename or delete being saved holds the page: leaving before the write
+  // lands would show the list its old state (History reloads when it is back).
+  const { prevent, goBack } = leaveState({ holding: busy, leaving });
+  usePreventRemove(prevent, () => {});
+  useEffect(() => {
+    navigation.setOptions({ headerBackVisible: !prevent, gestureEnabled: !prevent });
+  }, [navigation, prevent]);
+  useEffect(() => {
+    if (goBack) navigation.goBack();
+  }, [goBack, navigation]);
+  // The bar's button calls the current menu, whichever render it came from;
+  // set again when the system text size changes, so the button is drawn at its new size.
+  const { fontScale } = useWindowDimensions();
   const latest = useRef(actions);
   latest.current = actions;
   useLayoutEffect(() => {
     navigation.setOptions({ headerRight: () => latest.current(session) });
-  }, [navigation, session]);
+  }, [navigation, session, fontScale]);
 
   const { name, meta } = lines(session);
   return (

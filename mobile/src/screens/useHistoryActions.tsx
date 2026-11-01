@@ -46,7 +46,7 @@ export function useSessionLines() {
 export function useHistoryActions(store: HistoryStore, { onRenamed, onDeleted }: {
   onRenamed?: (id: string, title: string) => void | Promise<void>;
   onDeleted?: (id: string) => void | Promise<void>;
-}): { actions: (item: SessionSummary) => ReactNode; dialogs: ReactNode; error: string; clearError: () => void } {
+}): { actions: (item: SessionSummary) => ReactNode; dialogs: ReactNode; error: string; clearError: () => void; busy: boolean } {
   const { t } = useTranslation();
   const { lines, when } = useSessionLines();
   const [renaming, setRenaming] = useState<SessionSummary | null>(null);
@@ -56,7 +56,7 @@ export function useHistoryActions(store: HistoryStore, { onRenamed, onDeleted }:
   const [renameError, setRenameError] = useState('');
   const [, runShare] = useBusy();
   const [saving, runSave] = useBusy();
-  const [, runDelete] = useBusy();
+  const [removing, runDelete] = useBusy();
   const moreIcon = useIconSize(22);
   // The detail is for the log; the screen says it in words (design scope: no raw errors).
   const fail = (what: string) => (err: unknown) => {
@@ -206,5 +206,5 @@ export function useHistoryActions(store: HistoryStore, { onRenamed, onDeleted }:
     </>
   );
 
-  return { actions, dialogs, error, clearError: () => setError('') };
+  return { actions, dialogs, error, clearError: () => setError(''), busy: saving || removing };
 }

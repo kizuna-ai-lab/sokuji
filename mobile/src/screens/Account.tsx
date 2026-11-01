@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { View, type HostInstance } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { createLatest } from '@/lib/latest';
 import { useTranslation } from 'react-i18next';
 import { KeyRound, LogOut, ReceiptText, Trash2 } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,8 @@ export default function Account() {
   const [deleting, runDelete] = useBusy();
   const [signingOut, runSignOut] = useBusy();
   const deleteRow = useRef<HostInstance>(null);
+  // Every focus starts a load; one that finishes after a newer one must not overwrite it.
+  const [latest] = useState(createLatest);
   // A lost session goes to the sign-in screen; anything else is shown.
   const show = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -53,6 +56,7 @@ export default function Account() {
   const day = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
 
   const load = useCallback(async () => {
+    const mine = latest.next();
     setError('');
     try {
       const [w, rate, fallback, v] = await Promise.all([
@@ -61,14 +65,15 @@ export default function Account() {
         fetchFallbackUsdPerHour({}).catch(() => 0),
         emailVerified().catch(() => null),
       ]);
+      if (!latest.isCurrent(mine)) return;
       setWallet(w);
       const h = hoursLeft(w.balanceUsd, rate, fallback);
       setHours(rate !== null || fallback > 0 ? formatHours(h) : null);
       setVerified(v);
     } catch (err) {
-      show(err);
+      if (latest.isCurrent(mine)) show(err);
     }
-  }, [token]);
+  }, [token, latest]);
 
   // Loaded when the screen shows, and again when a verify or password page returns to it.
   useFocusEffect(useCallback(() => { void load(); }, [load]));

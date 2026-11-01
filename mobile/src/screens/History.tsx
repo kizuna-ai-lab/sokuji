@@ -9,6 +9,7 @@ import { Notice } from '@/components/Notice';
 import { Row } from '@/components/Row';
 import { Screen } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
+import { createLatest } from '@/lib/latest';
 import type { SessionSummary } from '../history/store';
 import { useApp } from '../navigation/context';
 import type { AppNavigation } from '../navigation/routes';
@@ -27,16 +28,23 @@ export default function History() {
   const [listFailed, setListFailed] = useState(false);
   const { lines } = useSessionLines();
 
+  // Every focus (and a rename or delete) starts a read; one that finishes after a
+  // newer one must not put back what the newer one removed.
+  const [latest] = useState(createLatest);
   const load = useCallback(async () => {
+    const mine = latest.next();
     try {
-      setSessions(await store.list());
+      const list = await store.list();
+      if (!latest.isCurrent(mine)) return;
+      setSessions(list);
       setListFailed(false);
     } catch (err) {
+      if (!latest.isCurrent(mine)) return;
       console.warn(`history list: ${err instanceof Error ? err.message : String(err)}`);
       setListFailed(true);
       setSessions((s) => s ?? []);
     }
-  }, [store]);
+  }, [store, latest]);
   // Loaded when the screen shows, and again when the reader comes back to it (a rename or delete made there).
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 

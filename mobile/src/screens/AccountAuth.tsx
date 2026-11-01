@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import SignIn from '../auth/SignIn';
 import { Screen } from '@/components/ScreenHeader';
+import { leaveState } from '@/lib/leave';
 import { useApp } from '../navigation/context';
 import type { AppNavigation } from '../navigation/routes';
 
@@ -13,17 +14,22 @@ function AuthRoute({ mode }: { mode: 'verifyStart' | 'forgot' }) {
   const { email } = useApp();
   const navigation = useNavigation<AppNavigation>();
   const [holding, setHolding] = useState(false);
-  usePreventRemove(holding, () => {});
-  const onHoldingChange = useCallback(
-    (next: boolean) => {
-      setHolding(next);
-      navigation.setOptions({ headerBackVisible: !next, gestureEnabled: !next });
-    },
-    [navigation],
-  );
+  // Signed in or verified: the page leaves once its request has released the
+  // hold (the result arrives before the hold does; a Back sent during the hold
+  // would be refused and lost).
+  const [leaving, setLeaving] = useState(false);
+  const { prevent, goBack } = leaveState({ holding, leaving });
+  usePreventRemove(prevent, () => {});
+  useEffect(() => {
+    navigation.setOptions({ headerBackVisible: !prevent, gestureEnabled: !prevent });
+  }, [navigation, prevent]);
+  useEffect(() => {
+    if (goBack) navigation.goBack();
+  }, [goBack, navigation]);
+  const onHoldingChange = useCallback((next: boolean) => setHolding(next), []);
   return (
     <Screen scroll={false}>
-      <SignIn initialMode={mode} initialEmail={email} lockEmail embedded onSignedIn={() => navigation.goBack()} onHoldingChange={onHoldingChange} />
+      <SignIn initialMode={mode} initialEmail={email} lockEmail embedded onSignedIn={() => setLeaving(true)} onHoldingChange={onHoldingChange} />
     </Screen>
   );
 }
