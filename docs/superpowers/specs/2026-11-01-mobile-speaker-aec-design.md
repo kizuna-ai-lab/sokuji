@@ -114,7 +114,7 @@ system reference and never used to gate the microphone (the measured arrangement
 rounds, no muted windows). The unit's own output bus renders silence. On iOS 17 and later the module
 sets other-audio ducking to its minimum; on iOS 16.4–16.x (the app's floor) the system ducks other
 audio by about 10 dB while voice processing runs, so the translation plays quieter there. Accepted.
-The 100 ms chunk scheduling of `createSpeechPlayer` is unchanged; the verification in §8 confirms the
+The 100 ms chunk scheduling of `createSpeechPlayer` is unchanged; the verification in §7 confirms the
 chunked player behaves like the whole-clip spike.
 
 **Android.** Speech playback moves into the capture module, for both chains (accepted by the owner): the module owns `AudioRecord`, `AudioTrack` and the canceller. Reasons: the AEC3 chain needs
@@ -150,7 +150,7 @@ With the setting off the user has chosen plain capture, so speech plays and the 
 **Route changes.** `applyRoute(next)` now: (1) `player.stop()` if the route just left the headphones
 (the translation must not jump to the loudspeaker mid-sentence through an unprocessed microphone);
 (2) restart capture with the mode for the new route — the socket, the lease and the TTS leg are kept;
-the gap is one module stop/start (expected under half a second; measured in §8), during which no audio
+the gap is one module stop/start (expected under half a second; measured in §7), during which no audio
 is sent and the ticker still ticks on the foreground interval; (3) `speech.setOn(speakable)` and the
 status line. Earpiece never: iOS `defaultToSpeaker`, Android normal media routing. A route change while
 the OS interruption has capture paused is applied when capture resumes.
@@ -163,23 +163,18 @@ Devices screen become: "Spoken through headphones or the loudspeaker. On the lou
 its own voice from the microphone." Thirty catalogs. The design spec's R13 row, §3.1's "Hear the
 translation" bullet and the Gate A addendum are amended in the same change; R14 is untouched.
 
-**Settings.** One new row, "Echo cancellation", on the Devices screen, on by default, on both platforms
-(`settings.echoCancellation`). It cannot be changed during a session, like the other session settings.
+**Settings.** One new switch, on the Listen screen under "Hear the translation", on by default, on both
+platforms (`settings.echoCancellation`), worded like "Remove echo on the loudspeaker", with a footnote that
+turning it off lets the speaker's translation back into the microphone. It cannot be changed during a
+session, like the other session settings.
 Noise suppression has no row of its own: on iOS the system offers no way to control it apart from echo
-cancellation, and on Android it stays off in both chains. On a phone with neither chain available, the
-row shows as unavailable.
+cancellation, and on Android it stays off in both chains.
 
 **Analytics.** The existing session start event gains `speech_route` (`speaker` | `headphones` |
 `bluetooth`) and `aec_chain` (`none` | `voiceProcessing` | `vendor` | `aec3`). User reports plus these
 properties show whether a phone needs attention.
 
-## 7. Self-test
-
-Not built (owner, 2026-11-01): recent phones' cancellers are expected to be fine, and one can be added
-if users report otherwise. The cost is that a present but poor vendor chain is not detected. The user's
-way out is turning the setting off, and AEC3 cannot be chosen by hand.
-
-## 8. Verification
+## 7. Verification
 
 First, before building the iOS module fully: `createSpeechPlayer` chunked playback with
 VoiceProcessingIO capture. The spike played the clip in one go. On Android the module-owned player is
@@ -196,7 +191,8 @@ Then, on real phones, in a release build:
 | Long run | 60 minutes on the loudspeaker: battery and heat recorded |
 | Interruptions | Phone call during a session recovers as today |
 
-The owner has no other test phones, so the Samsung, Xiaomi and iOS 16 checks are dropped; see §9.
+Verification uses the iPhone 11 and Pixel 9a only. Samsung, Xiaomi and iOS 16 are untested and rely on
+feedback after release; see §8.
 
 The estimates (iOS module 1 to 2 days, Android module 2 to 3, session and product 1) assume starting from the spike code. If the owner agrees, the spike branches are
 pushed as `spike/…` and `transcribe.mjs` and `score.py` move to `mobile/scripts/`; the recordings stay in
@@ -205,14 +201,18 @@ the comparison page.
 Unit tests cover chain selection, route-to-mode logic and the session's lease behaviour. The native
 code is not unit tested.
 
-## 9. Risks
+## 8. Risks
 
 - **Results come from two phones and a Mac speaker.** No real person has been tested. A chain that
   worked here may not work elsewhere.
 - **The vendor chain mutes briefly.** About 8% of playback, with almost no lost characters on this text.
   Other speech may do worse.
 - **Only one Android phone is tested, with no self-test.** Pixel's vendor chain is known good and may not
-  represent Samsung or Xiaomi. A poor chain shows up only as user reports.
+  represent Samsung or Xiaomi. On a poor chain the user turns the switch off, and a self-test is added if
+  reports call for it. AEC3 cannot be chosen by hand.
+- **External microphones.** The vendor chain may be weaker with a USB microphone on the loudspeaker route.
+- **Bluetooth speakers and car systems.** They count as headphones, so no chain runs and the switch does
+  not help: `voiceChat` and `VOICE_COMMUNICATION` would pull Bluetooth into hands-free mode. Not handled.
 - **AEC3 starts cold.** The delay took 6 to 7 seconds to lock at the start of a session, and the first
   segment lost the most characters. The fixed-delay start value is untested.
 - **AEC3 cost.** About 11% of one core on a Pixel 9a. Battery and low-end phones are unmeasured.
@@ -222,13 +222,13 @@ code is not unit tested.
 - **Android playback moves into the module.** The library's player is no longer exercised there during
   sessions, so the module owns everything that used to be the library's: scheduling, pan, volume.
 
-## 10. The owner's answers (2026-11-01)
+## 9. The owner's answers (2026-11-01)
 
 1. Build it now; there is no first-version split.
 2. `listen` does not imply the loudspeaker, so there is a setting, on by default (D7).
 3. Android playback in the module: no objection.
-4. No self-test (§7).
+4. No self-test.
 5. One echo cancellation switch, no auto/software/off choice.
-6. Android microphone: recommended, the module honours it (§4.2). Awaiting the owner's confirmation.
+6. Android microphone: the module honours it (§4.2), as Sophie and Walter recommend. Awaiting the owner's confirmation.
 7. Bluetooth speakers and car systems: not handled.
 8. No further test phones.
