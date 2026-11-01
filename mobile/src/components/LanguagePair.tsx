@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Pressable, View, type TextLayoutEvent } from 'react-native';
 import { nameWeight } from '../screens/mainText';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, Lock } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -46,7 +46,7 @@ function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey
       accessibilityLabel={`${label}: ${name}`}
       accessibilityHint={hint}
       accessibilityState={{ disabled: locked }}
-      disabled={locked}
+      // Greyed, but still pressable: a press while locked asks why.
       onPress={onPress}
       // Squared off: the box around the pair carries the rounding. Side by side each
       // side starts from what it needs besides its name and the rest of the width is
@@ -56,13 +56,13 @@ function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey
       // zero, the padding and chevron came out of the shorter name's share, which
       // wrapped "Japanese" beside "Auto Detect".
       style={weight === undefined ? undefined : { flexGrow: weight, flexShrink: 1, flexBasis: basis ?? 0 }}
-      className={cn('gap-1 rounded-none px-2 py-2', className)}
+      className={cn('gap-1 rounded-none px-2 py-2', locked && 'opacity-50', className)}
     >
       {/* Remounted on each change of layout, text size or width: a text laid out again
           in place did not always report its lines (iOS: the bar stayed on a layout
           whose names broke inside a word after the system text size changed). */}
       <Text key={measureKey} className="shrink" onTextLayout={onTextLayout}>{name}</Text>
-      <Icon as={ChevronDown} size={iconSize} className="text-muted-foreground" />
+      <Icon as={locked ? Lock : ChevronDown} size={iconSize} className="text-muted-foreground" />
     </Button>
   );
 }
@@ -75,7 +75,7 @@ function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey
  * text sizes and names that would otherwise break inside a word. A name that
  * does not fit on one line is reported through `onWrap`; nothing is shrunk or cut.
  */
-export function LanguagePair({ source, target, arrow, layout, onWrap, measureKey, hearLabel, readLabel, hearHint, readHint, locked, lockedReason, onPressSource, onPressTarget, sourceRef, targetRef, className }: {
+export function LanguagePair({ source, target, arrow, layout, onWrap, measureKey, hearLabel, readLabel, hearHint, readHint, locked, lockedReason, onPressSource, onPressTarget, onPressLocked, sourceRef, targetRef, className }: {
   source: string;
   target: string;
   /** From the heard language to the read one: "→", or "←" in a right-to-left layout; "↓" when stacked. */
@@ -91,6 +91,7 @@ export function LanguagePair({ source, target, arrow, layout, onWrap, measureKey
   lockedReason: string;
   onPressSource: () => void;
   onPressTarget: () => void;
+  onPressLocked: () => void;
   sourceRef?: React.ComponentProps<typeof Pressable>['ref'];
   targetRef?: React.ComponentProps<typeof Pressable>['ref'];
   className?: string;
@@ -106,13 +107,13 @@ export function LanguagePair({ source, target, arrow, layout, onWrap, measureKey
   const basis = 16 + 4 + iconSize;
   return (
     <View className={cn('border-border bg-background overflow-hidden rounded-md border', column ? 'items-stretch' : 'flex-row items-stretch', className)}>
-      <Side ref={sourceRef} className={side} weight={sourceWeight} basis={basis} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
+      <Side ref={sourceRef} className={side} weight={sourceWeight} basis={basis} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={locked ? onPressLocked : onPressSource} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
       {/* Decoration between the two buttons, hidden from screen readers with its text
           (the sides' labels already say which is which): a stop on it would be one too many. */}
       <View className={column ? 'items-center' : 'justify-center'} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text className="text-muted-foreground">{column ? '↓' : arrow}</Text>
       </View>
-      <Side ref={targetRef} className={side} weight={targetWeight} basis={basis} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
+      <Side ref={targetRef} className={side} weight={targetWeight} basis={basis} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={locked ? onPressLocked : onPressTarget} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
     </View>
   );
 }

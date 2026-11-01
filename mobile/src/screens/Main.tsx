@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
+import { AccessibilityInfo, AppState, ScrollView, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -16,7 +16,7 @@ import { useBusy } from '@/lib/useBusy';
 import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
 import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
-import { idleHint, PAIR_STACK_FROM_FONT_SCALE, pairArrow, pairLayout, statusLine, statusTone } from './mainText';
+import { headerLine, idleHint, PAIR_STACK_FROM_FONT_SCALE, pairArrow, pairLayout, statusTone } from './mainText';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
 import { endReason } from '../session/endReason';
@@ -53,6 +53,9 @@ export default function Main() {
   // while it slides away, and focus goes back to that side.
   const [picking, setPicking] = useState(false);
   const [side, setSide] = useState<'source' | 'target'>('source');
+  // A press on the locked pair: the reason stands in the status line for a moment.
+  const [lockedNote, setLockedNote] = useState(false);
+  const lockedNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sourceSide = useRef<HostInstance>(null);
   const targetSide = useRef<HostInstance>(null);
   const ui = i18n.language;
@@ -92,6 +95,7 @@ export default function Main() {
 
   // Unmounted with a session running (the app dropped the token): nothing outlives the screen.
   useEffect(() => () => { void session.current?.stop(); }, []);
+  useEffect(() => () => { if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current); }, []);
 
   // The session has released everything it held (microphone, notification,
   // lease); the screen releases its part and draws the transcript's last state.
@@ -148,6 +152,9 @@ export default function Main() {
     started.current = false;
     lastEvent.current = null;
     setEntries([]);
+    // A note from the last session must not outlive it into this one's start.
+    setLockedNote(false);
+    if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current);
     setStatus('leasing');
     setDetail('');
     session.current = startSession({
@@ -210,7 +217,7 @@ export default function Main() {
   };
 
   const shown = stopping ? 'stopping' : status;
-  const line = statusLine(t, shown, detail);
+  const line = headerLine(t, shown, detail, lockedNote);
   const tone = statusTone(shown);
   const stacked = layout !== 'row';
   // The idle hint reads from the start only at the accessibility sizes (Sophie, iOS):
@@ -293,6 +300,13 @@ export default function Main() {
             lockedReason={t('mobile.settings.locked')}
             onPressSource={() => openPicker('source')}
             onPressTarget={() => openPicker('target')}
+            onPressLocked={() => {
+              // A screen reader does not activate a side it hears as disabled; said here for the ones that do.
+              AccessibilityInfo.announceForAccessibility(t('mobile.settings.locked'));
+              setLockedNote(true);
+              if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current);
+              lockedNoteTimer.current = setTimeout(() => setLockedNote(false), 3000);
+            }}
             sourceRef={sourceSide}
             targetRef={targetSide}
           />
@@ -308,8 +322,6 @@ export default function Main() {
             </Button>
           )}
         </View>
-        {/* In a session the sides do nothing: the bar says why (the settings say the same). */}
-        {active ? <Text className="text-muted-foreground text-sm">{t('mobile.settings.locked')}</Text> : null}
       </View>
       <LanguagePicker
         visible={picking}

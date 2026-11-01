@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idleHint, nameWeight, pairArrow, pairLabel, pairLayout, statusLine, statusTone } from './mainText';
+import { headerLine, idleHint, nameWeight, pairArrow, pairLabel, pairLayout, statusLine, statusTone } from './mainText';
 
 // A t() that shows which key and values were asked for.
 const t = (key: string, values?: Record<string, string>) => (values ? `${key}(${Object.values(values).join(',')})` : key);
@@ -67,5 +67,17 @@ describe('the status line', () => {
     expect(statusTone('error')).toBe('error');
     expect(statusTone('reconnecting')).toBe('warning');
     expect(statusTone('listening')).toBe('normal');
+  });
+});
+
+describe('the lock note in the status line', () => {
+  it('stands in only while the session simply listens; a start, a reconnect, a stop under way or a failure speaks first', () => {
+    expect(headerLine(t, 'listening', 'spoken', true)).toBe('mobile.settings.locked');
+    expect(headerLine(t, 'listening', 'spoken', false)).toBe('mobile.main.status.spoken');
+    expect(headerLine(t, 'reconnecting', 'other_session', true)).toBe(statusLine(t, 'reconnecting', 'other_session'));
+    expect(headerLine(t, 'leasing', '', true)).toBe('mobile.main.status.starting');
+    expect(headerLine(t, 'stopping', '', true)).toBe('mobile.main.status.stopping');
+    expect(headerLine(t, 'error', 'balance_exhausted', true)).toBe('mobile.main.status.balanceExhausted');
+    expect(headerLine(t, 'idle', '', true)).toBe('');
   });
 });
