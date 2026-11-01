@@ -45,7 +45,7 @@ class AudioCaptureModule : Module() {
 
     AsyncFunction("speechOpen") { sampleRate: Int ->
       track?.close()
-      track = SpeechTrack(sampleRate)
+      track = SpeechTrack(sampleRate).also { it.attachCanceller(engine?.canceller() ?: 0L) }
     }
 
     Function("speechWrite") { bytes: ByteArray, pan: String ->

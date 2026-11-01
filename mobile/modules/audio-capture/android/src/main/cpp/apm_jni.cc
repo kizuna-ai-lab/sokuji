@@ -15,11 +15,11 @@ namespace {
 // worse for recognition (spec §2).
 struct Aec3 {
   rtc::scoped_refptr<AudioProcessing> apm;
-  StreamConfig capture;
-  StreamConfig render;
+  // The int16 interface takes one rate of 8, 16, 32 or 48 kHz on both sides.
+  StreamConfig stream;
   int delayMs = 0;
 
-  Aec3(int captureRate, int renderRate) : capture(captureRate, 1), render(renderRate, 1) {
+  explicit Aec3(int rate) : stream(rate, 1) {
     apm = AudioProcessingBuilder().Create();
     AudioProcessing::Config config;
     config.echo_canceller.enabled = true;
@@ -38,8 +38,8 @@ Aec3* from(jlong handle) { return reinterpret_cast<Aec3*>(handle); }
 
 extern "C" {
 
-JNIEXPORT jlong JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeCreate(JNIEnv*, jobject, jint captureRate, jint renderRate) {
-  return reinterpret_cast<jlong>(new Aec3(captureRate, renderRate));
+JNIEXPORT jlong JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeCreate(JNIEnv*, jobject, jint rate) {
+  return reinterpret_cast<jlong>(new Aec3(rate));
 }
 
 JNIEXPORT void JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeDestroy(JNIEnv*, jobject, jlong handle) {
@@ -50,12 +50,12 @@ JNIEXPORT void JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeSetDelayM
   from(handle)->delayMs = ms;
 }
 
-JNIEXPORT void JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeFeedRender(JNIEnv* env, jobject, jlong handle, jshortArray pcm) {
+JNIEXPORT jint JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeFeedRender(JNIEnv* env, jobject, jlong handle, jshortArray pcm) {
   Aec3* a = from(handle);
   jsize length = env->GetArrayLength(pcm);
   std::vector<int16_t> frame(length), out(length);
   env->GetShortArrayRegion(pcm, 0, length, frame.data());
-  a->apm->ProcessReverseStream(frame.data(), a->render, a->render, out.data());
+  return a->apm->ProcessReverseStream(frame.data(), a->stream, a->stream, out.data());
 }
 
 JNIEXPORT jint JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeProcess(JNIEnv* env, jobject, jlong handle, jshortArray in, jshortArray out) {
@@ -64,7 +64,7 @@ JNIEXPORT jint JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeProcess(J
   std::vector<int16_t> input(length), output(length);
   env->GetShortArrayRegion(in, 0, length, input.data());
   a->apm->set_stream_delay_ms(a->delayMs);
-  int status = a->apm->ProcessStream(input.data(), a->capture, a->capture, output.data());
+  int status = a->apm->ProcessStream(input.data(), a->stream, a->stream, output.data());
   env->SetShortArrayRegion(out, 0, length, output.data());
   return status;
 }

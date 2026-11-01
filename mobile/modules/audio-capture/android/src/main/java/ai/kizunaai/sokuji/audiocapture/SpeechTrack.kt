@@ -6,6 +6,7 @@ import android.media.AudioManager
 import android.media.AudioTimestamp
 import android.media.AudioTrack
 import android.os.Process
+import android.util.Log
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -19,10 +20,12 @@ class SpeechTrack(private val rate: Int) {
 
   private val queue = LinkedBlockingQueue<Chunk>()
   private val running = AtomicBoolean(true)
+  private val dropping = AtomicBoolean(false)
   private val queuedFrames = AtomicInteger(0)
   private val aecLock = Any()
   private var aecHandle = 0L
   private val frame = rate / 100
+  private val reference = ShortArray(Aec3.RATE / 100)
   private var framesWritten = 0L
   private val track: AudioTrack
   private val writer: Thread
@@ -53,12 +56,12 @@ class SpeechTrack(private val rate: Int) {
     queue.put(Chunk(pcm, pan))
   }
 
+  /** The sentence ends now, with what the track already holds: it must not outlast its route. */
   fun stop() {
-    queue.clear()
-    queuedFrames.set(0)
+    dropping.set(true)
   }
 
-  fun queuedSeconds(): Double = queuedFrames.get().toDouble() / rate
+  fun queuedSeconds(): Double = queuedFrames.get().coerceAtLeast(0).toDouble() / rate
 
   fun held(): Int = queue.size
 
@@ -83,7 +86,17 @@ class SpeechTrack(private val rate: Int) {
     val stereo = ShortArray(frame * 2)
     var current: Chunk? = null
     var offset = 0
+    var refused = false
     while (running.get()) {
+      if (dropping.getAndSet(false)) {
+        current = null
+        queue.clear()
+        queuedFrames.set(0)
+        track.pause()
+        track.flush()
+        track.play()
+        synchronized(this) { framesWritten = 0 }
+      }
       var filled = 0
       var pan = "both"
       while (filled < frame) {
@@ -102,7 +115,20 @@ class SpeechTrack(private val rate: Int) {
         stereo[i * 2 + 1] = if (pan == "left") 0 else mono[i]
       }
       synchronized(aecLock) {
-        if (aecHandle != 0L) Aec3.nativeFeedRender(aecHandle, mono)
+        if (aecHandle != 0L) {
+          // The canceller takes one rate on both sides. As a reference, linear interpolation is enough.
+          for (i in reference.indices) {
+            val at = i * frame / reference.size
+            val rest = i * frame % reference.size
+            val next = mono[minOf(at + 1, frame - 1)]
+            reference[i] = (mono[at] + (next - mono[at]) * rest / reference.size).toShort()
+          }
+          val status = Aec3.nativeFeedRender(aecHandle, reference)
+          if ((status != 0) != refused) {
+            refused = status != 0
+            Log.w("AudioCapture", "aec3 render status $status")
+          }
+        }
       }
       track.write(stereo, 0, stereo.size)
       synchronized(this) { framesWritten += frame }

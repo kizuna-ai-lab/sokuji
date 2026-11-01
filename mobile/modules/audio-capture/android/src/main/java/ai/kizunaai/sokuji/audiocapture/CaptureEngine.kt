@@ -61,7 +61,12 @@ class CaptureEngine(
     val source = made ?: newRecord(MediaRecorder.AudioSource.MIC)
     if (echoCancellation && chain == "none") {
       chain = "aec3"
-      aec3 = Aec3.nativeCreate(RATE, TTS_RATE)
+      aec3 = try {
+        openCanceller()
+      } catch (e: IllegalStateException) {
+        source.release()
+        throw e
+      }
       speech()?.attachCanceller(aec3)
     }
     if (inputDeviceId != null) {
@@ -85,6 +90,9 @@ class CaptureEngine(
       "android" to mapOf("implementor" to implementor, "noiseSuppressionOff" to noiseOff, "seededDelayMs" to null),
     )
   }
+
+  /** The software canceller while it runs, for a speech track that opens after the capture. */
+  fun canceller(): Long = aec3
 
   fun stop() {
     running = false
@@ -117,6 +125,19 @@ class CaptureEngine(
     AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB"
     AudioDeviceInfo.TYPE_BLUETOOTH_SCO, AudioDeviceInfo.TYPE_BLE_HEADSET -> "Bluetooth"
     else -> "Other"
+  }
+
+  // One silent frame each way: the canceller says here, not mid-session, if it refuses its format.
+  private fun openCanceller(): Long {
+    val handle = Aec3.nativeCreate(Aec3.RATE)
+    val silence = ShortArray(TEN_MS)
+    val render = Aec3.nativeFeedRender(handle, silence)
+    val capture = Aec3.nativeProcess(handle, silence, ShortArray(TEN_MS))
+    if (render != 0 || capture != 0) {
+      Aec3.nativeDestroy(handle)
+      throw IllegalStateException("the echo canceller refused its format: $render, $capture")
+    }
+    return handle
   }
 
   private fun audio() = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -188,7 +209,6 @@ class CaptureEngine(
 
   companion object {
     const val RATE = 16000
-    const val TTS_RATE = 24000
     private const val TEN_MS = RATE / 100
     private const val FRAME = RATE / 10
     private const val SEED_AFTER = 100
