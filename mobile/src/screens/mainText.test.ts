@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idleHint, pairLabel, statusLine, statusTone } from './mainText';
+import { idleHint, pairArrow, pairLabel, statusLine, statusTone } from './mainText';
 
 // A t() that shows which key and values were asked for.
 const t = (key: string, values?: Record<string, string>) => (values ? `${key}(${Object.values(values).join(',')})` : key);
@@ -9,9 +9,14 @@ describe('the main screen before a session', () => {
     expect(idleHint(t, 'Japanese')).toBe('mobile.main.idleHint(Japanese)');
   });
 
-  it('names the pair, the arrow pointing from what is heard to what is read', () => {
-    expect(pairLabel('Auto Detect', 'Japanese', false)).toBe('Auto Detect → Japanese');
+  it('points the arrow between the languages from what is heard to what is read', () => {
+    expect(pairArrow(false)).toBe('→');
     // Right to left, the heard language is on the right: the arrow points left.
+    expect(pairArrow(true)).toBe('←');
+  });
+
+  it('names the pair on one line for the history, the arrow the same way', () => {
+    expect(pairLabel('Auto Detect', 'Japanese', false)).toBe('Auto Detect → Japanese');
     expect(pairLabel('اكتشاف تلقائي', 'اليابانية', true)).toBe('اكتشاف تلقائي ← اليابانية');
   });
 });

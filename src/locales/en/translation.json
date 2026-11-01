@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Tap Start to translate what you hear into {{language}}.",
       "menu": "Menu",
-      "changeLanguages": "Change the languages in Settings"
+      "pickHear": "Change what I hear",
+      "pickRead": "Change what I read"
     },
     "common": {
       "back": "Back",

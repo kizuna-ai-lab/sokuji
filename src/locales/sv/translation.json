@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Tryck på Starta för att översätta det du hör. Översättningsspråk: {{language}}.",
       "menu": "Meny",
-      "changeLanguages": "Ändra språken i Inställningar"
+      "pickHear": "Ändra vad jag hör",
+      "pickRead": "Ändra vad jag läser"
     },
     "common": {
       "back": "Tillbaka",

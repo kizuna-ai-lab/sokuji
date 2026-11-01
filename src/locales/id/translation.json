@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Ketuk Mulai untuk menerjemahkan yang Anda dengar. Bahasa terjemahan: {{language}}.",
       "menu": "Menu",
-      "changeLanguages": "Ubah bahasa di Pengaturan"
+      "pickHear": "Ubah yang saya dengar",
+      "pickRead": "Ubah yang saya baca"
     },
     "common": {
       "back": "Kembali",

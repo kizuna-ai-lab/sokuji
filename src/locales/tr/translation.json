@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Duyduğunuzu çevirmek için Başlat'a dokunun. Çeviri dili: {{language}}.",
       "menu": "Menü",
-      "changeLanguages": "Dilleri Ayarlar'da değiştirin"
+      "pickHear": "Duyduğumu değiştir",
+      "pickRead": "Okuduğumu değiştir"
     },
     "common": {
       "back": "Geri",

@@ -10,9 +10,14 @@ export function idleHint(t: T, targetName: string): string {
   return t('mobile.main.idleHint', { language: targetName });
 }
 
-/** "Heard → read"; in a right-to-left language the heard one is on the right, so the arrow points left. */
+/** The arrow from what is heard to what is read; in a right-to-left language the heard one is on the right, so it points left. */
+export function pairArrow(rtl: boolean): string {
+  return rtl ? '←' : '→';
+}
+
+/** "Heard → read" as one line (the history list). */
 export function pairLabel(sourceName: string, targetName: string, rtl: boolean): string {
-  return `${sourceName} ${rtl ? '←' : '→'} ${targetName}`;
+  return `${sourceName} ${pairArrow(rtl)} ${targetName}`;
 }
 
 // What the status line says: a key per state, the terminal details by name,

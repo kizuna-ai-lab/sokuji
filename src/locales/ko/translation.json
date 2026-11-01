@@ -1741,7 +1741,8 @@
       },
       "idleHint": "시작을 누르면 들리는 말을 번역합니다. 번역 언어: {{language}}",
       "menu": "메뉴",
-      "changeLanguages": "설정에서 언어 변경"
+      "pickHear": "듣는 언어 변경",
+      "pickRead": "읽는 언어 변경"
     },
     "common": {
       "back": "뒤로",

@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Ketik Mula untuk menterjemah apa yang anda dengar. Bahasa terjemahan: {{language}}.",
       "menu": "Menu",
-      "changeLanguages": "Tukar bahasa dalam Tetapan"
+      "pickHear": "Tukar apa yang saya dengar",
+      "pickRead": "Tukar apa yang saya baca"
     },
     "common": {
       "back": "Kembali",

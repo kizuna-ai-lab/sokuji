@@ -9,12 +9,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { refocus } from '@/components/focus';
-import { Onward } from '@/components/Row';
+import { LanguagePair } from '@/components/LanguagePair';
+import { LanguagePicker } from '@/components/LanguagePicker';
 import { useBusy } from '@/lib/useBusy';
 import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
-import { languageName } from '../i18n/languages';
-import { idleHint, pairLabel, statusLine, statusTone } from './mainText';
+import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
+import { idleHint, pairArrow, statusLine, statusTone } from './mainText';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
 import { endReason } from '../session/endReason';
@@ -51,12 +52,24 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
   // This account's sessions only (owner, 2026-10-28: history is kept per account).
   const history = useMemo(() => createHistoryStore(documentFs, accountId), [accountId]);
   const settings = useSettings((s) => s.settings);
+  const set = useSettings((s) => s.set);
   const [status, setStatus] = useState<Status | 'idle'>('idle');
   const [detail, setDetail] = useState('');
   const [entries, setEntries] = useState<readonly Entry[]>([]);
   const [screen, setScreen] = useState<Screen>('main');
   const [stopping, runStop] = useBusy();
   const menuButton = useRef<HostInstance>(null);
+  // The language lists open from the main screen (owner, 2026-11-01): which
+  // side the sheet is for outlives its closing, so it keeps its title and list
+  // while it slides away, and focus goes back to that side.
+  const [picking, setPicking] = useState(false);
+  const [side, setSide] = useState<'source' | 'target'>('source');
+  const sourceSide = useRef<HostInstance>(null);
+  const targetSide = useRef<HostInstance>(null);
+  const ui = i18n.language;
+  const autoLabel = t('common.autoDetect');
+  const sources = useMemo(() => sourceOptions(ui, autoLabel), [ui, autoLabel]);
+  const targets = useMemo(() => targetOptions(ui), [ui]);
   const { fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const menuIcon = useIconSize(24);
@@ -197,6 +210,15 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
     await session.current?.stop();
   }
 
+  const openPicker = (which: 'source' | 'target') => {
+    setSide(which);
+    setPicking(true);
+  };
+  const closePicker = () => {
+    refocus(side === 'source' ? sourceSide : targetSide);
+    setPicking(false);
+  };
+
   if (screen === 'account') {
     return <Account token={token} email={email} locked={active} onBack={() => setScreen('main')} onSignOut={onSignOut} onDeleted={onAccountDeleted} onSignInRequired={onSignInRequired} />;
   }
@@ -208,15 +230,13 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
   const shown = stopping ? 'stopping' : status;
   const line = statusLine(t, shown, detail);
   const tone = statusTone(shown);
-  const ui = i18n.language;
-  const autoLabel = t('common.autoDetect');
+  const source = languageName(settings.source, ui, autoLabel);
   const target = languageName(settings.target, ui);
-  const pair = pairLabel(languageName(settings.source, ui, autoLabel), target, i18n.dir(ui) === 'rtl');
   const stacked = fontScale >= STACK_FROM_FONT_SCALE;
 
   return (
     <View className="bg-background w-full flex-1">
-      <View className="border-border min-h-14 flex-row items-center gap-2 border-b pe-1 ps-4">
+      <View className="border-border min-h-12 flex-row items-center gap-2 border-b pe-1 ps-4">
         <View className="flex-1 flex-row items-center gap-2" accessibilityLiveRegion="polite">
           {tone === 'error' ? <Icon as={CircleAlert} size={18} className="text-destructive" /> : null}
           {tone === 'warning' ? <Icon as={RefreshCw} size={18} className="text-foreground" /> : null}
@@ -266,34 +286,54 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
       ) : (
         <Subtitles entries={entries} bilingual={settings.bilingual} textSize={settings.textSize} />
       )}
-      {/* At the largest text sizes the bar gives the subtitles room: the pair is a plain line
-          rather than a bordered card and the spacing tightens; the text still follows the system size. */}
-      <View className={cn('border-border border-t px-4', stacked ? 'gap-1 py-2' : 'flex-row items-center gap-2 py-3')}>
-        {/* Open in a session too: the settings say there why the languages are locked. */}
-        <Button
-          variant={stacked ? 'ghost' : 'outline'}
-          size={stacked ? 'sm' : 'default'}
-          className={cn('justify-start', stacked ? 'self-stretch px-1' : 'flex-1')}
-          accessibilityHint={t('mobile.main.changeLanguages')}
-          onPress={() => setScreen('settings')}
-        >
-          {/* text-left is the start side: React Native swaps left and right in a right-to-left layout. */}
-          <Text className={cn('shrink text-left', stacked && 'text-muted-foreground flex-1')}>{pair}</Text>
-          {/* Without its card the line still says it opens something. */}
-          {stacked ? <Icon as={Onward} size={20} className="text-muted-foreground" /> : null}
-        </Button>
-        {active ? (
-          <Button size={stacked ? 'default' : 'lg'} variant="destructive" disabled={stopping} onPress={() => { void runStop(stop); }}>
-            <Icon as={Square} size={18} />
-            <Text>{stopping ? t('mobile.main.status.stopping') : t('mobile.main.stop')}</Text>
-          </Button>
-        ) : (
-          <Button size={stacked ? 'default' : 'lg'} onPress={() => { void start(); }}>
-            <Icon as={Play} size={18} />
-            <Text>{t('mobile.main.start')}</Text>
-          </Button>
-        )}
+      {/* The bar: the pair, each side its own choice, and Start, all at least 48
+          units tall (header, pair and Start at one height) with 8 above and below.
+          At the largest text sizes the pair takes its own line above Start; a long
+          name wraps and the bar grows, the text keeps the system size. */}
+      <View className="border-border gap-2 border-t px-4 py-2">
+        <View className={cn('gap-2', !stacked && 'flex-row items-stretch')}>
+          <LanguagePair
+            className={stacked ? 'self-stretch' : 'flex-1'}
+            source={source}
+            target={target}
+            arrow={pairArrow(i18n.dir(ui) === 'rtl')}
+            hearLabel={t('mobile.main.hear')}
+            readLabel={t('mobile.main.read')}
+            hearHint={t('mobile.main.pickHear')}
+            readHint={t('mobile.main.pickRead')}
+            locked={active}
+            lockedReason={t('mobile.settings.locked')}
+            onPressSource={() => openPicker('source')}
+            onPressTarget={() => openPicker('target')}
+            sourceRef={sourceSide}
+            targetRef={targetSide}
+          />
+          {active ? (
+            <Button variant="destructive" className={cn(stacked && 'self-stretch')} disabled={stopping} onPress={() => { void runStop(stop); }}>
+              <Icon as={Square} size={18} />
+              <Text>{stopping ? t('mobile.main.status.stopping') : t('mobile.main.stop')}</Text>
+            </Button>
+          ) : (
+            <Button className={cn(stacked && 'self-stretch')} onPress={() => { void start(); }}>
+              <Icon as={Play} size={18} />
+              <Text>{t('mobile.main.start')}</Text>
+            </Button>
+          )}
+        </View>
+        {/* In a session the sides do nothing: the bar says why (the settings say the same). */}
+        {active ? <Text className="text-muted-foreground text-sm">{t('mobile.settings.locked')}</Text> : null}
       </View>
+      <LanguagePicker
+        visible={picking}
+        title={side === 'target' ? t('mobile.main.read') : t('mobile.main.hear')}
+        options={side === 'target' ? targets : sources}
+        value={side === 'target' ? settings.target : settings.source}
+        onPick={(code) => {
+          set(side === 'target' ? { target: code } : { source: code });
+          closePicker();
+        }}
+        onClose={closePicker}
+      />
     </View>
   );
 }

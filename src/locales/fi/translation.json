@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Napauta Aloita, niin kuulemasi käännetään. Kohdekieli: {{language}}.",
       "menu": "Valikko",
-      "changeLanguages": "Vaihda kielet asetuksista"
+      "pickHear": "Vaihda, mitä kuulen",
+      "pickRead": "Vaihda, mitä luen"
     },
     "common": {
       "back": "Takaisin",

@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Toca Iniciar para traducir lo que oyes. Idioma de traducción: {{language}}.",
       "menu": "Menú",
-      "changeLanguages": "Cambiar los idiomas en Ajustes"
+      "pickHear": "Cambiar lo que escucho",
+      "pickRead": "Cambiar lo que leo"
     },
     "common": {
       "back": "Atrás",

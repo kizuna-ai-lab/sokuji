@@ -1741,7 +1741,8 @@
       },
       "idleHint": "I-tap ang Simulan para isalin ang naririnig mo. Wika ng salin: {{language}}.",
       "menu": "Menu",
-      "changeLanguages": "Palitan ang mga wika sa Mga setting"
+      "pickHear": "Baguhin ang naririnig ko",
+      "pickRead": "Baguhin ang binabasa ko"
     },
     "common": {
       "back": "Bumalik",

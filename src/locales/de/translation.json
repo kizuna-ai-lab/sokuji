@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Tippe auf „Start“, um Gehörtes zu übersetzen. Zielsprache: {{language}}.",
       "menu": "Menü",
-      "changeLanguages": "Sprachen in den Einstellungen ändern"
+      "pickHear": "Ändern, was ich höre",
+      "pickRead": "Ändern, was ich lese"
     },
     "common": {
       "back": "Zurück",
