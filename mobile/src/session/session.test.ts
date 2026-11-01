@@ -596,6 +596,18 @@ describe('the grant\'s streams', () => {
     await s.stop();
   });
 
+  it('reports the start for the recognition stream only: the backend refuses a TTS role', async () => {
+    lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }] });
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(lease.sessionStarted).toHaveBeenCalledTimes(1);
+    expect(lease.sessionStarted).not.toHaveBeenCalledWith(expect.objectContaining({ role: 'par_tts' }));
+    await s.stop();
+  });
+
   it('reports a grant without a recognition stream by name', async () => {
     lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [{ role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }] });
     const events: SessionEvent[] = [];
