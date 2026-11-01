@@ -79,6 +79,10 @@ the recorder. With headphones the unit is created without voice processing (D6),
 recreates it. The first half second after the loudspeaker starts leaks a little while the canceller
 adapts (measured), which is accepted.
 
+`voiceChat` is used on the loudspeaker route only, when no Bluetooth device is connected: Apple's QA1803
+says the mode implicitly allows Bluetooth hands-free input (a headset microphone, mono). Headphone routes
+use mode `default` with `allowBluetoothA2DP`, and connecting Bluetooth mid-session switches back to it.
+
 ### 4.2 Android
 
 The foreground service stays as it is. Capture reads `AudioRecord` on its own thread. Chain selection
@@ -94,6 +98,9 @@ One instance lives for the whole session, the render stream gets zeros between u
 initial `set_stream_delay_ms` comes from the track and record timestamps: the persistent instance is
 what passed. The reference is every sample written to the track (§5). The library is built for
 `arm64-v8a`, plus `x86_64` for the emulator, with 16 KB page alignment.
+
+Like iOS, a processing chain runs only with no Bluetooth device connected; `VOICE_COMMUNICATION` is used
+on the loudspeaker route alone.
 
 ## 5. Playback
 
@@ -111,7 +118,8 @@ owner): the module owns `AudioRecord`, `AudioTrack` and the canceller. Reasons: 
 every played sample as its reference at the moment it is written, and a tee from the JS player cannot
 say when a chunk scheduled on the `AudioContext` actually reaches the speaker; `AudioTrack.getTimestamp`
 and `AudioRecord.getTimestamp` give the fixed delay the canceller is seeded with; the spike that passed
-had exactly this shape; one code path instead of two. The library plays nothing on Android during a
+had exactly this shape (both the vendor chain and AEC3 rounds played through the module's `AudioTrack`,
+`USAGE_MEDIA`, `CONTENT_TYPE_SPEECH`, normal audio mode, so this is the path measured); one code path instead of two. The library plays nothing on Android during a
 session; it still plays the voice preview (no capture then) and stays the player on iOS. The module's
 `AudioTrack` is stereo and takes the player's pan (`both` | `left` | `right`, R14), so the face-to-face
 scene keeps its path. Volume: normal audio mode, the media stream (no call volume).
@@ -123,7 +131,7 @@ module reports what it has written minus what the track has played).
 ## 6. Session and product
 
 **Capture.** `AudioRecorder` goes; `session.ts` starts the module (§4) with
-`echoCancellation: route === 'speaker' || route === 'other' ? 'auto' : 'off'` and feeds its 100 ms
+`echoCancellation: o.listen && !headphones(route) ? 'auto' : 'off'`: with `listen` off nothing plays, so subtitles-only sessions, the majority today, stay on the plain path. `listen` cannot change during a session, so this adds no restart path. The session feeds its 100 ms
 frames where the recorder's buffers went: the ticker tick, the first-buffer log, the rotation check,
 `sendAudio`. The Android foreground notification (`RecordingNotificationManager`, part of the library,
 independent of its recorder) stays. Interruptions: `pauseCapture` / `resumeCapture` map to the module's
@@ -170,7 +178,12 @@ today's evaluation: unprocessed 0.32–0.35, cancelled 0.02–0.03) and the shar
 session to AEC3 at the next utterance boundary and logs why; the result goes to PostHog (§6). One
 probe per session; a session that switched stays on AEC3; the next session probes the vendor chain
 again (a phone call or a system update can change it). The thresholds are initial values from the
-2026-11-01 measurements and are tuned on real phones in §8. If the owner wants a check before the
+2026-11-01 measurements and are tuned on real phones in §8. Known blind spot: someone talking nearby lowers the correlation and reduces the muted frames, so a poor
+vendor chain can pass. So the probe spans up to the first three spoken sentences and takes the largest
+residual. What it still misses falls to the Devices setting (§10 question 5) and the PostHog data, and
+threshold tuning separates takes with and without near speech.
+
+If the owner wants a check before the
 first spoken sentence instead, the probe plays 400 ms of band-limited noise at −20 dBFS; this is the
 only version a user could hear, and it is the alternative in §10.
 
@@ -187,10 +200,15 @@ Then, on real phones, in a release build:
 | A real person talks over the speech, 2 minutes, both platforms | Recordings scored by the Soniox pipeline (`transcribe.mjs`, `score.py`), no echo in the transcript, and the owner's ear |
 | Route switching | Wired and Bluetooth headphones in and out with `listen` on, both platforms; capture gap timed; no stuck state; session continues |
 | iOS 16 | One phone on the app's floor, for the ducking behaviour |
+| Bluetooth mid-session | Connect and disconnect during a session on both platforms: the microphone stays the phone's, output stays A2DP |
 | Background and lock | Gate A behaviour unchanged with the new capture |
 | Long run | 60 minutes on the loudspeaker: battery and heat recorded |
 | Other Android phones | At least one Samsung and one Xiaomi, recorded with chain and residual |
 | Interruptions | Phone call during a session recovers as today |
+
+The estimates in §10 assume starting from the spike code. If the owner agrees, the spike branches are
+pushed as `spike/…` and `transcribe.mjs` and `score.py` move to `mobile/scripts/`; the recordings stay in
+the comparison page.
 
 Unit tests cover chain selection, route-to-mode logic and the session's lease behaviour. The native
 code is not unit tested.
@@ -222,3 +240,9 @@ code is not unit tested.
    phones the self-test misjudges — yes or no?
 6. The Android microphone choice does nothing today. Have the module honour it (wired/USB selection via
    `setPreferredDevice`), or show the microphone as "chosen by the system" on Android?
+7. Bluetooth speakers and car systems: Bluetooth output counts as headphones today (spoken, no
+   cancellation), so a Bluetooth speaker would echo, and the system cannot tell the two apart. Leave this
+   unsupported in the first version and say so, or treat it as loudspeaker and test AEC3 over A2DP delay?
+   Recommended: leave it.
+8. Test phones: §8 needs an iOS 16 iPhone, a Samsung and a Xiaomi. We have an iPhone 11 and a Pixel 9a.
+   Can they be borrowed? If not, the release relies on the Pixel data and the self-test, and says so.
