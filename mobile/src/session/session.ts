@@ -276,6 +276,7 @@ export function startSession(o: {
   }
 
   async function startCapture(echoCancellation: boolean): Promise<Capture> {
+    log(`capture wanted: echo cancellation ${echoCancellation ? 'on' : 'off'}, route ${route}, listen ${!!o.listen}`);
     setSessionOptions(echoCancellation);
     const c = (o.createCapture ?? createCapture)({
       options: { echoCancellation, sampleRate: 16000, inputDeviceId: o.inputDeviceId ?? null },
