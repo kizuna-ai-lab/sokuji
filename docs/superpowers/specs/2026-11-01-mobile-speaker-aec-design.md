@@ -46,8 +46,8 @@ decides between options: this signal goes to Soniox and to nobody's ears.
 | D4 | Android defaults to `AudioRecord` with `VOICE_COMMUNICATION`, the system `AcousticEchoCanceler`, and `NoiseSuppressor` off, in normal audio mode at media volume (no call mode). |
 | D5 | Android keeps WebRTC AEC3 as a second chain in the same module, used when the system canceller is missing or cannot be created. There is no self-test. |
 | D6 | Echo processing runs only while speech can reach the loudspeaker. With headphones, capture stays on the plain path it uses today. |
-| D7 | One new setting, "Echo cancellation", on by default, on both platforms. Off means the plain capture path on every route. |
-| D8 | No test phones beyond the iPhone 11 and Pixel 9a. Bluetooth output counts as headphones and stays unprocessed by default. A user with a Bluetooth speaker can turn echo cancellation on for Bluetooth, after a confirmation (§6). |
+| D7 | One switch, "Echo cancellation", on both platforms: on by default for the phone's speaker, off for other outputs. Off means the plain capture path. |
+| D8 | No test phones beyond the iPhone 11 and Pixel 9a. Non-speaker outputs stay unprocessed by default. A user with an output that plays aloud can turn the switch on, after a confirmation (§6). |
 | D9 | This is built now, during development. There is no first-version or later split. |
 
 ## 4. The capture module
@@ -163,20 +163,21 @@ Devices screen become: "Spoken through headphones or the loudspeaker. On the lou
 its own voice from the microphone." Thirty catalogs. The design spec's R13 row, §3.1's "Hear the
 translation" bullet and the Gate A addendum are amended in the same change; R14 is untouched.
 
-**Settings.** One new row, "Echo cancellation", on the Devices screen, on both platforms. It shows the
-value for the current output, and two values are stored: `echoCancellation` for the loudspeaker, on by
-default, and `echoCancellationBluetooth`, off by default. Wired headphones have no row state: nothing
-to cancel. Neither can change during a session, like the other session settings.
+**Settings.** One switch, "Echo cancellation", on the Devices screen, on both platforms: on or off, with
+no chain choice. Which chain runs follows §3 and §4: on Android the vendor chain when the phone has one,
+AEC3 when it does not. The default follows the output: on for the phone's speaker, off for any other
+output (Bluetooth, wired). Two values are stored, one for the speaker and one for everything else, and the
+row shows the value for the current output. Neither can change during a session, like the other session
+settings.
 
-Turning it on while Bluetooth is the output asks for confirmation first: this is for a Bluetooth speaker
-or car system, it is not needed with earbuds, and on iPhone the audio may drop to call quality. Cancelling
-leaves it off.
+Turning it on while the output is not the phone's speaker first shows a confirmation that it is meant for
+an output that plays aloud, such as a Bluetooth speaker or car system, and not for earbuds or headphones.
+Cancelling leaves it off.
 
-With the Bluetooth value on, the session treats Bluetooth as the loudspeaker. Android runs AEC3 on `MIC`,
-never `VOICE_COMMUNICATION`, so nothing asks for hands-free. iOS has only `voiceChat` and VoiceProcessingIO,
-which may move Bluetooth to hands-free. This path is untested on both platforms: no Bluetooth speaker is
-at hand. The capture formula for Bluetooth uses this value; the §4 rule that no chain runs on Bluetooth
-holds only while it is off.
+With it on for such an output, the session treats that output as the loudspeaker. On Bluetooth this may
+move the link to hands-free on either platform (mono, call quality), since `voiceChat` and
+`VOICE_COMMUNICATION` are built for calls. The §4 rule that no chain runs on Bluetooth holds only while the
+switch is off for that output. This path is untested on both platforms: no Bluetooth speaker is at hand.
 
 Noise suppression has no row of its own: on iOS the system offers no way to control it apart from echo
 cancellation, and on Android it stays off in both chains.
@@ -222,8 +223,8 @@ code is not unit tested.
   represent Samsung or Xiaomi. On a poor chain the user turns the switch off, and a self-test is added if
   reports call for it. AEC3 cannot be chosen by hand.
 - **External microphones.** The vendor chain may be weaker with a USB microphone on the loudspeaker route.
-- **Bluetooth speakers and car systems.** Off by default they echo. With the Bluetooth value on, Android's
-  AEC3 faces 150 to 300 ms of extra delay and iOS may fall to hands-free quality. Neither has been tested.
+- **Bluetooth speakers and car systems.** Off by default they echo. With the switch on, the chain faces 150
+  to 300 ms of extra delay and Bluetooth may fall to hands-free quality on either platform. Untested.
 - **AEC3 starts cold.** The delay took 6 to 7 seconds to lock at the start of a session, and the first
   segment lost the most characters. The fixed-delay start value is untested.
 - **AEC3 cost.** About 11% of one core on a Pixel 9a. Battery and low-end phones are unmeasured.
@@ -241,5 +242,5 @@ code is not unit tested.
 4. No self-test.
 5. One echo cancellation switch, no auto/software/off choice.
 6. Android microphone: the module honours it (§4.2).
-7. Bluetooth: off by default; the user can turn it on after a confirmation (§6).
+7. Other outputs: off by default; the user can turn it on after a confirmation (§6).
 8. No further test phones.
