@@ -1741,7 +1741,8 @@
       },
       "idleHint": "點「開始」，將聽到的語音翻譯成{{language}}。",
       "menu": "選單",
-      "changeLanguages": "在設定中變更語言"
+      "pickHear": "變更我聽的語言",
+      "pickRead": "變更我讀的語言"
     },
     "common": {
       "back": "返回",

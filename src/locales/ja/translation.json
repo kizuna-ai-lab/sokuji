@@ -1741,7 +1741,8 @@
       },
       "idleHint": "「開始」をタップすると、聞こえた音声を{{language}}に翻訳します。",
       "menu": "メニュー",
-      "changeLanguages": "設定で言語を変更します"
+      "pickHear": "聞く言語を変更",
+      "pickRead": "読む言語を変更"
     },
     "common": {
       "back": "戻る",

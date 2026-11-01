@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Tik op Start om wat je hoort te vertalen naar het {{language}}.",
       "menu": "Menu",
-      "changeLanguages": "Talen wijzigen in Instellingen"
+      "pickHear": "Wijzigen wat ik hoor",
+      "pickRead": "Wijzigen wat ik lees"
     },
     "common": {
       "back": "Terug",

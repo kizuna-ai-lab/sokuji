@@ -1741,7 +1741,8 @@
       },
       "idleHint": "Touchez Démarrer pour traduire ce que vous entendez. Langue de traduction : {{language}}.",
       "menu": "Menu",
-      "changeLanguages": "Modifier les langues dans les réglages"
+      "pickHear": "Changer ce que j'entends",
+      "pickRead": "Changer ce que je lis"
     },
     "common": {
       "back": "Retour",
