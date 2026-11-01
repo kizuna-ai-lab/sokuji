@@ -1,6 +1,7 @@
 import AudioToolbox
 import AVFoundation
 import Foundation
+import os
 
 // The microphone as 16 kHz mono 16-bit frames. With echo cancellation, a
 // VoiceProcessingIO unit: its output bus must run, so it renders silence, and
@@ -11,23 +12,41 @@ final class VoiceProcessingUnit {
   static let frameSamples = 1600
   // About half a second of callbacks: a route change fails a few on its own.
   private static let renderFailuresAllowed = 50
+  private static let drainInterval = DispatchTimeInterval.milliseconds(50)
 
   private let onFrame: (Data) -> Void
   private let onFailure: (String) -> Void
   private let queue = DispatchQueue(label: "ai.kizunaai.sokuji.audiocapture")
   private var unit: AudioUnit?
-  private var scratch = [Int16](repeating: 0, count: 8192)
-  private var pending = [Int16](repeating: 0, count: VoiceProcessingUnit.frameSamples)
-  private var filled = 0
+  private var drain: DispatchSourceTimer?
+
+  // The render callback may not allocate or wait, so it hands samples over
+  // through a ring. It writes ahead of `published` and moves that on when the
+  // lock is free; a busy lock only delays the samples to its next call.
+  private static let ringSamples = VoiceProcessingUnit.frameSamples * 32
+  private let ring = UnsafeMutablePointer<Int16>.allocate(capacity: VoiceProcessingUnit.ringSamples)
+  private let scratch = UnsafeMutablePointer<Int16>.allocate(capacity: 8192)
+  private let lock = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
+  // Render thread only.
+  private var written = 0
+  private var consumedSeen = 0
   private var renderFailures = 0
+  // Under the lock. Monotonic sample counts; a ring position is the count modulo its size.
+  private var published = 0
+  private var consumed = 0
+  private var failure: OSStatus = noErr
 
   init(onFrame: @escaping (Data) -> Void, onFailure: @escaping (String) -> Void) {
     self.onFrame = onFrame
     self.onFailure = onFailure
+    lock.initialize(to: os_unfair_lock())
   }
 
   deinit {
     stop()
+    ring.deallocate()
+    scratch.deallocate()
+    lock.deallocate()
   }
 
   func start(echoCancellation: Bool) throws {
@@ -79,6 +98,11 @@ final class VoiceProcessingUnit {
       }
     }
     try check(AudioUnitInitialize(unit))
+    let timer = DispatchSource.makeTimerSource(queue: queue)
+    timer.schedule(deadline: .now() + Self.drainInterval, repeating: Self.drainInterval)
+    timer.setEventHandler { [weak self] in self?.deliver() }
+    timer.resume()
+    drain = timer
     try check(AudioOutputUnitStart(unit))
   }
 
@@ -88,7 +112,35 @@ final class VoiceProcessingUnit {
     AudioUnitUninitialize(unit)
     AudioComponentInstanceDispose(unit)
     self.unit = nil
-    filled = 0
+    drain?.cancel()
+    drain = nil
+  }
+
+  // The frames the render thread has handed over; on `queue`.
+  private func deliver() {
+    os_unfair_lock_lock(lock)
+    let end = published
+    let start = consumed
+    let status = failure
+    failure = noErr
+    os_unfair_lock_unlock(lock)
+    var at = start
+    while end - at >= Self.frameSamples {
+      var frame = Data(count: Self.frameSamples * 2)
+      frame.withUnsafeMutableBytes { raw in
+        let out = raw.bindMemory(to: Int16.self).baseAddress!
+        let from = at % Self.ringSamples
+        let first = min(Self.frameSamples, Self.ringSamples - from)
+        out.update(from: ring + from, count: first)
+        (out + first).update(from: ring, count: Self.frameSamples - first)
+      }
+      at += Self.frameSamples
+      onFrame(frame)
+    }
+    os_unfair_lock_lock(lock)
+    consumed = at
+    os_unfair_lock_unlock(lock)
+    if status != noErr { onFailure("audio unit render error \(status)") }
   }
 
   fileprivate func capture(
@@ -97,32 +149,31 @@ final class VoiceProcessingUnit {
     bus: UInt32,
     frames: UInt32
   ) -> OSStatus {
-    guard let unit, Int(frames) <= scratch.count else { return noErr }
-    var status: OSStatus = noErr
-    scratch.withUnsafeMutableBytes { raw in
-      var list = AudioBufferList(
-        mNumberBuffers: 1,
-        mBuffers: AudioBuffer(mNumberChannels: 1, mDataByteSize: frames * 2, mData: raw.baseAddress))
-      status = AudioUnitRender(unit, flags, timestamp, bus, frames, &list)
-    }
-    guard status == noErr else {
+    guard let unit, frames <= 8192 else { return noErr }
+    var list = AudioBufferList(
+      mNumberBuffers: 1,
+      mBuffers: AudioBuffer(mNumberChannels: 1, mDataByteSize: frames * 2, mData: UnsafeMutableRawPointer(scratch)))
+    let status = AudioUnitRender(unit, flags, timestamp, bus, frames, &list)
+    if status == noErr {
+      renderFailures = 0
+      // Full only if the queue stalled for seconds: these samples are lost, not the stream.
+      if written + Int(frames) - consumedSeen <= Self.ringSamples {
+        let at = written % Self.ringSamples
+        let first = min(Int(frames), Self.ringSamples - at)
+        (ring + at).update(from: scratch, count: first)
+        ring.update(from: scratch + first, count: Int(frames) - first)
+        written += Int(frames)
+      }
+    } else {
       renderFailures += 1
-      if renderFailures == Self.renderFailuresAllowed {
-        queue.async { [onFailure] in onFailure("audio unit render error \(status)") }
-      }
-      return status
     }
-    renderFailures = 0
-    for i in 0..<Int(frames) {
-      pending[filled] = scratch[i]
-      filled += 1
-      if filled == Self.frameSamples {
-        let frame = pending.withUnsafeBytes { Data($0) }
-        filled = 0
-        queue.async { [onFrame] in onFrame(frame) }
-      }
+    if os_unfair_lock_trylock(lock) {
+      published = written
+      consumedSeen = consumed
+      if renderFailures >= Self.renderFailuresAllowed { failure = status }
+      os_unfair_lock_unlock(lock)
     }
-    return noErr
+    return status
   }
 
   private func check(_ status: OSStatus) throws {
