@@ -41,6 +41,7 @@ vi.mock('react-native-audio-api', () => ({
     clearOnAudioReady() { this.cleared = true; }
   },
 }));
+vi.mock('../../modules/route-picker/src/RoutePickerModule', () => ({ currentOutput: () => null, addOutputListener: () => ({ remove() {} }) }));
 vi.mock('./logFile', () => ({ openLogFile: () => 'memory', appendLog: () => {} }));
 const network = vi.hoisted(() => ({ listeners: [] as Array<(state: { isConnected: boolean | null }) => void> }));
 vi.mock('expo-network', () => ({

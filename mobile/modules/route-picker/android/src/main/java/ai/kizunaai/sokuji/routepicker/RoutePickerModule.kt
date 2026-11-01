@@ -1,9 +1,17 @@
 package ai.kizunaai.sokuji.routepicker
 
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.media.MediaRouter
 import android.media.MediaRouter2
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -17,9 +25,89 @@ import expo.modules.kotlin.modules.ModuleDefinition
 //  - 11: the Settings panel, by its action;
 //  - otherwise, or when none of these answers: the Bluetooth settings.
 // Returns which was opened.
+//
+// The output in use and its changes, which the audio library leaves empty on
+// Android: currentOutput() reads the device media plays on, and routeChange
+// fires when a device comes or goes (AudioDeviceCallback) or the selection
+// among connected ones moves (MediaRouter: nothing is added or removed then).
 class RoutePickerModule : Module() {
+  private val mainHandler = Handler(Looper.getMainLooper())
+  private var observers: (() -> Unit)? = null
+
+  private fun audioManager(context: Context) = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+  private fun categoryOf(device: AudioDeviceInfo) = when (device.type) {
+    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+    AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+    AudioDeviceInfo.TYPE_HEARING_AID,
+    AudioDeviceInfo.TYPE_BLE_HEADSET,
+    AudioDeviceInfo.TYPE_BLE_SPEAKER -> "Bluetooth"
+    AudioDeviceInfo.TYPE_WIRED_HEADSET,
+    AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "Wired"
+    AudioDeviceInfo.TYPE_USB_HEADSET,
+    AudioDeviceInfo.TYPE_USB_DEVICE,
+    AudioDeviceInfo.TYPE_USB_ACCESSORY -> "USB"
+    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
+    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "Built-in Speaker"
+    else -> "Other"
+  }
+
+  private fun currentDevice(context: Context): AudioDeviceInfo? {
+    val audio = audioManager(context)
+    if (Build.VERSION.SDK_INT >= 33) {
+      val media = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).build()
+      audio.getAudioDevicesForAttributes(media).firstOrNull()?.let { return it }
+    }
+    // Before 13 no call names the device: the router tells Bluetooth from the
+    // rest, and a plugged-in device takes the sound from the speaker by itself.
+    val outputs = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+    val router = context.getSystemService(Context.MEDIA_ROUTER_SERVICE) as MediaRouter
+    val selected = router.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_AUDIO)
+    if (selected.deviceType == MediaRouter.RouteInfo.DEVICE_TYPE_BLUETOOTH) {
+      outputs.firstOrNull { categoryOf(it) == "Bluetooth" }?.let { return it }
+    }
+    return outputs.firstOrNull { categoryOf(it) == "Wired" || categoryOf(it) == "USB" }
+      ?: outputs.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+  }
+
+  private fun startObserving(context: Context) {
+    val changed = { sendEvent("routeChange") }
+    val audio = audioManager(context)
+    val router = context.getSystemService(Context.MEDIA_ROUTER_SERVICE) as MediaRouter
+    val devices = object : AudioDeviceCallback() {
+      override fun onAudioDevicesAdded(added: Array<out AudioDeviceInfo>) = changed()
+      override fun onAudioDevicesRemoved(removed: Array<out AudioDeviceInfo>) = changed()
+    }
+    val routes = object : MediaRouter.SimpleCallback() {
+      override fun onRouteSelected(router: MediaRouter, type: Int, info: MediaRouter.RouteInfo) = changed()
+      override fun onRouteUnselected(router: MediaRouter, type: Int, info: MediaRouter.RouteInfo) = changed()
+      override fun onRouteChanged(router: MediaRouter, info: MediaRouter.RouteInfo) = changed()
+    }
+    audio.registerAudioDeviceCallback(devices, mainHandler)
+    mainHandler.post { router.addCallback(MediaRouter.ROUTE_TYPE_LIVE_AUDIO, routes) }
+    observers = {
+      audio.unregisterAudioDeviceCallback(devices)
+      mainHandler.post { router.removeCallback(routes) }
+    }
+  }
+
   override fun definition() = ModuleDefinition {
     Name("RoutePicker")
+
+    Events("routeChange")
+
+    OnStartObserving { appContext.reactContext?.let { startObserving(it) } }
+
+    OnStopObserving {
+      observers?.invoke()
+      observers = null
+    }
+
+    Function("currentOutput") {
+      val context = appContext.reactContext ?: return@Function null
+      val device = currentDevice(context) ?: return@Function null
+      mapOf("id" to device.id.toString(), "name" to device.productName.toString(), "category" to categoryOf(device))
+    }
 
     Function("showOutputSwitcher") {
       val context = appContext.reactContext ?: return@Function "none"
