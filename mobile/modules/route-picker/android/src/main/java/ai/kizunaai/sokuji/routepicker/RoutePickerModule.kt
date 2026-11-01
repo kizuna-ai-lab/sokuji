@@ -7,8 +7,10 @@ import android.media.AudioAttributes
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.media.MediaRoute2Info
 import android.media.MediaRouter
 import android.media.MediaRouter2
+import android.media.RouteDiscoveryPreference
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -29,7 +31,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
 // The output in use and its changes, which the audio library leaves empty on
 // Android: currentOutput() reads the device media plays on, and routeChange
 // fires when a device comes or goes (AudioDeviceCallback) or the selection
-// among connected ones moves (MediaRouter: nothing is added or removed then).
+// among connected ones moves (the router: nothing is added or removed then).
 class RoutePickerModule : Module() {
   private val mainHandler = Handler(Looper.getMainLooper())
   private var observers: (() -> Unit)? = null
@@ -71,24 +73,58 @@ class RoutePickerModule : Module() {
   }
 
   private fun startObserving(context: Context) {
-    val changed = { sendEvent("routeChange") }
+    // One switch reports several times; one event is enough.
+    val emit = Runnable { sendEvent("routeChange") }
+    val changed = {
+      mainHandler.removeCallbacks(emit)
+      mainHandler.postDelayed(emit, 100)
+      Unit
+    }
     val audio = audioManager(context)
-    val router = context.getSystemService(Context.MEDIA_ROUTER_SERVICE) as MediaRouter
     val devices = object : AudioDeviceCallback() {
       override fun onAudioDevicesAdded(added: Array<out AudioDeviceInfo>) = changed()
       override fun onAudioDevicesRemoved(removed: Array<out AudioDeviceInfo>) = changed()
     }
+    audio.registerAudioDeviceCallback(devices, mainHandler)
+    val stopRouter = if (Build.VERSION.SDK_INT >= 30) observeRouter2(context, changed) else observeRouter(context, changed)
+    observers = {
+      audio.unregisterAudioDeviceCallback(devices)
+      stopRouter()
+      mainHandler.removeCallbacks(emit)
+    }
+  }
+
+  // The route callback is what registers the app with the system; without it
+  // the controller never updates. (On the Pixel, Android 17, a switch in the
+  // panel reached these and never the older MediaRouter.)
+  private fun observeRouter2(context: Context, changed: () -> Unit): () -> Unit {
+    val router = MediaRouter2.getInstance(context)
+    val executor = context.mainExecutor
+    val routes = object : MediaRouter2.RouteCallback() {
+      override fun onRoutesUpdated(routes: MutableList<MediaRoute2Info>) = changed()
+    }
+    val controller = object : MediaRouter2.ControllerCallback() {
+      override fun onControllerUpdated(controller: MediaRouter2.RoutingController) = changed()
+    }
+    val discovery = RouteDiscoveryPreference.Builder(listOf(MediaRoute2Info.FEATURE_LIVE_AUDIO), false).build()
+    router.registerRouteCallback(executor, routes, discovery)
+    router.registerControllerCallback(executor, controller)
+    return {
+      router.unregisterRouteCallback(routes)
+      router.unregisterControllerCallback(controller)
+    }
+  }
+
+  // Android 10, which has no MediaRouter2.
+  private fun observeRouter(context: Context, changed: () -> Unit): () -> Unit {
+    val router = context.getSystemService(Context.MEDIA_ROUTER_SERVICE) as MediaRouter
     val routes = object : MediaRouter.SimpleCallback() {
       override fun onRouteSelected(router: MediaRouter, type: Int, info: MediaRouter.RouteInfo) = changed()
       override fun onRouteUnselected(router: MediaRouter, type: Int, info: MediaRouter.RouteInfo) = changed()
       override fun onRouteChanged(router: MediaRouter, info: MediaRouter.RouteInfo) = changed()
     }
-    audio.registerAudioDeviceCallback(devices, mainHandler)
     mainHandler.post { router.addCallback(MediaRouter.ROUTE_TYPE_LIVE_AUDIO, routes) }
-    observers = {
-      audio.unregisterAudioDeviceCallback(devices)
-      mainHandler.post { router.removeCallback(routes) }
-    }
+    return { mainHandler.post { router.removeCallback(routes) } }
   }
 
   override fun definition() = ModuleDefinition {
