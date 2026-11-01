@@ -235,6 +235,8 @@ code is not unit tested.
 - **Android playback moves into the module.** The library's player is no longer exercised there during
   sessions, so the module owns everything that used to be the library's: scheduling, pan, volume.
 
+**AEC3 convergence (measured on a Pixel 9a, 2026-11-02).** In the first 10 seconds or so after speech starts on the fallback chain, the canceller can mute the voice for half a second at a time, costing a few words (143 of 147 characters matched in 40 s, none of the English leaked). After that it holds. Shortening this is tuning for a later change.
+
 **32-bit Android (accepted by the owner, 2026-11-01).** AEC3 is built for arm64-v8a and x86_64 only. A 32-bit phone with no vendor canceller keeps subtitles and does not speak on the loudspeaker.
 
 ## 9. The owner's answers (2026-11-01)
