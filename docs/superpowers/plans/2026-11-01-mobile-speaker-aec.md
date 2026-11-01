@@ -271,8 +271,8 @@ describe('the echo cancellation row', () => {
 - Produces JNI (package `ai.kizunaai.sokuji.audiocapture`, class `Aec3`): `nativeCreate(captureRate: Int, renderRate: Int): Long`, `nativeDestroy(h: Long)`, `nativeSetDelayMs(h: Long, ms: Int)`, `nativeFeedRender(h: Long, pcm: ShortArray)`, `nativeProcess(h: Long, in: ShortArray, out: ShortArray): Int` (10 ms frames; returns 0 on success), `nativeDelayEstimateMs(h: Long): Int`. APM config: echo canceller on, noise suppression off, gain controllers off, high-pass on.
 
 - [ ] **Step 1: The build script:** clone `webrtc-audio-processing` v2.1, `meson setup … --cross-file … -Ddefault_library=static -Dbuildtype=release -Dneon=enabled` for arm64 (x86_64 without the NEON flag), `ninja install`, copy the `.a` files and headers into `android/libs`, and fail if `meson introspect --buildoptions` does not show `neon = enabled` for arm64. Run it on the Mac; commit the outputs with a `SHA256SUMS` file.
-- [ ] **Step 2: CMake + JNI:** `add_library(aec3 SHARED apm_jni.cc)`, link the imported archives, `-std=c++17`, 16 KB alignment flags (`-Wl,-z,max-page-size=16384`); `externalNativeBuild` and `ndk.abiFilters "arm64-v8a","x86_64"` in `android/build.gradle`.
-- [ ] **Step 3: Verification:** the module builds in the dev app for both ABIs; `nm -D libaec3.so` shows the JNI symbols; a 10 ms round trip through `nativeProcess` on the Pixel costs ≤ 1.2 ms (log it).
+- [ ] **Step 2: CMake + JNI:** `add_library(aec3 SHARED apm_jni.cc)`, link the imported archives, `-std=c++20` (the spike built with it; the library's headers are untried under C++17), the verified 16 KB alignment flag `-Wl,-z,max-page-size=16384`; `externalNativeBuild` and `ndk.abiFilters "arm64-v8a","x86_64"` in `android/build.gradle`.
+- [ ] **Step 3: Verification:** the module builds in the dev app for both ABIs; `nm -D libaec3.so` shows the JNI symbols; log the cost of a 10 ms round trip through `nativeProcess` on the Pixel — the spike measured about 1.1 ms while playing, a reference for this phone, not a bar for others.
 - [ ] **Step 4: Commit** — `feat(mobile): WebRTC AEC3 for Android, prebuilt with NEON`
 
 ### Task 10: Android module
