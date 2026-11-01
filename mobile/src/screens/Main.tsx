@@ -16,7 +16,7 @@ import { useBusy } from '@/lib/useBusy';
 import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
 import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
-import { idleHint, pairArrow, pairLayout, statusLine, statusTone } from './mainText';
+import { idleHint, PAIR_STACK_FROM_FONT_SCALE, pairArrow, pairLayout, statusLine, statusTone } from './mainText';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
 import { endReason } from '../session/endReason';
@@ -209,6 +209,9 @@ export default function Main() {
   const line = statusLine(t, shown, detail);
   const tone = statusTone(shown);
   const stacked = layout !== 'row';
+  // The idle hint reads from the start only at the accessibility sizes (Sophie, iOS):
+  // the bar's layout says nothing about the text size.
+  const large = fontScale >= PAIR_STACK_FROM_FONT_SCALE;
 
   return (
     // Without the system's bar, the screen keeps off the status bar itself.
@@ -256,7 +259,7 @@ export default function Main() {
         // It scrolls, at the system's text size: at AX5 it was cut at the right and after
         // three lines (Sophie, iOS). Centred at normal sizes, from the start beyond.
         <ScrollView className="flex-1" contentContainerClassName="flex-grow justify-center px-8 py-4">
-          <Text className={cn('text-muted-foreground text-lg', stacked ? 'text-left' : 'text-center')}>
+          <Text className={cn('text-muted-foreground text-lg', large ? 'text-left' : 'text-center')}>
             {idleHint(t, target)}
           </Text>
         </ScrollView>
@@ -277,6 +280,7 @@ export default function Main() {
             arrow={pairArrow(i18n.dir(ui) === 'rtl')}
             layout={layout === 'column' ? 'column' : 'row'}
             onWrap={onWrap}
+            measureKey={`${layout}:${fontScale}:${width}`}
             hearLabel={t('mobile.main.hear')}
             readLabel={t('mobile.main.read')}
             hearHint={t('mobile.main.pickHear')}

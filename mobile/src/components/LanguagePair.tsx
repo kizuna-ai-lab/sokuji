@@ -20,6 +20,8 @@ type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPr
   iconSize: number;
   /** The name did not fit on one line: the caller gives the pair more room. */
   onWrap?: () => void;
+  /** Changes whenever the name must be measured afresh (a new layout, text size or width). */
+  measureKey: string;
 };
 
 /**
@@ -28,7 +30,7 @@ type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPr
  * saying it opens a list; at least 48 units tall, growing with the name. The
  * ref reaches the Pressable, so focus can return here when the list closes.
  */
-function Side({ name, label, hint, locked, onPress, iconSize, onWrap, className, ...props }: SideProps) {
+function Side({ name, label, hint, locked, onPress, iconSize, onWrap, measureKey, className, ...props }: SideProps) {
   const onTextLayout = (e: TextLayoutEvent) => {
     if (e.nativeEvent.lines.length > 1) onWrap?.();
   };
@@ -42,9 +44,12 @@ function Side({ name, label, hint, locked, onPress, iconSize, onWrap, className,
       disabled={locked}
       onPress={onPress}
       // Squared off: the box around the pair carries the rounding.
-      className={cn('gap-1 rounded-none px-3 py-2', className)}
+      className={cn('gap-1 rounded-none px-2 py-2', className)}
     >
-      <Text className="shrink" onTextLayout={onTextLayout}>{name}</Text>
+      {/* Remounted on each change of layout, text size or width: a text laid out again
+          in place did not always report its lines (iOS: the bar stayed on a layout
+          whose names broke inside a word after the system text size changed). */}
+      <Text key={measureKey} className="shrink" onTextLayout={onTextLayout}>{name}</Text>
       <Icon as={ChevronDown} size={iconSize} className="text-muted-foreground" />
     </Button>
   );
@@ -58,13 +63,14 @@ function Side({ name, label, hint, locked, onPress, iconSize, onWrap, className,
  * text sizes and names that would otherwise break inside a word. A name that
  * does not fit on one line is reported through `onWrap`; nothing is shrunk or cut.
  */
-export function LanguagePair({ source, target, arrow, layout, onWrap, hearLabel, readLabel, hearHint, readHint, locked, lockedReason, onPressSource, onPressTarget, sourceRef, targetRef, className }: {
+export function LanguagePair({ source, target, arrow, layout, onWrap, measureKey, hearLabel, readLabel, hearHint, readHint, locked, lockedReason, onPressSource, onPressTarget, sourceRef, targetRef, className }: {
   source: string;
   target: string;
   /** From the heard language to the read one: "→", or "←" in a right-to-left layout; "↓" when stacked. */
   arrow: string;
   layout: 'row' | 'column';
   onWrap?: () => void;
+  measureKey: string;
   hearLabel: string;
   readLabel: string;
   hearHint: string;
@@ -79,16 +85,18 @@ export function LanguagePair({ source, target, arrow, layout, onWrap, hearLabel,
 }) {
   const column = layout === 'column';
   const iconSize = useIconSize(16);
-  const side = column ? 'self-stretch' : 'flex-1';
+  // Side by side, each side starts from its name's width and the spare width is
+  // shared: a long name beside a short one fits where equal halves would not.
+  const side = column ? 'self-stretch' : 'grow shrink basis-auto';
   return (
     <View className={cn('border-border bg-background overflow-hidden rounded-md border', column ? 'items-stretch' : 'flex-row items-stretch', className)}>
-      <Side ref={sourceRef} className={side} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} iconSize={iconSize} onWrap={onWrap} />
+      <Side ref={sourceRef} className={side} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
       {/* Decoration between the two buttons, hidden from screen readers with its text
           (the sides' labels already say which is which): a stop on it would be one too many. */}
       <View className={column ? 'items-center' : 'justify-center'} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text className="text-muted-foreground">{column ? '↓' : arrow}</Text>
       </View>
-      <Side ref={targetRef} className={side} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} iconSize={iconSize} onWrap={onWrap} />
+      <Side ref={targetRef} className={side} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} iconSize={iconSize} onWrap={onWrap} measureKey={measureKey} />
     </View>
   );
 }
