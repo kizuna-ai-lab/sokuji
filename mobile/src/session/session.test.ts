@@ -629,6 +629,35 @@ describe('the Android notification', () => {
     await s.stop();
   });
 
+  // The library's recorder is idle: capture is the module's, so Pause has to stop it here.
+  it('Pause stops the capture and Resume starts it again', async () => {
+    const { s, rec } = await boot([]);
+    const starts = audio.starts.length;
+    audio.notification.listeners.recordingNotificationPause();
+    await flush();
+    expect(rec.paused).toBe(1);
+    audio.notification.listeners.recordingNotificationResume();
+    await flush();
+    expect(audio.starts).toHaveLength(starts + 1);
+    await s.stop();
+  });
+
+  it('a call ending does not undo Pause', async () => {
+    const events: SessionEvent[] = [];
+    const { s } = await boot(events);
+    const starts = audio.starts.length;
+    audio.notification.listeners.recordingNotificationPause();
+    await flush();
+    const on = audio.manager.addSystemEventListener.mock.calls as unknown as Array<[string, (e: unknown) => void]>;
+    const interruption = on.filter(([name]) => name === 'interruption').at(-1)![1];
+    interruption({ type: 'began' });
+    interruption({ type: 'ended', shouldResume: true });
+    await flush();
+    expect(audio.starts).toHaveLength(starts);
+    expect(statuses(events).at(-1)).toMatchObject({ detail: 'paused' });
+    await s.stop();
+  });
+
   // A Pause tapped before the first grant must not look like the session
   // started: the screen's first 'listening' is what the analytics count.
   it('Pause before the stream is up reports nothing', async () => {

@@ -54,6 +54,7 @@
   "devDependencies": {
     "@types/react": "~19.3.0",
     "babel-preset-expo": "~58.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "~6.0.3",
     "vitest": "^4.1.12"
   },
@@ -62,7 +63,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "patch-package"
   },
   "private": true
 }

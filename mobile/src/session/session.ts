@@ -88,6 +88,8 @@ export function startSession(o: {
   let captureInfo: CaptureInfo | null = null;
   // The OS has the microphone (a phone call): nothing starts until it gives it back.
   let capturePaused = false;
+  // The notification's Pause: only its Resume ends this, not a call ending.
+  let heldByUser = false;
   // The first start is begin()'s: a route change before it only moves `route`.
   let captureBegun = false;
   let syncingCapture = false;
@@ -341,7 +343,7 @@ export function startSession(o: {
     }
     if (!running) return;
     speech?.setOn(spoken());
-    if (stream?.isOpen() && !connecting) status('listening', spokenDetail(), speech !== null);
+    if (stream?.isOpen() && !connecting) status('listening', heldByUser ? 'paused' : spokenDetail(), speech !== null);
   }
 
   // An interruption stops the module and resuming starts it again. The route may
@@ -353,7 +355,7 @@ export function startSession(o: {
   }
 
   async function resumeCapture(): Promise<void> {
-    if (!capturePaused || !running) return;
+    if (!capturePaused || !running || heldByUser) return;
     capturePaused = false;
     const c = capture;
     if (c && captureMode === echoWanted() && !syncingCapture) {
@@ -600,8 +602,8 @@ export function startSession(o: {
       }
       // The notification's own actions. Stop tells the app: the session ends with
       // it, or the lease stays held and the next foreground reconnects into a dead
-      // microphone. Pause and Resume act on the library's recorder; the screen is
-      // told which.
+      // microphone. Pause and Resume reach us through patches/react-native-audio-api:
+      // the library's recorder is idle, the capture is the module's.
       const onNotification = [
         RecordingNotificationManager.addEventListener('recordingNotificationStop', () => {
           log('notification: stop');
@@ -612,10 +614,14 @@ export function startSession(o: {
         // analytics count as the start.
         RecordingNotificationManager.addEventListener('recordingNotificationPause', () => {
           log('notification: pause');
+          heldByUser = true;
+          pauseCapture();
           if (stream?.isOpen()) status('listening', 'paused', speech !== null);
         }),
         RecordingNotificationManager.addEventListener('recordingNotificationResume', () => {
           log('notification: resume');
+          heldByUser = false;
+          void resumeCapture();
           if (stream?.isOpen()) status('listening', spokenDetail(), speech !== null);
         }),
       ];
