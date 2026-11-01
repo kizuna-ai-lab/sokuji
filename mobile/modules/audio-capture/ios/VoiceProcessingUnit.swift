@@ -9,16 +9,21 @@ import Foundation
 final class VoiceProcessingUnit {
   static let sampleRate: Double = 16000
   static let frameSamples = 1600
+  // About half a second of callbacks: a route change fails a few on its own.
+  private static let renderFailuresAllowed = 50
 
   private let onFrame: (Data) -> Void
+  private let onFailure: (String) -> Void
   private let queue = DispatchQueue(label: "ai.kizunaai.sokuji.audiocapture")
   private var unit: AudioUnit?
   private var scratch = [Int16](repeating: 0, count: 8192)
   private var pending = [Int16](repeating: 0, count: VoiceProcessingUnit.frameSamples)
   private var filled = 0
+  private var renderFailures = 0
 
-  init(onFrame: @escaping (Data) -> Void) {
+  init(onFrame: @escaping (Data) -> Void, onFailure: @escaping (String) -> Void) {
     self.onFrame = onFrame
+    self.onFailure = onFailure
   }
 
   deinit {
@@ -100,7 +105,14 @@ final class VoiceProcessingUnit {
         mBuffers: AudioBuffer(mNumberChannels: 1, mDataByteSize: frames * 2, mData: raw.baseAddress))
       status = AudioUnitRender(unit, flags, timestamp, bus, frames, &list)
     }
-    guard status == noErr else { return status }
+    guard status == noErr else {
+      renderFailures += 1
+      if renderFailures == Self.renderFailuresAllowed {
+        queue.async { [onFailure] in onFailure("audio unit render error \(status)") }
+      }
+      return status
+    }
+    renderFailures = 0
     for i in 0..<Int(frames) {
       pending[filled] = scratch[i]
       filled += 1
