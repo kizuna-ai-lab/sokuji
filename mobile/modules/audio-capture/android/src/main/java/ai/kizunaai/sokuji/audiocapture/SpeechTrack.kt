@@ -27,10 +27,17 @@ class SpeechTrack(private val rate: Int) {
   private val frame = rate / 100
   private val reference = ShortArray(Aec3.RATE / 100)
   private var framesWritten = 0L
-  private val track: AudioTrack
+  @Volatile private var track: AudioTrack
   private val writer: Thread
 
   init {
+    track = newTrack()
+    track.play()
+    writer = Thread({ writeLoop() }, "sokuji-speech")
+    writer.start()
+  }
+
+  private fun newTrack(): AudioTrack {
     val format = AudioFormat.Builder()
       .setSampleRate(rate)
       .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
@@ -41,10 +48,7 @@ class SpeechTrack(private val rate: Int) {
       .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
       .build()
     val size = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
-    track = AudioTrack(attributes, format, size, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE)
-    track.play()
-    writer = Thread({ writeLoop() }, "sokuji-speech")
-    writer.start()
+    return AudioTrack(attributes, format, size, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE)
   }
 
   fun attachCanceller(handle: Long) {
@@ -75,8 +79,8 @@ class SpeechTrack(private val rate: Int) {
 
   fun close() {
     running.set(false)
-    writer.join()
-    track.stop()
+    writer.join(1000)
+    runCatching { track.stop() }
     track.release()
   }
 
@@ -92,9 +96,11 @@ class SpeechTrack(private val rate: Int) {
         current = null
         queue.clear()
         queuedFrames.set(0)
-        track.pause()
-        track.flush()
-        track.play()
+        runCatching {
+          track.pause()
+          track.flush()
+          track.play()
+        }
         synchronized(this) { framesWritten = 0 }
       }
       var filled = 0
@@ -130,8 +136,23 @@ class SpeechTrack(private val rate: Int) {
           }
         }
       }
-      track.write(stereo, 0, stereo.size)
+      val wrote = track.write(stereo, 0, stereo.size)
+      if (wrote < 0) {
+        // Dead after an audioserver restart: a new track, unhurried, or this spins at audio priority.
+        Log.w("AudioCapture", "speech track write failed: $wrote")
+        Thread.sleep(REBUILD_WAIT_MS)
+        runCatching {
+          track.release()
+          track = newTrack().also { it.play() }
+        }
+        synchronized(this) { framesWritten = 0 }
+        continue
+      }
       synchronized(this) { framesWritten += frame }
     }
+  }
+
+  private companion object {
+    const val REBUILD_WAIT_MS = 200L
   }
 }

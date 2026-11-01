@@ -10,6 +10,7 @@ import android.media.AudioTimestamp
 import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AudioEffect
+import android.media.audiofx.AutomaticGainControl
 import android.media.audiofx.NoiseSuppressor
 import android.os.Process
 import android.util.Log
@@ -27,6 +28,7 @@ class CaptureEngine(
   private var record: AudioRecord? = null
   private var echo: AcousticEchoCanceler? = null
   private var noise: NoiseSuppressor? = null
+  private var gain: AutomaticGainControl? = null
   private var aec3 = 0L
   private var thread: Thread? = null
   @Volatile private var running = false
@@ -34,17 +36,26 @@ class CaptureEngine(
   @SuppressLint("MissingPermission")
   fun start(echoCancellation: Boolean, inputDeviceId: String?): Map<String, Any?> {
     stop()
+    try {
+      return open(echoCancellation, inputDeviceId)
+    } catch (e: Exception) {
+      stop()
+      throw e
+    }
+  }
+
+  @SuppressLint("MissingPermission")
+  private fun open(echoCancellation: Boolean, inputDeviceId: String?): Map<String, Any?> {
     var implementor: String? = null
     var noiseOff: Boolean? = null
     var chain = "none"
-    var made: AudioRecord? = null
     if (echoCancellation && !forceSoftware() && AcousticEchoCanceler.isAvailable()) {
       val candidate = newRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+      record = candidate
       val effect = runCatching { AcousticEchoCanceler.create(candidate.audioSessionId) }.getOrNull()
-      if (effect != null) {
-        effect.enabled = true
+      // A canceller the HAL refused must not count: speech would play into the microphone.
+      if (effect != null && effect.setEnabled(true) == AudioEffect.SUCCESS && effect.enabled) {
         echo = effect
-        made = candidate
         chain = "vendor"
         implementor = AudioEffect.queryEffects()
           ?.firstOrNull { it.type == AudioEffect.EFFECT_TYPE_AEC }?.implementor
@@ -54,19 +65,19 @@ class CaptureEngine(
             noiseOff = !it.enabled
           }
         }
+        if (AutomaticGainControl.isAvailable()) {
+          gain = AutomaticGainControl.create(candidate.audioSessionId)?.also { it.enabled = false }
+        }
       } else {
+        effect?.release()
         candidate.release()
+        record = null
       }
     }
-    val source = made ?: newRecord(MediaRecorder.AudioSource.MIC)
+    val source = record ?: newRecord(MediaRecorder.AudioSource.MIC).also { record = it }
     if (echoCancellation && chain == "none") {
       chain = "aec3"
-      aec3 = try {
-        openCanceller()
-      } catch (e: IllegalStateException) {
-        source.release()
-        throw e
-      }
+      aec3 = openCanceller()
       speech()?.attachCanceller(aec3)
     }
     if (inputDeviceId != null) {
@@ -74,12 +85,13 @@ class CaptureEngine(
       if (device != null) source.setPreferredDevice(device) else Log.i(TAG, "input $inputDeviceId is gone, using the phone's microphone")
     }
     source.startRecording()
-    record = source
+    // A failed start does not throw; left to the first read it would end the session.
+    check(source.recordingState == AudioRecord.RECORDSTATE_RECORDING) { "the microphone did not start" }
     running = true
     thread = Thread({
       try {
         readLoop(source)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
         if (running) onError(e.message ?: "the microphone stopped")
       }
     }, "sokuji-capture").also { it.start() }
@@ -107,6 +119,8 @@ class CaptureEngine(
     echo = null
     noise?.release()
     noise = null
+    gain?.release()
+    gain = null
     if (aec3 != 0L) {
       speech()?.attachCanceller(0L)
       Aec3.nativeDestroy(aec3)
@@ -160,6 +174,7 @@ class CaptureEngine(
     val bytes = ByteBuffer.allocate(FRAME * 2).order(ByteOrder.LITTLE_ENDIAN)
     var seeded = aec3 == 0L
     var count = 0
+    var framesRead = 0L
     var processNs = 0L
     while (running) {
       val n = source.read(input, 0, TEN_MS)
@@ -168,12 +183,14 @@ class CaptureEngine(
         return
       }
       if (n != TEN_MS) continue
+      framesRead += n
       if (aec3 != 0L) {
         val started = System.nanoTime()
-        Aec3.nativeProcess(aec3, input, output)
+        // Refused, the voice goes on unprocessed rather than as silence.
+        if (Aec3.nativeProcess(aec3, input, output) != 0) System.arraycopy(input, 0, output, 0, TEN_MS)
         processNs += System.nanoTime() - started
         count++
-        if (!seeded && count == SEED_AFTER) seeded = seedDelay(source)
+        if (!seeded && count % SEED_EVERY == 0) seeded = seedDelay(source, framesRead)
         if (count % LOG_EVERY == 0) {
           Log.i(TAG, "aec3 ${processNs / count / 1000} us per frame, delay ${Aec3.nativeDelayEstimateMs(aec3)} ms")
         }
@@ -188,16 +205,17 @@ class CaptureEngine(
     }
   }
 
-  private fun seedDelay(source: AudioRecord): Boolean {
+  // Until it knows the delay the canceller leaks, for seconds; both tracks must be
+  // reporting first, so this tries again until they are.
+  private fun seedDelay(source: AudioRecord, framesRead: Long): Boolean {
     val output = speech()?.outputLatencyMs() ?: return false
     val stamp = AudioTimestamp()
-    val input = if (source.getTimestamp(stamp, AudioTimestamp.TIMEBASE_MONOTONIC) == AudioRecord.SUCCESS) {
-      ((System.nanoTime() - stamp.nanoTime) / 1_000_000L).toInt().coerceAtLeast(0)
-    } else {
-      0
-    }
+    if (source.getTimestamp(stamp, AudioTimestamp.TIMEBASE_MONOTONIC) != AudioRecord.SUCCESS) return false
+    // How long ago the newest frame read reached the microphone.
+    val capturedAt = stamp.nanoTime + (framesRead - stamp.framePosition) * 1_000_000_000L / RATE
+    val input = ((System.nanoTime() - capturedAt) / 1_000_000L).toInt().coerceAtLeast(0)
     Aec3.nativeSetDelayMs(aec3, output + input)
-    Log.i(TAG, "seeded delay ${output + input} ms")
+    Log.i(TAG, "seeded delay ${output + input} ms (output $output, input $input)")
     return true
   }
 
@@ -211,7 +229,7 @@ class CaptureEngine(
     const val RATE = 16000
     private const val TEN_MS = RATE / 100
     private const val FRAME = RATE / 10
-    private const val SEED_AFTER = 100
+    private const val SEED_EVERY = 10
     private const val LOG_EVERY = 500
     private const val TAG = "AudioCapture"
   }

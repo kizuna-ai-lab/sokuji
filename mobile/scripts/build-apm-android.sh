@@ -43,3 +43,4 @@ cp -R "$WORK/install-arm64-v8a/include/webrtc-audio-processing-2" "$OUT/include"
 cp -R "$WORK"/src/subprojects/abseil-cpp-*/absl "$OUT/include/absl"
 find "$OUT/include/absl" -type f ! -name '*.h' ! -name '*.inc' -delete
 cp "$WORK/src/COPYING" "$OUT/../NOTICE-webrtc.txt"
+cat "$WORK"/src/subprojects/abseil-cpp-*/LICENSE > "$OUT/../NOTICE-abseil.txt"

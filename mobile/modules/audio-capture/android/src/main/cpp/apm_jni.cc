@@ -63,7 +63,8 @@ JNIEXPORT jint JNICALL Java_ai_kizunaai_sokuji_audiocapture_Aec3_nativeProcess(J
   jsize length = env->GetArrayLength(in);
   std::vector<int16_t> input(length), output(length);
   env->GetShortArrayRegion(in, 0, length, input.data());
-  a->apm->set_stream_delay_ms(a->delayMs);
+  // Unknown yet: left unset, not a claim of zero.
+  if (a->delayMs > 0) a->apm->set_stream_delay_ms(a->delayMs);
   int status = a->apm->ProcessStream(input.data(), a->stream, a->stream, output.data());
   env->SetShortArrayRegion(out, 0, length, output.data());
   return status;
