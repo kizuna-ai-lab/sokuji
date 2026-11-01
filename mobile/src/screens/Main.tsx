@@ -53,6 +53,9 @@ export default function Main() {
   // while it slides away, and focus goes back to that side.
   const [picking, setPicking] = useState(false);
   const [side, setSide] = useState<'source' | 'target'>('source');
+  // A press on the locked pair: the reason stands in the status line for a moment.
+  const [lockedNote, setLockedNote] = useState(false);
+  const lockedNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sourceSide = useRef<HostInstance>(null);
   const targetSide = useRef<HostInstance>(null);
   const ui = i18n.language;
@@ -92,6 +95,7 @@ export default function Main() {
 
   // Unmounted with a session running (the app dropped the token): nothing outlives the screen.
   useEffect(() => () => { void session.current?.stop(); }, []);
+  useEffect(() => () => { if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current); }, []);
 
   // The session has released everything it held (microphone, notification,
   // lease); the screen releases its part and draws the transcript's last state.
@@ -210,7 +214,7 @@ export default function Main() {
   };
 
   const shown = stopping ? 'stopping' : status;
-  const line = statusLine(t, shown, detail);
+  const line = lockedNote && active ? t('mobile.settings.locked') : statusLine(t, shown, detail);
   const tone = statusTone(shown);
   const stacked = layout !== 'row';
   // The idle hint reads from the start only at the accessibility sizes (Sophie, iOS):
@@ -293,6 +297,11 @@ export default function Main() {
             lockedReason={t('mobile.settings.locked')}
             onPressSource={() => openPicker('source')}
             onPressTarget={() => openPicker('target')}
+            onPressLocked={() => {
+              setLockedNote(true);
+              if (lockedNoteTimer.current) clearTimeout(lockedNoteTimer.current);
+              lockedNoteTimer.current = setTimeout(() => setLockedNote(false), 3000);
+            }}
             sourceRef={sourceSide}
             targetRef={targetSide}
           />
@@ -308,8 +317,6 @@ export default function Main() {
             </Button>
           )}
         </View>
-        {/* In a session the sides do nothing: the bar says why (the settings say the same). */}
-        {active ? <Text className="text-muted-foreground text-sm">{t('mobile.settings.locked')}</Text> : null}
       </View>
       <LanguagePicker
         visible={picking}
