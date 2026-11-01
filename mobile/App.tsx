@@ -11,7 +11,7 @@ import { signOutAndForget } from './src/auth/signOutFlow';
 import { settingsStore } from './src/store/useSettings';
 import { applyAppearance } from './src/screens/Settings';
 import SignIn from './src/auth/SignIn';
-import Main from './src/screens/Main';
+import { AppNavigator } from './src/navigation/AppNavigator';
 import { initI18n } from './src/i18n';
 
 export default function App() {
@@ -49,29 +49,31 @@ export default function App() {
     // gesture bar overlap the window. The insets come from the native module;
     // React Native's own SafeAreaView only knows iOS.
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom', 'left', 'right']}>
-        <View className="flex-1 items-center py-3">
-          {(!ready || token === undefined) && <Spinner size="large" className="mt-32" />}
-          {ready && token === null && <SignIn onSignedIn={refresh} />}
-          {ready && !!token && (
-            <Main
-              // Another account is another Main: nothing of the last one's (its history) carries over.
-              key={account}
-              accountId={account}
-              token={token}
-              email={email}
-              onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
-              onAccountDeleted={refresh}
-              // A request that was already in flight when the account changed must not sign the new one out.
-              onSignInRequired={() => setToken((current) => (current === token ? null : current))}
-            />
-          )}
-        </View>
-        {/* The bar's time and icons in the app's own scheme, not the system's: with the
-            appearance set to Light on a phone in dark mode, "auto" drew white icons over our
-            white bar. */}
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      </SafeAreaView>
+      {ready && !!token ? (
+        // The signed-in screens on their navigator, which draws the system bars itself.
+        // Another account is another app: nothing of the last one's (its history) carries over.
+        <AppNavigator
+          key={account}
+          accountId={account}
+          token={token}
+          email={email}
+          onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
+          onAccountDeleted={refresh}
+          // A request that was already in flight when the account changed must not sign the new one out.
+          onSignInRequired={() => setToken((current) => (current === token ? null : current))}
+        />
+      ) : (
+        <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom', 'left', 'right']}>
+          <View className="flex-1 items-center py-3">
+            {(!ready || token === undefined) && <Spinner size="large" className="mt-32" />}
+            {ready && token === null && <SignIn onSignedIn={refresh} />}
+          </View>
+        </SafeAreaView>
+      )}
+      {/* The bar's time and icons in the app's own scheme, not the system's: with the
+          appearance set to Light on a phone in dark mode, "auto" drew white icons over our
+          white bar. */}
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       {/* Where menus, dialogs and alerts render: above every screen, outside the safe-area padding. */}
       <PortalHost />
     </SafeAreaProvider>

@@ -21,15 +21,12 @@ import { lineHeight, SIZES, SOURCE_MAX_SCALE, TRANSLATION_MAX_SCALE } from '@/li
  * speaker changes. The text is selectable, so a long press copies it. Local
  * only: nothing is sent anywhere.
  */
-export default function SessionReader({ store, id, title, meta, onBack, actions, notice }: {
+export default function SessionReader({ store, id, title, meta, notice }: {
   store: HistoryStore;
   id: string;
   title: string;
   /** The row's second line: when, the pair, how long. */
   meta: string;
-  onBack: () => void;
-  /** The header's more button: rename, export, delete. */
-  actions: React.ReactNode;
   /** What one of those actions has to say (a failed export or delete), under the header. */
   notice?: React.ReactNode;
 }) {
@@ -105,7 +102,7 @@ export default function SessionReader({ store, id, title, meta, onBack, actions,
   return (
     // The title and the date scroll with the text: in a fixed header, at AX5 a long
     // name and its date filled the whole screen and the text could not be reached (Sophie).
-    <Screen onBack={onBack} end={actions} scroll={false}>
+    <Screen scroll={false}>
       {lines === undefined || failed ? (
         <ScrollView className="flex-1">
           {heading}

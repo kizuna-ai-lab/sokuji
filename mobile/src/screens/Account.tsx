@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, type HostInstance } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { KeyRound, LogOut, ReceiptText, Trash2 } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
@@ -12,40 +13,27 @@ import { Spinner } from '@/components/Spinner';
 import { useBusy } from '@/lib/useBusy';
 import { deleteAccount, emailVerified } from '../auth/client';
 import { authErrorKey } from '../auth/unwrap';
-import SignIn from '../auth/SignIn';
 import { fetchFallbackUsdPerHour, fetchUsagePerHour, fetchWallet, type Wallet } from '../account/wallet';
 import { formatHours, hoursLeft } from '../account/hours';
 import { formatUsd } from '../account/money';
-import Usage from './Usage';
+import { useApp } from '../navigation/context';
+import type { AppNavigation } from '../navigation/routes';
+import { useSessionActive } from '../store/useSessionActive';
 
 // The account screen: the balance and what it buys, as the website's billing
 // page shows them (R12: the balance only, top-ups in words); verify, usage,
 // sign out, delete.
-export default function Account({
-  token,
-  email,
-  onBack,
-  onSignOut,
-  onDeleted,
-  locked,
-  onSignInRequired,
-}: {
-  token: string;
-  email: string;
-  onBack: () => void;
-  onSignOut: () => void | Promise<void>;
-  onDeleted: () => void;
-  /** A session is running: signing out or deleting would leave it recording behind the sign-in screen. */
-  locked: boolean;
-  onSignInRequired: () => void;
-}) {
+export default function Account() {
   const { t, i18n } = useTranslation();
+  const { token, email, onSignOut, onAccountDeleted: onDeleted, onSignInRequired } = useApp();
+  const navigation = useNavigation<AppNavigation>();
+  // A session is running: signing out or deleting would leave it recording behind the sign-in screen.
+  const locked = useSessionActive();
   const locale = i18n.language.replace('_', '-');
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [hours, setHours] = useState<string | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [error, setError] = useState('');
-  const [view, setView] = useState<'account' | 'usage' | 'verify' | 'password'>('account');
   const [confirming, setConfirming] = useState(false);
   const [deleting, runDelete] = useBusy();
   const [signingOut, runSignOut] = useBusy();
@@ -82,9 +70,8 @@ export default function Account({
     }
   }, [token]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Loaded when the screen shows, and again when a verify or password page returns to it.
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   function deleteNow() {
     void runDelete(async () => {
@@ -98,25 +85,9 @@ export default function Account({
     });
   }
 
-  if (view === 'usage') return <Usage token={token} onBack={() => setView('account')} onSignInRequired={onSignInRequired} />;
-  // Verify the address, or set / change the password (the owner's ruling,
-  // 2026-10-28): opening the page sends nothing; the page shows the address and
-  // a Send code button, and the code field appears once the code is on its way.
-  if (view === 'verify' || view === 'password') {
-    return (
-      <SignIn
-        initialMode={view === 'verify' ? 'verifyStart' : 'forgot'}
-        initialEmail={email}
-        lockEmail
-        onSignedIn={() => { setView('account'); void load(); }}
-        onBack={() => setView('account')}
-      />
-    );
-  }
-
   const lockedReason = t('mobile.settings.locked');
   return (
-    <Screen title={t('mobile.menu.account')} onBack={onBack}>
+    <Screen>
       <View className="gap-3 px-4">
         <Text className="text-muted-foreground">{email}</Text>
         {!wallet && !error ? <Spinner size="large" className="py-6" /> : null}
@@ -140,7 +111,7 @@ export default function Account({
         {verified === false ? (
           <View className="border-border gap-3 rounded-lg border p-4">
             <Notice>{t('mobile.account.verify')}</Notice>
-            <Button variant="outline" onPress={() => setView('verify')}>
+            <Button variant="outline" onPress={() => navigation.navigate('Verify')}>
               <Text>{t('mobile.signIn.verify')}</Text>
             </Button>
           </View>
@@ -148,8 +119,9 @@ export default function Account({
         {error ? <Notice tone="error">{error}</Notice> : null}
       </View>
       <RowGroup>
-        <Row icon={ReceiptText} label={t('mobile.account.usage')} onPress={() => setView('usage')} />
-        <Row icon={KeyRound} label={t('mobile.signIn.password')} onPress={() => setView('password')} />
+        <Row icon={ReceiptText} label={t('mobile.account.usage')} onPress={() => navigation.navigate('Usage')} />
+        {/* Verify the address, or set / change the password (owner, 2026-10-28): the page sends nothing until asked. */}
+        <Row icon={KeyRound} label={t('mobile.signIn.password')} onPress={() => navigation.navigate('Password')} />
       </RowGroup>
       <RowGroup>
         <Row

@@ -8,6 +8,7 @@ import { Row, RowGroup } from '@/components/Row';
 import { Screen } from '@/components/ScreenHeader';
 import { microphoneChoices, routeOf, type MicrophoneKind, type Route } from '../session/route';
 import { useSettings } from '../store/useSettings';
+import { useSessionActive } from '../store/useSessionActive';
 import { outputLines } from './deviceText';
 import { RoutePickerView, showOutputSwitcher, type SwitcherResult } from '../../modules/route-picker/src/RoutePickerModule';
 
@@ -17,8 +18,9 @@ import { RoutePickerView, showOutputSwitcher, type SwitcherResult } from '../../
 // opens (modules/route-picker). The route change event refreshes the row.
 // During a session (locked) the microphone is fixed, as the session opened it;
 // the output can still be switched.
-export default function Devices({ onBack, locked }: { onBack: () => void; locked: boolean }) {
+export default function Devices() {
   const { t } = useTranslation();
+  const locked = useSessionActive();
   const settings = useSettings((s) => s.settings);
   const set = useSettings((s) => s.set);
   const [mics, setMics] = useState<Array<{ id: string; kind: MicrophoneKind; name: string }>>([]);
@@ -58,7 +60,7 @@ export default function Devices({ onBack, locked }: { onBack: () => void; locked
   const output = outputLines(t, route, outputName);
 
   return (
-    <Screen title={t('mobile.settings.devices')} onBack={onBack} backLabel={t('mobile.menu.settings')}>
+    <Screen>
       {/* Before the devices are listed, or if listing fails, the phone's own microphone (no stored choice) is what is used. */}
       <ChoiceList
         title={t('mobile.devices.microphone')}
