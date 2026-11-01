@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ChoiceList } from '@/components/ChoiceList';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Notice } from '@/components/Notice';
 import { Row, RowGroup } from '@/components/Row';
 import { Screen } from '@/components/ScreenHeader';
+import { SwitchRow } from '@/components/SwitchRow';
+import { echoRowState } from '../session/capture';
 import { microphoneChoices, routeOf, type MicrophoneKind, type Route } from '../session/route';
 import { devicesInfo, onOutputChange } from '../session/routeNative';
 import { useSettings } from '../store/useSettings';
@@ -18,6 +21,9 @@ import { RoutePickerView, showOutputSwitcher, type SwitcherResult } from '../../
 // opens (modules/route-picker). The route change event refreshes the row.
 // During a session (locked) the microphone is fixed, as the session opened it;
 // the output can still be switched.
+// D7, D8: one echo cancellation row, for the current output; away from the
+// phone's speaker turning it on asks first, since it is meant for an output that
+// plays aloud. A session uses what was stored at Start, so the row locks with it.
 export default function Devices() {
   const { t } = useTranslation();
   const locked = useSessionActive();
@@ -27,6 +33,7 @@ export default function Devices() {
   const [route, setRoute] = useState<Route>('speaker');
   const [outputName, setOutputName] = useState('');
   const [outputFailed, setOutputFailed] = useState(false);
+  const [confirmingEcho, setConfirmingEcho] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -57,6 +64,7 @@ export default function Devices() {
   const stored = shown.some((m) => m.id === settings.inputDeviceId) ? settings.inputDeviceId : null;
   const chosen = stored ?? mics[firstBuiltin]?.id ?? '';
   const output = outputLines(t, route, outputName);
+  const echo = echoRowState(settings, route);
 
   return (
     <Screen>
@@ -82,7 +90,28 @@ export default function Devices() {
         }} />
       </RowGroup>
       {outputFailed ? <Notice className="px-4">{t('mobile.devices.outputUnavailable')}</Notice> : null}
+      <RowGroup footer={t('mobile.devices.echoCancellationFooter')}>
+        <SwitchRow
+          label={t('mobile.devices.echoCancellation')}
+          checked={echo.checked}
+          disabled={locked}
+          disabledReason={t('mobile.settings.locked')}
+          onCheckedChange={(on) => {
+            if (on && echo.confirmBeforeOn) setConfirmingEcho(true);
+            else set({ [echo.key]: on });
+          }}
+        />
+      </RowGroup>
       <Notice className="px-4">{t('mobile.listen.headphones')}</Notice>
+      <ConfirmDialog
+        open={confirmingEcho}
+        onOpenChange={setConfirmingEcho}
+        title={t('mobile.devices.echoCancellationOtherTitle')}
+        description={t('mobile.devices.echoCancellationOtherBody')}
+        confirmLabel={t('mobile.devices.echoCancellationOtherConfirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={() => set({ echoCancellationOther: true })}
+      />
     </Screen>
   );
 }
