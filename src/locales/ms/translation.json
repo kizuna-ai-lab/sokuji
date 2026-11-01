@@ -1766,6 +1766,8 @@
       "usb": "Mikrofon USB",
       "noBluetoothMic": "Set kepala Bluetooth memainkan terjemahan tetapi tidak digunakan sebagai mikrofon.",
       "output": "Peranti main balik",
+      "chooseOutput": "Membuka senarai peranti main balik sistem",
+      "outputUnavailable": "Tidak dapat membuka senarai peranti main balik. Pilih satu dalam tetapan sistem.",
       "route": {
         "speaker": "Pembesar suara telefon",
         "headphones": "Fon kepala",

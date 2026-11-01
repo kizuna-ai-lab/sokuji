@@ -1766,6 +1766,8 @@
       "usb": "USB-Mikrofon",
       "noBluetoothMic": "Bluetooth-Kopfhörer spielen die Übersetzung ab, dienen aber nicht als Mikrofon.",
       "output": "Wiedergabegerät",
+      "chooseOutput": "Öffnet die Liste der Wiedergabegeräte des Systems",
+      "outputUnavailable": "Die Liste der Wiedergabegeräte ließ sich nicht öffnen. Wähle eines in den Systemeinstellungen.",
       "route": {
         "speaker": "Telefonlautsprecher",
         "headphones": "Kopfhörer",

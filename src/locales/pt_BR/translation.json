@@ -1766,6 +1766,8 @@
       "usb": "Microfone USB",
       "noBluetoothMic": "Fones Bluetooth tocam a tradução, mas não são usados como microfone.",
       "output": "Dispositivo de reprodução",
+      "chooseOutput": "Abre a lista de dispositivos de reprodução do sistema",
+      "outputUnavailable": "Não foi possível abrir a lista de dispositivos de reprodução. Escolha um nas configurações do sistema.",
       "route": {
         "speaker": "Alto-falante do telefone",
         "headphones": "Fones de ouvido",

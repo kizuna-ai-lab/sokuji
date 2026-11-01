@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 11+ package visibility: lets the module see SystemUI's media output receiver before broadcasting to it. -->
+  <queries>
+    <intent>
+      <action android:name="com.android.systemui.action.LAUNCH_MEDIA_OUTPUT_DIALOG" />
+    </intent>
+  </queries>
+</manifest>
