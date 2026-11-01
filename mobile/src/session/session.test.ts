@@ -41,6 +41,7 @@ vi.mock('react-native-audio-api', () => ({
     clearOnAudioReady() { this.cleared = true; }
   },
 }));
+vi.mock('../../modules/route-picker/src/RoutePickerModule', () => ({ currentOutput: () => null, addOutputListener: () => ({ remove() {} }) }));
 vi.mock('./logFile', () => ({ openLogFile: () => 'memory', appendLog: () => {} }));
 const network = vi.hoisted(() => ({ listeners: [] as Array<(state: { isConnected: boolean | null }) => void> }));
 vi.mock('expo-network', () => ({
@@ -593,6 +594,18 @@ describe('the grant\'s streams', () => {
     await flush();
     expect(streams.at(-1)!.cfg).toMatchObject({ apiKey: 'k', clientReferenceId: 'r1' });
     expect(lease.sessionStarted).toHaveBeenCalledWith(expect.objectContaining({ role: 'par_stt' }));
+    await s.stop();
+  });
+
+  it('reports the start for the recognition stream only: the backend refuses a TTS role', async () => {
+    lease.leaseKey.mockResolvedValueOnce({ ...grant, streams: [...grant.streams, { role: 'par_tts', apiKey: 'tts-key', clientReferenceId: 'r-tts' }] });
+    const events: SessionEvent[] = [];
+    const s = startSession({ token: 'tok', region: 'us', source: 'en', target: 'zh', transcript, listen: { voice: null, speed: 1 }, getRoute: async () => 'headphones', onRouteChange: () => () => {}, createPlayer: player, onEvent: (e) => events.push(e) });
+    await flush();
+    audio.recorders.at(-1)!.cb!({ buffer });
+    await flush();
+    expect(lease.sessionStarted).toHaveBeenCalledTimes(1);
+    expect(lease.sessionStarted).not.toHaveBeenCalledWith(expect.objectContaining({ role: 'par_tts' }));
     await s.stop();
   });
 
