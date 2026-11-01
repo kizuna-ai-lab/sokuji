@@ -71,7 +71,13 @@ class CaptureEngine(
     source.startRecording()
     record = source
     running = true
-    thread = Thread({ readLoop(source) }, "sokuji-capture").also { it.start() }
+    thread = Thread({
+      try {
+        readLoop(source)
+      } catch (e: Exception) {
+        if (running) onError(e.message ?: "the microphone stopped")
+      }
+    }, "sokuji-capture").also { it.start() }
     Log.i(TAG, "chain $chain, implementor $implementor, noise off $noiseOff")
     return mapOf(
       "chain" to chain,
@@ -153,8 +159,7 @@ class CaptureEngine(
       } else {
         System.arraycopy(input, 0, output, 0, TEN_MS)
       }
-      bytes.asShortBuffer().put(bytes.position() / 2, output)
-      bytes.position(bytes.position() + TEN_MS * 2)
+      for (sample in output) bytes.putShort(sample)
       if (!bytes.hasRemaining()) {
         onFrame(bytes.array().copyOf())
         bytes.clear()
