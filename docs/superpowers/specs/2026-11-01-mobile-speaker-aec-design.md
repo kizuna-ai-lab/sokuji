@@ -137,7 +137,8 @@ module reports what it has written minus what the track has played).
 `echoCancellation: settings.echoCancellation && o.listen && !headphones(route)`: with `listen` off nothing plays, so subtitles-only sessions, the majority today, stay on the plain path. `listen` cannot change during a session, so this adds no restart path. The session feeds its 100 ms
 frames where the recorder's buffers went: the ticker tick, the first-buffer log, the rotation check,
 `sendAudio`. The Android foreground notification (`RecordingNotificationManager`, part of the library,
-independent of its recorder) stays. Interruptions: `pauseCapture` / `resumeCapture` map to the module's
+independent of its recorder for Stop; Pause, Resume and the swipe needed
+`mobile/patches/react-native-audio-api+0.13.6.patch` to reach the app when that recorder is idle) stays. Interruptions: `pauseCapture` / `resumeCapture` map to the module's
 stop and start; a resumed capture re-reports its `CaptureInfo`.
 
 **The spoken shape.** The lease asks for `participantSpeech` whenever `listen` is on; the route no longer
