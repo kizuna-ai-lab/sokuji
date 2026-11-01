@@ -15,6 +15,21 @@ export function pairArrow(rtl: boolean): string {
   return rtl ? '←' : '→';
 }
 
+/** The pair takes its own line above Start from about the first accessibility size; there the sides stack too. */
+export const PAIR_STACK_FROM_FONT_SCALE = 1.35;
+
+/**
+ * How the bar at the bottom of the main screen is laid out: the pair beside
+ * Start ('row'); the pair on its own line above Start when a name had to wrap
+ * there ('stacked'); the two sides one above the other when a name still
+ * wrapped, or at the accessibility text sizes ('column'). `overflow` counts
+ * the layouts a name has wrapped in; nothing is ever shrunk or cut.
+ */
+export function pairLayout(fontScale: number, overflow: number): 'row' | 'stacked' | 'column' {
+  if (fontScale >= PAIR_STACK_FROM_FONT_SCALE || overflow >= 2) return 'column';
+  return overflow === 1 ? 'stacked' : 'row';
+}
+
 /** "Heard → read" as one line (the history list). */
 export function pairLabel(sourceName: string, targetName: string, rtl: boolean): string {
   return `${sourceName} ${pairArrow(rtl)} ${targetName}`;

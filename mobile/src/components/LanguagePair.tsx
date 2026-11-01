@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type TextLayoutEvent } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
 
 type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPress'> & {
@@ -15,6 +16,10 @@ type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPr
   hint: string;
   locked: boolean;
   onPress: () => void;
+  /** The chevron's size, following the text size. */
+  iconSize: number;
+  /** The name did not fit on one line: the caller gives the pair more room. */
+  onWrap?: () => void;
 };
 
 /**
@@ -23,7 +28,10 @@ type SideProps = Omit<React.ComponentProps<typeof Pressable>, 'children' | 'onPr
  * saying it opens a list; at least 48 units tall, growing with the name. The
  * ref reaches the Pressable, so focus can return here when the list closes.
  */
-function Side({ name, label, hint, locked, onPress, className, ...props }: SideProps) {
+function Side({ name, label, hint, locked, onPress, iconSize, onWrap, className, ...props }: SideProps) {
+  const onTextLayout = (e: TextLayoutEvent) => {
+    if (e.nativeEvent.lines.length > 1) onWrap?.();
+  };
   return (
     <Button
       variant="ghost"
@@ -34,10 +42,10 @@ function Side({ name, label, hint, locked, onPress, className, ...props }: SideP
       disabled={locked}
       onPress={onPress}
       // Squared off: the box around the pair carries the rounding.
-      className={cn('flex-1 gap-1 rounded-none px-3 py-2', className)}
+      className={cn('gap-1 rounded-none px-3 py-2', className)}
     >
-      <Text className="shrink">{name}</Text>
-      <Icon as={ChevronDown} size={16} className="text-muted-foreground" />
+      <Text className="shrink" onTextLayout={onTextLayout}>{name}</Text>
+      <Icon as={ChevronDown} size={iconSize} className="text-muted-foreground" />
     </Button>
   );
 }
@@ -45,14 +53,18 @@ function Side({ name, label, hint, locked, onPress, className, ...props }: SideP
 /**
  * The language pair on the main screen as two choices in one bordered box:
  * what is heard, an arrow, what is read. Each side opens its own list; in a
- * session both are locked and say so. A long name wraps and the box grows;
- * nothing is shrunk or cut.
+ * session both are locked and say so. Side by side ('row') the sides share
+ * the width; one above the other ('column') each has it all, for the largest
+ * text sizes and names that would otherwise break inside a word. A name that
+ * does not fit on one line is reported through `onWrap`; nothing is shrunk or cut.
  */
-export function LanguagePair({ source, target, arrow, hearLabel, readLabel, hearHint, readHint, locked, lockedReason, onPressSource, onPressTarget, sourceRef, targetRef, className }: {
+export function LanguagePair({ source, target, arrow, layout, onWrap, hearLabel, readLabel, hearHint, readHint, locked, lockedReason, onPressSource, onPressTarget, sourceRef, targetRef, className }: {
   source: string;
   target: string;
-  /** From the heard language to the read one: "→", or "←" in a right-to-left layout. */
+  /** From the heard language to the read one: "→", or "←" in a right-to-left layout; "↓" when stacked. */
   arrow: string;
+  layout: 'row' | 'column';
+  onWrap?: () => void;
   hearLabel: string;
   readLabel: string;
   hearHint: string;
@@ -65,15 +77,18 @@ export function LanguagePair({ source, target, arrow, hearLabel, readLabel, hear
   targetRef?: React.ComponentProps<typeof Pressable>['ref'];
   className?: string;
 }) {
+  const column = layout === 'column';
+  const iconSize = useIconSize(16);
+  const side = column ? 'self-stretch' : 'flex-1';
   return (
-    <View className={cn('border-border bg-background flex-row items-stretch overflow-hidden rounded-md border', className)}>
-      <Side ref={sourceRef} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} />
+    <View className={cn('border-border bg-background overflow-hidden rounded-md border', column ? 'items-stretch' : 'flex-row items-stretch', className)}>
+      <Side ref={sourceRef} className={side} name={source} label={hearLabel} hint={locked ? lockedReason : hearHint} locked={locked} onPress={onPressSource} iconSize={iconSize} onWrap={onWrap} />
       {/* Decoration between the two buttons, hidden from screen readers with its text
           (the sides' labels already say which is which): a stop on it would be one too many. */}
-      <View className="justify-center" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Text className="text-muted-foreground">{arrow}</Text>
+      <View className={column ? 'items-center' : 'justify-center'} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Text className="text-muted-foreground">{column ? '↓' : arrow}</Text>
       </View>
-      <Side ref={targetRef} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} />
+      <Side ref={targetRef} className={side} name={target} label={readLabel} hint={locked ? lockedReason : readHint} locked={locked} onPress={onPressTarget} iconSize={iconSize} onWrap={onWrap} />
     </View>
   );
 }

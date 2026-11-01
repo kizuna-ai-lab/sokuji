@@ -15,7 +15,7 @@ import { useBusy } from '@/lib/useBusy';
 import { useIconSize } from '@/lib/useIconSize';
 import { cn } from '@/lib/utils';
 import { languageName, sourceOptions, targetOptions } from '../i18n/languages';
-import { idleHint, pairArrow, statusLine, statusTone } from './mainText';
+import { idleHint, pairArrow, pairLayout, statusLine, statusTone } from './mainText';
 import type { Entry } from '@shared/lib/projection/types';
 import { startSession, type Status } from '../session/session';
 import { endReason } from '../session/endReason';
@@ -33,9 +33,6 @@ import { documentFs } from '../history/fs';
 import { capture, platform, sessionEndProperties, sessionStartProperties } from '../analytics';
 
 const KEEP_AWAKE_TAG = 'sokuji-session';
-
-// From about the first accessibility size the pair takes its own line above Start.
-const STACK_FROM_FONT_SCALE = 1.35;
 
 type Screen = 'main' | 'account' | 'settings' | 'history' | 'listen' | 'devices';
 
@@ -70,9 +67,21 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
   const autoLabel = t('common.autoDetect');
   const sources = useMemo(() => sourceOptions(ui, autoLabel), [ui, autoLabel]);
   const targets = useMemo(() => targetOptions(ui), [ui]);
-  const { fontScale } = useWindowDimensions();
+  const { fontScale, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const menuIcon = useIconSize(24);
+  const actionIcon = useIconSize(18);
+  // How many layouts a language name has wrapped in (see pairLayout): each
+  // wrap gives the pair more room, and only new names, text size or width
+  // start over, so the bar never flips back and forth.
+  const [overflow, setOverflow] = useState(0);
+  const source = languageName(settings.source, ui, autoLabel);
+  const target = languageName(settings.target, ui);
+  useEffect(() => { setOverflow(0); }, [source, target, fontScale, width]);
+  const layout = pairLayout(fontScale, overflow);
+  const level = layout === 'row' ? 0 : layout === 'stacked' ? 1 : 2;
+  // A wrap in the current layout moves to the next one, once.
+  const onWrap = () => setOverflow((o) => (o === level ? o + 1 : o));
   const session = useRef<{ stop(): Promise<void> } | null>(null);
   const feed = useRef<{ stop(): void } | null>(null);
   const transcript = useRef<Transcript | null>(null);
@@ -230,9 +239,7 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
   const shown = stopping ? 'stopping' : status;
   const line = statusLine(t, shown, detail);
   const tone = statusTone(shown);
-  const source = languageName(settings.source, ui, autoLabel);
-  const target = languageName(settings.target, ui);
-  const stacked = fontScale >= STACK_FROM_FONT_SCALE;
+  const stacked = layout !== 'row';
 
   return (
     <View className="bg-background w-full flex-1">
@@ -288,8 +295,9 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
       )}
       {/* The bar: the pair, each side its own choice, and Start, all at least 48
           units tall (header, pair and Start at one height) with 8 above and below.
-          At the largest text sizes the pair takes its own line above Start; a long
-          name wraps and the bar grows, the text keeps the system size. */}
+          When a name does not fit beside Start the pair takes its own line, then
+          its sides stack; at the largest text sizes they stack outright. The bar
+          grows with its text, which keeps the system size. */}
       <View className="border-border gap-2 border-t px-4 py-2">
         <View className={cn('gap-2', !stacked && 'flex-row items-stretch')}>
           <LanguagePair
@@ -297,6 +305,8 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
             source={source}
             target={target}
             arrow={pairArrow(i18n.dir(ui) === 'rtl')}
+            layout={layout === 'column' ? 'column' : 'row'}
+            onWrap={onWrap}
             hearLabel={t('mobile.main.hear')}
             readLabel={t('mobile.main.read')}
             hearHint={t('mobile.main.pickHear')}
@@ -310,12 +320,12 @@ export default function Main({ accountId, token, email, onSignOut, onAccountDele
           />
           {active ? (
             <Button variant="destructive" className={cn(stacked && 'self-stretch')} disabled={stopping} onPress={() => { void runStop(stop); }}>
-              <Icon as={Square} size={18} />
+              <Icon as={Square} size={actionIcon} />
               <Text>{stopping ? t('mobile.main.status.stopping') : t('mobile.main.stop')}</Text>
             </Button>
           ) : (
             <Button className={cn(stacked && 'self-stretch')} onPress={() => { void start(); }}>
-              <Icon as={Play} size={18} />
+              <Icon as={Play} size={actionIcon} />
               <Text>{t('mobile.main.start')}</Text>
             </Button>
           )}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idleHint, pairArrow, pairLabel, statusLine, statusTone } from './mainText';
+import { idleHint, pairArrow, pairLabel, pairLayout, statusLine, statusTone } from './mainText';
 
 // A t() that shows which key and values were asked for.
 const t = (key: string, values?: Record<string, string>) => (values ? `${key}(${Object.values(values).join(',')})` : key);
@@ -18,6 +18,21 @@ describe('the main screen before a session', () => {
   it('names the pair on one line for the history, the arrow the same way', () => {
     expect(pairLabel('Auto Detect', 'Japanese', false)).toBe('Auto Detect → Japanese');
     expect(pairLabel('اكتشاف تلقائي', 'اليابانية', true)).toBe('اكتشاف تلقائي ← اليابانية');
+  });
+});
+
+describe('the bar at the bottom of the main screen', () => {
+  it('keeps the pair beside Start until a name has to wrap, then gives the pair its own line, then stacks the sides', () => {
+    expect(pairLayout(1, 0)).toBe('row');
+    expect(pairLayout(1, 1)).toBe('stacked');
+    expect(pairLayout(1, 2)).toBe('column');
+    // Nothing further to give once the sides are stacked.
+    expect(pairLayout(1, 5)).toBe('column');
+  });
+
+  it('stacks the sides outright at the accessibility text sizes', () => {
+    expect(pairLayout(1.35, 0)).toBe('column');
+    expect(pairLayout(1.3, 0)).toBe('row');
   });
 });
 
