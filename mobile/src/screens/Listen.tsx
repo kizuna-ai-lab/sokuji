@@ -1,4 +1,3 @@
-import { useApp } from '../navigation/context';
 import { useEffect, useRef, useState } from 'react';
 import { View, type HostInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +20,7 @@ import { useIconSize } from '@/lib/useIconSize';
 import type { PreviewState } from '../session/preview';
 import { createNativeVoicePreview } from '../session/previewNative';
 import { useSettings } from '../store/useSettings';
+import { useApp } from '../navigation/context';
 import { PREVIEW_ESTIMATE_USD, previewFailureKey } from './previewText';
 
 const SPEEDS = [0.8, 0.9, 1, 1.1, 1.2, 1.3];

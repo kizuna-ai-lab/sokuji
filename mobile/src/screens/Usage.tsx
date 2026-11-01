@@ -1,4 +1,3 @@
-import { useApp } from '../navigation/context';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +10,7 @@ import { Spinner } from '@/components/Spinner';
 import { cn } from '@/lib/utils';
 import { fetchLedger, type LedgerCursor, type LedgerGroup } from '../account/ledger';
 import { formatUsd } from '../account/money';
+import { useApp } from '../navigation/context';
 
 const KIND_KEY: Record<string, string> = {
   topup: 'mobile.usage.kind.topup',

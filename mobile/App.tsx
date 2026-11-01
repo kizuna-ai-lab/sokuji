@@ -1,5 +1,5 @@
 import './global.css';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, initialWindowMetrics } from 'react-native-safe-area-context';
@@ -22,7 +22,9 @@ export default function App() {
   // The scheme the app is drawn in: the appearance setting, or the system's.
   const { colorScheme } = useColorScheme();
 
-  async function refresh() {
+  // Stable: the navigator shares these with every screen, and rebuilds that
+  // sharing (re-rendering them all) whenever one changes.
+  const refresh = useCallback(async () => {
     try {
       // One session read: a token without an account id counts as signed out.
       const current = await currentAccount();
@@ -32,11 +34,14 @@ export default function App() {
     } catch {
       setToken(null);
     }
-  }
+  }, []);
+  const onSignOut = useCallback(() => signOutAndForget({ signOut, forget: refresh, log: console.log }), [refresh]);
+  // A request that was already in flight when the account changed must not sign the new one out.
+  const onSignInRequired = useCallback(() => setToken((current) => (current === token ? null : current)), [token]);
 
   useEffect(() => {
     initI18n().catch((err) => console.error('i18n init failed', err)).finally(() => setReady(true));
-    refresh();
+    void refresh();
     // The appearance setting is an override of the system's: applied as stored, and on change.
     applyAppearance(settingsStore.getState().settings.appearance);
     return settingsStore.subscribe((s, prev) => {
@@ -57,10 +62,9 @@ export default function App() {
           accountId={account}
           token={token}
           email={email}
-          onSignOut={() => signOutAndForget({ signOut, forget: refresh, log: console.log })}
+          onSignOut={onSignOut}
           onAccountDeleted={refresh}
-          // A request that was already in flight when the account changed must not sign the new one out.
-          onSignInRequired={() => setToken((current) => (current === token ? null : current))}
+          onSignInRequired={onSignInRequired}
         />
       ) : (
         <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom', 'left', 'right']}>

@@ -83,8 +83,12 @@ export default function Main() {
   const lastEvent = useRef<{ status: string; detail?: string } | null>(null);
 
   const active = status !== 'idle' && status !== 'stopped' && status !== 'error';
-  // The other screens lock what a running session holds (see store/session.ts).
-  useEffect(() => { sessionStore.getState().setActive(active); }, [active]);
+  // The other screens lock what a running session holds (see store/session.ts);
+  // a Main that goes mid-session (the token dropped) takes the flag with it.
+  useEffect(() => {
+    sessionStore.getState().setActive(active);
+    return () => { sessionStore.getState().setActive(false); };
+  }, [active]);
 
   // Unmounted with a session running (the app dropped the token): nothing outlives the screen.
   useEffect(() => () => { void session.current?.stop(); }, []);
