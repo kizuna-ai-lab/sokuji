@@ -112,7 +112,11 @@ final class VoiceProcessingUnit {
     guard let unit else { return }
     AudioOutputUnitStop(unit)
     // A route change restarts mid-sentence: what the ring holds still goes out,
-    // on `queue`, or it could cross the timer's own delivery.
+    // on `queue`, or it could cross the timer's own delivery. The unit has stopped,
+    // so `written` is still; the last callback may have missed the lock.
+    os_unfair_lock_lock(lock)
+    published = written
+    os_unfair_lock_unlock(lock)
     queue.sync { deliver() }
     AudioUnitUninitialize(unit)
     AudioComponentInstanceDispose(unit)
