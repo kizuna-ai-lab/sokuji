@@ -11,6 +11,9 @@ import { TabAudioRecorder } from '../../modern-audio/TabAudioRecorder';
 import type { Source } from '../../session/source';
 import { createSourceCore } from './core';
 
+/** Chrome's words when the icon was not clicked on the tab: only that click grants the capture, a reload does not. */
+const NOT_INVOKED = 'has not been invoked';
+
 /** The settings a tab source reads when it opens (and `muted` on every chunk). */
 export interface TabSettings {
   /**
@@ -66,10 +69,13 @@ export async function openTab(
 
   const begun = await recorder.begin({ tabId, outputDeviceId: settings.outputDeviceId(), video: settings.video() });
   if (!begun) {
-    // The browser's own reason is the only clue to why, for the failure and its telemetry. Reloading the tab
-    // gives back no capture permission: Chrome grants it when the icon is clicked on the tab.
-    const why = recorder.beginFailure === undefined ? '' : ` (${describeCause(recorder.beginFailure)})`;
-    throw new Error(`The meeting tab could not be captured${why}. Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.`);
+    // The browser's own reason is the only clue to why, for the failure and its telemetry.
+    const cause = recorder.beginFailure === undefined ? null : describeCause(recorder.beginFailure);
+    const why = cause === null ? '' : ` (${cause})`;
+    const remedy = cause?.includes(NOT_INVOKED)
+      ? 'Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.'
+      : 'Reload the tab and try again.';
+    throw new Error(`The meeting tab could not be captured${why}. ${remedy}`);
   }
   open = true;
   unwatch = core.watch(recorder.getStream());

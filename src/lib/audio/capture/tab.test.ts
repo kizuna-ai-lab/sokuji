@@ -78,17 +78,25 @@ describe('openTab', () => {
     expect(tab.ended).toBe(0);
   });
 
-  it("names the browser's reason and the way out when the tab will not be captured", async () => {
-    const tab = fakeTab({ begins: false, failure: new Error('Extension has not been invoked for the current page') });
+  it("names Chrome's reason and the icon when the extension was never invoked on the tab", async () => {
+    const reason = 'Extension has not been invoked for the current page (see activeTab permission). Chrome pages cannot be captured.';
+    const tab = fakeTab({ begins: false, failure: new Error(reason) });
     await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
-      'The meeting tab could not be captured (Extension has not been invoked for the current page). Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.',
+      `The meeting tab could not be captured (${reason}). Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.`,
     );
   });
 
-  it('gives the way out alone when the recorder kept no reason', async () => {
+  it('names the reason without the icon when the failure is not the missing permission', async () => {
+    const tab = fakeTab({ begins: false, failure: new Error('The audio worklet did not load') });
+    await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
+      'The meeting tab could not be captured (The audio worklet did not load). Reload the tab and try again.',
+    );
+  });
+
+  it('keeps the plain words when the recorder kept no reason', async () => {
     const tab = fakeTab({ begins: false });
     await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
-      'The meeting tab could not be captured. Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.',
+      'The meeting tab could not be captured. Reload the tab and try again.',
     );
   });
 
