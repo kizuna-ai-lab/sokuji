@@ -2,13 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { TRACK_ENDED } from './core';
 import { openTab, type TabCapture, type TabSettings } from './tab';
 
-function fakeTab(o: { begins?: boolean } = {}) {
+function fakeTab(o: { begins?: boolean; failure?: unknown } = {}) {
   const track = new EventTarget() as MediaStreamTrack;
   const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
   let callback: ((data: { mono: Int16Array }) => void) | null = null;
   const tab = {
     begun: [] as Array<{ tabId?: number; outputDeviceId?: string; video?: boolean } | undefined>,
     ended: 0,
+    beginFailure: o.failure,
     async begin(options?: { tabId?: number; outputDeviceId?: string; video?: boolean }) {
       tab.begun.push(options);
       return o.begins ?? true;
@@ -75,6 +76,20 @@ describe('openTab', () => {
     const tab = fakeTab({ begins: false });
     await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow();
     expect(tab.ended).toBe(0);
+  });
+
+  it("names the browser's reason and the way out when the tab will not be captured", async () => {
+    const tab = fakeTab({ begins: false, failure: new Error('Extension has not been invoked for the current page') });
+    await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
+      'The meeting tab could not be captured (Extension has not been invoked for the current page). Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.',
+    );
+  });
+
+  it('gives the way out alone when the recorder kept no reason', async () => {
+    const tab = fakeTab({ begins: false });
+    await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
+      'The meeting tab could not be captured. Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.',
+    );
   });
 
   it('stops what it opened when the run was cancelled while it opened', async () => {

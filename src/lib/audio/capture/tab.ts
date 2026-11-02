@@ -30,6 +30,8 @@ export interface TabSettings {
 export interface TabCapture {
   /** False when the tab cannot be captured (it logs why and cleans up after itself). */
   begin(options?: { tabId?: number; outputDeviceId?: string; video?: boolean }): Promise<boolean>;
+  /** Why the last `begin` returned false. */
+  beginFailure?: unknown;
   record(callback: (data: { mono: Int16Array }) => void): Promise<boolean>;
   end(): Promise<void>;
   getStream(): MediaStream | null;
@@ -63,7 +65,12 @@ export async function openTab(
   });
 
   const begun = await recorder.begin({ tabId, outputDeviceId: settings.outputDeviceId(), video: settings.video() });
-  if (!begun) throw new Error('The meeting tab could not be captured. Reload the tab and try again.');
+  if (!begun) {
+    // The browser's own reason is the only clue to why, for the failure and its telemetry. Reloading the tab
+    // gives back no capture permission: Chrome grants it when the icon is clicked on the tab.
+    const why = recorder.beginFailure === undefined ? '' : ` (${describeCause(recorder.beginFailure)})`;
+    throw new Error(`The meeting tab could not be captured${why}. Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.`);
+  }
   open = true;
   unwatch = core.watch(recorder.getStream());
   try {

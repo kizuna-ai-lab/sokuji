@@ -130,6 +130,16 @@ chrome.runtime.onInstalled.addListener(async () => {
 // onClicked handler. On other sites we re-enable the popup so the icon click
 // shows the popup as before.
 
+// v0.3.6-v0.3.9 and v0.17.0 turned `openPanelOnActionClick` on, and it stays
+// set through updates: on those installs the icon click opens the panel without
+// firing onClicked, so tab capture fails as described above. Nothing else turns
+// it off, so every install and update does.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch((error) => {
+    console.error('[Sokuji] [Background] Error turning off the side panel action click:', error);
+  });
+});
+
 // Listen for tab URL updates to manage site-specific side panel visibility
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only process when URL changes or when the tab is complete
