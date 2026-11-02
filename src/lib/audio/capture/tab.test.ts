@@ -2,13 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { TRACK_ENDED } from './core';
 import { openTab, type TabCapture, type TabSettings } from './tab';
 
-function fakeTab(o: { begins?: boolean } = {}) {
+function fakeTab(o: { begins?: boolean; failure?: unknown } = {}) {
   const track = new EventTarget() as MediaStreamTrack;
   const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
   let callback: ((data: { mono: Int16Array }) => void) | null = null;
   const tab = {
     begun: [] as Array<{ tabId?: number; outputDeviceId?: string; video?: boolean } | undefined>,
     ended: 0,
+    beginFailure: o.failure,
     async begin(options?: { tabId?: number; outputDeviceId?: string; video?: boolean }) {
       tab.begun.push(options);
       return o.begins ?? true;
@@ -75,6 +76,28 @@ describe('openTab', () => {
     const tab = fakeTab({ begins: false });
     await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow();
     expect(tab.ended).toBe(0);
+  });
+
+  it("names Chrome's reason and the icon when the extension was never invoked on the tab", async () => {
+    const reason = 'Extension has not been invoked for the current page (see activeTab permission). Chrome pages cannot be captured.';
+    const tab = fakeTab({ begins: false, failure: new Error(reason) });
+    await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
+      `The meeting tab could not be captured (${reason}). Click the Sokuji icon in the browser toolbar on the meeting tab, then start again.`,
+    );
+  });
+
+  it('names the reason without the icon when the failure is not the missing permission', async () => {
+    const tab = fakeTab({ begins: false, failure: new Error('The audio worklet did not load') });
+    await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
+      'The meeting tab could not be captured (The audio worklet did not load). Reload the tab and try again.',
+    );
+  });
+
+  it('keeps the plain words when the recorder kept no reason', async () => {
+    const tab = fakeTab({ begins: false });
+    await expect(openTab(settingsFixture().settings, live(), () => tab)).rejects.toThrow(
+      'The meeting tab could not be captured. Reload the tab and try again.',
+    );
   });
 
   it('stops what it opened when the run was cancelled while it opened', async () => {
