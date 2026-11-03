@@ -37,7 +37,7 @@ afterEach(() => {
 });
 
 const CONFIG: SonioxSttConfig = {
-  apiKey: 'k', model: 'stt-rt-v5', sampleRate: 24000, region: 'us',
+  apiKey: 'k', model: 'stt-rt-v6', sampleRate: 24000, region: 'us',
   translation: { type: 'one_way', target_language: 'en' },
 };
 
@@ -61,7 +61,7 @@ describe('SonioxSttStream', () => {
     const { ws } = await openStream({ ...CONFIG, languageHints: ['zh'] });
     const first = JSON.parse(ws.sent[0] as string);
     expect(first).toMatchObject({
-      model: 'stt-rt-v5',
+      model: 'stt-rt-v6',
       audio_format: 'pcm_s16le', sample_rate: 24000, num_channels: 1,
       enable_endpoint_detection: true,
       enable_language_identification: true,

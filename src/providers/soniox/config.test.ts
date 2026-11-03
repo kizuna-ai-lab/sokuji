@@ -18,9 +18,9 @@ const build = (patch: Partial<SonioxSettings> = {}, context: SessionContext = AU
   buildSoniox(context, { ...SONIOX_DEFAULTS, ...patch }, SHARED);
 
 describe('buildSoniox — stt', () => {
-  it('builds stt-rt-v5 with no context and the server-default knobs at defaults', () => {
+  it('builds stt-rt-v6 with no context and the server-default knobs at defaults', () => {
     expect(build().stt).toEqual({
-      model: 'stt-rt-v5',
+      model: 'stt-rt-v6',
       endpointSensitivity: 0,
       endpointLatencyAdjustmentLevel: 0,
       endpointMaxDelayMs: 2000,
@@ -192,7 +192,7 @@ describe('buildSoniox — diarize', () => {
 
 describe('describeSoniox', () => {
   it('describes the STT model always, and the TTS model only for a leg that speaks', () => {
-    expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v5', ttsModel: 'tts-rt-v2' });
-    expect(describeSoniox(build({}, { ...AUTO_CTX, speech: false }))).toEqual({ asrModel: 'stt-rt-v5' });
+    expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' });
+    expect(describeSoniox(build({}, { ...AUTO_CTX, speech: false }))).toEqual({ asrModel: 'stt-rt-v6' });
   });
 });

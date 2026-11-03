@@ -14,7 +14,7 @@ describe('Soniox wire modules without a DOM', () => {
     // not in config.ts, which reaches the log store and React.
     const { SONIOX_STT_MODEL } = await import('./sttStream');
     expect(typeof createKizunaLease({ apiUrl: () => 'https://example.test/api' })).toBe('function');
-    expect(SONIOX_STT_MODEL).toBe('stt-rt-v5');
+    expect(SONIOX_STT_MODEL).toBe('stt-rt-v6');
   });
 
   it('imports and opens a stream through an injected socket', async () => {
@@ -32,7 +32,7 @@ describe('Soniox wire modules without a DOM', () => {
     await stream.connect({
       apiKey: 'snx_temp_test',
       region: 'us',
-      model: 'stt-rt-v5',
+      model: 'stt-rt-v6',
       sampleRate: 16000,
       translation: { type: 'one_way', target_language: 'zh' },
     });

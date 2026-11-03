@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 const CONFIG: SonioxSttConfig = {
-  apiKey: 'k', region: 'us', model: 'stt-rt-v5', sampleRate: 24000,
+  apiKey: 'k', region: 'us', model: 'stt-rt-v6', sampleRate: 24000,
   translation: { type: 'one_way', target_language: 'en' },
 };
 
@@ -47,7 +47,7 @@ describe('SonioxSttStream on the injected clock and socket', () => {
     sockets.last().open();
     await p;
     expect(sockets.last().protocols).toEqual(['soniox-api-key', 'k']);
-    expect(sockets.last().sentJson()[0]).toMatchObject({ model: 'stt-rt-v5' });
+    expect(sockets.last().sentJson()[0]).toMatchObject({ model: 'stt-rt-v6' });
     expect(sockets.last().sentJson()[0]).not.toHaveProperty('api_key');
   });
 
