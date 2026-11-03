@@ -76,6 +76,8 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   settings, onSelect, source, target, pairSource, participant, isSessionActive, sleep = realSleep,
 }) => {
   const { t, i18n } = useTranslation();
+  // A test's `useTranslation` stub may carry no `i18n`; the app's always does.
+  const uiLanguage = i18n?.language;
   const sourceRef = useRef(source);
   useEffect(() => { sourceRef.current = source; }, [source]);
   const [builtins, setBuiltins] = useState<PalabraVoiceInfo[]>([]);
@@ -234,7 +236,7 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
     setPending(next);
     setPendingSeq((n) => n + 1);
     setModalError(null);
-    setPendingLanguage(cloneLanguageFor(pairSource) ?? cloneLanguageFor(i18n.language) ?? '');
+    setPendingLanguage(cloneLanguageFor(pairSource) ?? cloneLanguageFor(uiLanguage) ?? '');
   };
 
   const clipError = (reason: ClipValidationError): Error => {
@@ -314,9 +316,9 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   };
 
   const languageOptions = useMemo(
-    () => PALABRA_CLONE_LANGUAGES.map((code) => ({ value: code, label: languageLabel(code, i18n.language) }))
+    () => PALABRA_CLONE_LANGUAGES.map((code) => ({ value: code, label: languageLabel(code, uiLanguage) }))
       .sort((a, b) => a.label.localeCompare(b.label)),
-    [i18n.language],
+    [uiLanguage],
   );
 
   const nameOf = useMemo(() => {
@@ -328,7 +330,7 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   /** The defaults, then the built-ins: the row language's section first, then "Other languages". */
   const builtinEntries = useCallback((language: string): VoiceEntry[] => {
     const defaults: VoiceEntry[] = PALABRA_VOICES.map((v) => ({ id: v.value, label: v.name, group: 'builtin', removable: false, previewable: false }));
-    const own = languageLabel(base(language), i18n.language);
+    const own = languageLabel(base(language), uiLanguage);
     const other = t('settings.palabraVoiceOtherLanguages', 'Other languages');
     const entry = (v: PalabraVoiceInfo, section: string): VoiceEntry => ({
       id: v.id, label: v.name, group: 'builtin', removable: false, previewable: !!v.sample, section,
@@ -337,7 +339,7 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
     const first = builtins.filter((v) => sameLanguage(v.language, language)).map((v) => entry(v, own));
     const rest = builtins.filter((v) => !sameLanguage(v.language, language)).map((v) => entry(v, other));
     return [...defaults, ...first, ...rest];
-  }, [builtins, i18n.language, t]);
+  }, [builtins, uiLanguage, t]);
 
   const customEntries = useMemo<VoiceEntry[]>(() => mine.map((v) => ({
     id: v.id,
