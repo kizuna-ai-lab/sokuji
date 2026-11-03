@@ -94,8 +94,8 @@ function normalise(v: WireVoice): PalabraVoiceInfo {
 function refusal(status: number, body: unknown, onCreate: boolean, secrets: readonly string[]): PalabraVoicesError {
   const code = (body as { errors?: Array<{ error_code?: unknown }> } | null)?.errors?.[0]?.error_code;
   // Palabra's words are kept, but never a credential it might echo back.
-  // Only a credential long enough to be one: a short test id must not eat ordinary words.
-  const words = secrets.reduce((text, secret) => (secret.length >= 8 ? text.split(secret).join('…') : text), restWords(status, body, 'Palabra refused the request.'));
+  // Any credential, whatever its length: a mangled word costs less than an exposed secret.
+  const words = secrets.reduce((text, secret) => (secret ? text.split(secret).join('…') : text), restWords(status, body, 'Palabra refused the request.'));
   if (status === 401 || status === 403) return new PalabraVoicesError('auth', words, status);
   if (status === 429) return new PalabraVoicesError('rate_limit', words, status);
   if (status === 404) return new PalabraVoicesError('not_found', words, status);
@@ -170,7 +170,9 @@ export class PalabraVoicesClient {
     for (let page = 0; page < MAX_PAGES; page++) {
       const query: string = token ? `token=${encodeURIComponent(token)}` : 'page_size=100';
       const data: { items?: WireVoice[]; next?: unknown } | undefined = await this.json(`${PALABRA_API}${path}?${query}`, { method: 'GET' }, signal);
-      if (!Array.isArray(data?.items)) throw new PalabraVoicesError('unknown', 'Palabra returned a voice list without its items.', 200);
+      if (!Array.isArray(data?.items) || data.items.some((v) => v === null || typeof v !== 'object')) {
+        throw new PalabraVoicesError('unknown', 'Palabra returned a voice list without its items.', 200);
+      }
       items.push(...data.items);
       token = str(data?.next);
       if (!token) break;

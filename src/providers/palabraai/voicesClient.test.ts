@@ -220,14 +220,30 @@ describe('PalabraVoicesClient', () => {
     await expect(c.listMine()).rejects.toMatchObject({ errorType: 'unknown' });
   });
 
+  it('a list page holding a null item is a typed error, not a crash', async () => {
+    const c = client(vi.fn(async () => page([mine('a', 'ready'), null])));
+    await expect(c.listMine()).rejects.toMatchObject({ errorType: 'unknown' });
+    await expect(client(vi.fn(async () => page([null]))).listBuiltin()).rejects.toBeInstanceOf(PalabraVoicesError);
+  });
+
+  it('a refusal whose body never arrives still times out', async () => {
+    const clock = createVirtualClock(0);
+    const stalled = { ok: false, status: 500, json: () => new Promise(() => {}) } as unknown as Response;
+    const c = new PalabraVoicesClient(KEY, { fetch: vi.fn(async () => stalled), clock });
+    const pending = c.limits();
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(15_000);
+    await expect(pending).rejects.toMatchObject({ errorType: 'timeout' });
+  });
+
   it('a credential reflected in Palabra\'s own words is masked', async () => {
-    // A client knows only its own credentials: each echoes back the one it sent.
-    for (const [k, secret] of [[KEY, 'plbr_SECRET'], [APP, 'sec_VALUE_9f17']] as const) {
-      const fetch = vi.fn(async () => err(401, undefined, `Bad credentials: ${secret} (invalid)`));
+    // A client knows only its own credentials: each echoes back the one it sent, whatever its length.
+    const SHORT: PalabraCredentials = { kind: 'app', clientId: 'c7x', clientSecret: 's9q2' };
+    for (const [k, secrets] of [[KEY, ['plbr_SECRET']], [APP, ['sec_VALUE_9f17']], [SHORT, ['c7x', 's9q2']]] as const) {
+      const fetch = vi.fn(async () => err(401, undefined, `Bad credentials: ${secrets.join(' / ')}`));
       const error = (await client(fetch, k).listMine().catch((e: unknown) => e)) as Error;
-      expect(error.message).not.toContain(secret);
-      // A short id is not hunted through ordinary words.
-      expect(error.message).toContain('(invalid)');
+      for (const secret of secrets) expect(error.message).not.toContain(secret);
     }
   });
 
