@@ -31,8 +31,19 @@ export interface SonioxCloneReviewStepProps {
   /** False hides the name field entirely. The managed backend names voices
    *  itself, so offering a name the user cannot influence would be a lie. */
   showName?: boolean;
+  /** The language the clip is spoken in, for a provider that must be told
+   *  (Palabra). Absent, nothing is asked — every caller before Palabra.
+   *  An empty `value` keeps Confirm disabled until one is chosen. */
+  language?: VoiceReviewLanguage;
   onConfirm: (name: string) => void;
   onClose: () => void;
+}
+
+export interface VoiceReviewLanguage {
+  label: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  value: string;
+  onChange(value: string): void;
 }
 
 /**
@@ -79,6 +90,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
   busy,
   notice,
   showName = true,
+  language,
   onConfirm,
   onClose,
 }) => {
@@ -191,6 +203,18 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
       {notice && (
         <p className="voice-review__notice">{notice}</p>
       )}
+      {language && (
+        <select
+          className="select-dropdown"
+          aria-label={language.label}
+          value={language.value}
+          onChange={(e) => language.onChange(e.target.value)}
+          disabled={busy}
+        >
+          {!language.value && <option value="">{language.label}</option>}
+          {language.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      )}
       {showName && (
         <input
           type="text"
@@ -234,7 +258,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
           type="button"
           className="voice-review__accept"
           onClick={() => onConfirm(name)}
-          disabled={busy || !consent}
+          disabled={busy || !consent || (language !== undefined && !language.value)}
         >
           {busy && (
             <Loader2

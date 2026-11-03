@@ -13,8 +13,14 @@ export { palabraLanguages, palabraOffers } from './languages';
 
 /** Which credentials a run sends (ruling 1): the platform's API key, or the legacy app's Client ID and Client Secret. */
 export type PalabraAuthMode = 'platform' | 'app';
-/** Palabra's two built-in voices (`PalabraAIProviderConfig.ts:321-324`). */
-export type PalabraVoice = 'default_low' | 'default_high';
+/**
+ * A voice id: one of the two default aliases (`PalabraAIProviderConfig.ts:321-324`),
+ * a built-in's id, or a voice of the account's own (voice library spec §1).
+ */
+export type PalabraVoice = string;
+
+/** The two aliases Palabra resolves to a default voice for the language. */
+export const PALABRA_DEFAULT_VOICE_IDS: ReadonlySet<string> = new Set(['default_low', 'default_high']);
 
 export interface PalabraSettings {
   /** Picked in the credential form (F4). A profile that stored none opens in the platform mode (ruling 2). */
@@ -31,6 +37,10 @@ export interface PalabraSettings {
   /** The buffer's ceiling, in ms; `build` keeps it above the target (`effectiveQueue`). */
   maxQueueLevelMs: number;
   autoTempo: boolean;
+  /** The name `voiceId` was picked under, for the Speech rows: only the voice list knows names (spec §1). */
+  voiceName: string;
+  /** The name `participantVoiceId` was picked under. */
+  participantVoiceName: string;
 }
 
 /** The old defaults (`PalabraAIProviderConfig.ts:26-42`), ours rather than Palabra's recommended 5 000 / 20 000 with adaptive speed on (ruling 10). */
@@ -45,6 +55,8 @@ export const PALABRA_DEFAULTS: PalabraSettings = {
   desiredQueueLevelMs: 8_000,
   maxQueueLevelMs: 24_000,
   autoTempo: false,
+  voiceName: '',
+  participantVoiceName: '',
 };
 
 /** The silence threshold's range: the API's own — the owner's probe saw 0.1 refused, "ensure this value is greater than or equal to 0.3" — and the slider's (ruling 10). */
@@ -78,7 +90,9 @@ export function effectiveThreshold(s: Pick<PalabraSettings, 'segmentConfirmation
 }
 
 const AUTH_MODES: readonly unknown[] = ['platform', 'app'];
-const VOICES: readonly unknown[] = ['default_low', 'default_high'];
+/** A stored voice id as kept: any non-empty string, else the default (spec §1). */
+const voice = (v: unknown, fallback: string) => (typeof v === 'string' && v !== '' ? v : fallback);
+const label = (v: unknown) => (typeof v === 'string' ? v : '');
 const finite = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 const flag = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
 
@@ -87,20 +101,22 @@ export function migratePalabraSettings(stored: Readonly<Record<string, unknown>>
   const d = PALABRA_DEFAULTS;
   return {
     authMode: AUTH_MODES.includes(stored.authMode) ? (stored.authMode as PalabraAuthMode) : d.authMode,
-    voiceId: VOICES.includes(stored.voiceId) ? (stored.voiceId as PalabraVoice) : d.voiceId,
-    participantVoiceId: VOICES.includes(stored.participantVoiceId) ? (stored.participantVoiceId as PalabraVoice) : d.participantVoiceId,
+    voiceId: voice(stored.voiceId, d.voiceId),
+    participantVoiceId: voice(stored.participantVoiceId, d.participantVoiceId),
     segmentConfirmationSilenceThreshold: finite(stored.segmentConfirmationSilenceThreshold, d.segmentConfirmationSilenceThreshold),
     sentenceSplitterEnabled: flag(stored.sentenceSplitterEnabled, d.sentenceSplitterEnabled),
     translatePartialTranscriptions: flag(stored.translatePartialTranscriptions, d.translatePartialTranscriptions),
     desiredQueueLevelMs: finite(stored.desiredQueueLevelMs, d.desiredQueueLevelMs),
     maxQueueLevelMs: finite(stored.maxQueueLevelMs, d.maxQueueLevelMs),
     autoTempo: flag(stored.autoTempo, d.autoTempo),
+    voiceName: label(stored.voiceName),
+    participantVoiceName: label(stored.participantVoiceName),
   };
 }
 
 /** The other party's voice for a run: never mine (`distinctVoice`). */
 export function palabraParticipantVoice(s: Pick<PalabraSettings, 'voiceId' | 'participantVoiceId'>): PalabraVoice {
-  return distinctVoice(s.participantVoiceId, s.voiceId, { participant: PALABRA_DEFAULTS.participantVoiceId, speaker: PALABRA_DEFAULTS.voiceId }) as PalabraVoice;
+  return distinctVoice(s.participantVoiceId, s.voiceId, { participant: PALABRA_DEFAULTS.participantVoiceId, speaker: PALABRA_DEFAULTS.voiceId });
 }
 
 /** Palabra's two voices, named in English as the old list named them. */

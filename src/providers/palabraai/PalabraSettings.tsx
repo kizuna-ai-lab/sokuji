@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
-import { VoiceField } from '../../components/providers/fields/VoiceField';
 import type { SettingsProps } from '../../lib/provider/types';
-import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, PALABRA_VOICES, palabraParticipantVoice, type PalabraSettings as S, type PalabraVoice } from './settings';
+import { PalabraVoiceField } from './PalabraVoiceField';
+import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, type PalabraSettings as S } from './settings';
 
-/** Each leg's voice as its run speaks it (`config.ts`). */
-export const PalabraVoiceSummary = presetVoiceSummary<S>(PALABRA_VOICES, ({ settings, leg }) =>
-  leg === 'participant' ? palabraParticipantVoice(settings) : settings.voiceId);
+/** Each leg's voice as its run speaks it (`config.ts`): moved beside the voice library. */
+export { PalabraVoiceSummary } from './PalabraVoiceSummary';
 
 /** An Enabled / Disabled pair, as the old block drew each of its three switches (`ProviderSpecificSettings.tsx:1341-1382, 1446-1461`). */
 function OnOff({ label, value, onChange, disabled }: { label: string; value: boolean; onChange(value: boolean): void; disabled: boolean }) {
@@ -26,14 +24,14 @@ function OnOff({ label, value, onChange, disabled }: { label: string; value: boo
 /**
  * Palabra AI's own settings (D18): the old UI's Palabra sections
  * (`ProviderSpecificSettings.tsx:1296-1463`) in their old order — the voice
- * (the shared `VoiceField`), speech processing, and the audio buffer. The
+ * (the voice library, `PalabraVoiceField`), speech processing, and the audio buffer. The
  * silence threshold is its `TurnDetection`; the pair is the generic
  * section's; the credentials and their mode the credential form's. The
  * buffer shows what a session asks for: the max slider's floor follows the
  * target, and a stored max not above it shows raised (ruling 10). The three
  * English-only tooltips are gone (ruling 10); no new locale key.
  */
-export function PalabraSettingsView({ settings, update, disabled = false, participantSpeaks = false }: SettingsProps<S>) {
+export function PalabraSettingsView({ settings, update, disabled = false, participantSpeaks = false, pair, account, preview }: SettingsProps<S>) {
   const { t } = useTranslation();
   const queue = effectiveQueue(settings);
   const splitter = t('settings.sentenceSplitter', 'Sentence Splitter');
@@ -43,9 +41,9 @@ export function PalabraSettingsView({ settings, update, disabled = false, partic
   const tempo = t('settings.autoTempo', 'Adaptive Speech Speed');
   return (
     <>
-      <VoiceField
-        value={settings.voiceId} options={PALABRA_VOICES} onChange={(voiceId) => update({ voiceId: voiceId as PalabraVoice })} disabled={disabled}
-        participant={participantSpeaks ? { value: settings.participantVoiceId, effective: palabraParticipantVoice(settings), onChange: (participantVoiceId) => update({ participantVoiceId: participantVoiceId as PalabraVoice }) } : undefined}
+      <PalabraVoiceField
+        settings={settings} update={update} disabled={disabled}
+        pair={pair} account={account} participantSpeaks={participantSpeaks} preview={preview}
       />
       <div className="settings-section">
         <h2>{t('settings.speechProcessing', 'Speech Processing')}</h2>

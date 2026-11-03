@@ -22,6 +22,11 @@ describe("Palabra AI's builder", () => {
     expect(buildPalabra(ctx('ja', 'en'), stored, SHARED)).toMatchObject({ voiceId: 'default_high', silenceThreshold: 0.3, queue: { desiredMs: 15_000, maxMs: 18_000, autoTempo: true } });
   });
 
+  it('passes a custom voice id through unchanged (voice library spec §6)', () => {
+    const stored = { ...PALABRA_DEFAULTS, voiceId: 'b532f7e9-ad28-4c51-a83e-2676860a6e9f' };
+    expect(buildPalabra(ctx('ja', 'en'), stored, SHARED)).toMatchObject({ voiceId: 'b532f7e9-ad28-4c51-a83e-2676860a6e9f' });
+  });
+
   it('asks for text alone on a leg that does not speak (ruling 7), and builds the participant as the same call on its direction (D17)', () => {
     expect(buildPalabra(ctx('ja', 'en', { speech: false }), PALABRA_DEFAULTS, SHARED)).toMatchObject({ speech: false });
     // `ja → en-us`'s participant, as Palabra's own reverse gives it (ruling 9).

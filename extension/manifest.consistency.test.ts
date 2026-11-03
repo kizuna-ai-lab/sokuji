@@ -30,6 +30,13 @@ describe('manifest stays consistent with the platform registry', () => {
     expect(origins).toContain('https://lf3-static.bytednsdoc.com');
   });
 
+  it("CSP connect-src allows Palabra's pre-signed voice-sample upload (the Palabra voice library)", () => {
+    // Samples and the API sit under https://*.palabra.ai already; the upload goes to Palabra's own S3 bucket.
+    const origins = manifest.content_security_policy.extension_pages.split(/[ ;]+/);
+    expect(origins).toContain('https://palabra-prod-web-cdn.s3.amazonaws.com');
+    expect(origins).toContain('https://*.palabra.ai');
+  });
+
   it("CSP connect-src allows OpenAI's voice-sample CDN (the Realtime and Live voice preview)", () => {
     const origins = manifest.content_security_policy.extension_pages.split(/[ ;]+/);
     expect(origins).toContain('https://cdn.openai.com');

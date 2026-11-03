@@ -3,7 +3,8 @@ import type { Provider } from '../../lib/provider/types';
 import { createPalabraAdapter } from './adapter';
 import { checkPalabra } from './check';
 import { buildPalabra, describePalabra, type PalabraConfig } from './config';
-import { PalabraSettingsView, PalabraVoiceSummary } from './PalabraSettings';
+import { PalabraSettingsView } from './PalabraSettings';
+import { PalabraVoiceSummary } from './PalabraVoiceSummary';
 import { PalabraTurnDetectionControls, PalabraTurnDetectionSummary } from './PalabraTurnDetection';
 import { migratePalabraSettings, PALABRA_DEFAULTS, palabraCredentials, palabraLanguages, type PalabraCredentials, type PalabraSettings } from './settings';
 
