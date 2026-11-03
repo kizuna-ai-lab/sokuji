@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Dùng 3–64 chữ cái, chữ số, dấu cách hoặc - . _ ( ).",
     "palabraVoiceLanguageLabel": "Ngôn ngữ của bản ghi",
     "palabraVoiceNoSlotsLeft": "Tài khoản Palabra của bạn không còn chỗ cho giọng nói — hãy xóa một giọng để thêm giọng mới.",
+    "palabraVoiceNoAnswer": "Palabra không phản hồi kịp thời. Hãy thử lại.",
     "sonioxVoiceDeleteInUse": "Giọng nói này đang được phiên hoạt động sử dụng — hãy kết thúc phiên trước khi xóa",
     "sonioxVoiceProcessingBadge": "đang xử lý…",
     "sonioxVoiceFailedBadge": "thất bại",

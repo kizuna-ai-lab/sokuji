@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "3–64 எழுத்துகள், எண்கள், இடைவெளிகள் அல்லது - . _ ( ) பயன்படுத்தவும்.",
     "palabraVoiceLanguageLabel": "பதிவின் மொழி",
     "palabraVoiceNoSlotsLeft": "உங்கள் Palabra கணக்கில் குரல்களுக்கு இடம் இல்லை — புதியதைச் சேர்க்க ஒரு குரலை நீக்கவும்.",
+    "palabraVoiceNoAnswer": "Palabra உரிய நேரத்தில் பதிலளிக்கவில்லை. மீண்டும் முயற்சிக்கவும்.",
     "sonioxVoiceDeleteInUse": "இந்தக் குரல் செயலில் உள்ள அமர்வில் பயன்படுத்தப்படுகிறது — நீக்கும் முன் அமர்வை முடிக்கவும்",
     "sonioxVoiceProcessingBadge": "செயலாக்கம் நடைபெறுகிறது…",
     "sonioxVoiceFailedBadge": "தோல்வி",

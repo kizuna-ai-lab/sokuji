@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "ใช้ตัวอักษร ตัวเลข ช่องว่าง หรือ - . _ ( ) จำนวน 3–64 ตัว",
     "palabraVoiceLanguageLabel": "ภาษาของการบันทึก",
     "palabraVoiceNoSlotsLeft": "บัญชี Palabra ของคุณไม่มีที่ว่างสำหรับเสียงแล้ว — ลบเสียงหนึ่งเสียงเพื่อเพิ่มเสียงใหม่",
+    "palabraVoiceNoAnswer": "Palabra ไม่ตอบกลับภายในเวลาที่กำหนด ลองอีกครั้ง",
     "sonioxVoiceDeleteInUse": "เสียงนี้กำลังถูกใช้ในเซสชันที่ทำงานอยู่ — จบเซสชันก่อนลบ",
     "sonioxVoiceProcessingBadge": "กำลังประมวลผล…",
     "sonioxVoiceFailedBadge": "ล้มเหลว",

@@ -31,6 +31,19 @@ export function cloneLanguageFor(appCode: string | null | undefined): string | n
   return candidates.find((c): c is string => !!c && SUPPORTED.has(c)) ?? null;
 }
 
+/** Clone codes whose meaning a plain canonicalisation would get wrong: Palabra's `es-la` is Latin America, `es-ch` Chile (its built-ins "Spanish LA", "Spanish Chile"). */
+const DISPLAY: Readonly<Record<string, string>> = { 'es-la': 'es-419', 'es-ch': 'es-CL' };
+
+/** A clone code as the app's language names read it (`en-us` → `en-US`, `zh-hant` → `zh-Hant`), so the select shows words, not codes. */
+export function cloneLanguageDisplayCode(code: string): string {
+  if (DISPLAY[code]) return DISPLAY[code];
+  try {
+    return Intl.getCanonicalLocales(code)[0] ?? code;
+  } catch {
+    return code;
+  }
+}
+
 /** Whether a voice's language is the same language as an app code, by base language (`es-la` is Spanish). */
 export function sameLanguage(voiceLang: string | null, appCode: string): boolean {
   return !!voiceLang && base(voiceLang) === base(appCode);

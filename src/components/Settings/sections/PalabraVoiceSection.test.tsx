@@ -293,7 +293,20 @@ describe('PalabraVoiceSection: creating a voice', () => {
     expect(Array.from(languageSelect().options).filter((o) => o.value)).toHaveLength(50);
   });
 
-  it("with pairSource 'auto' the language starts empty and Confirm is disabled", async () => {
+  it('names every clone language in words, never as its raw code', async () => {
+    stubDecode(40);
+    mount({ pairSource: 'hu' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    const options = Array.from(languageSelect().options).filter((o) => o.value);
+    expect(options.filter((o) => o.textContent === o.value).map((o) => o.value)).toEqual([]);
+    expect(options.find((o) => o.value === 'es-la')?.textContent).toMatch(/Latin America/);
+    expect(options.find((o) => o.value === 'es-ch')?.textContent).toMatch(/Chile/);
+  });
+
+  it("with pairSource 'auto' the language falls back to the interface language, and an empty choice disables Confirm", async () => {
     stubDecode(40);
     mount({ pairSource: 'auto' });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
@@ -538,5 +551,94 @@ describe('PalabraVoiceSection: deleting a voice', () => {
     await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('mine-1'));
     await waitFor(() => expect(idle.onSelect).toHaveBeenCalledWith({ voiceId: 'default_low', voiceName: '' }));
     expect(listMock.mock.calls.length).toBeGreaterThan(listedBefore);
+  });
+});
+
+describe('PalabraVoiceSection: final-review fixes', () => {
+  beforeEach(() => {
+    (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
+    (URL as any).revokeObjectURL = vi.fn();
+    (window.HTMLMediaElement.prototype as any).play = vi.fn().mockResolvedValue(undefined);
+    (window.HTMLMediaElement.prototype as any).pause = vi.fn();
+  });
+
+  it('deleting a voice that is still processing raises no "could not process" alert', async () => {
+    const processing = voice({ id: 'p-1', name: 'Pending', status: 'processing', sample: null });
+    listMock.mockResolvedValueOnce({ builtin: [HU_MALE], mine: [processing] }).mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+    getMock.mockRejectedValue(new PalabraVoicesError('not_found', 'HTTP 404: gone', 404));
+    const clock = manualSleep();
+    mount({ sleep: clock.sleep });
+    openPicker();
+    await waitFor(() => expect(clock.waits.length).toBe(1));
+    fireEvent.click(within(rowFor(/Pending/)).getByRole('button', { name: /delete/i }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('p-1'));
+    clock.next();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText(/could not process this recording/i)).toBeNull();
+  });
+
+  it('a delete answered 404 (already gone) counts as done: refresh, reset the selection, no error', async () => {
+    listMock.mockResolvedValueOnce({ builtin: [HU_MALE], mine: [MINE_READY] }).mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+    deleteMock.mockRejectedValue(new PalabraVoicesError('not_found', 'HTTP 404: gone', 404));
+    const { onSelect } = mount({ settings: { ...SETTINGS, voiceId: 'mine-1', voiceName: 'István' } });
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'István' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('István')).getByRole('button', { name: /delete/i }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith({ voiceId: 'default_low', voiceName: '' }));
+    expect(screen.queryByText(/could not process this recording/i)).toBeNull();
+  });
+
+  it('a create request that times out says Palabra did not answer, not that the voice is still processing', async () => {
+    stubDecode(40);
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+    createMock.mockRejectedValue(new PalabraVoicesError('timeout', 'Palabra did not answer within 15 s.', 408));
+    mount({ pairSource: 'hu' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/did not answer in time/i));
+    expect(within(createDialog()).getByRole('alert')).not.toHaveTextContent(/still processing/i);
+  });
+
+  it('a recording that ran a moment past the 90 s auto-stop is kept, trimmed to 90 s', async () => {
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+    createMock.mockResolvedValue(voice({ id: 'rec-90', name: 'My Voice 1', status: 'processing', sample: null }));
+    getMock.mockResolvedValue(voice({ id: 'rec-90', name: 'My Voice 1', status: 'processing', sample: null }));
+    const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: vi.fn(async () => ({ getTracks: () => [{ stop: vi.fn() }] })) } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let processorNode: any = null;
+    class FakeAudioContext {
+      sampleRate = 16000;
+      destination = {};
+      createMediaStreamSource() { return { connect: vi.fn(), disconnect: vi.fn() }; }
+      createScriptProcessor() { processorNode = { connect: vi.fn(), disconnect: vi.fn(), onaudioprocess: null }; return processorNode; }
+      close = vi.fn().mockResolvedValue(undefined);
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    try {
+      mount({ pairSource: 'hu', sleep: manualSleep().sleep });
+      await waitFor(() => expect(listMock).toHaveBeenCalled());
+      openCreateModal();
+      fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+      const stop = await screen.findByRole('button', { name: /stop recording/i });
+      processorNode?.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(Math.round(16000 * 90.05)).fill(0.1) } });
+      fireEvent.click(stop);
+      await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+      checkConsent();
+      fireEvent.click(confirmButton());
+      await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+      const wav = createMock.mock.calls[0][0].wav as Blob;
+      expect(wav.size).toBe(44 + 16000 * 90 * 2);
+    } finally {
+      if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+      else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+      vi.unstubAllGlobals();
+    }
   });
 });

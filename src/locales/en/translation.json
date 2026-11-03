@@ -296,6 +296,7 @@
     "palabraVoiceNameInvalid": "Use 3–64 letters, numbers, spaces, or - . _ ( ).",
     "palabraVoiceLanguageLabel": "Language of the recording",
     "palabraVoiceNoSlotsLeft": "Your Palabra account has no voice slots left — delete a voice to add another.",
+    "palabraVoiceNoAnswer": "Palabra did not answer in time. Try again.",
     "sonioxVoiceDeleteInUse": "This voice is being used by the active session — end the session before deleting it",
     "sonioxVoiceProcessingBadge": "processing…",
     "sonioxVoiceFailedBadge": "failed",

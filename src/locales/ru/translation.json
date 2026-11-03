@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Используйте от 3 до 64 букв, цифр, пробелов или - . _ ( ).",
     "palabraVoiceLanguageLabel": "Язык записи",
     "palabraVoiceNoSlotsLeft": "В вашем аккаунте Palabra больше нет места для голосов — удалите один, чтобы добавить новый.",
+    "palabraVoiceNoAnswer": "Palabra не ответила вовремя. Повторите попытку.",
     "sonioxVoiceDeleteInUse": "Этот голос используется в активной сессии — завершите сессию перед его удалением",
     "sonioxVoiceProcessingBadge": "обработка…",
     "sonioxVoiceFailedBadge": "ошибка",

@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "请使用 3–64 个字母、数字、空格或 - . _ ( )。",
     "palabraVoiceLanguageLabel": "录音语言",
     "palabraVoiceNoSlotsLeft": "你的 Palabra 账户已没有空位 — 请先删除一个声音再添加新的。",
+    "palabraVoiceNoAnswer": "Palabra 没有及时响应，请重试。",
     "sonioxVoiceDeleteInUse": "此声音正在被当前会话使用 — 请先结束会话再删除",
     "sonioxVoiceProcessingBadge": "处理中…",
     "sonioxVoiceFailedBadge": "失败",

@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Gumamit ng 3–64 na titik, numero, espasyo, o - . _ ( ).",
     "palabraVoiceLanguageLabel": "Wika ng recording",
     "palabraVoiceNoSlotsLeft": "Wala nang puwang para sa boses ang iyong Palabra account — magtanggal ng isa para makapagdagdag ng bago.",
+    "palabraVoiceNoAnswer": "Hindi sumagot ang Palabra sa tamang oras. Subukang muli.",
     "sonioxVoiceDeleteInUse": "Ginagamit ng aktibong session ang boses na ito — tapusin muna ang session bago ito burahin",
     "sonioxVoiceProcessingBadge": "pinoproseso…",
     "sonioxVoiceFailedBadge": "nabigo",

@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Gebruik 3–64 letters, cijfers, spaties of - . _ ( ).",
     "palabraVoiceLanguageLabel": "Taal van de opname",
     "palabraVoiceNoSlotsLeft": "Je Palabra-account heeft geen ruimte meer voor stemmen — verwijder een stem om een nieuwe toe te voegen.",
+    "palabraVoiceNoAnswer": "Palabra heeft niet op tijd geantwoord. Probeer het opnieuw.",
     "sonioxVoiceDeleteInUse": "Deze stem wordt gebruikt door de actieve sessie — beëindig de sessie voordat u deze verwijdert",
     "sonioxVoiceProcessingBadge": "wordt verwerkt…",
     "sonioxVoiceFailedBadge": "mislukt",

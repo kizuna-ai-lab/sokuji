@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "3~64자의 문자, 숫자, 공백 또는 - . _ ( )를 사용하세요.",
     "palabraVoiceLanguageLabel": "녹음 언어",
     "palabraVoiceNoSlotsLeft": "Palabra 계정에 음성을 추가할 자리가 없습니다 — 새 음성을 추가하려면 하나를 삭제하세요.",
+    "palabraVoiceNoAnswer": "Palabra가 제시간에 응답하지 않았습니다. 다시 시도하세요.",
     "sonioxVoiceDeleteInUse": "이 음성은 활성 세션에서 사용 중입니다 — 삭제하기 전에 세션을 종료하세요",
     "sonioxVoiceProcessingBadge": "처리 중…",
     "sonioxVoiceFailedBadge": "실패",

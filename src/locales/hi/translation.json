@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "3–64 अक्षर, अंक, स्पेस या - . _ ( ) का उपयोग करें।",
     "palabraVoiceLanguageLabel": "रिकॉर्डिंग की भाषा",
     "palabraVoiceNoSlotsLeft": "आपके Palabra खाते में और आवाज़ों की जगह नहीं बची — नई जोड़ने के लिए एक आवाज़ हटाएँ।",
+    "palabraVoiceNoAnswer": "Palabra ने समय पर जवाब नहीं दिया। फिर से कोशिश करें।",
     "sonioxVoiceDeleteInUse": "यह आवाज़ सक्रिय सत्र में उपयोग हो रही है — हटाने से पहले सत्र समाप्त करें",
     "sonioxVoiceProcessingBadge": "प्रोसेस हो रहा है…",
     "sonioxVoiceFailedBadge": "विफल",

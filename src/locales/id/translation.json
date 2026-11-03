@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Gunakan 3–64 huruf, angka, spasi, atau - . _ ( ).",
     "palabraVoiceLanguageLabel": "Bahasa rekaman",
     "palabraVoiceNoSlotsLeft": "Akun Palabra Anda tidak punya slot suara lagi — hapus satu suara untuk menambahkan yang lain.",
+    "palabraVoiceNoAnswer": "Palabra tidak menjawab tepat waktu. Coba lagi.",
     "sonioxVoiceDeleteInUse": "Suara ini sedang digunakan oleh sesi aktif — akhiri sesi sebelum menghapusnya",
     "sonioxVoiceProcessingBadge": "memproses…",
     "sonioxVoiceFailedBadge": "gagal",

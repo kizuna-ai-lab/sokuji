@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Use de 3 a 64 letras, números, espaços ou - . _ ( ).",
     "palabraVoiceLanguageLabel": "Idioma da gravação",
     "palabraVoiceNoSlotsLeft": "Sua conta da Palabra não tem mais espaço para vozes — exclua uma para adicionar outra.",
+    "palabraVoiceNoAnswer": "A Palabra não respondeu a tempo. Tente novamente.",
     "sonioxVoiceDeleteInUse": "Esta voz está sendo usada pela sessão ativa — encerre a sessão antes de excluí-la",
     "sonioxVoiceProcessingBadge": "processando…",
     "sonioxVoiceFailedBadge": "falhou",

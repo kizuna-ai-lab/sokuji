@@ -21,7 +21,7 @@ import { languageLabel } from '../../../lib/language/label';
 import { downmixToMono, validateVoiceClip, type ClipValidationError } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
 import {
-  cleanVoiceName, cloneLanguageFor, PALABRA_CLONE_LANGUAGES, PALABRA_VOICE_NAME, sameLanguage,
+  cleanVoiceName, cloneLanguageDisplayCode, cloneLanguageFor, PALABRA_CLONE_LANGUAGES, PALABRA_VOICE_NAME, sameLanguage,
 } from '../../../providers/palabraai/cloneLanguages';
 import { PALABRA_DEFAULTS, PALABRA_VOICES } from '../../../providers/palabraai/settings';
 import { realSleep, waitUntilSettled, type PalabraVoiceSource, type Sleep } from '../../../providers/palabraai/voiceSource';
@@ -103,8 +103,10 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   }, []);
   /** Voices this mount is already polling, so a refresh does not start a second poll. */
   const polling = useRef(new Set<string>());
-  /** Voices this mount saw settle (or vanish): a stale list row must not restart their poll. */
+  /** Voices this mount saw settle (or vanish, or deleted): a stale list row must not restart their poll. */
   const settledIds = useRef(new Set<string>());
+  /** Each running poll's own controller, so deleting a voice stops its poll quietly. */
+  const pollAborts = useRef(new Map<string, AbortController>());
 
   const refresh = useCallback(async () => {
     if (!source) return;
@@ -167,8 +169,15 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
     }
   }, [source, sampleOf, t]);
 
-  /** Every voices failure in the user's words (spec §2's types). */
-  const mapError = useCallback((e: unknown): Error => {
+  /**
+   * Every voices failure in the user's words (spec §2's types). `during`
+   * says what failed: a poll's `timeout` is a voice still processing and its
+   * `not_found` a voice Palabra dropped; a request's are neither.
+   */
+  const mapError = useCallback((e: unknown, during: 'poll' | 'request' = 'request'): Error => {
+    if (e instanceof PalabraVoicesError && during === 'request' && e.errorType === 'timeout') {
+      return new Error(t('settings.palabraVoiceNoAnswer', 'Palabra did not answer in time. Try again.'));
+    }
     if (e instanceof PalabraVoicesError) {
       switch (e.errorType) {
         case 'limit_reached': return new Error(t('settings.palabraVoiceLimitReached', 'Your Palabra account has reached its voice limit — delete a voice and try again.'));
@@ -192,8 +201,14 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
    * selection and the idle session all still hold.
    */
   const follow = useCallback(async (id: string, pollSource: PalabraVoiceSource, autoSelect: { selectionAtCreate: string } | null) => {
-    const signal = mountAbort.current?.signal;
-    if (!signal || polling.current.has(id)) return;
+    const mountSignal = mountAbort.current?.signal;
+    if (!mountSignal || polling.current.has(id) || settledIds.current.has(id)) return;
+    // This poll's own controller: unmounting aborts it, and so does deleting the voice.
+    const own = new AbortController();
+    const onMountAbort = () => own.abort();
+    mountSignal.addEventListener('abort', onMountAbort, { once: true });
+    pollAborts.current.set(id, own);
+    const signal = own.signal;
     polling.current.add(id);
     try {
       const settled = await waitUntilSettled(pollSource, id, { sleep, signal });
@@ -212,9 +227,11 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
       if (sourceRef.current !== pollSource) return;
       if (e instanceof PalabraVoicesError && (e.errorType === 'not_found' || e.errorType === 'timeout')) settledIds.current.add(id);
       if (e instanceof PalabraVoicesError && e.errorType === 'not_found') await refresh();
-      setCaptureError(mapError(e).message);
+      setCaptureError(mapError(e, 'poll').message);
     } finally {
       polling.current.delete(id);
+      pollAborts.current.delete(id);
+      mountSignal.removeEventListener('abort', onMountAbort);
     }
   }, [mapError, onSelect, refresh, sleep, t]);
 
@@ -263,7 +280,11 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   // Recordings are validated too: the shared recorder only counts down to the maximum.
   const onRecord = async (clip: Float32Array, sampleRate: number) => {
     setCaptureError(null);
-    stage({ wav: toWav(clip, sampleRate), denoise: true, suggestedName: defaultName() });
+    // The shared recorder stops on a timer, so a clip run to the countdown can
+    // be a few ms past the ceiling: keep its first 90 s rather than lose it.
+    const ceiling = Math.floor(PALABRA_MAX_CLIP_SECONDS * sampleRate);
+    const kept = clip.length > ceiling ? clip.subarray(0, ceiling) : clip;
+    stage({ wav: toWav(kept, sampleRate), denoise: true, suggestedName: defaultName() });
   };
 
   const onImport = async (file: File) => {
@@ -316,7 +337,7 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   };
 
   const languageOptions = useMemo(
-    () => PALABRA_CLONE_LANGUAGES.map((code) => ({ value: code, label: languageLabel(code, uiLanguage) }))
+    () => PALABRA_CLONE_LANGUAGES.map((code) => ({ value: code, label: languageLabel(cloneLanguageDisplayCode(code), uiLanguage) }))
       .sort((a, b) => a.label.localeCompare(b.label)),
     [uiLanguage],
   );
@@ -385,10 +406,18 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
     if (isSessionActive && settings.voiceId === id) {
       throw new Error(t('settings.palabraVoiceDeleteInUse', 'This voice is being used by the active session — end the session before deleting it'));
     }
+    // Its poll, if one runs, must not report the 404 its deletion causes.
+    settledIds.current.add(id);
+    pollAborts.current.get(id)?.abort();
     try {
       await source.delete(id);
     } catch (e) {
-      throw new Error(mapError(e).message);
+      // Already gone (deleted elsewhere, or dropped by Palabra): the delete is done.
+      if (!(e instanceof PalabraVoicesError && e.errorType === 'not_found')) {
+        // Still there: a later refresh may follow it again.
+        settledIds.current.delete(id);
+        throw new Error(mapError(e).message);
+      }
     }
     await refresh();
     if (selectedVoiceRef.current === id) onSelect({ voiceId: PALABRA_DEFAULTS.voiceId, voiceName: '' });

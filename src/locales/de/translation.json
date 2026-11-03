@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Verwenden Sie 3–64 Buchstaben, Ziffern, Leerzeichen oder - . _ ( ).",
     "palabraVoiceLanguageLabel": "Sprache der Aufnahme",
     "palabraVoiceNoSlotsLeft": "In Ihrem Palabra-Konto ist kein Platz für weitere Stimmen — löschen Sie eine Stimme, um eine neue hinzuzufügen.",
+    "palabraVoiceNoAnswer": "Palabra hat nicht rechtzeitig geantwortet. Versuchen Sie es erneut.",
     "sonioxVoiceDeleteInUse": "Diese Stimme wird von der aktiven Sitzung verwendet — beenden Sie die Sitzung, bevor Sie sie löschen",
     "sonioxVoiceProcessingBadge": "wird verarbeitet…",
     "sonioxVoiceFailedBadge": "fehlgeschlagen",

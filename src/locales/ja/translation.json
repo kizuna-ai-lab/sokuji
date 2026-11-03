@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "3～64 文字の文字、数字、スペース、または - . _ ( ) を使用してください。",
     "palabraVoiceLanguageLabel": "録音の言語",
     "palabraVoiceNoSlotsLeft": "Palabra アカウントに空きがありません — 新しい音声を追加するには、音声を 1 つ削除してください。",
+    "palabraVoiceNoAnswer": "Palabra から時間内に応答がありませんでした。もう一度お試しください。",
     "sonioxVoiceDeleteInUse": "この音声はアクティブなセッションで使用中です — 削除する前にセッションを終了してください",
     "sonioxVoiceProcessingBadge": "処理中…",
     "sonioxVoiceFailedBadge": "失敗",

@@ -289,6 +289,7 @@
     "palabraVoiceNameInvalid": "Använd 3–64 bokstäver, siffror, mellanslag eller - . _ ( ).",
     "palabraVoiceLanguageLabel": "Inspelningens språk",
     "palabraVoiceNoSlotsLeft": "Ditt Palabra-konto har inget utrymme kvar för röster — ta bort en för att lägga till en ny.",
+    "palabraVoiceNoAnswer": "Palabra svarade inte i tid. Försök igen.",
     "sonioxVoiceDeleteInUse": "Den här rösten används av den aktiva sessionen — avsluta sessionen innan du tar bort den",
     "sonioxVoiceProcessingBadge": "bearbetar…",
     "sonioxVoiceFailedBadge": "misslyckades",
