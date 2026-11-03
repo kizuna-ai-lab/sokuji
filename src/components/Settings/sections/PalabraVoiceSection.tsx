@@ -21,7 +21,7 @@ import { languageLabel } from '../../../lib/language/label';
 import { downmixToMono, validateVoiceClip, type ClipValidationError } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
 import {
-  cleanVoiceName, cloneLanguageDisplayCode, cloneLanguageFor, PALABRA_CLONE_LANGUAGES, PALABRA_VOICE_NAME, sameLanguage,
+  baseLanguage, cleanVoiceName, cloneLanguageDisplayCode, cloneLanguageFor, PALABRA_CLONE_LANGUAGES, PALABRA_VOICE_NAME, sameLanguage,
 } from '../../../providers/palabraai/cloneLanguages';
 import { PALABRA_DEFAULTS, PALABRA_VOICES } from '../../../providers/palabraai/settings';
 import { realSleep, waitUntilSettled, type PalabraVoiceSource, type Sleep } from '../../../providers/palabraai/voiceSource';
@@ -70,7 +70,6 @@ interface Pending { wav: Blob; denoise: boolean; suggestedName: string }
 /** No delete: the second row lists defaults and built-ins only. */
 const NO_DELETE = async () => {};
 
-const base = (code: string) => code.trim().toLowerCase().replace(/_/g, '-').split('-')[0];
 
 const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   settings, onSelect, source, target, pairSource, participant, isSessionActive, sleep = realSleep,
@@ -351,7 +350,7 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   /** The defaults, then the built-ins: the row language's section first, then "Other languages". */
   const builtinEntries = useCallback((language: string): VoiceEntry[] => {
     const defaults: VoiceEntry[] = PALABRA_VOICES.map((v) => ({ id: v.value, label: v.name, group: 'builtin', removable: false, previewable: false }));
-    const own = languageLabel(base(language), uiLanguage);
+    const own = languageLabel(baseLanguage(language), uiLanguage);
     const other = t('settings.palabraVoiceOtherLanguages', 'Other languages');
     const entry = (v: PalabraVoiceInfo, section: string): VoiceEntry => ({
       id: v.id, label: v.name, group: 'builtin', removable: false, previewable: !!v.sample, section,
@@ -362,18 +361,21 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
     return [...defaults, ...first, ...rest];
   }, [builtins, uiLanguage, t]);
 
+  /** An account voice's label: its name, with the state Soniox badges too. */
+  const voiceLabel = useCallback((v: PalabraVoiceInfo): string => {
+    if (v.status === 'failed') return `${v.name} — ${t('settings.palabraVoiceFailedBadge', 'failed')}`;
+    if (v.status === 'processing') return `${v.name} — ${t('settings.palabraVoiceProcessingBadge', 'processing…')}`;
+    return v.name;
+  }, [t]);
+
   const customEntries = useMemo<VoiceEntry[]>(() => mine.map((v) => ({
     id: v.id,
-    label: v.status === 'failed'
-      ? `${v.name} — ${t('settings.palabraVoiceFailedBadge', 'failed')}`
-      : v.status === 'processing'
-        ? `${v.name} — ${t('settings.palabraVoiceProcessingBadge', 'processing…')}`
-        : v.name,
+    label: voiceLabel(v),
     group: 'custom',
     removable: true,
     disabled: v.status !== 'ready',
     previewable: v.status === 'ready' && !!v.sample,
-  })), [mine, t]);
+  })), [mine, voiceLabel]);
 
   /** A stored id the list does not hold: "(deleted voice)" only once a fetch has succeeded; else its stored name, else the id. */
   const placeholder = useCallback((id: string, storedName: string, known: Set<string>): VoiceEntry | null => {

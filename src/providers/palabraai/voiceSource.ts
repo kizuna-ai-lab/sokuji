@@ -11,7 +11,7 @@ import { readCredentials } from '../../lib/provider/credentials';
 import type { ProviderAccount } from '../../lib/provider/types';
 import { getCachedPreview, previewCacheKey, setCachedPreview } from '../../lib/tts/previewCache';
 import { palabraCredentials, type PalabraCredentials, type PalabraSettings } from './settings';
-import { PalabraVoicesClient, PalabraVoicesError, type PalabraVoiceInfo } from './voicesClient';
+import { isHttpsUrl, PalabraVoicesClient, PalabraVoicesError, type PalabraVoiceInfo } from './voicesClient';
 
 export interface PalabraVoiceSource {
   list(signal?: AbortSignal): Promise<{ builtin: PalabraVoiceInfo[]; mine: PalabraVoiceInfo[] }>;
@@ -53,6 +53,7 @@ export function palabraVoiceSource(
       const key = previewCacheKey(PALABRA_CACHE_NAMESPACE, id, '', 1);
       const cached = getCachedPreview(key);
       if (cached) return cached;
+      if (!isHttpsUrl(sample)) throw new PalabraVoicesError('unknown', 'The voice sample is not on an https address.', 0);
       const doFetch = deps.fetch ?? ((input: string, init?: RequestInit) => fetch(input, init));
       let response: Response;
       try {

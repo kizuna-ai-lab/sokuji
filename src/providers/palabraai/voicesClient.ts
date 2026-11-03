@@ -54,6 +54,15 @@ interface WireVoice {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
+/** Only https is fetched or uploaded to: a recording and a sample never travel in the clear. */
+export function isHttpsUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function normalise(v: WireVoice): PalabraVoiceInfo {
   const sample = [v.tts_sample, ...(v.tts_samples ?? [])].find((s) => s && str(s.url)) ?? null;
   const gender = typeof v.labels?.gender === 'string' ? v.labels.gender.toLowerCase() : undefined;
@@ -120,9 +129,13 @@ export class PalabraVoicesClient {
     return read(response);
   }
 
-  private json<T>(url: string, init: RequestInit, signal?: AbortSignal, onCreate = false): Promise<T> {
+  /** A call's `data`; a 2xx without it is Palabra answering something unexpected, typed as such unless `optional`. */
+  private json<T>(url: string, init: RequestInit, signal?: AbortSignal, onCreate = false, optional = false): Promise<T> {
     return this.request(url, { ...init, headers: { ...this.headers, ...(init.headers as Record<string, string> | undefined) } }, async (r) => {
       const body = (await r.json().catch(() => null)) as { data?: unknown } | null;
+      if (!optional && (body?.data === undefined || body.data === null)) {
+        throw new PalabraVoicesError('unknown', 'Palabra returned an unexpected response.', r.status);
+      }
       return body?.data as T;
     }, { signal, onCreate });
   }
@@ -168,7 +181,7 @@ export class PalabraVoicesClient {
     const id = String(created?.voice_id ?? '');
     const upload = created?.samples?.[0];
     try {
-      if (!id || !upload || !str(upload.url)) throw new PalabraVoicesError('upload_failed', 'Palabra gave no upload for the sample.', 0);
+      if (!id || !upload || !str(upload.url) || !isHttpsUrl(upload.url as string)) throw new PalabraVoicesError('upload_failed', 'Palabra gave no usable upload for the sample.', 0);
       const form = new FormData();
       for (const [k, v] of Object.entries(upload.form_data ?? {})) form.append(k, v);
       form.append('file', new File([args.wav], 'sample.wav', { type: 'audio/wav' }));
@@ -183,7 +196,7 @@ export class PalabraVoicesClient {
   }
 
   async delete(id: string, signal?: AbortSignal): Promise<void> {
-    await this.json(`${PALABRA_API}/saas/voice/m/${encodeURIComponent(id)}`, { method: 'DELETE' }, signal);
+    await this.json(`${PALABRA_API}/saas/voice/m/${encodeURIComponent(id)}`, { method: 'DELETE' }, signal, false, true);
   }
 
   async limits(signal?: AbortSignal): Promise<{ used: number; limit: number; remaining: number }> {

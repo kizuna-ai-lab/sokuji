@@ -37,6 +37,15 @@ describe('palabraVoiceSource', () => {
   });
 });
 
+describe('palabraVoiceSource preview: the sample url', () => {
+  it('refuses a sample url that is not https, fetching nothing', async () => {
+    const fetch = vi.fn(async () => new Response(new Uint8Array([1])));
+    const source = palabraVoiceSource({} as PalabraVoicesClient, { fetch, decode: vi.fn() });
+    await expect(source.preview({ id: 'v', sample: 'http://cdn.palabra.ai/blob/v.mp3' })).rejects.toBeInstanceOf(Error);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
 describe('usePalabraVoiceSource', () => {
   const account = (credentials: Record<string, string>): ProviderAccount => ({ credentials, auth: AUTH });
   const settings = (patch: Partial<PalabraSettings> = {}): PalabraSettings => ({ ...PALABRA_DEFAULTS, ...patch });

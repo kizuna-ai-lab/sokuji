@@ -21,7 +21,9 @@ const ALIASES: Readonly<Record<string, string>> = {
 };
 
 const norm = (code: string) => code.trim().toLowerCase().replace(/_/g, '-');
-const base = (code: string) => norm(code).split('-')[0];
+/** An app or clone code's base language: `es-la` and `es_MX` are both `es`. */
+export const baseLanguage = (code: string) => norm(code).split('-')[0];
+const base = baseLanguage;
 
 /** The clone code for an app code: its own, an alias, else its base language; null when Palabra clones from none of them. */
 export function cloneLanguageFor(appCode: string | null | undefined): string | null {

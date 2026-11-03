@@ -187,6 +187,23 @@ describe('PalabraVoicesClient', () => {
     });
   });
 
+  it('a 200 that carries no data is a typed error, not a crash', async () => {
+    const c = client(vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })));
+    await expect(c.get('x')).rejects.toMatchObject({ errorType: 'unknown' });
+    await expect(client(vi.fn(async () => new Response('', { status: 200 }))).limits()).rejects.toBeInstanceOf(PalabraVoicesError);
+  });
+
+  it('refuses an upload url that is not https, sending the recording nowhere and deleting the half-made voice', async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(json({ ok: true, data: { voice_id: 'h', name: 'x', voice_type: 'instantly_cloned', processing_status: 'created', samples: [{ url: 'http://evil.example/', form_data: {} }] } }))
+      .mockResolvedValueOnce(json({ ok: true, data: { deleted_voice_id: 'h' } }));
+    const wav = new Blob([new Uint8Array([1])]);
+    await expect(client(fetch).create({ name: 'xyz', wav, langCode: 'en', denoise: false })).rejects.toMatchObject({ errorType: 'upload_failed' });
+    const urls = calls(fetch).map(([u]) => u);
+    expect(urls).not.toContain('http://evil.example/');
+    expect(urls).toContain(`${PALABRA_API}/saas/voice/m/h`);
+  });
+
   it('thrown messages never contain the credential', async () => {
     const wav = new Blob([new Uint8Array([1])]);
     const failures: Array<() => Promise<unknown>> = [];
