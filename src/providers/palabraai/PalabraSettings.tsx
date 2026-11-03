@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { presetVoiceSummary } from '../../components/providers/fields/PresetVoiceField';
 import { VoiceField } from '../../components/providers/fields/VoiceField';
 import type { SettingsProps } from '../../lib/provider/types';
 import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, PALABRA_VOICES, palabraParticipantVoice, type PalabraSettings as S, type PalabraVoice } from './settings';
 
-/** Each leg's voice as its run speaks it (`config.ts`). */
-export const PalabraVoiceSummary = presetVoiceSummary<S>(PALABRA_VOICES, ({ settings, leg }) =>
-  leg === 'participant' ? palabraParticipantVoice(settings) : settings.voiceId);
+/** Each leg's voice as its run speaks it (`config.ts`): moved beside the voice library. */
+export { PalabraVoiceSummary } from './PalabraVoiceSummary';
 
 /** An Enabled / Disabled pair, as the old block drew each of its three switches (`ProviderSpecificSettings.tsx:1341-1382, 1446-1461`). */
 function OnOff({ label, value, onChange, disabled }: { label: string; value: boolean; onChange(value: boolean): void; disabled: boolean }) {

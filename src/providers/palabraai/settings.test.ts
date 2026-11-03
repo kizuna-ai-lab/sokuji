@@ -44,7 +44,7 @@ describe("Palabra AI's settings", () => {
   it('defaults to the platform key, the low voice, a 0.7 s threshold, the splitter on, no partial translations, and our buffer: 8 s, 24 s, no adaptive speed (ruling 10)', () => {
     expect(PALABRA_DEFAULTS).toEqual({
       authMode: 'platform', voiceId: 'default_low', participantVoiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.7, sentenceSplitterEnabled: true, translatePartialTranscriptions: false,
-      desiredQueueLevelMs: 8_000, maxQueueLevelMs: 24_000, autoTempo: false,
+      desiredQueueLevelMs: 8_000, maxQueueLevelMs: 24_000, autoTempo: false, voiceName: '', participantVoiceName: '',
     });
     expect(PALABRA_VOICES).toEqual([{ value: 'default_low', name: 'Default Low' }, { value: 'default_high', name: 'Default High' }]);
   });
@@ -56,12 +56,30 @@ describe("Palabra AI's settings", () => {
     })).toEqual({
       // Out-of-range numbers are kept as stored: `build` clamps them where they are used.
       authMode: 'app', voiceId: 'default_high', participantVoiceId: 'default_low', segmentConfirmationSilenceThreshold: 0.1, sentenceSplitterEnabled: false, translatePartialTranscriptions: true,
-      desiredQueueLevelMs: 15_000, maxQueueLevelMs: 12_000, autoTempo: true,
+      desiredQueueLevelMs: 15_000, maxQueueLevelMs: 12_000, autoTempo: true, voiceName: '', participantVoiceName: '',
     });
     expect(migratePalabraSettings({
       authMode: 'clientCredentials', voiceId: 'Default Low', participantVoiceId: 'Default High', segmentConfirmationSilenceThreshold: 'x', sentenceSplitterEnabled: 'yes',
       translatePartialTranscriptions: 1, desiredQueueLevelMs: Number.NaN, maxQueueLevelMs: null, autoTempo: undefined,
-    })).toEqual(PALABRA_DEFAULTS);
+      // Any non-empty string is a voice id now (the voice library): these are kept, not reset.
+    })).toEqual({ ...PALABRA_DEFAULTS, voiceId: 'Default Low', participantVoiceId: 'Default High' });
+  });
+
+  it('keeps any non-empty voice id, a built-in or an account voice, as stored (voice library spec §1)', () => {
+    const stored = migratePalabraSettings({ voiceId: 'b532f7e9-ad28-4c51-a83e-2676860a6e9f', participantVoiceId: '94d9130d-d4bb-4e35-9baf-fca490506a85' });
+    expect(stored.voiceId).toBe('b532f7e9-ad28-4c51-a83e-2676860a6e9f');
+    expect(stored.participantVoiceId).toBe('94d9130d-d4bb-4e35-9baf-fca490506a85');
+  });
+
+  it("falls back to the defaults for an empty voice id or one that is not a string", () => {
+    const stored = migratePalabraSettings({ voiceId: '', participantVoiceId: 7 });
+    expect(stored.voiceId).toBe('default_low');
+    expect(stored.participantVoiceId).toBe('default_high');
+  });
+
+  it("keeps the voices' stored names as strings, '' otherwise", () => {
+    expect(migratePalabraSettings({ voiceName: 'Hungarian Male', participantVoiceName: 'Japanese Female' })).toMatchObject({ voiceName: 'Hungarian Male', participantVoiceName: 'Japanese Female' });
+    expect(migratePalabraSettings({ voiceName: 3, participantVoiceName: null })).toMatchObject({ voiceName: '', participantVoiceName: '' });
   });
 
   it('opens a profile that stored no mode in the platform mode, whatever credentials it holds: a stated departure (ruling 2)', () => {
