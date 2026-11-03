@@ -76,6 +76,11 @@ export function isHttpsUrl(url: string): boolean {
   }
 }
 
+/** A list entry that is a voice at all: a plain object with an id. Anything else is an unexpected answer. */
+function isWireVoice(v: unknown): v is WireVoice {
+  return v !== null && typeof v === 'object' && !Array.isArray(v) && str((v as WireVoice).voice_id) !== null;
+}
+
 function normalise(v: WireVoice): PalabraVoiceInfo {
   const sample = [v.tts_sample, ...(v.tts_samples ?? [])].find((s) => s && str(s.url)) ?? null;
   const gender = typeof v.labels?.gender === 'string' ? v.labels.gender.toLowerCase() : undefined;
@@ -170,8 +175,8 @@ export class PalabraVoicesClient {
     for (let page = 0; page < MAX_PAGES; page++) {
       const query: string = token ? `token=${encodeURIComponent(token)}` : 'page_size=100';
       const data: { items?: WireVoice[]; next?: unknown } | undefined = await this.json(`${PALABRA_API}${path}?${query}`, { method: 'GET' }, signal);
-      if (!Array.isArray(data?.items) || data.items.some((v) => v === null || typeof v !== 'object')) {
-        throw new PalabraVoicesError('unknown', 'Palabra returned a voice list without its items.', 200);
+      if (!Array.isArray(data?.items) || !data.items.every(isWireVoice)) {
+        throw new PalabraVoicesError('unknown', 'Palabra returned a voice list with missing or malformed entries.', 200);
       }
       items.push(...data.items);
       token = str(data?.next);

@@ -224,6 +224,9 @@ describe('PalabraVoicesClient', () => {
     const c = client(vi.fn(async () => page([mine('a', 'ready'), null])));
     await expect(c.listMine()).rejects.toMatchObject({ errorType: 'unknown' });
     await expect(client(vi.fn(async () => page([null]))).listBuiltin()).rejects.toBeInstanceOf(PalabraVoicesError);
+    // An array, or an object without a voice id, is no voice either.
+    await expect(client(vi.fn(async () => page([[]]))).listBuiltin()).rejects.toBeInstanceOf(PalabraVoicesError);
+    await expect(client(vi.fn(async () => page([{ name: 'no id' }]))).listBuiltin()).rejects.toBeInstanceOf(PalabraVoicesError);
   });
 
   it('a refusal whose body never arrives still times out', async () => {
