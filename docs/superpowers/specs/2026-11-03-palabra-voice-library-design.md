@@ -24,6 +24,8 @@ those two:
    - make a custom voice.
 4. Follow the other providers' implementation and design. In particular, show
    a voice's processing state the way Soniox does (owner, 12:17).
+5. The list is narrowed by language and gender only. No accent filter
+   (owner, 12:57, after seeing the attribute tally in "The built-in roster").
 
 The reference is Soniox's voice library (`SonioxVoiceSection` over the shared
 `VoiceLibrarySection`). It is the only remote provider that already lists,
@@ -215,8 +217,9 @@ against the quota and sit at `created` forever.
   `ready`; `created` and `pending` map to `processing`.
 - `sample` is a URL or null: the `tts_sample` URL, else the first of
   `tts_samples`, else null.
-- `facets` maps `gender → gender` and `age_group → age` (`VoiceFacets`).
-  `mood` and `description` are dropped as uninformative.
+- `facets` carries `gender` only (`VoiceFacets.gender`). `age_group`, `mood`,
+  `description` and `attributes` are dropped. Each has at most one real
+  value across the roster, so none can narrow anything (ruling 5).
 
 **Failures** throw `PalabraVoicesError(type, message, status)`, shaped like
 `SonioxVoicesError`, so the section can map them to copy:
@@ -289,7 +292,7 @@ spelled out.
 
   The row's language is the pair's target for the first row and the pair's
   source for the second. Section names are in the user's interface language.
-  The facet filter is on, for gender and age.
+  The facet filter is on, and has gender only (ruling 5).
 - **The account's voices** are the `custom` group, labelled with their names:
   - "processing…" or "failed" is appended, as Soniox does;
   - they are `disabled` unless ready and `removable` always;
