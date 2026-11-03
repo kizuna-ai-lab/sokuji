@@ -1,6 +1,6 @@
 # Palabra AI voice library: more voices, previews, and your own voice
 
-Date: 2026-11-03. Status: design, direction set by the owner (task #47,
+Date: 2026-11-03. Status: approved by the owner (2026-11-03 13:04, task #47,
 thread `#sokuji:0cdf7db3`).
 
 ## Why
