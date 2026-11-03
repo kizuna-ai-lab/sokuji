@@ -79,12 +79,15 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   const uiLanguage = i18n?.language;
   const sourceRef = useRef(source);
   useEffect(() => { sourceRef.current = source; }, [source]);
-  const [builtins, setBuiltins] = useState<PalabraVoiceInfo[]>([]);
-  const [mine, setMine] = useState<PalabraVoiceInfo[]>([]);
-  // 'loading' from the first paint while a source exists, so a stored id is
-  // not judged against a list that has not arrived.
-  const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(source ? 'loading' : 'idle');
-  const [quota, setQuota] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+  // A source remembers its last list for the app session (owner, 2026-11-03):
+  // a visit shows it at once and asks Palabra nothing.
+  const remembered = source?.cached() ?? null;
+  const [builtins, setBuiltins] = useState<PalabraVoiceInfo[]>(remembered?.builtin ?? []);
+  const [mine, setMine] = useState<PalabraVoiceInfo[]>(remembered?.mine ?? []);
+  // 'loading' from the first paint while a source has nothing remembered, so
+  // a stored id is not judged against a list that has not arrived.
+  const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(source && !remembered ? 'loading' : 'idle');
+  const [quota, setQuota] = useState<{ used: number; limit: number; remaining: number } | null>(remembered?.limits ?? null);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const loadGeneration = useRef(0);
   // The latest of what an auto-select must still find unchanged, read when a
@@ -131,12 +134,21 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
   }, [source]);
 
   useEffect(() => {
-    // Another account's voices must not stay listed while the new fetch runs.
-    setMine([]);
-    setQuota(null);
-    void refresh();
+    const snap = source?.cached() ?? null;
+    if (snap) {
+      // Remembered: shown as is, no request. Refresh, a create or a delete asks again.
+      setBuiltins(snap.builtin);
+      setMine(snap.mine);
+      setQuota(snap.limits);
+      setListState('idle');
+    } else {
+      // Another account's voices must not stay listed while the new fetch runs.
+      setMine([]);
+      setQuota(null);
+      void refresh();
+    }
     return () => { loadGeneration.current++; };
-  }, [refresh]);
+  }, [refresh, source]);
 
   // Cached samples are per voice id, which is global; a source swap still
   // clears the namespace, as Soniox does, so nothing outlives an account.

@@ -23,9 +23,10 @@ const createMock = vi.fn();
 const deleteMock = vi.fn();
 const limitsMock = vi.fn();
 const previewMock = vi.fn();
+const cachedMock = vi.fn();
 
 function fakeSource(over: Partial<PalabraVoiceSource> = {}): PalabraVoiceSource {
-  return { list: listMock, get: getMock, create: createMock, delete: deleteMock, limits: limitsMock, preview: previewMock, cacheNamespace: 'palabra', ...over };
+  return { list: listMock, get: getMock, create: createMock, delete: deleteMock, limits: limitsMock, preview: previewMock, cached: cachedMock, cacheNamespace: 'palabra', ...over };
 }
 
 const voice = (over: Partial<PalabraVoiceInfo> = {}): PalabraVoiceInfo => ({
@@ -62,6 +63,7 @@ beforeEach(() => {
   deleteMock.mockReset().mockResolvedValue(undefined);
   limitsMock.mockReset().mockResolvedValue({ used: 1, limit: 10, remaining: 9 });
   previewMock.mockReset().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
+  cachedMock.mockReset().mockReturnValue(null);
   (window as any).AudioContext = function AudioContext() {
     return {
       state: 'running', resume: vi.fn().mockResolvedValue(undefined), destination: {},
@@ -640,5 +642,37 @@ describe('PalabraVoiceSection: final-review fixes', () => {
       else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('PalabraVoiceSection: the remembered list (owner, 2026-11-03)', () => {
+  it('with a remembered list, shows it at once and sends no request', () => {
+    cachedMock.mockReturnValue({ builtin: [HU_MALE, JA_FEMALE], mine: [MINE_READY], limits: { used: 1, limit: 10, remaining: 9 } });
+    mount();
+    expect(listMock).not.toHaveBeenCalled();
+    expect(limitsMock).not.toHaveBeenCalled();
+    openPicker();
+    expect(inGrid().getByRole('button', { name: 'Hungarian Male' })).toBeInTheDocument();
+    expect(inGrid().getByRole('button', { name: 'István' })).toBeInTheDocument();
+    expect(screen.getByText(/1\s*\/\s*10/)).toBeInTheDocument();
+  });
+
+  it('Refresh asks Palabra again even with a remembered list', async () => {
+    cachedMock.mockReturnValue({ builtin: [HU_MALE], mine: [], limits: null });
+    mount();
+    openPicker();
+    fireEvent.click(inGrid().getByRole('button', { name: /refresh voice list/i }));
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('a remembered voice still processing is followed without a list request', async () => {
+    const processing = voice({ id: 'old-1', name: 'Earlier', status: 'processing', sample: null });
+    cachedMock.mockReturnValue({ builtin: [HU_MALE], mine: [processing], limits: null });
+    getMock.mockResolvedValue({ ...processing, status: 'ready' });
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [{ ...processing, status: 'ready' }] });
+    mount({ sleep: instantSleep() });
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
+    // Settling refreshes once, as before.
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
   });
 });

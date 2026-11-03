@@ -4,7 +4,7 @@ import type { AuthContext, ProviderAccount } from '../../lib/provider/types';
 import { clearPreviewCache, getCachedPreview, previewCacheKey } from '../../lib/tts/previewCache';
 import { PALABRA_DEFAULTS, type PalabraSettings } from './settings';
 import { PalabraVoicesClient } from './voicesClient';
-import { palabraVoiceSource, usePalabraVoiceSource } from './voiceSource';
+import { palabraVoiceSource, sharedPalabraVoiceSource, usePalabraVoiceSource } from './voiceSource';
 
 const AUTH = { signedIn: false, getToken: async () => null } as AuthContext;
 const page = (items: unknown[]) => new Response(JSON.stringify({ ok: true, data: { items, page_size: 100, count: items.length, next: null } }), { status: 200 });
@@ -34,6 +34,39 @@ describe('palabraVoiceSource', () => {
     expect(second).toBe(first);
     expect(getCachedPreview(previewCacheKey('palabra', 'v1', '', 1))).toBe(first);
     expect(source.cacheNamespace).toBe('palabra');
+  });
+});
+
+describe('palabraVoiceSource: what it remembers (owner, 2026-11-03: no request on every visit)', () => {
+  it('cached() is null until a list succeeds, then holds that list and the last quota', async () => {
+    const client = {
+      listBuiltin: vi.fn(async () => [{ id: 'b' }]), listMine: vi.fn(async () => [{ id: 'm' }]),
+      limits: vi.fn(async () => ({ used: 1, limit: 10, remaining: 9 })),
+    } as unknown as PalabraVoicesClient;
+    const source = palabraVoiceSource(client);
+    expect(source.cached()).toBeNull();
+    await source.list();
+    expect(source.cached()).toEqual({ builtin: [{ id: 'b' }], mine: [{ id: 'm' }], limits: null });
+    await source.limits();
+    expect(source.cached()?.limits).toEqual({ used: 1, limit: 10, remaining: 9 });
+  });
+
+  it('a failed list leaves the previous answer in place', async () => {
+    const listMine = vi.fn().mockResolvedValueOnce([{ id: 'm' }]).mockRejectedValueOnce(new Error('offline'));
+    const source = palabraVoiceSource({ listBuiltin: vi.fn(async () => []), listMine, limits: vi.fn() } as unknown as PalabraVoicesClient);
+    await source.list();
+    await expect(source.list()).rejects.toThrow('offline');
+    expect(source.cached()?.mine).toEqual([{ id: 'm' }]);
+  });
+
+  it('sharedPalabraVoiceSource gives one source per credentials for the whole app session', () => {
+    const a1 = sharedPalabraVoiceSource({ kind: 'apiKey', apiKey: 'plbr_a' });
+    const a2 = sharedPalabraVoiceSource({ kind: 'apiKey', apiKey: 'plbr_a' });
+    const b = sharedPalabraVoiceSource({ kind: 'apiKey', apiKey: 'plbr_b' });
+    const app = sharedPalabraVoiceSource({ kind: 'app', clientId: 'id', clientSecret: 'sec_x' });
+    expect(a2).toBe(a1);
+    expect(b).not.toBe(a1);
+    expect(app).not.toBe(a1);
   });
 });
 
@@ -72,6 +105,14 @@ describe('usePalabraVoiceSource', () => {
     expect(renderHook(() => usePalabraVoiceSource(account({ apiKey: 'plbr_x' }), settings({ authMode: 'app' }))).result.current).toBeNull();
     expect(renderHook(() => usePalabraVoiceSource(account({ clientId: 'id', clientSecret: 'sec_x' }), settings({ authMode: 'platform' }))).result.current).toBeNull();
     expect(renderHook(() => usePalabraVoiceSource(undefined, settings())).result.current).toBeNull();
+  });
+
+  it('hands a remounted component the same source, so its remembered list survives', () => {
+    const first = renderHook(() => usePalabraVoiceSource(account({ apiKey: 'plbr_same' }), settings()));
+    const source = first.result.current;
+    first.unmount();
+    const second = renderHook(() => usePalabraVoiceSource(account({ apiKey: 'plbr_same' }), settings()));
+    expect(second.result.current).toBe(source);
   });
 
   it('returns the same object until the credentials change', () => {

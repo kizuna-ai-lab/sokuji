@@ -20,7 +20,15 @@ export interface PalabraVoiceSource {
   delete(id: string): Promise<void>;
   limits(): Promise<{ used: number; limit: number; remaining: number }>;
   preview(args: { id: string; sample: string; signal?: AbortSignal }): Promise<{ audio: Float32Array; sampleRate: number }>;
+  /** The last list that succeeded, with the last quota read; null before any (owner, 2026-11-03: no request on every visit). */
+  cached(): PalabraVoiceSnapshot | null;
   readonly cacheNamespace: 'palabra';
+}
+
+export interface PalabraVoiceSnapshot {
+  builtin: PalabraVoiceInfo[];
+  mine: PalabraVoiceInfo[];
+  limits: { used: number; limit: number; remaining: number } | null;
 }
 
 export const PALABRA_CACHE_NAMESPACE = 'palabra';
@@ -39,15 +47,26 @@ export function palabraVoiceSource(
   deps: { fetch?: typeof fetch; decode?: (bytes: ArrayBuffer) => Promise<AudioBuffer> } = {},
 ): PalabraVoiceSource {
   const decode = deps.decode ?? decodeWithAudioContext;
+  // What the picker shows on its next visit without asking again: only a
+  // success replaces it, so going offline keeps the last good answer.
+  let snapshot: PalabraVoiceSnapshot | null = null;
+  let lastLimits: PalabraVoiceSnapshot['limits'] = null;
   return {
     list: async (signal) => {
       const [builtin, mine] = await Promise.all([client.listBuiltin(signal), client.listMine(signal)]);
+      snapshot = { builtin, mine, limits: lastLimits };
       return { builtin, mine };
     },
     get: (id, signal) => client.get(id, signal),
     create: (args) => client.create(args),
     delete: (id) => client.delete(id),
-    limits: () => client.limits(),
+    limits: async () => {
+      const limits = await client.limits();
+      lastLimits = limits;
+      if (snapshot) snapshot = { ...snapshot, limits };
+      return limits;
+    },
+    cached: () => snapshot,
     async preview({ id, sample, signal }) {
       // A sample is one fixed recording: no language, no speed in its key.
       const key = previewCacheKey(PALABRA_CACHE_NAMESPACE, id, '', 1);
@@ -75,6 +94,37 @@ export function palabraVoiceSource(
 /** A stable identity for the credentials, so the source is rebuilt only when they change. */
 const identity = (k: PalabraCredentials) => (k.kind === 'apiKey' ? `key\u0000${k.apiKey}` : `app\u0000${k.clientId}\u0000${k.clientSecret}`);
 
+/** A non-reversible tag for an identity (FNV-1a, two lanes): the registry below keys on it, never on a credential. */
+function tag(text: string): string {
+  let a = 0x811c9dc5;
+  let b = 0x01000193;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193);
+    b = Math.imul(b ^ c, 0x811c9dc5);
+  }
+  return `${(a >>> 0).toString(36)}.${(b >>> 0).toString(36)}`;
+}
+
+/** One source per credentials for the app session, so its remembered list outlives a settings visit. A few at most. */
+const shared = new Map<string, PalabraVoiceSource>();
+const SHARED_LIMIT = 4;
+
+export function sharedPalabraVoiceSource(k: PalabraCredentials): PalabraVoiceSource {
+  const key = tag(identity(k));
+  const found = shared.get(key);
+  if (found) {
+    // Most recent last, so the oldest is the one let go.
+    shared.delete(key);
+    shared.set(key, found);
+    return found;
+  }
+  const made = palabraVoiceSource(new PalabraVoicesClient(k));
+  shared.set(key, made);
+  while (shared.size > SHARED_LIMIT) shared.delete(shared.keys().next().value as string);
+  return made;
+}
+
 /**
  * The account's source, or null until its mode's credentials are saved
  * (spec §3). Read through `readCredentials`: the saved values hold every
@@ -86,7 +136,7 @@ export function usePalabraVoiceSource(account: ProviderAccount | undefined, sett
   const key = k ? identity(k) : '';
   // `k` is fully described by `key`.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => (k ? palabraVoiceSource(new PalabraVoicesClient(k)) : null), [key]);
+  return useMemo(() => (k ? sharedPalabraVoiceSource(k) : null), [key]);
 }
 
 /** Poll waits (spec §4): every 5 s for the first minute, then every 15 s; give up at 15 minutes. */
