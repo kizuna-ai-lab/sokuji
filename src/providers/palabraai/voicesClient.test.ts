@@ -252,8 +252,9 @@ describe('PalabraVoicesClient', () => {
       { voice_id: 'blank', tts_sample: { url: '   ', text: { lang: 'en' } }, tts_samples: [{ url: ok, text: { lang: 'hu' } }] },
       { voice_id: 'http', tts_sample: { url: 'http://cdn.palabra.ai/blob/x.mp3' }, tts_samples: [{ url: ok, text: { lang: 'ja' } }] },
       { voice_id: 'none', tts_sample: { url: ' ' } },
+      { voice_id: 'padded', tts_sample: { url: `  ${ok}  `, text: { lang: 'fr' } } },
     ]))).listBuiltin();
-    expect(voices.map((v) => [v.id, v.sample, v.language])).toEqual([['blank', ok, 'hu'], ['http', ok, 'ja'], ['none', null, null]]);
+    expect(voices.map((v) => [v.id, v.sample, v.language])).toEqual([['blank', ok, 'hu'], ['http', ok, 'ja'], ['none', null, null], ['padded', ok, 'fr']]);
   });
 
   it('a refusal whose body never arrives still times out', async () => {
