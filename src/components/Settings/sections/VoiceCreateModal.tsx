@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { Plus, Mic, Square, X } from 'lucide-react';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
-import SonioxCloneReviewStep from './SonioxCloneReviewStep';
+import SonioxCloneReviewStep, { type VoiceReviewLanguage } from './SonioxCloneReviewStep';
 import './VoiceCreateModal.scss';
 
 /** The post-acquisition confirmation phase, when the provider has one. Passing
@@ -24,6 +24,8 @@ export interface VoiceCreateReview {
   busy: boolean;
   notice?: string;
   showName?: boolean;
+  /** The clip's language, for a provider that must be told it (Palabra). */
+  language?: VoiceReviewLanguage;
   onConfirm: (name: string) => void;
   /** Discard the staged clip. Reached from Confirm's sibling Cancel, and —
    *  because the clip is the caller's, not this dialog's — from Escape, the
@@ -424,6 +426,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
               busy={review.busy}
               notice={review.notice}
               showName={review.showName}
+              language={review.language}
               onConfirm={review.onConfirm}
               onClose={review.onClose}
             />
