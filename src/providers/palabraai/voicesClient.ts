@@ -46,10 +46,10 @@ const MAX_PAGES = 10;
 const VOICE_LIMIT_EXCEEDED = 200200;
 const AUDIO_REFUSED = new Set([200040, 200041, 200046, 200047]);
 
-interface WireSample { url?: unknown; text?: { lang?: unknown } | null }
+/** A voice as Palabra sends it: every field unknown until read (`normalise`). */
 interface WireVoice {
   voice_id?: unknown; name?: unknown; voice_type?: unknown; processing_status?: unknown;
-  labels?: { gender?: unknown } | null; tts_sample?: WireSample | null; tts_samples?: WireSample[] | null;
+  labels?: unknown; tts_sample?: unknown; tts_samples?: unknown;
 }
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
@@ -81,14 +81,26 @@ function isWireVoice(v: unknown): v is WireVoice {
   return v !== null && typeof v === 'object' && !Array.isArray(v) && str((v as WireVoice).voice_id) !== null;
 }
 
+/** `x` as a plain object, else null: what Palabra sends is read field by field, never trusted whole. */
+const obj = (x: unknown): Record<string, unknown> | null =>
+  (x !== null && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : null);
+
+/**
+ * One voice in our shape. Every nested field is read defensively, so an odd
+ * shape (samples not a list, a sample or labels not an object) reads as no
+ * sample or no labels instead of throwing (PR #684 review).
+ */
 function normalise(v: WireVoice): PalabraVoiceInfo {
-  const sample = [v.tts_sample, ...(v.tts_samples ?? [])].find((s) => s && str(s.url)) ?? null;
-  const gender = typeof v.labels?.gender === 'string' ? v.labels.gender.toLowerCase() : undefined;
+  const samples = [v.tts_sample, ...(Array.isArray(v.tts_samples) ? v.tts_samples : [])]
+    .map(obj)
+    .filter((s): s is Record<string, unknown> => s !== null);
+  const sample = samples.find((s) => str(s.url) !== null) ?? null;
+  const gender = str(obj(v.labels)?.gender)?.toLowerCase();
   const status = v.processing_status;
   return {
     id: String(v.voice_id ?? ''),
     name: (typeof v.name === 'string' ? v.name : '').trim(),
-    language: sample ? str(sample.text?.lang) : null,
+    language: sample ? str(obj(sample.text)?.lang) : null,
     facets: gender === 'male' || gender === 'female' ? { gender } : {},
     status: status === undefined || status === 'ready' ? 'ready' : status === 'failed' ? 'failed' : 'processing',
     sample: sample ? (sample.url as string) : null,

@@ -229,6 +229,23 @@ describe('PalabraVoicesClient', () => {
     await expect(client(vi.fn(async () => page([{ name: 'no id' }]))).listBuiltin()).rejects.toBeInstanceOf(PalabraVoicesError);
   });
 
+  it('odd sample or label shapes on a voice with an id never crash: they read as no sample, no labels', async () => {
+    const odd = [
+      { voice_id: 'a', tts_samples: {} },
+      { voice_id: 'b', tts_samples: 'x', tts_sample: 'x' },
+      { voice_id: 'c', tts_samples: [null, 5, { url: 7 }], labels: 'x', name: 5 },
+      { voice_id: 'd', tts_sample: { url: 'https://cdn.palabra.ai/d.mp3', text: 'hu' }, labels: { gender: 3 } },
+    ];
+    const voices = await client(vi.fn(async () => page(odd))).listBuiltin();
+    expect(voices.map((v) => [v.id, v.sample, v.language, v.facets])).toEqual([
+      ['a', null, null, {}], ['b', null, null, {}], ['c', null, null, {}], ['d', 'https://cdn.palabra.ai/d.mp3', null, {}],
+    ]);
+    expect(voices[2].name).toBe('');
+    // The single-voice read goes through the same reading.
+    await expect(client(vi.fn(async () => json({ ok: true, data: { voice_id: 'e', tts_samples: {}, processing_status: 'ready' } }))).get('e'))
+      .resolves.toMatchObject({ id: 'e', sample: null });
+  });
+
   it('a refusal whose body never arrives still times out', async () => {
     const clock = createVirtualClock(0);
     const stalled = { ok: false, status: 500, json: () => new Promise(() => {}) } as unknown as Response;
