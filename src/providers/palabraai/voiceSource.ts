@@ -87,3 +87,40 @@ export function usePalabraVoiceSource(account: ProviderAccount | undefined, sett
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => (k ? palabraVoiceSource(new PalabraVoicesClient(k)) : null), [key]);
 }
+
+/** Poll waits (spec §4): every 5 s for the first minute, then every 15 s; give up at 15 minutes. */
+export const PALABRA_POLL = { fastMs: 5_000, fastForMs: 60_000, slowMs: 15_000, budgetMs: 15 * 60_000 } as const;
+
+/** A wait that rejects when `signal` aborts. */
+export type Sleep = (ms: number, signal: AbortSignal) => Promise<void>;
+export const realSleep: Sleep = (ms, signal) => new Promise((resolve, reject) => {
+  if (signal.aborted) { reject(new PalabraVoicesError('aborted', 'Cancelled.', 0)); return; }
+  const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+  const onAbort = () => { clearTimeout(timer); reject(new PalabraVoicesError('aborted', 'Cancelled.', 0)); };
+  signal.addEventListener('abort', onAbort, { once: true });
+});
+
+/**
+ * Wait FIRST, then ask, until the voice is ready or failed. The budget is
+ * counted in the waits asked for, not the wall clock, so it is exact and
+ * testable. A 404 (`not_found`) means Palabra dropped the voice: it is not
+ * caught here. Past the budget: `timeout`. An abort: `aborted`.
+ */
+export async function waitUntilSettled(
+  source: Pick<PalabraVoiceSource, 'get'>, id: string, opts: { sleep: Sleep; signal: AbortSignal },
+): Promise<PalabraVoiceInfo> {
+  let waited = 0;
+  while (waited < PALABRA_POLL.budgetMs) {
+    const ms = Math.min(waited < PALABRA_POLL.fastForMs ? PALABRA_POLL.fastMs : PALABRA_POLL.slowMs, PALABRA_POLL.budgetMs - waited);
+    try {
+      await opts.sleep(ms, opts.signal);
+    } catch {
+      throw new PalabraVoicesError('aborted', 'Cancelled.', 0);
+    }
+    waited += ms;
+    if (opts.signal.aborted) throw new PalabraVoicesError('aborted', 'Cancelled.', 0);
+    const voice = await source.get(id, opts.signal);
+    if (voice.status !== 'processing') return voice;
+  }
+  throw new PalabraVoicesError('timeout', 'Palabra is still processing the voice.', 408);
+}

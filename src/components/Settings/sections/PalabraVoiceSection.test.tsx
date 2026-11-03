@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
 import type { PalabraVoiceSource } from '../../../providers/palabraai/voiceSource';
-import type { PalabraVoiceInfo } from '../../../providers/palabraai/voicesClient';
+import { PalabraVoicesError, type PalabraVoiceInfo } from '../../../providers/palabraai/voicesClient';
 import PalabraVoiceSection, { type PalabraVoiceSectionProps } from './PalabraVoiceSection';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -185,5 +185,358 @@ describe('PalabraVoiceSection: the list', () => {
     await waitFor(() => expect(inGrid().getByRole('button', { name: 'Hungarian Male' })).toBeInTheDocument());
     expect(screen.queryByText(/\d+\s*\/\s*10/)).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Creating, polling and deleting (spec §4 "Creating a voice", "Delete").
+// ---------------------------------------------------------------------------
+
+function fakeFile(name: string, size = 10, type = 'audio/mpeg'): File {
+  return { name, size, type, arrayBuffer: async () => new ArrayBuffer(size) } as unknown as File;
+}
+
+/** Decoding resolves a mono buffer of the given length, loud enough to pass the silence check. */
+function stubDecode(seconds: number, sampleRate = 16000) {
+  const n = Math.round(seconds * sampleRate);
+  const ctx = {
+    decodeAudioData: vi.fn().mockResolvedValue({ numberOfChannels: 1, length: n, sampleRate, getChannelData: () => new Float32Array(n).fill(0.5) }),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  (window as any).AudioContext = function AudioContext() { return ctx; };
+  return ctx;
+}
+
+/** A sleep the test drives: every wait is recorded; `resolveAll` lets them finish; an abort rejects. */
+function manualSleep() {
+  const waits: Array<{ ms: number; resolve: () => void }> = [];
+  const sleep = vi.fn((ms: number, signal: AbortSignal) => new Promise<void>((resolve, reject) => {
+    waits.push({ ms, resolve });
+    signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
+  }));
+  return { sleep, waits, next: () => waits.shift()?.resolve() };
+}
+/** A sleep that never waits, recording what it was asked for. */
+const instantSleep = () => vi.fn(async (_ms: number, _signal: AbortSignal) => {});
+
+const createDialog = () => screen.getByRole('dialog', { name: /add a voice/i });
+const openCreateModal = () => {
+  openPicker();
+  fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
+};
+const importFile = (file: File) => {
+  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+  fireEvent.change(input, { target: { files: [file] } });
+};
+const confirmButton = () => within(createDialog()).getByRole('button', { name: /^clone voice$/i });
+const checkConsent = () => fireEvent.click(within(createDialog()).getByRole('checkbox'));
+const languageSelect = () => within(createDialog()).getByRole('combobox', { name: 'Language of the recording' }) as HTMLSelectElement;
+
+describe('PalabraVoiceSection: creating a voice', () => {
+  beforeEach(() => {
+    (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
+    (URL as any).revokeObjectURL = vi.fn();
+    (window.HTMLMediaElement.prototype as any).play = vi.fn().mockResolvedValue(undefined);
+    (window.HTMLMediaElement.prototype as any).pause = vi.fn();
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+  });
+
+  it('an imported file over 10 MB, or decoding to more than 90 s, is refused', async () => {
+    stubDecode(120);
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('big.mp3', 10_000_001));
+    await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/too large/i));
+    importFile(fakeFile('long.mp3', 1000));
+    await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/too long/i));
+    expect(screen.queryByRole('combobox', { name: 'Language of the recording' })).toBeNull();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('an imported clip shorter than 30 s is refused with the "too short" message and stages nothing', async () => {
+    stubDecode(12);
+    mount();
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('short.mp3', 1000));
+    await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/too short/i));
+    expect(screen.queryByRole('combobox', { name: 'Language of the recording' })).toBeNull();
+  });
+
+  it('an imported MP3 is re-encoded: create receives a WAV Blob and denoise false', async () => {
+    stubDecode(40);
+    createMock.mockResolvedValue(voice({ id: 'new-1', name: 'Hello', status: 'processing', sample: null }));
+    getMock.mockResolvedValue(voice({ id: 'new-1', name: 'Hello', status: 'processing', sample: null }));
+    mount({ pairSource: 'hu', sleep: manualSleep().sleep });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('Hello.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+    const args = createMock.mock.calls[0][0];
+    expect(args).toMatchObject({ name: 'Hello', langCode: 'hu', denoise: false });
+    expect(args.wav).toBeInstanceOf(Blob);
+    expect(args.wav.type).toBe('audio/wav');
+  });
+
+  it("the review offers the clone languages, preselected from pairSource ('hu' → 'hu')", async () => {
+    stubDecode(40);
+    mount({ pairSource: 'hu' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    expect(languageSelect().value).toBe('hu');
+    expect(Array.from(languageSelect().options).filter((o) => o.value)).toHaveLength(50);
+  });
+
+  it("with pairSource 'auto' the language starts empty and Confirm is disabled", async () => {
+    stubDecode(40);
+    mount({ pairSource: 'auto' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    // The interface language (en) is a clone language, so it is the fallback; clear it to see the empty state.
+    expect(languageSelect().value).toBe('en');
+    fireEvent.change(languageSelect(), { target: { value: '' } });
+    checkConsent();
+    expect(confirmButton()).toBeDisabled();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('a name outside the pattern is refused inline before any request', async () => {
+    stubDecode(40);
+    mount({ pairSource: 'hu' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    fireEvent.change(within(createDialog()).getByRole('textbox'), { target: { value: "it's" } });
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/3–64/));
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('create failing with limit_reached keeps the dialog open with the limit message', async () => {
+    stubDecode(40);
+    createMock.mockRejectedValue(new PalabraVoicesError('limit_reached', 'HTTP 422: limit', 422));
+    mount({ pairSource: 'hu' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/voice limit/i));
+  });
+
+  it('remaining 0 withdraws record and upload', async () => {
+    limitsMock.mockResolvedValue({ used: 10, limit: 10, remaining: 0 });
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [MINE_READY] });
+    mount();
+    openPicker();
+    await waitFor(() => expect(screen.getByText(/10\s*\/\s*10/)).toBeInTheDocument());
+    expect(inGrid().queryByRole('button', { name: /add a voice/i })).toBeNull();
+  });
+
+  it('confirm calls create, refreshes, closes, then polls get every 5 s, then 15 s after a minute', async () => {
+    stubDecode(40);
+    const processing = voice({ id: 'new-1', name: 'clip', status: 'processing', sample: null });
+    createMock.mockResolvedValue(processing);
+    listMock
+      .mockResolvedValueOnce({ builtin: [HU_MALE], mine: [] })
+      .mockResolvedValue({ builtin: [HU_MALE], mine: [processing] });
+    let polls = 0;
+    getMock.mockImplementation(async () => (++polls < 15 ? processing : { ...processing, status: 'ready' }));
+    const sleep = instantSleep();
+    mount({ pairSource: 'hu', sleep });
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /add a voice/i })).toBeNull());
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(15));
+    const delays = sleep.mock.calls.map(([ms]) => ms);
+    expect(delays.slice(0, 12)).toEqual(Array(12).fill(5000));
+    expect(delays.slice(12, 15)).toEqual([15000, 15000, 15000]);
+  });
+
+  it('when get turns ready, the list refreshes and the new voice is selected with its name', async () => {
+    stubDecode(40);
+    const processing = voice({ id: 'new-1', name: 'clip', status: 'processing', sample: null });
+    createMock.mockResolvedValue(processing);
+    listMock.mockResolvedValueOnce({ builtin: [HU_MALE], mine: [] }).mockResolvedValue({ builtin: [HU_MALE], mine: [processing] });
+    getMock.mockResolvedValue({ ...processing, status: 'ready', sample: 'https://cdn.palabra.ai/blob/new-1.mp3' });
+    const { onSelect } = mount({ pairSource: 'hu', sleep: instantSleep() });
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith({ voiceId: 'new-1', voiceName: 'clip' }));
+    expect(listMock.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('no auto-select if the user picked another voice meanwhile, or a session started, or the section unmounted', async () => {
+    const processing = voice({ id: 'new-1', name: 'clip', status: 'processing', sample: null });
+    const run = async (after: (utils: ReturnType<typeof mount>) => void) => {
+      stubDecode(40);
+      createMock.mockReset().mockResolvedValue(processing);
+      listMock.mockReset().mockResolvedValueOnce({ builtin: [HU_MALE], mine: [] }).mockResolvedValue({ builtin: [HU_MALE], mine: [processing] });
+      getMock.mockReset().mockResolvedValue({ ...processing, status: 'ready' });
+      const clock = manualSleep();
+      const utils = mount({ pairSource: 'hu', sleep: clock.sleep });
+      await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+      openCreateModal();
+      importFile(fakeFile('clip.mp3', 1000));
+      await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+      checkConsent();
+      fireEvent.click(confirmButton());
+      await waitFor(() => expect(clock.waits.length).toBe(1));
+      after(utils);
+      clock.next();
+      await new Promise((r) => setTimeout(r, 20));
+      return utils;
+    };
+    // Picked another voice meanwhile.
+    let u = await run((utils) => utils.rerender(<PalabraVoiceSection {...utils.props} settings={{ ...SETTINGS, voiceId: 'hu-m', voiceName: 'Hungarian Male' }} />));
+    expect(u.onSelect).not.toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'new-1' }));
+    u.unmount();
+    // A session started.
+    u = await run((utils) => utils.rerender(<PalabraVoiceSection {...utils.props} isSessionActive />));
+    expect(u.onSelect).not.toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'new-1' }));
+    u.unmount();
+    // Unmounted: polling stops.
+    u = await run((utils) => utils.unmount());
+    expect(getMock).not.toHaveBeenCalled();
+    expect(u.onSelect).not.toHaveBeenCalled();
+  });
+
+  it('a section mounting with a processing voice in the list polls it and refreshes when it settles, without selecting it', async () => {
+    const processing = voice({ id: 'old-1', name: 'Earlier', status: 'processing', sample: null });
+    listMock.mockResolvedValueOnce({ builtin: [HU_MALE], mine: [processing] }).mockResolvedValue({ builtin: [HU_MALE], mine: [{ ...processing, status: 'ready' }] });
+    getMock.mockResolvedValueOnce(processing).mockResolvedValue({ ...processing, status: 'ready' });
+    const { onSelect } = mount({ sleep: instantSleep() });
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('get → not_found while polling: refresh and show the "could not process" message', async () => {
+    const processing = voice({ id: 'old-1', name: 'Earlier', status: 'processing', sample: null });
+    listMock.mockResolvedValueOnce({ builtin: [HU_MALE], mine: [processing] }).mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+    getMock.mockRejectedValue(new PalabraVoicesError('not_found', 'HTTP 404: gone', 404));
+    mount({ sleep: instantSleep() });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/could not process this recording/i));
+    expect(listMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('polling gives up after 15 minutes with the timeout message', async () => {
+    const processing = voice({ id: 'old-1', name: 'Earlier', status: 'processing', sample: null });
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [processing] });
+    getMock.mockResolvedValue(processing);
+    const sleep = instantSleep();
+    mount({ sleep });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/still processing/i));
+    const total = sleep.mock.calls.reduce((n, [ms]) => n + ms, 0);
+    expect(total).toBe(15 * 60 * 1000);
+  });
+});
+
+describe('PalabraVoiceSection: recording a voice', () => {
+  /** Drives the shared recorder: one chunk of `seconds` at 16 kHz, then Stop. */
+  async function record(seconds: number) {
+    const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: vi.fn(async () => ({ getTracks: () => [{ stop: vi.fn() }] })) } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let processorNode: any = null;
+    class FakeAudioContext {
+      sampleRate = 16000;
+      destination = {};
+      createMediaStreamSource() { return { connect: vi.fn(), disconnect: vi.fn() }; }
+      createScriptProcessor() { processorNode = { connect: vi.fn(), disconnect: vi.fn(), onaudioprocess: null }; return processorNode; }
+      close = vi.fn().mockResolvedValue(undefined);
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    try {
+      fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+      const stop = await screen.findByRole('button', { name: /stop recording/i });
+      processorNode?.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(Math.round(16000 * seconds)).fill(0.1) } });
+      fireEvent.click(stop);
+    } finally {
+      if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+      else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+    }
+  }
+
+  beforeEach(() => {
+    (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
+    (URL as any).revokeObjectURL = vi.fn();
+    (window.HTMLMediaElement.prototype as any).play = vi.fn().mockResolvedValue(undefined);
+    (window.HTMLMediaElement.prototype as any).pause = vi.fn();
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [] });
+  });
+
+  it('a recording shorter than 30 s is refused with the "too short" message and stages nothing', async () => {
+    mount({ pairSource: 'hu' });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    try {
+      await record(0.5);
+      await waitFor(() => expect(within(createDialog()).getByRole('alert')).toHaveTextContent(/too short/i));
+      expect(screen.queryByRole('combobox', { name: 'Language of the recording' })).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a recording is uploaded with denoise true', async () => {
+    createMock.mockResolvedValue(voice({ id: 'rec-1', name: 'My Voice 1', status: 'processing', sample: null }));
+    getMock.mockResolvedValue(voice({ id: 'rec-1', name: 'My Voice 1', status: 'processing', sample: null }));
+    mount({ pairSource: 'hu', sleep: manualSleep().sleep });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openCreateModal();
+    try {
+      await record(31);
+      await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+      checkConsent();
+      fireEvent.click(confirmButton());
+      await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+      expect(createMock.mock.calls[0][0]).toMatchObject({ name: 'My Voice 1', langCode: 'hu', denoise: true });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('PalabraVoiceSection: deleting a voice', () => {
+  it('delete is refused while a session uses that voice; otherwise deletes, refreshes, and resets a selected voice', async () => {
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [MINE_READY] });
+    const busy = mount({ settings: { ...SETTINGS, voiceId: 'mine-1', voiceName: 'István' }, isSessionActive: true });
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'István' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('István')).getByRole('button', { name: /delete/i }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(within(screen.getByRole('dialog', { name: /delete voice/i })).getByRole('alert')).toHaveTextContent(/active session/i));
+    expect(deleteMock).not.toHaveBeenCalled();
+    busy.unmount();
+
+    const idle = mount({ settings: { ...SETTINGS, voiceId: 'mine-1', voiceName: 'István' } });
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'István' })).toBeInTheDocument());
+    const listedBefore = listMock.mock.calls.length;
+    fireEvent.click(within(rowFor('István')).getByRole('button', { name: /delete/i }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('mine-1'));
+    await waitFor(() => expect(idle.onSelect).toHaveBeenCalledWith({ voiceId: 'default_low', voiceName: '' }));
+    expect(listMock.mock.calls.length).toBeGreaterThan(listedBefore);
   });
 });
