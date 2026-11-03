@@ -126,7 +126,7 @@ describe('the Soniox adapter: one leg', () => {
     expect(stt().protocols).toEqual(['soniox-api-key', 'test-key']);
     expect(config).not.toHaveProperty('api_key');
     expect(config).toMatchObject({
-      model: 'stt-rt-v5',
+      model: 'stt-rt-v6',
       audio_format: 'pcm_s16le',
       sample_rate: 24000,
       translation: { type: 'one_way', target_language: 'ja' },

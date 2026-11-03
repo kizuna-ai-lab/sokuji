@@ -24,7 +24,7 @@ import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contrac
 import { nativeSocket, sonioxProtocols, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
 
 /** The Soniox real-time model this app transcribes with, shared with the mobile app. */
-export const SONIOX_STT_MODEL = 'stt-rt-v5';
+export const SONIOX_STT_MODEL = 'stt-rt-v6';
 
 export interface SonioxToken {
   text: string;
