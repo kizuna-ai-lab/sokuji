@@ -51,20 +51,41 @@ export function palabraVoiceSource(
   // success replaces it, so going offline keeps the last good answer.
   let snapshot: PalabraVoiceSnapshot | null = null;
   let lastLimits: PalabraVoiceSnapshot['limits'] = null;
+  // Calls overlap (a refresh beside a post-create refresh): only the latest may write.
+  let listSeq = 0;
+  let limitsSeq = 0;
+  const setLimits = (limits: PalabraVoiceSnapshot['limits']) => {
+    lastLimits = limits;
+    if (snapshot) snapshot = { ...snapshot, limits };
+  };
   return {
     list: async (signal) => {
+      const seq = ++listSeq;
       const [builtin, mine] = await Promise.all([client.listBuiltin(signal), client.listMine(signal)]);
-      snapshot = { builtin, mine, limits: lastLimits };
+      if (seq === listSeq) snapshot = { builtin, mine, limits: lastLimits };
       return { builtin, mine };
     },
     get: (id, signal) => client.get(id, signal),
-    create: (args) => client.create(args),
-    delete: (id) => client.delete(id),
+    // A change to the account makes what is remembered wrong: the next visit asks again.
+    create: async (args) => {
+      const created = await client.create(args);
+      snapshot = null;
+      return created;
+    },
+    delete: async (id) => {
+      await client.delete(id);
+      snapshot = null;
+    },
     limits: async () => {
-      const limits = await client.limits();
-      lastLimits = limits;
-      if (snapshot) snapshot = { ...snapshot, limits };
-      return limits;
+      const seq = ++limitsSeq;
+      try {
+        const limits = await client.limits();
+        if (seq === limitsSeq) setLimits(limits);
+        return limits;
+      } catch (error) {
+        if (seq === limitsSeq) setLimits(null);
+        throw error;
+      }
     },
     cached: () => snapshot,
     async preview({ id, sample, signal }) {
@@ -94,24 +115,14 @@ export function palabraVoiceSource(
 /** A stable identity for the credentials, so the source is rebuilt only when they change. */
 const identity = (k: PalabraCredentials) => (k.kind === 'apiKey' ? `key\u0000${k.apiKey}` : `app\u0000${k.clientId}\u0000${k.clientSecret}`);
 
-/** A non-reversible tag for an identity (FNV-1a, two lanes): the registry below keys on it, never on a credential. */
-function tag(text: string): string {
-  let a = 0x811c9dc5;
-  let b = 0x01000193;
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    a = Math.imul(a ^ c, 0x01000193);
-    b = Math.imul(b ^ c, 0x811c9dc5);
-  }
-  return `${(a >>> 0).toString(36)}.${(b >>> 0).toString(36)}`;
-}
-
 /** One source per credentials for the app session, so its remembered list outlives a settings visit. A few at most. */
 const shared = new Map<string, PalabraVoiceSource>();
 const SHARED_LIMIT = 4;
 
 export function sharedPalabraVoiceSource(k: PalabraCredentials): PalabraVoiceSource {
-  const key = tag(identity(k));
+  // Keyed on the credentials themselves: a hash could collide and hand one
+  // account another's voices; the client holds them in memory either way.
+  const key = identity(k);
   const found = shared.get(key);
   if (found) {
     // Most recent last, so the oldest is the one let go.
@@ -121,7 +132,11 @@ export function sharedPalabraVoiceSource(k: PalabraCredentials): PalabraVoiceSou
   }
   const made = palabraVoiceSource(new PalabraVoicesClient(k));
   shared.set(key, made);
-  while (shared.size > SHARED_LIMIT) shared.delete(shared.keys().next().value as string);
+  while (shared.size > SHARED_LIMIT) {
+    const oldest = shared.keys().next();
+    if (oldest.done) break;
+    shared.delete(oldest.value);
+  }
   return made;
 }
 

@@ -59,6 +59,42 @@ describe('palabraVoiceSource: what it remembers (owner, 2026-11-03: no request o
     expect(source.cached()?.mine).toEqual([{ id: 'm' }]);
   });
 
+  it('of two overlapping lists, the later call\'s answer is the one remembered', async () => {
+    let resolveFirst: (v: unknown[]) => void = () => {};
+    const listMine = vi.fn()
+      .mockReturnValueOnce(new Promise((r) => { resolveFirst = r; }))
+      .mockResolvedValueOnce([{ id: 'new' }]);
+    const source = palabraVoiceSource({ listBuiltin: vi.fn(async () => []), listMine, limits: vi.fn() } as unknown as PalabraVoicesClient);
+    const first = source.list();
+    await source.list();
+    resolveFirst([{ id: 'old' }]);
+    await first;
+    expect(source.cached()?.mine).toEqual([{ id: 'new' }]);
+  });
+
+  it('a failed limits() forgets the remembered quota', async () => {
+    const limits = vi.fn().mockResolvedValueOnce({ used: 1, limit: 10, remaining: 9 }).mockRejectedValueOnce(new Error('offline'));
+    const source = palabraVoiceSource({ listBuiltin: vi.fn(async () => []), listMine: vi.fn(async () => []), limits } as unknown as PalabraVoicesClient);
+    await source.list();
+    await source.limits();
+    await expect(source.limits()).rejects.toThrow('offline');
+    expect(source.cached()?.limits).toBeNull();
+  });
+
+  it('a create or a delete makes the next visit ask again', async () => {
+    const client = {
+      listBuiltin: vi.fn(async () => []), listMine: vi.fn(async () => [{ id: 'm' }]), limits: vi.fn(),
+      create: vi.fn(async () => ({ id: 'n' })), delete: vi.fn(async () => {}),
+    } as unknown as PalabraVoicesClient;
+    const source = palabraVoiceSource(client);
+    await source.list();
+    await source.delete('m');
+    expect(source.cached()).toBeNull();
+    await source.list();
+    await source.create({ name: 'xyz', wav: new Blob([]), langCode: 'en', denoise: false });
+    expect(source.cached()).toBeNull();
+  });
+
   it('sharedPalabraVoiceSource gives one source per credentials for the whole app session', () => {
     const a1 = sharedPalabraVoiceSource({ kind: 'apiKey', apiKey: 'plbr_a' });
     const a2 = sharedPalabraVoiceSource({ kind: 'apiKey', apiKey: 'plbr_a' });

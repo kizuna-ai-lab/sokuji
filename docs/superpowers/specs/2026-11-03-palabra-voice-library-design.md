@@ -277,8 +277,8 @@ spelled out.
 **List state**
 - **Remembered for the app session (owner, 2026-11-03 14:24).** One source per
   set of credentials lives for the app session (`sharedPalabraVoiceSource`,
-  keyed by a non-reversible tag of the credentials). It remembers its last
-  successful list and quota. A visit to the settings shows that at once and
+  in memory only, keyed on the credentials themselves). It remembers its last
+  successful list and quota; a create or a delete forgets them. A visit to the settings shows that at once and
   asks Palabra nothing.
 - Palabra is asked again only on Refresh, after a create or a delete, on a
   change of credentials, or for a voice still processing (that voice alone).
