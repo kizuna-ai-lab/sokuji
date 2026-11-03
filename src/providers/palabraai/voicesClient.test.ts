@@ -204,6 +204,33 @@ describe('PalabraVoicesClient', () => {
     expect(urls).toContain(`${PALABRA_API}/saas/voice/m/h`);
   });
 
+  it('a response whose body never arrives still times out (the bound covers the body)', async () => {
+    const clock = createVirtualClock(0);
+    const stalled = { ok: true, status: 200, json: () => new Promise(() => {}) } as unknown as Response;
+    const c = new PalabraVoicesClient(KEY, { fetch: vi.fn(async () => stalled), clock });
+    const pending = c.limits();
+    await Promise.resolve();
+    await Promise.resolve();
+    clock.advance(15_000);
+    await expect(pending).rejects.toMatchObject({ errorType: 'timeout' });
+  });
+
+  it('a list page without items is a typed error, not an empty roster', async () => {
+    const c = client(vi.fn(async () => json({ ok: true, data: { page_size: 100, count: 0, next: null } })));
+    await expect(c.listMine()).rejects.toMatchObject({ errorType: 'unknown' });
+  });
+
+  it('a credential reflected in Palabra\'s own words is masked', async () => {
+    // A client knows only its own credentials: each echoes back the one it sent.
+    for (const [k, secret] of [[KEY, 'plbr_SECRET'], [APP, 'sec_VALUE_9f17']] as const) {
+      const fetch = vi.fn(async () => err(401, undefined, `Bad credentials: ${secret} (invalid)`));
+      const error = (await client(fetch, k).listMine().catch((e: unknown) => e)) as Error;
+      expect(error.message).not.toContain(secret);
+      // A short id is not hunted through ordinary words.
+      expect(error.message).toContain('(invalid)');
+    }
+  });
+
   it('thrown messages never contain the credential', async () => {
     const wav = new Blob([new Uint8Array([1])]);
     const failures: Array<() => Promise<unknown>> = [];

@@ -676,3 +676,50 @@ describe('PalabraVoiceSection: the remembered list (owner, 2026-11-03)', () => {
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
   });
 });
+
+describe('PalabraVoiceSection: PR #684 review', () => {
+  it('a credentials change during the post-settle refresh does not auto-select the old account\'s voice', async () => {
+    (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
+    (URL as any).revokeObjectURL = vi.fn();
+    stubDecode(40);
+    const processing = voice({ id: 'new-1', name: 'clip', status: 'processing', sample: null });
+    createMock.mockResolvedValue(processing);
+    let releaseRefresh: (v: unknown) => void = () => {};
+    listMock
+      .mockResolvedValueOnce({ builtin: [HU_MALE], mine: [] })
+      .mockResolvedValueOnce({ builtin: [HU_MALE], mine: [processing] })
+      .mockReturnValueOnce(new Promise((r) => { releaseRefresh = r; }));
+    getMock.mockResolvedValue({ ...processing, status: 'ready' });
+    const other = fakeSource({ list: vi.fn(async () => ({ builtin: [HU_MALE], mine: [] })), cached: () => null });
+    const clock = manualSleep();
+    const utils = mount({ pairSource: 'hu', sleep: clock.sleep });
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
+    openCreateModal();
+    importFile(fakeFile('clip.mp3', 1000));
+    await waitFor(() => expect(languageSelect()).toBeInTheDocument());
+    checkConsent();
+    fireEvent.click(confirmButton());
+    await waitFor(() => expect(clock.waits.length).toBe(1));
+    clock.next();
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(3));
+    utils.rerender(<PalabraVoiceSection {...utils.props} source={other} />);
+    releaseRefresh({ builtin: [HU_MALE], mine: [{ ...processing, status: 'ready' }] });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(utils.onSelect).not.toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'new-1' }));
+  });
+
+  it('a failed delete of a processing voice refreshes the list, so its poll can resume', async () => {
+    const processing = voice({ id: 'p-2', name: 'Pending', status: 'processing', sample: null });
+    listMock.mockResolvedValue({ builtin: [HU_MALE], mine: [processing] });
+    deleteMock.mockRejectedValue(new PalabraVoicesError('network', 'Could not reach Palabra.', 0));
+    const clock = manualSleep();
+    mount({ sleep: clock.sleep });
+    openPicker();
+    await waitFor(() => expect(clock.waits.length).toBe(1));
+    const listed = listMock.mock.calls.length;
+    fireEvent.click(within(rowFor(/Pending/)).getByRole('button', { name: /delete/i }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: /delete voice/i })).getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('p-2'));
+    await waitFor(() => expect(listMock.mock.calls.length).toBeGreaterThan(listed));
+  });
+});

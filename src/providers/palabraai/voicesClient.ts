@@ -54,6 +54,19 @@ interface WireVoice {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
+/** `p`, unless `signal` aborts first; the listener goes once either settles. */
+function raceAbort<T>(p: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    p.then(
+      (value) => { signal.removeEventListener('abort', onAbort); resolve(value); },
+      (error) => { signal.removeEventListener('abort', onAbort); reject(error); },
+    );
+  });
+}
+
 /** Only https is fetched or uploaded to: a recording and a sample never travel in the clear. */
 export function isHttpsUrl(url: string): boolean {
   try {
@@ -78,9 +91,11 @@ function normalise(v: WireVoice): PalabraVoiceInfo {
 }
 
 /** Palabra's refusal in its own words (`restWords`), typed for the section's copy. Never echoes a request. */
-function refusal(status: number, body: unknown, onCreate: boolean): PalabraVoicesError {
+function refusal(status: number, body: unknown, onCreate: boolean, secrets: readonly string[]): PalabraVoicesError {
   const code = (body as { errors?: Array<{ error_code?: unknown }> } | null)?.errors?.[0]?.error_code;
-  const words = restWords(status, body, 'Palabra refused the request.');
+  // Palabra's words are kept, but never a credential it might echo back.
+  // Only a credential long enough to be one: a short test id must not eat ordinary words.
+  const words = secrets.reduce((text, secret) => (secret.length >= 8 ? text.split(secret).join('…') : text), restWords(status, body, 'Palabra refused the request.'));
   if (status === 401 || status === 403) return new PalabraVoicesError('auth', words, status);
   if (status === 429) return new PalabraVoicesError('rate_limit', words, status);
   if (status === 404) return new PalabraVoicesError('not_found', words, status);
@@ -92,11 +107,14 @@ function refusal(status: number, body: unknown, onCreate: boolean): PalabraVoice
 
 export class PalabraVoicesClient {
   private readonly headers: Record<string, string>;
+  /** What must never appear in a thrown message. */
+  private readonly secrets: readonly string[];
   private readonly clock: Pick<Clock, 'setTimeout'>;
   private readonly fetchImpl?: typeof fetch;
 
   constructor(k: PalabraCredentials, deps: { fetch?: typeof fetch; clock?: Pick<Clock, 'setTimeout'> } = {}) {
     this.headers = { Accept: 'application/json', ...restHeaders(k) };
+    this.secrets = k.kind === 'apiKey' ? [k.apiKey] : [k.clientId, k.clientSecret];
     this.clock = deps.clock ?? realClock;
     this.fetchImpl = deps.fetch;
   }
@@ -114,19 +132,25 @@ export class PalabraVoicesClient {
     const ms = opts.ms ?? VOICES_TIMEOUT_MS;
     const late = `Palabra did not answer within ${ms / 1000} s.`;
     if (opts.signal?.aborted) throw new PalabraVoicesError('aborted', 'The request was cancelled.', 0);
-    let response: Response;
+    // The bound covers the body too: a response whose body stalls times out like one that never came.
+    let outcome: { value: T } | { refused: PalabraVoicesError };
     try {
-      response = await boundedFetch({ clock: this.clock, ms, signal: opts.signal, late }, (signal) => this.doFetch(url, { ...init, signal }));
+      outcome = await boundedFetch({ clock: this.clock, ms, signal: opts.signal, late }, async (signal) => {
+        const response = await this.doFetch(url, { ...init, signal });
+        if (!response.ok) {
+          const body: unknown = await raceAbort(response.json().catch(() => ({})), signal);
+          return { refused: refusal(response.status, body, opts.onCreate ?? false, this.secrets) };
+        }
+        return { value: await raceAbort(read(response), signal) };
+      });
     } catch (error) {
+      if (error instanceof PalabraVoicesError) throw error;
       if (opts.signal?.aborted) throw new PalabraVoicesError('aborted', 'The request was cancelled.', 0);
       if (error instanceof Error && error.message === late) throw new PalabraVoicesError('timeout', late, 408);
       throw new PalabraVoicesError('network', 'Could not reach Palabra.', 0);
     }
-    if (!response.ok) {
-      const body: unknown = await response.json().catch(() => ({}));
-      throw refusal(response.status, body, opts.onCreate ?? false);
-    }
-    return read(response);
+    if ('refused' in outcome) throw outcome.refused;
+    return outcome.value;
   }
 
   /** A call's `data`; a 2xx without it is Palabra answering something unexpected, typed as such unless `optional`. */
@@ -146,7 +170,8 @@ export class PalabraVoicesClient {
     for (let page = 0; page < MAX_PAGES; page++) {
       const query: string = token ? `token=${encodeURIComponent(token)}` : 'page_size=100';
       const data: { items?: WireVoice[]; next?: unknown } | undefined = await this.json(`${PALABRA_API}${path}?${query}`, { method: 'GET' }, signal);
-      items.push(...(data?.items ?? []));
+      if (!Array.isArray(data?.items)) throw new PalabraVoicesError('unknown', 'Palabra returned a voice list without its items.', 200);
+      items.push(...data.items);
       token = str(data?.next);
       if (!token) break;
     }

@@ -166,15 +166,20 @@ export const realSleep: Sleep = (ms, signal) => new Promise((resolve, reject) =>
   signal.addEventListener('abort', onAbort, { once: true });
 });
 
+/** Poll errors worth another try: the connection, a slow or limited answer, or a 5xx. */
+const TRANSIENT = new Set(['network', 'timeout', 'rate_limit', 'unknown']);
+
 /**
- * Wait FIRST, then ask, until the voice is ready or failed. The budget is
- * counted in the waits asked for, not the wall clock, so it is exact and
- * testable. A 404 (`not_found`) means Palabra dropped the voice: it is not
- * caught here. Past the budget: `timeout`. An abort: `aborted`.
+ * Wait FIRST, then ask, until the voice is ready or failed. The budget counts
+ * the waits and the time each status request takes (`now`, injectable for
+ * tests). A transient failure is asked again at the next wait; a 404
+ * (`not_found`) means Palabra dropped the voice, and it and any other refusal
+ * end the wait. Past the budget: `timeout`. An abort: `aborted`.
  */
 export async function waitUntilSettled(
-  source: Pick<PalabraVoiceSource, 'get'>, id: string, opts: { sleep: Sleep; signal: AbortSignal },
+  source: Pick<PalabraVoiceSource, 'get'>, id: string, opts: { sleep: Sleep; signal: AbortSignal; now?: () => number },
 ): Promise<PalabraVoiceInfo> {
+  const now = opts.now ?? (() => Date.now());
   let waited = 0;
   while (waited < PALABRA_POLL.budgetMs) {
     const ms = Math.min(waited < PALABRA_POLL.fastForMs ? PALABRA_POLL.fastMs : PALABRA_POLL.slowMs, PALABRA_POLL.budgetMs - waited);
@@ -185,8 +190,16 @@ export async function waitUntilSettled(
     }
     waited += ms;
     if (opts.signal.aborted) throw new PalabraVoicesError('aborted', 'Cancelled.', 0);
-    const voice = await source.get(id, opts.signal);
-    if (voice.status !== 'processing') return voice;
+    const asked = now();
+    try {
+      const voice = await source.get(id, opts.signal);
+      if (voice.status !== 'processing') return voice;
+    } catch (error) {
+      if (opts.signal.aborted) throw new PalabraVoicesError('aborted', 'Cancelled.', 0);
+      if (!(error instanceof PalabraVoicesError && TRANSIENT.has(error.errorType))) throw error;
+    } finally {
+      waited += Math.max(0, now() - asked);
+    }
   }
   throw new PalabraVoicesError('timeout', 'Palabra is still processing the voice.', 408);
 }

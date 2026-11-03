@@ -4,7 +4,8 @@ import type { AuthContext, ProviderAccount } from '../../lib/provider/types';
 import { clearPreviewCache, getCachedPreview, previewCacheKey } from '../../lib/tts/previewCache';
 import { PALABRA_DEFAULTS, type PalabraSettings } from './settings';
 import { PalabraVoicesClient } from './voicesClient';
-import { palabraVoiceSource, sharedPalabraVoiceSource, usePalabraVoiceSource } from './voiceSource';
+import { palabraVoiceSource, sharedPalabraVoiceSource, usePalabraVoiceSource, waitUntilSettled } from './voiceSource';
+import { PalabraVoicesError } from './voicesClient';
 
 const AUTH = { signedIn: false, getToken: async () => null } as AuthContext;
 const page = (items: unknown[]) => new Response(JSON.stringify({ ok: true, data: { items, page_size: 100, count: items.length, next: null } }), { status: 200 });
@@ -103,6 +104,34 @@ describe('palabraVoiceSource: what it remembers (owner, 2026-11-03: no request o
     expect(a2).toBe(a1);
     expect(b).not.toBe(a1);
     expect(app).not.toBe(a1);
+  });
+});
+
+describe('waitUntilSettled', () => {
+  const ready = { id: 'v', name: 'V', language: 'zh', facets: {}, status: 'ready', sample: null } as const;
+  const processing = { ...ready, status: 'processing' } as const;
+  const signal = () => new AbortController().signal;
+
+  it('keeps polling through a transient error, and stops on a voice that is gone', async () => {
+    const get = vi.fn()
+      .mockRejectedValueOnce(new PalabraVoicesError('network', 'Could not reach Palabra.', 0))
+      .mockRejectedValueOnce(new PalabraVoicesError('rate_limit', 'HTTP 429', 429))
+      .mockResolvedValueOnce(processing)
+      .mockResolvedValueOnce(ready);
+    await expect(waitUntilSettled({ get }, 'v', { sleep: async () => {}, signal: signal() })).resolves.toEqual(ready);
+    expect(get).toHaveBeenCalledTimes(4);
+    const gone = vi.fn().mockRejectedValue(new PalabraVoicesError('not_found', 'HTTP 404', 404));
+    await expect(waitUntilSettled({ get: gone }, 'v', { sleep: async () => {}, signal: signal() })).rejects.toMatchObject({ errorType: 'not_found' });
+    const refused = vi.fn().mockRejectedValue(new PalabraVoicesError('auth', 'HTTP 401', 401));
+    await expect(waitUntilSettled({ get: refused }, 'v', { sleep: async () => {}, signal: signal() })).rejects.toMatchObject({ errorType: 'auth' });
+  });
+
+  it('counts the time status requests take toward the 15-minute budget', async () => {
+    let t = 0;
+    const get = vi.fn(async () => { t += 100_000; return processing; });
+    await expect(waitUntilSettled({ get }, 'v', { sleep: async (ms) => { t += ms; }, signal: signal(), now: () => t }))
+      .rejects.toMatchObject({ errorType: 'timeout' });
+    expect(get.mock.calls.length).toBeLessThan(10);
   });
 });
 

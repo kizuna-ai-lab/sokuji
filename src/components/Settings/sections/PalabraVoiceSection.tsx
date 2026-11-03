@@ -226,6 +226,8 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
       settledIds.current.add(id);
       if (signal.aborted || sourceRef.current !== pollSource) return;
       await refresh();
+      // The credentials may have changed during that refresh: nothing more for this account's poll.
+      if (signal.aborted || sourceRef.current !== pollSource) return;
       if (settled.status === 'failed') {
         setCaptureError(t('settings.palabraVoiceProcessingFailed', 'Palabra could not process this recording. Try another one.'));
         return;
@@ -428,8 +430,9 @@ const PalabraVoiceSection: React.FC<PalabraVoiceSectionProps> = ({
     } catch (e) {
       // Already gone (deleted elsewhere, or dropped by Palabra): the delete is done.
       if (!(e instanceof PalabraVoicesError && e.errorType === 'not_found')) {
-        // Still there: a later refresh may follow it again.
+        // Still there: refresh so its poll resumes and its state stays true.
         settledIds.current.delete(id);
+        void refresh();
         throw new Error(mapError(e).message);
       }
     }
