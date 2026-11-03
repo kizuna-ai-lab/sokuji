@@ -22,7 +22,7 @@ export interface PalabraVoiceInfo {
   language: string | null;
   facets: { gender?: 'male' | 'female' };
   status: 'ready' | 'processing' | 'failed';
-  /** The sample to preview: `tts_sample`, else the first of `tts_samples`. */
+  /** The sample to preview: the first of `tts_sample` then `tts_samples` at a usable https address (trimmed); null when none is. */
   sample: string | null;
 }
 
@@ -94,7 +94,11 @@ function normalise(v: WireVoice): PalabraVoiceInfo {
   const samples = [v.tts_sample, ...(Array.isArray(v.tts_samples) ? v.tts_samples : [])]
     .map(obj)
     .filter((s): s is Record<string, unknown> => s !== null);
-  const sample = samples.find((s) => str(s.url) !== null) ?? null;
+  // The first sample a preview can actually play: a blank or plain-http address is passed over.
+  const usable = samples
+    .map((s) => ({ s, url: typeof s.url === 'string' ? s.url.trim() : '' }))
+    .find(({ url }) => isHttpsUrl(url)) ?? null;
+  const sample = usable?.s ?? null;
   const gender = str(obj(v.labels)?.gender)?.toLowerCase();
   const status = v.processing_status;
   return {
@@ -103,7 +107,7 @@ function normalise(v: WireVoice): PalabraVoiceInfo {
     language: sample ? str(obj(sample.text)?.lang) : null,
     facets: gender === 'male' || gender === 'female' ? { gender } : {},
     status: status === undefined || status === 'ready' ? 'ready' : status === 'failed' ? 'failed' : 'processing',
-    sample: sample ? (sample.url as string) : null,
+    sample: usable?.url ?? null,
   };
 }
 

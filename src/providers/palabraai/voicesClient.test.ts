@@ -246,6 +246,16 @@ describe('PalabraVoicesClient', () => {
       .resolves.toMatchObject({ id: 'e', sample: null });
   });
 
+  it('the preview sample is the first one at a usable https address: a blank or http one is passed over', async () => {
+    const ok = 'https://cdn.palabra.ai/blob/ok.mp3';
+    const voices = await client(vi.fn(async () => page([
+      { voice_id: 'blank', tts_sample: { url: '   ', text: { lang: 'en' } }, tts_samples: [{ url: ok, text: { lang: 'hu' } }] },
+      { voice_id: 'http', tts_sample: { url: 'http://cdn.palabra.ai/blob/x.mp3' }, tts_samples: [{ url: ok, text: { lang: 'ja' } }] },
+      { voice_id: 'none', tts_sample: { url: ' ' } },
+    ]))).listBuiltin();
+    expect(voices.map((v) => [v.id, v.sample, v.language])).toEqual([['blank', ok, 'hu'], ['http', ok, 'ja'], ['none', null, null]]);
+  });
+
   it('a refusal whose body never arrives still times out', async () => {
     const clock = createVirtualClock(0);
     const stalled = { ok: false, status: 500, json: () => new Promise(() => {}) } as unknown as Response;
