@@ -404,13 +404,28 @@ Every call is a direct `fetch` from the page, as for every other provider.
 
 Electron needs nothing: both hosts allow any origin.
 
-## Still to verify, during implementation
+## Verified against the live API (2026-11-03)
 
-1. A live session speaks in a built-in and in a fresh clone, with each
-   credential type.
-   - The app pair goes through a REST session first and the key does not, so
-     they can differ.
-   - If either fails for one credential type, stop and ask the owner.
+Run with the branch's own code (`PalabraVoicesClient`, `waitUntilSettled`,
+`wire.ts`) and both test credentials, each in its own Palabra account:
+
+| Check | Platform key | App pair |
+|---|---|---|
+| Built-ins listed / account voices / quota | 116 / 0 / 0 of 50 | 116 / 0 / 0 of 10 |
+| A 43 s mono WAV clone (`zh`) | ready after 30 s, with a sample | ready after 18 s, with a sample |
+| Previews: a built-in's and the clone's samples fetched | yes | yes |
+| Live session `zh → en` with a built-in (English (Australian) Female) | 99 audio chunks, 5 translations, no `VOICE_NOT_FOUND` | 99 chunks, 5 translations, no `VOICE_NOT_FOUND` |
+| Live session with the fresh clone | 105 chunks, 5 translations, no `VOICE_NOT_FOUND` | 104 chunks, 5 translations, no `VOICE_NOT_FOUND` |
+| Control: a made-up voice id | `VOICE_NOT_FOUND`, default voice spoke | `VOICE_NOT_FOUND`, default voice spoke |
+| Delete, then quota | back to its start | back to its start |
+
+The app pair's live session went through its REST session, as the adapter's
+does. The script paced its audio slightly faster than real time, so Palabra
+warned `AUDIO_STREAM_TOO_FAST`; that is the script's, not the app's.
+
+Still to do by hand, with the owner present (it needs a microphone and the
+app's own windows): the desktop app and the extension, list → preview → record
+→ processing → ready → a session speaks in it → delete.
 
 ## Testing
 
