@@ -34,7 +34,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { appAgentText, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { appAgentText, appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -480,4 +480,11 @@ it('appAgentText reads the switch as it stands', () => {
   expect(appAgentText.get()).toBe(false);
   useSettingsStore.setState({ agentText: true });
   expect(appAgentText.get()).toBe(true);
+});
+
+it('appMicMuted reads the microphone mute as it stands', () => {
+  useAudioStore.setState({ isMicMuted: true });
+  expect(appMicMuted.get()).toBe(true);
+  useAudioStore.setState({ isMicMuted: false });
+  expect(appMicMuted.get()).toBe(false);
 });

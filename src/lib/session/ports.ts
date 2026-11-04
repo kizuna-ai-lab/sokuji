@@ -97,6 +97,8 @@ export interface RunnerDeps {
   participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
   /** Keep the read-aloud translation out of recognition, live (spec 2026-11-05 §4.4): read at each chunk. Absent: nothing is sent. */
   agentText?: { get(): boolean };
+  /** The microphone's mute, live (spec 2026-11-05 §4.2: agent text only while the microphone's audio reaches its socket): read at each chunk. Absent: never muted. */
+  micMuted?: { get(): boolean };
 }
 
 /**

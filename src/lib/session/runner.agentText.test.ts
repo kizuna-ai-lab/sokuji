@@ -20,9 +20,9 @@ vi.mock('../diagnostics/report', async (importOriginal) => {
 /**
  * A run over sessions that write each agent text frame to `log` as `<leg>:[text,end]` (and their stop as
  * `<leg>:stop`), a playback whose outlets the test sets, and the switch as a value (spec 2026-11-05 §4).
- * `fault.on` makes every session's `agentText` throw; each `setSpeech` is written to `speech`.
+ * `fault.on` makes every session's `agentText` throw; each `setSpeech` is written to `speech`; `muted` is the microphone's mute.
  */
-function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: boolean; participantSpeech?: boolean } = {}) {
+function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: boolean; mutePort?: boolean; participantSpeech?: boolean } = {}) {
   const clock = createVirtualClock(0);
   const log: string[] = [];
   const speech: string[] = [];
@@ -30,6 +30,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
   const kept: Partial<Record<LegName, AdapterEvents>> = {};
   const outlets: { now: readonly OutletName[] } = { now: ['me'] };
   const on = { value: true };
+  const muted = { value: false };
   let idleListener: ((voice: LegName) => void) | null = null;
   const start = async (request: StartRequest<unknown, unknown>, events: AdapterEvents): Promise<AdapterSession> => {
     const leg: LegName = request.context.direction.source === 'en' ? 'speaker' : 'participant';
@@ -95,6 +96,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
       subscribe: (listener) => { hear.listeners.add(listener); return () => { hear.listeners.delete(listener); }; },
     },
     ...(o.switchPort === false ? {} : { agentText: { get: () => on.value } }),
+    ...(o.mutePort === false ? {} : { micMuted: { get: () => muted.value } }),
   });
   const events = (leg: LegName): AdapterEvents => kept[leg]!;
   const row = (leg: LegName, ref: Ref, text: string) => {
@@ -105,7 +107,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
     events(leg).audio({ pcm: new Int16Array(240), ref, ...(range ? { range } : {}), ...(voice ? { voice } : {}) });
   const idle = (voice: LegName) => idleListener?.(voice);
   const switchHearing = (next: boolean) => { hear.value = next; for (const listener of [...hear.listeners]) listener(); };
-  return { runner, log, speech, fault, outlets, on, row, chunk, idle, events, switchHearing };
+  return { runner, log, speech, fault, outlets, on, muted, row, chunk, idle, events, switchHearing };
 }
 
 describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
@@ -162,6 +164,30 @@ describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
     h.events('speaker').reconnected();
     h.chunk('speaker', 1, [6, 12]);
     expect(h.log).toEqual(['speaker:["Hello ",false]', 'speaker:["there.",false]']);
+  });
+
+  it('the microphone muted: a chunk sends nothing; unmuted, the next chunk sends (spec 2026-11-05 §4.2)', async () => {
+    const h = setup(); await h.runner.start();
+    h.row('speaker', 1, 'Hello there.');
+    h.muted.value = true; h.chunk('speaker', 1, [0, 6]);
+    expect(h.log).toEqual([]);
+    h.muted.value = false; h.chunk('speaker', 1, [6, 12]);
+    expect(h.log).toEqual(['speaker:["there.",false]']);
+  });
+
+  it('muted mid-segment: a fill-in sends nothing, and the voice going idle still closes the open segment', async () => {
+    const h = setup(); await h.runner.start();
+    h.row('speaker', 1, 'Hello there.'); h.chunk('speaker', 1, [0, 6]);
+    h.muted.value = true;
+    h.events('speaker').speechRanges({ ref: 1, ranges: [{ index: 0, range: [0, 12] }] });
+    h.idle('speaker');
+    expect(h.log).toEqual(['speaker:["Hello ",false]', 'speaker:["",true]']);
+  });
+
+  it('without the mute port the microphone counts as not muted', async () => {
+    const h = setup({ mutePort: false }); await h.runner.start();
+    h.row('speaker', 1, 'Hello there.'); h.chunk('speaker', 1, [0, 6]);
+    expect(h.log).toEqual(['speaker:["Hello ",false]']);
   });
 
   it('without the switch port nothing is sent', async () => {

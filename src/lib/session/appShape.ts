@@ -219,6 +219,11 @@ export const appAgentText: { get(): boolean } = {
   get: () => useSettingsStore.getState().agentText,
 };
 
+/** The microphone's mute, as it stands when the run asks: the runner's `micMuted`. */
+export const appMicMuted: { get(): boolean } = {
+  get: () => useAudioStore.getState().isMicMuted,
+};
+
 /** `keepReplayAudio`, live from the settings store: the runner's `replayAudio`. */
 export const appReplayAudio = {
   get: () => useSettingsStore.getState().keepReplayAudio,

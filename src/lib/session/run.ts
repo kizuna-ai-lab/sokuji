@@ -111,8 +111,9 @@ export class Run {
     this.agentTextFeed = new AgentTextFeed({
       legs: shape.legs,
       enabled: () => deps.agentText?.get() ?? false,
-      // The microphone reaches its socket: always in automatic turns, in a manual mode only while the key is held (`send`).
-      micOpen: () => shape.turnMode === 'auto' || this.turn?.isOpen === true,
+      // The microphone reaches its socket: not while muted (capture delivers nothing), and then always in automatic
+      // turns, in a manual mode only while the key is held (`send`).
+      micOpen: () => !(deps.micMuted?.get() ?? false) && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
       session: (leg) => this.sessions.get(leg),
       report: (error) => reportError('SessionRunner', `A session did not take agent text: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentText' }),
     });
