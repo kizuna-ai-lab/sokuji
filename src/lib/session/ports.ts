@@ -95,6 +95,8 @@ export interface RunnerDeps {
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
   /** Translation I hear, live (#595): a run started speaking the other side's translation switches its participant session with it; absent, the shape's value holds. */
   participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
+  /** Keep the read-aloud translation out of recognition, live (spec 2026-11-05 §4.4): read at each chunk. Absent: nothing is sent. */
+  agentText?: { get(): boolean };
 }
 
 /**
