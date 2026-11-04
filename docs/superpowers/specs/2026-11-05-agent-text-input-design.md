@@ -110,7 +110,7 @@ The mobile app shares `src/providers/soniox/sttStream.ts`. Once the desktop deli
 
 On a Linux machine with PipeWire, a virtual speaker whose output passes a room impulse response and a delay into a virtual microphone; the app run against it with recorded speakers whose script differs from the translations. Billed to a Soniox API key of the team's own.
 
-1. A temporary key minted the way the backend does accepts `enable_agent_text_input`.
+1. In every region (us, eu, jp), both an own API key and a temporary key minted the way the backend does accept `enable_agent_text_input`, an `agent_text` frame and an empty-text `end_of_segment`.
 2. Face-to-face and split Both, echo cancellation on and off, agent text on and off: lines from the app's own voice, and lines translated back.
    2a. The flag on with no text sent, against the flag off: recognition of the same script must not differ beyond run-to-run noise.
 3. Talk-over: recognition errors on turns started during playback.
