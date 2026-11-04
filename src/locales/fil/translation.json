@@ -397,6 +397,8 @@
     "keepReplay": "Itago ang mga binasang salin para mapakinggan muli",
     "keepReplayTip": "Itinatago ang mga binasang salin sa memorya para gumana ang ▶ ng bawat mensahe; mas maraming memorya ang gamit ng mahabang session.",
     "keepReplayNothingSpoken": "Walang binibigkas, kaya walang itatabi. Mananatili ang iyong setting.",
+    "agentText": "Ilayo sa pagkilala sa pagsasalita ang salin na binabasa nang malakas",
+    "agentTextTip": "Ipinapadala ang tekstong babasahin nang malakas sa serbisyo ng pagkilala sa pagsasalita bago ito patugtugin, para hindi mapagkamalang may nagsasalita ang boses mula sa iyong speaker. Kapag pinapatugtog ang boses sa computer na ito, may maliit na dagdag na singil (ilang sentimo ng US dollar bawat oras ng pagsasalita).",
     "followDefault": "Sundin ang default",
     "followDefaultNamed": "Sundin ang default ({{device}})",
     "channelLeft": "kaliwang channel",

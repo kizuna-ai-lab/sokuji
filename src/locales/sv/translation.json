@@ -397,6 +397,8 @@
     "keepReplay": "Behåll talade översättningar för uppspelning",
     "keepReplayTip": "Behåller de talade översättningarna i minnet så att ▶ vid varje meddelande fungerar; en lång session använder mer minne.",
     "keepReplayNothingSpoken": "Inget läses upp, så det finns inget att spara. Din inställning sparas.",
+    "agentText": "Håll den upplästa översättningen utanför taligenkänningen",
+    "agentTextTip": "Skickar texten som strax ska läsas upp till taligenkänningstjänsten redan före uppspelningen, så att tal från dina högtalare inte misstas för någon som pratar. När talet spelas upp på den här datorn tillkommer en liten kostnad (några amerikanska cent per timme tal).",
     "followDefault": "Följ standard",
     "followDefaultNamed": "Följ standard ({{device}})",
     "channelLeft": "vänster kanal",

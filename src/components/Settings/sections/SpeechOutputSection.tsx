@@ -20,7 +20,7 @@ import { useAudioContext, useMode, useParticipantCaptureWidened, useOutlets, use
 import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { presentProviders } from '../../../providers/registry';
-import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useSetUIMode, useTextOnly, useUIMode } from '../../../stores/settingsStore';
+import { useAgentText, useKeepReplayAudio, useNavigateToSettings, useSetAgentText, useSetKeepReplayAudio, useSetTextOnly, useSetUIMode, useTextOnly, useUIMode } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
@@ -103,6 +103,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const setTextOnly = useSetTextOnly();
   const keepReplayAudio = useKeepReplayAudio();
   const setKeepReplayAudio = useSetKeepReplayAudio();
+  const agentText = useAgentText();
+  const setAgentText = useSetAgentText();
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
   const turnMode = useTurnModeStore((s) => s.turnMode);
@@ -325,6 +327,15 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       {faceToFace && (
         <p className="setting-description ears-hint">{t('faceToFace.speakersHint', 'Use headphones, one side each. Any speaker lets the microphone pick up the translation and translate it again.')}</p>
+      )}
+
+      {/* Agent text (spec 2026-11-05 §4.4): only where the STT socket takes it; never greyed or locked, it applies from the next chunk, mid-run too. */}
+      {provider?.agentText === true && (
+        <SettingRow
+          label={t('audioPanel.agentText', 'Keep the read-aloud translation out of recognition')}
+          tooltip={t('audioPanel.agentTextTip', 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).')}
+          switch={{ checked: agentText, onChange: () => setAgentText(!agentText) }}
+        />
       )}
 
       {/* Replay keeps spoken clips: with no leg spoken, there is nothing to keep (owner, 2026-10-11). */}

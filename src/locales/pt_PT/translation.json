@@ -397,6 +397,8 @@
     "keepReplay": "Guardar traduções faladas para reprodução",
     "keepReplayTip": "Guarda as traduções faladas na memória para que o ▶ de cada mensagem funcione; uma sessão longa usa mais memória.",
     "keepReplayNothingSpoken": "Nada é dito em voz alta, pelo que não há nada para guardar. A sua definição é mantida.",
+    "agentText": "Manter a tradução lida em voz alta fora do reconhecimento de voz",
+    "agentTextTip": "Envia ao serviço de reconhecimento de voz, antes da reprodução, o texto que está prestes a ser lido em voz alta, para que a voz que sai dos altifalantes não seja confundida com alguém a falar. Quando a voz é reproduzida neste computador, isto acrescenta um pequeno custo (alguns cêntimos de dólar americano por hora de fala).",
     "followDefault": "Seguir o predefinido",
     "followDefaultNamed": "Seguir o predefinido ({{device}})",
     "channelLeft": "canal esquerdo",

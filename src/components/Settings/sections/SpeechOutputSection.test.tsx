@@ -1,6 +1,6 @@
 // src/components/Settings/sections/SpeechOutputSection.test.tsx
 /**
- * The Speech block (spec 2026-10-10 §1.1–1.2): six two-line rows named by who
+ * The Speech block (spec 2026-10-10 §1.1–1.2): seven two-line rows named by who
  * hears what, each with its own device and channel, greyed / blocked /
  * hidden per mode as the table says.
  */
@@ -97,7 +97,7 @@ beforeEach(() => {
     outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } },
   });
   useRoutingStore.setState({ participantSpeech: null });
-  useSettingsStore.setState({ textOnly: false, keepReplayAudio: false });
+  useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, agentText: true });
   useTurnModeStore.setState({ turnMode: 'auto' });
 });
 
@@ -107,13 +107,13 @@ const sw = (label: string) => screen.getByRole('switch', { name: label });
 const greyed = (label: string) => row(label).classList.contains('setting-row--greyed');
 
 describe('SpeechOutputSection — the rows', () => {
-  it('is the speech section, with the six rows in order, under the Speech heading', () => {
+  it('is the speech section, with the seven rows in order, under the Speech heading', () => {
     mount();
     expect(document.getElementById('speech-section')).not.toBeNull();
     expect(screen.getByRole('heading', { name: /Speech/ })).toBeInTheDocument();
     const labels = Array.from(document.querySelectorAll('.setting-row__label')).map((el) => el.textContent);
-    expect(labels).toEqual(['Default playback device', 'Translation the other side hears', 'I hear it too', 'Passthrough', 'Translation I hear', 'Keep spoken translations for replay']);
-    expect(document.querySelectorAll('.setting-row__head .tooltip-trigger')).toHaveLength(6);
+    expect(labels).toEqual(['Default playback device', 'Translation the other side hears', 'I hear it too', 'Passthrough', 'Translation I hear', 'Keep the read-aloud translation out of recognition', 'Keep spoken translations for replay']);
+    expect(document.querySelectorAll('.setting-row__head .tooltip-trigger')).toHaveLength(7);
   });
 
   it('refreshes the device lists from the heading button, once per click', () => {
@@ -236,6 +236,27 @@ describe('SpeechOutputSection — the rows', () => {
     mount(true);
     fireEvent.click(sw('Keep spoken translations for replay'));
     expect(useSettingsStore.getState().keepReplayAudio).toBe(true);
+  });
+});
+
+describe('SpeechOutputSection — Keep the read-aloud translation out of recognition (spec 2026-11-05 §4.4)', () => {
+  const LABEL = 'Keep the read-aloud translation out of recognition';
+  it('shows the setting, flips it, and stays live during a run', () => {
+    useSettingsStore.setState({ agentText: true });
+    mount(true);
+    expect(sw(LABEL)).toHaveAttribute('aria-checked', 'true');
+    expect(sw(LABEL)).not.toBeDisabled();
+    fireEvent.click(sw(LABEL));
+    expect(useSettingsStore.getState().agentText).toBe(false);
+  });
+  it('says what it sends and that it costs a little', () => {
+    mount();
+    expect(tooltips).toContain('Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).');
+  });
+  it('is absent for a provider whose socket takes no agent text', () => {
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
+    mount();
+    expect(screen.queryByText(LABEL)).toBeNull();
   });
 });
 

@@ -397,6 +397,8 @@
     "keepReplay": "Conserver les traductions parlées pour les réécouter",
     "keepReplayTip": "Garde les traductions parlées en mémoire pour que le ▶ de chaque message fonctionne ; une longue session utilise plus de mémoire.",
     "keepReplayNothingSpoken": "Rien n’est lu à voix haute, il n’y a donc rien à conserver. Votre réglage est conservé.",
+    "agentText": "Exclure de la reconnaissance vocale la traduction lue à voix haute",
+    "agentTextTip": "Envoie le texte sur le point d'être lu à voix haute au service de reconnaissance vocale avant sa diffusion, pour que la voix de vos haut-parleurs ne soit pas prise pour quelqu'un qui parle. Quand la voix est diffusée sur cet ordinateur, cela ajoute un léger coût (quelques centimes de dollar américain par heure de parole).",
     "followDefault": "Suivre le défaut",
     "followDefaultNamed": "Suivre le défaut ({{device}})",
     "channelLeft": "canal gauche",

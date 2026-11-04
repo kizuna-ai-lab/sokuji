@@ -116,6 +116,11 @@ describe('managed', () => {
     expect(managed({ ...fakeProvider, participantSpeech: true }, { ...OVERRIDES, participantSpeech: false }).participantSpeech).toBe(false);
   });
 
+  it("keeps the base's agent text capability, and adds none", () => {
+    expect(managed({ ...fakeProvider, agentText: true } as never, OVERRIDES).agentText).toBe(true);
+    expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('agentText');
+  });
+
   // Compile-time (choice 1): the typecheck gate enforces every `@ts-expect-error` here.
   it('types what read answers as R — the sign-in, never a key its lease mints', () => {
     const twin = managed(fakeProvider, OVERRIDES);

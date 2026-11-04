@@ -72,6 +72,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     turns: base.turns,
     ...(participantSpeech === undefined ? {} : { participantSpeech }),
     ...(base.faceToFace ? { faceToFace: base.faceToFace } : {}),
+    ...(base.agentText ? { agentText: base.agentText } : {}),
     build: base.build,
     describe: base.describe,
     start: base.start,

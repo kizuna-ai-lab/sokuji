@@ -397,6 +397,8 @@
     "keepReplay": "Giữ bản dịch đã đọc để phát lại",
     "keepReplayTip": "Giữ các bản dịch đã đọc trong bộ nhớ để nút ▶ của từng tin nhắn hoạt động; phiên dài dùng nhiều bộ nhớ hơn.",
     "keepReplayNothingSpoken": "Không có gì được đọc lên, nên không có gì để giữ lại. Cài đặt của bạn được giữ nguyên.",
+    "agentText": "Không để bản dịch được đọc to lọt vào nhận dạng giọng nói",
+    "agentTextTip": "Gửi văn bản sắp được đọc to đến dịch vụ nhận dạng giọng nói trước khi phát, để giọng nói từ loa của bạn không bị nhầm là có người đang nói. Khi giọng nói được phát trên máy tính này, việc này tốn thêm một khoản nhỏ (vài cent Mỹ cho mỗi giờ giọng nói).",
     "followDefault": "Theo mặc định",
     "followDefaultNamed": "Theo mặc định ({{device}})",
     "channelLeft": "kênh trái",

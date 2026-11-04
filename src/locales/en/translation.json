@@ -401,6 +401,8 @@
     "keepReplay": "Keep spoken translations for replay",
     "keepReplayTip": "Keeps the spoken translations in memory so each message's ▶ works; a long session uses more memory.",
     "keepReplayNothingSpoken": "Nothing is spoken, so there is nothing to keep. Your setting is kept.",
+    "agentText": "Keep the read-aloud translation out of recognition",
+    "agentTextTip": "Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).",
     "followDefault": "Follow default",
     "followDefaultNamed": "Follow default ({{device}})",
     "channelLeft": "left channel",

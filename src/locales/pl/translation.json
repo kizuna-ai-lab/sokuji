@@ -397,6 +397,8 @@
     "keepReplay": "Zachowuj odczytane tłumaczenia do odtworzenia",
     "keepReplayTip": "Trzyma odczytane tłumaczenia w pamięci, aby ▶ przy każdej wiadomości działało; długa sesja zużywa więcej pamięci.",
     "keepReplayNothingSpoken": "Nic nie jest odczytywane, więc nie ma czego zachować. Twoje ustawienie zostaje zachowane.",
+    "agentText": "Nie dopuszczaj odczytywanego tłumaczenia do rozpoznawania mowy",
+    "agentTextTip": "Jeszcze przed odtworzeniem wysyła do usługi rozpoznawania mowy tekst, który zaraz zostanie odczytany, aby mowa z Twoich głośników nie została wzięta za czyjąś wypowiedź. Gdy mowa jest odtwarzana na tym komputerze, wiąże się to z niewielką opłatą (kilka centów amerykańskich za godzinę mowy).",
     "followDefault": "Zgodnie z domyślnym",
     "followDefaultNamed": "Zgodnie z domyślnym ({{device}})",
     "channelLeft": "lewy kanał",

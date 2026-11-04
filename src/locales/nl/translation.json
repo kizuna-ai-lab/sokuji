@@ -397,6 +397,8 @@
     "keepReplay": "Gesproken vertalingen bewaren voor herhaling",
     "keepReplayTip": "Bewaart de gesproken vertalingen in het geheugen zodat de ▶ bij elk bericht werkt; een lange sessie gebruikt meer geheugen.",
     "keepReplayNothingSpoken": "Er wordt niets uitgesproken, dus er is niets om te bewaren. Je instelling blijft bewaard.",
+    "agentText": "Voorgelezen vertaling buiten de spraakherkenning houden",
+    "agentTextTip": "Stuurt de tekst die zo wordt voorgelezen al vóór het afspelen naar de spraakherkenningsdienst, zodat spraak uit je luidsprekers niet wordt aangezien voor iemand die praat. Als de spraak op deze computer wordt afgespeeld, kost dit een klein bedrag (een paar Amerikaanse dollarcent per uur spraak).",
     "followDefault": "Standaard volgen",
     "followDefaultNamed": "Standaard volgen ({{device}})",
     "channelLeft": "linkerkanaal",

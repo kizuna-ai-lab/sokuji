@@ -397,6 +397,8 @@
     "keepReplay": "Simpan terjemahan yang dituturkan untuk main semula",
     "keepReplayTip": "Menyimpan terjemahan yang dituturkan dalam memori supaya ▶ pada setiap mesej berfungsi; sesi yang panjang menggunakan lebih banyak memori.",
     "keepReplayNothingSpoken": "Tiada apa yang dibacakan, jadi tiada apa yang perlu disimpan. Tetapan anda dikekalkan.",
+    "agentText": "Jauhkan terjemahan yang dibacakan daripada pengecaman suara",
+    "agentTextTip": "Menghantar teks yang akan dibacakan kepada perkhidmatan pengecaman suara sebelum dimainkan, supaya pertuturan daripada pembesar suara anda tidak disangka orang yang sedang bercakap. Apabila pertuturan dimainkan pada komputer ini, sedikit caj tambahan dikenakan (beberapa sen dolar AS bagi setiap jam pertuturan).",
     "followDefault": "Ikut lalai",
     "followDefaultNamed": "Ikut lalai ({{device}})",
     "channelLeft": "saluran kiri",

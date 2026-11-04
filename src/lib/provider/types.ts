@@ -392,6 +392,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * stored choice is ignored.
    */
   faceToFace?: boolean;
+  /** Its STT socket takes the text its own voice is about to play (Soniox agent text, spec 2026-11-05): the Speech section offers the switch. Absent: no switch. */
+  agentText?: true;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;

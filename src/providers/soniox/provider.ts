@@ -42,8 +42,10 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
 
   speech: 'optional',
   faceToFace: true,
-  // Soniox's STT socket takes no text.
+  // Soniox's STT socket takes no typed text.
   textInput: () => false,
+  // It does take the text its own voice is about to play (agent text, spec 2026-11-05): the Speech section offers the switch.
+  agentText: true,
   // The server's endpoint model ends a segment (`<end>`, `<fin>`).
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
