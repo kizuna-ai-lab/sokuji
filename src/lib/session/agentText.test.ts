@@ -157,6 +157,46 @@ describe('AgentTextFeed', () => {
     feed.voiceIdle('speaker');
     feed.audio('speaker', { ref: 1, range: [6, 13] }, ME);
     expect(texts()).toEqual([['Hello ', false], ['there. ', false]]);
+    feed.voiceIdle('speaker');
+    expect(texts()).toEqual([['Hello ', false], ['there. ', false], ['', true]]);
+  });
+
+  it('a chunk queued with the key up gets nothing from its fill-in once the key is down: text continues from the next chunk (Review Focus 4)', () => {
+    const { feed, gate, texts } = setup();
+    gate.mic = false;
+    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
+    gate.mic = true;
+    feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
+    expect(texts()).toEqual([]);
+  });
+
+  it('a chunk queued with the switch off gets nothing from its fill-in once it is on again (Review Focus 4)', () => {
+    const { feed, gate, texts } = setup();
+    gate.enabled = false;
+    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
+    gate.enabled = true;
+    feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
+    expect(texts()).toEqual([]);
+  });
+
+  it('a chunk the socket refused gets nothing from its fill-in once the resumed socket accepts (Review Focus 5)', () => {
+    const { feed, gate, texts } = setup();
+    feed.reconnecting('speaker');
+    gate.up = false;
+    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
+    gate.up = true;
+    feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
+    expect(texts()).toEqual([]);
+  });
+
+  it('a fill-in gated by the switch ends the chunk: a later fill-in with the switch on again sends nothing more of it (Review Focus 4)', () => {
+    const { feed, gate, texts } = setup();
+    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
+    gate.enabled = false;
+    feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 9] }] });
+    gate.enabled = true;
+    feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
+    expect(texts()).toEqual([['Hello ', false]]);
   });
 
   it("a reconnect on a socket that holds no segment (split Both's participant core) closes nothing", () => {

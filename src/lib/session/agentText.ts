@@ -2,9 +2,11 @@
  * Soniox agent text (spec 2026-11-05 §4.1, §4.2): the text of each speech
  * chunk queued on one of the user's outlets goes to the STT socket that hears
  * the microphone, so the app's own read-aloud translation is kept out of
- * recognition. Pure: the run feeds it the rows' text, each `audio` event with
+ * recognition. No I/O: the run feeds it the rows' text, each `audio` event with
  * the outlets playback put it on, the filled-in ranges, a voice's queue going
  * idle and a leg's reconnect; it calls the target session's `agentText`.
+ * "Played" is approximated by "the voice went idle": a chunk that already
+ * played while later chunks of its voice are queued is still live for a fill-in.
  */
 import type { OutletName } from '../audio/outlets';
 import type { AdapterSession, Ref, TextRange } from '../contract/adapter';
@@ -40,7 +42,7 @@ export class AgentTextFeed {
   private readonly counts = new Map<string, number>();
   /** Per voice and row (`voice:leg:ref`): how far into the row's text is placed, sent or not. Never lowered: skipped and dropped text never goes later. */
   private readonly sentTo = new Map<string, number>();
-  /** Per chunk (`leg:ref:index`) still queued on one of the user's outlets. */
+  /** Per chunk (`leg:ref:index`) still queued on one of the user's outlets whose every placement went through: queued with the gate open, never gated or refused since. Only these take a fill-in, so text never starts partway through a chunk. */
   private readonly live = new Map<string, LiveChunk>();
   /** Per voice whose segment is open: the leg whose socket holds it. */
   private readonly open = new Map<LegName, LegName>();
@@ -61,16 +63,19 @@ export class AgentTextFeed {
     const target = agentTextTarget(this.o.legs, outlets);
     if (target === null) return;
     const chunk: LiveChunk = { voice: e.voice ?? leg, target };
-    this.live.set(`${row}:${index}`, chunk);
-    if (e.range) this.place(leg, e.ref, chunk, e.range);
+    const key = `${row}:${index}`;
+    // Queued with the switch off or the key up: its text is placed unsent below, and its fill-in sends nothing either.
+    if (this.o.enabled() && this.o.micOpen()) this.live.set(key, chunk);
+    if (e.range) this.place(leg, e.ref, key, chunk, e.range);
   }
 
   /** `speechRanges`: the filled-in ranges of `leg`'s row. Only chunks still queued place text: what has played is not sent. */
   ranges(leg: LegName, e: { ref: Ref; ranges: ReadonlyArray<{ index: number; range: TextRange }> }): void {
     const row = rowKey(leg, e.ref);
     for (const { index, range } of e.ranges) {
-      const chunk = this.live.get(`${row}:${index}`);
-      if (chunk) this.place(leg, e.ref, chunk, range);
+      const key = `${row}:${index}`;
+      const chunk = this.live.get(key);
+      if (chunk) this.place(leg, e.ref, key, chunk, range);
     }
   }
 
@@ -90,15 +95,20 @@ export class AgentTextFeed {
     for (const [key, chunk] of this.live) if (chunk.target === leg) this.live.delete(key);
   }
 
-  /** Rule 3: the part of `[a, b]` not yet placed for this voice and row is placed, and sent while the switch is on and the microphone reaches its socket. */
-  private place(leg: LegName, ref: Ref, { voice, target }: LiveChunk, [a, b]: TextRange): void {
+  /**
+   * Rule 3: the part of `[a, b]` not yet placed for this voice and row is placed, and sent while the switch is on
+   * and the microphone reaches its socket. A placement gated or refused ends the chunk's live state; one with
+   * nothing to place leaves it as it is.
+   */
+  private place(leg: LegName, ref: Ref, key: string, { voice, target }: LiveChunk, [a, b]: TextRange): void {
     const text = this.texts.get(rowKey(leg, ref)) ?? '';
     const mark = `${voice}:${leg}:${ref}`;
     const from = Math.max(a, this.sentTo.get(mark) ?? 0);
     const to = Math.min(b, text.length);
     if (to <= from) return;
     this.sentTo.set(mark, to);
-    if (!this.o.enabled() || !this.o.micOpen()) return;
-    if (this.o.session(target)?.agentText?.(text.slice(from, to), false) === true) this.open.set(voice, target);
+    const sent = this.o.enabled() && this.o.micOpen() && this.o.session(target)?.agentText?.(text.slice(from, to), false) === true;
+    if (sent) this.open.set(voice, target);
+    else this.live.delete(key);
   }
 }
