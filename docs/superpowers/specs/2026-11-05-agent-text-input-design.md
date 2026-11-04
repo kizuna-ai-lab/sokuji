@@ -33,6 +33,7 @@ One side effect was seen: a person who says exactly the words just played can be
 - The browser extension's own playback path beyond what the shared code gives it for free.
 - Mobile in this spec's first delivery (§7).
 - Changing how echo cancellation works.
+- Speech that does not go through the speech queue: replay during a run, voice preview, the test tone. They are short and user-started; they send no agent text.
 
 ## 4. Behaviour
 
@@ -77,7 +78,7 @@ Agent text is billed by Soniox as input text tokens ($4 per million, as context 
 
 ### 4.6 Managed sessions
 
-The backend mints Soniox temporary keys. Whether a temporary key accepts `enable_agent_text_input` is unverified: the first measurement (§8) mints one the same way and checks. If it is refused, managed sessions leave the flag off until the key's scope allows it; own-key sessions are unaffected.
+The backend mints Soniox temporary keys. A temporary key minted the same way (`usage_type: transcribe_websocket`, single use) accepted `enable_agent_text_input`, an `agent_text` frame and an empty-text `end_of_segment` on `stt-rt-v6` with no error (checked 2026-11-05, US region). §8's run 1 repeats this in the other regions.
 
 ## 5. Risks
 
