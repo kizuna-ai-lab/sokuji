@@ -107,7 +107,7 @@ describe('kizunaSonioxProvider', () => {
       ensureReady: async () => ({ state: 'ready', models: [] }),
       persistIfUnchanged: () => {},
       openSource: async () => createFakeSource(clock),
-      playback: { audio: () => {}, held: () => {}, clear: () => {}, live: () => {} },
+      playback: { audio: () => [], held: () => {}, clear: () => {}, live: () => {} },
       analytics: { track: () => {} },
       frames,
       newSessionId: () => 'run1',

@@ -1387,6 +1387,7 @@ describe('runner — guarded ports (F1)', () => {
     const audio = vi.fn(() => {
       calls += 1;
       if (calls === 1 || calls === 3) throw new Error('sink gone');
+      return [];
     });
     const { runner, clock } = setup({ playback: { audio } });
     reportErrorSpy.mockClear();

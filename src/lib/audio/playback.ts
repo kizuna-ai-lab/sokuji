@@ -5,6 +5,7 @@
  */
 import { realClock, type Clock } from '../contract/clock';
 import type { LegName, Segment } from '../conversation/types';
+import { describeCause, reportError } from '../diagnostics/report';
 import type { PlaybackPort } from '../session/ports';
 import { ClipQueue, type QueueView } from './clipQueue';
 import type { AudioGraph, BusMeter, OneShot } from './graph';
@@ -42,6 +43,8 @@ export interface PreviewClip {
 }
 
 export interface Playback extends PlaybackPort {
+  /** As the port's, always present: covers the speaker and participant queues, never replay. */
+  onVoiceIdle(listener: (voice: LegName) => void): () => void;
   readonly queues: Readonly<Record<'speaker' | 'participant' | 'replay', QueueView<ClipKey>>>;
   /** Plays a segment's kept speech on the outlet of its row — mine on me (the other person's in face-to-face), the other's on them — replacing any replay in progress. */
   replay(leg: LegName, segment: Segment): void;
@@ -108,12 +111,14 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
    * reopen would otherwise play that late.
    */
   let passthroughOpen = false;
+  /** The edges the last `apply()` routed: which outlets a voice's clip plays on now. */
+  let edges: Edge[] = [];
 
   const apply = () => {
     const settings = routing.get();
     if (themOn && !settings.speak.them) queues.participant.clear();
     themOn = settings.speak.them;
-    const edges: Edge[] = [
+    edges = [
       ...routesFor(settings, held),
       { from: 'replay', to: replayOutlet, gain: 1 },
       { from: 'preview', to: previewOutlet, gain: 1 },
@@ -131,6 +136,33 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
   const unsubscribeQueues = [queues.speaker, queues.participant, replayQueue].map((q) =>
     q.subscribe(() => { if (quiet()) restLater(); }));
   restLater();
+
+  /**
+   * A voice goes idle when its queue's `pending` falls from above 0 to 0: its
+   * last clip played out, or a clear dropped what was queued. A clear of an
+   * empty queue changes nothing, so it says nothing. Replay is not a voice.
+   */
+  const idleListeners = new Set<(voice: LegName) => void>();
+  const unsubscribeIdle = (['speaker', 'participant'] as const).map((voice) => {
+    const queue = queues[voice];
+    let pending = queue.pending;
+    return queue.subscribe(() => {
+      const was = pending;
+      pending = queue.pending;
+      if (was === 0 || pending > 0) return;
+      for (const listener of [...idleListeners]) {
+        try {
+          listener(voice);
+        } catch (error) {
+          reportError('Playback', `A voice-idle listener threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'playback:voiceIdle' });
+        }
+      }
+    });
+  });
+
+  /** The user's outlets a voice's clips play on under the last routing: never the meeting's virtual microphone. */
+  const outletsOf = (voice: LegName): OutletName[] =>
+    edges.filter((e) => e.from === voice && e.to !== 'virtual').map((e) => e.to as OutletName);
 
   const stopPreview = () => {
     current?.stop();
@@ -157,10 +189,17 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
       // The clip is keyed by the row's leg (L1 counts it there) and plays through the voice's queue and outlet.
       if (voice === 'participant' && (!themOn || (ref !== undefined && unheard.has(ref)))) {
         if (!themOn && ref !== undefined) unheard.add(ref);
-        return;
+        return [];
       }
       void graph.resume();
       queues[voice].enqueue(clipKey(leg, ref, index), pcm);
+      // A clip with no pcm keeps its index, but the queue takes nothing: it plays on no outlet.
+      return pcm.length === 0 ? [] : outletsOf(voice);
+    },
+
+    onVoiceIdle(listener) {
+      idleListeners.add(listener);
+      return () => { idleListeners.delete(listener); };
     },
 
     held(next) {
@@ -249,6 +288,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
         unsubscribeRouting();
         unsubscribeReset();
         for (const off of unsubscribeQueues) off();
+        for (const off of unsubscribeIdle) off();
+        idleListeners.clear();
         queues.speaker.clear();
         queues.participant.clear();
         replayQueue.clear();
