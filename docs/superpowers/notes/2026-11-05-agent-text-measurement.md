@@ -6,7 +6,7 @@ Rig: Linux with PipeWire; a virtual speaker whose output passes a room impulse r
 
 | # | Run | Result |
 |---|---|---|
-| 1 | Every Soniox region the app and the backend offer (us, eu, jp), each with an own API key and with a temporary key minted the way the backend does (`usage_type: transcribe_websocket`, single use): each check sends `enable_agent_text_input`, one `agent_text` frame and an empty-text `end_of_segment` on `stt-rt-v6`, and expects no error. US was verified for both kinds of key on 2026-11-05; EU and JP need region keys. | |
+| 1 | An own API key and a temporary key minted the way the backend does (`usage_type: transcribe_websocket`, single use), in the US region: each check sends `enable_agent_text_input`, one `agent_text` frame and an empty-text `end_of_segment` on `stt-rt-v6`, and expects no error. EU and JP are not tested separately: the owner judged them the same service as US (2026-11-05). | Accepted, both kinds of key (2026-11-05) |
 | 2 | Face-to-face and split Both, echo cancellation on and off, agent text on and off: lines from the app's own voice, and lines translated back | |
 | 2a | The flag on with no text sent, against the flag off: recognition of the same script | |
 | 3 | Talk-over: recognition errors on turns started during playback | |
@@ -22,7 +22,7 @@ Merge bar:
 - [ ] With echo cancellation off, agent text removes at least 80% of the lines from the app's own voice, face-to-face and split Both.
 - [ ] Talk-over recognition with agent text is no worse than without it, beyond run-to-run noise.
 - [ ] Run 2a shows no change. If it does, the narrow flag rule (§4.3) replaces the broad one before merge.
-- [ ] Run 1 accepted in every region and for both kinds of key. If any combination refuses, the flag (and the switch) is limited to where it is accepted before merge: no session in a refusing region or with a refusing kind of key asks for it.
+- [x] Run 1 accepted for both kinds of key. If a region later refuses the flag, the flag (and the switch) is limited to where it is accepted: no session there asks for it.
 - [ ] The repeat result (run 4) is recorded here, whatever it is.
 
 Sending at play time instead of at enqueue (§5) is not part of this delivery.
