@@ -15,7 +15,8 @@ import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
-import { appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import { appAgentText, appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import type { LegName } from '../lib/conversation/types';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -118,6 +119,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   let playback: Playback | null = null;
   let openLeg: OpenSource | null = null;
   let loading: Promise<LoadedAudio> | null = null;
+  /** The runs' voice-idle listeners; the playback, once loaded, is subscribed once and forwards here. */
+  const voiceIdleListeners = new Set<(voice: LegName) => void>();
   /** One live `attach()` at a time. */
   let attached = false;
 
@@ -135,6 +138,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     ensureReady: ensureReadyFromStores,
     persistIfUnchanged,
     replayAudio: appReplayAudio,
+    agentText: appAgentText,
     participantSpeech: appParticipantSpeech,
     openSource: async (leg, signal) => {
       await audio();
@@ -145,6 +149,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       held: (held) => playback?.held(held),
       clear: () => playback?.clear(),
       live: (on) => playback?.live(on),
+      onVoiceIdle: (listener) => {
+        voiceIdleListeners.add(listener);
+        return () => { voiceIdleListeners.delete(listener); };
+      },
     },
     analytics: decorateSessionAnalytics(() => bridges.track, { frames, startInputs: () => appStartInputs(punctuation.lastReady) }),
     frames: teeFrames(frames.port, options.observeFrames),
@@ -222,6 +230,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           participantBeside: faceToFaceFromStores,
         });
         playback = app.playback;
+        playback.onVoiceIdle((voice) => { for (const listener of [...voiceIdleListeners]) listener(voice); });
         openLeg = options.capture ? options.capture(capture.openSource) : capture.openSource;
         if (!karaokeReal) {
           const real = createKaraoke(app.playback.queues, view, clock);

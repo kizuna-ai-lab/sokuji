@@ -214,6 +214,11 @@ export function watchLegsFromStores(): () => void {
   return useAudioStore.subscribe((s) => s.mode, apply);
 }
 
+/** `agentText`, as it stands when the run asks: the runner's `agentText`. */
+export const appAgentText: { get(): boolean } = {
+  get: () => useSettingsStore.getState().agentText,
+};
+
 /** `keepReplayAudio`, live from the settings store: the runner's `replayAudio`. */
 export const appReplayAudio = {
   get: () => useSettingsStore.getState().keepReplayAudio,
