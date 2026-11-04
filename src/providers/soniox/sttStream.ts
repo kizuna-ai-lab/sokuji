@@ -74,6 +74,9 @@ export interface SonioxSttConfig {
   /** Label tokens with a speaker id ("1", "2", …). Enabled only for the
    *  Both shared session; falsy = key omitted (wire unchanged). */
   enableSpeakerDiarization?: boolean;
+  /** Soniox agent text input: the client may send the text its own voice is
+   *  about to play. Falsy: key omitted (wire unchanged). */
+  enableAgentTextInput?: boolean;
   // Managed-mode only: correlates this session's usage logs back to the
   // backend's billing lease. BYOK sessions omit it (the field is simply
   // absent from the wire config).
@@ -112,6 +115,8 @@ export class SonioxSttStream {
   private readonly openSocket: OpenSocket;
   private stopKeepaliveTimer: (() => void) | null = null;
   private lastAudioAt = 0;
+  /** This socket's config asked for agent text: Soniox ends a stream that gets `agent_text` without it. */
+  private agentText = false;
 
   constructor(deps: SonioxWireDeps = {}) {
     this.injectedClock = deps.clock;
@@ -127,6 +132,7 @@ export class SonioxSttStream {
     return new Promise((resolve, reject) => {
       const ws = this.openSocket(`wss://${sonioxHosts(config.region).sttRt}/transcribe-websocket`, sonioxProtocols(config.apiKey));
       this.ws = ws;
+      this.agentText = config.enableAgentTextInput === true;
       let opened = false;
       const cancelTimeout = this.clock.setTimeout(() => {
         if (!opened) {
@@ -161,6 +167,7 @@ export class SonioxSttStream {
             : {}),
           ...(config.context ? { context: config.context } : {}),
           ...(config.enableSpeakerDiarization ? { enable_speaker_diarization: true } : {}),
+          ...(config.enableAgentTextInput ? { enable_agent_text_input: true } : {}),
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
           translation: config.translation,
@@ -214,6 +221,18 @@ export class SonioxSttStream {
     if (!this.isOpen()) return;
     this.lastAudioAt = this.clock.now();
     this.ws!.send(audio);
+  }
+
+  /**
+   * Agent text input: `{"type":"agent_text","text":…,"end_of_segment":…}`.
+   * Sent only while open and only on a stream connected with
+   * `enableAgentTextInput`. Not audio, so it leaves `lastAudioAt` alone.
+   * Returns whether it was sent.
+   */
+  sendAgentText(text: string, endOfSegment: boolean): boolean {
+    if (!this.isOpen() || !this.agentText) return false;
+    this.ws!.send(JSON.stringify({ type: 'agent_text', text, end_of_segment: endOfSegment }));
+    return true;
   }
 
   /** Finalize pending tokens without ending the session. */
