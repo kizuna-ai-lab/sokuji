@@ -27,6 +27,8 @@ export interface SonioxConfig {
     endpointSensitivity: number;
     endpointLatencyAdjustmentLevel: number;
     endpointMaxDelayMs: number;
+    /** Agent text input on this leg's STT socket (experiment, `exp/agent-text-probe`): only the probe sets it; `buildSoniox` never does. Absent: off. */
+    enableAgentTextInput?: boolean;
   };
   /** Present when this leg speaks, in this leg's own voice: the participant's leg in `participantVoice`. */
   tts?: { voice: string; speed: number };

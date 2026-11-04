@@ -58,6 +58,17 @@ export function sttFailureCode(code: string): 'auth' | 'rate_limit' | 'client' |
   return 'server';
 }
 
+/**
+ * A Soniox leg's session. `agentText` (experiment, `exp/agent-text-probe`)
+ * sends Soniox agent text on the core's STT socket — the one both legs share
+ * in shared Both and face-to-face — and says whether it was sent: never
+ * while the socket is down, and never when the core's config did not ask
+ * for agent text (`config.stt.enableAgentTextInput`).
+ */
+export interface SonioxSession extends AdapterSession {
+  agentText(text: string, endOfSegment: boolean): boolean;
+}
+
 export interface SonioxAdapterDeps {
   /** `new WebSocket(url)` in the app; a `FakeSocket` factory in tests. */
   openSocket: OpenSocket;
@@ -261,7 +272,7 @@ class SonioxCore {
   }
 
   /** A leg's view of the core. */
-  session(name: LegName): AdapterSession {
+  session(name: LegName): SonioxSession {
     return {
       info: { transport: 'websocket' },
       appendAudio: (pcm) => this.appendAudio(name, pcm),
@@ -273,7 +284,16 @@ class SonioxCore {
       cancelTurn: () => {},
       setSpeech: (on) => this.leg(name).speech?.setOn(on),
       stop: () => this.stop(),
+      agentText: (text, endOfSegment) => this.agentText(text, endOfSegment),
     };
+  }
+
+  /** Agent text on the current STT socket; a resume's new socket takes the next one. Framed for the Logs when sent. */
+  private agentText(text: string, endOfSegment: boolean): boolean {
+    if (this.ended || !this.o.primary.config.stt.enableAgentTextInput || !this.stt) return false;
+    const sent = this.stt.sendAgentText(text, endOfSegment);
+    if (sent) this.frame('out', 'stt.agent_text', { text, end_of_segment: endOfSegment });
+    return sent;
   }
 
   /** Closes every socket before returning (the `stop()` rule); idempotent. The one graceful ending: the STT stream's end goes first. */
@@ -340,6 +360,7 @@ class SonioxCore {
       // The shared socket always labels its people, to tell the sides apart; the participant's own one-way socket does unless speaker labels are off.
       ...(this.o.shared || config.diarize ? { enableSpeakerDiarization: true } : {}),
       ...(config.stt.context ? { context: config.stt.context } : {}),
+      ...(config.stt.enableAgentTextInput ? { enableAgentTextInput: true } : {}),
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
       endpointMaxDelayMs: config.stt.endpointMaxDelayMs,
@@ -537,16 +558,17 @@ class SonioxCore {
 }
 
 export type SonioxAdapter = Adapter<SonioxConfig, SonioxCredentials> & {
+  start(request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents): Promise<SonioxSession>;
   startBoth(
     requests: Record<LegName, StartRequest<SonioxConfig, SonioxCredentials>>,
     events: Record<LegName, AdapterEvents>,
-  ): Promise<Record<LegName, AdapterSession>>;
+  ): Promise<Record<LegName, SonioxSession>>;
 };
 
 export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): SonioxAdapter {
   const openSocket = deps.openSocket ?? nativeSocket;
   /** One leg on its own core, named as the leg it is: what its Logs say (`session.opened`'s `speaking`). */
-  const startLeg = async (name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents): Promise<AdapterSession> => {
+  const startLeg = async (name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents): Promise<SonioxSession> => {
     if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
     const core = new SonioxCore({ primary: request, legs: [coreLeg(name, request, events, openSocket)], openSocket });
     await core.open(request.signal);
@@ -567,7 +589,7 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
       if (requests.speaker.signal.aborted) throw reason;
       throw new LegStartError(legs[i], reason);
     }
-    const [speaker, participant] = settled.map((r) => (r as PromiseFulfilledResult<AdapterSession>).value);
+    const [speaker, participant] = settled.map((r) => (r as PromiseFulfilledResult<SonioxSession>).value);
     return { speaker, participant };
   };
 

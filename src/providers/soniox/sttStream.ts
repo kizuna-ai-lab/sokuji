@@ -74,6 +74,11 @@ export interface SonioxSttConfig {
   /** Label tokens with a speaker id ("1", "2", …). Enabled only for the
    *  Both shared session; falsy = key omitted (wire unchanged). */
   enableSpeakerDiarization?: boolean;
+  /** Agent text input (experiment, `exp/agent-text-probe`): the client may
+   *  send the text its own voice is about to play (`sendAgentText`), so the
+   *  model can leave that voice's echo out of the transcript. stt-rt-v6 only;
+   *  falsy = key omitted (wire unchanged). */
+  enableAgentTextInput?: boolean;
   // Managed-mode only: correlates this session's usage logs back to the
   // backend's billing lease. BYOK sessions omit it (the field is simply
   // absent from the wire config).
@@ -112,6 +117,8 @@ export class SonioxSttStream {
   private readonly openSocket: OpenSocket;
   private stopKeepaliveTimer: (() => void) | null = null;
   private lastAudioAt = 0;
+  /** This socket's config asked for agent text: without it Soniox ends the stream on an `agent_text` frame. */
+  private agentText = false;
 
   constructor(deps: SonioxWireDeps = {}) {
     this.injectedClock = deps.clock;
@@ -127,6 +134,7 @@ export class SonioxSttStream {
     return new Promise((resolve, reject) => {
       const ws = this.openSocket(`wss://${sonioxHosts(config.region).sttRt}/transcribe-websocket`, sonioxProtocols(config.apiKey));
       this.ws = ws;
+      this.agentText = config.enableAgentTextInput === true;
       let opened = false;
       const cancelTimeout = this.clock.setTimeout(() => {
         if (!opened) {
@@ -161,6 +169,7 @@ export class SonioxSttStream {
             : {}),
           ...(config.context ? { context: config.context } : {}),
           ...(config.enableSpeakerDiarization ? { enable_speaker_diarization: true } : {}),
+          ...(config.enableAgentTextInput ? { enable_agent_text_input: true } : {}),
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
           translation: config.translation,
@@ -214,6 +223,21 @@ export class SonioxSttStream {
     if (!this.isOpen()) return;
     this.lastAudioAt = this.clock.now();
     this.ws!.send(audio);
+  }
+
+  /**
+   * Agent text input: text the app's own voice is about to play, placed by
+   * the server where it arrives among the audio frames (send it 0.5–1 s
+   * before playback). One segment is one agent turn, closed with
+   * `endOfSegment` (empty text allowed). Sent only while open — text sent
+   * while not connected is lost, as Soniox drops it — and only on a stream
+   * configured with `enableAgentTextInput`, since Soniox ends a stream that
+   * gets agent text without the flag. Returns whether the frame was sent.
+   */
+  sendAgentText(text: string, endOfSegment: boolean): boolean {
+    if (!this.isOpen() || !this.agentText) return false;
+    this.ws!.send(JSON.stringify({ type: 'agent_text', text, end_of_segment: endOfSegment }));
+    return true;
   }
 
   /** Finalize pending tokens without ending the session. */
