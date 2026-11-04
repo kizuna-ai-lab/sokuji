@@ -114,6 +114,7 @@ export class Run {
       // The microphone reaches its socket: always in automatic turns, in a manual mode only while the key is held (`send`).
       micOpen: () => shape.turnMode === 'auto' || this.turn?.isOpen === true,
       session: (leg) => this.sessions.get(leg),
+      report: (error) => reportError('SessionRunner', `A session did not take agent text: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentText' }),
     });
   }
 

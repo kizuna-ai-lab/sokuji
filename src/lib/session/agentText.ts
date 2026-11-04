@@ -25,6 +25,8 @@ export interface AgentTextFeedOptions {
   /** The microphone's audio reaches its socket now: automatic turns, or a manual turn's key held (§4.2). */
   micOpen(): boolean;
   session(leg: LegName): Pick<AdapterSession, 'agentText'> | undefined;
+  /** A session's `agentText` threw: called once per feed (a run), the first time. The throw counts as a refusal. */
+  report?(error: unknown): void;
 }
 
 /** A chunk queued on one of the user's outlets: whose voice reads it, and the leg whose socket its text goes to. */
@@ -46,6 +48,8 @@ export class AgentTextFeed {
   private readonly live = new Map<string, LiveChunk>();
   /** Per voice whose segment is open: the leg whose socket holds it. */
   private readonly open = new Map<LegName, LegName>();
+  /** A throw from a session has been reported. */
+  private reported = false;
 
   constructor(private readonly o: AgentTextFeedOptions) {}
 
@@ -84,7 +88,7 @@ export class AgentTextFeed {
     const holder = this.open.get(voice);
     if (holder !== undefined) {
       this.open.delete(voice);
-      this.o.session(holder)?.agentText?.('', true);
+      this.send(holder, '', true);
     }
     for (const [key, chunk] of this.live) if (chunk.voice === voice) this.live.delete(key);
   }
@@ -107,8 +111,24 @@ export class AgentTextFeed {
     const to = Math.min(b, text.length);
     if (to <= from) return;
     this.sentTo.set(mark, to);
-    const sent = this.o.enabled() && this.o.micOpen() && this.o.session(target)?.agentText?.(text.slice(from, to), false) === true;
+    const sent = this.o.enabled() && this.o.micOpen() && this.send(target, text.slice(from, to), false);
     if (sent) this.open.set(voice, target);
     else this.live.delete(key);
+  }
+
+  /**
+   * The target session's `agentText`, contained: a throw counts as a refusal and is reported once, so it never
+   * reaches the caller — a zustand listener (Translation I hear) or the emitting adapter's socket handler.
+   */
+  private send(leg: LegName, text: string, endOfSegment: boolean): boolean {
+    try {
+      return this.o.session(leg)?.agentText?.(text, endOfSegment) === true;
+    } catch (error) {
+      if (!this.reported) {
+        this.reported = true;
+        this.o.report?.(error);
+      }
+      return false;
+    }
   }
 }

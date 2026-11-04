@@ -199,6 +199,46 @@ describe('AgentTextFeed', () => {
     expect(texts()).toEqual([['Hello ', false]]);
   });
 
+  it('a session whose agentText throws: the feed never throws, reports once, and treats the chunk as refused', () => {
+    const fault = { on: true };
+    const sent: Array<[string, boolean]> = [];
+    const reported: unknown[] = [];
+    const feed = new AgentTextFeed({
+      legs: BOTH, enabled: () => true, micOpen: () => true,
+      session: () => ({ agentText: (text: string, end: boolean) => { if (fault.on) throw new Error('socket gone'); sent.push([text, end]); return true; } }),
+      report: (error) => reported.push(error),
+    });
+    feed.rowText('speaker', 1, 'Hello there. How are you?');
+    expect(() => feed.audio('speaker', { ref: 1, range: [0, 6] }, ME)).not.toThrow();
+    expect(() => feed.audio('speaker', { ref: 1, range: [6, 13] }, ME)).not.toThrow();
+    fault.on = false;
+    // Refused, so not live: its fill-in sends nothing of the row's rest.
+    feed.ranges('speaker', { ref: 1, ranges: [{ index: 1, range: [6, 25] }] });
+    expect(sent).toEqual([]);
+    expect(reported).toHaveLength(1);
+    expect(reported[0]).toBeInstanceOf(Error);
+  });
+
+  it('an end frame that throws: voiceIdle never throws, the holder is still forgotten, and the report stays at one', () => {
+    const fault = { on: false };
+    const sent: Array<[string, boolean]> = [];
+    const reported: unknown[] = [];
+    const feed = new AgentTextFeed({
+      legs: BOTH, enabled: () => true, micOpen: () => true,
+      session: () => ({ agentText: (text: string, end: boolean) => { if (fault.on) throw new Error('socket gone'); sent.push([text, end]); return true; } }),
+      report: (error) => reported.push(error),
+    });
+    feed.rowText('speaker', 1, 'Hello there. How are you?');
+    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
+    fault.on = true;
+    expect(() => feed.voiceIdle('speaker')).not.toThrow();
+    expect(() => feed.audio('speaker', { ref: 1, range: [6, 13] }, ME)).not.toThrow();
+    fault.on = false;
+    feed.voiceIdle('speaker');
+    expect(sent).toEqual([['Hello ', false]]);
+    expect(reported).toHaveLength(1);
+  });
+
   it("a reconnect on a socket that holds no segment (split Both's participant core) closes nothing", () => {
     const { feed, texts } = setup();
     feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);

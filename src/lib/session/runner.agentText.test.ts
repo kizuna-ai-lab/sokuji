@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { OutletName } from '../audio/outlets';
 import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
@@ -11,13 +11,22 @@ import type { PlaybackPort } from './ports';
 import { createRunner } from './runner';
 import type { RunShape, TurnMode } from './types';
 
+const reportErrorSpy = vi.hoisted(() => vi.fn());
+vi.mock('../diagnostics/report', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../diagnostics/report')>();
+  return { ...actual, reportError: reportErrorSpy };
+});
+
 /**
  * A run over sessions that write each agent text frame to `log` as `<leg>:[text,end]` (and their stop as
  * `<leg>:stop`), a playback whose outlets the test sets, and the switch as a value (spec 2026-11-05 §4).
+ * `fault.on` makes every session's `agentText` throw; each `setSpeech` is written to `speech`.
  */
 function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: boolean; participantSpeech?: boolean } = {}) {
   const clock = createVirtualClock(0);
   const log: string[] = [];
+  const speech: string[] = [];
+  const fault = { on: false };
   const kept: Partial<Record<LegName, AdapterEvents>> = {};
   const outlets: { now: readonly OutletName[] } = { now: ['me'] };
   const on = { value: true };
@@ -32,7 +41,12 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
       beginTurn: () => {},
       endTurn: () => {},
       cancelTurn: () => {},
-      agentText: (text, end) => { log.push(`${leg}:${JSON.stringify([text, end])}`); return true; },
+      agentText: (text, end) => {
+        if (fault.on) throw new Error('agent text broke');
+        log.push(`${leg}:${JSON.stringify([text, end])}`);
+        return true;
+      },
+      setSpeech: (on) => { speech.push(`${leg}:${on}`); },
       stop: async () => { log.push(`${leg}:stop`); },
     };
   };
@@ -91,7 +105,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
     events(leg).audio({ pcm: new Int16Array(240), ref, ...(range ? { range } : {}), ...(voice ? { voice } : {}) });
   const idle = (voice: LegName) => idleListener?.(voice);
   const switchHearing = (next: boolean) => { hear.value = next; for (const listener of [...hear.listeners]) listener(); };
-  return { runner, log, outlets, on, row, chunk, idle, events, switchHearing };
+  return { runner, log, speech, fault, outlets, on, row, chunk, idle, events, switchHearing };
 }
 
 describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
@@ -164,5 +178,17 @@ describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
     h.events('participant').speechRanges({ ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
     h.idle('participant');
     expect(h.log).toEqual(['speaker:["See ",false]', 'speaker:["",true]']);
+  });
+
+  it('a session whose agentText throws: Translation I hear off still switches the participant speech off, and the run reports it once', async () => {
+    const h = setup({ legs: ['speaker', 'participant'], participantSpeech: true }); h.outlets.now = ['them']; await h.runner.start();
+    h.row('participant', 1, 'See you soon.'); h.chunk('participant', 1, [0, 4]);
+    h.fault.on = true;
+    reportErrorSpy.mockClear();
+    expect(() => h.switchHearing(false)).not.toThrow();
+    expect(h.speech).toEqual(['participant:false']);
+    expect(() => h.chunk('participant', 1, [4, 8])).not.toThrow();
+    const reports = reportErrorSpy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === 'agentText');
+    expect(reports).toHaveLength(1);
   });
 });
