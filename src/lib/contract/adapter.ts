@@ -81,6 +81,12 @@ export interface AdapterSession {
    */
   setSpeech?(on: boolean): void;
   /**
+   * Soniox agent text (spec 2026-11-05): text this app's own voice is about to play where the microphone can
+   * hear it, sent on this session's STT socket; `endOfSegment` closes that voice's turn. Returns whether it was
+   * sent: never while the socket is down or once stopped, never on a socket not opened for it. Absent: none taken.
+   */
+  agentText?(text: string, endOfSegment: boolean): boolean;
+  /**
    * Closes its socket (or ends its pipeline) before its first `await`: on
    * `pagehide` the runner calls `stop()` without awaiting it, and only what
    * ran synchronously is sure to happen.

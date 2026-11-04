@@ -273,7 +273,16 @@ class SonioxCore {
       cancelTurn: () => {},
       setSpeech: (on) => this.leg(name).speech?.setOn(on),
       stop: () => this.stop(),
+      agentText: (text, endOfSegment) => this.agentText(text, endOfSegment),
     };
+  }
+
+  /** Agent text on the current STT socket, framed for the Logs when sent. False once ended and while no socket is up (a resume's new socket takes the next); the stream itself refuses a socket not opened for it. */
+  private agentText(text: string, endOfSegment: boolean): boolean {
+    if (this.ended || !this.stt) return false;
+    const sent = this.stt.sendAgentText(text, endOfSegment);
+    if (sent) this.frame('out', 'stt.agent_text', { text, end_of_segment: endOfSegment });
+    return sent;
   }
 
   /** Closes every socket before returning (the `stop()` rule); idempotent. The one graceful ending: the STT stream's end goes first. */
