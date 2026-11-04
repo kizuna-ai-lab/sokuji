@@ -343,6 +343,7 @@ class SonioxCore {
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
       endpointMaxDelayMs: config.stt.endpointMaxDelayMs,
+      ...(config.stt.agentText ? { enableAgentTextInput: true } : {}),
       ...(credentials.clientReferenceId ? { clientReferenceId: credentials.clientReferenceId } : {}),
     };
   }

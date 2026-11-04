@@ -40,7 +40,7 @@ export interface RunShape {
   faceToFace?: boolean;
   keepReplayAudio: boolean;
   /** What every builder may read, less `models`, which the run adds from its own readiness answer (F2). */
-  shared: Omit<SharedSettings, 'models'>;
+  shared: Omit<SharedSettings, 'models' | 'speaks'>;
   auth: AuthContext;
   /** The account's wallet at start, for a managed provider's floor (ruling 5). Null or absent when signed out, or where no account is wired (tests, the preview): then the sign-in check speaks, not the gate. */
   account?: AccountState | null;

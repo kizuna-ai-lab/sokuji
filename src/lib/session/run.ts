@@ -148,7 +148,6 @@ export class Run {
         : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
     }
     // The run's own answer (F2): a model-choosing builder reads the list its settings component was shown.
-    const shared: SharedSettings = { ...shape.shared, models: readiness.models };
 
     let settings = shape.settings;
     let prepared: Prepared<unknown> = {};
@@ -163,6 +162,8 @@ export class Run {
     }
 
     const contexts = contextsFor(shape);
+    // Whether any leg may speak, told to every builder: a microphone socket readies itself for it (Soniox agent text, spec 2026-11-05 §4.3).
+    const shared: SharedSettings = { ...shape.shared, models: readiness.models, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.

@@ -196,3 +196,18 @@ describe('describeSoniox', () => {
     expect(describeSoniox(build({}, { ...AUTO_CTX, speech: false }))).toEqual({ asrModel: 'stt-rt-v6' });
   });
 });
+
+describe('buildSoniox — agent text (spec 2026-11-05 §4.3)', () => {
+  const SPEAKER: SessionContext = { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } };
+  const SPEAKS = { ...SHARED, speaks: true };
+  it("asks on the speaker's leg of a run that may speak, even when that leg itself is text-only", () => {
+    expect(buildSoniox(SPEAKER, SONIOX_DEFAULTS, SPEAKS).stt.agentText).toBe(true);
+    expect(buildSoniox({ ...SPEAKER, speech: false }, SONIOX_DEFAULTS, SPEAKS).stt.agentText).toBe(true);
+  });
+  it("never on the participant's leg: its socket does not hear the microphone", () => {
+    expect(buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, SPEAKS).stt).not.toHaveProperty('agentText');
+  });
+  it('never in a run that speaks nowhere', () => {
+    for (const speaks of [false, undefined]) expect(buildSoniox(SPEAKER, SONIOX_DEFAULTS, { ...SHARED, speaks }).stt).not.toHaveProperty('agentText');
+  });
+});
