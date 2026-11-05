@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SAMPLE_RATE } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
-import { EMPTY_PCM, type Segment } from '../conversation/types';
+import { EMPTY_PCM, type LegName, type Segment } from '../conversation/types';
 import { LEAD_S } from './clipQueue';
 import type { AudioGraph } from './graph';
 import { createPcmTap } from './pcmTap';
@@ -494,5 +494,70 @@ describe('createPlayback — resting', () => {
     const { playback, graph } = build();
     await Promise.all([playback.dispose(), playback.dispose()]);
     expect(graph.closed).toBe(1);
+  });
+});
+
+describe('createPlayback — where clips play, and when a voice is done (agent text)', () => {
+  it("audio answers the user's outlets of the clip's voice, never the virtual one", () => {
+    const r = routing(); const playback = createPlayback(fakeGraph().graph, r.source);
+    expect(playback.audio('speaker', 1, pcm(100))).toEqual([]);
+    r.set({ speak: { other: true, me: true, them: true } });
+    expect(playback.audio('speaker', 1, pcm(100))).toEqual(['me']);
+    expect(playback.audio('participant', 2, pcm(100))).toEqual(['them']);
+    expect(playback.audio('participant', 3, pcm(100), 'speaker')).toEqual(['me']);
+    r.set({ faceToFace: true });
+    expect(playback.audio('speaker', 4, pcm(100))).toEqual(['other']);
+  });
+
+  it('audio answers none for a clip it drops: Translation I hear off, or a row left unheard', () => {
+    const r = routing(); const playback = createPlayback(fakeGraph().graph, r.source);
+    r.set({ speak: { other: true, me: false, them: false } });
+    expect(playback.audio('participant', 5, pcm(100))).toEqual([]);
+    r.set({ speak: { other: true, me: false, them: true } });
+    expect(playback.audio('participant', 5, pcm(100))).toEqual([]);
+    expect(playback.audio('participant', 6, pcm(100))).toEqual(['them']);
+  });
+
+  it('audio answers none for a clip with no pcm: nothing plays', () => {
+    const r = routing({ ...ROUTING, speak: { other: true, me: true, them: true } }); const playback = createPlayback(fakeGraph().graph, r.source);
+    expect(playback.audio('speaker', 1, EMPTY_PCM)).toEqual([]);
+    expect(playback.queues.speaker.pending).toBe(0);
+  });
+
+  it("onVoiceIdle: once a voice's last queued clip has played, not between clips that follow on", () => {
+    const { graph, advance } = fakeGraph(); const playback = createPlayback(graph, routing().source);
+    const idle: LegName[] = []; playback.onVoiceIdle((v) => idle.push(v));
+    playback.audio('speaker', 1, pcm(100)); playback.audio('speaker', 1, pcm(100));
+    advance(0.2); expect(idle).toEqual([]);
+    advance(0.1); expect(idle).toEqual(['speaker']);
+  });
+
+  it('onVoiceIdle: a clear, Translation I hear switched off and a rebuilt context end what was queued (Review Focus 3)', () => {
+    const { graph, reset } = fakeGraph(); const r = routing(); const playback = createPlayback(graph, r.source);
+    const idle: LegName[] = []; playback.onVoiceIdle((v) => idle.push(v));
+    playback.audio('participant', 1, pcm(100));
+    r.set({ speak: { other: true, me: false, them: false } });
+    playback.audio('speaker', 2, pcm(100)); reset();
+    playback.audio('speaker', 3, pcm(100)); playback.clear();
+    expect(idle).toEqual(['participant', 'speaker', 'speaker']);
+  });
+
+  it('onVoiceIdle: never for replay', () => {
+    const { graph, advance } = fakeGraph(); const playback = createPlayback(graph, routing().source);
+    const idle: LegName[] = []; playback.onVoiceIdle((v) => idle.push(v));
+    playback.replay('speaker', translation(1, [{ pcm: pcm(100) }, { pcm: pcm(100) }]));
+    advance(1);
+    playback.replay('speaker', translation(2, [{ pcm: pcm(100) }]));
+    playback.stopReplay();
+    expect(idle).toEqual([]);
+  });
+
+  it('stops calling a listener once it unsubscribes', () => {
+    const { graph } = fakeGraph(); const playback = createPlayback(graph, routing().source);
+    const idle: LegName[] = []; const off = playback.onVoiceIdle((v) => idle.push(v));
+    off();
+    playback.audio('speaker', 1, pcm(100)); playback.audio('participant', 2, pcm(100));
+    playback.clear();
+    expect(idle).toEqual([]);
   });
 });

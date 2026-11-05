@@ -131,21 +131,29 @@ describe('createSonioxSettingsView', () => {
     expect(sharedPills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
   });
 
-  it('an own key reads the own-key region tooltip and no managed cost note', () => {
+  const SHARED_HELP = 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.';
+  const MANAGED_COST = 'Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.';
+  const mentionsCost = (c: unknown) => typeof c === 'string' && c.includes('Kizuna AI supports both.');
+
+  it('an own key reads the own-key region tooltip, and the shared-session help without the managed cost note', () => {
     render(<BYOK {...props()} />);
     expect(tooltipContents).toContain(
       'Soniox runs a separate deployment per region, and each one is a separate Soniox project with its own API key. Your audio is processed in the region you pick. Applies from the next session.'
     );
+    expect(tooltipContents).toContain(SHARED_HELP);
+    expect(tooltipContents.some(mentionsCost)).toBe(false);
     expect(screen.queryByText(/Kizuna AI supports both\./)).toBeNull();
   });
 
-  it("a managed view reads the managed region tooltip and states the cost of split (Plan B's seam)", () => {
+  it("a managed view reads the managed region tooltip and states the cost of split in the shared-session help, not as a block of its own (Plan B's seam)", () => {
     const Managed = createSonioxSettingsView({ managed: true, useVoiceSource: () => null });
     render(<Managed {...props()} />);
     expect(tooltipContents).toContain(
       'Soniox runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.'
     );
-    expect(screen.getByText(/Kizuna AI supports both\./)).toBeInTheDocument();
+    expect(tooltipContents).toContain(`${SHARED_HELP}\n\n${MANAGED_COST}`);
+    expect(tooltipContents).not.toContain(SHARED_HELP);
+    expect(screen.queryByText(/Kizuna AI supports both\./)).toBeNull();
   });
 
   it("hands the voice library the host's preview route", () => {
@@ -214,5 +222,92 @@ describe('SonioxSettings, speaker labels', () => {
     expect(labelsSection()).toBeNull();
     rerender(<BYOK {...props({ legs: undefined })} />);
     expect(labelsSection()).toBeNull();
+  });
+});
+
+// Spec 2026-11-05 §4.4: Soniox's own setting, in the view own-key and managed share, each flavour with its own stored value.
+describe.each([
+  ['own key', BYOK],
+  ['managed', createSonioxSettingsView({ managed: true, useVoiceSource: () => null })],
+] as const)('SonioxSettings, use the read-aloud text to improve recognition (%s)', (_flavour, View) => {
+  const HELP = 'Tells the recognition service what is about to be read aloud, so it recognizes replies better and leaves the read-aloud out of the transcript if your speakers reach the microphone. When speech plays on this computer, this adds a small charge.';
+  const SPLIT_BOTH = 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.';
+  const rowOf = () => section('soniox-agent-text-section');
+  const on = () => rowOf().getByRole('button', { name: 'Enabled' });
+  const off = () => rowOf().getByRole('button', { name: 'Disabled' });
+  const control = () => document.querySelector('#soniox-agent-text-section .turn-detection-options')!;
+  const withSettings = (patch: Partial<SonioxSettings>) => ({ ...SONIOX_DEFAULTS, ...patch });
+
+  it('sits directly below the shared-session choice, under its own heading', () => {
+    render(<View {...props()} />);
+    expect(document.getElementById('soniox-settings-section')!.nextElementSibling?.id).toBe('soniox-agent-text-section');
+    expect(rowOf().getByRole('heading', { name: 'Use the read-aloud text to improve recognition' })).toBeInTheDocument();
+  });
+
+  it('in shared Both: shows the stored value, writes it, says what it is for and that it adds a small charge, with no reason', () => {
+    const update = vi.fn();
+    const { rerender } = render(<View {...props({ update, settings: withSettings({ bothModeSharedSession: true }) })} />);
+    expect(on()).toHaveClass('active');
+    expect(off()).not.toHaveClass('active');
+    expect(on()).not.toBeDisabled();
+    fireEvent.click(off());
+    expect(update).toHaveBeenCalledWith({ agentText: false });
+    fireEvent.click(on());
+    expect(update).toHaveBeenCalledWith({ agentText: true });
+    expect(tooltipContents).toContain(HELP);
+    expect(tooltipContents).not.toContain(`${HELP}\n${SPLIT_BOTH}`);
+    expect(control().getAttribute('title')).toBeNull();
+
+    rerender(<View {...props({ update, settings: withSettings({ bothModeSharedSession: true, agentText: false }) })} />);
+    expect(off()).toHaveClass('active');
+    expect(on()).not.toHaveClass('active');
+  });
+
+  it('in face-to-face: live, whatever the shared-session choice says', () => {
+    const update = vi.fn();
+    render(<View {...props({ update, faceToFace: true, settings: withSettings({ bothModeSharedSession: false }) })} />);
+    expect(on()).toHaveClass('active');
+    expect(off()).not.toBeDisabled();
+    fireEvent.click(off());
+    expect(update).toHaveBeenCalledWith({ agentText: false });
+    expect(control().getAttribute('title')).toBeNull();
+  });
+
+  it('outside Both: live, whatever the shared-session choice says', () => {
+    for (const legs of [['speaker'], ['participant'], undefined] as const) {
+      const update = vi.fn();
+      const { unmount } = render(<View {...props({ update, legs, settings: withSettings({ bothModeSharedSession: false }) })} />);
+      expect(on(), String(legs)).toHaveClass('active');
+      expect(off(), String(legs)).not.toBeDisabled();
+      fireEvent.click(off());
+      expect(update, String(legs)).toHaveBeenCalledWith({ agentText: false });
+      expect(control().getAttribute('title'), String(legs)).toBeNull();
+      unmount();
+    }
+  });
+
+  it('in split Both: shows off, greyed and not changeable, says why in its help and its title, and keeps the stored value', () => {
+    const update = vi.fn();
+    render(<View {...props({ update, settings: withSettings({ bothModeSharedSession: false, agentText: true }) })} />);
+    expect(off()).toHaveClass('active');
+    expect(on()).not.toHaveClass('active');
+    expect(on()).toBeDisabled();
+    expect(off()).toBeDisabled();
+    fireEvent.click(on());
+    fireEvent.click(off());
+    expect(update).not.toHaveBeenCalled();
+    expect(control().getAttribute('title')).toBe(SPLIT_BOTH);
+    expect(tooltipContents).toContain(`${HELP}\n${SPLIT_BOTH}`);
+  });
+
+  it('is disabled while the other Soniox settings are, still showing the stored value', () => {
+    const update = vi.fn();
+    render(<View {...props({ update, disabled: true, settings: withSettings({ bothModeSharedSession: true, agentText: true }) })} />);
+    expect(on()).toHaveClass('active');
+    expect(on()).toBeDisabled();
+    expect(off()).toBeDisabled();
+    fireEvent.click(off());
+    expect(update).not.toHaveBeenCalled();
+    expect(control().getAttribute('title')).toBeNull();
   });
 });

@@ -28,6 +28,12 @@ export interface SonioxSettings {
   bothModeSharedSession: boolean;
   /** The other side's people numbered (Speaker 1, Speaker 2…); off, no utterance carries a person. */
   speakerLabels: boolean;
+  /**
+   * Use the read-aloud text to improve recognition (spec 2026-11-05 §4.4): a run that speaks asks for agent text
+   * on its microphone socket and sends the text about to be read aloud. Read at Start (the builder); never in split
+   * Both, where the settings view shows it off, the stored value kept.
+   */
+  agentText: boolean;
   /** Custom vocabulary, one term per line (→ context.terms). */
   vocabularyTerms: string;
   /** Preferred translations, one "source=target" per line (→ context.translation_terms). */
@@ -52,6 +58,7 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   participantVoice: SONIOX_PARTICIPANT_DEFAULT_VOICE,
   bothModeSharedSession: false,
   speakerLabels: true,
+  agentText: true,
   vocabularyTerms: '',
   vocabularyTranslations: '',
   contextText: '',
@@ -82,6 +89,7 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
       : SONIOX_DEFAULTS.participantVoice,
     bothModeSharedSession: typeof stored.bothModeSharedSession === 'boolean' ? stored.bothModeSharedSession : SONIOX_DEFAULTS.bothModeSharedSession,
     speakerLabels: typeof stored.speakerLabels === 'boolean' ? stored.speakerLabels : SONIOX_DEFAULTS.speakerLabels,
+    agentText: typeof stored.agentText === 'boolean' ? stored.agentText : SONIOX_DEFAULTS.agentText,
     vocabularyTerms: str('vocabularyTerms'),
     vocabularyTranslations: str('vocabularyTranslations'),
     contextText: str('contextText'),
@@ -90,6 +98,17 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
     endpointMaxDelayMs: num('endpointMaxDelayMs'),
     ttsSpeed: num('ttsSpeed'),
   };
+}
+
+/**
+ * Whether Both runs on one shared session: face-to-face always does (one
+ * microphone, nothing to split), else the shared-session choice. In Both,
+ * the opposite is split Both, a session per direction. The settings view
+ * (the shared-session choice and the agent text lock), the builder's
+ * `sharedBoth` and the lease's `bothSplit` all read this one rule.
+ */
+export function sonioxSharedBoth(faceToFace: boolean, s: Pick<SonioxSettings, 'bothModeSharedSession'>): boolean {
+  return faceToFace || s.bothModeSharedSession;
 }
 
 /** The speaker's voice for a run: the active region's voice, or the default when none is stored. */

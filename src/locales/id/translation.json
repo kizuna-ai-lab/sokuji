@@ -348,6 +348,9 @@
       "mirrorHear": "Mereka berbicara {{their}} → saya mendengar {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Tatap muka selalu memakai satu sesi bersama: kedua orang berbicara ke mikrofon yang sama.",
+    "sonioxAgentText": "Gunakan teks yang dibacakan untuk meningkatkan pengenalan suara",
+    "sonioxAgentTextTooltip": "Memberi tahu layanan pengenalan suara apa yang akan dibacakan, agar layanan itu lebih baik mengenali jawaban dan tidak memasukkan bagian yang dibacakan ke transkrip jika suara dari speakermu sampai ke mikrofon. Saat suara diputar di komputer ini, ada sedikit biaya tambahan.",
+    "sonioxAgentTextSplitBoth": "Nonaktif dalam mode dua arah dengan sesi terpisah untuk tiap arah: di sana fitur ini tidak menjauhkan terjemahan yang dibacakan dari pengenalan suara dan malah mempersulit pengenalan orang yang berbicara bersamaan dengannya. Pengaturanmu tetap tersimpan.",
     "sonioxSpeakerLabels": "Label pembicara",
     "sonioxSpeakerLabelsTooltip": "Memberi nomor orang-orang di pihak lain — Pembicara 1, Pembicara 2… — begitu terdengar lebih dari satu suara.\n\nFitur ini bisa mengira satu orang sebagai beberapa orang. Dinonaktifkan: tidak ada nomor yang ditampilkan.\n\nBerlaku mulai sesi berikutnya.",
     "voiceTheyHear": "Suara yang didengar pihak lain",

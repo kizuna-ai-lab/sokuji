@@ -8,7 +8,7 @@ import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps } from '../../lib/provider/types';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS } from '../../lib/soniox/regions';
 import { SonioxVoiceField, useByokVoiceSource, type VoiceSourceHook } from './SonioxVoiceField';
-import type { SonioxSettings as S } from './settings';
+import { sonioxSharedBoth, type SonioxSettings as S } from './settings';
 
 const helpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />;
 
@@ -22,8 +22,9 @@ export interface SonioxSettingsFlavour {
  * Soniox's own settings (D18), today's `renderSonioxSettings`
  * (`ProviderSpecificSettings.tsx:1721-2019`) recomposed from shared
  * fields: region, the voice library (previewing through the host's route,
- * ruling 6), TTS speed, vocabulary, background, and Both mode's
- * shared-session choice. The endpoint knobs are its `TurnDetection`. A
+ * ruling 6), TTS speed, vocabulary, background, Both mode's
+ * shared-session choice and, below it, agent text, which split Both locks
+ * off. The endpoint knobs are its `TurnDetection`. A
  * factory, so the managed twin reuses it with its own voice source (choice 12).
  */
 export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSettingsFlavour): ComponentType<SettingsProps<S>> {
@@ -31,7 +32,17 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
     const { t } = useTranslation();
     const region = asSonioxRegion(settings.region);
     const inBoth = legs?.length === 2;
-    const shared = faceToFace || settings.bothModeSharedSession;
+    const shared = sonioxSharedBoth(faceToFace === true, settings);
+    // Split Both asks for no agent text (`startSplit`), so the setting shows off there.
+    const splitBoth = inBoth && !shared;
+    const agentTextOn = !splitBoth && settings.agentText;
+    const agentTextHelp = t('settings.sonioxAgentTextTooltip', 'Tells the recognition service what is about to be read aloud, so it recognizes replies better and leaves the read-aloud out of the transcript if your speakers reach the microphone. When speech plays on this computer, this adds a small charge.');
+    // The managed copy states what split costs as the help's last paragraph, not a block of its own.
+    const sharedSessionHelp = [
+      t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.'),
+      ...(managed ? [t('settings.sonioxSharedSessionManagedCost', 'Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.')] : []),
+    ].join('\n\n');
+    const splitBothReason = t('settings.sonioxAgentTextSplitBoth', 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.');
     // Only the other side's leg numbers its people, and face-to-face never shows them.
     const labelsPeople = !faceToFace && legs?.includes('participant') === true;
     return (
@@ -109,7 +120,7 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
         <div className="settings-section" id="soniox-settings-section">
           <h2>
             {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
-            <Tooltip content={t('settings.sonioxSharedSessionTooltip', 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.')} position="top">{helpIcon}</Tooltip>
+            <Tooltip content={sharedSessionHelp} position="top">{helpIcon}</Tooltip>
           </h2>
           <div className="setting-item">
             <div className="turn-detection-options">
@@ -129,13 +140,24 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
               </div>
             </div>
           )}
-          {managed && (
-            <div className="setting-item">
-              <div className="setting-description">
-                {t('settings.sonioxSharedSessionManagedCost', 'Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.')}
-              </div>
+        </div>
+
+        {/* Agent text (spec 2026-11-05 §4.4), read at Start. Split Both sends none (§4.1): there it shows off and locked, the stored value kept. */}
+        <div className="settings-section" id="soniox-agent-text-section">
+          <h2>
+            {t('settings.sonioxAgentText', 'Use the read-aloud text to improve recognition')}
+            <Tooltip content={[agentTextHelp, ...(splitBoth ? [splitBothReason] : [])].join('\n')} position="top">{helpIcon}</Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="turn-detection-options" title={splitBoth ? splitBothReason : undefined}>
+              <button type="button" className={`option-button ${agentTextOn ? 'active' : ''}`} aria-pressed={agentTextOn} onClick={() => update({ agentText: true })} disabled={disabled || splitBoth}>
+                {t('settings.enabled', 'Enabled')}
+              </button>
+              <button type="button" className={`option-button ${!agentTextOn ? 'active' : ''}`} aria-pressed={!agentTextOn} onClick={() => update({ agentText: false })} disabled={disabled || splitBoth}>
+                {t('settings.disabled', 'Disabled')}
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
         {labelsPeople && (

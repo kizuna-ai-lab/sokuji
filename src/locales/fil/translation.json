@@ -348,6 +348,9 @@
       "mirrorHear": "Nagsasalita sila ng {{their}} → naririnig ko sa {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Laging iisang nakabahaging session ang gamit ng magkaharap na usapan: pareho silang nagsasalita sa iisang mikropono.",
+    "sonioxAgentText": "Gamitin ang tekstong binabasa nang malakas para mapahusay ang pagkilala sa pagsasalita",
+    "sonioxAgentTextTooltip": "Ipinapaalam sa serbisyo ng pagkilala sa pagsasalita kung ano ang babasahin nang malakas, para mas makilala nito ang mga sagot at hindi maisama sa transkripsyon ang binabasa nang malakas kung umaabot sa mikropono ang tunog ng iyong speaker. Kapag pinapatugtog ang boses sa computer na ito, may maliit na dagdag na singil.",
+    "sonioxAgentTextSplitBoth": "Naka-off sa mode na Pareho na may hiwalay na session para sa bawat direksyon: doon, hindi nito nailayo sa pagkilala sa pagsasalita ang salin na binabasa nang malakas, at mas pinahirap nitong makilala ang taong nagsasalita nang sabay rito. Mananatili ang iyong setting.",
     "sonioxSpeakerLabels": "Mga label ng tagapagsalita",
     "sonioxSpeakerLabelsTooltip": "Binibigyang-numero ang mga tao sa kabilang panig — Tagapagsalita 1, Tagapagsalita 2… — kapag higit sa isang boses ang narinig.\n\nMaaari nitong mapagkamalang marami ang iisang tao. Hindi pinagana: walang numerong ipinapakita.\n\nMag-aapply mula sa susunod na session.",
     "voiceTheyHear": "Boses na naririnig ng kabilang panig",

@@ -348,6 +348,9 @@
       "mirrorHear": "对方说 {{their}} → 我听到 {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "面对面对话始终使用同一个共享会话：两个人对着同一个麦克风说话。",
+    "sonioxAgentText": "利用朗读的文字改进语音识别",
+    "sonioxAgentTextTooltip": "把即将朗读的内容告诉语音识别服务，这样它能更准确地识别回答，并且在扬声器的声音传进麦克风时，不把朗读的内容写进转录文本。在本机播放语音时，会产生少量费用。",
+    "sonioxAgentTextSplitBoth": "在每个方向各用一个独立会话的双向模式下关闭：此时它没能阻止朗读的译音混入语音识别，反而让朗读时同时说话的人更难被识别。你的设置会保留。",
     "sonioxSpeakerLabels": "说话人标签",
     "sonioxSpeakerLabelsTooltip": "为对方的人编号（说话人 1、说话人 2…），听到不止一个声音时显示。\n\n可能会把一个人误认成几个人。禁用：不显示编号。\n\n将在下次会话生效。",
     "voiceTheyHear": "对方听到的声音",

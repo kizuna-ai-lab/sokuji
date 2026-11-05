@@ -21,7 +21,7 @@ const { playback, getAppAudio } = vi.hoisted(() => {
   const queue = () => ({ position: () => null, pending: 0, subscribe: () => () => {} });
   const playback = {
     queues: { speaker: queue(), participant: queue(), replay: queue() },
-    audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(), passthrough: vi.fn(),
+    audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(), passthrough: vi.fn(), onVoiceIdle: vi.fn(() => () => {}),
     ttsTap: { read: () => new Float32Array(0) },
     meter: vi.fn(() => null),
   };
@@ -215,6 +215,13 @@ describe('createAppSession', () => {
     expect(getAppAudio).toHaveBeenCalledTimes(1);
     expect(loaded.playback).toBe(playback);
     expect(loaded.capture).toMatchObject({ openSource: expect.any(Function), echo: expect.any(Object), levels: expect.any(Object) });
+  });
+
+  it("subscribes to the playback's voice idles once, when it loads", async () => {
+    const { session } = await setup();
+    expect(playback.onVoiceIdle).not.toHaveBeenCalled();
+    await session.audio(); await session.audio();
+    expect(playback.onVoiceIdle).toHaveBeenCalledTimes(1);
   });
 
   it('opens a leg only once the playback has loaded, and plays the run through it', async () => {

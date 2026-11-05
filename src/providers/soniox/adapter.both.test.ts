@@ -25,7 +25,7 @@ const CLONE = '7c1d2e3f-0000-4000-8000-00000000c10e';
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
 const BOTH_SHARED: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja' };
 
-function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean; speakerSource?: string; settings?: Partial<SonioxSettings> } = {}) {
+function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean; faceToFace?: boolean; speaks?: boolean; speakerSource?: string; settings?: Partial<SonioxSettings> } = {}) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const controller = new AbortController();
@@ -36,7 +36,7 @@ function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst
     participant: { direction: { source: 'ja', target: o.speakerSource ?? 'en' }, speech: o.participantSpeaks ?? false, turns: 'auto' },
   };
   const rec = { speaker: recordEvents(), participant: recordEvents() };
-  const shared = o.faceToFace ? { ...BOTH_SHARED, faceToFace: true } : BOTH_SHARED;
+  const shared = { ...BOTH_SHARED, ...(o.faceToFace ? { faceToFace: true } : {}), ...(o.speaks ? { speaks: true } : {}) };
   const request = (leg: LegName, credentials: SonioxCredentials): StartRequest<SonioxConfig, SonioxCredentials> =>
     ({ context: contexts[leg], config: buildSoniox(contexts[leg], s, shared), credentials, clock, signal: controller.signal });
   const starting = createSonioxAdapter({ openSocket: sockets.create }).startBoth(
@@ -164,6 +164,34 @@ describe('Soniox startBoth: split', () => {
     const speakerSockets = h.sockets.all.filter((x) => x !== participantStt);
     expect(speakerSockets).toHaveLength(2);
     for (const x of speakerSockets) expect(x.closedByClient).not.toBeNull();
+  });
+});
+
+describe('Soniox startBoth: agent text (spec 2026-11-05 §4.3)', () => {
+  it('split: no socket asks for agent text even when the run speaks, the participant speaking alone included (measured 2026-11-05)', async () => {
+    const h = both({ sharedBoth: false, participantSpeaks: true, speaks: true });
+    h.openAll(); await h.starting;
+    expect(h.sttSockets()).toHaveLength(2);
+    for (const s of h.sttSockets()) expect(s.sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
+  });
+  it('shared and face-to-face: the one socket asks', async () => {
+    for (const o of [{ speaks: true }, { faceToFace: true, speaks: true }]) {
+      const h = both(o);
+      h.openAll(); await h.starting;
+      expect(h.sttSockets()).toHaveLength(1);
+      expect(h.sttSockets()[0].sentJson<Json>()[0]).toMatchObject({ enable_agent_text_input: true });
+    }
+  });
+  it('without shared.speaks no socket asks', async () => {
+    const h = both({ sharedBoth: false });
+    h.openAll(); await h.starting;
+    for (const s of h.sttSockets()) expect(s.sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
+  });
+  it('shared, with the setting off: the one socket does not ask, though the run speaks', async () => {
+    const h = both({ speaks: true, settings: { agentText: false } });
+    h.openAll(); await h.starting;
+    expect(h.sttSockets()).toHaveLength(1);
+    expect(h.sttSockets()[0].sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
   });
 });
 

@@ -348,6 +348,9 @@
       "mirrorHear": "Oni mówią {{their}} → ja słyszę {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Rozmowa twarzą w twarz zawsze używa jednej współdzielonej sesji: obie osoby mówią do tego samego mikrofonu.",
+    "sonioxAgentText": "Używaj odczytywanego tekstu, aby poprawić rozpoznawanie mowy",
+    "sonioxAgentTextTooltip": "Przekazuje usłudze rozpoznawania mowy, co zaraz zostanie odczytane, dzięki czemu usługa lepiej rozpoznaje odpowiedzi i pomija odczytywany tekst w transkrypcji, jeśli dźwięk z Twoich głośników trafia do mikrofonu. Gdy mowa jest odtwarzana na tym komputerze, wiąże się to z niewielką opłatą.",
+    "sonioxAgentTextSplitBoth": "Wyłączone w trybie dwukierunkowym z osobną sesją dla każdego kierunku: tam odczytywane tłumaczenie i tak trafiało do rozpoznawania mowy, a osobę mówiącą w trakcie odczytu trudniej było rozpoznać. Twoje ustawienie zostaje zachowane.",
     "sonioxSpeakerLabels": "Etykiety mówców",
     "sonioxSpeakerLabelsTooltip": "Numeruje osoby po drugiej stronie — Mówca 1, Mówca 2… — gdy słychać więcej niż jeden głos.\n\nMoże wziąć jedną osobę za kilka. Wyłączony: numery nie są wyświetlane.\n\nZaczyna obowiązywać od następnej sesji.",
     "voiceTheyHear": "Głos, który słyszy druga strona",

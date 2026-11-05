@@ -348,6 +348,9 @@
       "mirrorHear": "Onlar {{their}} konuşuyor → ben {{mine}} duyuyorum"
     },
     "sonioxSharedSessionFaceToFace": "Yüz yüze modu her zaman tek bir paylaşılan oturum kullanır: iki kişi de aynı mikrofona konuşur.",
+    "sonioxAgentText": "Konuşma tanımayı iyileştirmek için sesli okunan metni kullan",
+    "sonioxAgentTextTooltip": "Konuşma tanıma hizmetine neyin sesli okunmak üzere olduğunu bildirir; böylece hizmet yanıtları daha iyi tanır ve hoparlörlerinizin sesi mikrofona ulaşırsa sesli okunanı metin dökümünün dışında tutar. Ses bu bilgisayarda çalındığında küçük bir ek ücret alınır.",
+    "sonioxAgentTextSplitBoth": "Her yön için ayrı oturum kullanan çift yönlü modda kapalıdır: orada sesli okunan çevirinin konuşma tanımaya karışmasını önlemedi ve okumanın üzerine konuşan birini tanımayı zorlaştırdı. Ayarınız korunur.",
     "sonioxSpeakerLabels": "Konuşmacı etiketleri",
     "sonioxSpeakerLabelsTooltip": "Birden fazla ses duyulduğunda karşı taraftaki kişileri numaralandırır — Konuşmacı 1, Konuşmacı 2…\n\nTek bir kişiyi birkaç kişi sanabilir. Devre dışı: numara gösterilmez.\n\nBir sonraki oturumdan itibaren geçerli olur.",
     "voiceTheyHear": "Karşı tarafın duyduğu ses",

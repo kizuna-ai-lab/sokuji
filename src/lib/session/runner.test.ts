@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, type AdapterEvents, type StartRequest } from '../contract/adapter';
 import type { Leg } from '../conversation/types';
 import type { Punctuator } from '../conversation/fillIn';
-import type { AnyProvider, Readiness } from '../provider/types';
+import type { AnyProvider, Readiness, SharedSettings } from '../provider/types';
 import { createVirtualClock } from '../contract/clock';
 import { fakeFrameSource } from '../contract/testing/fakeFrames';
 import { fakeProvider } from '../../providers/fake/provider';
@@ -134,6 +134,25 @@ function setup(o: Options = {}) {
 }
 
 describe('runner — starting', () => {
+  it('tells every builder whether some leg of the run speaks, fixed at start (shared.speaks: Soniox asks for agent text on it with its own setting, spec 2026-11-05 §4.3)', async () => {
+    const cases = [
+      // textOnly, participantSpeech, legs, expected
+      [false, false, ['speaker'], true],
+      [true, false, ['speaker'], false],
+      [true, true, ['speaker', 'participant'], true],
+      [true, false, ['speaker', 'participant'], false],
+      [false, false, ['participant'], false],
+    ] as const;
+    for (const [textOnly, participantSpeech, legs, expected] of cases) {
+      const seen: Array<boolean | undefined> = [];
+      const provider = { ...fakeProvider, build: (c: never, s: never, shared: SharedSettings) => { seen.push(shared.speaks); return fakeProvider.build(c, s, shared); } } as AnyProvider;
+      const { runner } = setup({ shape: { provider, textOnly, participantSpeech, legs: [...legs] } });
+      await runner.start();
+      expect(seen).toEqual(legs.map(() => expected));
+      await runner.stop();
+    }
+  });
+
   it('starts every leg it was asked for, goes running, and folds the script into the conversation', async () => {
     const { runner, clock, events } = setup({ shape: { legs: ['speaker', 'participant'] } });
     await runner.start();
@@ -1375,6 +1394,7 @@ describe('runner — guarded ports (F1)', () => {
     const audio = vi.fn(() => {
       calls += 1;
       if (calls === 1 || calls === 3) throw new Error('sink gone');
+      return [];
     });
     const { runner, clock } = setup({ playback: { audio } });
     reportErrorSpy.mockClear();

@@ -17,7 +17,7 @@ import {
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 
 describe('SONIOX_DEFAULTS', () => {
-  it('defaults to the US region, Adrian in every region, split Both, speaker labels on, and Soniox\'s server defaults', () => {
+  it('defaults to the US region, Adrian in every region, split Both, speaker labels on, agent text on, and Soniox\'s server defaults', () => {
     expect(SONIOX_DEFAULTS).toEqual({
       region: 'us',
       voice: 'Adrian',
@@ -26,6 +26,7 @@ describe('SONIOX_DEFAULTS', () => {
       participantVoice: 'Grace',
       bothModeSharedSession: false,
       speakerLabels: true,
+      agentText: true,
       vocabularyTerms: '',
       vocabularyTranslations: '',
       contextText: '',
@@ -67,6 +68,12 @@ describe('migrateSonioxSettings', () => {
     expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, speakerLabels: false }).speakerLabels).toBe(false);
     expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, speakerLabels: 'no' }).speakerLabels).toBe(true);
     expect(migrateSonioxSettings({}).speakerLabels).toBe(true);
+  });
+
+  it('keeps a stored agent text choice: only an unset or wrong-typed value takes the default, on (spec 2026-11-05 §4.4)', () => {
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, agentText: false }).agentText).toBe(false);
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, agentText: 'no' }).agentText).toBe(true);
+    expect(migrateSonioxSettings({}).agentText).toBe(true);
   });
 });
 

@@ -273,7 +273,16 @@ class SonioxCore {
       cancelTurn: () => {},
       setSpeech: (on) => this.leg(name).speech?.setOn(on),
       stop: () => this.stop(),
+      agentText: (text, endOfSegment) => this.agentText(text, endOfSegment),
     };
+  }
+
+  /** Agent text on the current STT socket, framed for the Logs when sent. False once ended and while no socket is up (a resume's new socket takes the next); the stream itself refuses a socket not opened for it. */
+  private agentText(text: string, endOfSegment: boolean): boolean {
+    if (this.ended || !this.stt) return false;
+    const sent = this.stt.sendAgentText(text, endOfSegment);
+    if (sent) this.frame('out', 'stt.agent_text', { text, end_of_segment: endOfSegment });
+    return sent;
   }
 
   /** Closes every socket before returning (the `stop()` rule); idempotent. The one graceful ending: the STT stream's end goes first. */
@@ -343,6 +352,7 @@ class SonioxCore {
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
       endpointMaxDelayMs: config.stt.endpointMaxDelayMs,
+      ...(config.stt.agentText ? { enableAgentTextInput: true } : {}),
       ...(credentials.clientReferenceId ? { clientReferenceId: credentials.clientReferenceId } : {}),
     };
   }
@@ -558,7 +568,10 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
   /** Split Both: two ordinary sessions; one that fails stops the other and is named (D22). */
   const startSplit: SonioxAdapter['startBoth'] = async (requests, events) => {
     const legs: LegName[] = ['speaker', 'participant'];
-    const settled = await Promise.allSettled(legs.map((leg) => startLeg(leg, requests[leg], events[leg])));
+    // Split Both takes no agent text (measured 2026-11-05: no gain with echo cancellation, worse talk-over): the speaker's socket does not ask, so its session refuses each chunk.
+    const { agentText: _off, ...stt } = requests.speaker.config.stt;
+    const split = { ...requests, speaker: { ...requests.speaker, config: { ...requests.speaker.config, stt } } };
+    const settled = await Promise.allSettled(legs.map((leg) => startLeg(leg, split[leg], events[leg])));
     const i = settled.findIndex((r) => r.status === 'rejected');
     if (i >= 0) {
       // Settled, so a stop that fails too never replaces the start's failure.

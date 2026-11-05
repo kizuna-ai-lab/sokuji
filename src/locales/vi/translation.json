@@ -348,6 +348,9 @@
       "mirrorHear": "Họ nói {{their}} → tôi nghe {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Chế độ mặt đối mặt luôn dùng một phiên dùng chung: cả hai người nói vào cùng một micro.",
+    "sonioxAgentText": "Dùng văn bản được đọc to để cải thiện nhận dạng giọng nói",
+    "sonioxAgentTextTooltip": "Cho dịch vụ nhận dạng giọng nói biết nội dung sắp được đọc to, để dịch vụ nhận dạng câu trả lời tốt hơn và không đưa phần được đọc to vào bản ghi lời nếu âm thanh từ loa của bạn lọt vào micro. Khi giọng nói được phát trên máy tính này, việc này tốn thêm một khoản nhỏ.",
+    "sonioxAgentTextSplitBoth": "Tắt ở chế độ hai chiều dùng phiên riêng cho mỗi chiều: khi đó, tính năng này không ngăn được bản dịch được đọc to lọt vào nhận dạng giọng nói, lại còn khiến việc nhận dạng người nói chen vào lúc đang đọc khó hơn. Cài đặt của bạn được giữ nguyên.",
     "sonioxSpeakerLabels": "Nhãn người nói",
     "sonioxSpeakerLabelsTooltip": "Đánh số những người ở phía bên kia — Người nói 1, Người nói 2… — khi nghe thấy nhiều hơn một giọng.\n\nCó thể nhầm một người thành nhiều người. Đã tắt: không hiển thị số.\n\nÁp dụng từ phiên tiếp theo.",
     "voiceTheyHear": "Giọng bên kia nghe",

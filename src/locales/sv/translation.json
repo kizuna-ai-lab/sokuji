@@ -348,6 +348,9 @@
       "mirrorHear": "De talar {{their}} → jag hör {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Ansikte mot ansikte använder alltid en delad session: båda talar i samma mikrofon.",
+    "sonioxAgentText": "Använd den upplästa texten för att förbättra taligenkänningen",
+    "sonioxAgentTextTooltip": "Talar om för taligenkänningstjänsten vad som strax ska läsas upp, så att den känner igen svar bättre och håller det upplästa utanför transkriptionen om ljudet från dina högtalare når mikrofonen. När talet spelas upp på den här datorn tillkommer en liten kostnad.",
+    "sonioxAgentTextSplitBoth": "Av i tvåvägsläget med en separat session per riktning: där höll den inte den upplästa översättningen utanför taligenkänningen och gjorde det svårare att känna igen någon som pratar samtidigt. Din inställning sparas.",
     "sonioxSpeakerLabels": "Talaretiketter",
     "sonioxSpeakerLabelsTooltip": "Numrerar personerna på andra sidan – Talare 1, Talare 2 … – så snart mer än en röst hörs.\n\nDen kan ta en person för flera. Inaktiverad: inga nummer visas.\n\nGäller från nästa session.",
     "voiceTheyHear": "Röst som motparten hör",

@@ -42,7 +42,7 @@ const playback = vi.hoisted(() => {
   const queue = { position: () => null, pending: 0, clears: 0, subscribe: () => () => {} };
   return {
     queues: { speaker: queue, participant: queue, replay: replayQueue },
-    audio() {}, held() {}, clear() {}, live() {}, passthrough() {},
+    audio() {}, held() {}, clear() {}, live() {}, passthrough() {}, onVoiceIdle: () => () => {},
     replay(_leg: string, _segment: { ref: number }) {}, stopReplay() {}, preview: async (_clip: unknown) => {}, stopPreview() {},
     ttsTap: { read: () => new Float32Array(0) },
     meter: (_bus: string): null => null,

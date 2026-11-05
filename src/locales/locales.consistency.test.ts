@@ -304,3 +304,31 @@ describe('the region tooltip only names an API key where one exists', () => {
     }
   );
 });
+
+describe('the agent-text help names no price', () => {
+  // Owner decision 2026-11-05: the help says only that playing speech on this
+  // computer adds a small charge — no figure and no currency, in any catalog.
+  // The previous copy priced it ("a few US cents per hour of speech"), and
+  // every translation carried that clause in its own words; the tokens below
+  // are the ones those translations used, so a clause that comes back fails.
+  // Whole words only, so "acrescenta" or "usłudze" do not read as a price.
+  const word = (alternatives: string, flags = 'u') => new RegExp(`(?<!\\p{L})(?:${alternatives})(?!\\p{L})`, flags);
+  const PRICE = [
+    /\p{Nd}/u,
+    /[$€£¥¢]/u,
+    word('cents?|cent[ayi]|centów|centavos?|centimes?|centesim[oi]|cêntimos?|sen|sentti|senti|sentimo|dollar(?:cent|[os])?|dolar|dólar(?:es)?', 'iu'),
+    word('USD?|ABD|США'),
+    word('цент(?:ов|ів|а|ы|и)?', 'iu'),
+    /セント|ドル|센트|달러|미화|美分|美元|سنت|دلار|دولار|סנט|דולר|सेंट|डॉलर|সেন্ট|ডলার|சென்ட்|டாலர்|సెంట్|డాలర్|เซนต์|ดอลลาร์/u,
+  ];
+
+  it('settings.sonioxAgentTextTooltip states no number and no currency, in every locale', () => {
+    const offenders: string[] = [];
+    for (const [lang, cat] of [['en', EN] as const, ...locales]) {
+      const s = cat['settings.sonioxAgentTextTooltip'];
+      if (typeof s !== 'string') continue; // key parity is another test's job
+      if (PRICE.some((re) => re.test(s))) offenders.push(`${lang}: ${JSON.stringify(s)}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});

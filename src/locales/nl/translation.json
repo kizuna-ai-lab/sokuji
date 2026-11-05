@@ -348,6 +348,9 @@
       "mirrorHear": "Zij spreken {{their}} → ik hoor {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Face-to-face gebruikt altijd één gedeelde sessie: beide personen spreken in dezelfde microfoon.",
+    "sonioxAgentText": "Voorgelezen tekst gebruiken om de spraakherkenning te verbeteren",
+    "sonioxAgentTextTooltip": "Vertelt de spraakherkenningsdienst wat er zo wordt voorgelezen, zodat hij antwoorden beter herkent en het voorgelezene buiten de transcriptie houdt als het geluid van je luidsprekers de microfoon bereikt. Als de spraak op deze computer wordt afgespeeld, kost dit een klein bedrag.",
+    "sonioxAgentTextSplitBoth": "Uit in de tweerichtingsmodus met een aparte sessie per richting: daar hield het de voorgelezen vertaling niet buiten de spraakherkenning en werd iemand die erdoorheen praat moeilijker herkend. Je instelling blijft bewaard.",
     "sonioxSpeakerLabels": "Sprekerlabels",
     "sonioxSpeakerLabelsTooltip": "Nummert de mensen aan de andere kant — Spreker 1, Spreker 2… — zodra er meer dan één stem te horen is.\n\nHet kan één persoon voor meerdere aanzien. Uitgeschakeld: er worden geen nummers getoond.\n\nWordt toegepast vanaf de volgende sessie.",
     "voiceTheyHear": "Stem die de ander hoort",

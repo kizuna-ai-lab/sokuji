@@ -42,7 +42,7 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
 
   speech: 'optional',
   faceToFace: true,
-  // Soniox's STT socket takes no text.
+  // Soniox's STT socket takes no typed text.
   textInput: () => false,
   // The server's endpoint model ends a segment (`<end>`, `<fin>`).
   boundaries: () => 'provider',

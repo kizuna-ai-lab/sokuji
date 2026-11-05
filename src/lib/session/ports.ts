@@ -1,4 +1,5 @@
 import type { AnalyticsEvents } from '../analytics';
+import type { OutletName } from '../audio/outlets';
 import type { AdapterFrame } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { Punctuator } from '../conversation/fillIn';
@@ -14,15 +15,23 @@ export interface PlaybackPort {
   /**
    * One piece of a leg's translated audio: one clip, which is one speech entry
    * of the segment `ref` names (absent: it names none). `voice`: the leg whose
-   * voice read it and whose outlet plays it, when not `leg`'s own.
+   * voice read it and whose outlet plays it, when not `leg`'s own. Returns
+   * the user's outlets (me, them, other) this clip plays on now; empty when
+   * it plays only into the meeting or was dropped.
    */
-  audio(leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName): void;
+  audio(leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName): readonly OutletName[];
   /** Push-to-translate only: the original-voice route is closed while the key is held. */
   held(held: boolean): void;
   /** The run ended or the conversation was cleared: stop, and drop what is queued. */
   clear(): void;
   /** A run went live (every leg up), or ended: the original voice reaches its route only while live, and playback may rest once not. */
   live(on: boolean): void;
+  /**
+   * A voice's queue holds nothing any more: its last clip played out, or a
+   * clear dropped what was queued (a stop, Clear, Translation I hear switched
+   * off, a rebuilt context). Returns the unsubscribe. Absent: never heard.
+   */
+  onVoiceIdle?(listener: (voice: LegName) => void): () => void;
 }
 
 /** The session events the runner owns (spec: "Analytics"). */
@@ -86,6 +95,8 @@ export interface RunnerDeps {
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
   /** Translation I hear, live (#595): a run started speaking the other side's translation switches its participant session with it; absent, the shape's value holds. */
   participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
+  /** The microphone's mute, live (spec 2026-11-05 §4.2: agent text only while the microphone's audio reaches its socket): read at each chunk. Absent: never muted. */
+  micMuted?: { get(): boolean };
 }
 
 /**
@@ -109,18 +120,30 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
   let framesFailing = false;
   return {
     playback: {
-      audio: (leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName) => {
+      audio: (leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName): readonly OutletName[] => {
         try {
-          playback.audio(leg, ref, pcm, voice);
+          const outlets = playback.audio(leg, ref, pcm, voice) ?? [];
           audioFailing = false;
+          return outlets;
         } catch (error) {
           if (!audioFailing) report('playback.audio', error);
           audioFailing = true;
+          return [];
         }
       },
       held: guard('playback.held', (held: boolean) => playback.held(held)),
       clear: guard('playback.clear', () => playback.clear()),
       live: guard('playback.live', (on: boolean) => playback.live(on)),
+      ...(playback.onVoiceIdle ? {
+        onVoiceIdle: (listener: (voice: LegName) => void): (() => void) => {
+          try {
+            return playback.onVoiceIdle!(listener);
+          } catch (error) {
+            report('playback.onVoiceIdle', error);
+            return () => {};
+          }
+        },
+      } : {}),
     },
     analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, redactValues(properties))) as AnalyticsPort['track'] },
     // Frames arrive per message: report when the port starts failing, not on

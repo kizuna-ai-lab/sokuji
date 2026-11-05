@@ -135,6 +135,8 @@ export interface SharedSettings {
   segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
   /** Face-to-face: a builder that can run it forces its shared socket. Absent: false. */
   faceToFace?: boolean;
+  /** Some leg of this run produces translated speech (its context's `speech`), fixed at start: a builder may ready a socket for it (Soniox asks for agent text when its own setting is on, spec 2026-11-05 §4.3). Whether the speech plays locally is not asked: speech that is not local makes no echo. Set by the run; absent: false. */
+  speaks?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
 }

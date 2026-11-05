@@ -14,6 +14,7 @@ import { describeCause, reportError, reportWarning } from '../diagnostics/report
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { SharedSettings } from '../provider/types';
+import { AgentTextFeed } from './agentText';
 import type { RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
@@ -91,6 +92,8 @@ export class Run {
   private opening: Promise<void> | null = null;
   /** Every leg's open still in flight — a source, an adapter's start: `close()` waits for all of them, not just the first to fail. */
   private readonly legOpens: Promise<unknown>[] = [];
+  /** The text of the speech this run queues on the user's outlets, to the session that hears the microphone (spec 2026-11-05 §4.1, §4.2). */
+  private readonly agentTextFeed: AgentTextFeed;
 
   /** Keeps `task` among the opens `close()` waits for. */
   private opened<T>(task: Promise<T>): Promise<T> {
@@ -105,6 +108,29 @@ export class Run {
     this.host = host(this);
     this.stack = new ResourceStack(deps.clock, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS, (f) =>
       reportWarning('SessionRunner', `Releasing ${f.name} failed: ${f.message}`, { dedupeKey: `release:${f.name}` }));
+    // The mute port throwing must not escape an adapter's event: it reads as muted ("send nothing"), reported once.
+    let muteFailed = false;
+    const muted = (): boolean => {
+      try {
+        return deps.micMuted?.get() ?? false;
+      } catch (error) {
+        if (!muteFailed) {
+          muteFailed = true;
+          reportError('SessionRunner', `Reading the microphone mute for agent text failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentTextPorts' });
+        }
+        return true;
+      }
+    };
+    // Whether a socket takes agent text is the provider's, decided at Start (Soniox's own setting, `buildSoniox`): the run
+    // sends whenever the gates below allow, and a socket that did not ask refuses silently (spec 2026-11-05 §4.3).
+    this.agentTextFeed = new AgentTextFeed({
+      legs: shape.legs,
+      // The microphone reaches its socket: not while muted (capture delivers nothing), and then always in automatic
+      // turns, in a manual mode only while the key is held (`send`).
+      micOpen: () => !muted() && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
+      session: (leg) => this.sessions.get(leg),
+      report: (error) => reportError('SessionRunner', `A session did not take agent text: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentText' }),
+    });
   }
 
   get signal(): AbortSignal {
@@ -148,7 +174,6 @@ export class Run {
         : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
     }
     // The run's own answer (F2): a model-choosing builder reads the list its settings component was shown.
-    const shared: SharedSettings = { ...shape.shared, models: readiness.models };
 
     let settings = shape.settings;
     let prepared: Prepared<unknown> = {};
@@ -163,6 +188,8 @@ export class Run {
     }
 
     const contexts = contextsFor(shape);
+    // Whether any leg speaks, told to every builder: Soniox asks for agent text on it when its own setting is on (spec 2026-11-05 §4.3).
+    const shared: SharedSettings = { ...shape.shared, models: readiness.models, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
@@ -198,6 +225,10 @@ export class Run {
     this.models = p.describe(configs.speaker ?? configs.participant);
 
     host.step('opening');
+    // A voice's queue going idle ends its agent text segment. The runner calls `playback.clear()` before
+    // `close()`, so a stop still closes an open segment while the sessions are open.
+    const offVoiceIdle = deps.playback.onVoiceIdle?.((voice) => this.agentTextFeed.voiceIdle(voice));
+    if (offVoiceIdle) this.stack.defer('agent text', offVoiceIdle);
     const punctuate = this.punctuatorForRun();
     for (const leg of shape.legs) {
       this.conversations.set(leg, new Conversation({
@@ -414,6 +445,10 @@ export class Run {
   /** Translation I hear switched (#595): only a run started speaking the other side's translation follows it — one started without has no speech to switch on. */
   setParticipantSpeech(on: boolean): void {
     if (this.ending || !this.shape.participantSpeech) return;
+    // Off drops the participant voice's queued speech (playback clears its queue). Its agent text segment ends
+    // first, so a fill-in of the killed TTS segment never sends the dropped words, whichever lands first
+    // (spec 2026-11-05 §4.2): playback's own idle then finds nothing open.
+    if (!on) this.agentTextFeed.voiceIdle('participant');
     this.sessions.get('participant')?.setSpeech?.(on);
   }
 
@@ -537,10 +572,18 @@ export class Run {
       case 'loading':
         this.host.loading(leg, event.payload);
         return;
+      case 'segmentText':
+        this.agentTextFeed.rowText(leg, event.payload.ref, event.payload.text);
+        return;
       case 'audio':
-        playback.audio(leg, event.payload.ref, event.payload.pcm, event.payload.voice);
+        // The outlets the clip plays on decide whether, and where, its text goes (spec 2026-11-05 §4.1).
+        this.agentTextFeed.audio(leg, event.payload, playback.audio(leg, event.payload.ref, event.payload.pcm, event.payload.voice));
+        return;
+      case 'speechRanges':
+        this.agentTextFeed.ranges(leg, event.payload);
         return;
       case 'reconnecting':
+        this.agentTextFeed.reconnecting(leg);
         this.setLegState(leg, 'reconnecting');
         analytics.track('connection_status', { status: 'reconnecting', provider, channel: leg });
         return;

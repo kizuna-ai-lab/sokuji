@@ -348,6 +348,9 @@
       "mirrorHear": "Loro parlano {{their}} → io sento {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Il faccia a faccia usa sempre una sessione condivisa: le due persone parlano nello stesso microfono.",
+    "sonioxAgentText": "Usa il testo letto ad alta voce per migliorare il riconoscimento vocale",
+    "sonioxAgentTextTooltip": "Indica al servizio di riconoscimento vocale cosa sta per essere letto ad alta voce, così riconosce meglio le risposte e lascia fuori dalla trascrizione il testo letto ad alta voce se il suono dei tuoi altoparlanti arriva al microfono. Quando la voce viene riprodotta su questo computer, comporta un piccolo costo.",
+    "sonioxAgentTextSplitBoth": "Disattivato in modalità bidirezionale con una sessione separata per direzione: lì non teneva fuori dal riconoscimento vocale la traduzione letta ad alta voce e rendeva più difficile riconoscere chi parla sopra di essa. La tua impostazione viene conservata.",
     "sonioxSpeakerLabels": "Etichette interlocutore",
     "sonioxSpeakerLabelsTooltip": "Numera le persone dall'altra parte — Interlocutore 1, Interlocutore 2… — non appena si sente più di una voce.\n\nPuò scambiare una persona per più persone. Disabilitato: nessun numero viene mostrato.\n\nSi applica dalla prossima sessione.",
     "voiceTheyHear": "Voce che sente l'altra parte",

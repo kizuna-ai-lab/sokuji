@@ -248,6 +248,50 @@ describe('SonioxSttStream', () => {
       expect('enable_speaker_diarization' in first).toBe(false);
     }
   });
+
+  describe('agent text input', () => {
+    it('asks for agent text in the config frame only when configured (wire unchanged otherwise)', async () => {
+      const on = await openStream({ ...CONFIG, enableAgentTextInput: true });
+      expect(JSON.parse(on.ws.sent[0] as string).enable_agent_text_input).toBe(true);
+      for (const enableAgentTextInput of [undefined, false]) {
+        const s = new SonioxSttStream();
+        const p = s.connect({ ...CONFIG, enableAgentTextInput });
+        const ws = last(MockWebSocket.instances);
+        ws.open();
+        await p;
+        expect('enable_agent_text_input' in JSON.parse(ws.sent[0] as string)).toBe(false);
+      }
+    });
+
+    it('sends an agent_text frame, the text as given and the segment end, while open', async () => {
+      const { s, ws } = await openStream({ ...CONFIG, enableAgentTextInput: true });
+      expect(s.sendAgentText('There are ', false)).toBe(true);
+      expect(s.sendAgentText('', true)).toBe(true);
+      expect(ws.sent.slice(1).map((d) => JSON.parse(d as string))).toEqual([
+        { type: 'agent_text', text: 'There are ', end_of_segment: false },
+        { type: 'agent_text', text: '', end_of_segment: true },
+      ]);
+    });
+
+    it('sends nothing while the socket is not open: before it opens and after it closes', async () => {
+      const s = new SonioxSttStream();
+      const p = s.connect({ ...CONFIG, enableAgentTextInput: true });
+      const ws = last(MockWebSocket.instances);
+      expect(s.sendAgentText('early', false)).toBe(false);
+      ws.open();
+      await p;
+      s.close();
+      expect(s.sendAgentText('late', true)).toBe(false);
+      expect(ws.sent.filter((d) => typeof d === 'string' && d.includes('"type":"agent_text"'))).toEqual([]);
+      expect(ws.sent).toHaveLength(1);
+    });
+
+    it('sends nothing on a stream configured without agent text: Soniox would end it', async () => {
+      const { s, ws } = await openStream();
+      expect(s.sendAgentText('hello', false)).toBe(false);
+      expect(ws.sent).toHaveLength(1);
+    });
+  });
 });
 
 describe('SonioxSttStream regional endpoints', () => {

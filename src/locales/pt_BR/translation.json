@@ -348,6 +348,9 @@
       "mirrorHear": "Eles falam {{their}} → eu ouço {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "O cara a cara sempre usa uma sessão compartilhada: as duas pessoas falam no mesmo microfone.",
+    "sonioxAgentText": "Usar o texto lido em voz alta para melhorar o reconhecimento de fala",
+    "sonioxAgentTextTooltip": "Informa ao serviço de reconhecimento de fala o que está prestes a ser lido em voz alta, para que ele reconheça melhor as respostas e deixe o que é lido em voz alta fora da transcrição se o som dos seus alto-falantes chegar ao microfone. Quando a fala é reproduzida neste computador, isso gera uma pequena cobrança.",
+    "sonioxAgentTextSplitBoth": "Desativado no modo bidirecional com uma sessão separada por direção: ali não mantinha a tradução lida em voz alta fora do reconhecimento de fala e dificultava reconhecer alguém falando por cima. Sua configuração é mantida.",
     "sonioxSpeakerLabels": "Rótulos de falante",
     "sonioxSpeakerLabelsTooltip": "Numera as pessoas do outro lado — Falante 1, Falante 2… — assim que mais de uma voz é ouvida.\n\nPode confundir uma pessoa com várias. Desabilitado: nenhum número é exibido.\n\nAplica-se a partir da próxima sessão.",
     "voiceTheyHear": "Voz que o outro lado ouve",

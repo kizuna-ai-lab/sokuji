@@ -34,7 +34,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -473,4 +473,11 @@ describe('appParticipantSpeech — Translation I hear, live for the runner (#595
     off();
     expect(heard).toEqual([false]);
   });
+});
+
+it('appMicMuted reads the microphone mute as it stands', () => {
+  useAudioStore.setState({ isMicMuted: true });
+  expect(appMicMuted.get()).toBe(true);
+  useAudioStore.setState({ isMicMuted: false });
+  expect(appMicMuted.get()).toBe(false);
 });

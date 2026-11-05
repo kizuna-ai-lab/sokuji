@@ -11,8 +11,9 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents } from '../../lib/contract/events';
 import { gate } from '../../lib/session/shape';
 import { buildSoniox, describeSoniox } from './config';
+import { leaseRequest } from './leaseRequest';
 import { sonioxProvider } from './provider';
-import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages } from './settings';
+import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, sonioxSharedBoth } from './settings';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
 import { KEY, SHARED } from './testing';
@@ -44,6 +45,24 @@ describe('sonioxProvider', () => {
     expect(sonioxProvider.settings.key).toBe('soniox');
     expect(sonioxProvider.settings.defaults).toBe(SONIOX_DEFAULTS);
     expect(sonioxProvider.settings.migrate).toBe(migrateSonioxSettings);
+  });
+
+  it('reads split Both by the one rule (sonioxSharedBoth) in its builder and its lease (the settings view reads it too: SonioxSettings.test)', () => {
+    // The settings view greys agent text where `inBoth && !sonioxSharedBoth(...)`: the lease's `bothSplit`, and in Both the builder's `sharedBoth` inverted.
+    const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
+    for (const legs of [['speaker'], ['participant'], ['speaker', 'participant']] as const) {
+      for (const faceToFace of [false, true]) {
+        for (const bothModeSharedSession of [false, true]) {
+          const s = { ...SONIOX_DEFAULTS, bothModeSharedSession };
+          const split = legs.length === 2 && !sonioxSharedBoth(faceToFace, s);
+          expect(leaseRequest({ legs, textOnly: false, participantSpeech: false, faceToFace }, s, false).bothSplit).toBe(split);
+          if (legs.length === 2) expect(buildSoniox(context, s, { ...SHARED, faceToFace }).sharedBoth).toBe(!split);
+        }
+      }
+    }
+    // The agent text setting is Soniox's own, in its settings view: no provider member for it.
+    expect(sonioxProvider).not.toHaveProperty('agentText');
+    expect(sonioxProvider).not.toHaveProperty('splitBoth');
   });
 
   it('speaks optionally, takes no typed text, keeps the provider\'s boundaries, and offers both turn modes', () => {

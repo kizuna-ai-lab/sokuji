@@ -214,6 +214,11 @@ export function watchLegsFromStores(): () => void {
   return useAudioStore.subscribe((s) => s.mode, apply);
 }
 
+/** The microphone's mute, as it stands when the run asks: the runner's `micMuted`. */
+export const appMicMuted: { get(): boolean } = {
+  get: () => useAudioStore.getState().isMicMuted,
+};
+
 /** `keepReplayAudio`, live from the settings store: the runner's `replayAudio`. */
 export const appReplayAudio = {
   get: () => useSettingsStore.getState().keepReplayAudio,

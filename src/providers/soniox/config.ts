@@ -9,7 +9,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { reportWarning } from '../../lib/diagnostics/report';
 import type { SharedSettings } from '../../lib/provider/types';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
-import { participantVoiceFor, sonioxSpeakerVoice, type SonioxSettings } from './settings';
+import { participantVoiceFor, sonioxSharedBoth, sonioxSpeakerVoice, type SonioxSettings } from './settings';
 import { SONIOX_STT_MODEL } from './sttStream';
 
 /** The STT config frame's `context`, wire-shaped. */
@@ -27,6 +27,8 @@ export interface SonioxConfig {
     endpointSensitivity: number;
     endpointLatencyAdjustmentLevel: number;
     endpointMaxDelayMs: number;
+    /** Ask for agent text on this leg's socket: the speaker's leg, whose socket hears the microphone, in a run that speaks with the agent text setting on at Start (§4.3); split Both strips it (`startSplit`). Absent: off. */
+    agentText?: true;
   };
   /** Present when this leg speaks, in this leg's own voice: the participant's leg in `participantVoice`. */
   tts?: { voice: string; speed: number };
@@ -154,12 +156,14 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       endpointSensitivity: clampNumber(s.endpointSensitivity, -1, 1, 0),
       endpointLatencyAdjustmentLevel: Math.round(clampNumber(s.endpointLatencyAdjustmentLevel, 0, 3, 0)),
       endpointMaxDelayMs: Math.round(clampNumber(s.endpointMaxDelayMs, 500, 3000, 2000)),
+      // The narrow rule (spec 2026-11-05 §4.3): the flag alone made Soniox drop talk-over turns when speech echoed into the microphone, so only with the setting on.
+      ...(!shared.reversed(context.direction) && shared.speaks === true && s.agentText === true ? { agentText: true as const } : {}),
     },
     ...(context.speech
       ? { tts: { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
       : {}),
     // Face-to-face is one microphone: there is nothing to split.
-    sharedBoth: shared.faceToFace === true || s.bothModeSharedSession,
+    sharedBoth: sonioxSharedBoth(shared.faceToFace === true, s),
     ...(shared.faceToFace ? { faceToFace: true as const } : {}),
     // The participant's leg (D4). The context names no leg, so a pair into its
     // own language labels both: a lone voice stays unlabelled anyway.
