@@ -131,21 +131,29 @@ describe('createSonioxSettingsView', () => {
     expect(sharedPills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
   });
 
-  it('an own key reads the own-key region tooltip and no managed cost note', () => {
+  const SHARED_HELP = 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.';
+  const MANAGED_COST = 'Kizuna AI supports both. Disabled runs two sessions at once — about twice the cost per minute, so your session allowance runs out in about half the time and a higher balance is needed to start.';
+  const mentionsCost = (c: unknown) => typeof c === 'string' && c.includes('Kizuna AI supports both.');
+
+  it('an own key reads the own-key region tooltip, and the shared-session help without the managed cost note', () => {
     render(<BYOK {...props()} />);
     expect(tooltipContents).toContain(
       'Soniox runs a separate deployment per region, and each one is a separate Soniox project with its own API key. Your audio is processed in the region you pick. Applies from the next session.'
     );
+    expect(tooltipContents).toContain(SHARED_HELP);
+    expect(tooltipContents.some(mentionsCost)).toBe(false);
     expect(screen.queryByText(/Kizuna AI supports both\./)).toBeNull();
   });
 
-  it("a managed view reads the managed region tooltip and states the cost of split (Plan B's seam)", () => {
+  it("a managed view reads the managed region tooltip and states the cost of split in the shared-session help, not as a block of its own (Plan B's seam)", () => {
     const Managed = createSonioxSettingsView({ managed: true, useVoiceSource: () => null });
     render(<Managed {...props()} />);
     expect(tooltipContents).toContain(
       'Soniox runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.'
     );
-    expect(screen.getByText(/Kizuna AI supports both\./)).toBeInTheDocument();
+    expect(tooltipContents).toContain(`${SHARED_HELP}\n\n${MANAGED_COST}`);
+    expect(tooltipContents).not.toContain(SHARED_HELP);
+    expect(screen.queryByText(/Kizuna AI supports both\./)).toBeNull();
   });
 
   it("hands the voice library the host's preview route", () => {
@@ -221,8 +229,8 @@ describe('SonioxSettings, speaker labels', () => {
 describe.each([
   ['own key', BYOK],
   ['managed', createSonioxSettingsView({ managed: true, useVoiceSource: () => null })],
-] as const)('SonioxSettings, keep the read-aloud translation out of recognition (%s)', (_flavour, View) => {
-  const HELP = 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).';
+] as const)('SonioxSettings, use the read-aloud text to improve recognition (%s)', (_flavour, View) => {
+  const HELP = 'Tells the recognition service what is about to be read aloud, so it recognizes replies better and leaves the read-aloud out of the transcript if your speakers reach the microphone. When speech plays on this computer, this adds a small charge.';
   const SPLIT_BOTH = 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.';
   const rowOf = () => section('soniox-agent-text-section');
   const on = () => rowOf().getByRole('button', { name: 'Enabled' });
@@ -233,10 +241,10 @@ describe.each([
   it('sits directly below the shared-session choice, under its own heading', () => {
     render(<View {...props()} />);
     expect(document.getElementById('soniox-settings-section')!.nextElementSibling?.id).toBe('soniox-agent-text-section');
-    expect(rowOf().getByRole('heading', { name: 'Keep the read-aloud translation out of recognition' })).toBeInTheDocument();
+    expect(rowOf().getByRole('heading', { name: 'Use the read-aloud text to improve recognition' })).toBeInTheDocument();
   });
 
-  it('in shared Both: shows the stored value, writes it, says what it sends and costs, with no reason', () => {
+  it('in shared Both: shows the stored value, writes it, says what it is for and that it adds a small charge, with no reason', () => {
     const update = vi.fn();
     const { rerender } = render(<View {...props({ update, settings: withSettings({ bothModeSharedSession: true }) })} />);
     expect(on()).toHaveClass('active');

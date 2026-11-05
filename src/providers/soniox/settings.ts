@@ -29,7 +29,7 @@ export interface SonioxSettings {
   /** The other side's people numbered (Speaker 1, Speaker 2…); off, no utterance carries a person. */
   speakerLabels: boolean;
   /**
-   * Keep the read-aloud translation out of recognition (spec 2026-11-05 §4.4): a run that speaks asks for agent text
+   * Use the read-aloud text to improve recognition (spec 2026-11-05 §4.4): a run that speaks asks for agent text
    * on its microphone socket and sends the text about to be read aloud. Read at Start (the builder); never in split
    * Both, where the settings view shows it off, the stored value kept.
    */

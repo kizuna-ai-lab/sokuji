@@ -348,8 +348,8 @@
       "mirrorHear": "He puhuvat {{their}} → kuulen {{mine}}"
     },
     "sonioxSharedSessionFaceToFace": "Kasvokkain-tila käyttää aina yhtä jaettua istuntoa: molemmat puhuvat samaan mikrofoniin.",
-    "sonioxAgentText": "Pidä ääneen luettu käännös poissa puheentunnistuksesta",
-    "sonioxAgentTextTooltip": "Lähettää pian ääneen luettavan tekstin puheentunnistuspalveluun jo ennen toistoa, jotta kaiuttimista kuuluvaa puhetta ei luulla jonkun puheeksi. Kun puhe toistetaan tällä tietokoneella, tästä aiheutuu pieni lisämaksu (muutama Yhdysvaltain sentti puhetuntia kohden).",
+    "sonioxAgentText": "Käytä ääneen luettavaa tekstiä puheentunnistuksen parantamiseen",
+    "sonioxAgentTextTooltip": "Kertoo puheentunnistuspalvelulle, mitä pian luetaan ääneen, jotta se tunnistaa vastaukset paremmin ja jättää ääneen luetun pois litteroinnista, jos kaiuttimien ääni kuuluu mikrofoniin. Kun puhe toistetaan tällä tietokoneella, tästä aiheutuu pieni lisämaksu.",
     "sonioxAgentTextSplitBoth": "Pois käytöstä kaksisuuntaisessa tilassa, jossa kumpaankin suuntaan on erillinen istunto: siellä se ei pitänyt ääneen luettua käännöstä poissa puheentunnistuksesta ja vaikeutti päälle puhuvan tunnistamista. Asetuksesi säilyy.",
     "sonioxSpeakerLabels": "Puhujatunnisteet",
     "sonioxSpeakerLabelsTooltip": "Numeroi toisen osapuolen ihmiset – Puhuja 1, Puhuja 2… – kun kuuluu useampi kuin yksi ääni.\n\nSe voi luulla yhtä ihmistä useaksi. Pois käytöstä: numeroita ei näytetä.\n\nOtetaan käyttöön vasta seuraavasta istunnosta alkaen.",
