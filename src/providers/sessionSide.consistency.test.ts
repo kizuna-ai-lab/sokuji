@@ -319,7 +319,7 @@ describe('a provider session side', () => {
 
   it('the shared reconnect policy is platform-neutral: no global timer, no wall clock, no platform import', () => {
     // Imported by the mobile app through `vendor/sokuji`, and by the adapter contract (types), so neither file may reach a DOM, React, Electron, a store, the environment probe or the reporter.
-    const files = ['src/lib/session/reconnect.ts', 'src/lib/contract/reconnect.ts'];
+    const files = ['src/lib/session/reconnect.ts', 'src/lib/contract/reconnect.ts', 'src/lib/session/reconnectEvents.ts'];
     const platform = [/^react(-dom)?(\/|$)/, /^electron(\/|$)/, /(^|\/)stores\//, /(^|\/)utils\/environment$/, /(^|\/)diagnostics\/report$/];
     for (const file of files) {
       const source = readFileSync(join(REPO_ROOT, file), 'utf-8');

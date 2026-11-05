@@ -4,9 +4,10 @@ import type { DeviceProfile } from '../utils/deviceProfile';
 import type { LegName } from './conversation/types';
 import { reportWarning } from './diagnostics/report';
 import { describeCause } from './diagnostics/describeCause';
+import type { ReconnectAnalyticsEvents } from './session/reconnectEvents';
 
 // Analytics event types - Comprehensive product metrics for Sokuji
-export interface AnalyticsEvents {
+export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   // Application lifecycle
   // Version and platform are Super Properties; the device profile is not --
   // it costs an async GPU probe, so it rides this once-per-launch event, and
@@ -75,6 +76,10 @@ export interface AnalyticsEvents {
     /** Sentence terminals per 100 characters, per leg / ASR model / language.
      *  The measure of where punctuation is actually absent. Counts only. */
     segmentation_terminals_per_100?: Record<string, number>;
+    /** Reconnects that succeeded, the time spent down across them, and whether the session ended on a give-up. */
+    reconnect_count?: number;
+    reconnect_down_ms?: number;
+    reconnect_failed?: boolean;
   };
   'translation_completed': {
     session_id: string;
