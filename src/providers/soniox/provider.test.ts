@@ -47,7 +47,7 @@ describe('sonioxProvider', () => {
     expect(sonioxProvider.settings.migrate).toBe(migrateSonioxSettings);
   });
 
-  it('reads split Both by the one rule (sonioxSharedBoth) in its settings view, its builder and its lease', () => {
+  it('reads split Both by the one rule (sonioxSharedBoth) in its builder and its lease (the settings view reads it too: SonioxSettings.test)', () => {
     // The settings view greys agent text where `inBoth && !sonioxSharedBoth(...)`: the lease's `bothSplit`, and in Both the builder's `sharedBoth` inverted.
     const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
     for (const legs of [['speaker'], ['participant'], ['speaker', 'participant']] as const) {

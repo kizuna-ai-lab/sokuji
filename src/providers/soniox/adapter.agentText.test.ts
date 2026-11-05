@@ -21,11 +21,11 @@ type Mode = 'me' | 'other' | 'split' | 'shared' | 'faceToFace';
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
 const SPEAKS: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja', speaks: true };
 
-async function open(mode: Mode) {
+async function open(mode: Mode, over: Partial<SonioxSettings> = {}) {
   const sockets = fakeSockets();
   const { clock } = trackedClock();
   const signal = new AbortController().signal;
-  const settings: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: mode === 'shared' || mode === 'faceToFace' };
+  const settings: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: mode === 'shared' || mode === 'faceToFace', ...over };
   const shared: SharedSettings = { ...SPEAKS, ...(mode === 'faceToFace' ? { faceToFace: true } : {}) };
   // Both legs speak.
   const contexts: Record<LegName, SessionContext> = {
@@ -112,4 +112,15 @@ describe('Soniox session agentText (spec 2026-11-05 §4.2-§4.3)', () => {
     expect(h.agentFrames(0)).toEqual([]);
     expect(h.logged()).toEqual([]);
   });
+
+  for (const mode of ['me', 'shared', 'faceToFace'] as const) {
+    it(`${mode}: with the Soniox setting off the socket does not ask, the session refuses silently, nothing is sent or logged (spec 2026-11-05 §4.3)`, async () => {
+      const h = await open(mode, { agentText: false });
+      for (const s of h.sttSockets()) expect(s.sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
+      expect(h.sessions.speaker!.agentText!('Hello.', false)).toBe(false);
+      expect(h.sessions.speaker!.agentText!('', true)).toBe(false);
+      expect(h.agentFrames(0)).toEqual([]);
+      expect(h.logged()).toEqual([]);
+    });
+  }
 });
