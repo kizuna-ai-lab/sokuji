@@ -11,7 +11,7 @@
 
 **Tech Stack:** TypeScript, React, Vitest, the repo's virtual clock and fake sockets (`src/lib/contract/testing/*`), i18next catalogs (30 locales).
 
-**Spec:** `docs/superpowers/specs/2026-11-05-session-reconnect-design.md` at f674d2c72, on this branch. The backend half is `kizuna-ai-lab/sokuji-backend` `docs/superpowers/plans/2026-11-05-reconnect-reissue.md` on branch `feat/reconnect-reissue`.
+**Spec:** `docs/superpowers/specs/2026-11-05-session-reconnect-design.md` at 03786e5ca, on this branch. The backend half is `kizuna-ai-lab/sokuji-backend` `docs/superpowers/plans/2026-11-05-reconnect-reissue.md` on branch `feat/reconnect-reissue`.
 
 ## Rulings made during implementation
 
