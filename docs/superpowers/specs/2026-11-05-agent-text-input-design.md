@@ -69,7 +69,7 @@ A pure function decides this from the session shape, the clip's voice and its ou
 
 ### 4.4 The setting
 
-- One switch under speech output: **"Keep the read-aloud translation out of recognition"** (final words by the copy owner), on by default, available in managed and own-key mode. A change during a session takes effect from the next session (§4.3).
+- One switch under speech output: **"Keep the read-aloud translation out of recognition"** (final words by the copy owner), on by default, available in managed and own-key mode. A change during a session takes effect from the next session (§4.3). In split Both it shows off, greyed and not adjustable, and its help says why (§4.1); the stored setting is kept for the other modes.
 - Its description: the text about to be read aloud is sent to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking; when speech plays on this computer this adds a small charge (a few US cents per hour of speech).
 - All 30 locales.
 
