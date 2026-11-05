@@ -69,8 +69,9 @@ A pure function decides this from the session shape, the clip's voice and its ou
 
 ### 4.4 The setting
 
-- One switch in the **Soniox settings**, directly below "Shared session in Both mode" (owner, 2026-11-05: only Soniox supports it, and its split-Both state follows the choice beside it): **"Keep the read-aloud translation out of recognition"** (final words by the copy owner), on by default, a Soniox setting kept separately for own-key and managed (Kizuna) Soniox. It shows where the Soniox settings do (Advanced settings). Like the other Soniox settings it is fixed during a session; a change applies from the next one (§4.3). In split Both it shows off, greyed and not adjustable, and its help says why (§4.1); the stored setting is kept for the other modes.
-- Its description: the text about to be read aloud is sent to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking; when speech plays on this computer this adds a small charge (a few US cents per hour of speech).
+- One switch in the **Soniox settings**, directly below "Shared session in Both mode" (owner, 2026-11-05: only Soniox supports it, and its split-Both state follows the choice beside it): **"Use the read-aloud text to improve recognition"** (owner, 2026-11-05: it does two things, per Soniox's docs — replies are recognized better because the model knows what they answer, and leftover echo of the read-aloud is left out of the transcript), on by default, a Soniox setting kept separately for own-key and managed (Kizuna) Soniox. It shows where the Soniox settings do (Advanced settings). Like the other Soniox settings it is fixed during a session; a change applies from the next one (§4.3). In split Both it shows off, greyed and not adjustable, and its help says why (§4.1); the stored setting is kept for the other modes.
+- Its help: "Tells the recognition service what is about to be read aloud, so it recognizes replies better and leaves the read-aloud out of the transcript if your speakers reach the microphone. When speech plays on this computer, this adds a small charge." No number and no currency in the copy (owner, 2026-11-05).
+- Cost notes live in the help, not as separate blocks: the managed cost note of "Shared session in Both mode" moved into that setting's help in the same delivery.
 - All 30 locales.
 
 ### 4.5 Cost
