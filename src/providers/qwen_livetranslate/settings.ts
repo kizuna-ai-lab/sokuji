@@ -159,9 +159,17 @@ export const qwenLanguages: Provider<QwenSettings, never, never>['languages'] = 
   wire: identityWire(),
 };
 
+/** The answer to `reissue()`: a usable token for the lease (the cached one while it lasts, else a fresh one), or why there is none. */
+export type QwenReissue =
+  | { ok: true; apiKey: string; expiresAt: number }
+  | { ok: false; retry: true; message: string }
+  | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'unsupported'; message: string };
+
 /** What the managed leg tells its lease: the session the endpoint opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
 export interface QwenLeasePort {
   sessionCreated(id: string, requestId?: string): void;
+  /** A token for a reconnecting leg: the lease's cached one while it is valid, else one request shared by both legs. */
+  reissue(): Promise<QwenReissue>;
 }
 
 export interface QwenCredentials {

@@ -5,7 +5,7 @@
  * segments and frames, the ends, stop. On the header seam's fake,
  * `FakeSocket`s and a virtual clock — no network, no fake timers.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, SAMPLE_RATE, type FrameReason, type FrameSource } from '../../lib/contract/adapter';
 import type { AdapterEvent } from '../../lib/contract/events';
 import { HeaderSocketError } from '../../lib/contract/headerSocket';
@@ -660,7 +660,7 @@ describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
   const NO_STOREFRONT = { ...SHARED, models: [] };
   const managed = () => {
     const calls: [string, string | undefined][] = [];
-    const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: (id, requestId) => { calls.push([id, requestId]); } } };
+    const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: (id, requestId) => { calls.push([id, requestId]); }, reissue: vi.fn() } };
     return { calls, credentials };
   };
 
@@ -738,7 +738,7 @@ describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
     const seam = fakeHeaderSockets(undefined, { requestIds: [A, B] });
     const calls: [string, string, string | undefined][] = [];
     const leg = (name: string) => {
-      const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: (id, requestId) => { calls.push([name, id, requestId]); } } };
+      const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: (id, requestId) => { calls.push([name, id, requestId]); }, reissue: vi.fn() } };
       const { clock } = trackedClock();
       const { events } = recordEvents();
       const config = configFor(AUTO_CTX, undefined, NO_STOREFRONT);
@@ -772,7 +772,7 @@ describe('the Qwen LiveTranslate adapter: a managed leg (spec §4)', () => {
   });
 
   it('is not broken by a lease that throws', async () => {
-    const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: () => { throw new Error('lease down'); } } };
+    const credentials: QwenCredentials = { apiKey: 'st-token', endpoint: 'intl', lease: { sessionCreated: () => { throw new Error('lease down'); }, reissue: vi.fn() } };
     const h = await openQwen({ credentials, shared: NO_STOREFRONT, requestIds: [REQUEST] });
     h.socket().receive(SERVER.created(SESSION));
     h.socket().receive(SERVER.updated());

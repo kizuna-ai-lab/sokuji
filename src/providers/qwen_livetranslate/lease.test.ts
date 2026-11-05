@@ -27,7 +27,7 @@ function stubFetch() {
 
 /** A grant as the backend answers it (spec §3). */
 const grant = (over: Record<string, unknown> = {}) => ({
-  leaseId: 'lease-1', endpoint: 'intl', apiKey: GRANT_KEY, expiresAt: '2026-10-17T00:01:00Z',
+  leaseId: 'lease-1', endpoint: 'intl', apiKey: GRANT_KEY, expiresAt: 60_000,
   maxSessionDurationSeconds: 600, budgetMicroUsd: 416_667, rateUsdPerHour: 2.5, ...over,
 });
 
@@ -50,9 +50,10 @@ function acquiring(legs: LegName[], o: Options = {}) {
   const waiting = vi.fn();
   const ctx: LeaseContext = { signal: controller.signal, clock, end, frame, waiting };
   const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
-  const pending = lease(shapeFor(legs, o), { ...QWEN_DEFAULTS, ...o.settings }, ctx);
+  const shape = shapeFor(legs, o);
+  const pending = lease(shape, { ...QWEN_DEFAULTS, ...o.settings }, ctx);
   pending.catch(() => {});
-  return { ...net, clock, controller, end, frame, waiting, ctx, lease, pending };
+  return { ...net, shape, clock, controller, end, frame, waiting, ctx, lease, pending };
 }
 
 type AcquireOptions = Parameters<typeof acquiring>[1];
@@ -132,7 +133,7 @@ describe('Qwen lease: the grant', () => {
   it("hands each leg the grant, its endpoint and a port; the budget is the grant's duration", async () => {
     const a = await granted(['speaker', 'participant']);
     const { credentials, budget } = a.resources;
-    expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function) } });
+    expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function), reissue: expect.any(Function) } });
     expect(credentials('participant').apiKey).toBe(GRANT_KEY);
     expect(budget).toEqual({ totalMs: 600_000, endsAt: 600_000 });
   });
@@ -641,5 +642,172 @@ describe('Qwen lease: the grant stays out of the Logs', () => {
     expect(a.frame.mock.calls.length).toBeGreaterThan(4);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(GRANT_KEY);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(GRANT_KEY.slice(0, 8));
+  });
+});
+
+describe('Qwen lease: reissue', () => {
+  const FRESH = 'st-fresh-0002';
+  const REISSUE = '/qwen/session-key/reissue';
+  const reissuer = async (legs: LegName[] = ['speaker', 'participant'], o: AcquireOptions = {}, over: Record<string, unknown> = {}) => {
+    const a = await granted(legs, o, over);
+    const ports = Object.fromEntries(legs.map((leg) => [leg, a.resources.credentials(leg).lease!]));
+    return { ...a, ports };
+  };
+  /** Past the cached token's refresh margin (the grant expires at 60 000). */
+  const expire = (a: { clock: { advance(ms: number): void } }) => a.clock.advance(56_000);
+
+  it('a token still valid is reused without a request', async () => {
+    const a = await reissuer();
+    const before = a.calls.length;
+    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 60_000 });
+    expect(a.calls.length).toBe(before);
+  });
+
+  it('seeds the cache a minute out when the grant names no expiry', async () => {
+    const a = await reissuer(['speaker'], {}, { expiresAt: undefined });
+    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 55_000 });
+  });
+
+  it('an expired token fetches one; both legs calling together make one request', async () => {
+    const a = await reissuer();
+    expire(a);
+    const speaker = a.ports.speaker.reissue();
+    const participant = a.ports.participant.reissue();
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(1);
+    const call = a.to(REISSUE)[0];
+    expect(call.init.method).toBe('POST');
+    expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+    expect(JSON.parse(call.init.body as string)).toEqual({ leaseId: 'lease-1' });
+    call.respond(200, { leaseId: 'lease-1', region: 'sg', endpoint: 'intl', apiKey: FRESH, expiresAt: 120_000 });
+    const ok = { ok: true, apiKey: FRESH, expiresAt: 120_000 };
+    await expect(speaker).resolves.toEqual(ok);
+    await expect(participant).resolves.toEqual(ok);
+    // The new token is the lease's now: a later call reuses it.
+    await expect(a.ports.participant.reissue()).resolves.toEqual(ok);
+    expect(a.to(REISSUE)).toHaveLength(1);
+    expect(JSON.stringify(a.frame.mock.calls)).not.toContain(FRESH);
+  });
+
+  it('asks again once the shared request has settled and the token has expired again', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    const first = a.ports.speaker.reissue();
+    await flush();
+    a.to(REISSUE)[0].respond(503, { error: 'qwen_busy', retryAfterMs: 1000 });
+    await first;
+    const second = a.ports.speaker.reissue();
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
+    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH });
+  });
+
+  it('sends the fresh bearer from getToken, falling back to the cached one when it fails', async () => {
+    const a = await reissuer(['speaker']);
+    const getToken = a.shape.auth.getToken as ReturnType<typeof vi.fn>;
+    expire(a);
+    getToken.mockResolvedValueOnce('tok-fresh');
+    const first = a.ports.speaker.reissue();
+    await flush();
+    expect((a.to(REISSUE)[0].init.headers as Record<string, string>).Authorization).toBe('Bearer tok-fresh');
+    a.to(REISSUE)[0].respond(503, { error: 'qwen_busy' });
+    await first;
+    getToken.mockRejectedValueOnce(new Error('offline'));
+    const second = a.ports.speaker.reissue();
+    await flush();
+    expect((a.to(REISSUE)[1].init.headers as Record<string, string>).Authorization).toBe('Bearer tok');
+    a.to(REISSUE)[1].respond(503, { error: 'qwen_busy' });
+    await second;
+  });
+
+  it('a hung getToken is bounded by the timeout', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(() => {}));
+    const p = a.ports.speaker.reissue();
+    await flush();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
+
+  const mapping: Array<[number, unknown, unknown]> = [
+    [401, { code: 'sign_in_required' }, { ok: false, retry: false, code: 'sign_in_required' }],
+    [403, { code: 'wallet_frozen' }, { ok: false, retry: false, code: 'wallet_frozen' }],
+    [409, { code: 'lease_ended' }, { ok: false, retry: false, code: 'lease_ended' }],
+    [409, { code: 'reissue_limit' }, { ok: false, retry: false, code: 'reissue_limit' }],
+    [429, { error: 'rate', retryAfterMs: 1000 }, { ok: false, retry: true }],
+    [503, { error: 'qwen_busy', retryAfterMs: 1000 }, { ok: false, retry: true }],
+    [500, { error: 'boom' }, { ok: false, retry: true }],
+    [502, null, { ok: false, retry: true }],
+    [404, { error: 'Not found' }, { ok: false, retry: false, code: 'unsupported' }],
+    [400, { error: 'bad' }, { ok: false, retry: false, code: 'unsupported' }],
+  ];
+  for (const [status, body, expected] of mapping) {
+    it(`maps ${status} ${JSON.stringify(body)} to ${JSON.stringify(expected)}`, async () => {
+      const a = await reissuer(['speaker']);
+      expire(a);
+      const p = a.ports.speaker.reissue();
+      await flush();
+      a.to(REISSUE)[0].respond(status, body ?? undefined);
+      await expect(p).resolves.toMatchObject(expected as object);
+    });
+  }
+
+  it('a 200 without a key is a retry', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    const p = a.ports.speaker.reissue();
+    await flush();
+    a.to(REISSUE)[0].respond(200, { leaseId: 'lease-1' });
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('a transport failure is a retry', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    const p = a.ports.speaker.reissue();
+    await flush();
+    a.to(REISSUE)[0].fail();
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('a request that never answers is a retry at the timeout, and leaves no timer behind', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    const p = a.ports.speaker.reissue();
+    await flush();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+    a.resources.release();
+    await flush();
+  });
+
+  it('an already-aborted context sends no request and answers retry', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    a.controller.abort();
+    await expect(a.ports.speaker.reissue()).resolves.toMatchObject({ ok: false, retry: true });
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
+
+  it('an abort while the request is out answers retry', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    const p = a.ports.speaker.reissue();
+    await flush();
+    a.controller.abort();
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('answers lease_ended without a request after release', async () => {
+    const a = await reissuer(['speaker']);
+    expire(a);
+    void a.resources.release();
+    await flush();
+    const before = a.to(REISSUE).length;
+    await expect(a.ports.speaker.reissue()).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
+    expect(a.to(REISSUE).length).toBe(before);
   });
 });

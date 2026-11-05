@@ -18,7 +18,7 @@ import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/ses
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
-import type { QwenCredentials, QwenLeasePort, QwenSettings } from './settings';
+import type { QwenCredentials, QwenLeasePort, QwenReissue, QwenSettings } from './settings';
 
 /** What the backend accepts as a handshake request id (sokuji-backend `routes/qwen.ts`). */
 const REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -33,6 +33,10 @@ export const CONFLICT_WAIT_LIMIT_MS = 90_000;
 export const ENDING_POLL_MS = 5_000;
 /** Before asking again after a lease freed as the backend read it. */
 export const RELEASED_RETRY_MS = 1_000;
+/** A cached token is reused until this long before it expires: one about to lapse would die in the handshake. */
+const TOKEN_REFRESH_MARGIN_MS = 5_000;
+/** A grant that names no expiry is taken to last as long as Alibaba's token does, less a margin. */
+const DEFAULT_TOKEN_LIFETIME_MS = 55_000;
 /** Past a never-started lease's expiry, so the next ask finds it gone. */
 const UNSTARTED_SLACK_MS = 1_000;
 
@@ -86,6 +90,8 @@ interface Grant {
   /** The region the keys were bought in; absent from a backend before the Beijing region. The endpoint, not this, is what the leg dials. */
   region?: QwenRegion;
   apiKey: string;
+  /** When the token lapses, epoch ms; absent from a backend that does not say. */
+  expiresAt?: number;
   maxSessionDurationSeconds: number;
 }
 
@@ -102,7 +108,7 @@ function parseGrant(body: unknown): Grant {
     if (typeof b.region !== 'string' || !(QWEN_REGIONS as readonly string[]).includes(b.region)) throw new Error(`The session-key response names no known region (${String(b.region)}).`);
     region = b.region as QwenRegion;
   }
-  return { leaseId: b.leaseId, endpoint: b.endpoint, ...(region ? { region } : {}), apiKey: b.apiKey, maxSessionDurationSeconds: seconds };
+  return { leaseId: b.leaseId, endpoint: b.endpoint, ...(region ? { region } : {}), apiKey: b.apiKey, ...(typeof b.expiresAt === 'number' && Number.isFinite(b.expiresAt) ? { expiresAt: b.expiresAt } : {}), maxSessionDurationSeconds: seconds };
 }
 
 /**
@@ -420,7 +426,78 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       }
       ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: `The backend did not acknowledge the session report (${last}).` } });
     };
+    /** The lease-wide token both legs dial with: the grant's, then each reissued one. */
+    let cached = { apiKey: grant.apiKey, expiresAt: grant.expiresAt ?? startedAt + DEFAULT_TOKEN_LIFETIME_MS };
+    /** The one reissue request in flight, shared by whichever legs ask meanwhile. */
+    let reissuing: Promise<QwenReissue> | null = null;
+    const leaseEnded = (): QwenReissue => ({ ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' });
+    const requestReissue = async (): Promise<QwenReissue> => {
+      const retry = (message: string): QwenReissue => ({ ok: false, retry: true, message });
+      // The timeout and the abort wiring start before the token await: a slow or hung getToken is bounded like the request,
+      // and an abort during it is seen (a listener added after the abort would never fire).
+      const controller = new AbortController();
+      let timedOut = false;
+      const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
+      const onAbort = () => controller.abort();
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+      if (ctx.signal.aborted) controller.abort();
+      const stopped = () => (timedOut ? 'The Qwen session service did not answer within 15 s.' : 'The reissue was cancelled.');
+      try {
+        // A fresh token: the cached one may have expired over a long session.
+        const fresh = await new Promise<string | null>((resolve) => {
+          const done = () => resolve(null);
+          if (controller.signal.aborted) return done();
+          controller.signal.addEventListener('abort', done, { once: true });
+          shape.auth.getToken().then(resolve, () => resolve(null)).finally(() => controller.signal.removeEventListener('abort', done));
+        });
+        if (controller.signal.aborted) return retry(stopped());
+        if (released) return leaseEnded();
+        ctx.frame({ direction: 'out', type: 'session.key_reissue_requested', payload: { leaseId: grant.leaseId } });
+        const res = await doFetch(`${apiUrl()}/qwen/session-key/reissue`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${fresh ?? token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leaseId: grant.leaseId }),
+          signal: controller.signal,
+        });
+        let body: Record<string, unknown> | null = null;
+        try {
+          body = (await res.json()) as Record<string, unknown> | null;
+        } catch {
+          // Not JSON: the status speaks.
+        }
+        const status = res.status;
+        const said = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : `HTTP ${status}`;
+        if (status >= 200 && status < 300) {
+          const apiKey = body?.apiKey;
+          if (typeof apiKey !== 'string' || !apiKey) return retry('The reissue answer carried no key.');
+          const expiresAt = typeof body?.expiresAt === 'number' && Number.isFinite(body.expiresAt) ? body.expiresAt : ctx.clock.now() + DEFAULT_TOKEN_LIFETIME_MS;
+          // A release may have landed while the request was out: a dead lease takes no key.
+          if (released) return leaseEnded();
+          cached = { apiKey, expiresAt };
+          return { ok: true, apiKey, expiresAt };
+        }
+        if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
+        if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
+        if (status === 409) return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };
+        if (status === 429 || status >= 500) return retry(said);
+        return { ok: false, retry: false, code: 'unsupported', message: said };
+      } catch (error) {
+        if (timedOut) return retry('The Qwen session service did not answer within 15 s.');
+        return retry(`Failed to reach the Qwen session service: ${describeCause(error)}`);
+      } finally {
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+      }
+    };
+    const reissue = (): Promise<QwenReissue> => {
+      if (released) return Promise.resolve(leaseEnded());
+      if (ctx.clock.now() < cached.expiresAt - TOKEN_REFRESH_MARGIN_MS) return Promise.resolve({ ok: true, apiKey: cached.apiKey, expiresAt: cached.expiresAt });
+      // Both legs may ask at once: one request, one answer for both.
+      reissuing ??= requestReissue().finally(() => { reissuing = null; });
+      return reissuing;
+    };
     const port = (leg: LegName): QwenLeasePort => ({
+      reissue,
       sessionCreated: (id, rawRequestId) => {
         // The backend answers 400 to anything but a lowercase UUID, a final refusal that would lose the session id too: send it as it came, or not at all.
         const requestId = rawRequestId !== undefined && REQUEST_ID_RE.test(rawRequestId) ? rawRequestId : undefined;
@@ -438,7 +515,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     return {
       credentials(leg: LegName): QwenCredentials {
         if (!shape.legs.includes(leg)) throw new Error(`The ${leg} leg was not requested of this lease.`);
-        return { apiKey: grant.apiKey, endpoint: grant.endpoint, lease: port(leg) };
+        return { apiKey: cached.apiKey, endpoint: grant.endpoint, lease: port(leg) };
       },
       budget: { totalMs, endsAt: startedAt + totalMs },
       async release(): Promise<void> {
