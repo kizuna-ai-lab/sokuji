@@ -16,10 +16,10 @@
 ## Global Constraints
 
 - Schedule: attempts at 0, then 250, 500, 1 000, 2 000 and 4 000 ms, then every 4 000 ms, until 30 000 ms after the drop. Each attempt's connect is aborted at the budget's end.
-- Flapping: a drop within 10 000 ms of the previous reconnect keeps that drop's deadline, but never less than 5 000 ms from now. At most 20 reconnects per connection. This matches the backend's 20 per lease and role. It is my reading of the spec's "per session": split Both has two connections. The 21st drop gives up as `session_cap`.
+- Flapping: a drop within 10 000 ms of the previous reconnect keeps that drop's deadline, but never less than 5 000 ms from now. At most 100 reconnects per connection (spec §4.2). The 101st drop gives up as `session_cap`.
 - What reconnects is §4.1. Close codes 1000, 1001, 1005, 1006 and 1011–1014 reconnect. Codes 1003 and 1007–1010 end. Any other close code ends. Soniox: `503`, `408`, `socket_error`, a connect timeout and a stall reconnect; `401`, `402`, `403` (except at grant end), `429` and other 4xx end. Qwen: `server` reconnects; `auth`, `rate_limit`, `client` and `model_access_denied` end.
 - Credentials are fetched at most once per drop. A Soniox key whose socket never opened is reused while its start window lasts, until 1 s before its `expiresAt`. A Qwen token is reused until 5 s before its `expiresAt`, and serves both legs.
-- Reissue refusals: `lease_ended`, `reissue_limit`, `sign_in_required`, `wallet_frozen`, and `unsupported` for a 404 or any other 4xx without a code. Every refusal stops the attempts. `sign_in_required` and `wallet_frozen` show as themselves. `lease_ended` ends as a lease end when the lease is at its grant end, and as `connection_lost` otherwise. Everything else shows `connection_lost`.
+- Reissue refusals: `lease_ended`, `reissue_limit`, `sign_in_required`, `wallet_frozen`, and `unsupported` for a 404 or any other 4xx without a code. A 429 from the reissue (its per-minute limit) is not a refusal: it is a failed attempt, like a 5xx. Every refusal stops the attempts. `sign_in_required` and `wallet_frozen` show as themselves. `lease_ended` ends as a lease end when the lease is at its grant end, and as `connection_lost` otherwise. Everything else shows `connection_lost`.
 - During the gap, audio is dropped and agent text is not sent. In-flight segments close as they stand (`utterances.abandon()`, `QwenSegments.stop()`). Nothing is re-sent. Part C, deferred to a follow-up, would change this.
 - Copy, in English. The other 29 locales are translated in the same commit, and `{{placeholders}}` must survive verbatim:
   - `connectionStatus.reconnectingAttempt`: "Reconnecting… (attempt {{attempt}}, {{seconds}} s)"
@@ -55,7 +55,7 @@ export const RECONNECT_REPEAT_MS: number;               // 4000
 export const RECONNECT_BUDGET_MS: number;               // 30000
 export const FLAP_WINDOW_MS: number;                    // 10000
 export const FLAP_MIN_REMAINING_MS: number;             // 5000
-export const MAX_RECONNECTS: number;                    // 20
+export const MAX_RECONNECTS: number;                    // 100
 export type DropCause = 'close' | 'error' | 'timeout' | 'stall';
 export interface DropInfo { cause: DropCause; closeCode?: number; errorCode?: string; retryable: boolean; managed: boolean }
 export type AttemptResult =
@@ -88,7 +88,7 @@ export function closeCodeAction(code: number | undefined): 'reconnect' | 'end';
   - `reconnected carries attempts, budgetShared false, and reissue time summed across attempts`
   - `a drop 5 s after reconnecting shares the deadline; 11 s after gets a fresh 30 s`
   - `a shared deadline is never less than 5 s away`
-  - `the 21st drop gives up with session_cap without an attempt`
+  - `the 101st drop gives up with session_cap without an attempt`
   - `wake during a wait starts the attempt at once; wake during an attempt skips the next delay` (Review Focus 3)
   - `cancel stops waits and aborts the attempt; nothing more is emitted and no timers are left`
   - `frames are written as listed`
@@ -248,6 +248,7 @@ export type SonioxReissue =
   - **Answers:**
     - 200: `expiresAt` = `Date.parse(body.expiresAt)`. When that does not parse, it is `clock.now() + 10_000`.
     - 401 → `sign_in_required`; 403 → `wallet_frozen`; 409 → `body.code`.
+    - 429 → `retry: true`.
     - 404 and any other 4xx → `unsupported`.
     - 5xx, a transport failure or a timeout → `retry: true`.
   - **After an ok answer:** the next `streamAccepted()` posts `session-started` with `{ leaseId, role, clientReferenceId }` for that key.
