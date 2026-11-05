@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-agent-text-input-design.md`. This plan covers §4 only. §6, §7 and §8 are not tasks, except Task 9's checklist.
 
-**Amended after the measurement (2026-11-05):** split Both sends no agent text and does not ask for the flag; the flag is asked for only when the switch is on at Start, and the switch is read at Start (spec §4.1, §4.3). Where this plan says "every microphone socket of a run that may speak" or "read at each chunk", the spec now rules.
+**Amended after the measurement (2026-11-05):** split Both sends no agent text and does not ask for the flag; the flag is asked for only when the switch is on at Start, and the switch is read at Start (spec §4.1, §4.3). The switch later moved from the Speech section into the Soniox settings as a Soniox setting (spec §4.4), replacing Tasks 7–8's store field, runner port and Speech-section row. Where this plan says "every microphone socket of a run that may speak", "read at each chunk" or describes those pieces, the spec now rules.
 
 ## Global Constraints
 

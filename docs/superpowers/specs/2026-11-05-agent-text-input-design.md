@@ -62,14 +62,14 @@ A pure function decides this from the session shape, the clip's voice and its ou
 
 ### 4.3 The socket
 
-- `SonioxSttStream`'s config frame gains `enable_agent_text_input: true` on the socket that transcribes the microphone **only when the switch is on at Start and a leg speaks** (the narrow rule), and never in split Both (§4.1). The switch is read once at Start for sending too, so a change during a run waits for the next session. Soniox ends a stream that receives `agent_text` without the flag, and the flag cannot change on an open socket.
+- `SonioxSttStream`'s config frame gains `enable_agent_text_input: true` on the socket that transcribes the microphone **only when the switch is on at Start and a leg speaks** (the narrow rule), and never in split Both (§4.1). The switch is a Soniox setting, read when the session's configuration is built at Start; the run offers each chunk's text, and a socket that did not ask refuses it silently, so "flag on, no text" cannot happen and a change waits for the next session. Soniox ends a stream that receives `agent_text` without the flag, and the flag cannot change on an open socket.
 - Why narrow: the first design set the flag broadly, on every microphone socket of a session that may speak, so that mid-run changes could take effect from the next chunk. The measurement (§8, run 2a) found that the flag alone, with the app's speech echoing into the microphone under echo cancellation, makes Soniox drop whole turns a person speaks over that speech (20 of 55, against 0 of 45 without the flag). The broad rule would have done that to every session with the switch off. Speech that does not play locally makes no echo; without an echo path the flag alone changed nothing, so "speech plays locally at Start" is not checked.
 - `sendAgentText(text, endOfSegment)` sends `{"type":"agent_text","text":…,"end_of_segment":…}` only while open, like `sendAudio`.
 - Every frame sent is logged (`stt.agent_text`) in the diagnostic Logs.
 
 ### 4.4 The setting
 
-- One switch under speech output: **"Keep the read-aloud translation out of recognition"** (final words by the copy owner), on by default, available in managed and own-key mode. A change during a session takes effect from the next session (§4.3). In split Both it shows off, greyed and not adjustable, and its help says why (§4.1); the stored setting is kept for the other modes.
+- One switch in the **Soniox settings**, directly below "Shared session in Both mode" (owner, 2026-11-05: only Soniox supports it, and its split-Both state follows the choice beside it): **"Keep the read-aloud translation out of recognition"** (final words by the copy owner), on by default, a Soniox setting kept separately for own-key and managed (Kizuna) Soniox. It shows where the Soniox settings do (Advanced settings). Like the other Soniox settings it is fixed during a session; a change applies from the next one (§4.3). In split Both it shows off, greyed and not adjustable, and its help says why (§4.1); the stored setting is kept for the other modes.
 - Its description: the text about to be read aloud is sent to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking; when speech plays on this computer this adds a small charge (a few US cents per hour of speech).
 - All 30 locales.
 
