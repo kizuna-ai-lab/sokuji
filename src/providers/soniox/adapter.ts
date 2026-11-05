@@ -53,7 +53,9 @@ function inAppCodes(token: SonioxToken): SonioxToken {
 export const SONIOX_STALL_MS = 5_000;
 /** How often the stall watchdog looks, and how recent our audio must be for the server's silence to count. */
 const STALL_CHECK_MS = 1_000;
-/** A managed key whose socket never opened serves the next attempt until this long before it expires (§4.2). */
+/** How long a reissued key may open a socket from when it was issued: the backend's start window. */
+const REISSUED_KEY_WINDOW_MS = 10_000;
+/** A managed key whose socket never opened serves the next attempt until this long before its window ends (§4.2). */
 const KEY_EXPIRY_MARGIN_MS = 1_000;
 /** Besides any 5xx, the failures the user did not cause and cannot fix in Settings (`SonioxClient.ts:57`): the socket reconnects. */
 const RECONNECTS = new Set(['408', 'socket_error']);
@@ -146,8 +148,13 @@ interface CoreOptions {
 interface SttKey {
   stt: string;
   clientReferenceId?: string;
-  /** A reissued key's expiry, on the request's clock; the request's own key carries none. */
-  expiresAt?: number;
+  /**
+   * A reissued key's last moment to open a socket, on the request's clock: its
+   * window counted from when the reissue answered, less the margin. Never the
+   * answer's `expiresAt`, which is the server's clock: a client clock behind
+   * it would keep a dead key. The request's own key carries none.
+   */
+  usableUntil?: number;
   /** A socket opened on it: a managed key is single-use. */
   spent: boolean;
 }
@@ -557,11 +564,12 @@ class SonioxCore {
 
   /**
    * One reconnect attempt (§4.2). Managed: a fresh key when the current one is
-   * spent or about to expire, so one is fetched per drop and a key whose
+   * spent or its window has closed, so one is fetched per drop and a key whose
    * socket never opened serves the next attempt. An own key: the same key.
    * Then the start path's connect; live once the socket opens. The signal
    * (the reconnector's, for every attempt of this drop) aborts the connect at
-   * the budget's end and on a stop.
+   * the budget's end and on a stop; a reissued key's window closing gives it
+   * up too, the key left unspent but past use.
    */
   private async attempt(signal: AbortSignal): Promise<AttemptResult> {
     const { clock, credentials } = this.o.primary;
@@ -574,8 +582,8 @@ class SonioxCore {
     };
     // An answer nobody reads; it leaves the last failure's words as they were.
     const abandoned: AttemptResult = { ok: false, final: false, code: LOST, message: 'The attempt was abandoned.', reissued: false, reissueMs: 0 };
-    const expiring = this.key.expiresAt !== undefined && clock.now() >= this.key.expiresAt - KEY_EXPIRY_MARGIN_MS;
-    if (lease && (this.key.spent || expiring)) {
+    const expired = this.key.usableUntil !== undefined && clock.now() >= this.key.usableUntil;
+    if (lease && (this.key.spent || expired)) {
       const asked = clock.now();
       const answer = await lease.reissue();
       reissueMs = clock.now() - asked;
@@ -586,7 +594,7 @@ class SonioxCore {
         // A refusal stops the attempts (§6); a reissue that could not answer is a failed attempt.
         return answer.retry ? reissueFailed(answer.message, reissueMs) : refusalResult(answer);
       }
-      this.key = { stt: answer.stt, clientReferenceId: answer.clientReferenceId, expiresAt: answer.expiresAt, spent: false };
+      this.key = { stt: answer.stt, clientReferenceId: answer.clientReferenceId, usableUntil: clock.now() + REISSUED_KEY_WINDOW_MS - KEY_EXPIRY_MARGIN_MS, spent: false };
       reissued = true;
     }
     const stream = this.newStt();
@@ -594,15 +602,22 @@ class SonioxCore {
     const key = this.key;
     const abort = () => stream.close();
     signal.addEventListener('abort', abort, { once: true });
+    // A socket opening past the key's window would be refused: the connect still going then is given up.
+    let lapsed = false;
+    const cancelLapse = key.usableUntil !== undefined
+      ? clock.setTimeout(() => { lapsed = true; stream.close(); }, key.usableUntil - clock.now())
+      : () => {};
     try {
       await stream.connect(this.sttConfig());
     } catch (error) {
       if (this.stt === stream) this.stt = null;
       // Closed by the abort (a stop, the budget's end): not the attempt's own failure.
       if (signal.aborted || this.ended) return abandoned;
+      if (lapsed) return failed('key_expired', "The reissued key's start window closed before its connection opened.");
       return failed(error instanceof SonioxSttConnectTimeout ? 'connect_timeout' : 'socket_error', describeCause(error));
     } finally {
       signal.removeEventListener('abort', abort);
+      cancelLapse();
     }
     key.spent = true;
     if (signal.aborted || this.ended) return abandoned;

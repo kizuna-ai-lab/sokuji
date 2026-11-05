@@ -302,7 +302,7 @@ describe('the Soniox adapter reconnects: managed', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
-  it('managed: a key whose socket never opened is reused by the next attempt; after its expiresAt a new one is fetched (Review Focus 4)', async () => {
+  it('managed: a key whose socket never opened is reused by the next attempt; past its window a new one is fetched (Review Focus 4)', async () => {
     const lease = fakeLease(KEY_1, KEY_2);
     const h = await live(managed(lease));
     h.stt().serverClose(1006);
@@ -316,9 +316,14 @@ describe('the Soniox adapter reconnects: managed', () => {
     expect(h.sttSockets()).toHaveLength(3);
     expect(h.stt().protocols).toEqual(['soniox-api-key', 'key-1']);
     expect(lease.port.reissue).toHaveBeenCalledTimes(1);
-    // Attempt 2's connect stalls to the stream's own 15 s bound, past key-1's expiresAt (10 s): attempt 3 fetches key-2.
-    h.clock.advance(15_000);
+    // Attempt 2's connect is still going when key-1's window closes, 9 s after its reissue answered: it is given up, and attempt 3 fetches key-2.
+    const stalled = h.stt();
+    h.clock.advance(8_749);
     await flush();
+    expect(stalled.closedByClient).toBeNull();
+    h.clock.advance(1);
+    await flush();
+    expect(stalled.closedByClient).not.toBeNull();
     expect(h.sttSockets()).toHaveLength(3);
     h.clock.advance(500);
     await flush();
@@ -328,6 +333,77 @@ describe('the Soniox adapter reconnects: managed', () => {
     await openAttempt(h);
     expect(h.stt().sentJson<Json>()[0]).toMatchObject({ client_reference_id: 'ref-2' });
     expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 3, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it("managed: a reissued key opens nothing past its window, 10 s from the reissue's answer less 1 s: a connect still going then is given up, and the next attempt reissues and reconnects", async () => {
+    // Answered at once, at 0: a socket that would open at 12 s is given up at 9 s.
+    {
+      const lease = fakeLease(KEY_1, KEY_2);
+      const h = await live(managed(lease));
+      h.stt().serverClose(1006);
+      await flush();
+      const slow = h.stt();
+      expect(slow.protocols).toEqual(['soniox-api-key', 'key-1']);
+      h.clock.advance(8_999);
+      await flush();
+      expect(slow.closedByClient).toBeNull();
+      h.clock.advance(1);
+      await flush();
+      expect(slow.closedByClient).not.toBeNull();
+      expect(h.frames('session.reconnect_failed')).toEqual([{ attempt: 1, message: "The reissued key's start window closed before its connection opened." }]);
+      h.clock.advance(250);
+      await flush();
+      expect(lease.port.reissue).toHaveBeenCalledTimes(2);
+      expect(h.stt().protocols).toEqual(['soniox-api-key', 'key-2']);
+      await openAttempt(h);
+      expect(h.stt().sentJson<Json>()[0]).toMatchObject({ client_reference_id: 'ref-2' });
+      expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
+      expect(h.of('failed')).toEqual([]);
+      expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+    }
+    // Answered 3 s after it was asked: the window counts from the answer, to 12 s.
+    {
+      const lease = fakeLease();
+      const h = await live(managed(lease));
+      h.stt().serverClose(1006);
+      await flush();
+      h.clock.advance(3_000);
+      lease.answer(KEY_1);
+      await flush();
+      const slow = h.stt();
+      h.clock.advance(8_999);
+      await flush();
+      expect(slow.closedByClient).toBeNull();
+      h.clock.advance(1);
+      await flush();
+      expect(slow.closedByClient).not.toBeNull();
+      expect(h.clock.now()).toBe(12_000);
+    }
+  });
+
+  it("managed: a client clock 30 s behind the server's expiresAt does not keep a dead key: past its own window the next attempt reissues", async () => {
+    // The server's clock runs 30 s ahead: its 10 s window ends, by the client's clock, at 40 s.
+    const skewed: SonioxReissue = { ok: true, stt: 'key-1', clientReferenceId: 'ref-1', expiresAt: 40_000 };
+    const lease = fakeLease(skewed, KEY_2);
+    const h = await live(managed(lease));
+    h.stt().serverClose(1006);
+    await flush();
+    // Attempts 1–6, at 0, 250, 750, 1750, 3750 and 7750, each fail before opening: key-1, unspent and inside its 9 s, serves them all.
+    for (const delay of [0, 250, 500, 1_000, 2_000, 4_000]) {
+      if (delay) h.clock.advance(delay);
+      await flush();
+      expect(h.stt().protocols).toEqual(['soniox-api-key', 'key-1']);
+      await failAttempt(h);
+    }
+    expect(lease.port.reissue).toHaveBeenCalledTimes(1);
+    // Attempt 7, at 11 750: past key-1's window, whatever the server's expiresAt says.
+    h.clock.advance(4_000);
+    await flush();
+    expect(lease.port.reissue).toHaveBeenCalledTimes(2);
+    expect(h.stt().protocols).toEqual(['soniox-api-key', 'key-2']);
+    await openAttempt(h);
+    expect(h.of('reconnected').map((e) => e.payload!.attempts)).toEqual([7]);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
