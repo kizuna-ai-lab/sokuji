@@ -978,4 +978,37 @@ describe('the lease port: reissue()', () => {
     await expect(port.reissue()).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
     expect(a.to(REISSUE)).toHaveLength(0);
   });
+
+  it('a pre-aborted context makes no request and leaves no timer', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    const before = a.clock.pending();
+    a.controller.abort();
+    await expect(port.reissue()).resolves.toMatchObject({ ok: false, retry: true });
+    expect(a.to(REISSUE)).toHaveLength(0);
+    expect(a.clock.pending()).toBe(before);
+  });
+
+  it('a context that aborts during a pending getToken makes no request', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    let release!: (t: string) => void;
+    (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<string>((r) => { release = r; }));
+    const result = a.resources.credentials('speaker').lease!.reissue();
+    await flush();
+    a.controller.abort();
+    await expect(result).resolves.toMatchObject({ ok: false, retry: true });
+    release('late');
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
+
+  it('a getToken that never resolves is cut off at SESSION_KEY_TIMEOUT_MS', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise<string>(() => {}));
+    const result = a.resources.credentials('speaker').lease!.reissue();
+    await flush();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await expect(result).resolves.toMatchObject({ ok: false, retry: true });
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
 });

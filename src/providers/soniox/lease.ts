@@ -416,17 +416,33 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
 
     const reissue = async (role: SttRole): Promise<SonioxReissue> => {
       if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
-      // A fresh token: the cached one may have expired over a long session.
-      const bearer = (await shape.auth.getToken().catch(() => null)) ?? token;
-      if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
-      ctx.frame({ direction: 'out', type: 'session.key_reissue_requested', payload: { leaseId: grant.leaseId, role } });
+      const retry = (message: string): SonioxReissue => ({ ok: false, retry: true, message });
+      // The timeout and the abort wiring start before the token await: a slow
+      // or hung getToken is bounded like the request, and an abort during it
+      // is seen (a listener added after the abort would never fire).
       const controller = new AbortController();
       let timedOut = false;
       const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
       const onAbort = () => controller.abort();
       ctx.signal.addEventListener('abort', onAbort, { once: true });
-      const retry = (message: string): SonioxReissue => ({ ok: false, retry: true, message });
+      if (ctx.signal.aborted) controller.abort();
+      const cleanup = () => {
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+      };
+      const stopped = () => (timedOut ? 'The Soniox session service did not answer within 15 s.' : 'The reissue was cancelled.');
       try {
+        // A fresh token: the cached one may have expired over a long session.
+        const fresh = await new Promise<string | null>((resolve) => {
+          const done = () => resolve(null);
+          if (controller.signal.aborted) return done();
+          controller.signal.addEventListener('abort', done, { once: true });
+          shape.auth.getToken().then(resolve, () => resolve(null)).finally(() => controller.signal.removeEventListener('abort', done));
+        });
+        if (controller.signal.aborted) return retry(stopped());
+        if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+        const bearer = fresh ?? token;
+        ctx.frame({ direction: 'out', type: 'session.key_reissue_requested', payload: { leaseId: grant.leaseId, role } });
         const res = await doFetch(`${apiUrl()}/soniox/session-key/reissue`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
@@ -462,8 +478,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         if (timedOut) return retry('The Soniox session service did not answer within 15 s.');
         return retry(`Failed to reach the Soniox session service: ${describeCause(error)}`);
       } finally {
-        cancelTimer();
-        ctx.signal.removeEventListener('abort', onAbort);
+        cleanup();
       }
     };
     const ports = new Map<SttRole, SonioxLeasePort>([...bundles.keys()].map((role) => [role, {
