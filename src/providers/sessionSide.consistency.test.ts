@@ -317,6 +317,24 @@ describe('a provider session side', () => {
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
   });
 
+  it('the shared reconnect policy is platform-neutral: no global timer, no wall clock, no platform import', () => {
+    // Imported by the mobile app through `vendor/sokuji`, and by the adapter contract (types), so neither file may reach a DOM, React, Electron, a store, the environment probe or the reporter.
+    const files = ['src/lib/session/reconnect.ts', 'src/lib/contract/reconnect.ts'];
+    const platform = [/^react(-dom)?(\/|$)/, /^electron$/, /(^|\/)stores\//, /(^|\/)utils\/environment$/, /(^|\/)lib\/diagnostics\/report$/];
+    for (const file of files) {
+      const source = readFileSync(join(REPO_ROOT, file), 'utf-8');
+      expect(globalTimerCalls(source, file), `${file}: global timer`).toEqual([]);
+      // Type imports count too: `import type` from a store is still a dependency the mobile bundle cannot take.
+      const specs = ts.preProcessFile(source, true, true).importedFiles.map((i) => i.fileName);
+      expect(specs.filter((s) => platform.some((re) => re.test(s))), `${file}: platform import`).toEqual([]);
+      expect(source, `${file}: DOM global`).not.toMatch(/\b(document|navigator|localStorage)\./);
+    }
+    // The control: the scan sees a violating module.
+    const bad = "import { useStore } from '../../stores/providerStore';\nsetTimeout(f, 1); Date.now();\n";
+    expect(globalTimerCalls(bad)).toEqual(['setTimeout', 'Date.now']);
+    expect(ts.preProcessFile(bad, true, true).importedFiles.map((i) => i.fileName).filter((s) => /(^|\/)stores\//.test(s))).toEqual(['../../stores/providerStore']);
+  });
+
   it("only test-only modules import the adapter test kit or a provider's fixtures", () => {
     const { files, importers, targets } = importGraph(REPO_ROOT);
     const testOnly = testOnlyModules(files, importers, isTest, inKit);
