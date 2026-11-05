@@ -323,6 +323,55 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     expect(tracks('api_error')).toEqual([expect.objectContaining({ error_code: 'auth', channel: 'speaker' })]);
   });
 
+  it('the session-cap give-up (no reconnecting before it) sends its drop as retryable, then connection_reconnect_failed down no time', async () => {
+    const { runner, clock, events, tracks, order } = setup();
+    await runner.start();
+    clock.advance(3000);
+    events().failed({ message: 'Connection lost', code: 'connection_lost', drop: DROP, giveUp: { attempts: 0, reason: 'session_cap' } });
+    expect(tracks('connection_dropped')).toEqual([expect.objectContaining({ retryable: true, drop_index: 1, session_elapsed_ms: 3000 })]);
+    expect(tracks('connection_reconnect_failed')).toEqual([{
+      session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', down_ms: 0, attempts: 0,
+      reason: 'session_cap', drop_index: 1, client: 'desktop',
+    }]);
+    expect(order('connection_dropped', 'connection_reconnect_failed', 'api_error')).toEqual(['connection_dropped', 'connection_reconnect_failed', 'api_error']);
+    await runner.settled();
+    expect(tracks('translation_session_end')[0]).toMatchObject({ reconnect_failed: true });
+  });
+
+  it('a failed carrying the drop of a reconnect already open sends no second connection_dropped', async () => {
+    const { runner, clock, events, tracks } = setup();
+    await runner.start();
+    events().reconnecting({ attempt: 1, drop: DROP });
+    clock.advance(2000);
+    events().failed({ message: 'lost', code: 'connection_lost', drop: DROP, giveUp: { attempts: 4, reason: 'timeout' } });
+    expect(tracks('connection_dropped')).toHaveLength(1);
+    expect(tracks('connection_reconnect_failed')).toEqual([expect.objectContaining({ drop_index: 1, down_ms: 2000, attempts: 4 })]);
+  });
+
+  it("shared Both: the participant's give-up arriving first acts for the connection, once", async () => {
+    const { runner, clock, events, tracks } = setup({ both: true, shared: true });
+    await runner.start();
+    events('speaker').reconnecting({ attempt: 1, drop: DROP });
+    events('participant').reconnecting({ attempt: 1, drop: DROP });
+    clock.advance(30_000);
+    const failure = { message: 'lost', code: 'connection_lost', giveUp: { attempts: 9, reason: 'timeout' as const } };
+    events('participant').failed(failure);
+    events('speaker').failed(failure);
+    await runner.settled();
+    expect(tracks('connection_reconnect_failed')).toEqual([expect.objectContaining({ channel: 'shared', reason: 'timeout', down_ms: 30_000, drop_index: 1 })]);
+    expect(tracks('translation_session_end')[0]).toMatchObject({ reconnect_failed: true });
+  });
+
+  it("shared Both: the participant's non-retryable failure arriving first sends the drop once", async () => {
+    const { runner, events, tracks } = setup({ both: true, shared: true });
+    await runner.start();
+    const failure = { message: 'The key was refused.', code: 'auth', drop: { cause: 'close' as const, closeCode: 1008, retryable: false, managed: false } };
+    events('participant').failed(failure);
+    events('speaker').failed(failure);
+    await runner.settled();
+    expect(tracks('connection_dropped')).toEqual([expect.objectContaining({ channel: 'shared', retryable: false, drop_index: 1 })]);
+  });
+
   it('Stop during reconnecting sends connection_reconnect_failed reason stopped and no api_error', async () => {
     const { runner, clock, events, tracks } = setup();
     await runner.start();

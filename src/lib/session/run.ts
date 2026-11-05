@@ -772,19 +772,24 @@ export class Run {
   }
 
   /**
-   * The leg failed, before `api_error`: a drop it would not retry reaches analytics as not retried, and a
-   * give-up as `connection_reconnect_failed`. A failure while it reconnected ends the run on a give-up — the
-   * policy's verdict, or the failure itself from an adapter that reports none.
+   * The leg failed, before `api_error`: its drop reaches analytics unless an open reconnect already sent it,
+   * and a give-up as `connection_reconnect_failed`. A failure while it reconnected ends the run on a give-up —
+   * the policy's verdict, or the failure itself from an adapter that reports none. A shared connection's
+   * failure arrives on both legs in whichever order the adapter sends them: the first acts for the connection,
+   * on the speaker's record (the one its drop was counted on), and the run ending ignores the second.
    */
   private failedReconnect(leg: LegName, e: Parameters<AdapterEvents['failed']>[0]): void {
-    const drop = this.drops.get(leg);
-    this.drops.delete(leg);
-    if (!this.counts(leg)) return;
-    const sent = e.drop ? this.dropped(leg, e.drop, false) : drop?.sent;
+    const key: LegName = this.sharedConnection ? 'speaker' : leg;
+    const drop = this.drops.get(key);
+    if (this.sharedConnection) this.drops.clear();
+    else this.drops.delete(leg);
+    // A give-up on a drop with no reconnect open (the session's reconnects used up) is a drop the policy took
+    // up and refused: retryable. A drop that fails the leg outright was not worth retrying.
+    const sent = drop?.sent ?? (e.drop ? this.dropped(key, e.drop, e.giveUp !== undefined && e.drop.retryable) : undefined);
     if (e.giveUp && sent) {
       this.deps.analytics.track('connection_reconnect_failed', {
-        ...this.reconnectEvent(leg, sent.managed),
-        // A give-up without a reconnect (the session's reconnects used up) was down no time.
+        ...this.reconnectEvent(key, sent.managed),
+        // No reconnect was open: down no time.
         down_ms: drop ? this.deps.clock.now() - drop.since : 0,
         attempts: e.giveUp.attempts,
         reason: e.giveUp.reason,
