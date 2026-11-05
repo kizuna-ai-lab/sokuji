@@ -22,7 +22,7 @@ import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/ses
 import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
-import type { SonioxCredentials, SonioxLeasePort, SonioxSettings } from './settings';
+import type { SonioxCredentials, SonioxLeasePort, SonioxReissue, SonioxSettings } from './settings';
 
 /** One session-key attempt's bound, its body included (choice 5): a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
@@ -381,22 +381,24 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       payload: { leaseId: grant.leaseId, region: grant.region, roles: grant.streams.map((st) => st.role), maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
     });
 
-    const accepted = new Set<SttRole>();
+    /** Per role, the key the socket runs on and whether its `session-started` went out: the lease's first key has no reference in the body, a reissued one does. */
+    const keys = new Map<SttRole, { ref: string | null; reported: boolean }>([...bundles.keys()].map((role) => [role, { ref: null, reported: false }]));
     const reportStarted = (role: SttRole): void => {
-      // Once per role, and never once the grant has ended the run or the
+      // Once per key, and never once the grant has ended the run or the
       // lease is released: a late first frame from a socket still closing
       // must not start a lease the account already ended (spec: no
       // `session-started` after `session-end`) — nor one whose run is
       // already on its way to `session-end`.
-      if (ended || released || accepted.has(role)) return;
-      accepted.add(role);
-      ctx.frame({ direction: 'out', type: 'session.started', payload: { role } });
+      const key = keys.get(role)!;
+      if (ended || released || key.reported) return;
+      key.reported = true;
+      ctx.frame({ direction: 'out', type: 'session.started', payload: { role, ...(key.ref ? { clientReferenceId: key.ref } : {}) } });
       // Not awaited, never failing the session: a refusal means the lease was
       // not extended, which the Logs must name (`ManagedSonioxSession.ts:490-549`).
       void doFetch(`${apiUrl()}/soniox/session-started`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leaseId: grant.leaseId, role }),
+        body: JSON.stringify({ leaseId: grant.leaseId, role, ...(key.ref ? { clientReferenceId: key.ref } : {}) }),
       })
         .then(async (res) => {
           if (res.ok) return;
@@ -411,6 +413,59 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         })
         .catch((error: unknown) => ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: describeCause(error) } }));
     };
+
+    const reissue = async (role: SttRole): Promise<SonioxReissue> => {
+      if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+      // A fresh token: the cached one may have expired over a long session.
+      const bearer = (await shape.auth.getToken().catch(() => null)) ?? token;
+      if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+      ctx.frame({ direction: 'out', type: 'session.key_reissue_requested', payload: { leaseId: grant.leaseId, role } });
+      const controller = new AbortController();
+      let timedOut = false;
+      const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
+      const onAbort = () => controller.abort();
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+      const retry = (message: string): SonioxReissue => ({ ok: false, retry: true, message });
+      try {
+        const res = await doFetch(`${apiUrl()}/soniox/session-key/reissue`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leaseId: grant.leaseId, role }),
+          signal: controller.signal,
+        });
+        let body: Record<string, unknown> | null = null;
+        try {
+          body = (await res.json()) as Record<string, unknown> | null;
+        } catch {
+          // Not JSON: the status speaks.
+        }
+        const status = res.status;
+        const said = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : `HTTP ${status}`;
+        if (status >= 200 && status < 300) {
+          const stt = body?.apiKey;
+          const ref = body?.clientReferenceId;
+          if (typeof stt !== 'string' || !stt || typeof ref !== 'string' || !ref) return retry('The reissue answer carried no key.');
+          const parsed = typeof body?.expiresAt === 'string' ? Date.parse(body.expiresAt) : NaN;
+          // A release may have landed while the request was out: a dead lease takes no key.
+          if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+          keys.set(role, { ref, reported: false });
+          return { ok: true, stt, clientReferenceId: ref, expiresAt: Number.isFinite(parsed) ? parsed : ctx.clock.now() + 10_000 };
+        }
+        if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
+        if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
+        if (status === 409) {
+          return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };
+        }
+        if (status === 429 || status >= 500) return retry(said);
+        return { ok: false, retry: false, code: 'unsupported', message: said };
+      } catch (error) {
+        if (timedOut) return retry('The Soniox session service did not answer within 15 s.');
+        return retry(`Failed to reach the Soniox session service: ${describeCause(error)}`);
+      } finally {
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+      }
+    };
     const ports = new Map<SttRole, SonioxLeasePort>([...bundles.keys()].map((role) => [role, {
       streamAccepted: () => reportStarted(role),
       atGrantEnd: (now: number) => now >= startedAt + totalMs - GRANT_END_MARGIN_MS,
@@ -418,6 +473,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       // run already ending (`run.ts` `onEvent`), or the run would end
       // `leg-closed` with "The provider ended the session."
       cutoff: () => endOnce(grantEnd),
+      reissue: () => reissue(role),
     }]));
 
     return {

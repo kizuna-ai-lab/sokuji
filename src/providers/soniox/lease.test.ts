@@ -868,3 +868,114 @@ describe("the lease's port (SonioxLeasePort)", () => {
     expect(JSON.stringify(sockets.all.map((s) => [s.protocols, s.sentJson()]))).not.toContain('"tok"');
   });
 });
+
+describe('the lease port: reissue()', () => {
+  const reissued = { leaseId: 'lease-1', role: 'spk_stt', apiKey: 'k-new', clientReferenceId: 'ref-new:2', expiresAt: '2026-11-06T00:00:00.000Z', maxSessionDurationSeconds: 600 };
+  const REISSUE = '/soniox/session-key/reissue';
+
+  /** A granted speaker lease with its reissue() in flight. */
+  async function reissuing() {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    const result = port.reissue();
+    await flush();
+    return { ...a, port, result, call: a.to(REISSUE)[0] };
+  }
+
+  it('posts { leaseId, role } to the reissue route with a fresh token, and maps a 200', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockResolvedValueOnce('fresh');
+    const result = a.resources.credentials('speaker').lease!.reissue();
+    await flush();
+    const call = a.to(REISSUE)[0];
+    expect(call.init.method).toBe('POST');
+    expect(call.init.headers).toEqual({ Authorization: 'Bearer fresh', 'Content-Type': 'application/json' });
+    expect(JSON.parse(call.init.body as string)).toEqual({ leaseId: 'lease-1', role: 'spk_stt' });
+    call.respond(200, reissued);
+    await expect(result).resolves.toEqual({ ok: true, stt: 'k-new', clientReferenceId: 'ref-new:2', expiresAt: Date.parse(reissued.expiresAt) });
+  });
+
+  it('falls back to the cached token when no fresh one is available', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+    void a.resources.credentials('speaker').lease!.reissue();
+    await flush();
+    expect(a.to(REISSUE)[0].init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+  });
+
+  it('answers expiresAt as now + 10 s when the date does not parse', async () => {
+    const { call, result } = await reissuing();
+    call.respond(200, { ...reissued, expiresAt: 'soon' });
+    await expect(result).resolves.toMatchObject({ ok: true, expiresAt: 10_000 });
+  });
+
+  it.each([
+    [401, { code: 'sign_in_required' }, { ok: false, retry: false, code: 'sign_in_required' }],
+    [403, { code: 'wallet_frozen' }, { ok: false, retry: false, code: 'wallet_frozen' }],
+    [409, { code: 'lease_ended' }, { ok: false, retry: false, code: 'lease_ended' }],
+    [409, { code: 'reissue_limit' }, { ok: false, retry: false, code: 'reissue_limit' }],
+    [429, { error: 'slow down', retryAfterMs: 1000 }, { ok: false, retry: true }],
+    [500, { error: 'x' }, { ok: false, retry: true }],
+    [502, { error: 'mint failed' }, { ok: false, retry: true }],
+    [503, { error: 'busy' }, { ok: false, retry: true }],
+    [404, undefined, { ok: false, retry: false, code: 'unsupported' }],
+    [400, { error: 'bad' }, { ok: false, retry: false, code: 'unsupported' }],
+  ])('maps %i %j', async (status, body, expected) => {
+    const { call, result } = await reissuing();
+    call.respond(status, body);
+    await expect(result).resolves.toMatchObject(expected);
+  });
+
+  it('retries on a transport failure and on a timeout', async () => {
+    const failed = await reissuing();
+    failed.call.fail();
+    await expect(failed.result).resolves.toMatchObject({ ok: false, retry: true });
+
+    const slow = await reissuing();
+    slow.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await expect(slow.result).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('is bounded by the lease context abort', async () => {
+    const { controller, result } = await reissuing();
+    controller.abort();
+    await expect(result).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('streamAccepted after a reissue posts session-started with the new clientReferenceId; a second one for the same key posts nothing', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.streamAccepted();
+    expect(JSON.parse(a.to('/soniox/session-started')[0].init.body as string)).toEqual({ leaseId: 'lease-1', role: 'spk_stt' });
+    const result = port.reissue();
+    await flush();
+    a.to(REISSUE)[0].respond(200, reissued);
+    await result;
+    port.streamAccepted();
+    port.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(2);
+    expect(JSON.parse(a.to('/soniox/session-started')[1].init.body as string)).toEqual({ leaseId: 'lease-1', role: 'spk_stt', clientReferenceId: 'ref-new:2' });
+  });
+
+  it('a refused reissue leaves the key already reported as it was', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.streamAccepted();
+    const result = port.reissue();
+    await flush();
+    a.to(REISSUE)[0].respond(409, { code: 'reissue_limit' });
+    await result;
+    port.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+  });
+
+  it('reissue after release makes no request', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    const releasing = a.resources.release();
+    a.to('/soniox/session-end')[0].respond(200);
+    await releasing;
+    await expect(port.reissue()).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
+});
