@@ -16,6 +16,8 @@ The code differs from the spec in a few places; the plan follows the code, and T
 
 - **The extension does import `src/`** (`extension/fullpage.html` loads `shared/index.tsx`, which imports `src/App`; `extension/vite.config.ts` aliases `@src`). Spec §7 says it does not. The outcome stays the spec's: the native reader is started only when `isElectron()` and `window.electron` are both true, so in the extension every output reads `unknown`.
 - **The browser's `default` and `communications` entries never reach the store** (`devices.ts` filters them out), and `resolveOutlet` turns "no device" into `selectedMonitorDevice?.deviceId`, a concrete id. So an outlet almost always has a concrete sink. The answer for the browser default (no device, `''` or `default`) is kept as its own store field, `defaultOutputForm`.
+- **The browser's default, among same-named devices** (plan review): a concrete browser output whose `groupId` equals the `groupId` of the browser's `default` entry is the browser default. It takes the native default's answer when the native default's label equals its own, even if another native device shares that label. This is a statement from the browser, not a guess. Without it, two identical headsets would both be `unknown`, the default one included.
+- **A default-output change on Linux** (plan review): `pactl subscribe` reports a new default sink as `Event 'change' on server`, not as a sink event. The watcher pushes on it too. On Windows and macOS the spec says Chromium fires `devicechange` when the default changes; Task 8 measures that.
 - **Linux, a typed port that says neither** (`HDMI`, `Line`, `Unknown`, …): an HDMI port is `unknown` whatever `device.form_factor` says. Any other port type that says neither falls through to the port name, then to `device.form_factor`, as an untyped port does.
 - **macOS terminal types** are applied to Bluetooth outputs only, as §4's table says. `hdph`, `0x0302` (USB Headphones) and `0x0402` (USB Headset) give `headphones`; `spkr` and `0x0301` (USB Speaker) give `speakers`. Bluetooth measurement (§9.3) may change this set.
 - **The diagnostic log** writes one line per outlet when a session starts, as a baseline. After that it writes an outlet's line only when its (label, form factor, transport) changes, whether or not a session is running.
@@ -65,7 +67,7 @@ The code differs from the spec in a few places; the plan follows the code, and T
   - `export interface OutputForm { formFactor: FormFactor; transport: Transport }`
   - `export const UNKNOWN_FORM: OutputForm`, which is `{ formFactor: 'unknown', transport: 'unknown' }`
   - `export function cleanOutputLabel(label: string): string`: trims the label and removes a leading `Default - ` or `Communications - `.
-  - `export function matchOutputForm(sinkDeviceId: string | undefined, browserLabel: string | undefined, native: readonly OutputDeviceInfo[] | null, labelsKnown: boolean): OutputForm`
+  - `export function matchOutputForm(sinkDeviceId: string | undefined, browserLabel: string | undefined, native: readonly OutputDeviceInfo[] | null, labelsKnown: boolean, isBrowserDefault = false): OutputForm`. When `isBrowserDefault` is true and the native default's cleaned label equals the cleaned browser label, the native default's answer is returned, before the uniqueness rule.
 
 - [ ] **Step 1: Write the failing tests** in `src/lib/audio/formFactor.test.ts`. `n(label, form, isDefault=false)` builds an `OutputDeviceInfo` with `transport: 'builtin'` and `raw: {}`.
   - `no native list is unknown`: `matchOutputForm('id1', 'Speakers', null, true)` equals `UNKNOWN_FORM`.
@@ -76,6 +78,7 @@ The code differs from the spec in a few places; the plan follows the code, and T
   - `an exact label matches`: `'Speakers (Realtek(R) Audio)'` against the same native label gives `speakers`.
   - `prefixes and outer spaces are removed before matching`: `'  Default - Headphones (USB)  '` matches the native `'Headphones (USB)'`, and so does `'Communications - Headphones (USB)'`.
   - `two native devices with the same label match neither`: `[n('USB Headset', 'headphones'), n('USB Headset', 'headphones')]` gives `UNKNOWN_FORM`.
+  - `the browser default among same-named devices is the native default`: the same pair with the second one `isDefault`, and `isBrowserDefault: true`, gives that device's answer. With `isBrowserDefault: false` it gives `UNKNOWN_FORM`. With `isBrowserDefault: true` but a native default named differently, it gives `UNKNOWN_FORM`.
   - `no fuzzy match`: `'Headphones'` against native `'Headphones (USB)'` is unknown, and so is `'headphones (usb)'` against `'Headphones (USB)'`.
   - `an undefined browser label is unknown`.
 
@@ -252,7 +255,7 @@ The per-sink rule, used by both parsers:
     - Linux: `pactl -f json info` and `pactl -f json list sinks`. If either exits non-zero or does not parse, it falls back to `pactl info` and `pactl list sinks`. Every `pactl` gets `env: { ...process.env, LC_ALL: 'C' }`.
     - Stdout is collected up to 1 MiB, and past that the child is killed and the read is `'unparsable'`.
   - `createSinkWatcher(deps: { spawn; onChange: () => void; warn: (msg: string) => void; backoffMs?: number[]; setTimeout?; clearTimeout? }): { start(): void; stop(): void }`.
-    - It runs `pactl subscribe` with `LC_ALL=C`, and calls `onChange` on each line matching `/^Event 'change' on sink #\d+/`.
+    - It runs `pactl subscribe` with `LC_ALL=C`, and calls `onChange` on each line matching `/^Event 'change' on (sink #\d+|server)/`. The `server` change is how a new default sink is reported.
     - Changes within 200 ms of each other give one `onChange`.
     - `start` is idempotent: at most one child.
     - A child that exits while started is restarted after `backoffMs` (default `[1000, 5000, 30000, 60000]`, staying on the last). `warn` is called once per `start`.
@@ -274,6 +277,7 @@ The per-sink rule, used by both parsers:
   - `raw is capped`: a helper row with 20 extra keys yields `raw` with at most 12 keys.
   - `an unsupported platform is unsupported_platform`.
   - `the watcher pushes once for a burst of sink changes`.
+  - `a default sink change pushes`: `Event 'change' on server` gives one push.
   - `the watcher ignores other events`: `Event 'new' on source #3` gives no push.
   - `the watcher restarts with backoff and warns once`.
   - `start twice keeps one child`.
@@ -317,7 +321,7 @@ The per-sink rule, used by both parsers:
   - `export function startNativeOutputs(onUpdate: () => void, deps?: { ipc?: { invoke; receive; removeListener? }; doc?: Document }): { request(reason: NativeReadReason): void; dispose(): void }`. It defaults to `window.electron` and `document`. It uses `ipc.invoke('get-output-devices')`, subscribes `ipc.receive('output-devices:changed')` (giving `request('push')`) and the document's `visibilitychange` (giving `request('visible')` when the page becomes visible), and calls `request('first')`.
   - `export function requestForSync(native: { request(r: NativeReadReason): void } | null, reason: 'change' | 'poll'): void`: a `'change'` requests `'devicechange'`, and a `'poll'` requests nothing. `Home.tsx` calls it inside the `watchDevices` `sync`, and starts the reader only when `isElectron()` and `window.electron` are both true.
   - `export function currentNativeOutputs(): readonly OutputDeviceInfo[] | null`: what the started reader holds, or `null` when none was started (the extension, tests).
-  - `DeviceLists` gains `defaultOutput: OutputForm`. Each output gets `formFactor` and `transport` from `matchOutputForm(device.deviceId, <the browser's own label, before the placeholder>, currentNativeOutputs(), outputLabelsKnown)`. `defaultOutput` is `matchOutputForm(undefined, undefined, …)`.
+  - `DeviceLists` gains `defaultOutput: OutputForm`. Each output gets `formFactor` and `transport` from `matchOutputForm(device.deviceId, <the browser's own label, before the placeholder>, currentNativeOutputs(), outputLabelsKnown, <its groupId is non-empty and equals the groupId of the unfiltered `default` audiooutput entry>)`. `defaultOutput` is `matchOutputForm(undefined, undefined, …)`.
   - `export function getOutputFormFactor(sinkDevice?: string): OutputForm` and `export function useOutputFormFactor(sinkDevice?: string): OutputForm` in `formFactor.ts`:
     - `undefined`, `''` and `'default'` give the store's `defaultOutputForm`;
     - `'communications'` gives `UNKNOWN_FORM`;
@@ -338,6 +342,7 @@ The per-sink rule, used by both parsers:
   - `listAudioDevices joins each output's form` (a native list stubbed through the reader's `current`);
   - `without a reader every output is unknown` (the extension case);
   - `an output with an empty browser label is unknown`;
+  - `the output sharing the default entry's groupId is the browser default`: two same-named outputs, one sharing the `default` entry's `groupId`; that one gets the native default's answer and the other is `unknown`;
   - `defaultOutput comes from the native default`;
   - `a form factor change alone replaces the output list`: `sameDevices` returns `false` when only `formFactor` or `transport` differs, and `syncDevices` sets the new array;
   - `getOutputFormFactor covers default, communications, a listed id and an absent id`.
@@ -400,17 +405,19 @@ Someone at each machine plugs and unplugs by hand. This task changes code only w
 - Create: `electron/__fixtures__/output-devices/mac-applesilicon.json` and `win.json`, from the helpers' `--devices`, plus `linux-jack.json` and `linux-jack.txt`, from `pactl` with headphones plugged in and a second capture with them out. All are scrubbed as in Task 2.
 - Modify: `electron/output-form-factor-parse.test.js`, adding one test per fixture that asserts the measured answer.
 
-- [ ] **Step 1: Spec §9.1, labels.** On each platform, in the dev app with diagnostic logs on, compare every `audiooutput` label from `enumerateDevices` with the native labels, including the `Default - ` entry and the macOS default. Record the outcome per platform. If a platform's labels never match, its answer stays `unknown`: record that in the PR, and do not loosen the matcher.
+- [ ] **Step 1: Spec §9.1, labels.** On each platform, in the dev app with diagnostic logs on, compare every `audiooutput` label from `enumerateDevices` with the native labels, including the `Default - ` entry and the macOS default. Also check that the `default` entry's `groupId` equals the real default device's. Record the outcome per platform. If a platform's labels never match, its answer stays `unknown`: record that in the PR, and do not loosen the matcher.
 
 - [ ] **Step 2: Spec §9.2–§9.5.** Check each of these:
   - Apple Silicon: plugging into the jack fires `devicechange`;
   - Bluetooth `terminalType` on macOS: record the codes seen for headphones and for a speaker;
   - Linux: a port switch gives a `pactl subscribe` sink `change`;
-  - Windows: a jack-detecting codec fires `devicechange`.
+  - Windows: a jack-detecting codec fires `devicechange`;
+  - Windows and macOS: changing the default output in the system settings fires `devicechange` (the spec's §6 assumption); Linux: it gives `Event 'change' on server`.
 
   A result that contradicts this plan gets a failing test and a fix in this task, or a follow-up issue where the spec says so (§6, §9.2).
 
 - [ ] **Step 3: Spec §8.** On each machine, in a session, plug and unplug. Each change shows in the log line, a wake from sleep re-reads, and the extension logs `unknown`.
+  - A platform nobody measured by hand is listed in the PR as **not verified on a real machine**, with what is untested. It is never described as working. Its unit tests are not a substitute.
 
 - [ ] **Step 4: Run the whole check:**
   - `npx vitest run`. Expected: all pass, except the 4 Japanese-reading test files if `lindera-wasm` is not installed locally, which fail the same way on `main`.
