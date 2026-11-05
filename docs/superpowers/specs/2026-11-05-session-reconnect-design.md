@@ -124,6 +124,8 @@ Qwen (`POST /qwen/session-key/reissue`, body `{ leaseId }`):
 - Signs a new token for the same lease and records its time window under that lease (`qwen-attribution.ts` attributes usage by the token's window and the reported session ids).
 - The reconciler already supports several connections per lease: release waits for the client's session-end and a usage record for every reported connection (`releaseQwenLeases`); a lease accepts up to 20 reports (`QWEN_REPORTS_PER_LEASE`). The reissue must keep within that.
 
+Known remaining risk (accepted): a reissued key that connects but whose client crashes or is force-quit before it reports `session-started` is unknown to the backend, which releases the lease once the earlier keys' logs are in. The account can then start another session while that connection runs for a short while. The overlap cannot pass the lease's original end, because the key's duration is cut to end before it. The first key of a lease has the same window today (its start window's two-stage expiry), so no mechanism is added for it.
+
 Release order: the D1 migration, then the backend (endpoints and the Soniox reconciler change; merging to main deploys production), then the client.
 
 ## 8. Verification
