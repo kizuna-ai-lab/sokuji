@@ -27,7 +27,7 @@ export interface SonioxConfig {
     endpointSensitivity: number;
     endpointLatencyAdjustmentLevel: number;
     endpointMaxDelayMs: number;
-    /** Ask for agent text on this leg's socket: the speaker's leg, whose socket hears the microphone, in a run that may speak (§4.3). Absent: off. */
+    /** Ask for agent text on this leg's socket: the speaker's leg, whose socket hears the microphone, in a run that speaks with the agent text setting on at Start (§4.3); split Both strips it (`startSplit`). Absent: off. */
     agentText?: true;
   };
   /** Present when this leg speaks, in this leg's own voice: the participant's leg in `participantVoice`. */
@@ -156,7 +156,8 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       endpointSensitivity: clampNumber(s.endpointSensitivity, -1, 1, 0),
       endpointLatencyAdjustmentLevel: Math.round(clampNumber(s.endpointLatencyAdjustmentLevel, 0, 3, 0)),
       endpointMaxDelayMs: Math.round(clampNumber(s.endpointMaxDelayMs, 500, 3000, 2000)),
-      ...(!shared.reversed(context.direction) && shared.asksAgentText === true ? { agentText: true as const } : {}),
+      // The narrow rule (spec 2026-11-05 §4.3): the flag alone made Soniox drop talk-over turns when speech echoed into the microphone, so only with the setting on.
+      ...(!shared.reversed(context.direction) && shared.speaks === true && s.agentText === true ? { agentText: true as const } : {}),
     },
     ...(context.speech
       ? { tts: { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }

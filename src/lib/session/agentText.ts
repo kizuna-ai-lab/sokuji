@@ -20,10 +20,9 @@ export function agentTextTarget(legs: readonly LegName[], outlets: readonly Outl
 
 export interface AgentTextFeedOptions {
   legs: readonly LegName[];
-  /** The switch, read at each chunk (§4.4). */
-  enabled(): boolean;
-  /** The microphone's audio reaches its socket now: automatic turns, or a manual turn's key held (§4.2). */
+  /** The microphone's audio reaches its socket now: not muted, and automatic turns or a manual turn's key held (§4.2). */
   micOpen(): boolean;
+  /** The session a leg's text goes to. Its `agentText` answering false is a refusal (a socket not opened for it, or down), silent. */
   session(leg: LegName): Pick<AdapterSession, 'agentText'> | undefined;
   /** A session's `agentText` threw: called once per feed (a run), the first time. The throw counts as a refusal. */
   report?(error: unknown): void;
@@ -68,8 +67,8 @@ export class AgentTextFeed {
     if (target === null) return;
     const chunk: LiveChunk = { voice: e.voice ?? leg, target };
     const key = `${row}:${index}`;
-    // Queued with the switch off or the key up: its text is placed unsent below, and its fill-in sends nothing either.
-    if (this.o.enabled() && this.o.micOpen()) this.live.set(key, chunk);
+    // Queued with the microphone gated (muted, or the key up): its text is placed unsent below, and its fill-in sends nothing either.
+    if (this.o.micOpen()) this.live.set(key, chunk);
     if (e.range) this.place(leg, e.ref, key, chunk, e.range);
   }
 
@@ -83,7 +82,7 @@ export class AgentTextFeed {
     }
   }
 
-  /** Playback's `onVoiceIdle`: the voice's open segment ends, whatever the switch and the key say; its queued chunks are gone. */
+  /** Playback's `onVoiceIdle`: the voice's open segment ends, whatever the microphone gate says; its queued chunks are gone. */
   voiceIdle(voice: LegName): void {
     const holder = this.open.get(voice);
     if (holder !== undefined) {
@@ -100,9 +99,9 @@ export class AgentTextFeed {
   }
 
   /**
-   * Rule 3: the part of `[a, b]` not yet placed for this voice and row is placed, and sent while the switch is on
-   * and the microphone reaches its socket. A placement gated or refused ends the chunk's live state; one with
-   * nothing to place leaves it as it is.
+   * Rule 3: the part of `[a, b]` not yet placed for this voice and row is placed, and sent while the microphone
+   * reaches its socket. A placement gated or refused ends the chunk's live state; one with nothing to place leaves
+   * it as it is.
    */
   private place(leg: LegName, ref: Ref, key: string, { voice, target }: LiveChunk, [a, b]: TextRange): void {
     const text = this.texts.get(rowKey(leg, ref)) ?? '';
@@ -111,7 +110,7 @@ export class AgentTextFeed {
     const to = Math.min(b, text.length);
     if (to <= from) return;
     this.sentTo.set(mark, to);
-    const sent = this.o.enabled() && this.o.micOpen() && this.send(target, text.slice(from, to), false);
+    const sent = this.o.micOpen() && this.send(target, text.slice(from, to), false);
     if (sent) this.open.set(voice, target);
     else this.live.delete(key);
   }

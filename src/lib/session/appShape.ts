@@ -214,11 +214,6 @@ export function watchLegsFromStores(): () => void {
   return useAudioStore.subscribe((s) => s.mode, apply);
 }
 
-/** `agentText`, as it stands when the run asks: the runner's `agentText`. */
-export const appAgentText: { get(): boolean } = {
-  get: () => useSettingsStore.getState().agentText,
-};
-
 /** The microphone's mute, as it stands when the run asks: the runner's `micMuted`. */
 export const appMicMuted: { get(): boolean } = {
   get: () => useAudioStore.getState().isMicMuted,

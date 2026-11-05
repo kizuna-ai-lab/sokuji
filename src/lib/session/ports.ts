@@ -95,8 +95,6 @@ export interface RunnerDeps {
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
   /** Translation I hear, live (#595): a run started speaking the other side's translation switches its participant session with it; absent, the shape's value holds. */
   participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
-  /** Keep the read-aloud translation out of recognition (spec 2026-11-05 §4.3, §4.4): read at Start; changes take effect from the next session. Absent: nothing is sent. */
-  agentText?: { get(): boolean };
   /** The microphone's mute, live (spec 2026-11-05 §4.2: agent text only while the microphone's audio reaches its socket): read at each chunk. Absent: never muted. */
   micMuted?: { get(): boolean };
 }

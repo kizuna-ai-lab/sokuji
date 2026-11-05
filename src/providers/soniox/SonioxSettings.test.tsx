@@ -216,3 +216,90 @@ describe('SonioxSettings, speaker labels', () => {
     expect(labelsSection()).toBeNull();
   });
 });
+
+// Spec 2026-11-05 §4.4: Soniox's own setting, in the view own-key and managed share, each flavour with its own stored value.
+describe.each([
+  ['own key', BYOK],
+  ['managed', createSonioxSettingsView({ managed: true, useVoiceSource: () => null })],
+] as const)('SonioxSettings, keep the read-aloud translation out of recognition (%s)', (_flavour, View) => {
+  const HELP = 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).';
+  const SPLIT_BOTH = 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.';
+  const rowOf = () => section('soniox-agent-text-section');
+  const on = () => rowOf().getByRole('button', { name: 'Enabled' });
+  const off = () => rowOf().getByRole('button', { name: 'Disabled' });
+  const control = () => document.querySelector('#soniox-agent-text-section .turn-detection-options')!;
+  const withSettings = (patch: Partial<SonioxSettings>) => ({ ...SONIOX_DEFAULTS, ...patch });
+
+  it('sits directly below the shared-session choice, under its own heading', () => {
+    render(<View {...props()} />);
+    expect(document.getElementById('soniox-settings-section')!.nextElementSibling?.id).toBe('soniox-agent-text-section');
+    expect(rowOf().getByRole('heading', { name: 'Keep the read-aloud translation out of recognition' })).toBeInTheDocument();
+  });
+
+  it('in shared Both: shows the stored value, writes it, says what it sends and costs, with no reason', () => {
+    const update = vi.fn();
+    const { rerender } = render(<View {...props({ update, settings: withSettings({ bothModeSharedSession: true }) })} />);
+    expect(on()).toHaveClass('active');
+    expect(off()).not.toHaveClass('active');
+    expect(on()).not.toBeDisabled();
+    fireEvent.click(off());
+    expect(update).toHaveBeenCalledWith({ agentText: false });
+    fireEvent.click(on());
+    expect(update).toHaveBeenCalledWith({ agentText: true });
+    expect(tooltipContents).toContain(HELP);
+    expect(tooltipContents).not.toContain(`${HELP}\n${SPLIT_BOTH}`);
+    expect(control().getAttribute('title')).toBeNull();
+
+    rerender(<View {...props({ update, settings: withSettings({ bothModeSharedSession: true, agentText: false }) })} />);
+    expect(off()).toHaveClass('active');
+    expect(on()).not.toHaveClass('active');
+  });
+
+  it('in face-to-face: live, whatever the shared-session choice says', () => {
+    const update = vi.fn();
+    render(<View {...props({ update, faceToFace: true, settings: withSettings({ bothModeSharedSession: false }) })} />);
+    expect(on()).toHaveClass('active');
+    expect(off()).not.toBeDisabled();
+    fireEvent.click(off());
+    expect(update).toHaveBeenCalledWith({ agentText: false });
+    expect(control().getAttribute('title')).toBeNull();
+  });
+
+  it('outside Both: live, whatever the shared-session choice says', () => {
+    for (const legs of [['speaker'], ['participant'], undefined] as const) {
+      const update = vi.fn();
+      const { unmount } = render(<View {...props({ update, legs, settings: withSettings({ bothModeSharedSession: false }) })} />);
+      expect(on(), String(legs)).toHaveClass('active');
+      expect(off(), String(legs)).not.toBeDisabled();
+      fireEvent.click(off());
+      expect(update, String(legs)).toHaveBeenCalledWith({ agentText: false });
+      expect(control().getAttribute('title'), String(legs)).toBeNull();
+      unmount();
+    }
+  });
+
+  it('in split Both: shows off, greyed and not changeable, says why in its help and its title, and keeps the stored value', () => {
+    const update = vi.fn();
+    render(<View {...props({ update, settings: withSettings({ bothModeSharedSession: false, agentText: true }) })} />);
+    expect(off()).toHaveClass('active');
+    expect(on()).not.toHaveClass('active');
+    expect(on()).toBeDisabled();
+    expect(off()).toBeDisabled();
+    fireEvent.click(on());
+    fireEvent.click(off());
+    expect(update).not.toHaveBeenCalled();
+    expect(control().getAttribute('title')).toBe(SPLIT_BOTH);
+    expect(tooltipContents).toContain(`${HELP}\n${SPLIT_BOTH}`);
+  });
+
+  it('is disabled while the other Soniox settings are, still showing the stored value', () => {
+    const update = vi.fn();
+    render(<View {...props({ update, disabled: true, settings: withSettings({ bothModeSharedSession: true, agentText: true }) })} />);
+    expect(on()).toHaveClass('active');
+    expect(on()).toBeDisabled();
+    expect(off()).toBeDisabled();
+    fireEvent.click(off());
+    expect(update).not.toHaveBeenCalled();
+    expect(control().getAttribute('title')).toBeNull();
+  });
+});

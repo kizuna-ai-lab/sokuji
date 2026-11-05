@@ -6,7 +6,7 @@ import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
-import type { RunShape, SessionHooks } from '../session/types';
+import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
@@ -135,8 +135,8 @@ export interface SharedSettings {
   segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
   /** Face-to-face: a builder that can run it forces its shared socket. Absent: false. */
   faceToFace?: boolean;
-  /** The run asks for agent text: some leg of it speaks (its context's `speech`) AND the user's agent-text switch was on at Start, fixed for the run (Soniox, spec 2026-11-05 §4.3). The flag alone, with no text sent, made Soniox drop talk-over turns when the app's speech echoed into the mic; speech that is not local makes no echo, so "plays locally" is not asked. Set by the run; absent: false. */
-  asksAgentText?: boolean;
+  /** Some leg of this run produces translated speech (its context's `speech`), fixed at start: a builder may ready a socket for it (Soniox asks for agent text when its own setting is on, spec 2026-11-05 §4.3). Whether the speech plays locally is not asked: speech that is not local makes no echo. Set by the run; absent: false. */
+  speaks?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
 }
@@ -392,17 +392,6 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * stored choice is ignored.
    */
   faceToFace?: boolean;
-  /** Its STT socket takes the text its own voice is about to play (Soniox agent text, spec 2026-11-05): the Speech section offers the switch. Absent: no switch. */
-  agentText?: true;
-  /**
-   * Whether a start under these settings and this shape is split Both: Both
-   * on a session per direction instead of one shared one (Soniox's
-   * shared-session choice; face-to-face always shares). Only the agent text
-   * switch reads it: split Both sends no agent text (measured, spec
-   * 2026-11-05 §4.1), so there the switch shows off and greyed, the stored
-   * setting kept. Absent: the switch never greys for it.
-   */
-  splitBoth?(s: S, shape: Pick<RunShape, 'legs' | 'faceToFace'>): boolean;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;

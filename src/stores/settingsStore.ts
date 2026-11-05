@@ -69,8 +69,6 @@ export interface CommonSettings {
   theme: ThemeSetting;
   textOnly: boolean;
   keepReplayAudio: boolean;
-  /** Keep the read-aloud translation out of recognition: the run sends it as agent text (spec 2026-11-05 §4.4). */
-  agentText: boolean;
   autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
   /**
@@ -168,7 +166,6 @@ const defaultCommonSettings: CommonSettings = {
   theme: 'dark',
   textOnly: false,
   keepReplayAudio: false,
-  agentText: true,
   autoSaveOnStop: false,
   diagnosticLogs: false,
   segmentationMode: SENTENCE_SEGMENTATION_SHOWN ? 'pause' : 'off',
@@ -232,9 +229,6 @@ export interface SettingsStore {
   // on the next session.
   keepReplayAudio: boolean;
 
-  // Keep the read-aloud translation out of recognition (spec 2026-11-05 §4.4). On by default.
-  agentText: boolean;
-
   // Auto-save the whole conversation — both sides, originals and
   // translations — as a .txt file whenever a session ends, whatever the
   // Export menu's scope boxes say (those govern only the manual export). Off
@@ -279,7 +273,6 @@ export interface SettingsStore {
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
-  setAgentText: (agentText: boolean) => Promise<void>;
   setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
   setTheme: (theme: ThemeSetting) => Promise<void>;
@@ -463,14 +456,6 @@ const useSettingsStore = create<SettingsStore>()(
       set({keepReplayAudio});
       if (!await persistSetting('settings.common.keepReplayAudio', keepReplayAudio)) {
         set({keepReplayAudio: previous});
-      }
-    },
-
-    setAgentText: async (agentText) => {
-      const previous = get().agentText;
-      set({agentText});
-      if (!await persistSetting('settings.common.agentText', agentText)) {
-        set({agentText: previous});
       }
     },
 
@@ -706,7 +691,6 @@ const useSettingsStore = create<SettingsStore>()(
         const theme = isThemeSetting(storedTheme) ? storedTheme : defaultCommonSettings.theme;
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
-        const agentText = await service.getSetting('settings.common.agentText', defaultCommonSettings.agentText);
         const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
         const segmentationMode = SENTENCE_SEGMENTATION_SHOWN
           ? clampSegmentationMode(await service.getSetting('settings.common.segmentationMode', defaultCommonSettings.segmentationMode))
@@ -752,7 +736,6 @@ const useSettingsStore = create<SettingsStore>()(
           theme,
           textOnly,
           keepReplayAudio,
-          agentText,
           autoSaveOnStop,
           diagnosticLogs,
           segmentationMode,
@@ -882,7 +865,6 @@ export const useSettingsLoaded = () => useSettingsStore((state) => state.setting
 // Actions
 export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
 export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
-export const useAgentText = () => useSettingsStore((state) => state.agentText);
 export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
@@ -902,7 +884,6 @@ export const useSetUILanguage = () => useSettingsStore((state) => state.setUILan
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
 export const useSetKeepReplayAudio = () => useSettingsStore((state) => state.setKeepReplayAudio);
-export const useSetAgentText = () => useSettingsStore((state) => state.setAgentText);
 export const useSetAutoSaveOnStop = () => useSettingsStore((state) => state.setAutoSaveOnStop);
 export const useSetSpeakerDisplayMode = () => useSettingsStore((state) => state.setSpeakerDisplayMode);
 export const useSetParticipantDisplayMode = () => useSettingsStore((state) => state.setParticipantDisplayMode);

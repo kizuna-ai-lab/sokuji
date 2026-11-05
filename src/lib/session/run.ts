@@ -94,8 +94,6 @@ export class Run {
   private readonly legOpens: Promise<unknown>[] = [];
   /** The text of the speech this run queues on the user's outlets, to the session that hears the microphone (spec 2026-11-05 §4.1, §4.2). */
   private readonly agentTextFeed: AgentTextFeed;
-  /** The agent-text switch, read once as the run starts: it decides both the flag and the sending, for the whole run. */
-  private readonly agentTextAtStart: boolean;
 
   /** Keeps `task` among the opens `close()` waits for. */
   private opened<T>(task: Promise<T>): Promise<T> {
@@ -110,27 +108,26 @@ export class Run {
     this.host = host(this);
     this.stack = new ResourceStack(deps.clock, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS, (f) =>
       reportWarning('SessionRunner', `Releasing ${f.name} failed: ${f.message}`, { dedupeKey: `release:${f.name}` }));
-    // A port that throws must neither stop the start nor escape an adapter's event: it reads as "send nothing", reported once.
-    let portFailed = false;
-    const read = (get: () => boolean, onFailure: boolean): boolean => {
+    // The mute port throwing must not escape an adapter's event: it reads as muted ("send nothing"), reported once.
+    let muteFailed = false;
+    const muted = (): boolean => {
       try {
-        return get();
+        return deps.micMuted?.get() ?? false;
       } catch (error) {
-        if (!portFailed) {
-          portFailed = true;
-          reportError('SessionRunner', `Reading an agent text setting failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentTextPorts' });
+        if (!muteFailed) {
+          muteFailed = true;
+          reportError('SessionRunner', `Reading the microphone mute for agent text failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentTextPorts' });
         }
-        return onFailure;
+        return true;
       }
     };
-    this.agentTextAtStart = read(() => deps.agentText?.get() ?? false, false);
+    // Whether a socket takes agent text is the provider's, decided at Start (Soniox's own setting, `buildSoniox`): the run
+    // sends whenever the gates below allow, and a socket that did not ask refuses silently (spec 2026-11-05 §4.3).
     this.agentTextFeed = new AgentTextFeed({
       legs: shape.legs,
-      // Latched at Start, as the flag is: a mid-run flip never yields "flag on, no text" (spec 2026-11-05 §4.3).
-      enabled: () => this.agentTextAtStart,
       // The microphone reaches its socket: not while muted (capture delivers nothing), and then always in automatic
       // turns, in a manual mode only while the key is held (`send`).
-      micOpen: () => !read(() => deps.micMuted?.get() ?? false, true) && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
+      micOpen: () => !muted() && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
       session: (leg) => this.sessions.get(leg),
       report: (error) => reportError('SessionRunner', `A session did not take agent text: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentText' }),
     });
@@ -191,10 +188,8 @@ export class Run {
     }
 
     const contexts = contextsFor(shape);
-    // Whether the run asks for agent text, told to every builder: some leg speaks AND the switch was on at Start (Soniox, spec 2026-11-05 §4.3).
-    // The flag alone, with no text sent, made Soniox drop talk-over turns when speech echoed into the mic (measured 2026-11-05), hence the switch.
-    // Whether the speech plays locally is not asked: speech that is not local makes no echo, which is harmless (run 2a).
-    const shared: SharedSettings = { ...shape.shared, models: readiness.models, asksAgentText: this.agentTextAtStart && shape.legs.some((leg) => contexts[leg]!.speech) };
+    // Whether any leg speaks, told to every builder: Soniox asks for agent text on it when its own setting is on (spec 2026-11-05 §4.3).
+    const shared: SharedSettings = { ...shape.shared, models: readiness.models, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.

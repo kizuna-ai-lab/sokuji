@@ -199,15 +199,19 @@ describe('describeSoniox', () => {
 
 describe('buildSoniox — agent text (spec 2026-11-05 §4.3)', () => {
   const SPEAKER: SessionContext = { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } };
-  const SPEAKS = { ...SHARED, asksAgentText: true };
-  it("asks on the speaker's leg of a run that may speak, even when that leg itself is text-only", () => {
+  const SPEAKS = { ...SHARED, speaks: true };
+  it("asks on the speaker's leg of a run that speaks with the setting on, even when that leg itself is text-only", () => {
+    expect(SONIOX_DEFAULTS.agentText).toBe(true);
     expect(buildSoniox(SPEAKER, SONIOX_DEFAULTS, SPEAKS).stt.agentText).toBe(true);
     expect(buildSoniox({ ...SPEAKER, speech: false }, SONIOX_DEFAULTS, SPEAKS).stt.agentText).toBe(true);
   });
   it("never on the participant's leg: its socket does not hear the microphone", () => {
     expect(buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, SPEAKS).stt).not.toHaveProperty('agentText');
   });
-  it('never in a run that did not ask (switch off at Start, or nothing speaks)', () => {
-    for (const asksAgentText of [false, undefined]) expect(buildSoniox(SPEAKER, SONIOX_DEFAULTS, { ...SHARED, asksAgentText }).stt).not.toHaveProperty('agentText');
+  it('never with the setting off, though the run speaks', () => {
+    expect(buildSoniox(SPEAKER, { ...SONIOX_DEFAULTS, agentText: false }, SPEAKS).stt).not.toHaveProperty('agentText');
+  });
+  it('never in a run where nothing speaks, the setting on', () => {
+    for (const speaks of [false, undefined]) expect(buildSoniox(SPEAKER, SONIOX_DEFAULTS, { ...SHARED, speaks }).stt).not.toHaveProperty('agentText');
   });
 });

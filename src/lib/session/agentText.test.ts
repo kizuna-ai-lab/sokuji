@@ -24,9 +24,9 @@ describe('agentTextTarget — spec §4.1, row by row', () => {
 
 function setup() {
   const sent: Array<[LegName, string, boolean]> = [];
-  const gate = { enabled: true, mic: true, up: true };
+  const gate = { mic: true, up: true };
   const feed = new AgentTextFeed({
-    legs: BOTH, enabled: () => gate.enabled, micOpen: () => gate.mic,
+    legs: BOTH, micOpen: () => gate.mic,
     session: (leg) => ({ agentText: (text: string, end: boolean) => { if (gate.up) sent.push([leg, text, end]); return gate.up; } }),
   });
   feed.rowText('speaker', 1, 'Hello there. How are you?');
@@ -82,6 +82,15 @@ describe('AgentTextFeed', () => {
     expect(sent).toEqual([]);
   });
 
+  it('a refusal is silent: a socket that did not ask answers false, and nothing is reported (spec 2026-11-05 §4.3)', () => {
+    const reported: unknown[] = [];
+    const feed = new AgentTextFeed({ legs: BOTH, micOpen: () => true, session: () => ({ agentText: () => false }), report: (error) => reported.push(error) });
+    feed.rowText('speaker', 1, 'Hello there. How are you?');
+    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
+    feed.voiceIdle('speaker');
+    expect(reported).toEqual([]);
+  });
+
   it('numbers every audio event of a row that has a ref, on my outlets or not, as the adapter does (rule 1)', () => {
     const { feed, texts } = setup();
     feed.audio('speaker', { range: [0, 6] }, ME);
@@ -129,13 +138,13 @@ describe('AgentTextFeed', () => {
     expect(texts()).toEqual([['Hello ', false], ['there. ', false], ['', true], ['How ar', false]]);
   });
 
-  it('the switch, read at each chunk: off places text unsent, the idle still closes; on again sends from the next chunk only (Review Focus 4)', () => {
+  it('the microphone gate, read at each chunk: closed places text unsent, the idle still closes; open again sends from the next chunk only (Review Focus 4)', () => {
     const { feed, gate, texts } = setup();
     feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
-    gate.enabled = false;
+    gate.mic = false;
     feed.audio('speaker', { ref: 1, range: [6, 13] }, ME);
     feed.voiceIdle('speaker');
-    gate.enabled = true;
+    gate.mic = true;
     feed.audio('speaker', { ref: 1, range: [6, 19] }, ME);
     expect(texts()).toEqual([['Hello ', false], ['', true], ['How ar', false]]);
   });
@@ -170,15 +179,6 @@ describe('AgentTextFeed', () => {
     expect(texts()).toEqual([]);
   });
 
-  it('a chunk queued with the switch off gets nothing from its fill-in once it is on again (Review Focus 4)', () => {
-    const { feed, gate, texts } = setup();
-    gate.enabled = false;
-    feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
-    gate.enabled = true;
-    feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
-    expect(texts()).toEqual([]);
-  });
-
   it('a chunk the socket refused gets nothing from its fill-in once the resumed socket accepts (Review Focus 5)', () => {
     const { feed, gate, texts } = setup();
     feed.reconnecting('speaker');
@@ -189,12 +189,12 @@ describe('AgentTextFeed', () => {
     expect(texts()).toEqual([]);
   });
 
-  it('a fill-in gated by the switch ends the chunk: a later fill-in with the switch on again sends nothing more of it (Review Focus 4)', () => {
+  it('a fill-in gated by the microphone ends the chunk: a later fill-in with the gate open again sends nothing more of it (Review Focus 4)', () => {
     const { feed, gate, texts } = setup();
     feed.audio('speaker', { ref: 1, range: [0, 6] }, ME);
-    gate.enabled = false;
+    gate.mic = false;
     feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 9] }] });
-    gate.enabled = true;
+    gate.mic = true;
     feed.ranges('speaker', { ref: 1, ranges: [{ index: 0, range: [0, 13] }] });
     expect(texts()).toEqual([['Hello ', false]]);
   });
@@ -204,7 +204,7 @@ describe('AgentTextFeed', () => {
     const sent: Array<[string, boolean]> = [];
     const reported: unknown[] = [];
     const feed = new AgentTextFeed({
-      legs: BOTH, enabled: () => true, micOpen: () => true,
+      legs: BOTH, micOpen: () => true,
       session: () => ({ agentText: (text: string, end: boolean) => { if (fault.on) throw new Error('socket gone'); sent.push([text, end]); return true; } }),
       report: (error) => reported.push(error),
     });
@@ -224,7 +224,7 @@ describe('AgentTextFeed', () => {
     const sent: Array<[string, boolean]> = [];
     const reported: unknown[] = [];
     const feed = new AgentTextFeed({
-      legs: BOTH, enabled: () => true, micOpen: () => true,
+      legs: BOTH, micOpen: () => true,
       session: () => ({ agentText: (text: string, end: boolean) => { if (fault.on) throw new Error('socket gone'); sent.push([text, end]); return true; } }),
       report: (error) => reported.push(error),
     });

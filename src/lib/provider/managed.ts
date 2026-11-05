@@ -72,9 +72,6 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     turns: base.turns,
     ...(participantSpeech === undefined ? {} : { participantSpeech }),
     ...(base.faceToFace ? { faceToFace: base.faceToFace } : {}),
-    ...(base.agentText ? { agentText: base.agentText } : {}),
-    // The agent text switch greys on it: a twin without it would offer the switch live where nothing is sent.
-    ...(base.splitBoth ? { splitBoth: base.splitBoth } : {}),
     build: base.build,
     describe: base.describe,
     start: base.start,

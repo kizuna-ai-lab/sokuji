@@ -22,8 +22,9 @@ export interface SonioxSettingsFlavour {
  * Soniox's own settings (D18), today's `renderSonioxSettings`
  * (`ProviderSpecificSettings.tsx:1721-2019`) recomposed from shared
  * fields: region, the voice library (previewing through the host's route,
- * ruling 6), TTS speed, vocabulary, background, and Both mode's
- * shared-session choice. The endpoint knobs are its `TurnDetection`. A
+ * ruling 6), TTS speed, vocabulary, background, Both mode's
+ * shared-session choice and, below it, agent text, which split Both locks
+ * off. The endpoint knobs are its `TurnDetection`. A
  * factory, so the managed twin reuses it with its own voice source (choice 12).
  */
 export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSettingsFlavour): ComponentType<SettingsProps<S>> {
@@ -32,6 +33,11 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
     const region = asSonioxRegion(settings.region);
     const inBoth = legs?.length === 2;
     const shared = sonioxSharedBoth(faceToFace === true, settings);
+    // Split Both asks for no agent text (`startSplit`), so the setting shows off there.
+    const splitBoth = inBoth && !shared;
+    const agentTextOn = !splitBoth && settings.agentText;
+    const agentTextHelp = t('settings.sonioxAgentTextTooltip', 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).');
+    const splitBothReason = t('settings.sonioxAgentTextSplitBoth', 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.');
     // Only the other side's leg numbers its people, and face-to-face never shows them.
     const labelsPeople = !faceToFace && legs?.includes('participant') === true;
     return (
@@ -136,6 +142,24 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
               </div>
             </div>
           )}
+        </div>
+
+        {/* Agent text (spec 2026-11-05 §4.4), read at Start. Split Both sends none (§4.1): there it shows off and locked, the stored value kept. */}
+        <div className="settings-section" id="soniox-agent-text-section">
+          <h2>
+            {t('settings.sonioxAgentText', 'Keep the read-aloud translation out of recognition')}
+            <Tooltip content={[agentTextHelp, ...(splitBoth ? [splitBothReason] : [])].join('\n')} position="top">{helpIcon}</Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="turn-detection-options" title={splitBoth ? splitBothReason : undefined}>
+              <button type="button" className={`option-button ${agentTextOn ? 'active' : ''}`} aria-pressed={agentTextOn} onClick={() => update({ agentText: true })} disabled={disabled || splitBoth}>
+                {t('settings.enabled', 'Enabled')}
+              </button>
+              <button type="button" className={`option-button ${!agentTextOn ? 'active' : ''}`} aria-pressed={!agentTextOn} onClick={() => update({ agentText: false })} disabled={disabled || splitBoth}>
+                {t('settings.disabled', 'Disabled')}
+              </button>
+            </div>
+          </div>
         </div>
 
         {labelsPeople && (

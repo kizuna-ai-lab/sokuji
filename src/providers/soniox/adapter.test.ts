@@ -60,7 +60,7 @@ const lastStream = (s: FakeSocket) => s.sentJson<{ stream_id?: string; model?: s
 
 describe('the Soniox adapter: agent text (spec 2026-11-05 §4.3)', () => {
   it('a resumed socket asks again (Review Focus 5)', async () => {
-    const h = await live({ shared: { ...SHARED, asksAgentText: true } });
+    const h = await live({ shared: { ...SHARED, speaks: true } });
     await resumeOnce(h);
     expect(h.sttSockets().map((s) => s.sentJson<Json>()[0].enable_agent_text_input)).toEqual([true, true]);
   });

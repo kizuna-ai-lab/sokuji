@@ -220,29 +220,6 @@ describe('settingsStore', () => {
     });
   });
 
-  describe('agentText (spec 2026-11-05 §4.4)', () => {
-    it('defaults to true when storage has no stored value', async () => {
-      useSettingsStore.setState({ agentText: false });
-      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
-      await useSettingsStore.getState().loadSettings();
-      expect(useSettingsStore.getState().agentText).toBe(true);
-    });
-
-    it('setAgentText(false) updates state and persists', async () => {
-      mockSetSetting.mockResolvedValueOnce(undefined);
-      await useSettingsStore.getState().setAgentText(false);
-      expect(useSettingsStore.getState().agentText).toBe(false);
-      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.agentText', false);
-    });
-
-    it('rolls back state when persistence fails', async () => {
-      useSettingsStore.setState({ agentText: true });
-      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
-      await useSettingsStore.getState().setAgentText(false);
-      expect(useSettingsStore.getState().agentText).toBe(true);
-    });
-  });
-
   describe('clampChunkSentences', () => {
     it.each([
       // 0 is Auto, and is now a value in its own right (Amendment A2).
