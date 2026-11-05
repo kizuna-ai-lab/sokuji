@@ -793,7 +793,8 @@
     "error": "కనెక్షన్ ఎరర్",
     "noApiKey": "API కీ అవసరం",
     "noMic": "మైక్రోఫోన్ అవసరం",
-    "reconnecting": "మళ్ళీ కనెక్ట్ అవుతోంది..."
+    "reconnecting": "మళ్ళీ కనెక్ట్ అవుతోంది...",
+    "reconnectingAttempt": "మళ్ళీ కనెక్ట్ అవుతోంది... (ప్రయత్నం {{attempt}}, {{seconds}} సె.)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "కోటా సమాచారాన్ని లోడ్ చేయలేకపోయింది",

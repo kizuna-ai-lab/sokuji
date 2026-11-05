@@ -793,7 +793,8 @@
     "error": "שגיאת חיבור",
     "noApiKey": "נדרש מפתח API",
     "noMic": "נדרש מיקרופון",
-    "reconnecting": "מתחבר מחדש..."
+    "reconnecting": "מתחבר מחדש...",
+    "reconnectingAttempt": "מתחבר מחדש... (ניסיון {{attempt}}, {{seconds}} שנ׳)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "לא ניתן לטעון מידע על מכסה",

@@ -793,7 +793,8 @@
     "error": "সংযোগ ত্রুটি",
     "noApiKey": "API কী প্রয়োজন",
     "noMic": "মাইক্রোফোন প্রয়োজন",
-    "reconnecting": "পুনরায় সংযুক্ত হচ্ছে..."
+    "reconnecting": "পুনরায় সংযুক্ত হচ্ছে...",
+    "reconnectingAttempt": "পুনরায় সংযুক্ত হচ্ছে... (প্রচেষ্টা {{attempt}}, {{seconds}} সে.)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "কোটা তথ্য লোড করতে অক্ষম",

@@ -793,7 +793,8 @@
     "error": "Bağlantı Hatası",
     "noApiKey": "API Anahtarı Gerekli",
     "noMic": "Mikrofon Gerekli",
-    "reconnecting": "Yeniden bağlanıyor..."
+    "reconnecting": "Yeniden bağlanıyor...",
+    "reconnectingAttempt": "Yeniden bağlanıyor... (deneme {{attempt}}, {{seconds}} sn)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kota bilgileri yüklenemiyor",

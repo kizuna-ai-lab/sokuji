@@ -805,7 +805,8 @@
     "error": "Connection Error",
     "noApiKey": "API Key Required",
     "noMic": "Microphone Required",
-    "reconnecting": "Reconnecting..."
+    "reconnecting": "Reconnecting...",
+    "reconnectingAttempt": "Reconnecting... (attempt {{attempt}}, {{seconds}} s)"
   },
   "setup": {
     "title": "Set up Sokuji",

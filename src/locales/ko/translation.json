@@ -793,7 +793,8 @@
     "error": "연결 오류",
     "noApiKey": "API 키 필요",
     "noMic": "마이크 필요",
-    "reconnecting": "재연결 중..."
+    "reconnecting": "재연결 중...",
+    "reconnectingAttempt": "재연결 중... ({{attempt}}번째 시도, {{seconds}}초)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "할당량 정보를 로드할 수 없습니다",

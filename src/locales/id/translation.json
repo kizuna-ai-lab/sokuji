@@ -793,7 +793,8 @@
     "error": "Kesalahan Koneksi",
     "noApiKey": "Perlu Kunci API",
     "noMic": "Perlu Mikrofon",
-    "reconnecting": "Menghubungkan kembali..."
+    "reconnecting": "Menghubungkan kembali...",
+    "reconnectingAttempt": "Menghubungkan kembali... (percobaan {{attempt}}, {{seconds}} dtk)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuat informasi kuota",

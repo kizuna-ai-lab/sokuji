@@ -793,7 +793,8 @@
     "error": "Błąd Połączenia",
     "noApiKey": "Wymagany Klucz API",
     "noMic": "Wymagany Mikrofon",
-    "reconnecting": "Ponowne łączenie..."
+    "reconnecting": "Ponowne łączenie...",
+    "reconnectingAttempt": "Ponowne łączenie... (próba {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Nie można załadować informacji o limicie",

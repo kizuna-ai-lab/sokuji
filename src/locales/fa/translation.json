@@ -793,7 +793,8 @@
     "error": "خطای اتصال",
     "noApiKey": "کلید API ضروری",
     "noMic": "میکروفون ضروری",
-    "reconnecting": "در حال اتصال مجدد..."
+    "reconnecting": "در حال اتصال مجدد...",
+    "reconnectingAttempt": "در حال اتصال مجدد... (تلاش {{attempt}}، {{seconds}} ثانیه)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "قادر به بارگیری اطلاعات سهمیه نیست",

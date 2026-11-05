@@ -793,7 +793,8 @@
     "error": "Anslutningsfel",
     "noApiKey": "API Nyckel Krävs",
     "noMic": "Mikrofon Krävs",
-    "reconnecting": "Återansluter..."
+    "reconnecting": "Återansluter...",
+    "reconnectingAttempt": "Återansluter... (försök {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kunde inte ladda kvotinformation",

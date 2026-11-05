@@ -793,7 +793,8 @@
     "error": "ข้อผิดพลาดการเชื่อมต่อ",
     "noApiKey": "ต้องมี API Key",
     "noMic": "ต้องมีไมโครโฟน",
-    "reconnecting": "กำลังเชื่อมต่อใหม่..."
+    "reconnecting": "กำลังเชื่อมต่อใหม่...",
+    "reconnectingAttempt": "กำลังเชื่อมต่อใหม่... (ครั้งที่ {{attempt}}, {{seconds}} วินาที)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "ไม่สามารถโหลดข้อมูลโควต้า",

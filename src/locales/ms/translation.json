@@ -793,7 +793,8 @@
     "error": "Ralat Sambungan",
     "noApiKey": "Perlukan Kunci API",
     "noMic": "Perlukan Mikrofon",
-    "reconnecting": "Menyambung semula..."
+    "reconnecting": "Menyambung semula...",
+    "reconnectingAttempt": "Menyambung semula... (percubaan {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuatkan maklumat kuota",

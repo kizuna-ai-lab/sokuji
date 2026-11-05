@@ -50,7 +50,7 @@ export function StatusLine({ entry, onAction, onDismiss }: StatusLineProps) {
 function wordsOf(words: StatusWords, t: ReturnType<typeof useTranslation>['t']): string {
   switch (words.kind) {
     case 'notice': return noticeText(t, { code: words.code || undefined, params: words.params, message: words.message });
-    case 'key': return t(words.key, words.fallback);
+    case 'key': return t(words.key, { defaultValue: words.fallback, ...words.params });
     case 'echo': {
       const w = ECHO_WORDS[words.cause];
       return `${t(w.message, w.fallback)} ${t(w.action, w.actionFallback)}`;

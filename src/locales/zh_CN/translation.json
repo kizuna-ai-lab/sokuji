@@ -793,7 +793,8 @@
     "error": "连接错误",
     "noApiKey": "需要API密钥",
     "noMic": "需要麦克风",
-    "reconnecting": "重新连接中..."
+    "reconnecting": "重新连接中...",
+    "reconnectingAttempt": "重新连接中... (第 {{attempt}} 次尝试，{{seconds}} 秒)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "无法加载配额信息",

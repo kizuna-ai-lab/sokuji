@@ -793,7 +793,8 @@
     "error": "Помилка підключення",
     "noApiKey": "Потрібен API-ключ",
     "noMic": "Потрібен мікрофон",
-    "reconnecting": "Перепідключення..."
+    "reconnecting": "Перепідключення...",
+    "reconnectingAttempt": "Перепідключення... (спроба {{attempt}}, {{seconds}} с)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Не вдалося завантажити інформацію про квоту",

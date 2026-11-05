@@ -793,7 +793,8 @@
     "error": "कनेक्शन एरर",
     "noApiKey": "API की आवश्यक",
     "noMic": "माइक्रोफोन आवश्यक",
-    "reconnecting": "पुनः कनेक्ट हो रहा है..."
+    "reconnecting": "पुनः कनेक्ट हो रहा है...",
+    "reconnectingAttempt": "पुनः कनेक्ट हो रहा है... (प्रयास {{attempt}}, {{seconds}} सेकंड)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "कोटा जानकारी लोड करने में असमर्थ",

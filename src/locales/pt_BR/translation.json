@@ -793,7 +793,8 @@
     "error": "Erro de Conexão",
     "noApiKey": "Chave da API Necessária",
     "noMic": "Microfone Necessário",
-    "reconnecting": "Reconectando..."
+    "reconnecting": "Reconectando...",
+    "reconnectingAttempt": "Reconectando... (tentativa {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Não foi possível carregar as informações de cota",

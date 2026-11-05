@@ -793,7 +793,8 @@
     "error": "Error sa Koneksyon",
     "noApiKey": "Kailangan ang API Key",
     "noMic": "Kailangan ang Microphone",
-    "reconnecting": "Muling kumukonekta..."
+    "reconnecting": "Muling kumukonekta...",
+    "reconnectingAttempt": "Muling kumukonekta... (pagtatangka {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Hindi ma-load ang impormasyon ng quota",

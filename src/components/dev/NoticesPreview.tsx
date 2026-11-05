@@ -67,7 +67,7 @@ function bubble(segment: string): DisplayItem[] {
 
 const IDLE: StatusLineInput = {
   run: { phase: 'idle' }, idle: { kind: 'ready' }, canStart: true, dismissedEnd: null,
-  waitingForMicrophone: false, subtitleEntryHint: false, echo: null,
+  waitingForMicrophone: false, subtitleEntryHint: false, echo: null, now: 0,
 };
 
 /** The live gate refuses: what the stores say now. */
@@ -260,7 +260,7 @@ export function NoticesPreview() {
       <section data-section="state">
         <div style={heading}>State — the status line above the footer</div>
         {STATUS_CASES.map(({ label, input }) => {
-          const entry = statusLine(input);
+          const entry = statusLine({ ...input, now: Date.now() });
           const run = input.run;
           return (
             <Case key={label} label={`${label}${entry ? ` · ${entry.key}` : ' · (no line)'}`} width={width}>

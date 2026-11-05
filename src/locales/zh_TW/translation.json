@@ -793,7 +793,8 @@
     "error": "連線錯誤",
     "noApiKey": "需要 API 金鑰",
     "noMic": "需要麥克風",
-    "reconnecting": "重新連線中..."
+    "reconnecting": "重新連線中...",
+    "reconnectingAttempt": "重新連線中... (第 {{attempt}} 次嘗試，{{seconds}} 秒)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "無法載入配額資訊",

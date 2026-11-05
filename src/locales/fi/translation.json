@@ -793,7 +793,8 @@
     "error": "Yhteysvirhe",
     "noApiKey": "API-avain vaaditaan",
     "noMic": "Mikrofoni vaaditaan",
-    "reconnecting": "Yhdistetään uudelleen..."
+    "reconnecting": "Yhdistetään uudelleen...",
+    "reconnectingAttempt": "Yhdistetään uudelleen... (yritys {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kiintiötietoja ei voitu ladata",

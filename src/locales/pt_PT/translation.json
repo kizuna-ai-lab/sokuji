@@ -793,7 +793,8 @@
     "error": "Erro de Ligação",
     "noApiKey": "Chave API Necessária",
     "noMic": "Microfone Necessário",
-    "reconnecting": "A reconectar..."
+    "reconnecting": "A reconectar...",
+    "reconnectingAttempt": "A reconectar... (tentativa {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Não foi possível carregar informações de quota",

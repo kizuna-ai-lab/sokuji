@@ -793,7 +793,8 @@
     "error": "Lỗi Kết Nối",
     "noApiKey": "Cần Khóa API",
     "noMic": "Cần Microphone",
-    "reconnecting": "Đang kết nối lại..."
+    "reconnecting": "Đang kết nối lại...",
+    "reconnectingAttempt": "Đang kết nối lại... (lần thử {{attempt}}, {{seconds}} giây)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Không thể tải thông tin hạn ngạch",

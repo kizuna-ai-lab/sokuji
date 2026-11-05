@@ -793,7 +793,8 @@
     "error": "Error de Conexión",
     "noApiKey": "Clave API Requerida",
     "noMic": "Micrófono Requerido",
-    "reconnecting": "Reconectando..."
+    "reconnecting": "Reconectando...",
+    "reconnectingAttempt": "Reconectando... (intento {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "No se puede cargar la información de cuota",
