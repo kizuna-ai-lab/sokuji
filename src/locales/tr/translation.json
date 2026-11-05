@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Hiçbir şey seslendirilmiyor, bu yüzden saklanacak bir şey yok. Ayarınız korunur.",
     "agentText": "Sesli okunan çeviriyi konuşma tanımaya karıştırma",
     "agentTextTip": "Sesli okunmak üzere olan metni, çalınmadan önce konuşma tanıma hizmetine gönderir; böylece hoparlörlerinizden gelen ses konuşan biri sanılmaz. Ses bu bilgisayarda çalındığında küçük bir ek ücret alınır (her saatlik konuşma için birkaç ABD senti).",
+    "agentTextSplitBoth": "Her yön için ayrı oturum kullanan çift yönlü modda kapalıdır: orada sesli okunan çevirinin konuşma tanımaya karışmasını önlemedi ve okumanın üzerine konuşan birini tanımayı zorlaştırdı. Ayarınız korunur.",
     "followDefault": "Varsayılanı izle",
     "followDefaultNamed": "Varsayılanı izle ({{device}})",
     "channelLeft": "sol kanal",

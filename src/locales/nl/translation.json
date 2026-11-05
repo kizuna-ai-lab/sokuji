@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Er wordt niets uitgesproken, dus er is niets om te bewaren. Je instelling blijft bewaard.",
     "agentText": "Voorgelezen vertaling buiten de spraakherkenning houden",
     "agentTextTip": "Stuurt de tekst die zo wordt voorgelezen al vóór het afspelen naar de spraakherkenningsdienst, zodat spraak uit je luidsprekers niet wordt aangezien voor iemand die praat. Als de spraak op deze computer wordt afgespeeld, kost dit een klein bedrag (een paar Amerikaanse dollarcent per uur spraak).",
+    "agentTextSplitBoth": "Uit in de tweerichtingsmodus met een aparte sessie per richting: daar hield het de voorgelezen vertaling niet buiten de spraakherkenning en werd iemand die erdoorheen praat moeilijker herkend. Je instelling blijft bewaard.",
     "followDefault": "Standaard volgen",
     "followDefaultNamed": "Standaard volgen ({{device}})",
     "channelLeft": "linkerkanaal",

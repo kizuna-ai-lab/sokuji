@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Nic nie jest odczytywane, więc nie ma czego zachować. Twoje ustawienie zostaje zachowane.",
     "agentText": "Nie dopuszczaj odczytywanego tłumaczenia do rozpoznawania mowy",
     "agentTextTip": "Jeszcze przed odtworzeniem wysyła do usługi rozpoznawania mowy tekst, który zaraz zostanie odczytany, aby mowa z Twoich głośników nie została wzięta za czyjąś wypowiedź. Gdy mowa jest odtwarzana na tym komputerze, wiąże się to z niewielką opłatą (kilka centów amerykańskich za godzinę mowy).",
+    "agentTextSplitBoth": "Wyłączone w trybie dwukierunkowym z osobną sesją dla każdego kierunku: tam odczytywane tłumaczenie i tak trafiało do rozpoznawania mowy, a osobę mówiącą w trakcie odczytu trudniej było rozpoznać. Twoje ustawienie zostaje zachowane.",
     "followDefault": "Zgodnie z domyślnym",
     "followDefaultNamed": "Zgodnie z domyślnym ({{device}})",
     "channelLeft": "lewy kanał",

@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "没有朗读，也就没有可保留的译音。你的设置会保留。",
     "agentText": "不让朗读的译音混入语音识别",
     "agentTextTip": "在播放前就把即将朗读的文字发给语音识别服务，这样扬声器里的声音就不会被当成有人在说话。在本机播放语音时，会产生少量费用（每小时语音几美分）。",
+    "agentTextSplitBoth": "在每个方向各用一个独立会话的双向模式下关闭：此时它没能让朗读的译音不混入语音识别，反而让朗读时同时说话的人更难被识别。你的设置会保留。",
     "followDefault": "跟随默认",
     "followDefaultNamed": "跟随默认（{{device}}）",
     "channelLeft": "左声道",

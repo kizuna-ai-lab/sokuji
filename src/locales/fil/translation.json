@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Walang binibigkas, kaya walang itatabi. Mananatili ang iyong setting.",
     "agentText": "Ilayo sa pagkilala sa pagsasalita ang salin na binabasa nang malakas",
     "agentTextTip": "Ipinapadala ang tekstong babasahin nang malakas sa serbisyo ng pagkilala sa pagsasalita bago ito patugtugin, para hindi mapagkamalang may nagsasalita ang boses mula sa iyong speaker. Kapag pinapatugtog ang boses sa computer na ito, may maliit na dagdag na singil (ilang sentimo ng US dollar bawat oras ng pagsasalita).",
+    "agentTextSplitBoth": "Naka-off sa mode na Pareho na may hiwalay na session para sa bawat direksyon: doon, hindi nito nailayo sa pagkilala sa pagsasalita ang salin na binabasa nang malakas, at mas pinahirap nitong makilala ang taong nagsasalita nang sabay rito. Mananatili ang iyong setting.",
     "followDefault": "Sundin ang default",
     "followDefaultNamed": "Sundin ang default ({{device}})",
     "channelLeft": "kaliwang channel",

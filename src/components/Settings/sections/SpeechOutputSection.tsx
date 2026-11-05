@@ -15,7 +15,7 @@ import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
 import type { LegName } from '../../../lib/conversation/types';
 import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { useAnalytics } from '../../../lib/analytics';
-import { heardFromStores, selectedFromStores } from '../../../lib/session/appShape';
+import { heardFromStores, legsFor, selectedFromStores } from '../../../lib/session/appShape';
 import { useAudioContext, useMode, useParticipantCaptureWidened, useOutlets, useSelectedParticipantSource, useSetOutletChannel, useSetOutletDevice } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
@@ -95,7 +95,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   // Subscribed to what the provider lookup reads, so the rows follow a selection or a load.
   useProviderStore((s) => s.selected);
   useProviderStore((s) => s.entries);
-  const provider = selectedFromStores()?.provider;
+  const selected = selectedFromStores();
+  const provider = selected?.provider;
   const speech = provider?.speech ?? 'optional';
   const participantOffered = provider?.participantSpeech !== false;
 
@@ -139,6 +140,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   // missing there is no device to name and nothing for Passthrough to mix into (spec 2026-10-17 §4).
   const hasVirtualBus = platform !== 'web' && vbCable !== 'missing';
   const pushToTranslate = turnMode === 'push-to-translate';
+  // Split Both sends no agent text (spec 2026-11-05 §4.1): the provider says whether a start now would be split, from its own settings.
+  const agentTextSplitBoth = selected?.provider.splitBoth?.(selected.entry.settings, { legs: legsFor(mode), faceToFace }) === true;
 
   const modeName = mode === 'speaker' ? t('modePicker.modeYou', 'Me') : mode === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
   const notInMode = t('audioPanel.lockedByMode', { mode: modeName, defaultValue: 'Not in "{{mode}}" mode. Your setting is kept.' });
@@ -329,11 +332,12 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         <p className="setting-description ears-hint">{t('faceToFace.speakersHint', 'Use headphones, one side each. Any speaker lets the microphone pick up the translation and translate it again.')}</p>
       )}
 
-      {/* Agent text (spec 2026-11-05 §4.4): only where the STT socket takes it; never greyed or locked, it applies from the next chunk, mid-run too. */}
+      {/* Agent text (spec 2026-11-05 §4.4): only where the STT socket takes it. Greyed only in split Both, which sends none (§4.1), the stored setting kept; never locked, a run reads it at Start. */}
       {provider?.agentText === true && (
         <SettingRow
           label={t('audioPanel.agentText', 'Keep the read-aloud translation out of recognition')}
           tooltip={t('audioPanel.agentTextTip', 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).')}
+          greyed={agentTextSplitBoth ? t('audioPanel.agentTextSplitBoth', 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.') : undefined}
           switch={{ checked: agentText, onChange: () => setAgentText(!agentText) }}
         />
       )}

@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Tiada apa yang dibacakan, jadi tiada apa yang perlu disimpan. Tetapan anda dikekalkan.",
     "agentText": "Jauhkan terjemahan yang dibacakan daripada pengecaman suara",
     "agentTextTip": "Menghantar teks yang akan dibacakan kepada perkhidmatan pengecaman suara sebelum dimainkan, supaya pertuturan daripada pembesar suara anda tidak disangka orang yang sedang bercakap. Apabila pertuturan dimainkan pada komputer ini, sedikit caj tambahan dikenakan (beberapa sen dolar AS bagi setiap jam pertuturan).",
+    "agentTextSplitBoth": "Dimatikan dalam mod dua hala dengan sesi berasingan bagi setiap arah: di situ ia tidak menjauhkan terjemahan yang dibacakan daripada pengecaman suara dan menyukarkan pengecaman orang yang bercakap serentak dengannya. Tetapan anda dikekalkan.",
     "followDefault": "Ikut lalai",
     "followDefaultNamed": "Ikut lalai ({{device}})",
     "channelLeft": "saluran kiri",

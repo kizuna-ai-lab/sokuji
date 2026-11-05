@@ -23,13 +23,13 @@ vi.mock('../../../services/ServiceFactory', () => ({
 }));
 const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
 vi.mock('../../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
-const shapeOverride = vi.hoisted(() => ({ provider: null as null | { id: string; speech: 'always' | 'optional' | 'never'; participantSpeech?: boolean } }));
+const shapeOverride = vi.hoisted(() => ({ provider: null as null | { id: string; speech: 'always' | 'optional' | 'never'; participantSpeech?: boolean }, settings: {} as unknown }));
 vi.mock('../../../lib/session/appShape', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../lib/session/appShape')>();
   return {
     ...actual,
     selectedFromStores: () => (shapeOverride.provider
-      ? { provider: shapeOverride.provider, entry: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } }
+      ? { provider: shapeOverride.provider, entry: { settings: shapeOverride.settings, credentials: {}, pair: { source: 'ja', target: 'en' } } }
       : actual.selectedFromStores()),
   };
 });
@@ -66,6 +66,7 @@ import { useRoutingStore } from '../../../stores/routingStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
+import { kizunaSonioxProvider } from '../../../providers/soniox/kizuna';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 import { useModelStore } from '../../../stores/modelStore';
 import { outletSelectValue } from '../../../lib/audio/outletOptions';
@@ -83,6 +84,7 @@ const pick = (id: string) => useProviderStore.setState({
 
 beforeEach(() => {
   shapeOverride.provider = null;
+  shapeOverride.settings = {};
   runSpeech.value = null;
   tooltips.length = 0;
   env.platform = 'electron';
@@ -257,6 +259,63 @@ describe('SpeechOutputSection — Keep the read-aloud translation out of recogni
     useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
     mount();
     expect(screen.queryByText(LABEL)).toBeNull();
+  });
+
+  // Split Both sends no agent text (the measurement, spec 2026-11-05 §4.1): the switch shows off there, greyed, with why.
+  const SPLIT_BOTH_REASON = 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.';
+  const shareBoth = (bothModeSharedSession: boolean) => useProviderStore.setState({
+    entries: { soniox: { settings: { ...SONIOX_DEFAULTS, bothModeSharedSession }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+  } as never);
+
+  it('in split Both shows off, greyed and not changeable, says why, and keeps the stored setting', () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
+    mount();
+    expect(greyed(LABEL)).toBe(true);
+    expect(sw(LABEL)).toHaveAttribute('aria-checked', 'false');
+    expect(sw(LABEL)).toHaveAttribute('aria-disabled', 'true');
+    expect(row(LABEL).getAttribute('title')).toBe(SPLIT_BOTH_REASON);
+    expect(sw(LABEL).closest('.toggle-switch-component')?.getAttribute('title')).toBe(SPLIT_BOTH_REASON);
+    fireEvent.click(sw(LABEL));
+    expect(useSettingsStore.getState().agentText).toBe(true);
+    // The help text is the switch's own, as everywhere.
+    expect(tooltips).toContain('Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).');
+  });
+
+  it('greys for the managed twin too, which carries Soniox\'s split Both answer', () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
+    shapeOverride.provider = { ...kizunaSonioxProvider } as never;
+    shapeOverride.settings = SONIOX_DEFAULTS;
+    mount();
+    expect(greyed(LABEL)).toBe(true);
+    expect(sw(LABEL)).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('shows the stored value again, live, once Both shares its session or runs face-to-face', () => {
+    useSettingsStore.setState({ agentText: true });
+    useAudioStore.setState({ mode: 'both', otherSide: 'meeting', selectedParticipantSource: ZOOM });
+    mount();
+    expect(sw(LABEL)).toHaveAttribute('aria-checked', 'false');
+    act(() => { shareBoth(true); });
+    expect(greyed(LABEL)).toBe(false);
+    expect(row(LABEL).getAttribute('title')).toBeNull();
+    expect(sw(LABEL)).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(sw(LABEL));
+    expect(useSettingsStore.getState().agentText).toBe(false);
+    act(() => { shareBoth(false); useAudioStore.setState({ otherSide: 'beside' }); });
+    expect(greyed(LABEL)).toBe(false);
+    expect(sw(LABEL)).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(sw(LABEL));
+    expect(useSettingsStore.getState().agentText).toBe(true);
+  });
+
+  it('is live outside Both, whatever the shared-session choice says', () => {
+    for (const mode of ['speaker', 'participant'] as const) {
+      useAudioStore.setState({ mode, otherSide: 'meeting', selectedParticipantSource: ZOOM });
+      const { unmount } = mount();
+      expect(greyed(LABEL), mode).toBe(false);
+      expect(sw(LABEL), mode).toHaveAttribute('aria-checked', 'true');
+      unmount();
+    }
   });
 });
 

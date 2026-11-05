@@ -403,6 +403,7 @@
     "keepReplayNothingSpoken": "Nothing is spoken, so there is nothing to keep. Your setting is kept.",
     "agentText": "Keep the read-aloud translation out of recognition",
     "agentTextTip": "Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).",
+    "agentTextSplitBoth": "Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.",
     "followDefault": "Follow default",
     "followDefaultNamed": "Follow default ({{device}})",
     "channelLeft": "left channel",

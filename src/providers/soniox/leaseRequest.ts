@@ -13,7 +13,7 @@
 import type { LegName } from '../../lib/conversation/types';
 import type { RunShape } from '../../lib/session/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
-import type { SonioxSettings } from './settings';
+import { sonioxSharedBoth, type SonioxSettings } from './settings';
 
 /**
  * The body field asking for the participant's speech stream: sokuji-backend
@@ -50,7 +50,7 @@ export function leaseRequest(
     textOnly: !shape.legs.includes('speaker') || shape.textOnly,
     // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from,
     // and face-to-face is always one shared stream (`buildSoniox`).
-    bothSplit: both && !shape.faceToFace && !s.bothModeSharedSession,
+    bothSplit: both && !sonioxSharedBoth(shape.faceToFace === true, s),
     region: asSonioxRegion(s.region),
     ...(participantSpeech ? { participantSpeaks: shape.legs.includes('participant') && shape.participantSpeech } : {}),
   };

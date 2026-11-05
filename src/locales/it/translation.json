@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Nulla viene letto ad alta voce, quindi non c’è nulla da conservare. La tua impostazione viene conservata.",
     "agentText": "Tieni fuori dal riconoscimento vocale la traduzione letta ad alta voce",
     "agentTextTip": "Invia il testo che sta per essere letto ad alta voce al servizio di riconoscimento vocale prima della riproduzione, così la voce dei tuoi altoparlanti non viene scambiata per qualcuno che parla. Quando la voce viene riprodotta su questo computer, comporta un piccolo costo (qualche centesimo di dollaro USA per ora di parlato).",
+    "agentTextSplitBoth": "Disattivato in modalità bidirezionale con una sessione separata per direzione: lì non teneva fuori dal riconoscimento vocale la traduzione letta ad alta voce e rendeva più difficile riconoscere chi parla sopra di essa. La tua impostazione viene conservata.",
     "followDefault": "Segui il predefinito",
     "followDefaultNamed": "Segui il predefinito ({{device}})",
     "channelLeft": "canale sinistro",

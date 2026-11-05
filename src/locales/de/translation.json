@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Nichts wird gesprochen, also gibt es nichts zu behalten. Deine Einstellung bleibt erhalten.",
     "agentText": "Vorgelesene Übersetzung aus der Spracherkennung heraushalten",
     "agentTextTip": "Sendet den Text, der gleich vorgelesen wird, schon vor der Wiedergabe an den Spracherkennungsdienst, damit Sprache aus deinen Lautsprechern nicht für eine sprechende Person gehalten wird. Wenn die Sprache auf diesem Computer abgespielt wird, fällt dafür eine kleine Gebühr an (ein paar US-Cent pro Stunde Sprache).",
+    "agentTextSplitBoth": "Aus im Modus „Beides“ mit einer separaten Sitzung pro Richtung: Dort hielt es die vorgelesene Übersetzung nicht aus der Spracherkennung heraus und machte es schwerer, jemanden zu erkennen, der in die Wiedergabe hineinspricht. Deine Einstellung bleibt erhalten.",
     "followDefault": "Standard folgen",
     "followDefaultNamed": "Standard folgen ({{device}})",
     "channelLeft": "linker Kanal",

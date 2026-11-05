@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Mitään ei puhuta, joten säilytettävää ei ole. Asetuksesi säilyy.",
     "agentText": "Pidä ääneen luettu käännös poissa puheentunnistuksesta",
     "agentTextTip": "Lähettää pian ääneen luettavan tekstin puheentunnistuspalveluun jo ennen toistoa, jotta kaiuttimista kuuluvaa puhetta ei luulla jonkun puheeksi. Kun puhe toistetaan tällä tietokoneella, tästä aiheutuu pieni lisämaksu (muutama Yhdysvaltain sentti puhetuntia kohden).",
+    "agentTextSplitBoth": "Pois käytöstä kaksisuuntaisessa tilassa, jossa kumpaankin suuntaan on erillinen istunto: siellä se ei pitänyt ääneen luettua käännöstä poissa puheentunnistuksesta ja vaikeutti päälle puhuvan tunnistamista. Asetuksesi säilyy.",
     "followDefault": "Noudata oletusta",
     "followDefaultNamed": "Noudata oletusta ({{device}})",
     "channelLeft": "vasen kanava",

@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Tidak ada yang dibacakan, jadi tidak ada yang perlu disimpan. Pengaturanmu tetap tersimpan.",
     "agentText": "Jauhkan terjemahan yang dibacakan dari pengenalan suara",
     "agentTextTip": "Mengirim teks yang akan dibacakan ke layanan pengenalan suara sebelum diputar, agar suara dari speakermu tidak dikira orang yang sedang berbicara. Saat suara diputar di komputer ini, ada sedikit biaya tambahan (beberapa sen dolar AS per jam ucapan).",
+    "agentTextSplitBoth": "Nonaktif dalam mode dua arah dengan sesi terpisah untuk tiap arah: di sana fitur ini tidak menjauhkan terjemahan yang dibacakan dari pengenalan suara dan malah mempersulit pengenalan orang yang berbicara bersamaan dengannya. Pengaturanmu tetap tersimpan.",
     "followDefault": "Ikuti default",
     "followDefaultNamed": "Ikuti default ({{device}})",
     "channelLeft": "kanal kiri",

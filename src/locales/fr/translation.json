@@ -399,6 +399,7 @@
     "keepReplayNothingSpoken": "Rien n’est lu à voix haute, il n’y a donc rien à conserver. Votre réglage est conservé.",
     "agentText": "Exclure de la reconnaissance vocale la traduction lue à voix haute",
     "agentTextTip": "Envoie le texte sur le point d'être lu à voix haute au service de reconnaissance vocale avant sa diffusion, pour que la voix de vos haut-parleurs ne soit pas prise pour quelqu'un qui parle. Quand la voix est diffusée sur cet ordinateur, cela ajoute un léger coût (quelques centimes de dollar américain par heure de parole).",
+    "agentTextSplitBoth": "Désactivé en mode bidirectionnel avec une session distincte par direction : la traduction lue à voix haute n’y était pas exclue de la reconnaissance vocale, et il devenait plus difficile de reconnaître quelqu’un qui parle par-dessus. Votre réglage est conservé.",
     "followDefault": "Suivre le défaut",
     "followDefaultNamed": "Suivre le défaut ({{device}})",
     "channelLeft": "canal gauche",

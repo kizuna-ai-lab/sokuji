@@ -6,7 +6,7 @@ import { buildSoniox, describeSoniox, type SonioxConfig } from './config';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxVoiceSummary } from './SonioxVoiceSummary';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
-import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, type SonioxCredentials, type SonioxSettings } from './settings';
+import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, sonioxSharedBoth, type SonioxCredentials, type SonioxSettings } from './settings';
 
 const adapter = createSonioxAdapter();
 
@@ -46,6 +46,8 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   textInput: () => false,
   // It does take the text its own voice is about to play (agent text, spec 2026-11-05): the Speech section offers the switch.
   agentText: true,
+  // Except in split Both, which asks for none (`startSplit`): there the switch shows off and greyed.
+  splitBoth: (s, shape) => shape.legs.length === 2 && !sonioxSharedBoth(shape.faceToFace === true, s),
   // The server's endpoint model ends a segment (`<end>`, `<fin>`).
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],

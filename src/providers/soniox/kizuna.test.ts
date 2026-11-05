@@ -50,10 +50,13 @@ describe('kizunaSonioxProvider', () => {
   });
 
   it("is Soniox's languages, capabilities, builder, adapter and turn detection", () => {
-    for (const member of ['languages', 'speech', 'textInput', 'boundaries', 'turns', 'build', 'describe', 'start', 'TurnDetection'] as const) {
+    for (const member of ['languages', 'speech', 'textInput', 'boundaries', 'turns', 'agentText', 'splitBoth', 'build', 'describe', 'start', 'TurnDetection'] as const) {
       expect(kizunaSonioxProvider[member], member).toBe(sonioxProvider[member]);
     }
     expect(kizunaSonioxProvider.session!.startBoth).toBe(sonioxProvider.session!.startBoth);
+    // The agent text switch reads both: a twin missing either would offer or grey it wrongly.
+    expect(kizunaSonioxProvider.agentText).toBe(true);
+    expect(kizunaSonioxProvider.splitBoth).toEqual(expect.any(Function));
   });
 
   it('adds the voice claim, the lease and the floor', () => {

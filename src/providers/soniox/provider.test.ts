@@ -11,6 +11,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents } from '../../lib/contract/events';
 import { gate } from '../../lib/session/shape';
 import { buildSoniox, describeSoniox } from './config';
+import { leaseRequest } from './leaseRequest';
 import { sonioxProvider } from './provider';
 import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages } from './settings';
 import { SonioxSettingsView } from './SonioxSettings';
@@ -44,6 +45,34 @@ describe('sonioxProvider', () => {
     expect(sonioxProvider.settings.key).toBe('soniox');
     expect(sonioxProvider.settings.defaults).toBe(SONIOX_DEFAULTS);
     expect(sonioxProvider.settings.migrate).toBe(migrateSonioxSettings);
+  });
+
+  it('answers split Both (Both, not face-to-face, no shared session) by the one rule the builder and the lease read', () => {
+    const SPEAKER = ['speaker'] as const;
+    const PARTICIPANT = ['participant'] as const;
+    const BOTH = ['speaker', 'participant'] as const;
+    const split = (legs: readonly ('speaker' | 'participant')[], faceToFace: boolean, bothModeSharedSession: boolean) =>
+      sonioxProvider.splitBoth!({ ...SONIOX_DEFAULTS, bothModeSharedSession }, { legs, faceToFace });
+    expect(split(BOTH, false, false)).toBe(true);
+    expect(split(BOTH, false, true)).toBe(false);
+    expect(split(BOTH, true, false)).toBe(false);
+    expect(split(BOTH, true, true)).toBe(false);
+    for (const legs of [SPEAKER, PARTICIPANT]) {
+      expect(split(legs, false, false)).toBe(false);
+      expect(split(legs, false, true)).toBe(false);
+    }
+    // The same answer as the lease's `bothSplit` and, in Both, the builder's `sharedBoth` inverted.
+    const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
+    for (const legs of [SPEAKER, PARTICIPANT, BOTH]) {
+      for (const faceToFace of [false, true]) {
+        for (const bothModeSharedSession of [false, true]) {
+          const s = { ...SONIOX_DEFAULTS, bothModeSharedSession };
+          const lease = leaseRequest({ legs, textOnly: false, participantSpeech: false, faceToFace }, s, false);
+          expect(split(legs, faceToFace, bothModeSharedSession)).toBe(lease.bothSplit);
+          if (legs.length === 2) expect(split(legs, faceToFace, bothModeSharedSession)).toBe(!buildSoniox(context, s, { ...SHARED, faceToFace }).sharedBoth);
+        }
+      }
+    }
   });
 
   it('speaks optionally, takes no typed text, keeps the provider\'s boundaries, and offers both turn modes', () => {

@@ -6,7 +6,7 @@ import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
-import type { SessionHooks } from '../session/types';
+import type { RunShape, SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
@@ -394,6 +394,15 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   faceToFace?: boolean;
   /** Its STT socket takes the text its own voice is about to play (Soniox agent text, spec 2026-11-05): the Speech section offers the switch. Absent: no switch. */
   agentText?: true;
+  /**
+   * Whether a start under these settings and this shape is split Both: Both
+   * on a session per direction instead of one shared one (Soniox's
+   * shared-session choice; face-to-face always shares). Only the agent text
+   * switch reads it: split Both sends no agent text (measured, spec
+   * 2026-11-05 §4.1), so there the switch shows off and greyed, the stored
+   * setting kept. Absent: the switch never greys for it.
+   */
+  splitBoth?(s: S, shape: Pick<RunShape, 'legs' | 'faceToFace'>): boolean;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;

@@ -92,6 +92,17 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
   };
 }
 
+/**
+ * Whether Both runs on one shared session: face-to-face always does (one
+ * microphone, nothing to split), else the shared-session choice. In Both,
+ * the opposite is split Both, a session per direction. The settings view,
+ * the builder's `sharedBoth`, the lease's `bothSplit` and the provider's
+ * `splitBoth` all read this one rule.
+ */
+export function sonioxSharedBoth(faceToFace: boolean, s: Pick<SonioxSettings, 'bothModeSharedSession'>): boolean {
+  return faceToFace || s.bothModeSharedSession;
+}
+
 /** The speaker's voice for a run: the active region's voice, or the default when none is stored. */
 export function sonioxSpeakerVoice(s: Pick<SonioxSettings, 'region' | 'voice' | 'voiceEu' | 'voiceJp'>): string {
   return s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE;

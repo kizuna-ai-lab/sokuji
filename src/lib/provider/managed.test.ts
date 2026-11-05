@@ -121,6 +121,12 @@ describe('managed', () => {
     expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('agentText');
   });
 
+  it("keeps the base's split Both answer, which greys the agent text switch, and adds none", () => {
+    const splitBoth = () => true;
+    expect(managed({ ...fakeProvider, splitBoth } as never, OVERRIDES).splitBoth).toBe(splitBoth);
+    expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('splitBoth');
+  });
+
   // Compile-time (choice 1): the typecheck gate enforces every `@ts-expect-error` here.
   it('types what read answers as R — the sign-in, never a key its lease mints', () => {
     const twin = managed(fakeProvider, OVERRIDES);

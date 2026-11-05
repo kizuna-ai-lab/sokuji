@@ -9,7 +9,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { reportWarning } from '../../lib/diagnostics/report';
 import type { SharedSettings } from '../../lib/provider/types';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
-import { participantVoiceFor, sonioxSpeakerVoice, type SonioxSettings } from './settings';
+import { participantVoiceFor, sonioxSharedBoth, sonioxSpeakerVoice, type SonioxSettings } from './settings';
 import { SONIOX_STT_MODEL } from './sttStream';
 
 /** The STT config frame's `context`, wire-shaped. */
@@ -162,7 +162,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       ? { tts: { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
       : {}),
     // Face-to-face is one microphone: there is nothing to split.
-    sharedBoth: shared.faceToFace === true || s.bothModeSharedSession,
+    sharedBoth: sonioxSharedBoth(shared.faceToFace === true, s),
     ...(shared.faceToFace ? { faceToFace: true as const } : {}),
     // The participant's leg (D4). The context names no leg, so a pair into its
     // own language labels both: a lone voice stays unlabelled anyway.

@@ -8,7 +8,7 @@ import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps } from '../../lib/provider/types';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS } from '../../lib/soniox/regions';
 import { SonioxVoiceField, useByokVoiceSource, type VoiceSourceHook } from './SonioxVoiceField';
-import type { SonioxSettings as S } from './settings';
+import { sonioxSharedBoth, type SonioxSettings as S } from './settings';
 
 const helpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />;
 
@@ -31,7 +31,7 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
     const { t } = useTranslation();
     const region = asSonioxRegion(settings.region);
     const inBoth = legs?.length === 2;
-    const shared = faceToFace || settings.bothModeSharedSession;
+    const shared = sonioxSharedBoth(faceToFace === true, settings);
     // Only the other side's leg numbers its people, and face-to-face never shows them.
     const labelsPeople = !faceToFace && legs?.includes('participant') === true;
     return (
