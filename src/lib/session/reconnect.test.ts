@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { trackedClock } from '../contract/testing/trackedClock';
 import { flush } from '../contract/testing/drive';
 import {
-  createReconnector, closeCodeAction, MAX_RECONNECTS, refusalResult, reissueFailed,
-  type AttemptResult, type DropInfo, type GiveUp, type ReconnectedInfo,
+  createReconnector, closeCodeAction, MAX_RECONNECTS, MAX_RECONNECTS_PER_MINUTE, refusalResult, reissueFailed,
+  type AttemptResult, type DropInfo, type GiveUp, type ReconnectedInfo, type Reconnector,
 } from './reconnect';
 
 const DROP: DropInfo = { cause: 'close', closeCode: 1006, retryable: true, managed: true };
@@ -166,7 +166,8 @@ describe('createReconnector', () => {
     t.r.dropped(DROP);
     await t.run(2000);
     t.r.dropped(DROP);
-    await t.run(1);
+    // A flap's first attempt waits the ladder's second step.
+    await t.run(250);
     expect(t.reconnected.map((e) => e.budgetShared)).toEqual([false, true]);
   });
 
@@ -323,7 +324,7 @@ describe('createReconnector', () => {
     ]);
   });
 
-  it('ignores a drop while already reconnecting', async () => {
+  it('a drop while already reconnecting starts nothing of its own', async () => {
     const t = rig({ hold: true });
     t.r.dropped(DROP);
     t.r.dropped(DROP);
@@ -331,6 +332,218 @@ describe('createReconnector', () => {
     expect(t.startedAt).toHaveLength(1);
     expect(t.reconnecting).toHaveLength(1);
     t.r.cancel();
+  });
+
+  it('a cancel inside the reconnecting callback starts no attempt', async () => {
+    const { clock, timers } = trackedClock();
+    let started = 0;
+    const r: Reconnector = createReconnector({
+      clock, frame: () => {}, reconnected: () => {}, gaveUp: () => {},
+      reconnecting: () => r.cancel(),
+      attempt: () => { started += 1; return Promise.resolve(ok()); },
+    });
+    r.dropped(DROP);
+    await flush();
+    expect(started).toBe(0);
+    expect(r.active).toBe(false);
+    expect(timers()).toBe(0);
+  });
+});
+
+/** A reconnector whose attempts the test answers one at a time with `release`. */
+function manualRig() {
+  const { clock, timers } = trackedClock();
+  const startedAt: number[] = [];
+  const reconnecting: Array<{ attempt: number; drop?: DropInfo }> = [];
+  const reconnected: ReconnectedInfo[] = [];
+  const frames: Array<[string, Record<string, unknown>]> = [];
+  let answer: (r: AttemptResult) => void = () => {};
+  const r = createReconnector({
+    clock,
+    frame: (t, p) => frames.push([t, p]),
+    reconnecting: (e) => reconnecting.push(e),
+    reconnected: (e) => reconnected.push(e),
+    gaveUp: () => {},
+    attempt: () => {
+      startedAt.push(clock.now());
+      return new Promise<AttemptResult>((res) => { answer = res; });
+    },
+  });
+  return { clock, timers, startedAt, reconnecting, reconnected, frames, r, release: (a: AttemptResult) => answer(a) };
+}
+
+describe('createReconnector: a drop while an attempt is in flight (settle race)', () => {
+  it('a drop between an ok attempt and its settle fails that attempt: another attempt follows, then reconnected once', async () => {
+    const t = manualRig();
+    t.r.dropped(DROP);
+    // Attempt 1 answers ok, and its connection drops before the answer is read.
+    t.release(ok(true, 30));
+    t.r.dropped(DROP);
+    await flush();
+    expect(t.reconnected).toEqual([]);
+    expect(t.r.active).toBe(true);
+    expect(t.frames.filter(([type]) => type === 'session.reconnect_failed')).toEqual([
+      ['session.reconnect_failed', { attempt: 1, message: 'The new connection dropped as it opened.' }],
+    ]);
+    // The same drop's attempt 2, on the ladder: 250 ms later.
+    t.clock.advance(249);
+    expect(t.startedAt).toEqual([0]);
+    t.clock.advance(1);
+    expect(t.startedAt).toEqual([0, 250]);
+    t.release(ok());
+    await flush();
+    expect(t.reconnecting).toEqual([{ attempt: 1, drop: DROP }, { attempt: 2 }]);
+    // The failed attempt's reissue still counts.
+    expect(t.reconnected).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 30, budgetShared: false }]);
+    expect(t.frames.filter(([type]) => type === 'session.reconnecting')).toHaveLength(1);
+    expect(t.timers()).toBe(0);
+  });
+
+  it('a drop the attempt then fails on is cleared with it: the next ok attempt reconnects', async () => {
+    const t = manualRig();
+    t.r.dropped(DROP);
+    t.r.dropped(DROP);
+    t.release(fail('socket_error', 'it dropped'));
+    await flush();
+    t.clock.advance(250);
+    t.release(ok());
+    await flush();
+    expect(t.reconnected).toEqual([{ attempts: 2, credentialsReissued: false, reissueMs: 0, budgetShared: false }]);
+    expect(t.r.active).toBe(false);
+  });
+});
+
+/** Time moves in `step`s, each attempt's answer and each callback's drop settling in between. */
+async function runFor(clock: { advance(ms: number): void }, ms: number, step = 10): Promise<void> {
+  for (let left = ms; left > 0; left -= step) {
+    clock.advance(Math.min(step, left));
+    await micro();
+  }
+}
+
+/**
+ * A connection that takes `connectMs` to come back and stays up `upMs` before
+ * it drops again, from a first drop at 0, on a virtual clock.
+ */
+function flapRig(connectMs: number, upMs: number) {
+  const { clock, timers } = trackedClock();
+  const droppedAt: number[] = [];
+  const startedAt: number[] = [];
+  const reconnectedAt: number[] = [];
+  const gaveUp: GiveUp[] = [];
+  const frames: Array<[string, Record<string, unknown>]> = [];
+  const drop = () => { droppedAt.push(clock.now()); r.dropped(DROP); };
+  const r: Reconnector = createReconnector({
+    clock,
+    frame: (t, p) => frames.push([t, p]),
+    reconnecting: () => {},
+    reconnected: () => { reconnectedAt.push(clock.now()); clock.setTimeout(drop, upMs); },
+    gaveUp: (e) => gaveUp.push(e),
+    attempt: () => {
+      startedAt.push(clock.now());
+      return new Promise<AttemptResult>((res) => { clock.setTimeout(() => res(ok()), connectMs); });
+    },
+  });
+  drop();
+  return { clock, timers, droppedAt, startedAt, reconnectedAt, gaveUp, frames, r };
+}
+
+describe('createReconnector: flapping (spec §4.2)', () => {
+  it('a 200 ms connect up for 300 ms: each drop waits a step further down the ladder, and the drop after 10 reconnects in a minute gives up as session_cap', async () => {
+    expect(MAX_RECONNECTS_PER_MINUTE).toBe(10);
+    const f = flapRig(200, 300);
+    await runFor(f.clock, 60_000);
+    expect(f.startedAt.map((at, i) => at - f.droppedAt[i])).toEqual([0, 250, 500, 1000, 2000, 4000, 4000, 4000, 4000, 4000]);
+    expect(f.reconnectedAt).toHaveLength(10);
+    // The 11th drop, inside the minute of the first reconnect: no attempt, the session's cap.
+    expect(f.droppedAt).toHaveLength(11);
+    expect(f.droppedAt[10] - f.reconnectedAt[0]).toBeLessThan(60_000);
+    expect(f.gaveUp).toEqual([{ attempts: 0, reason: 'session_cap', code: 'connection_lost', message: 'Connection lost' }]);
+    expect(f.frames.slice(-2)).toEqual([
+      ['session.reconnecting', { cause: 'close', code: 1006 }],
+      ['session.connection_lost', { attempts: 0 }],
+    ]);
+    expect(f.timers()).toBe(0);
+  });
+
+  it('flapping slower than 10 reconnects a minute goes on', async () => {
+    // Every drop 7 s after its reconnect, a flap each time: never 10 reconnects inside one minute.
+    const f = flapRig(0, 7000);
+    await runFor(f.clock, 150_000);
+    expect(f.reconnectedAt.length).toBeGreaterThan(MAX_RECONNECTS_PER_MINUTE + 1);
+    expect(f.gaveUp).toEqual([]);
+    f.r.cancel();
+  });
+
+  it('a drop more than 10 s after a reconnect starts at once, and the ladder starts again', async () => {
+    const t = rig();
+    t.answers.push(ok(), ok(), ok(), ok());
+    t.r.dropped(DROP);
+    await t.run(1000);
+    t.r.dropped(DROP);
+    await t.run(1000);
+    expect(t.startedAt).toEqual([0, 1250]);
+    // 11 s after the last reconnect: a fresh drop, at once.
+    await t.run(10_250);
+    t.r.dropped(DROP);
+    expect(t.startedAt).toEqual([0, 1250, 12_250]);
+    await t.run(1000);
+    // A flap again: one step down, not three.
+    t.r.dropped(DROP);
+    await t.run(250);
+    expect(t.startedAt).toEqual([0, 1250, 12_250, 13_500]);
+    expect(t.reconnected.map((e) => e.budgetShared)).toEqual([false, true, false, true]);
+  });
+
+  it("a flapping drop's later attempts carry on down the ladder from its first", async () => {
+    const t = rig();
+    t.answers.push(ok(), ok());
+    t.r.dropped(DROP);
+    await t.run(1000);
+    t.r.dropped(DROP);
+    await t.run(250);
+    // The second flap: 500 ms, then 1000, 2000, 4000, 4000.
+    t.answers.push(...Array.from({ length: 5 }, () => fail()));
+    t.r.dropped(DROP);
+    const droppedAt = t.clock.now();
+    await t.run(12_000);
+    expect(t.startedAt.slice(2).map((at) => at - droppedAt)).toEqual([500, 1500, 3500, 7500, 11_500]);
+    t.r.cancel();
+  });
+
+  it('a flapping drop is said at once; its first attempt waits, and the network back starts it without saying it again', async () => {
+    const t = rig();
+    t.answers.push(ok(), ok());
+    t.r.dropped(DROP);
+    await t.run(1000);
+    t.r.dropped(DROP);
+    expect(t.reconnecting).toEqual([{ attempt: 1, drop: DROP }, { attempt: 1, drop: DROP }]);
+    expect(t.startedAt).toEqual([0]);
+    await t.run(100);
+    t.r.wake();
+    expect(t.startedAt).toEqual([0, 1100]);
+    expect(t.reconnecting).toHaveLength(2);
+    await t.run(1);
+    expect(t.reconnected.map((e) => e.attempts)).toEqual([1, 1]);
+  });
+
+  it('a cancel inside the reconnecting of a flapping drop leaves no wait behind', async () => {
+    const { clock, timers } = trackedClock();
+    let started = 0;
+    let cancelOnSay = false;
+    const r: Reconnector = createReconnector({
+      clock, frame: () => {}, reconnected: () => {}, gaveUp: () => {},
+      reconnecting: () => { if (cancelOnSay) r.cancel(); },
+      attempt: () => { started += 1; return Promise.resolve(ok()); },
+    });
+    r.dropped(DROP);
+    await flush();
+    cancelOnSay = true;
+    r.dropped(DROP);
+    clock.advance(10_000);
+    await flush();
+    expect(started).toBe(1);
+    expect(timers()).toBe(0);
   });
 });
 

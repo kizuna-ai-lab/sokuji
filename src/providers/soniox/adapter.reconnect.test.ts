@@ -15,7 +15,7 @@ import { flush, voicedPcm } from '../../lib/contract/testing/drive';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
 import type { SharedSettings } from '../../lib/provider/types';
-import { MAX_RECONNECTS, type DropInfo } from '../../lib/session/reconnect';
+import { FLAP_WINDOW_MS, MAX_RECONNECTS, type DropInfo } from '../../lib/session/reconnect';
 import { createSonioxAdapter, SONIOX_STALL_MS, sonioxDropAction } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxReissue } from './settings';
@@ -126,6 +126,30 @@ describe('the Soniox adapter reconnects: own key', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
+  it("an attempt's socket that opens and closes in the same tick fails that attempt: a second reconnecting, then reconnected once the next opens", async () => {
+    const h = await live();
+    h.stt().serverClose(1006);
+    await flush();
+    // It opens, and its 1006 lands before the attempt's answer is read.
+    const flapped = h.stt();
+    flapped.open();
+    flapped.serverClose(1006);
+    await flush();
+    expect(h.of('reconnected')).toEqual([]);
+    expect(h.frames('session.reconnect_failed')).toHaveLength(1);
+    h.clock.advance(250);
+    await flush();
+    expect(h.sttSockets()).toHaveLength(3);
+    expect(h.of('reconnecting').map((e) => e.payload!.attempt)).toEqual([1, 2]);
+    await openAttempt(h);
+    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: false, reissueMs: 0, budgetShared: false }]);
+    expect(h.of('failed')).toEqual([]);
+    // Live on the new socket.
+    h.session.appendAudio(voicedPcm(100));
+    expect(binary(h.stt())).toHaveLength(1);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
   it('a 500, a 502, a 504, a 408 and a socket error reconnect at once, the server\'s words in the Logs', async () => {
     const error = (code: number, message: string) => (s: FakeSocket) => s.receive(JSON.stringify({ error_code: code, error_message: message }));
     const acts: Array<[(s: FakeSocket) => void, Omit<DropInfo, 'retryable' | 'managed'>]> = [
@@ -223,13 +247,16 @@ describe('the Soniox adapter reconnects: own key', () => {
   it('the 101st drop ends with connection_lost, carrying its drop and a session_cap give-up, without an attempt', async () => {
     expect(MAX_RECONNECTS).toBe(100);
     const h = await live();
+    // Each drop past the flapping window of the reconnect before it: no flap, so neither the ladder nor the per-minute limit applies.
     for (let i = 0; i < MAX_RECONNECTS; i++) {
+      h.clock.advance(FLAP_WINDOW_MS + 1);
       h.stt().serverClose(1006);
       await flush();
       await openAttempt(h);
     }
     expect(h.of('reconnected')).toHaveLength(MAX_RECONNECTS);
     const count = h.sttSockets().length;
+    h.clock.advance(FLAP_WINDOW_MS + 1);
     h.stt().serverClose(1006);
     await flush();
     expect(h.sttSockets()).toHaveLength(count);
@@ -593,18 +620,22 @@ describe('the Soniox adapter reconnects: Both', () => {
     expect(h.of('speaker', 'reconnected')).toHaveLength(1);
     expect(h.of('participant', 'reconnected')).toEqual([]);
 
-    // Both drop at once: two reconnectors, each on its own key and its own schedule.
+    // Both drop at once: two reconnectors, each on its own key and its own schedule. The speaker's drop is a flap, so its attempt 1 waits 250 ms; the participant's starts at once.
     h.sttOn('k-spk').serverClose(1006);
     h.sttOn('k-par').serverClose(1006);
     await flush();
-    expect(h.sttSockets()).toHaveLength(5);
+    expect(h.sttSockets()).toHaveLength(4);
     h.sttOn('k-par').open();
     await flush();
     expect(h.of('participant', 'reconnected')).toHaveLength(1);
     expect(h.of('speaker', 'reconnected')).toHaveLength(1);
+    h.clock.advance(250);
+    await flush();
+    expect(h.sttSockets()).toHaveLength(5);
+    // The speaker's attempt 1 fails; attempt 2 carries on down its ladder, 500 ms on.
     h.sttOn('k-spk').drop();
     await flush();
-    h.clock.advance(250);
+    h.clock.advance(500);
     await flush();
     h.sttOn('k-spk').open();
     await flush();

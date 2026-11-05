@@ -536,8 +536,8 @@ class SonioxCore {
    * A live socket ended unasked, and its end is worth retrying. Break before
    * make (§4.2): what it had in flight closes as it stands — L1 keeps the
    * last snapshot, and refs go on — and the socket is detached and closed;
-   * only then do the attempts begin, the first inside `dropped()`. The TTS
-   * sockets carry on.
+   * only then do the attempts begin, the first inside `dropped()` unless the
+   * drop is a flap. The TTS sockets carry on.
    */
   private dropped(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>): void {
     if (this.ended) return;
@@ -547,11 +547,12 @@ class SonioxCore {
     const stt = this.stt;
     this.stt = null;
     stt?.close();
-    // An attempt's socket that dropped as it opened: that attempt finds it gone and fails, and the attempts go on.
-    if (this.reconnector.active) return;
-    this.drop = this.dropInfo(drop, true);
-    this.lastFailure = null;
-    this.reconnector.dropped(this.drop);
+    // An attempt's socket that dropped as it opened is that attempt's: the reconnector fails it, however it answers, and the drop a give-up reports stays the one it took up.
+    if (!this.reconnector.active) {
+      this.drop = this.dropInfo(drop, true);
+      this.lastFailure = null;
+    }
+    this.reconnector.dropped(this.dropInfo(drop, true));
   }
 
   /**

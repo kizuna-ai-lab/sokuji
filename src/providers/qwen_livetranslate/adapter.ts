@@ -178,8 +178,6 @@ class QwenLeg implements AdapterSession {
   private drop: DropInfo | null = null;
   /** Why this drop's last attempt failed, in words: what the leg's failure says at a give-up. */
   private lastFailure: string | null = null;
-  /** The connection an attempt brought back dropped before the reconnector had said so: that drop, taken up once it has. */
-  private dropBehind: DropInfo | null = null;
   /** Managed: the token a request fetched for this drop. Qwen refusing it is final; refusing one the cache served is not. */
   private freshToken: string | null = null;
   /** Managed: a cached token Qwen refused at an attempt's handshake: the next reissue asks past the cache. */
@@ -229,7 +227,7 @@ class QwenLeg implements AdapterSession {
       clock: request.clock,
       frame: (type, payload) => this.frame('in', type, payload),
       reconnecting: (e) => this.events.reconnecting(e),
-      reconnected: (e) => this.reconnected(e),
+      reconnected: (e) => this.events.reconnected(e),
       gaveUp: (e) => this.gaveUp(e),
       attempt: ({ signal }) => this.attempt(signal),
     });
@@ -782,10 +780,11 @@ class QwenLeg implements AdapterSession {
    * A live connection ended unasked, and its end is worth retrying. Break
    * before make (spec 2026-11-05 reconnect §4.2): its segments in flight
    * close as they stand, its turn is let go, and the socket is detached and
-   * closed; only then do the attempts begin, the first inside `dropped()`.
-   * The screen's subscription is taken again, so the frame in hand waits for
-   * the new session's first audio, as at the start: a session that declares
-   * video and has no frame by its first turn is ended (spec 2026-10-22 §2).
+   * closed; only then do the attempts begin, the first inside `dropped()`
+   * unless the drop is a flap. The screen's subscription is taken again, so
+   * the frame in hand waits for the new session's first audio, as at the
+   * start: a session that declares video and has no frame by its first turn
+   * is ended (spec 2026-10-22 §2).
    */
   private dropped(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>): void {
     if (this.phase === 'ended') return;
@@ -804,9 +803,9 @@ class QwenLeg implements AdapterSession {
     this.phase = 'opening';
     this.stopFrames();
     this.watchFrames();
-    // An attempt's connection that dropped as it came live: the attempt fails if it has not yet seen it live, else the drop waits for its reconnect to be said.
+    // An attempt's connection that dropped as it came live: the reconnector fails that attempt, whether or not it has seen it live, and the next one follows.
     if (this.reconnector.active) {
-      this.dropBehind = this.dropInfo(drop, true);
+      this.reconnector.dropped(this.dropInfo(drop, true));
       return;
     }
     this.newDrop(this.dropInfo(drop, true));
@@ -819,20 +818,6 @@ class QwenLeg implements AdapterSession {
     this.freshToken = null;
     this.refusedToken = null;
     this.reconnector.dropped(drop);
-  }
-
-  /**
-   * Live again. A close right behind `session.updated` can land between the
-   * attempt seeing the leg live and the reconnector saying so — never in a
-   * browser, where the close is a task of its own, but on a socket that
-   * queues it sooner — and is a drop of its own, taken up now.
-   */
-  private reconnected(e: Parameters<AdapterEvents['reconnected']>[0]): void {
-    this.events.reconnected(e);
-    const behind = this.dropBehind;
-    this.dropBehind = null;
-    if (!behind || this.phase === 'ended') return;
-    this.newDrop(behind);
   }
 
   /**
@@ -916,10 +901,7 @@ class QwenLeg implements AdapterSession {
     }
     if (signal.aborted || this.hasEnded()) return abandoned;
     // It dropped as it came live (`dropped()` let it go): the next attempt goes on, and that drop is this one.
-    if (this.socket !== ws) {
-      this.dropBehind = null;
-      return failed(LOST, 'The new connection dropped as it opened.');
-    }
+    if (this.socket !== ws) return failed(LOST, 'The new connection dropped as it opened.');
     return { ok: true, reissued, reissueMs };
   }
 

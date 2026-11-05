@@ -16,17 +16,25 @@ import type { DropInfo, ReconnectedInfo, GiveUp } from '../contract/reconnect';
 
 export type { DropCause, DropInfo, ReconnectedInfo, GiveUp } from '../contract/reconnect';
 
-/** The wait before attempt 1, 2, … 6; every attempt after that waits `RECONNECT_REPEAT_MS`. */
+/** The wait before attempt 1, 2, … 6; every attempt after that waits `RECONNECT_REPEAT_MS`. A flapping drop starts further down (`FLAP_WINDOW_MS`). */
 export const RECONNECT_DELAYS_MS: readonly number[] = [0, 250, 500, 1000, 2000, 4000];
 export const RECONNECT_REPEAT_MS = 4000;
 /** From the drop to giving up. */
 export const RECONNECT_BUDGET_MS = 30000;
-/** A drop this soon after a reconnect continues the previous drop's budget instead of getting a fresh one. */
+/**
+ * A drop this soon after a reconnect is a flap: it continues the previous
+ * drop's budget instead of getting a fresh one, and the k-th flap in a row
+ * starts k steps down the ladder, so a connection that keeps coming back
+ * only to drop again backs off as if it had never come back.
+ */
 export const FLAP_WINDOW_MS = 10000;
 /** A shared budget is never left with less than this, so the attempts get a real chance. */
 export const FLAP_MIN_REMAINING_MS = 5000;
-/** The backstop on a runaway loop; the flapping rule is what normally stops one. */
+/** The backstop over a long session; the flapping rule is what normally stops a runaway loop. */
 export const MAX_RECONNECTS = 100;
+/** The flapping rule's limit: the drop after this many reconnects inside any minute gives up, as at `MAX_RECONNECTS`. */
+export const MAX_RECONNECTS_PER_MINUTE = 10;
+const MINUTE_MS = 60000;
 
 export type AttemptResult =
   | { ok: true; reissued: boolean; reissueMs: number }
@@ -36,7 +44,7 @@ export type AttemptResult =
 export interface ReconnectorOptions {
   clock: Clock;
   frame(type: string, payload: Record<string, unknown>): void;
-  /** Before each attempt; `drop` only on the first. */
+  /** Before each attempt — a flapping drop's first at the drop, ahead of its wait; `drop` only on the first. */
   reconnecting(e: { attempt: number; drop?: DropInfo }): void;
   reconnected(e: ReconnectedInfo): void;
   gaveUp(e: GiveUp): void;
@@ -46,8 +54,10 @@ export interface ReconnectorOptions {
 
 export interface Reconnector {
   /**
-   * The connection dropped and the adapter judged it retryable. Ignored while already reconnecting, and after the reconnector finished.
-   * Break before make: the caller must already have detached and closed the dropped socket, because attempt 1 runs synchronously inside this call.
+   * The connection dropped and the adapter judged it retryable. While an attempt is in flight, it is that attempt's connection dropping
+   * before its answer was read: the attempt fails however it answers, and the next one follows on the same drop's ladder and budget.
+   * Ignored during a wait, and after the reconnector finished.
+   * Break before make: the caller must already have detached and closed the dropped socket, because attempt 1 may run synchronously inside this call.
    * The `AbortSignal` passed to `attempt` is shared by every attempt of one drop, so a listener added per attempt must be removed when the attempt ends.
    */
   dropped(drop: DropInfo): void;
@@ -90,7 +100,13 @@ interface Cycle {
   droppedAt: number;
   deadline: number;
   shared: boolean;
+  /** How far down the ladder its attempt 1 starts: k for the k-th flap in a row, 0 for a drop that is no flap. */
+  step: number;
   attempt: number;
+  /** `reconnecting` already said attempt `attempt`, which has not started yet (a flapping drop's first, during its wait). */
+  announced: boolean;
+  /** The connection the attempt in flight brought back dropped before its answer was read. */
+  droppedBehind: boolean;
   reissued: boolean;
   reissueMs: number;
   lastCode?: string;
@@ -110,8 +126,12 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
   let drops = 0;
   let lastReconnectedAt: number | null = null;
   let lastDeadline = 0;
+  /** The flaps in a row so far. */
+  let flaps = 0;
+  /** When each reconnect inside the last minute came, oldest first. */
+  const recent: number[] = [];
 
-  const delayBefore = (attempt: number) => RECONNECT_DELAYS_MS[attempt - 1] ?? RECONNECT_REPEAT_MS;
+  const delayBefore = (c: Cycle, attempt: number) => RECONNECT_DELAYS_MS[c.step + attempt - 1] ?? RECONNECT_REPEAT_MS;
 
   const stop = (c: Cycle) => {
     c.cancelWait?.();
@@ -130,14 +150,22 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
 
   const timeout = (c: Cycle) => giveUp(c, { reason: 'timeout', code: LOST, message: c.lastMessage ?? 'Connection lost' });
 
+  /** Says the next attempt; false when a stop inside the callback ended the cycle, so nothing more may start. */
+  const announce = (c: Cycle): boolean => {
+    c.attempt += 1;
+    c.announced = true;
+    o.reconnecting(c.attempt === 1 ? { attempt: 1, drop: dropOf } : { attempt: c.attempt });
+    return cycle === c;
+  };
+
   const start = (c: Cycle) => {
     c.cancelWait = null;
     if (clock.now() >= c.deadline) { timeout(c); return; }
-    c.attempt += 1;
+    if (!c.announced && !announce(c)) return;
+    c.announced = false;
     c.inFlight = true;
     c.skipDelay = false;
     const attempt = c.attempt;
-    o.reconnecting(attempt === 1 ? { attempt, drop: dropOf } : { attempt });
     let run: Promise<AttemptResult>;
     try {
       run = o.attempt({ attempt, signal: c.controller.signal });
@@ -150,10 +178,16 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
     );
   };
 
-  const settle = (c: Cycle, attempt: number, r: AttemptResult) => {
+  const settle = (c: Cycle, attempt: number, answer: AttemptResult) => {
     // A cancelled, timed-out or superseded cycle's late answer is nobody's business.
     if (cycle !== c || c.attempt !== attempt) return;
     c.inFlight = false;
+    const behind = c.droppedBehind;
+    c.droppedBehind = false;
+    // Its connection dropped before this answer was read: nothing came back, and the next attempt follows.
+    const r: AttemptResult = answer.ok && behind
+      ? { ok: false, final: false, code: LOST, message: 'The new connection dropped as it opened.', reissued: answer.reissued, reissueMs: answer.reissueMs }
+      : answer;
     if (r.ok) {
       c.reissued ||= r.reissued;
       c.reissueMs += r.reissueMs;
@@ -161,6 +195,7 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
       const downMs = clock.now() - c.droppedAt;
       lastReconnectedAt = clock.now();
       lastDeadline = c.deadline;
+      recent.push(lastReconnectedAt);
       stop(c);
       o.frame('session.reconnected', { downMs, attempts: info.attempts });
       o.reconnected(info);
@@ -181,7 +216,7 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
   };
 
   const schedule = (c: Cycle) => {
-    const delay = c.skipDelay ? 0 : delayBefore(c.attempt + 1);
+    const delay = c.skipDelay ? 0 : delayBefore(c, c.attempt + 1);
     if (delay === 0) { start(c); return; }
     // The deadline timer fires first if it falls before the wait ends.
     c.cancelWait = clock.setTimeout(() => start(c), delay);
@@ -194,10 +229,16 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
     get active() { return cycle !== null; },
 
     dropped(drop) {
-      if (finished || cycle) return;
+      if (finished) return;
+      if (cycle) {
+        // During a wait there is no connection to drop; during an attempt it is the one the attempt brought back.
+        if (cycle.inFlight) cycle.droppedBehind = true;
+        return;
+      }
       const now = clock.now();
       drops += 1;
-      if (drops > MAX_RECONNECTS) {
+      while (recent.length > 0 && now - recent[0] >= MINUTE_MS) recent.shift();
+      if (drops > MAX_RECONNECTS || recent.length >= MAX_RECONNECTS_PER_MINUTE) {
         finished = true;
         o.frame('session.reconnecting', { cause: drop.cause, code: drop.closeCode ?? drop.errorCode });
         o.frame('session.connection_lost', { attempts: 0 });
@@ -205,16 +246,22 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
         return;
       }
       const shared = lastReconnectedAt !== null && now - lastReconnectedAt <= FLAP_WINDOW_MS;
+      flaps = shared ? flaps + 1 : 0;
       const deadline = shared ? Math.max(lastDeadline, now + FLAP_MIN_REMAINING_MS) : now + RECONNECT_BUDGET_MS;
       dropOf = drop;
       const c: Cycle = {
-        droppedAt: now, deadline, shared, attempt: 0, reissued: false, reissueMs: 0,
+        droppedAt: now, deadline, shared, step: flaps, attempt: 0, announced: false, droppedBehind: false, reissued: false, reissueMs: 0,
         inFlight: false, skipDelay: false, controller: new AbortController(), cancelWait: null, cancelDeadline: () => {},
       };
       cycle = c;
       c.cancelDeadline = clock.setTimeout(() => { if (cycle === c) timeout(c); }, deadline - now);
       o.frame('session.reconnecting', { cause: drop.cause, code: drop.closeCode ?? drop.errorCode });
-      start(c);
+      const first = delayBefore(c, 1);
+      if (first === 0) { start(c); return; }
+      // A flap waits its step of the ladder before attempt 1, but the drop is said now: the leg shows reconnecting from it.
+      if (!announce(c)) return;
+      // It ends before the deadline: a flap's is at least `FLAP_MIN_REMAINING_MS` away, longer than the ladder's longest step.
+      c.cancelWait = clock.setTimeout(() => start(c), first);
     },
 
     wake() {

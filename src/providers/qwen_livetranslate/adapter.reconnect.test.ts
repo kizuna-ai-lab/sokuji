@@ -18,7 +18,7 @@ import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
 import { runScenario } from '../../lib/contract/testing/scenarios';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { LegName } from '../../lib/conversation/types';
-import { MAX_RECONNECTS, RECONNECT_BUDGET_MS, type DropInfo } from '../../lib/session/reconnect';
+import { FLAP_WINDOW_MS, MAX_RECONNECTS, RECONNECT_BUDGET_MS, type DropInfo } from '../../lib/session/reconnect';
 import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, qwenDropAction, TURN_DONE_MS } from './adapter';
 import type { QwenCredentials, QwenReissue } from './settings';
 import { AUTO_CTX, configFor, KEY, MANUAL_CTX, PARTICIPANT_CTX, qwenHarness, qwenSession, SERVER, SHARED, turn } from './testing';
@@ -305,12 +305,15 @@ describe('the Qwen adapter reconnects: own key', () => {
   it('the 101st drop ends with connection_lost in plain words, carrying its drop and a session_cap give-up, without an attempt', async () => {
     expect(MAX_RECONNECTS).toBe(100);
     const h = await live();
+    // Each drop past the flapping window of the reconnect before it: no flap, so neither the ladder nor the per-minute limit applies.
     for (let i = 0; i < MAX_RECONNECTS; i++) {
+      h.clock.advance(FLAP_WINDOW_MS + 1);
       h.socket().serverClose(1006);
       await comeBack(h);
     }
     expect(h.of('reconnected')).toHaveLength(MAX_RECONNECTS);
     const count = h.seam.sockets.all.length;
+    h.clock.advance(FLAP_WINDOW_MS + 1);
     h.socket().serverClose(1006);
     await flush();
     expect(h.seam.sockets.all).toHaveLength(count);
@@ -345,7 +348,7 @@ describe('the Qwen adapter reconnects: own key', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
-  it('a connection that drops right behind its session.updated is a drop of its own: reconnected, then reconnecting again', async () => {
+  it('a connection that drops right behind its session.updated fails that attempt: the next one follows, then reconnected once', async () => {
     const h = await live();
     h.socket().serverClose(1011);
     await flush();
@@ -355,11 +358,15 @@ describe('the Qwen adapter reconnects: own key', () => {
     h.socket().receive(SERVER.updated());
     h.socket().serverClose(1011);
     await flush();
-    expect(h.log.flatMap((e) => (e.kind === 'reconnecting' || e.kind === 'reconnected' ? [e.kind] : []))).toEqual(['reconnecting', 'reconnected', 'reconnecting']);
-    expect(h.seam.sockets.all).toHaveLength(3);
+    expect(h.of('reconnected')).toEqual([]);
+    expect(h.frames('session.reconnect_failed')).toEqual([{ attempt: 1, message: 'The new connection dropped as it opened.' }]);
+    // The same drop's attempt 2, 250 ms on.
+    expect(h.seam.sockets.all).toHaveLength(2);
+    h.clock.advance(250);
     await comeBack(h, 'sess_3');
-    // Within 10 s of the reconnect before it: the budget is that drop's.
-    expect(h.of('reconnected').map((e) => e.payload!.budgetShared)).toEqual([false, true]);
+    expect(h.seam.sockets.all).toHaveLength(3);
+    expect(h.of('reconnecting').map((e) => e.payload!.attempt)).toEqual([1, 2]);
+    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: false, reissueMs: 0, budgetShared: false }]);
     expect(h.of('failed')).toEqual([]);
     h.session.appendAudio(chunk());
     expect(h.appended()).toHaveLength(1);
@@ -772,14 +779,17 @@ describe('the Qwen adapter reconnects: split legs and the conformance scenario',
     expect(of('speaker', 'reconnected')).toHaveLength(1);
     expect(of('participant', 'reconnected')).toEqual([]);
 
-    // Both drop at once: two reconnectors, each on its own schedule; the seam lets one upgrade through at a time.
+    // Both drop at once: two reconnectors, each on its own schedule. The speaker's drop is a flap, so its attempt 1 waits 250 ms; the participant's starts at once.
     back.serverClose(1011);
     participant.socket.serverClose(1011);
     await flush();
     expect(of('speaker', 'reconnecting')).toHaveLength(2);
     expect(of('participant', 'reconnecting')).toHaveLength(1);
-    const languages = [await answerNewest(), await answerNewest()].map((s) => s.sentJson<{ session: { translation: { language: string } } }>()[0].session.translation.language);
-    expect(languages).toEqual(['en', 'zh']);
+    const participantBack = await answerNewest();
+    clock.advance(250);
+    const speakerBack = await answerNewest();
+    const languages = [participantBack, speakerBack].map((s) => s.sentJson<{ session: { translation: { language: string } } }>()[0].session.translation.language);
+    expect(languages).toEqual(['zh', 'en']);
     expect(of('speaker', 'reconnected')).toHaveLength(2);
     expect(of('participant', 'reconnected')).toHaveLength(1);
     expect(of('speaker', 'failed')).toEqual([]);
