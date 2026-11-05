@@ -55,7 +55,7 @@ A new `--devices` command lists output devices as one JSON array on stdout and e
 | built-in output `kAudioDevicePropertyDataSource` = `hdpn` | `headphones` |
 | built-in output data source = `ispk` | `speakers` |
 | built-in, no data source or another value | `unknown` |
-| `blue` / `blea` (Bluetooth / BLE) | transport `bluetooth`; the form factor from the device's Bluetooth class (below) |
+| `blue` / `blea` (Bluetooth / BLE) | transport `bluetooth`; the form factor from the output stream's terminal type (below) |
 | `hdmi`, `dprt` | `unknown`, transport `hdmi` |
 | `usb` | `unknown`, transport `usb` |
 | `virt`, `grup` (aggregate), `airp` (AirPlay), others | `unknown`, transport `virtual` or `unknown` |
