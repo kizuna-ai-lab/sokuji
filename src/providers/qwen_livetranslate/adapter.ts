@@ -9,15 +9,19 @@
  * ahead is done waits for that turn's `response.done` (D6) — as it does behind
  * the server's own cut of a long press. A press gone quiet past
  * `QUIET_KEEP_MS` closes its turn and sends nothing until voice comes back.
- * An error words the close that follows it, and any end the leg did not ask
- * for fails it: there is no reconnect (D8). A leg with nothing to send keeps
- * the session alive past Qwen's idle close. With a screen source (spec
- * 2026-10-22) the update declares video, the frame in hand goes up right after
- * the first audio — never before it — and later frames as they come, the
- * capture layer owning their pace; a lost source is a degradation, the
- * session going on with audio. Stop sends `session.finish` and closes at once. Every
- * timer reads the request's clock, and nothing is said but through events
- * (CLAUDE.md, "Inside an adapter session").
+ * A close the leg did not ask for is judged by the error just before it,
+ * else by its code (`qwenDropAction`, spec 2026-11-05 reconnect §4.1): a
+ * dropped connection comes back through the leg's own reconnector, on the
+ * same key or the token the lease answers, a new session with its own
+ * update; any other end fails the leg, in that error's words, else the
+ * close's. A leg with nothing to send keeps the session alive past Qwen's
+ * idle close. With a screen source (spec 2026-10-22) the update declares
+ * video, the frame in hand goes up right after the first audio — never
+ * before it — and later frames as they come, the capture layer owning their
+ * pace; a lost source is a degradation, the session going on with audio.
+ * Stop sends `session.finish` and closes at once. Every timer reads the
+ * request's clock, and nothing is said but through events (CLAUDE.md,
+ * "Inside an adapter session").
  */
 import {
   AdapterStartError,
@@ -33,6 +37,7 @@ import { framePayload } from '../../lib/contract/framePayload';
 import { HeaderSocketError, ruleFor, type OpenHeaderSocket } from '../../lib/contract/headerSocket';
 import { WS_OPEN } from '../../lib/contract/socket';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { closeCodeAction, createReconnector, type AttemptResult, type DropInfo, type GiveUp, type Reconnector } from '../../lib/session/reconnect';
 import { isVoiced } from '../../lib/session/turn';
 import type { DetectEndpoint, Detection } from './check';
 import type { QwenConfig } from './config';
@@ -90,8 +95,23 @@ const PRE_ROLL_SAMPLES = (SAMPLE_RATE * PRE_ROLL_MS) / 1000;
 export const NEVER_OPENED = "Qwen's socket did not open (check the network, and that the API key is still valid).";
 /** The same for a managed leg, which has no key of its own: the grant's session token is what Qwen may have refused. */
 export const NEVER_OPENED_MANAGED = "Qwen's socket did not open (check the network; the session token may have been refused).";
-/** Why the leg fails when the connection closed with no words (D8): worded by the `connection_lost` alias. */
+/** Why the leg fails when the connection closed with no words, or a reconnect gave up with no attempt's words: worded by the `connection_lost` alias. */
 export const CONNECTION_LOST = 'The connection to Qwen was lost.';
+const LOST = 'connection_lost';
+/** What an attempt's handshake can answer that another attempt would only hear again: the key, a limit, a refused request, a model the key may not use. */
+const TERMINAL = new Set(['auth', 'rate_limit', 'client', 'model_access_denied']);
+
+/**
+ * What a live socket's close means (spec 2026-11-05 reconnect §4.1; open
+ * point §9.2): the error just before it decides first, by the code its words
+ * fall under (`errorCode`) — the server's own fault reconnects; the key, a
+ * limit, a request the model refuses or a model the key may not use end —
+ * else the close by its code.
+ */
+export function qwenDropAction(e: { close?: number; recent?: { code: string } }): 'reconnect' | 'end' {
+  if (e.recent) return e.recent.code === 'server' ? 'reconnect' : 'end';
+  return closeCodeAction(e.close);
+}
 
 export interface QwenAdapterDeps {
   /** The header seam (D3): the platform's in the app, `fakeHeaderSockets().open` in tests. */
@@ -132,11 +152,24 @@ function seamRefusal(error: unknown, managed: boolean): unknown {
 }
 
 class QwenLeg implements AdapterSession {
+  /** Each leg is its own connection (split legs): never `shared`. */
   readonly info = { transport: 'websocket' };
   private phase: Phase = 'opening';
   /** The connection in use once live. */
   private socket: WebSocket | null = null;
-  private readonly segments: QwenSegments;
+  /** Each connection's own: a reconnect's segments start afresh, their refs carrying on. */
+  private segments: QwenSegments;
+  /** What the next connection dials with: the request's key or token, then each token the lease answers. */
+  private apiKey: string;
+  /** The endpoint the start dialled: every reconnect's too, never detected again. */
+  private endpoint: EndpointId | null = null;
+  private readonly reconnector: Reconnector;
+  /** The drop the reconnector took up last: what a give-up reports with. */
+  private drop: DropInfo | null = null;
+  /** Why this drop's last attempt failed, in words: what the leg's failure says at a give-up. */
+  private lastFailure: string | null = null;
+  /** The connection an attempt brought back dropped before the reconnector had said so: that drop, taken up once it has. */
+  private dropBehind: DropInfo | null = null;
   /** The last mid-session `error`, and when: the words of a close that follows it closely. */
   private lastError: { code: string; message: string; at: number } | null = null;
   /** `session.unreadable` on the ok → failing transition only, a frame's and an audio delta's each. */
@@ -176,13 +209,24 @@ class QwenLeg implements AdapterSession {
     private readonly deps: QwenAdapterDeps,
   ) {
     this.segments = new QwenSegments({ sink: events, person: request.config.person });
+    this.apiKey = request.credentials.apiKey;
+    // No stall watch: Qwen sends nothing back while the leg is quiet (spec 2026-11-05 reconnect §4.2).
+    this.reconnector = createReconnector({
+      clock: request.clock,
+      frame: (type, payload) => this.frame('in', type, payload),
+      reconnecting: (e) => this.events.reconnecting(e),
+      reconnected: (e) => this.reconnected(e),
+      gaveUp: (e) => this.gaveUp(e),
+      attempt: ({ signal }) => this.attempt(signal),
+    });
   }
 
   async open(): Promise<AdapterSession> {
     try {
       this.watchFrames();
       const endpoint = this.request.config.endpoint ?? this.request.credentials.endpoint ?? await this.detect();
-      await this.connect(endpoint);
+      this.endpoint = endpoint;
+      await this.connect(endpoint, this.request.signal);
       return this;
     } catch (error) {
       this.shutDown();
@@ -255,6 +299,11 @@ class QwenLeg implements AdapterSession {
     }
     this.shutDown();
     return Promise.resolve();
+  }
+
+  /** The network is back: a reconnect waiting out its backoff tries now. */
+  networkRestored(): void {
+    this.reconnector.wake();
   }
 
   /** The connection, while live under push-to-talk. */
@@ -412,6 +461,11 @@ class QwenLeg implements AdapterSession {
     }
   }
 
+  /** Read through a call: across an `await`, the leg may have ended whatever the phase was set to before it. */
+  private hasEnded(): boolean {
+    return this.phase === 'ended';
+  }
+
   private live(): WebSocket | null {
     const ws = this.socket;
     return this.phase === 'live' && ws !== null && ws.readyState === WS_OPEN ? ws : null;
@@ -434,14 +488,16 @@ class QwenLeg implements AdapterSession {
   }
 
   /**
-   * One connection: the seam, `session.created`, the update, its answer.
-   * Resolves once `session.updated` is heard, the leg live; rejects, leaving
-   * nothing open, when the seam refuses, the server refuses or closes,
-   * `START_TIMEOUT_MS` passes, or the request's signal aborts.
+   * One connection, the start's or a reconnect's: the seam, `session.created`,
+   * the update, its answer. Resolves with the socket once `session.updated`
+   * is heard, the leg live; rejects, leaving nothing open, when the seam
+   * refuses, the server refuses or closes, `START_TIMEOUT_MS` passes, or
+   * `signal` aborts — the request's at the start, the reconnector's for an
+   * attempt.
    */
-  private connect(endpoint: EndpointId): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const { clock, config, credentials, signal } = this.request;
+  private connect(endpoint: EndpointId, signal: AbortSignal): Promise<WebSocket> {
+    return new Promise<WebSocket>((resolve, reject) => {
+      const { clock, config, credentials } = this.request;
       // A stop while the endpoint was being found: nothing opens.
       if (signal.aborted) {
         reject(signal.reason ?? new Error('aborted'));
@@ -456,7 +512,8 @@ class QwenLeg implements AdapterSession {
         cancelBound();
         signal.removeEventListener('abort', onAbort);
         if (error === undefined) {
-          resolve();
+          // Only the handshake settles without an error, on the socket it was given.
+          resolve(ws as WebSocket);
           return;
         }
         seam.abort(error);
@@ -473,6 +530,7 @@ class QwenLeg implements AdapterSession {
       signal.addEventListener('abort', onAbort, { once: true });
 
       // The lease hears of this socket's session once it holds both the id and the handshake's request id, in whichever order they land.
+      // Each connection's own: a request id that lands after its connection dropped reports that connection's session, never the next one's.
       const lease = credentials.lease;
       let created: string | undefined;
       let seamAnswered = false;
@@ -486,7 +544,7 @@ class QwenLeg implements AdapterSession {
         try { lease.sessionCreated(created, seamRequestId); } catch { /* the lease's to say */ }
       };
       const url = socketUrl(endpoint, config.model);
-      const headers = qwenHeaders(credentials);
+      const headers = qwenHeaders({ apiKey: this.apiKey });
       const rule = ruleFor(url, { set: {} });
       // The endpoint, the rule's place and the header's name, never a value.
       this.frame('out', 'session.headers', { endpoint, host: rule.host, path: rule.path, set: Object.keys(headers.set) });
@@ -679,12 +737,178 @@ class QwenLeg implements AdapterSession {
     return age < 0 || age > ERROR_WORDS_MS ? null : { code: last.code, message: last.message };
   }
 
-  /** The socket closed while live: nothing asked for it (D8). In a recent error's words, else the close's, else the lost connection. */
+  /**
+   * The socket closed while live, and nothing asked for it: a drop worth
+   * retrying reconnects (`qwenDropAction`); any other end fails the leg, in a
+   * recent error's words, else the close's, else the lost connection's.
+   */
   private closed(e: CloseEvent): void {
     this.frame('in', 'session.connection_lost', { code: e.code, reason: e.reason });
+    const recent = this.recentError();
+    const drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'> = recent
+      ? { cause: 'error', closeCode: e.code, errorCode: recent.code }
+      : { cause: 'close', closeCode: e.code };
+    if (qwenDropAction({ close: e.code, ...(recent ? { recent } : {}) }) === 'reconnect') {
+      this.dropped(drop);
+      return;
+    }
     const reason = e.reason ? { code: null, message: e.reason } : null;
-    this.end(this.recentError()
-      ?? (reason ? { code: errorCode(reason), message: errorWords(reason) } : { code: 'connection_lost', message: CONNECTION_LOST }));
+    const failure = recent ?? (reason ? { code: errorCode(reason), message: errorWords(reason) } : { code: LOST, message: CONNECTION_LOST });
+    this.end({ ...failure, drop: this.dropInfo(drop, false) });
+  }
+
+  private dropInfo(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>, retryable: boolean): DropInfo {
+    return { ...drop, retryable, managed: this.request.credentials.lease !== undefined };
+  }
+
+  /**
+   * A live connection ended unasked, and its end is worth retrying. Break
+   * before make (spec 2026-11-05 reconnect §4.2): its segments in flight
+   * close as they stand, its turn is let go, and the socket is detached and
+   * closed; only then do the attempts begin, the first inside `dropped()`.
+   * The screen's subscription is taken again, so the frame in hand waits for
+   * the new session's first audio, as at the start: a session that declares
+   * video and has no frame by its first turn is ended (spec 2026-10-22 §2).
+   */
+  private dropped(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>): void {
+    if (this.phase === 'ended') return;
+    this.segments.abandon();
+    this.resetTurnState();
+    this.stopKeepalive();
+    this.stopKeepalive = () => {};
+    // The dropped connection's error says nothing of the next one's close.
+    this.lastError = null;
+    const ws = this.socket;
+    this.socket = null;
+    if (ws) {
+      detach(ws);
+      if (ws.readyState <= WS_OPEN) ws.close(1000);
+    }
+    this.phase = 'opening';
+    this.stopFrames();
+    this.watchFrames();
+    // An attempt's connection that dropped as it came live: the attempt fails if it has not yet seen it live, else the drop waits for its reconnect to be said.
+    if (this.reconnector.active) {
+      this.dropBehind = this.dropInfo(drop, true);
+      return;
+    }
+    this.drop = this.dropInfo(drop, true);
+    this.lastFailure = null;
+    this.reconnector.dropped(this.drop);
+  }
+
+  /**
+   * Live again. A close right behind `session.updated` can land between the
+   * attempt seeing the leg live and the reconnector saying so — never in a
+   * browser, where the close is a task of its own, but on a socket that
+   * queues it sooner — and is a drop of its own, taken up now.
+   */
+  private reconnected(e: Parameters<AdapterEvents['reconnected']>[0]): void {
+    this.events.reconnected(e);
+    const behind = this.dropBehind;
+    this.dropBehind = null;
+    if (!behind || this.phase === 'ended') return;
+    this.drop = behind;
+    this.lastFailure = null;
+    this.reconnector.dropped(behind);
+  }
+
+  /**
+   * A dropped connection's turn is gone with it (spec 2026-11-05 reconnect
+   * §4.3): nothing waits on its `response.done`, what it held never goes up,
+   * the quiet count and the frame's wait start again on the next
+   * connection, whose segments are new — their refs carrying on.
+   */
+  private resetTurnState(): void {
+    this.busy = false;
+    this.held = [];
+    this.releaseHeld = false;
+    this.appended = false;
+    this.cancelTurnWait?.();
+    this.cancelTurnWait = null;
+    this.quietSamples = 0;
+    this.preRoll = [];
+    this.latest = null;
+    this.audioWent = false;
+    this.segments.stop();
+    this.segments = new QwenSegments({ sink: this.events, person: this.request.config.person, firstRef: this.segments.nextRef });
+  }
+
+  /**
+   * One reconnect attempt (spec 2026-11-05 reconnect §4.2). Managed: the
+   * lease's token first — its cached one while it lasts, which serves both
+   * legs, else one request for both — a refusal stopping the attempts. Then
+   * the start's own connect, on the endpoint the start dialled: a new
+   * session, whose update and report go as at the start. An answer the
+   * handshake would give again (`TERMINAL`) stops them too, in its own code.
+   * The signal, every attempt's of this drop, aborts at the budget's end and
+   * on a stop.
+   */
+  private async attempt(signal: AbortSignal): Promise<AttemptResult> {
+    const { clock, credentials } = this.request;
+    const lease = credentials.lease;
+    let reissued = false;
+    let reissueMs = 0;
+    const failed = (code: string, message: string): AttemptResult => {
+      this.lastFailure = message;
+      return { ok: false, final: false, code, message, reissued, reissueMs };
+    };
+    // An answer nobody reads; it leaves the last failure's words as they were.
+    const abandoned: AttemptResult = { ok: false, final: false, code: LOST, message: 'The attempt was abandoned.', reissued: false, reissueMs: 0 };
+    if (lease) {
+      const asked = clock.now();
+      const answer = await lease.reissue();
+      reissueMs = clock.now() - asked;
+      // Abandoned meanwhile (a stop, the budget's end): nobody reads the answer, and nothing opens.
+      if (signal.aborted || this.hasEnded()) return abandoned;
+      if (!answer.ok) {
+        if (answer.retry) return failed('reissue_failed', answer.message);
+        // A refusal stops the attempts: the two the user can act on show as themselves, any other as the connection lost (spec §6).
+        const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
+        this.lastFailure = answer.message;
+        return {
+          ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
+          code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
+        };
+      }
+      // The same token is the lease's cached one: nothing new was issued.
+      reissued = answer.apiKey !== this.apiKey;
+      this.apiKey = answer.apiKey;
+    }
+    // A handshake an attempt before this one left halfway starts over.
+    this.phase = 'opening';
+    let ws: WebSocket;
+    try {
+      ws = await this.connect(this.endpoint as EndpointId, signal);
+    } catch (error) {
+      // Closed by the abort (a stop, the budget's end): not the attempt's own failure.
+      if (signal.aborted || this.hasEnded()) return abandoned;
+      const code = error instanceof AdapterStartError ? error.code : 'network';
+      const message = describeCause(error);
+      if (!TERMINAL.has(code)) return failed(code, message);
+      this.lastFailure = message;
+      return { ok: false, final: true, reason: 'terminal_error', code, message };
+    }
+    if (signal.aborted || this.hasEnded()) return abandoned;
+    // It dropped as it came live (`dropped()` let it go): the next attempt goes on, and that drop is this one.
+    if (this.socket !== ws) {
+      this.dropBehind = null;
+      return failed(LOST, 'The new connection dropped as it opened.');
+    }
+    return { ok: true, reissued, reissueMs };
+  }
+
+  /**
+   * The attempts ended without a connection: the leg fails with the policy's
+   * code and the drop it gave up on, in the last attempt's words, or the
+   * lost connection's when none was made; the verdict's reason stays in
+   * `giveUp` and the frames. The Qwen lease has no grant-end test: its own
+   * timer ends the run at the grant's end, so a `lease_ended` here fails as
+   * the connection lost.
+   */
+  private gaveUp(e: GiveUp): void {
+    const { code, message: _verdict, ...giveUp } = e;
+    this.end({ code, message: this.lastFailure ?? CONNECTION_LOST, ...(this.drop ? { drop: this.drop } : {}), giveUp });
   }
 
   /** A frame, or an audio delta, that will not read: a Logs line and `parse_error` on each latch's ok → failing transition only. */
@@ -696,16 +920,18 @@ class QwenLeg implements AdapterSession {
     this.events.degraded({ code: 'parse_error', message: `A message from Qwen could not be read: ${describeCause(error)}`, cause: error });
   }
 
-  /** A session that ends by itself: said once, then nothing (the kit's `ended-silence`). */
-  private end(failed: { code: string; message: string }): void {
-    if (this.phase !== 'live') return;
+  /** A session that ends by itself, live or reconnecting: said once, then nothing (the kit's `ended-silence`). */
+  private end(failed: Parameters<AdapterEvents['failed']>[0]): void {
+    if (this.phase === 'ended') return;
     this.shutDown();
     this.events.failed(failed);
   }
 
-  /** Every way a leg ends: the segments silent, the socket closed and no longer heard. */
+  /** Every way a leg ends: the reconnect cancelled, the segments silent, the socket closed and no longer heard. */
   private shutDown(): void {
     this.phase = 'ended';
+    // Waits, an attempt's connect and a reissue's late answer: all cancelled, and nothing more is said.
+    this.reconnector.cancel();
     this.stopKeepalive();
     this.stopKeepalive = () => {};
     this.cancelTurnWait?.();

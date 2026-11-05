@@ -2,14 +2,15 @@
  * The Qwen LiveTranslate suites' fixtures: a key in the real shape, the
  * settings the suites build from, the server's events as the JSON text
  * frames the endpoints send (the shapes the owner's probe recorded,
- * 2026-10-13), one whole turn in the recorded order, and the harness that
- * starts a leg over the header seam's fake on a tracked virtual clock.
- * Test-only: nothing but a test imports it.
+ * 2026-10-13), one whole turn in the recorded order, the harness that
+ * starts a leg over the header seam's fake on a tracked virtual clock, and
+ * the conformance suite's harness. Test-only: nothing but a test imports it.
  */
 import type { FrameSource, SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
-import { flush } from '../../lib/contract/testing/drive';
+import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
+import type { AdapterHarness } from '../../lib/contract/testing/scenarios';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
 import { createQwenAdapter } from './adapter';
@@ -142,4 +143,37 @@ export async function qwenSession(o?: Parameters<typeof startQwen>[0]) {
   h.socket().receive(SERVER.updated());
   const session = await h.starting;
   return { ...h, session };
+}
+
+/**
+ * The conformance suite's harness (`runScenario`), a fresh seam per
+ * scenario: the registration answers before the socket exists, one recorded
+ * turn is the exchange, the server's end is a close the table ends (spec
+ * 2026-11-05 reconnect §4.1: a 1011 would reconnect), and the reconnect is
+ * a 1011 whose attempt's socket opens and answers the handshake.
+ */
+export function qwenHarness(credentials: QwenCredentials = KEY): AdapterHarness<QwenConfig, QwenCredentials> {
+  let seam = fakeHeaderSockets();
+  const last = () => seam.sockets.last();
+  const reply = (frame: string): ScenarioStep => ({ run: () => last().receive(frame) });
+  return {
+    adapter: createQwenAdapter({ openHeaderSocket: (url, headers, o) => seam.open(url, headers, o), detect: async () => ({ endpoint: 'intl' }) }),
+    config: (context) => { seam = fakeHeaderSockets(); return configFor(context); },
+    credentials,
+    // The registration answers first; the socket exists only then.
+    opening: () => [{ flush: true }, { run: () => last().open() }, { flush: true }, reply(SERVER.created()), reply(SERVER.updated()), { flush: true }],
+    exchange: turn(1, { source: '你好', translation: 'Hello.' }).map(reply),
+    serverClose: [{ run: () => last().serverClose(1007, 'Invalid translation parameter.') }, { flush: true }],
+    refuse: [{ flush: true }, { run: () => last().drop() }, { flush: true }],
+    // The attempt's socket is the newest once its registration has answered (and, managed, the lease's token has).
+    reconnect: [
+      { run: () => last().serverClose(1011, 'Internal error') },
+      { flush: true },
+      { run: () => last().open() },
+      { flush: true },
+      reply(SERVER.created('sess_2')),
+      reply(SERVER.updated()),
+      { flush: true },
+    ],
+  };
 }

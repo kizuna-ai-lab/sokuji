@@ -2,7 +2,8 @@
  * Qwen LiveTranslate's adapter: the conformance suite and the seeded
  * lifecycles, the start over the header seam and its refusals in words, the
  * endpoint fallback, the audio going up, push-to-talk, the events to
- * segments and frames, the ends, stop. On the header seam's fake,
+ * segments and frames, the ends that fail the leg (the reconnect itself in
+ * `adapter.reconnect.test.ts`), stop. On the header seam's fake,
  * `FakeSocket`s and a virtual clock — no network, no fake timers.
  */
 import { describe, it, expect, vi } from 'vitest';
@@ -21,7 +22,7 @@ import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, KEEPALIVE_CHECK_MS,
 import type { DetectEndpoint } from './check';
 import type { QwenConfig } from './config';
 import type { QwenCredentials } from './settings';
-import { AUTO_CTX, configFor, KEY, MANUAL_CTX, openQwen, PARTICIPANT_CTX, qwenSession, SERVER, SHARED, startQwen, TEXT_CTX, turn } from './testing';
+import { AUTO_CTX, configFor, KEY, MANUAL_CTX, openQwen, PARTICIPANT_CTX, qwenHarness, qwenSession, SERVER, SHARED, startQwen, TEXT_CTX, turn } from './testing';
 import { sessionUpdate } from './wire';
 
 /** What no event, failure or refusal may carry: the key, and the header it rides in. */
@@ -38,27 +39,14 @@ const content = (log: readonly AdapterEvent[]) =>
   log.filter((e) => e.kind !== 'frame').map((e) => (e.kind === 'audio' ? ['audio', { ref: e.payload.ref, samples: e.payload.pcm.length }] : [e.kind, e.payload]));
 const intl: DetectEndpoint = async () => ({ endpoint: 'intl' });
 
-function harness(): AdapterHarness<QwenConfig, QwenCredentials> {
-  let seam = fakeHeaderSockets();
-  const last = () => seam.sockets.last();
-  const reply = (frame: string): ScenarioStep => ({ run: () => last().receive(frame) });
-  return {
-    adapter: createQwenAdapter({ openHeaderSocket: (url, headers, o) => seam.open(url, headers, o), detect: intl }),
-    config: (context) => { seam = fakeHeaderSockets(); return configFor(context); },
-    credentials: KEY,
-    // The registration answers first; the socket exists only then.
-    opening: () => [{ flush: true }, { run: () => last().open() }, { flush: true }, reply(SERVER.created()), reply(SERVER.updated()), { flush: true }],
-    exchange: turn(1, { source: '你好', translation: 'Hello.' }).map(reply),
-    serverClose: [{ run: () => last().serverClose(1011, 'Internal error') }, { flush: true }],
-    refuse: [{ flush: true }, { run: () => last().drop() }, { flush: true }],
-  };
-}
+/** A drop no attempt follows: the leg fails at once (spec 2026-11-05 reconnect §4.1). */
+const ended = (drop: Record<string, unknown>) => ({ ...drop, retryable: false, managed: false });
 
 describe('the Qwen LiveTranslate adapter: conformance', () => {
-  const h = harness();
+  const h = qwenHarness();
 
-  it('runs every scenario but typed text and reconnecting, which it has neither of (D8)', () => {
-    expect(scenarioNames(h)).toEqual(['open-stop', 'speech-off', 'abort-while-opening', 'refused-while-opening', 'manual-end', 'manual-cancel', 'server-close']);
+  it('runs every scenario but typed text, which it takes none of', () => {
+    expect(scenarioNames(h)).toEqual(['open-stop', 'speech-off', 'abort-while-opening', 'refused-while-opening', 'manual-end', 'manual-cancel', 'server-close', 'reconnect']);
   });
 
   it.each(scenarioNames(h))('%s', async (name) => {
@@ -96,7 +84,18 @@ describe('the Qwen LiveTranslate adapter: the seeded lifecycles', () => {
     },
     server: async (run) => {
       const socket = run.sockets.all[run.sockets.all.length - 1];
-      if (!socket || socket.readyState !== FakeSocket.OPEN) return;
+      if (!socket) return;
+      // A reconnect's attempt (spec 2026-11-05 reconnect §4.2): its socket opens and the handshake answers, now or a step later.
+      if (socket.readyState === FakeSocket.CONNECTING) {
+        if (run.rand() < 0.5) return;
+        run.count('harness.reconnect');
+        socket.open();
+        await flush();
+        socket.receive(SERVER.created('sess_2'));
+        socket.receive(SERVER.updated());
+        return;
+      }
+      if (socket.readyState !== FakeSocket.OPEN) return;
       const r = run.rand();
       const n = Math.floor(run.rand() * 4);
       const heard = `item_h${n}`;
@@ -126,7 +125,7 @@ describe('the Qwen LiveTranslate adapter: the seeded lifecycles', () => {
     // If one key stays at 0 with this seed, raise its draw's share rather than dropping the key.
     for (const key of [
       'refused', 'live', 'stopped', 'end.failed.connection_lost', 'end.failed.client', 'end.failed.server', 'opening.bound', 'opening.abort',
-      'harness.drop', 'harness.silent', 'harness.refused', 'harness.close_1007', 'harness.unanswered', 'harness.created_only',
+      'harness.drop', 'harness.silent', 'harness.refused', 'harness.close_1007', 'harness.unanswered', 'harness.created_only', 'harness.reconnect',
     ]) expect(report.stats[key] ?? 0, key).toBeGreaterThan(0);
   }, 20_000);
 });
@@ -605,28 +604,35 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     expect(h.of('failed')).toEqual([]);
     h.socket().serverClose(1007, "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported.");
     await flush();
-    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'client', message: "[Qwen COMMON_ERROR] <400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported." }]);
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{
+      code: 'client', message: "[Qwen COMMON_ERROR] <400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported.", drop: ended({ cause: 'error', closeCode: 1007, errorCode: 'client' }),
+    }]);
+    expect(h.of('reconnecting')).toEqual([]);
     expect(h.timers()).toBe(0);
     noSecret(h.log);
   });
 
-  it('a close with words and no error fails in its words; a close with none is the lost connection (D8); an old error words neither', async () => {
+  it('a close the table ends, with words and no error, fails in its words; with none it is the lost connection; an old error words neither (spec 2026-11-05 reconnect §4.1)', async () => {
     const worded = await qwenSession();
-    worded.socket().serverClose(1011, 'Internal error');
+    worded.socket().serverClose(1007, 'Idle timeout!');
     await flush();
-    expect(worded.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Qwen] Internal error' }]);
+    expect(worded.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Qwen] Idle timeout!', drop: ended({ cause: 'close', closeCode: 1007 }) }]);
 
     const bare = await qwenSession();
-    bare.socket().serverClose(1000);
+    bare.socket().serverClose(1008);
     await flush();
-    expect(bare.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: CONNECTION_LOST }]);
+    expect(bare.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: CONNECTION_LOST, drop: ended({ cause: 'close', closeCode: 1008 }) }]);
 
     const stale = await qwenSession();
     stale.socket().receive(SERVER.error('Throttling', 'Requests rate limit exceeded.'));
     stale.clock.advance(ERROR_WORDS_MS + 1);
-    stale.socket().serverClose(1000);
+    stale.socket().serverClose(1008);
     await flush();
-    expect(stale.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: CONNECTION_LOST }]);
+    expect(stale.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: CONNECTION_LOST, drop: ended({ cause: 'close', closeCode: 1008 }) }]);
+    for (const h of [worded, bare, stale]) {
+      expect(h.of('reconnecting')).toEqual([]);
+      expect(h.seam.sockets.all).toHaveLength(1);
+    }
   });
 
   it('a frame that will not read is degraded once until one reads again; an audio delta with no base64 is its own episode', async () => {
@@ -945,7 +951,7 @@ describe('the Qwen LiveTranslate adapter: screen context (spec 2026-10-22)', () 
 
   it('runs every conformance scenario with a source that keeps emitting, and leaves no subscriber behind', async () => {
     const src = fakeFrameSource({ inHand: JPEG_A });
-    const base = harness();
+    const base = qwenHarness();
     const emit: ScenarioStep = { run: () => src.emit(JPEG_B) };
     const withFrames: AdapterHarness<QwenConfig, QwenCredentials> = {
       ...base,
@@ -964,7 +970,7 @@ describe('the Qwen LiveTranslate adapter: screen context (spec 2026-10-22)', () 
 
   it('a frame, a loss and a return after the driver has stopped the session add nothing to its log', async () => {
     const src = fakeFrameSource({ inHand: JPEG_A });
-    const base = harness();
+    const base = qwenHarness();
     const r = await driveAdapter(base.adapter, {
       context: AUTO_CTX, config: base.config(AUTO_CTX, 'open-stop'), credentials: KEY, frames: src,
       opening: base.opening('open-stop'),
