@@ -277,8 +277,8 @@ describe('SpeechOutputSection — Keep the read-aloud translation out of recogni
     expect(sw(LABEL).closest('.toggle-switch-component')?.getAttribute('title')).toBe(SPLIT_BOTH_REASON);
     fireEvent.click(sw(LABEL));
     expect(useSettingsStore.getState().agentText).toBe(true);
-    // The help text is the switch's own, as everywhere.
-    expect(tooltips).toContain('Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).');
+    // The help text says why too, on its own line (the owner asked for it in the tooltip).
+    expect(tooltips).toContain(`Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).\n${SPLIT_BOTH_REASON}`);
   });
 
   it('greys for the managed twin too, which carries Soniox\'s split Both answer', () => {

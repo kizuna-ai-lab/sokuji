@@ -142,6 +142,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const pushToTranslate = turnMode === 'push-to-translate';
   // Split Both sends no agent text (spec 2026-11-05 §4.1): the provider says whether a start now would be split, from its own settings.
   const agentTextSplitBoth = selected?.provider.splitBoth?.(selected.entry.settings, { legs: legsFor(mode), faceToFace }) === true;
+  // Why, on the greyed row's title and as a second line of its help (the tooltip splits lines on \n).
+  const agentTextSplitBothReason = t('audioPanel.agentTextSplitBoth', 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.');
 
   const modeName = mode === 'speaker' ? t('modePicker.modeYou', 'Me') : mode === 'participant' ? t('modePicker.modeParticipants', 'Other') : t('modePicker.modeBoth', 'Both');
   const notInMode = t('audioPanel.lockedByMode', { mode: modeName, defaultValue: 'Not in "{{mode}}" mode. Your setting is kept.' });
@@ -336,8 +338,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       {provider?.agentText === true && (
         <SettingRow
           label={t('audioPanel.agentText', 'Keep the read-aloud translation out of recognition')}
-          tooltip={t('audioPanel.agentTextTip', 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).')}
-          greyed={agentTextSplitBoth ? t('audioPanel.agentTextSplitBoth', 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.') : undefined}
+          tooltip={[t('audioPanel.agentTextTip', 'Sends the text about to be read aloud to the recognition service ahead of playback, so speech from your speakers is not taken for someone talking. When speech plays on this computer, this adds a small charge (a few US cents per hour of speech).'), ...(agentTextSplitBoth ? [agentTextSplitBothReason] : [])].join('\n')}
+          greyed={agentTextSplitBoth ? agentTextSplitBothReason : undefined}
           switch={{ checked: agentText, onChange: () => setAgentText(!agentText) }}
         />
       )}
