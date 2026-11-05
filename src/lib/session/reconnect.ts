@@ -40,12 +40,16 @@ export interface ReconnectorOptions {
   reconnecting(e: { attempt: number; drop?: DropInfo }): void;
   reconnected(e: ReconnectedInfo): void;
   gaveUp(e: GiveUp): void;
-  /** One attempt. The signal aborts at the deadline and on `cancel()`; an attempt that outlives it is abandoned. */
+  /** One attempt. The signal (shared by all attempts of a drop) aborts at the deadline and on `cancel()`; an attempt that outlives it is abandoned. */
   attempt(ctx: { attempt: number; signal: AbortSignal }): Promise<AttemptResult>;
 }
 
 export interface Reconnector {
-  /** The connection dropped and the adapter judged it retryable. Ignored while already reconnecting, and after the reconnector finished. */
+  /**
+   * The connection dropped and the adapter judged it retryable. Ignored while already reconnecting, and after the reconnector finished.
+   * Break before make: the caller must already have detached and closed the dropped socket, because attempt 1 runs synchronously inside this call.
+   * The `AbortSignal` passed to `attempt` is shared by every attempt of one drop, so a listener added per attempt must be removed when the attempt ends.
+   */
   dropped(drop: DropInfo): void;
   /** The network is back: a waiting attempt starts now; during an attempt, the next one skips its delay. */
   wake(): void;
@@ -144,6 +148,8 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
       return;
     }
     if (r.final) {
+      // A final failure is still the last failed attempt: its code is the analytics `error_code`.
+      c.lastCode = r.code;
       giveUp(c, { reason: r.reason, code: r.code, message: r.message, ...(r.refusalCode !== undefined ? { refusalCode: r.refusalCode } : {}) });
       return;
     }
@@ -174,6 +180,7 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
       drops += 1;
       if (drops > MAX_RECONNECTS) {
         finished = true;
+        o.frame('session.reconnecting', { cause: drop.cause, code: drop.closeCode ?? drop.errorCode });
         o.frame('session.connection_lost', { attempts: 0 });
         o.gaveUp({ attempts: 0, reason: 'session_cap', code: LOST, message: 'Connection lost' });
         return;

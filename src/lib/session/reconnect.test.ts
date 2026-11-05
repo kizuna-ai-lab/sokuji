@@ -72,7 +72,7 @@ describe('createReconnector', () => {
     t.answers.push(fail('first', 'one'), fail('server_busy', 'two'));
     t.r.dropped(DROP);
     await t.run(250 + 1);
-    // From here on every attempt fails with no code; the default answer.
+    // The rest of the attempts fail with the same code, until the budget runs out.
     t.answers.push(...Array.from({ length: 50 }, () => fail('server_busy', 'again')));
     await t.run(30000);
     expect(t.gaveUp).toHaveLength(1);
@@ -84,7 +84,7 @@ describe('createReconnector', () => {
     t.answers.push(fail('x'), { ok: false, final: true, reason: 'refused', code: 'sign_in_required', message: 'Sign in', refusalCode: 'sign_in_required' });
     t.r.dropped(DROP);
     await t.run(250);
-    expect(t.gaveUp).toEqual([{ attempts: 2, reason: 'refused', code: 'sign_in_required', message: 'Sign in', refusalCode: 'sign_in_required', errorCode: 'x' }]);
+    expect(t.gaveUp).toEqual([{ attempts: 2, reason: 'refused', code: 'sign_in_required', message: 'Sign in', refusalCode: 'sign_in_required', errorCode: 'sign_in_required' }]);
     expect(t.r.active).toBe(false);
     expect(t.timers()).toBe(0);
     await t.run(60000);
@@ -183,8 +183,25 @@ describe('createReconnector', () => {
     t.r.dropped(DROP);
     expect(t.startedAt.length).toBe(before);
     expect(t.gaveUp).toEqual([{ attempts: 0, reason: 'session_cap', code: 'connection_lost', message: 'Connection lost' }]);
-    expect(t.frames[t.frames.length - 1]).toEqual(['session.connection_lost', { attempts: 0 }]);
+    expect(t.frames.slice(-2)).toEqual([
+      ['session.reconnecting', { cause: 'close', code: 1006 }],
+      ['session.connection_lost', { attempts: 0 }],
+    ]);
     expect(t.timers()).toBe(0);
+  });
+
+  it("a final failure on the first attempt is the error_code, and the timeout path writes session.connection_lost", async () => {
+    const f = rig();
+    f.answers.push({ ok: false, final: true, reason: 'terminal_error', code: 'auth', message: 'bad key' });
+    f.r.dropped(DROP);
+    await micro();
+    expect(f.gaveUp[0]).toMatchObject({ reason: 'terminal_error', code: 'auth', errorCode: 'auth' });
+
+    const t = rig({ hold: true });
+    t.r.dropped(DROP);
+    await t.run(30000, 30000);
+    expect(t.gaveUp).toHaveLength(1);
+    expect(t.frames[t.frames.length - 1]).toEqual(['session.connection_lost', { attempts: 1 }]);
   });
 
   it('wake during a wait starts the attempt at once; wake during an attempt skips the next delay', async () => {
