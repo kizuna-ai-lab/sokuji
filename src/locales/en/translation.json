@@ -1471,6 +1471,7 @@
     "leg_closed": "The provider ended the session.",
     "source_ended": "The audio source went away (unplugged, closed or stopped).",
     "still_stopping": "The last session is still stopping; try again in a moment.",
+    "connection_restored": "Connection lost and restored",
     "session_in_use": "Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.",
     "previous_session_ending": "Your previous session is still ending. Please try again in a minute.",
     "app_capture_lost_using_system_audio": "The app capture stopped, so all system audio is being translated instead.",

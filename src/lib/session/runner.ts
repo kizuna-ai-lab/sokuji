@@ -81,6 +81,11 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
 
   const set = (next: RunState) => { state.setState(next, true); };
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
+  /** The running state's `reconnect`: there only while some leg reports its attempts (the status line's). */
+  const reconnect = (run: Run) => {
+    const progress = run.reconnectProgress();
+    return Object.keys(progress).length > 0 ? { reconnect: progress } : {};
+  };
 
   /** Races `task` against `timeoutMs`; a timeout is reported and treated as done, so a hung `onRunEnded` cannot strand the runner. */
   const bounded = (task: Promise<void>): Promise<void> => new Promise<void>((resolve) => {
@@ -136,7 +141,12 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
             const provider = run.shape.provider.id;
             // One per leg, as `connected` was.
             run.shape.legs.forEach((leg) => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration, channel: leg }));
-            deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
+            // Read once the run has closed: a reconnect its end cut short is in.
+            const totals = run.reconnectTotals();
+            deps.analytics.track('translation_session_end', {
+              session_id: run.id, duration, provider,
+              reconnect_count: totals.count, reconnect_down_ms: totals.downMs, reconnect_failed: totals.failed,
+            });
             // The run's own legs, never the runner's conversation set: an
             // ending that outlived its bound must save what it ran.
             if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(run.legs())));
@@ -181,7 +191,10 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     },
     legState: () => {
       const now = state.getState();
-      if (run === current && now.phase === 'running') set({ ...now, legs: legs(run) });
+      if (run !== current || now.phase !== 'running') return;
+      // Rebuilt, not spread: a leg back live drops its attempt.
+      const { reconnect: _was, ...rest } = now;
+      set({ ...rest, legs: legs(run), ...reconnect(run) });
     },
     loading: (leg, progress) => {
       const now = state.getState();
@@ -257,7 +270,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     // Before the state says running: a subscriber that stops the run at once
     // must leave playback not live, not live again after its stop.
     deps.playback.live(true);
-    set({ phase: 'running', participantSpeech: run.shape.participantSpeech, since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}) });
+    set({ phase: 'running', participantSpeech: run.shape.participantSpeech, since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}), ...reconnect(run) });
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: shape.provider.id,

@@ -1459,6 +1459,7 @@
     "leg_closed": "提供商已结束会话。",
     "source_ended": "音频来源已消失（已拔出、关闭或停止）。",
     "still_stopping": "上一个会话仍在停止中，请稍后再试。",
+    "connection_restored": "连接已中断并已恢复",
     "session_in_use": "另一个窗口或设备正在使用此账户。请在那里停止会话；如果 Sokuji 刚刚意外关闭，请 1 分钟后重试。",
     "previous_session_ending": "您的上一个会话仍在结束中。请 1 分钟后重试。",
     "app_capture_lost_using_system_audio": "应用采集已停止，现在改为翻译整个系统的声音。",

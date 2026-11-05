@@ -40,6 +40,7 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   leg_closed: 'The provider ended the session.',
   source_ended: 'The audio source went away (unplugged, closed or stopped).',
   still_stopping: 'The last session is still stopping; try again in a moment.',
+  connection_restored: 'Connection lost and restored',
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',

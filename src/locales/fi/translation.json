@@ -1459,6 +1459,7 @@
     "leg_closed": "Tarjoaja lopetti istunnon.",
     "source_ended": "Äänilähde katosi (irrotettu, suljettu tai pysäytetty).",
     "still_stopping": "Edellistä istuntoa lopetetaan vielä; yritä hetken päästä uudelleen.",
+    "connection_restored": "Yhteys katkesi ja palautui",
     "session_in_use": "Toinen ikkuna tai laite käyttää tätä tiliä. Lopeta istunto siellä, tai jos Sokuji sulkeutui juuri odottamatta, yritä uudelleen minuutin kuluttua.",
     "previous_session_ending": "Edellinen istuntosi on vielä päättymässä. Yritä uudelleen minuutin kuluttua.",
     "app_capture_lost_using_system_audio": "Sovelluksen kaappaus pysähtyi, joten nyt käännetään kaikki järjestelmän ääni.",

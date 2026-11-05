@@ -1459,6 +1459,7 @@
     "leg_closed": "El proveedor finalizó la sesión.",
     "source_ended": "La fuente de audio desapareció (desconectada, cerrada o detenida).",
     "still_stopping": "La última sesión todavía se está deteniendo; inténtalo de nuevo en un momento.",
+    "connection_restored": "Se interrumpió la conexión y se restableció",
     "session_in_use": "Otra ventana u otro dispositivo está usando esta cuenta. Detén la sesión allí o, si Sokuji se acaba de cerrar de forma inesperada, inténtalo de nuevo en un minuto.",
     "previous_session_ending": "Tu sesión anterior todavía está terminando. Inténtalo de nuevo en un minuto.",
     "app_capture_lost_using_system_audio": "La captura de la aplicación se detuvo, por lo que ahora se traduce todo el audio del sistema.",

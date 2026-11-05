@@ -98,8 +98,11 @@ export interface AdapterSession {
    * ran synchronously is sure to happen.
    */
   stop(): Promise<void>;
-  /** What the started session actually used, for telemetry. */
-  readonly info: { transport?: string };
+  /**
+   * What the started session actually used, for telemetry. `shared`: true when this session's legs share one
+   * provider connection (shared Both, face-to-face), so a reconnect event arrives once per leg for one connection.
+   */
+  readonly info: { transport?: string; shared?: boolean };
 }
 
 /** One protocol frame an adapter reported (spec D8): what the Logs panel lists. Never audio, never a credential. */

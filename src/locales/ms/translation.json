@@ -1459,6 +1459,7 @@
     "leg_closed": "Penyedia menamatkan sesi.",
     "source_ended": "Sumber audio hilang (dicabut, ditutup atau dihentikan).",
     "still_stopping": "Sesi terakhir masih sedang dihentikan; cuba lagi sebentar lagi.",
+    "connection_restored": "Sambungan terputus dan dipulihkan",
     "session_in_use": "Tetingkap atau peranti lain sedang menggunakan akaun ini. Hentikan sesi di sana, atau jika Sokuji baru sahaja tertutup tanpa dijangka, cuba lagi dalam seminit.",
     "previous_session_ending": "Sesi anda sebelum ini masih sedang ditamatkan. Sila cuba lagi dalam seminit.",
     "app_capture_lost_using_system_audio": "Tangkapan aplikasi terhenti, jadi semua audio sistem kini diterjemahkan.",

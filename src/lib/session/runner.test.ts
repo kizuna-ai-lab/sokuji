@@ -685,7 +685,7 @@ describe('runner — stopping', () => {
     const legs = runner.conversation.snapshot();
     expect(legs[0].segments[0].final).toBe(true);
     expect(onRunEnded).toHaveBeenCalledWith(legs);
-    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake' }]);
+    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: false }]);
     expect(events('connection_status')).toEqual([
       { status: 'connected', provider: 'fake', channel: 'speaker' },
       { status: 'disconnected', provider: 'fake', duration_ms: 600, channel: 'speaker' },
@@ -1669,7 +1669,7 @@ describe('runner — small corrections (F6)', () => {
     await flush();
     clock.advance(1000); // fires the stack's release timeout — teardown time that must not count
     await stopping;
-    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake' }]);
+    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: false }]);
   });
 
   it('redacts the adapter failure message before tracking api_error', async () => {
