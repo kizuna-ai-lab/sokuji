@@ -19,6 +19,7 @@ import { AgentTextFeed } from './agentText';
 import type { RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
+import { FLAP_WINDOW_MS } from './reconnect';
 import { reconnectClient } from './reconnectEvents';
 import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
@@ -41,8 +42,9 @@ interface Drop {
   sent?: { index: number; managed: boolean };
 }
 
-/** The `api_error` type a code names, else 'server' (the old default, `apiErrorProps.ts` on `main`). */
+/** The `api_error` type a code names, else 'server' (the old default, `apiErrorProps.ts` on `main`). Qwen's passing request rate, `throttled`, is a rate limit. */
 export function apiErrorType(code?: string): ApiErrorType {
+  if (code === 'throttled') return 'rate_limit';
   return API_ERROR_TYPES.find((t) => t === code) ?? 'server';
 }
 
@@ -112,6 +114,8 @@ export class Run {
   private readonly drops = new Map<LegName, Drop>();
   /** When each leg's connection last came back: a later drop's `since_last_reconnect_ms`. */
   private readonly reconnectedAt = new Map<LegName, number>();
+  /** When each leg last came back under the shared reconnector, both legs of a shared connection each: whether its next reconnect is told again. */
+  private readonly restoredAt = new Map<LegName, number>();
   /** The drops sent to analytics so far: the next one's `drop_index`. */
   private dropCount = 0;
   private readonly totals = { count: 0, downMs: 0, failed: false };
@@ -750,9 +754,16 @@ export class Run {
     const drop = this.drops.get(leg);
     this.drops.delete(leg);
     this.setLegState(leg, 'live');
-    if (info) this.conversations.get(leg)?.notice({ severity: 'info', code: 'connection_restored' satisfies RunNoticeCode, message: 'Connection lost and restored' });
-    if (!drop || !this.counts(leg)) return;
     const now = this.deps.clock.now();
+    if (info) {
+      const last = this.restoredAt.get(leg);
+      this.restoredAt.set(leg, now);
+      // A flapping connection is told once (spec 2026-11-05 reconnect §4.2): a reconnect within the flap window of the one before adds no notice.
+      if (last === undefined || now - last > FLAP_WINDOW_MS) {
+        this.conversations.get(leg)?.notice({ severity: 'info', code: 'connection_restored' satisfies RunNoticeCode, message: 'Connection lost and restored' });
+      }
+    }
+    if (!drop || !this.counts(leg)) return;
     const downMs = now - drop.since;
     this.totals.count += 1;
     this.totals.downMs += downMs;

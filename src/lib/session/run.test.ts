@@ -8,7 +8,9 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { NetworkPort } from './ports';
+import { FLAP_WINDOW_MS } from './reconnect';
 import type { NetworkType } from './reconnectEvents';
+import { apiErrorType } from './run';
 import { createRunner } from './runner';
 import type { LeaseContext, RunShape, SessionHooks } from './types';
 
@@ -116,6 +118,15 @@ function setup(o: {
   const goOnline = () => { for (const fn of [...listeners]) fn(); };
   return { clock, runner, events, tracks, order, notices, restored, throwing, listeners, goOnline, lease: () => lease! };
 }
+
+describe('apiErrorType', () => {
+  it("names the five types as themselves, Qwen's passing request rate (throttled) as rate_limit, and anything else as server", () => {
+    for (const type of ['auth', 'rate_limit', 'network', 'server', 'client'] as const) expect(apiErrorType(type)).toBe(type);
+    expect(apiErrorType('throttled')).toBe('rate_limit');
+    expect(apiErrorType('connection_lost')).toBe('server');
+    expect(apiErrorType(undefined)).toBe('server');
+  });
+});
 
 describe('run — the leg state while it reconnects (spec §4.3)', () => {
   it('reconnecting sets the leg to reconnecting with attempt and since; a second attempt updates attempt only', async () => {
@@ -268,6 +279,32 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
       session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', down_ms: 1800, attempts: 2,
       credentials_reissued: true, reissue_ms: 120, drop_index: 1, budget_shared: false, client: 'desktop', network: 'cellular',
     }]);
+  });
+
+  it('a flap burst shows the notice once per leg: a reconnect within FLAP_WINDOW_MS of the one before adds none, its analytics still sent', async () => {
+    const { runner, clock, events, tracks, notices } = setup({ both: true, shared: true });
+    await runner.start();
+    const flap = (afterMs: number) => {
+      clock.advance(afterMs);
+      events('speaker').reconnecting({ attempt: 1, drop: DROP });
+      events('participant').reconnecting({ attempt: 1, drop: DROP });
+      clock.advance(200);
+      events('speaker').reconnected(RESTORED);
+      events('participant').reconnected(RESTORED);
+    };
+    flap(1000);
+    // Each 3 s after the reconnect before it, then 10 s after: still inside the window.
+    flap(3000);
+    flap(3000);
+    flap(FLAP_WINDOW_MS - 200);
+    expect(notices('speaker')).toHaveLength(1);
+    expect(notices('participant')).toHaveLength(1);
+    expect(tracks('connection_reconnected')).toHaveLength(4);
+    // Past the window: a reconnect of its own, told again.
+    flap(FLAP_WINDOW_MS);
+    expect(notices('speaker')).toHaveLength(2);
+    expect(notices('participant')).toHaveLength(2);
+    expect(tracks('connection_reconnected')).toHaveLength(5);
   });
 
   it('shared Both: both legs show the notice, and connection_reconnected is sent once with channel shared', async () => {
