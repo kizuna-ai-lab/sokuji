@@ -98,7 +98,7 @@ The policy numbers (attempt schedule, 30 s budget, connect bound) live in that o
 
 ## 6. Credentials for an attempt
 
-- Soniox, managed: `SonioxLeasePort.reissue(role)` asks the backend for a fresh single-use STT key for the same lease and role (`spk_stt`, `par_stt`, `mix_stt`). The TTS key is already reusable for the session and is not reissued. `session-started` is reported again for the new key's first accepted frame only if the backend needs it (§7, to confirm).
+- Soniox, managed: `SonioxLeasePort.reissue(role)` asks the backend for a fresh single-use STT key for the same lease and role (`spk_stt`, `par_stt`, `mix_stt`). The answer carries the key and its own client reference id (§7). The TTS key is already reusable for the session and is not reissued. The client reports `session-started` for the new key's first accepted frame, naming that key's reference id, so a retried report is recognised as a repeat. It connects at once: the key's start window is short (§7).
 - Qwen, managed: `QwenLeasePort.reissue()` asks for a fresh token for the same lease (the grant's token lasts 60 s, so it has usually expired by the drop). The new connection reports its `sess_…` id as every managed Qwen connection does.
 - Own key: the key the session started with.
 - A reissue answers either credentials or a refusal with a code: `lease_ended` (the session is over, ended, released or past its end), `reissue_limit` (the session's reissues are used up), `sign_in_required`, `wallet_frozen`. All refusals stop the attempts; `lease_ended` ends the run as a lease end. There is no balance check: the granted time was covered by the balance when it was granted, and a floor check now would end a session the user already paid for, at the moment its dropped stream's usage is being charged. (My call.)
@@ -115,26 +115,27 @@ Rules for both:
 - A reissue never creates a second lease, so the one-session-per-account rule holds.
 
 Soniox (`POST /soniox/session-key/reissue`, body `{ leaseId, role }`):
-- Mints a single-use STT temporary key with the same client reference id (`clientRefIdFor(account, lease, role)`), so Soniox's usage log for it is attributed to the same lease; `max_session_duration_seconds` is the remaining time; `expires_in_seconds` is the start window.
+- Each reissued key gets its own client reference id: today's four parts plus a sequence number (`…:<seq>`), so Soniox's usage log for it is still attributed to the same lease and role, and each key can be tracked on its own. A new `soniox_issued_keys` table (D1 migration) records per key: lease, role, sequence, issued, started, ended. `parseClientRefId` and the billing code that reads reference ids accept the extra part; the first key of a lease keeps today's four-part id.
+- `max_session_duration_seconds` is the lease's end minus now minus the key's start window, and that start window is short (10 s). Soniox counts a key's duration from the moment it connects, so a key that may connect up to its start window after issue could otherwise outlive the lease, and an account could start a second session when the lease expires while the old connection still runs (the "one balance, two sessions" case `markStarted` guards against). With this, the lease's expiry never moves.
 - The reconciler must change: today it marks a stream ended when it sees that stream's usage log (`noteStreamEnded`) and releases the lease when every stream has ended, without waiting for the client's session-end. A dropped connection's log arrives 2 to 5 s after the drop, so the lease would be released mid-session while the new connection runs.
-- Proposed (my call, for Walter to confirm): a role ends when the usage logs received equal the keys **started** for it. The client reports `session-started` for each reissued key's first accepted frame, as it does for the first key; for a reissued key that report counts the key as started but does not move the lease's expiry (today `markStarted` sets it to now + max duration, which would push the lease past its granted end). A key minted and never started produces no log and is not waited for. The alternative, releasing only after the client's session-end, is not taken: a client that crashes or is force-quit would keep the account locked until the lease expires, where today it clears within seconds.
+- The change (checked against the current code by Walter): a role ends when every key **started** for it has its usage log. Per key, as the bitmask does per role today: a key's `session-started` (by its reference id) marks it started, idempotently; its usage log (by its reference id) marks it ended, idempotently, so the reconciler's deliberate 60 s overlap between scans (`WATERMARK_OVERLAP_MS`) cannot count one log twice. A reissued key's `session-started` does not move the lease's expiry (today `markStarted` sets it to now + max duration). A key minted and never started produces no log and is not waited for. The alternative, releasing only after the client's session-end, is not taken: a client that crashes or is force-quit would keep the account locked until the lease expires, where today it clears within seconds.
 
 Qwen (`POST /qwen/session-key/reissue`, body `{ leaseId }`):
 - Signs a new token for the same lease and records its time window under that lease (`qwen-attribution.ts` attributes usage by the token's window and the reported session ids).
 - The reconciler already supports several connections per lease: release waits for the client's session-end and a usage record for every reported connection (`releaseQwenLeases`); a lease accepts up to 20 reports (`QWEN_REPORTS_PER_LEASE`). The reissue must keep within that.
 
-Release order: the backend endpoints and the Soniox reconciler change deploy first (merging to main deploys production); the client follows.
+Release order: the D1 migration, then the backend (endpoints and the Soniox reconciler change; merging to main deploys production), then the client.
 
 ## 8. Verification
 
 - Unit tests for the reconnector on a virtual clock: the attempt schedule, the 30 s give-up, cancellation by the session ending, the events and frames, the last reason winning.
 - Adapter tests (Soniox, Qwen; own key and managed with a fake lease): a 1006 after live reconnects with a reissued key and keeps the leg live; a 401, a quota code and a `lease_ended` reissue end at once with their reason; split Both reconnects only the dropped core; shared Both reconnects its one socket; the in-flight segment closes and the notice appears; audio in the gap is dropped; a grant ending during the attempts ends as a lease end.
-- Backend tests: the reissue rules (ownership, active lease, remaining time, the cap, no second lease) and the reconciler not releasing a lease whose role has an outstanding reissued key.
+- Backend tests: the reissue rules (ownership, active lease, the duration of lease end − now − start window, the cap, no second lease, a frozen wallet), reference ids with a sequence parsed by billing, `session-started` per key idempotent and not moving the expiry, a log seen twice across overlapping scans counted once, and the reconciler not releasing a lease while a started key has no log.
 - By hand, desktop app on macOS and Windows, and the extension: a session with Kizuna AI Soniox, Kizuna AI Qwen and own-key Soniox, broken by switching the network (VPN on/off or Wi-Fi off for 5 s); it reconnects, the conversation stays, the notice shows the down time; with the network off for over 30 s it gives up with "connection lost".
 
 ## 9. Open points
 
-1. Walter to confirm the Soniox reconciler change in §7 (keys started against logs received, reissued starts not moving the expiry).
+1. (Settled with Walter: per-key reference ids and the issued-keys table; the reissued key's duration shortened by its start window.)
 2. Qwen's exact error codes for "retryable" against "end" (from `wire.ts` `errorCode` and recorded sessions).
 3. Whether the notice should also say how much speech was likely lost, or only the down time.
 
