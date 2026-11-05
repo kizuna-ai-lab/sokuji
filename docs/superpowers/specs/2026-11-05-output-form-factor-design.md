@@ -11,7 +11,7 @@ The app plays speech to output devices it knows only by name: the browser layer 
 Goals
 
 - For any output device the app can play to, the renderer can ask: headphones, speakers, or unknown, plus how it is connected.
-- The answer follows the hardware during a session: plugging or unplugging headphones updates it.
+- The answer follows the hardware during a session on Apple Silicon Macs, Windows and Linux: plugging or unplugging headphones updates it. Intel Macs are not verified: we have none to test on, and the watcher that case might need is not built here (owner ruling).
 - Works on the desktop app on macOS, Windows and Linux; the extension answers `unknown`.
 
 Non-goals
@@ -33,7 +33,7 @@ type FormFactor = 'headphones' | 'speakers' | 'unknown';
 type Transport = 'builtin' | 'usb' | 'bluetooth' | 'hdmi' | 'virtual' | 'unknown';
 
 interface OutputDeviceInfo {
-  label: string;           // the native device name, as the browser labels it
+  label: string;           // the system's own device name (helper / pactl); the browser's label is only matched against it (§5), never stored here
   isDefault: boolean;      // the system's default output
   formFactor: FormFactor;
   transport: Transport;
@@ -90,7 +90,7 @@ The main process reads `pactl -f json list sinks`. The app already requires `pac
 | `device.form_factor` = speaker | `speakers` |
 | null sinks (`support.null-audio-sink`, including ours), HDMI ports, anything else | `unknown` |
 
-The active port wins over `device.form_factor` (a laptop's `internal` card switches between a speaker and a headphone port). Transport from `device.bus`: `pci` → `builtin` (or `hdmi` for an HDMI port), `usb`, `bluetooth`; null sinks → `virtual`. Measured on LittleBlack (pactl 16.1): the JSON gives `active_port`, the ports' `type` (`HDMI` there) and `device.form_factor` (`internal`). LittleBlack has an HDMI output only, so the headphone/speaker switch is measured on a Linux machine with a jack (ZZ-164PC under Linux).
+The active port wins over `device.form_factor` (a laptop's `internal` card switches between a speaker and a headphone port). Older PulseAudio versions list ports without a `type`: then the port name decides, and only when the name says neither does `device.form_factor`. A `pactl` too old for `-f json` (Ubuntu 22.04 ships one) is read through the plain `pactl list sinks` text instead, for the same fields (description, active port, port names, the two properties). Transport from `device.bus`: `pci` → `builtin` (or `hdmi` for an HDMI port), `usb`, `bluetooth`; null sinks → `virtual`. Measured on LittleBlack (pactl 16.1): the JSON gives `active_port`, the ports' `type` (`HDMI` there) and `device.form_factor` (`internal`). LittleBlack has an HDMI output only, so the headphone/speaker switch is measured on a Linux machine with a jack (ZZ-164PC under Linux).
 
 ### Extension
 
@@ -109,16 +109,18 @@ Label matching is what the browser layer allows: Chromium's device ids are salte
 
 ## 6. Keeping the answer current
 
-- The renderer re-reads on `navigator.mediaDevices` `devicechange`, which covers devices appearing, disappearing and the default changing on all three platforms.
-- Changes the device list does not show are pushed from the native side:
-  - Linux: a laptop's port change keeps the same sink. The main process runs `pactl subscribe` and re-reads on a sink `change` event.
-  - macOS: on Apple Silicon the jack is its own device, so plugging in adds a device and `devicechange` fires. On Intel Macs the jack switches the data source on the same "Built-in Output" device, which may not fire it. A `--watch` mode for the helper (a long-running process like `--target`, listening for `kAudioHardwarePropertyDevices`, `kAudioHardwarePropertyDefaultOutputDevice` and each output's `kAudioDevicePropertyDataSource`, one JSON line per change on stdout) is built only if measurement shows `devicechange` misses a change on the Macs we can test; we have no Intel Mac, so the Intel case stays unverified either way. (My call.)
-  - Windows: jack detection makes endpoints appear and disappear, which Chromium reports as `devicechange`; no watcher unless measurement shows otherwise.
-- A watcher is started by the main process on the first `get-output-devices` request and stopped when the last window closes, so no subscribe channel is needed; at most one runs. If it exits, the main process restarts it with a backoff, warns once in the log, and the answer still follows `devicechange` meanwhile. On a push it re-reads and sends the new list.
+When the native list is read. Only on events, never on a timer: on first use, on `navigator.mediaDevices` `devicechange` (devices appearing, disappearing, the default changing, on all three platforms), on a push from the native side (below), when the machine wakes (`powerMonitor` `resume`, forwarded by the main process) and when a window becomes visible again (`visibilitychange`). The existing 3-second poll in `deviceWatch.ts` re-lists the browser's devices but does not start a native read, so the helper is not spawned every few seconds. A failed read is retried after 1 s, 5 s and 30 s; a success ends the retries.
+
+When the answer is stale, and what stale means. An answer is current only if the last successful native read came after the most recent of those events. It is stale, and every outlet reads `unknown`, while either holds: no read has ever succeeded, or an event arrived after the last successful read and the re-read has not succeeded yet. This is the contract #688 relies on: stale is `unknown`, never a remembered `headphones`. There is no time limit beyond that: the hardware's state changes only through those events, and a limit would need the timer this design avoids. The one case it does not cover is a change that produces no event at all (an Intel Mac's jack, see below); there the last answer stays, which #688's echo safety net covers.
+
+Changes the device list does not show:
+- Linux: a laptop's port change keeps the same sink. The main process runs `pactl subscribe` and pushes on a sink `change` event. It starts the watcher on the first `get-output-devices` request and stops it when the last window closes, so no subscribe channel is needed; at most one runs. If it exits, it is restarted with a backoff and a warning is logged once; `devicechange` and the other events still work meanwhile.
+- macOS: on Apple Silicon the jack is its own device, so plugging in adds a device and `devicechange` fires. On Intel Macs the jack switches the data source on the same "Built-in Output" device, which may fire nothing. No `--watch` mode is built here (owner ruling): it could not be verified without an Intel Mac. If one turns up, it is a follow-up issue.
+- Windows: jack detection makes endpoints appear and disappear, which Chromium reports as `devicechange`; no watcher unless measurement shows otherwise.
 
 ## 7. Shape in the code
 
-- Main: `electron/output-form-factor.js` with `getOutputDevices()` that dispatches per platform (helper `--devices` on macOS and Windows, `pactl` on Linux), parses, maps per §4 and resolves to `OutputDeviceInfo[]`. It never rejects: a missing helper, a non-zero exit, unparsable output or a 3-second timeout give the last good list (marked stale), or `[]` if there has never been one, so one slow read does not flip a good answer to `unknown`. Platform parsers are pure functions over the helper's JSON / the `pactl` JSON, unit tested with captured fixtures. `raw` values are capped in length before they cross IPC.
+- Main: `electron/output-form-factor.js` with `getOutputDevices()` that dispatches per platform (helper `--devices` on macOS and Windows, `pactl` on Linux), parses, maps per §4 and resolves to `OutputDeviceInfo[]`. It never rejects: a missing helper, a non-zero exit, unparsable output or a 3-second timeout resolve to a failed read, which the renderer treats per §6 (stale until a retry succeeds). Platform parsers are pure functions over the helper's JSON / the `pactl` JSON, unit tested with captured fixtures. `raw` values are capped in length before they cross IPC.
 - IPC: an invoke channel (`get-output-devices`) added to `electron/ipc-channels.js`, and a push event (`output-devices:changed`) on the preload's receive allowlist.
 - Renderer: no second device list. The existing pipeline (`listAudioDevices()` in `src/lib/audio/devices.ts`, the re-reads in `src/lib/audio/deviceWatch.ts`, the output list in the audio store) stays the one source of truth: each output it lists gains `formFactor` and `transport`, joined in from the native list by the matcher (§5) when the list is read, and a push from the main process triggers the same re-read. `src/lib/audio/formFactor.ts` holds the pure matcher and `getOutputFormFactor(sinkDevice?)` / `useOutputFormFactor(sinkDevice?)`, which look the resolved sink of an outlet up in that list and return `{ formFactor, transport }` (`unknown` while nothing is known).
 - Extension: `extension/` is its own Vite project and does not import `src/`, so it has no path to this IPC; its device lists simply carry no form factor and read as `unknown`. Anything that later moves this code into a shared module must keep the Electron IPC out of the extension build.
@@ -126,18 +128,18 @@ Label matching is what the browser layer allows: Chromium's device ids are salte
 
 ## 8. Verification
 
-- Unit tests: each platform's parser and mapping against fixtures captured on real machines (helper JSON from LittleSilver and BigBlack, `pactl` JSON from LittleBlack and ZZ-164PC), the matcher (no labels, prefixes, default, duplicates, missing), the failure paths (last good list kept, never rejects).
-- The helpers' existing `verify.sh` / `verify.ps1` cover the `--devices` output shape (and `--watch`, if built).
-- Measured on real machines, each with a headphone output and a speaker output, and a virtual or HDMI output where one exists: macOS (LittleSilver, Sophie), Windows (BigBlack), Linux (ZZ-164PC under Linux for the jack; LittleBlack for HDMI). Each plug and unplug during a session updates the logged value. The extension logs `unknown`.
+- Unit tests: each platform's parser and mapping against fixtures captured on real machines (helper JSON from LittleSilver and BigBlack, `pactl` JSON and text from LittleBlack and ZZ-164PC), the matcher (no labels, prefixes, default, duplicates, missing), the stale rule (never read, an event after the last good read, a failed re-read, recovery on retry), the retry schedule, and that the 3-second poll starts no native read.
+- The helpers' existing `verify.sh` / `verify.ps1` cover the `--devices` output shape.
+- Measured on real machines, each with a headphone output and a speaker output, and a virtual or HDMI output where one exists: macOS (LittleSilver, Sophie), Windows (BigBlack), Linux (ZZ-164PC under Linux, which has a 3.5 mm jack, for the port switch; LittleBlack for HDMI). Each plug and unplug during a session updates the logged value; a wake from sleep re-reads. The extension logs `unknown`. Someone has to plug and unplug by hand on each machine: BigBlack and ZZ-164PC are one dual-boot machine, booted into each system in turn; on ZZ-164PC Andrew can drive the commands remotely and record while someone plugs.
 
 ## 9. Open points to measure (before or during the build)
 
 1. Chromium's labels against the native names on each platform, including the `Default - ` entry and macOS's default. This decides whether §5 works at all, so it is measured first.
-2. macOS: whether plugging into the jack fires `devicechange` on LittleSilver (decides whether `--watch` is built).
+2. macOS: that plugging into the jack fires `devicechange` on LittleSilver (Apple Silicon). If it does not, a watcher becomes a follow-up issue; it is not added here.
 3. macOS Bluetooth: whether `kAudioStreamPropertyTerminalType` tells headphones from a speaker.
 4. Linux: that a port change produces a `pactl subscribe` sink change event.
 5. Windows: that plugging headphones into a jack-detecting codec fires `devicechange`.
 
 ## 10. Left to the builder
 
-Helper flag names, the JSON field names between helper and main, caching details, the backoff numbers, and the exact timeout.
+Helper flag names, the JSON field names between helper and main, caching details, the watcher's backoff numbers, and the exact read timeout.
