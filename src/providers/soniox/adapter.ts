@@ -5,9 +5,10 @@
  * ids, the punctuation lane and the notices are L1's and L2's now.
  * `SonioxCore` runs one STT socket; each speaking leg has its own
  * `LegSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one
- * core whose socket carries both legs mixed. Every timer reads the
- * request's clock, and nothing is said but through events (CLAUDE.md,
- * "Inside an adapter session").
+ * core whose socket carries both legs mixed. A socket that drops while live
+ * comes back through the core's reconnector (spec 2026-11-05 reconnect §4),
+ * one per core. Every timer reads the request's clock, and nothing is said
+ * but through events (CLAUDE.md, "Inside an adapter session").
  */
 import {
   AdapterStartError,
@@ -20,10 +21,12 @@ import {
   type SessionContext,
   type StartRequest,
 } from '../../lib/contract/adapter';
+import { every } from '../../lib/contract/clock';
 import { framePayload } from '../../lib/contract/framePayload';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { AUTO } from '../../lib/provider/languages';
+import { closeCodeAction, createReconnector, type AttemptResult, type DropInfo, type GiveUp, type Reconnector } from '../../lib/session/reconnect';
 import { PcmMixer } from './pcmMixer';
 import { SonioxSideTracker } from './sideTracker';
 import { nativeSocket, type OpenSocket } from './socket';
@@ -42,12 +45,30 @@ function inAppCodes(token: SonioxToken): SonioxToken {
   return { ...rest, ...(language ? { language } : {}), ...(sourceLanguage ? { source_language: sourceLanguage } : {}) };
 }
 
-/** The first resume attempt at once, then after 1 s and after 3 s (`SonioxClient.ts:649`). */
-export const RESUME_DELAYS_MS: readonly number[] = [0, 1_000, 3_000];
-/** At most this many 503 resumes per session (`SonioxClient.ts:248`): past it a 503 is an outage. */
-export const MAX_RESUME_CYCLES = 5;
-/** Failures the user did not cause and cannot fix in Settings — start again (`SonioxClient.ts:57`). */
-const RECOVERABLE = new Set(['503', '408', 'socket_error']);
+/**
+ * A live socket that sends nothing back for this long while audio goes out is
+ * dead (spec 2026-11-05 reconnect §4.2, "about 5 s"). Not yet measured
+ * against Soniox's longest gap between messages (plan Task 7, Step 1).
+ */
+export const SONIOX_STALL_MS = 5_000;
+/** How often the stall watchdog looks, and how recent our audio must be for the server's silence to count. */
+const STALL_CHECK_MS = 1_000;
+/** A managed key whose socket never opened serves the next attempt until this long before it expires (§4.2). */
+const KEY_EXPIRY_MARGIN_MS = 1_000;
+/** Failures the user did not cause and cannot fix in Settings (`SonioxClient.ts:57`): the socket reconnects. */
+const RECONNECTS = new Set(['503', '408', 'socket_error']);
+const LOST = 'connection_lost';
+
+/**
+ * What a live socket's end means (spec 2026-11-05 reconnect §4.1): an error
+ * frame by its code, else the close by its code. A 403 at the grant's end
+ * is the managed session's granted time running out, not an error.
+ */
+export function sonioxDropAction(e: { error?: string; close?: number; atGrantEnd: boolean }): 'reconnect' | 'cutoff' | 'end' {
+  if (e.error === undefined) return closeCodeAction(e.close);
+  if (e.error === '403' && e.atGrantEnd) return 'cutoff';
+  return RECONNECTS.has(e.error) ? 'reconnect' : 'end';
+}
 
 /** An STT error as the run's API error type (choice 8): its words are `notices.<type>`, the server's own as the detail. */
 export function sttFailureCode(code: string): 'auth' | 'rate_limit' | 'client' | 'server' {
@@ -117,14 +138,30 @@ interface CoreOptions {
   faceToFace?: true;
 }
 
+/** The STT key the next socket opens with: the request's, then each one the lease reissues. */
+interface SttKey {
+  stt: string;
+  clientReferenceId?: string;
+  /** A reissued key's expiry, on the request's clock; the request's own key carries none. */
+  expiresAt?: number;
+  /** A socket opened on it: a managed key is single-use. */
+  spent: boolean;
+}
+
 class SonioxCore {
   private ended = false;
   private stt: SonioxSttStream | null = null;
   private readonly utterances: Utterances;
-  private readonly cancels = new Set<() => void>();
-  private resumeCycles = 0;
-  private pendingResume: string | null = null;
   private pendingCutoff = false;
+  private key: SttKey;
+  private readonly reconnector: Reconnector;
+  /** The drop the reconnector took up last: what a give-up reports with. */
+  private drop: DropInfo | null = null;
+  private stopStallWatch: (() => void) | null = null;
+  /** When audio last went out on an open socket. */
+  private lastAudioAt = -Infinity;
+  /** What the server's silence counts from: the socket's open, its last frame, or our audio resuming after a pause. */
+  private quietSince = 0;
   /** Shared Both only: which side an utterance is (`sideTracker.ts`), fed by the frames actually sent. */
   private readonly tracker: SonioxSideTracker | null;
   /** Shared Both only: the speaker as channel A, the participant as B, 100-ms frames at 0.5 gain (`SonioxClient.ts:400-417`). */
@@ -133,6 +170,17 @@ class SonioxCore {
   private readonly abroad = new Map<Ref, Set<LegName>>();
 
   constructor(private readonly o: CoreOptions) {
+    const { credentials, clock } = o.primary;
+    this.key = { stt: credentials.stt, ...(credentials.clientReferenceId ? { clientReferenceId: credentials.clientReferenceId } : {}), spent: false };
+    // Every leg of the core hears its one socket's reconnect: shared Both's two legs, a lone leg its own.
+    this.reconnector = createReconnector({
+      clock,
+      frame: (type, payload) => this.frame('in', type, payload),
+      reconnecting: (e) => this.toLegs((leg) => leg.events.reconnecting(e)),
+      reconnected: (e) => this.toLegs((leg) => leg.events.reconnected(e)),
+      gaveUp: (e) => this.gaveUp(e),
+      attempt: ({ signal }) => this.attempt(signal),
+    });
     this.tracker = o.shared ? new SonioxSideTracker({ energy: !o.faceToFace }) : null;
     this.mixer = o.shared
       ? new PcmMixer({
@@ -144,6 +192,7 @@ class SonioxCore {
         onFrame: (mixed, energyA, energyB) => {
           if (!this.stt?.isOpen()) return;
           this.stt.sendAudio(mixed);
+          this.audioSent();
           this.tracker?.recordFrame(energyA, energyB);
         },
       })
@@ -151,7 +200,7 @@ class SonioxCore {
     this.utterances = new Utterances({
       clock: o.primary.clock,
       sink: {
-        // Shared Both's speaker leg is me: a second label there (a misattribution, a resume's new epoch) would only number me twice.
+        // Shared Both's speaker leg is me: a second label there (a misattribution, a reconnect's new epoch) would only number me twice.
         // Only a shared core names its legs truly; a lone leg is always 'speaker' here, the other side's included.
         segment: (leg, event) => {
           if (this.ended) return;
@@ -225,8 +274,10 @@ class SonioxCore {
       const connect = (retried: boolean): void => {
         const stt = this.newStt();
         this.stt = stt;
+        const key = this.key;
         stt.connect(this.sttConfig()).then(
           () => {
+            key.spent = true;
             if (settled) return;
             settled = true;
             signal.removeEventListener('abort', onAbort);
@@ -260,10 +311,12 @@ class SonioxCore {
     });
   }
 
-  /** A leg's view of the core. */
+  /** A leg's view of the core. Shared Both's two facades say they share the one connection (`info.shared`): the run counts its reconnects once. */
   session(name: LegName): AdapterSession {
     return {
-      info: { transport: 'websocket' },
+      info: { transport: 'websocket', ...(this.o.shared ? { shared: true } : {}) },
+      // The socket's own leg wakes its reconnector, as it holds `endTurn`: a shared core hears the network's return once, whichever facades are told.
+      networkRestored: () => { if (name === this.o.legs[0].name) this.reconnector.wake(); },
       appendAudio: (pcm) => this.appendAudio(name, pcm),
       // Soniox's STT socket takes no text (`textInput: false`).
       appendText: () => {},
@@ -277,7 +330,7 @@ class SonioxCore {
     };
   }
 
-  /** Agent text on the current STT socket, framed for the Logs when sent. False once ended and while no socket is up (a resume's new socket takes the next); the stream itself refuses a socket not opened for it. */
+  /** Agent text on the current STT socket, framed for the Logs when sent. False once ended and while no socket is up (a reconnect's new socket takes the next); the stream itself refuses a socket not opened for it. */
   private agentText(text: string, endOfSegment: boolean): boolean {
     if (this.ended || !this.stt) return false;
     const sent = this.stt.sendAgentText(text, endOfSegment);
@@ -322,7 +375,18 @@ class SonioxCore {
       else this.mixer.pushA(pcm);
       return;
     }
-    this.stt?.sendAudio(pcm);
+    // During a reconnect's gap no socket is open, and the audio is dropped (§4.3).
+    if (!this.stt?.isOpen()) return;
+    this.stt.sendAudio(pcm);
+    this.audioSent();
+  }
+
+  /** Audio went out on an open socket: the stall watchdog's half of the evidence. */
+  private audioSent(): void {
+    const now = this.o.primary.clock.now();
+    // Audio after a pause: the server's silence counts from here, not from before the pause, when it owed nothing.
+    if (now - this.lastAudioAt > STALL_CHECK_MS) this.quietSince = now;
+    this.lastAudioAt = now;
   }
 
   /** Manual turns end with `finalize` (ruling 5); the socket's own leg holds the key. */
@@ -332,14 +396,15 @@ class SonioxCore {
     this.frame('out', 'stt.finalize');
   }
 
-  /** The STT config frame: a pure function of the request, so a resume sends it byte for byte again. */
+  /** The STT config frame: a pure function of the request and the current key, so a reconnect on the same key sends it byte for byte again. */
   private sttConfig(): SonioxSttConfig {
     const { context, config, credentials } = this.o.primary;
+    const key = this.key;
     const { source, target } = context.direction;
     // Both languages bias recognition, the source first; an auto source hints nothing, since the target alone would pull an unknown speaker toward the other side.
     const hints = source === AUTO ? [] : [...new Set([sonioxWire.toWire(source), sonioxWire.toWire(target)])];
     return {
-      apiKey: credentials.stt,
+      apiKey: key.stt,
       region: credentials.region,
       model: config.stt.model,
       sampleRate: SAMPLE_RATE,
@@ -353,12 +418,13 @@ class SonioxCore {
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
       endpointMaxDelayMs: config.stt.endpointMaxDelayMs,
       ...(config.stt.agentText ? { enableAgentTextInput: true } : {}),
-      ...(credentials.clientReferenceId ? { clientReferenceId: credentials.clientReferenceId } : {}),
+      ...(key.clientReferenceId ? { clientReferenceId: key.clientReferenceId } : {}),
     };
   }
 
   private opened(): void {
     this.mixer?.start();
+    this.watchStall();
     const config = this.sttConfig();
     this.frame('out', 'session.opened', { region: config.region, translation: config.translation, speaking: this.o.legs.filter((l) => l.speech).map((l) => l.name) });
     // Once the start can no longer fail — the STT socket is open and `open()`
@@ -375,13 +441,16 @@ class SonioxCore {
   private newStt(): SonioxSttStream {
     const stream = new SonioxSttStream({ clock: this.o.primary.clock, openSocket: this.o.openSocket });
     let first = true;
-    // Per socket: a resumed socket starts readable, whatever episode the one before it was in.
+    // Per socket: a reconnect's socket starts readable, whatever episode the one before it was in.
     let readable = true;
-    // A socket this core has moved on from (a resume, a stop) is heard no more: its identity replaces the old generation counter.
+    // A socket this core has moved on from (a drop, a stop) is heard no more: its identity replaces the old generation counter.
+    // So a late frame from a dropped socket still closing reaches neither the utterances nor the lease's report for the new key.
     const current = () => !this.ended && stream === this.stt;
+    const heard = () => { this.quietSince = this.o.primary.clock.now(); };
     stream.setHandlers({
       onMessage: (message) => {
         if (!current()) return;
+        heard();
         if (first) {
           first = false;
           this.o.primary.credentials.lease?.streamAccepted();
@@ -392,8 +461,10 @@ class SonioxCore {
       onError: (code, message) => { if (current()) this.onError(code, message); },
       onClose: (event) => { if (current()) this.onClose(event); },
       onUnreadable: (error) => {
+        if (!current()) return;
+        heard();
         // The Logs only, on the ok → failing transition (choice 7): never a notice.
-        if (!current() || !readable) return;
+        if (!readable) return;
         readable = false;
         this.frame('in', 'stt.unreadable', { message: describeCause(error) });
       },
@@ -407,125 +478,179 @@ class SonioxCore {
     this.utterances.message(raw.map(inAppCodes));
   }
 
+  /** Whether the managed grant is at its end now; an own key's never is. */
+  private atGrantEnd(): boolean {
+    return this.o.primary.credentials.lease?.atGrantEnd(this.o.primary.clock.now()) === true;
+  }
+
+  private dropInfo(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>, retryable: boolean): DropInfo {
+    return { ...drop, retryable, managed: this.o.primary.credentials.lease !== undefined };
+  }
+
   private onError(code: string, message: string): void {
-    const lease = this.o.primary.credentials.lease;
-    if (lease && code === '403' && lease.atGrantEnd(this.o.primary.clock.now())) {
+    // The server's own words, which neither a drop nor a failure carries (choice 16); a socket error is the stream's, and has none.
+    if (code !== 'socket_error') this.frame('in', 'stt.error', { code, message });
+    const action = sonioxDropAction({ error: code, atGrantEnd: this.atGrantEnd() });
+    if (action === 'cutoff') {
       // The granted duration ended (managed): the close that follows ends the leg without an error (Plan B's seam).
       this.pendingCutoff = true;
       return;
     }
-    if (!lease && code === '503' && this.resumeCycles < MAX_RESUME_CYCLES) {
-      // An own key only: a managed key is single-use and a reconnect with it is refused (`SonioxClient.ts:1336-1348`).
-      this.resumeCycles += 1;
-      this.pendingResume = message;
-      this.frame('in', 'session.stt_503', { message, cycle: this.resumeCycles });
+    if (action === 'reconnect') {
+      this.dropped({ cause: 'error', errorCode: code });
       return;
     }
-    if (RECOVERABLE.has(code)) {
-      this.lost(code, message, `The Soniox connection was lost (${code}${message ? `: ${message}` : ''}).`);
-      return;
-    }
-    this.fail(sttFailureCode(code), `[Soniox ${code}] ${message}`);
+    this.fail(sttFailureCode(code), `[Soniox ${code}] ${message}`, { drop: this.dropInfo({ cause: 'error', errorCode: code }, false) });
   }
 
   private onClose(event: { code?: number; reason?: string }): void {
     if (this.pendingCutoff) {
       this.pendingCutoff = false;
-      this.o.primary.credentials.lease?.cutoff();
-      this.frame('in', 'session.duration_cutoff', { code: event.code, reason: event.reason });
-      for (const leg of this.o.legs) {
-        if (this.ended) break;
-        leg.events.closed({ reason: 'The granted session time ended.' });
-      }
-      this.shutdown();
-      return;
-    }
-    if (this.pendingResume !== null) {
-      const original = this.pendingResume;
-      this.pendingResume = null;
-      this.stt = null;
-      void this.resume(original, event);
+      this.cutoff({ code: event.code, reason: event.reason });
       return;
     }
     // A close with nothing said before it: a network drop, or the server going away.
-    this.lost(
-      String(event.code ?? 'socket_closed'),
-      event.reason || 'The Soniox connection closed unexpectedly',
-      event.reason || `The Soniox connection closed unexpectedly (${event.code ?? 'no code'}).`,
-    );
-  }
-
-  /** The own-key 503 ladder (ruling 3): the utterance in flight closes as it stands; the TTS socket carries on. */
-  private async resume(original: string, close: { code?: number; reason?: string }): Promise<void> {
-    // The close that started it, as the old row carried it (choice 16; `SonioxClient.ts:604`).
-    this.frame('in', 'session.stt_resuming', { code: close.code, reason: close.reason });
-    for (const leg of this.o.legs) leg.events.reconnecting();
-    this.utterances.abandon();
-    // The new socket restarts the server's audio clock and mints its own speaker labels (`SonioxClient.ts:646-647`).
-    this.tracker?.reset();
-    for (const delay of RESUME_DELAYS_MS) {
-      if (delay > 0) await this.wait(delay);
-      if (this.ended) return;
-      const stream = this.newStt();
-      this.stt = stream;
-      try {
-        await stream.connect(this.sttConfig());
-        if (this.ended) return;
-        this.frame('in', 'session.stt_resumed');
-        for (const leg of this.o.legs) leg.events.reconnected();
-        return;
-      } catch (error) {
-        if (this.ended) return;
-        this.stt = null;
-        // The Logs only (choice 6): the leg already shows reconnecting.
-        this.frame('in', 'session.stt_resume_attempt_failed', { message: describeCause(error) });
-      }
+    const close = event.code !== undefined ? { closeCode: event.code } : {};
+    if (sonioxDropAction({ close: event.code, atGrantEnd: this.atGrantEnd() }) === 'reconnect') {
+      this.dropped({ cause: 'close', ...close });
+      return;
     }
-    this.frame('in', 'session.stt_resume_failed', { message: original });
-    this.lost('503', original, `Soniox 503: ${original}`);
-  }
-
-  /** Resolves after `ms` on the clock, or at once when the core stops. */
-  private wait(ms: number): Promise<void> {
-    return new Promise<void>((resolve) => {
-      const cancelTimer = this.o.primary.clock.setTimeout(() => {
-        this.cancels.delete(onStop);
-        resolve();
-      }, ms);
-      const onStop = () => {
-        cancelTimer();
-        resolve();
-      };
-      this.cancels.add(onStop);
-    });
+    // The Logs row keeps the wire's code and the server's own words, as the old one did (choice 16).
+    this.frame('in', 'session.connection_lost', { code: String(event.code ?? 'socket_closed'), message: event.reason || 'The Soniox connection closed unexpectedly' });
+    this.fail(LOST, event.reason || `The Soniox connection closed unexpectedly (${event.code ?? 'no code'}).`, { drop: this.dropInfo({ cause: 'close', ...close }, false) });
   }
 
   /**
-   * The recoverable outage (`surfaceRecoverableOutage`, `SonioxClient.ts:1422`):
-   * the Logs row keeps the wire's code and the server's own words, as the old
-   * one did (choice 16); the leg fails with `connection_lost` (choice 8).
+   * A live socket ended unasked, and its end is worth retrying. Break before
+   * make (§4.2): what it had in flight closes as it stands — L1 keeps the
+   * last snapshot, and refs go on — and the socket is detached and closed;
+   * only then do the attempts begin, the first inside `dropped()`. The TTS
+   * sockets carry on.
    */
-  private lost(wireCode: string, words: string, message: string): void {
+  private dropped(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>): void {
     if (this.ended) return;
-    this.frame('in', 'session.connection_lost', { code: wireCode, message: words });
-    this.fail('connection_lost', message);
+    this.utterances.abandon();
+    // The new socket restarts the server's audio clock and mints its own speaker labels (`SonioxClient.ts:646-647`).
+    this.tracker?.reset();
+    const stt = this.stt;
+    this.stt = null;
+    stt?.close();
+    // An attempt's socket that dropped as it opened: that attempt finds it gone and fails, and the attempts go on.
+    if (this.reconnector.active) return;
+    this.drop = this.dropInfo(drop, true);
+    this.reconnector.dropped(this.drop);
   }
 
-  private fail(code: string, message: string): void {
-    if (this.ended) return;
-    for (const leg of this.o.legs) {
-      if (this.ended) break;
-      leg.events.failed({ code, message });
+  /**
+   * One reconnect attempt (§4.2). Managed: a fresh key when the current one is
+   * spent or about to expire, so one is fetched per drop and a key whose
+   * socket never opened serves the next attempt. An own key: the same key.
+   * Then the start path's connect; live once the socket opens. The signal
+   * (the reconnector's, for every attempt of this drop) aborts the connect at
+   * the budget's end and on a stop.
+   */
+  private async attempt(signal: AbortSignal): Promise<AttemptResult> {
+    const { clock, credentials } = this.o.primary;
+    const lease = credentials.lease;
+    let reissued = false;
+    let reissueMs = 0;
+    const failed = (code: string, message: string): AttemptResult => ({ ok: false, final: false, code, message, reissued, reissueMs });
+    const expiring = this.key.expiresAt !== undefined && clock.now() >= this.key.expiresAt - KEY_EXPIRY_MARGIN_MS;
+    if (lease && (this.key.spent || expiring)) {
+      const asked = clock.now();
+      const answer = await lease.reissue();
+      reissueMs = clock.now() - asked;
+      // Abandoned meanwhile (a stop, the budget's end): nobody reads the answer, and nothing more opens.
+      if (signal.aborted || this.ended) return failed(LOST, 'The attempt was abandoned.');
+      if (!answer.ok) {
+        if (answer.retry) return failed('reissue_failed', answer.message);
+        // A refusal stops the attempts: the two the user can act on show as themselves, any other as the connection lost (§6).
+        const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
+        return {
+          ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
+          code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
+        };
+      }
+      this.key = { stt: answer.stt, clientReferenceId: answer.clientReferenceId, expiresAt: answer.expiresAt, spent: false };
+      reissued = true;
     }
+    const stream = this.newStt();
+    this.stt = stream;
+    const key = this.key;
+    const abort = () => stream.close();
+    signal.addEventListener('abort', abort, { once: true });
+    try {
+      await stream.connect(this.sttConfig());
+    } catch (error) {
+      if (this.stt === stream) this.stt = null;
+      return failed(error instanceof SonioxSttConnectTimeout ? 'connect_timeout' : 'socket_error', describeCause(error));
+    } finally {
+      signal.removeEventListener('abort', abort);
+    }
+    key.spent = true;
+    if (signal.aborted || this.ended) return failed(LOST, 'The attempt was abandoned.');
+    // It dropped as it opened (`dropped()` detached it): the next attempt goes on.
+    if (this.stt !== stream) return failed('socket_error', 'The new connection dropped as it opened.');
+    this.quietSince = clock.now();
+    return { ok: true, reissued, reissueMs };
+  }
+
+  /** The attempts ended without a connection: a lease ended at its grant's end is a lease end; anything else fails the legs with the policy's verdict and the drop it gave up on. */
+  private gaveUp(e: GiveUp): void {
+    const { code, message, ...giveUp } = e;
+    if (e.reason === 'lease_ended' && this.atGrantEnd()) {
+      this.cutoff({ attempts: e.attempts });
+      return;
+    }
+    const words = code === LOST ? `The Soniox connection was lost and could not be restored (${e.reason}: ${message}).` : message;
+    this.fail(code, words, { ...(this.drop ? { drop: this.drop } : {}), giveUp });
+  }
+
+  /**
+   * The stall watchdog (§4.2): a socket still open that answers nothing for
+   * `SONIOX_STALL_MS` while audio goes out is dead, and drops as a stall.
+   * Silence on our side owes no answer, so it never trips it.
+   */
+  private watchStall(): void {
+    this.stopStallWatch = every(this.o.primary.clock, STALL_CHECK_MS, () => {
+      // A grant-end 403 waits for its close, which ends the leg: no stall to find.
+      if (this.ended || this.pendingCutoff || this.reconnector.active || !this.stt?.isOpen()) return;
+      const now = this.o.primary.clock.now();
+      if (now - this.lastAudioAt <= STALL_CHECK_MS && now - this.quietSince >= SONIOX_STALL_MS) this.dropped({ cause: 'stall' });
+    });
+  }
+
+  /** The granted time ended (managed): the lease ends the run as a lease end — synchronously, so the `closed` after it finds the run ending — and each leg closes without an error (Plan B's seam). */
+  private cutoff(payload: Record<string, unknown>): void {
+    this.o.primary.credentials.lease?.cutoff();
+    this.frame('in', 'session.duration_cutoff', payload);
+    this.toLegs((leg) => leg.events.closed({ reason: 'The granted session time ended.' }));
     this.shutdown();
+  }
+
+  /** The failure goes to every leg, the socket's own first (shared Both: the speaker, then the participant). */
+  private fail(code: string, message: string, extra: { drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> } = {}): void {
+    if (this.ended) return;
+    this.toLegs((leg) => leg.events.failed({ code, message, ...extra }));
+    this.shutdown();
+  }
+
+  /** One event to each leg the core serves, the socket's own first, until one of them ends the core. */
+  private toLegs(emit: (leg: CoreLeg) => void): void {
+    for (const leg of this.o.legs) {
+      if (this.ended) return;
+      emit(leg);
+    }
   }
 
   /** Every way the core ends. `graceful` — a stop — ends the STT stream first; a failure says nothing more to a server that refused the session. */
   private shutdown(graceful = false): void {
     if (this.ended) return;
     this.ended = true;
-    for (const cancel of this.cancels) cancel();
-    this.cancels.clear();
+    // Waits, an attempt's connect and a reissue's late answer: all cancelled, and nothing more is said.
+    this.reconnector.cancel();
+    this.stopStallWatch?.();
+    this.stopStallWatch = null;
     this.utterances.stop();
     this.mixer?.stop();
     const stt = this.stt;

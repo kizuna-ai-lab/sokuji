@@ -162,7 +162,7 @@ export interface SonioxCredentials {
   tts?: string;
   /** Managed only: inert on the wire — Soniox bills by the reference bound to the key (survey §3.7.1). */
   clientReferenceId?: string;
-  /** Managed only: the lease the adapter reports to. Present, a 503 is not resumed. */
+  /** Managed only: the lease the adapter reports to, and asks for a fresh STT key when a dropped socket reconnects. */
   lease?: SonioxLeasePort;
 }
 

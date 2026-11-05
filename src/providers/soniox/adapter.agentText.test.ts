@@ -85,7 +85,7 @@ describe('Soniox session agentText (spec 2026-11-05 §4.2-§4.3)', () => {
     expect(h.logged()).toEqual([]);
   });
 
-  it('nothing while a resume replaces the socket; the resumed socket takes the next (Review Focus 5)', async () => {
+  it('nothing while a reconnect replaces the socket; the new socket takes the next (Review Focus 5)', async () => {
     const h = await open('me');
     h.sttSockets()[0].receive(ERROR_503);
     h.sttSockets()[0].serverClose(1011);

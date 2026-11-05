@@ -287,7 +287,7 @@ describe('Soniox startBoth: shared', () => {
   it("shared: the speaker's leg carries no person label, the participant's keeps its people", async () => {
     const h = await live();
     const stt = h.sttSockets()[0];
-    // Two labels on my leg (a misattribution, or a resume's new epoch) would number me as two people.
+    // Two labels on my leg (a misattribution, or a reconnect's new epoch) would number me as two people.
     stt.receive(msg({ ...orig('Hello.'), language: 'en', speaker: '1' }, tr('こんにちは。'), END));
     stt.receive(msg({ ...orig('Konnichiwa.'), language: 'ja', speaker: '2' }, tr('Hello.', 'en'), END));
     stt.receive(msg({ ...orig('Again.'), language: 'en', speaker: '3' }, tr('また。'), END));
@@ -393,7 +393,8 @@ describe('Soniox startBoth: shared', () => {
 
   it('shared: a socket failure fails both legs', async () => {
     const h = await live();
-    h.sttSockets()[0].serverClose(1011);
+    // A close the table ends (spec 2026-11-05 reconnect §4.1): a 1011 would reconnect.
+    h.sttSockets()[0].serverClose(1008);
     await flush();
     for (const leg of ['speaker', 'participant'] as const) {
       expect(h.of(leg, 'failed')).toHaveLength(1);
@@ -401,7 +402,7 @@ describe('Soniox startBoth: shared', () => {
     }
   });
 
-  it('shared: a resume shows both legs reconnecting, then reconnected, and forgets the speaker labels', async () => {
+  it('shared: a reconnect shows both legs reconnecting, then reconnected, and forgets the speaker labels', async () => {
     const h = await live();
     establishTwoAsParticipant(h);
     h.sttSockets()[0].receive(ERROR_503);
@@ -425,7 +426,7 @@ describe('Soniox startBoth: shared', () => {
     first.receive(ERROR_503);
     first.serverClose(1011);
     await flush();
-    // Down: the resume's first attempt is still connecting. A second of the
+    // Down: the reconnect's first attempt is still connecting. A second of the
     // speaker's voice mixes into frames that nothing sends or records.
     const resumed = h.sttSockets()[1];
     expect(resumed.readyState).toBe(FakeSocket.CONNECTING);
