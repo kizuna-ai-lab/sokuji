@@ -30,7 +30,7 @@ Goals
 Non-goals
 
 - Gemini and OpenAI live keep their own reconnects for now (they already have them); Palabra, Volcengine and local models are later deliveries.
-- Mobile (sokuji-mobile) comes after the shared code is in.
+- Mobile (sokuji-mobile) is not in this delivery. It imports only Soniox's low-level pieces from this repository (`vendor/sokuji`: the socket, the STT stream, speech, utterances) and runs its own session code, so it does not get this behaviour by itself. What it can reuse afterwards: the backend's reissue endpoints (§7) and the reconnect policy (§5), which is written so that it imports cleanly there. Its own wiring, status and device tests are a follow-up issue.
 - Buffering and resending gap audio; resuming the provider's server-side context (Soniox and Qwen have no resumption: a reconnect is a new connection).
 
 Anti-goals
@@ -94,7 +94,7 @@ The run already understands two leg events, `reconnecting` and `reconnected` (`r
 - What each adapter provides: whether a close or error is retryable (§4.1), how to detach and close the dropped socket, how to get credentials for an attempt (managed: the lease; own key: the same), and how to connect and bring a new socket live (the start path's own connect, reused).
 - The lease ports gain one method each (§6), so the reconnector never knows whether a session is managed.
 
-The policy numbers (attempt schedule, 30 s budget, connect bound) live in that one module.
+The policy numbers (attempt schedule, 30 s budget, connect bound, the flapping rule) live in that one module. It is platform-neutral: no DOM, Electron or React imports, its clock and timers injected, so the mobile app can import it through `vendor/sokuji` as it imports the Soniox stream today.
 
 ## 6. Credentials for an attempt
 
