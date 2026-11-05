@@ -195,14 +195,14 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it("words every other STT error by its type, keeping the server's words, and ends the leg without an attempt", async () => {
-    // A 5xx reconnects instead (spec 2026-11-05 reconnect §4.1); a code that is no number still ends, as `server`.
-    const cases: Array<[number | string, string]> = [[429, 'rate_limit'], [400, 'client'], ['boom', 'server']];
-    for (const [code, type] of cases) {
+    // A 5xx reconnects instead (spec 2026-11-05 reconnect §4.1), and so does a 429 unless it says a quota is used up; a code that is no number still ends, as `server`.
+    const cases: Array<[number | string, string, string]> = [[429, 'rate_limit', 'quota exceeded'], [400, 'client', 'said 400'], ['boom', 'server', 'said boom']];
+    for (const [code, type, words] of cases) {
       const { stt, of, frames, sttSockets } = await live();
-      stt().receive(JSON.stringify({ error_code: code, error_message: `said ${code}` }));
-      expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: type, message: `[Soniox ${code}] said ${code}`, drop: ended({ cause: 'error', errorCode: String(code) }) } }]);
+      stt().receive(JSON.stringify({ error_code: code, error_message: words }));
+      expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: type, message: `[Soniox ${code}] ${words}`, drop: ended({ cause: 'error', errorCode: String(code) }) } }]);
       // The server's own words in the Logs (choice 16).
-      expect(frames('stt.error').map((e) => e.payload.payload)).toEqual([{ code: String(code), message: `said ${code}` }]);
+      expect(frames('stt.error').map((e) => e.payload.payload)).toEqual([{ code: String(code), message: words }]);
       expect(of('reconnecting')).toEqual([]);
       expect(sttSockets()).toHaveLength(1);
       expect(sttFailureCode(String(code))).toBe(type);

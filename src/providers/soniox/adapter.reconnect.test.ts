@@ -87,9 +87,22 @@ const refs = (h: Pick<Live, 'of'>, kind: 'segmentOpened' | 'segmentClosed') => h
 const dropOf = (drop: Omit<DropInfo, 'retryable' | 'managed'>, managedKey = false): DropInfo => ({ ...drop, retryable: true, managed: managedKey });
 
 describe('sonioxDropAction: what a live socket\'s end means (spec §4.1)', () => {
-  it('any 5xx, a 408 and a socket error reconnect; 401, 402, 403, 429, another 4xx and an unknown code end', () => {
+  it('any 5xx, a 408 and a socket error reconnect; 401, 402, 403, another 4xx and an unknown code end', () => {
     for (const error of ['500', '502', '503', '504', '408', 'socket_error']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('reconnect');
-    for (const error of ['401', '402', '403', '429', '400', '404', '600', 'boom']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('end');
+    for (const error of ['401', '402', '403', '400', '404', '600', 'boom']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('end');
+  });
+
+  it('a 429 reconnects, unless its words say a quota or balance is used up', () => {
+    const measured = 'Concurrent requests limit for real-time transcription has been exceeded for your project.';
+    expect(sonioxDropAction({ error: '429', message: measured, atGrantEnd: false })).toBe('reconnect');
+    expect(sonioxDropAction({ error: '429', atGrantEnd: false })).toBe('reconnect');
+    expect(sonioxDropAction({ error: '429', message: '', atGrantEnd: false })).toBe('reconnect');
+    for (const message of ['quota exceeded', 'Insufficient balance', 'Billing limit reached', 'payment required', 'Out of CREDIT']) {
+      expect(sonioxDropAction({ error: '429', message, atGrantEnd: false })).toBe('end');
+    }
+    // Only a 429's words are read.
+    expect(sonioxDropAction({ error: '400', message: 'rate limited', atGrantEnd: false })).toBe('end');
+    expect(sonioxDropAction({ error: '503', message: 'quota exceeded', atGrantEnd: false })).toBe('reconnect');
   });
 
   it("a 403 at the grant's end is the cutoff; only a 403 is", () => {
@@ -221,11 +234,30 @@ describe('the Soniox adapter reconnects: own key', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
-  it('401, 429 and a non-retryable close end at once with their code and drop.retryable false', async () => {
+  it('a live 429 with the measured concurrency words reconnects; a 429 saying the quota is used up ends with rate_limit', async () => {
+    const h = await live();
+    const first = h.stt();
+    first.receive(JSON.stringify({ error_code: 429, error_message: 'Concurrent requests limit for real-time transcription has been exceeded for your project.' }));
+    expect(first.closedByClient).not.toBeNull();
+    expect(h.sttSockets()).toHaveLength(2);
+    await openAttempt(h);
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'error', errorCode: '429' }) }]);
+    expect(h.of('reconnected')).toHaveLength(1);
+    expect(h.of('failed')).toEqual([]);
+
+    const q = await live();
+    q.stt().receive(JSON.stringify({ error_code: 429, error_message: 'Organization quota exceeded' }));
+    await flush();
+    expect(q.of('failed')).toEqual([{ kind: 'failed', payload: { code: 'rate_limit', message: '[Soniox 429] Organization quota exceeded', drop: { cause: 'error', errorCode: '429', retryable: false, managed: false } } }]);
+    expect(q.of('reconnecting')).toEqual([]);
+    expect(q.sttSockets()).toHaveLength(1);
+  });
+
+  it('401, a quota 429 and a non-retryable close end at once with their code and drop.retryable false', async () => {
     const cases: Array<[(s: FakeSocket) => void, string, Omit<DropInfo, 'retryable' | 'managed'>]> = [
       [(s) => s.receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' })), 'auth', { cause: 'error', errorCode: '401' }],
       [(s) => s.receive(JSON.stringify({ error_code: 402, error_message: 'Payment required' })), 'client', { cause: 'error', errorCode: '402' }],
-      [(s) => s.receive(JSON.stringify({ error_code: 429, error_message: 'Too many requests' })), 'rate_limit', { cause: 'error', errorCode: '429' }],
+      [(s) => s.receive(JSON.stringify({ error_code: 429, error_message: 'Quota exceeded' })), 'rate_limit', { cause: 'error', errorCode: '429' }],
       [(s) => s.serverClose(1008, 'Policy violation'), 'connection_lost', { cause: 'close', closeCode: 1008 }],
     ];
     for (const isManaged of [false, true]) {

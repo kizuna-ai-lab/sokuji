@@ -59,6 +59,8 @@ const REISSUED_KEY_WINDOW_MS = 10_000;
 const KEY_EXPIRY_MARGIN_MS = 1_000;
 /** Besides any 5xx, the failures the user did not cause and cannot fix in Settings (`SonioxClient.ts:57`): the socket reconnects. */
 const RECONNECTS = new Set(['408', 'socket_error']);
+/** A 429 whose words read as a used-up quota or balance is the user's to fix in their account, not a moment to wait out. */
+const USED_UP = /quota|balance|billing|insufficient|payment|credit/i;
 const LOST = 'connection_lost';
 /** A give-up's words when no attempt said why (the session's reconnects used up). */
 const LOST_WORDS = 'The Soniox connection was lost.';
@@ -67,11 +69,14 @@ const LOST_WORDS = 'The Soniox connection was lost.';
  * What a live socket's end means (spec 2026-11-05 reconnect §4.1): an error
  * frame by its code, else the close by its code. Soniox overloaded, failing
  * or timed out (any 5xx, a 408) reconnects. A 403 at the grant's end is the
- * managed session's granted time running out, not an error.
+ * managed session's granted time running out, not an error. A 429 reconnects
+ * (the measured concurrency limit clears when another stream ends) unless its
+ * `message` says a quota or balance is used up.
  */
-export function sonioxDropAction(e: { error?: string; close?: number; atGrantEnd: boolean }): 'reconnect' | 'cutoff' | 'end' {
+export function sonioxDropAction(e: { error?: string; message?: string; close?: number; atGrantEnd: boolean }): 'reconnect' | 'cutoff' | 'end' {
   if (e.error === undefined) return closeCodeAction(e.close);
   if (e.error === '403' && e.atGrantEnd) return 'cutoff';
+  if (e.error === '429') return USED_UP.test(e.message ?? '') ? 'end' : 'reconnect';
   const n = Number(e.error);
   return RECONNECTS.has(e.error) || (n >= 500 && n < 600) ? 'reconnect' : 'end';
 }
@@ -509,7 +514,7 @@ class SonioxCore {
       this.cutoff({ errorCode: code });
       return;
     }
-    const action = sonioxDropAction({ error: code, atGrantEnd: this.atGrantEnd() });
+    const action = sonioxDropAction({ error: code, message, atGrantEnd: this.atGrantEnd() });
     if (action === 'cutoff') {
       // The granted duration ended (managed): the close that follows ends the leg without an error (Plan B's seam).
       this.pendingCutoff = true;
