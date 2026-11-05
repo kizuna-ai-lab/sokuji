@@ -1,0 +1,143 @@
+# Reconnect after an unexpected disconnect: design
+
+Issue: kizuna-ai-lab/sokuji#692 (reported in #690). Status: draft for review. Backend: kizuna-ai-lab/sokuji-backend (§7).
+
+## 1. Why
+
+A user on a proxy that switches its exit address lost the Soniox connection five times in half an hour (close 1006), each time at an exit switch. Each drop ended the whole session: the user pressed Start again, a new session began and the conversation on screen was cleared. Today any provider connection that fails ends the run (`src/lib/session/run.ts`, `'failed'` → `host.end({reason:'leg-failed'})`), and the managed (Kizuna AI) Soniox key is single-use, so nothing can reconnect with it.
+
+This work makes a session survive an unexpected disconnect: the dropped connection comes back by itself and the conversation stays.
+
+## 2. Rulings
+
+From the owner (#sokuji, 2026-11-05):
+
+1. One mechanism for every provider: a shared interface and policy, each provider adapter implementing its own part.
+2. First delivery: Soniox and Qwen LiveTranslate, each both managed (Kizuna AI) and with the user's own key.
+3. Managed sessions reconnect within the same session: the backend issues fresh credentials for the session already running. No second session, no new grant.
+4. Speech during the gap is dropped; the conversation says how long the connection was down. Buffering can come later.
+5. Give up about 30 s after the drop.
+6. Unchanged: a manual Start after a session ended still begins a new session and clears the screen. Normal ends (Stop, the balance spent, the session's time cap) never reconnect.
+
+## 3. Goals, non-goals, anti-goals
+
+Goals
+
+- An unexpected disconnect of a Soniox or Qwen connection, managed or own key, reconnects within about 30 s, and the conversation, its history and the session's countdown carry on.
+- While it reconnects the user sees "Reconnecting…" (the existing status, `src/lib/view/statusLine.ts`); after it, a line in the conversation says how long the connection was down; if it gives up, the session ends as it does today, with the reason.
+- The mechanism is the same for both providers and ready for the next ones.
+
+Non-goals
+
+- Gemini and OpenAI live keep their own reconnects for now (they already have them); Palabra, Volcengine and local models are later deliveries.
+- Mobile (sokuji-mobile) comes after the shared code is in.
+- Buffering and resending gap audio; resuming the provider's server-side context (Soniox and Qwen have no resumption: a reconnect is a new connection).
+
+Anti-goals
+
+- A reconnect that extends a managed session past its granted end, or runs two sessions for one account at once. The backend enforces this (§7); the client must not try.
+- A retry loop on something retrying cannot fix: an invalid key, a frozen wallet, a spent balance, a session the backend has ended.
+- Translations arriving late or out of order because of the gap.
+
+## 4. Behaviour
+
+### 4.1 Which ends reconnect
+
+A connection that closes or errors after it was live, while the session did not ask it to, is classified by its adapter:
+
+| Cause | Soniox | Qwen | Action |
+|---|---|---|---|
+| Transport: close 1006/1001/1011/1012/1013/1014, a socket error, a connect timeout | yes | yes | reconnect |
+| Provider overloaded or timed out: Soniox 503, 408; Qwen server errors | yes | yes | reconnect |
+| Auth: 401, 403 (other than Soniox's 403 at grant end), an invalid or expired own key | | | end, with that reason |
+| Quota or balance: Soniox/Qwen quota codes, Kizuna 402 | | | end, with that reason |
+| A request the provider rejects (other 4xx, a bad config) | | | end, as today |
+| The managed session's grant ending (Soniox 403 within the grant-end margin, the lease timer) | | | end as a lease end, as today |
+| The session's own Stop, a source ending, the window closing | | | as today |
+
+Each adapter owns its table (the codes differ); the policy only asks "retryable or not". A close the table does not list defaults to reconnect when it is a transport-level end (1000 or 1005 sent by the server while the session did not ask, 1006 and the 1011–1014 family), and to end when it says the request itself was wrong (1003, 1007, 1008, 1009, 1010). (My call: an end the user cannot act on is better retried within the budget; a malformed or refused request is not.)
+
+### 4.2 The attempts
+
+- Break before make: the dropped socket is detached (no more of its events reach the session) and closed; then the attempts begin. This is Gemini's order (`src/providers/gemini/adapter.ts`, `reconnect()` / `ladder()`).
+- Attempts start at once, then after 1 s, 2 s, 4 s and 8 s, and again every 8 s, until 30 s have passed since the drop. Each attempt's connect is bounded so that it cannot run past the 30 s.
+- Managed: each attempt first asks the lease for fresh credentials (§5). A refusal the user can act on (balance, sign-in, frozen wallet) or a session the backend says has ended stops the attempts at once with that reason; a network error or timeout on that request counts as a failed attempt.
+- Own key: the credentials are reused.
+- The last failure decides the message: an actionable refusal shows as itself, anything else as the existing "connection lost".
+- A grant that ends during the attempts ends the session as a lease end, as today.
+- Credentials are fetched once per drop, not once per attempt: a Soniox key whose socket never opened is reused by the next attempt while its start window lasts, and a Qwen token is reused while it is valid (and serves both legs, as the grant's token does today). A new one is asked for only when the previous one was spent (its socket opened) or has expired. (My call.)
+- Flapping: a connection that drops again within 10 s of coming back does not get a fresh 30 s; it continues the budget of the drop before. A session reconnects at most 20 times in all (the same count as the backend's cap, §7); the next drop ends it as "connection lost". This replaces the own-key Soniox 503 path's `MAX_RESUME_CYCLES` limit, which moves into the shared policy. (My call.)
+
+### 4.3 The conversation
+
+- At the drop: what the dropped connection had in flight (an unfinished segment, an utterance being read aloud for that leg) is closed as it stands, as a provider `failed` closes it today, but the leg stays and the run goes on. In manual-turn modes an open turn closes; a press still held when the connection comes back opens a turn on the new connection (Gemini's choice).
+- During the gap: captured audio is dropped (`appendAudio` has no connection); agent text is not sent; read-aloud already queued for the other leg keeps playing.
+- After it: one notice on the leg, "Connection lost for N s, reconnected" (localized), and new segments continue with the next reference numbers. Nothing is re-sent.
+- If it gives up: the leg fails as it does today (`connection_lost` or the actionable code), the run ends, auto-save runs. The conversation stays on screen until the next Start, as today.
+
+### 4.4 Two connections
+
+- Split Both (two Soniox cores, or Qwen's legs): only the core or leg that dropped reconnects; the other keeps working.
+- Shared Both and face-to-face (one Soniox STT socket for both legs): that socket reconnects and both legs show the notice.
+- Soniox TTS sockets already reopen on demand (`src/providers/soniox/speech.ts`); unchanged.
+
+### 4.5 Diagnostics and analytics
+
+- Frames through the existing adapter frame log: `session.reconnecting` (cause, code), `session.reconnect_failed` (attempt, message), `session.reconnected` (downMs, attempts), `session.connection_lost` (attempts) at give-up.
+- Analytics: the existing `connection_status` tracking (`run.ts`) already sees `reconnecting` / `reconnected`; add the down time and the attempt count to the reconnected event, and the outcome to the give-up.
+
+## 5. The shared interface
+
+The run already understands two leg events, `reconnecting` and `reconnected` (`run.ts`, the leg state `'reconnecting'`), and Gemini already sends them. The new shared part is the policy around them, so the two adapters do not each grow their own ladder.
+
+- `src/lib/session/reconnect.ts`: a reconnector an adapter owns, one per connection. The adapter calls it when a connection dropped and the adapter judged the cause retryable; it emits `reconnecting` on the leg(s), runs the attempts on the request's clock (§4.2) by calling back into the adapter, emits `reconnected` with the down time, or reports give-up so the adapter fails the leg with the last reason. It writes the frames (§4.5) and is cancelled by the session ending.
+- What each adapter provides: whether a close or error is retryable (§4.1), how to detach and close the dropped socket, how to get credentials for an attempt (managed: the lease; own key: the same), and how to connect and bring a new socket live (the start path's own connect, reused).
+- The lease ports gain one method each (§6), so the reconnector never knows whether a session is managed.
+
+The policy numbers (attempt schedule, 30 s budget, connect bound) live in that one module.
+
+## 6. Credentials for an attempt
+
+- Soniox, managed: `SonioxLeasePort.reissue(role)` asks the backend for a fresh single-use STT key for the same lease and role (`spk_stt`, `par_stt`, `mix_stt`). The TTS key is already reusable for the session and is not reissued. `session-started` is reported again for the new key's first accepted frame only if the backend needs it (§7, to confirm).
+- Qwen, managed: `QwenLeasePort.reissue()` asks for a fresh token for the same lease (the grant's token lasts 60 s, so it has usually expired by the drop). The new connection reports its `sess_…` id as every managed Qwen connection does.
+- Own key: the key the session started with.
+- A reissue answers either credentials or a refusal with a code: `lease_ended` (the session is over, ended, released or past its end), `reissue_limit` (the session's reissues are used up), `sign_in_required`, `wallet_frozen`. All refusals stop the attempts; `lease_ended` ends the run as a lease end. There is no balance check: the granted time was covered by the balance when it was granted, and a floor check now would end a session the user already paid for, at the moment its dropped stream's usage is being charged. (My call.)
+- An older backend without the endpoint answers 404, read as "cannot reissue": the session ends as it does today. So the client can ship before the backend without harm, and works fully once the backend is deployed.
+
+## 7. Backend (kizuna-ai-lab/sokuji-backend)
+
+Two endpoints, each issuing fresh credentials for a lease that is still running, and never more than that. Walter has checked the current accounting and will review this section line by line.
+
+Rules for both:
+- The caller owns the lease; the lease is active (no session-end posted, not ending, not past its end); the wallet is not frozen. No balance floor (§6).
+- What is issued lasts only the lease's remaining time; the lease's end and its budget do not change, and nothing a reissue triggers moves the lease's expiry.
+- At most 20 reissues per lease (and per role for Soniox), matching the client's per-session cap (§4.2) and Qwen's 20 reports per lease. The client fetches at most one per drop, so 20 covers 20 drops.
+- A reissue never creates a second lease, so the one-session-per-account rule holds.
+
+Soniox (`POST /soniox/session-key/reissue`, body `{ leaseId, role }`):
+- Mints a single-use STT temporary key with the same client reference id (`clientRefIdFor(account, lease, role)`), so Soniox's usage log for it is attributed to the same lease; `max_session_duration_seconds` is the remaining time; `expires_in_seconds` is the start window.
+- The reconciler must change: today it marks a stream ended when it sees that stream's usage log (`noteStreamEnded`) and releases the lease when every stream has ended, without waiting for the client's session-end. A dropped connection's log arrives 2 to 5 s after the drop, so the lease would be released mid-session while the new connection runs.
+- Proposed (my call, for Walter to confirm): a role ends when the usage logs received equal the keys **started** for it. The client reports `session-started` for each reissued key's first accepted frame, as it does for the first key; for a reissued key that report counts the key as started but does not move the lease's expiry (today `markStarted` sets it to now + max duration, which would push the lease past its granted end). A key minted and never started produces no log and is not waited for. The alternative, releasing only after the client's session-end, is not taken: a client that crashes or is force-quit would keep the account locked until the lease expires, where today it clears within seconds.
+
+Qwen (`POST /qwen/session-key/reissue`, body `{ leaseId }`):
+- Signs a new token for the same lease and records its time window under that lease (`qwen-attribution.ts` attributes usage by the token's window and the reported session ids).
+- The reconciler already supports several connections per lease: release waits for the client's session-end and a usage record for every reported connection (`releaseQwenLeases`); a lease accepts up to 20 reports (`QWEN_REPORTS_PER_LEASE`). The reissue must keep within that.
+
+Release order: the backend endpoints and the Soniox reconciler change deploy first (merging to main deploys production); the client follows.
+
+## 8. Verification
+
+- Unit tests for the reconnector on a virtual clock: the attempt schedule, the 30 s give-up, cancellation by the session ending, the events and frames, the last reason winning.
+- Adapter tests (Soniox, Qwen; own key and managed with a fake lease): a 1006 after live reconnects with a reissued key and keeps the leg live; a 401, a quota code and a `lease_ended` reissue end at once with their reason; split Both reconnects only the dropped core; shared Both reconnects its one socket; the in-flight segment closes and the notice appears; audio in the gap is dropped; a grant ending during the attempts ends as a lease end.
+- Backend tests: the reissue rules (ownership, active lease, remaining time, the cap, no second lease) and the reconciler not releasing a lease whose role has an outstanding reissued key.
+- By hand, desktop app on macOS and Windows, and the extension: a session with Kizuna AI Soniox, Kizuna AI Qwen and own-key Soniox, broken by switching the network (VPN on/off or Wi-Fi off for 5 s); it reconnects, the conversation stays, the notice shows the down time; with the network off for over 30 s it gives up with "connection lost".
+
+## 9. Open points
+
+1. Walter to confirm the Soniox reconciler change in §7 (keys started against logs received, reissued starts not moving the expiry).
+2. Qwen's exact error codes for "retryable" against "end" (from `wire.ts` `errorCode` and recorded sessions).
+3. Whether the notice should also say how much speech was likely lost, or only the down time.
+
+## 10. Left to the builder
+
+The reconnector's exact API and file layout inside `src/lib/session/`, the connect bound per attempt, the frame field names, the notice's wording in each language, and how the adapters share the start path's connect code.
