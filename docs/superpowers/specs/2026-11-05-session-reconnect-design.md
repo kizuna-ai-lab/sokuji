@@ -1,6 +1,6 @@
 # Reconnect after an unexpected disconnect: design
 
-Issue: kizuna-ai-lab/sokuji#692 (reported in #690). Status: draft for review. Backend: kizuna-ai-lab/sokuji-backend (§7).
+Issue: kizuna-ai-lab/sokuji#692 (reported in #690). Status: approved 2026-11-05; amended by the implementation rulings noted inline. Backend: kizuna-ai-lab/sokuji-backend (§7).
 
 ## 1. Why
 
@@ -71,6 +71,8 @@ Each adapter owns its table (the codes differ); the policy only asks "retryable 
 - A grant that ends during the attempts ends the session as a lease end, as today.
 - Credentials are fetched once per drop, not once per attempt: a Soniox key whose socket never opened is reused by the next attempt while its start window lasts, and a Qwen token is reused while it is valid (and serves both legs, as the grant's token does today). A new one is asked for only when the previous one was spent (its socket opened) or has expired. (My call.)
 - Flapping: a connection that drops again within 10 s of coming back does not get a fresh 30 s; it continues the budget of the drop before. Each connection reconnects at most 100 times; the next drop ends it as "connection lost". (Owner, 2026-11-05: 20 was too few. The reporting user's longest session ran 1 h 50 min, and at his rate of a drop every six minutes it would have dropped about 18 times. The flapping rule is what stops a runaway loop; the count is only a backstop.) This replaces the own-key Soniox 503 path's `MAX_RESUME_CYCLES` limit, which moves into the shared policy. (My call.)
+- A fast loop (a connection that comes back and drops again at once, again and again) is held back three ways (implementation ruling, 2026-11-05, after the final review measured 100 reconnects in 50 s under the rule above): the k-th consecutive drop inside the 10 s window waits the k-th step of the attempt schedule before its first attempt instead of trying at once; a connection reconnects at most 10 times in any 60 s, and the next drop ends it as "connection lost"; and the "Connection lost and restored" notice shows at most once per leg per 10 s.
+- A reissued Soniox key's start window is counted on the client's clock from when the answer arrived (10 s, less a 1 s margin), not from Soniox's expiry time, so a skewed client clock cannot reuse a dead key; a connect still running when that window closes is given up and the next attempt asks for a new key. (Implementation ruling.)
 
 ### 4.3 The conversation
 
@@ -148,7 +150,7 @@ Release order: the D1 migration, then the backend (endpoints and the Soniox reco
 - Unit tests for the reconnector on a virtual clock: the attempt schedule, the 30 s give-up, cancellation by the session ending, the events and frames, the last reason winning.
 - Adapter tests (Soniox, Qwen; own key and managed with a fake lease): a 1006 after live reconnects with a reissued key and keeps the leg live; a 401, a quota code and a `lease_ended` reissue end at once with their reason; split Both reconnects only the dropped core; shared Both reconnects its one socket; the in-flight segment closes and the notice appears; audio in the gap is dropped; a grant ending during the attempts ends as a lease end.
 - Backend tests: the reissue rules (ownership, active lease, the duration of lease end − now − start window, the cap, no second lease, a frozen wallet), reference ids with a sequence parsed by billing, `session-started` per key idempotent and not moving the expiry, a log seen twice across overlapping scans counted once, and the reconciler not releasing a lease while a started key has no log.
-- By hand, desktop app on macOS and Windows, and the extension: a session with Kizuna AI Soniox, Kizuna AI Qwen and own-key Soniox, broken by switching the network (VPN on/off or Wi-Fi off for 5 s); it reconnects, the conversation stays, the notice shows the down time; with the network off for over 30 s it gives up with "connection lost".
+- By hand, desktop app on macOS and Windows, and the extension: a session with Kizuna AI Soniox, Kizuna AI Qwen and own-key Soniox, broken by switching the network (VPN on/off or Wi-Fi off for 5 s); it reconnects, the conversation stays, the status line counts the attempts and seconds and the restored notice appears; with the network off for over 30 s it gives up with "connection lost".
 
 ## 9. Open points
 
