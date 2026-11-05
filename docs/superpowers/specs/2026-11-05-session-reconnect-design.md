@@ -84,7 +84,12 @@ Each adapter owns its table (the codes differ); the policy only asks "retryable 
 ### 4.5 Diagnostics and analytics
 
 - Frames through the existing adapter frame log: `session.reconnecting` (cause, code), `session.reconnect_failed` (attempt, message), `session.reconnected` (downMs, attempts), `session.connection_lost` (attempts) at give-up.
-- Analytics: the existing `connection_status` tracking (`run.ts`) already sees `reconnecting` / `reconnected`; add the down time and the attempt count to the reconnected event, and the outcome to the give-up.
+- Analytics (PostHog, owner request): three new events through `src/lib/analytics.ts`, typed there like the others; no content, no keys, no reference ids.
+  - `connection_dropped`, at every unexpected drop, retryable or not: `session_id`, `provider`, `managed` (Kizuna AI or own key), `channel` (`speaker`, `participant` or `shared`), `cause` (`close`, `error`, `timeout`), `close_code`, `error_code`, `retryable`, `session_elapsed_ms`, `drop_index` (the nth drop of the session), `since_last_reconnect_ms` (absent on the first), `online` (`navigator.onLine` at the drop).
+  - `connection_reconnected`: `session_id`, `provider`, `managed`, `channel`, `down_ms` (drop to the new connection live), `attempts`, `credentials_reissued` (whether new credentials were fetched), `reissue_ms` (time spent fetching them), `drop_index`, `budget_shared` (it dropped within 10 s of the previous reconnect, §4.2).
+  - `connection_reconnect_failed`, when the attempts end without a connection: `session_id`, `provider`, `managed`, `channel`, `down_ms`, `attempts`, `reason` (`timeout` after 30 s, `refused` by the reissue, `terminal_error` from the provider, `session_cap` at 20 reconnects, `lease_ended`, `stopped` when the user stopped the session meanwhile), `error_code` (the last one), `refusal_code` (the reissue's, when `refused`), `drop_index`.
+  - `translation_session_end` gains `reconnect_count`, `reconnect_down_ms` (the total) and `reconnect_failed` (whether the session ended by giving up).
+  - The existing `connection_status` events stay as they are, so current charts keep working. `api_error` is no longer sent for a drop that is being retried; it is sent at give-up as today, so its count stays "sessions that lost their connection".
 
 ## 5. The shared interface
 
