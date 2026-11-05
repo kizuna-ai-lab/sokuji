@@ -15,7 +15,7 @@ From the owner (#sokuji, 2026-11-05):
 1. One mechanism for every provider: a shared interface and policy, each provider adapter implementing its own part.
 2. First delivery: Soniox and Qwen LiveTranslate, each both managed (Kizuna AI) and with the user's own key.
 3. Managed sessions reconnect within the same session: the backend issues fresh credentials for the session already running. No second session, no new grant.
-4. Speech during the gap is dropped. Buffering can come later. What the user is told (owner, 2026-11-05): while reconnecting, that it is reconnecting, the attempt number and how long it has been trying; after it, that it reconnected. Not how long it was down, nor how much speech may be lost.
+4. Speech during the gap is dropped. Buffering can come later: replaying the unfinalized audio (Soniox only) follows once this delivery works (owner, 2026-11-05). What the user is told (owner, 2026-11-05): while reconnecting, that it is reconnecting, the attempt number and how long it has been trying; after it, that it reconnected. Not how long it was down, nor how much speech may be lost.
 5. Give up about 30 s after the drop.
 6. Unchanged: a manual Start after a session ended still begins a new session and clears the screen. Normal ends (Stop, the balance spent, the session's time cap) never reconnect.
 7. The aim (owner, 2026-11-05, on the plan): reconnect as fast as possible and lose as little speech as possible.

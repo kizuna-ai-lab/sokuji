@@ -20,7 +20,7 @@
 - What reconnects is §4.1. Close codes 1000, 1001, 1005, 1006 and 1011–1014 reconnect. Codes 1003 and 1007–1010 end. Any other close code ends. Soniox: `503`, `408`, `socket_error`, a connect timeout and a stall reconnect; `401`, `402`, `403` (except at grant end), `429` and other 4xx end. Qwen: `server` reconnects; `auth`, `rate_limit`, `client` and `model_access_denied` end.
 - Credentials are fetched at most once per drop. A Soniox key whose socket never opened is reused while its start window lasts, until 1 s before its `expiresAt`. A Qwen token is reused until 5 s before its `expiresAt`, and serves both legs.
 - Reissue refusals: `lease_ended`, `reissue_limit`, `sign_in_required`, `wallet_frozen`, and `unsupported` for a 404 or any other 4xx without a code. Every refusal stops the attempts. `sign_in_required` and `wallet_frozen` show as themselves. `lease_ended` ends as a lease end when the lease is at its grant end, and as `connection_lost` otherwise. Everything else shows `connection_lost`.
-- During the gap, audio is dropped and agent text is not sent. In-flight segments close as they stand (`utterances.abandon()`, `QwenSegments.stop()`). Nothing is re-sent. Part C changes this, if approved.
+- During the gap, audio is dropped and agent text is not sent. In-flight segments close as they stand (`utterances.abandon()`, `QwenSegments.stop()`). Nothing is re-sent. Part C, deferred to a follow-up, would change this.
 - Copy, in English. The other 29 locales are translated in the same commit, and `{{placeholders}}` must survive verbatim:
   - `connectionStatus.reconnectingAttempt`: "Reconnecting… (attempt {{attempt}}, {{seconds}} s)"
   - `notices.connection_restored`: "Connection lost and restored"
@@ -381,7 +381,9 @@ export type SonioxReissue =
     - Wi-Fi off for 40 s. Expected: it gives up with "connection lost".
 - [ ] **Step 4: Hand over.** Opening the PR to `kizuna-ai-lab/sokuji` waits for jiangzhuo's go-ahead. The PR body and issue text carry no internal task numbers or names.
 
-## Part C: replaying the gap's audio (Soniox only; only if jiangzhuo approves)
+## Part C: replaying the gap's audio (Soniox only; deferred)
+
+Not in this round: jiangzhuo, 2026-11-05 14:52Z, wants reconnect finished first and replay after it. This part is kept as the starting point for that follow-up and is not executed with Parts A and B.
 
 ### Task 11: Replay unfinalized audio after a reconnect
 
