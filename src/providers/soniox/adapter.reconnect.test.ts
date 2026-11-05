@@ -87,9 +87,9 @@ const refs = (h: Pick<Live, 'of'>, kind: 'segmentOpened' | 'segmentClosed') => h
 const dropOf = (drop: Omit<DropInfo, 'retryable' | 'managed'>, managedKey = false): DropInfo => ({ ...drop, retryable: true, managed: managedKey });
 
 describe('sonioxDropAction: what a live socket\'s end means (spec §4.1)', () => {
-  it('503, 408 and a socket error reconnect; 401, 402, 403, 429, another 4xx and an unknown code end', () => {
-    for (const error of ['503', '408', 'socket_error']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('reconnect');
-    for (const error of ['401', '402', '403', '429', '400', '404', 'boom']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('end');
+  it('any 5xx, a 408 and a socket error reconnect; 401, 402, 403, 429, another 4xx and an unknown code end', () => {
+    for (const error of ['500', '502', '503', '504', '408', 'socket_error']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('reconnect');
+    for (const error of ['401', '402', '403', '429', '400', '404', '600', 'boom']) expect(sonioxDropAction({ error, atGrantEnd: false })).toBe('end');
   });
 
   it("a 403 at the grant's end is the cutoff; only a 403 is", () => {
@@ -126,9 +126,13 @@ describe('the Soniox adapter reconnects: own key', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
-  it('a 408 and a socket error reconnect at once, the server\'s words in the Logs', async () => {
+  it('a 500, a 502, a 504, a 408 and a socket error reconnect at once, the server\'s words in the Logs', async () => {
+    const error = (code: number, message: string) => (s: FakeSocket) => s.receive(JSON.stringify({ error_code: code, error_message: message }));
     const acts: Array<[(s: FakeSocket) => void, Omit<DropInfo, 'retryable' | 'managed'>]> = [
-      [(s) => s.receive(JSON.stringify({ error_code: 408, error_message: 'Request timeout' })), { cause: 'error', errorCode: '408' }],
+      [error(500, 'Internal error'), { cause: 'error', errorCode: '500' }],
+      [error(502, 'Bad gateway'), { cause: 'error', errorCode: '502' }],
+      [error(504, 'Gateway timeout'), { cause: 'error', errorCode: '504' }],
+      [error(408, 'Request timeout'), { cause: 'error', errorCode: '408' }],
       [(s) => s.drop(), { cause: 'error', errorCode: 'socket_error' }],
     ];
     for (const [act, drop] of acts) {
@@ -176,11 +180,12 @@ describe('the Soniox adapter reconnects: own key', () => {
     h.clock.advance(1);
     await flush();
     expect(h.sttSockets()).toHaveLength(offsets.length + 1);
+    // The leg's words are the last attempt's; the verdict's reason rides only in `giveUp`.
     expect(h.of('failed')).toEqual([{
       kind: 'failed',
       payload: {
         code: 'connection_lost',
-        message: expect.any(String),
+        message: 'Soniox STT connection failed',
         drop: dropOf({ cause: 'error', errorCode: '503' }),
         giveUp: { attempts: offsets.length, reason: 'timeout', errorCode: 'socket_error' },
       },
@@ -230,7 +235,8 @@ describe('the Soniox adapter reconnects: own key', () => {
     expect(h.sttSockets()).toHaveLength(count);
     expect(h.of('failed')).toEqual([{
       kind: 'failed',
-      payload: { code: 'connection_lost', message: expect.any(String), drop: dropOf({ cause: 'close', closeCode: 1006 }), giveUp: { attempts: 0, reason: 'session_cap' } },
+      // No attempt said why: plain connection-lost words, no reason token.
+      payload: { code: 'connection_lost', message: 'The Soniox connection was lost.', drop: dropOf({ cause: 'close', closeCode: 1006 }), giveUp: { attempts: 0, reason: 'session_cap' } },
     }]);
     expect(h.timers()).toBe(0);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
@@ -353,7 +359,7 @@ describe('the Soniox adapter reconnects: managed', () => {
         kind: 'failed',
         payload: {
           code: 'connection_lost',
-          message: expect.any(String),
+          message: 'The lease has ended.',
           drop: dropOf({ cause: 'close', closeCode: 1006 }, true),
           giveUp: { attempts: 1, reason: 'lease_ended', errorCode: 'connection_lost', refusalCode: 'lease_ended' },
         },
@@ -379,7 +385,7 @@ describe('the Soniox adapter reconnects: managed', () => {
         kind: 'failed',
         payload: {
           code,
-          message: expect.any(String),
+          message: refusal.message,
           drop: dropOf({ cause: 'close', closeCode: 1006 }, true),
           giveUp: { attempts: 1, reason: 'refused', errorCode: code, refusalCode: refusal.code },
         },
@@ -492,6 +498,29 @@ describe('the Soniox adapter reconnects: the gap', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
+  it('a grant-end 403 and then the socket dropping ends as a lease end, with no reconnect (§4.2)', async () => {
+    const acts: Array<(s: FakeSocket) => void> = [
+      (s) => s.drop(),
+      (s) => s.receive(ERROR_503),
+    ];
+    for (const act of acts) {
+      const lease = fakeLease(KEY_1);
+      lease.port.atGrantEnd.mockReturnValue(true);
+      const h = await live(managed(lease));
+      h.stt().receive(JSON.stringify({ error_code: 403, error_message: 'Session duration exceeded' }));
+      act(h.stt());
+      await flush();
+      expect(lease.port.cutoff).toHaveBeenCalledTimes(1);
+      expect(h.of('closed')).toHaveLength(1);
+      expect(h.of('reconnecting')).toEqual([]);
+      expect(h.of('failed')).toEqual([]);
+      expect(lease.port.reissue).not.toHaveBeenCalled();
+      expect(h.sttSockets()).toHaveLength(1);
+      expect(h.timers()).toBe(0);
+      expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+    }
+  });
+
   it('networkRestored during a wait attempts at once', async () => {
     const h = await live();
     h.stt().serverClose(1006);
@@ -601,18 +630,26 @@ describe('the Soniox adapter reconnects: Both', () => {
     expect(h.conformance()).toEqual({ speaker: [], participant: [] });
   });
 
-  it("shared Both: the network's return wakes the one socket once, whichever facades hear it", async () => {
+  it("shared Both: the network's return through either facade wakes the one socket", async () => {
     const h = await liveBoth(true);
     h.sttSockets()[0].serverClose(1006);
     await flush();
-    // Attempt 1 in flight: a wake now would make attempt 2 skip its wait; the participant's facade does not wake it.
-    h.sessions.participant.networkRestored!();
+    // Attempt 1 fails: waiting 250 ms, the participant's facade starts attempt 2 at once.
     h.sttSockets()[1].drop();
     await flush();
     expect(h.sttSockets()).toHaveLength(2);
-    // Waiting: the speaker's facade wakes it.
-    h.sessions.speaker.networkRestored!();
+    h.sessions.participant.networkRestored!();
     expect(h.sttSockets()).toHaveLength(3);
+    // Attempt 2 fails: waiting 500 ms, the speaker's facade starts attempt 3 at once.
+    h.sttSockets()[2].drop();
+    await flush();
+    expect(h.sttSockets()).toHaveLength(3);
+    h.sessions.speaker.networkRestored!();
+    expect(h.sttSockets()).toHaveLength(4);
+    h.sttSockets()[3].open();
+    await flush();
+    for (const leg of ['speaker', 'participant'] as const) expect(h.of(leg, 'reconnected').map((e) => e.payload!.attempts)).toEqual([3]);
+    expect(h.conformance()).toEqual({ speaker: [], participant: [] });
   });
 
   it('shared Both: a failure fails the speaker first, then the participant', async () => {

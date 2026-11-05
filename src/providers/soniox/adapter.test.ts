@@ -195,7 +195,8 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it("words every other STT error by its type, keeping the server's words, and ends the leg without an attempt", async () => {
-    const cases: Array<[number | string, string]> = [[429, 'rate_limit'], [400, 'client'], [500, 'server'], ['boom', 'server']];
+    // A 5xx reconnects instead (spec 2026-11-05 reconnect §4.1); a code that is no number still ends, as `server`.
+    const cases: Array<[number | string, string]> = [[429, 'rate_limit'], [400, 'client'], ['boom', 'server']];
     for (const [code, type] of cases) {
       const { stt, of, frames, sttSockets } = await live();
       stt().receive(JSON.stringify({ error_code: code, error_message: `said ${code}` }));
@@ -208,6 +209,7 @@ describe('the Soniox adapter: one leg', () => {
     }
     expect(sttFailureCode('401')).toBe('auth');
     expect(sttFailureCode('403')).toBe('auth');
+    expect(sttFailureCode('500')).toBe('server');
   });
 
   it('a close the table ends fails with connection_lost once, its code and words in the Logs before it', async () => {

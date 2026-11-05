@@ -55,19 +55,23 @@ export const SONIOX_STALL_MS = 5_000;
 const STALL_CHECK_MS = 1_000;
 /** A managed key whose socket never opened serves the next attempt until this long before it expires (§4.2). */
 const KEY_EXPIRY_MARGIN_MS = 1_000;
-/** Failures the user did not cause and cannot fix in Settings (`SonioxClient.ts:57`): the socket reconnects. */
-const RECONNECTS = new Set(['503', '408', 'socket_error']);
+/** Besides any 5xx, the failures the user did not cause and cannot fix in Settings (`SonioxClient.ts:57`): the socket reconnects. */
+const RECONNECTS = new Set(['408', 'socket_error']);
 const LOST = 'connection_lost';
+/** A give-up's words when no attempt said why (the session's reconnects used up). */
+const LOST_WORDS = 'The Soniox connection was lost.';
 
 /**
  * What a live socket's end means (spec 2026-11-05 reconnect §4.1): an error
- * frame by its code, else the close by its code. A 403 at the grant's end
- * is the managed session's granted time running out, not an error.
+ * frame by its code, else the close by its code. Soniox overloaded, failing
+ * or timed out (any 5xx, a 408) reconnects. A 403 at the grant's end is the
+ * managed session's granted time running out, not an error.
  */
 export function sonioxDropAction(e: { error?: string; close?: number; atGrantEnd: boolean }): 'reconnect' | 'cutoff' | 'end' {
   if (e.error === undefined) return closeCodeAction(e.close);
   if (e.error === '403' && e.atGrantEnd) return 'cutoff';
-  return RECONNECTS.has(e.error) ? 'reconnect' : 'end';
+  const n = Number(e.error);
+  return RECONNECTS.has(e.error) || (n >= 500 && n < 600) ? 'reconnect' : 'end';
 }
 
 /** An STT error as the run's API error type (choice 8): its words are `notices.<type>`, the server's own as the detail. */
@@ -157,6 +161,8 @@ class SonioxCore {
   private readonly reconnector: Reconnector;
   /** The drop the reconnector took up last: what a give-up reports with. */
   private drop: DropInfo | null = null;
+  /** Why this drop's last attempt failed, in words: what the leg's failure says at a give-up. */
+  private lastFailure: string | null = null;
   private stopStallWatch: (() => void) | null = null;
   /** When audio last went out on an open socket. */
   private lastAudioAt = -Infinity;
@@ -315,8 +321,8 @@ class SonioxCore {
   session(name: LegName): AdapterSession {
     return {
       info: { transport: 'websocket', ...(this.o.shared ? { shared: true } : {}) },
-      // The socket's own leg wakes its reconnector, as it holds `endTurn`: a shared core hears the network's return once, whichever facades are told.
-      networkRestored: () => { if (name === this.o.legs[0].name) this.reconnector.wake(); },
+      // Either facade wakes the core's one reconnector: a second wake for the same return only skips one backoff.
+      networkRestored: () => this.reconnector.wake(),
       appendAudio: (pcm) => this.appendAudio(name, pcm),
       // Soniox's STT socket takes no text (`textInput: false`).
       appendText: () => {},
@@ -490,6 +496,12 @@ class SonioxCore {
   private onError(code: string, message: string): void {
     // The server's own words, which neither a drop nor a failure carries (choice 16); a socket error is the stream's, and has none.
     if (code !== 'socket_error') this.frame('in', 'stt.error', { code, message });
+    // The grant already ended (a 403 at its end): whatever ends the socket now ends the session as a lease end (§4.2).
+    if (this.pendingCutoff) {
+      this.pendingCutoff = false;
+      this.cutoff({ errorCode: code });
+      return;
+    }
     const action = sonioxDropAction({ error: code, atGrantEnd: this.atGrantEnd() });
     if (action === 'cutoff') {
       // The granted duration ended (managed): the close that follows ends the leg without an error (Plan B's seam).
@@ -538,6 +550,7 @@ class SonioxCore {
     // An attempt's socket that dropped as it opened: that attempt finds it gone and fails, and the attempts go on.
     if (this.reconnector.active) return;
     this.drop = this.dropInfo(drop, true);
+    this.lastFailure = null;
     this.reconnector.dropped(this.drop);
   }
 
@@ -554,18 +567,24 @@ class SonioxCore {
     const lease = credentials.lease;
     let reissued = false;
     let reissueMs = 0;
-    const failed = (code: string, message: string): AttemptResult => ({ ok: false, final: false, code, message, reissued, reissueMs });
+    const failed = (code: string, message: string): AttemptResult => {
+      this.lastFailure = message;
+      return { ok: false, final: false, code, message, reissued, reissueMs };
+    };
+    // An answer nobody reads; it leaves the last failure's words as they were.
+    const abandoned: AttemptResult = { ok: false, final: false, code: LOST, message: 'The attempt was abandoned.', reissued: false, reissueMs: 0 };
     const expiring = this.key.expiresAt !== undefined && clock.now() >= this.key.expiresAt - KEY_EXPIRY_MARGIN_MS;
     if (lease && (this.key.spent || expiring)) {
       const asked = clock.now();
       const answer = await lease.reissue();
       reissueMs = clock.now() - asked;
       // Abandoned meanwhile (a stop, the budget's end): nobody reads the answer, and nothing more opens.
-      if (signal.aborted || this.ended) return failed(LOST, 'The attempt was abandoned.');
+      if (signal.aborted || this.ended) return abandoned;
       if (!answer.ok) {
         if (answer.retry) return failed('reissue_failed', answer.message);
         // A refusal stops the attempts: the two the user can act on show as themselves, any other as the connection lost (§6).
         const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
+        this.lastFailure = answer.message;
         return {
           ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
           code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
@@ -583,27 +602,34 @@ class SonioxCore {
       await stream.connect(this.sttConfig());
     } catch (error) {
       if (this.stt === stream) this.stt = null;
+      // Closed by the abort (a stop, the budget's end): not the attempt's own failure.
+      if (signal.aborted || this.ended) return abandoned;
       return failed(error instanceof SonioxSttConnectTimeout ? 'connect_timeout' : 'socket_error', describeCause(error));
     } finally {
       signal.removeEventListener('abort', abort);
     }
     key.spent = true;
-    if (signal.aborted || this.ended) return failed(LOST, 'The attempt was abandoned.');
+    if (signal.aborted || this.ended) return abandoned;
     // It dropped as it opened (`dropped()` detached it): the next attempt goes on.
     if (this.stt !== stream) return failed('socket_error', 'The new connection dropped as it opened.');
     this.quietSince = clock.now();
     return { ok: true, reissued, reissueMs };
   }
 
-  /** The attempts ended without a connection: a lease ended at its grant's end is a lease end; anything else fails the legs with the policy's verdict and the drop it gave up on. */
+  /**
+   * The attempts ended without a connection: a lease ended at its grant's end
+   * is a lease end; anything else fails the legs with the policy's verdict and
+   * the drop it gave up on. The leg's words are the last attempt's, or plain
+   * connection-lost words when none was made; the verdict's reason stays in
+   * `giveUp` and the frames.
+   */
   private gaveUp(e: GiveUp): void {
-    const { code, message, ...giveUp } = e;
+    const { code, message: _verdict, ...giveUp } = e;
     if (e.reason === 'lease_ended' && this.atGrantEnd()) {
       this.cutoff({ attempts: e.attempts });
       return;
     }
-    const words = code === LOST ? `The Soniox connection was lost and could not be restored (${e.reason}: ${message}).` : message;
-    this.fail(code, words, { ...(this.drop ? { drop: this.drop } : {}), giveUp });
+    this.fail(code, this.lastFailure ?? LOST_WORDS, { ...(this.drop ? { drop: this.drop } : {}), giveUp });
   }
 
   /**
