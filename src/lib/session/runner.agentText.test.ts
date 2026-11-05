@@ -27,6 +27,8 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
   const log: string[] = [];
   const speech: string[] = [];
   const fault = { on: false };
+  // `ports.switch` / `ports.mute` make the switch's or the mute's getter throw.
+  const ports = { switch: false, mute: false };
   const kept: Partial<Record<LegName, AdapterEvents>> = {};
   const outlets: { now: readonly OutletName[] } = { now: ['me'] };
   const on = { value: true };
@@ -96,8 +98,8 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
       get: () => hear.value,
       subscribe: (listener) => { hear.listeners.add(listener); return () => { hear.listeners.delete(listener); }; },
     },
-    ...(o.switchPort === false ? {} : { agentText: { get: () => on.value } }),
-    ...(o.mutePort === false ? {} : { micMuted: { get: () => muted.value } }),
+    ...(o.switchPort === false ? {} : { agentText: { get: () => { if (ports.switch) throw new Error('switch broke'); return on.value; } } }),
+    ...(o.mutePort === false ? {} : { micMuted: { get: () => { if (ports.mute) throw new Error('mute broke'); return muted.value; } } }),
   });
   const events = (leg: LegName): AdapterEvents => kept[leg]!;
   const row = (leg: LegName, ref: Ref, text: string) => {
@@ -108,7 +110,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
     events(leg).audio({ pcm: new Int16Array(240), ref, ...(range ? { range } : {}), ...(voice ? { voice } : {}) });
   const idle = (voice: LegName) => idleListener?.(voice);
   const switchHearing = (next: boolean) => { hear.value = next; for (const listener of [...hear.listeners]) listener(); };
-  return { runner, asked, log, speech, fault, outlets, on, muted, row, chunk, idle, events, switchHearing };
+  return { runner, asked, log, speech, fault, ports, outlets, on, muted, row, chunk, idle, events, switchHearing };
 }
 
 describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
@@ -228,6 +230,28 @@ describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
     expect(h.speech).toEqual(['participant:false']);
     expect(() => h.chunk('participant', 1, [4, 8])).not.toThrow();
     const reports = reportErrorSpy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === 'agentText');
+    expect(reports).toHaveLength(1);
+  });
+
+  it('a switch whose getter throws: the run still starts, asks for nothing, sends nothing, and reports it once', async () => {
+    const h = setup(); h.ports.switch = true;
+    reportErrorSpy.mockClear();
+    await h.runner.start();
+    expect(h.asked).toEqual([false]);
+    h.row('speaker', 1, 'Hello there.'); h.chunk('speaker', 1, [0, 6]);
+    expect(h.log).toEqual([]);
+    const reports = reportErrorSpy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === 'agentTextPorts');
+    expect(reports).toHaveLength(1);
+  });
+  it('a mute whose getter throws: the chunk event does not throw, nothing is sent while it fails, and it is reported once', async () => {
+    const h = setup(); await h.runner.start();
+    h.ports.mute = true;
+    reportErrorSpy.mockClear();
+    h.row('speaker', 1, 'Hello there.');
+    expect(() => h.chunk('speaker', 1, [0, 6])).not.toThrow();
+    expect(() => h.chunk('speaker', 1, [6, 12])).not.toThrow();
+    expect(h.log).toEqual([]);
+    const reports = reportErrorSpy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === 'agentTextPorts');
     expect(reports).toHaveLength(1);
   });
 });

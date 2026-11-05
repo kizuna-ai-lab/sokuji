@@ -110,14 +110,27 @@ export class Run {
     this.host = host(this);
     this.stack = new ResourceStack(deps.clock, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS, (f) =>
       reportWarning('SessionRunner', `Releasing ${f.name} failed: ${f.message}`, { dedupeKey: `release:${f.name}` }));
-    this.agentTextAtStart = deps.agentText?.get() ?? false;
+    // A port that throws must neither stop the start nor escape an adapter's event: it reads as "send nothing", reported once.
+    let portFailed = false;
+    const read = (get: () => boolean, onFailure: boolean): boolean => {
+      try {
+        return get();
+      } catch (error) {
+        if (!portFailed) {
+          portFailed = true;
+          reportError('SessionRunner', `Reading an agent text setting failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentTextPorts' });
+        }
+        return onFailure;
+      }
+    };
+    this.agentTextAtStart = read(() => deps.agentText?.get() ?? false, false);
     this.agentTextFeed = new AgentTextFeed({
       legs: shape.legs,
       // Latched at Start, as the flag is: a mid-run flip never yields "flag on, no text" (spec 2026-11-05 §4.3).
       enabled: () => this.agentTextAtStart,
       // The microphone reaches its socket: not while muted (capture delivers nothing), and then always in automatic
       // turns, in a manual mode only while the key is held (`send`).
-      micOpen: () => !(deps.micMuted?.get() ?? false) && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
+      micOpen: () => !read(() => deps.micMuted?.get() ?? false, true) && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
       session: (leg) => this.sessions.get(leg),
       report: (error) => reportError('SessionRunner', `A session did not take agent text: ${describeCause(error)}`, { cause: error, dedupeKey: 'agentText' }),
     });
