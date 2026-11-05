@@ -82,11 +82,22 @@ const refs = (h: Pick<Live, 'of'>, kind: 'segmentOpened' | 'segmentClosed') => h
 const dropOf = (drop: Omit<DropInfo, 'retryable' | 'managed'>, isManaged = false): DropInfo => ({ ...drop, retryable: true, managed: isManaged });
 
 describe('qwenDropAction: what a live socket\'s close means (spec §4.1; open point §9.2)', () => {
-  it('a recent error decides first: the server\'s own fault reconnects whatever the close; the key, a limit, a refused request or a model the key may not use end whatever the close', () => {
-    for (const close of [1000, 1007, 1008, 1011]) expect(qwenDropAction({ close, recent: { code: 'server' } })).toBe('reconnect');
-    for (const code of ['auth', 'rate_limit', 'client', 'model_access_denied']) {
-      for (const close of [1000, 1006, 1011]) expect(qwenDropAction({ close, recent: { code } })).toBe('end');
+  it('a recent error decides first: the server\'s own fault or a passing request rate reconnects whatever the close; the key, a quota, a refused request or a model the key may not use end whatever the close', () => {
+    for (const code of ['server', 'throttled']) {
+      for (const close of [1000, 1007, 1008, 1011]) expect(qwenDropAction({ close, recent: { code } })).toBe('reconnect');
     }
+    for (const code of ['auth', 'rate_limit', 'client', 'model_access_denied']) {
+      for (const close of [1000, 1006, 1011]) expect(qwenDropAction({ close, reason: 'Idle timeout!', recent: { code } })).toBe('end');
+    }
+  });
+
+  it('a 1007 that says the session timed out idle or heard no speech in 30 s reconnects; every other 1007 ends', () => {
+    for (const reason of ['Idle timeout!', 'no semantic result after merged audio exceeded 30s']) expect(qwenDropAction({ close: 1007, reason }), reason).toBe('reconnect');
+    for (const reason of ['Invalid translation parameter.', "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported.", '', undefined]) {
+      expect(qwenDropAction({ close: 1007, reason }), String(reason)).toBe('end');
+    }
+    // Only a 1007 says it so.
+    expect(qwenDropAction({ close: 1008, reason: 'Idle timeout!' })).toBe('end');
   });
 
   it('with no recent error, the close by its code: the transport family reconnects, a refused request or an unknown code ends', () => {
@@ -115,6 +126,9 @@ describe('the Qwen adapter reconnects: own key', () => {
     expect(h.session.info.shared).toBeUndefined();
     // The one update, as the start sent it.
     expect(h.socket().sentJson()).toEqual([first.sentJson()[0]]);
+    // The close's own Logs line is not the give-up's.
+    expect(h.frames('session.closed')).toEqual([{ code: 1011, reason: 'Internal error' }]);
+    expect(h.frames('session.connection_lost')).toEqual([]);
     expect(h.frames('session.reconnecting')).toEqual([{ cause: 'close', code: 1011 }]);
     expect(h.frames('session.reconnected')).toEqual([{ downMs: 0, attempts: 1 }]);
     // Live on the new socket: audio goes up, a turn comes back as segments.
@@ -153,6 +167,59 @@ describe('the Qwen adapter reconnects: own key', () => {
     expect(h.of('failed')).toEqual([]);
   });
 
+  it('a 1007 for an idle session or 30 s without speech reconnects; any other 1007 ends', async () => {
+    for (const reason of ['Idle timeout!', 'no semantic result after merged audio exceeded 30s']) {
+      const h = await live();
+      h.socket().serverClose(1007, reason);
+      await flush();
+      expect(h.of('reconnecting').map((e) => e.payload), reason).toEqual([{ attempt: 1, drop: dropOf({ cause: 'close', closeCode: 1007 }) }]);
+      expect(h.frames('session.closed')).toEqual([{ code: 1007, reason }]);
+      await comeBack(h);
+      expect(h.of('reconnected')).toHaveLength(1);
+      expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+    }
+    const h = await live();
+    h.socket().serverClose(1007, 'Invalid translation parameter.');
+    await flush();
+    expect(h.of('reconnecting')).toEqual([]);
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'client', message: '[Qwen] Invalid translation parameter.', drop: { cause: 'close', closeCode: 1007, retryable: false, managed: false } }]);
+    // An end keeps the lost connection's Logs line.
+    expect(h.frames('session.connection_lost')).toEqual([{ code: 1007, reason: 'Invalid translation parameter.' }]);
+    expect(h.frames('session.closed')).toEqual([]);
+  });
+
+  it('a passing request rate reconnects, live and answering an attempt; a quota spent ends', async () => {
+    const throttled = SERVER.error('Throttling', 'Requests rate limit exceeded, please try again later.');
+    const h = await live();
+    h.socket().receive(throttled);
+    h.socket().serverClose(1011);
+    await flush();
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'error', closeCode: 1011, errorCode: 'throttled' }) }]);
+    // The attempt's handshake is throttled too: a failed attempt, and the next one comes back.
+    h.socket().open();
+    await flush();
+    h.socket().receive(SERVER.created('sess_2'));
+    h.socket().receive(throttled);
+    await flush();
+    expect(h.frames('session.reconnect_failed')).toEqual([{ attempt: 1, message: '[Qwen Throttling] Requests rate limit exceeded, please try again later.' }]);
+    expect(h.of('failed')).toEqual([]);
+    h.clock.advance(250);
+    await comeBack(h, 'sess_3');
+    expect(h.of('reconnected').map((e) => e.payload!.attempts)).toEqual([2]);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+
+    // A quota spent answering an attempt ends the attempts with rate_limit.
+    const q = await live();
+    q.socket().serverClose(1011);
+    await flush();
+    q.socket().open();
+    await flush();
+    q.socket().receive(SERVER.created('sess_2'));
+    q.socket().receive(SERVER.error('Throttling.AllocationQuota', 'Allocated quota exceeded, please increase your quota limit.'));
+    await flush();
+    expect(q.of('failed').map((e) => [e.payload.code, e.payload.giveUp])).toEqual([['rate_limit', { attempts: 1, reason: 'terminal_error', errorCode: 'rate_limit' }]]);
+  });
+
   it('[Qwen InvalidApiKey], a quota error and AccessDenied.Unpurchased end at once with their codes', async () => {
     const cases: Array<[string, string, string]> = [
       [SERVER.error('InvalidApiKey', 'Invalid API-key provided.'), 'auth', '[Qwen InvalidApiKey] Invalid API-key provided.'],
@@ -162,7 +229,7 @@ describe('the Qwen adapter reconnects: own key', () => {
     ];
     for (const isManaged of [false, true]) {
       for (const [error, code, message] of cases) {
-        const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000 });
+        const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true });
         const h = await live(isManaged ? { lease } : {});
         h.socket().receive(error);
         // A close that alone would reconnect: the error before it decides.
@@ -178,7 +245,7 @@ describe('the Qwen adapter reconnects: own key', () => {
     }
   });
 
-  it('a terminal error answering an attempt ends the attempts at once with its own code', async () => {
+  it('own key: a terminal error answering an attempt, auth included, ends the attempts at once with its own code', async () => {
     const h = await live();
     h.socket().serverClose(1011);
     await flush();
@@ -229,7 +296,8 @@ describe('the Qwen adapter reconnects: own key', () => {
       payload: { code: 'connection_lost', message: NEVER_OPENED, drop: dropOf({ cause: 'close', closeCode: 1006 }), giveUp: { attempts: offsets.length, reason: 'timeout', errorCode: 'network' } },
     }]);
     expect(h.frames('session.reconnect_failed')).toHaveLength(offsets.length);
-    expect(h.frames('session.connection_lost').slice(-1)).toEqual([{ attempts: offsets.length }]);
+    expect(h.frames('session.closed')).toEqual([{ code: 1006, reason: '' }]);
+    expect(h.frames('session.connection_lost')).toEqual([{ attempts: offsets.length }]);
     expect(h.timers()).toBe(0);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
@@ -266,6 +334,8 @@ describe('the Qwen adapter reconnects: own key', () => {
     halfway.drop();
     await flush();
     expect(h.frames('session.reconnect_failed')).toEqual([{ attempt: 1, message: expect.stringMatching(/^Qwen closed the connection before the session started/) }]);
+    expect(h.frames('session.closed')).toEqual([{ code: 1011, reason: '' }, { code: 1006, reason: '' }]);
+    expect(h.frames('session.connection_lost')).toEqual([]);
     h.clock.advance(250);
     await comeBack(h, 'sess_3');
     expect(types(h.socket())).toEqual(['session.update']);
@@ -354,7 +424,7 @@ describe('the Qwen adapter reconnects: own key', () => {
 describe('the Qwen adapter reconnects: managed', () => {
   it("managed: an expired token is reissued and the new socket's Authorization carries it", async () => {
     // The grant's token has lapsed by the drop (it lasts 60 s): the lease answers a fresh one.
-    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000 });
+    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true });
     const h = await live({ lease, requestIds: [REQ_1, REQ_2] });
     expect(lease.port.sessionCreated.mock.calls).toEqual([['sess_1', REQ_1]]);
     const first = h.socket();
@@ -382,7 +452,7 @@ describe('the Qwen adapter reconnects: managed', () => {
 
   it('managed: a still-valid token is reused', async () => {
     // The lease answers the token it holds while it lasts (`lease.ts`, until 5 s before its expiry, for both legs): every attempt dials it, and nothing counts as reissued.
-    const held: QwenReissue = { ok: true, apiKey: TOKEN_0, expiresAt: 60_000 };
+    const held: QwenReissue = { ok: true, apiKey: TOKEN_0, expiresAt: 60_000, fresh: false };
     const lease = fakeLease(held, held);
     const h = await live({ lease });
     h.socket().serverClose(1011);
@@ -396,8 +466,17 @@ describe('the Qwen adapter reconnects: managed', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
+  it("managed: a new token the cache served — the other leg's fetch — is dialled, and nothing counts as reissued for this leg", async () => {
+    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false });
+    const h = await live({ lease });
+    h.socket().serverClose(1011);
+    await comeBack(h);
+    expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, `Bearer ${TOKEN_1}`]);
+    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 1, credentialsReissued: false, reissueMs: 0, budgetShared: false }]);
+  });
+
   it('a retryable reissue failure is a failed attempt; the next one asks again', async () => {
-    const lease = fakeLease({ ok: false, retry: true, message: 'HTTP 503' }, { ok: true, apiKey: TOKEN_1, expiresAt: 60_000 });
+    const lease = fakeLease({ ok: false, retry: true, message: 'HTTP 503' }, { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true });
     const h = await live({ lease });
     h.socket().serverClose(1011);
     await flush();
@@ -410,6 +489,100 @@ describe('the Qwen adapter reconnects: managed', () => {
     await comeBack(h);
     expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it("managed: Qwen refusing a cached token at an attempt's handshake is a failed attempt; the next asks past the cache and comes back", async () => {
+    // Refused by an error frame, or by the words of the close before the session started.
+    const refusals: Array<(s: FakeSocket) => void> = [
+      (s) => s.receive(SERVER.error('InvalidApiToken', 'Invalid API token.')),
+      (s) => s.serverClose(1008, 'API Token is expired.'),
+    ];
+    for (const refuse of refusals) {
+      const lease = fakeLease({ ok: true, apiKey: TOKEN_0, expiresAt: 60_000, fresh: false }, { ok: true, apiKey: TOKEN_1, expiresAt: 120_000, fresh: true });
+      const h = await live({ lease });
+      h.socket().serverClose(1011);
+      await flush();
+      expect(lease.port.reissue).toHaveBeenNthCalledWith(1);
+      h.socket().open();
+      await flush();
+      h.socket().receive(SERVER.created('sess_2'));
+      refuse(h.socket());
+      await flush();
+      expect(h.of('failed')).toEqual([]);
+      expect(h.frames('session.reconnect_failed')).toHaveLength(1);
+      h.clock.advance(250);
+      await flush();
+      expect(lease.port.reissue).toHaveBeenNthCalledWith(2, { refused: TOKEN_0 });
+      expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, `Bearer ${TOKEN_0}`, `Bearer ${TOKEN_1}`]);
+      await comeBack(h, 'sess_3');
+      expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
+      expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+    }
+  });
+
+  it('managed: a token fetched for an earlier drop, served by the cache and refused in this one, is asked past', async () => {
+    const lease = fakeLease(
+      { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true },
+      { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false },
+      { ok: true, apiKey: 'st-token-2', expiresAt: 120_000, fresh: true },
+    );
+    const h = await live({ lease });
+    h.socket().serverClose(1011);
+    await comeBack(h);
+    h.clock.advance(20_000);
+    h.socket().serverClose(1011);
+    await flush();
+    h.socket().open();
+    await flush();
+    h.socket().receive(SERVER.created('sess_3'));
+    h.socket().receive(SERVER.error('InvalidApiToken', 'Invalid API token.'));
+    await flush();
+    expect(h.of('failed')).toEqual([]);
+    h.clock.advance(250);
+    await flush();
+    expect(lease.port.reissue).toHaveBeenNthCalledWith(3, { refused: TOKEN_1 });
+    await comeBack(h, 'sess_4');
+    expect(h.of('reconnected').map((e) => e.payload!.attempts)).toEqual([1, 2]);
+  });
+
+  it('managed: Qwen refusing a token fetched for this drop gives up with auth, whichever attempt dialled it', async () => {
+    const auth = (s: FakeSocket) => s.receive(SERVER.error('InvalidApiToken', 'Invalid API token.'));
+    const expected = (attempts: number) => [{
+      kind: 'failed',
+      payload: { code: 'auth', message: '[Qwen InvalidApiToken] Invalid API token.', drop: dropOf({ cause: 'close', closeCode: 1011 }, true), giveUp: { attempts, reason: 'terminal_error', errorCode: 'auth' } },
+    }];
+    // Fetched by this attempt.
+    {
+      const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true });
+      const h = await live({ lease });
+      h.socket().serverClose(1011);
+      await flush();
+      h.socket().open();
+      await flush();
+      h.socket().receive(SERVER.created('sess_2'));
+      auth(h.socket());
+      await flush();
+      expect(h.of('failed')).toEqual(expected(1));
+      expect(lease.port.reissue).toHaveBeenCalledTimes(1);
+      expect(h.timers()).toBe(0);
+    }
+    // Fetched by the attempt before, whose socket never opened; the cache serves it to this one.
+    {
+      const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true }, { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false });
+      const h = await live({ lease });
+      h.socket().serverClose(1011);
+      await failAttempt(h);
+      h.clock.advance(250);
+      await flush();
+      h.socket().open();
+      await flush();
+      h.socket().receive(SERVER.created('sess_2'));
+      auth(h.socket());
+      await flush();
+      expect(h.of('failed')).toEqual(expected(2));
+      expect(lease.port.reissue).toHaveBeenNthCalledWith(2);
+      expect(h.timers()).toBe(0);
+    }
   });
 
   it('a refusal stops the attempts: sign_in_required and wallet_frozen as themselves, any other as connection_lost with its code; lease_ended gives up as such', async () => {
@@ -445,7 +618,7 @@ describe('the Qwen adapter reconnects: managed', () => {
     const n = h.log.length;
     await h.session.stop();
     expect(h.timers()).toBe(0);
-    lease.answer({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000 });
+    lease.answer({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true });
     await flush();
     h.clock.advance(60_000);
     await flush();
@@ -619,7 +792,7 @@ describe('the Qwen adapter reconnects: split legs and the conformance scenario',
   });
 
   it('the reconnecting scenario passes, own key and managed', async () => {
-    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000 });
+    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true });
     for (const harness of [qwenHarness(), qwenHarness(managed(lease))]) {
       const report = await runScenario(harness, 'reconnect');
       expect(report.violations).toEqual([]);

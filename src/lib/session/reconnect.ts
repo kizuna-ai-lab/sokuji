@@ -60,6 +60,25 @@ export interface Reconnector {
 
 const LOST = 'connection_lost';
 
+/**
+ * A lease's refusal to reissue, as the attempt's answer (spec §6): final.
+ * The two the user can act on show as themselves; any other as the
+ * connection lost, its own code kept as `refusalCode`; `lease_ended` gives
+ * up as such.
+ */
+export function refusalResult(answer: { code: string; message: string }): AttemptResult {
+  const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
+  return {
+    ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
+    code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
+  };
+}
+
+/** A reissue that could not answer (a 5xx, its per-minute limit, the network, a timeout): a failed attempt, the next one asking again; the time it took counts. */
+export function reissueFailed(message: string, reissueMs: number): AttemptResult {
+  return { ok: false, final: false, code: 'reissue_failed', message, reissued: false, reissueMs };
+}
+
 /** Server-side ends we retry: a transport-level close. Everything else, including an unknown code, says the request or the session is over. */
 export function closeCodeAction(code: number | undefined): 'reconnect' | 'end' {
   if (code === undefined) return 'end';

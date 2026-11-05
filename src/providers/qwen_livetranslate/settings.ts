@@ -159,17 +159,27 @@ export const qwenLanguages: Provider<QwenSettings, never, never>['languages'] = 
   wire: identityWire(),
 };
 
-/** The answer to `reissue()`: a usable token for the lease (the cached one while it lasts, else a fresh one), or why there is none. */
+/**
+ * The answer to `reissue()`: a usable token for the lease (the cached one
+ * while it lasts, else a fresh one), or why there is none. `fresh`: a
+ * request answered this call — its own, or the one the other leg's call
+ * had in flight — so new credentials were fetched; false: the cache's.
+ */
 export type QwenReissue =
-  | { ok: true; apiKey: string; expiresAt: number }
+  | { ok: true; apiKey: string; expiresAt: number; fresh: boolean }
   | { ok: false; retry: true; message: string }
   | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'unsupported'; message: string };
 
 /** What the managed leg tells its lease: the session the endpoint opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
 export interface QwenLeasePort {
   sessionCreated(id: string, requestId?: string): void;
-  /** A token for a reconnecting leg: the lease's cached one while it is valid, else one request shared by both legs. */
-  reissue(): Promise<QwenReissue>;
+  /**
+   * A token for a reconnecting leg: the lease's cached one while it is valid,
+   * else one request shared by both legs. `refused`: the token Qwen just
+   * refused at a handshake — while the cache still holds it, the cache drops
+   * it and a request is made.
+   */
+  reissue(opts?: { refused?: string }): Promise<QwenReissue>;
 }
 
 export interface QwenCredentials {

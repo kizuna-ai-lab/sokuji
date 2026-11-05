@@ -37,7 +37,7 @@ import { framePayload } from '../../lib/contract/framePayload';
 import { HeaderSocketError, ruleFor, type OpenHeaderSocket } from '../../lib/contract/headerSocket';
 import { WS_OPEN } from '../../lib/contract/socket';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import { closeCodeAction, createReconnector, type AttemptResult, type DropInfo, type GiveUp, type Reconnector } from '../../lib/session/reconnect';
+import { closeCodeAction, createReconnector, refusalResult, reissueFailed, type AttemptResult, type DropInfo, type GiveUp, type Reconnector } from '../../lib/session/reconnect';
 import { isVoiced } from '../../lib/session/turn';
 import type { DetectEndpoint, Detection } from './check';
 import type { QwenConfig } from './config';
@@ -98,18 +98,28 @@ export const NEVER_OPENED_MANAGED = "Qwen's socket did not open (check the netwo
 /** Why the leg fails when the connection closed with no words, or a reconnect gave up with no attempt's words: worded by the `connection_lost` alias. */
 export const CONNECTION_LOST = 'The connection to Qwen was lost.';
 const LOST = 'connection_lost';
-/** What an attempt's handshake can answer that another attempt would only hear again: the key, a limit, a refused request, a model the key may not use. */
+/** What an attempt's handshake can answer that another attempt would only hear again: the key, a quota, a refused request, a model the key may not use. */
 const TERMINAL = new Set(['auth', 'rate_limit', 'client', 'model_access_denied']);
+/** The errors a new session may well not meet: the server's own fault, a request rate that has passed. */
+const RETRYABLE = new Set(['server', 'throttled']);
+/**
+ * A 1007 that ends the session, not the request (probe 2026-10-16): idle for
+ * 300 s, or 30 s of audio with no speech. A new session starts both counts
+ * afresh.
+ */
+const SESSION_SPENT = /Idle timeout|no semantic result after merged audio/i;
 
 /**
  * What a live socket's close means (spec 2026-11-05 reconnect §4.1; open
  * point §9.2): the error just before it decides first, by the code its words
- * fall under (`errorCode`) — the server's own fault reconnects; the key, a
- * limit, a request the model refuses or a model the key may not use end —
- * else the close by its code.
+ * fall under (`errorCode`) — the server's own fault or a passing request
+ * rate reconnects; the key, a quota, a request the model refuses or a model
+ * the key may not use end — then a 1007 for a spent session, which
+ * reconnects; else the close by its code.
  */
-export function qwenDropAction(e: { close?: number; recent?: { code: string } }): 'reconnect' | 'end' {
-  if (e.recent) return e.recent.code === 'server' ? 'reconnect' : 'end';
+export function qwenDropAction(e: { close?: number; reason?: string; recent?: { code: string } }): 'reconnect' | 'end' {
+  if (e.recent) return RETRYABLE.has(e.recent.code) ? 'reconnect' : 'end';
+  if (e.close === 1007 && e.reason !== undefined && SESSION_SPENT.test(e.reason)) return 'reconnect';
   return closeCodeAction(e.close);
 }
 
@@ -170,6 +180,10 @@ class QwenLeg implements AdapterSession {
   private lastFailure: string | null = null;
   /** The connection an attempt brought back dropped before the reconnector had said so: that drop, taken up once it has. */
   private dropBehind: DropInfo | null = null;
+  /** Managed: the token a request fetched for this drop. Qwen refusing it is final; refusing one the cache served is not. */
+  private freshToken: string | null = null;
+  /** Managed: a cached token Qwen refused at an attempt's handshake: the next reissue asks past the cache. */
+  private refusedToken: string | null = null;
   /** The last mid-session `error`, and when: the words of a close that follows it closely. */
   private lastError: { code: string; message: string; at: number } | null = null;
   /** `session.unreadable` on the ok → failing transition only, a frame's and an audio delta's each. */
@@ -568,7 +582,8 @@ class QwenLeg implements AdapterSession {
         socket.onerror = () => this.frame('in', 'session.socket_error');
         socket.onclose = (e: CloseEvent) => {
           if (!settled) {
-            this.frame('in', 'session.connection_lost', { code: e.code, reason: e.reason });
+            // An attempt's close is one of the reconnect's; `session.connection_lost` is the start's, and the give-up's.
+            this.frame('in', this.reconnector.active ? 'session.closed' : 'session.connection_lost', { code: e.code, reason: e.reason });
             settle(new AdapterStartError(`Qwen closed the connection before the session started (${closeWords(e)}).`, e.reason ? errorCode({ code: null, message: e.reason }) : 'server'));
           } else if (socket === this.socket) this.closed(e);
         };
@@ -743,15 +758,17 @@ class QwenLeg implements AdapterSession {
    * recent error's words, else the close's, else the lost connection's.
    */
   private closed(e: CloseEvent): void {
-    this.frame('in', 'session.connection_lost', { code: e.code, reason: e.reason });
     const recent = this.recentError();
     const drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'> = recent
       ? { cause: 'error', closeCode: e.code, errorCode: recent.code }
       : { cause: 'close', closeCode: e.code };
-    if (qwenDropAction({ close: e.code, ...(recent ? { recent } : {}) }) === 'reconnect') {
+    if (qwenDropAction({ close: e.code, reason: e.reason, ...(recent ? { recent } : {}) }) === 'reconnect') {
+      // The close's own Logs line: `session.connection_lost` is the give-up's.
+      this.frame('in', 'session.closed', { code: e.code, reason: e.reason });
       this.dropped(drop);
       return;
     }
+    this.frame('in', 'session.connection_lost', { code: e.code, reason: e.reason });
     const reason = e.reason ? { code: null, message: e.reason } : null;
     const failure = recent ?? (reason ? { code: errorCode(reason), message: errorWords(reason) } : { code: LOST, message: CONNECTION_LOST });
     this.end({ ...failure, drop: this.dropInfo(drop, false) });
@@ -792,9 +809,16 @@ class QwenLeg implements AdapterSession {
       this.dropBehind = this.dropInfo(drop, true);
       return;
     }
-    this.drop = this.dropInfo(drop, true);
+    this.newDrop(this.dropInfo(drop, true));
+  }
+
+  /** A drop the reconnector takes up: its words, and the tokens it fetched or saw refused, start afresh. */
+  private newDrop(drop: DropInfo): void {
+    this.drop = drop;
     this.lastFailure = null;
-    this.reconnector.dropped(this.drop);
+    this.freshToken = null;
+    this.refusedToken = null;
+    this.reconnector.dropped(drop);
   }
 
   /**
@@ -808,9 +832,7 @@ class QwenLeg implements AdapterSession {
     const behind = this.dropBehind;
     this.dropBehind = null;
     if (!behind || this.phase === 'ended') return;
-    this.drop = behind;
-    this.lastFailure = null;
-    this.reconnector.dropped(behind);
+    this.newDrop(behind);
   }
 
   /**
@@ -840,9 +862,10 @@ class QwenLeg implements AdapterSession {
    * legs, else one request for both — a refusal stopping the attempts. Then
    * the start's own connect, on the endpoint the start dialled: a new
    * session, whose update and report go as at the start. An answer the
-   * handshake would give again (`TERMINAL`) stops them too, in its own code.
-   * The signal, every attempt's of this drop, aborts at the budget's end and
-   * on a stop.
+   * handshake would give again (`TERMINAL`) stops them too, in its own code
+   * — but for Qwen refusing a token the lease's cache served (lapsed early,
+   * revoked): the next attempt asks past the cache. The signal, every
+   * attempt's of this drop, aborts at the budget's end and on a stop.
    */
   private async attempt(signal: AbortSignal): Promise<AttemptResult> {
     const { clock, credentials } = this.request;
@@ -856,23 +879,20 @@ class QwenLeg implements AdapterSession {
     // An answer nobody reads; it leaves the last failure's words as they were.
     const abandoned: AttemptResult = { ok: false, final: false, code: LOST, message: 'The attempt was abandoned.', reissued: false, reissueMs: 0 };
     if (lease) {
+      const refused = this.refusedToken;
+      this.refusedToken = null;
       const asked = clock.now();
-      const answer = await lease.reissue();
+      const answer = await (refused !== null ? lease.reissue({ refused }) : lease.reissue());
       reissueMs = clock.now() - asked;
       // Abandoned meanwhile (a stop, the budget's end): nobody reads the answer, and nothing opens.
       if (signal.aborted || this.hasEnded()) return abandoned;
       if (!answer.ok) {
-        if (answer.retry) return failed('reissue_failed', answer.message);
-        // A refusal stops the attempts: the two the user can act on show as themselves, any other as the connection lost (spec §6).
-        const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
         this.lastFailure = answer.message;
-        return {
-          ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
-          code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
-        };
+        // A refusal stops the attempts (spec §6); a reissue that could not answer is a failed attempt.
+        return answer.retry ? reissueFailed(answer.message, reissueMs) : refusalResult(answer);
       }
-      // The same token is the lease's cached one: nothing new was issued.
-      reissued = answer.apiKey !== this.apiKey;
+      reissued = answer.fresh;
+      if (answer.fresh) this.freshToken = answer.apiKey;
       this.apiKey = answer.apiKey;
     }
     // A handshake an attempt before this one left halfway starts over.
@@ -885,6 +905,11 @@ class QwenLeg implements AdapterSession {
       if (signal.aborted || this.hasEnded()) return abandoned;
       const code = error instanceof AdapterStartError ? error.code : 'network';
       const message = describeCause(error);
+      // Qwen refused a token the cache served: the next attempt asks past the cache. One fetched for this drop is refused for good, as an own key is.
+      if (code === 'auth' && lease && this.apiKey !== this.freshToken) {
+        this.refusedToken = this.apiKey;
+        return failed(code, message);
+      }
       if (!TERMINAL.has(code)) return failed(code, message);
       this.lastFailure = message;
       return { ok: false, final: true, reason: 'terminal_error', code, message };

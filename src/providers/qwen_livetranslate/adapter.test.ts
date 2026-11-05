@@ -614,9 +614,9 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
 
   it('a close the table ends, with words and no error, fails in its words; with none it is the lost connection; an old error words neither (spec 2026-11-05 reconnect §4.1)', async () => {
     const worded = await qwenSession();
-    worded.socket().serverClose(1007, 'Idle timeout!');
+    worded.socket().serverClose(1008, 'Internal error');
     await flush();
-    expect(worded.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Qwen] Idle timeout!', drop: ended({ cause: 'close', closeCode: 1007 }) }]);
+    expect(worded.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Qwen] Internal error', drop: ended({ cause: 'close', closeCode: 1008 }) }]);
 
     const bare = await qwenSession();
     bare.socket().serverClose(1008);

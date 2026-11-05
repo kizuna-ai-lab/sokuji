@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { trackedClock } from '../contract/testing/trackedClock';
 import { flush } from '../contract/testing/drive';
 import {
-  createReconnector, closeCodeAction, MAX_RECONNECTS,
+  createReconnector, closeCodeAction, MAX_RECONNECTS, refusalResult, reissueFailed,
   type AttemptResult, type DropInfo, type GiveUp, type ReconnectedInfo,
 } from './reconnect';
 
@@ -339,5 +339,24 @@ describe('closeCodeAction', () => {
     for (const code of [1000, 1001, 1005, 1006, 1011, 1012, 1013, 1014]) expect(closeCodeAction(code), String(code)).toBe('reconnect');
     for (const code of [1003, 1007, 1008, 1009, 1010, 4000]) expect(closeCodeAction(code), String(code)).toBe('end');
     expect(closeCodeAction(undefined)).toBe('end');
+  });
+});
+
+describe('refusalResult and reissueFailed: a lease\'s answer as an attempt\'s (spec §6)', () => {
+  it('a refusal is final: sign_in_required and wallet_frozen as themselves, any other as connection_lost, its code kept; lease_ended gives up as such', () => {
+    const cases: Array<[string, string, 'refused' | 'lease_ended']> = [
+      ['sign_in_required', 'sign_in_required', 'refused'],
+      ['wallet_frozen', 'wallet_frozen', 'refused'],
+      ['reissue_limit', 'connection_lost', 'refused'],
+      ['unsupported', 'connection_lost', 'refused'],
+      ['lease_ended', 'connection_lost', 'lease_ended'],
+    ];
+    for (const [refusal, code, reason] of cases) {
+      expect(refusalResult({ code: refusal, message: 'said so' }), refusal).toEqual({ ok: false, final: true, reason, code, message: 'said so', refusalCode: refusal });
+    }
+  });
+
+  it('a reissue that could not answer is a failed attempt, the time it took counted', () => {
+    expect(reissueFailed('HTTP 503', 120)).toEqual({ ok: false, final: false, code: 'reissue_failed', message: 'HTTP 503', reissued: false, reissueMs: 120 });
   });
 });

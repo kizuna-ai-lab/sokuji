@@ -659,13 +659,13 @@ describe('Qwen lease: reissue', () => {
   it('a token still valid is reused without a request', async () => {
     const a = await reissuer();
     const before = a.calls.length;
-    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 60_000 });
+    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 60_000, fresh: false });
     expect(a.calls.length).toBe(before);
   });
 
   it('seeds the cache a minute out when the grant names no expiry', async () => {
     const a = await reissuer(['speaker'], {}, { expiresAt: undefined });
-    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 55_000 });
+    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 55_000, fresh: false });
   });
 
   it('an expired token fetches one; both legs calling together make one request', async () => {
@@ -680,11 +680,12 @@ describe('Qwen lease: reissue', () => {
     expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
     expect(JSON.parse(call.init.body as string)).toEqual({ leaseId: 'lease-1' });
     call.respond(200, { leaseId: 'lease-1', region: 'sg', endpoint: 'intl', apiKey: FRESH, expiresAt: 120_000 });
-    const ok = { ok: true, apiKey: FRESH, expiresAt: 120_000 };
+    // Both answered by the one request: each leg's call fetched new credentials.
+    const ok = { ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: true };
     await expect(speaker).resolves.toEqual(ok);
     await expect(participant).resolves.toEqual(ok);
-    // The new token is the lease's now: a later call reuses it.
-    await expect(a.ports.participant.reissue()).resolves.toEqual(ok);
+    // The new token is the lease's now: a later call reuses it, from the cache.
+    await expect(a.ports.participant.reissue()).resolves.toEqual({ ...ok, fresh: false });
     expect(a.to(REISSUE)).toHaveLength(1);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(FRESH);
   });
@@ -700,7 +701,45 @@ describe('Qwen lease: reissue', () => {
     await flush();
     expect(a.to(REISSUE)).toHaveLength(2);
     a.to(REISSUE)[1].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
-    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH });
+    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
+  });
+
+  it('a token Qwen refused is dropped from the cache and fetched again, while it is still valid', async () => {
+    const a = await reissuer(['speaker']);
+    const p = a.ports.speaker.reissue({ refused: GRANT_KEY });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(1);
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: true });
+    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(1);
+  });
+
+  it('both legs refused the same token make one request; a refusal of a token the cache no longer holds is answered from the cache', async () => {
+    const a = await reissuer();
+    const speaker = a.ports.speaker.reissue({ refused: GRANT_KEY });
+    const participant = a.ports.participant.reissue({ refused: GRANT_KEY });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(1);
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
+    await expect(speaker).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
+    await expect(participant).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
+    // A leg that dialled the old token and was refused after the other leg's fetch landed: the new token, no request.
+    await expect(a.ports.participant.reissue({ refused: GRANT_KEY })).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(1);
+  });
+
+  it('a refused token whose fetch fails is not served again', async () => {
+    const a = await reissuer(['speaker']);
+    const first = a.ports.speaker.reissue({ refused: GRANT_KEY });
+    await flush();
+    a.to(REISSUE)[0].respond(503, { error: 'qwen_busy' });
+    await expect(first).resolves.toMatchObject({ ok: false, retry: true });
+    const second = a.ports.speaker.reissue();
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
+    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
   });
 
   it('sends the fresh bearer from getToken, falling back to the cached one when it fails', async () => {

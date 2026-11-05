@@ -474,7 +474,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           // A release may have landed while the request was out: a dead lease takes no key.
           if (released) return leaseEnded();
           cached = { apiKey, expiresAt };
-          return { ok: true, apiKey, expiresAt };
+          return { ok: true, apiKey, expiresAt, fresh: true };
         }
         if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
         if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
@@ -489,9 +489,12 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         ctx.signal.removeEventListener('abort', onAbort);
       }
     };
-    const reissue = (): Promise<QwenReissue> => {
+    const reissue = (opts: { refused?: string } = {}): Promise<QwenReissue> => {
       if (released) return Promise.resolve(leaseEnded());
-      if (ctx.clock.now() < cached.expiresAt - TOKEN_REFRESH_MARGIN_MS) return Promise.resolve({ ok: true, apiKey: cached.apiKey, expiresAt: cached.expiresAt });
+      // A token Qwen refused is the cache's no more — only while the cache still holds it: the other leg, refused the same
+      // token, joins the request in flight or takes its answer, and never forces a second one.
+      if (opts.refused !== undefined && opts.refused === cached.apiKey) cached = { apiKey: cached.apiKey, expiresAt: -Infinity };
+      if (ctx.clock.now() < cached.expiresAt - TOKEN_REFRESH_MARGIN_MS) return Promise.resolve({ ok: true, apiKey: cached.apiKey, expiresAt: cached.expiresAt, fresh: false });
       // Both legs may ask at once: one request, one answer for both.
       reissuing ??= requestReissue().finally(() => { reissuing = null; });
       return reissuing;

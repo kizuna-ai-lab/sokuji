@@ -142,11 +142,18 @@ export function errorWords(e: QwenError): string {
   return `[Qwen${e.code ? ` ${e.code}` : ''}] ${clipped}`;
 }
 
-/** The notice code its words fall under (spec §6): the key, a limit, a request the model refuses, a model the key's region has not enabled, else the server's. */
+/**
+ * The notice code its words fall under (spec §6): the key, a quota spent, a
+ * request rate passed (`throttled`, which passes: worded as `rate_limit`, and
+ * a reconnect retries it, spec 2026-11-05 reconnect §4.1), a request the
+ * model refuses, a model the key's region has not enabled, else the
+ * server's. The quota first: its code is a `Throttling.` one too.
+ */
 export function errorCode(e: QwenError): string {
   const said = `${e.code ?? ''} ${e.message ?? ''}`;
   if (/InvalidApiKey|InvalidApiToken|API Token is expired/i.test(said)) return 'auth';
-  if (/rate limit|throttl|quota exceeded|Allocated quota/i.test(said)) return 'rate_limit';
+  if (/quota exceeded|Allocated quota|AllocationQuota/i.test(said)) return 'rate_limit';
+  if (/rate limit|throttl/i.test(said)) return 'throttled';
   if (/not supported|invalid_value|InvalidParameter|invalid .*parameter/i.test(said)) return 'client';
   // Only the unpurchased model: Alibaba's other AccessDenied codes have other remedies.
   if (/AccessDenied\.Unpurchased/.test(said)) return 'model_access_denied';

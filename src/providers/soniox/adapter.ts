@@ -26,7 +26,7 @@ import { framePayload } from '../../lib/contract/framePayload';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { AUTO } from '../../lib/provider/languages';
-import { closeCodeAction, createReconnector, type AttemptResult, type DropInfo, type GiveUp, type Reconnector } from '../../lib/session/reconnect';
+import { closeCodeAction, createReconnector, refusalResult, reissueFailed, type AttemptResult, type DropInfo, type GiveUp, type Reconnector } from '../../lib/session/reconnect';
 import { PcmMixer } from './pcmMixer';
 import { SonioxSideTracker } from './sideTracker';
 import { nativeSocket, type OpenSocket } from './socket';
@@ -581,14 +581,9 @@ class SonioxCore {
       // Abandoned meanwhile (a stop, the budget's end): nobody reads the answer, and nothing more opens.
       if (signal.aborted || this.ended) return abandoned;
       if (!answer.ok) {
-        if (answer.retry) return failed('reissue_failed', answer.message);
-        // A refusal stops the attempts: the two the user can act on show as themselves, any other as the connection lost (§6).
-        const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
         this.lastFailure = answer.message;
-        return {
-          ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
-          code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
-        };
+        // A refusal stops the attempts (§6); a reissue that could not answer is a failed attempt.
+        return answer.retry ? reissueFailed(answer.message, reissueMs) : refusalResult(answer);
       }
       this.key = { stt: answer.stt, clientReferenceId: answer.clientReferenceId, expiresAt: answer.expiresAt, spent: false };
       reissued = true;
