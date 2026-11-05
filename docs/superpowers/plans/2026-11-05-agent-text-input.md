@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-agent-text-input-design.md`. This plan covers §4 only. §6, §7 and §8 are not tasks, except Task 9's checklist.
 
+**Amended after the measurement (2026-11-05):** split Both sends no agent text and does not ask for the flag; the flag is asked for only when the switch is on at Start, and the switch is read at Start (spec §4.1, §4.3). Where this plan says "every microphone socket of a run that may speak" or "read at each chunk", the spec now rules.
+
 ## Global Constraints
 
 - The model stays `stt-rt-v6` (`SONIOX_STT_MODEL`). `sttStream.ts` takes no new import: the mobile app shares it (`domFree.test.ts`).
