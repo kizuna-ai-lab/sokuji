@@ -389,11 +389,11 @@ export type SonioxReissue =
   - **Breaks:**
     - Wi-Fi off for 5 s, and a VPN toggle. Expected: it reconnects, the status line counts, and the notice appears.
     - Wi-Fi off for 40 s. Expected: it gives up with "connection lost".
-- [ ] **Step 4: Hand over.** Opening the PR to `kizuna-ai-lab/sokuji` waits for jiangzhuo's go-ahead. The PR body and issue text carry no internal task numbers or names.
+- [ ] **Step 4: Hand over.** Opening the PR to `kizuna-ai-lab/sokuji` waits for the owner's go-ahead. The PR body and issue text carry no internal task numbers or names.
 
 ## Part C: replaying the gap's audio (Soniox only; deferred)
 
-Not in this round: jiangzhuo, 2026-11-05 14:52Z, wants reconnect finished first and replay after it. This part is kept as the starting point for that follow-up and is not executed with Parts A and B.
+Not in this round: the owner (2026-11-05) wants reconnect finished first and replay after it. This part is kept as the starting point for that follow-up and is not executed with Parts A and B.
 
 ### Task 11: Replay unfinalized audio after a reconnect
 

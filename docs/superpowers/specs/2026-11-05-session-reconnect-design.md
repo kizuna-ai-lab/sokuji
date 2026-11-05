@@ -10,7 +10,7 @@ This work makes a session survive an unexpected disconnect: the dropped connecti
 
 ## 2. Rulings
 
-From the owner (#sokuji, 2026-11-05):
+From the owner (2026-11-05):
 
 1. One mechanism for every provider: a shared interface and policy, each provider adapter implementing its own part.
 2. First delivery: Soniox and Qwen LiveTranslate, each both managed (Kizuna AI) and with the user's own key.
@@ -118,13 +118,13 @@ The policy numbers (attempt schedule, 30 s budget, connect bound, the flapping r
 
 ## 7. Backend (kizuna-ai-lab/sokuji-backend)
 
-Two endpoints, each issuing fresh credentials for a lease that is still running, and never more than that. Walter has checked the current accounting and will review this section line by line.
+Two endpoints, each issuing fresh credentials for a lease that is still running, and never more than that. The backend's current accounting was checked against this section in backend review.
 
 Rules for both:
 - The caller owns the lease; the lease is active (no session-end posted, not ending, not past its end); the wallet is not frozen. No balance floor (§6).
 - What is issued lasts only the lease's remaining time; the lease's end and its budget do not change, and nothing a reissue triggers moves the lease's expiry.
 - At most 150 reissues per lease and role (Soniox) and per lease (Qwen). That is more than the client's 100 reconnects (§4.2), because a drop whose connect outlasts the new key's 10 s start window takes a second key.
-- At most 6 reissues per lease in any 60 s for Soniox and 2 for Qwen (a working Qwen client reuses its 60 s token across drops and legs, and a looping two-leg Qwen lease at 6 would take its region's whole 10-a-minute start budget; implementation ruling, 2026-11-05), counted from what is already recorded (Soniox: the issued keys; Qwen: the token windows). Over it the answer is a retryable 429. A working Soniox client needs one per drop, and a working Qwen client reuses its token within its 60 s window; this stops a broken one that loops from using up the organisation's key minting (Walter, 2026-11-05).
+- At most 6 reissues per lease in any 60 s for Soniox and 2 for Qwen (a working Qwen client reuses its 60 s token across drops and legs, and a looping two-leg Qwen lease at 6 would take its region's whole 10-a-minute start budget; implementation ruling, 2026-11-05), counted from what is already recorded (Soniox: the issued keys; Qwen: the token windows). Over it the answer is a retryable 429. A working Soniox client needs one per drop, and a working Qwen client reuses its token within its 60 s window; this stops a broken one that loops from using up the organisation's key minting (backend review, 2026-11-05).
 - A reissue never creates a second lease, so the one-session-per-account rule holds.
 - A reissue whose own key or token mint fails answers a retryable error and leaves the lease as it is. A Soniox key row whose mint failed is kept and marked ended (`ended_at = issued_at`): it no longer holds the lease, but counts toward the 150 cap and the 6-per-60-s rate, so a client retrying through a Soniox outage is answered 429 after six and cannot mint keys in bulk. (Implementation ruling, 2026-11-05.)
 - The Qwen per-minute limit counts reissue windows only, not the lease's first (Start) window. (Implementation ruling.)
@@ -135,7 +135,7 @@ Soniox (`POST /soniox/session-key/reissue`, body `{ leaseId, role }`):
 - Each reissued key gets its own client reference id: today's four parts plus a sequence number (`…:<seq>`), so Soniox's usage log for it is still attributed to the same lease and role, and each key can be tracked on its own. A new `soniox_issued_keys` table (D1 migration) records per key: lease, role, sequence, issued, started, ended. `parseClientRefId` and the billing code that reads reference ids accept the extra part; the first key of a lease keeps today's four-part id.
 - `max_session_duration_seconds` is the lease's end minus now minus the key's start window, and that start window is short (10 s). Soniox counts a key's duration from the moment it connects, so a key that may connect up to its start window after issue could otherwise outlive the lease, and an account could start a second session when the lease expires while the old connection still runs (the "one balance, two sessions" case `markStarted` guards against). With this, the lease's expiry never moves.
 - The reconciler must change: today it marks a stream ended when it sees that stream's usage log (`noteStreamEnded`) and releases the lease when every stream has ended, without waiting for the client's session-end. A dropped connection's log arrives 2 to 5 s after the drop, so the lease would be released mid-session while the new connection runs.
-- The change (checked against the current code by Walter): a role ends when every key **started** for it has its usage log. Per key, as the bitmask does per role today: a key's `session-started` (by its reference id) marks it started, idempotently; its usage log (by its reference id) marks it ended, idempotently, so the reconciler's deliberate 60 s overlap between scans (`WATERMARK_OVERLAP_MS`) cannot count one log twice. A reissued key's `session-started` does not move the lease's expiry (today `markStarted` sets it to now + max duration). A key minted and never started produces no log and is not waited for. The alternative, releasing only after the client's session-end, is not taken: a client that crashes or is force-quit would keep the account locked until the lease expires, where today it clears within seconds.
+- The change (checked against the current code in backend review): a role ends when every key **started** for it has its usage log. Per key, as the bitmask does per role today: a key's `session-started` (by its reference id) marks it started, idempotently; its usage log (by its reference id) marks it ended, idempotently, so the reconciler's deliberate 60 s overlap between scans (`WATERMARK_OVERLAP_MS`) cannot count one log twice. A reissued key's `session-started` does not move the lease's expiry (today `markStarted` sets it to now + max duration). A key minted and never started produces no log and is not waited for. The alternative, releasing only after the client's session-end, is not taken: a client that crashes or is force-quit would keep the account locked until the lease expires, where today it clears within seconds.
 
 Qwen (`POST /qwen/session-key/reissue`, body `{ leaseId }`). Qwen leases are released only after the client's session-end or at expiry, so they need no take-back:
 - Signs a new token for the same lease and records its time window under that lease (`qwen-attribution.ts` attributes usage by the token's window and the reported session ids).
@@ -154,7 +154,7 @@ Release order: the D1 migration, then the backend (endpoints and the Soniox reco
 
 ## 9. Open points
 
-1. (Settled with Walter: per-key reference ids and the issued-keys table; the reissued key's duration shortened by its start window.)
+1. (Settled in backend review: per-key reference ids and the issued-keys table; the reissued key's duration shortened by its start window.)
 2. Qwen's exact error codes for "retryable" against "end" (from `wire.ts` `errorCode` and recorded sessions).
 
 ## 10. Left to the builder
