@@ -13,6 +13,15 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-session-reconnect-design.md` at f674d2c72, on this branch. The backend half is `kizuna-ai-lab/sokuji-backend` `docs/superpowers/plans/2026-11-05-reconnect-reissue.md` on branch `feat/reconnect-reissue`.
 
+## Rulings made during implementation
+
+The executing session recorded these against the plan text below; the spec is updated where they change it. Full list with reasons: the SDD ledger, summarised at hand-over.
+- Every Soniox 5xx reconnects (spec §4.1), not only 503/408.
+- Reconnect payload types live in `src/lib/contract/reconnect.ts` (lib/contract imports nothing from lib/session).
+- `AdapterSession.info.shared` marks a shared-Both pair; its analytics and totals count once per connection; the restored notice and the new events need the new payloads, so Gemini/OpenAI keep today's UI.
+- `notices.connection_restored` landed with Task 4, not Task 5.
+- `SONIOX_STALL_MS` is 5000 unmeasured; measure on a real session before release.
+
 ## Global Constraints
 
 - Schedule: attempts at 0, then 250, 500, 1 000, 2 000 and 4 000 ms, then every 4 000 ms, until 30 000 ms after the drop. Each attempt's connect is aborted at the budget's end.
