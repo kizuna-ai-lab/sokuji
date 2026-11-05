@@ -75,13 +75,14 @@ describe('Soniox session agentText (spec 2026-11-05 §4.2-§4.3)', () => {
     expect(h.agentFrames(0)).toEqual([{ type: 'agent_text', text: 'Hello.', end_of_segment: true }]);
   });
 
-  it("split Both: the speaker session sends on the speaker core's socket; the participant session sends nothing", async () => {
+  it('split Both takes no agent text (measured 2026-11-05): neither socket asks, neither session sends, nothing is logged', async () => {
     const h = await open('split');
+    for (const s of h.sttSockets()) expect(s.sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
+    expect(h.sessions.speaker!.agentText!('Hello.', false)).toBe(false);
     expect(h.sessions.participant!.agentText!('Hello.', false)).toBe(false);
-    expect(h.sessions.speaker!.agentText!('Hello.', false)).toBe(true);
+    expect(h.agentFrames(0)).toEqual([]);
     expect(h.agentFrames(1)).toEqual([]);
-    expect(h.agentFrames(0)).toEqual([{ type: 'agent_text', text: 'Hello.', end_of_segment: false }]);
-    expect(h.logged()).toEqual([{ text: 'Hello.', end_of_segment: false }]);
+    expect(h.logged()).toEqual([]);
   });
 
   it('nothing while a resume replaces the socket; the resumed socket takes the next (Review Focus 5)', async () => {

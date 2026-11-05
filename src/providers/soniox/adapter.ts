@@ -568,7 +568,10 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
   /** Split Both: two ordinary sessions; one that fails stops the other and is named (D22). */
   const startSplit: SonioxAdapter['startBoth'] = async (requests, events) => {
     const legs: LegName[] = ['speaker', 'participant'];
-    const settled = await Promise.allSettled(legs.map((leg) => startLeg(leg, requests[leg], events[leg])));
+    // Split Both takes no agent text (measured 2026-11-05: no gain with echo cancellation, worse talk-over): the speaker's socket does not ask, so its session refuses each chunk.
+    const { agentText: _off, ...stt } = requests.speaker.config.stt;
+    const split = { ...requests, speaker: { ...requests.speaker, config: { ...requests.speaker.config, stt } } };
+    const settled = await Promise.allSettled(legs.map((leg) => startLeg(leg, split[leg], events[leg])));
     const i = settled.findIndex((r) => r.status === 'rejected');
     if (i >= 0) {
       // Settled, so a stop that fails too never replaces the start's failure.

@@ -117,7 +117,7 @@ describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
     expect(h.log).toEqual(['speaker:["Hello ",false]']);
   });
 
-  it("split Both: the participant row's chunk on them goes to the speaker session, never the participant's (Review Focus 2)", async () => {
+  it("routing only: the participant row's chunk on them is offered to the speaker session, never the participant's (Review Focus 2); the Soniox adapter refuses it in split Both, see adapter.agentText.test.ts", async () => {
     const h = setup({ legs: ['speaker', 'participant'] }); h.outlets.now = ['them']; await h.runner.start();
     h.row('participant', 1, 'こんにちは。'); h.chunk('participant', 1, [0, 6]);
     expect(h.log).toEqual(['speaker:["こんにちは。",false]']);

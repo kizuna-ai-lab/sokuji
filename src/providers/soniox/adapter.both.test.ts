@@ -168,12 +168,11 @@ describe('Soniox startBoth: split', () => {
 });
 
 describe('Soniox startBoth: agent text (spec 2026-11-05 §4.3)', () => {
-  it('split: only the speaker socket asks for agent text, the participant speaking alone included (§4.3)', async () => {
+  it('split: no socket asks for agent text even when the run speaks, the participant speaking alone included (measured 2026-11-05)', async () => {
     const h = both({ sharedBoth: false, participantSpeaks: true, speaks: true });
     h.openAll(); await h.starting;
-    const [spk, par] = h.sttSockets();
-    expect(spk.sentJson<Json>()[0]).toMatchObject({ enable_agent_text_input: true });
-    expect(par.sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
+    expect(h.sttSockets()).toHaveLength(2);
+    for (const s of h.sttSockets()) expect(s.sentJson<Json>()[0]).not.toHaveProperty('enable_agent_text_input');
   });
   it('shared and face-to-face: the one socket asks', async () => {
     for (const o of [{ speaks: true }, { faceToFace: true, speaks: true }]) {
