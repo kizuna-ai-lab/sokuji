@@ -15,7 +15,7 @@ From the owner (#sokuji, 2026-11-05):
 1. One mechanism for every provider: a shared interface and policy, each provider adapter implementing its own part.
 2. First delivery: Soniox and Qwen LiveTranslate, each both managed (Kizuna AI) and with the user's own key.
 3. Managed sessions reconnect within the same session: the backend issues fresh credentials for the session already running. No second session, no new grant.
-4. Speech during the gap is dropped; the conversation says how long the connection was down. Buffering can come later.
+4. Speech during the gap is dropped. Buffering can come later. What the user is told (owner, 2026-11-05): while reconnecting, that it is reconnecting, the attempt number and how long it has been trying; after it, that it reconnected. Not how long it was down, nor how much speech may be lost.
 5. Give up about 30 s after the drop.
 6. Unchanged: a manual Start after a session ended still begins a new session and clears the screen. Normal ends (Stop, the balance spent, the session's time cap) never reconnect.
 
@@ -24,7 +24,7 @@ From the owner (#sokuji, 2026-11-05):
 Goals
 
 - An unexpected disconnect of a Soniox or Qwen connection, managed or own key, reconnects within about 30 s, and the conversation, its history and the session's countdown carry on.
-- While it reconnects the user sees "Reconnecting…" (the existing status, `src/lib/view/statusLine.ts`); after it, a line in the conversation says how long the connection was down; if it gives up, the session ends as it does today, with the reason.
+- While it reconnects the user sees that it is reconnecting, which attempt it is on and how long it has been trying (the existing "Reconnecting…" status, `src/lib/view/statusLine.ts`, extended); after it, a line in the conversation says the connection was lost and restored; if it gives up, the session ends as it does today, with the reason.
 - The mechanism is the same for both providers and ready for the next ones.
 
 Non-goals
@@ -72,7 +72,8 @@ Each adapter owns its table (the codes differ); the policy only asks "retryable 
 
 - At the drop: what the dropped connection had in flight (an unfinished segment, an utterance being read aloud for that leg) is closed as it stands, as a provider `failed` closes it today, but the leg stays and the run goes on. In manual-turn modes an open turn closes; a press still held when the connection comes back opens a turn on the new connection (Gemini's choice).
 - During the gap: captured audio is dropped (`appendAudio` has no connection); agent text is not sent; read-aloud already queued for the other leg keeps playing.
-- After it: one notice on the leg, "Connection lost for N s, reconnected" (localized), and new segments continue with the next reference numbers. Nothing is re-sent.
+- While reconnecting: the status line shows "Reconnecting… (attempt N, X s)" (localized), updated as attempts go.
+- After it: one notice on the leg, "Connection lost and restored" (localized), and new segments continue with the next reference numbers. Nothing is re-sent.
 - If it gives up: the leg fails as it does today (`connection_lost` or the actionable code), the run ends, auto-save runs. The conversation stays on screen until the next Start, as today.
 
 ### 4.4 Two connections
@@ -144,7 +145,6 @@ Release order: the D1 migration, then the backend (endpoints and the Soniox reco
 
 1. (Settled with Walter: per-key reference ids and the issued-keys table; the reissued key's duration shortened by its start window.)
 2. Qwen's exact error codes for "retryable" against "end" (from `wire.ts` `errorCode` and recorded sessions).
-3. Whether the notice should also say how much speech was likely lost, or only the down time.
 
 ## 10. Left to the builder
 
