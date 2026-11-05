@@ -94,6 +94,8 @@ export class Run {
   private readonly legOpens: Promise<unknown>[] = [];
   /** The text of the speech this run queues on the user's outlets, to the session that hears the microphone (spec 2026-11-05 §4.1, §4.2). */
   private readonly agentTextFeed: AgentTextFeed;
+  /** The agent-text switch, read once as the run starts: it decides both the flag and the sending, for the whole run. */
+  private readonly agentTextAtStart: boolean;
 
   /** Keeps `task` among the opens `close()` waits for. */
   private opened<T>(task: Promise<T>): Promise<T> {
@@ -108,9 +110,11 @@ export class Run {
     this.host = host(this);
     this.stack = new ResourceStack(deps.clock, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS, (f) =>
       reportWarning('SessionRunner', `Releasing ${f.name} failed: ${f.message}`, { dedupeKey: `release:${f.name}` }));
+    this.agentTextAtStart = deps.agentText?.get() ?? false;
     this.agentTextFeed = new AgentTextFeed({
       legs: shape.legs,
-      enabled: () => deps.agentText?.get() ?? false,
+      // Latched at Start, as the flag is: a mid-run flip never yields "flag on, no text" (spec 2026-11-05 §4.3).
+      enabled: () => this.agentTextAtStart,
       // The microphone reaches its socket: not while muted (capture delivers nothing), and then always in automatic
       // turns, in a manual mode only while the key is held (`send`).
       micOpen: () => !(deps.micMuted?.get() ?? false) && (shape.turnMode === 'auto' || this.turn?.isOpen === true),
@@ -174,8 +178,10 @@ export class Run {
     }
 
     const contexts = contextsFor(shape);
-    // Whether any leg may speak, told to every builder: a microphone socket readies itself for it (Soniox agent text, spec 2026-11-05 §4.3).
-    const shared: SharedSettings = { ...shape.shared, models: readiness.models, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
+    // Whether the run asks for agent text, told to every builder: some leg speaks AND the switch was on at Start (Soniox, spec 2026-11-05 §4.3).
+    // The flag alone, with no text sent, made Soniox drop talk-over turns when speech echoed into the mic (measured 2026-11-05), hence the switch.
+    // Whether the speech plays locally is not asked: speech that is not local makes no echo, which is harmless (run 2a).
+    const shared: SharedSettings = { ...shape.shared, models: readiness.models, asksAgentText: this.agentTextAtStart && shape.legs.some((leg) => contexts[leg]!.speech) };
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.

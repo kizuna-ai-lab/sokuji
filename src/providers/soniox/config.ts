@@ -156,7 +156,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       endpointSensitivity: clampNumber(s.endpointSensitivity, -1, 1, 0),
       endpointLatencyAdjustmentLevel: Math.round(clampNumber(s.endpointLatencyAdjustmentLevel, 0, 3, 0)),
       endpointMaxDelayMs: Math.round(clampNumber(s.endpointMaxDelayMs, 500, 3000, 2000)),
-      ...(!shared.reversed(context.direction) && shared.speaks === true ? { agentText: true as const } : {}),
+      ...(!shared.reversed(context.direction) && shared.asksAgentText === true ? { agentText: true as const } : {}),
     },
     ...(context.speech
       ? { tts: { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }

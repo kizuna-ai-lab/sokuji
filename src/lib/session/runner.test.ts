@@ -66,6 +66,7 @@ interface Options {
   closeTimeoutMs?: number;
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
   participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
+  agentText?: { get(): boolean };
 }
 
 function setup(o: Options = {}) {
@@ -128,22 +129,39 @@ function setup(o: Options = {}) {
     closeTimeoutMs: o.closeTimeoutMs,
     replayAudio: o.replayAudio,
     participantSpeech: o.participantSpeech,
+    agentText: o.agentText,
   });
   const events = (name: string) => tracked.filter(([e]) => e === name).map(([, p]) => p);
   return { clock, runner, sources, playback, events, shape, persistIfUnchanged, startRequests };
 }
 
 describe('runner — starting', () => {
-  it('tells every builder whether the run speaks at all (shared.speaks, spec 2026-11-05 §4.3)', async () => {
-    const cases = [[false, false, ['speaker'], true], [true, false, ['speaker'], false], [true, true, ['speaker', 'participant'], true]] as const;
-    for (const [textOnly, participantSpeech, legs, expected] of cases) {
+  it('tells every builder whether the run asks for agent text: some leg speaks AND the switch was on at Start (shared.asksAgentText, spec 2026-11-05 §4.3)', async () => {
+    const cases = [
+      // textOnly, participantSpeech, legs, switch, expected
+      [false, false, ['speaker'], true, true],
+      [true, false, ['speaker'], true, false],
+      [true, true, ['speaker', 'participant'], true, true],
+      [false, false, ['speaker'], false, false],
+      [true, true, ['speaker', 'participant'], false, false],
+    ] as const;
+    for (const [textOnly, participantSpeech, legs, switchOn, expected] of cases) {
       const seen: Array<boolean | undefined> = [];
-      const provider = { ...fakeProvider, build: (c: never, s: never, shared: SharedSettings) => { seen.push(shared.speaks); return fakeProvider.build(c, s, shared); } } as AnyProvider;
-      const { runner } = setup({ shape: { provider, textOnly, participantSpeech, legs: [...legs] } });
+      const provider = { ...fakeProvider, build: (c: never, s: never, shared: SharedSettings) => { seen.push(shared.asksAgentText); return fakeProvider.build(c, s, shared); } } as AnyProvider;
+      const { runner } = setup({ shape: { provider, textOnly, participantSpeech, legs: [...legs] }, agentText: { get: () => switchOn } });
       await runner.start();
       expect(seen).toEqual(legs.map(() => expected));
       await runner.stop();
     }
+  });
+
+  it('without a switch port nothing asks for agent text', async () => {
+    const seen: Array<boolean | undefined> = [];
+    const provider = { ...fakeProvider, build: (c: never, s: never, shared: SharedSettings) => { seen.push(shared.asksAgentText); return fakeProvider.build(c, s, shared); } } as AnyProvider;
+    const { runner } = setup({ shape: { provider } });
+    await runner.start();
+    expect(seen).toEqual([false]);
+    await runner.stop();
   });
 
   it('starts every leg it was asked for, goes running, and folds the script into the conversation', async () => {

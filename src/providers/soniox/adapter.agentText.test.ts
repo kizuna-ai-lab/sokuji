@@ -19,7 +19,7 @@ import { ERROR_503, isStt, KEY, SHARED, trackedClock, type Json } from './testin
 type Mode = 'me' | 'other' | 'split' | 'shared' | 'faceToFace';
 
 /** The app's rule (`shared.ts`): the participant's direction is the pair's reverse. */
-const SPEAKS: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja', speaks: true };
+const SPEAKS: SharedSettings = { ...SHARED, reversed: (direction) => direction.source === 'ja', asksAgentText: true };
 
 async function open(mode: Mode) {
   const sockets = fakeSockets();

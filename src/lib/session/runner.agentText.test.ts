@@ -3,7 +3,7 @@ import type { OutletName } from '../audio/outlets';
 import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
-import type { AnyProvider } from '../provider/types';
+import type { AnyProvider, SharedSettings } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -30,6 +30,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
   const kept: Partial<Record<LegName, AdapterEvents>> = {};
   const outlets: { now: readonly OutletName[] } = { now: ['me'] };
   const on = { value: true };
+  const asked: Array<boolean | undefined> = [];
   const muted = { value: false };
   let idleListener: ((voice: LegName) => void) | null = null;
   const start = async (request: StartRequest<unknown, unknown>, events: AdapterEvents): Promise<AdapterSession> => {
@@ -64,7 +65,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
   // Translation I hear, live (#595).
   const hear = { value: true, listeners: new Set<() => void>() };
   const shape: RunShape = {
-    provider: { ...fakeProvider, start } as unknown as AnyProvider,
+    provider: { ...fakeProvider, start, build: (c: never, st: never, shared: SharedSettings) => { asked.push(shared.asksAgentText); return fakeProvider.build(c, st, shared); } } as unknown as AnyProvider,
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -107,7 +108,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; switchPort?: b
     events(leg).audio({ pcm: new Int16Array(240), ref, ...(range ? { range } : {}), ...(voice ? { voice } : {}) });
   const idle = (voice: LegName) => idleListener?.(voice);
   const switchHearing = (next: boolean) => { hear.value = next; for (const listener of [...hear.listeners]) listener(); };
-  return { runner, log, speech, fault, outlets, on, muted, row, chunk, idle, events, switchHearing };
+  return { runner, asked, log, speech, fault, outlets, on, muted, row, chunk, idle, events, switchHearing };
 }
 
 describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
@@ -130,13 +131,25 @@ describe('runner — agent text (spec 2026-11-05 §4.1, §4.2)', () => {
     expect(h.log).toEqual(['speaker:["Hello ",false]', 'speaker:["",true]', 'speaker:stop']);
   });
 
-  it('reads the switch at each chunk (Review Focus 4)', async () => {
+  it('latches the switch at Start: switched off mid-run it keeps sending, switched on mid-run after an off Start nothing is sent (spec 2026-11-05 §4.3)', async () => {
     const h = setup(); await h.runner.start();
     h.row('speaker', 1, 'Hello there.');
     h.on.value = false; h.chunk('speaker', 1, [0, 6]);
-    expect(h.log).toEqual([]);
-    h.on.value = true; h.chunk('speaker', 1, [6, 12]);
-    expect(h.log).toEqual(['speaker:["there.",false]']);
+    expect(h.log).toEqual(['speaker:["Hello ",false]']);
+    await h.runner.stop();
+
+    const off = setup(); off.on.value = false; await off.runner.start();
+    off.row('speaker', 1, 'Hello there.'); off.chunk('speaker', 1, [0, 6]);
+    off.on.value = true; off.chunk('speaker', 1, [6, 12]);
+    expect(off.log).toEqual([]);
+  });
+
+  it('the mic session asks for agent text exactly when the switch is on at Start', async () => {
+    for (const [initial, expected] of [[true, true], [false, false]] as const) {
+      const h = setup(); h.on.value = initial; await h.runner.start();
+      expect(h.asked).toEqual([expected]);
+      await h.runner.stop();
+    }
   });
 
   it('push-to-talk: nothing while the key is up; after a press, only the next chunk goes (Review Focus 4)', async () => {
