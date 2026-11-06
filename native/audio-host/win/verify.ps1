@@ -110,7 +110,10 @@ $devicesText = (& $exe --devices) -join ''
 $devicesExit = $LASTEXITCODE
 $devicesShapeOk = $false
 try {
-    $devices = @($devicesText | ConvertFrom-Json)
+    # Windows PowerShell 5.1 emits a JSON array as ONE pipeline object, so a bare
+    # @(... | ConvertFrom-Json) nests it. The inner parentheses finish the
+    # pipeline first, which unrolls the array into rows.
+    $devices = @(($devicesText | ConvertFrom-Json))
     $devicesShapeOk = ($devicesExit -eq 0) -and ($devicesText.TrimStart().StartsWith('['))
 } catch {}
 $deviceKeys = @('id', 'label', 'isDefault', 'formFactor', 'enumerator')
