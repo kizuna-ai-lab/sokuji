@@ -75,6 +75,10 @@ describe('rule order', () => {
     const d = one(sink({ props: { 'factory.name': 'support.null-audio-sink', 'device.form_factor': 'speaker' } }));
     expect(d).toMatchObject({ formFactor: 'unknown', transport: 'virtual' });
   });
+  it('a plain PulseAudio null sink (no factory.name, driver module-null-sink.c) is unknown over virtual', () => {
+    const d = one({ ...sink({ props: { 'device.class': 'abstract', 'device.form_factor': 'headphone' } }), driver: 'module-null-sink.c' });
+    expect(d).toMatchObject({ formFactor: 'unknown', transport: 'virtual' });
+  });
   it('form_factor internal alone is unknown', () => {
     expect(one(sink({ props: { 'device.form_factor': 'internal' } })).formFactor).toBe('unknown');
   });
@@ -139,6 +143,22 @@ describe('text parser', () => {
     expect(list[0]).toMatchObject({ formFactor: 'headphones', transport: 'builtin', isDefault: false });
     expect(list[0].raw.portType).toBeUndefined();
     expect(list[1]).toMatchObject({ formFactor: 'speakers', isDefault: true });
+  });
+
+  it('a plain PulseAudio null sink is unknown over virtual', () => {
+    const text = [
+      'Sink #3',
+      '\tState: SUSPENDED',
+      '\tName: sokuji_virtual_output',
+      '\tDescription: Sokuji_Virtual_Speaker',
+      '\tDriver: module-null-sink.c',
+      '\tProperties:',
+      '\t\tdevice.description = "Sokuji_Virtual_Speaker"',
+      '\t\tdevice.class = "abstract"',
+      '\t\tdevice.form_factor = "speaker"',
+      '',
+    ].join('\n');
+    expect(parsePactlSinksText(text, null)[0]).toMatchObject({ formFactor: 'unknown', transport: 'virtual' });
   });
 });
 

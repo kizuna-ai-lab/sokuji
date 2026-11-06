@@ -30,9 +30,11 @@ function isHdmiPort(portName, portType) {
 
 // Rules run in order; the first that applies wins. Anything the system does
 // not state plainly stays 'unknown' (no guessing from the label).
-function classifySink({ name, description, properties, activePort, portType }, defaultSinkName) {
+function classifySink({ name, description, driver, properties, activePort, portType }, defaultSinkName) {
   const props = properties || {};
-  const isNull = props['factory.name'] === 'support.null-audio-sink';
+  // PipeWire names the null sink's factory; plain PulseAudio has no factory.name
+  // and names the module that made it as the driver instead.
+  const isNull = props['factory.name'] === 'support.null-audio-sink' || driver === 'module-null-sink.c';
   const hdmi = isHdmiPort(activePort, portType);
   const hintForm = props['device.form_factor'];
   const bus = props['device.bus'];
@@ -102,6 +104,7 @@ function parsePactlSinksJson(text, defaultSinkName) {
         {
           name: s.name,
           description: s.description,
+          driver: s.driver,
           properties: s.properties,
           activePort: s.active_port || undefined,
           portType: port && port.type ? port.type : undefined,
@@ -133,6 +136,7 @@ function parsePactlSinksText(text, defaultSinkName) {
       section = key === 'Properties' || key === 'Ports' ? key : null;
       if (key === 'Name') cur.name = value;
       else if (key === 'Description') cur.description = value;
+      else if (key === 'Driver') cur.driver = value;
       else if (key === 'Active Port') cur.activePort = value;
       continue;
     }
@@ -151,6 +155,7 @@ function parsePactlSinksText(text, defaultSinkName) {
       {
         name: b.name,
         description: b.description,
+        driver: b.driver,
         properties: b.properties,
         activePort: b.activePort || undefined,
         portType: b.activePort ? b.ports[b.activePort] : undefined,
