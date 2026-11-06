@@ -10,6 +10,7 @@ const {
   parsePactlSinksJson,
   parsePactlSinksText,
   parsePactlDefaultSink,
+  parseMacDevices,
 } = require('./output-form-factor-parse.js');
 
 const fixture = (name) =>
@@ -148,5 +149,80 @@ describe('capRaw', () => {
     expect(Object.keys(out)).toHaveLength(12);
     expect(out.long).toHaveLength(120);
     expect(out.nested).toBeUndefined();
+  });
+});
+
+describe('parseMacDevices', () => {
+  const row = (over = {}) => ({
+    id: 42,
+    uid: 'uid-1',
+    label: 'Test Device',
+    isDefault: false,
+    transport: 'bltn',
+    dataSource: null,
+    terminalType: null,
+    ...over,
+  });
+  const parse = (over) => parseMacDevices(JSON.stringify([row(over)]))[0];
+
+  it('built-in headphone jack is headphones over builtin', () => {
+    expect(parse({ label: 'External Headphones', isDefault: true, dataSource: 'hdpn' })).toEqual({
+      label: 'External Headphones',
+      isDefault: true,
+      formFactor: 'headphones',
+      transport: 'builtin',
+      raw: { uid: 'uid-1', transport: 'bltn', dataSource: 'hdpn' },
+    });
+  });
+
+  it('built-in speakers are speakers', () => {
+    expect(parse({ label: 'MacBook Pro Speakers', dataSource: 'ispk' })).toMatchObject({
+      formFactor: 'speakers',
+      transport: 'builtin',
+    });
+  });
+
+  it('built-in with no data source is unknown', () => {
+    expect(parse({ dataSource: null })).toMatchObject({ formFactor: 'unknown', transport: 'builtin' });
+  });
+
+  it('bluetooth reads the terminal type', () => {
+    expect(parse({ transport: 'blue', terminalType: 'hdph' })).toMatchObject({
+      formFactor: 'headphones',
+      transport: 'bluetooth',
+    });
+    expect(parse({ transport: 'blea', terminalType: 0x0302 })).toMatchObject({ formFactor: 'headphones' });
+    expect(parse({ transport: 'blue', terminalType: 0x0402 })).toMatchObject({ formFactor: 'headphones' });
+    expect(parse({ transport: 'blue', terminalType: 'spkr' })).toMatchObject({ formFactor: 'speakers' });
+    expect(parse({ transport: 'blue', terminalType: 0x0301 })).toMatchObject({ formFactor: 'speakers' });
+    expect(parse({ transport: 'blue', terminalType: 0 })).toMatchObject({
+      formFactor: 'unknown',
+      transport: 'bluetooth',
+    });
+  });
+
+  it('hdmi and displayport are unknown over hdmi', () => {
+    expect(parse({ transport: 'hdmi' })).toMatchObject({ formFactor: 'unknown', transport: 'hdmi' });
+    expect(parse({ transport: 'dprt' })).toMatchObject({ transport: 'hdmi' });
+  });
+
+  it('usb (with its trailing space) is unknown over usb', () => {
+    expect(parse({ transport: 'usb ' })).toMatchObject({ formFactor: 'unknown', transport: 'usb' });
+  });
+
+  it('grup and virt are virtual; airp is unknown over unknown', () => {
+    expect(parse({ transport: 'grup' })).toMatchObject({ transport: 'virtual', formFactor: 'unknown' });
+    expect(parse({ transport: 'virt' })).toMatchObject({ transport: 'virtual' });
+    expect(parse({ transport: 'airp' })).toMatchObject({ transport: 'unknown', formFactor: 'unknown' });
+  });
+
+  it('a form factor needs the matching transport', () => {
+    expect(parse({ transport: 'usb ', dataSource: 'hdpn' })).toMatchObject({ formFactor: 'unknown' });
+    expect(parse({ transport: 'bltn', terminalType: 'hdph' })).toMatchObject({ formFactor: 'unknown' });
+  });
+
+  it('text that is not a JSON array gives null', () => {
+    expect(parseMacDevices('not json')).toBeNull();
+    expect(parseMacDevices('{"a":1}')).toBeNull();
   });
 });

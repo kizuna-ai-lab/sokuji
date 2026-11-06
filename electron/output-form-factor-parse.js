@@ -174,6 +174,64 @@ function parsePactlDefaultSink(text, json) {
   return m ? m[1].trim() : null;
 }
 
+// `--devices` of the macOS helper: one JSON array. A four-char code arrives as
+// a string when its bytes are printable ASCII and as a number otherwise.
+const MAC_TRANSPORT = {
+  bltn: 'builtin',
+  blue: 'bluetooth',
+  blea: 'bluetooth',
+  hdmi: 'hdmi',
+  dprt: 'hdmi',
+  usb: 'usb',
+  virt: 'virtual',
+  grup: 'virtual',
+};
+
+// Codes compare trimmed ('usb ' has a trailing space); numbers compare as is.
+function macCode(value) {
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+function macFormFactor(transport, dataSource, terminalType) {
+  if (transport === 'builtin') {
+    if (dataSource === 'hdpn') return 'headphones';
+    if (dataSource === 'ispk') return 'speakers';
+  } else if (transport === 'bluetooth') {
+    if (terminalType === 'hdph' || terminalType === 0x0302 || terminalType === 0x0402) return 'headphones';
+    if (terminalType === 'spkr' || terminalType === 0x0301) return 'speakers';
+  }
+  return 'unknown';
+}
+
+function parseMacDevices(text) {
+  let rows;
+  try {
+    rows = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(rows)) return null;
+  return rows
+    .filter((r) => r && typeof r === 'object')
+    .map((r) => {
+      const code = macCode(r.transport);
+      const transport = (typeof code === 'string' && MAC_TRANSPORT[code]) || 'unknown';
+      const dataSource = macCode(r.dataSource);
+      const terminalType = macCode(r.terminalType);
+      const raw = { uid: r.uid, transport: r.transport, dataSource: r.dataSource, terminalType: r.terminalType };
+      for (const k of ['transport', 'dataSource', 'terminalType']) {
+        if (typeof raw[k] === 'number') raw[k] = String(raw[k]);
+      }
+      return {
+        label: r.label,
+        isDefault: r.isDefault === true,
+        formFactor: macFormFactor(transport, dataSource, terminalType),
+        transport,
+        raw: capRaw(raw),
+      };
+    });
+}
+
 module.exports = {
   MAX_RAW_KEYS,
   MAX_RAW_STRING,
@@ -181,4 +239,5 @@ module.exports = {
   parsePactlSinksJson,
   parsePactlSinksText,
   parsePactlDefaultSink,
+  parseMacDevices,
 };

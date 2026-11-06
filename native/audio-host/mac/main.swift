@@ -828,6 +828,69 @@ func runCapture(pid: pid_t?, excluding excluded: Set<pid_t>) -> Int32 {
     return 0
 }
 
+// MARK: - --devices
+
+// What the system states about each output device, for the app's diagnostic
+// log. Nothing here is guessed from a name: a field the device does not report
+// is null, and the JS side maps only the codes it knows.
+
+/// A four-char code as text when all four bytes are printable ASCII, else the
+/// number, so a code like 'usb ' keeps its space and an odd value stays exact.
+func codeJSON(_ v: UInt32) -> String {
+    let bytes = [UInt8((v >> 24) & 0xFF), UInt8((v >> 16) & 0xFF), UInt8((v >> 8) & 0xFF), UInt8(v & 0xFF)]
+    if bytes.allSatisfy({ $0 >= 0x20 && $0 <= 0x7E }) {
+        return "\"" + jsonEscape(String(decoding: bytes, as: UTF8.self)) + "\""
+    }
+    return String(v)
+}
+
+func uint32Prop(_ obj: AudioObjectID, _ addr: AudioObjectPropertyAddress) -> UInt32? {
+    var a = addr
+    guard AudioObjectHasProperty(obj, &a) else { return nil }
+    var v: UInt32 = 0
+    var size = UInt32(MemoryLayout<UInt32>.size)
+    guard AudioObjectGetPropertyData(obj, &a, 0, nil, &size, &v) == noErr else { return nil }
+    return v
+}
+
+func outputStreams(_ device: AudioObjectID) -> [AudioObjectID] {
+    var addr = scopedAddress(kAudioDevicePropertyStreams, kAudioObjectPropertyScopeOutput)
+    var size: UInt32 = 0
+    guard AudioObjectGetPropertyDataSize(device, &addr, 0, nil, &size) == noErr, size > 0 else { return [] }
+    var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+    guard AudioObjectGetPropertyData(device, &addr, 0, nil, &size, &ids) == noErr else { return [] }
+    return ids
+}
+
+func runDevices() -> Int32 {
+    let all = objectIDs(kAudioHardwarePropertyDevices)
+    guard !all.isEmpty else {
+        emitError("no_devices")
+        return 1
+    }
+    var addr = globalAddress(kAudioHardwarePropertyDefaultOutputDevice)
+    var defaultID: AudioObjectID = 0
+    var size = UInt32(MemoryLayout<AudioObjectID>.size)
+    _ = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &defaultID)
+
+    var rows: [String] = []
+    for dev in all {
+        let streams = outputStreams(dev)
+        guard let firstStream = streams.first else { continue }
+        let uid = stringProp(dev, kAudioDevicePropertyDeviceUID) ?? ""
+        let label = stringProp(dev, kAudioObjectPropertyName) ?? ""
+        let transport = uint32Prop(dev, globalAddress(kAudioDevicePropertyTransportType)).map(codeJSON) ?? "null"
+        let dataSource = uint32Prop(dev, scopedAddress(kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeOutput))
+            .map(codeJSON) ?? "null"
+        let terminal = uint32Prop(firstStream, globalAddress(kAudioStreamPropertyTerminalType)).map(codeJSON) ?? "null"
+        rows.append("{\"id\":\(dev),\"uid\":\"\(jsonEscape(uid))\",\"label\":\"\(jsonEscape(label))\","
+            + "\"isDefault\":\(dev == defaultID),\"transport\":\(transport),"
+            + "\"dataSource\":\(dataSource),\"terminalType\":\(terminal)}")
+    }
+    FileHandle.standardOutput.write(("[" + rows.joined(separator: ",") + "]").data(using: .utf8)!)
+    return 0
+}
+
 // MARK: - main
 
 func SetupSignals() {
@@ -839,6 +902,8 @@ func SetupSignals() {
 let args = CommandLine.arguments
 if args.count >= 2 && args[1] == "--list" {
     exit(runList())
+} else if args.count >= 2 && args[1] == "--devices" {
+    exit(runDevices())
 } else if args.count >= 3 && args[1] == "--ensure-unity-gain" {
     guard !args[2].isEmpty else {
         emitError("bad_device_name")
@@ -876,6 +941,7 @@ if args.count >= 2 && args[1] == "--list" {
 } else {
     emit("usage:")
     emit("  sokuji-audio-host --list")
+    emit("  sokuji-audio-host --devices")
     emit("  sokuji-audio-host --target pid:<processId> [--exclude-pids <pid,pid,...>]")
     emit("  sokuji-audio-host --target system [--exclude-pids <pid,pid,...>]")
     emit("  sokuji-audio-host --ensure-unity-gain <deviceName>")
