@@ -140,6 +140,18 @@ export function reportWarning<T>(scope: string, message: Message<T>, opts?: Repo
 }
 
 /**
+ * A fact worth a line in the panel, nothing more: no console line (it is not a
+ * failure a developer needs to see) and no throttle (the caller dedupes, and a
+ * throttle keyed on the message would swallow a value that goes A, B, A). Same
+ * deferred write as `emit`, for the same reason.
+ */
+export function reportInfo<T>(scope: string, message: Message<T>, opts?: Pick<ReportOptions, 'clientId'>): void {
+  queueMicrotask(() => {
+    useLogStore.getState().addLog(`[${scope}] ${message as string}`, 'info', opts?.clientId);
+  });
+}
+
+/**
  * Let every pending panel write land, then flush logStore's batch.
  *
  * For tests. The microtask is real even under `vi.useFakeTimers()` — fake timers

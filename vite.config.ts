@@ -157,6 +157,8 @@ export default defineConfig(({ command, mode }) => {
             'mic-users-win': 'electron/mic-users-win.js',
             'audio-host': 'electron/audio-host.js',
             'audio-host-path': 'electron/audio-host-path.js',
+            'output-form-factor': 'electron/output-form-factor.js',
+            'output-form-factor-parse': 'electron/output-form-factor-parse.js',
             'own-app-source': 'electron/own-app-source.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
             'squirrel-events': 'electron/squirrel-events.js',

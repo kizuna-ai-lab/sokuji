@@ -1,12 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import useAudioStore, { pickDefaultInputDevice, DEFAULT_PARTICIPANT_SOURCE } from './audioStore';
 import type { AudioMode, AudioDevice } from './audioStore';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { UNKNOWN_FORM, getOutputFormFactor, useOutputFormFactor, type NativeOutputsResult, type OutputDeviceInfo, type OutputForm } from '../lib/audio/formFactor';
+import { currentNativeOutputs, requestForSync, startNativeOutputs } from '../lib/audio/nativeOutputs';
 
 // Device enumeration moved to src/lib/audio/devices.ts (plan 1e-3c, controller
 // ruling 3); refreshDevices calls its plain functions instead of the old
 // audioService, so tests mock the module rather than an audioService object.
-const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean; outputLabelsKnown?: boolean }> => ({ inputs: [], outputs: [] })));
+const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean; outputLabelsKnown?: boolean; defaultOutput?: OutputForm; native?: readonly OutputDeviceInfo[] | null }> => ({ inputs: [], outputs: [] })));
 const mockListSystemAudioSources = vi.hoisted(() => vi.fn(async () => [] as AudioDevice[]));
 vi.mock('../lib/audio/devices', () => ({
   listAudioDevices: mockListAudioDevices,
@@ -609,6 +612,57 @@ describe('audioStore — following the OS (syncDevices)', () => {
     expect(useAudioStore.getState().selectedInputDevice).toBe(before);
   });
 
+  it('a form factor change alone replaces the output list', async () => {
+    // A laptop's Linux port switching from speakers to headphones: same sink, same name.
+    const spk = (formFactor: AudioDevice['formFactor'], transport: AudioDevice['transport']): AudioDevice => ({ ...real('spk-a'), formFactor, transport });
+    const before = [spk('speakers', 'builtin')];
+    useAudioStore.setState({ audioMonitorDevices: before });
+
+    const unchanged = [spk('speakers', 'builtin')];
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: unchanged, complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioMonitorDevices).toBe(before);
+
+    const headphones = [spk('headphones', 'builtin')];
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: headphones, complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioMonitorDevices).toBe(headphones);
+
+    const overUsb = [spk('headphones', 'usb')];
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: overUsb, complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioMonitorDevices).toBe(overUsb);
+  });
+
+  it('the default output\'s form follows the listing, and an unchanged one wakes no subscriber', async () => {
+    const inputs = [real('mic-a'), real('mic-b')];
+    const outputs = [real('spk-a')];
+    useAudioStore.setState({ defaultOutputForm: { formFactor: 'unknown', transport: 'unknown' } });
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs, outputs, complete: true, defaultOutput: { formFactor: 'headphones', transport: 'bluetooth' } });
+    await useAudioStore.getState().syncDevices();
+    const headphones = useAudioStore.getState().defaultOutputForm;
+    expect(headphones).toEqual({ formFactor: 'headphones', transport: 'bluetooth' });
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs, outputs, complete: true, defaultOutput: { formFactor: 'headphones', transport: 'bluetooth' } });
+    const heard = vi.fn();
+    const off = useAudioStore.subscribe(heard);
+    await useAudioStore.getState().syncDevices();
+    off();
+    expect(heard).not.toHaveBeenCalled();
+    expect(useAudioStore.getState().defaultOutputForm).toBe(headphones);
+
+    // Without labels the default is still known: it needs none.
+    mockListAudioDevices.mockResolvedValueOnce({ inputs, outputs, complete: false, defaultOutput: { formFactor: 'speakers', transport: 'builtin' } });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+
+    // A failed listing looks like every device gone: it changes nothing, the default's form included.
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [], complete: false, defaultOutput: { formFactor: 'unknown', transport: 'unknown' } });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+  });
+
   it('keeps whether the outputs carry their own labels, as the listing reports it, complete or not', async () => {
     useAudioStore.setState({ outputLabelsKnown: false });
     mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true, outputLabelsKnown: true });
@@ -617,6 +671,209 @@ describe('audioStore — following the OS (syncDevices)', () => {
     mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a', 'Speaker spk-a...')], complete: false, outputLabelsKnown: false });
     await useAudioStore.getState().syncDevices();
     expect(useAudioStore.getState().outputLabelsKnown).toBe(false);
+  });
+});
+
+describe('audioStore — stale reads unknown at the lookup (spec 2026-11-05 §6)', () => {
+  const HEADPHONES: OutputForm = { formFactor: 'headphones', transport: 'bluetooth' };
+  const AIRPODS: OutputDeviceInfo = { label: 'AirPods', isDefault: true, ...HEADPHONES, raw: {} };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const ok = (): NativeOutputsResult => ({ ok: true, devices: [{ ...AIRPODS }] });
+
+  /** What devices.ts lists now: the forms joined from the answer current at the time, and that answer. */
+  const joined = () => {
+    const native = currentNativeOutputs();
+    const form = native ? { formFactor: native[0].formFactor, transport: native[0].transport } : { ...UNKNOWN_FORM };
+    return {
+      inputs: [{ deviceId: 'mic-a', label: 'Mic', isVirtual: false }],
+      outputs: [{ deviceId: 'hp', label: 'AirPods', isVirtual: false, ...form }],
+      complete: true,
+      outputLabelsKnown: true,
+      defaultOutput: { ...form },
+      native,
+    };
+  };
+  const failed = { inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: { ...UNKNOWN_FORM }, native: null };
+  const neverLands = () => new Promise<never>(() => {});
+
+  const stops: Array<() => void> = [];
+  /** The reader started as Home starts it, on a fake main process whose reads land when the test says. */
+  function startReader() {
+    const reads: Array<(r: NativeOutputsResult) => void> = [];
+    const pushes: Array<() => void> = [];
+    const ipc = {
+      invoke: vi.fn(() => new Promise<NativeOutputsResult>((resolve) => reads.push(resolve))),
+      receive: vi.fn((_channel: string, fn: () => void) => { pushes.push(fn); }),
+      removeListener: vi.fn(),
+    };
+    const doc = Object.assign(new EventTarget(), { visibilityState: 'visible' as DocumentVisibilityState });
+    const native = startNativeOutputs(() => useAudioStore.getState().nativeOutputsChanged(), { ipc, doc });
+    stops.push(native.dispose);
+    return { native, reads, push: () => pushes[0]() };
+  }
+
+  /** Started, its first read landed and joined: every lookup has the answer. */
+  async function current() {
+    mockListAudioDevices.mockImplementation(async () => joined());
+    const reader = startReader();
+    reader.reads[0](ok());
+    await settle();
+    expect(getOutputFormFactor('hp')).toEqual(HEADPHONES);
+    expect(getOutputFormFactor()).toEqual(HEADPHONES);
+    return reader;
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    useAudioStore.setState({
+      devicesLoaded: true,
+      nativeFormsCurrent: false,
+      audioInputDevices: [],
+      audioMonitorDevices: [],
+      selectedInputDevice: null,
+      selectedMonitorDevice: null,
+      savedInputDeviceId: null,
+      savedMonitorDeviceId: null,
+      unusableInputIds: [],
+      outputLabelsKnown: false,
+      defaultOutputForm: { ...UNKNOWN_FORM },
+    });
+  });
+  afterEach(async () => {
+    mockListAudioDevices.mockImplementation(neverLands);
+    while (stops.length) stops.pop()!();
+    await settle();
+  });
+
+  it('a push or a devicechange makes every lookup unknown at once, before any sync lands', async () => {
+    const reader = await current();
+
+    mockListAudioDevices.mockImplementation(neverLands);
+    reader.push();
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor()).toEqual(UNKNOWN_FORM);
+    // The list still holds the last join: the lookup is what says unknown.
+    expect(useAudioStore.getState().audioMonitorDevices[0].formFactor).toBe('headphones');
+
+    // The re-read lands and the store syncs: the answer is back.
+    mockListAudioDevices.mockImplementation(async () => joined());
+    reader.reads[1](ok());
+    await settle();
+    expect(getOutputFormFactor('hp')).toEqual(HEADPHONES);
+
+    mockListAudioDevices.mockImplementation(neverLands);
+    requestForSync(reader.native, 'change');
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor()).toEqual(UNKNOWN_FORM);
+  });
+
+  it('a failed listing after an event still reads unknown, and so does the next answer until a listing joins it', async () => {
+    const reader = await current();
+
+    mockListAudioDevices.mockResolvedValue(failed);
+    reader.push();
+    await settle();
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+    // A failed listing changes nothing: the remembered headphones are still in the list, and not returned.
+    expect(useAudioStore.getState().audioMonitorDevices[0].formFactor).toBe('headphones');
+
+    // The re-read lands, but its listing fails too: the remembered join is still not the new answer's.
+    reader.reads[1](ok());
+    await settle();
+    expect(currentNativeOutputs()).not.toBeNull();
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor()).toEqual(UNKNOWN_FORM);
+
+    mockListAudioDevices.mockImplementation(async () => joined());
+    await useAudioStore.getState().syncDevices();
+    expect(getOutputFormFactor('hp')).toEqual(HEADPHONES);
+  });
+
+  it('a listing that joined an answer gone stale before it landed does not count', async () => {
+    mockListAudioDevices.mockImplementation(async () => joined());
+    const reader = startReader();
+    let land = () => {};
+    mockListAudioDevices.mockImplementationOnce(() => {
+      const listing = joined();
+      return new Promise((resolve) => { land = () => resolve(listing); });
+    });
+    reader.reads[0](ok());
+    await settle();
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+
+    mockListAudioDevices.mockImplementation(neverLands);
+    reader.push();
+    land();
+    await settle();
+    expect(useAudioStore.getState().audioMonitorDevices[0].formFactor).toBe('headphones');
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+  });
+
+  it('a listing counts only for the answer it joined, not for a newer one current when it lands', async () => {
+    mockListAudioDevices.mockImplementation(async () => joined());
+    const reader = startReader();
+    let land = () => {};
+    mockListAudioDevices.mockImplementationOnce(() => {
+      const listing = joined();
+      return new Promise((resolve) => { land = () => resolve(listing); });
+    });
+    reader.reads[0](ok()); // headphones, joined by a listing still in flight
+    await settle();
+
+    mockListAudioDevices.mockImplementation(neverLands);
+    reader.push();
+    // The re-read says the default is now the speakers.
+    reader.reads[1]({ ok: true, devices: [{ ...AIRPODS, isDefault: false }, { label: 'Speakers', isDefault: true, formFactor: 'speakers', transport: 'builtin', raw: {} }] });
+    await settle();
+    expect(currentNativeOutputs()).not.toBeNull();
+    land();
+    await settle();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual(HEADPHONES);
+    expect(getOutputFormFactor()).toEqual(UNKNOWN_FORM);
+  });
+
+  it('dispose makes every lookup unknown', async () => {
+    const reader = await current();
+    mockListAudioDevices.mockImplementation(neverLands);
+    reader.native.dispose();
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor()).toEqual(UNKNOWN_FORM);
+  });
+
+  it('useOutputFormFactor follows the same answer', async () => {
+    const reader = await current();
+    const { result } = renderHook(() => useOutputFormFactor('hp'));
+    expect(result.current).toEqual(HEADPHONES);
+
+    mockListAudioDevices.mockImplementation(neverLands);
+    act(() => reader.push());
+    expect(result.current).toEqual(UNKNOWN_FORM);
+
+    mockListAudioDevices.mockImplementation(async () => joined());
+    await act(async () => {
+      reader.reads[1](ok());
+      await settle();
+    });
+    expect(result.current).toEqual(HEADPHONES);
+  });
+
+  it('refreshDevices counts the forms its listing joined from the current answer', async () => {
+    mockListAudioDevices.mockImplementation(async () => joined());
+    const reader = startReader();
+    reader.reads[0](ok());
+    await settle();
+    useAudioStore.setState({ nativeFormsCurrent: false });
+    await useAudioStore.getState().refreshDevices();
+    expect(getOutputFormFactor('hp')).toEqual(HEADPHONES);
+  });
+
+  it('with no reader (the extension) every lookup is unknown, whatever a listing carries', async () => {
+    mockListAudioDevices.mockResolvedValue({ ...joined(), outputs: [{ deviceId: 'hp', label: 'AirPods', isVirtual: false, ...HEADPHONES }], defaultOutput: HEADPHONES });
+    await useAudioStore.getState().syncDevices();
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().nativeFormsCurrent).toBe(false);
+    expect(getOutputFormFactor('hp')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor()).toEqual(UNKNOWN_FORM);
   });
 });
 
@@ -638,6 +895,13 @@ describe('audioStore — refreshDevices and the saved device', () => {
     expect(s.selectedInputDevice?.deviceId).toBe('mic-a');
     expect(s.savedInputDeviceId).toBe('mic-a');
     expect(s.devicesLoaded).toBe(true);
+  });
+
+  it('sets the default output\'s form', async () => {
+    useAudioStore.setState({ defaultOutputForm: { formFactor: 'unknown', transport: 'unknown' } });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [], complete: true, defaultOutput: { formFactor: 'speakers', transport: 'builtin' } });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual({ formFactor: 'speakers', transport: 'builtin' });
   });
 
   it('keeps whether the outputs carry their own labels', async () => {

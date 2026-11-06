@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, nativeTheme, powerMonitor } = require('electron');
 const path = require('path');
 const { betterAuthAdapter, PACKAGED_ORIGIN } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
@@ -8,6 +8,7 @@ const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { setupTranscriptSaveHandler } = require('./transcript-save.js');
 const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
+const { registerOutputFormFactor } = require('./output-form-factor.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { captureSourceMode, listCaptureSources, screenRecordingState, reaskScreenRecording, MAC_BUNDLE_ID } = require('./capture-sources');
@@ -542,6 +543,8 @@ app.whenReady().then(async () => {
   }
 
   const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
+
+  registerOutputFormFactor({ ipcMain, powerMonitor, app, getWindows: () => BrowserWindow.getAllWindows() });
 
   // Initialize Better Auth adapter
   try {

@@ -25,7 +25,12 @@ vi.mock('../diagnostics/report', async (importOriginal) => {
   return { ...actual, reportWarning: reportWarningSpy, reportError: reportErrorSpy };
 });
 
+// The native list, as the started reader would hold it; null is no reader (the extension, a test).
+const native = vi.hoisted(() => ({ list: null as OutputDeviceInfo[] | null }));
+vi.mock('./nativeOutputs', () => ({ currentNativeOutputs: () => native.list }));
+
 import { listAudioDevices, listSystemAudioSources } from './devices';
+import { UNKNOWN_FORM, type FormFactor, type OutputDeviceInfo, type Transport } from './formFactor';
 
 type FakeTrack = { stop: ReturnType<typeof vi.fn> };
 
@@ -174,11 +179,128 @@ describe('listAudioDevices', () => {
 
     const devices = await listAudioDevices();
 
-    expect(devices).toEqual({ inputs: [], outputs: [], complete: false, outputLabelsKnown: false });
+    expect(devices).toEqual({ inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: UNKNOWN_FORM, native: null });
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
     expect(reportErrorSpy.mock.calls[0][0]).toBe('AudioDevices');
     // The poll lists every 3 s: a listing that keeps failing is one burst, not a line per beat.
     expect(reportErrorSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'devices:list' });
+  });
+});
+
+describe('listAudioDevices: each output\'s form factor', () => {
+  const nat = (label: string, formFactor: FormFactor, transport: Transport, isDefault = false): OutputDeviceInfo => ({
+    label,
+    isDefault,
+    formFactor,
+    transport,
+    raw: {},
+  });
+  const mic = { deviceId: 'mic-1', kind: 'audioinput', label: 'Microphone', groupId: 'gm' };
+  const list = (outputs: Array<{ deviceId: string; label: string; groupId: string }>) =>
+    setMediaDevices(vi.fn(async () => makeStream()), vi.fn(async () => [mic, ...outputs.map((o) => ({ ...o, kind: 'audiooutput' }))]));
+
+  afterEach(() => {
+    native.list = null;
+    reportWarningSpy.mockClear();
+    reportErrorSpy.mockClear();
+  });
+
+  it('listAudioDevices joins each output\'s form', async () => {
+    native.list = [nat('Speakers', 'speakers', 'builtin', true), nat('Headphones', 'headphones', 'usb')];
+    list([
+      { deviceId: 'default', label: 'Default - Speakers', groupId: 'gs' },
+      { deviceId: 'spk', label: 'Speakers', groupId: 'gs' },
+      { deviceId: 'hp', label: 'Headphones', groupId: 'gh' },
+      { deviceId: 'hdmi', label: 'LG Monitor', groupId: 'gd' },
+    ]);
+    const { outputs, inputs } = await listAudioDevices({ warmUp: false });
+    expect(outputs.map(({ deviceId, formFactor, transport }) => ({ deviceId, formFactor, transport }))).toEqual([
+      { deviceId: 'spk', formFactor: 'speakers', transport: 'builtin' },
+      { deviceId: 'hp', formFactor: 'headphones', transport: 'usb' },
+      // Named by the browser, unknown to the system: unknown, never guessed.
+      { deviceId: 'hdmi', formFactor: 'unknown', transport: 'unknown' },
+    ]);
+    expect(inputs[0]).not.toHaveProperty('formFactor');
+  });
+
+  it('without a reader every output is unknown', async () => {
+    native.list = null;
+    list([
+      { deviceId: 'default', label: 'Default - Speakers', groupId: 'gs' },
+      { deviceId: 'spk', label: 'Speakers', groupId: 'gs' },
+    ]);
+    const devices = await listAudioDevices({ warmUp: false });
+    expect(devices.outputs[0]).toMatchObject(UNKNOWN_FORM);
+    expect(devices.defaultOutput).toEqual(UNKNOWN_FORM);
+  });
+
+  it('an output with an empty browser label is unknown', async () => {
+    // A native device named like the placeholder: the placeholder is never matched.
+    native.list = [nat('Speaker spk-1...', 'speakers', 'builtin'), nat('', 'headphones', 'usb', true)];
+    list([
+      { deviceId: 'default', label: '', groupId: 'g1' },
+      { deviceId: 'spk-1', label: '', groupId: 'g1' },
+    ]);
+    const devices = await listAudioDevices({ warmUp: false });
+    expect(devices.outputs[0].label).toBe('Speaker spk-1...');
+    expect(devices.outputs[0]).toMatchObject(UNKNOWN_FORM);
+  });
+
+  it('the output sharing the default entry\'s groupId is the browser default', async () => {
+    native.list = [nat('USB Headset', 'speakers', 'usb'), nat('USB Headset', 'headphones', 'usb', true)];
+    list([
+      { deviceId: 'default', label: 'Default - USB Headset', groupId: 'g2' },
+      { deviceId: 'h1', label: 'USB Headset', groupId: 'g1' },
+      { deviceId: 'h2', label: 'USB Headset', groupId: 'g2' },
+    ]);
+    const { outputs } = await listAudioDevices({ warmUp: false });
+    expect(outputs.find((d) => d.deviceId === 'h2')).toMatchObject({ formFactor: 'headphones', transport: 'usb' });
+    expect(outputs.find((d) => d.deviceId === 'h1')).toMatchObject(UNKNOWN_FORM);
+
+    // An empty groupId says nothing: equal empty ids are no statement from the browser.
+    list([
+      { deviceId: 'default', label: 'Default - USB Headset', groupId: '' },
+      { deviceId: 'h1', label: 'USB Headset', groupId: '' },
+      { deviceId: 'h2', label: 'USB Headset', groupId: '' },
+    ]);
+    const blank = await listAudioDevices({ warmUp: false });
+    expect(blank.outputs.map((d) => d.formFactor)).toEqual(['unknown', 'unknown']);
+  });
+
+  it('a malformed native list at join time still lists every output, as unknown', async () => {
+    // What the reader refuses; were it ever to slip through, the join must not take the listing down.
+    native.list = [{ isDefault: false, formFactor: 'headphones', transport: 'usb', raw: {} }, null] as unknown as OutputDeviceInfo[];
+    list([
+      { deviceId: 'default', label: 'Default - Speakers', groupId: 'gs' },
+      { deviceId: 'spk', label: 'Speakers', groupId: 'gs' },
+      { deviceId: 'hp', label: 'Headphones', groupId: 'gh' },
+    ]);
+    const devices = await listAudioDevices({ warmUp: false });
+    expect(devices.outputs.map((d) => d.deviceId)).toEqual(['spk', 'hp']);
+    expect(devices.inputs.map((d) => d.deviceId)).toEqual(['mic-1']);
+    for (const output of devices.outputs) expect(output).toMatchObject(UNKNOWN_FORM);
+    expect(devices.defaultOutput).toEqual(UNKNOWN_FORM);
+    expect(devices.complete).toBe(true);
+    expect(reportErrorSpy).not.toHaveBeenCalled();
+    expect(reportWarningSpy).toHaveBeenCalled();
+    expect(reportWarningSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'devices:form' });
+  });
+
+  it('the listing names the answer it joined, so the store can tell whether it is still current', async () => {
+    const answer = [nat('Speakers', 'speakers', 'builtin', true)];
+    native.list = answer;
+    list([{ deviceId: 'spk', label: 'Speakers', groupId: 'gs' }]);
+    expect((await listAudioDevices({ warmUp: false })).native).toBe(answer);
+
+    native.list = null;
+    expect((await listAudioDevices({ warmUp: false })).native).toBeNull();
+  });
+
+  it('defaultOutput comes from the native default', async () => {
+    native.list = [nat('Speakers', 'speakers', 'builtin'), nat('AirPods', 'headphones', 'bluetooth', true)];
+    list([{ deviceId: 'spk', label: 'Speakers', groupId: 'gs' }]);
+    const devices = await listAudioDevices({ warmUp: false });
+    expect(devices.defaultOutput).toEqual({ formFactor: 'headphones', transport: 'bluetooth' });
   });
 });
 

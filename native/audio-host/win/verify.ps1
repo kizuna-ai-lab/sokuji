@@ -103,6 +103,29 @@ $listedIds = @()
 try { $listedIds = @((& $exe --list | ConvertFrom-Json) | ForEach-Object { $_.id }) } catch {}
 Write-Output ("  --list ids: " + ($listedIds -join ', '))
 
+# --devices: render endpoints with their form factor (issue #691). Only the
+# shape is checked; the values depend on the machine's hardware.
+$devices = @()
+$devicesText = (& $exe --devices) -join ''
+$devicesExit = $LASTEXITCODE
+$devicesShapeOk = $false
+try {
+    # Windows PowerShell 5.1 emits a JSON array as ONE pipeline object, so a bare
+    # @(... | ConvertFrom-Json) nests it. The inner parentheses finish the
+    # pipeline first, which unrolls the array into rows.
+    $devices = @(($devicesText | ConvertFrom-Json))
+    $devicesShapeOk = ($devicesExit -eq 0) -and ($devicesText.TrimStart().StartsWith('['))
+} catch {}
+$deviceKeys = @('id', 'label', 'browserLabel', 'isDefault', 'formFactor', 'enumerator')
+if ($devicesShapeOk) {
+    foreach ($d in $devices) {
+        $names = @($d.PSObject.Properties.Name)
+        foreach ($k in $deviceKeys) { if ($names -notcontains $k) { $devicesShapeOk = $false } }
+    }
+}
+$defaultCount = @($devices | Where-Object { $_.isDefault -eq $true }).Count
+Write-Output ("  --devices rows: {0}, defaults: {1}" -f @($devices).Count, $defaultCount)
+
 $treeOut = Join-Path $env:TEMP 'sokuji_TREE.pcm'
 $treeErr = Join-Path $env:TEMP 'sokuji_TREE.log'
 $treeAlive = $false
@@ -153,5 +176,9 @@ Check 'tree-capture-reaches-child' ($treePeak -gt 8000) `
     ("peak={0} capturing the parent while only the child played, expected >8000" -f $treePeak)
 Check 'survives-audio-child-exit' ($treeAlive) `
     'the helper must outlive the audio child, or Sokuji silently widens to whole-system capture'
+Check 'devices-shape' $devicesShapeOk `
+    '--devices must print an array whose rows each have id, label, browserLabel, isDefault, formFactor and enumerator'
+Check 'devices-one-default' ($defaultCount -le 1) `
+    ("{0} rows have isDefault true, expected at most 1" -f $defaultCount)
 
 if ($ok) { Write-Output 'VERIFY OK'; exit 0 } else { Write-Output 'VERIFY FAILED'; exit 1 }

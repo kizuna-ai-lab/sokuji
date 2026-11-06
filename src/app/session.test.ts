@@ -27,7 +27,8 @@ const { playback, getAppAudio } = vi.hoisted(() => {
   };
   return { playback, getAppAudio: vi.fn(async () => ({ playback, testTone: async () => {} })) };
 });
-vi.mock('../lib/audio/appAudio', () => ({ getAppAudio }));
+// The logger reached through the session resolves outlets with the real `outletContext`.
+vi.mock('../lib/audio/appAudio', async (importOriginal) => ({ ...(await importOriginal<typeof import('../lib/audio/appAudio')>()), getAppAudio }));
 
 // The app's own capture, over stand-ins for the devices, as appCapture.test.ts
 // mocks them: a test that routes a leg through it (`capture: (app) => app`)
