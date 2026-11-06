@@ -20,7 +20,7 @@ The executing session recorded these against the plan text below; the spec is up
 - Reconnect payload types live in `src/lib/contract/reconnect.ts` (lib/contract imports nothing from lib/session).
 - `AdapterSession.info.shared` marks a shared-Both pair; its analytics and totals count once per connection; the restored notice and the new events need the new payloads, so Gemini/OpenAI keep today's UI.
 - `notices.connection_restored` landed with Task 4, not Task 5.
-- `SONIOX_STALL_MS` is 5000 unmeasured; measure on a real session before release.
+- `SONIOX_STALL_MS` is 5000, measured: on a real 263 s managed Soniox session the longest gap between server messages was 1071 ms during speech and 1214 ms during silence (p99 912 / 1213 ms), so Task 7 Step 1's max(5000, 2 × the longest gap) keeps 5000.
 
 ## Global Constraints
 

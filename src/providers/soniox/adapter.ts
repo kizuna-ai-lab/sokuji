@@ -47,8 +47,11 @@ function inAppCodes(token: SonioxToken): SonioxToken {
 
 /**
  * A live socket that sends nothing back for this long while audio goes out is
- * dead (spec 2026-11-05 reconnect §4.2, "about 5 s"). Not yet measured
- * against Soniox's longest gap between messages (plan Task 7, Step 1).
+ * dead (spec 2026-11-05 reconnect §4.2, "about 5 s"). Measured on a real 263 s
+ * managed Soniox session: the longest gap between server messages was 1071 ms
+ * during speech and 1214 ms during silence (p99 912 and 1213 ms), so 5 s is
+ * over four times the longest — plan Task 7, Step 1's max(5000, 2 × the
+ * longest gap) keeps it.
  */
 export const SONIOX_STALL_MS = 5_000;
 /** How often the stall watchdog looks, and how recent our audio must be for the server's silence to count. */
