@@ -317,6 +317,21 @@ describe('parseWinDevices', () => {
     expect(parse({ formFactor: 1, enumerator: 'SWD' })).toMatchObject({ transport: 'virtual' });
   });
 
+  // VB-CABLE's endpoints were measured reporting Speakers (1) and LineLevel (2) under ROOT.
+  it.each([
+    [1, 'ROOT'],
+    [2, 'ROOT'],
+    [3, 'ROOT'],
+    [1, 'SWD'],
+    [5, 'SWD'],
+  ])('a virtual endpoint reporting form factor %s under %s is unknown', (formFactor, enumerator) => {
+    expect(parse({ formFactor, enumerator })).toMatchObject({ formFactor: 'unknown', transport: 'virtual' });
+  });
+
+  it('a form factor reported under an unlisted enumerator still counts', () => {
+    expect(parse({ formFactor: 1, enumerator: 'INTELAUDIO' })).toMatchObject({ formFactor: 'speakers', transport: 'unknown' });
+  });
+
   it('a USB DAC is unknown over usb', () => {
     expect(parse({ formFactor: 2, enumerator: 'USB' })).toMatchObject({ formFactor: 'unknown', transport: 'usb' });
   });

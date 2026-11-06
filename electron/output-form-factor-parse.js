@@ -296,14 +296,17 @@ function parseWinDevices(text) {
     .filter((r) => r && typeof r === 'object')
     .map((r) => {
       const form = typeof r.formFactor === 'number' ? r.formFactor : null;
+      const transport = winTransport(r.enumerator, form);
+      // A virtual device's form factor describes no hardware (VB-CABLE says Speakers).
       let formFactor = 'unknown';
-      if (form === WIN_FORM_SPEAKERS) formFactor = 'speakers';
+      if (transport === 'virtual') formFactor = 'unknown';
+      else if (form === WIN_FORM_SPEAKERS) formFactor = 'speakers';
       else if (WIN_FORM_HEADPHONES.has(form)) formFactor = 'headphones';
       return {
         label: typeof r.label === 'string' ? r.label : '',
         isDefault: r.isDefault === true,
         formFactor,
-        transport: winTransport(r.enumerator, form),
+        transport,
         raw: capRaw({ id: r.id, formFactor: r.formFactor, enumerator: r.enumerator }),
       };
     });
