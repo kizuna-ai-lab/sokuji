@@ -238,6 +238,29 @@ describe('getOutputDevices', () => {
     expect(res.devices[0].label).toBe('ヘッドホン');
   });
 
+  // A console program started from a GUI parent opens a window of its own
+  // unless windowsHide is set, and --devices runs on every devicechange.
+  it('every read child is spawned hidden, with stdin and stderr ignored', async () => {
+    const hidden = (c) => {
+      expect(c.options.windowsHide).toBe(true);
+      expect(c.options.stdio).toEqual(['ignore', 'pipe', 'ignore']);
+    };
+    for (const platform of ['darwin', 'win32']) {
+      const spawn = scriptedSpawn(() => ({ code: 0, out: '[]' }));
+      await getOutputDevices({ platform, spawn, resolvePath });
+      expect(spawn.calls).toHaveLength(1);
+      hidden(spawn.calls[0]);
+    }
+    // Both pactl forms: the json attempt fails, so the text one runs too.
+    const spawn = scriptedSpawn((cmd, args) => (args.includes('json') ? { code: 1, out: '' } : { code: 0, out: '' }));
+    await getOutputDevices({ platform: 'linux', spawn });
+    expect(spawn.calls).toHaveLength(4);
+    for (const c of spawn.calls) {
+      hidden(c);
+      expect(c.options.env.LC_ALL).toBe('C');
+    }
+  });
+
   it('an unsupported platform is unsupported_platform', async () => {
     expect(await getOutputDevices({ platform: 'freebsd', spawn: vi.fn() })).toEqual({
       ok: false,
@@ -268,6 +291,13 @@ describe('createSinkWatcher', () => {
     expect(spawn.mock.calls[0][0]).toBe('pactl');
     expect(spawn.mock.calls[0][1]).toEqual(['subscribe']);
     expect(spawn.mock.calls[0][2].env.LC_ALL).toBe('C');
+  });
+
+  it('runs pactl subscribe hidden, with stdin and stderr ignored', () => {
+    const { watcher, spawn } = setup();
+    watcher.start();
+    // Nothing drains stderr: a long-lived child must not fill and block on it.
+    expect(spawn.mock.calls[0][2]).toMatchObject({ windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
   });
 
   it('pushes once for a burst of sink changes', () => {

@@ -27,6 +27,12 @@ const CHANGE_LINE = /^Event 'change' on (sink #\d+|server)/;
 // Parsers read English keys; a translated pactl would print different ones.
 const pactlEnv = () => ({ ...process.env, LC_ALL: 'C' });
 
+// A console program started from a GUI parent gets a window of its own unless
+// windowsHide is set (only then does libuv pass CREATE_NO_WINDOW), and these
+// run on every devicechange. stdin and stderr are never read: a long-lived
+// `pactl subscribe` must not block on a full stderr pipe.
+const childOptions = (options) => ({ ...options, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+
 /**
  * Run one child to completion, collecting stdout up to a cap.
  * Resolves (never rejects) with { status: 'ok', code, out } or
@@ -49,7 +55,7 @@ function runChild(spawn, ctx, command, args, options) {
       resolve(result);
     };
     try {
-      child = spawn(command, args, options);
+      child = spawn(command, args, childOptions(options));
     } catch {
       return settle({ status: 'spawn_failed' });
     }
@@ -185,7 +191,7 @@ function createSinkWatcher({
     restartTimer = null;
     let current;
     try {
-      current = spawn('pactl', ['subscribe'], { env: pactlEnv() });
+      current = spawn('pactl', ['subscribe'], childOptions({ env: pactlEnv() }));
     } catch {
       return onExit(null);
     }
