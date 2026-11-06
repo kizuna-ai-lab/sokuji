@@ -1115,6 +1115,22 @@ describe('the lease port: reissue()', () => {
     expect(JSON.parse(a.to('/soniox/session-started')[1].init.body as string)).toEqual({ leaseId: 'lease-1', role: 'spk_stt', clientReferenceId: 'ref-new:2' });
   });
 
+  it.each([
+    ['a split Both participant', ['speaker', 'participant'], ['spk_stt', 'spk_tts', 'par_stt'], false, 'participant', 'par_stt'],
+    ['a shared Both session', ['speaker', 'participant'], ['mix_stt', 'mix_tts'], true, 'speaker', 'mix_stt'],
+  ] as const)("%s reissues its own role's key, and reports that role started", async (_label, legs, roles, shared, leg, role) => {
+    const a = await granted([...legs], [...roles], { settings: { bothModeSharedSession: shared } });
+    const port = a.resources.credentials(leg).lease!;
+    const result = port.reissue();
+    await flush();
+    expect(JSON.parse(a.to(REISSUE)[0].init.body as string)).toEqual({ leaseId: 'lease-1', role });
+    a.to(REISSUE)[0].respond(200, { ...reissued, role });
+    await expect(result).resolves.toMatchObject({ ok: true, stt: 'k-new', clientReferenceId: 'ref-new:2' });
+    port.streamAccepted();
+    const started = a.to('/soniox/session-started');
+    expect(JSON.parse(started[started.length - 1].init.body as string)).toEqual({ leaseId: 'lease-1', role, clientReferenceId: 'ref-new:2' });
+  });
+
   it('a refused reissue leaves the key already reported as it was', async () => {
     const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
     const port = a.resources.credentials('speaker').lease!;

@@ -768,7 +768,8 @@ describe('the Qwen adapter reconnects: the gap', () => {
     expect(h.socket().sentJson<{ image?: string }>()[2].image).toBe(btoa(String.fromCharCode(...JPEG_A)));
     // Later frames go at once, as before the drop.
     src.emit(JPEG_B);
-    expect(types(h.socket()).slice(-1)).toEqual(['input_image_buffer.append']);
+    expect(types(h.socket())).toHaveLength(4);
+    expect(h.socket().sentJson<{ image?: string }>()[3].image).toBe(btoa(String.fromCharCode(...JPEG_B)));
     expect(src.subscribers).toBe(1);
     await h.session.stop();
     expect(src.subscribers).toBe(0);
