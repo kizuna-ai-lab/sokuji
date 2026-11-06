@@ -7,6 +7,8 @@
  */
 import { getAppAudio, type AppAudio } from '../lib/audio/appAudio';
 import { createAppCapture, type AppCapture } from '../lib/audio/appCapture';
+import { createFormFactorLog } from '../lib/audio/formFactorLog';
+import { currentNativeOutputs } from '../lib/audio/nativeOutputs';
 import type { Playback } from '../lib/audio/playback';
 import { realClock, type Clock } from '../lib/contract/clock';
 import { redact } from '../lib/diagnostics/redact';
@@ -28,6 +30,8 @@ import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
+import useAudioStore from '../stores/audioStore';
+import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -308,6 +312,13 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         return () => {};
       }
       attached = true;
+      // The form factor of each outlet, for the diagnostic log only. Forms are static unknown where no native reader runs (the extension),
+      // so only Electron's answer can be stale; the reader is started by Home, after this, so it is asked at each call.
+      const formLog = createFormFactorLog(
+        (line) => useLogStore.getState().addLog(line, 'info'),
+        () => !(isElectron() && window.electron) || currentNativeOutputs() !== null,
+        faceToFaceFromStores,
+      );
       const offs: Array<() => void> = [
         // The panel's readiness is about the legs a start would open: the audio mode's.
         watchLegsFromStores(),
@@ -322,6 +333,12 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       const lock = () => useProviderStore.getState().setSelectionLocked(runner.state.getState().phase !== 'idle');
       lock();
       offs.push(runner.state.subscribe(lock), () => useProviderStore.getState().setSelectionLocked(false));
+      offs.push(
+        runner.state.subscribe((now, before) => {
+          if (now.phase === 'starting' && before.phase === 'idle') formLog.baseline(useAudioStore.getState());
+        }),
+        useAudioStore.subscribe((audio) => formLog.update(audio)),
+      );
       // The extension overlay's publisher reaches the session through this
       // leaf, for as long as the page is attached: the side panel's surface
       // class cannot import the root (plan 1e-4 ruling 1).

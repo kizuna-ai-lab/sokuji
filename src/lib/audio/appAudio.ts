@@ -19,7 +19,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
 import { createContextSink } from './contextSink';
 import { createAudioGraph, type SinkElement, type VirtualOutput } from './graph';
-import { OUTLET_NAMES, resolveOutlet, type OutletName, type OutletSink, type Speak } from './outlets';
+import { OUTLET_NAMES, resolveOutlet, type OutletContext, type OutletName, type OutletSink, type Speak } from './outlets';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
 import type { RoutingSettings } from './routes';
 import { sendToTabs, targetTabIdFromSearch, toPcmDataMessage, type TabsApi } from './tabMicrophone';
@@ -42,6 +42,16 @@ export interface AppAudio {
   earPreview(outlet: OutletName): Promise<void>;
 }
 
+/** What `resolveOutlet` needs from the stores; the form-factor log resolves outlets with the same one. */
+export function outletContext(audio: Pick<AudioState, 'selectedMonitorDevice' | 'audioMonitorDevices'>, faceToFace: boolean): OutletContext {
+  return {
+    defaultDevice: audio.selectedMonitorDevice?.deviceId,
+    // A stored outlet device that is the virtual speaker must never route the user's outlet into the meeting.
+    present: new Set(audio.audioMonitorDevices.filter((d) => !d.isVirtual).map((d) => d.deviceId)),
+    faceToFace,
+  };
+}
+
 export function readRouting(
   audio: Pick<AudioState, 'isRealVoicePassthroughEnabled' | 'realVoicePassthroughVolume' | 'selectedMonitorDevice' | 'audioMonitorDevices' | 'outlets'>,
   speak: Speak,
@@ -50,12 +60,7 @@ export function readRouting(
   turnMode: TurnMode,
   faceToFace = false,
 ): RoutingSettings {
-  const context = {
-    defaultDevice: audio.selectedMonitorDevice?.deviceId,
-    // A stored outlet device that is the virtual speaker must never route the user's outlet into the meeting.
-    present: new Set(audio.audioMonitorDevices.filter((d) => !d.isVirtual).map((d) => d.deviceId)),
-    faceToFace,
-  };
+  const context = outletContext(audio, faceToFace);
   const sinks = {
     virtual: platform === 'electron' ? findVirtualSpeaker(audio.audioMonitorDevices) : undefined,
   } as { virtual?: string } & Record<OutletName, OutletSink>;
