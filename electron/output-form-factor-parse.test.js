@@ -171,7 +171,7 @@ describe('parseMacDevices', () => {
       isDefault: true,
       formFactor: 'headphones',
       transport: 'builtin',
-      raw: { uid: 'uid-1', transport: 'bltn', dataSource: 'hdpn' },
+      raw: { name: 'External Headphones', uid: 'uid-1', transport: 'bltn', dataSource: 'hdpn' },
     });
   });
 
@@ -219,6 +219,15 @@ describe('parseMacDevices', () => {
   it('a form factor needs the matching transport', () => {
     expect(parse({ transport: 'usb ', dataSource: 'hdpn' })).toMatchObject({ formFactor: 'unknown' });
     expect(parse({ transport: 'bltn', terminalType: 'hdph' })).toMatchObject({ formFactor: 'unknown' });
+  });
+
+  it('label is the browser label, else the device name, else empty', () => {
+    const withBrowser = parse({ label: 'MacBook Pro Speakers', browserLabel: 'MacBook Pro Speakers (Built-in)', dataSource: 'ispk' });
+    expect(withBrowser.label).toBe('MacBook Pro Speakers (Built-in)');
+    expect(withBrowser.raw.name).toBe('MacBook Pro Speakers');
+    expect(parse({ label: 'Plain' }).label).toBe('Plain');
+    expect(parse({ label: 'Plain', browserLabel: '' }).label).toBe('Plain');
+    expect(parse({ label: 42 }).label).toBe('');
   });
 
   it('text that is not a JSON array gives null', () => {

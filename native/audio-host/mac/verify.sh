@@ -76,12 +76,12 @@ check "--devices exits 0" $?
 python3 - "$WORK/devices.json" <<'PY'
 import json, sys
 rows = json.load(open(sys.argv[1]))
-keys = {'id', 'uid', 'label', 'isDefault', 'transport', 'dataSource', 'terminalType'}
+keys = {'id', 'uid', 'label', 'isDefault', 'transport', 'dataSource', 'terminalType', 'browserLabel'}
 assert isinstance(rows, list) and rows, 'not a non-empty array'
-assert all(isinstance(r, dict) and set(r) == keys for r in rows), 'a row lacks the seven keys'
+assert all(isinstance(r, dict) and set(r) == keys for r in rows), 'a row lacks the eight keys'
 assert sum(1 for r in rows if r['isDefault'] is True) == 1, 'not exactly one default'
 PY
-check "--devices prints an array of rows with the seven keys and one default" $?
+check "--devices prints an array of rows with the eight keys and one default" $?
 
 # Is the grant present? A global tap over a tone answers that in one shot, and
 # whether the helper resamples correctly at all.

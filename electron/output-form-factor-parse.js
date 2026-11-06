@@ -218,12 +218,18 @@ function parseMacDevices(text) {
       const transport = (typeof code === 'string' && MAC_TRANSPORT[code]) || 'unknown';
       const dataSource = macCode(r.dataSource);
       const terminalType = macCode(r.terminalType);
-      const raw = { uid: r.uid, transport: r.transport, dataSource: r.dataSource, terminalType: r.terminalType };
+      const raw = { name: r.label, uid: r.uid, transport: r.transport, dataSource: r.dataSource, terminalType: r.terminalType };
       for (const k of ['transport', 'dataSource', 'terminalType']) {
         if (typeof raw[k] === 'number') raw[k] = String(raw[k]);
       }
       return {
-        label: r.label,
+        // The label the browser shows for this output, so the two match exactly.
+        label:
+          typeof r.browserLabel === 'string' && r.browserLabel
+            ? r.browserLabel
+            : typeof r.label === 'string'
+              ? r.label
+              : '',
         isDefault: r.isDefault === true,
         formFactor: macFormFactor(transport, dataSource, terminalType),
         transport,

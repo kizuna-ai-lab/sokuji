@@ -91,6 +91,12 @@ describe('matchOutputForm', () => {
     expect(matchOutputForm('x', 'headphones (usb)', native, true)).toEqual(UNKNOWN_FORM);
   });
 
+  it('a near-miss of a native label with a transport suffix is unknown, never a wrong answer', () => {
+    const native = [n('MacBook Pro Speakers (Built-in)', 'speakers')];
+    expect(matchOutputForm('x', 'MacBook Pro Speakers (Built-In)', native, true)).toEqual(UNKNOWN_FORM);
+    expect(matchOutputForm('x', 'MacBook Pro Speakers', native, true)).toEqual(UNKNOWN_FORM);
+  });
+
   it('an undefined browser label is unknown', () => {
     expect(matchOutputForm('x', undefined, [n('A', 'speakers')], true)).toEqual(UNKNOWN_FORM);
   });

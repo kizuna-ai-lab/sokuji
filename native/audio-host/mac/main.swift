@@ -862,10 +862,78 @@ func outputStreams(_ device: AudioObjectID) -> [AudioObjectID] {
     return ids
 }
 
+/// The text Chromium's CoreAudioUtilMac::GetDeviceLabel shows for an output,
+/// so the app can match a native row to a browser device by exact equality:
+/// the current data source's name (else the device name), plus a transport
+/// suffix in parentheses.
+func browserLabel(_ dev: AudioObjectID, name: String) -> String {
+    var base = name
+    var srcAddr = scopedAddress(kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeOutput)
+    if AudioObjectHasProperty(dev, &srcAddr) {
+        var sourceID: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        if AudioObjectGetPropertyData(dev, &srcAddr, 0, nil, &size, &sourceID) == noErr {
+            var nameAddr = scopedAddress(kAudioDevicePropertyDataSourceNameForIDCFString, kAudioObjectPropertyScopeOutput)
+            var cf: Unmanaged<CFString>? = nil
+            let st: OSStatus = withUnsafeMutablePointer(to: &sourceID) { inPtr in
+                withUnsafeMutablePointer(to: &cf) { outPtr in
+                    var tr = AudioValueTranslation(mInputData: UnsafeMutableRawPointer(inPtr),
+                                                   mInputDataSize: UInt32(MemoryLayout<UInt32>.size),
+                                                   mOutputData: UnsafeMutableRawPointer(outPtr),
+                                                   mOutputDataSize: UInt32(MemoryLayout<Unmanaged<CFString>?>.size))
+                    var trSize = UInt32(MemoryLayout<AudioValueTranslation>.size)
+                    return AudioObjectGetPropertyData(dev, &nameAddr, 0, nil, &trSize, &tr)
+                }
+            }
+            if st == noErr, let c = cf {
+                let t = c.takeRetainedValue() as String
+                if !t.isEmpty { base = t }
+            }
+        }
+    }
+
+    var suffix = ""
+    if let t = uint32Prop(dev, globalAddress(kAudioDevicePropertyTransportType)) {
+        switch t {
+        case kAudioDeviceTransportTypeUSB:
+            if let model = stringProp(dev, kAudioDevicePropertyModelUID) {
+                let chars = Array(model)
+                if chars.count > 10, chars[chars.count - 5] == ":", chars[chars.count - 10] == ":" {
+                    suffix = String(chars.suffix(9)).lowercased()
+                }
+            }
+        case kAudioDeviceTransportTypeBuiltIn: suffix = "Built-in"
+        case kAudioDeviceTransportTypeAggregate: suffix = "Aggregate"
+        case kAudioDeviceTransportTypeAutoAggregate: suffix = "AutoAggregate"
+        case kAudioDeviceTransportTypeVirtual: suffix = "Virtual"
+        case kAudioDeviceTransportTypePCI: suffix = "PCI"
+        case kAudioDeviceTransportTypeFireWire: suffix = "FireWire"
+        case kAudioDeviceTransportTypeBluetooth: suffix = "Bluetooth"
+        case kAudioDeviceTransportTypeBluetoothLE: suffix = "Bluetooth LE"
+        case kAudioDeviceTransportTypeHDMI: suffix = "HDMI"
+        case kAudioDeviceTransportTypeDisplayPort: suffix = "DisplayPort"
+        case kAudioDeviceTransportTypeAirPlay: suffix = "AirPlay"
+        case kAudioDeviceTransportTypeAVB: suffix = "AVB"
+        case kAudioDeviceTransportTypeThunderbolt: suffix = "Thunderbolt"
+        default: break
+        }
+    }
+    return suffix.isEmpty ? base : "\(base) (\(suffix))"
+}
+
 func runDevices() -> Int32 {
-    let all = objectIDs(kAudioHardwarePropertyDevices)
-    guard !all.isEmpty else {
-        emitError("no_devices")
+    // Read the device list's status here: an empty list is a real answer
+    // (no devices), only a failed read is an error.
+    var listAddr = globalAddress(kAudioHardwarePropertyDevices)
+    var listSize: UInt32 = 0
+    let sizeStatus = AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &listAddr, 0, nil, &listSize)
+    var all = [AudioObjectID](repeating: 0, count: Int(listSize) / MemoryLayout<AudioObjectID>.size)
+    var dataStatus: OSStatus = noErr
+    if sizeStatus == noErr && listSize > 0 {
+        dataStatus = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &listAddr, 0, nil, &listSize, &all)
+    }
+    guard sizeStatus == noErr, dataStatus == noErr else {
+        emitError("devices_read_failed")
         return 1
     }
     var addr = globalAddress(kAudioHardwarePropertyDefaultOutputDevice)
@@ -884,6 +952,7 @@ func runDevices() -> Int32 {
             .map(codeJSON) ?? "null"
         let terminal = uint32Prop(firstStream, globalAddress(kAudioStreamPropertyTerminalType)).map(codeJSON) ?? "null"
         rows.append("{\"id\":\(dev),\"uid\":\"\(jsonEscape(uid))\",\"label\":\"\(jsonEscape(label))\","
+            + "\"browserLabel\":\"\(jsonEscape(browserLabel(dev, name: label)))\","
             + "\"isDefault\":\(dev == defaultID),\"transport\":\(transport),"
             + "\"dataSource\":\(dataSource),\"terminalType\":\(terminal)}")
     }
