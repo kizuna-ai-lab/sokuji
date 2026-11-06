@@ -202,6 +202,29 @@ describe('parseMacDevices', () => {
     });
   });
 
+  it.each([
+    ['hdph', 'headphones'],
+    ['rspk', 'headphones'],
+    [0x0302, 'headphones'],
+    [0x0401, 'headphones'],
+    [0x0402, 'headphones'],
+    ['spkr', 'speakers'],
+    ['lfes', 'speakers'],
+    [0x0301, 'speakers'],
+    [0x0304, 'speakers'],
+    [0x0305, 'speakers'],
+    [0x0306, 'speakers'],
+    [0x0307, 'speakers'],
+    [0x0403, 'speakers'],
+    [0x0404, 'speakers'],
+    [0x0405, 'speakers'],
+    ['spdf', 'unknown'],
+    ['line', 'unknown'],
+    [0x0303, 'unknown'],
+  ])('a bluetooth terminal type %s is %s', (terminalType, formFactor) => {
+    expect(parse({ transport: 'blue', terminalType })).toMatchObject({ formFactor, transport: 'bluetooth' });
+  });
+
   it('hdmi and displayport are unknown over hdmi', () => {
     expect(parse({ transport: 'hdmi' })).toMatchObject({ formFactor: 'unknown', transport: 'hdmi' });
     expect(parse({ transport: 'dprt' })).toMatchObject({ transport: 'hdmi' });

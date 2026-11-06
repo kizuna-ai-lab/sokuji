@@ -192,13 +192,37 @@ function macCode(value) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
+// Bluetooth terminal types, from Core Audio's AudioHardwareBase.h (four-char
+// codes) and the USB Audio terminal types in IOAudioTypes.h (numbers). Anything
+// not listed stays unknown, including 'spdf' and 'line', which say nothing about
+// what is plugged in, and 0x0303, a head-mounted display.
+const MAC_BT_HEADPHONES = new Set([
+  'hdph', // kAudioStreamTerminalTypeHeadphones
+  'rspk', // kAudioStreamTerminalTypeReceiverSpeaker
+  0x0302, // OUTPUT_HEADPHONES
+  0x0401, // BIDIRECTIONAL_HANDSET
+  0x0402, // BIDIRECTIONAL_HEADSET
+]);
+const MAC_BT_SPEAKERS = new Set([
+  'spkr', // kAudioStreamTerminalTypeSpeaker
+  'lfes', // kAudioStreamTerminalTypeLFESpeaker
+  0x0301, // OUTPUT_SPEAKER
+  0x0304, // OUTPUT_DESKTOP_SPEAKER
+  0x0305, // OUTPUT_ROOM_SPEAKER
+  0x0306, // OUTPUT_COMMUNICATION_SPEAKER
+  0x0307, // OUTPUT_LOW_FREQUENCY_EFFECTS_SPEAKER
+  0x0403, // BIDIRECTIONAL_SPEAKERPHONE_NO_ECHO_REDX
+  0x0404, // BIDIRECTIONAL_ECHO_SUPPRESSING_SPEAKERPHONE
+  0x0405, // BIDIRECTIONAL_ECHO_CANCELING_SPEAKERPHONE
+]);
+
 function macFormFactor(transport, dataSource, terminalType) {
   if (transport === 'builtin') {
     if (dataSource === 'hdpn') return 'headphones';
     if (dataSource === 'ispk') return 'speakers';
   } else if (transport === 'bluetooth') {
-    if (terminalType === 'hdph' || terminalType === 0x0302 || terminalType === 0x0402) return 'headphones';
-    if (terminalType === 'spkr' || terminalType === 0x0301) return 'speakers';
+    if (MAC_BT_HEADPHONES.has(terminalType)) return 'headphones';
+    if (MAC_BT_SPEAKERS.has(terminalType)) return 'speakers';
   }
   return 'unknown';
 }
