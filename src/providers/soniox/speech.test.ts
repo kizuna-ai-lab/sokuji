@@ -608,6 +608,102 @@ describe('LegSpeech', () => {
   });
 });
 
+describe('LegSpeech recycled after its leg reconnects (spec 2026-11-05 reconnect)', () => {
+  const spoken = (s: ReturnType<typeof fakeSockets>['all'][number]) => s.sentJson<Json>().map((m) => m.text).filter((t) => !!t);
+
+  it('recycle lets the socket go — half-open, it still reads as open — and the next text opens a fresh one and goes there; nothing is degraded', async () => {
+    const { speech, tts, sockets, degraded, frames } = await setup();
+    const dead = tts();
+    speech.speak(1, 'Hello.', [0, 6], 'en');
+    expect(dead.sentJson<Json>().some((m) => m.text === 'Hello.')).toBe(true);
+    speech.recycle();
+    expect(dead.closedByClient).not.toBeNull();
+    expect(frames('tts.recycle')).toHaveLength(1);
+    // Nothing opens until there is text to speak.
+    expect(sockets.all).toHaveLength(1);
+    speech.speak(2, 'Again.', [0, 6], 'en');
+    expect(sockets.all).toHaveLength(2);
+    sockets.last().open();
+    await flush();
+    const sent = sockets.last().sentJson<Json>();
+    expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', language: 'en' });
+    expect(sent[1]).toEqual({ stream_id: 'utt-1-1', text: 'Again.', text_end: false });
+    // What went out on the dead socket is not sent again.
+    expect(sent.some((m) => m.text === 'Hello.')).toBe(false);
+    expect(degraded()).toEqual([]);
+    expect(frames('tts.degraded')).toEqual([]);
+  });
+
+  it('the dead socket is heard no more: a late frame from it reaches nothing', async () => {
+    const { speech, tts, kinds } = await setup();
+    const dead = tts();
+    speech.speak(1, 'Hello.', [0, 6], 'en');
+    speech.recycle();
+    dead.onmessage?.call(dead, new MessageEvent('message', { data: JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }) }));
+    dead.onmessage?.call(dead, new MessageEvent('message', { data: JSON.stringify({ stream_id: 'utt-1-1', terminated: true }) }));
+    expect(kinds('audio')).toEqual([]);
+    expect(kinds('speechRanges')).toEqual([]);
+  });
+
+  it('recycle while a socket is opening closes it without a word, and the text that waited goes on a fresh one at once', async () => {
+    const { speech, tts, sockets, degraded, frames } = await setup();
+    tts().drop();
+    await flush();
+    speech.speak(4, 'Again.', [0, 6], 'en');
+    const opening = sockets.last();
+    expect(opening.readyState).toBe(opening.CONNECTING);
+    speech.recycle();
+    expect(opening.closedByClient).not.toBeNull();
+    await flush();
+    expect(sockets.all).toHaveLength(3);
+    sockets.last().open();
+    await flush();
+    expect(sockets.last().sentJson<Json>()[1]).toEqual({ stream_id: 'utt-1-1', text: 'Again.', text_end: false });
+    expect(degraded()).toEqual([]);
+    expect(frames('tts.connect_failed')).toEqual([]);
+  });
+
+  it('recycle as a socket opens, before its open is read, lets it go too: what waited goes on a fresh one', async () => {
+    const { speech, tts, sockets, degraded } = await setup();
+    tts().drop();
+    await flush();
+    speech.speak(4, 'Again.', [0, 6], 'en');
+    const opened = sockets.last();
+    opened.open();
+    speech.recycle();
+    await flush();
+    expect(opened.closedByClient).not.toBeNull();
+    expect(spoken(opened)).toEqual([]);
+    expect(sockets.all).toHaveLength(3);
+    sockets.last().open();
+    await flush();
+    expect(spoken(sockets.last())).toEqual(['Again.']);
+    expect(degraded()).toEqual([]);
+  });
+
+  it("recycle with no socket — the start's failed to open — does nothing", async () => {
+    const { speech, sockets, opening, log } = create();
+    sockets.last().drop();
+    await opening;
+    const n = log.length;
+    speech.recycle();
+    await flush();
+    expect(sockets.all).toHaveLength(1);
+    expect(log.length).toBe(n);
+  });
+
+  it('recycle after close does nothing', async () => {
+    const { speech, sockets, log } = await setup();
+    speech.close();
+    const n = log.length;
+    speech.recycle();
+    speech.speak(1, 'Hello.', [0, 6], 'en');
+    await flush();
+    expect(sockets.all).toHaveLength(1);
+    expect(log.length).toBe(n);
+  });
+});
+
 describe('LegSpeech switched off and on mid-run (Translation I hear, #595)', () => {
   /** The text frames sent to synthesis, in order. */
   const texts = (sent: Json[]) => sent.filter((m) => typeof m.text === 'string' && m.text !== '').map((m) => m.text);

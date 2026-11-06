@@ -200,7 +200,11 @@ class SonioxCore {
       clock,
       frame: (type, payload) => this.frame('in', type, payload),
       reconnecting: (e) => this.toLegs((leg) => leg.events.reconnecting(e)),
-      reconnected: (e) => this.toLegs((leg) => leg.events.reconnected(e)),
+      // Each leg's TTS socket is let go first: the blip that dropped the STT socket likely left it half-open (`LegSpeech.recycle`).
+      reconnected: (e) => {
+        for (const leg of o.legs) leg.speech?.recycle();
+        this.toLegs((leg) => leg.events.reconnected(e));
+      },
       gaveUp: (e) => this.gaveUp(e),
       attempt: ({ signal }) => this.attempt(signal),
     });

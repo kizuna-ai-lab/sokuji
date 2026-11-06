@@ -182,6 +182,34 @@ export class LegSpeech {
     this.opening = null;
   }
 
+  /**
+   * The leg's STT connection came back after a drop (spec 2026-11-05
+   * reconnect §4.2): the TTS socket beside it is let go, and the next text
+   * opens a fresh one on the same key (`ensure`). The blip that dropped the
+   * STT socket most likely left this one half-open — still reading as open,
+   * nothing coming back — and only the STT socket has a stall watchdog, so
+   * translations would go on into a dead socket until the system timed it
+   * out, minutes later. What the old socket had in flight is lost with it, as
+   * the gap's audio is; text waiting on a socket being opened goes on a fresh
+   * one at once. Deliberate, so nothing but its Logs line is said. A leg that
+   * never got a socket has nothing to let go.
+   */
+  recycle(): void {
+    if (this.closed || (!this.stream && !this.opening)) return;
+    this.frame('out', 'tts.recycle');
+    const stream = this.stream;
+    this.stream = null;
+    const ended = stream?.close() ?? null;
+    if (ended !== null) this.frame('out', 'tts.end', { streamId: ended });
+    this.segments = new Map();
+    this.sweeps = new Map();
+    this.holdOnlyPending();
+    // A connect let go here rejects; `ensure()` sees it is no longer the one opening, says nothing, and opens afresh for what waits.
+    const opening = this.opening;
+    this.opening = null;
+    opening?.close();
+  }
+
   private newStream(): SonioxTtsStream {
     const stream = new SonioxTtsStream(
       { apiKey: this.o.key, region: this.o.region, voice: this.o.voice, model: SONIOX_TTS_MODEL, sampleRate: SAMPLE_RATE, speed: this.o.speed, clientReferenceId: this.o.clientReferenceId },
@@ -218,20 +246,30 @@ export class LegSpeech {
         stream.close();
         return;
       }
-      this.opening = null;
-      this.stream = stream;
-      this.reported = null;
-      // A new socket, a new unreadable-frame episode (choice 7).
-      this.readable = true;
-      const pending = this.pending;
-      this.pending = [];
-      for (const op of pending) {
-        if (op.kind === 'end') stream.endUtterance();
-        else stream.sendText(op.text, op.language, op.tag);
+      if (this.opening !== stream) {
+        // Let go by `recycle()` as it opened: the next socket takes what waited.
+        stream.close();
+        retry = this.pending.some((op) => op.kind === 'text');
+      } else {
+        this.opening = null;
+        this.stream = stream;
+        this.reported = null;
+        // A new socket, a new unreadable-frame episode (choice 7).
+        this.readable = true;
+        const pending = this.pending;
+        this.pending = [];
+        for (const op of pending) {
+          if (op.kind === 'end') stream.endUtterance();
+          else stream.sendText(op.text, op.language, op.tag);
+        }
       }
     } catch (error) {
       if (this.closed) return;
-      if (atStart) {
+      if (this.opening !== stream) {
+        // Let go by `recycle()`: deliberate, so nothing is said. Text that waited goes on a fresh socket.
+        retry = this.pending.some((op) => op.kind === 'text');
+        if (!retry) this.pending = [];
+      } else if (atStart) {
         // Silent until the first translation (choice 6): the Logs only. Text
         // that already waited on this socket is that translation: it retries.
         // An utterance end alone needs no socket.
