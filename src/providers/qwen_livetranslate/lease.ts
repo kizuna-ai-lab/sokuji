@@ -463,9 +463,10 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           keepalive = false;
           last = describeCause(error);
         }
-        // The connection over, the run ending: nothing is left for the report to protect.
-        const open = !r.over && !ended && !released && !ctx.signal.aborted;
-        if (!open || !(await pause(r, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS))) {
+        // The connection over, the run ending: nothing is left for the report to protect. Asked again after the wait, which
+        // a clock firing several timers in one step can end with the run already over.
+        const open = (): boolean => !r.over && !ended && !released && !ctx.signal.aborted;
+        if (!open() || !(await pause(r, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS)) || !open()) {
           ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: SESSION_STARTED_UNACKNOWLEDGED, cause: last } });
           return;
         }

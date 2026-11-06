@@ -475,9 +475,10 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
           key.sending = false;
           return;
         }
-        // The key's connection over, the key replaced, the run ending: nothing is left for the report to protect.
-        const open = !key.over && !ended && !released && !ctx.signal.aborted && keys.get(role) === key;
-        if (!open || !(await pause(key, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS))) {
+        // The key's connection over, the key replaced, the run ending: nothing is left for the report to protect. Asked again
+        // after the wait, which a clock firing several timers in one step can end with the run already over.
+        const open = (): boolean => !key.over && !ended && !released && !ctx.signal.aborted && keys.get(role) === key;
+        if (!open() || !(await pause(key, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS)) || !open()) {
           key.sending = false;
           ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: SESSION_STARTED_UNACKNOWLEDGED } });
           return;

@@ -743,6 +743,20 @@ describe('Qwen lease: the report retries', () => {
     expect(granted60.to('/qwen/session-started')).toHaveLength(asked);
   });
 
+  it("a retry whose wait ends in the same clock step as the grant posts nothing: the run ended before the try", async () => {
+    const a = await granted(['speaker'], {}, { maxSessionDurationSeconds: 2 });
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+    await flush();
+    a.to('/qwen/session-started')[0].respond(503);
+    await flush();
+    // The retry is due at 1 s and the grant ends at 2 s: one step fires both before the retry's try can run.
+    a.clock.advance(2_000);
+    await flush();
+    expect(a.end).toHaveBeenCalledTimes(1);
+    expect(a.to('/qwen/session-started')).toHaveLength(1);
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' } });
+  });
+
   it('release leaves no report timer behind', async () => {
     const a = await granted(['speaker']);
     a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');

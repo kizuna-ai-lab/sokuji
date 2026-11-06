@@ -620,7 +620,7 @@ describe('the Qwen adapter reconnects: managed', () => {
     }
   });
 
-  it("managed: a token this leg fetched for an earlier drop, served by the cache in this one (the other leg's ask for it) and refused, is asked past", async () => {
+  it("managed: a token the other leg fetched, served by the cache in this drop and refused, is asked past", async () => {
     const lease = fakeLease(
       { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true },
       { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false },
