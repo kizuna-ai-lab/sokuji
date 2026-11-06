@@ -65,6 +65,8 @@ export function matchOutputForm(
   if (!labelsKnown || browserLabel === undefined) return { ...UNKNOWN_FORM };
 
   const wanted = cleanOutputLabel(browserLabel);
+  // A blank label names no device, though it equals any native one left empty.
+  if (wanted === '') return { ...UNKNOWN_FORM };
   // Same-named devices cannot be told apart by label, but the browser's default
   // entry is the system default, which settles it when the names agree.
   if (isBrowserDefault) {

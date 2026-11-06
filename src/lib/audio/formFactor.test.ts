@@ -105,6 +105,13 @@ describe('matchOutputForm', () => {
     expect(matchOutputForm('x', undefined, [n('A', 'speakers')], true)).toEqual(UNKNOWN_FORM);
   });
 
+  it('a blank browser label names no device, even a native one with an empty label', () => {
+    const native = [n('', 'headphones', true), n('A', 'speakers')];
+    expect(matchOutputForm('x', '   ', native, true)).toEqual(UNKNOWN_FORM);
+    // Also as the browser's default entry, whose branch compares with the native default.
+    expect(matchOutputForm('x', ' ', native, true, true)).toEqual(UNKNOWN_FORM);
+  });
+
   it('returns copies, never the native object', () => {
     const native = [n('A', 'speakers', true)];
     const out = matchOutputForm('default', undefined, native, true);
