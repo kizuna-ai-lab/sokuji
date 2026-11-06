@@ -21,6 +21,7 @@ The executing session recorded these against the plan text below; the spec is up
 - `AdapterSession.info.shared` marks a shared-Both pair; its analytics and totals count once per connection; the restored notice and the new events need the new payloads, so Gemini/OpenAI keep today's UI.
 - `notices.connection_restored` landed with Task 4, not Task 5.
 - `SONIOX_STALL_MS` is 5000, measured: on a real 263 s managed Soniox session the longest gap between server messages was 1071 ms during speech and 1214 ms during silence (p99 912 / 1213 ms), so Task 7 Step 1's max(5000, 2 × the longest gap) keeps 5000.
+- Qwen detects a dead connection after all (spec §4.2), because a real managed Qwen session whose network was cut stayed open and unnoticed until it was stopped. Under automatic turns an `input_audio_buffer.clear` probe goes every 2 000 ms (`QWEN_PROBE_MS`); server VAD refuses it within 100 ms (probe 2026-11-06), and a probe unanswered for 6 000 ms (`QWEN_STALL_MS`) drops as `stall`. Under push-to-talk there is no probe, and a commit unanswered for 5 000 ms (`QWEN_TURN_ANSWER_MS`) drops as `stall`.
 
 ## Global Constraints
 
