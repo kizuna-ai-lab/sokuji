@@ -232,6 +232,13 @@ function macFormFactor(transport, dataSource, terminalType) {
   return 'unknown';
 }
 
+// A helper row's label: the one the browser shows when the helper built it,
+// else the system's device name, else empty.
+function helperLabel(r) {
+  if (typeof r.browserLabel === 'string' && r.browserLabel) return r.browserLabel;
+  return typeof r.label === 'string' ? r.label : '';
+}
+
 function parseMacDevices(text) {
   let rows;
   try {
@@ -254,12 +261,7 @@ function parseMacDevices(text) {
       }
       return {
         // The label the browser shows for this output, so the two match exactly.
-        label:
-          typeof r.browserLabel === 'string' && r.browserLabel
-            ? r.browserLabel
-            : typeof r.label === 'string'
-              ? r.label
-              : '',
+        label: helperLabel(r),
         isDefault: r.isDefault === true,
         formFactor: macFormFactor(transport, dataSource, terminalType),
         transport,
@@ -306,17 +308,13 @@ function parseWinDevices(text) {
       const transport = winTransport(r.enumerator, form);
       // A virtual device's form factor describes no hardware (VB-CABLE says Speakers).
       let formFactor = 'unknown';
-      if (transport === 'virtual') formFactor = 'unknown';
-      else if (form === WIN_FORM_SPEAKERS) formFactor = 'speakers';
-      else if (WIN_FORM_HEADPHONES.has(form)) formFactor = 'headphones';
+      if (transport !== 'virtual') {
+        if (form === WIN_FORM_SPEAKERS) formFactor = 'speakers';
+        else if (WIN_FORM_HEADPHONES.has(form)) formFactor = 'headphones';
+      }
       return {
         // The label the browser shows for this output, so the two match exactly.
-        label:
-          typeof r.browserLabel === 'string' && r.browserLabel
-            ? r.browserLabel
-            : typeof r.label === 'string'
-              ? r.label
-              : '',
+        label: helperLabel(r),
         isDefault: r.isDefault === true,
         formFactor,
         transport,
