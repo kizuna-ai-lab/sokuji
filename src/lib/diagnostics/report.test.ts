@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   reportError,
   reportWarning,
+  reportInfo,
   describeCause,
   settleReports,
   resetReportThrottle,
@@ -228,5 +229,31 @@ describe('report', () => {
       reportError('X', { client_secret: 'ek_x' });
       expect(errorSpy).toHaveBeenCalledTimes(2);
     });
+  });
+});
+
+describe('reportInfo', () => {
+  beforeEach(() => {
+    useLogStore.getState().clearLogs();
+    resetReportThrottle();
+  });
+
+  it('writes an info entry to the panel one microtask later, and nothing to the console', async () => {
+    const spies = [vi.spyOn(console, 'error'), vi.spyOn(console, 'warn'), vi.spyOn(console, 'info'), vi.spyOn(console, 'log')];
+    reportInfo('OutputForm', 'Output form factor: me');
+    expect(useLogStore.getState().allLogs).toHaveLength(0);
+    await settleReports();
+    const [entry] = useLogStore.getState().allLogs;
+    expect(entry.message).toBe('[OutputForm] Output form factor: me');
+    expect(entry.type).toBe('info');
+    for (const spy of spies) expect(spy).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it('is not throttled: the same line twice in a row is written twice', async () => {
+    reportInfo('OutputForm', 'same');
+    reportInfo('OutputForm', 'same');
+    await settleReports();
+    expect(useLogStore.getState().allLogs.map((l) => l.message)).toEqual(['[OutputForm] same', '[OutputForm] same']);
   });
 });

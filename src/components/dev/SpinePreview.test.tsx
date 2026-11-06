@@ -49,7 +49,8 @@ vi.mock('../../lib/session/runner', async (importOriginal) => {
     },
   };
 });
-vi.mock('../../lib/audio/appAudio', () => ({
+vi.mock('../../lib/audio/appAudio', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/audio/appAudio')>()),
   getAppAudio: async () => {
     const queue = { position: () => null, pending: 0, subscribe: () => () => {} };
     return {

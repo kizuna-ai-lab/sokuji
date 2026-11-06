@@ -11,6 +11,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 
 import useAudioStore from '../../stores/audioStore';
 import useLogStore from '../../stores/logStore';
+import { settleReports } from '../diagnostics/report';
 import { createFormFactorLog } from './formFactorLog';
 
 const state = () => useAudioStore.getState();
@@ -114,5 +115,23 @@ describe('createFormFactorLog', () => {
     expect(useLogStore.getState().allLogs).toHaveLength(3);
     useLogStore.setState({ enabled: false });
     useLogStore.getState().clearLogs();
+  });
+
+  it('a throwing outlet resolution becomes one warning and does not throw', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    useLogStore.setState({ enabled: true });
+    useLogStore.getState().clearLogs();
+    const broken = { ...state(), outlets: undefined } as unknown as ReturnType<typeof state>;
+    expect(() => log.baseline(broken)).not.toThrow();
+    expect(() => log.update(broken)).not.toThrow();
+    expect(() => log.update(broken)).not.toThrow();
+    await settleReports();
+    const warnings = useLogStore.getState().allLogs.filter((l) => l.type === 'warning');
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain('[OutputForm]');
+    expect(lines).toEqual([]);
+    useLogStore.setState({ enabled: false });
+    useLogStore.getState().clearLogs();
+    vi.restoreAllMocks();
   });
 });

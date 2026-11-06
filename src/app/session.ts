@@ -12,7 +12,7 @@ import { currentNativeOutputs } from '../lib/audio/nativeOutputs';
 import type { Playback } from '../lib/audio/playback';
 import { realClock, type Clock } from '../lib/contract/clock';
 import { redact } from '../lib/diagnostics/redact';
-import { describeCause, reportWarning } from '../lib/diagnostics/report';
+import { describeCause, reportInfo, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
@@ -31,7 +31,6 @@ import { createConversationView, type ConversationViewState, type Readable } fro
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import useAudioStore from '../stores/audioStore';
-import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -315,7 +314,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // The form factor of each outlet, for the diagnostic log only. Forms are static unknown where no native reader runs (the extension),
       // so only Electron's answer can be stale; the reader is started by Home, after this, so it is asked at each call.
       const formLog = createFormFactorLog(
-        (line) => useLogStore.getState().addLog(line, 'info'),
+        (line) => reportInfo('OutputForm', line),
         () => !(isElectron() && window.electron) || currentNativeOutputs() !== null,
         faceToFaceFromStores,
       );

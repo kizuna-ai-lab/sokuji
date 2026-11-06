@@ -1,4 +1,5 @@
 // The one reader of the form-factor answer: a diagnostic line per outlet.
+import { describeCause, reportWarning } from '../diagnostics/report';
 import type { AudioDevice } from '../../stores/audioStore';
 import type useAudioStore from '../../stores/audioStore';
 import { outletContext } from './appAudio';
@@ -29,16 +30,25 @@ export function createFormFactorLog(
     log(`Output form factor: ${name} → ${text}`);
   };
 
+  // A diagnostic must never throw into a store subscriber or a session start.
+  const safely = (work: () => void) => {
+    try {
+      work();
+    } catch (error) {
+      reportWarning('OutputForm', `The output form factor log failed (${describeCause(error)})`, { cause: error, dedupeKey: 'output-form:log' });
+    }
+  };
+
   return {
-    baseline(audio) {
+    baseline: (audio) => safely(() => {
       for (const name of OUTLET_NAMES) emit(name, triple(name, audio));
-    },
-    update(audio) {
+    }),
+    update: (audio) => safely(() => {
       if (!isCurrent()) return;
       for (const name of OUTLET_NAMES) {
         const text = triple(name, audio);
         if (logged.get(name) !== text) emit(name, text);
       }
-    },
+    }),
   };
 }
