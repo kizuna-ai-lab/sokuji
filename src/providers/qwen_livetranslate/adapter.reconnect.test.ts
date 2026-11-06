@@ -348,6 +348,53 @@ describe('the Qwen adapter reconnects: own key', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
+  it("an attempt's handshake closed with 1008 or 1003 ends the attempts at once, as the same close ends a live connection", async () => {
+    for (const close of [1008, 1003]) {
+      const h = await live();
+      h.socket().serverClose(1011);
+      await flush();
+      h.socket().open();
+      await flush();
+      h.socket().receive(SERVER.created('sess_2'));
+      // Before session.updated.
+      h.socket().serverClose(close);
+      await flush();
+      expect(h.of('failed'), String(close)).toEqual([{
+        kind: 'failed',
+        payload: {
+          code: 'server',
+          message: `Qwen closed the connection before the session started (${close}).`,
+          drop: dropOf({ cause: 'close', closeCode: 1011 }),
+          giveUp: { attempts: 1, reason: 'terminal_error', errorCode: 'server' },
+        },
+      }]);
+      h.clock.advance(RECONNECT_BUDGET_MS);
+      await flush();
+      expect(h.seam.sockets.all).toHaveLength(2);
+      expect(h.timers()).toBe(0);
+      expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+    }
+  });
+
+  it("an attempt's handshake closed with 1006 or 1011 is a failed attempt: the next one dials again and comes back", async () => {
+    for (const close of [1006, 1011]) {
+      const h = await live();
+      h.socket().serverClose(1011);
+      await flush();
+      h.socket().open();
+      await flush();
+      h.socket().receive(SERVER.created('sess_2'));
+      h.socket().serverClose(close);
+      await flush();
+      expect(h.of('failed'), String(close)).toEqual([]);
+      expect(h.frames('session.reconnect_failed')).toEqual([{ attempt: 1, message: `Qwen closed the connection before the session started (${close}).` }]);
+      h.clock.advance(250);
+      await comeBack(h, 'sess_3');
+      expect(h.of('reconnected').map((e) => e.payload!.attempts)).toEqual([2]);
+      expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+    }
+  });
+
   it('a connection that drops right behind its session.updated fails that attempt: the next one follows, then reconnected once', async () => {
     const h = await live();
     h.socket().serverClose(1011);

@@ -142,6 +142,15 @@ function detach(ws: WebSocket): void {
 
 const closeWords = (e: CloseEvent) => `${e.code}${e.reason ? ` ${e.reason}` : ''}`;
 
+/**
+ * The errors of closes before `session.updated` that would end a live
+ * connection (`qwenDropAction`): a reconnect's attempt dials again only after
+ * a close a live connection would reconnect on, so a refusal (1008, 1003) is
+ * not redialled to the end of the budget. Kept beside the error, not in it:
+ * the start's refusal stays the plain error it was.
+ */
+const closesThatEnd = new WeakSet<Error>();
+
 /** The seam's refusal in the start's words: fixed, quoting nothing; an abort is passed on as it came. */
 function seamRefusal(error: unknown, managed: boolean): unknown {
   if (!(error instanceof HeaderSocketError)) {
@@ -582,7 +591,9 @@ class QwenLeg implements AdapterSession {
           if (!settled) {
             // An attempt's close is one of the reconnect's; `session.connection_lost` is the start's, and the give-up's.
             this.frame('in', this.reconnector.active ? 'session.closed' : 'session.connection_lost', { code: e.code, reason: e.reason });
-            settle(new AdapterStartError(`Qwen closed the connection before the session started (${closeWords(e)}).`, e.reason ? errorCode({ code: null, message: e.reason }) : 'server'));
+            const error = new AdapterStartError(`Qwen closed the connection before the session started (${closeWords(e)}).`, e.reason ? errorCode({ code: null, message: e.reason }) : 'server');
+            if (qwenDropAction({ close: e.code, reason: e.reason }) === 'end') closesThatEnd.add(error);
+            settle(error);
           } else if (socket === this.socket) this.closed(e);
         };
       }, (error: unknown) => settle(seamRefusal(error, lease !== undefined)));
@@ -847,9 +858,10 @@ class QwenLeg implements AdapterSession {
    * legs, else one request for both — a refusal stopping the attempts. Then
    * the start's own connect, on the endpoint the start dialled: a new
    * session, whose update and report go as at the start. An answer the
-   * handshake would give again (`TERMINAL`) stops them too, in its own code
-   * — but for Qwen refusing a token the lease's cache served (lapsed early,
-   * revoked): the next attempt asks past the cache. The signal, every
+   * handshake would give again (`TERMINAL`), or a close there that would end
+   * a live connection, stops them too, in its own code — but for Qwen
+   * refusing a token the lease's cache served (lapsed early, revoked): the
+   * next attempt asks past the cache. The signal, every
    * attempt's of this drop, aborts at the budget's end and on a stop.
    */
   private async attempt(signal: AbortSignal): Promise<AttemptResult> {
@@ -895,7 +907,9 @@ class QwenLeg implements AdapterSession {
         this.refusedToken = this.apiKey;
         return failed(code, message);
       }
-      if (!TERMINAL.has(code)) return failed(code, message);
+      // A handshake's close is read as a live one's (§4.1): one that would end a live connection ends the attempts, in the handshake's words.
+      const ends = error instanceof Error && closesThatEnd.has(error);
+      if (!TERMINAL.has(code) && !ends) return failed(code, message);
       this.lastFailure = message;
       return { ok: false, final: true, reason: 'terminal_error', code, message };
     }
