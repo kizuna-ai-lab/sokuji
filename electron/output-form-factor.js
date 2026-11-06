@@ -22,7 +22,10 @@ const READ_TIMEOUT_MS = 3000;
 const MAX_STDOUT_BYTES = 1024 * 1024;
 const DEBOUNCE_MS = 200;
 const DEFAULT_BACKOFF_MS = [1000, 5000, 30000, 60000];
-const CHANGE_LINE = /^Event 'change' on (sink #\d+|server)/;
+// A sink appearing, changing (a laptop's port switch keeps the sink) or going -
+// Chromium on Linux misses some Bluetooth and PipeWire ones - and the server
+// changing (a new default sink).
+const SINK_EVENT = /^Event '(?:new|change|remove)' on sink #\d+|^Event 'change' on server/;
 
 // Parsers read English keys; a translated pactl would print different ones.
 const pactlEnv = () => ({ ...process.env, LC_ALL: 'C' });
@@ -169,8 +172,9 @@ async function getOutputDevices({
 }
 
 /**
- * Watches `pactl subscribe` for sink changes (a new default sink arrives as a
- * `server` change) and calls onChange once per burst.
+ * Watches `pactl subscribe` for sinks appearing, changing or going (a new
+ * default sink arrives as a `server` change) and calls onChange once per burst,
+ * and once after a relaunch that stays up, for what changed while it was down.
  */
 function createSinkWatcher({
   spawn,
@@ -184,10 +188,23 @@ function createSinkWatcher({
   let child = null;
   let restartTimer = null;
   let debounceTimer = null;
+  /** The pending push is only a relaunch's catch-up, no change the child reported. */
+  let catchUpOnly = false;
   let failures = 0;
   let warned = false;
 
-  const launch = () => {
+  const schedulePush = (catchUp) => {
+    // A reported change already pending stays one when a catch-up joins it.
+    catchUpOnly = catchUp && (debounceTimer === null || catchUpOnly);
+    if (debounceTimer) clearTimer(debounceTimer);
+    debounceTimer = setTimer(() => {
+      debounceTimer = null;
+      catchUpOnly = false;
+      if (started) onChange();
+    }, DEBOUNCE_MS);
+  };
+
+  const launch = (relaunch) => {
     restartTimer = null;
     let current;
     try {
@@ -196,17 +213,21 @@ function createSinkWatcher({
       return onExit(null);
     }
     child = current;
+    // Sinks may have changed while no watcher ran: read once more when it is back.
+    // Not on a spawn that fails (no 'spawn' event), and onExit takes it back from
+    // one that dies inside the window (the server down), so a watcher stuck
+    // restarting does not become a read on every backoff.
+    if (relaunch) {
+      current.once('spawn', () => {
+        if (child === current) schedulePush(true);
+      });
+    }
     let pending = '';
     current.stdout.on('data', (d) => {
       pending += d.toString('utf8');
       const lines = pending.split('\n');
       pending = lines.pop();
-      if (!lines.some((l) => CHANGE_LINE.test(l))) return;
-      if (debounceTimer) clearTimer(debounceTimer);
-      debounceTimer = setTimer(() => {
-        debounceTimer = null;
-        if (started) onChange();
-      }, DEBOUNCE_MS);
+      if (lines.some((l) => SINK_EVENT.test(l))) schedulePush(false);
     });
     // 'error' and 'close' can both fire for one child; only the first counts.
     const gone = () => onExit(current);
@@ -220,13 +241,18 @@ function createSinkWatcher({
       if (child !== exited) return;
       child = null;
     }
+    if (catchUpOnly && debounceTimer) {
+      clearTimer(debounceTimer);
+      debounceTimer = null;
+      catchUpOnly = false;
+    }
     if (!warned) {
       warned = true;
       warn('pactl subscribe stopped; restarting. Output device changes may be missed until it is back.');
     }
     const delay = backoffMs[Math.min(failures, backoffMs.length - 1)];
     failures++;
-    restartTimer = setTimer(launch, delay);
+    restartTimer = setTimer(() => launch(true), delay);
   };
 
   return {
@@ -235,7 +261,7 @@ function createSinkWatcher({
       started = true;
       failures = 0;
       warned = false;
-      launch();
+      launch(false);
     },
     stop() {
       started = false;
@@ -243,6 +269,7 @@ function createSinkWatcher({
       if (debounceTimer) clearTimer(debounceTimer);
       restartTimer = null;
       debounceTimer = null;
+      catchUpOnly = false;
       if (child) {
         const old = child;
         child = null;

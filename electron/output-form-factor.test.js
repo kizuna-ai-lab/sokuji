@@ -319,6 +319,72 @@ describe('createSinkWatcher', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
+  // Chromium on Linux misses some Bluetooth and PipeWire sinks coming and going.
+  it('a sink appearing or going pushes, coalesced with the rest of its burst', () => {
+    const { watcher, line, onChange } = setup();
+    watcher.start();
+    line(0, "Event 'new' on sink #7");
+    vi.advanceTimersByTime(200);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    line(0, "Event 'remove' on sink #7");
+    vi.advanceTimersByTime(200);
+    expect(onChange).toHaveBeenCalledTimes(2);
+
+    line(0, "Event 'new' on sink #8");
+    line(0, "Event 'change' on sink #8");
+    line(0, "Event 'change' on server");
+    vi.advanceTimersByTime(199);
+    line(0, "Event 'remove' on sink #8");
+    vi.advanceTimersByTime(200);
+    expect(onChange).toHaveBeenCalledTimes(3);
+  });
+
+  it('a relaunched watcher pushes once, so changes made while it was down are read', () => {
+    const { watcher, children, spawn, onChange } = setup({ backoffMs: [1000] });
+    watcher.start();
+    // The first launch is no catch-up: the read that started the watcher is current.
+    children[0].emit('spawn');
+    vi.advanceTimersByTime(1000);
+    expect(onChange).not.toHaveBeenCalled();
+
+    children[0].emit('close', 1);
+    vi.advanceTimersByTime(1000);
+    expect(spawn).toHaveBeenCalledTimes(2);
+    children[1].emit('spawn');
+    vi.advanceTimersByTime(199);
+    expect(onChange).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60000);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('a relaunch that fails to start or dies at once pushes nothing; a change it reported still pushes', () => {
+    const { watcher, children, line, onChange } = setup({ backoffMs: [1000] });
+    watcher.start();
+    children[0].emit('close', 1);
+
+    // pactl missing: an error, never a spawn.
+    vi.advanceTimersByTime(1000);
+    children[1].emit('error', new Error('ENOENT'));
+    children[1].emit('close', -2);
+    // The server down: pactl starts, cannot connect, and exits.
+    vi.advanceTimersByTime(1000);
+    children[2].emit('spawn');
+    vi.advanceTimersByTime(50);
+    children[2].emit('close', 1);
+    vi.advanceTimersByTime(500);
+    expect(onChange).not.toHaveBeenCalled();
+
+    // One that reported a change before it went: that change is real.
+    vi.advanceTimersByTime(500);
+    children[3].emit('spawn');
+    line(3, "Event 'change' on sink #1");
+    children[3].emit('close', 1);
+    vi.advanceTimersByTime(200);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
   it('the watcher ignores other events', () => {
     const { watcher, line, onChange } = setup();
     watcher.start();
