@@ -167,6 +167,8 @@ interface SttKey {
 class SonioxCore {
   private ended = false;
   private stt: SonioxSttStream | null = null;
+  /** The socket whose first frame the lease was told of: it hears when that one ends. */
+  private accepted: SonioxSttStream | null = null;
   private readonly utterances: Utterances;
   private pendingCutoff = false;
   private key: SttKey;
@@ -471,6 +473,7 @@ class SonioxCore {
         heard();
         if (first) {
           first = false;
+          this.accepted = stream;
           this.o.primary.credentials.lease?.streamAccepted();
         }
         readable = true;
@@ -559,6 +562,7 @@ class SonioxCore {
     const stt = this.stt;
     this.stt = null;
     stt?.close();
+    this.letGo(stt);
     // An attempt's socket that dropped as it opened is that attempt's: the reconnector fails it, however it answers, and the drop a give-up reports stays the one it took up.
     if (!this.reconnector.active) {
       this.drop = this.dropInfo(drop, true);
@@ -705,7 +709,15 @@ class SonioxCore {
       this.o.legs[0].events.frame({ direction: 'out', type: 'stt.end' });
     }
     stt?.close();
+    this.letGo(stt);
     for (const leg of this.o.legs) leg.speech?.close();
+  }
+
+  /** The core is done with `stt`: when the lease was told of its first frame, it hears the connection ended, so a report of its key still unacknowledged stops being retried. */
+  private letGo(stt: SonioxSttStream | null): void {
+    if (!stt || stt !== this.accepted) return;
+    this.accepted = null;
+    this.o.primary.credentials.lease?.streamEnded();
   }
 
   private frame(direction: 'in' | 'out', type: string, payload?: unknown): void {

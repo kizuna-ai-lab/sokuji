@@ -145,6 +145,8 @@ export type SonioxReissue =
 export interface SonioxLeasePort {
   /** Soniox accepted the key: the first frame on each STT socket (the managed `session-started`). */
   streamAccepted(): void;
+  /** That socket ended — dropped, stopped, failed or cut off: a report of its key not yet acknowledged is tried no more. */
+  streamEnded(): void;
   /** Whether a 403 now is the granted duration ending rather than an error. */
   atGrantEnd(now: number): boolean;
   /** The granted duration ended: the lease ends the run with the grant's words, decided at acquire — `segment_ended` at the per-session cap, else `budget_exhausted`. */

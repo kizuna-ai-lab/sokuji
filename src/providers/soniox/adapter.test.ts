@@ -649,7 +649,7 @@ describe("the Soniox adapter: a lone leg's voice", () => {
 describe("the Soniox adapter: Plan B's session seams", () => {
   it("tells a lease the first frame of each socket: a 503 reconnects on a reissued key, whose socket's first frame it tells again", async () => {
     const reissued: SonioxReissue = { ok: true, stt: 'key-1', clientReferenceId: 'ref-1', expiresAt: 10_000 };
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(), reissue: vi.fn(async () => reissued) };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(), reissue: vi.fn(async () => reissued) };
     const h = await live({ credentials: { ...KEY, lease } });
     expect(lease.streamAccepted).not.toHaveBeenCalled();
     h.stt().receive(msg(orig('Hi', false)));
@@ -670,7 +670,7 @@ describe("the Soniox adapter: Plan B's session seams", () => {
   });
 
   it('an error frame first never tells the lease a stream was accepted', async () => {
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(), reissue: vi.fn() };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(), reissue: vi.fn() };
     const { stt, of } = await live({ credentials: { ...KEY, lease } });
     stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
     expect(lease.streamAccepted).not.toHaveBeenCalled();
@@ -680,7 +680,7 @@ describe("the Soniox adapter: Plan B's session seams", () => {
 
   it("a 403 at the grant's end closes the leg without a failure, after the lease's cutoff", async () => {
     let closedAtCutoff = -1;
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => true), cutoff: vi.fn(() => { closedAtCutoff = h.of('closed').length; }), reissue: vi.fn() };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => true), cutoff: vi.fn(() => { closedAtCutoff = h.of('closed').length; }), reissue: vi.fn() };
     const h = await live({ credentials: { ...KEY, lease } });
     h.stt().receive(JSON.stringify({ error_code: 403, error_message: 'Session duration exceeded' }));
     expect(lease.atGrantEnd).toHaveBeenCalledWith(0);
@@ -693,7 +693,7 @@ describe("the Soniox adapter: Plan B's session seams", () => {
   });
 
   it("a 403 before the grant's end is an auth failure", async () => {
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: () => false, cutoff: vi.fn(), reissue: vi.fn() };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: () => false, cutoff: vi.fn(), reissue: vi.fn() };
     const { stt, of } = await live({ credentials: { ...KEY, lease } });
     stt().receive(JSON.stringify({ error_code: 403, error_message: 'Forbidden' }));
     expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 403] Forbidden', drop: { cause: 'error', errorCode: '403', retryable: false, managed: true } } }]);

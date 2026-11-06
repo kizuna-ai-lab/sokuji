@@ -29,6 +29,7 @@ function fakeLease(...answers: SonioxReissue[]) {
   const waiting: Array<(a: SonioxReissue) => void> = [];
   const port = {
     streamAccepted: vi.fn(),
+    streamEnded: vi.fn(),
     atGrantEnd: vi.fn((_now: number) => false),
     cutoff: vi.fn(),
     reissue: vi.fn(() => {
@@ -332,6 +333,32 @@ describe('the Soniox adapter reconnects: managed', () => {
     expect(h.of('failed')).toEqual([]);
     expect(JSON.stringify(h.of('frame'))).not.toMatch(/key-[01]/);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it('tells the lease when the connection whose first frame it reported ends — at its drop, before the reissue, and at the stop — never for one that answered nothing', async () => {
+    const lease = fakeLease(KEY_1, KEY_2);
+    const h = await live(managed(lease));
+    h.stt().receive(msg(orig('Hi', false)));
+    expect(lease.port.streamEnded).not.toHaveBeenCalled();
+    h.stt().serverClose(1006);
+    await flush();
+    expect(lease.port.streamEnded).toHaveBeenCalledTimes(1);
+    expect(lease.port.streamEnded.mock.invocationCallOrder[0]).toBeLessThan(lease.port.reissue.mock.invocationCallOrder[0]);
+    await openAttempt(h);
+    expect(h.of('reconnected')).toHaveLength(1);
+    // Back, but dropped again before its first frame: its key was never reported, so there is nothing to tell.
+    h.stt().serverClose(1006);
+    await flush();
+    h.clock.advance(250);
+    await flush();
+    await openAttempt(h);
+    expect(h.of('reconnected')).toHaveLength(2);
+    expect(lease.port.streamEnded).toHaveBeenCalledTimes(1);
+    h.stt().receive(msg(orig('Again', false)));
+    expect(lease.port.streamAccepted).toHaveBeenCalledTimes(2);
+    await h.session.stop();
+    expect(lease.port.streamEnded).toHaveBeenCalledTimes(2);
+    expect(h.of('failed')).toEqual([]);
   });
 
   it('managed: a key whose socket never opened is reused by the next attempt; past its window a new one is fetched (Review Focus 4)', async () => {

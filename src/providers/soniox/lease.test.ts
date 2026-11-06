@@ -9,7 +9,7 @@ import { createSonioxAdapter } from './adapter';
 import { buildSoniox } from './config';
 import {
   CONFLICT_WAIT_LIMIT_MS, createKizunaLease, DEFAULT_CONFLICT_RETRY_MS, ENDING_POLL_MS, GRANT_END_MARGIN_MS, RELEASED_RETRY_MS,
-  SESSION_END_BUDGET_MS, SESSION_KEY_TIMEOUT_MS,
+  SESSION_END_BUDGET_MS, SESSION_KEY_TIMEOUT_MS, SESSION_STARTED_RETRY_DELAYS_MS, SESSION_STARTED_RETRY_MAX_MS, SESSION_STARTED_UNACKNOWLEDGED,
 } from './lease';
 import { PARTICIPANT_SPEECH_FIELD } from './leaseRequest';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
@@ -779,6 +779,164 @@ describe("the lease's port (SonioxLeasePort)", () => {
     a.to('/soniox/session-started')[0].fail();
     await flush();
     expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: 'Failed to fetch' } });
+  });
+
+  it('a 5xx is tried again a second later, and the 2xx after it is the report: nothing more goes out', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const started = () => a.to('/soniox/session-started');
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    started()[0].respond(503);
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0] - 1);
+    await flush();
+    expect(started()).toHaveLength(1);
+    a.clock.advance(1);
+    await flush();
+    expect(started()).toHaveLength(2);
+    // The same report again: the backend's mark is idempotent.
+    expect(started()[1].init.body).toBe(started()[0].init.body);
+    started()[1].respond(200, { ok: true });
+    await flush();
+    a.clock.advance(120_000);
+    await flush();
+    expect(started()).toHaveLength(2);
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ payload: expect.objectContaining({ message: SESSION_STARTED_UNACKNOWLEDGED }) }));
+    // Once per key still: the key's next first frame posts nothing.
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    expect(started()).toHaveLength(2);
+  });
+
+  it('a transport failure is tried again 1, 2, 5 and 10 s later, then every 30 s, while the connection is open', async () => {
+    expect(SESSION_STARTED_RETRY_DELAYS_MS).toEqual([1_000, 2_000, 5_000, 10_000]);
+    expect(SESSION_STARTED_RETRY_MAX_MS).toBe(30_000);
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const started = () => a.to('/soniox/session-started');
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    const at: number[] = [a.clock.now()];
+    for (const delay of [1_000, 2_000, 5_000, 10_000, 30_000, 30_000, 30_000]) {
+      started()[started().length - 1].fail();
+      await flush();
+      a.clock.advance(delay - 1);
+      await flush();
+      expect(started()).toHaveLength(at.length);
+      a.clock.advance(1);
+      await flush();
+      expect(started()).toHaveLength(at.length + 1);
+      at.push(a.clock.now());
+    }
+    expect(at).toEqual([0, 1_000, 3_000, 8_000, 18_000, 48_000, 78_000, 108_000]);
+    // Each failure in the Logs, as before.
+    expect(a.frame.mock.calls.filter(([f]) => f.type === 'session.notify_failed')).toHaveLength(7);
+    started()[started().length - 1].respond(200);
+    await flush();
+    a.clock.advance(120_000);
+    await flush();
+    expect(started()).toHaveLength(8);
+  });
+
+  it('the retries stop when the connection ends, saying the report was never acknowledged', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    const before = a.clock.pending();
+    port.streamAccepted();
+    a.to('/soniox/session-started')[0].fail();
+    await flush();
+    expect(a.clock.pending()).toBe(before + 1);
+    port.streamEnded();
+    expect(a.clock.pending()).toBe(before);
+    await flush();
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: SESSION_STARTED_UNACKNOWLEDGED } });
+    a.clock.advance(120_000);
+    await flush();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+
+    // A connection that ends with a try in flight: that try is the last, unless it is acknowledged.
+    const b = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const portB = b.resources.credentials('speaker').lease!;
+    portB.streamAccepted();
+    portB.streamEnded();
+    b.to('/soniox/session-started')[0].respond(503);
+    await flush();
+    b.clock.advance(120_000);
+    await flush();
+    expect(b.to('/soniox/session-started')).toHaveLength(1);
+    expect(b.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: SESSION_STARTED_UNACKNOWLEDGED } });
+
+    // A connection that ends when its report was acknowledged: nothing to say.
+    const c = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const portC = c.resources.credentials('speaker').lease!;
+    portC.streamAccepted();
+    c.to('/soniox/session-started')[0].respond(200);
+    await flush();
+    portC.streamEnded();
+    expect(c.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
+  });
+
+  it('a 4xx refuses the report: it is not tried again', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const before = a.clock.pending();
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    a.to('/soniox/session-started')[0].respond(404, { error: 'x', reason: 'lease_not_found' });
+    await flush();
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.started_refused', payload: { status: 404, reason: 'lease_not_found', role: 'spk_stt' } });
+    expect(a.clock.pending()).toBe(before);
+    a.clock.advance(120_000);
+    await flush();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+  });
+
+  it("a release, the run's abort and the grant's end each cancel a pending retry: none outlives the lease", async () => {
+    /** A lease whose report waits to be tried again; `before` is the timers it held before the report (its budget's). */
+    const pendingRetry = async () => {
+      const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+      const before = a.clock.pending();
+      a.resources.credentials('speaker').lease!.streamAccepted();
+      a.to('/soniox/session-started')[0].respond(503);
+      await flush();
+      expect(a.clock.pending()).toBe(before + 1);
+      return { ...a, before };
+    };
+    const triedOnce = async (a: Awaited<ReturnType<typeof pendingRetry>>) => {
+      a.clock.advance(120_000);
+      await flush();
+      expect(a.to('/soniox/session-started')).toHaveLength(1);
+    };
+
+    const released = await pendingRetry();
+    const releasing = released.resources.release();
+    released.to('/soniox/session-end')[0].respond(200);
+    await releasing;
+    expect(released.clock.pending()).toBe(0);
+    await triedOnce(released);
+
+    // The run's abort (its dispose) comes before the release: the retry goes with it, the budget waits for the release.
+    const aborted = await pendingRetry();
+    aborted.controller.abort();
+    expect(aborted.clock.pending()).toBe(aborted.before);
+    await triedOnce(aborted);
+
+    const cutOff = await pendingRetry();
+    cutOff.resources.credentials('speaker').lease!.cutoff();
+    expect(cutOff.clock.pending()).toBe(0);
+    await triedOnce(cutOff);
+  });
+
+  it("a reissued key ends the old key's retries; the new key reports on its own first frame", async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.streamAccepted();
+    a.to('/soniox/session-started')[0].fail();
+    await flush();
+    const result = port.reissue();
+    await flush();
+    a.to('/soniox/session-key/reissue')[0].respond(200, { leaseId: 'lease-1', role: 'spk_stt', apiKey: 'k-new', clientReferenceId: 'ref-new:2', expiresAt: '2026-11-06T00:00:00.000Z' });
+    await result;
+    a.clock.advance(120_000);
+    await flush();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+    port.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(2);
+    expect(JSON.parse(a.to('/soniox/session-started')[1].init.body as string)).toEqual({ leaseId: 'lease-1', role: 'spk_stt', clientReferenceId: 'ref-new:2' });
   });
 
   it('posts nothing once released: a late first frame cannot start a lease the account ended', async () => {
