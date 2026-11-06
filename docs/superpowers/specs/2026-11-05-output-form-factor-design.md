@@ -100,7 +100,7 @@ Chrome gives an extension device names only. Every device is `unknown`, transpor
 
 The renderer knows an outlet's sink by its `deviceId` (or none: the browser default). It matches through `enumerateDevices` labels:
 
-- No labels: without the microphone permission Chromium gives outputs empty labels. The existing `outputLabelsKnown` (from `listAudioDevices()` in `src/lib/audio/devices.ts`) says so; while it is false every outlet is `unknown`, and the answer is recomputed when the device list is next re-read with labels.
+- No labels: without the microphone permission Chromium gives outputs empty labels. The existing `outputLabelsKnown` (from `listAudioDevices()` in `src/lib/audio/devices.ts`) says so; while it is false every outlet is `unknown`, and the answer is recomputed when the device list is next re-read with labels. The browser default (`default`, or no device) is the exception: its answer comes from the native device with `isDefault` and needs no label, so it is known even while `outputLabelsKnown` is false.
 - `default` (and no device) → the native device with `isDefault`. The browser's default is the console default on Windows (`eConsole`), which is what the helper reports.
 - `communications` (Windows) → `unknown` (rarely chosen; not worth a second default lookup).
 - Otherwise the `audiooutput` entry's label, trimmed and with Chromium's `Default - ` / `Communications - ` prefix removed, is compared with the native labels. Exactly one equal label → that device. None or more than one (two identical USB headsets, two AirPods with the same name) → `unknown`. Nothing fuzzier than that: a looser match would be the guessing §2 rules out.
