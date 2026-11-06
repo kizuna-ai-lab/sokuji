@@ -14,7 +14,8 @@
  * dropped connection comes back through the leg's own reconnector, on the
  * same key or the token the lease answers, a new session with its own
  * update; any other end fails the leg, in that error's words, else the
- * close's. A connection that stays open and answers nothing is a drop too,
+ * close's. A managed leg tells its lease when a reported session's
+ * connection ends, however it ends. A connection that stays open and answers nothing is a drop too,
  * a stall: under automatic turns a probe goes every `QWEN_PROBE_MS` and one
  * unanswered for `QWEN_STALL_MS` drops it; under push-to-talk, a commit
  * unanswered for `QWEN_TURN_ANSWER_MS` does. A leg with nothing to send
@@ -207,6 +208,8 @@ class QwenLeg implements AdapterSession {
   private phase: Phase = 'opening';
   /** The connection in use once live. */
   private socket: WebSocket | null = null;
+  /** The live connection's: lets it go, telling the lease when its session was reported. A no-op when none is live. */
+  private letGoSession: () => void = () => {};
   /** Each connection's own: a reconnect's segments start afresh, their refs carrying on. */
   private segments: QwenSegments;
   /** What the next connection dials with: the request's key or token, then each token the lease answers. */
@@ -640,10 +643,14 @@ class QwenLeg implements AdapterSession {
         cancelBound();
         signal.removeEventListener('abort', onAbort);
         if (error === undefined) {
-          // Only the handshake settles without an error, on the socket it was given.
+          // Only the handshake settles without an error, on the socket it was given: live, it is let go where the leg
+          // lets its socket go (`dropped`, `shutDown`), and it replaces any connection before it.
+          this.letGoSession();
+          this.letGoSession = letGo;
           resolve(ws as WebSocket);
           return;
         }
+        letGo();
         seam.abort(error);
         if (ws) {
           detach(ws);
@@ -664,12 +671,27 @@ class QwenLeg implements AdapterSession {
       let seamAnswered = false;
       let seamRequestId: string | undefined;
       let reported = false;
+      /** This connection is over: refused, abandoned, dropped, failed, stopped or replaced. */
+      let over = false;
+      // The lease reports its own failures: a throw here must not end the leg.
+      const tellEnded = (id: string) => { try { lease?.sessionEnded(id); } catch { /* the lease's to say */ } };
       const report = () => {
         // Deliberate: an unreported session is still charged by its window.
         if (!lease || reported || created === undefined || !seamAnswered || this.phase === 'ended' || seam.signal.aborted) return;
         reported = true;
-        // The lease reports its own failures: a throw here must not end the leg.
         try { lease.sessionCreated(created, seamRequestId); } catch { /* the lease's to say */ }
+        // A request id that landed after its connection was let go: that session is reported, and over at once.
+        if (over) tellEnded(created);
+      };
+      /**
+       * The leg is done with this connection. When its session was reported,
+       * the lease hears that the connection ended, so a report not yet
+       * acknowledged is tried no more (spec 2026-11-05 reconnect §4.2).
+       */
+      const letGo = () => {
+        if (over) return;
+        over = true;
+        if (reported && created !== undefined) tellEnded(created);
       };
       const url = socketUrl(endpoint, config.model);
       const headers = qwenHeaders({ apiKey: this.apiKey });
@@ -926,6 +948,7 @@ class QwenLeg implements AdapterSession {
       detach(ws);
       if (ws.readyState <= WS_OPEN) ws.close(1000);
     }
+    this.releaseSession();
     this.phase = 'opening';
     this.stopFrames();
     this.watchFrames();
@@ -1088,6 +1111,14 @@ class QwenLeg implements AdapterSession {
       detach(ws);
       if (ws.readyState <= WS_OPEN) ws.close(1000);
     }
+    this.releaseSession();
+  }
+
+  /** The live connection is let go: the lease hears its reported session's connection ended. */
+  private releaseSession(): void {
+    const letGo = this.letGoSession;
+    this.letGoSession = () => {};
+    letGo();
   }
 
   private frame(direction: 'in' | 'out', type: string, payload?: unknown): void {

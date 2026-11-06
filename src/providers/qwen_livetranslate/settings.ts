@@ -174,6 +174,8 @@ export type QwenReissue =
 /** What the managed leg tells its lease: the session the endpoint opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
 export interface QwenLeasePort {
   sessionCreated(id: string, requestId?: string): void;
+  /** The connection of a session told to `sessionCreated` ended — dropped, stopped, failed or replaced: its report, not yet acknowledged, is tried no more. */
+  sessionEnded(id: string): void;
   /**
    * A token for a reconnecting leg, never one minted before its drop:
    * `notBefore` is when the drop began, on the run's clock. The lease

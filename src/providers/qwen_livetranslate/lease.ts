@@ -76,8 +76,29 @@ export const QWEN_SESSION_CAP_SECONDS = 3_600;
 export const SESSION_END_BUDGET_MS = 4_000;
 /** The waits between `session-end`'s attempts: three attempts at most. */
 export const SESSION_END_RETRY_DELAYS_MS: readonly number[] = [500, 1_000];
-/** The waits between a session report's attempts: four at most; only a transport failure or a 5xx is retried. */
-export const SESSION_STARTED_RETRY_DELAYS_MS: readonly number[] = [500, 1_000, 2_000];
+/**
+ * The waits before `session-started` is tried again after a transport failure
+ * or a 5xx; past the last, every `SESSION_STARTED_RETRY_MAX_MS`. No count
+ * bounds them: the backend tells a lease still in use from an idle one by a
+ * session report at or after its latest token mint, so a report is tried for
+ * as long as its session's connection is open. The backend takes a repeat of
+ * a stored report as an idempotent retry, so a repeat is safe.
+ */
+export const SESSION_STARTED_RETRY_DELAYS_MS: readonly number[] = [1_000, 2_000, 5_000, 10_000];
+export const SESSION_STARTED_RETRY_MAX_MS = 30_000;
+/** The Logs' words when a session's report is let go unacknowledged, the last try's cause beside them: an unreported session is still charged by its window. */
+export const SESSION_STARTED_UNACKNOWLEDGED = 'The connection ended before the backend acknowledged session-started.';
+
+/**
+ * One session's `session-started`, per leg and `session.created` id: `over`
+ * once its connection has ended (the adapter's `sessionEnded`), after which
+ * a failed try is not repeated.
+ */
+interface SessionReport {
+  over: boolean;
+  /** Ends the wait before the next try, when one is pending. */
+  cancelWait: (() => void) | null;
+}
 
 export interface QwenLeaseDeps {
   /** `fetch` in the app, read at call time; a stub in tests. */
@@ -365,9 +386,17 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     let ended = false;
     let released = false;
     let cancelBudget = () => {};
+    /** Per leg and session id, its report: once each. */
+    const reports = new Map<string, SessionReport>();
+    /** A session's connection is over (it ended, the run ends): a report waiting to be tried again is let go now. */
+    const letGo = (r: SessionReport): void => {
+      r.over = true;
+      r.cancelWait?.();
+    };
     const endOnce = ({ notice, expected }: { notice: RunNotice; expected: boolean }): void => {
       if (ended || released) return;
       ended = true;
+      for (const r of reports.values()) letGo(r);
       cancelBudget();
       ctx.frame({ direction: 'in', type: 'session.lease_ended', payload: { code: notice.code, maxSessionDurationSeconds: grant.maxSessionDurationSeconds } });
       ctx.end(notice, { expected });
@@ -380,16 +409,36 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       payload: { leaseId: grant.leaseId, endpoint: grant.endpoint, ...(grant.region ? { region: grant.region } : {}), maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
     });
 
-    const reported = new Set<string>();
-    /** Aborted by `release`: a report's retry wait leaves no timer behind. */
-    const stopReports = new AbortController();
-    /** One session's report: a 4xx is the backend's refusal, final; only a transport failure or a 5xx is retried, and none once the run ended or the lease is released. Never ends the run: an unreported session is still charged by its window. */
-    const report = async (leg: LegName, taskUuid: string, requestId: string | undefined): Promise<void> => {
+    /** The wait before a report's next try, on the run's clock: true when it ran out, false when the report was let go or the run aborted first. */
+    const pause = (r: SessionReport, ms: number): Promise<boolean> => new Promise<boolean>((resolve) => {
+      let done = false;
+      const finish = (ran: boolean) => {
+        if (done) return;
+        done = true;
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+        r.cancelWait = null;
+        resolve(ran);
+      };
+      const onAbort = () => finish(false);
+      const cancelTimer = ctx.clock.setTimeout(() => finish(true), ms);
+      r.cancelWait = () => finish(false);
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+    });
+    /**
+     * Posts one session's report until it is acknowledged. Not awaited, never
+     * ending the run. A transport failure or a 5xx is tried again on
+     * `SESSION_STARTED_RETRY_DELAYS_MS` while the session's connection is
+     * open, the run has not ended, the lease is not released and the run is
+     * not aborted; a 4xx is the backend's refusal, final. A report let go
+     * unacknowledged is a Logs line naming the last try's cause.
+     */
+    const report = async (leg: LegName, taskUuid: string, requestId: string | undefined, r: SessionReport): Promise<void> => {
       const body = JSON.stringify({ leaseId: grant.leaseId, leg, taskUuid, ...(requestId ? { requestId } : {}) });
       // Dropped for good after a transport failure, as `signalEnd` does: a runtime may refuse a keepalive request as a transport error.
       let keepalive = true;
-      let last = '';
-      for (let i = 0; ; i += 1) {
+      for (let tries = 0; ; tries += 1) {
+        let last: string;
         try {
           const res = await doFetch(`${apiUrl()}/qwen/session-started`, {
             method: 'POST',
@@ -414,17 +463,13 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           keepalive = false;
           last = describeCause(error);
         }
-        if (ended || released) return;
-        const delay = SESSION_STARTED_RETRY_DELAYS_MS[i];
-        if (delay === undefined) break;
-        try {
-          await wait(ctx.clock, delay, stopReports.signal);
-        } catch {
+        // The connection over, the run ending: nothing is left for the report to protect.
+        const open = !r.over && !ended && !released && !ctx.signal.aborted;
+        if (!open || !(await pause(r, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS))) {
+          ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: SESSION_STARTED_UNACKNOWLEDGED, cause: last } });
           return;
         }
-        if (ended || released) return;
       }
-      ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: `The backend did not acknowledge the session report (${last}).` } });
     };
     /** The last token a reissue fetched, both legs', and when it came on the run's clock. Never the grant's: that one is the Start's alone. */
     let cached: { apiKey: string; expiresAt: number; fetchedAt: number } | null = null;
@@ -521,11 +566,16 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         // Once per (leg, id), and never once the grant has ended the run or the lease is released: a late report from a
         // socket still closing must not start a lease the account already ended.
         const key = `${leg}\u0000${id}`;
-        if (ended || released || reported.has(key)) return;
-        reported.add(key);
+        if (ended || released || reports.has(key)) return;
+        const r: SessionReport = { over: false, cancelWait: null };
+        reports.set(key, r);
         ctx.frame({ direction: 'out', type: 'session.started', payload: { leg, taskUuid: id, withRequestId: Boolean(requestId) } });
         // Not awaited, never failing the session.
-        void report(leg, id, requestId);
+        void report(leg, id, requestId, r);
+      },
+      sessionEnded: (id) => {
+        const r = reports.get(`${leg}\u0000${id}`);
+        if (r) letGo(r);
       },
     });
 
@@ -538,8 +588,8 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       async release(): Promise<void> {
         if (released) return;
         released = true;
+        for (const r of reports.values()) letGo(r);
         cancelBudget();
-        stopReports.abort();
         ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
         const ending = signalEnd(doFetch, `${apiUrl()}/qwen/session-end`, token, grant.leaseId, ctx.clock, ctx.frame);
         previous = ending;

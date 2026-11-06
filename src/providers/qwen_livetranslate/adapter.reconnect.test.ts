@@ -39,6 +39,7 @@ function fakeLease(...answers: QwenReissue[]) {
   const waiting: Array<(a: QwenReissue) => void> = [];
   const port = {
     sessionCreated: vi.fn((_id: string, _requestId?: string) => {}),
+    sessionEnded: vi.fn((_id: string) => {}),
     reissue: vi.fn(() => {
       const next = answers.shift();
       return next ? Promise.resolve(next) : new Promise<QwenReissue>((resolve) => waiting.push(resolve));
@@ -74,10 +75,11 @@ async function realLease(clock: VirtualClock, legs: LegName[]) {
 }
 
 /** A leg live, own key unless a lease is given; its server answers each liveness probe unless `answerProbes` is false. */
-const live = (o: { lease?: Lease; context?: SessionContext; frames?: FrameSource; requestIds?: string[]; answerProbes?: boolean; clock?: ReturnType<typeof trackedClock> } = {}) =>
+const live = (o: { lease?: Lease; context?: SessionContext; frames?: FrameSource; requestIds?: string[]; holdClear?: boolean; answerProbes?: boolean; clock?: ReturnType<typeof trackedClock> } = {}) =>
   qwenSession({
     shared: NO_STOREFRONT,
     ...(o.lease ? { credentials: managed(o.lease) } : {}),
+    ...(o.holdClear ? { holdClear: true } : {}),
     ...(o.context ? { context: o.context } : {}),
     ...(o.frames ? { frames: o.frames } : {}),
     ...(o.requestIds ? { requestIds: o.requestIds } : {}),
@@ -770,6 +772,65 @@ describe('the Qwen adapter reconnects: managed', () => {
     await comeBack(participant);
     expect(speaker.of('reconnected')).toHaveLength(2);
     expect(participant.of('reconnected')).toHaveLength(1);
+  });
+
+  it("tells the lease when a reported session's connection ends: at its drop, before the reissue; an attempt's refused handshake; a stop — never for a connection that reported nothing", async () => {
+    // The drop's later attempts are served the token its first fetched.
+    const cachedToken: QwenReissue = { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false };
+    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true }, cachedToken, cachedToken);
+    const h = await live({ lease, requestIds: [REQ_1, REQ_2, '77777777-8888-9999-aaaa-bbbbbbbbbbbb'] });
+    expect(lease.port.sessionCreated.mock.calls).toEqual([['sess_1', REQ_1]]);
+    expect(lease.port.sessionEnded).not.toHaveBeenCalled();
+    h.socket().serverClose(1011);
+    await flush();
+    expect(lease.port.sessionEnded.mock.calls).toEqual([['sess_1']]);
+    expect(lease.port.sessionEnded.mock.invocationCallOrder[0]).toBeLessThan(lease.port.reissue.mock.invocationCallOrder[0]);
+    // Attempt 1: its session is reported, then its handshake is refused.
+    h.socket().open();
+    await flush();
+    h.socket().receive(SERVER.created('sess_2'));
+    await flush();
+    expect(lease.port.sessionCreated).toHaveBeenLastCalledWith('sess_2', REQ_2);
+    h.socket().receive(SERVER.error('Throttling', 'Requests rate limit exceeded, please try again later.'));
+    await flush();
+    expect(lease.port.sessionEnded.mock.calls).toEqual([['sess_1'], ['sess_2']]);
+    // Attempt 2's socket fails before it opens: nothing reported, nothing to tell.
+    h.clock.advance(250);
+    await failAttempt(h);
+    expect(lease.port.sessionEnded).toHaveBeenCalledTimes(2);
+    // Attempt 3 comes back; the stop ends its connection.
+    h.clock.advance(500);
+    await comeBack(h, 'sess_4');
+    expect(h.of('reconnected')).toHaveLength(1);
+    expect(lease.port.sessionEnded).toHaveBeenCalledTimes(2);
+    await h.session.stop();
+    expect(lease.port.sessionEnded.mock.calls).toEqual([['sess_1'], ['sess_2'], ['sess_4']]);
+    expect(h.of('failed')).toEqual([]);
+  });
+
+  it("a close that ends the leg tells the lease its session's connection ended", async () => {
+    const lease = fakeLease();
+    const h = await live({ lease });
+    h.socket().serverClose(1008, 'Policy violation');
+    await flush();
+    expect(h.of('failed')).toHaveLength(1);
+    expect(lease.port.sessionEnded.mock.calls).toEqual([['sess_1']]);
+  });
+
+  it("a request id that lands after its connection dropped reports that session, and tells the lease at once that its connection ended", async () => {
+    // The reissue waits: no attempt's socket yet.
+    const lease = fakeLease();
+    const h = await live({ lease, requestIds: [REQ_1], holdClear: true });
+    expect(lease.port.sessionCreated).not.toHaveBeenCalled();
+    h.socket().serverClose(1011);
+    await flush();
+    expect(lease.port.sessionEnded).not.toHaveBeenCalled();
+    h.releaseClear();
+    await flush();
+    expect(lease.port.sessionCreated.mock.calls).toEqual([['sess_1', REQ_1]]);
+    expect(lease.port.sessionEnded.mock.calls).toEqual([['sess_1']]);
+    await h.session.stop();
+    expect(lease.port.sessionEnded).toHaveBeenCalledTimes(1);
   });
 
   it('a stop while the reissue is out: its late answer opens nothing and says nothing', async () => {

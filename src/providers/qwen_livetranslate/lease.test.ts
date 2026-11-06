@@ -3,7 +3,10 @@ import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
-import { CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
+import {
+  CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS, SESSION_STARTED_RETRY_DELAYS_MS, SESSION_STARTED_RETRY_MAX_MS,
+  SESSION_STARTED_UNACKNOWLEDGED,
+} from './lease';
 import { fakeFrameSource } from '../../lib/contract/testing/fakeFrames';
 import { QWEN_DEFAULTS, type QwenSettings } from './settings';
 
@@ -133,7 +136,7 @@ describe('Qwen lease: the grant', () => {
   it("hands each leg the grant, its endpoint and a port; the budget is the grant's duration", async () => {
     const a = await granted(['speaker', 'participant']);
     const { credentials, budget } = a.resources;
-    expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function), reissue: expect.any(Function) } });
+    expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function), sessionEnded: expect.any(Function), reissue: expect.any(Function) } });
     expect(credentials('participant').apiKey).toBe(GRANT_KEY);
     expect(budget).toEqual({ totalMs: 600_000, endsAt: 600_000 });
   });
@@ -471,48 +474,135 @@ describe('Qwen lease: the session report', () => {
     expect(frames.map((f) => f.payload.withRequestId)).toEqual([false, false, true]);
   });
 
-  it('retries a 503 at +500, +1 000 and +2 000 ms, then frames notify_failed and never ends the run', async () => {
+  it('a 5xx is tried again a second later, and the 2xx after it is the report: nothing more goes out, and the run is not ended', async () => {
     const a = await granted(['speaker']);
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+    const started = () => a.to('/qwen/session-started');
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', UUID_1);
+    await flush();
+    started()[0].respond(503);
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0] - 1);
+    await flush();
+    expect(started()).toHaveLength(1);
+    a.clock.advance(1);
+    await flush();
+    expect(started()).toHaveLength(2);
+    // The same report again: the backend takes a repeat of a stored report as an idempotent retry.
+    expect(started()[1].init.body).toBe(started()[0].init.body);
+    started()[1].respond(200, { ok: true });
+    await flush();
+    a.clock.advance(120_000);
+    await flush();
+    expect(started()).toHaveLength(2);
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
+    expect(a.end).not.toHaveBeenCalled();
+  });
+
+  it('a transport failure or a 5xx is tried again 1, 2, 5 and 10 s later, then every 30 s, while the connection is open', async () => {
+    expect(SESSION_STARTED_RETRY_DELAYS_MS).toEqual([1_000, 2_000, 5_000, 10_000]);
+    expect(SESSION_STARTED_RETRY_MAX_MS).toBe(30_000);
+    const a = await granted(['speaker']);
+    const started = () => a.to('/qwen/session-started');
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', UUID_1);
+    await flush();
+    const at: number[] = [a.clock.now()];
+    for (const [i, delay] of [1_000, 2_000, 5_000, 10_000, 30_000, 30_000, 30_000].entries()) {
+      const last = started()[started().length - 1];
+      if (i % 2 === 0) last.fail();
+      else last.respond(502);
+      await flush();
+      a.clock.advance(delay - 1);
+      await flush();
+      expect(started()).toHaveLength(at.length);
+      a.clock.advance(1);
+      await flush();
+      expect(started()).toHaveLength(at.length + 1);
+      at.push(a.clock.now());
+    }
+    expect(at).toEqual([0, 1_000, 3_000, 8_000, 18_000, 48_000, 78_000, 108_000]);
+    // Nothing in the Logs while it is tried: the connection is still open.
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
+    expect(a.end).not.toHaveBeenCalled();
+    started()[started().length - 1].respond(200);
+    await flush();
+    a.clock.advance(120_000);
+    await flush();
+    expect(started()).toHaveLength(8);
+  });
+
+  it("the retries stop when the session's connection ends, saying the report was never acknowledged and why", async () => {
+    const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    const before = a.clock.pending();
+    port.sessionCreated('sess_a', UUID_1);
     await flush();
     a.to('/qwen/session-started')[0].respond(503);
     await flush();
-    for (const [n, step] of [[2, 500], [3, 1_000], [4, 2_000]] as const) {
-      a.clock.advance(step - 1);
-      await flush();
-      expect(a.to('/qwen/session-started')).toHaveLength(n - 1);
-      a.clock.advance(1);
-      await flush();
-      expect(a.to('/qwen/session-started')).toHaveLength(n);
-      a.last().respond(503);
-      await flush();
-    }
-    expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed', payload: expect.objectContaining({ step: 'session-started' }) }));
-    expect(a.end).not.toHaveBeenCalled();
-    a.clock.advance(10_000);
+    expect(a.clock.pending()).toBe(before + 1);
+    port.sessionEnded('sess_a');
+    expect(a.clock.pending()).toBe(before);
     await flush();
-    expect(a.to('/qwen/session-started')).toHaveLength(4);
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' } });
+    a.clock.advance(120_000);
+    await flush();
+    expect(a.to('/qwen/session-started')).toHaveLength(1);
+
+    // A connection that ends with a try in flight: that try is the last, unless it is acknowledged.
+    const b = await granted(['speaker']);
+    const portB = b.resources.credentials('speaker').lease!;
+    portB.sessionCreated('sess_a', UUID_1);
+    await flush();
+    portB.sessionEnded('sess_a');
+    b.to('/qwen/session-started')[0].fail();
+    await flush();
+    b.clock.advance(120_000);
+    await flush();
+    expect(b.to('/qwen/session-started')).toHaveLength(1);
+    expect(b.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'Failed to fetch' } });
+
+    // A connection that ends once its report was acknowledged: nothing to say.
+    const c = await granted(['speaker']);
+    const portC = c.resources.credentials('speaker').lease!;
+    portC.sessionCreated('sess_a', UUID_1);
+    await flush();
+    c.to('/qwen/session-started')[0].respond(200);
+    await flush();
+    portC.sessionEnded('sess_a');
+    await flush();
+    expect(c.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
   });
 
-  it('retries a transport failure too', async () => {
-    const a = await granted(['speaker']);
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+  it("only that session's retries stop: the other leg's, and the same leg's next session's, go on", async () => {
+    const a = await granted(['speaker', 'participant']);
+    const speaker = a.resources.credentials('speaker').lease!;
+    a.resources.credentials('participant').lease!.sessionCreated('sess_a', UUID_2);
+    speaker.sessionCreated('sess_a', UUID_1);
+    speaker.sessionCreated('sess_b', undefined);
     await flush();
-    a.to('/qwen/session-started')[0].fail();
+    for (const post of a.to('/qwen/session-started')) post.respond(503);
     await flush();
-    a.clock.advance(500);
+    speaker.sessionEnded('sess_a');
+    // An id never reported, or another leg's, ends nothing.
+    speaker.sessionEnded('sess_zzz');
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
     await flush();
-    expect(a.to('/qwen/session-started')).toHaveLength(2);
+    const bodies = a.to('/qwen/session-started').slice(3).map((p) => JSON.parse(p.init.body as string));
+    expect(bodies).toEqual([
+      { leaseId: 'lease-1', leg: 'participant', taskUuid: 'sess_a', requestId: UUID_2 },
+      { leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_b' },
+    ]);
   });
 
   it.each([409, 404, 401])('treats a %i as a refusal: framed with the status and error, not retried, run not ended', async (status) => {
     const a = await granted(['speaker']);
+    const before = a.clock.pending();
     a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
     await flush();
     a.to('/qwen/session-started')[0].respond(status, { error: 'lease_not_live' });
     await flush();
     expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.started_refused', payload: { status, error: 'lease_not_live', leg: 'speaker' } });
-    a.clock.advance(10_000);
+    expect(a.clock.pending()).toBe(before);
+    a.clock.advance(120_000);
     await flush();
     expect(a.to('/qwen/session-started')).toHaveLength(1);
     expect(a.end).not.toHaveBeenCalled();
@@ -580,24 +670,77 @@ describe('Qwen lease: the report retries', () => {
     await flush();
     a.to('/qwen/session-started')[0].fail();
     await flush();
-    a.clock.advance(500);
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
     await flush();
     const posts = a.to('/qwen/session-started');
     expect(posts[0].init.keepalive).toBe(true);
     expect(posts[1].init).not.toHaveProperty('keepalive');
   });
 
-  it('names the last cause in notify_failed', async () => {
+  it("names the last try's cause when the report is let go", async () => {
     const a = await granted(['speaker']);
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
-    for (const step of [0, 500, 1_000, 2_000]) {
-      a.clock.advance(step);
+    const port = a.resources.credentials('speaker').lease!;
+    port.sessionCreated('sess_a', 'rid');
+    await flush();
+    a.last().fail();
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
+    await flush();
+    a.last().respond(503);
+    await flush();
+    port.sessionEnded('sess_a');
+    await flush();
+    const failed = a.frame.mock.calls.filter(([f]) => f.type === 'session.notify_failed').map(([f]) => f.payload);
+    expect(failed).toEqual([{ step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' }]);
+  });
+
+  it("a release, the run's abort and the grant's end each cancel a pending retry: none outlives the lease, and each says the report went unacknowledged", async () => {
+    /** A lease whose report waits to be tried again; `before` is the timers it held before the report (its budget's). */
+    const pendingRetry = async (over: Record<string, unknown> = {}) => {
+      const a = await granted(['speaker'], {}, over);
+      const before = a.clock.pending();
+      a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
       await flush();
-      a.last().respond(503);
+      a.to('/qwen/session-started')[0].respond(503);
       await flush();
-    }
-    const failed = a.frame.mock.calls.find(([f]) => f.type === 'session.notify_failed')![0];
-    expect(failed.payload.message).toContain('HTTP 503');
+      expect(a.clock.pending()).toBe(before + 1);
+      return { ...a, before };
+    };
+    const triedOnce = async (a: Awaited<ReturnType<typeof pendingRetry>>) => {
+      a.clock.advance(120_000);
+      await flush();
+      expect(a.to('/qwen/session-started')).toHaveLength(1);
+      expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' } });
+    };
+
+    const released = await pendingRetry();
+    const releasing = released.resources.release();
+    await flush();
+    released.to('/qwen/session-end')[0].respond(200);
+    await releasing;
+    expect(released.clock.pending()).toBe(0);
+    await triedOnce(released);
+
+    // The run's abort (its dispose) comes before the release: the retry goes with it, the budget waits for the release.
+    const aborted = await pendingRetry();
+    aborted.controller.abort();
+    expect(aborted.clock.pending()).toBe(aborted.before);
+    await triedOnce(aborted);
+
+    // The grant ends the run 60 s in, its report still waiting.
+    const granted60 = await pendingRetry({ maxSessionDurationSeconds: 60 });
+    granted60.clock.advance(59_999);
+    await flush();
+    const tries = granted60.to('/qwen/session-started');
+    for (const post of tries.slice(1)) post.respond(503);
+    await flush();
+    const asked = granted60.to('/qwen/session-started').length;
+    granted60.clock.advance(1);
+    expect(granted60.end).toHaveBeenCalledTimes(1);
+    expect(granted60.clock.pending()).toBe(0);
+    granted60.clock.advance(120_000);
+    await flush();
+    expect(granted60.to('/qwen/session-started')).toHaveLength(asked);
   });
 
   it('release leaves no report timer behind', async () => {
