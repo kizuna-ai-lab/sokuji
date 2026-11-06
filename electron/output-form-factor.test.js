@@ -7,7 +7,8 @@ function fakeChild() {
   const c = new EventEmitter();
   c.stdout = new EventEmitter();
   c.stderr = new EventEmitter();
-  c.kill = vi.fn();
+  // A real killed child still reports its exit, with a null code.
+  c.kill = vi.fn((signal) => queueMicrotask(() => c.emit('close', null, signal)));
   return c;
 }
 
@@ -187,6 +188,54 @@ describe('getOutputDevices', () => {
     const raw = res.devices[0].raw;
     expect(Object.keys(raw).length).toBeLessThanOrEqual(12);
     for (const v of Object.values(raw)) if (typeof v === 'string') expect(v.length).toBeLessThanOrEqual(120);
+  });
+
+  it('a hung linux read starts nothing after its deadline and kills every child', async () => {
+    vi.useFakeTimers();
+    const children = [];
+    const spawn = vi.fn(() => {
+      const c = fakeChild();
+      children.push(c);
+      return c;
+    });
+    let result;
+    getOutputDevices({ platform: 'linux', spawn }).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(result).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(result).toEqual({ ok: false, reason: 'timeout' });
+    const spawnedAtDeadline = spawn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(spawn).toHaveBeenCalledTimes(spawnedAtDeadline);
+    for (const c of children) expect(c.kill).toHaveBeenCalledWith('SIGKILL');
+  });
+
+  it('linux falls back to text when the json info is not parsable', async () => {
+    const textSinks = ['Sink #1', '\tName: t', '\tDescription: Text Sink', '\tProperties:', ''].join('\n');
+    const spawn = scriptedSpawn((cmd, args) => {
+      const json = args.includes('json');
+      if (args.includes('info')) return { code: 0, out: json ? 'garbage' : 'Default Sink: t\n' };
+      return { code: 0, out: json ? sinksJson : textSinks };
+    });
+    const res = await getOutputDevices({ platform: 'linux', spawn });
+    expect(res.ok).toBe(true);
+    expect(res.devices[0]).toMatchObject({ label: 'Text Sink', isDefault: true });
+  });
+
+  it('a multi-byte label split across chunks arrives intact', async () => {
+    const bytes = Buffer.from(JSON.stringify([{ label: 'x', browserLabel: 'ヘッドホン', isDefault: true, transport: 'bltn' }]));
+    const cut = bytes.indexOf(Buffer.from('ヘ')) + 1; // inside the first character
+    const spawn = vi.fn(() => {
+      const c = fakeChild();
+      setImmediate(() => {
+        c.stdout.emit('data', bytes.subarray(0, cut));
+        c.stdout.emit('data', bytes.subarray(cut));
+        c.emit('close', 0);
+      });
+      return c;
+    });
+    const res = await getOutputDevices({ platform: 'darwin', spawn, resolvePath });
+    expect(res.devices[0].label).toBe('ヘッドホン');
   });
 
   it('an unsupported platform is unsupported_platform', async () => {

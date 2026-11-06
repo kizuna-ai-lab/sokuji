@@ -30,13 +30,16 @@ const pactlEnv = () => ({ ...process.env, LC_ALL: 'C' });
 /**
  * Run one child to completion, collecting stdout up to a cap.
  * Resolves (never rejects) with { status: 'ok', code, out } or
- * { status: 'spawn_failed' | 'overflow' }. Children are registered in `live`
- * so the caller's single deadline can kill whatever is still running.
+ * { status: 'spawn_failed' | 'overflow' | 'aborted' }. Children are registered
+ * in `ctx.live` so the read's single deadline can kill whatever is still
+ * running; once the deadline sets `ctx.over`, nothing new is spawned.
  */
-function runChild(spawn, live, command, args, options) {
+function runChild(spawn, ctx, command, args, options) {
+  const { live } = ctx;
   return new Promise((resolve) => {
+    if (ctx.over) return resolve({ status: 'aborted' });
     let settled = false;
-    let out = '';
+    const chunks = [];
     let size = 0;
     let child;
     const settle = (result) => {
@@ -57,22 +60,23 @@ function runChild(spawn, live, command, args, options) {
         child.kill('SIGKILL');
         return settle({ status: 'overflow' });
       }
-      out += d.toString('utf8');
+      chunks.push(Buffer.from(d));
     });
     child.on('error', () => settle({ status: 'spawn_failed' }));
-    child.on('close', (code) => settle({ status: 'ok', code, out }));
+    child.on('close', (code) => settle({ status: 'ok', code, out: Buffer.concat(chunks).toString('utf8') }));
   });
 }
 
 // Maps a finished run to a failure reason, or null when it exited 0.
 function failureOf(run) {
+  if (run.status === 'aborted') return 'timeout';
   if (run.status === 'spawn_failed') return 'spawn_failed';
   if (run.status === 'overflow') return 'unparsable';
   return run.code === 0 ? null : `exit_${run.code}`;
 }
 
-async function readHelper(spawn, live, exe, parse) {
-  const run = await runChild(spawn, live, exe, ['--devices']);
+async function readHelper(spawn, ctx, exe, parse) {
+  const run = await runChild(spawn, ctx, exe, ['--devices']);
   const failure = failureOf(run);
   if (failure) return { ok: false, reason: failure };
   const devices = parse(run.out);
@@ -80,14 +84,14 @@ async function readHelper(spawn, live, exe, parse) {
 }
 
 // One attempt of the Linux read in either form. `json` selects `-f json`.
-async function readPactl(spawn, live, json) {
+async function readPactl(spawn, ctx, json) {
   const pre = json ? ['-f', 'json'] : [];
   const options = { env: pactlEnv() };
   const [info, sinks] = await Promise.all([
-    runChild(spawn, live, 'pactl', [...pre, 'info'], options),
-    runChild(spawn, live, 'pactl', [...pre, 'list', 'sinks'], options),
+    runChild(spawn, ctx, 'pactl', [...pre, 'info'], options),
+    runChild(spawn, ctx, 'pactl', [...pre, 'list', 'sinks'], options),
   ]);
-  const failure = failureOf(sinks) || (json ? failureOf(info) : null);
+  const failure = failureOf(sinks) || (json ? failureOf(info) || infoUnparsable(info.out) : null);
   if (failure) return { ok: false, reason: failure };
   // A failed `info` in text form only costs the default: no device is default.
   const defaultName = info.status === 'ok' && info.code === 0 ? parsePactlDefaultSink(info.out, json) : null;
@@ -95,10 +99,23 @@ async function readPactl(spawn, live, json) {
   return devices ? { ok: true, devices } : { ok: false, reason: 'unparsable' };
 }
 
-async function readLinux(spawn, live) {
-  const first = await readPactl(spawn, live, true);
-  if (first.ok) return first;
-  return readPactl(spawn, live, false);
+// `pactl -f json info` must be a JSON object; anything else sends the read to
+// the text form instead of silently losing the default.
+function infoUnparsable(text) {
+  try {
+    const info = JSON.parse(text);
+    return info && typeof info === 'object' && !Array.isArray(info) ? null : 'unparsable';
+  } catch {
+    return 'unparsable';
+  }
+}
+
+async function readLinux(spawn, ctx) {
+  const first = await readPactl(spawn, ctx, true);
+  // After the deadline the killed children report a null exit; that is the
+  // timeout, not a reason to start the text attempt.
+  if (first.ok || ctx.over) return first;
+  return readPactl(spawn, ctx, false);
 }
 
 /**
@@ -114,29 +131,30 @@ async function getOutputDevices({
   let start;
   if (platform === 'darwin' || platform === 'win32') {
     const parse = platform === 'darwin' ? parseMacDevices : parseWinDevices;
-    start = (live) => {
+    start = (ctx) => {
       const exe = resolvePath();
-      return exe ? readHelper(spawn, live, exe, parse) : { ok: false, reason: 'no_helper' };
+      return exe ? readHelper(spawn, ctx, exe, parse) : { ok: false, reason: 'no_helper' };
     };
   } else if (platform === 'linux') {
-    start = (live) => readLinux(spawn, live);
+    start = (ctx) => readLinux(spawn, ctx);
   } else {
     return { ok: false, reason: 'unsupported_platform' };
   }
 
-  const live = new Set();
+  const ctx = { live: new Set(), over: false };
   let timer;
   const deadline = new Promise((resolve) => {
     timer = setTimeout(() => {
       // A hung helper must not outlive the read; a killed child's late close
       // lands on an already-settled promise and is ignored.
-      for (const child of live) child.kill('SIGKILL');
+      ctx.over = true;
+      for (const child of ctx.live) child.kill('SIGKILL');
       resolve({ ok: false, reason: 'timeout' });
     }, timeoutMs);
   });
   try {
     return await Promise.race([
-      Promise.resolve().then(() => start(live)).catch(() => ({ ok: false, reason: 'spawn_failed' })),
+      Promise.resolve().then(() => start(ctx)).catch(() => ({ ok: false, reason: 'spawn_failed' })),
       deadline,
     ]);
   } finally {
