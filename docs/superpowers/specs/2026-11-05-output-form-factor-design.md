@@ -60,7 +60,7 @@ A new `--devices` command lists output devices as one JSON array on stdout and e
 | `usb` | `unknown`, transport `usb` |
 | `virt`, `grup` (aggregate), `airp` (AirPlay), others | `unknown`, transport `virtual` or `unknown` |
 
-Bluetooth: Core Audio's transport says only "Bluetooth". IOBluetooth could read the device's class, but on current macOS it sits behind the Bluetooth privacy permission, and the helper's requests are charged to Sokuji.app: that would be the new permission prompt §2 rules out. So the helper does not use IOBluetooth. It reads the output stream's `kAudioStreamPropertyTerminalType`, which needs no permission: a headphones or headset terminal type → `headphones`, a speaker type → `speakers`, anything else → `unknown`. If measurement shows Bluetooth devices do not report a useful terminal type, every Bluetooth output on macOS is `unknown` (AirPods included), which #688 treats like today. (My call.) Reading the transport and data source needs no permission (Sophie measured this on LittleSilver).
+Bluetooth: Core Audio's transport says only "Bluetooth". IOBluetooth could read the device's class, but on current macOS it sits behind the Bluetooth privacy permission, and the helper's requests are charged to Sokuji.app: that would be the new permission prompt §2 rules out. So the helper does not use IOBluetooth. It reads the output stream's `kAudioStreamPropertyTerminalType`, which needs no permission: a headphones or headset terminal type → `headphones`, a speaker type → `speakers`, anything else → `unknown`. If measurement shows Bluetooth devices do not report a useful terminal type, every Bluetooth output on macOS is `unknown` (AirPods included), which #688 treats like today. (My call.) Reading the transport and data source needs no permission (measured on an Apple Silicon Mac).
 
 The helper is built for macOS 14.2 and later (`build.sh`, for the audio tap). On macOS 12 to 14.1 it does not start, `--devices` yields nothing, and every device is `unknown`, as per-application capture already is there. (My call.)
 
@@ -90,7 +90,7 @@ The main process reads `pactl -f json list sinks`. The app already requires `pac
 | `device.form_factor` = speaker | `speakers` |
 | null sinks (`support.null-audio-sink`, including ours), HDMI ports, anything else | `unknown` |
 
-The active port wins over `device.form_factor` (a laptop's `internal` card switches between a speaker and a headphone port). Older PulseAudio versions list ports without a `type`: then the port name decides, and only when the name says neither does `device.form_factor`. A `pactl` too old for `-f json` (Ubuntu 22.04 ships one) is read through the plain `pactl list sinks` text instead, for the same fields (description, active port, port names, the two properties). Transport from `device.bus`: `pci` → `builtin` (or `hdmi` for an HDMI port), `usb`, `bluetooth`; null sinks → `virtual`. Measured on LittleBlack (pactl 16.1): the JSON gives `active_port`, the ports' `type` (`HDMI` there) and `device.form_factor` (`internal`). LittleBlack has an HDMI output only, so the headphone/speaker switch is measured on a Linux machine with a jack (ZZ-164PC under Linux).
+The active port wins over `device.form_factor` (a laptop's `internal` card switches between a speaker and a headphone port). Older PulseAudio versions list ports without a `type`: then the port name decides, and only when the name says neither does `device.form_factor`. A `pactl` too old for `-f json` (Ubuntu 22.04 ships one) is read through the plain `pactl list sinks` text instead, for the same fields (description, active port, port names, the two properties). Transport from `device.bus`: `pci` → `builtin` (or `hdmi` for an HDMI port), `usb`, `bluetooth`; null sinks → `virtual`. Measured on a Linux test machine (pactl 16.1): the JSON gives `active_port`, the ports' `type` (`HDMI` there) and `device.form_factor` (`internal`). That machine has an HDMI output only, so the headphone/speaker switch is measured on a Linux machine with a jack.
 
 ### Extension
 
@@ -129,14 +129,14 @@ Changes the device list does not show:
 
 ## 8. Verification
 
-- Unit tests: each platform's parser and mapping against fixtures captured on real machines (helper JSON from LittleSilver and BigBlack, `pactl` JSON and text from LittleBlack and ZZ-164PC), the matcher (no labels, prefixes, default, duplicates, missing), the stale rule (never read, an event after the last good read, a failed re-read, recovery on retry), the retry schedule, and that the 3-second poll starts no native read.
+- Unit tests: each platform's parser and mapping against fixtures captured on our own test machines (helper JSON from a Mac and a Windows PC, `pactl` JSON and text from two Linux machines), the matcher (no labels, prefixes, default, duplicates, missing), the stale rule (never read, an event after the last good read, a failed re-read, recovery on retry), the retry schedule, and that the 3-second poll starts no native read.
 - The helpers' existing `verify.sh` / `verify.ps1` cover the `--devices` output shape.
-- Measured on real machines, each with a headphone output and a speaker output, and a virtual or HDMI output where one exists: macOS (LittleSilver, Sophie), Windows (BigBlack), Linux (ZZ-164PC under Linux, which has a 3.5 mm jack, for the port switch; LittleBlack for HDMI). Each plug and unplug during a session updates the logged value; a wake from sleep re-reads. The extension logs `unknown`. Someone has to plug and unplug by hand on each machine: BigBlack and ZZ-164PC are one dual-boot machine, booted into each system in turn; on ZZ-164PC Andrew can drive the commands remotely and record while someone plugs.
+- Measured on real machines, each with a headphone output and a speaker output, and a virtual or HDMI output where one exists: macOS (Apple Silicon), Windows, and Linux (a machine with a 3.5 mm jack for the port switch, and one with HDMI). Each plug and unplug during a session updates the logged value; a wake from sleep re-reads. The extension logs `unknown`. Someone has to plug and unplug by hand on each machine; the Windows and Linux runs can share one dual-boot machine, booted into each system in turn.
 
 ## 9. Open points to measure (before or during the build)
 
 1. Chromium's labels against the native names on each platform, including the `Default - ` entry and macOS's default. This decides whether §5 works at all, so it is measured first.
-2. macOS: that plugging into the jack fires `devicechange` on LittleSilver (Apple Silicon). If it does not, a watcher becomes a follow-up issue; it is not added here.
+2. macOS: that plugging into the jack fires `devicechange` on an Apple Silicon Mac. If it does not, a watcher becomes a follow-up issue; it is not added here.
 3. macOS Bluetooth: whether `kAudioStreamPropertyTerminalType` tells headphones from a speaker.
 4. Linux: that a port change produces a `pactl subscribe` sink change event.
 5. Windows: that plugging headphones into a jack-detecting codec fires `devicechange`.
