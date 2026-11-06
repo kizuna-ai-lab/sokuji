@@ -413,6 +413,9 @@ describe('chromiumRedactedLabel', () => {
     ["Headphones (Henrik's AirPods Pro Stereo) (Bluetooth)", 'Headphones (AirPods Stereo) (Bluetooth)'],
     ["Headset (Henrik's AirPods Hands-Free AG Audio) (Bluetooth)", 'Headset (AirPods Hands-Free AG Audio) (Bluetooth)'],
     ["Headset (Henrik's AirPods Hands-Free) (Bluetooth)", 'Headset (AirPods Hands-Free) (Bluetooth)'],
+    // A rule word in the owner's name counts too, in Chromium's order: Headphones before Headset, Hands-Free before Stereo.
+    ["Headset (Headphones User's AirPods) (Bluetooth)", 'Headphones (AirPods) (Bluetooth)'],
+    ["Headset (Stereo Sam's AirPods Hands-Free) (Bluetooth)", 'Headset (AirPods Hands-Free) (Bluetooth)'],
     // Windows, Japanese: Chromium knows only the English prefixes, so the prefix is dropped.
     ["ヘッドホン (Henrik's AirPods) (Bluetooth)", 'AirPods (Bluetooth)'],
     // Linux: the sink description alone.
