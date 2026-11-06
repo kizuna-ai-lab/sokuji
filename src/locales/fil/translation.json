@@ -793,7 +793,8 @@
     "error": "Error sa Koneksyon",
     "noApiKey": "Kailangan ang API Key",
     "noMic": "Kailangan ang Microphone",
-    "reconnecting": "Muling kumukonekta..."
+    "reconnecting": "Muling kumukonekta...",
+    "reconnectingAttempt": "Muling kumukonekta... (pagtatangka {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Hindi ma-load ang impormasyon ng quota",
@@ -1459,6 +1460,7 @@
     "leg_closed": "Tinapos ng provider ang session.",
     "source_ended": "Naglaho ang audio source (na-unplug, na-close, o huminto).",
     "still_stopping": "Hinihinto pa ang huling session; subukan ulit sa ilang sandali.",
+    "connection_restored": "Naputol ang koneksyon at naibalik na",
     "session_in_use": "May ibang window o device na gumagamit ng account na ito. Ihinto roon ang session, o kung biglang nagsara ang Sokuji, subukang muli pagkalipas ng isang minuto.",
     "previous_session_ending": "Tinatapos pa ang iyong nakaraang session. Pakisubukang muli pagkalipas ng isang minuto.",
     "app_capture_lost_using_system_audio": "Huminto ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",

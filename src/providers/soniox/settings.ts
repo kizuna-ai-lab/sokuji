@@ -135,14 +135,24 @@ export function sonioxVoiceField(region: SonioxRegion): 'voice' | 'voiceEu' | 'v
   return region === 'us' ? 'voice' : region === 'eu' ? 'voiceEu' : 'voiceJp';
 }
 
+/** The answer to `reissue()`: a fresh single-use STT key for the same lease and role, or why there is none. */
+export type SonioxReissue =
+  | { ok: true; stt: string; clientReferenceId: string; expiresAt: number }
+  | { ok: false; retry: true; message: string }
+  | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'unsupported'; message: string };
+
 /** What Kizuna Soniox's lease will hand the adapter (Plan B's seam; survey §2.12). An own key has none. */
 export interface SonioxLeasePort {
   /** Soniox accepted the key: the first frame on each STT socket (the managed `session-started`). */
   streamAccepted(): void;
+  /** That socket ended — dropped, stopped, failed or cut off: a report of its key not yet acknowledged is tried no more. */
+  streamEnded(): void;
   /** Whether a 403 now is the granted duration ending rather than an error. */
   atGrantEnd(now: number): boolean;
   /** The granted duration ended: the lease ends the run with the grant's words, decided at acquire — `segment_ended` at the per-session cap, else `budget_exhausted`. */
   cutoff(): void;
+  /** Asks the backend for a fresh single-use STT key for this port's role, after an unexpected disconnect. The next `streamAccepted` reports that key. */
+  reissue(): Promise<SonioxReissue>;
 }
 
 /** One leg's credentials. An own key serves both sockets and sends no client reference (ruling 7). */
@@ -154,7 +164,7 @@ export interface SonioxCredentials {
   tts?: string;
   /** Managed only: inert on the wire — Soniox bills by the reference bound to the key (survey §3.7.1). */
   clientReferenceId?: string;
-  /** Managed only: the lease the adapter reports to. Present, a 503 is not resumed. */
+  /** Managed only: the lease the adapter reports to, and asks for a fresh STT key when a dropped socket reconnects. */
   lease?: SonioxLeasePort;
 }
 

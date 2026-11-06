@@ -97,6 +97,14 @@ export function imageFrame(jpeg: Uint8Array): string {
 export const COMMIT = { type: 'input_audio_buffer.commit' } as const;
 /** Stop: answered by `session.finished`, which nothing waits for. */
 export const FINISH = { type: 'session.finish' } as const;
+/**
+ * The liveness probe under automatic turns (spec 2026-11-05 reconnect §4.2):
+ * a browser cannot send a ping frame, so a clear, which server VAD always
+ * refuses at once, clearing nothing (probe 2026-11-06). No `event_id`: the
+ * refusal carries Qwen's own, never the client's. Never under push-to-talk,
+ * where the clear really empties the press.
+ */
+export const PROBE = { type: 'input_audio_buffer.clear' } as const;
 
 /** A server event: its type, and whatever else it carries, read field by field where used. */
 export interface ServerEvent {
@@ -117,6 +125,19 @@ export function decodeServerEvent(data: unknown): ServerEvent {
   if (typeof type === 'string') return parsed as ServerEvent;
   if (typeof code === 'string' && typeof message === 'string') return { type: 'error', error: { code, message } };
   throw new Error('Qwen sent a frame with no type.');
+}
+
+/**
+ * Qwen's refusal of the probe, which echoes no client `event_id`, so it is
+ * known by its words (probe 2026-11-06): `{"type":"error","error":{"type":
+ * "invalid_request_error","message":"Error clear input audio buffer:
+ * server_vad is enabled."}}`. An error of another type is not it.
+ */
+export function isProbeRefusal(e: ServerEvent): boolean {
+  if (e.type !== 'error' || typeof e.error !== 'object' || e.error === null) return false;
+  const { type, message } = e.error as { type?: unknown; message?: unknown };
+  if (type !== undefined && type !== 'invalid_request_error') return false;
+  return typeof message === 'string' && message.startsWith('Error clear input audio buffer');
 }
 
 /** A field as a string, else null. */
@@ -142,11 +163,18 @@ export function errorWords(e: QwenError): string {
   return `[Qwen${e.code ? ` ${e.code}` : ''}] ${clipped}`;
 }
 
-/** The notice code its words fall under (spec §6): the key, a limit, a request the model refuses, a model the key's region has not enabled, else the server's. */
+/**
+ * The notice code its words fall under (spec §6): the key, a quota spent, a
+ * request rate passed (`throttled`, which passes: worded as `rate_limit`, and
+ * a reconnect retries it, spec 2026-11-05 reconnect §4.1), a request the
+ * model refuses, a model the key's region has not enabled, else the
+ * server's. The quota first: its code is a `Throttling.` one too.
+ */
 export function errorCode(e: QwenError): string {
   const said = `${e.code ?? ''} ${e.message ?? ''}`;
   if (/InvalidApiKey|InvalidApiToken|API Token is expired/i.test(said)) return 'auth';
-  if (/rate limit|throttl|quota exceeded|Allocated quota/i.test(said)) return 'rate_limit';
+  if (/quota exceeded|Allocated quota|AllocationQuota/i.test(said)) return 'rate_limit';
+  if (/rate limit|throttl/i.test(said)) return 'throttled';
   if (/not supported|invalid_value|InvalidParameter|invalid .*parameter/i.test(said)) return 'client';
   // Only the unpurchased model: Alibaba's other AccessDenied codes have other remedies.
   if (/AccessDenied\.Unpurchased/.test(said)) return 'model_access_denied';

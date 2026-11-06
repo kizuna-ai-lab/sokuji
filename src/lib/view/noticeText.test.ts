@@ -85,6 +85,16 @@ describe('noticeText', () => {
     );
   });
 
+  it("words Qwen's passing request rate as the limit's own sentence, its words as the detail", () => {
+    const qwen = '[Qwen Throttling] Requests rate limit exceeded, please try again later.';
+    expect(noticeText(t, { code: 'throttled', message: qwen })).toBe(`notices.rate_limit|${qwen}`);
+    // The catalog's sentence takes the message as {{detail}}, so the detail itself must reach the translator.
+    const detailOnly = ((key: string, options: Record<string, unknown>) => `${key}:${String(options.detail)}`) as unknown as TFunction;
+    expect(noticeText(detailOnly, { code: 'throttled', message: qwen })).toBe(`notices.rate_limit:${qwen}`);
+    const enCatalog = en as unknown as Record<string, unknown>;
+    expect(at(enCatalog, NOTICE_ALIASES.throttled)).toBe(NOTICE_WORDS.rate_limit);
+  });
+
   it("words speech's two failures with the sentences every locale already has", () => {
     expect(noticeText(t, { code: 'tts_segment_lost', message: 'x' })).toMatch(/^mainPanel\.sonioxTtsSegmentLost\|/);
     expect(noticeText(t, { code: 'tts_stopped', message: 'x' })).toMatch(/^mainPanel\.sonioxTtsFailed\|/);

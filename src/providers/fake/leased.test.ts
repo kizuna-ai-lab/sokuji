@@ -182,6 +182,16 @@ describe('the leased fake', () => {
     expect(logs.participant).toHaveLength(before);
   });
 
+  it('startBoth, shared: both sessions say they share one connection; split: neither does', async () => {
+    const shared = bothLegs(s({ sharedBoth: true }));
+    const tied = await session.startBoth!(shared.requests, shared.events);
+    expect([tied.speaker.info.shared, tied.participant.info.shared]).toEqual([true, true]);
+    const split = bothLegs(s({ sharedBoth: false }));
+    const apart = await session.startBoth!(split.requests, split.events);
+    expect([apart.speaker.info.shared, apart.participant.info.shared]).toEqual([undefined, undefined]);
+    await Promise.all([tied.speaker.stop(), apart.speaker.stop(), apart.participant.stop()]);
+  });
+
   it('startBoth, split: the legs stay apart', async () => {
     const { clock, requests, events, logs } = bothLegs(s({ sharedBoth: false }));
     const sessions = await session.startBoth!(requests, events);

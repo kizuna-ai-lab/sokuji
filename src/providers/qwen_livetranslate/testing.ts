@@ -2,14 +2,17 @@
  * The Qwen LiveTranslate suites' fixtures: a key in the real shape, the
  * settings the suites build from, the server's events as the JSON text
  * frames the endpoints send (the shapes the owner's probe recorded,
- * 2026-10-13), one whole turn in the recorded order, and the harness that
- * starts a leg over the header seam's fake on a tracked virtual clock.
- * Test-only: nothing but a test imports it.
+ * 2026-10-13), one whole turn in the recorded order, sockets that answer the
+ * liveness probe as Qwen does, the harness that starts a leg over the header
+ * seam's fake on a tracked virtual clock, and the conformance suite's
+ * harness. Test-only: nothing but a test imports it.
  */
 import type { FrameSource, SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
-import { flush } from '../../lib/contract/testing/drive';
+import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
+import { FakeSocket, fakeSockets, type FakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
+import type { AdapterHarness } from '../../lib/contract/testing/scenarios';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
 import { createQwenAdapter } from './adapter';
@@ -77,7 +80,41 @@ export const SERVER = {
   denied: () => JSON.stringify({ code: 'AccessDenied.Unpurchased', message: 'Access to model denied. Please make sure you are eligible for using the model.', request_id: 'req_1' }),
   /** An event by its type alone. */
   bare: (type: string) => event({ type }),
+  /**
+   * The refusal of a liveness probe under automatic turns, as recorded (probe
+   * 2026-11-06): Qwen's own `event_id`, never the client's, and an error
+   * with a type and no code.
+   */
+  probeRefused: () => JSON.stringify({ event_id: 'event_NJRouhXRDlmkJm8MWSKIX', type: 'error', error: { type: 'invalid_request_error', message: 'Error clear input audio buffer: server_vad is enabled.' } }),
 };
+
+/** A sent frame that is a liveness probe. */
+export const isProbe = (m: { type?: unknown }) => m.type === 'input_audio_buffer.clear';
+/** How many liveness probes a socket has sent. */
+export const probes = (s: FakeSocket) => s.sentJson<{ type?: unknown }>().filter(isProbe).length;
+
+/**
+ * Sockets whose server answers each liveness probe at once with its refusal,
+ * as Qwen does under automatic turns within 100 ms (probe 2026-11-06): a
+ * suite not about the probe keeps a live leg alive however far its clock
+ * runs. Anything else is the test's to answer.
+ */
+export function answeringSockets(): FakeSockets {
+  const sockets = fakeSockets();
+  return {
+    all: sockets.all,
+    last: () => sockets.last(),
+    create(url, protocols) {
+      const socket = sockets.create(url, protocols) as unknown as FakeSocket;
+      const send = socket.send.bind(socket);
+      socket.send = (data) => {
+        send(data);
+        if (socket.readyState === FakeSocket.OPEN && typeof data === 'string' && isProbe(JSON.parse(data) as { type?: unknown })) socket.receive(SERVER.probeRefused());
+      };
+      return socket as unknown as WebSocket;
+    },
+  };
+}
 
 /** One whole turn under automatic turns, in the order the probe recorded: heard item `item_h<n>`, translation `item_t<n>`. */
 export function turn(n: number, o: { source: string; translation: string; speaker?: number; text?: boolean }): string[] {
@@ -100,12 +137,17 @@ export function turn(n: number, o: { source: string; translation: string; speake
   ];
 }
 
-/** A leg started over the header seam's fake on a tracked virtual clock; its registration not yet answered, its socket not yet made. */
-export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSettings>; credentials?: QwenCredentials; shared?: SharedSettings; detect?: DetectEndpoint; requestIds?: string[]; holdClear?: boolean; frames?: FrameSource } = {}) {
-  const seam = fakeHeaderSockets(undefined, { requestIds: o.requestIds });
+/**
+ * A leg started over the header seam's fake on a tracked virtual clock; its
+ * registration not yet answered, its socket not yet made. Its sockets answer
+ * each liveness probe (`answeringSockets`) unless `answerProbes` is false; a
+ * test may bring its own tracked clock.
+ */
+export function startQwen(o: { context?: SessionContext; patch?: Partial<QwenSettings>; credentials?: QwenCredentials; shared?: SharedSettings; detect?: DetectEndpoint; requestIds?: string[]; holdClear?: boolean; frames?: FrameSource; answerProbes?: boolean; clock?: ReturnType<typeof trackedClock> } = {}) {
+  const seam = fakeHeaderSockets(o.answerProbes === false ? undefined : answeringSockets(), { requestIds: o.requestIds });
   /** Releases the first clear's answer, when the leg was started holding it. */
   const releaseClear = o.holdClear ? seam.holdNextClear() : () => {};
-  const { clock, timers } = trackedClock();
+  const { clock, timers } = o.clock ?? trackedClock();
   const { events, log } = recordEvents();
   const controller = new AbortController();
   const context = o.context ?? AUTO_CTX;
@@ -142,4 +184,37 @@ export async function qwenSession(o?: Parameters<typeof startQwen>[0]) {
   h.socket().receive(SERVER.updated());
   const session = await h.starting;
   return { ...h, session };
+}
+
+/**
+ * The conformance suite's harness (`runScenario`), a fresh seam per
+ * scenario: the registration answers before the socket exists, one recorded
+ * turn is the exchange, the server's end is a close the table ends (spec
+ * 2026-11-05 reconnect §4.1: a 1011 would reconnect), and the reconnect is
+ * a 1011 whose attempt's socket opens and answers the handshake.
+ */
+export function qwenHarness(credentials: QwenCredentials = KEY): AdapterHarness<QwenConfig, QwenCredentials> {
+  let seam = fakeHeaderSockets(answeringSockets());
+  const last = () => seam.sockets.last();
+  const reply = (frame: string): ScenarioStep => ({ run: () => last().receive(frame) });
+  return {
+    adapter: createQwenAdapter({ openHeaderSocket: (url, headers, o) => seam.open(url, headers, o), detect: async () => ({ endpoint: 'intl' }) }),
+    config: (context) => { seam = fakeHeaderSockets(answeringSockets()); return configFor(context); },
+    credentials,
+    // The registration answers first; the socket exists only then.
+    opening: () => [{ flush: true }, { run: () => last().open() }, { flush: true }, reply(SERVER.created()), reply(SERVER.updated()), { flush: true }],
+    exchange: turn(1, { source: '你好', translation: 'Hello.' }).map(reply),
+    serverClose: [{ run: () => last().serverClose(1007, 'Invalid translation parameter.') }, { flush: true }],
+    refuse: [{ flush: true }, { run: () => last().drop() }, { flush: true }],
+    // The attempt's socket is the newest once its registration has answered (and, managed, the lease's token has).
+    reconnect: [
+      { run: () => last().serverClose(1011, 'Internal error') },
+      { flush: true },
+      { run: () => last().open() },
+      { flush: true },
+      reply(SERVER.created('sess_2')),
+      reply(SERVER.updated()),
+      { flush: true },
+    ],
+  };
 }

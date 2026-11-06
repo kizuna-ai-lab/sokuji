@@ -29,6 +29,8 @@ export interface QwenSegmentsOptions {
   sink: Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio' | 'speechRanges'>;
   /** Label each turn with its speaker (D7): the participant leg only. */
   person: boolean;
+  /** The first ref handed out; 1 by default. A reconnect's segments carry on from the dropped connection's (spec 2026-11-05 reconnect §4.3). */
+  firstRef?: Ref;
 }
 
 interface Item {
@@ -58,7 +60,7 @@ interface Item {
 }
 
 export class QwenSegments {
-  private nextRef = 1;
+  private next: Ref;
   private readonly items = new Map<string, Item>();
   /** `speaker_id` by heard item, from `speech_started` (automatic turns only). */
   private readonly speakers = new Map<string, string>();
@@ -66,7 +68,14 @@ export class QwenSegments {
   /** The leg's speech rate, learned from its fill-ins. */
   private readonly pace = new SpeechPace();
 
-  constructor(private readonly o: QwenSegmentsOptions) {}
+  constructor(private readonly o: QwenSegmentsOptions) {
+    this.next = o.firstRef ?? 1;
+  }
+
+  /** The ref the next segment would open with. */
+  get nextRef(): Ref {
+    return this.next;
+  }
 
   /** A heard item begins, with its speaker when told. */
   heard(itemId: string, speaker: number | null = null): void {
@@ -139,7 +148,20 @@ export class QwenSegments {
     this.finish(it);
   }
 
+  /** Silent: what is open stays as it was last sent (an end, a stop). */
   stop(): void {
+    this.stopped = true;
+  }
+
+  /**
+   * The connection dropped (spec 2026-11-05 reconnect §4.3): every segment
+   * still open closes as it stands, stating its origin as a close does, and
+   * nothing more is heard. A translation's last phrase is not filled: its
+   * speech was cut, and its provisional ranges stand.
+   */
+  abandon(): void {
+    if (this.stopped) return;
+    for (const it of this.items.values()) if (!it.closed) this.close(it);
     this.stopped = true;
   }
 
@@ -166,7 +188,7 @@ export class QwenSegments {
   }
 
   private open(itemId: string, it: Item): void {
-    const ref = this.nextRef++;
+    const ref = this.next++;
     it.ref = ref;
     const origin = it.side === 'source' ? itemId : it.source;
     it.stated = origin !== undefined;

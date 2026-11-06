@@ -793,7 +793,8 @@
     "error": "Verbindingsfout",
     "noApiKey": "API Sleutel Vereist",
     "noMic": "Microfoon Vereist",
-    "reconnecting": "Opnieuw verbinden..."
+    "reconnecting": "Opnieuw verbinden...",
+    "reconnectingAttempt": "Opnieuw verbinden... (poging {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kan quota-informatie niet laden",
@@ -1459,6 +1460,7 @@
     "leg_closed": "De provider heeft de sessie beëindigd.",
     "source_ended": "De audiobron is verdwenen (losgekoppeld, gesloten of gestopt).",
     "still_stopping": "De vorige sessie wordt nog gestopt; probeer het zo opnieuw.",
+    "connection_restored": "Verbinding verbroken en hersteld",
     "session_in_use": "Een ander venster of apparaat gebruikt dit account. Stop de sessie daar, of probeer het over een minuut opnieuw als Sokuji net onverwacht is afgesloten.",
     "previous_session_ending": "Uw vorige sessie wordt nog beëindigd. Probeer het over een minuut opnieuw.",
     "app_capture_lost_using_system_audio": "Het vastleggen van de app is gestopt, dus wordt nu alle systeemaudio vertaald.",

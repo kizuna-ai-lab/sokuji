@@ -40,6 +40,7 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   leg_closed: 'The provider ended the session.',
   source_ended: 'The audio source went away (unplugged, closed or stopped).',
   still_stopping: 'The last session is still stopping; try again in a moment.',
+  connection_restored: 'Connection lost and restored',
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',
@@ -103,6 +104,8 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   wallet_frozen: 'mainPanel.walletFrozen',
   session_conflict: 'mainPanel.sonioxSessionConflict',
   budget_exhausted: 'mainPanel.sonioxBudgetExhausted',
+  // Qwen's request rate passed (a reconnect retries it; a quota spent is `rate_limit`): the limit's own sentence, in every locale.
+  throttled: 'notices.rate_limit',
   // A provider ended the session under the user, and a new Start continues it.
   segment_ended: 'mainPanel.sonioxSegmentEnded',
   connection_lost: 'mainPanel.sonioxConnectionLost',

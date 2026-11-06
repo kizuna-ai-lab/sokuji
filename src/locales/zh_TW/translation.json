@@ -793,7 +793,8 @@
     "error": "連線錯誤",
     "noApiKey": "需要 API 金鑰",
     "noMic": "需要麥克風",
-    "reconnecting": "重新連線中..."
+    "reconnecting": "重新連線中...",
+    "reconnectingAttempt": "重新連線中... (第 {{attempt}} 次嘗試，{{seconds}} 秒)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "無法載入配額資訊",
@@ -1459,6 +1460,7 @@
     "leg_closed": "提供商已結束工作階段。",
     "source_ended": "音訊來源已消失（已拔除、關閉或停止）。",
     "still_stopping": "上一個工作階段仍在停止中，請稍後再試。",
+    "connection_restored": "連線已中斷並已恢復",
     "session_in_use": "另一個視窗或裝置正在使用此帳戶。請在該處停止工作階段；如果 Sokuji 剛剛意外關閉，請 1 分鐘後再試一次。",
     "previous_session_ending": "您的上一個工作階段仍在結束中。請 1 分鐘後再試一次。",
     "app_capture_lost_using_system_audio": "應用程式擷取已停止，現在改為翻譯整個系統的聲音。",

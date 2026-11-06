@@ -6,7 +6,9 @@
  * ends the run when the grant does, and `release` tells the backend the run
  * is over. Each leg's `QwenLeasePort` forwards the adapter's session report
  * (the `session.created` id and the handshake's request id) so the backend
- * can match Alibaba's usage log and charge the account. A sibling of
+ * can match Alibaba's usage log and charge the account, and answers a
+ * reconnecting leg a token fetched since its drop (spec 2026-11-05
+ * reconnect §6). A sibling of
  * Soniox's lease (`../soniox/lease.ts`), self-contained: nothing is shared
  * with it. Not Qwen's session side: `adapter.ts` never reaches this module.
  */
@@ -18,7 +20,7 @@ import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/ses
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
-import type { QwenCredentials, QwenLeasePort, QwenSettings } from './settings';
+import type { QwenCredentials, QwenLeasePort, QwenReissue, QwenSettings } from './settings';
 
 /** What the backend accepts as a handshake request id (sokuji-backend `routes/qwen.ts`). */
 const REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -33,6 +35,10 @@ export const CONFLICT_WAIT_LIMIT_MS = 90_000;
 export const ENDING_POLL_MS = 5_000;
 /** Before asking again after a lease freed as the backend read it. */
 export const RELEASED_RETRY_MS = 1_000;
+/** A token fetched for a drop is reused until this long before it expires: one about to lapse would die in the handshake. */
+const TOKEN_REFRESH_MARGIN_MS = 5_000;
+/** A reissued token whose answer names no expiry is taken to last as long as Alibaba's token does, less a margin. */
+const DEFAULT_TOKEN_LIFETIME_MS = 55_000;
 /** Past a never-started lease's expiry, so the next ask finds it gone. */
 const UNSTARTED_SLACK_MS = 1_000;
 
@@ -70,8 +76,29 @@ export const QWEN_SESSION_CAP_SECONDS = 3_600;
 export const SESSION_END_BUDGET_MS = 4_000;
 /** The waits between `session-end`'s attempts: three attempts at most. */
 export const SESSION_END_RETRY_DELAYS_MS: readonly number[] = [500, 1_000];
-/** The waits between a session report's attempts: four at most; only a transport failure or a 5xx is retried. */
-export const SESSION_STARTED_RETRY_DELAYS_MS: readonly number[] = [500, 1_000, 2_000];
+/**
+ * The waits before `session-started` is tried again after a transport failure
+ * or a 5xx; past the last, every `SESSION_STARTED_RETRY_MAX_MS`. No count
+ * bounds them: the backend tells a lease still in use from an idle one by a
+ * session report at or after its latest token mint, so a report is tried for
+ * as long as its session's connection is open. The backend takes a repeat of
+ * a stored report as an idempotent retry, so a repeat is safe.
+ */
+export const SESSION_STARTED_RETRY_DELAYS_MS: readonly number[] = [1_000, 2_000, 5_000, 10_000];
+export const SESSION_STARTED_RETRY_MAX_MS = 30_000;
+/** The Logs' words when a session's report is let go unacknowledged, the last try's cause beside them: an unreported session is still charged by its window. */
+export const SESSION_STARTED_UNACKNOWLEDGED = 'The connection ended before the backend acknowledged session-started.';
+
+/**
+ * One session's `session-started`, per leg and `session.created` id: `over`
+ * once its connection has ended (the adapter's `sessionEnded`), after which
+ * a failed try is not repeated.
+ */
+interface SessionReport {
+  over: boolean;
+  /** Ends the wait before the next try, when one is pending. */
+  cancelWait: (() => void) | null;
+}
 
 export interface QwenLeaseDeps {
   /** `fetch` in the app, read at call time; a stub in tests. */
@@ -359,9 +386,17 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     let ended = false;
     let released = false;
     let cancelBudget = () => {};
+    /** Per leg and session id, its report: once each. */
+    const reports = new Map<string, SessionReport>();
+    /** A session's connection is over (it ended, the run ends): a report waiting to be tried again is let go now. */
+    const letGo = (r: SessionReport): void => {
+      r.over = true;
+      r.cancelWait?.();
+    };
     const endOnce = ({ notice, expected }: { notice: RunNotice; expected: boolean }): void => {
       if (ended || released) return;
       ended = true;
+      for (const r of reports.values()) letGo(r);
       cancelBudget();
       ctx.frame({ direction: 'in', type: 'session.lease_ended', payload: { code: notice.code, maxSessionDurationSeconds: grant.maxSessionDurationSeconds } });
       ctx.end(notice, { expected });
@@ -374,16 +409,36 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       payload: { leaseId: grant.leaseId, endpoint: grant.endpoint, ...(grant.region ? { region: grant.region } : {}), maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
     });
 
-    const reported = new Set<string>();
-    /** Aborted by `release`: a report's retry wait leaves no timer behind. */
-    const stopReports = new AbortController();
-    /** One session's report: a 4xx is the backend's refusal, final; only a transport failure or a 5xx is retried, and none once the run ended or the lease is released. Never ends the run: an unreported session is still charged by its window. */
-    const report = async (leg: LegName, taskUuid: string, requestId: string | undefined): Promise<void> => {
+    /** The wait before a report's next try, on the run's clock: true when it ran out, false when the report was let go or the run aborted first. */
+    const pause = (r: SessionReport, ms: number): Promise<boolean> => new Promise<boolean>((resolve) => {
+      let done = false;
+      const finish = (ran: boolean) => {
+        if (done) return;
+        done = true;
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+        r.cancelWait = null;
+        resolve(ran);
+      };
+      const onAbort = () => finish(false);
+      const cancelTimer = ctx.clock.setTimeout(() => finish(true), ms);
+      r.cancelWait = () => finish(false);
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+    });
+    /**
+     * Posts one session's report until it is acknowledged. Not awaited, never
+     * ending the run. A transport failure or a 5xx is tried again on
+     * `SESSION_STARTED_RETRY_DELAYS_MS` while the session's connection is
+     * open, the run has not ended, the lease is not released and the run is
+     * not aborted; a 4xx is the backend's refusal, final. A report let go
+     * unacknowledged is a Logs line naming the last try's cause.
+     */
+    const report = async (leg: LegName, taskUuid: string, requestId: string | undefined, r: SessionReport): Promise<void> => {
       const body = JSON.stringify({ leaseId: grant.leaseId, leg, taskUuid, ...(requestId ? { requestId } : {}) });
       // Dropped for good after a transport failure, as `signalEnd` does: a runtime may refuse a keepalive request as a transport error.
       let keepalive = true;
-      let last = '';
-      for (let i = 0; ; i += 1) {
+      for (let tries = 0; ; tries += 1) {
+        let last: string;
         try {
           const res = await doFetch(`${apiUrl()}/qwen/session-started`, {
             method: 'POST',
@@ -408,30 +463,122 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           keepalive = false;
           last = describeCause(error);
         }
-        if (ended || released) return;
-        const delay = SESSION_STARTED_RETRY_DELAYS_MS[i];
-        if (delay === undefined) break;
-        try {
-          await wait(ctx.clock, delay, stopReports.signal);
-        } catch {
+        // The connection over, the run ending: nothing is left for the report to protect. Asked again after the wait, which
+        // a clock firing several timers in one step can end with the run already over.
+        const open = (): boolean => !r.over && !ended && !released && !ctx.signal.aborted;
+        if (!open() || !(await pause(r, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS)) || !open()) {
+          ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: SESSION_STARTED_UNACKNOWLEDGED, cause: last } });
           return;
         }
-        if (ended || released) return;
       }
-      ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg, message: `The backend did not acknowledge the session report (${last}).` } });
+    };
+    /** The last token a reissue fetched, both legs', and when it came on the run's clock. Never the grant's: that one is the Start's alone. */
+    let cached: { apiKey: string; expiresAt: number; fetchedAt: number } | null = null;
+    /** The one reissue request in flight, shared by whichever legs ask meanwhile. */
+    let reissuing: Promise<QwenReissue> | null = null;
+    const leaseEnded = (): QwenReissue => ({ ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' });
+    const requestReissue = async (): Promise<QwenReissue> => {
+      const retry = (message: string): QwenReissue => ({ ok: false, retry: true, message });
+      // The timeout and the abort wiring start before the token await: a slow or hung getToken is bounded like the request,
+      // and an abort during it is seen (a listener added after the abort would never fire).
+      const controller = new AbortController();
+      let timedOut = false;
+      const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
+      const onAbort = () => controller.abort();
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+      if (ctx.signal.aborted) controller.abort();
+      const stopped = () => (timedOut ? 'The Qwen session service did not answer within 15 s.' : 'The reissue was cancelled.');
+      try {
+        // A fresh token: the cached one may have expired over a long session.
+        const fresh = await new Promise<string | null>((resolve) => {
+          const done = () => resolve(null);
+          if (controller.signal.aborted) return done();
+          controller.signal.addEventListener('abort', done, { once: true });
+          shape.auth.getToken().then(resolve, () => resolve(null)).finally(() => controller.signal.removeEventListener('abort', done));
+        });
+        if (controller.signal.aborted) return retry(stopped());
+        if (released) return leaseEnded();
+        ctx.frame({ direction: 'out', type: 'session.key_reissue_requested', payload: { leaseId: grant.leaseId } });
+        const res = await doFetch(`${apiUrl()}/qwen/session-key/reissue`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${fresh ?? token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leaseId: grant.leaseId }),
+          signal: controller.signal,
+        });
+        let body: Record<string, unknown> | null = null;
+        try {
+          body = (await res.json()) as Record<string, unknown> | null;
+        } catch {
+          // Not JSON: the status speaks.
+        }
+        const status = res.status;
+        const said = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : `HTTP ${status}`;
+        if (status >= 200 && status < 300) {
+          const apiKey = body?.apiKey;
+          if (typeof apiKey !== 'string' || !apiKey) return retry('The reissue answer carried no key.');
+          const expiresAt = typeof body?.expiresAt === 'number' && Number.isFinite(body.expiresAt) ? body.expiresAt : ctx.clock.now() + DEFAULT_TOKEN_LIFETIME_MS;
+          // A release may have landed while the request was out: a dead lease takes no key.
+          if (released) return leaseEnded();
+          cached = { apiKey, expiresAt, fetchedAt: ctx.clock.now() };
+          return { ok: true, apiKey, expiresAt, fresh: true };
+        }
+        if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
+        if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
+        if (status === 409) return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };
+        if (status === 429 || status >= 500) return retry(said);
+        return { ok: false, retry: false, code: 'unsupported', message: said };
+      } catch (error) {
+        if (timedOut) return retry('The Qwen session service did not answer within 15 s.');
+        return retry(`Failed to reach the Qwen session service: ${describeCause(error)}`);
+      } finally {
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+      }
+    };
+    /**
+     * A token for a leg reconnecting after a drop that began at `notBefore`
+     * (spec 2026-11-05 reconnect §4.2), never one minted before that drop:
+     * the backend tells a lease still in use from an idle one by a session
+     * report at or after its latest token mint, so a session reconnected on
+     * an older token, its report then lost, could run on a lease the backend
+     * released.
+     */
+    const reissue = ({ notBefore, refused }: { notBefore: number; refused?: string }): Promise<QwenReissue> => {
+      if (released) return Promise.resolve(leaseEnded());
+      // A token Qwen refused is the cache's no more — only while the cache still holds it: the other leg, refused the same
+      // token, joins the request in flight or takes its answer, and never forces a second one.
+      if (refused !== undefined && refused === cached?.apiKey) cached = null;
+      // Only a token fetched since the asker's drop began, and still valid: the drop's later attempts, and the other leg
+      // dropped in the same blip, take it. Anything older makes a request. A fetch time ahead of now is a wall clock stepped
+      // back (`realClock.now()` is `Date.now()`), and proves nothing: that token leaves the cache, so it is not served once
+      // the clock catches up — a failed ask leaves the cache as it was, and the drop's later attempts would otherwise take it.
+      const now = ctx.clock.now();
+      if (cached && cached.fetchedAt > now) cached = null;
+      if (cached && notBefore <= cached.fetchedAt && now < cached.expiresAt - TOKEN_REFRESH_MARGIN_MS) {
+        return Promise.resolve({ ok: true, apiKey: cached.apiKey, expiresAt: cached.expiresAt, fresh: false });
+      }
+      // Both legs may ask at once: one request, one answer for both — an ask while it is out joins it.
+      reissuing ??= requestReissue().finally(() => { reissuing = null; });
+      return reissuing;
     };
     const port = (leg: LegName): QwenLeasePort => ({
+      reissue,
       sessionCreated: (id, rawRequestId) => {
         // The backend answers 400 to anything but a lowercase UUID, a final refusal that would lose the session id too: send it as it came, or not at all.
         const requestId = rawRequestId !== undefined && REQUEST_ID_RE.test(rawRequestId) ? rawRequestId : undefined;
         // Once per (leg, id), and never once the grant has ended the run or the lease is released: a late report from a
         // socket still closing must not start a lease the account already ended.
         const key = `${leg}\u0000${id}`;
-        if (ended || released || reported.has(key)) return;
-        reported.add(key);
+        if (ended || released || reports.has(key)) return;
+        const r: SessionReport = { over: false, cancelWait: null };
+        reports.set(key, r);
         ctx.frame({ direction: 'out', type: 'session.started', payload: { leg, taskUuid: id, withRequestId: Boolean(requestId) } });
         // Not awaited, never failing the session.
-        void report(leg, id, requestId);
+        void report(leg, id, requestId, r);
+      },
+      sessionEnded: (id) => {
+        const r = reports.get(`${leg}\u0000${id}`);
+        if (r) letGo(r);
       },
     });
 
@@ -444,8 +591,8 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       async release(): Promise<void> {
         if (released) return;
         released = true;
+        for (const r of reports.values()) letGo(r);
         cancelBudget();
-        stopReports.abort();
         ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
         const ending = signalEnd(doFetch, `${apiUrl()}/qwen/session-end`, token, grant.leaseId, ctx.clock, ctx.frame);
         previous = ending;

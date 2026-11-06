@@ -32,6 +32,7 @@ import { useProviderStore } from '../stores/providerStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
+import { createBrowserNetwork } from './network';
 import { driveReadiness } from './readiness';
 import { registerRunPhase } from './runPhase';
 import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
@@ -134,6 +135,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const runner: Runner = createRunner({
     clock,
     platform: getEnvironment(),
+    network: createBrowserNetwork(),
     readShape: () => (options.refuse?.() ? null : readShapeFromStores(bridges.auth)),
     ensureReady: ensureReadyFromStores,
     persistIfUnchanged,

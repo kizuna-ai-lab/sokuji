@@ -1,9 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError } from '../../lib/contract/adapter';
-import { createVirtualClock } from '../../lib/contract/clock';
+import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
-import { CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
+import {
+  CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS, SESSION_STARTED_RETRY_DELAYS_MS, SESSION_STARTED_RETRY_MAX_MS,
+  SESSION_STARTED_UNACKNOWLEDGED,
+} from './lease';
 import { fakeFrameSource } from '../../lib/contract/testing/fakeFrames';
 import { QWEN_DEFAULTS, type QwenSettings } from './settings';
 
@@ -27,11 +30,11 @@ function stubFetch() {
 
 /** A grant as the backend answers it (spec §3). */
 const grant = (over: Record<string, unknown> = {}) => ({
-  leaseId: 'lease-1', endpoint: 'intl', apiKey: GRANT_KEY, expiresAt: '2026-10-17T00:01:00Z',
+  leaseId: 'lease-1', endpoint: 'intl', apiKey: GRANT_KEY, expiresAt: 60_000,
   maxSessionDurationSeconds: 600, budgetMicroUsd: 416_667, rateUsdPerHour: 2.5, ...over,
 });
 
-type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings>; frames?: RunShape['frames'] };
+type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings>; frames?: RunShape['frames']; clock?: VirtualClock };
 
 const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
   provider: {} as RunShape['provider'], settings: { ...QWEN_DEFAULTS, ...o.settings }, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
@@ -43,16 +46,17 @@ const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
 /** `acquire` in flight over a stub `fetch`, on a virtual clock; the test answers it. */
 function acquiring(legs: LegName[], o: Options = {}) {
   const net = stubFetch();
-  const clock = createVirtualClock(0);
+  const clock = o.clock ?? createVirtualClock(0);
   const controller = new AbortController();
   const end = vi.fn();
   const frame = vi.fn();
   const waiting = vi.fn();
   const ctx: LeaseContext = { signal: controller.signal, clock, end, frame, waiting };
   const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
-  const pending = lease(shapeFor(legs, o), { ...QWEN_DEFAULTS, ...o.settings }, ctx);
+  const shape = shapeFor(legs, o);
+  const pending = lease(shape, { ...QWEN_DEFAULTS, ...o.settings }, ctx);
   pending.catch(() => {});
-  return { ...net, clock, controller, end, frame, waiting, ctx, lease, pending };
+  return { ...net, shape, clock, controller, end, frame, waiting, ctx, lease, pending };
 }
 
 type AcquireOptions = Parameters<typeof acquiring>[1];
@@ -132,7 +136,7 @@ describe('Qwen lease: the grant', () => {
   it("hands each leg the grant, its endpoint and a port; the budget is the grant's duration", async () => {
     const a = await granted(['speaker', 'participant']);
     const { credentials, budget } = a.resources;
-    expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function) } });
+    expect(credentials('speaker')).toEqual({ apiKey: GRANT_KEY, endpoint: 'intl', lease: { sessionCreated: expect.any(Function), sessionEnded: expect.any(Function), reissue: expect.any(Function) } });
     expect(credentials('participant').apiKey).toBe(GRANT_KEY);
     expect(budget).toEqual({ totalMs: 600_000, endsAt: 600_000 });
   });
@@ -470,48 +474,135 @@ describe('Qwen lease: the session report', () => {
     expect(frames.map((f) => f.payload.withRequestId)).toEqual([false, false, true]);
   });
 
-  it('retries a 503 at +500, +1 000 and +2 000 ms, then frames notify_failed and never ends the run', async () => {
+  it('a 5xx is tried again a second later, and the 2xx after it is the report: nothing more goes out, and the run is not ended', async () => {
     const a = await granted(['speaker']);
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+    const started = () => a.to('/qwen/session-started');
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', UUID_1);
+    await flush();
+    started()[0].respond(503);
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0] - 1);
+    await flush();
+    expect(started()).toHaveLength(1);
+    a.clock.advance(1);
+    await flush();
+    expect(started()).toHaveLength(2);
+    // The same report again: the backend takes a repeat of a stored report as an idempotent retry.
+    expect(started()[1].init.body).toBe(started()[0].init.body);
+    started()[1].respond(200, { ok: true });
+    await flush();
+    a.clock.advance(120_000);
+    await flush();
+    expect(started()).toHaveLength(2);
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
+    expect(a.end).not.toHaveBeenCalled();
+  });
+
+  it('a transport failure or a 5xx is tried again 1, 2, 5 and 10 s later, then every 30 s, while the connection is open', async () => {
+    expect(SESSION_STARTED_RETRY_DELAYS_MS).toEqual([1_000, 2_000, 5_000, 10_000]);
+    expect(SESSION_STARTED_RETRY_MAX_MS).toBe(30_000);
+    const a = await granted(['speaker']);
+    const started = () => a.to('/qwen/session-started');
+    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', UUID_1);
+    await flush();
+    const at: number[] = [a.clock.now()];
+    for (const [i, delay] of [1_000, 2_000, 5_000, 10_000, 30_000, 30_000, 30_000].entries()) {
+      const last = started()[started().length - 1];
+      if (i % 2 === 0) last.fail();
+      else last.respond(502);
+      await flush();
+      a.clock.advance(delay - 1);
+      await flush();
+      expect(started()).toHaveLength(at.length);
+      a.clock.advance(1);
+      await flush();
+      expect(started()).toHaveLength(at.length + 1);
+      at.push(a.clock.now());
+    }
+    expect(at).toEqual([0, 1_000, 3_000, 8_000, 18_000, 48_000, 78_000, 108_000]);
+    // Nothing in the Logs while it is tried: the connection is still open.
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
+    expect(a.end).not.toHaveBeenCalled();
+    started()[started().length - 1].respond(200);
+    await flush();
+    a.clock.advance(120_000);
+    await flush();
+    expect(started()).toHaveLength(8);
+  });
+
+  it("the retries stop when the session's connection ends, saying the report was never acknowledged and why", async () => {
+    const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    const before = a.clock.pending();
+    port.sessionCreated('sess_a', UUID_1);
     await flush();
     a.to('/qwen/session-started')[0].respond(503);
     await flush();
-    for (const [n, step] of [[2, 500], [3, 1_000], [4, 2_000]] as const) {
-      a.clock.advance(step - 1);
-      await flush();
-      expect(a.to('/qwen/session-started')).toHaveLength(n - 1);
-      a.clock.advance(1);
-      await flush();
-      expect(a.to('/qwen/session-started')).toHaveLength(n);
-      a.last().respond(503);
-      await flush();
-    }
-    expect(a.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed', payload: expect.objectContaining({ step: 'session-started' }) }));
-    expect(a.end).not.toHaveBeenCalled();
-    a.clock.advance(10_000);
+    expect(a.clock.pending()).toBe(before + 1);
+    port.sessionEnded('sess_a');
+    expect(a.clock.pending()).toBe(before);
     await flush();
-    expect(a.to('/qwen/session-started')).toHaveLength(4);
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' } });
+    a.clock.advance(120_000);
+    await flush();
+    expect(a.to('/qwen/session-started')).toHaveLength(1);
+
+    // A connection that ends with a try in flight: that try is the last, unless it is acknowledged.
+    const b = await granted(['speaker']);
+    const portB = b.resources.credentials('speaker').lease!;
+    portB.sessionCreated('sess_a', UUID_1);
+    await flush();
+    portB.sessionEnded('sess_a');
+    b.to('/qwen/session-started')[0].fail();
+    await flush();
+    b.clock.advance(120_000);
+    await flush();
+    expect(b.to('/qwen/session-started')).toHaveLength(1);
+    expect(b.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'Failed to fetch' } });
+
+    // A connection that ends once its report was acknowledged: nothing to say.
+    const c = await granted(['speaker']);
+    const portC = c.resources.credentials('speaker').lease!;
+    portC.sessionCreated('sess_a', UUID_1);
+    await flush();
+    c.to('/qwen/session-started')[0].respond(200);
+    await flush();
+    portC.sessionEnded('sess_a');
+    await flush();
+    expect(c.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.notify_failed' }));
   });
 
-  it('retries a transport failure too', async () => {
-    const a = await granted(['speaker']);
-    a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+  it("only that session's retries stop: the other leg's, and the same leg's next session's, go on", async () => {
+    const a = await granted(['speaker', 'participant']);
+    const speaker = a.resources.credentials('speaker').lease!;
+    a.resources.credentials('participant').lease!.sessionCreated('sess_a', UUID_2);
+    speaker.sessionCreated('sess_a', UUID_1);
+    speaker.sessionCreated('sess_b', undefined);
     await flush();
-    a.to('/qwen/session-started')[0].fail();
+    for (const post of a.to('/qwen/session-started')) post.respond(503);
     await flush();
-    a.clock.advance(500);
+    speaker.sessionEnded('sess_a');
+    // An id never reported, or another leg's, ends nothing.
+    speaker.sessionEnded('sess_zzz');
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
     await flush();
-    expect(a.to('/qwen/session-started')).toHaveLength(2);
+    const bodies = a.to('/qwen/session-started').slice(3).map((p) => JSON.parse(p.init.body as string));
+    expect(bodies).toEqual([
+      { leaseId: 'lease-1', leg: 'participant', taskUuid: 'sess_a', requestId: UUID_2 },
+      { leaseId: 'lease-1', leg: 'speaker', taskUuid: 'sess_b' },
+    ]);
   });
 
   it.each([409, 404, 401])('treats a %i as a refusal: framed with the status and error, not retried, run not ended', async (status) => {
     const a = await granted(['speaker']);
+    const before = a.clock.pending();
     a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
     await flush();
     a.to('/qwen/session-started')[0].respond(status, { error: 'lease_not_live' });
     await flush();
     expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.started_refused', payload: { status, error: 'lease_not_live', leg: 'speaker' } });
-    a.clock.advance(10_000);
+    expect(a.clock.pending()).toBe(before);
+    a.clock.advance(120_000);
     await flush();
     expect(a.to('/qwen/session-started')).toHaveLength(1);
     expect(a.end).not.toHaveBeenCalled();
@@ -579,24 +670,91 @@ describe('Qwen lease: the report retries', () => {
     await flush();
     a.to('/qwen/session-started')[0].fail();
     await flush();
-    a.clock.advance(500);
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
     await flush();
     const posts = a.to('/qwen/session-started');
     expect(posts[0].init.keepalive).toBe(true);
     expect(posts[1].init).not.toHaveProperty('keepalive');
   });
 
-  it('names the last cause in notify_failed', async () => {
+  it("names the last try's cause when the report is let go", async () => {
     const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.sessionCreated('sess_a', 'rid');
+    await flush();
+    a.last().fail();
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
+    await flush();
+    a.last().respond(503);
+    await flush();
+    port.sessionEnded('sess_a');
+    await flush();
+    const failed = a.frame.mock.calls.filter(([f]) => f.type === 'session.notify_failed').map(([f]) => f.payload);
+    expect(failed).toEqual([{ step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' }]);
+  });
+
+  it("a release, the run's abort and the grant's end each cancel a pending retry: none outlives the lease, and each says the report went unacknowledged", async () => {
+    /** A lease whose report waits to be tried again; `before` is the timers it held before the report (its budget's). */
+    const pendingRetry = async (over: Record<string, unknown> = {}) => {
+      const a = await granted(['speaker'], {}, over);
+      const before = a.clock.pending();
+      a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
+      await flush();
+      a.to('/qwen/session-started')[0].respond(503);
+      await flush();
+      expect(a.clock.pending()).toBe(before + 1);
+      return { ...a, before };
+    };
+    const triedOnce = async (a: Awaited<ReturnType<typeof pendingRetry>>) => {
+      a.clock.advance(120_000);
+      await flush();
+      expect(a.to('/qwen/session-started')).toHaveLength(1);
+      expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' } });
+    };
+
+    const released = await pendingRetry();
+    const releasing = released.resources.release();
+    await flush();
+    released.to('/qwen/session-end')[0].respond(200);
+    await releasing;
+    expect(released.clock.pending()).toBe(0);
+    await triedOnce(released);
+
+    // The run's abort (its dispose) comes before the release: the retry goes with it, the budget waits for the release.
+    const aborted = await pendingRetry();
+    aborted.controller.abort();
+    expect(aborted.clock.pending()).toBe(aborted.before);
+    await triedOnce(aborted);
+
+    // The grant ends the run 60 s in, its report still waiting.
+    const granted60 = await pendingRetry({ maxSessionDurationSeconds: 60 });
+    granted60.clock.advance(59_999);
+    await flush();
+    const tries = granted60.to('/qwen/session-started');
+    for (const post of tries.slice(1)) post.respond(503);
+    await flush();
+    const asked = granted60.to('/qwen/session-started').length;
+    granted60.clock.advance(1);
+    expect(granted60.end).toHaveBeenCalledTimes(1);
+    expect(granted60.clock.pending()).toBe(0);
+    granted60.clock.advance(120_000);
+    await flush();
+    expect(granted60.to('/qwen/session-started')).toHaveLength(asked);
+  });
+
+  it("a retry whose wait ends in the same clock step as the grant posts nothing: the run ended before the try", async () => {
+    const a = await granted(['speaker'], {}, { maxSessionDurationSeconds: 2 });
     a.resources.credentials('speaker').lease!.sessionCreated('sess_a', 'rid');
-    for (const step of [0, 500, 1_000, 2_000]) {
-      a.clock.advance(step);
-      await flush();
-      a.last().respond(503);
-      await flush();
-    }
-    const failed = a.frame.mock.calls.find(([f]) => f.type === 'session.notify_failed')![0];
-    expect(failed.payload.message).toContain('HTTP 503');
+    await flush();
+    a.to('/qwen/session-started')[0].respond(503);
+    await flush();
+    // The retry is due at 1 s and the grant ends at 2 s: one step fires both before the retry's try can run.
+    a.clock.advance(2_000);
+    await flush();
+    expect(a.end).toHaveBeenCalledTimes(1);
+    expect(a.to('/qwen/session-started')).toHaveLength(1);
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', leg: 'speaker', message: SESSION_STARTED_UNACKNOWLEDGED, cause: 'HTTP 503' } });
   });
 
   it('release leaves no report timer behind', async () => {
@@ -641,5 +799,305 @@ describe('Qwen lease: the grant stays out of the Logs', () => {
     expect(a.frame.mock.calls.length).toBeGreaterThan(4);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(GRANT_KEY);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(GRANT_KEY.slice(0, 8));
+  });
+});
+
+describe('Qwen lease: reissue', () => {
+  const FRESH = 'st-fresh-0002';
+  const FRESH_2 = 'st-fresh-0003';
+  const REISSUE = '/qwen/session-key/reissue';
+  const reissuer = async (legs: LegName[] = ['speaker', 'participant'], o: AcquireOptions = {}, over: Record<string, unknown> = {}) => {
+    const a = await granted(legs, o, over);
+    const ports = Object.fromEntries(legs.map((leg) => [leg, a.resources.credentials(leg).lease!]));
+    return { ...a, ports };
+  };
+  /** A drop that began now, on the run's clock: what a reconnecting leg asks with. */
+  const dropNow = (a: { clock: { now(): number } }) => ({ notBefore: a.clock.now() });
+  /** A token fetched for a drop at `at`, answered then: the cache's, fetched at `at`. */
+  const fetched = async (a: Awaited<ReturnType<typeof reissuer>>, at: number, apiKey = FRESH, expiresAt = at + 60_000) => {
+    a.clock.advance(at - a.clock.now());
+    const p = a.ports.speaker.reissue({ notBefore: at });
+    await flush();
+    a.to(REISSUE)[a.to(REISSUE).length - 1].respond(200, { apiKey, expiresAt });
+    await expect(p).resolves.toEqual({ ok: true, apiKey, expiresAt, fresh: true });
+  };
+
+  it("the grant's token is the Start's alone: a reconnect's first ask makes a request, even in the grant's first second", async () => {
+    const a = await reissuer();
+    const p = a.ports.speaker.reissue({ notBefore: 0 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(1);
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 60_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 60_000, fresh: true });
+  });
+
+  it("a reissue asked with a notBefore later than the cached token's fetch makes a request, though the cached token is still valid", async () => {
+    const a = await reissuer();
+    await fetched(a, 1_000, FRESH, 120_000);
+    // A new drop 10 s on: the cached token has 109 s left, and was minted before it.
+    a.clock.advance(10_000);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 131_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 131_000, fresh: true });
+  });
+
+  it("a second ask during the same drop, at or after its token's fetch, reuses it with no request: the drop's next attempt, or the other leg dropped in the same blip", async () => {
+    const a = await reissuer();
+    // A drop at 1 000 whose request is answered at 1 400.
+    a.clock.advance(1_000);
+    const first = a.ports.speaker.reissue({ notBefore: 1_000 });
+    await flush();
+    a.clock.advance(400);
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 61_400 });
+    await first;
+    a.clock.advance(250);
+    const cachedAnswer = { ok: true, apiKey: FRESH, expiresAt: 61_400, fresh: false };
+    // The drop's next attempt; the other leg, dropped before the answer; and one dropped the very moment it came.
+    await expect(a.ports.speaker.reissue({ notBefore: 1_000 })).resolves.toEqual(cachedAnswer);
+    await expect(a.ports.participant.reissue({ notBefore: 1_200 })).resolves.toEqual(cachedAnswer);
+    await expect(a.ports.participant.reissue({ notBefore: 1_400 })).resolves.toEqual(cachedAnswer);
+    expect(a.to(REISSUE)).toHaveLength(1);
+    // A drop a moment after the fetch is a new one.
+    const later = a.ports.participant.reissue({ notBefore: 1_401 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 61_650 });
+    await expect(later).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
+  });
+
+  it("a token fetched since the drop is still not served within 5 s of its expiry", async () => {
+    const a = await reissuer(['speaker']);
+    await fetched(a, 0, FRESH, 20_000);
+    a.clock.advance(14_999);
+    await expect(a.ports.speaker.reissue({ notBefore: 0 })).resolves.toMatchObject({ apiKey: FRESH, fresh: false });
+    a.clock.advance(1);
+    const p = a.ports.speaker.reissue({ notBefore: 0 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 75_000 });
+    await expect(p).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
+  });
+
+  it('a fetch time ahead of now — a wall clock stepped back — proves nothing: a request is made', async () => {
+    const inner = createVirtualClock(0);
+    let back = 0;
+    const clock: VirtualClock = { now: () => inner.now() - back, setTimeout: (fn, ms) => inner.setTimeout(fn, ms), advance: (ms) => inner.advance(ms), pending: () => inner.pending() };
+    const a = await reissuer(['speaker'], { clock });
+    await fetched(a, 5_000, FRESH, 65_000);
+    back = 4_000;
+    // A drop at 1 000 by the stepped-back clock, which reads the token as fetched after it.
+    const p = a.ports.speaker.reissue({ notBefore: 1_000 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 61_000 });
+    await expect(p).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
+  });
+
+  it('a token once fetched ahead of now is dropped, not served when the stepped-back clock catches up after a failed ask', async () => {
+    const inner = createVirtualClock(0);
+    let back = 0;
+    const clock: VirtualClock = { now: () => inner.now() - back, setTimeout: (fn, ms) => inner.setTimeout(fn, ms), advance: (ms) => inner.advance(ms), pending: () => inner.pending() };
+    const a = await reissuer(['speaker'], { clock });
+    await fetched(a, 5_000, FRESH, 65_000);
+    back = 4_000;
+    // A drop the stepped-back clock reads as 1 000, its first ask failing: the network is still down.
+    const dropAt = clock.now();
+    const first = a.ports.speaker.reissue({ notBefore: dropAt });
+    await flush();
+    a.to(REISSUE)[1].respond(503, { error: 'unavailable' });
+    await expect(first).resolves.toMatchObject({ ok: false, retry: true });
+    // A later attempt of the same drop, once the clock reads past the token's fetch: still a request, never the older token.
+    a.clock.advance(6_000);
+    const later = a.ports.speaker.reissue({ notBefore: dropAt });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(3);
+    a.to(REISSUE)[2].respond(200, { apiKey: FRESH_2, expiresAt: 67_000 });
+    await expect(later).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
+  });
+
+  it("a reissued token that names no expiry is taken to last 55 s", async () => {
+    const a = await reissuer(['speaker']);
+    a.clock.advance(2_000);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 57_000, fresh: true });
+  });
+
+  it('both legs asking together make one request, whatever their drops', async () => {
+    const a = await reissuer();
+    a.clock.advance(3_000);
+    const speaker = a.ports.speaker.reissue({ notBefore: 3_000 });
+    const participant = a.ports.participant.reissue({ notBefore: 2_990 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(1);
+    const call = a.to(REISSUE)[0];
+    expect(call.init.method).toBe('POST');
+    expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+    expect(JSON.parse(call.init.body as string)).toEqual({ leaseId: 'lease-1' });
+    call.respond(200, { leaseId: 'lease-1', region: 'sg', endpoint: 'intl', apiKey: FRESH, expiresAt: 120_000 });
+    // Both answered by the one request: each leg's call fetched new credentials.
+    const ok = { ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: true };
+    await expect(speaker).resolves.toEqual(ok);
+    await expect(participant).resolves.toEqual(ok);
+    // The new token is the lease's now: a later ask for the same drop reuses it, from the cache.
+    await expect(a.ports.participant.reissue({ notBefore: 2_990 })).resolves.toEqual({ ...ok, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(1);
+    expect(JSON.stringify(a.frame.mock.calls)).not.toContain(FRESH);
+  });
+
+  it('asks again once the shared request has settled without a token', async () => {
+    const a = await reissuer(['speaker']);
+    const first = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.to(REISSUE)[0].respond(503, { error: 'qwen_busy', retryAfterMs: 1000 });
+    await first;
+    const second = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
+    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
+  });
+
+  it('a token Qwen refused is dropped from the cache and fetched again, while it is still valid', async () => {
+    const a = await reissuer(['speaker']);
+    await fetched(a, 0, FRESH, 120_000);
+    const p = a.ports.speaker.reissue({ notBefore: 0, refused: FRESH });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 120_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 120_000, fresh: true });
+    await expect(a.ports.speaker.reissue({ notBefore: 0 })).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 120_000, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(2);
+  });
+
+  it('both legs refused the same token make one request; a refusal of a token the cache no longer holds is answered from the cache', async () => {
+    const a = await reissuer();
+    await fetched(a, 0, FRESH, 120_000);
+    const speaker = a.ports.speaker.reissue({ notBefore: 0, refused: FRESH });
+    const participant = a.ports.participant.reissue({ notBefore: 0, refused: FRESH });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 120_000 });
+    await expect(speaker).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
+    await expect(participant).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
+    // A leg that dialled the old token and was refused after the other leg's fetch landed: the new token, no request.
+    await expect(a.ports.participant.reissue({ notBefore: 0, refused: FRESH })).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 120_000, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(2);
+  });
+
+  it('a refused token whose fetch fails is not served again', async () => {
+    const a = await reissuer(['speaker']);
+    await fetched(a, 0, FRESH, 120_000);
+    const first = a.ports.speaker.reissue({ notBefore: 0, refused: FRESH });
+    await flush();
+    a.to(REISSUE)[1].respond(503, { error: 'qwen_busy' });
+    await expect(first).resolves.toMatchObject({ ok: false, retry: true });
+    const second = a.ports.speaker.reissue({ notBefore: 0 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(3);
+    a.to(REISSUE)[2].respond(200, { apiKey: FRESH_2, expiresAt: 120_000 });
+    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
+  });
+
+  it('sends the fresh bearer from getToken, falling back to the cached one when it fails', async () => {
+    const a = await reissuer(['speaker']);
+    const getToken = a.shape.auth.getToken as ReturnType<typeof vi.fn>;
+    getToken.mockResolvedValueOnce('tok-fresh');
+    const first = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    expect((a.to(REISSUE)[0].init.headers as Record<string, string>).Authorization).toBe('Bearer tok-fresh');
+    a.to(REISSUE)[0].respond(503, { error: 'qwen_busy' });
+    await first;
+    getToken.mockRejectedValueOnce(new Error('offline'));
+    const second = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    expect((a.to(REISSUE)[1].init.headers as Record<string, string>).Authorization).toBe('Bearer tok');
+    a.to(REISSUE)[1].respond(503, { error: 'qwen_busy' });
+    await second;
+  });
+
+  it('a hung getToken is bounded by the timeout', async () => {
+    const a = await reissuer(['speaker']);
+    (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(() => {}));
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
+
+  const mapping: Array<[number, unknown, unknown]> = [
+    [401, { code: 'sign_in_required' }, { ok: false, retry: false, code: 'sign_in_required' }],
+    [403, { code: 'wallet_frozen' }, { ok: false, retry: false, code: 'wallet_frozen' }],
+    [409, { code: 'lease_ended' }, { ok: false, retry: false, code: 'lease_ended' }],
+    [409, { code: 'reissue_limit' }, { ok: false, retry: false, code: 'reissue_limit' }],
+    [429, { error: 'rate', retryAfterMs: 1000 }, { ok: false, retry: true }],
+    [503, { error: 'qwen_busy', retryAfterMs: 1000 }, { ok: false, retry: true }],
+    [500, { error: 'boom' }, { ok: false, retry: true }],
+    [502, null, { ok: false, retry: true }],
+    [404, { error: 'Not found' }, { ok: false, retry: false, code: 'unsupported' }],
+    [400, { error: 'bad' }, { ok: false, retry: false, code: 'unsupported' }],
+  ];
+  for (const [status, body, expected] of mapping) {
+    it(`maps ${status} ${JSON.stringify(body)} to ${JSON.stringify(expected)}`, async () => {
+      const a = await reissuer(['speaker']);
+      const p = a.ports.speaker.reissue(dropNow(a));
+      await flush();
+      a.to(REISSUE)[0].respond(status, body ?? undefined);
+      await expect(p).resolves.toMatchObject(expected as object);
+    });
+  }
+
+  it('a 200 without a key is a retry', async () => {
+    const a = await reissuer(['speaker']);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.to(REISSUE)[0].respond(200, { leaseId: 'lease-1' });
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('a transport failure is a retry', async () => {
+    const a = await reissuer(['speaker']);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.to(REISSUE)[0].fail();
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('a request that never answers is a retry at the timeout, and leaves no timer behind', async () => {
+    const a = await reissuer(['speaker']);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+    a.resources.release();
+    await flush();
+  });
+
+  it('an already-aborted context sends no request and answers retry', async () => {
+    const a = await reissuer(['speaker']);
+    a.controller.abort();
+    await expect(a.ports.speaker.reissue(dropNow(a))).resolves.toMatchObject({ ok: false, retry: true });
+    expect(a.to(REISSUE)).toHaveLength(0);
+  });
+
+  it('an abort while the request is out answers retry', async () => {
+    const a = await reissuer(['speaker']);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.controller.abort();
+    await expect(p).resolves.toMatchObject({ ok: false, retry: true });
+  });
+
+  it('answers lease_ended without a request after release', async () => {
+    const a = await reissuer(['speaker']);
+    void a.resources.release();
+    await flush();
+    const before = a.to(REISSUE).length;
+    await expect(a.ports.speaker.reissue(dropNow(a))).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
+    expect(a.to(REISSUE).length).toBe(before);
   });
 });

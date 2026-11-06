@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { EchoNoticeState } from '../../lib/modern-audio/EchoMonitor';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import type { SubtitleIdleModel } from '../../lib/subtitle/session';
@@ -26,8 +26,20 @@ export function useStatusLine({ run, idle, canStart, dismissedEnd, echo }: UseSt
   const entryHint = useSubtitleEntryHint();
   // No usable input is selected: `audioStore` clears the selection when none is left (#596).
   const waitingForMicrophone = run.phase === 'running' && run.legs.speaker !== undefined && selectedInput === null;
+  // The reconnect line counts seconds, so it re-renders once a second while a leg reconnects (the `useSessionClock` pattern);
+  // only its visible words tick, its live region's stay as they are (`StatusEntry.announce`).
+  const reconnecting = run.phase === 'running' && Object.values(run.legs).includes('reconnecting');
+  const [, retick] = useState(0);
+  useEffect(() => {
+    if (!reconnecting) return;
+    const interval = setInterval(() => retick((n) => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, [reconnecting]);
+  const now = Date.now();
   return useMemo(
-    () => statusLine({ run, idle, canStart, dismissedEnd, waitingForMicrophone, subtitleEntryHint: entryHint === 'refresh', echo }),
-    [run, idle, canStart, dismissedEnd, waitingForMicrophone, entryHint, echo],
+    () => statusLine({ run, idle, canStart, dismissedEnd, waitingForMicrophone, subtitleEntryHint: entryHint === 'refresh', echo, now }),
+    // `now` only matters while reconnecting; elsewhere a fresh value must not rebuild the entry every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [run, idle, canStart, dismissedEnd, waitingForMicrophone, entryHint, echo, reconnecting ? now : 0],
   );
 }

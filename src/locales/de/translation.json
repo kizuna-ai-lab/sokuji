@@ -793,7 +793,8 @@
     "error": "Verbindungsfehler",
     "noApiKey": "API-Schlüssel Erforderlich",
     "noMic": "Mikrofon Erforderlich",
-    "reconnecting": "Verbindung wird wiederhergestellt..."
+    "reconnecting": "Verbindung wird wiederhergestellt...",
+    "reconnectingAttempt": "Verbindung wird wiederhergestellt... (Versuch {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kontingentinformationen können nicht geladen werden",
@@ -1459,6 +1460,7 @@
     "leg_closed": "Der Anbieter hat die Sitzung beendet.",
     "source_ended": "Die Audioquelle ist nicht mehr verfügbar (getrennt, geschlossen oder gestoppt).",
     "still_stopping": "Die letzte Sitzung wird noch beendet; versuchen Sie es gleich noch einmal.",
+    "connection_restored": "Verbindung unterbrochen und wiederhergestellt",
     "session_in_use": "Ein anderes Fenster oder Gerät verwendet dieses Konto. Beenden Sie die Sitzung dort, oder versuchen Sie es in einer Minute erneut, falls Sokuji gerade unerwartet geschlossen wurde.",
     "previous_session_ending": "Ihre vorherige Sitzung wird noch beendet. Bitte versuchen Sie es in einer Minute erneut.",
     "app_capture_lost_using_system_audio": "Die App-Erfassung wurde beendet, daher wird stattdessen das gesamte Systemaudio übersetzt.",

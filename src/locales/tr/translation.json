@@ -793,7 +793,8 @@
     "error": "Bağlantı Hatası",
     "noApiKey": "API Anahtarı Gerekli",
     "noMic": "Mikrofon Gerekli",
-    "reconnecting": "Yeniden bağlanıyor..."
+    "reconnecting": "Yeniden bağlanıyor...",
+    "reconnectingAttempt": "Yeniden bağlanıyor... (deneme {{attempt}}, {{seconds}} sn)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kota bilgileri yüklenemiyor",
@@ -1459,6 +1460,7 @@
     "leg_closed": "Sağlayıcı oturumu sonlandırdı.",
     "source_ended": "Ses kaynağı ortadan kayboldu (bağlantısı kesildi, kapatıldı veya durduruldu).",
     "still_stopping": "Son oturum hâlâ durduruluyor; birazdan tekrar deneyin.",
+    "connection_restored": "Bağlantı kesildi ve yeniden kuruldu",
     "session_in_use": "Bu hesabı başka bir pencere veya cihaz kullanıyor. Oturumu orada durdurun ya da Sokuji az önce beklenmedik şekilde kapandıysa bir dakika sonra tekrar deneyin.",
     "previous_session_ending": "Önceki oturumunuz hâlâ sonlandırılıyor. Lütfen bir dakika sonra tekrar deneyin.",
     "app_capture_lost_using_system_audio": "Uygulama yakalaması durdu, bu yüzden artık tüm sistem sesi çevriliyor.",

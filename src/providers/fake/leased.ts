@@ -24,11 +24,11 @@ export type FakeLeasedCredentials = { leg?: LegName };
 
 const isRefusal = (built: FakeConfig | ProviderRefusal): built is ProviderRefusal => typeof (built as ProviderRefusal).refused === 'string';
 
-/** A session whose `stop` is `stop`: both legs of a shared session go together. */
+/** A session whose `stop` is `stop`: both legs of a shared session go together, as one connection. */
 function tied(session: AdapterSession, stop: () => Promise<void>): AdapterSession {
   // Delegate explicitly: a FakeSession's methods live on its prototype, which a spread drops.
   return {
-    info: session.info,
+    info: { ...session.info, shared: true },
     appendAudio: (pcm) => session.appendAudio(pcm),
     appendText: (text) => session.appendText(text),
     beginTurn: () => session.beginTurn(),

@@ -9,6 +9,7 @@
 import type { LegName } from '../conversation/types';
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
 import type { Clock } from './clock';
+import type { DropInfo, ReconnectedInfo, GiveUp } from './reconnect';
 
 /** Audio crosses the contract at this rate, mono, Int16, in both directions. */
 export const SAMPLE_RATE = 24000;
@@ -81,6 +82,11 @@ export interface AdapterSession {
    */
   setSpeech?(on: boolean): void;
   /**
+   * The network came back (the page's `online` event): a reconnect waiting out
+   * its backoff may try now. Absent: the adapter does not reconnect, or does not wait.
+   */
+  networkRestored?(): void;
+  /**
    * Soniox agent text (spec 2026-11-05): text this app's own voice is about to play where the microphone can
    * hear it, sent on this session's STT socket; `endOfSegment` closes that voice's turn. Returns whether it was
    * sent: never while the socket is down or once stopped, never on a socket not opened for it. Absent: none taken.
@@ -92,8 +98,11 @@ export interface AdapterSession {
    * ran synchronously is sure to happen.
    */
   stop(): Promise<void>;
-  /** What the started session actually used, for telemetry. */
-  readonly info: { transport?: string };
+  /**
+   * What the started session actually used, for telemetry. `shared`: true when this session's legs share one
+   * provider connection (shared Both, face-to-face), so a reconnect event arrives once per leg for one connection.
+   */
+  readonly info: { transport?: string; shared?: boolean };
 }
 
 /** One protocol frame an adapter reported (spec D8): what the Logs panel lists. Never audio, never a credential. */
@@ -125,10 +134,11 @@ export interface AdapterEvents {
    */
   speechRanges(e: { ref: Ref; ranges: ReadonlyArray<{ index: number; range: TextRange }> }): void;
   closed(e: { reason: string }): void;
-  reconnecting(): void;
-  reconnected(): void;
-  /** The session is broken. Nothing follows. */
-  failed(e: { message: string; code?: string; cause?: unknown }): void;
+  /** `attempt`/`drop` absent: an adapter that reconnects on its own and has nothing to report. */
+  reconnecting(e?: { attempt: number; drop?: DropInfo }): void;
+  reconnected(e?: ReconnectedInfo): void;
+  /** The session is broken. Nothing follows. `giveUp`: the reconnect policy's verdict, when it was a reconnect that ended. */
+  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> }): void;
   /**
    * Running, degraded. `reason`: a short machine-readable token for
    * analytics only (`tts_408`, `tts_connect_failed`) — never user text,

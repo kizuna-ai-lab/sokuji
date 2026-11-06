@@ -22,7 +22,7 @@ import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/ses
 import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
-import type { SonioxCredentials, SonioxLeasePort, SonioxSettings } from './settings';
+import type { SonioxCredentials, SonioxLeasePort, SonioxReissue, SonioxSettings } from './settings';
 
 /** One session-key attempt's bound, its body included (choice 5): a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
@@ -69,6 +69,32 @@ export const GRANT_END_MARGIN_MS = 90_000;
 export const SESSION_END_BUDGET_MS = 4_000;
 /** The waits between `session-end`'s attempts: three attempts at most. */
 export const SESSION_END_RETRY_DELAYS_MS: readonly number[] = [500, 1_000];
+/**
+ * The waits before `session-started` is tried again after a transport failure
+ * or a 5xx; past the last, every `SESSION_STARTED_RETRY_MAX_MS`. No count
+ * bounds them: the backend holds the lease for a reissued key it has not
+ * heard started only about 25 s from its issue, so the report is tried for as
+ * long as its connection is open — the mark is idempotent, so a repeat is safe.
+ */
+export const SESSION_STARTED_RETRY_DELAYS_MS: readonly number[] = [1_000, 2_000, 5_000, 10_000];
+export const SESSION_STARTED_RETRY_MAX_MS = 30_000;
+/** The Logs' words when a key's report is let go unacknowledged: the backend finds such keys itself, by their usage. */
+export const SESSION_STARTED_UNACKNOWLEDGED = 'The connection ended before the backend acknowledged session-started.';
+
+/**
+ * One STT key's `session-started` (the lease's first key has no reference in
+ * the body, a reissued one does). `sending` from its first frame until a 2xx
+ * acknowledges it (`reported`) or the report is let go; `over` once its
+ * connection has ended, after which a failed try is not repeated.
+ */
+interface KeyReport {
+  ref: string | null;
+  sending: boolean;
+  reported: boolean;
+  over: boolean;
+  /** Ends the wait before the next try, when one is pending. */
+  cancelWait: (() => void) | null;
+}
 
 export interface KizunaLeaseDeps {
   /** The participant-speech flag (ruling 2): the definition's, handed over by its factory. Off by default, as shipped. */
@@ -367,9 +393,19 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     let ended = false;
     let released = false;
     let cancelBudget = () => {};
+    /** Per role, the key its socket runs on now; a reissue replaces it. */
+    const keys = new Map<SttRole, KeyReport>();
+    const newKey = (ref: string | null): KeyReport => ({ ref, sending: false, reported: false, over: false, cancelWait: null });
+    for (const role of bundles.keys()) keys.set(role, newKey(null));
+    /** A key's connection is over (it ended, the key was replaced, the run ends): a report waiting to be tried again is let go now. */
+    const letGo = (key: KeyReport): void => {
+      key.over = true;
+      key.cancelWait?.();
+    };
     const endOnce = ({ notice, expected }: { notice: RunNotice; expected: boolean }): void => {
       if (ended || released) return;
       ended = true;
+      for (const key of keys.values()) letGo(key);
       cancelBudget();
       ctx.frame({ direction: 'in', type: 'session.lease_ended', payload: { code: notice.code, maxSessionDurationSeconds: grant.maxSessionDurationSeconds } });
       ctx.end(notice, { expected });
@@ -381,25 +417,47 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       payload: { leaseId: grant.leaseId, region: grant.region, roles: grant.streams.map((st) => st.role), maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
     });
 
-    const accepted = new Set<SttRole>();
-    const reportStarted = (role: SttRole): void => {
-      // Once per role, and never once the grant has ended the run or the
-      // lease is released: a late first frame from a socket still closing
-      // must not start a lease the account already ended (spec: no
-      // `session-started` after `session-end`) — nor one whose run is
-      // already on its way to `session-end`.
-      if (ended || released || accepted.has(role)) return;
-      accepted.add(role);
-      ctx.frame({ direction: 'out', type: 'session.started', payload: { role } });
-      // Not awaited, never failing the session: a refusal means the lease was
-      // not extended, which the Logs must name (`ManagedSonioxSession.ts:490-549`).
-      void doFetch(`${apiUrl()}/soniox/session-started`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leaseId: grant.leaseId, role }),
-      })
-        .then(async (res) => {
-          if (res.ok) return;
+    /** The wait before a report's next try, on the run's clock: true when it ran out, false when the key was let go or the run aborted first. */
+    const pause = (key: KeyReport, ms: number): Promise<boolean> => new Promise<boolean>((resolve) => {
+      let done = false;
+      const finish = (ran: boolean) => {
+        if (done) return;
+        done = true;
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+        key.cancelWait = null;
+        resolve(ran);
+      };
+      const onAbort = () => finish(false);
+      const cancelTimer = ctx.clock.setTimeout(() => finish(true), ms);
+      key.cancelWait = () => finish(false);
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+    });
+
+    /**
+     * Posts a key's `session-started` until it is acknowledged. Not awaited,
+     * never failing the session. A transport failure or a 5xx is tried again
+     * on `SESSION_STARTED_RETRY_DELAYS_MS` while the key's connection is open:
+     * a reissued key the backend never hears started holds the lease only
+     * briefly, and the lease could be released under it. A 4xx is the
+     * backend's refusal and final. Each failure goes to the Logs, as does a
+     * report let go unacknowledged (`ManagedSonioxSession.ts:490-549`).
+     */
+    const report = async (role: SttRole, key: KeyReport): Promise<void> => {
+      const body = JSON.stringify({ leaseId: grant.leaseId, role, ...(key.ref ? { clientReferenceId: key.ref } : {}) });
+      for (let tries = 0; ; tries += 1) {
+        let again: boolean;
+        try {
+          const res = await doFetch(`${apiUrl()}/soniox/session-started`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body,
+          });
+          if (res.ok) {
+            key.sending = false;
+            key.reported = true;
+            return;
+          }
           let reason: string | null = null;
           try {
             const b = (await res.json()) as { reason?: unknown } | null;
@@ -408,16 +466,118 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
             // Not JSON: the status says the lease was not extended.
           }
           ctx.frame({ direction: 'in', type: 'session.started_refused', payload: { status: res.status, reason, role } });
-        })
-        .catch((error: unknown) => ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: describeCause(error) } }));
+          again = res.status >= 500;
+        } catch (error) {
+          ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: describeCause(error) } });
+          again = true;
+        }
+        if (!again) {
+          key.sending = false;
+          return;
+        }
+        // The key's connection over, the key replaced, the run ending: nothing is left for the report to protect. Asked again
+        // after the wait, which a clock firing several timers in one step can end with the run already over.
+        const open = (): boolean => !key.over && !ended && !released && !ctx.signal.aborted && keys.get(role) === key;
+        if (!open() || !(await pause(key, SESSION_STARTED_RETRY_DELAYS_MS[tries] ?? SESSION_STARTED_RETRY_MAX_MS)) || !open()) {
+          key.sending = false;
+          ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: SESSION_STARTED_UNACKNOWLEDGED } });
+          return;
+        }
+      }
+    };
+
+    const reportStarted = (role: SttRole): void => {
+      // Once per key at a time, and never once the grant has ended the run or
+      // the lease is released: a late first frame from a socket still closing
+      // must not start a lease the account already ended (spec: no
+      // `session-started` after `session-end`) — nor one whose run is
+      // already on its way to `session-end`.
+      const key = keys.get(role)!;
+      if (ended || released || key.sending || key.reported) return;
+      key.sending = true;
+      key.over = false;
+      ctx.frame({ direction: 'out', type: 'session.started', payload: { role, ...(key.ref ? { clientReferenceId: key.ref } : {}) } });
+      void report(role, key);
+    };
+
+    const reissue = async (role: SttRole): Promise<SonioxReissue> => {
+      if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+      const retry = (message: string): SonioxReissue => ({ ok: false, retry: true, message });
+      // The timeout and the abort wiring start before the token await: a slow
+      // or hung getToken is bounded like the request, and an abort during it
+      // is seen (a listener added after the abort would never fire).
+      const controller = new AbortController();
+      let timedOut = false;
+      const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
+      const onAbort = () => controller.abort();
+      ctx.signal.addEventListener('abort', onAbort, { once: true });
+      if (ctx.signal.aborted) controller.abort();
+      const cleanup = () => {
+        cancelTimer();
+        ctx.signal.removeEventListener('abort', onAbort);
+      };
+      const stopped = () => (timedOut ? 'The Soniox session service did not answer within 15 s.' : 'The reissue was cancelled.');
+      try {
+        // A fresh token: the cached one may have expired over a long session.
+        const fresh = await new Promise<string | null>((resolve) => {
+          const done = () => resolve(null);
+          if (controller.signal.aborted) return done();
+          controller.signal.addEventListener('abort', done, { once: true });
+          shape.auth.getToken().then(resolve, () => resolve(null)).finally(() => controller.signal.removeEventListener('abort', done));
+        });
+        if (controller.signal.aborted) return retry(stopped());
+        if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+        const bearer = fresh ?? token;
+        ctx.frame({ direction: 'out', type: 'session.key_reissue_requested', payload: { leaseId: grant.leaseId, role } });
+        const res = await doFetch(`${apiUrl()}/soniox/session-key/reissue`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leaseId: grant.leaseId, role }),
+          signal: controller.signal,
+        });
+        let body: Record<string, unknown> | null = null;
+        try {
+          body = (await res.json()) as Record<string, unknown> | null;
+        } catch {
+          // Not JSON: the status speaks.
+        }
+        const status = res.status;
+        const said = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : `HTTP ${status}`;
+        if (status >= 200 && status < 300) {
+          const stt = body?.apiKey;
+          const ref = body?.clientReferenceId;
+          if (typeof stt !== 'string' || !stt || typeof ref !== 'string' || !ref) return retry('The reissue answer carried no key.');
+          const parsed = typeof body?.expiresAt === 'string' ? Date.parse(body.expiresAt) : NaN;
+          // A release may have landed while the request was out: a dead lease takes no key.
+          if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
+          // The old key's connection dropped before this was asked: its report, if still unacknowledged, is let go.
+          letGo(keys.get(role)!);
+          keys.set(role, newKey(ref));
+          return { ok: true, stt, clientReferenceId: ref, expiresAt: Number.isFinite(parsed) ? parsed : ctx.clock.now() + 10_000 };
+        }
+        if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
+        if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
+        if (status === 409) {
+          return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };
+        }
+        if (status === 429 || status >= 500) return retry(said);
+        return { ok: false, retry: false, code: 'unsupported', message: said };
+      } catch (error) {
+        if (timedOut) return retry('The Soniox session service did not answer within 15 s.');
+        return retry(`Failed to reach the Soniox session service: ${describeCause(error)}`);
+      } finally {
+        cleanup();
+      }
     };
     const ports = new Map<SttRole, SonioxLeasePort>([...bundles.keys()].map((role) => [role, {
       streamAccepted: () => reportStarted(role),
+      streamEnded: () => letGo(keys.get(role)!),
       atGrantEnd: (now: number) => now >= startedAt + totalMs - GRANT_END_MARGIN_MS,
       // Synchronously: the adapter's `closed` follows at once and must find the
       // run already ending (`run.ts` `onEvent`), or the run would end
       // `leg-closed` with "The provider ended the session."
       cutoff: () => endOnce(grantEnd),
+      reissue: () => reissue(role),
     }]));
 
     return {
@@ -441,6 +601,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       async release(): Promise<void> {
         if (released) return;
         released = true;
+        for (const key of keys.values()) letGo(key);
         cancelBudget();
         ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
         const ending = signalEnd(doFetch, `${apiUrl()}/soniox/session-end`, token, grant.leaseId, ctx.clock, ctx.frame);

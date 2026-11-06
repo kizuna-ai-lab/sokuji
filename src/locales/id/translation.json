@@ -793,7 +793,8 @@
     "error": "Kesalahan Koneksi",
     "noApiKey": "Perlu Kunci API",
     "noMic": "Perlu Mikrofon",
-    "reconnecting": "Menghubungkan kembali..."
+    "reconnecting": "Menghubungkan kembali...",
+    "reconnectingAttempt": "Menghubungkan kembali... (percobaan {{attempt}}, {{seconds}} dtk)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuat informasi kuota",
@@ -1459,6 +1460,7 @@
     "leg_closed": "Penyedia mengakhiri sesi.",
     "source_ended": "Sumber audio hilang (dicabut, ditutup, atau dihentikan).",
     "still_stopping": "Sesi sebelumnya masih dalam proses berhenti; coba lagi sebentar lagi.",
+    "connection_restored": "Koneksi terputus dan tersambung kembali",
     "session_in_use": "Jendela atau perangkat lain sedang menggunakan akun ini. Hentikan sesi di sana, atau jika Sokuji baru saja tertutup secara tiba-tiba, coba lagi dalam satu menit.",
     "previous_session_ending": "Sesi Anda sebelumnya masih dalam proses berakhir. Silakan coba lagi dalam satu menit.",
     "app_capture_lost_using_system_audio": "Penangkapan aplikasi berhenti, jadi seluruh audio sistem kini diterjemahkan.",

@@ -793,7 +793,8 @@
     "error": "Anslutningsfel",
     "noApiKey": "API Nyckel Krävs",
     "noMic": "Mikrofon Krävs",
-    "reconnecting": "Återansluter..."
+    "reconnecting": "Återansluter...",
+    "reconnectingAttempt": "Återansluter... (försök {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kunde inte ladda kvotinformation",
@@ -1459,6 +1460,7 @@
     "leg_closed": "Leverantören avslutade sessionen.",
     "source_ended": "Ljudkällan försvann (bortkopplad, stängd eller stoppad).",
     "still_stopping": "Den senaste sessionen håller fortfarande på att stoppas; försök igen om en stund.",
+    "connection_restored": "Anslutningen avbröts och återställdes",
     "session_in_use": "Ett annat fönster eller en annan enhet använder det här kontot. Stoppa sessionen där, eller försök igen om en minut om Sokuji just stängdes oväntat.",
     "previous_session_ending": "Din föregående session håller fortfarande på att avslutas. Försök igen om en minut.",
     "app_capture_lost_using_system_audio": "Appinsamlingen stoppades, så nu översätts allt systemljud i stället.",

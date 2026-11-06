@@ -391,12 +391,18 @@ describe('decorateSessionAnalytics', () => {
       session_id: 's1',
       duration: 1000,
       provider: 'fake',
+      reconnect_count: 2,
+      reconnect_down_ms: 1500,
+      reconnect_failed: false,
     });
 
     expect(track).toHaveBeenLastCalledWith('translation_session_end', {
       session_id: 's1',
       duration: 1000,
       provider: 'fake',
+      reconnect_count: 2,
+      reconnect_down_ms: 1500,
+      reconnect_failed: false,
       ...sessionEndProperties(tally, { pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'] }),
     });
   });
@@ -454,9 +460,9 @@ describe('decorateSessionAnalytics', () => {
     analytics.track('translation_session_start', {
       source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
     });
-    analytics.track('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake' });
+    analytics.track('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: true });
 
-    expect(track).toHaveBeenLastCalledWith('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake' });
+    expect(track).toHaveBeenLastCalledWith('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: true });
     await settleReports();
     expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(1);
   });

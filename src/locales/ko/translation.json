@@ -793,7 +793,8 @@
     "error": "연결 오류",
     "noApiKey": "API 키 필요",
     "noMic": "마이크 필요",
-    "reconnecting": "재연결 중..."
+    "reconnecting": "재연결 중...",
+    "reconnectingAttempt": "재연결 중... ({{attempt}}번째 시도, {{seconds}}초)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "할당량 정보를 로드할 수 없습니다",
@@ -1459,6 +1460,7 @@
     "leg_closed": "제공자가 세션을 종료했습니다.",
     "source_ended": "오디오 소스가 사라졌습니다(연결 해제, 종료 또는 중지됨).",
     "still_stopping": "이전 세션이 아직 종료되는 중입니다. 잠시 후 다시 시도하세요.",
+    "connection_restored": "연결이 끊어졌다가 복구되었습니다",
     "session_in_use": "다른 창이나 기기에서 이 계정을 사용하고 있습니다. 그곳에서 세션을 중지하거나, Sokuji가 방금 예기치 않게 종료되었다면 1분 후에 다시 시도하세요.",
     "previous_session_ending": "이전 세션이 아직 종료되는 중입니다. 1분 후에 다시 시도해 주세요.",
     "app_capture_lost_using_system_audio": "앱 캡처가 중지되어 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",

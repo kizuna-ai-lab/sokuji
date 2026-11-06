@@ -793,7 +793,8 @@
     "error": "Erro de Conexão",
     "noApiKey": "Chave da API Necessária",
     "noMic": "Microfone Necessário",
-    "reconnecting": "Reconectando..."
+    "reconnecting": "Reconectando...",
+    "reconnectingAttempt": "Reconectando... (tentativa {{attempt}}, {{seconds}} s)"
   },
   "tokenUsage": {
     "unableToLoadQuota": "Não foi possível carregar as informações de cota",
@@ -1459,6 +1460,7 @@
     "leg_closed": "O provedor encerrou a sessão.",
     "source_ended": "A fonte de áudio desapareceu (desconectada, fechada ou interrompida).",
     "still_stopping": "A última sessão ainda está sendo encerrada; tente novamente em instantes.",
+    "connection_restored": "A conexão foi interrompida e restabelecida",
     "session_in_use": "Outra janela ou outro dispositivo está usando esta conta. Encerre a sessão lá ou, se o Sokuji acabou de fechar inesperadamente, tente novamente em um minuto.",
     "previous_session_ending": "Sua sessão anterior ainda está sendo encerrada. Tente novamente em um minuto.",
     "app_capture_lost_using_system_audio": "A captura do aplicativo parou, então todo o áudio do sistema está sendo traduzido no lugar.",

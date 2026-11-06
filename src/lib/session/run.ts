@@ -8,6 +8,7 @@ import type { AnalyticsEvents } from '../analytics';
 import type { AdapterEvents, AdapterSession, Punctuator, StartRequest } from '../contract/adapter';
 import { LegStartError } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
+import type { DropInfo, ReconnectedInfo } from '../contract/reconnect';
 import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } from '../conversation/Conversation';
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
@@ -18,18 +19,32 @@ import { AgentTextFeed } from './agentText';
 import type { RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
+import { FLAP_WINDOW_MS } from './reconnect';
+import { reconnectClient } from './reconnectEvents';
 import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
-import type { Budget, LegState, LoadingProgress, Prepared, Resources, RunEnd, RunNotice, RunShape } from './types';
+import type { Budget, LegState, LoadingProgress, Prepared, ReconnectProgress, Resources, RunEnd, RunNotice, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const API_ERROR_TYPES = ['auth', 'rate_limit', 'network', 'server', 'client'] as const;
 type ApiErrorType = AnalyticsEvents['api_error']['error_type'];
+type ReconnectChannel = AnalyticsEvents['connection_dropped']['channel'];
 
-/** The `api_error` type a code names, else 'server' (the old default, `apiErrorProps.ts` on `main`). */
+/** A leg's drop while it reconnects (spec 2026-11-05 reconnect §4.3, §4.5). */
+interface Drop {
+  /** The first `reconnecting` of the drop, on the run's clock. */
+  since: number;
+  /** The attempt the adapter last reported; absent from one that reports none (Gemini, OpenAI). */
+  attempt?: number;
+  /** Set once the drop reached analytics (its first `reconnecting` carried a `drop`): what the events after it repeat. */
+  sent?: { index: number; managed: boolean };
+}
+
+/** The `api_error` type a code names, else 'server' (the old default, `apiErrorProps.ts` on `main`). Qwen's passing request rate, `throttled`, is a rate limit. */
 export function apiErrorType(code?: string): ApiErrorType {
+  if (code === 'throttled') return 'rate_limit';
   return API_ERROR_TYPES.find((t) => t === code) ?? 'server';
 }
 
@@ -55,7 +70,8 @@ export class LegOpenError extends Error {
 /** What a run tells the runner. */
 export interface RunHost {
   step(step: 'checking' | 'preparing' | 'opening' | 'waiting'): void;
-  legState(leg: LegName, state: LegState): void;
+  /** `reconnect`: the leg reconnects under an adapter that reports its attempts (the status line's). */
+  legState(leg: LegName, state: LegState, reconnect?: ReconnectProgress): void;
   /** A leg is loading its models while it opens: the starting state shows it. */
   loading(leg: LegName, progress: Omit<LoadingProgress, 'leg'>): void;
   /** The run's legs exist: they become the conversation now, so text shows as it arrives. */
@@ -94,6 +110,20 @@ export class Run {
   private readonly legOpens: Promise<unknown>[] = [];
   /** The text of the speech this run queues on the user's outlets, to the session that hears the microphone (spec 2026-11-05 §4.1, §4.2). */
   private readonly agentTextFeed: AgentTextFeed;
+  /** Each leg reconnecting, from its drop until it is live again, fails, or the run ends. */
+  private readonly drops = new Map<LegName, Drop>();
+  /** When each leg's connection last came back: a later drop's `since_last_reconnect_ms`. */
+  private readonly reconnectedAt = new Map<LegName, number>();
+  /** When each leg last came back under the shared reconnector, both legs of a shared connection each: whether its next reconnect is told again. */
+  private readonly restoredAt = new Map<LegName, number>();
+  /** The drops sent to analytics so far: the next one's `drop_index`. */
+  private dropCount = 0;
+  private readonly totals = { count: 0, downMs: 0, failed: false };
+  /**
+   * Both legs share one connection (`AdapterSession.info.shared`): each of its reconnect events arrives on both,
+   * so the analytics, the totals and the network's return act on the speaker's alone, as channel `shared`.
+   */
+  private sharedConnection = false;
 
   /** Keeps `task` among the opens `close()` waits for. */
   private opened<T>(task: Promise<T>): Promise<T> {
@@ -331,6 +361,7 @@ export class Run {
         if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause, 'adapter');
         throw new LegOpenError(shape.legs[0], error, 'adapter');
       }
+      this.sharedConnection = sessions.speaker.info.shared === true;
       for (const leg of shape.legs) this.stack.defer(`${leg} session`, () => sessions[leg].stop());
       this.throwIfAborted();
       shape.legs.forEach((leg, i) => this.connect(leg, sources![i], sessions[leg]));
@@ -338,6 +369,9 @@ export class Run {
       await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, requests[leg], sources?.[i]))));
     }
     this.throwIfAborted();
+    // The network back (spec 2026-11-05 reconnect §4.2): a session waiting out a reconnect's backoff tries now. Undone as the run unwinds.
+    const offOnline = deps.network?.onOnline(() => this.networkRestored());
+    if (offOnline) this.stack.defer('network watch', offOnline);
     this.liveSince = deps.clock.now();
   }
 
@@ -345,6 +379,7 @@ export class Run {
   async close(result: RunEnd): Promise<void> {
     const endedAt = this.deps.clock.now();
     this.ending = true;
+    this.reconnectsCut(result, endedAt);
     if (this.turn?.close()) this.hold(false);
     this.controller.abort(new Error('the run ended'));
     // A `start()` / `startBoth` / `openSource` / `acquire` still in flight
@@ -435,6 +470,18 @@ export class Run {
   speakerAudioInUse(): boolean {
     if (this.ending || this.liveSince === null) return false;
     return this.shape.turnMode !== 'push-to-talk' || this.turn?.isOpen === true;
+  }
+
+  /** The reconnecting legs whose adapter reports attempts: what the running state carries to the status line. */
+  reconnectProgress(): Partial<Record<LegName, ReconnectProgress>> {
+    const progress: Partial<Record<LegName, ReconnectProgress>> = {};
+    for (const [leg, drop] of this.drops) if (drop.attempt !== undefined) progress[leg] = { attempt: drop.attempt, since: drop.since };
+    return progress;
+  }
+
+  /** For `translation_session_end`: the reconnects that came back, the time down across them, and whether the run ended because one gave up. */
+  reconnectTotals(): { count: number; downMs: number; failed: boolean } {
+    return { ...this.totals };
   }
 
   /** Each leg's conversation as it stands, speaker first (the shape's order): what auto-save reads once this run has ended. */
@@ -584,14 +631,14 @@ export class Run {
         return;
       case 'reconnecting':
         this.agentTextFeed.reconnecting(leg);
-        this.setLegState(leg, 'reconnecting');
-        analytics.track('connection_status', { status: 'reconnecting', provider, channel: leg });
+        this.reconnecting(leg, event.payload);
         return;
       case 'reconnected':
-        this.setLegState(leg, 'live');
+        this.reconnected(leg, event.payload);
         return;
       case 'failed': {
         const { message, code } = event.payload;
+        this.failedReconnect(leg, event.payload);
         analytics.track('api_error', { provider, error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
         this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, leg } });
@@ -638,7 +685,164 @@ export class Run {
 
   private setLegState(leg: LegName, state: LegState): void {
     this.legStates.set(leg, state);
-    this.host.legState(leg, state);
+    const drop = this.drops.get(leg);
+    this.host.legState(leg, state, drop?.attempt !== undefined ? { attempt: drop.attempt, since: drop.since } : undefined);
+  }
+
+  /** The channel a reconnect event names: the leg, or `shared` for the one connection under both. */
+  private channel(leg: LegName): ReconnectChannel {
+    return this.sharedConnection ? 'shared' : leg;
+  }
+
+  /** Whether `leg`'s reconnect events count: a shared connection's arrive on both legs, and count once, from the speaker. */
+  private counts(leg: LegName): boolean {
+    return !this.sharedConnection || leg === 'speaker';
+  }
+
+  /** What every reconnect event carries (spec 2026-11-05 reconnect §4.5). */
+  private reconnectEvent(leg: LegName, managed: boolean) {
+    return { session_id: this.id, provider: this.shape.provider.id, managed, channel: this.channel(leg), client: reconnectClient(this.deps.platform) };
+  }
+
+  /**
+   * A drop's first `reconnecting` stamps when it came and tells analytics once (`connection_status` per leg,
+   * as today; `connection_dropped` when the adapter said why); each attempt after it updates the attempt.
+   */
+  private reconnecting(leg: LegName, e: { attempt: number; drop?: DropInfo } | undefined): void {
+    const known = this.drops.get(leg);
+    if (known) {
+      if (e) known.attempt = e.attempt;
+      this.setLegState(leg, 'reconnecting');
+      return;
+    }
+    const drop: Drop = { since: this.deps.clock.now(), ...(e ? { attempt: e.attempt } : {}) };
+    this.drops.set(leg, drop);
+    this.setLegState(leg, 'reconnecting');
+    this.deps.analytics.track('connection_status', { status: 'reconnecting', provider: this.shape.provider.id, channel: leg });
+    if (e?.drop && this.counts(leg)) drop.sent = this.dropped(leg, e.drop, e.drop.retryable);
+  }
+
+  /** Sends `connection_dropped`, counting the drop among the run's: its index and kind, for the events after it. */
+  private dropped(leg: LegName, drop: DropInfo, retryable: boolean): { index: number; managed: boolean } {
+    const now = this.deps.clock.now();
+    const index = ++this.dropCount;
+    const last = this.reconnectedAt.get(leg);
+    const network = this.deps.network;
+    const online = network?.online();
+    this.deps.analytics.track('connection_dropped', {
+      ...this.reconnectEvent(leg, drop.managed),
+      cause: drop.cause,
+      ...(drop.closeCode !== undefined ? { close_code: drop.closeCode } : {}),
+      ...(drop.errorCode !== undefined ? { error_code: drop.errorCode } : {}),
+      retryable,
+      // A leg of `startBoth` may drop before every leg is live: nothing has elapsed yet.
+      session_elapsed_ms: this.liveSince === null ? 0 : now - this.liveSince,
+      drop_index: index,
+      ...(last !== undefined ? { since_last_reconnect_ms: now - last } : {}),
+      // A port that cannot tell says nothing of it; its type is sent as it answers, `unknown` too.
+      ...(online !== undefined ? { online } : {}),
+      ...(network ? { network: network.type() } : {}),
+    });
+    return { index, managed: drop.managed };
+  }
+
+  /**
+   * The leg is live again; the totals count it. The notice and `connection_reconnected` only when the adapter
+   * says how it came back (the shared reconnector's payload): Gemini and OpenAI keep their own reconnects as they are.
+   */
+  private reconnected(leg: LegName, info: ReconnectedInfo | undefined): void {
+    const drop = this.drops.get(leg);
+    this.drops.delete(leg);
+    this.setLegState(leg, 'live');
+    const now = this.deps.clock.now();
+    if (info) {
+      const last = this.restoredAt.get(leg);
+      this.restoredAt.set(leg, now);
+      // A flapping connection is told once (spec 2026-11-05 reconnect §4.2): a reconnect within the flap window of the one before adds no notice.
+      if (last === undefined || now - last > FLAP_WINDOW_MS) {
+        this.conversations.get(leg)?.notice({ severity: 'info', code: 'connection_restored' satisfies RunNoticeCode, message: 'Connection lost and restored' });
+      }
+    }
+    if (!drop || !this.counts(leg)) return;
+    const downMs = now - drop.since;
+    this.totals.count += 1;
+    this.totals.downMs += downMs;
+    this.reconnectedAt.set(leg, now);
+    if (!info || !drop.sent) return;
+    const network = this.deps.network;
+    this.deps.analytics.track('connection_reconnected', {
+      ...this.reconnectEvent(leg, drop.sent.managed),
+      down_ms: downMs,
+      attempts: info.attempts,
+      credentials_reissued: info.credentialsReissued,
+      reissue_ms: info.reissueMs,
+      drop_index: drop.sent.index,
+      budget_shared: info.budgetShared,
+      ...(network ? { network: network.type() } : {}),
+    });
+  }
+
+  /**
+   * The leg failed, before `api_error`: its drop reaches analytics unless an open reconnect already sent it,
+   * and a give-up as `connection_reconnect_failed`. A failure while it reconnected ends the run on a give-up —
+   * the policy's verdict, or the failure itself from an adapter that reports none. A shared connection's
+   * failure arrives on both legs in whichever order the adapter sends them: the first acts for the connection,
+   * on the speaker's record (the one its drop was counted on), and the run ending ignores the second.
+   */
+  private failedReconnect(leg: LegName, e: Parameters<AdapterEvents['failed']>[0]): void {
+    const key: LegName = this.sharedConnection ? 'speaker' : leg;
+    const drop = this.drops.get(key);
+    if (this.sharedConnection) this.drops.clear();
+    else this.drops.delete(leg);
+    // A give-up on a drop with no reconnect open (the session's reconnects used up) is a drop the policy took
+    // up and refused: retryable. A drop that fails the leg outright was not worth retrying.
+    const sent = drop?.sent ?? (e.drop ? this.dropped(key, e.drop, e.giveUp !== undefined && e.drop.retryable) : undefined);
+    if (e.giveUp && sent) {
+      this.deps.analytics.track('connection_reconnect_failed', {
+        ...this.reconnectEvent(key, sent.managed),
+        // No reconnect was open: down no time.
+        down_ms: drop ? this.deps.clock.now() - drop.since : 0,
+        attempts: e.giveUp.attempts,
+        reason: e.giveUp.reason,
+        ...(e.giveUp.errorCode !== undefined ? { error_code: e.giveUp.errorCode } : {}),
+        ...(e.giveUp.refusalCode !== undefined ? { refusal_code: e.giveUp.refusalCode } : {}),
+        drop_index: sent.index,
+      });
+    }
+    if (e.giveUp || drop) this.totals.failed = true;
+  }
+
+  /**
+   * The run ends while a leg still reconnects: that reconnect ends with it, a lease end as `lease_ended`, any
+   * other end as `stopped` (Review Focus 1, 5). No `failed` follows: the session's stop cancels its reconnector,
+   * and an ending run decides nothing on events.
+   */
+  private reconnectsCut(result: RunEnd, endedAt: number): void {
+    const reason = result.reason === 'lease-ended' ? 'lease_ended' : 'stopped';
+    for (const [leg, drop] of this.drops) {
+      if (!drop.sent || !this.counts(leg)) continue;
+      this.deps.analytics.track('connection_reconnect_failed', {
+        ...this.reconnectEvent(leg, drop.sent.managed),
+        down_ms: endedAt - drop.since,
+        attempts: drop.attempt ?? 0,
+        reason,
+        drop_index: drop.sent.index,
+      });
+    }
+    this.drops.clear();
+  }
+
+  /** The network is back: each connection hears it once; a session that throws neither reaches the port nor keeps the others from hearing it. */
+  private networkRestored(): void {
+    if (this.ending) return;
+    for (const [leg, session] of this.sessions) {
+      if (!this.counts(leg)) continue;
+      try {
+        session.networkRestored?.();
+      } catch (error) {
+        reportError('SessionRunner', `The ${leg} adapter did not take the network's return: ${describeCause(error)}`, { cause: error, dedupeKey: `networkRestored:${leg}` });
+      }
+    }
   }
 
   private async settled(): Promise<void> {

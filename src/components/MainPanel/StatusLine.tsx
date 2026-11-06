@@ -29,8 +29,12 @@ export function StatusLine({ entry, onAction, onDismiss }: StatusLineProps) {
   const words = wordsOf(entry.words, t);
   const action = entry.action;
   const label = action ? actionLabel(action) : null;
+  const steady = entry.announce ? wordsOf(entry.announce, t) : null;
   return (
-    <div className="status-line" role="status" data-status={entry.key}>
+    // A line with steady words of its own announces only those: its live region is a hidden span that holds them, and
+    // the words that tick sit outside it, so a screen reader can still read them but is not told each time they change.
+    <div className="status-line" role={steady === null ? 'status' : undefined} data-status={entry.key}>
+      {steady !== null && <span className="status-line__announce" role="status">{steady}</span>}
       <Icon size={14} aria-hidden="true" />
       <span className="status-line__text">{words}</span>
       {action && label && (
@@ -50,7 +54,7 @@ export function StatusLine({ entry, onAction, onDismiss }: StatusLineProps) {
 function wordsOf(words: StatusWords, t: ReturnType<typeof useTranslation>['t']): string {
   switch (words.kind) {
     case 'notice': return noticeText(t, { code: words.code || undefined, params: words.params, message: words.message });
-    case 'key': return t(words.key, words.fallback);
+    case 'key': return t(words.key, { defaultValue: words.fallback, ...words.params });
     case 'echo': {
       const w = ECHO_WORDS[words.cause];
       return `${t(w.message, w.fallback)} ${t(w.action, w.actionFallback)}`;

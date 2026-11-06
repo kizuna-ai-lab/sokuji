@@ -7,6 +7,7 @@ import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import type { AnyProvider, Platform, Readiness } from '../provider/types';
+import type { NetworkType } from './reconnectEvents';
 import type { OpenSource } from './source';
 import type { RunShape } from './types';
 
@@ -60,6 +61,15 @@ function redactValues<T extends object>(properties: T): T {
   ])) as T;
 }
 
+/** The network as a reconnect sees it: absent a signal, `online` is undefined and `type` is 'unknown'. */
+export interface NetworkPort {
+  /** Whether the device reports being online now; undefined when it cannot tell. */
+  online(): boolean | undefined;
+  type(): NetworkType;
+  /** Calls `fn` each time the network comes back; returns the unsubscribe. */
+  onOnline(fn: () => void): () => void;
+}
+
 export interface RunnerDeps {
   clock: Clock;
   platform: Platform;
@@ -72,6 +82,8 @@ export interface RunnerDeps {
   openSource: OpenSource;
   playback: PlaybackPort;
   analytics: AnalyticsPort;
+  /** What a reconnect reads of the network; absent, it waits out its backoff and reports type 'unknown'. */
+  network?: NetworkPort;
   /** The Logs panel's feed; absent, frames are dropped. */
   frames?: FramePort;
   punctuate?: Punctuator;
@@ -103,7 +115,7 @@ export interface RunnerDeps {
  * The caller's ports, each method guarded: a port that throws is reported
  * once per method (a dedupe key) and never reaches the run or an adapter.
  */
-export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics' | 'frames'> {
+export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics' | 'frames' | 'network'> {
   const report = (name: string, error: unknown) =>
     reportError('SessionRunner', `The ${name} port threw: ${describeCause(error)}`, { cause: error, dedupeKey: `port:${name}` });
   const guard = <A extends unknown[]>(name: string, fn: (...args: A) => void) => (...args: A): void => {
@@ -113,7 +125,7 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       report(name, error);
     }
   };
-  const { playback, analytics, frames } = deps;
+  const { playback, analytics, frames, network } = deps;
   // Audio arrives per chunk: report when the port starts failing, not on every
   // chunk after, so a dead sink costs one console line per failing streak.
   let audioFailing = false;
@@ -146,6 +158,34 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       } : {}),
     },
     analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, redactValues(properties))) as AnalyticsPort['track'] },
+    ...(network ? {
+      network: {
+        online: (): boolean | undefined => {
+          try {
+            return network.online();
+          } catch (error) {
+            report('network.online', error);
+            return undefined;
+          }
+        },
+        type: (): NetworkType => {
+          try {
+            return network.type();
+          } catch (error) {
+            report('network.type', error);
+            return 'unknown';
+          }
+        },
+        onOnline: (fn: () => void): (() => void) => {
+          try {
+            return network.onOnline(fn);
+          } catch (error) {
+            report('network.onOnline', error);
+            return () => {};
+          }
+        },
+      },
+    } : {}),
     // Frames arrive per message: report when the port starts failing, not on
     // every frame after, so a dead sink costs one console line per failing streak.
     ...(frames ? {

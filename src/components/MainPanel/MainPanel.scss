@@ -296,6 +296,21 @@
   // by their line boxes (`cap-centred`): centred boxes left Chinese 0.8px high.
   &__text { flex: 1; min-width: 0; @include vars.cap-centred; }
 
+  // The live region of a line with steady words, for a screen reader only:
+  // hidden from view without `display: none`, which would take it out of the
+  // accessibility tree and so silence it.
+  &__announce {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   &__action {
     flex-shrink: 0;
     font: inherit;

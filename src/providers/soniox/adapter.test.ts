@@ -1,7 +1,8 @@
 /**
  * Soniox's adapter for one leg (`SonioxCore`, `start`): the conformance
- * suite but typed text, the STT config frame, the own-key 503 resume ladder
- * and every other failure path (ruling 3, choice 8), manual turns
+ * suite but typed text, the STT config frame, a 503's reconnect and every
+ * other failure path (choice 8; the reconnect itself in
+ * `adapter.reconnect.test.ts`), manual turns
  * (ruling 5), the keepalive, unreadable frames (choice 7), speech with its
  * filled-in ranges (ruling 2), stop, and Plan B's session seams. Driven on
  * `FakeSocket` and a virtual clock from the first run — no network, no fake
@@ -14,9 +15,10 @@ import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import { runScenario, scenarioNames, type AdapterHarness } from '../../lib/contract/testing/scenarios';
-import { createSonioxAdapter, MAX_RESUME_CYCLES, RESUME_DELAYS_MS, sttFailureCode } from './adapter';
+import { RECONNECT_DELAYS_MS } from '../../lib/session/reconnect';
+import { createSonioxAdapter, sttFailureCode } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';
-import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
+import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxReissue, type SonioxSettings } from './settings';
 import { AUTO_CTX, b64, END, ERROR_503, FIN, isStt, KEY, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
 
 function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials; shared?: SharedSettings } = {}) {
@@ -46,22 +48,26 @@ async function live(o?: Parameters<typeof started>[0]) {
   return { ...h, session };
 }
 
-/** The server's 503, the close that follows it, and the resume's first attempt, opened. */
-async function resumeOnce(h: Awaited<ReturnType<typeof live>>) {
-  h.stt().receive(ERROR_503);
-  h.stt().serverClose(1011);
+/** The server's 503 and the close that follows it on the dropped socket, then the reconnect's first attempt, opened. */
+async function reconnectOnce(h: Awaited<ReturnType<typeof live>>) {
+  const dropped = h.stt();
+  dropped.receive(ERROR_503);
+  dropped.serverClose(1011);
   await flush();
   h.openAll();
   await flush();
 }
 
+/** A drop no attempt follows: the leg fails at once (spec 2026-11-05 reconnect §4.1). */
+const ended = (drop: Record<string, unknown>) => ({ ...drop, retryable: false, managed: false });
+
 /** The TTS stream the adapter opened last on this socket. */
 const lastStream = (s: FakeSocket) => s.sentJson<{ stream_id?: string; model?: string }>().filter((m) => m.model !== undefined).map((m) => m.stream_id!).pop();
 
 describe('the Soniox adapter: agent text (spec 2026-11-05 §4.3)', () => {
-  it('a resumed socket asks again (Review Focus 5)', async () => {
+  it('a reconnected socket asks again (Review Focus 5)', async () => {
     const h = await live({ shared: { ...SHARED, speaks: true } });
-    await resumeOnce(h);
+    await reconnectOnce(h);
     expect(h.sttSockets().map((s) => s.sentJson<Json>()[0].enable_agent_text_input)).toEqual([true, true]);
   });
 });
@@ -88,11 +94,12 @@ describe('the Soniox adapter: conformance', () => {
         t.receive(JSON.stringify({ stream_id: id, terminated: true }));
       } },
     ],
-    serverClose: [{ run: () => stt().serverClose(1011, 'server error') }, { flush: true }],
+    // A close the table ends (spec 2026-11-05 reconnect §4.1): a 1011 would reconnect.
+    serverClose: [{ run: () => stt().serverClose(1008, 'policy violation') }, { flush: true }],
     refuse: [{ run: () => stt().drop() }],
+    // The 503 drops the socket at once; the attempt's socket is the newest.
     reconnect: [
       { run: () => stt().receive(ERROR_503) },
-      { run: () => stt().serverClose(1011) },
       { flush: true },
       { run: openAll },
       { flush: true },
@@ -170,7 +177,7 @@ describe('the Soniox adapter: one leg', () => {
   it("a bad key: the start resolves, then its error frame fails the leg with auth, in the server's words, once", async () => {
     const { stt, of, log } = await live();
     stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
-    expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key' } }]);
+    expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key', drop: ended({ cause: 'error', errorCode: '401' }) } }]);
     // The failure closed the socket itself; the close event that follows says nothing more.
     expect(stt().closedByClient).not.toBeNull();
     await flush();
@@ -187,56 +194,62 @@ describe('the Soniox adapter: one leg', () => {
     expect(log.filter((e) => e.kind === 'frame' && e.payload.type === 'stt.end')).toEqual([]);
   });
 
-  it("words every other STT error by its type, keeping the server's words", async () => {
-    const cases: Array<[number | string, string]> = [[429, 'rate_limit'], [400, 'client'], [500, 'server'], ['boom', 'server']];
-    for (const [code, type] of cases) {
-      const { stt, of } = await live();
-      stt().receive(JSON.stringify({ error_code: code, error_message: `said ${code}` }));
-      expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: type, message: `[Soniox ${code}] said ${code}` } }]);
+  it("words every other STT error by its type, keeping the server's words, and ends the leg without an attempt", async () => {
+    // A 5xx reconnects instead (spec 2026-11-05 reconnect §4.1), and so does a 429 unless it says a quota is used up; a code that is no number still ends, as `server`.
+    const cases: Array<[number | string, string, string]> = [[429, 'rate_limit', 'quota exceeded'], [400, 'client', 'said 400'], ['boom', 'server', 'said boom']];
+    for (const [code, type, words] of cases) {
+      const { stt, of, frames, sttSockets } = await live();
+      stt().receive(JSON.stringify({ error_code: code, error_message: words }));
+      expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: type, message: `[Soniox ${code}] ${words}`, drop: ended({ cause: 'error', errorCode: String(code) }) } }]);
+      // The server's own words in the Logs (choice 16).
+      expect(frames('stt.error').map((e) => e.payload.payload)).toEqual([{ code: String(code), message: words }]);
+      expect(of('reconnecting')).toEqual([]);
+      expect(sttSockets()).toHaveLength(1);
       expect(sttFailureCode(String(code))).toBe(type);
     }
     expect(sttFailureCode('401')).toBe('auth');
     expect(sttFailureCode('403')).toBe('auth');
+    expect(sttFailureCode('500')).toBe('server');
   });
 
-  it('a 408, a socket error and a bare close each fail with connection_lost, once', async () => {
+  it('a close the table ends fails with connection_lost once, its code and words in the Logs before it', async () => {
     // The Logs row keeps the old client's `{ code, message }`: the wire's code and the server's words (choice 16, `surfaceRecoverableOutage`).
-    const acts: Array<[(s: FakeSocket) => void, Json]> = [
-      [(s) => s.receive(JSON.stringify({ error_code: 408, error_message: 'Request timeout' })), { code: '408', message: 'Request timeout' }],
-      [(s) => s.drop(), { code: 'socket_error', message: expect.any(String) }],
-      [(s) => s.serverClose(1006), { code: '1006', message: 'The Soniox connection closed unexpectedly' }],
+    const cases: Array<[number, string, Json]> = [
+      [1008, 'Policy violation', { code: '1008', message: 'Policy violation' }],
+      [4000, '', { code: '4000', message: 'The Soniox connection closed unexpectedly' }],
     ];
-    for (const [act, row] of acts) {
+    for (const [code, reason, row] of cases) {
       const { stt, of, log, frames } = await live();
-      act(stt());
+      stt().serverClose(code, reason);
       await flush();
       const failed = of('failed');
-      expect(failed).toHaveLength(1);
-      expect(failed[0].payload.code).toBe('connection_lost');
+      expect(failed).toEqual([{ kind: 'failed', payload: { code: 'connection_lost', message: expect.any(String), drop: ended({ cause: 'close', closeCode: code }) } }]);
       const lostAt = log.findIndex((e) => e.kind === 'frame' && e.payload.type === 'session.connection_lost');
       expect(lostAt).toBeGreaterThanOrEqual(0);
       expect(lostAt).toBeLessThan(log.indexOf(failed[0]));
       expect(frames('session.connection_lost').map((e) => e.payload.payload)).toEqual([row]);
+      expect(of('reconnecting')).toEqual([]);
     }
   });
 
-  it('a 503 resumes silently on the clock — at once, after 1 s, after 3 s — reconnecting, then reconnected', async () => {
-    expect(RESUME_DELAYS_MS).toEqual([0, 1_000, 3_000]);
+  it('a 503 reconnects on the shared schedule — at once, after 250 ms, after 500 ms more — reconnecting, then reconnected', async () => {
+    expect(RECONNECT_DELAYS_MS.slice(0, 3)).toEqual([0, 250, 500]);
     const { stt, sttSockets, clock, log, openAll, of, frames } = await live();
     const first = stt();
     first.receive(msg(orig('Half', false), tr('半')));
     first.receive(ERROR_503);
+    // The close that follows the 503 reaches nothing: the socket was already dropped.
     first.serverClose(1011);
     await flush();
     const at = log.findIndex((e) => e.kind === 'reconnecting');
     expect(at).toBeGreaterThanOrEqual(0);
-    // The utterance closed as it stands, after the leg said it reconnects.
-    expect(log.slice(at).flatMap((e) => (e.kind === 'segmentClosed' ? [e.payload.ref] : []))).toEqual([1, 2]);
+    // The utterance closed as it stands, at the drop.
+    expect(log.slice(0, at).flatMap((e) => (e.kind === 'segmentClosed' ? [e.payload.ref] : []))).toEqual([1, 2]);
     expect(sttSockets()).toHaveLength(2);
 
     stt().drop();
     await flush();
-    clock.advance(999);
+    clock.advance(249);
     await flush();
     expect(sttSockets()).toHaveLength(2);
     clock.advance(1);
@@ -245,7 +258,7 @@ describe('the Soniox adapter: one leg', () => {
 
     stt().drop();
     await flush();
-    clock.advance(2_999);
+    clock.advance(499);
     await flush();
     expect(sttSockets()).toHaveLength(3);
     clock.advance(1);
@@ -259,87 +272,44 @@ describe('the Soniox adapter: one leg', () => {
     expect(stt().sentJson()[0]).toEqual(first.sentJson()[0]);
     expect(of('failed')).toEqual([]);
     expect(of('degraded')).toEqual([]);
-    expect(frames('session.stt_503')).toHaveLength(1);
-    // The close that started the resume, as the old client's row carried it (choice 16).
-    expect(frames('session.stt_resuming').map((e) => e.payload.payload)).toEqual([{ code: 1011, reason: '' }]);
-    expect(frames('session.stt_resume_attempt_failed')).toHaveLength(2);
-    expect(frames('session.stt_resumed')).toHaveLength(1);
+    expect(frames('stt.error').map((e) => e.payload.payload)).toEqual([{ code: '503', message: 'Service unavailable' }]);
+    expect(frames('session.reconnecting').map((e) => e.payload.payload)).toEqual([{ cause: 'error', code: '503' }]);
+    expect(frames('session.reconnect_failed')).toHaveLength(2);
+    expect(frames('session.reconnected')).toHaveLength(1);
   });
 
-  it("a resume whose three attempts fail ends with connection_lost and the 503's own words", async () => {
-    const { stt, clock, of, frames } = await live();
-    stt().receive(ERROR_503);
-    stt().serverClose(1011);
-    await flush();
-    stt().drop();
-    await flush();
-    clock.advance(1_000);
-    await flush();
-    stt().drop();
-    await flush();
-    expect(of('failed')).toEqual([]);
-    clock.advance(3_000);
-    await flush();
-    stt().drop();
-    await flush();
-    expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'connection_lost', message: 'Soniox 503: Service unavailable' } }]);
-    expect(of('reconnected')).toEqual([]);
-    expect(frames('session.connection_lost').map((e) => e.payload.payload)).toEqual([{ code: '503', message: 'Service unavailable' }]);
-  });
-
-  it('past five resume cycles a 503 is an outage', async () => {
-    expect(MAX_RESUME_CYCLES).toBe(5);
-    const h = await live();
-    for (let cycle = 1; cycle <= 5; cycle++) {
-      await resumeOnce(h);
-      expect(h.of('reconnected')).toHaveLength(cycle);
-    }
-    expect(h.of('failed')).toEqual([]);
-    h.stt().receive(ERROR_503);
-    expect(h.of('failed')).toHaveLength(1);
-    expect(h.of('failed')[0].payload.code).toBe('connection_lost');
-    const count = h.sockets.all.length;
-    h.stt().serverClose(1011);
-    await flush();
-    h.clock.advance(10_000);
-    await flush();
-    expect(h.sockets.all).toHaveLength(count);
-  });
-
-  it('never reuses a ref across a resume', async () => {
+  it('never reuses a ref across a reconnect', async () => {
     const h = await live();
     h.stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    await resumeOnce(h);
+    await reconnectOnce(h);
     expect(h.of('reconnected')).toHaveLength(1);
     h.stt().receive(msg(orig('Again.'), tr('また。'), END));
     expect(h.of('segmentOpened').map((e) => e.payload.ref)).toEqual([1, 2, 3, 4]);
   });
 
-  it('a stop during a resume backoff leaves nothing behind: no attempt, no timer, no event', async () => {
+  it('a stop during a reconnect backoff leaves nothing behind: no attempt, no timer, no event', async () => {
     const { session, stt, tts, sttSockets, clock, log, timers, frames } = await live();
     stt().receive(ERROR_503);
-    stt().serverClose(1011);
     await flush();
-    // The first attempt fails: the ladder now waits 1 s for the second.
+    // The first attempt fails: the reconnector now waits 250 ms for the second.
     stt().drop();
     await flush();
-    expect(frames('session.stt_resume_attempt_failed')).toHaveLength(1);
+    expect(frames('session.reconnect_failed')).toHaveLength(1);
     const n = log.length;
     const count = sttSockets().length;
     await session.stop();
     expect(tts().closedByClient).not.toBeNull();
     await flush();
     expect(timers()).toBe(0);
-    clock.advance(10_000);
+    clock.advance(60_000);
     await flush();
     expect(sttSockets()).toHaveLength(count);
     expect(log.length).toBe(n);
   });
 
-  it("a stop while a resume attempt's connect is in flight closes that socket, and nothing follows", async () => {
+  it("a stop while a reconnect attempt's connect is in flight closes that socket, and nothing follows", async () => {
     const { session, stt, tts, sttSockets, clock, log, timers } = await live();
     stt().receive(ERROR_503);
-    stt().serverClose(1011);
     await flush();
     const attempt = stt();
     expect(attempt.readyState).toBe(FakeSocket.CONNECTING);
@@ -350,7 +320,7 @@ describe('the Soniox adapter: one leg', () => {
     await stopping;
     await flush();
     expect(timers()).toBe(0);
-    clock.advance(10_000);
+    clock.advance(60_000);
     await flush();
     expect(sttSockets()).toHaveLength(2);
     expect(log.length).toBe(n);
@@ -399,12 +369,12 @@ describe('the Soniox adapter: one leg', () => {
     expect(of('failed')).toEqual([]);
   });
 
-  it('a resumed STT socket starts its own unreadable episode', async () => {
+  it("a reconnect's STT socket starts its own unreadable episode", async () => {
     const h = await live();
     h.stt().receive('{bad');
     expect(h.frames('stt.unreadable')).toHaveLength(1);
-    // The old socket's episode never ended; the resumed socket's first bad frame is a new one.
-    await resumeOnce(h);
+    // The old socket's episode never ended; the new socket's first bad frame is a new one.
+    await reconnectOnce(h);
     expect(h.of('reconnected')).toHaveLength(1);
     h.stt().receive('{bad');
     expect(h.frames('stt.unreadable')).toHaveLength(2);
@@ -479,7 +449,7 @@ describe('the Soniox adapter: one leg', () => {
 
   it('a stop after the session failed sends and frames no end: its socket is gone', async () => {
     const { session, stt, log } = await live();
-    stt().serverClose(1011, 'server error');
+    stt().serverClose(1008, 'policy violation');
     await flush();
     const n = log.length;
     await session.stop();
@@ -576,19 +546,18 @@ describe('the Soniox adapter: one leg', () => {
       // The failure closed the STT socket itself; the close event that follows says nothing more.
       expect(h.stt().closedByClient).not.toBeNull();
       await flush();
-      expect(h.of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key' } }]);
+      expect(h.of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key', drop: ended({ cause: 'error', errorCode: '401' }) } }]);
       expect(h.log.indexOf(h.of('failed')[0])).toBeGreaterThanOrEqual(resolvedAt);
       // The failure closed the TTS socket still opening, and left no timer running.
       expect(h.tts().closedByClient).not.toBeNull();
       expect(h.timers()).toBe(0);
     });
 
-    it('a 503 while the TTS socket still opens resumes after the start resolved', async () => {
+    it('a 503 while the TTS socket still opens reconnects after the start resolved', async () => {
       const h = started();
       const resolvedAt = await sttOpened(h);
       expect(resolvedAt).toBeGreaterThanOrEqual(0);
       h.stt().receive(ERROR_503);
-      h.stt().serverClose(1011);
       await flush();
       expect(h.log.findIndex((e) => e.kind === 'reconnecting')).toBeGreaterThanOrEqual(resolvedAt);
       h.openAll();
@@ -678,24 +647,30 @@ describe("the Soniox adapter: a lone leg's voice", () => {
 });
 
 describe("the Soniox adapter: Plan B's session seams", () => {
-  it('tells a lease the first frame of each socket, and never resumes under one', async () => {
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn() };
-    const { stt, sttSockets, of } = await live({ credentials: { ...KEY, lease } });
+  it("tells a lease the first frame of each socket: a 503 reconnects on a reissued key, whose socket's first frame it tells again", async () => {
+    const reissued: SonioxReissue = { ok: true, stt: 'key-1', clientReferenceId: 'ref-1', expiresAt: 10_000 };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(), reissue: vi.fn(async () => reissued) };
+    const h = await live({ credentials: { ...KEY, lease } });
     expect(lease.streamAccepted).not.toHaveBeenCalled();
-    stt().receive(msg(orig('Hi', false)));
-    stt().receive(msg(orig('Hi there', false)));
+    h.stt().receive(msg(orig('Hi', false)));
+    h.stt().receive(msg(orig('Hi there', false)));
     expect(lease.streamAccepted).toHaveBeenCalledTimes(1);
-    stt().receive(ERROR_503);
-    expect(of('failed')).toHaveLength(1);
-    expect(of('failed')[0].payload.code).toBe('connection_lost');
-    stt().serverClose(1011);
+    h.stt().receive(ERROR_503);
     await flush();
-    expect(sttSockets()).toHaveLength(1);
-    expect(of('reconnecting')).toEqual([]);
+    expect(lease.reissue).toHaveBeenCalledTimes(1);
+    expect(h.stt().protocols).toEqual(['soniox-api-key', 'key-1']);
+    h.openAll();
+    await flush();
+    expect(h.of('reconnected')).toHaveLength(1);
+    expect(h.of('failed')).toEqual([]);
+    expect(lease.streamAccepted).toHaveBeenCalledTimes(1);
+    h.stt().receive(msg(orig('Again', false)));
+    h.stt().receive(msg(orig('Again and', false)));
+    expect(lease.streamAccepted).toHaveBeenCalledTimes(2);
   });
 
   it('an error frame first never tells the lease a stream was accepted', async () => {
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn() };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(), reissue: vi.fn() };
     const { stt, of } = await live({ credentials: { ...KEY, lease } });
     stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
     expect(lease.streamAccepted).not.toHaveBeenCalled();
@@ -705,7 +680,7 @@ describe("the Soniox adapter: Plan B's session seams", () => {
 
   it("a 403 at the grant's end closes the leg without a failure, after the lease's cutoff", async () => {
     let closedAtCutoff = -1;
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => true), cutoff: vi.fn(() => { closedAtCutoff = h.of('closed').length; }) };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => true), cutoff: vi.fn(() => { closedAtCutoff = h.of('closed').length; }), reissue: vi.fn() };
     const h = await live({ credentials: { ...KEY, lease } });
     h.stt().receive(JSON.stringify({ error_code: 403, error_message: 'Session duration exceeded' }));
     expect(lease.atGrantEnd).toHaveBeenCalledWith(0);
@@ -718,10 +693,10 @@ describe("the Soniox adapter: Plan B's session seams", () => {
   });
 
   it("a 403 before the grant's end is an auth failure", async () => {
-    const lease = { streamAccepted: vi.fn(), atGrantEnd: () => false, cutoff: vi.fn() };
+    const lease = { streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: () => false, cutoff: vi.fn(), reissue: vi.fn() };
     const { stt, of } = await live({ credentials: { ...KEY, lease } });
     stt().receive(JSON.stringify({ error_code: 403, error_message: 'Forbidden' }));
-    expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 403] Forbidden' } }]);
+    expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 403] Forbidden', drop: { cause: 'error', errorCode: '403', retryable: false, managed: true } } }]);
     expect(lease.cutoff).not.toHaveBeenCalled();
   });
 
@@ -761,10 +736,10 @@ describe('language codes (unified language codes)', () => {
     for (const e of of('segmentText')) expect(e.payload).not.toHaveProperty('language');
   });
 
-  it('labels each segment with its person, and a resumed socket starts a new epoch', async () => {
+  it("labels each segment with its person, and a reconnect's socket starts a new epoch", async () => {
     const h = await live({ shared: { ...SHARED, reversed: () => true } });
     h.stt().receive(msg({ ...orig('Hello.'), speaker: '1' }, tr('こんにちは。'), END));
-    await resumeOnce(h);
+    await reconnectOnce(h);
     h.stt().receive(msg({ ...orig('Again.'), speaker: '1' }, tr('また。'), END));
     expect(h.of('segmentOpened').map((e) => e.payload.person)).toEqual(['1.1', '1.1', '2.1', '2.1']);
   });

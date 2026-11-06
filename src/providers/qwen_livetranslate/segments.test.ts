@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { recordEvents } from '../../lib/contract/events';
 import { QwenSegments } from './segments';
 
-function segments(person = false) {
+function segments(person = false, firstRef?: number) {
   const { events, log } = recordEvents();
-  const s = new QwenSegments({ sink: events, person });
+  const s = new QwenSegments({ sink: events, person, ...(firstRef === undefined ? {} : { firstRef }) });
   /** The log as `[kind, payload]`, audio by its ref and sample count. */
   const seen = () => log.map((e) => (e.kind === 'audio' ? ['audio', { ref: e.payload.ref, samples: e.payload.pcm.length }] : [e.kind, e.payload]));
   return { s, log, seen };
@@ -255,5 +255,45 @@ describe("Qwen LiveTranslate's segments (spec §6)", () => {
     s.text('h2', 'source', 'after');
     s.done('h2', 'source', 'after');
     expect(log).toEqual([]);
+  });
+
+  it('a stop leaves what is open as it was; abandon closes it as it stands, stating an origin learned after it opened, and hears nothing more (spec 2026-11-05 reconnect §4.3)', () => {
+    const stopped = segments();
+    stopped.s.text('h1', 'source', 'half');
+    stopped.s.stop();
+    expect(stopped.seen().map(([kind]) => kind)).toEqual(['segmentOpened', 'segmentText']);
+
+    const { s, seen } = segments();
+    s.heard('h1');
+    s.text('h1', 'source', 'done');
+    s.done('h1', 'source', 'done');
+    s.heard('h2');
+    s.text('h2', 'source', 'ha');
+    s.text('t2', 'translation', 'Ha');
+    s.answer('t2', 'h2');
+    s.audio('t2', pcm());
+    // Named, never opened: nothing to close.
+    s.heard('h3');
+    s.abandon();
+    s.text('h2', 'source', 'lf');
+    s.done('t2', 'translation', 'Half.');
+    s.abandon();
+    expect(seen().slice(3)).toEqual([
+      ['segmentOpened', { ref: 2, side: 'source', origin: 'h2' }],
+      ['segmentText', { ref: 2, text: 'ha' }],
+      ['segmentOpened', { ref: 3, side: 'translation' }],
+      ['segmentText', { ref: 3, text: 'Ha' }],
+      ['audio', { ref: 3, samples: 240 }],
+      ['segmentClosed', { ref: 2 }],
+      ['segmentClosed', { ref: 3, origin: 'h2' }],
+    ]);
+    expect(s.nextRef).toBe(4);
+  });
+
+  it('starts its refs where it is told: a reconnect carries on from the dropped connection', () => {
+    const { s, seen } = segments(false, 4);
+    s.text('h1', 'source', 'again');
+    expect(seen()).toEqual([['segmentOpened', { ref: 4, side: 'source', origin: 'h1' }], ['segmentText', { ref: 4, text: 'again' }]]);
+    expect(s.nextRef).toBe(5);
   });
 });

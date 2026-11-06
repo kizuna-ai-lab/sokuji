@@ -4,12 +4,12 @@ import type { RunEnd, RunState } from '../session/types';
 import { statusLine, type StatusLineInput } from './statusLine';
 
 const idleRun: RunState = { phase: 'idle' };
-const running = (legs: Partial<Record<'speaker' | 'participant', 'opening' | 'live' | 'reconnecting'>> = { speaker: 'live' }): RunState =>
-  ({ phase: 'running', participantSpeech: false, since: 0, legs });
+const running = (legs: Partial<Record<'speaker' | 'participant', 'opening' | 'live' | 'reconnecting'>> = { speaker: 'live' }, reconnect?: Partial<Record<'speaker' | 'participant', { attempt: number; since: number }>>): RunState =>
+  ({ phase: 'running', participantSpeech: false, since: 0, legs, ...(reconnect ? { reconnect } : {}) });
 const echo: EchoNoticeState = { cause: 'tts-echo', lagMs: 120, rho: 0.7 } as EchoNoticeState;
 const input = (over: Partial<StatusLineInput> = {}): StatusLineInput => ({
   run: idleRun, idle: { kind: 'ready' }, canStart: true, dismissedEnd: null,
-  waitingForMicrophone: false, subtitleEntryHint: false, echo: null, ...over,
+  waitingForMicrophone: false, subtitleEntryHint: false, echo: null, now: 0, ...over,
 });
 
 describe('statusLine — cannot start (priority 1)', () => {
@@ -61,6 +61,30 @@ describe('statusLine — cannot start (priority 1)', () => {
 describe('statusLine — while running (priorities 2–5)', () => {
   it('reconnecting, with no action', () => {
     expect(statusLine(input({ run: running({ speaker: 'reconnecting' }), echo }))).toMatchObject({ key: 'reconnecting', icon: 'refresh-cw', words: { kind: 'key', key: 'connectionStatus.reconnecting' }, action: null, dismiss: null });
+  });
+  it('a reconnecting leg with attempt 3 since 12.4 s ago shows connectionStatus.reconnectingAttempt with attempt 3, seconds 12', () => {
+    const run = running({ speaker: 'reconnecting' }, { speaker: { attempt: 3, since: 1_000 } });
+    expect(statusLine(input({ run, now: 13_400 }))).toMatchObject({
+      key: 'reconnecting', icon: 'refresh-cw', action: null, dismiss: null,
+      words: { kind: 'key', key: 'connectionStatus.reconnectingAttempt', params: { attempt: 3, seconds: 12 } },
+    });
+  });
+  it('a reconnect with attempts announces steady words: only the visible ones count attempts and seconds', () => {
+    const at = (attempt: number, now: number) => statusLine(input({ run: running({ speaker: 'reconnecting' }, { speaker: { attempt, since: 1_000 } }), now }));
+    const a = at(2, 3_000);
+    const b = at(3, 9_000);
+    expect(a?.words).not.toEqual(b?.words);
+    expect(a?.announce).toEqual({ kind: 'key', key: 'connectionStatus.reconnecting', fallback: 'Reconnecting...' });
+    expect(b?.announce).toEqual(a?.announce);
+    // Words that never tick need no second wording.
+    expect(statusLine(input({ run: running({ speaker: 'reconnecting' }), now: 5_000 }))).not.toHaveProperty('announce');
+  });
+  it('two reconnecting legs show the earlier drop', () => {
+    const run = running({ speaker: 'reconnecting', participant: 'reconnecting' }, { speaker: { attempt: 1, since: 9_000 }, participant: { attempt: 4, since: 2_000 } });
+    expect(statusLine(input({ run, now: 10_000 }))).toMatchObject({ words: { params: { attempt: 4, seconds: 8 } } });
+  });
+  it('reconnecting without an entry (Gemini) shows connectionStatus.reconnecting as before', () => {
+    expect(statusLine(input({ run: running({ speaker: 'reconnecting' }), now: 5_000 }))).toMatchObject({ words: { kind: 'key', key: 'connectionStatus.reconnecting' } });
   });
   it('waiting for a microphone, below reconnecting', () => {
     expect(statusLine(input({ run: running(), waitingForMicrophone: true }))).toMatchObject({ key: 'mic-waiting', icon: 'mic-off', words: { kind: 'notice', code: 'mic_lost_waiting' } });

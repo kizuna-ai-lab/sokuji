@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  appendFrame, base64ToPcm, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, imageFrame, qwenHeaders, sessionUpdate, socketUrl,
+  appendFrame, base64ToPcm, COMMIT, decodeServerEvent, errorCode, errorOf, errorWords, FINISH, imageFrame, isProbeRefusal, PROBE, qwenHeaders, sessionUpdate, socketUrl,
 } from './wire';
 import { SERVER } from './testing';
 
@@ -120,8 +120,13 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     const code = (c: string | null, m: string) => errorCode({ code: c, message: m });
     expect(code('InvalidApiKey', 'Invalid API-key provided.')).toBe('auth');
     expect(code(null, 'API Token is expired.')).toBe('auth');
-    expect(code('Throttling', 'Requests rate limit exceeded, please try again later.')).toBe('rate_limit');
+    // A request rate passes, and a reconnect may outlast it; a quota spent stays spent (spec 2026-11-05 reconnect §4.1).
+    expect(code('Throttling', 'Requests rate limit exceeded, please try again later.')).toBe('throttled');
+    expect(code('Throttling.RateQuota', 'Requests rate limit exceeded, please try again later.')).toBe('throttled');
+    expect(code(null, 'Throttled.')).toBe('throttled');
     expect(code(null, 'Allocated quota exceeded, please increase your quota limit.')).toBe('rate_limit');
+    expect(code('Throttling.AllocationQuota', 'Allocated quota exceeded, please increase your quota limit.')).toBe('rate_limit');
+    expect(code(null, 'Free tier quota exceeded.')).toBe('rate_limit');
     expect(code('COMMON_ERROR', "<400> InternalError.Algo.InvalidParameter: Voice 'X' is not supported.")).toBe('client');
     expect(code('invalid_value', 'Invalid translation parameter.')).toBe('client');
     // A close's reason carries the message without its code.
@@ -134,5 +139,17 @@ describe("Qwen LiveTranslate's wire (spec §6)", () => {
     expect(code('Workspace.AccessDenied', 'Workspace access denied.')).toBe('server');
     expect(code('Endpoint.AccessDenied', 'Workspace endpoint access denied.')).toBe('server');
     expect(code('AccessDenied', 'Access denied.')).toBe('server');
+  });
+
+  it('probes with a bare clear, and knows its refusal by its words alone (probe 2026-11-06)', () => {
+    expect(PROBE).toEqual({ type: 'input_audio_buffer.clear' });
+    expect(isProbeRefusal(decodeServerEvent(SERVER.probeRefused()))).toBe(true);
+    // Its type is optional; its words lead.
+    expect(isProbeRefusal({ type: 'error', error: { message: 'Error clear input audio buffer: server_vad is enabled.' } })).toBe(true);
+    expect(isProbeRefusal({ type: 'error', error: { type: 'server_error', message: 'Error clear input audio buffer: server_vad is enabled.' } })).toBe(false);
+    expect(isProbeRefusal({ type: 'error', error: { type: 'invalid_request_error', message: 'Invalid translation parameter.' } })).toBe(false);
+    expect(isProbeRefusal(decodeServerEvent(SERVER.error()))).toBe(false);
+    expect(isProbeRefusal({ type: 'error' })).toBe(false);
+    expect(isProbeRefusal({ type: 'input_audio_buffer.cleared', error: { message: 'Error clear input audio buffer' } })).toBe(false);
   });
 });
