@@ -445,6 +445,25 @@ describe('Soniox startBoth: shared', () => {
     expect(opened(h, 'speaker')).toEqual([]);
   });
 
+  it("shared: audio that comes during the gap is dropped, not queued for the new socket, even before the mixer's next tick (§4.3)", async () => {
+    const h = await live();
+    const [first] = h.sttSockets();
+    first.serverClose(1011);
+    await flush();
+    const resumed = h.sttSockets()[1];
+    expect(resumed.readyState).toBe(FakeSocket.CONNECTING);
+    // No tick passes: a mixer that queued this would send it on the next socket.
+    h.sessions.speaker.appendAudio(level(4000));
+    h.sessions.participant.appendAudio(level(4000));
+    h.openAll();
+    await flush();
+    expect(h.kinds('speaker')).toContain('reconnected');
+    h.clock.advance(100);
+    const frames = resumed.sent.filter((d): d is Int16Array => d instanceof Int16Array);
+    expect(frames).toHaveLength(1);
+    expect(frames[0].every((v) => v === 0)).toBe(true);
+  });
+
   it("shared: only the speaker's endTurn finalizes, on the shared socket", async () => {
     const h = await live();
     const finalizes = () => h.sttSockets()[0].sentJson<Json>().filter((m) => m.type === 'finalize');

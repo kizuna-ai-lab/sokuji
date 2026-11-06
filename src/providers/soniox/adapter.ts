@@ -390,13 +390,15 @@ class SonioxCore {
 
   private appendAudio(name: LegName, pcm: Int16Array): void {
     if (this.ended) return;
+    // During a reconnect's gap no socket is open, and the audio is dropped (§4.3) — before the mixer too, which would
+    // otherwise hold what came since its last tick and send it on the new socket. The start hands out no session before
+    // its socket is open, so nothing is lost there.
+    if (!this.stt?.isOpen()) return;
     if (this.mixer) {
       if (name === 'participant') this.mixer.pushB(pcm);
       else this.mixer.pushA(pcm);
       return;
     }
-    // During a reconnect's gap no socket is open, and the audio is dropped (§4.3).
-    if (!this.stt?.isOpen()) return;
     this.stt.sendAudio(pcm);
     this.audioSent();
   }
