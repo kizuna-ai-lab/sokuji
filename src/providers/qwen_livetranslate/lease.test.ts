@@ -881,6 +881,28 @@ describe('Qwen lease: reissue', () => {
     await expect(p).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
   });
 
+  it('a token once fetched ahead of now is dropped, not served when the stepped-back clock catches up after a failed ask', async () => {
+    const inner = createVirtualClock(0);
+    let back = 0;
+    const clock: VirtualClock = { now: () => inner.now() - back, setTimeout: (fn, ms) => inner.setTimeout(fn, ms), advance: (ms) => inner.advance(ms), pending: () => inner.pending() };
+    const a = await reissuer(['speaker'], { clock });
+    await fetched(a, 5_000, FRESH, 65_000);
+    back = 4_000;
+    // A drop the stepped-back clock reads as 1 000, its first ask failing: the network is still down.
+    const dropAt = clock.now();
+    const first = a.ports.speaker.reissue({ notBefore: dropAt });
+    await flush();
+    a.to(REISSUE)[1].respond(503, { error: 'unavailable' });
+    await expect(first).resolves.toMatchObject({ ok: false, retry: true });
+    // A later attempt of the same drop, once the clock reads past the token's fetch: still a request, never the older token.
+    a.clock.advance(6_000);
+    const later = a.ports.speaker.reissue({ notBefore: dropAt });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(3);
+    a.to(REISSUE)[2].respond(200, { apiKey: FRESH_2, expiresAt: 67_000 });
+    await expect(later).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
+  });
+
   it("a reissued token that names no expiry is taken to last 55 s", async () => {
     const a = await reissuer(['speaker']);
     a.clock.advance(2_000);

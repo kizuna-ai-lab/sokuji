@@ -549,9 +549,11 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       if (refused !== undefined && refused === cached?.apiKey) cached = null;
       // Only a token fetched since the asker's drop began, and still valid: the drop's later attempts, and the other leg
       // dropped in the same blip, take it. Anything older makes a request. A fetch time ahead of now is a wall clock stepped
-      // back (`realClock.now()` is `Date.now()`), and proves nothing.
+      // back (`realClock.now()` is `Date.now()`), and proves nothing: that token leaves the cache, so it is not served once
+      // the clock catches up — a failed ask leaves the cache as it was, and the drop's later attempts would otherwise take it.
       const now = ctx.clock.now();
-      if (cached && notBefore <= cached.fetchedAt && cached.fetchedAt <= now && now < cached.expiresAt - TOKEN_REFRESH_MARGIN_MS) {
+      if (cached && cached.fetchedAt > now) cached = null;
+      if (cached && notBefore <= cached.fetchedAt && now < cached.expiresAt - TOKEN_REFRESH_MARGIN_MS) {
         return Promise.resolve({ ok: true, apiKey: cached.apiKey, expiresAt: cached.expiresAt, fresh: false });
       }
       // Both legs may ask at once: one request, one answer for both — an ask while it is out joins it.
