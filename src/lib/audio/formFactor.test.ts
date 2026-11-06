@@ -1,0 +1,104 @@
+import { describe, it, expect } from 'vitest';
+import {
+  UNKNOWN_FORM,
+  cleanOutputLabel,
+  matchOutputForm,
+  type FormFactor,
+  type OutputDeviceInfo,
+} from './formFactor';
+
+const n = (label: string, formFactor: FormFactor, isDefault = false): OutputDeviceInfo => ({
+  label,
+  isDefault,
+  formFactor,
+  transport: 'builtin',
+  raw: {},
+});
+
+const HEADPHONES = { formFactor: 'headphones', transport: 'builtin' };
+
+describe('cleanOutputLabel', () => {
+  it('trims and removes a leading Default - or Communications - prefix', () => {
+    expect(cleanOutputLabel('  Default - Speakers  ')).toBe('Speakers');
+    expect(cleanOutputLabel('Communications - Speakers')).toBe('Speakers');
+    expect(cleanOutputLabel('Speakers')).toBe('Speakers');
+  });
+});
+
+describe('matchOutputForm', () => {
+  it('no native list is unknown', () => {
+    expect(matchOutputForm('id1', 'Speakers', null, true)).toEqual(UNKNOWN_FORM);
+  });
+
+  it.each([undefined, '', 'default'])('the default sink (%j) is the native default', (id) => {
+    const native = [n('A', 'speakers'), n('B', 'headphones', true)];
+    expect(matchOutputForm(id, undefined, native, true)).toEqual(HEADPHONES);
+    // The default needs no label, so it is found even before labels are readable.
+    expect(matchOutputForm(id, undefined, native, false)).toEqual(HEADPHONES);
+  });
+
+  it('no default or two defaults is unknown', () => {
+    expect(matchOutputForm('default', undefined, [n('A', 'speakers'), n('B', 'headphones')], true)).toEqual(UNKNOWN_FORM);
+    expect(
+      matchOutputForm('default', undefined, [n('A', 'speakers', true), n('B', 'headphones', true)], true),
+    ).toEqual(UNKNOWN_FORM);
+  });
+
+  it('communications is unknown', () => {
+    const native = [n('A', 'speakers'), n('B', 'headphones', true)];
+    expect(matchOutputForm('communications', 'Communications - A', native, true)).toEqual(UNKNOWN_FORM);
+  });
+
+  it('labels not known is unknown', () => {
+    expect(matchOutputForm('x', 'A', [n('A', 'speakers')], false)).toEqual(UNKNOWN_FORM);
+  });
+
+  it('an exact label matches', () => {
+    const label = 'Speakers (Realtek(R) Audio)';
+    expect(matchOutputForm('x', label, [n(label, 'speakers')], true)).toEqual({
+      formFactor: 'speakers',
+      transport: 'builtin',
+    });
+  });
+
+  it('prefixes and outer spaces are removed before matching', () => {
+    const native = [n('Headphones (USB)', 'headphones')];
+    expect(matchOutputForm('x', '  Default - Headphones (USB)  ', native, true)).toEqual(HEADPHONES);
+    expect(matchOutputForm('x', 'Communications - Headphones (USB)', native, true)).toEqual(HEADPHONES);
+  });
+
+  it('native labels are trimmed before matching', () => {
+    expect(matchOutputForm('x', 'Headphones (USB)', [n(' Headphones (USB) ', 'headphones')], true)).toEqual(HEADPHONES);
+  });
+
+  it('two native devices with the same label match neither', () => {
+    const native = [n('USB Headset', 'headphones'), n('USB Headset', 'headphones')];
+    expect(matchOutputForm('x', 'USB Headset', native, true)).toEqual(UNKNOWN_FORM);
+  });
+
+  it('the browser default among same-named devices is the native default', () => {
+    const native = [n('USB Headset', 'speakers'), n('USB Headset', 'headphones', true)];
+    expect(matchOutputForm('x', 'Default - USB Headset', native, true, true)).toEqual(HEADPHONES);
+    expect(matchOutputForm('x', 'Default - USB Headset', native, true, false)).toEqual(UNKNOWN_FORM);
+
+    const otherDefault = [n('USB Headset', 'headphones'), n('USB Headset', 'headphones'), n('Other', 'speakers', true)];
+    expect(matchOutputForm('x', 'USB Headset', otherDefault, true, true)).toEqual(UNKNOWN_FORM);
+  });
+
+  it('no fuzzy match', () => {
+    const native = [n('Headphones (USB)', 'headphones')];
+    expect(matchOutputForm('x', 'Headphones', native, true)).toEqual(UNKNOWN_FORM);
+    expect(matchOutputForm('x', 'headphones (usb)', native, true)).toEqual(UNKNOWN_FORM);
+  });
+
+  it('an undefined browser label is unknown', () => {
+    expect(matchOutputForm('x', undefined, [n('A', 'speakers')], true)).toEqual(UNKNOWN_FORM);
+  });
+
+  it('returns copies, never the native object', () => {
+    const native = [n('A', 'speakers', true)];
+    const out = matchOutputForm('default', undefined, native, true);
+    expect(out).not.toBe(native[0]);
+    expect(Object.keys(out).sort()).toEqual(['formFactor', 'transport']);
+  });
+});
