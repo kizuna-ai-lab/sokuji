@@ -270,7 +270,9 @@ function parseMacDevices(text) {
 
 // `--devices` of the Windows helper: one JSON array. formFactor is
 // PKEY_AudioEndpoint_FormFactor (the EndpointFormFactor enum) or null;
-// enumerator is PKEY_Device_EnumeratorName or null.
+// enumerator is PKEY_Device_EnumeratorName or null; browserLabel is the
+// friendly name with the suffix Chromium appends (" (0951:16a4)" for USB,
+// " (Bluetooth)" for Bluetooth).
 const WIN_FORM_SPEAKERS = 1;
 const WIN_FORM_DIGITAL_DISPLAY = 9; // DigitalAudioDisplayDevice: a monitor or TV over HDMI/DisplayPort
 const WIN_FORM_HEADPHONES = new Set([3, 5, 6]); // Headphones, Headset, Handset
@@ -308,11 +310,17 @@ function parseWinDevices(text) {
       else if (form === WIN_FORM_SPEAKERS) formFactor = 'speakers';
       else if (WIN_FORM_HEADPHONES.has(form)) formFactor = 'headphones';
       return {
-        label: typeof r.label === 'string' ? r.label : '',
+        // The label the browser shows for this output, so the two match exactly.
+        label:
+          typeof r.browserLabel === 'string' && r.browserLabel
+            ? r.browserLabel
+            : typeof r.label === 'string'
+              ? r.label
+              : '',
         isDefault: r.isDefault === true,
         formFactor,
         transport,
-        raw: capRaw({ id: r.id, formFactor: r.formFactor, enumerator: r.enumerator }),
+        raw: capRaw({ id: r.id, name: r.label, formFactor: r.formFactor, enumerator: r.enumerator }),
       };
     });
 }

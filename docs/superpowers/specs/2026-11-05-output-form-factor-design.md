@@ -33,7 +33,7 @@ type FormFactor = 'headphones' | 'speakers' | 'unknown';
 type Transport = 'builtin' | 'usb' | 'bluetooth' | 'hdmi' | 'virtual' | 'unknown';
 
 interface OutputDeviceInfo {
-  label: string;           // the system's own device name (helper / pactl; on macOS the string Chromium shows: the data source or device name plus the transport suffix in brackets, as Chromium's CoreAudioUtilMac::GetDeviceLabel builds it); the browser's label is only matched against it by exact equality (§5), never stored here
+  label: string;           // the system's own device name (helper / pactl; on macOS and Windows the string Chromium shows: on macOS the data source or device name plus the transport suffix in brackets, as Chromium's CoreAudioUtilMac::GetDeviceLabel builds it; on Windows the friendly name plus Chromium's USB or Bluetooth suffix); the browser's label is only matched against it by exact equality (§5), never stored here
   isDefault: boolean;      // the system's default output
   formFactor: FormFactor;
   transport: Transport;
@@ -76,7 +76,7 @@ A new `--devices` command enumerates active render endpoints (`IMMDeviceEnumerat
 | Headphones, Headset, Handset | `headphones` |
 | LineLevel, SPDIF, DigitalAudioDisplayDevice, UnknownDigitalPassthrough, RemoteNetworkDevice, UnknownFormFactor | `unknown` |
 
-Transport from `PKEY_Device_EnumeratorName`: `BTHENUM` / `BTHHFENUM` → `bluetooth`; `USB` → `usb`; `HDAUDIO` → `builtin`, or `hdmi` when the form factor is DigitalAudioDisplayDevice; `SWD`, `ROOT` and anything else → `virtual` / `unknown` (VB-CABLE, our virtual microphone's bus, enumerates under these). The label is `PKEY_Device_FriendlyName`, the same string Chromium shows ("Speakers (Realtek(R) Audio)").
+Transport from `PKEY_Device_EnumeratorName`: `BTHENUM` / `BTHHFENUM` → `bluetooth`; `USB` → `usb`; `HDAUDIO` → `builtin`, or `hdmi` when the form factor is DigitalAudioDisplayDevice; `SWD`, `ROOT` and anything else → `virtual` / `unknown` (VB-CABLE, our virtual microphone's bus, enumerates under these). The label is the string Chromium shows: `PKEY_Device_FriendlyName` ("Speakers (Realtek(R) Audio)"), plus the suffix Chromium appends from the instance id of the device the endpoint's topology leads to (`device_enumeration_win.cc`, `GetDeviceInstanceId` and `GetDeviceSuffixWin`): ` (0951:16a4)`, the USB vendor and product ids in lower case, for `USB\VID_…&PID_…`; ` (Bluetooth)` for `BTHENUM\…` and `BTHHFENUM\BthHFPAudio\…`; nothing otherwise. The friendly name alone missed every USB output in measurement.
 
 ### Linux: `pactl`, no native code
 
@@ -105,6 +105,7 @@ The renderer knows an outlet's sink by its `deviceId` (or none: the browser defa
 - `communications` (Windows) → `unknown` (rarely chosen; not worth a second default lookup).
 - Otherwise the `audiooutput` entry's label, trimmed and with Chromium's `Default - ` / `Communications - ` prefix removed, is compared with the native labels. Exactly one equal label → that device. None or more than one (two identical USB headsets, two AirPods with the same name) → `unknown`. Nothing fuzzier than that: a looser match would be the guessing §2 rules out.
 - On macOS the native label is the string Chromium shows: the current data source's name, or else the device name, plus the transport suffix in brackets (`MacBook Pro Speakers (Built-in)`), as Chromium's `CoreAudioUtilMac::GetDeviceLabel` builds it. The helper builds it the same way, and it is still compared by exact equality.
+- On Windows likewise: the friendly name plus Chromium's suffix (§4), built by the helper and compared by exact equality.
 
 Label matching is what the browser layer allows: Chromium's device ids are salted hashes that the native side cannot reproduce. If a platform's Chromium labels turn out not to equal the native names at all, that platform answers `unknown` until the matcher is fixed; measuring this comes first (§9).
 

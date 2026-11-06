@@ -116,7 +116,7 @@ try {
     $devices = @(($devicesText | ConvertFrom-Json))
     $devicesShapeOk = ($devicesExit -eq 0) -and ($devicesText.TrimStart().StartsWith('['))
 } catch {}
-$deviceKeys = @('id', 'label', 'isDefault', 'formFactor', 'enumerator')
+$deviceKeys = @('id', 'label', 'browserLabel', 'isDefault', 'formFactor', 'enumerator')
 if ($devicesShapeOk) {
     foreach ($d in $devices) {
         $names = @($d.PSObject.Properties.Name)
@@ -177,7 +177,7 @@ Check 'tree-capture-reaches-child' ($treePeak -gt 8000) `
 Check 'survives-audio-child-exit' ($treeAlive) `
     'the helper must outlive the audio child, or Sokuji silently widens to whole-system capture'
 Check 'devices-shape' $devicesShapeOk `
-    '--devices must print an array whose rows each have id, label, isDefault, formFactor and enumerator'
+    '--devices must print an array whose rows each have id, label, browserLabel, isDefault, formFactor and enumerator'
 Check 'devices-one-default' ($defaultCount -le 1) `
     ("{0} rows have isDefault true, expected at most 1" -f $defaultCount)
 

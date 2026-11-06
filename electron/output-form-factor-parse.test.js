@@ -303,7 +303,7 @@ describe('parseWinDevices', () => {
       isDefault: true,
       formFactor: 'speakers',
       transport: 'builtin',
-      raw: { id: '{0.0.0.00000000}.{guid}', formFactor: 1, enumerator: 'HDAUDIO' },
+      raw: { id: '{0.0.0.00000000}.{guid}', name: 'Speakers (Realtek(R) Audio)', formFactor: 1, enumerator: 'HDAUDIO' },
     });
   });
 
@@ -363,6 +363,32 @@ describe('parseWinDevices', () => {
 
   it('a null form factor and enumerator are unknown', () => {
     expect(parse({})).toMatchObject({ formFactor: 'unknown', transport: 'unknown', raw: { id: '{0.0.0.00000000}.{guid}' } });
+  });
+
+  // Measured on a real machine: the helper's row for a USB headset, and the label Chromium showed for it.
+  it('a USB headset carries the label Chromium shows, its vendor and product ids appended', () => {
+    expect(
+      parse({
+        label: 'ヘッドセット イヤフォン (HyperX Virtual Surround Sound)',
+        browserLabel: 'ヘッドセット イヤフォン (HyperX Virtual Surround Sound) (0951:16a4)',
+        isDefault: true,
+        formFactor: 5,
+        enumerator: 'USB',
+      }),
+    ).toEqual({
+      label: 'ヘッドセット イヤフォン (HyperX Virtual Surround Sound) (0951:16a4)',
+      isDefault: true,
+      formFactor: 'headphones',
+      transport: 'usb',
+      raw: { id: '{0.0.0.00000000}.{guid}', name: 'ヘッドセット イヤフォン (HyperX Virtual Surround Sound)', formFactor: 5, enumerator: 'USB' },
+    });
+  });
+
+  it('label is the browser label, else the device name, else empty', () => {
+    expect(parse({ label: 'Speakers (Realtek(R) Audio)', browserLabel: 'Speakers (Realtek(R) Audio)' }).label).toBe('Speakers (Realtek(R) Audio)');
+    expect(parse({ label: 'Plain' }).label).toBe('Plain');
+    expect(parse({ label: 'Plain', browserLabel: '' }).label).toBe('Plain');
+    expect(parse({ label: 'Plain', browserLabel: 7 }).label).toBe('Plain');
   });
 
   it('a non-string label becomes empty', () => {

@@ -15,7 +15,11 @@
 //       enumerator cannot be created, with nothing on stdout). One row per
 //       active render endpoint:
 //         [{"id":"{0.0.0.00000000}.{...}","label":"Speakers (Realtek(R) Audio)",
+//           "browserLabel":"Speakers (Realtek(R) Audio)",
 //           "isDefault":true,"formFactor":1,"enumerator":"HDAUDIO"}]
+//       `label` is PKEY_Device_FriendlyName. `browserLabel` is the text
+//       Chromium shows for the output: that name plus the suffix Chromium
+//       appends, " (0951:16a4)" for USB and " (Bluetooth)" for Bluetooth.
 //       `formFactor` is PKEY_AudioEndpoint_FormFactor (EndpointFormFactor) and
 //       `enumerator` is PKEY_Device_EnumeratorName; each is null when the
 //       endpoint does not state it.
@@ -43,6 +47,7 @@
 #include <audioclient.h>
 #include <audioclientactivationparams.h>
 #include <audiopolicy.h>
+#include <devicetopology.h>
 #include <tlhelp32.h>
 #include <winver.h>
 #include <fcntl.h>
@@ -436,6 +441,51 @@ static bool ReadUIntProp(IPropertyStore* props, const PROPERTYKEY& key, unsigned
     return ok;
 }
 
+// The physical device behind an endpoint, found the way Chromium's
+// GetDeviceInstanceId finds it (media/audio/win/device_enumeration_win.cc):
+// the node the topology's first connector leads to, and that node's
+// PKEY_Device_InstanceId, e.g. "USB\VID_0951&PID_16A4&MI_00\...". Empty when
+// any step fails, as in Chromium, which then appends nothing.
+static std::string DeviceInstanceId(IMMDevice* dev, IMMDeviceEnumerator* en) {
+    std::string out;
+    IDeviceTopology* topology = nullptr;
+    IConnector* connector = nullptr;
+    LPWSTR filterId = nullptr;
+    if (SUCCEEDED(dev->Activate(__uuidof(IDeviceTopology), CLSCTX_ALL, nullptr, (void**)&topology)) &&
+        SUCCEEDED(topology->GetConnector(0, &connector)) &&
+        SUCCEEDED(connector->GetDeviceIdConnectedTo(&filterId)) && filterId) {
+        IMMDevice* node = nullptr;
+        IPropertyStore* props = nullptr;
+        if (SUCCEEDED(en->GetDevice(filterId, &node)) && SUCCEEDED(node->OpenPropertyStore(STGM_READ, &props))) {
+            ReadStringProp(props, PKEY_Device_InstanceId, &out);
+        }
+        if (props) props->Release();
+        if (node) node->Release();
+    }
+    if (filterId) CoTaskMemFree(filterId);
+    if (connector) connector->Release();
+    if (topology) topology->Release();
+    return out;
+}
+
+// The suffix Chromium appends to an output's friendly name, from the instance
+// id above, as its GetDeviceSuffixWin builds it: USB gives the vendor and
+// product ids in lower case, " (0951:16a4)"; Bluetooth gives " (Bluetooth)";
+// anything else gives nothing.
+static std::string ChromiumLabelSuffix(const std::string& id) {
+    if (id.size() >= 21 && id.compare(0, 8, "USB\\VID_") == 0 && id.compare(12, 5, "&PID_") == 0) {
+        std::string ids = id.substr(8, 4) + ":" + id.substr(17, 4);
+        for (char& c : ids) {
+            if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+        }
+        return " (" + ids + ")";
+    }
+    if (id.compare(0, 22, "BTHHFENUM\\BthHFPAudio\\") == 0 || id.compare(0, 8, "BTHENUM\\") == 0) {
+        return " (Bluetooth)";
+    }
+    return std::string();
+}
+
 // List the active render endpoints with the form factor and enumerator the
 // system states for each, so the caller can tell speakers from headphones.
 // Unlike ListSources, a missing enumerator is a failure (exit 1, nothing on
@@ -488,10 +538,13 @@ static int ListDevices() {
             props->Release();
         }
 
+        // The browser can only be matched by its label, so build the one it shows.
+        const std::string browserLabel = hasLabel ? label + ChromiumLabelSuffix(DeviceInstanceId(dev, en)) : std::string();
+
         if (!first) out += ",";
         first = false;
         out += "{\"id\":\"" + JsonEscape(idUtf8) + "\",\"label\":\"" + JsonEscape(hasLabel ? label : std::string()) +
-               "\",\"isDefault\":" + (isDefault ? "true" : "false") + ",\"formFactor\":";
+               "\",\"browserLabel\":\"" + JsonEscape(browserLabel) + "\",\"isDefault\":" + (isDefault ? "true" : "false") + ",\"formFactor\":";
         out += hasForm ? std::to_string(form) : std::string("null");
         out += ",\"enumerator\":";
         out += hasEnumerator ? "\"" + JsonEscape(enumerator) + "\"" : std::string("null");
