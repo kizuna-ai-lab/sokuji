@@ -27,6 +27,12 @@ export interface StatusEntry {
   key: string;
   icon: StatusIcon;
   words: StatusWords;
+  /**
+   * What the line's live region says when that differs from `words`: steady
+   * words for a line whose visible ones tick (the reconnect's attempt and
+   * seconds), so a screen reader is not read the line again every second.
+   */
+  announce?: StatusWords;
   action: NoticeActionSpec | null;
   /** What a dismiss means, when the line offers one. */
   dismiss: 'echo' | 'subtitle-entry' | null;
@@ -91,11 +97,12 @@ export function statusLine(input: StatusLineInput): StatusEntry | null {
         const p = run.legs[leg] === 'reconnecting' ? run.reconnect?.[leg] : undefined;
         if (p && (!first || p.since < first.since)) first = p;
       }
+      const steady: StatusWords = { kind: 'key', key: 'connectionStatus.reconnecting', fallback: 'Reconnecting...' };
       if (first) {
         const words: StatusWords = { kind: 'key', key: 'connectionStatus.reconnectingAttempt', fallback: 'Reconnecting… (attempt {{attempt}}, {{seconds}} s)', params: { attempt: first.attempt, seconds: Math.max(0, Math.floor((now - first.since) / 1000)) } };
-        return { key: 'reconnecting', icon: 'refresh-cw', words, action: null, dismiss: null };
+        return { key: 'reconnecting', icon: 'refresh-cw', words, announce: steady, action: null, dismiss: null };
       }
-      return { key: 'reconnecting', icon: 'refresh-cw', words: { kind: 'key', key: 'connectionStatus.reconnecting', fallback: 'Reconnecting...' }, action: null, dismiss: null };
+      return { key: 'reconnecting', icon: 'refresh-cw', words: steady, action: null, dismiss: null };
     }
     // 3. Waiting for a microphone (#596): the moment it went away was an event row; this is the wait.
     if (waitingForMicrophone) {

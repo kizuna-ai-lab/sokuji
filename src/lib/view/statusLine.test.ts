@@ -69,6 +69,16 @@ describe('statusLine — while running (priorities 2–5)', () => {
       words: { kind: 'key', key: 'connectionStatus.reconnectingAttempt', params: { attempt: 3, seconds: 12 } },
     });
   });
+  it('a reconnect with attempts announces steady words: only the visible ones count attempts and seconds', () => {
+    const at = (attempt: number, now: number) => statusLine(input({ run: running({ speaker: 'reconnecting' }, { speaker: { attempt, since: 1_000 } }), now }));
+    const a = at(2, 3_000);
+    const b = at(3, 9_000);
+    expect(a?.words).not.toEqual(b?.words);
+    expect(a?.announce).toEqual({ kind: 'key', key: 'connectionStatus.reconnecting', fallback: 'Reconnecting...' });
+    expect(b?.announce).toEqual(a?.announce);
+    // Words that never tick need no second wording.
+    expect(statusLine(input({ run: running({ speaker: 'reconnecting' }), now: 5_000 }))).not.toHaveProperty('announce');
+  });
   it('two reconnecting legs show the earlier drop', () => {
     const run = running({ speaker: 'reconnecting', participant: 'reconnecting' }, { speaker: { attempt: 1, since: 9_000 }, participant: { attempt: 4, since: 2_000 } });
     expect(statusLine(input({ run, now: 10_000 }))).toMatchObject({ words: { params: { attempt: 4, seconds: 8 } } });

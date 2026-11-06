@@ -26,7 +26,8 @@ export function useStatusLine({ run, idle, canStart, dismissedEnd, echo }: UseSt
   const entryHint = useSubtitleEntryHint();
   // No usable input is selected: `audioStore` clears the selection when none is left (#596).
   const waitingForMicrophone = run.phase === 'running' && run.legs.speaker !== undefined && selectedInput === null;
-  // The reconnect line counts seconds, so it re-renders once a second while a leg reconnects (the `useSessionClock` pattern).
+  // The reconnect line counts seconds, so it re-renders once a second while a leg reconnects (the `useSessionClock` pattern);
+  // only its visible words tick, its live region's stay as they are (`StatusEntry.announce`).
   const reconnecting = run.phase === 'running' && Object.values(run.legs).includes('reconnecting');
   const [, retick] = useState(0);
   useEffect(() => {

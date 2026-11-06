@@ -32,7 +32,9 @@ export function StatusLine({ entry, onAction, onDismiss }: StatusLineProps) {
   return (
     <div className="status-line" role="status" data-status={entry.key}>
       <Icon size={14} aria-hidden="true" />
-      <span className="status-line__text">{words}</span>
+      {/* Words that tick are seen, not announced: the live region reads the steady ones in their place. */}
+      {entry.announce && <span className="status-line__announce">{wordsOf(entry.announce, t)}</span>}
+      <span className="status-line__text" aria-hidden={entry.announce ? true : undefined}>{words}</span>
       {action && label && (
         <button type="button" className="status-line__action" onClick={() => onAction(action)}>
           {t(label.key, label.fallback)}
