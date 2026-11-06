@@ -12,6 +12,7 @@ const {
   parsePactlDefaultSink,
   parseMacDevices,
   parseWinDevices,
+  chromiumRedactedLabel,
 } = require('./output-form-factor-parse.js');
 
 const fixture = (name) =>
@@ -398,5 +399,42 @@ describe('parseWinDevices', () => {
   it('text that is not a JSON array gives null', () => {
     expect(parseWinDevices('not json')).toBeNull();
     expect(parseWinDevices('{"a":1}')).toBeNull();
+  });
+});
+
+// Chromium 152 rewrites every output whose name holds "AirPods" before a page sees it
+// (media/audio/audio_device_description.cc, RedactDeviceName), so the native label must be
+// rewritten the same way to match.
+describe('chromiumRedactedLabel', () => {
+  it.each([
+    // macOS: device name plus Chromium's transport suffix.
+    ["Henrik's AirPods Pro (Bluetooth)", 'AirPods (Bluetooth)'],
+    // Windows, English: the form-factor prefix and the profile survive.
+    ["Headphones (Henrik's AirPods Pro Stereo) (Bluetooth)", 'Headphones (AirPods Stereo) (Bluetooth)'],
+    ["Headset (Henrik's AirPods Hands-Free AG Audio) (Bluetooth)", 'Headset (AirPods Hands-Free AG Audio) (Bluetooth)'],
+    ["Headset (Henrik's AirPods Hands-Free) (Bluetooth)", 'Headset (AirPods Hands-Free) (Bluetooth)'],
+    // Windows, Japanese: Chromium knows only the English prefixes, so the prefix is dropped.
+    ["ヘッドホン (Henrik's AirPods) (Bluetooth)", 'AirPods (Bluetooth)'],
+    // Linux: the sink description alone.
+    ["Henrik's AirPods", 'AirPods'],
+  ])('%s reads %s', (native, chromium) => {
+    expect(chromiumRedactedLabel(native)).toBe(chromium);
+  });
+
+  it('leaves every other name as it is', () => {
+    for (const name of ['Speakers (Realtek(R) Audio)', 'MacBook Pro Speakers (Built-in)', 'Headphones (WH-1000XM4 Stereo) (Bluetooth)', 'airpods', '']) {
+      expect(chromiumRedactedLabel(name)).toBe(name);
+    }
+  });
+
+  it("each platform's rows carry the rewritten label; raw keeps the system's name", () => {
+    const mac = parseMacDevices(JSON.stringify([{ label: "Henrik's AirPods Pro", browserLabel: "Henrik's AirPods Pro (Bluetooth)", transport: 'blue', isDefault: false }]))[0];
+    expect(mac.label).toBe('AirPods (Bluetooth)');
+    expect(mac.raw.name).toBe("Henrik's AirPods Pro");
+    const win = parseWinDevices(JSON.stringify([{ id: '{0.0.0.00000000}.{guid}', label: "Headphones (Henrik's AirPods Pro Stereo)", browserLabel: "Headphones (Henrik's AirPods Pro Stereo) (Bluetooth)", isDefault: false, formFactor: 3, enumerator: 'BTHENUM' }]))[0];
+    expect(win).toMatchObject({ label: 'Headphones (AirPods Stereo) (Bluetooth)', formFactor: 'headphones', transport: 'bluetooth' });
+    expect(win.raw.name).toBe("Headphones (Henrik's AirPods Pro Stereo)");
+    const linux = parsePactlSinksJson(JSON.stringify([{ ...sink({ name: 'bluez_output.x', props: { 'device.bus': 'bluetooth' } }), description: "Henrik's AirPods" }]), null)[0];
+    expect(linux.label).toBe('AirPods');
   });
 });

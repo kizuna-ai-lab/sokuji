@@ -79,7 +79,7 @@ function classifySink({ name, description, driver, properties, activePort, portT
   }
 
   return {
-    label: description,
+    label: typeof description === 'string' ? chromiumRedactedLabel(description) : description,
     isDefault: name === defaultSinkName,
     formFactor,
     transport,
@@ -232,11 +232,33 @@ function macFormFactor(transport, dataSource, terminalType) {
   return 'unknown';
 }
 
+// Chromium rewrites every output whose name holds "AirPods" before a page sees
+// it, so the owner's name never reaches the page (Chromium 152,
+// media/audio/audio_device_description.cc, RedactDeviceName, run by
+// LocalizeDeviceDescriptions on every platform). The rule, as written there:
+// only "AirPods" (case-sensitive) triggers it; a profile ("Hands-Free AG
+// Audio", else "Hands-Free", else "Stereo"), an English Windows form factor
+// ("Headphones", else "Headset", which keeps the parentheses) and a
+// "(Bluetooth)" suffix survive; everything else becomes "AirPods".
+function chromiumRedactedLabel(name) {
+  if (!name.includes('AirPods')) return name;
+  let profile = '';
+  if (name.includes('Hands-Free AG Audio')) profile = ' Hands-Free AG Audio';
+  else if (name.includes('Hands-Free')) profile = ' Hands-Free';
+  else if (name.includes('Stereo')) profile = ' Stereo';
+  let formFactor = null;
+  if (name.includes('Headphones')) formFactor = 'Headphones';
+  else if (name.includes('Headset')) formFactor = 'Headset';
+  const suffix = name.includes('(Bluetooth)') ? ' (Bluetooth)' : '';
+  const base = `AirPods${profile}`;
+  return formFactor ? `${formFactor} (${base})${suffix}` : `${base}${suffix}`;
+}
+
 // A helper row's label: the one the browser shows when the helper built it,
-// else the system's device name, else empty.
+// else the system's device name, else empty; then Chromium's AirPods rewrite.
 function helperLabel(r) {
-  if (typeof r.browserLabel === 'string' && r.browserLabel) return r.browserLabel;
-  return typeof r.label === 'string' ? r.label : '';
+  if (typeof r.browserLabel === 'string' && r.browserLabel) return chromiumRedactedLabel(r.browserLabel);
+  return typeof r.label === 'string' ? chromiumRedactedLabel(r.label) : '';
 }
 
 function parseMacDevices(text) {
@@ -332,4 +354,5 @@ module.exports = {
   parsePactlDefaultSink,
   parseMacDevices,
   parseWinDevices,
+  chromiumRedactedLabel,
 };
