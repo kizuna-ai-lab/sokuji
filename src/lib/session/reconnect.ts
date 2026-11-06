@@ -48,7 +48,11 @@ export interface ReconnectorOptions {
   reconnecting(e: { attempt: number; drop?: DropInfo }): void;
   reconnected(e: ReconnectedInfo): void;
   gaveUp(e: GiveUp): void;
-  /** One attempt. The signal (shared by all attempts of a drop) aborts at the deadline and on `cancel()`; an attempt that outlives it is abandoned. */
+  /**
+   * One attempt. The signal (shared by all attempts of a drop) aborts when the deadline's timer runs and on `cancel()`; an answer
+   * after that is abandoned. A success read before that timer has run is taken, even past the deadline's time (a throttled page's
+   * late timer): its connection is already live, and ending it would be worse than a reconnect that came late.
+   */
   attempt(ctx: { attempt: number; signal: AbortSignal }): Promise<AttemptResult>;
 }
 
@@ -179,7 +183,8 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
   };
 
   const settle = (c: Cycle, attempt: number, answer: AttemptResult) => {
-    // A cancelled, timed-out or superseded cycle's late answer is nobody's business.
+    // A cancelled, timed-out or superseded cycle's late answer is nobody's business. The deadline is its timer's to enforce, not
+    // this read's: a success that lands past the deadline's time, its timer not yet run, is taken (the attempt contract above).
     if (cycle !== c || c.attempt !== attempt) return;
     c.inFlight = false;
     const behind = c.droppedBehind;

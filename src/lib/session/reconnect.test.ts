@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { trackedClock } from '../contract/testing/trackedClock';
 import { flush } from '../contract/testing/drive';
 import {
-  createReconnector, closeCodeAction, MAX_RECONNECTS, MAX_RECONNECTS_PER_MINUTE, refusalResult, reissueFailed,
+  createReconnector, closeCodeAction, MAX_RECONNECTS, MAX_RECONNECTS_PER_MINUTE, RECONNECT_BUDGET_MS, refusalResult, reissueFailed,
   type AttemptResult, type DropInfo, type GiveUp, type ReconnectedInfo, type Reconnector,
 } from './reconnect';
 
@@ -288,6 +288,35 @@ describe('createReconnector', () => {
     release(ok());
     await flush();
     expect(events).toEqual(['session.reconnecting']);
+  });
+
+  it("a success read past the deadline's time, before its timer has run, is accepted: the connection is already live", async () => {
+    const { clock, timers } = trackedClock();
+    // Timers that run late, as a throttled page's do: the time is past the deadline, its timer not yet run.
+    let late = 0;
+    const throttled = { now: () => clock.now() + late, setTimeout: clock.setTimeout };
+    let answer: (r: AttemptResult) => void = () => {};
+    const signals: AbortSignal[] = [];
+    const frames: string[] = [];
+    const reconnected: ReconnectedInfo[] = [];
+    const gaveUp: GiveUp[] = [];
+    const r = createReconnector({
+      clock: throttled, frame: (t) => frames.push(t), reconnecting: () => {}, reconnected: (e) => reconnected.push(e), gaveUp: (e) => gaveUp.push(e),
+      attempt: ({ signal }) => { signals.push(signal); return new Promise<AttemptResult>((res) => { answer = res; }); },
+    });
+    r.dropped(DROP);
+    late = RECONNECT_BUDGET_MS + 1;
+    answer(ok());
+    await micro();
+    expect(reconnected).toEqual([{ attempts: 1, credentialsReissued: false, reissueMs: 0, budgetShared: false }]);
+    expect(gaveUp).toEqual([]);
+    expect(frames).toEqual(['session.reconnecting', 'session.reconnected']);
+    expect(signals[0].aborted).toBe(false);
+    expect(r.active).toBe(false);
+    // The deadline's timer went with the cycle: when the late timers run at last, nothing gives up.
+    expect(timers()).toBe(0);
+    clock.advance(RECONNECT_BUDGET_MS);
+    expect(gaveUp).toEqual([]);
   });
 
   it('an attempt that throws is a failed attempt', async () => {
