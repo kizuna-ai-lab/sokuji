@@ -11,6 +11,7 @@ const {
   parsePactlSinksText,
   parsePactlDefaultSink,
   parseMacDevices,
+  parseWinDevices,
 } = require('./output-form-factor-parse.js');
 
 const fixture = (name) =>
@@ -233,5 +234,79 @@ describe('parseMacDevices', () => {
   it('text that is not a JSON array gives null', () => {
     expect(parseMacDevices('not json')).toBeNull();
     expect(parseMacDevices('{"a":1}')).toBeNull();
+  });
+});
+
+describe('parseWinDevices', () => {
+  const row = (over = {}) => ({
+    id: '{0.0.0.00000000}.{guid}',
+    label: 'Test Device',
+    isDefault: false,
+    formFactor: null,
+    enumerator: null,
+    ...over,
+  });
+  const parse = (over) => parseWinDevices(JSON.stringify([row(over)]))[0];
+
+  it('Speakers on HDAUDIO are speakers over builtin', () => {
+    expect(parse({ label: 'Speakers (Realtek(R) Audio)', isDefault: true, formFactor: 1, enumerator: 'HDAUDIO' })).toEqual({
+      label: 'Speakers (Realtek(R) Audio)',
+      isDefault: true,
+      formFactor: 'speakers',
+      transport: 'builtin',
+      raw: { id: '{0.0.0.00000000}.{guid}', formFactor: 1, enumerator: 'HDAUDIO' },
+    });
+  });
+
+  it('Headphones on HDAUDIO are headphones', () => {
+    expect(parse({ label: 'Headphones (Realtek(R) Audio)', formFactor: 3, enumerator: 'HDAUDIO' })).toMatchObject({
+      formFactor: 'headphones',
+      transport: 'builtin',
+    });
+  });
+
+  it('a Bluetooth headset is headphones over bluetooth', () => {
+    expect(parse({ formFactor: 5, enumerator: 'BTHHFENUM' })).toMatchObject({
+      formFactor: 'headphones',
+      transport: 'bluetooth',
+    });
+    expect(parse({ formFactor: 6, enumerator: 'BTHENUM' })).toMatchObject({
+      formFactor: 'headphones',
+      transport: 'bluetooth',
+    });
+  });
+
+  it('a monitor (digital display) is unknown over hdmi', () => {
+    expect(parse({ formFactor: 9, enumerator: 'HDAUDIO' })).toMatchObject({ formFactor: 'unknown', transport: 'hdmi' });
+  });
+
+  it('a virtual cable is unknown over virtual', () => {
+    expect(parse({ label: 'CABLE Input (VB-Audio Virtual Cable)', formFactor: 10, enumerator: 'ROOT' })).toMatchObject({
+      formFactor: 'unknown',
+      transport: 'virtual',
+    });
+    expect(parse({ formFactor: 1, enumerator: 'SWD' })).toMatchObject({ transport: 'virtual' });
+  });
+
+  it('a USB DAC is unknown over usb', () => {
+    expect(parse({ formFactor: 2, enumerator: 'USB' })).toMatchObject({ formFactor: 'unknown', transport: 'usb' });
+  });
+
+  it('the enumerator compares case-insensitively; an unlisted one is unknown', () => {
+    expect(parse({ formFactor: 1, enumerator: 'usb' })).toMatchObject({ transport: 'usb' });
+    expect(parse({ formFactor: 1, enumerator: 'PCI' })).toMatchObject({ transport: 'unknown' });
+  });
+
+  it('a null form factor and enumerator are unknown', () => {
+    expect(parse({})).toMatchObject({ formFactor: 'unknown', transport: 'unknown', raw: { id: '{0.0.0.00000000}.{guid}' } });
+  });
+
+  it('a non-string label becomes empty', () => {
+    expect(parse({ label: 42 }).label).toBe('');
+  });
+
+  it('text that is not a JSON array gives null', () => {
+    expect(parseWinDevices('not json')).toBeNull();
+    expect(parseWinDevices('{"a":1}')).toBeNull();
   });
 });

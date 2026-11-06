@@ -238,6 +238,52 @@ function parseMacDevices(text) {
     });
 }
 
+// `--devices` of the Windows helper: one JSON array. formFactor is
+// PKEY_AudioEndpoint_FormFactor (the EndpointFormFactor enum) or null;
+// enumerator is PKEY_Device_EnumeratorName or null.
+const WIN_FORM_SPEAKERS = 1;
+const WIN_FORM_DIGITAL_DISPLAY = 9; // DigitalAudioDisplayDevice: a monitor or TV over HDMI/DisplayPort
+const WIN_FORM_HEADPHONES = new Set([3, 5, 6]); // Headphones, Headset, Handset
+
+const WIN_TRANSPORT = {
+  BTHENUM: 'bluetooth',
+  BTHHFENUM: 'bluetooth',
+  USB: 'usb',
+  SWD: 'virtual',
+  ROOT: 'virtual',
+};
+
+function winTransport(enumerator, formFactor) {
+  const name = typeof enumerator === 'string' ? enumerator.toUpperCase() : '';
+  if (name === 'HDAUDIO') return formFactor === WIN_FORM_DIGITAL_DISPLAY ? 'hdmi' : 'builtin';
+  return WIN_TRANSPORT[name] || 'unknown';
+}
+
+function parseWinDevices(text) {
+  let rows;
+  try {
+    rows = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(rows)) return null;
+  return rows
+    .filter((r) => r && typeof r === 'object')
+    .map((r) => {
+      const form = typeof r.formFactor === 'number' ? r.formFactor : null;
+      let formFactor = 'unknown';
+      if (form === WIN_FORM_SPEAKERS) formFactor = 'speakers';
+      else if (WIN_FORM_HEADPHONES.has(form)) formFactor = 'headphones';
+      return {
+        label: typeof r.label === 'string' ? r.label : '',
+        isDefault: r.isDefault === true,
+        formFactor,
+        transport: winTransport(r.enumerator, form),
+        raw: capRaw({ id: r.id, formFactor: r.formFactor, enumerator: r.enumerator }),
+      };
+    });
+}
+
 module.exports = {
   MAX_RAW_KEYS,
   MAX_RAW_STRING,
@@ -246,4 +292,5 @@ module.exports = {
   parsePactlSinksText,
   parsePactlDefaultSink,
   parseMacDevices,
+  parseWinDevices,
 };

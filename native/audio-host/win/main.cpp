@@ -10,6 +10,16 @@
 //       because one process can own several windows and Windows cannot capture
 //       them separately.
 //
+//   sokuji-audio-host.exe --devices
+//       Writes one JSON array to stdout and exits 0 (1 if the device
+//       enumerator cannot be created, with nothing on stdout). One row per
+//       active render endpoint:
+//         [{"id":"{0.0.0.00000000}.{...}","label":"Speakers (Realtek(R) Audio)",
+//           "isDefault":true,"formFactor":1,"enumerator":"HDAUDIO"}]
+//       `formFactor` is PKEY_AudioEndpoint_FormFactor (EndpointFormFactor) and
+//       `enumerator` is PKEY_Device_EnumeratorName; each is null when the
+//       endpoint does not state it.
+//
 //   sokuji-audio-host.exe --target pid:1234
 //       Writes raw PCM to stdout until killed. Format is fixed at
 //       24000 Hz, 1 channel, signed 16-bit little-endian.
@@ -25,6 +35,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <mmdeviceapi.h>
+// initguid.h makes the property-key header below define its keys instead of
+// declaring them, so nothing needs a .lib. Placed after mmdeviceapi.h so the
+// interface ids that header declares stay as they were.
+#include <initguid.h>
+#include <functiondiscoverykeys_devpkey.h>
 #include <audioclient.h>
 #include <audioclientactivationparams.h>
 #include <audiopolicy.h>
@@ -390,6 +405,108 @@ static int ListSources() {
     return 0;
 }
 
+// PKEY_AudioEndpoint_FormFactor lives in mmdeviceapi.h, which is included above
+// without initguid.h, so that header only declares the key. The fmtid and pid
+// are the documented ones.
+static const PROPERTYKEY kFormFactorKey = {
+    {0x1da5d803, 0xd492, 0x4edd, {0x8c, 0x23, 0xe0, 0xc0, 0xff, 0xee, 0x7f, 0x0e}}, 0};
+
+// Reads one string property; null when the endpoint does not have it.
+static bool ReadStringProp(IPropertyStore* props, const PROPERTYKEY& key, std::string* out) {
+    PROPVARIANT v;
+    PropVariantInit(&v);
+    bool ok = false;
+    if (SUCCEEDED(props->GetValue(key, &v)) && v.vt == VT_LPWSTR && v.pwszVal) {
+        *out = Utf8(v.pwszVal);
+        ok = true;
+    }
+    PropVariantClear(&v);
+    return ok;
+}
+
+static bool ReadUIntProp(IPropertyStore* props, const PROPERTYKEY& key, unsigned long* out) {
+    PROPVARIANT v;
+    PropVariantInit(&v);
+    bool ok = false;
+    if (SUCCEEDED(props->GetValue(key, &v)) && v.vt == VT_UI4) {
+        *out = v.ulVal;
+        ok = true;
+    }
+    PropVariantClear(&v);
+    return ok;
+}
+
+// List the active render endpoints with the form factor and enumerator the
+// system states for each, so the caller can tell speakers from headphones.
+// Unlike ListSources, a missing enumerator is a failure (exit 1, nothing on
+// stdout): an empty array would claim there are no outputs.
+static int ListDevices() {
+    IMMDeviceEnumerator* en = nullptr;
+    if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                                __uuidof(IMMDeviceEnumerator), (void**)&en))) {
+        return 1;
+    }
+
+    IMMDeviceCollection* coll = nullptr;
+    if (FAILED(en->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &coll))) {
+        en->Release();
+        return 1;
+    }
+
+    // The default may be absent (no active output); then no row is default.
+    std::wstring defaultId;
+    IMMDevice* def = nullptr;
+    if (SUCCEEDED(en->GetDefaultAudioEndpoint(eRender, eConsole, &def))) {
+        LPWSTR id = nullptr;
+        if (SUCCEEDED(def->GetId(&id)) && id) defaultId = id;
+        if (id) CoTaskMemFree(id);
+        def->Release();
+    }
+
+    UINT count = 0;
+    coll->GetCount(&count);
+    std::string out = "[";
+    bool first = true;
+    for (UINT i = 0; i < count; i++) {
+        IMMDevice* dev = nullptr;
+        if (FAILED(coll->Item(i, &dev))) continue;
+
+        LPWSTR id = nullptr;
+        if (FAILED(dev->GetId(&id)) || !id) { dev->Release(); continue; }
+        const bool isDefault = !defaultId.empty() && defaultId == id;
+        std::string idUtf8 = Utf8(id);
+        CoTaskMemFree(id);
+
+        std::string label, enumerator;
+        unsigned long form = 0;
+        bool hasLabel = false, hasEnumerator = false, hasForm = false;
+        IPropertyStore* props = nullptr;
+        if (SUCCEEDED(dev->OpenPropertyStore(STGM_READ, &props))) {
+            hasLabel = ReadStringProp(props, PKEY_Device_FriendlyName, &label);
+            hasEnumerator = ReadStringProp(props, PKEY_Device_EnumeratorName, &enumerator);
+            hasForm = ReadUIntProp(props, kFormFactorKey, &form);
+            props->Release();
+        }
+
+        if (!first) out += ",";
+        first = false;
+        out += "{\"id\":\"" + JsonEscape(idUtf8) + "\",\"label\":\"" + JsonEscape(hasLabel ? label : std::string()) +
+               "\",\"isDefault\":" + (isDefault ? "true" : "false") + ",\"formFactor\":";
+        out += hasForm ? std::to_string(form) : std::string("null");
+        out += ",\"enumerator\":";
+        out += hasEnumerator ? "\"" + JsonEscape(enumerator) + "\"" : std::string("null");
+        out += "}";
+        dev->Release();
+    }
+    out += "]";
+    fwrite(out.data(), 1, out.size(), stdout);
+    fflush(stdout);
+
+    coll->Release();
+    en->Release();
+    return 0;
+}
+
 // ------------------------------------------------------------------ capture
 
 class ActivateHandler : public IActivateAudioInterfaceCompletionHandler {
@@ -547,6 +664,7 @@ static void Usage() {
     fprintf(stderr,
         "usage:\n"
         "  sokuji-audio-host.exe --list\n"
+        "  sokuji-audio-host.exe --devices\n"
         "  sokuji-audio-host.exe --target pid:<processId>\n");
 }
 
@@ -562,6 +680,8 @@ int wmain(int argc, wchar_t** argv) {
     int rc = 2;
     if (wcscmp(argv[1], L"--list") == 0) {
         rc = ListSources();
+    } else if (wcscmp(argv[1], L"--devices") == 0) {
+        rc = ListDevices();
     } else if (wcscmp(argv[1], L"--target") == 0 && argc >= 3) {
         if (wcsncmp(argv[2], L"pid:", 4) != 0) { EmitError("bad_target"); rc = 2; }
         else {
