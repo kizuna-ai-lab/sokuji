@@ -4,8 +4,9 @@
  * same key or on the token the lease answers; which ends reconnect and
  * which end the leg; what the gap does to segments, audio, push-to-talk and
  * the screen's frame; split legs, each on its own; the give-ups and the
- * lease's refusals; the network's return; a stop during the attempts. Over
- * the header seam's fake on a virtual clock.
+ * lease's refusals; the network's return; a stop during the attempts; a
+ * connection that stays open and answers nothing, found by the probe or a
+ * commit's wait. Over the header seam's fake on a virtual clock.
  */
 import { describe, it, expect, vi } from 'vitest';
 import type { FrameSource, SessionContext } from '../../lib/contract/adapter';
@@ -17,11 +18,12 @@ import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
 import { runScenario } from '../../lib/contract/testing/scenarios';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
+import type { VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { FLAP_WINDOW_MS, MAX_RECONNECTS, RECONNECT_BUDGET_MS, type DropInfo } from '../../lib/session/reconnect';
-import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, NEVER_OPENED, qwenDropAction, TURN_DONE_MS } from './adapter';
+import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, KEEPALIVE_IDLE_MS, NEVER_OPENED, QWEN_PROBE_MS, QWEN_STALL_MS, QWEN_TURN_ANSWER_MS, qwenDropAction, TURN_DONE_MS } from './adapter';
 import type { QwenCredentials, QwenReissue } from './settings';
-import { AUTO_CTX, configFor, KEY, MANUAL_CTX, PARTICIPANT_CTX, qwenHarness, qwenSession, SERVER, SHARED, turn } from './testing';
+import { AUTO_CTX, configFor, KEY, MANUAL_CTX, openQwen, PARTICIPANT_CTX, probes, qwenHarness, qwenSession, SERVER, SHARED, turn } from './testing';
 
 const TOKEN_0 = 'st-token-0';
 const TOKEN_1 = 'st-token-1';
@@ -46,14 +48,16 @@ function fakeLease(...answers: QwenReissue[]) {
 type Lease = ReturnType<typeof fakeLease>;
 const managed = (lease: Lease): QwenCredentials => ({ apiKey: TOKEN_0, endpoint: 'intl', lease: lease.port });
 
-/** A leg live, own key unless a lease is given. */
-const live = (o: { lease?: Lease; context?: SessionContext; frames?: FrameSource; requestIds?: string[] } = {}) =>
+/** A leg live, own key unless a lease is given; its server answers each liveness probe unless `answerProbes` is false. */
+const live = (o: { lease?: Lease; context?: SessionContext; frames?: FrameSource; requestIds?: string[]; answerProbes?: boolean; clock?: ReturnType<typeof trackedClock> } = {}) =>
   qwenSession({
     shared: NO_STOREFRONT,
     ...(o.lease ? { credentials: managed(o.lease) } : {}),
     ...(o.context ? { context: o.context } : {}),
     ...(o.frames ? { frames: o.frames } : {}),
     ...(o.requestIds ? { requestIds: o.requestIds } : {}),
+    ...(o.answerProbes === false ? { answerProbes: false } : {}),
+    ...(o.clock ? { clock: o.clock } : {}),
   });
 
 type Live = Awaited<ReturnType<typeof live>>;
@@ -774,6 +778,238 @@ describe('the Qwen adapter reconnects: the gap', () => {
     await h.session.stop();
     expect(src.subscribers).toBe(0);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+});
+
+/**
+ * A tracked clock whose wall time can run ahead of its timers: a hidden
+ * page's, whose timers fire up to a minute late while its socket's messages
+ * still arrive on time (`KEEPALIVE_IDLE_MS`'s comment).
+ */
+function lateClock() {
+  const tracked = trackedClock();
+  let ahead = 0;
+  const clock: VirtualClock = {
+    now: () => tracked.clock.now() + ahead,
+    setTimeout: (fn, ms) => tracked.clock.setTimeout(fn, ms),
+    advance: (ms) => tracked.clock.advance(ms),
+    pending: () => tracked.clock.pending(),
+  };
+  return { tracked: { clock, timers: tracked.timers }, hidden: (ms: number) => { ahead += ms; } };
+}
+
+describe('the Qwen adapter notices a dead connection that does not close (spec §4.2)', () => {
+  it(`automatic turns: a probe every ${QWEN_PROBE_MS / 1000} s while live, and only then: none in the handshake, none in a reconnect's gap, none after stop`, async () => {
+    expect(QWEN_PROBE_MS).toBe(2_000);
+    const h = await openQwen({ shared: NO_STOREFRONT });
+    h.socket().receive(SERVER.created());
+    h.clock.advance(QWEN_PROBE_MS * 3);
+    expect(probes(h.socket())).toBe(0);
+    h.socket().receive(SERVER.updated());
+    const session = await h.starting;
+    h.clock.advance(QWEN_PROBE_MS - 1);
+    expect(probes(h.socket())).toBe(0);
+    h.clock.advance(1);
+    expect(probes(h.socket())).toBe(1);
+    h.clock.advance(QWEN_PROBE_MS * 4);
+    expect(probes(h.socket())).toBe(5);
+    // The bare clear, no `event_id`: Qwen answers with its own (probe 2026-11-06).
+    expect(h.socket().sentJson().filter((m) => (m as { type: string }).type === 'input_audio_buffer.clear')[0]).toEqual({ type: 'input_audio_buffer.clear' });
+    // No Logs line for a probe, nor for its answer.
+    expect(h.frames('input_audio_buffer.clear')).toEqual([]);
+    expect(h.frames('session.error')).toEqual([]);
+    // The gap: the dropped socket and the attempt's handshake get none.
+    const dropped = h.socket();
+    dropped.serverClose(1011);
+    await flush();
+    h.socket().open();
+    await flush();
+    h.socket().receive(SERVER.created('sess_2'));
+    h.clock.advance(QWEN_PROBE_MS * 3);
+    expect(probes(dropped)).toBe(5);
+    expect(probes(h.socket())).toBe(0);
+    h.socket().receive(SERVER.updated());
+    await flush();
+    expect(h.of('reconnected')).toHaveLength(1);
+    h.clock.advance(QWEN_PROBE_MS);
+    expect(probes(h.socket())).toBe(1);
+    await session.stop();
+    expect(h.timers()).toBe(0);
+    h.clock.advance(QWEN_PROBE_MS * 3);
+    expect(probes(h.socket())).toBe(1);
+  });
+
+  it('automatic turns: Qwen refusing each probe (probe 2026-11-06) keeps a silent leg alive past a minute; the refusal is no error — no Logs line, and the close after it reads as if no probe had gone', async () => {
+    const h = await live();
+    h.clock.advance(90_000);
+    expect(probes(h.socket())).toBe(45);
+    expect(h.of('reconnecting')).toEqual([]);
+    expect(h.of('failed')).toEqual([]);
+    expect(h.frames('session.error')).toEqual([]);
+    // A close the table reconnects, right after a refusal: its cause is the close, not an error.
+    h.socket().serverClose(1011);
+    await flush();
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'close', closeCode: 1011 }) }]);
+    await comeBack(h);
+    // A close the table ends, right after a refusal, ends in its own words: an error would word it and reconnect it.
+    h.clock.advance(FLAP_WINDOW_MS + 1);
+    h.socket().serverClose(1008, 'Policy violation');
+    await flush();
+    expect(h.of('reconnecting')).toHaveLength(1);
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Qwen] Policy violation', drop: { cause: 'close', closeCode: 1008, retryable: false, managed: false } }]);
+    expect(h.frames('session.error')).toEqual([]);
+    expect(h.timers()).toBe(0);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it("automatic turns: any other error while probing is still the server's, framed and wording the close after it", async () => {
+    const h = await live();
+    h.clock.advance(QWEN_PROBE_MS);
+    h.socket().receive(SERVER.error('InternalError', 'Internal server error.'));
+    h.socket().serverClose(1011);
+    await flush();
+    expect(h.frames('session.error')).toEqual([{ code: 'InternalError', message: 'Internal server error.' }]);
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'error', closeCode: 1011, errorCode: 'server' }) }]);
+  });
+
+  it(`automatic turns: a probe nothing answers for QWEN_STALL_MS is a dead connection: one drop as a stall, and the reconnect begins`, async () => {
+    expect(QWEN_STALL_MS).toBe(6_000);
+    const h = await live({ answerProbes: false });
+    // Answered: nothing owed.
+    h.clock.advance(QWEN_PROBE_MS);
+    h.socket().receive(SERVER.probeRefused());
+    // Any frame is an answer.
+    h.clock.advance(QWEN_PROBE_MS);
+    h.socket().receive(SERVER.bare('response.created'));
+    // Unanswered from here: the probe at 6 s, then every one after it.
+    h.clock.advance(QWEN_PROBE_MS);
+    const stalled = h.socket();
+    h.clock.advance(QWEN_STALL_MS - 1);
+    expect(h.of('reconnecting')).toEqual([]);
+    expect(stalled.closedByClient).toBeNull();
+    h.clock.advance(1);
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'stall' }) }]);
+    expect(stalled.closedByClient).not.toBeNull();
+    expect(stalled.onmessage).toBeNull();
+    expect(h.frames('session.reconnecting')).toEqual([{ cause: 'stall' }]);
+    await flush();
+    expect(h.seam.sockets.all).toHaveLength(2);
+    // One drop: the gap probes nothing and stalls nothing.
+    h.clock.advance(QWEN_STALL_MS * 2);
+    expect(h.of('reconnecting')).toHaveLength(1);
+    await comeBack(h);
+    expect(h.of('reconnected')).toHaveLength(1);
+    expect(h.of('failed')).toEqual([]);
+    // The new connection is probed afresh.
+    h.clock.advance(QWEN_PROBE_MS);
+    expect(probes(h.socket())).toBe(1);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it('automatic turns: timers a hidden page runs a minute late never read an answered probe as a stall', async () => {
+    const late = lateClock();
+    const h = await live({ answerProbes: false, clock: late.tracked });
+    for (let i = 0; i < 5; i++) {
+      h.clock.advance(QWEN_PROBE_MS);
+      h.socket().receive(SERVER.probeRefused());
+      // The page hidden: a minute passes and no timer fires, though a turn's frames arrive.
+      late.hidden(60_000);
+      for (const f of turn(i + 1, { source: '你好', translation: 'Hello.' })) h.socket().receive(f);
+    }
+    // And with nothing heard since the answer.
+    late.hidden(60_000);
+    h.clock.advance(QWEN_PROBE_MS);
+    h.socket().receive(SERVER.probeRefused());
+    expect(h.of('reconnecting')).toEqual([]);
+    expect(probes(h.socket())).toBe(6);
+  });
+
+  it("automatic turns: a clear Qwen honours (input_audio_buffer.cleared) stops the probe for the rest of the leg, said once; nothing stalls after it", async () => {
+    const h = await live({ answerProbes: false });
+    h.clock.advance(QWEN_PROBE_MS);
+    h.socket().receive(SERVER.bare('input_audio_buffer.cleared'));
+    expect(h.frames('session.probe_stopped')).toEqual([{ reason: 'clear_honoured' }]);
+    h.clock.advance(60_000);
+    expect(probes(h.socket())).toBe(1);
+    expect(h.of('reconnecting')).toEqual([]);
+    h.socket().receive(SERVER.bare('input_audio_buffer.cleared'));
+    expect(h.frames('session.probe_stopped')).toHaveLength(1);
+    // The leg's reconnects do not probe either.
+    h.socket().serverClose(1011);
+    await comeBack(h);
+    h.clock.advance(60_000);
+    expect(probes(h.socket())).toBe(0);
+    expect(h.of('reconnecting')).toHaveLength(1);
+    expect(h.frames('session.probe_stopped')).toHaveLength(1);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it(`push-to-talk: never a probe; a commit nothing answers for QWEN_TURN_ANSWER_MS is a stall, a frame first is its answer, and an idle leg owes nothing`, async () => {
+    expect(QWEN_TURN_ANSWER_MS).toBe(5_000);
+    const h = await live({ context: MANUAL_CTX, answerProbes: false });
+    // Idle, nothing committed: nothing is owed.
+    h.clock.advance(KEEPALIVE_IDLE_MS - 1);
+    expect(h.of('reconnecting')).toEqual([]);
+    // Answered within the bound.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.clock.advance(QWEN_TURN_ANSWER_MS - 1);
+    h.socket().receive(SERVER.committed('item_h1'));
+    h.clock.advance(60_000);
+    expect(h.of('reconnecting')).toEqual([]);
+    h.socket().receive(SERVER.responseDone());
+    // Unanswered.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    const stalled = h.socket();
+    h.clock.advance(QWEN_TURN_ANSWER_MS - 1);
+    expect(h.of('reconnecting')).toEqual([]);
+    h.clock.advance(1);
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'stall' }) }]);
+    expect(stalled.closedByClient).not.toBeNull();
+    expect(h.frames('session.reconnecting')).toEqual([{ cause: 'stall' }]);
+    expect(probes(stalled)).toBe(0);
+    await comeBack(h);
+    expect(h.of('reconnected')).toHaveLength(1);
+    h.clock.advance(60_000);
+    expect(probes(h.socket())).toBe(0);
+    expect(h.of('reconnecting')).toHaveLength(1);
+    expect(checkConformance(h.log, MANUAL_CTX)).toEqual([]);
+  });
+
+  it("push-to-talk: the keepalive's commit is watched as a release's is", async () => {
+    // Answered: nothing more.
+    const answered = await live({ context: MANUAL_CTX, answerProbes: false });
+    answered.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(answered.frames('session.keepalive')).toHaveLength(1);
+    answered.socket().receive(SERVER.committed('item_h1'));
+    answered.clock.advance(QWEN_TURN_ANSWER_MS * 2);
+    expect(answered.of('reconnecting')).toEqual([]);
+    // Unanswered: a stall.
+    const h = await live({ context: MANUAL_CTX, answerProbes: false });
+    h.clock.advance(KEEPALIVE_IDLE_MS);
+    expect(h.frames('session.keepalive')).toHaveLength(1);
+    h.clock.advance(QWEN_TURN_ANSWER_MS - 1);
+    expect(h.of('reconnecting')).toEqual([]);
+    h.clock.advance(1);
+    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'stall' }) }]);
+  });
+
+  it('a stop with a probe or a commit unanswered leaves no timer and says nothing after', async () => {
+    for (const context of [AUTO_CTX, MANUAL_CTX]) {
+      const h = await live({ context, answerProbes: false });
+      h.clock.advance(QWEN_PROBE_MS);
+      h.session.beginTurn();
+      h.session.appendAudio(chunk());
+      h.session.endTurn();
+      await h.session.stop();
+      expect(h.timers()).toBe(0);
+      const n = h.log.length;
+      h.clock.advance(60_000);
+      expect(h.log).toHaveLength(n);
+    }
   });
 });
 

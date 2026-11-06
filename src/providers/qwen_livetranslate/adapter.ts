@@ -14,14 +14,17 @@
  * dropped connection comes back through the leg's own reconnector, on the
  * same key or the token the lease answers, a new session with its own
  * update; any other end fails the leg, in that error's words, else the
- * close's. A leg with nothing to send keeps the session alive past Qwen's
- * idle close. With a screen source (spec 2026-10-22) the update declares
- * video, the frame in hand goes up right after the first audio — never
- * before it — and later frames as they come, the capture layer owning their
- * pace; a lost source is a degradation, the session going on with audio.
- * Stop sends `session.finish` and closes at once. Every timer reads the
- * request's clock, and nothing is said but through events (CLAUDE.md,
- * "Inside an adapter session").
+ * close's. A connection that stays open and answers nothing is a drop too,
+ * a stall: under automatic turns a probe goes every `QWEN_PROBE_MS` and one
+ * unanswered for `QWEN_STALL_MS` drops it; under push-to-talk, a commit
+ * unanswered for `QWEN_TURN_ANSWER_MS` does. A leg with nothing to send
+ * keeps the session alive past Qwen's idle close. With a screen source (spec
+ * 2026-10-22) the update declares video, the frame in hand goes up right
+ * after the first audio — never before it — and later frames as they come,
+ * the capture layer owning their pace; a lost source is a degradation, the
+ * session going on with audio. Stop sends `session.finish` and closes at
+ * once. Every timer reads the request's clock, and nothing is said but
+ * through events (CLAUDE.md, "Inside an adapter session").
  */
 import {
   AdapterStartError,
@@ -54,6 +57,8 @@ import {
   errorWords,
   FINISH,
   imageFrame,
+  isProbeRefusal,
+  PROBE,
   qwenHeaders,
   sessionUpdate,
   socketUrl,
@@ -89,6 +94,32 @@ const KEEPALIVE_SILENCE = new Int16Array(SAMPLE_RATE / 10);
 export const QUIET_KEEP_MS = 2_000;
 /** The quiet kept back to go up ahead of the voice that ends it, so its first syllable is not clipped. */
 export const PRE_ROLL_MS = 300;
+/**
+ * Under automatic turns, how often a live leg probes its connection (spec
+ * 2026-11-05 reconnect §4.2): Qwen sends nothing while the leg is quiet, and
+ * a socket whose network went away can stay open, half-open, for minutes.
+ * The probe (`PROBE`) is refused within 100 ms, clearing nothing (probe
+ * 2026-11-06: the slowest of about 50 took 95 ms; over a 157 s session with
+ * two 70 s silences, 76 of 76 were answered, the slowest in 296 ms, and both
+ * utterances were transcribed, translated and spoken as without them).
+ */
+export const QWEN_PROBE_MS = 2_000;
+/**
+ * A probe nothing at all has answered for this long is a dead connection:
+ * a stall. Counted from the first probe still unanswered, never from the
+ * last frame heard, so a hidden page's tick a minute late finds every probe
+ * answered and no stall. A tick looks before it probes: on a clock that
+ * keeps time, a connection is found dead 6–8 s after the last frame it sent.
+ */
+export const QWEN_STALL_MS = 6_000;
+/**
+ * Push-to-talk has no probe: there a clear empties the press, and an empty
+ * commit leaves the server refusing the next press (probe 2026-11-06). A
+ * commit — a release's, or the keepalive's — that nothing at all answers for
+ * this long is a stall instead; `input_audio_buffer.committed` comes in about
+ * 80 ms. An idle leg owes nothing.
+ */
+export const QWEN_TURN_ANSWER_MS = 5_000;
 const QUIET_KEEP_SAMPLES = (SAMPLE_RATE * QUIET_KEEP_MS) / 1000;
 const PRE_ROLL_SAMPLES = (SAMPLE_RATE * PRE_ROLL_MS) / 1000;
 /** A socket that failed before it opened: a browser cannot read why. */
@@ -211,6 +242,16 @@ class QwenLeg implements AdapterSession {
   /** When audio or a commit last went up: what the idle close counts from. */
   private lastSentAt = 0;
   private stopKeepalive: () => void = () => {};
+  /** Automatic turns: ends the connection's probe; a no-op when none runs. */
+  private stopProbe: () => void = () => {};
+  /** A probe went up on this connection: a refusal of a clear is its answer, no error. */
+  private probed = false;
+  /** When the first probe since anything was heard went up, else null: what a stall counts from. */
+  private unansweredSince: number | null = null;
+  /** Qwen honoured a clear: the leg probes no more, on this connection or its reconnects'. */
+  private probeHonoured = false;
+  /** Push-to-talk: the `QWEN_TURN_ANSWER_MS` wait's cancel, while a commit is unanswered. */
+  private cancelTurnAnswer: (() => void) | null = null;
   /** Push-to-talk: the samples of quiet since the last voiced chunk, across presses. */
   private quietSamples = 0;
   /** The last `PRE_ROLL_MS` of a quiet stretch kept back. */
@@ -231,7 +272,7 @@ class QwenLeg implements AdapterSession {
   ) {
     this.segments = new QwenSegments({ sink: events, person: request.config.person });
     this.apiKey = request.credentials.apiKey;
-    // No stall watch: Qwen sends nothing back while the leg is quiet (spec 2026-11-05 reconnect §4.2).
+    // A dead connection that stays open is found by the probe or the commit's wait (`watchLiveness`, spec 2026-11-05 reconnect §4.2).
     this.reconnector = createReconnector({
       clock: request.clock,
       frame: (type, payload) => this.frame('in', type, payload),
@@ -418,7 +459,17 @@ class QwenLeg implements AdapterSession {
     ws.send(JSON.stringify(COMMIT));
     this.frame('out', COMMIT.type);
     this.lastSentAt = this.request.clock.now();
+    this.awaitAnswer();
     this.awaitTurn();
+  }
+
+  /** A commit is out: nothing at all heard for `QWEN_TURN_ANSWER_MS` is a stall. Counted from the first commit unanswered. */
+  private awaitAnswer(): void {
+    if (this.cancelTurnAnswer) return;
+    this.cancelTurnAnswer = this.request.clock.setTimeout(() => {
+      this.cancelTurnAnswer = null;
+      this.dropped({ cause: 'stall' });
+    }, QWEN_TURN_ANSWER_MS);
   }
 
   /** A turn closed on the wire, by the leg or by the server: busy until its `response.done`, or `TURN_DONE_MS` without it. */
@@ -480,6 +531,60 @@ class QwenLeg implements AdapterSession {
       this.appended = true;
       this.commit();
     }
+  }
+
+  /**
+   * The new connection's liveness (spec 2026-11-05 reconnect §4.2). Under
+   * automatic turns, a probe every `QWEN_PROBE_MS` — unless Qwen once
+   * honoured one — framed by nothing (the hot-path rule); under push-to-talk,
+   * only each commit's wait (`awaitAnswer`).
+   */
+  private watchLiveness(): void {
+    this.probed = false;
+    this.unansweredSince = null;
+    if (this.request.config.manual || this.probeHonoured) return;
+    this.stopProbe = every(this.request.clock, QWEN_PROBE_MS, () => this.probe());
+  }
+
+  /** A look, then a probe: a probe unanswered for `QWEN_STALL_MS` drops the connection as a stall. */
+  private probe(): void {
+    const ws = this.live();
+    if (!ws) return;
+    const now = this.request.clock.now();
+    // A wall clock stepped back (`realClock.now()` is `Date.now()`): the wait carries on from now.
+    if (this.unansweredSince !== null && now < this.unansweredSince) this.unansweredSince = now;
+    if (this.unansweredSince !== null && now - this.unansweredSince >= QWEN_STALL_MS) {
+      this.dropped({ cause: 'stall' });
+      return;
+    }
+    // Before the send: an answer may come within it.
+    this.probed = true;
+    this.unansweredSince ??= now;
+    ws.send(JSON.stringify(PROBE));
+  }
+
+  /** Anything from the server answers the probe and the commit. */
+  private heard(): void {
+    this.unansweredSince = null;
+    this.cancelTurnAnswer?.();
+    this.cancelTurnAnswer = null;
+  }
+
+  /** Qwen cleared on a probe: one that clears may cut into speech, so the leg probes no more and, as before the probe, notices only a close. */
+  private probeCleared(): void {
+    if (!this.probed || this.probeHonoured) return;
+    this.probeHonoured = true;
+    this.stopLivenessWatch();
+    this.frame('in', 'session.probe_stopped', { reason: 'clear_honoured' });
+  }
+
+  /** No probe, and no commit's wait: the connection is let go, or the probe stops. */
+  private stopLivenessWatch(): void {
+    this.stopProbe();
+    this.stopProbe = () => {};
+    this.unansweredSince = null;
+    this.cancelTurnAnswer?.();
+    this.cancelTurnAnswer = null;
   }
 
   /** Read through a call: across an `await`, the leg may have ended whatever the phase was set to before it. */
@@ -625,6 +730,7 @@ class QwenLeg implements AdapterSession {
       this.phase = 'live';
       this.lastSentAt = this.request.clock.now();
       this.stopKeepalive = every(this.request.clock, KEEPALIVE_CHECK_MS, () => this.keepalive());
+      this.watchLiveness();
       settle();
     } else if (e.type === 'error') {
       const error = errorOf(e);
@@ -635,6 +741,7 @@ class QwenLeg implements AdapterSession {
 
   private onMessage(data: unknown): void {
     if (this.phase !== 'live') return;
+    this.heard();
     let e: ServerEvent;
     try {
       e = decodeServerEvent(data);
@@ -701,6 +808,8 @@ class QwenLeg implements AdapterSession {
         return;
       }
       case 'error':
+        // A probe's refusal is its answer, heard above, and no error: it words no close, and is not framed.
+        if (this.probed && isProbeRefusal(e)) return;
         this.serverError(e);
         return;
       // A commit's acknowledgement names its heard item when it already exists; the turn ends at `response.done`, not here.
@@ -714,6 +823,9 @@ class QwenLeg implements AdapterSession {
         }
         return;
       case 'input_audio_buffer.cleared':
+        this.frame('in', e.type);
+        this.probeCleared();
+        return;
       case 'input_audio_buffer.speech_stopped':
       case 'response.created':
       case 'response.content_part.added':
@@ -803,6 +915,7 @@ class QwenLeg implements AdapterSession {
     this.resetTurnState();
     this.stopKeepalive();
     this.stopKeepalive = () => {};
+    this.stopLivenessWatch();
     // The dropped connection's error says nothing of the next one's close.
     this.lastError = null;
     const ws = this.socket;
@@ -955,6 +1068,7 @@ class QwenLeg implements AdapterSession {
     this.reconnector.cancel();
     this.stopKeepalive();
     this.stopKeepalive = () => {};
+    this.stopLivenessWatch();
     this.cancelTurnWait?.();
     this.cancelTurnWait = null;
     this.held = [];

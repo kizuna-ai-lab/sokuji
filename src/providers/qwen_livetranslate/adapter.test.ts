@@ -23,7 +23,7 @@ import type { DetectEndpoint } from './check';
 import type { QwenConfig } from './config';
 import type { QwenCredentials } from './settings';
 import { AUTO_CTX, configFor, KEY, MANUAL_CTX, openQwen, PARTICIPANT_CTX, qwenHarness, qwenSession, SERVER, SHARED, startQwen, TEXT_CTX, turn } from './testing';
-import { sessionUpdate } from './wire';
+import { PROBE, sessionUpdate } from './wire';
 
 /** What no event, failure or refusal may carry: the key, and the header it rides in. */
 const SECRETS = [KEY.apiKey, 'st-token', 'Bearer'];
@@ -34,6 +34,8 @@ const noSecret = (value: unknown) => {
 const chunk = (fill = 1_000) => new Int16Array(2_048).fill(fill);
 /** What a socket has sent so far, by type, in order. */
 const types = (s: FakeSocket) => s.sentJson<{ type: string }>().map((m) => m.type);
+/** The same without the liveness probes, for a test under automatic turns that is not about them (their own are in `adapter.reconnect.test.ts`). */
+const unprobed = (s: FakeSocket) => types(s).filter((t) => t !== PROBE.type);
 /** Content events as `[kind, payload]`, audio by its ref. */
 const content = (log: readonly AdapterEvent[]) =>
   log.filter((e) => e.kind !== 'frame').map((e) => (e.kind === 'audio' ? ['audio', { ref: e.payload.ref, samples: e.payload.pcm.length }] : [e.kind, e.payload]));
@@ -148,7 +150,7 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(h.socket().url).toBe('wss://maas.qianwenaiapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime');
   });
 
-  it("sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer but the keepalive's", async () => {
+  it("sends nothing until session.created, then its one update; resolves on session.updated with nothing but frames and no timer but the keepalive's and the liveness probe's", async () => {
     const h = await openQwen();
     expect(h.sent()).toEqual([]);
     h.socket().receive(SERVER.created());
@@ -162,7 +164,10 @@ describe('the Qwen LiveTranslate adapter: the start (spec §6)', () => {
     expect(session.info).toEqual({ transport: 'websocket' });
     expect(h.frames('session.update')).toEqual([sessionUpdate(h.config, { video: false }).session]);
     expect(h.content()).toEqual([]);
-    expect(h.timers()).toBe(1);
+    expect(h.timers()).toBe(2);
+    // Push-to-talk has no probe.
+    const manual = await qwenSession({ context: MANUAL_CTX });
+    expect(manual.timers()).toBe(1);
   });
 
   it("refuses in Qwen's words an error before the update is confirmed, closing the socket", async () => {
@@ -400,6 +405,8 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     h.session.beginTurn();
     h.session.appendAudio(chunk(1));
     h.session.endTurn();
+    // The commit is answered at once; its response never ends.
+    h.socket().receive(SERVER.committed('item_h1'));
     h.session.beginTurn();
     h.session.appendAudio(chunk(2));
     h.clock.advance(TURN_DONE_MS - 1);
@@ -879,7 +886,7 @@ describe('the Qwen LiveTranslate adapter: screen context (spec 2026-10-22)', () 
   it("a leg whose first audio is the keepalive's sends the frame in hand after it, once — ahead of the keepalive turn's commit under push-to-talk", async () => {
     const auto = await qwenSession({ frames: fakeFrameSource({ inHand: JPEG_A }) });
     auto.clock.advance(KEEPALIVE_IDLE_MS);
-    expect(types(auto.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_image_buffer.append']);
+    expect(unprobed(auto.socket()).slice(1)).toEqual(['input_audio_buffer.append', 'input_image_buffer.append']);
     auto.session.appendAudio(chunk());
     expect(auto.frames('input_image_buffer.append')).toHaveLength(1);
     const manual = await qwenSession({ context: MANUAL_CTX, frames: fakeFrameSource({ inHand: JPEG_A }) });
