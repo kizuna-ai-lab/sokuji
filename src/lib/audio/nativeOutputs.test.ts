@@ -393,6 +393,45 @@ describe('startNativeOutputs', () => {
     expect(reportWarningSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'native-outputs:read' });
   });
 
+  it('a native entry without a string label, or outside the known sets, is a failed read', async () => {
+    const good = dev('Speakers', 'speakers', true);
+    const malformed: unknown[][] = [
+      [good, { ...good, label: undefined }], // a pactl sink block without a Description: line
+      [{ ...good, label: 42 }],
+      [{ ...good, isDefault: 'yes' }],
+      [{ ...good, formFactor: 'earbuds' }],
+      [{ ...good, transport: 'wifi' }],
+      [{ ...good, formFactor: 'constructor' }], // an inherited key is no member
+      [null],
+    ];
+    for (const devices of malformed) {
+      reportWarningSpy.mockClear();
+      const ipc = fakeIpc(async () => ({ ok: true, devices }) as unknown as NativeOutputsResult);
+      const native = start(() => {}, { ipc, doc: fakeDoc() });
+      await flush();
+      expect(currentNativeOutputs()).toBeNull();
+      expect(reportWarningSpy).toHaveBeenCalledTimes(1);
+      expect(reportWarningSpy.mock.calls[0][1]).toContain('malformed answer');
+      native.dispose();
+    }
+  });
+
+  it('a malformed answer is retried like any failed read', async () => {
+    vi.useFakeTimers();
+    try {
+      const answers: unknown[] = [{ ok: true, devices: [{ isDefault: true }] }, ok(A)];
+      const ipc = fakeIpc(async () => answers.shift() as NativeOutputsResult);
+      start(() => {}, { ipc, doc: fakeDoc() });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(currentNativeOutputs()).toBeNull();
+      await vi.advanceTimersByTimeAsync(RETRY_DELAYS_MS[0]);
+      expect(ipc.invoke).toHaveBeenCalledTimes(2);
+      expect(currentNativeOutputs()).toEqual(A);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a malformed answer or a rejected invoke is a failed read', async () => {
     const ipc = fakeIpc(async () => ({ ok: true }) as unknown as NativeOutputsResult);
     start(() => {}, { ipc, doc: fakeDoc() });

@@ -201,6 +201,8 @@ describe('listAudioDevices: each output\'s form factor', () => {
 
   afterEach(() => {
     native.list = null;
+    reportWarningSpy.mockClear();
+    reportErrorSpy.mockClear();
   });
 
   it('listAudioDevices joins each output\'s form', async () => {
@@ -263,6 +265,25 @@ describe('listAudioDevices: each output\'s form factor', () => {
     ]);
     const blank = await listAudioDevices({ warmUp: false });
     expect(blank.outputs.map((d) => d.formFactor)).toEqual(['unknown', 'unknown']);
+  });
+
+  it('a malformed native list at join time still lists every output, as unknown', async () => {
+    // What the reader refuses; were it ever to slip through, the join must not take the listing down.
+    native.list = [{ isDefault: false, formFactor: 'headphones', transport: 'usb', raw: {} }, null] as unknown as OutputDeviceInfo[];
+    list([
+      { deviceId: 'default', label: 'Default - Speakers', groupId: 'gs' },
+      { deviceId: 'spk', label: 'Speakers', groupId: 'gs' },
+      { deviceId: 'hp', label: 'Headphones', groupId: 'gh' },
+    ]);
+    const devices = await listAudioDevices({ warmUp: false });
+    expect(devices.outputs.map((d) => d.deviceId)).toEqual(['spk', 'hp']);
+    expect(devices.inputs.map((d) => d.deviceId)).toEqual(['mic-1']);
+    for (const output of devices.outputs) expect(output).toMatchObject(UNKNOWN_FORM);
+    expect(devices.defaultOutput).toEqual(UNKNOWN_FORM);
+    expect(devices.complete).toBe(true);
+    expect(reportErrorSpy).not.toHaveBeenCalled();
+    expect(reportWarningSpy).toHaveBeenCalled();
+    expect(reportWarningSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'devices:form' });
   });
 
   it('defaultOutput comes from the native default', async () => {

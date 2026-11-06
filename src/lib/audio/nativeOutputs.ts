@@ -5,7 +5,7 @@
  * since the read that produced it began; stale is no answer, never the last one.
  */
 import { describeCause, reportWarning } from '../diagnostics/report';
-import type { NativeOutputsResult, OutputDeviceInfo } from './formFactor';
+import type { FormFactor, NativeOutputsResult, OutputDeviceInfo, Transport } from './formFactor';
 
 /** What asked for a read: first use, the browser's `devicechange`, a push from main, the page shown again. */
 export type NativeReadReason = 'first' | 'devicechange' | 'push' | 'visible';
@@ -101,6 +101,20 @@ export function createNativeOutputReader(deps: {
   };
 }
 
+// Records, so the compiler insists every member of each type is listed.
+const FORM_FACTORS: Record<FormFactor, true> = { headphones: true, speakers: true, unknown: true };
+const TRANSPORTS: Record<Transport, true> = { builtin: true, usb: true, bluetooth: true, hdmi: true, virtual: true, unknown: true };
+const isMember = (set: object, value: unknown) => typeof value === 'string' && Object.prototype.hasOwnProperty.call(set, value);
+
+/** Every entry as the matcher reads it: one without a string label would throw inside the device listing. */
+function wellFormed(devices: unknown[]): devices is OutputDeviceInfo[] {
+  return devices.every((d) => {
+    if (typeof d !== 'object' || d === null) return false;
+    const { label, isDefault, formFactor, transport } = d as Record<string, unknown>;
+    return typeof label === 'string' && typeof isDefault === 'boolean' && isMember(FORM_FACTORS, formFactor) && isMember(TRANSPORTS, transport);
+  });
+}
+
 /** The preload's bridge, as much of it as the reader uses. */
 type NativeIpc = Pick<ElectronAPI, 'invoke' | 'receive'> & Partial<Pick<ElectronAPI, 'removeListener'>>;
 
@@ -125,7 +139,7 @@ export function startNativeOutputs(
     let cause: unknown;
     try {
       const answer = await ipc.invoke('get-output-devices');
-      if (answer?.ok === true && Array.isArray(answer.devices)) return answer;
+      if (answer?.ok === true && Array.isArray(answer.devices) && wellFormed(answer.devices)) return answer;
       reason = answer?.ok === false && typeof answer.reason === 'string' ? answer.reason : 'malformed answer';
       cause = answer;
     } catch (error) {

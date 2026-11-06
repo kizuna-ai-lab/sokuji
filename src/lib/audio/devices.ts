@@ -31,6 +31,17 @@ export interface DeviceLists {
   defaultOutput: OutputForm;
 }
 
+/** The matcher, unable to take the listing down: a native list it cannot read leaves the form unknown. */
+function formOf(...args: Parameters<typeof matchOutputForm>): OutputForm {
+  try {
+    return matchOutputForm(...args);
+  } catch (error) {
+    // Deduped: the poll lists every 3 s, and the same answer stays current until the next event.
+    reportWarning('AudioDevices', `Matching an output's form factor failed; it reads unknown: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:form' });
+    return { ...UNKNOWN_FORM };
+  }
+}
+
 /**
  * Get available audio input and output devices.
  */
@@ -106,10 +117,10 @@ export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } =
         label: device.label || `Speaker ${device.deviceId.substring(0, 5)}...`,
         isVirtual: device.label ? isVirtualSpeaker(device) : false,
         // The browser's own label: the placeholder above is never matched.
-        ...matchOutputForm(device.deviceId, device.label, native, outputLabelsKnown, device.groupId !== '' && device.groupId === defaultGroupId),
+        ...formOf(device.deviceId, device.label, native, outputLabelsKnown, device.groupId !== '' && device.groupId === defaultGroupId),
       }));
 
-    const defaultOutput = matchOutputForm(undefined, undefined, native, outputLabelsKnown);
+    const defaultOutput = formOf(undefined, undefined, native, outputLabelsKnown);
     return { inputs, outputs, complete, outputLabelsKnown, defaultOutput };
   } catch (error) {
     // Deduped: while the device watch polls, a listing that keeps failing fails every 3 s.
