@@ -22,10 +22,11 @@ export function Home() {
   // Refresh audio devices and load settings when component mounts
   useEffect(() => {
     // What the system says each output is (spec 2026-11-05 §6), joined into the
-    // device list by a sync whenever the answer changes. Electron only: the
-    // extension runs this page too, but has no main process to ask.
+    // device list by a sync whenever the answer changes; stale reads unknown
+    // at once. Electron only: the extension runs this page too, but has no
+    // main process to ask.
     const native = isElectron() && window.electron
-      ? startNativeOutputs(() => void useAudioStore.getState().syncDevices())
+      ? startNativeOutputs(() => useAudioStore.getState().nativeOutputsChanged())
       : null;
 
     console.info('[Home] Refreshing audio devices');

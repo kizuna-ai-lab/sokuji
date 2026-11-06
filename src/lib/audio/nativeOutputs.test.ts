@@ -382,6 +382,25 @@ describe('startNativeOutputs', () => {
     expect(currentNativeOutputs()).toBeNull();
   });
 
+  it('dispose tells onUpdate when it takes a current answer away, and not when there was none', async () => {
+    const onUpdate = vi.fn();
+    const native = start(onUpdate, { ipc: fakeIpc(), doc: fakeDoc() });
+    await flush();
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    onUpdate.mockImplementation(() => expect(currentNativeOutputs()).toBeNull());
+    native.dispose();
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+    native.dispose();
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+
+    // Stale when it goes: what currentNativeOutputs() gives does not change.
+    const staleUpdate = vi.fn();
+    const stale = start(staleUpdate, { ipc: fakeIpc(async () => FAILED), doc: fakeDoc() });
+    await flush();
+    stale.dispose();
+    expect(staleUpdate).not.toHaveBeenCalled();
+  });
+
   it('a failed read is reported as a warning, and reads unknown', async () => {
     const ipc = fakeIpc(async () => ({ ok: false, reason: 'no_helper' }));
     start(() => {}, { ipc, doc: fakeDoc() });

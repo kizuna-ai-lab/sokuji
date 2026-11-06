@@ -126,6 +126,9 @@ let started: NativeOutputReader | null = null;
  * arrives through `requestForSync`, from the device watch that already
  * listens for it. Electron only: the caller checks, since the extension
  * shares this code but has no main process to ask.
+ *
+ * `onUpdate` runs, synchronously, whenever what `currentNativeOutputs()` gives
+ * changes: an answer arriving, going stale on an event, or taken away by dispose.
  */
 export function startNativeOutputs(
   onUpdate: () => void,
@@ -173,10 +176,13 @@ export function startNativeOutputs(
     dispose() {
       if (disposed) return;
       disposed = true;
+      const tookAnswer = started === reader && reader.current() !== null;
       ipc.removeListener?.('output-devices:changed', onPush);
       doc.removeEventListener('visibilitychange', onVisibility);
       reader.dispose();
       if (started === reader) started = null;
+      // With no reader there is no current answer: stale, like after any event.
+      if (tookAnswer) onUpdate();
     },
   };
 }

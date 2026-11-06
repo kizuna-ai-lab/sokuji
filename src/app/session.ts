@@ -8,7 +8,6 @@
 import { getAppAudio, type AppAudio } from '../lib/audio/appAudio';
 import { createAppCapture, type AppCapture } from '../lib/audio/appCapture';
 import { createFormFactorLog } from '../lib/audio/formFactorLog';
-import { currentNativeOutputs } from '../lib/audio/nativeOutputs';
 import type { Playback } from '../lib/audio/playback';
 import { realClock, type Clock } from '../lib/contract/clock';
 import { redact } from '../lib/diagnostics/redact';
@@ -312,10 +311,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       }
       attached = true;
       // The form factor of each outlet, for the diagnostic log only. Forms are static unknown where no native reader runs (the extension),
-      // so only Electron's answer can be stale; the reader is started by Home, after this, so it is asked at each call.
+      // so only Electron's answer can be stale: current once a listing has joined it, as the lookup itself counts it, asked at each call.
       const formLog = createFormFactorLog(
         (line) => reportInfo('OutputForm', line),
-        () => !(isElectron() && window.electron) || currentNativeOutputs() !== null,
+        () => !(isElectron() && window.electron) || useAudioStore.getState().nativeFormsCurrent,
         faceToFaceFromStores,
       );
       const offs: Array<() => void> = [

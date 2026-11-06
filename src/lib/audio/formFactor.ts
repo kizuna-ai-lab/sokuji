@@ -75,9 +75,12 @@ export function matchOutputForm(
   return matches.length === 1 ? answer(matches[0]) : { ...UNKNOWN_FORM };
 }
 
-type FormSource = { defaultOutputForm: OutputForm; audioMonitorDevices: readonly AudioDevice[] };
+type FormSource = { nativeFormsCurrent: boolean; defaultOutputForm: OutputForm; audioMonitorDevices: readonly AudioDevice[] };
 
 function formIn(state: FormSource, sinkDevice: string | undefined): OutputForm {
+  // Stale is unknown (spec 2026-11-05 §6): the lists keep the last join until a
+  // listing lands, and a failed one changes nothing, so they can predate the last event.
+  if (!state.nativeFormsCurrent) return UNKNOWN_FORM;
   // The browser default never reaches the device list (devices.ts drops it): its answer is kept on its own.
   if (sinkDevice === undefined || sinkDevice === '' || sinkDevice === 'default') return state.defaultOutputForm;
   if (sinkDevice === 'communications') return UNKNOWN_FORM;
@@ -85,7 +88,7 @@ function formIn(state: FormSource, sinkDevice: string | undefined): OutputForm {
   return device?.formFactor && device.transport ? { formFactor: device.formFactor, transport: device.transport } : UNKNOWN_FORM;
 }
 
-/** An outlet's resolved sink, looked up in the device list: unknown while nothing is known. */
+/** An outlet's resolved sink, looked up in the device list: unknown while nothing is known, and while the system's answer is stale. */
 export function getOutputFormFactor(sinkDevice?: string): OutputForm {
   const { formFactor, transport } = formIn(useAudioStore.getState(), sinkDevice);
   return { formFactor, transport };

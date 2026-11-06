@@ -7,7 +7,7 @@ import { ServiceFactory } from '../../services/ServiceFactory';
 import { reportError, reportWarning, describeCause } from '../diagnostics/report';
 import type { AudioDevice } from '../../stores/audioStore';
 import { isVirtualMic, isVirtualSpeaker } from '../../utils/audioDevices';
-import { matchOutputForm, UNKNOWN_FORM, type OutputForm } from './formFactor';
+import { matchOutputForm, UNKNOWN_FORM, type OutputDeviceInfo, type OutputForm } from './formFactor';
 import { currentNativeOutputs } from './nativeOutputs';
 
 // Declare chrome namespace for extension messaging (the permission toast's link).
@@ -29,6 +29,8 @@ export interface DeviceLists {
   outputLabelsKnown: boolean;
   /** The browser default's form: the store keeps it apart, since the `default` entry is dropped from `outputs`. */
   defaultOutput: OutputForm;
+  /** The system's answer the forms were joined from (`null`: none was current): the store counts them only while it still is. */
+  native: readonly OutputDeviceInfo[] | null;
 }
 
 /** The matcher, unable to take the listing down: a native list it cannot read leaves the form unknown. */
@@ -121,11 +123,11 @@ export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } =
       }));
 
     const defaultOutput = formOf(undefined, undefined, native, outputLabelsKnown);
-    return { inputs, outputs, complete, outputLabelsKnown, defaultOutput };
+    return { inputs, outputs, complete, outputLabelsKnown, defaultOutput, native };
   } catch (error) {
     // Deduped: while the device watch polls, a listing that keeps failing fails every 3 s.
     reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:list' });
-    return { inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: { ...UNKNOWN_FORM } };
+    return { inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: { ...UNKNOWN_FORM }, native: null };
   }
 }
 

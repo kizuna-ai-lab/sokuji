@@ -179,7 +179,7 @@ describe('listAudioDevices', () => {
 
     const devices = await listAudioDevices();
 
-    expect(devices).toEqual({ inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: UNKNOWN_FORM });
+    expect(devices).toEqual({ inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: UNKNOWN_FORM, native: null });
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
     expect(reportErrorSpy.mock.calls[0][0]).toBe('AudioDevices');
     // The poll lists every 3 s: a listing that keeps failing is one burst, not a line per beat.
@@ -284,6 +284,16 @@ describe('listAudioDevices: each output\'s form factor', () => {
     expect(reportErrorSpy).not.toHaveBeenCalled();
     expect(reportWarningSpy).toHaveBeenCalled();
     expect(reportWarningSpy.mock.calls[0][2]).toMatchObject({ dedupeKey: 'devices:form' });
+  });
+
+  it('the listing names the answer it joined, so the store can tell whether it is still current', async () => {
+    const answer = [nat('Speakers', 'speakers', 'builtin', true)];
+    native.list = answer;
+    list([{ deviceId: 'spk', label: 'Speakers', groupId: 'gs' }]);
+    expect((await listAudioDevices({ warmUp: false })).native).toBe(answer);
+
+    native.list = null;
+    expect((await listAudioDevices({ warmUp: false })).native).toBeNull();
   });
 
   it('defaultOutput comes from the native default', async () => {

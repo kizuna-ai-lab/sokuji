@@ -116,6 +116,7 @@ describe('matchOutputForm', () => {
 describe('getOutputFormFactor', () => {
   beforeEach(() => {
     useAudioStore.setState({
+      nativeFormsCurrent: true,
       defaultOutputForm: { formFactor: 'headphones', transport: 'bluetooth' },
       audioMonitorDevices: [
         { deviceId: 'spk', label: 'Speakers', isVirtual: false, formFactor: 'speakers', transport: 'builtin' },
@@ -157,5 +158,23 @@ describe('getOutputFormFactor', () => {
       }),
     );
     expect(result.current).toEqual({ formFactor: 'headphones', transport: 'builtin' });
+  });
+
+  it('every lookup is unknown while the forms in the lists are not from a current answer', () => {
+    useAudioStore.setState({ nativeFormsCurrent: false });
+    for (const sink of [undefined, '', 'default', 'communications', 'spk', 'bare', 'gone']) {
+      expect(getOutputFormFactor(sink)).toEqual(UNKNOWN_FORM);
+    }
+    useAudioStore.setState({ nativeFormsCurrent: true });
+    expect(getOutputFormFactor('spk')).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+  });
+
+  it('useOutputFormFactor follows the same flag', () => {
+    const { result } = renderHook(() => useOutputFormFactor());
+    expect(result.current).toEqual({ formFactor: 'headphones', transport: 'bluetooth' });
+    act(() => useAudioStore.setState({ nativeFormsCurrent: false }));
+    expect(result.current).toEqual(UNKNOWN_FORM);
+    act(() => useAudioStore.setState({ nativeFormsCurrent: true }));
+    expect(result.current).toEqual({ formFactor: 'headphones', transport: 'bluetooth' });
   });
 });

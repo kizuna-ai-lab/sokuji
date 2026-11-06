@@ -26,6 +26,7 @@ describe('createFormFactorLog', () => {
     current = true;
     log = createFormFactorLog((l) => lines.push(l), () => current);
     useAudioStore.setState({
+      nativeFormsCurrent: true,
       defaultOutputForm: { formFactor: 'speakers', transport: 'builtin' },
       selectedMonitorDevice: null,
       audioMonitorDevices: [

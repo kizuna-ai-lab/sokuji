@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { persistSetting } from '../services/persistSetting';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
-import { listAudioDevices, listSystemAudioSources } from '../lib/audio/devices';
+import { listAudioDevices, listSystemAudioSources, type DeviceLists } from '../lib/audio/devices';
+import { currentNativeOutputs } from '../lib/audio/nativeOutputs';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
 import { pickDefaultInputDevice, chooseInput, chooseOutput } from '../lib/audio/deviceChoice';
@@ -111,6 +112,13 @@ interface AudioStore {
   outputLabelsKnown: boolean;
   /** The browser default output's form factor, kept apart because the `default` entry never reaches the device lists. */
   defaultOutputForm: OutputForm;
+  /**
+   * The forms in the lists were joined from the system's answer that is still
+   * current (spec 2026-11-05 §6). While false every lookup reads unknown, so a
+   * stale join is never returned. Always false with no native reader (the
+   * extension): it has no answer to be current, and its forms are unknown anyway.
+   */
+  nativeFormsCurrent: boolean;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -181,6 +189,8 @@ interface AudioStore {
    * `retryUnusable`: the OS reported a change (`devicechange`, the audio system recovering), so every unusable mark is cleared and the user's device tried again.
    */
   syncDevices: (options?: { retryUnusable?: boolean }) => Promise<void>;
+  /** The native reader's `onUpdate`: its answer changed (arrived, went stale, went away). A stale one reads unknown at once; the re-list joins a new one. */
+  nativeOutputsChanged: () => void;
   /** The microphone could not open this device: leave it out of the choice, and choose again now. */
   markInputUnusable: (deviceId: string) => void;
 }
@@ -196,6 +206,9 @@ const sameDevices = (current: readonly AudioDevice[], next: readonly AudioDevice
 
 /** Spelled out, not `UNKNOWN_FORM`: formFactor.ts imports this store, so its constants may not exist yet while this module loads. */
 const unknownForm = (): OutputForm => ({ formFactor: 'unknown', transport: 'unknown' });
+
+/** The listing joined the answer that is current now: one that went stale while the browser listed does not count. */
+const joinedCurrent = (listing: DeviceLists) => listing.native !== null && listing.native === currentNativeOutputs();
 
 const useAudioStore = create<AudioStore>()(
   subscribeWithSelector((set, get) => ({
@@ -213,6 +226,7 @@ const useAudioStore = create<AudioStore>()(
     devicesLoaded: false,
     outputLabelsKnown: false,
     defaultOutputForm: unknownForm(),
+    nativeFormsCurrent: false,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -439,6 +453,7 @@ const useAudioStore = create<AudioStore>()(
           audioMonitorDevices: devices.outputs,
           outputLabelsKnown: devices.outputLabelsKnown === true,
           defaultOutputForm: devices.defaultOutput ?? unknownForm(),
+          nativeFormsCurrent: joinedCurrent(devices),
         });
 
         // Only Electron can enumerate per-application sources; the extension
@@ -644,12 +659,15 @@ const useAudioStore = create<AudioStore>()(
       const nextDefault = listing.defaultOutput ?? unknownForm();
       const defaultOutputForm = sameForm(state.defaultOutputForm, nextDefault) ? state.defaultOutputForm : nextDefault;
       const defaultChanged = defaultOutputForm !== state.defaultOutputForm;
+      const nativeFormsCurrent = joinedCurrent(listing);
+      const formsCurrentChanged = nativeFormsCurrent !== state.nativeFormsCurrent;
+      const listingChanged = listsChanged || labelsChanged || defaultChanged || formsCurrentChanged;
       if (!listing.complete) {
         // A failed listing, or one without labels (no microphone permission
         // yet): virtual and loopback inputs cannot be told from real ones, so
         // the lists may change but no choice does — and a failure that looks
         // like "every device is gone" changes nothing at all.
-        if ((inputs.length > 0 || outputs.length > 0) && (listsChanged || labelsChanged || defaultChanged)) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm });
+        if ((inputs.length > 0 || outputs.length > 0) && listingChanged) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm, nativeFormsCurrent });
         return;
       }
       // A mark lasts until its device leaves the list (replugged, it is tried
@@ -670,14 +688,20 @@ const useAudioStore = create<AudioStore>()(
       const selectedInputDevice = keep(state.selectedInputDevice, input);
       const selectedMonitorDevice = keep(state.selectedMonitorDevice, monitor);
       if (
-        !listsChanged &&
-        !labelsChanged &&
-        !defaultChanged &&
+        !listingChanged &&
         unusableInputIds === state.unusableInputIds &&
         selectedInputDevice === state.selectedInputDevice &&
         selectedMonitorDevice === state.selectedMonitorDevice
       ) return;
-      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm, nativeFormsCurrent, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+    },
+
+    nativeOutputsChanged: () => {
+      // Stale reads unknown at once, not when the re-list lands: that waits on
+      // the browser, and a failed one changes nothing at all. A new answer
+      // counts only once a listing has joined it, which the re-list does.
+      if (currentNativeOutputs() === null && get().nativeFormsCurrent) set({ nativeFormsCurrent: false });
+      void get().syncDevices();
     },
 
     markInputUnusable: (deviceId) => {
