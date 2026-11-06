@@ -48,9 +48,17 @@ describe('StatusLine', () => {
   it('a reconnect keeps its live region steady while its visible words count attempts and seconds', () => {
     /** What the live region holds for a screen reader: its text without the parts hidden from it. */
     const liveText = (container: HTMLElement) => {
-      const region = container.querySelector('[role="status"]')!.cloneNode(true) as HTMLElement;
+      const regions = container.querySelectorAll('[role="status"]');
+      expect(regions).toHaveLength(1);
+      const region = regions[0].cloneNode(true) as HTMLElement;
       for (const hidden of region.querySelectorAll('[aria-hidden="true"]')) hidden.remove();
       return region.textContent;
+    };
+    /** The counters are outside the live region, so they are not announced, but a screen reader can still read them. */
+    const countersReadable = (container: HTMLElement) => {
+      const text = container.querySelector('.status-line__text')!;
+      expect(text.closest('[aria-hidden="true"]')).toBeNull();
+      expect(text.closest('[role="status"]')).toBeNull();
     };
     const reconnecting = (attempt: number, seconds: number) => entry({
       key: 'reconnecting', icon: 'refresh-cw', action: null,
@@ -60,9 +68,11 @@ describe('StatusLine', () => {
     const { container, rerender } = render(<StatusLine entry={reconnecting(1, 0)} onAction={vi.fn()} onDismiss={vi.fn()} />);
     expect(container.querySelector('.status-line__text')?.textContent).toBe('connectionStatus.reconnectingAttempt 1 0');
     expect(liveText(container)).toBe('connectionStatus.reconnecting');
+    countersReadable(container);
     rerender(<StatusLine entry={reconnecting(2, 1)} onAction={vi.fn()} onDismiss={vi.fn()} />);
     expect(container.querySelector('.status-line__text')?.textContent).toBe('connectionStatus.reconnectingAttempt 2 1');
     expect(liveText(container)).toBe('connectionStatus.reconnecting');
+    countersReadable(container);
   });
 
   it('a line without its own announcement is announced as it reads', () => {

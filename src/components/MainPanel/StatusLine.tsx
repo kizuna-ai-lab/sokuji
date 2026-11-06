@@ -29,12 +29,14 @@ export function StatusLine({ entry, onAction, onDismiss }: StatusLineProps) {
   const words = wordsOf(entry.words, t);
   const action = entry.action;
   const label = action ? actionLabel(action) : null;
+  const steady = entry.announce ? wordsOf(entry.announce, t) : null;
   return (
-    <div className="status-line" role="status" data-status={entry.key}>
+    // A line with steady words of its own announces only those: its live region is a hidden span that holds them, and
+    // the words that tick sit outside it, so a screen reader can still read them but is not told each time they change.
+    <div className="status-line" role={steady === null ? 'status' : undefined} data-status={entry.key}>
+      {steady !== null && <span className="status-line__announce" role="status">{steady}</span>}
       <Icon size={14} aria-hidden="true" />
-      {/* Words that tick are seen, not announced: the live region reads the steady ones in their place. */}
-      {entry.announce && <span className="status-line__announce">{wordsOf(entry.announce, t)}</span>}
-      <span className="status-line__text" aria-hidden={entry.announce ? true : undefined}>{words}</span>
+      <span className="status-line__text">{words}</span>
       {action && label && (
         <button type="button" className="status-line__action" onClick={() => onAction(action)}>
           {t(label.key, label.fallback)}
