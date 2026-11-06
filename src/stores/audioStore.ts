@@ -9,6 +9,7 @@ import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
 import { pickDefaultInputDevice, chooseInput, chooseOutput } from '../lib/audio/deviceChoice';
 import { DEFAULT_OUTLET_CHOICE, isChannelChoice, OUTLET_NAMES, type ChannelChoice, type OutletChoice, type OutletName } from '../lib/audio/outlets';
+import type { FormFactor, OutputForm, Transport } from '../lib/audio/formFactor';
 
 export { pickDefaultInputDevice };
 
@@ -70,6 +71,13 @@ export interface AudioDevice {
    * (macOS gates window titles behind Screen Recording).
    */
   windowTitles?: string[];
+  /**
+   * Outputs only: what the system says the device is, and how it is connected
+   * (spec 2026-11-05). Read it through `getOutputFormFactor`: a selected device
+   * keeps its object while only these change, so its copy can be behind.
+   */
+  formFactor?: FormFactor;
+  transport?: Transport;
 }
 
 /**
@@ -101,6 +109,8 @@ interface AudioStore {
   devicesLoaded: boolean;
   /** The last listing named every output by its own label, not a placeholder: until then no output can be told apart (VB-CABLE's presence reads it). */
   outputLabelsKnown: boolean;
+  /** The browser default output's form factor, kept apart because the `default` entry never reaches the device lists. */
+  defaultOutputForm: OutputForm;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -175,10 +185,17 @@ interface AudioStore {
   markInputUnusable: (deviceId: string) => void;
 }
 
-/** The same devices, in the same order, with the same names: `syncDevices` keeps the array it has. */
+/** The same form: `syncDevices` keeps the object it has. */
+const sameForm = (a: Pick<AudioDevice, 'formFactor' | 'transport'>, b: Pick<AudioDevice, 'formFactor' | 'transport'>) =>
+  a.formFactor === b.formFactor && a.transport === b.transport;
+
+/** The same devices, in the same order, with the same names and forms: `syncDevices` keeps the array it has. */
 const sameDevices = (current: readonly AudioDevice[], next: readonly AudioDevice[]) =>
   current.length === next.length &&
-  current.every((device, i) => device.deviceId === next[i].deviceId && device.label === next[i].label && device.isVirtual === next[i].isVirtual);
+  current.every((device, i) => device.deviceId === next[i].deviceId && device.label === next[i].label && device.isVirtual === next[i].isVirtual && sameForm(device, next[i]));
+
+/** Spelled out, not `UNKNOWN_FORM`: formFactor.ts imports this store, so its constants may not exist yet while this module loads. */
+const unknownForm = (): OutputForm => ({ formFactor: 'unknown', transport: 'unknown' });
 
 const useAudioStore = create<AudioStore>()(
   subscribeWithSelector((set, get) => ({
@@ -195,6 +212,7 @@ const useAudioStore = create<AudioStore>()(
     unusableInputIds: [],
     devicesLoaded: false,
     outputLabelsKnown: false,
+    defaultOutputForm: unknownForm(),
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -420,6 +438,7 @@ const useAudioStore = create<AudioStore>()(
           audioInputDevices: devices.inputs,
           audioMonitorDevices: devices.outputs,
           outputLabelsKnown: devices.outputLabelsKnown === true,
+          defaultOutputForm: devices.defaultOutput ?? unknownForm(),
         });
 
         // Only Electron can enumerate per-application sources; the extension
@@ -622,12 +641,15 @@ const useAudioStore = create<AudioStore>()(
       const listsChanged = inputs !== state.audioInputDevices || outputs !== state.audioMonitorDevices;
       const outputLabelsKnown = listing.outputLabelsKnown === true;
       const labelsChanged = outputLabelsKnown !== state.outputLabelsKnown;
+      const nextDefault = listing.defaultOutput ?? unknownForm();
+      const defaultOutputForm = sameForm(state.defaultOutputForm, nextDefault) ? state.defaultOutputForm : nextDefault;
+      const defaultChanged = defaultOutputForm !== state.defaultOutputForm;
       if (!listing.complete) {
         // A failed listing, or one without labels (no microphone permission
         // yet): virtual and loopback inputs cannot be told from real ones, so
         // the lists may change but no choice does — and a failure that looks
         // like "every device is gone" changes nothing at all.
-        if ((inputs.length > 0 || outputs.length > 0) && (listsChanged || labelsChanged)) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown });
+        if ((inputs.length > 0 || outputs.length > 0) && (listsChanged || labelsChanged || defaultChanged)) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm });
         return;
       }
       // A mark lasts until its device leaves the list (replugged, it is tried
@@ -650,11 +672,12 @@ const useAudioStore = create<AudioStore>()(
       if (
         !listsChanged &&
         !labelsChanged &&
+        !defaultChanged &&
         unusableInputIds === state.unusableInputIds &&
         selectedInputDevice === state.selectedInputDevice &&
         selectedMonitorDevice === state.selectedMonitorDevice
       ) return;
-      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
     },
 
     markInputUnusable: (deviceId) => {

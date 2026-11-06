@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import useAudioStore, { pickDefaultInputDevice, DEFAULT_PARTICIPANT_SOURCE } from './audioStore';
 import type { AudioMode, AudioDevice } from './audioStore';
 import { ServiceFactory } from '../services/ServiceFactory';
+import type { OutputForm } from '../lib/audio/formFactor';
 
 // Device enumeration moved to src/lib/audio/devices.ts (plan 1e-3c, controller
 // ruling 3); refreshDevices calls its plain functions instead of the old
 // audioService, so tests mock the module rather than an audioService object.
-const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean; outputLabelsKnown?: boolean }> => ({ inputs: [], outputs: [] })));
+const mockListAudioDevices = vi.hoisted(() => vi.fn(async (_options?: { warmUp?: boolean }): Promise<{ inputs: AudioDevice[]; outputs: AudioDevice[]; complete?: boolean; outputLabelsKnown?: boolean; defaultOutput?: OutputForm }> => ({ inputs: [], outputs: [] })));
 const mockListSystemAudioSources = vi.hoisted(() => vi.fn(async () => [] as AudioDevice[]));
 vi.mock('../lib/audio/devices', () => ({
   listAudioDevices: mockListAudioDevices,
@@ -609,6 +610,57 @@ describe('audioStore — following the OS (syncDevices)', () => {
     expect(useAudioStore.getState().selectedInputDevice).toBe(before);
   });
 
+  it('a form factor change alone replaces the output list', async () => {
+    // A laptop's Linux port switching from speakers to headphones: same sink, same name.
+    const spk = (formFactor: AudioDevice['formFactor'], transport: AudioDevice['transport']): AudioDevice => ({ ...real('spk-a'), formFactor, transport });
+    const before = [spk('speakers', 'builtin')];
+    useAudioStore.setState({ audioMonitorDevices: before });
+
+    const unchanged = [spk('speakers', 'builtin')];
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: unchanged, complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioMonitorDevices).toBe(before);
+
+    const headphones = [spk('headphones', 'builtin')];
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: headphones, complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioMonitorDevices).toBe(headphones);
+
+    const overUsb = [spk('headphones', 'usb')];
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: overUsb, complete: true });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().audioMonitorDevices).toBe(overUsb);
+  });
+
+  it('the default output\'s form follows the listing, and an unchanged one wakes no subscriber', async () => {
+    const inputs = [real('mic-a'), real('mic-b')];
+    const outputs = [real('spk-a')];
+    useAudioStore.setState({ defaultOutputForm: { formFactor: 'unknown', transport: 'unknown' } });
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs, outputs, complete: true, defaultOutput: { formFactor: 'headphones', transport: 'bluetooth' } });
+    await useAudioStore.getState().syncDevices();
+    const headphones = useAudioStore.getState().defaultOutputForm;
+    expect(headphones).toEqual({ formFactor: 'headphones', transport: 'bluetooth' });
+
+    mockListAudioDevices.mockResolvedValueOnce({ inputs, outputs, complete: true, defaultOutput: { formFactor: 'headphones', transport: 'bluetooth' } });
+    const heard = vi.fn();
+    const off = useAudioStore.subscribe(heard);
+    await useAudioStore.getState().syncDevices();
+    off();
+    expect(heard).not.toHaveBeenCalled();
+    expect(useAudioStore.getState().defaultOutputForm).toBe(headphones);
+
+    // Without labels the default is still known: it needs none.
+    mockListAudioDevices.mockResolvedValueOnce({ inputs, outputs, complete: false, defaultOutput: { formFactor: 'speakers', transport: 'builtin' } });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+
+    // A failed listing looks like every device gone: it changes nothing, the default's form included.
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [], complete: false, defaultOutput: { formFactor: 'unknown', transport: 'unknown' } });
+    await useAudioStore.getState().syncDevices();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+  });
+
   it('keeps whether the outputs carry their own labels, as the listing reports it, complete or not', async () => {
     useAudioStore.setState({ outputLabelsKnown: false });
     mockListAudioDevices.mockResolvedValueOnce({ inputs: [real('mic-a'), real('mic-b')], outputs: [real('spk-a')], complete: true, outputLabelsKnown: true });
@@ -638,6 +690,13 @@ describe('audioStore — refreshDevices and the saved device', () => {
     expect(s.selectedInputDevice?.deviceId).toBe('mic-a');
     expect(s.savedInputDeviceId).toBe('mic-a');
     expect(s.devicesLoaded).toBe(true);
+  });
+
+  it('sets the default output\'s form', async () => {
+    useAudioStore.setState({ defaultOutputForm: { formFactor: 'unknown', transport: 'unknown' } });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [], complete: true, defaultOutput: { formFactor: 'speakers', transport: 'builtin' } });
+    await useAudioStore.getState().refreshDevices();
+    expect(useAudioStore.getState().defaultOutputForm).toEqual({ formFactor: 'speakers', transport: 'builtin' });
   });
 
   it('keeps whether the outputs carry their own labels', async () => {

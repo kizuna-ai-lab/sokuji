@@ -1,11 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import {
   UNKNOWN_FORM,
   cleanOutputLabel,
+  getOutputFormFactor,
   matchOutputForm,
+  useOutputFormFactor,
   type FormFactor,
   type OutputDeviceInfo,
 } from './formFactor';
+import useAudioStore from '../../stores/audioStore';
 
 const n = (label: string, formFactor: FormFactor, isDefault = false): OutputDeviceInfo => ({
   label,
@@ -106,5 +110,52 @@ describe('matchOutputForm', () => {
     const out = matchOutputForm('default', undefined, native, true);
     expect(out).not.toBe(native[0]);
     expect(Object.keys(out).sort()).toEqual(['formFactor', 'transport']);
+  });
+});
+
+describe('getOutputFormFactor', () => {
+  beforeEach(() => {
+    useAudioStore.setState({
+      defaultOutputForm: { formFactor: 'headphones', transport: 'bluetooth' },
+      audioMonitorDevices: [
+        { deviceId: 'spk', label: 'Speakers', isVirtual: false, formFactor: 'speakers', transport: 'builtin' },
+        // Listed before any form was joined in.
+        { deviceId: 'bare', label: 'Bare', isVirtual: false },
+      ],
+    });
+  });
+
+  it('getOutputFormFactor covers default, communications, a listed id and an absent id', () => {
+    const HEADPHONES_BT = { formFactor: 'headphones', transport: 'bluetooth' };
+    expect(getOutputFormFactor()).toEqual(HEADPHONES_BT);
+    expect(getOutputFormFactor('')).toEqual(HEADPHONES_BT);
+    expect(getOutputFormFactor('default')).toEqual(HEADPHONES_BT);
+    expect(getOutputFormFactor('communications')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor('spk')).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+    expect(getOutputFormFactor('gone')).toEqual(UNKNOWN_FORM);
+    expect(getOutputFormFactor('bare')).toEqual(UNKNOWN_FORM);
+  });
+
+  it('returns copies, never the store\'s objects', () => {
+    const out = getOutputFormFactor();
+    expect(out).not.toBe(useAudioStore.getState().defaultOutputForm);
+    expect(Object.keys(out).sort()).toEqual(['formFactor', 'transport']);
+    expect(Object.keys(getOutputFormFactor('spk')).sort()).toEqual(['formFactor', 'transport']);
+  });
+
+  it('useOutputFormFactor follows the store, and keeps its object while the answer holds', () => {
+    const { result } = renderHook(() => useOutputFormFactor('spk'));
+    expect(result.current).toEqual({ formFactor: 'speakers', transport: 'builtin' });
+    const first = result.current;
+
+    act(() => useAudioStore.setState({ defaultOutputForm: { formFactor: 'speakers', transport: 'usb' } }));
+    expect(result.current).toBe(first);
+
+    act(() =>
+      useAudioStore.setState({
+        audioMonitorDevices: [{ deviceId: 'spk', label: 'Speakers', isVirtual: false, formFactor: 'headphones', transport: 'builtin' }],
+      }),
+    );
+    expect(result.current).toEqual({ formFactor: 'headphones', transport: 'builtin' });
   });
 });

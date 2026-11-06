@@ -1,5 +1,9 @@
 // What the system says an output device is (headphones or speakers) and how it
 // is connected. The answer is diagnostic only: nothing changes behavior on it.
+import { useMemo } from 'react';
+// A cycle (the store lists devices through devices.ts, which matches here): safe
+// because neither module reads the other at load, only inside functions.
+import useAudioStore, { type AudioDevice } from '../../stores/audioStore';
 
 export type FormFactor = 'headphones' | 'speakers' | 'unknown';
 export type Transport = 'builtin' | 'usb' | 'bluetooth' | 'hdmi' | 'virtual' | 'unknown';
@@ -69,4 +73,28 @@ export function matchOutputForm(
   }
   const matches = native.filter((d) => d.label.trim() === wanted);
   return matches.length === 1 ? answer(matches[0]) : { ...UNKNOWN_FORM };
+}
+
+type FormSource = { defaultOutputForm: OutputForm; audioMonitorDevices: readonly AudioDevice[] };
+
+function formIn(state: FormSource, sinkDevice: string | undefined): OutputForm {
+  // The browser default never reaches the device list (devices.ts drops it): its answer is kept on its own.
+  if (sinkDevice === undefined || sinkDevice === '' || sinkDevice === 'default') return state.defaultOutputForm;
+  if (sinkDevice === 'communications') return UNKNOWN_FORM;
+  const device = state.audioMonitorDevices.find((d) => d.deviceId === sinkDevice);
+  return device?.formFactor && device.transport ? { formFactor: device.formFactor, transport: device.transport } : UNKNOWN_FORM;
+}
+
+/** An outlet's resolved sink, looked up in the device list: unknown while nothing is known. */
+export function getOutputFormFactor(sinkDevice?: string): OutputForm {
+  const { formFactor, transport } = formIn(useAudioStore.getState(), sinkDevice);
+  return { formFactor, transport };
+}
+
+/** `getOutputFormFactor`, following the store; the same object while the answer holds. */
+export function useOutputFormFactor(sinkDevice?: string): OutputForm {
+  // Two plain selections: a selector returning a fresh object never equals its last result.
+  const formFactor = useAudioStore((s) => formIn(s, sinkDevice).formFactor);
+  const transport = useAudioStore((s) => formIn(s, sinkDevice).transport);
+  return useMemo(() => ({ formFactor, transport }), [formFactor, transport]);
 }

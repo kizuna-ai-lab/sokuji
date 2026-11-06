@@ -33,7 +33,7 @@ type FormFactor = 'headphones' | 'speakers' | 'unknown';
 type Transport = 'builtin' | 'usb' | 'bluetooth' | 'hdmi' | 'virtual' | 'unknown';
 
 interface OutputDeviceInfo {
-  label: string;           // the system's own device name (helper / pactl); the browser's label is only matched against it (§5), never stored here
+  label: string;           // the system's own device name (helper / pactl; on macOS the string Chromium shows: the data source or device name plus the transport suffix in brackets, as Chromium's CoreAudioUtilMac::GetDeviceLabel builds it); the browser's label is only matched against it by exact equality (§5), never stored here
   isDefault: boolean;      // the system's default output
   formFactor: FormFactor;
   transport: Transport;
@@ -104,6 +104,7 @@ The renderer knows an outlet's sink by its `deviceId` (or none: the browser defa
 - `default` (and no device) → the native device with `isDefault`. The browser's default is the console default on Windows (`eConsole`), which is what the helper reports.
 - `communications` (Windows) → `unknown` (rarely chosen; not worth a second default lookup).
 - Otherwise the `audiooutput` entry's label, trimmed and with Chromium's `Default - ` / `Communications - ` prefix removed, is compared with the native labels. Exactly one equal label → that device. None or more than one (two identical USB headsets, two AirPods with the same name) → `unknown`. Nothing fuzzier than that: a looser match would be the guessing §2 rules out.
+- On macOS the native label is the string Chromium shows: the current data source's name, or else the device name, plus the transport suffix in brackets (`MacBook Pro Speakers (Built-in)`), as Chromium's `CoreAudioUtilMac::GetDeviceLabel` builds it. The helper builds it the same way, and it is still compared by exact equality.
 
 Label matching is what the browser layer allows: Chromium's device ids are salted hashes that the native side cannot reproduce. If a platform's Chromium labels turn out not to equal the native names at all, that platform answers `unknown` until the matcher is fixed; measuring this comes first (§9).
 
@@ -123,7 +124,7 @@ Changes the device list does not show:
 - Main: `electron/output-form-factor.js` with `getOutputDevices()` that dispatches per platform (helper `--devices` on macOS and Windows, `pactl` on Linux), parses, maps per §4 and resolves to `OutputDeviceInfo[]`. It never rejects, and resolves to `{ ok: true, devices: OutputDeviceInfo[] }` or `{ ok: false, reason: string }`: a missing helper, a non-zero exit, unparsable output or a 3-second timeout give `ok: false`, which the renderer treats per §6 (stale until a retry succeeds). `ok: true` with an empty list is a real answer (a machine with no outputs), not a failure. Platform parsers are pure functions over the helper's JSON / the `pactl` JSON, unit tested with captured fixtures. `raw` values are capped in length before they cross IPC.
 - IPC: an invoke channel (`get-output-devices`) added to `electron/ipc-channels.js`, and a push event (`output-devices:changed`) on the preload's receive allowlist.
 - Renderer: no second device list. The existing pipeline (`listAudioDevices()` in `src/lib/audio/devices.ts`, the re-reads in `src/lib/audio/deviceWatch.ts`, the output list in the audio store) stays the one source of truth: each output it lists gains `formFactor` and `transport`, joined in from the native list by the matcher (§5) when the list is read, and a push from the main process triggers the same re-read. `src/lib/audio/formFactor.ts` holds the pure matcher and `getOutputFormFactor(sinkDevice?)` / `useOutputFormFactor(sinkDevice?)`, which look the resolved sink of an outlet up in that list and return `{ formFactor, transport }` (`unknown` while nothing is known).
-- Extension: `extension/` is its own Vite project and does not import `src/`, so it has no path to this IPC; its device lists simply carry no form factor and read as `unknown`. Anything that later moves this code into a shared module must keep the Electron IPC out of the extension build.
+- Extension: `extension/` is its own Vite project, but it does import `src/` (`extension/fullpage.html` loads `shared/index.tsx`, which imports `src/App`), so this code is in the extension build. The native reader is started only when `isElectron()` and `window.electron` are both true, so the extension never reaches the Electron IPC and every output there reads `unknown`. Anything else that starts the reader must keep that check.
 - Diagnostics: when the diagnostic log is on (Help → diagnostic logs), a session start and each change log one line per outlet with its label, form factor and transport, only when that triple changes (the device list is re-read often). No visible UI. (My call: there is no diagnostics view to put a readout in, and a visible hint is a behavior change this issue excludes.)
 
 ## 8. Verification
