@@ -172,8 +172,14 @@ describe('parseMacDevices', () => {
       isDefault: true,
       formFactor: 'headphones',
       transport: 'builtin',
-      raw: { name: 'External Headphones', uid: 'uid-1', transport: 'bltn', dataSource: 'hdpn' },
+      raw: { name: 'External Headphones', transport: 'bltn', dataSource: 'hdpn' },
     });
+  });
+
+  it('raw never carries the device UID: a Bluetooth device\'s is its MAC address', () => {
+    const raw = parse({ transport: 'blue', uid: '00-00-00-00-00-00:output', terminalType: 'hdph' }).raw;
+    expect(raw).not.toHaveProperty('uid');
+    expect(JSON.stringify(raw)).not.toContain('00-00-00-00-00-00');
   });
 
   it('built-in speakers are speakers', () => {

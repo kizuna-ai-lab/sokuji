@@ -242,7 +242,8 @@ function parseMacDevices(text) {
       const transport = (typeof code === 'string' && MAC_TRANSPORT[code]) || 'unknown';
       const dataSource = macCode(r.dataSource);
       const terminalType = macCode(r.terminalType);
-      const raw = { name: r.label, uid: r.uid, transport: r.transport, dataSource: r.dataSource, terminalType: r.terminalType };
+      // No uid: a Bluetooth device's UID is its MAC address, and raw lands in a log.
+      const raw = { name: r.label, transport: r.transport, dataSource: r.dataSource, terminalType: r.terminalType };
       for (const k of ['transport', 'dataSource', 'terminalType']) {
         if (typeof raw[k] === 'number') raw[k] = String(raw[k]);
       }
