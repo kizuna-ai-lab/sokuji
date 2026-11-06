@@ -218,6 +218,8 @@ class QwenLeg implements AdapterSession {
   private drop: DropInfo | null = null;
   /** Why this drop's last attempt failed, in words: what the leg's failure says at a give-up. */
   private lastFailure: string | null = null;
+  /** When the drop the reconnector took up last began, on the request's clock: a managed attempt dials no token minted before it. */
+  private dropAt = 0;
   /** Managed: the token a request fetched for this drop. Qwen refusing it is final; refusing one the cache served is not. */
   private freshToken: string | null = null;
   /** Managed: a cached token Qwen refused at an attempt's handshake: the next reissue asks past the cache. */
@@ -935,9 +937,10 @@ class QwenLeg implements AdapterSession {
     this.newDrop(this.dropInfo(drop, true));
   }
 
-  /** A drop the reconnector takes up: its words, and the tokens it fetched or saw refused, start afresh. */
+  /** A drop the reconnector takes up: its start, its words, and the tokens it fetched or saw refused, start afresh. */
   private newDrop(drop: DropInfo): void {
     this.drop = drop;
+    this.dropAt = this.request.clock.now();
     this.lastFailure = null;
     this.freshToken = null;
     this.refusedToken = null;
@@ -967,8 +970,10 @@ class QwenLeg implements AdapterSession {
 
   /**
    * One reconnect attempt (spec 2026-11-05 reconnect §4.2). Managed: the
-   * lease's token first — its cached one while it lasts, which serves both
-   * legs, else one request for both — a refusal stopping the attempts. Then
+   * lease's token first, never one minted before this drop began — the one
+   * it fetched since then while it lasts, which the drop's later attempts
+   * and the other leg's drop in the same blip share, else one request for
+   * both — a refusal stopping the attempts. Then
    * the start's own connect, on the endpoint the start dialled: a new
    * session, whose update and report go as at the start. An answer the
    * handshake would give again (`TERMINAL`), or a close there that would end
@@ -992,7 +997,7 @@ class QwenLeg implements AdapterSession {
       const refused = this.refusedToken;
       this.refusedToken = null;
       const asked = clock.now();
-      const answer = await (refused !== null ? lease.reissue({ refused }) : lease.reissue());
+      const answer = await lease.reissue({ notBefore: this.dropAt, ...(refused !== null ? { refused } : {}) });
       reissueMs = clock.now() - asked;
       // Abandoned meanwhile (a stop, the budget's end): nobody reads the answer, and nothing opens.
       if (signal.aborted || this.hasEnded()) return abandoned;

@@ -21,8 +21,10 @@ import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { FLAP_WINDOW_MS, MAX_RECONNECTS, RECONNECT_BUDGET_MS, type DropInfo } from '../../lib/session/reconnect';
+import type { RunShape } from '../../lib/session/types';
 import { CONNECTION_LOST, createQwenAdapter, ERROR_WORDS_MS, KEEPALIVE_IDLE_MS, NEVER_OPENED, QWEN_PROBE_MS, QWEN_STALL_MS, QWEN_TURN_ANSWER_MS, qwenDropAction, TURN_DONE_MS } from './adapter';
-import type { QwenCredentials, QwenReissue } from './settings';
+import { createQwenLease } from './lease';
+import { QWEN_DEFAULTS, type QwenCredentials, type QwenReissue } from './settings';
 import { AUTO_CTX, configFor, KEY, MANUAL_CTX, openQwen, PARTICIPANT_CTX, probes, qwenHarness, qwenSession, SERVER, SHARED, turn } from './testing';
 
 const TOKEN_0 = 'st-token-0';
@@ -47,6 +49,29 @@ function fakeLease(...answers: QwenReissue[]) {
 
 type Lease = ReturnType<typeof fakeLease>;
 const managed = (lease: Lease): QwenCredentials => ({ apiKey: TOKEN_0, endpoint: 'intl', lease: lease.port });
+
+const API = 'https://api.test';
+const REISSUE = '/qwen/session-key/reissue';
+/**
+ * The real lease (`lease.ts`) on the legs' clock, over a `fetch` that answers
+ * at once: the grant (`TOKEN_0`, valid 60 s), every report, and each reissue
+ * a new token, `st-reissued-<n>`, valid 60 s. `reissues()` counts the requests.
+ */
+async function realLease(clock: VirtualClock, legs: LegName[]) {
+  const paths: string[] = [];
+  const reissues = () => paths.filter((p) => p === REISSUE).length;
+  const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
+  const fetch = async (url: string): Promise<Response> => {
+    const path = url.slice(API.length);
+    paths.push(path);
+    if (path === '/qwen/session-key') return json({ leaseId: 'lease-1', endpoint: 'intl', apiKey: TOKEN_0, expiresAt: clock.now() + 60_000, maxSessionDurationSeconds: 600 });
+    if (path === REISSUE) return json({ apiKey: `st-reissued-${reissues()}`, expiresAt: clock.now() + 60_000 });
+    return json({ ok: true });
+  };
+  const shape = { legs, textOnly: false, participantSpeech: true, auth: { getToken: async () => 'tok' } } as unknown as RunShape;
+  const resources = await createQwenLease({ fetch, apiUrl: () => API })(shape, QWEN_DEFAULTS, { signal: new AbortController().signal, clock, end: () => {}, frame: () => {} });
+  return { credentials: (leg: LegName) => resources.credentials(leg), reissues };
+}
 
 /** A leg live, own key unless a lease is given; its server answers each liveness probe unless `answerProbes` is false. */
 const live = (o: { lease?: Lease; context?: SessionContext; frames?: FrameSource; requestIds?: string[]; answerProbes?: boolean; clock?: ReturnType<typeof trackedClock> } = {}) =>
@@ -508,19 +533,34 @@ describe('the Qwen adapter reconnects: managed', () => {
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
-  it('managed: a still-valid token is reused', async () => {
-    // The lease answers the token it holds while it lasts (`lease.ts`, until 5 s before its expiry, for both legs): every attempt dials it, and nothing counts as reissued.
-    const held: QwenReissue = { ok: true, apiKey: TOKEN_0, expiresAt: 60_000, fresh: false };
-    const lease = fakeLease(held, held);
+  it("managed: a drop within the old token's validity still asks the lease, naming the drop's start, and dials the token it answers", async () => {
+    // The grant's token has 50 s left at the drop: the lease is asked all the same, for a token minted since the drop.
+    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 70_000, fresh: true });
     const h = await live({ lease });
+    h.clock.advance(10_000);
+    h.socket().serverClose(1011);
+    await flush();
+    expect(lease.port.reissue.mock.calls).toEqual([[{ notBefore: 10_000 }]]);
+    expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, `Bearer ${TOKEN_1}`]);
+    await comeBack(h);
+    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 1, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
+    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
+  });
+
+  it("managed: every attempt of a drop asks with that drop's start, so the lease serves the drop's token again; its cache's answer counts as no reissue", async () => {
+    // The lease serves the token it fetched for this drop while it lasts (`lease.ts`, until 5 s before its expiry, for both legs).
+    const lease = fakeLease({ ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true }, { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false });
+    const h = await live({ lease });
+    h.clock.advance(3_000);
     h.socket().serverClose(1011);
     await failAttempt(h);
     h.clock.advance(250);
     await flush();
-    expect(lease.port.reissue).toHaveBeenCalledTimes(2);
-    expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, `Bearer ${TOKEN_0}`, `Bearer ${TOKEN_0}`]);
+    expect(lease.port.reissue.mock.calls).toEqual([[{ notBefore: 3_000 }], [{ notBefore: 3_000 }]]);
+    expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, `Bearer ${TOKEN_1}`, `Bearer ${TOKEN_1}`]);
     await comeBack(h);
-    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: false, reissueMs: 0, budgetShared: false }]);
+    // Reissued: the drop's first attempt fetched its token.
+    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
     expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
   });
 
@@ -560,7 +600,7 @@ describe('the Qwen adapter reconnects: managed', () => {
       const h = await live({ lease });
       h.socket().serverClose(1011);
       await flush();
-      expect(lease.port.reissue).toHaveBeenNthCalledWith(1);
+      expect(lease.port.reissue).toHaveBeenNthCalledWith(1, { notBefore: 0 });
       h.socket().open();
       await flush();
       h.socket().receive(SERVER.created('sess_2'));
@@ -570,7 +610,7 @@ describe('the Qwen adapter reconnects: managed', () => {
       expect(h.frames('session.reconnect_failed')).toHaveLength(1);
       h.clock.advance(250);
       await flush();
-      expect(lease.port.reissue).toHaveBeenNthCalledWith(2, { refused: TOKEN_0 });
+      expect(lease.port.reissue).toHaveBeenNthCalledWith(2, { notBefore: 0, refused: TOKEN_0 });
       expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, `Bearer ${TOKEN_0}`, `Bearer ${TOKEN_1}`]);
       await comeBack(h, 'sess_3');
       expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
@@ -578,7 +618,7 @@ describe('the Qwen adapter reconnects: managed', () => {
     }
   });
 
-  it('managed: a token fetched for an earlier drop, served by the cache and refused in this one, is asked past', async () => {
+  it("managed: a token this leg fetched for an earlier drop, served by the cache in this one (the other leg's ask for it) and refused, is asked past", async () => {
     const lease = fakeLease(
       { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: true },
       { ok: true, apiKey: TOKEN_1, expiresAt: 60_000, fresh: false },
@@ -598,7 +638,7 @@ describe('the Qwen adapter reconnects: managed', () => {
     expect(h.of('failed')).toEqual([]);
     h.clock.advance(250);
     await flush();
-    expect(lease.port.reissue).toHaveBeenNthCalledWith(3, { refused: TOKEN_1 });
+    expect(lease.port.reissue.mock.calls).toEqual([[{ notBefore: 0 }], [{ notBefore: 20_000 }], [{ notBefore: 20_000, refused: TOKEN_1 }]]);
     await comeBack(h, 'sess_4');
     expect(h.of('reconnected').map((e) => e.payload!.attempts)).toEqual([1, 2]);
   });
@@ -638,7 +678,7 @@ describe('the Qwen adapter reconnects: managed', () => {
       auth(h.socket());
       await flush();
       expect(h.of('failed')).toEqual(expected(2));
-      expect(lease.port.reissue).toHaveBeenNthCalledWith(2);
+      expect(lease.port.reissue).toHaveBeenNthCalledWith(2, { notBefore: 0 });
       expect(h.timers()).toBe(0);
     }
   });
@@ -665,6 +705,71 @@ describe('the Qwen adapter reconnects: managed', () => {
       expect(h.timers()).toBe(0);
       expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
     }
+  });
+
+  it('managed over the real lease: the second attempt of a drop does not ask again, and dials the token the first one fetched', async () => {
+    const tracked = trackedClock();
+    const lease = await realLease(tracked.clock, ['speaker']);
+    const h = await qwenSession({ shared: NO_STOREFRONT, credentials: lease.credentials('speaker'), clock: tracked });
+    // 5 s in: the grant's token is still valid, and is not dialled again.
+    h.clock.advance(5_000);
+    h.socket().serverClose(1011);
+    await failAttempt(h);
+    expect(lease.reissues()).toBe(1);
+    h.clock.advance(250);
+    await flush();
+    expect(lease.reissues()).toBe(1);
+    expect(bearers(h)).toEqual([`Bearer ${TOKEN_0}`, 'Bearer st-reissued-1', 'Bearer st-reissued-1']);
+    await comeBack(h);
+    expect(h.of('reconnected').map((e) => e.payload)).toEqual([{ attempts: 2, credentialsReissued: true, reissueMs: 0, budgetShared: false }]);
+  });
+
+  /** Both legs of split Both live over one real lease, each on its own seam, on one clock. */
+  const splitOverRealLease = async () => {
+    const tracked = trackedClock();
+    const lease = await realLease(tracked.clock, ['speaker', 'participant']);
+    const speaker = await qwenSession({ shared: NO_STOREFRONT, credentials: lease.credentials('speaker'), clock: tracked });
+    const participant = await qwenSession({ shared: NO_STOREFRONT, context: PARTICIPANT_CTX, credentials: lease.credentials('participant'), clock: tracked });
+    return { clock: tracked.clock, lease, speaker, participant };
+  };
+
+  it('managed over the real lease: split legs dropping together trigger one reissue, and both dial its token', async () => {
+    const { clock, lease, speaker, participant } = await splitOverRealLease();
+    clock.advance(5_000);
+    speaker.socket().serverClose(1011);
+    participant.socket().serverClose(1011);
+    await flush();
+    expect(lease.reissues()).toBe(1);
+    expect(bearers(speaker)).toEqual([`Bearer ${TOKEN_0}`, 'Bearer st-reissued-1']);
+    expect(bearers(participant)).toEqual([`Bearer ${TOKEN_0}`, 'Bearer st-reissued-1']);
+    await comeBack(speaker);
+    await comeBack(participant);
+    expect(speaker.of('reconnected').map((e) => e.payload!.credentialsReissued)).toEqual([true]);
+    expect(participant.of('reconnected').map((e) => e.payload!.credentialsReissued)).toEqual([true]);
+  });
+
+  it("managed over the real lease: a drop 10 s later triggers another reissue, though the last token is still valid; the other leg's own drop after that fetch asks again too", async () => {
+    const { clock, lease, speaker, participant } = await splitOverRealLease();
+    speaker.socket().serverClose(1011);
+    await comeBack(speaker);
+    expect(lease.reissues()).toBe(1);
+    clock.advance(10_000);
+    speaker.socket().serverClose(1011);
+    await flush();
+    clock.advance(250);
+    await flush();
+    expect(lease.reissues()).toBe(2);
+    expect(bearers(speaker)).toEqual([`Bearer ${TOKEN_0}`, 'Bearer st-reissued-1', 'Bearer st-reissued-2']);
+    await comeBack(speaker, 'sess_3');
+    // The participant drops a moment after that fetch: a drop of its own, so a token of its own.
+    clock.advance(1);
+    participant.socket().serverClose(1011);
+    await flush();
+    expect(lease.reissues()).toBe(3);
+    expect(bearers(participant)).toEqual([`Bearer ${TOKEN_0}`, 'Bearer st-reissued-3']);
+    await comeBack(participant);
+    expect(speaker.of('reconnected')).toHaveLength(2);
+    expect(participant.of('reconnected')).toHaveLength(1);
   });
 
   it('a stop while the reissue is out: its late answer opens nothing and says nothing', async () => {

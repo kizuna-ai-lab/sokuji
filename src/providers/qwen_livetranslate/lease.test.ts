@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError } from '../../lib/contract/adapter';
-import { createVirtualClock } from '../../lib/contract/clock';
+import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
 import { CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
@@ -31,7 +31,7 @@ const grant = (over: Record<string, unknown> = {}) => ({
   maxSessionDurationSeconds: 600, budgetMicroUsd: 416_667, rateUsdPerHour: 2.5, ...over,
 });
 
-type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings>; frames?: RunShape['frames'] };
+type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings>; frames?: RunShape['frames']; clock?: VirtualClock };
 
 const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
   provider: {} as RunShape['provider'], settings: { ...QWEN_DEFAULTS, ...o.settings }, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
@@ -43,7 +43,7 @@ const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
 /** `acquire` in flight over a stub `fetch`, on a virtual clock; the test answers it. */
 function acquiring(legs: LegName[], o: Options = {}) {
   const net = stubFetch();
-  const clock = createVirtualClock(0);
+  const clock = o.clock ?? createVirtualClock(0);
   const controller = new AbortController();
   const end = vi.fn();
   const frame = vi.fn();
@@ -647,32 +647,111 @@ describe('Qwen lease: the grant stays out of the Logs', () => {
 
 describe('Qwen lease: reissue', () => {
   const FRESH = 'st-fresh-0002';
+  const FRESH_2 = 'st-fresh-0003';
   const REISSUE = '/qwen/session-key/reissue';
   const reissuer = async (legs: LegName[] = ['speaker', 'participant'], o: AcquireOptions = {}, over: Record<string, unknown> = {}) => {
     const a = await granted(legs, o, over);
     const ports = Object.fromEntries(legs.map((leg) => [leg, a.resources.credentials(leg).lease!]));
     return { ...a, ports };
   };
-  /** Past the cached token's refresh margin (the grant expires at 60 000). */
-  const expire = (a: { clock: { advance(ms: number): void } }) => a.clock.advance(56_000);
+  /** A drop that began now, on the run's clock: what a reconnecting leg asks with. */
+  const dropNow = (a: { clock: { now(): number } }) => ({ notBefore: a.clock.now() });
+  /** A token fetched for a drop at `at`, answered then: the cache's, fetched at `at`. */
+  const fetched = async (a: Awaited<ReturnType<typeof reissuer>>, at: number, apiKey = FRESH, expiresAt = at + 60_000) => {
+    a.clock.advance(at - a.clock.now());
+    const p = a.ports.speaker.reissue({ notBefore: at });
+    await flush();
+    a.to(REISSUE)[a.to(REISSUE).length - 1].respond(200, { apiKey, expiresAt });
+    await expect(p).resolves.toEqual({ ok: true, apiKey, expiresAt, fresh: true });
+  };
 
-  it('a token still valid is reused without a request', async () => {
+  it("the grant's token is the Start's alone: a reconnect's first ask makes a request, even in the grant's first second", async () => {
     const a = await reissuer();
-    const before = a.calls.length;
-    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 60_000, fresh: false });
-    expect(a.calls.length).toBe(before);
+    const p = a.ports.speaker.reissue({ notBefore: 0 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(1);
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 60_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 60_000, fresh: true });
   });
 
-  it('seeds the cache a minute out when the grant names no expiry', async () => {
-    const a = await reissuer(['speaker'], {}, { expiresAt: undefined });
-    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: GRANT_KEY, expiresAt: 55_000, fresh: false });
+  it("a reissue asked with a notBefore later than the cached token's fetch makes a request, though the cached token is still valid", async () => {
+    const a = await reissuer();
+    await fetched(a, 1_000, FRESH, 120_000);
+    // A new drop 10 s on: the cached token has 109 s left, and was minted before it.
+    a.clock.advance(10_000);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 131_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 131_000, fresh: true });
   });
 
-  it('an expired token fetches one; both legs calling together make one request', async () => {
+  it("a second ask during the same drop, at or after its token's fetch, reuses it with no request: the drop's next attempt, or the other leg dropped in the same blip", async () => {
     const a = await reissuer();
-    expire(a);
-    const speaker = a.ports.speaker.reissue();
-    const participant = a.ports.participant.reissue();
+    // A drop at 1 000 whose request is answered at 1 400.
+    a.clock.advance(1_000);
+    const first = a.ports.speaker.reissue({ notBefore: 1_000 });
+    await flush();
+    a.clock.advance(400);
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 61_400 });
+    await first;
+    a.clock.advance(250);
+    const cachedAnswer = { ok: true, apiKey: FRESH, expiresAt: 61_400, fresh: false };
+    // The drop's next attempt; the other leg, dropped before the answer; and one dropped the very moment it came.
+    await expect(a.ports.speaker.reissue({ notBefore: 1_000 })).resolves.toEqual(cachedAnswer);
+    await expect(a.ports.participant.reissue({ notBefore: 1_200 })).resolves.toEqual(cachedAnswer);
+    await expect(a.ports.participant.reissue({ notBefore: 1_400 })).resolves.toEqual(cachedAnswer);
+    expect(a.to(REISSUE)).toHaveLength(1);
+    // A drop a moment after the fetch is a new one.
+    const later = a.ports.participant.reissue({ notBefore: 1_401 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 61_650 });
+    await expect(later).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
+  });
+
+  it("a token fetched since the drop is still not served within 5 s of its expiry", async () => {
+    const a = await reissuer(['speaker']);
+    await fetched(a, 0, FRESH, 20_000);
+    a.clock.advance(14_999);
+    await expect(a.ports.speaker.reissue({ notBefore: 0 })).resolves.toMatchObject({ apiKey: FRESH, fresh: false });
+    a.clock.advance(1);
+    const p = a.ports.speaker.reissue({ notBefore: 0 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 75_000 });
+    await expect(p).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
+  });
+
+  it('a fetch time ahead of now — a wall clock stepped back — proves nothing: a request is made', async () => {
+    const inner = createVirtualClock(0);
+    let back = 0;
+    const clock: VirtualClock = { now: () => inner.now() - back, setTimeout: (fn, ms) => inner.setTimeout(fn, ms), advance: (ms) => inner.advance(ms), pending: () => inner.pending() };
+    const a = await reissuer(['speaker'], { clock });
+    await fetched(a, 5_000, FRESH, 65_000);
+    back = 4_000;
+    // A drop at 1 000 by the stepped-back clock, which reads the token as fetched after it.
+    const p = a.ports.speaker.reissue({ notBefore: 1_000 });
+    await flush();
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 61_000 });
+    await expect(p).resolves.toMatchObject({ apiKey: FRESH_2, fresh: true });
+  });
+
+  it("a reissued token that names no expiry is taken to last 55 s", async () => {
+    const a = await reissuer(['speaker']);
+    a.clock.advance(2_000);
+    const p = a.ports.speaker.reissue(dropNow(a));
+    await flush();
+    a.to(REISSUE)[0].respond(200, { apiKey: FRESH });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 57_000, fresh: true });
+  });
+
+  it('both legs asking together make one request, whatever their drops', async () => {
+    const a = await reissuer();
+    a.clock.advance(3_000);
+    const speaker = a.ports.speaker.reissue({ notBefore: 3_000 });
+    const participant = a.ports.participant.reissue({ notBefore: 2_990 });
     await flush();
     expect(a.to(REISSUE)).toHaveLength(1);
     const call = a.to(REISSUE)[0];
@@ -684,20 +763,19 @@ describe('Qwen lease: reissue', () => {
     const ok = { ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: true };
     await expect(speaker).resolves.toEqual(ok);
     await expect(participant).resolves.toEqual(ok);
-    // The new token is the lease's now: a later call reuses it, from the cache.
-    await expect(a.ports.participant.reissue()).resolves.toEqual({ ...ok, fresh: false });
+    // The new token is the lease's now: a later ask for the same drop reuses it, from the cache.
+    await expect(a.ports.participant.reissue({ notBefore: 2_990 })).resolves.toEqual({ ...ok, fresh: false });
     expect(a.to(REISSUE)).toHaveLength(1);
     expect(JSON.stringify(a.frame.mock.calls)).not.toContain(FRESH);
   });
 
-  it('asks again once the shared request has settled and the token has expired again', async () => {
+  it('asks again once the shared request has settled without a token', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
-    const first = a.ports.speaker.reissue();
+    const first = a.ports.speaker.reissue(dropNow(a));
     await flush();
     a.to(REISSUE)[0].respond(503, { error: 'qwen_busy', retryAfterMs: 1000 });
     await first;
-    const second = a.ports.speaker.reissue();
+    const second = a.ports.speaker.reissue(dropNow(a));
     await flush();
     expect(a.to(REISSUE)).toHaveLength(2);
     a.to(REISSUE)[1].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
@@ -706,54 +784,56 @@ describe('Qwen lease: reissue', () => {
 
   it('a token Qwen refused is dropped from the cache and fetched again, while it is still valid', async () => {
     const a = await reissuer(['speaker']);
-    const p = a.ports.speaker.reissue({ refused: GRANT_KEY });
+    await fetched(a, 0, FRESH, 120_000);
+    const p = a.ports.speaker.reissue({ notBefore: 0, refused: FRESH });
     await flush();
-    expect(a.to(REISSUE)).toHaveLength(1);
-    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
-    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: true });
-    await expect(a.ports.speaker.reissue()).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: false });
-    expect(a.to(REISSUE)).toHaveLength(1);
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 120_000 });
+    await expect(p).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 120_000, fresh: true });
+    await expect(a.ports.speaker.reissue({ notBefore: 0 })).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 120_000, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(2);
   });
 
   it('both legs refused the same token make one request; a refusal of a token the cache no longer holds is answered from the cache', async () => {
     const a = await reissuer();
-    const speaker = a.ports.speaker.reissue({ refused: GRANT_KEY });
-    const participant = a.ports.participant.reissue({ refused: GRANT_KEY });
+    await fetched(a, 0, FRESH, 120_000);
+    const speaker = a.ports.speaker.reissue({ notBefore: 0, refused: FRESH });
+    const participant = a.ports.participant.reissue({ notBefore: 0, refused: FRESH });
     await flush();
-    expect(a.to(REISSUE)).toHaveLength(1);
-    a.to(REISSUE)[0].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
-    await expect(speaker).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
-    await expect(participant).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
+    expect(a.to(REISSUE)).toHaveLength(2);
+    a.to(REISSUE)[1].respond(200, { apiKey: FRESH_2, expiresAt: 120_000 });
+    await expect(speaker).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
+    await expect(participant).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
     // A leg that dialled the old token and was refused after the other leg's fetch landed: the new token, no request.
-    await expect(a.ports.participant.reissue({ refused: GRANT_KEY })).resolves.toEqual({ ok: true, apiKey: FRESH, expiresAt: 120_000, fresh: false });
-    expect(a.to(REISSUE)).toHaveLength(1);
+    await expect(a.ports.participant.reissue({ notBefore: 0, refused: FRESH })).resolves.toEqual({ ok: true, apiKey: FRESH_2, expiresAt: 120_000, fresh: false });
+    expect(a.to(REISSUE)).toHaveLength(2);
   });
 
   it('a refused token whose fetch fails is not served again', async () => {
     const a = await reissuer(['speaker']);
-    const first = a.ports.speaker.reissue({ refused: GRANT_KEY });
+    await fetched(a, 0, FRESH, 120_000);
+    const first = a.ports.speaker.reissue({ notBefore: 0, refused: FRESH });
     await flush();
-    a.to(REISSUE)[0].respond(503, { error: 'qwen_busy' });
+    a.to(REISSUE)[1].respond(503, { error: 'qwen_busy' });
     await expect(first).resolves.toMatchObject({ ok: false, retry: true });
-    const second = a.ports.speaker.reissue();
+    const second = a.ports.speaker.reissue({ notBefore: 0 });
     await flush();
-    expect(a.to(REISSUE)).toHaveLength(2);
-    a.to(REISSUE)[1].respond(200, { apiKey: FRESH, expiresAt: 120_000 });
-    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH, fresh: true });
+    expect(a.to(REISSUE)).toHaveLength(3);
+    a.to(REISSUE)[2].respond(200, { apiKey: FRESH_2, expiresAt: 120_000 });
+    await expect(second).resolves.toMatchObject({ ok: true, apiKey: FRESH_2, fresh: true });
   });
 
   it('sends the fresh bearer from getToken, falling back to the cached one when it fails', async () => {
     const a = await reissuer(['speaker']);
     const getToken = a.shape.auth.getToken as ReturnType<typeof vi.fn>;
-    expire(a);
     getToken.mockResolvedValueOnce('tok-fresh');
-    const first = a.ports.speaker.reissue();
+    const first = a.ports.speaker.reissue(dropNow(a));
     await flush();
     expect((a.to(REISSUE)[0].init.headers as Record<string, string>).Authorization).toBe('Bearer tok-fresh');
     a.to(REISSUE)[0].respond(503, { error: 'qwen_busy' });
     await first;
     getToken.mockRejectedValueOnce(new Error('offline'));
-    const second = a.ports.speaker.reissue();
+    const second = a.ports.speaker.reissue(dropNow(a));
     await flush();
     expect((a.to(REISSUE)[1].init.headers as Record<string, string>).Authorization).toBe('Bearer tok');
     a.to(REISSUE)[1].respond(503, { error: 'qwen_busy' });
@@ -762,9 +842,8 @@ describe('Qwen lease: reissue', () => {
 
   it('a hung getToken is bounded by the timeout', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
     (a.shape.auth.getToken as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(() => {}));
-    const p = a.ports.speaker.reissue();
+    const p = a.ports.speaker.reissue(dropNow(a));
     await flush();
     a.clock.advance(SESSION_KEY_TIMEOUT_MS);
     await expect(p).resolves.toMatchObject({ ok: false, retry: true });
@@ -786,8 +865,7 @@ describe('Qwen lease: reissue', () => {
   for (const [status, body, expected] of mapping) {
     it(`maps ${status} ${JSON.stringify(body)} to ${JSON.stringify(expected)}`, async () => {
       const a = await reissuer(['speaker']);
-      expire(a);
-      const p = a.ports.speaker.reissue();
+      const p = a.ports.speaker.reissue(dropNow(a));
       await flush();
       a.to(REISSUE)[0].respond(status, body ?? undefined);
       await expect(p).resolves.toMatchObject(expected as object);
@@ -796,8 +874,7 @@ describe('Qwen lease: reissue', () => {
 
   it('a 200 without a key is a retry', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
-    const p = a.ports.speaker.reissue();
+    const p = a.ports.speaker.reissue(dropNow(a));
     await flush();
     a.to(REISSUE)[0].respond(200, { leaseId: 'lease-1' });
     await expect(p).resolves.toMatchObject({ ok: false, retry: true });
@@ -805,8 +882,7 @@ describe('Qwen lease: reissue', () => {
 
   it('a transport failure is a retry', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
-    const p = a.ports.speaker.reissue();
+    const p = a.ports.speaker.reissue(dropNow(a));
     await flush();
     a.to(REISSUE)[0].fail();
     await expect(p).resolves.toMatchObject({ ok: false, retry: true });
@@ -814,8 +890,7 @@ describe('Qwen lease: reissue', () => {
 
   it('a request that never answers is a retry at the timeout, and leaves no timer behind', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
-    const p = a.ports.speaker.reissue();
+    const p = a.ports.speaker.reissue(dropNow(a));
     await flush();
     a.clock.advance(SESSION_KEY_TIMEOUT_MS);
     await expect(p).resolves.toMatchObject({ ok: false, retry: true });
@@ -825,16 +900,14 @@ describe('Qwen lease: reissue', () => {
 
   it('an already-aborted context sends no request and answers retry', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
     a.controller.abort();
-    await expect(a.ports.speaker.reissue()).resolves.toMatchObject({ ok: false, retry: true });
+    await expect(a.ports.speaker.reissue(dropNow(a))).resolves.toMatchObject({ ok: false, retry: true });
     expect(a.to(REISSUE)).toHaveLength(0);
   });
 
   it('an abort while the request is out answers retry', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
-    const p = a.ports.speaker.reissue();
+    const p = a.ports.speaker.reissue(dropNow(a));
     await flush();
     a.controller.abort();
     await expect(p).resolves.toMatchObject({ ok: false, retry: true });
@@ -842,11 +915,10 @@ describe('Qwen lease: reissue', () => {
 
   it('answers lease_ended without a request after release', async () => {
     const a = await reissuer(['speaker']);
-    expire(a);
     void a.resources.release();
     await flush();
     const before = a.to(REISSUE).length;
-    await expect(a.ports.speaker.reissue()).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
+    await expect(a.ports.speaker.reissue(dropNow(a))).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
     expect(a.to(REISSUE).length).toBe(before);
   });
 });
