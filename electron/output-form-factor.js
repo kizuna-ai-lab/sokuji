@@ -15,6 +15,8 @@ const {
   parseWinDevices,
   parsePactlSinksJson,
   parsePactlSinksText,
+  parsePactlCardsJson,
+  parsePactlCardsText,
   parsePactlDefaultSink,
 } = require('./output-form-factor-parse.js');
 
@@ -96,15 +98,19 @@ async function readHelper(spawn, ctx, exe, parse) {
 async function readPactl(spawn, ctx, json) {
   const pre = json ? ['-f', 'json'] : [];
   const options = { env: pactlEnv() };
-  const [info, sinks] = await Promise.all([
+  const [info, sinks, cards] = await Promise.all([
     runChild(spawn, ctx, 'pactl', [...pre, 'info'], options),
     runChild(spawn, ctx, 'pactl', [...pre, 'list', 'sinks'], options),
+    runChild(spawn, ctx, 'pactl', [...pre, 'list', 'cards'], options),
   ]);
   const failure = failureOf(sinks) || (json ? failureOf(info) || infoUnparsable(info.out) : null);
   if (failure) return { ok: false, reason: failure };
   // A failed `info` in text form only costs the default: no device is default.
   const defaultName = info.status === 'ok' && info.code === 0 ? parsePactlDefaultSink(info.out, json) : null;
-  const devices = (json ? parsePactlSinksJson : parsePactlSinksText)(sinks.out, defaultName);
+  // The cards only fill in a bus the sinks leave out (PipeWire 0.3); a failed
+  // cards read costs that, never the devices.
+  const cardList = failureOf(cards) ? null : (json ? parsePactlCardsJson : parsePactlCardsText)(cards.out);
+  const devices = (json ? parsePactlSinksJson : parsePactlSinksText)(sinks.out, defaultName, cardList);
   return devices ? { ok: true, devices } : { ok: false, reason: 'unparsable' };
 }
 

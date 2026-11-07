@@ -165,6 +165,48 @@ describe('getOutputDevices', () => {
     expect(spawn.calls.some((c) => !c.args.includes('json'))).toBe(true);
   });
 
+  // PipeWire 0.3 (Ubuntu 22.04) keeps device.bus on the card: the read lists the cards too.
+  const busless = JSON.stringify([
+    { name: 'alsa_output.pci', description: 'Built-in Audio', properties: { 'device.id': '48' }, ports: [] },
+  ]);
+  const cardsJson = JSON.stringify([{ name: 'alsa_card.pci', properties: { 'object.id': '48', 'device.bus': 'pci' } }]);
+
+  it("linux reads the cards and fills in a sink's missing bus from its card", async () => {
+    const spawn = scriptedSpawn((cmd, args) => {
+      if (args.includes('info')) return { code: 0, out: infoJson };
+      return { code: 0, out: args.includes('cards') ? cardsJson : busless };
+    });
+    const res = await getOutputDevices({ platform: 'linux', spawn });
+    expect(spawn.calls.map((c) => c.args)).toContainEqual(['-f', 'json', 'list', 'cards']);
+    expect(res).toMatchObject({ ok: true, devices: [{ label: 'Built-in Audio', transport: 'builtin' }] });
+  });
+
+  it('a failed cards read costs only the bus, never the devices', async () => {
+    for (const cards of [{ code: 1, out: '' }, { code: 0, out: 'not json' }]) {
+      const spawn = scriptedSpawn((cmd, args) => {
+        if (args.includes('info')) return { code: 0, out: infoJson };
+        return args.includes('cards') ? cards : { code: 0, out: busless };
+      });
+      const res = await getOutputDevices({ platform: 'linux', spawn });
+      expect(res).toMatchObject({ ok: true, devices: [{ label: 'Built-in Audio', isDefault: true, transport: 'unknown' }] });
+      // The json attempt stands: a bad cards answer does not send the read to the text form.
+      expect(spawn.calls.every((c) => c.args.includes('json'))).toBe(true);
+    }
+  });
+
+  it('the text form lists the cards in text too', async () => {
+    const textSinks = ['Sink #1', '\tName: a', '\tDescription: A', '\tProperties:', '\t\tdevice.id = "48"', ''].join('\n');
+    const textCards = ['Card #47', '\tName: alsa_card.pci', '\tProperties:', '\t\tdevice.bus = "pci"', '\t\tobject.id = "48"', ''].join('\n');
+    const spawn = scriptedSpawn((cmd, args) => {
+      if (args.includes('json')) return { code: 1, out: '' };
+      if (args.includes('info')) return { code: 0, out: 'Default Sink: a\n' };
+      return { code: 0, out: args.includes('cards') ? textCards : textSinks };
+    });
+    const res = await getOutputDevices({ platform: 'linux', spawn });
+    expect(spawn.calls.map((c) => c.args)).toContainEqual(['list', 'cards']);
+    expect(res).toMatchObject({ ok: true, devices: [{ label: 'A', isDefault: true, transport: 'builtin' }] });
+  });
+
   it('a failed text info only loses the default', async () => {
     const textSinks = ['Sink #1', '\tName: a', '\tDescription: A', '\tProperties:', ''].join('\n');
     const spawn = scriptedSpawn((cmd, args) => {
@@ -251,10 +293,10 @@ describe('getOutputDevices', () => {
       expect(spawn.calls).toHaveLength(1);
       hidden(spawn.calls[0]);
     }
-    // Both pactl forms: the json attempt fails, so the text one runs too.
+    // Both pactl forms (info, sinks and cards each): the json attempt fails, so the text one runs too.
     const spawn = scriptedSpawn((cmd, args) => (args.includes('json') ? { code: 1, out: '' } : { code: 0, out: '' }));
     await getOutputDevices({ platform: 'linux', spawn });
-    expect(spawn.calls).toHaveLength(4);
+    expect(spawn.calls).toHaveLength(6);
     for (const c of spawn.calls) {
       hidden(c);
       expect(c.options.env.LC_ALL).toBe('C');
