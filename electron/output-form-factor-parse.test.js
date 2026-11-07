@@ -10,6 +10,8 @@ const {
   parsePactlSinksJson,
   parsePactlSinksText,
   parsePactlDefaultSink,
+  parsePactlCardsJson,
+  parsePactlCardsText,
   parseMacDevices,
   parseWinDevices,
   chromiumRedactedLabel,
@@ -38,6 +40,37 @@ describe('captured fixtures', () => {
     });
     const fromText = parsePactlSinksText(fixture('linux-hdmi.txt'), null);
     expect(fromText).toEqual(fromJson);
+  });
+
+  // Captured on Ubuntu 22.04 (PipeWire 0.3.48 behind pipewire-pulse, pactl 15.99.1) with the jack's line out
+  // active; USB serial numbers scrubbed. That PipeWire puts device.bus on the card only, so the sink's
+  // transport comes from its card.
+  it('PipeWire 0.3: the analog sink reads builtin from its card, in both forms', () => {
+    const expected = [
+      { label: 'Built-in Audio Analog Stereo', isDefault: true, formFactor: 'unknown', transport: 'builtin' },
+      { label: 'HDA NVidia Digital Stereo (HDMI 2)', isDefault: false, formFactor: 'unknown', transport: 'hdmi' },
+      { label: 'Sokuji_Virtual_Speaker', isDefault: false, formFactor: 'unknown', transport: 'virtual' },
+    ];
+    const pick = ({ label, isDefault, formFactor, transport }) => ({ label, isDefault, formFactor, transport });
+    const def = 'alsa_output.pci-0000_00_1f.3.analog-stereo';
+    const fromJson = parsePactlSinksJson(fixture('linux-pipewire-0.3-sinks.json'), def, parsePactlCardsJson(fixture('linux-pipewire-0.3-cards.json')));
+    expect(fromJson.map(pick)).toEqual(expected);
+    expect(fromJson[0].raw.bus).toBe('pci');
+    const fromText = parsePactlSinksText(fixture('linux-pipewire-0.3-sinks.txt'), def, parsePactlCardsText(fixture('linux-pipewire-0.3-cards.txt')));
+    expect(fromText).toEqual(fromJson);
+    // Without the cards the sink says nothing about its bus.
+    expect(parsePactlSinksJson(fixture('linux-pipewire-0.3-sinks.json'), def)[0].transport).toBe('unknown');
+  });
+
+  it('PipeWire 0.3: the cards list reads every card with its bus, both forms alike', () => {
+    const cards = parsePactlCardsJson(fixture('linux-pipewire-0.3-cards.json'));
+    expect(cards).toEqual([
+      { objectId: '46', alsaCard: '0', bus: 'usb' },
+      { objectId: '47', alsaCard: '1', bus: 'usb' },
+      { objectId: '48', alsaCard: '2', bus: 'pci' },
+      { objectId: '49', alsaCard: '3', bus: 'pci' },
+    ]);
+    expect(parsePactlCardsText(fixture('linux-pipewire-0.3-cards.txt'))).toEqual(cards);
   });
 
   // Captured on a Mac mini (Apple Silicon) with a USB headset plugged in; UIDs scrubbed.
@@ -125,6 +158,48 @@ describe('transport from the bus', () => {
   ])('bus %s is %s', (bus, transport) => {
     const props = bus ? { 'device.bus': bus } : {};
     expect(one(sink({ props })).transport).toBe(transport);
+  });
+});
+
+// PipeWire before 1.0 (Ubuntu 22.04 ships 0.3.48) leaves device.bus on the card, not the sink.
+describe('transport from the card', () => {
+  const withCards = (props, cards) => parsePactlSinksJson(JSON.stringify([sink({ props })]), null, cards)[0];
+  const usbCard = { objectId: '46', alsaCard: '0', bus: 'usb' };
+  const pciCard = { objectId: '48', alsaCard: '2', bus: 'pci' };
+
+  it("a sink without device.bus reads its card's, found by PipeWire object id", () => {
+    expect(withCards({ 'device.id': '46', 'api.alsa.pcm.card': '2' }, [pciCard, usbCard]).transport).toBe('usb');
+  });
+  it('a sink without a PipeWire object id finds its card by ALSA card number', () => {
+    expect(withCards({ 'api.alsa.pcm.card': '0' }, [pciCard, usbCard]).transport).toBe('usb');
+    expect(withCards({ 'alsa.card': '2' }, [usbCard, pciCard]).transport).toBe('builtin');
+  });
+  it('a card number match counts for a card that names no object id', () => {
+    const noId = { objectId: undefined, alsaCard: '0', bus: 'usb' };
+    expect(withCards({ 'device.id': '99', 'api.alsa.pcm.card': '0' }, [noId]).transport).toBe('usb');
+  });
+  // A card replaced between the two reads can hand its number to another card.
+  it('a card number match is refused when that card names another object id', () => {
+    expect(withCards({ 'device.id': '99', 'api.alsa.pcm.card': '0' }, [pciCard, usbCard]).transport).toBe('unknown');
+  });
+  it("the sink's own device.bus wins over its card's", () => {
+    expect(withCards({ 'device.bus': 'bluetooth', 'device.id': '48' }, [pciCard]).transport).toBe('bluetooth');
+  });
+  it('no matching card, or no cards at all, stays unknown', () => {
+    expect(withCards({ 'device.id': '7', 'api.alsa.pcm.card': '7' }, [pciCard, usbCard]).transport).toBe('unknown');
+    expect(withCards({ 'device.id': '48' }, []).transport).toBe('unknown');
+    expect(withCards({ 'device.id': '48' }, undefined).transport).toBe('unknown');
+  });
+  it('a card is only listed with device.bus: a USB card\'s bus_path starts with "pci-"', () => {
+    const json = JSON.stringify([
+      { name: 'alsa_card.usb-x', properties: { 'object.id': '46', 'alsa.card': '0', 'device.bus_path': 'pci-0000:00:14.0-usb-0:5:1.0' } },
+      { name: 'alsa_card.pci-y', properties: { 'object.id': '48', 'alsa.card': '2', 'device.bus': 'pci' } },
+    ]);
+    expect(parsePactlCardsJson(json)).toEqual([pciCard]);
+  });
+  it('cards that are not a JSON array are null', () => {
+    expect(parsePactlCardsJson('pactl: invalid option')).toBeNull();
+    expect(parsePactlCardsJson('{}')).toBeNull();
   });
 });
 

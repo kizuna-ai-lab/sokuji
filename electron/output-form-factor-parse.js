@@ -28,16 +28,37 @@ function isHdmiPort(portName, portType) {
   return portType === 'HDMI' || (typeof portName === 'string' && portName.startsWith('hdmi-output'));
 }
 
+// PipeWire before 1.0 (0.3.48 on Ubuntu 22.04) leaves device.bus on the card,
+// not on its sinks. A sink names its card by PipeWire object id (its device.id
+// is the card's object.id, a property - not the card's index) and, for ALSA,
+// by card number (api.alsa.pcm.card or alsa.card = the card's alsa.card).
+// Only device.bus counts: a USB card's device.bus_path starts with "pci-".
+// `cards` holds only cards that state a device.bus, so a sink whose card has
+// none finds no match by object id and falls to the card number, which names
+// the same card: still no bus, so 'unknown'. A card number match is refused
+// for a card naming another object id than the sink's: a card replaced
+// between the sinks and cards reads can hand its number to another card.
+function cardBus(props, cards) {
+  if (!Array.isArray(cards)) return undefined;
+  const id = props['device.id'];
+  const alsa = props['api.alsa.pcm.card'] ?? props['alsa.card'];
+  const byId = id !== undefined && cards.find((c) => c.objectId === id);
+  if (byId) return byId.bus;
+  const byNumber = alsa !== undefined && cards.find((c) => c.alsaCard === alsa);
+  if (!byNumber || (id !== undefined && byNumber.objectId !== undefined)) return undefined;
+  return byNumber.bus;
+}
+
 // Rules run in order; the first that applies wins. Anything the system does
 // not state plainly stays 'unknown' (no guessing from the label).
-function classifySink({ name, description, driver, properties, activePort, portType }, defaultSinkName) {
+function classifySink({ name, description, driver, properties, activePort, portType }, defaultSinkName, cards) {
   const props = properties || {};
   // PipeWire names the null sink's factory; plain PulseAudio has no factory.name
   // and names the module that made it as the driver instead.
   const isNull = props['factory.name'] === 'support.null-audio-sink' || driver === 'module-null-sink.c';
   const hdmi = isHdmiPort(activePort, portType);
   const hintForm = props['device.form_factor'];
-  const bus = props['device.bus'];
+  const bus = props['device.bus'] ?? cardBus(props, cards);
 
   let formFactor = 'unknown';
   if (isNull) {
@@ -87,14 +108,19 @@ function classifySink({ name, description, driver, properties, activePort, portT
   };
 }
 
-function parsePactlSinksJson(text, defaultSinkName) {
-  let sinks;
+function parseJsonArray(text) {
   try {
-    sinks = JSON.parse(text);
+    const value = JSON.parse(text);
+    return Array.isArray(value) ? value : null;
   } catch {
     return null;
   }
-  if (!Array.isArray(sinks)) return null;
+}
+
+// `cards` (from parsePactlCards*) only fill in a bus a sink leaves out.
+function parsePactlSinksJson(text, defaultSinkName, cards) {
+  const sinks = parseJsonArray(text);
+  if (!sinks) return null;
   return sinks
     .filter((s) => s && typeof s === 'object')
     .map((s) => {
@@ -109,20 +135,22 @@ function parsePactlSinksJson(text, defaultSinkName) {
           activePort: s.active_port || undefined,
           portType: port && port.type ? port.type : undefined,
         },
-        defaultSinkName
+        defaultSinkName,
+        cards
       );
     });
 }
 
-// Text form of `LC_ALL=C pactl list sinks`: top-level keys at one tab,
-// properties and ports at two tabs. Old PulseAudio prints ports without
-// "type:", so the type is optional.
-function parsePactlSinksText(text, defaultSinkName) {
+// Text form of `LC_ALL=C pactl list sinks` (or cards): top-level keys at one
+// tab, properties and ports at two tabs. Old PulseAudio prints ports without
+// "type:", so the type is optional. A card's port properties sit deeper and
+// are skipped.
+function parsePactlTextBlocks(text, header) {
   const blocks = [];
   let cur = null;
   let section = null;
   for (const line of String(text).split(/\r?\n/)) {
-    if (/^Sink #\d+/.test(line)) {
+    if (header.test(line)) {
       cur = { properties: {}, ports: {} };
       blocks.push(cur);
       section = null;
@@ -150,7 +178,11 @@ function parsePactlSinksText(text, defaultSinkName) {
       }
     }
   }
-  return blocks.map((b) =>
+  return blocks;
+}
+
+function parsePactlSinksText(text, defaultSinkName, cards) {
+  return parsePactlTextBlocks(text, /^Sink #\d+/).map((b) =>
     classifySink(
       {
         name: b.name,
@@ -160,9 +192,31 @@ function parsePactlSinksText(text, defaultSinkName) {
         activePort: b.activePort || undefined,
         portType: b.activePort ? b.ports[b.activePort] : undefined,
       },
-      defaultSinkName
+      defaultSinkName,
+      cards
     )
   );
+}
+
+// `pactl list cards` -> [{ objectId, alsaCard, bus }] for the cards that state
+// a device.bus; values stay the strings pactl prints.
+function cardsFrom(propertyLists) {
+  const cards = [];
+  for (const props of propertyLists) {
+    const bus = props && props['device.bus'];
+    if (typeof bus !== 'string' || !bus) continue;
+    cards.push({ objectId: props['object.id'], alsaCard: props['alsa.card'], bus });
+  }
+  return cards;
+}
+
+function parsePactlCardsJson(text) {
+  const cards = parseJsonArray(text);
+  return cards ? cardsFrom(cards.map((c) => (c && typeof c === 'object' ? c.properties : null))) : null;
+}
+
+function parsePactlCardsText(text) {
+  return cardsFrom(parsePactlTextBlocks(text, /^Card #\d+/).map((b) => b.properties));
 }
 
 function parsePactlDefaultSink(text, json) {
@@ -353,6 +407,8 @@ module.exports = {
   capRaw,
   parsePactlSinksJson,
   parsePactlSinksText,
+  parsePactlCardsJson,
+  parsePactlCardsText,
   parsePactlDefaultSink,
   parseMacDevices,
   parseWinDevices,
