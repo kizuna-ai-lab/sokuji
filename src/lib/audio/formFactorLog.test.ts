@@ -103,6 +103,62 @@ describe('createFormFactorLog', () => {
     ]);
   });
 
+  describe('outputs no system device matches', () => {
+    const native = [{ label: 'Headset', isDefault: false, formFactor: 'headphones', transport: 'usb', raw: {} }] as const;
+    let nativeNow: readonly (typeof native)[number][] | null;
+    let checked: ReturnType<typeof createFormFactorLog>;
+    beforeEach(() => {
+      nativeNow = native;
+      checked = createFormFactorLog((l) => lines.push(l), () => current, () => false, () => nativeNow);
+      useAudioStore.setState({
+        outputLabelsKnown: true,
+        audioMonitorDevices: [
+          { deviceId: 'hp', label: 'Headset', isVirtual: false, formFactor: 'headphones', transport: 'usb' },
+          { deviceId: 'new', label: 'New Headset (1234:abcd)', isVirtual: false, formFactor: 'unknown', transport: 'unknown' },
+        ],
+      });
+    });
+    const noMatch = () => lines.filter((l) => l.includes('no system device matches'));
+
+    it('a session start names them in one line, with the count', () => {
+      checked.baseline(state());
+      expect(noMatch()).toEqual(['Output form factor: no system device matches "New Headset (1234:abcd)" (1 of 2 outputs)']);
+    });
+
+    it('each is named once a session: an update names only one not named yet, and the next session starts over', () => {
+      checked.baseline(state());
+      checked.update(state());
+      expect(noMatch()).toHaveLength(1);
+      useAudioStore.setState({
+        audioMonitorDevices: [...state().audioMonitorDevices, { deviceId: 'bt', label: 'Buds', isVirtual: false, formFactor: 'unknown', transport: 'unknown' }],
+      });
+      checked.update(state());
+      expect(noMatch()[1]).toBe('Output form factor: no system device matches "Buds" (2 of 3 outputs)');
+      lines.length = 0;
+      checked.baseline(state());
+      expect(noMatch()).toEqual(['Output form factor: no system device matches "New Headset (1234:abcd)", "Buds" (2 of 3 outputs)']);
+    });
+
+    it('says nothing when every output matches, while the answer is stale, or without labels', () => {
+      useAudioStore.setState({ audioMonitorDevices: [state().audioMonitorDevices[0]] });
+      checked.baseline(state());
+      expect(noMatch()).toEqual([]);
+      useAudioStore.setState({
+        audioMonitorDevices: [...state().audioMonitorDevices, { deviceId: 'x', label: 'X', isVirtual: false, formFactor: 'unknown', transport: 'unknown' }],
+      });
+      current = false;
+      checked.update(state());
+      expect(noMatch()).toEqual([]);
+      current = true;
+      useAudioStore.setState({ outputLabelsKnown: false });
+      checked.update(state());
+      nativeNow = null;
+      useAudioStore.setState({ outputLabelsKnown: true });
+      checked.update(state());
+      expect(noMatch()).toEqual([]);
+    });
+  });
+
   it('nothing reaches the log store while diagnostic logs are off', () => {
     const real = createFormFactorLog((l) => useLogStore.getState().addLog(l, 'info'), () => true);
     useLogStore.getState().clearLogs();

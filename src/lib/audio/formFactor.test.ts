@@ -5,6 +5,7 @@ import {
   cleanOutputLabel,
   getOutputFormFactor,
   matchOutputForm,
+  unmatchedOutputLabels,
   useOutputFormFactor,
   type FormFactor,
   type OutputDeviceInfo,
@@ -183,5 +184,32 @@ describe('getOutputFormFactor', () => {
     expect(result.current).toEqual(UNKNOWN_FORM);
     act(() => useAudioStore.setState({ nativeFormsCurrent: true }));
     expect(result.current).toEqual({ formFactor: 'headphones', transport: 'bluetooth' });
+  });
+});
+
+describe('unmatchedOutputLabels', () => {
+  const native = [
+    { label: 'Speakers (Realtek(R) Audio)', isDefault: true, formFactor: 'speakers', transport: 'builtin', raw: {} },
+    { label: 'Twin', isDefault: false, formFactor: 'headphones', transport: 'usb', raw: {} },
+    { label: 'Twin', isDefault: false, formFactor: 'headphones', transport: 'usb', raw: {} },
+  ] as const;
+
+  it('names each browser label no system device carries, once, cleaned', () => {
+    expect(
+      unmatchedOutputLabels(
+        ['Default - Speakers (Realtek(R) Audio)', 'Headset (Brand) (1234:abcd)', 'Headset (Brand) (1234:abcd)', 'Twin', '  '],
+        native,
+        true,
+      ),
+    ).toEqual(['Headset (Brand) (1234:abcd)']);
+  });
+
+  it('a label two devices share matched, just not uniquely: it is not unmatched', () => {
+    expect(unmatchedOutputLabels(['Twin'], native, true)).toEqual([]);
+  });
+
+  it('says nothing without the system list or the browser labels', () => {
+    expect(unmatchedOutputLabels(['Anything'], null, true)).toEqual([]);
+    expect(unmatchedOutputLabels(['Anything'], native, false)).toEqual([]);
   });
 });

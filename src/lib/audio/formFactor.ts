@@ -77,6 +77,28 @@ export function matchOutputForm(
   return matches.length === 1 ? answer(matches[0]) : { ...UNKNOWN_FORM };
 }
 
+/**
+ * The browser's output labels that equal no system device's label: the sign that
+ * Chromium names outputs differently than the helpers build them (a suffix, a
+ * rewrite), which reads as `unknown` everywhere. Cleaned like `matchOutputForm`,
+ * each named once. A label two system devices share is not counted: it matched,
+ * only not uniquely. Nothing without the system list or the browser's labels.
+ */
+export function unmatchedOutputLabels(
+  browserLabels: readonly string[],
+  native: readonly OutputDeviceInfo[] | null,
+  labelsKnown: boolean,
+): string[] {
+  if (!native || !labelsKnown) return [];
+  const known = new Set(native.map((d) => d.label.trim()));
+  const out: string[] = [];
+  for (const raw of browserLabels) {
+    const wanted = cleanOutputLabel(raw);
+    if (wanted !== '' && !known.has(wanted) && !out.includes(wanted)) out.push(wanted);
+  }
+  return out;
+}
+
 type FormSource = { nativeFormsCurrent: boolean; defaultOutputForm: OutputForm; audioMonitorDevices: readonly AudioDevice[] };
 
 function formIn(state: FormSource, sinkDevice: string | undefined): OutputForm {
