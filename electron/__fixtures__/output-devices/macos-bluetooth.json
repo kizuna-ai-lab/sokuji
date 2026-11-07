@@ -1,0 +1,42 @@
+[
+ {
+  "id": 200,
+  "uid": "scrubbed-uid-0",
+  "label": "Redmi Buds 6 Play",
+  "browserLabel": "Redmi Buds 6 Play (Bluetooth)",
+  "isDefault": true,
+  "transport": "blue",
+  "dataSource": null,
+  "terminalType": "hdph"
+ },
+ {
+  "id": 201,
+  "uid": "scrubbed-uid-1",
+  "label": "HyperX Virtual Surround Sound",
+  "browserLabel": "HyperX Virtual Surround Sound (0951:16a4)",
+  "isDefault": false,
+  "transport": "usb ",
+  "dataSource": null,
+  "terminalType": "hdph"
+ },
+ {
+  "id": 202,
+  "uid": "scrubbed-uid-2",
+  "label": "Mac mini Speakers",
+  "browserLabel": "Mac mini Speakers (Built-in)",
+  "isDefault": false,
+  "transport": "bltn",
+  "dataSource": "ispk",
+  "terminalType": 769
+ },
+ {
+  "id": 203,
+  "uid": "scrubbed-uid-3",
+  "label": "SokujiVirtualAudio",
+  "browserLabel": "SokujiVirtualAudio (Virtual)",
+  "isDefault": false,
+  "transport": "virt",
+  "dataSource": null,
+  "terminalType": "spkr"
+ }
+]
