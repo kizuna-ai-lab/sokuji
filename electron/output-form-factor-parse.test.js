@@ -170,9 +170,17 @@ describe('transport from the card', () => {
   it("a sink without device.bus reads its card's, found by PipeWire object id", () => {
     expect(withCards({ 'device.id': '46', 'api.alsa.pcm.card': '2' }, [pciCard, usbCard]).transport).toBe('usb');
   });
-  it('without an object id match, the ALSA card index finds the card', () => {
-    expect(withCards({ 'device.id': '99', 'api.alsa.pcm.card': '0' }, [pciCard, usbCard]).transport).toBe('usb');
+  it('a sink without a PipeWire object id finds its card by ALSA card number', () => {
+    expect(withCards({ 'api.alsa.pcm.card': '0' }, [pciCard, usbCard]).transport).toBe('usb');
     expect(withCards({ 'alsa.card': '2' }, [usbCard, pciCard]).transport).toBe('builtin');
+  });
+  it('a card number match counts for a card that names no object id', () => {
+    const noId = { objectId: undefined, alsaCard: '0', bus: 'usb' };
+    expect(withCards({ 'device.id': '99', 'api.alsa.pcm.card': '0' }, [noId]).transport).toBe('usb');
+  });
+  // A card replaced between the two reads can hand its number to another card.
+  it('a card number match is refused when that card names another object id', () => {
+    expect(withCards({ 'device.id': '99', 'api.alsa.pcm.card': '0' }, [pciCard, usbCard]).transport).toBe('unknown');
   });
   it("the sink's own device.bus wins over its card's", () => {
     expect(withCards({ 'device.bus': 'bluetooth', 'device.id': '48' }, [pciCard]).transport).toBe('bluetooth');

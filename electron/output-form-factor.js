@@ -24,6 +24,9 @@ const READ_TIMEOUT_MS = 3000;
 const MAX_STDOUT_BYTES = 1024 * 1024;
 const DEBOUNCE_MS = 200;
 const DEFAULT_BACKOFF_MS = [1000, 5000, 30000, 60000];
+// How long the Linux read waits for `pactl list cards` once the sinks are in.
+// The cards only add a bus; a stuck one must not cost the devices.
+const CARDS_GRACE_MS = 500;
 // A sink appearing, changing (a laptop's port switch keeps the sink) or going -
 // Chromium on Linux misses some Bluetooth and PipeWire ones - and the server
 // changing (a new default sink).
@@ -45,7 +48,7 @@ const childOptions = (options) => ({ ...options, windowsHide: true, stdio: ['ign
  * in `ctx.live` so the read's single deadline can kill whatever is still
  * running; once the deadline sets `ctx.over`, nothing new is spawned.
  */
-function runChild(spawn, ctx, command, args, options) {
+function runChild(spawn, ctx, command, args, options, onSpawn) {
   const { live } = ctx;
   return new Promise((resolve) => {
     if (ctx.over) return resolve({ status: 'aborted' });
@@ -65,6 +68,7 @@ function runChild(spawn, ctx, command, args, options) {
       return settle({ status: 'spawn_failed' });
     }
     live.add(child);
+    if (onSpawn) onSpawn(child);
     child.stdout.on('data', (d) => {
       size += d.length;
       if (size > MAX_STDOUT_BYTES) {
@@ -98,20 +102,38 @@ async function readHelper(spawn, ctx, exe, parse) {
 async function readPactl(spawn, ctx, json) {
   const pre = json ? ['-f', 'json'] : [];
   const options = { env: pactlEnv() };
-  const [info, sinks, cards] = await Promise.all([
-    runChild(spawn, ctx, 'pactl', [...pre, 'info'], options),
-    runChild(spawn, ctx, 'pactl', [...pre, 'list', 'sinks'], options),
-    runChild(spawn, ctx, 'pactl', [...pre, 'list', 'cards'], options),
-  ]);
+  const infoRun = runChild(spawn, ctx, 'pactl', [...pre, 'info'], options);
+  const sinksRun = runChild(spawn, ctx, 'pactl', [...pre, 'list', 'sinks'], options);
+  let cardsChild = null;
+  const cardsRun = runChild(spawn, ctx, 'pactl', [...pre, 'list', 'cards'], options, (c) => (cardsChild = c));
+  // The cards only fill in a bus the sinks leave out (PipeWire 0.3): they are
+  // waited for a short while after the sinks, and a failed, stuck or
+  // unparsable cards read costs that bus, never the devices.
+  const stopCards = () => {
+    if (cardsChild) cardsChild.kill('SIGKILL');
+  };
+  const [info, sinks] = await Promise.all([infoRun, sinksRun]);
   const failure = failureOf(sinks) || (json ? failureOf(info) || infoUnparsable(info.out) : null);
-  if (failure) return { ok: false, reason: failure };
+  if (failure) {
+    stopCards();
+    return { ok: false, reason: failure };
+  }
   // A failed `info` in text form only costs the default: no device is default.
   const defaultName = info.status === 'ok' && info.code === 0 ? parsePactlDefaultSink(info.out, json) : null;
-  // The cards only fill in a bus the sinks leave out (PipeWire 0.3); a failed
-  // cards read costs that, never the devices.
-  const cardList = failureOf(cards) ? null : (json ? parsePactlCardsJson : parsePactlCardsText)(cards.out);
+  const cards = await settleWithin(cardsRun, CARDS_GRACE_MS);
+  if (!cards) stopCards();
+  const cardList = !cards || failureOf(cards) ? null : (json ? parsePactlCardsJson : parsePactlCardsText)(cards.out);
   const devices = (json ? parsePactlSinksJson : parsePactlSinksText)(sinks.out, defaultName, cardList);
   return devices ? { ok: true, devices } : { ok: false, reason: 'unparsable' };
+}
+
+// The promise's value, or null when it has not settled within `ms`.
+function settleWithin(promise, ms) {
+  let timer;
+  const expired = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  return Promise.race([promise, expired]).finally(() => clearTimeout(timer));
 }
 
 // `pactl -f json info` must be a JSON object; anything else sends the read to

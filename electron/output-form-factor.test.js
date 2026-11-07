@@ -194,6 +194,55 @@ describe('getOutputDevices', () => {
     }
   });
 
+  // The cards only add a bus: a cards child that never exits must not cost the devices.
+  it('a hung cards read is stopped 500 ms after the sinks are in, and the devices still return', async () => {
+    vi.useFakeTimers();
+    const spawn = scriptedSpawn((cmd, args) => {
+      if (args.includes('cards')) return null;
+      return { code: 0, out: args.includes('info') ? infoJson : busless };
+    });
+    let result;
+    getOutputDevices({ platform: 'linux', spawn }).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(499);
+    expect(result).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(result).toMatchObject({ ok: true, devices: [{ label: 'Built-in Audio', isDefault: true, transport: 'unknown' }] });
+    const cards = spawn.calls.find((c) => c.args.includes('cards'));
+    expect(cards.child.kill).toHaveBeenCalledWith('SIGKILL');
+    // The json attempt stood: no text read was started.
+    expect(spawn.calls).toHaveLength(3);
+  });
+
+  it('a slow cards read that answers within 500 ms of the sinks still supplies the bus', async () => {
+    vi.useFakeTimers();
+    const spawn = scriptedSpawn((cmd, args) => {
+      if (args.includes('cards')) return null;
+      return { code: 0, out: args.includes('info') ? infoJson : busless };
+    });
+    let result;
+    getOutputDevices({ platform: 'linux', spawn }).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(300);
+    const cards = spawn.calls.find((c) => c.args.includes('cards')).child;
+    cards.stdout.emit('data', Buffer.from(cardsJson));
+    cards.emit('close', 0);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(result).toMatchObject({ ok: true, devices: [{ transport: 'builtin' }] });
+    expect(cards.kill).not.toHaveBeenCalled();
+  });
+
+  it('a read that fails on the sinks stops its cards child', async () => {
+    const spawn = scriptedSpawn((cmd, args) => {
+      if (args.includes('cards')) return null;
+      return { code: 1, out: '' };
+    });
+    // Both forms fail on the sinks long before the deadline, which would kill what is left.
+    const res = await getOutputDevices({ platform: 'linux', spawn });
+    expect(res).toEqual({ ok: false, reason: 'exit_1' });
+    const cards = spawn.calls.filter((c) => c.args.includes('cards'));
+    expect(cards).toHaveLength(2);
+    for (const c of cards) expect(c.child.kill).toHaveBeenCalledWith('SIGKILL');
+  });
+
   it('the text form lists the cards in text too', async () => {
     const textSinks = ['Sink #1', '\tName: a', '\tDescription: A', '\tProperties:', '\t\tdevice.id = "48"', ''].join('\n');
     const textCards = ['Card #47', '\tName: alsa_card.pci', '\tProperties:', '\t\tdevice.bus = "pci"', '\t\tobject.id = "48"', ''].join('\n');

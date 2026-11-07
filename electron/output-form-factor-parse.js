@@ -35,15 +35,18 @@ function isHdmiPort(portName, portType) {
 // Only device.bus counts: a USB card's device.bus_path starts with "pci-".
 // `cards` holds only cards that state a device.bus, so a sink whose card has
 // none finds no match by object id and falls to the card number, which names
-// the same card: still no bus, so 'unknown'.
+// the same card: still no bus, so 'unknown'. A card number match is refused
+// for a card naming another object id than the sink's: a card replaced
+// between the sinks and cards reads can hand its number to another card.
 function cardBus(props, cards) {
   if (!Array.isArray(cards)) return undefined;
   const id = props['device.id'];
   const alsa = props['api.alsa.pcm.card'] ?? props['alsa.card'];
-  const card =
-    (id !== undefined && cards.find((c) => c.objectId === id)) ||
-    (alsa !== undefined && cards.find((c) => c.alsaCard === alsa));
-  return card ? card.bus : undefined;
+  const byId = id !== undefined && cards.find((c) => c.objectId === id);
+  if (byId) return byId.bus;
+  const byNumber = alsa !== undefined && cards.find((c) => c.alsaCard === alsa);
+  if (!byNumber || (id !== undefined && byNumber.objectId !== undefined)) return undefined;
+  return byNumber.bus;
 }
 
 // Rules run in order; the first that applies wins. Anything the system does
