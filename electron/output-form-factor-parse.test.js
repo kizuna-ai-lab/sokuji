@@ -39,6 +39,37 @@ describe('captured fixtures', () => {
     const fromText = parsePactlSinksText(fixture('linux-hdmi.txt'), null);
     expect(fromText).toEqual(fromJson);
   });
+
+  // Captured on a Mac mini (Apple Silicon) with a USB headset plugged in; UIDs scrubbed.
+  it('macOS: the USB headset the system calls headphones, the built-in speakers, our virtual device', () => {
+    const rows = parseMacDevices(fixture('macos-usb-headset.json'));
+    expect(rows.map(({ label, isDefault, formFactor, transport }) => ({ label, isDefault, formFactor, transport }))).toEqual([
+      { label: 'HyperX Virtual Surround Sound (0951:16a4)', isDefault: false, formFactor: 'headphones', transport: 'usb' },
+      { label: 'Mac mini Speakers (Built-in)', isDefault: true, formFactor: 'speakers', transport: 'builtin' },
+      { label: 'SokujiVirtualAudio (Virtual)', isDefault: false, formFactor: 'unknown', transport: 'virtual' },
+    ]);
+  });
+
+  // Captured on the same Mac with Bluetooth earbuds as the default output; UIDs (a Bluetooth one is a MAC address) scrubbed.
+  it('macOS: Bluetooth earbuds read headphones from their terminal type', () => {
+    const rows = parseMacDevices(fixture('macos-bluetooth.json'));
+    expect(rows[0]).toMatchObject({ label: 'Redmi Buds 6 Play (Bluetooth)', isDefault: true, formFactor: 'headphones', transport: 'bluetooth' });
+    expect(rows.map((r) => r.raw.uid)).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  // Captured on a Windows PC (Japanese UI) with two USB headsets, a virtual cable and an HDMI monitor; endpoint ids scrubbed.
+  it('Windows: USB headsets carry Chromium\'s label and read headphones; the cable is virtual, the monitor hdmi', () => {
+    const rows = parseWinDevices(fixture('windows-usb-headset.json'));
+    expect(rows.map(({ label, isDefault, formFactor, transport }) => ({ label, isDefault, formFactor, transport }))).toEqual([
+      { label: 'スピーカー (Realtek(R) Audio)', isDefault: true, formFactor: 'speakers', transport: 'builtin' },
+      { label: 'ヘッドセット イヤフォン (HyperX Virtual Surround Sound) (0951:16a4)', isDefault: false, formFactor: 'headphones', transport: 'usb' },
+      { label: 'CABLE Input (VB-Audio Virtual Cable)', isDefault: false, formFactor: 'unknown', transport: 'virtual' },
+      { label: 'CABLE In 16ch (VB-Audio Virtual Cable)', isDefault: false, formFactor: 'unknown', transport: 'virtual' },
+      { label: 'ヘッドホン (6- ZUM-2) (1686:05f5)', isDefault: false, formFactor: 'headphones', transport: 'usb' },
+      { label: 'WR44-PLUS (NVIDIA High Definition Audio)', isDefault: false, formFactor: 'unknown', transport: 'hdmi' },
+      { label: 'WR44-PLUS (NVIDIA High Definition Audio)', isDefault: false, formFactor: 'unknown', transport: 'hdmi' },
+    ]);
+  });
 });
 
 describe('rule order', () => {
@@ -265,6 +296,14 @@ describe('parseMacDevices', () => {
     expect(parse({ transport: 'grup' })).toMatchObject({ transport: 'virtual', formFactor: 'unknown' });
     expect(parse({ transport: 'virt' })).toMatchObject({ transport: 'virtual' });
     expect(parse({ transport: 'airp' })).toMatchObject({ transport: 'unknown', formFactor: 'unknown' });
+  });
+
+  it('USB reads the terminal type as Bluetooth does: headphones, speakers, else unknown', () => {
+    expect(parse({ transport: 'usb ', terminalType: 'hdph' })).toMatchObject({ formFactor: 'headphones', transport: 'usb' });
+    expect(parse({ transport: 'usb ', terminalType: 0x0402 })).toMatchObject({ formFactor: 'headphones', transport: 'usb' });
+    expect(parse({ transport: 'usb ', terminalType: 'spkr' })).toMatchObject({ formFactor: 'speakers', transport: 'usb' });
+    expect(parse({ transport: 'usb ', terminalType: 'line' })).toMatchObject({ formFactor: 'unknown', transport: 'usb' });
+    expect(parse({ transport: 'usb ', terminalType: null })).toMatchObject({ formFactor: 'unknown', transport: 'usb' });
   });
 
   it('a form factor needs the matching transport', () => {

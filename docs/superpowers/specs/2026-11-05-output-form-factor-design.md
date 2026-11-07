@@ -57,7 +57,7 @@ A new `--devices` command lists output devices as one JSON array on stdout and e
 | built-in, no data source or another value | `unknown` |
 | `blue` / `blea` (Bluetooth / BLE) | transport `bluetooth`; the form factor from the output stream's terminal type (below) |
 | `hdmi`, `dprt` | `unknown`, transport `hdmi` |
-| `usb` | `unknown`, transport `usb` |
+| `usb` (the four-char code `usb ` with its trailing space) | transport `usb`; the form factor from the output stream's terminal type, as for Bluetooth (below): `unknown` when it reports none. A USB headset was measured reporting `hdph` (owner, 2026-11-07; first designed as always `unknown`) |
 | `virt`, `grup` (aggregate), `airp` (AirPlay), others | `unknown`, transport `virtual` or `unknown` |
 
 Bluetooth: Core Audio's transport says only "Bluetooth". IOBluetooth could read the device's class, but on current macOS it sits behind the Bluetooth privacy permission, and the helper's requests are charged to Sokuji.app: that would be the new permission prompt §2 rules out. So the helper does not use IOBluetooth. It reads the output stream's `kAudioStreamPropertyTerminalType`, which needs no permission: a headphones or headset terminal type → `headphones`, a speaker type → `speakers`, anything else → `unknown`. If measurement shows Bluetooth devices do not report a useful terminal type, every Bluetooth output on macOS is `unknown` (AirPods included), which #688 treats like today. (My call.) Reading the transport and data source needs no permission (measured on an Apple Silicon Mac).

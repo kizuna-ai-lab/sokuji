@@ -197,18 +197,19 @@ function macCode(value) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
-// Bluetooth terminal types, from Core Audio's AudioHardwareBase.h (four-char
-// codes) and the USB Audio terminal types in IOAudioTypes.h (numbers). Anything
-// not listed stays unknown, including 'spdf' and 'line', which say nothing about
-// what is plugged in, and 0x0303, a head-mounted display.
-const MAC_BT_HEADPHONES = new Set([
+// Output terminal types, read for Bluetooth and USB outputs: Core Audio's
+// AudioHardwareBase.h (four-char codes) and the USB Audio terminal types in
+// IOAudioTypes.h (numbers). A USB headset was measured reporting 'hdph'. Anything
+// not listed, or none, stays unknown, including 'spdf' and 'line', which say
+// nothing about what is plugged in, and 0x0303, a head-mounted display.
+const MAC_TERMINAL_HEADPHONES = new Set([
   'hdph', // kAudioStreamTerminalTypeHeadphones
   'rspk', // kAudioStreamTerminalTypeReceiverSpeaker
   0x0302, // OUTPUT_HEADPHONES
   0x0401, // BIDIRECTIONAL_HANDSET
   0x0402, // BIDIRECTIONAL_HEADSET
 ]);
-const MAC_BT_SPEAKERS = new Set([
+const MAC_TERMINAL_SPEAKERS = new Set([
   'spkr', // kAudioStreamTerminalTypeSpeaker
   'lfes', // kAudioStreamTerminalTypeLFESpeaker
   0x0301, // OUTPUT_SPEAKER
@@ -225,9 +226,10 @@ function macFormFactor(transport, dataSource, terminalType) {
   if (transport === 'builtin') {
     if (dataSource === 'hdpn') return 'headphones';
     if (dataSource === 'ispk') return 'speakers';
-  } else if (transport === 'bluetooth') {
-    if (MAC_BT_HEADPHONES.has(terminalType)) return 'headphones';
-    if (MAC_BT_SPEAKERS.has(terminalType)) return 'speakers';
+  } else if (transport === 'bluetooth' || transport === 'usb') {
+    // The system's word for what is attached: the output stream's terminal type.
+    if (MAC_TERMINAL_HEADPHONES.has(terminalType)) return 'headphones';
+    if (MAC_TERMINAL_SPEAKERS.has(terminalType)) return 'speakers';
   }
   return 'unknown';
 }
