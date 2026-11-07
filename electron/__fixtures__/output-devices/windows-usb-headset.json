@@ -1,0 +1,58 @@
+[
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000000}",
+  "label": "スピーカー (Realtek(R) Audio)",
+  "browserLabel": "スピーカー (Realtek(R) Audio)",
+  "isDefault": true,
+  "formFactor": 1,
+  "enumerator": "HDAUDIO"
+ },
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000001}",
+  "label": "ヘッドセット イヤフォン (HyperX Virtual Surround Sound)",
+  "browserLabel": "ヘッドセット イヤフォン (HyperX Virtual Surround Sound) (0951:16a4)",
+  "isDefault": false,
+  "formFactor": 5,
+  "enumerator": "USB"
+ },
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000002}",
+  "label": "CABLE Input (VB-Audio Virtual Cable)",
+  "browserLabel": "CABLE Input (VB-Audio Virtual Cable)",
+  "isDefault": false,
+  "formFactor": 1,
+  "enumerator": "ROOT"
+ },
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000003}",
+  "label": "CABLE In 16ch (VB-Audio Virtual Cable)",
+  "browserLabel": "CABLE In 16ch (VB-Audio Virtual Cable)",
+  "isDefault": false,
+  "formFactor": 2,
+  "enumerator": "ROOT"
+ },
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000004}",
+  "label": "ヘッドホン (6- ZUM-2)",
+  "browserLabel": "ヘッドホン (6- ZUM-2) (1686:05f5)",
+  "isDefault": false,
+  "formFactor": 3,
+  "enumerator": "USB"
+ },
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000005}",
+  "label": "WR44-PLUS (NVIDIA High Definition Audio)",
+  "browserLabel": "WR44-PLUS (NVIDIA High Definition Audio)",
+  "isDefault": false,
+  "formFactor": 9,
+  "enumerator": "HDAUDIO"
+ },
+ {
+  "id": "{0.0.0.00000000}.{00000000-0000-0000-0000-000000000006}",
+  "label": "WR44-PLUS (NVIDIA High Definition Audio)",
+  "browserLabel": "WR44-PLUS (NVIDIA High Definition Audio)",
+  "isDefault": false,
+  "formFactor": 9,
+  "enumerator": "HDAUDIO"
+ }
+]
