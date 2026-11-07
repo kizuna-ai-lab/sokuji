@@ -122,7 +122,7 @@ describe('createFormFactorLog', () => {
 
     it('a session start names them in one line, with the count', () => {
       checked.baseline(state());
-      expect(noMatch()).toEqual(['Output form factor: no system device matches "New Headset (1234:abcd)" (1 of 2 outputs)']);
+      expect(noMatch()).toEqual(['Output form factor: no system device matches "New Headset (1234:abcd)" (1 of 2 output labels)']);
     });
 
     it('each is named once a session: an update names only one not named yet, and the next session starts over', () => {
@@ -133,10 +133,10 @@ describe('createFormFactorLog', () => {
         audioMonitorDevices: [...state().audioMonitorDevices, { deviceId: 'bt', label: 'Buds', isVirtual: false, formFactor: 'unknown', transport: 'unknown' }],
       });
       checked.update(state());
-      expect(noMatch()[1]).toBe('Output form factor: no system device matches "Buds" (2 of 3 outputs)');
+      expect(noMatch()[1]).toBe('Output form factor: no system device matches "Buds" (2 of 3 output labels)');
       lines.length = 0;
       checked.baseline(state());
-      expect(noMatch()).toEqual(['Output form factor: no system device matches "New Headset (1234:abcd)", "Buds" (2 of 3 outputs)']);
+      expect(noMatch()).toEqual(['Output form factor: no system device matches "New Headset (1234:abcd)", "Buds" (2 of 3 output labels)']);
     });
 
     it('says nothing when every output matches, while the answer is stale, or without labels', () => {

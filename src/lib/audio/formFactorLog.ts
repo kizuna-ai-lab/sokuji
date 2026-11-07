@@ -45,7 +45,7 @@ export function createFormFactorLog(
     if (fresh.length === 0) return;
     for (const l of fresh) unmatchedNamed.add(l);
     const total = new Set(labels.map(cleanOutputLabel).filter((l) => l !== '')).size;
-    log(`Output form factor: no system device matches ${fresh.map((l) => `"${l}"`).join(', ')} (${unmatched.length} of ${total} outputs)`);
+    log(`Output form factor: no system device matches ${fresh.map((l) => `"${l}"`).join(', ')} (${unmatched.length} of ${total} output labels)`);
   };
 
   // A diagnostic must never throw into a store subscriber or a session start.
