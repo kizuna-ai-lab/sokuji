@@ -77,6 +77,8 @@ const validReceiveChannels = [
   'app:close-requested',
   // LAN caption sharing status (main → renderer)
   'caption-share:status',
+  // System output devices may have changed (main → renderer)
+  'output-devices:changed',
 ];
 
 // Expose protected methods that allow the renderer process to use

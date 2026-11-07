@@ -33,6 +33,7 @@ export const BRIDGE_ONLY_CHANNELS = [
 export const INVOKE_CHANNELS = [
   // Audio system / virtual devices
   'check-audio-system',
+  'get-output-devices',
   'open-directory',
   'open-external',
   'create-virtual-speaker',

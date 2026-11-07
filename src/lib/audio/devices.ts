@@ -7,6 +7,8 @@ import { ServiceFactory } from '../../services/ServiceFactory';
 import { reportError, reportWarning, describeCause } from '../diagnostics/report';
 import type { AudioDevice } from '../../stores/audioStore';
 import { isVirtualMic, isVirtualSpeaker } from '../../utils/audioDevices';
+import { matchOutputForm, UNKNOWN_FORM, type OutputDeviceInfo, type OutputForm } from './formFactor';
+import { currentNativeOutputs } from './nativeOutputs';
 
 // Declare chrome namespace for extension messaging (the permission toast's link).
 declare const chrome: any;
@@ -25,6 +27,21 @@ export interface DeviceLists {
   complete: boolean;
   /** Enumeration succeeded and every output carries its own label, not the placeholder this module names it by. */
   outputLabelsKnown: boolean;
+  /** The browser default's form: the store keeps it apart, since the `default` entry is dropped from `outputs`. */
+  defaultOutput: OutputForm;
+  /** The system's answer the forms were joined from (`null`: none was current): the store counts them only while it still is. */
+  native: readonly OutputDeviceInfo[] | null;
+}
+
+/** The matcher, unable to take the listing down: a native list it cannot read leaves the form unknown. */
+function formOf(...args: Parameters<typeof matchOutputForm>): OutputForm {
+  try {
+    return matchOutputForm(...args);
+  } catch (error) {
+    // Deduped: the poll lists every 3 s, and the same answer stays current until the next event.
+    reportWarning('AudioDevices', `Matching an output's form factor failed; it reads unknown: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:form' });
+    return { ...UNKNOWN_FORM };
+  }
 }
 
 /**
@@ -85,6 +102,14 @@ export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } =
         isVirtual: device.label ? isVirtualMic(device) : false
       }));
 
+    const complete = !devices.some((d) => d.kind === 'audioinput' && d.label === '');
+    const outputLabelsKnown = !devices.some((d) => d.kind === 'audiooutput' && d.label === '');
+
+    // Each output's form factor, joined in from the system's own list by exact
+    // label (spec 2026-11-05 §5). Among same-named outputs, the one in the
+    // `default` entry's group is the browser's default: the browser says so.
+    const native = currentNativeOutputs();
+    const defaultGroupId = devices.find((d) => d.kind === 'audiooutput' && d.deviceId === 'default')?.groupId ?? '';
     const outputs = devices
       .filter(device => device.kind === 'audiooutput')
       .filter(device => device.deviceId !== 'default')
@@ -92,16 +117,17 @@ export async function listAudioDevices({ warmUp = true }: { warmUp?: boolean } =
       .map(device => ({
         deviceId: device.deviceId,
         label: device.label || `Speaker ${device.deviceId.substring(0, 5)}...`,
-        isVirtual: device.label ? isVirtualSpeaker(device) : false
+        isVirtual: device.label ? isVirtualSpeaker(device) : false,
+        // The browser's own label: the placeholder above is never matched.
+        ...formOf(device.deviceId, device.label, native, outputLabelsKnown, device.groupId !== '' && device.groupId === defaultGroupId),
       }));
 
-    const complete = !devices.some((d) => d.kind === 'audioinput' && d.label === '');
-    const outputLabelsKnown = !devices.some((d) => d.kind === 'audiooutput' && d.label === '');
-    return { inputs, outputs, complete, outputLabelsKnown };
+    const defaultOutput = formOf(undefined, undefined, native, outputLabelsKnown);
+    return { inputs, outputs, complete, outputLabelsKnown, defaultOutput, native };
   } catch (error) {
     // Deduped: while the device watch polls, a listing that keeps failing fails every 3 s.
     reportError('AudioDevices', `Failed to get audio devices: ${describeCause(error)}`, { cause: error, dedupeKey: 'devices:list' });
-    return { inputs: [], outputs: [], complete: false, outputLabelsKnown: false };
+    return { inputs: [], outputs: [], complete: false, outputLabelsKnown: false, defaultOutput: { ...UNKNOWN_FORM }, native: null };
   }
 }
 

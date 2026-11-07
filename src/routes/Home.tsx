@@ -12,15 +12,29 @@ import AuthOverlay from '../components/Auth/AuthOverlay';
 import { AppSessionRoot } from '../app/AppSessionRoot';
 import { loadSessionStores } from '../app/loadStores';
 import { watchDevices } from '../lib/audio/deviceWatch';
+import { requestForSync, startNativeOutputs } from '../lib/audio/nativeOutputs';
 import { bindReadings } from '../app/readings';
+import { isElectron } from '../utils/environment';
 
 export function Home() {
   const loadSettings = useLoadSettings();
 
   // Refresh audio devices and load settings when component mounts
   useEffect(() => {
+    // What the system says each output is (spec 2026-11-05 §6), joined into the
+    // device list by a sync whenever the answer changes; stale reads unknown
+    // at once. Electron only: the extension runs this page too, but has no
+    // main process to ask.
+    const native = isElectron() && window.electron
+      ? startNativeOutputs(() => useAudioStore.getState().nativeOutputsChanged())
+      : null;
+
     console.info('[Home] Refreshing audio devices');
-    useAudioStore.getState().refreshDevices();
+    // The first answer can land while this refresh still loads the saved
+    // devices, when a sync does nothing: one more sync after it picks it up.
+    void useAudioStore.getState().refreshDevices().then(() => {
+      if (native) void useAudioStore.getState().syncDevices();
+    });
 
     console.info('[Home] Loading settings');
     // Hydrate settingsStore, subtitleStore, conversationDisplayStore, and setup in parallel from persisted storage.
@@ -44,8 +58,12 @@ export function Home() {
     // Follow the OS's devices from here on (spec 2026-10-04): plugging,
     // unplugging, a Bluetooth reconnect, a repaired virtual device.
     const stopWatching = watchDevices({
-      // A `devicechange` also tries the devices marked unusable again; the poll does not.
-      sync: (reason) => useAudioStore.getState().syncDevices({ retryUnusable: reason === 'change' }),
+      // A `devicechange` also tries the devices marked unusable again, and reads
+      // the system's list again; the poll does neither.
+      sync: (reason) => {
+        requestForSync(native, reason);
+        return useAudioStore.getState().syncDevices({ retryUnusable: reason === 'change' });
+      },
       // While waiting for any microphone or while off the user's own: keep
       // looking. Linux announces a USB device but not a Bluetooth or PipeWire
       // one coming back, so without this it would never switch back or leave
@@ -64,6 +82,7 @@ export function Home() {
     });
     return () => {
       stopWatching();
+      native?.dispose();
       unbindReadings();
     };
   }, []); // Empty dependency array - only run once on mount

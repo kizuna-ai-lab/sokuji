@@ -4,11 +4,13 @@ import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { persistSetting } from '../services/persistSetting';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
-import { listAudioDevices, listSystemAudioSources } from '../lib/audio/devices';
+import { listAudioDevices, listSystemAudioSources, type DeviceLists } from '../lib/audio/devices';
+import { currentNativeOutputs } from '../lib/audio/nativeOutputs';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
 import { pickDefaultInputDevice, chooseInput, chooseOutput } from '../lib/audio/deviceChoice';
 import { DEFAULT_OUTLET_CHOICE, isChannelChoice, OUTLET_NAMES, type ChannelChoice, type OutletChoice, type OutletName } from '../lib/audio/outlets';
+import type { FormFactor, OutputForm, Transport } from '../lib/audio/formFactor';
 
 export { pickDefaultInputDevice };
 
@@ -70,6 +72,13 @@ export interface AudioDevice {
    * (macOS gates window titles behind Screen Recording).
    */
   windowTitles?: string[];
+  /**
+   * Outputs only: what the system says the device is, and how it is connected
+   * (spec 2026-11-05). Read it through `getOutputFormFactor`: a selected device
+   * keeps its object while only these change, so its copy can be behind.
+   */
+  formFactor?: FormFactor;
+  transport?: Transport;
 }
 
 /**
@@ -101,6 +110,15 @@ interface AudioStore {
   devicesLoaded: boolean;
   /** The last listing named every output by its own label, not a placeholder: until then no output can be told apart (VB-CABLE's presence reads it). */
   outputLabelsKnown: boolean;
+  /** The browser default output's form factor, kept apart because the `default` entry never reaches the device lists. */
+  defaultOutputForm: OutputForm;
+  /**
+   * The forms in the lists were joined from the system's answer that is still
+   * current (spec 2026-11-05 §6). While false every lookup reads unknown, so a
+   * stale join is never returned. Always false with no native reader (the
+   * extension): it has no answer to be current, and its forms are unknown anyway.
+   */
+  nativeFormsCurrent: boolean;
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
@@ -171,14 +189,26 @@ interface AudioStore {
    * `retryUnusable`: the OS reported a change (`devicechange`, the audio system recovering), so every unusable mark is cleared and the user's device tried again.
    */
   syncDevices: (options?: { retryUnusable?: boolean }) => Promise<void>;
+  /** The native reader's `onUpdate`: its answer changed (arrived, went stale, went away). A stale one reads unknown at once; the re-list joins a new one. */
+  nativeOutputsChanged: () => void;
   /** The microphone could not open this device: leave it out of the choice, and choose again now. */
   markInputUnusable: (deviceId: string) => void;
 }
 
-/** The same devices, in the same order, with the same names: `syncDevices` keeps the array it has. */
+/** The same form: `syncDevices` keeps the object it has. */
+const sameForm = (a: Pick<AudioDevice, 'formFactor' | 'transport'>, b: Pick<AudioDevice, 'formFactor' | 'transport'>) =>
+  a.formFactor === b.formFactor && a.transport === b.transport;
+
+/** The same devices, in the same order, with the same names and forms: `syncDevices` keeps the array it has. */
 const sameDevices = (current: readonly AudioDevice[], next: readonly AudioDevice[]) =>
   current.length === next.length &&
-  current.every((device, i) => device.deviceId === next[i].deviceId && device.label === next[i].label && device.isVirtual === next[i].isVirtual);
+  current.every((device, i) => device.deviceId === next[i].deviceId && device.label === next[i].label && device.isVirtual === next[i].isVirtual && sameForm(device, next[i]));
+
+/** Spelled out, not `UNKNOWN_FORM`: formFactor.ts imports this store, so its constants may not exist yet while this module loads. */
+const unknownForm = (): OutputForm => ({ formFactor: 'unknown', transport: 'unknown' });
+
+/** The listing joined the answer that is current now: one that went stale while the browser listed does not count. */
+const joinedCurrent = (listing: DeviceLists) => listing.native !== null && listing.native === currentNativeOutputs();
 
 const useAudioStore = create<AudioStore>()(
   subscribeWithSelector((set, get) => ({
@@ -195,6 +225,8 @@ const useAudioStore = create<AudioStore>()(
     unusableInputIds: [],
     devicesLoaded: false,
     outputLabelsKnown: false,
+    defaultOutputForm: unknownForm(),
+    nativeFormsCurrent: false,
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
@@ -420,6 +452,8 @@ const useAudioStore = create<AudioStore>()(
           audioInputDevices: devices.inputs,
           audioMonitorDevices: devices.outputs,
           outputLabelsKnown: devices.outputLabelsKnown === true,
+          defaultOutputForm: devices.defaultOutput ?? unknownForm(),
+          nativeFormsCurrent: joinedCurrent(devices),
         });
 
         // Only Electron can enumerate per-application sources; the extension
@@ -622,12 +656,18 @@ const useAudioStore = create<AudioStore>()(
       const listsChanged = inputs !== state.audioInputDevices || outputs !== state.audioMonitorDevices;
       const outputLabelsKnown = listing.outputLabelsKnown === true;
       const labelsChanged = outputLabelsKnown !== state.outputLabelsKnown;
+      const nextDefault = listing.defaultOutput ?? unknownForm();
+      const defaultOutputForm = sameForm(state.defaultOutputForm, nextDefault) ? state.defaultOutputForm : nextDefault;
+      const defaultChanged = defaultOutputForm !== state.defaultOutputForm;
+      const nativeFormsCurrent = joinedCurrent(listing);
+      const formsCurrentChanged = nativeFormsCurrent !== state.nativeFormsCurrent;
+      const listingChanged = listsChanged || labelsChanged || defaultChanged || formsCurrentChanged;
       if (!listing.complete) {
         // A failed listing, or one without labels (no microphone permission
         // yet): virtual and loopback inputs cannot be told from real ones, so
         // the lists may change but no choice does — and a failure that looks
         // like "every device is gone" changes nothing at all.
-        if ((inputs.length > 0 || outputs.length > 0) && (listsChanged || labelsChanged)) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown });
+        if ((inputs.length > 0 || outputs.length > 0) && listingChanged) set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm, nativeFormsCurrent });
         return;
       }
       // A mark lasts until its device leaves the list (replugged, it is tried
@@ -648,13 +688,20 @@ const useAudioStore = create<AudioStore>()(
       const selectedInputDevice = keep(state.selectedInputDevice, input);
       const selectedMonitorDevice = keep(state.selectedMonitorDevice, monitor);
       if (
-        !listsChanged &&
-        !labelsChanged &&
+        !listingChanged &&
         unusableInputIds === state.unusableInputIds &&
         selectedInputDevice === state.selectedInputDevice &&
         selectedMonitorDevice === state.selectedMonitorDevice
       ) return;
-      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+      set({ audioInputDevices: inputs, audioMonitorDevices: outputs, outputLabelsKnown, defaultOutputForm, nativeFormsCurrent, unusableInputIds, selectedInputDevice, selectedMonitorDevice });
+    },
+
+    nativeOutputsChanged: () => {
+      // Stale reads unknown at once, not when the re-list lands: that waits on
+      // the browser, and a failed one changes nothing at all. A new answer
+      // counts only once a listing has joined it, which the re-list does.
+      if (currentNativeOutputs() === null && get().nativeFormsCurrent) set({ nativeFormsCurrent: false });
+      void get().syncDevices();
     },
 
     markInputUnusable: (deviceId) => {

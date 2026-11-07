@@ -1,0 +1,32 @@
+[
+ {
+  "id": 100,
+  "uid": "scrubbed-uid-0",
+  "label": "HyperX Virtual Surround Sound",
+  "browserLabel": "HyperX Virtual Surround Sound (0951:16a4)",
+  "isDefault": false,
+  "transport": "usb ",
+  "dataSource": null,
+  "terminalType": "hdph"
+ },
+ {
+  "id": 101,
+  "uid": "scrubbed-uid-1",
+  "label": "Mac mini Speakers",
+  "browserLabel": "Mac mini Speakers (Built-in)",
+  "isDefault": true,
+  "transport": "bltn",
+  "dataSource": "ispk",
+  "terminalType": 769
+ },
+ {
+  "id": 102,
+  "uid": "scrubbed-uid-2",
+  "label": "SokujiVirtualAudio",
+  "browserLabel": "SokujiVirtualAudio (Virtual)",
+  "isDefault": false,
+  "transport": "virt",
+  "dataSource": null,
+  "terminalType": "spkr"
+ }
+]
