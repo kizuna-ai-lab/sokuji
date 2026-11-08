@@ -71,7 +71,7 @@ graph LR
 
 ## デモ
 
-https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
+https://github.com/user-attachments/assets/f814986d-0def-409a-8113-500866c4ac7e
 
 ---
 
