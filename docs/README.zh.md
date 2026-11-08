@@ -24,6 +24,10 @@
   <a href="../README.md">English</a> | <a href="README.ja.md">日本語</a> | 中文
 </p>
 
+<p align="center">
+  <img src="../screenshots/demo.gif" alt="Sokuji 演示：在 Google Meet 中日语⇄英语双向翻译" width="960">
+</p>
+
 ---
 
 ## 为什么选择 Sokuji？
