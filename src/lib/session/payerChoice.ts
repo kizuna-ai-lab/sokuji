@@ -15,7 +15,14 @@ export const USE_OWN_BALANCE_KEY = 'sokuji.payer.useOwnBalance';
 
 const listeners = new Set<() => void>();
 
+/**
+ * The choice the storage could not hold (a private window, blocked or full storage): kept for this
+ * document's life, so the switch still works; null while the storage holds it.
+ */
+let inMemory: boolean | null = null;
+
 export function getUseOwnBalance(): boolean {
+  if (inMemory !== null) return inMemory;
   try {
     return localStorage.getItem(USE_OWN_BALANCE_KEY) === 'true';
   } catch {
@@ -26,8 +33,9 @@ export function getUseOwnBalance(): boolean {
 export function setUseOwnBalance(on: boolean): void {
   try {
     localStorage.setItem(USE_OWN_BALANCE_KEY, String(on));
+    inMemory = null;
   } catch {
-    // Storage is unavailable: the switch reads off, the organization pays.
+    inMemory = on;
   }
   for (const listener of listeners) listener();
 }
@@ -42,6 +50,8 @@ export function subscribeUseOwnBalance(listener: () => void): () => void {
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key !== null && event.key !== USE_OWN_BALANCE_KEY) return;
+    // Another document could write it, so the storage holds the choice again.
+    inMemory = null;
     for (const listener of listeners) listener();
   });
 }

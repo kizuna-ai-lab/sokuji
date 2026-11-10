@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { chosenPayer, getUseOwnBalance, setUseOwnBalance, useAccountPayer, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
 import { payerBalance } from './orgNotice';
@@ -11,7 +11,13 @@ const member = {
 const known = (over: Partial<Extract<AccountState, { status: 'known' }>> = {}): Extract<AccountState, { status: 'known' }> =>
   ({ status: 'known', balanceMicroUsd: 7_000_000, frozen: false, ...member, ...over });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 beforeEach(() => {
+  // A successful write also drops a choice an earlier test left in memory.
+  setUseOwnBalance(false);
   localStorage.clear();
 });
 
@@ -40,6 +46,35 @@ describe('the switch', () => {
     const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied'); });
     expect(() => setUseOwnBalance(true)).not.toThrow();
     set.mockRestore();
+  });
+
+  it('keeps the choice in memory when the storage cannot hold it, and tells subscribers', () => {
+    const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+    const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied'); });
+    const listener = vi.fn();
+    const off = subscribeUseOwnBalance(listener);
+    setUseOwnBalance(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getUseOwnBalance()).toBe(true);
+    expect(chosenPayer(member)).toBe('personal');
+    setUseOwnBalance(false);
+    expect(getUseOwnBalance()).toBe(false);
+    off();
+    get.mockRestore();
+    set.mockRestore();
+  });
+
+  it('a write that fails while reads work (a full storage) still turns the switch on', () => {
+    localStorage.setItem(USE_OWN_BALANCE_KEY, 'false');
+    const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    setUseOwnBalance(true);
+    expect(getUseOwnBalance()).toBe(true);
+    set.mockRestore();
+    // Once a write works again, the storage is the source again.
+    setUseOwnBalance(false);
+    expect(localStorage.getItem(USE_OWN_BALANCE_KEY)).toBe('false');
+    localStorage.setItem(USE_OWN_BALANCE_KEY, 'true');
+    expect(getUseOwnBalance()).toBe(true);
   });
 });
 
