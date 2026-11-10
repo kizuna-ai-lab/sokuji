@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { setUseOwnBalance, useUseOwnBalance } from '../../lib/session/payerChoice';
+import type { Payer } from '../../lib/session/types';
 import { selectedFromStores } from '../../lib/session/appShape';
 import { useAccountStore } from '../../stores/accountStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -12,10 +13,15 @@ import ToggleSwitch from '../Settings/shared/ToggleSwitch';
  * payer is chosen at Start and a running session keeps it, so the switch is
  * off-limits until the session ends. Nothing for anyone else.
  */
-export default function PayerLine({ idle }: { idle: boolean }) {
+export default function PayerLine({ idle, runPayer }: {
+  idle: boolean;
+  /** The payer the running session was started with: shown while it runs, whatever the switch now says (another window can change it). */
+  runPayer?: Payer;
+}) {
   const { t } = useTranslation();
   const account = useAccountStore((s) => s.account);
-  const useOwn = useUseOwnBalance();
+  const switchOn = useUseOwnBalance();
+  const useOwn = !idle && runPayer ? runPayer === 'personal' : switchOn;
   // Subscribed to what the provider lookup reads, so the line follows a selection or a load.
   useProviderStore((s) => s.selected);
   useProviderStore((s) => s.entries);
@@ -28,7 +34,7 @@ export default function PayerLine({ idle }: { idle: boolean }) {
       <ToggleSwitch
         className="payer-line__toggle"
         checked={useOwn}
-        onChange={() => setUseOwnBalance(!useOwn)}
+        onChange={() => setUseOwnBalance(!switchOn)}
         label={t('mainPanel.payer.useOwnBalance')}
         ariaLabel={t('mainPanel.payer.useOwnBalance')}
         disabled={!idle}

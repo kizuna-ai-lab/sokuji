@@ -372,7 +372,7 @@ export default function MainPanel() {
         )}
         {canSendText && <TypedText onSend={(text) => runner.sendText(text)} />}
         {status && <StatusLine entry={status} onAction={runNoticeAction} onDismiss={onDismissStatus} />}
-        <PayerLine idle={run.phase === 'idle'} />
+        <PayerLine idle={run.phase === 'idle'} runPayer={run.phase === 'idle' ? undefined : run.payer} />
         {footer(uiMode === 'advanced' ? 'advanced' : 'basic')}
       </div>
       <WarningModal

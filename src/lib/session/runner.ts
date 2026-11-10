@@ -11,7 +11,10 @@ import type { RunNoticeCode } from './codes';
 import { ConversationSet, type ConversationInfo } from './conversationSet';
 import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
 import { apiErrorType, LegOpenError, RefusedError, retentionFor, Run, type RunHost } from './run';
-import type { LegState, RunEnd, RunState } from './types';
+import type { LegState, Payer, RunEnd, RunState } from './types';
+
+/** The payer a run was started with, for the state the panel reads while it runs; nothing for a run with none (not a member). */
+const payerOf = (shape: { payer?: Payer }): { payer?: Payer } => (shape.payer ? { payer: shape.payer } : {});
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 export const DEFAULT_CLOSE_TIMEOUT_MS = 15_000;
@@ -128,7 +131,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
           // A refused start opened nothing and played nothing: straight back to
           // idle, leaving a replay of the kept conversation playing.
           const refused = result.reason === 'refused';
-          if (!refused) set({ phase: 'stopping', participantSpeech: run.shape.participantSpeech });
+          if (!refused) set({ phase: 'stopping', participantSpeech: run.shape.participantSpeech, ...payerOf(run.shape) });
           // Captured before `run.close()`, so teardown time (a hung release,
           // the bounded wait for fill-in) is never counted as session duration.
           const endedAt = deps.clock.now();
@@ -187,7 +190,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
 
   const hostFor = (run: Run): RunHost => ({
     step: (step) => {
-      if (run === current && state.getState().phase === 'starting') set({ phase: 'starting', participantSpeech: run.shape.participantSpeech, step });
+      if (run === current && state.getState().phase === 'starting') set({ phase: 'starting', participantSpeech: run.shape.participantSpeech, ...payerOf(run.shape), step });
     },
     legState: () => {
       const now = state.getState();
@@ -221,7 +224,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     }
     const run = new Run(deps, hostFor, shape);
     current = run;
-    set({ phase: 'starting', participantSpeech: shape.participantSpeech, step: 'checking' });
+    set({ phase: 'starting', participantSpeech: shape.participantSpeech, ...payerOf(shape), step: 'checking' });
     try {
       await run.open();
     } catch (error) {
@@ -270,7 +273,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     // Before the state says running: a subscriber that stops the run at once
     // must leave playback not live, not live again after its stop.
     deps.playback.live(true);
-    set({ phase: 'running', participantSpeech: run.shape.participantSpeech, since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}), ...reconnect(run) });
+    set({ phase: 'running', participantSpeech: run.shape.participantSpeech, ...payerOf(run.shape), since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}), ...reconnect(run) });
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: shape.provider.id,

@@ -572,6 +572,27 @@ describe("runner — the run's frozen Translation I hear", () => {
   });
 });
 
+describe("runner — the run's payer", () => {
+  it("starting, running and stopping carry the payer chosen at Start", async () => {
+    const { runner, clock } = setup({ shape: { payer: 'personal' }, settings: { startDelayMs: 2000 } });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', payer: 'personal' });
+    clock.advance(2000);
+    await starting;
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', payer: 'personal' });
+    const stopping = runner.stop();
+    expect(runner.state.getState()).toMatchObject({ phase: 'stopping', payer: 'personal' });
+    await stopping;
+  });
+
+  it('a run with no payer (not a member) carries none', async () => {
+    const { runner } = setup();
+    await runner.start();
+    expect(runner.state.getState()).not.toHaveProperty('payer');
+  });
+});
+
 /** The fake, its sessions recording each `setSpeech` by leg: the participant runs the reversed pair, so its source is 'ja'. */
 function speechSwitchRecorder() {
   const calls: Array<[string, boolean]> = [];

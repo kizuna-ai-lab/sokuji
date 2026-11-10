@@ -4,7 +4,7 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from '../../locales/en/translation.json';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
-import { getUseOwnBalance } from '../../lib/session/payerChoice';
+import { getUseOwnBalance, setUseOwnBalance } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import { useProviderStore } from '../../stores/providerStore';
 import PayerLine from './PayerLine';
@@ -48,6 +48,19 @@ describe('PayerLine', () => {
     expect(toggle().getAttribute('aria-checked')).toBe('true');
     expect(screen.queryByText('Paid by Acme')).toBeNull();
     expect(screen.getByText('Paid by you')).toBeTruthy();
+  });
+
+  it("while a session runs it shows the run's payer, not the switch another window changed", () => {
+    useAccountStore.setState({ account: memberAccount });
+    const { rerender } = render(<PayerLine idle={false} runPayer="personal" />);
+    expect(screen.getByText('Paid by you')).toBeTruthy();
+    expect(toggle().getAttribute('aria-checked')).toBe('true');
+    // The other window turns the switch on and off: the running session still spends what it started with.
+    act(() => setUseOwnBalance(false));
+    rerender(<PayerLine idle={false} runPayer="organization" />);
+    act(() => setUseOwnBalance(true));
+    expect(screen.getByText('Paid by Acme')).toBeTruthy();
+    expect(toggle().getAttribute('aria-checked')).toBe('false');
   });
 
   it('is disabled while a session runs: the running payer is fixed', () => {
