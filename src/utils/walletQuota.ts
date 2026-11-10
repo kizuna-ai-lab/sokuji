@@ -10,6 +10,34 @@ export interface WalletStatus {
   balance?: number;
   /** @deprecated Legacy alias for `last30DaysUsageMicroUsd`; same units. */
   usage?: number;
+  /** Present only for organization members (absent from older backends). */
+  organization?: unknown;
+  /** Present only for organization members (absent from older backends). */
+  personal?: unknown;
+}
+
+type OrganizationQuota = NonNullable<QuotaData['organization']>;
+type PersonalQuota = NonNullable<QuotaData['personal']>;
+
+const isFiniteNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+
+/** Keep the organization object only if every field has the right type. */
+function parseOrganization(value: unknown): OrganizationQuota | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const o = value as Record<string, unknown>;
+  if (typeof o.id !== 'string' || typeof o.name !== 'string'
+    || !isFiniteNum(o.availableMicroUsd) || typeof o.frozen !== 'boolean'
+    || (o.role !== 'owner' && o.role !== 'member')) return undefined;
+  return { id: o.id, name: o.name, availableMicroUsd: o.availableMicroUsd, frozen: o.frozen, role: o.role };
+}
+
+/** Keep the personal object only if every field has the right type. */
+function parsePersonal(value: unknown): PersonalQuota | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const p = value as Record<string, unknown>;
+  if (!isFiniteNum(p.balanceMicroUsd) || typeof p.frozen !== 'boolean'
+    || typeof p.expiringSoon !== 'boolean') return undefined;
+  return { balanceMicroUsd: p.balanceMicroUsd, frozen: p.frozen, expiringSoon: p.expiringSoon };
 }
 
 /**
@@ -45,6 +73,8 @@ export function mapWalletStatusToQuota(s: unknown): QuotaData {
   }
   const balance = s.balanceMicroUsd ?? s.balance ?? 0;
   const usage = s.last30DaysUsageMicroUsd ?? s.usage ?? 0;
+  const organization = parseOrganization(s.organization);
+  const personal = parsePersonal(s.personal);
   return {
     balance,
     frozen: s.frozen,
@@ -55,5 +85,7 @@ export function mapWalletStatusToQuota(s: unknown): QuotaData {
     remaining: s.frozen ? 0 : balance,
     resetDate: null,
     plan: 'free',
+    ...(organization ? { organization } : {}),
+    ...(personal ? { personal } : {}),
   };
 }

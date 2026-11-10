@@ -31,6 +31,22 @@ export interface QuotaData {
   features?: string[];   // Enabled features for the plan
   rateLimitRpm?: number; // Rate limit (requests per minute)
   maxConcurrentSessions?: number; // Max concurrent sessions allowed
+
+  // Organization membership (absent for non-members and older backends).
+  // When present, `balance` and `frozen` above are the organization's.
+  organization?: {
+    id: string;
+    name: string;
+    availableMicroUsd: number;
+    frozen: boolean;
+    role: 'owner' | 'member';
+  };
+  // The member's own wallet, alongside the organization's.
+  personal?: {
+    balanceMicroUsd: number;
+    frozen: boolean;
+    expiringSoon: boolean;
+  };
 }
 
 interface UserProfileContextValue {

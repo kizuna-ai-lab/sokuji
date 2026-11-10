@@ -150,3 +150,77 @@ describe('isWalletStatus', () => {
     expect(isWalletStatus({ balance: Infinity, frozen: false, usage: 0 })).toBe(false);
   });
 });
+
+describe('mapWalletStatusToQuota organization fields', () => {
+  const member = {
+    balanceMicroUsd: 5_000_000,
+    frozen: false,
+    expiringSoon: false,
+    last30DaysUsageMicroUsd: 70,
+    organization: { id: 'org_1', name: 'Acme', availableMicroUsd: 5_000_000, frozen: false, role: 'member' },
+    personal: { balanceMicroUsd: 300, frozen: true, expiringSoon: true },
+  };
+
+  it('maps organization and personal objects for a member payload', () => {
+    const q = mapWalletStatusToQuota(member);
+    expect(q.organization).toEqual({ id: 'org_1', name: 'Acme', availableMicroUsd: 5_000_000, frozen: false, role: 'member' });
+    expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: true, expiringSoon: true });
+  });
+
+  it('keeps top-level balance as the organization available balance', () => {
+    const q = mapWalletStatusToQuota(member);
+    expect(q.balance).toBe(5_000_000);
+    expect(q.remaining).toBe(5_000_000);
+    expect(q.frozen).toBe(false);
+  });
+
+  it('accepts the owner role', () => {
+    const q = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, role: 'owner' } });
+    expect(q.organization?.role).toBe('owner');
+  });
+
+  it('maps an old payload exactly as before (snapshot)', () => {
+    const q = mapWalletStatusToQuota({ balance: 1000, frozen: false, usage: 50 });
+    expect(q).toStrictEqual({
+      balance: 1000,
+      frozen: false,
+      last30DaysUsage: 50,
+      total: 1000,
+      used: 50,
+      remaining: 1000,
+      resetDate: null,
+      plan: 'free',
+    });
+    expect('organization' in q).toBe(false);
+    expect('personal' in q).toBe(false);
+  });
+
+  it('drops a malformed organization or personal object without throwing', () => {
+    const badOrgs: unknown[] = [
+      null, 'x', 5,
+      { ...member.organization, id: 1 },
+      { ...member.organization, name: undefined },
+      { ...member.organization, availableMicroUsd: '5' },
+      { ...member.organization, availableMicroUsd: NaN },
+      { ...member.organization, frozen: 'no' },
+      { ...member.organization, role: 'admin' },
+    ];
+    for (const organization of badOrgs) {
+      const q = mapWalletStatusToQuota({ ...member, organization });
+      expect(q.organization).toBeUndefined();
+      expect(q.personal).toBeDefined();
+      expect(q.balance).toBe(5_000_000);
+    }
+    const badPersonals: unknown[] = [
+      null, [], { balanceMicroUsd: '1', frozen: false, expiringSoon: false },
+      { balanceMicroUsd: 1, frozen: 0, expiringSoon: false },
+      { balanceMicroUsd: 1, frozen: false },
+    ];
+    for (const personal of badPersonals) {
+      const q = mapWalletStatusToQuota({ ...member, personal });
+      expect(q.personal).toBeUndefined();
+      expect(q.organization).toBeDefined();
+    }
+    expect(isWalletStatus({ ...member, organization: 7, personal: 'x' })).toBe(true);
+  });
+});
