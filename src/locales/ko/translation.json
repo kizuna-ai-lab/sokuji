@@ -806,6 +806,7 @@
     "upgradeToPremium": "프리미엄으로 업그레이드",
     "orgBalance": "{{name}} 잔액",
     "yourBalance": "내 잔액",
+    "orgHeld": "이 중 {{held}}은(는) 진행 중인 세션에 보류되어 있으며, 사용하지 않은 금액은 세션이 끝나면 반환됩니다.",
     "paused": "일시 중지됨"
   },
   "logs": {

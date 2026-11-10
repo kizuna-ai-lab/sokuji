@@ -121,6 +121,26 @@ describe('AccountButton', () => {
     setUseOwnBalance(false);
   });
 
+  it('shows the organization\'s committed balance when present, and the available one when not', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 3_000_000 };
+    localStorage.clear();
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, committedBalanceMicroUsd: 8_000_000, frozen: false },
+    } });
+    const { unmount } = render(<AccountButton />);
+    expect(screen.getByText('$8.00')).toBeTruthy();
+    unmount();
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false },
+    } });
+    render(<AccountButton />);
+    expect(screen.getByText('$3.00')).toBeTruthy();
+  });
+
   it('shows no balance, not $0, with the switch on and no personal wallet known', () => {
     signedIn = true;
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };

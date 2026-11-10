@@ -70,6 +70,30 @@ describe('UserAccountInfo with an organization', () => {
     expect(org).not.toBe(own);
   });
 
+  it('shows the committed balance and a held line when sessions hold part of it', () => {
+    quota = memberQuota({
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 3_000_000, committedBalanceMicroUsd: 5_000_000, frozen: false, role: 'member' },
+    });
+    render(<UserAccountInfo />);
+    const org = screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!;
+    expect(org.textContent).toContain('$5.00');
+    expect(org.textContent).not.toContain('$3.00');
+    expect(screen.getByText('$2.00 of it is held by sessions in progress; any unused part returns when they end.')).toBeTruthy();
+  });
+
+  it('shows no held line when nothing is held, or when the server sent no committed balance', () => {
+    quota = memberQuota({
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 5_000_000, committedBalanceMicroUsd: 5_000_000, frozen: false, role: 'member' },
+    });
+    const { unmount } = render(<UserAccountInfo />);
+    expect(screen.queryByText(/held by sessions/)).toBeNull();
+    unmount();
+    quota = memberQuota();
+    render(<UserAccountInfo />);
+    expect(screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!.textContent).toContain('$50.00');
+    expect(screen.queryByText(/held by sessions/)).toBeNull();
+  });
+
   it('keeps the 30-day usage as the person\'s own', () => {
     quota = memberQuota();
     render(<UserAccountInfo />);

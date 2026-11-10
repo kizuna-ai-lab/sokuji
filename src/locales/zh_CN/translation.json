@@ -806,6 +806,7 @@
     "upgradeToPremium": "升级到高级版",
     "orgBalance": "{{name}}余额",
     "yourBalance": "你的余额",
+    "orgHeld": "其中 {{held}} 被进行中的会话占用；未使用的部分会在会话结束后退回。",
     "paused": "已暂停"
   },
   "logs": {

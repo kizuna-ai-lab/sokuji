@@ -47,6 +47,8 @@ export interface QuotaData {
     id: string;
     name: string;
     availableMicroUsd: number;
+    /** The organization's actual balance, before what running sessions hold. Absent from older servers. */
+    committedBalanceMicroUsd?: number;
     frozen: boolean;
     role: 'owner' | 'member';
   };
@@ -319,7 +321,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       !isSignedIn || !userId ? null
         : typeof balance === 'number' ? {
           status: 'known', balanceMicroUsd: balance, frozen: quota?.frozen === true,
-          ...(quota?.organization ? { organization: { name: quota.organization.name, availableMicroUsd: quota.organization.availableMicroUsd, frozen: quota.organization.frozen, role: quota.organization.role } } : {}),
+          ...(quota?.organization ? { organization: { name: quota.organization.name, availableMicroUsd: quota.organization.availableMicroUsd, ...(quota.organization.committedBalanceMicroUsd !== undefined ? { committedBalanceMicroUsd: quota.organization.committedBalanceMicroUsd } : {}), frozen: quota.organization.frozen, role: quota.organization.role } } : {}),
           ...(quota?.organization && quota.personal ? { personal: { balanceMicroUsd: quota.personal.balanceMicroUsd, frozen: quota.personal.frozen } } : {}),
         }
         : walletFailed ? { status: 'unknown' }

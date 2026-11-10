@@ -18,6 +18,7 @@ import {
   UserCog,
   Wallet
 } from 'lucide-react';
+import {orgDisplayBalance} from '../../lib/session/orgNotice';
 import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
@@ -494,11 +495,16 @@ export function UserAccountInfo({
                   <span className="quota-balance-label">
                     {t('tokenUsage.orgBalance', {name: organization.name})}
                   </span>
-                  <span className="balance-section">{formatUsdFloor(organization.availableMicroUsd)}</span>
+                  <span className="balance-section">{formatUsdFloor(orgDisplayBalance(organization))}</span>
                   {organization.frozen && (
                     <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>
                   )}
                 </div>
+                {organization.committedBalanceMicroUsd !== undefined && organization.committedBalanceMicroUsd - organization.availableMicroUsd > 0 && (
+                  <div className="quota-org-held">
+                    {t('tokenUsage.orgHeld', {held: formatUsdFloor(organization.committedBalanceMicroUsd - organization.availableMicroUsd)})}
+                  </div>
+                )}
                 {personal && (
                   <div className="quota-balance-row">
                     <span className="quota-balance-label">{t('tokenUsage.yourBalance')}</span>

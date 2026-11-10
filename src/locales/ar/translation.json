@@ -806,6 +806,7 @@
     "upgradeToPremium": "الترقية إلى Premium",
     "orgBalance": "رصيد {{name}}",
     "yourBalance": "رصيدك",
+    "orgHeld": "{{held}} منه محجوز للجلسات الجارية؛ ويعود أي جزء غير مستخدم عند انتهائها.",
     "paused": "متوقف مؤقتًا"
   },
   "logs": {

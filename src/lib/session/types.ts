@@ -27,7 +27,7 @@ export type AccountState =
  * balance is the organization's.
  */
 export interface PayerWallets {
-  organization?: { name: string; availableMicroUsd: number; frozen: boolean; role?: 'owner' | 'member' };
+  organization?: { name: string; availableMicroUsd: number; committedBalanceMicroUsd?: number; frozen: boolean; role?: 'owner' | 'member' };
   personal?: { balanceMicroUsd: number; frozen: boolean };
 }
 

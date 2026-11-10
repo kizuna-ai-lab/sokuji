@@ -806,6 +806,7 @@
     "upgradeToPremium": "שדרג ל-Premium",
     "orgBalance": "יתרת {{name}}",
     "yourBalance": "היתרה שלך",
+    "orgHeld": "{{held}} מתוכו מוחזקים עבור הפעלות פעילות; כל חלק שלא נוצל יוחזר עם סיומן.",
     "paused": "מושהה"
   },
   "logs": {

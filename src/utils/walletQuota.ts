@@ -38,7 +38,9 @@ function parseOrganization(value: unknown): OrganizationQuota | undefined {
     || (o.role !== 'owner' && o.role !== 'member')) {
     return malformed('organization', 'an organization');
   }
-  return { id: o.id, name: o.name, availableMicroUsd: o.availableMicroUsd, frozen: o.frozen, role: o.role };
+  // Optional: older servers do not send it, and a malformed one is read as absent rather than dropping the organization.
+  const committed = isFiniteNum(o.committedBalanceMicroUsd) ? { committedBalanceMicroUsd: o.committedBalanceMicroUsd } : {};
+  return { id: o.id, name: o.name, availableMicroUsd: o.availableMicroUsd, ...committed, frozen: o.frozen, role: o.role };
 }
 
 /** A well-formed expiring-soon object, or null for null / absent / malformed. */

@@ -806,6 +806,7 @@
     "upgradeToPremium": "Mag-upgrade sa Premium",
     "orgBalance": "Balanse ng {{name}}",
     "yourBalance": "Ang iyong balanse",
+    "orgHeld": "{{held}} nito ay naka-hold para sa mga session na kasalukuyang tumatakbo; ang hindi nagamit na bahagi ay ibabalik kapag natapos ang mga ito.",
     "paused": "Naka-pause"
   },
   "logs": {

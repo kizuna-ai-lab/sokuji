@@ -806,6 +806,7 @@
     "upgradeToPremium": "Auf Premium upgraden",
     "orgBalance": "Guthaben {{name}}",
     "yourBalance": "Ihr Guthaben",
+    "orgHeld": "{{held}} davon sind für laufende Sitzungen reserviert; ein nicht genutzter Teil wird zurückgegeben, sobald sie enden.",
     "paused": "Pausiert"
   },
   "logs": {

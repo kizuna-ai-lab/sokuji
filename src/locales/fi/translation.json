@@ -806,6 +806,7 @@
     "upgradeToPremium": "Päivitä Premiumiin",
     "orgBalance": "{{name}}: saldo",
     "yourBalance": "Oma saldosi",
+    "orgHeld": "{{held}} on varattu käynnissä oleville istunnoille; käyttämätön osa palautuu, kun ne päättyvät.",
     "paused": "Keskeytetty"
   },
   "logs": {

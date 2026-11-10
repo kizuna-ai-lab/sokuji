@@ -806,6 +806,7 @@
     "upgradeToPremium": "プレミアムにアップグレード",
     "orgBalance": "{{name}}の残高",
     "yourBalance": "あなたの残高",
+    "orgHeld": "このうち {{held}} は進行中のセッションで保留されています。未使用分はセッション終了時に戻ります。",
     "paused": "一時停止中"
   },
   "logs": {

@@ -16,7 +16,7 @@ import {
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
-import { payerBalance } from '../../lib/session/orgNotice';
+import { payerDisplayBalance } from '../../lib/session/orgNotice';
 import { useAccountPayer } from '../../lib/session/payerChoice';
 import type { AccountState, Payer } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
@@ -31,7 +31,7 @@ import './AccountButton.scss';
  * anyone else shows the quota's balance.
  */
 function shownBalance(account: AccountState | null, payer: Payer | undefined, quota: { balance?: number; remaining?: number } | null | undefined): number | undefined {
-  if (account?.status === 'known' && account.organization) return payerBalance(account, payer).microUsd;
+  if (account?.status === 'known' && account.organization) return payerDisplayBalance(account, payer);
   return quota?.balance ?? quota?.remaining;
 }
 

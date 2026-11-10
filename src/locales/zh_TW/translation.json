@@ -806,6 +806,7 @@
     "upgradeToPremium": "升級到高級版",
     "orgBalance": "{{name}}餘額",
     "yourBalance": "你的餘額",
+    "orgHeld": "其中 {{held}} 被進行中的工作階段保留；未使用的部分會在工作階段結束後退回。",
     "paused": "已暫停"
   },
   "logs": {

@@ -806,6 +806,7 @@
     "upgradeToPremium": "Tingkatkan ke Premium",
     "orgBalance": "Saldo {{name}}",
     "yourBalance": "Saldo Anda",
+    "orgHeld": "{{held}} darinya ditahan oleh sesi yang sedang berjalan; bagian yang tidak terpakai dikembalikan saat sesi berakhir.",
     "paused": "Dijeda"
   },
   "logs": {

@@ -177,6 +177,24 @@ describe('mapWalletStatusToQuota organization fields', () => {
     expect(q.frozen).toBe(false);
   });
 
+  it('carries committedBalanceMicroUsd when it is a finite number, and omits it otherwise', () => {
+    const withIt = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, committedBalanceMicroUsd: 8_000_000 } });
+    expect(withIt.organization?.committedBalanceMicroUsd).toBe(8_000_000);
+    expect(withIt.organization?.availableMicroUsd).toBe(5_000_000);
+    const without = mapWalletStatusToQuota(member);
+    expect(without.organization).toBeDefined();
+    expect('committedBalanceMicroUsd' in without.organization!).toBe(false);
+  });
+
+  it('treats a malformed committedBalanceMicroUsd as absent without dropping the organization', () => {
+    for (const bad of ['8', NaN, Infinity, null, {}]) {
+      const q = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, committedBalanceMicroUsd: bad } });
+      expect(q.organization).toBeDefined();
+      expect(q.organization?.committedBalanceMicroUsd).toBeUndefined();
+      expect(q.organization?.availableMicroUsd).toBe(5_000_000);
+    }
+  });
+
   it('accepts the owner role', () => {
     const q = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, role: 'owner' } });
     expect(q.organization?.role).toBe('owner');

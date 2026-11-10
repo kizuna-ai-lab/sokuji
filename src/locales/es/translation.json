@@ -806,6 +806,7 @@
     "upgradeToPremium": "Actualizar a Premium",
     "orgBalance": "Saldo de {{name}}",
     "yourBalance": "Tu saldo",
+    "orgHeld": "{{held}} están retenidos por las sesiones en curso; la parte no utilizada se devuelve cuando terminan.",
     "paused": "En pausa"
   },
   "logs": {

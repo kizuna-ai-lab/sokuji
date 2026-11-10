@@ -45,6 +45,17 @@ export function orgRefusalCode(status: number, body: unknown, payer: Payer | und
   return null;
 }
 
+/** The organization balance to show: its actual balance when the server sends it, else what is available. The start gate never reads this. */
+export function orgDisplayBalance(org: { availableMicroUsd: number; committedBalanceMicroUsd?: number }): number {
+  return org.committedBalanceMicroUsd ?? org.availableMicroUsd;
+}
+
+/** What the title bar shows for `payer`: `payerBalance`, except an organization payer shows its committed balance. */
+export function payerDisplayBalance(account: Extract<AccountState, { status: 'known' }>, payer: Payer | undefined): number | undefined {
+  if (payer === 'organization' && account.organization) return orgDisplayBalance(account.organization);
+  return payerBalance(account, payer).microUsd;
+}
+
 /**
  * The balance and frozen flag of the wallet `payer` spends (the one a run chose at Start, not the live switch); a non-member, with no payer, spends the account's own.
  * `microUsd` is undefined for a personal payer whose wallet the account does not hold (the response carried none usable): no balance is made up, and the server checks that wallet.

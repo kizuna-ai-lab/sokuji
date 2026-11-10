@@ -806,6 +806,7 @@
     "upgradeToPremium": "Upgrade naar Premium",
     "orgBalance": "Saldo van {{name}}",
     "yourBalance": "Je saldo",
+    "orgHeld": "{{held}} daarvan is vastgehouden door lopende sessies; een ongebruikt deel komt terug zodra ze eindigen.",
     "paused": "Gepauzeerd"
   },
   "logs": {

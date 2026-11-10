@@ -1023,6 +1023,7 @@
     "upgradeToPremium": "Upgrade to Premium",
     "orgBalance": "{{name}} balance",
     "yourBalance": "Your balance",
+    "orgHeld": "{{held}} of it is held by sessions in progress; any unused part returns when they end.",
     "paused": "Paused"
   },
   "logs": {

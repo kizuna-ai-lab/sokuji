@@ -806,6 +806,7 @@
     "upgradeToPremium": "Uppgradera till Premium",
     "orgBalance": "Saldo för {{name}}",
     "yourBalance": "Ditt saldo",
+    "orgHeld": "{{held}} av beloppet är reserverat av pågående sessioner; oanvänd del återgår när de avslutas.",
     "paused": "Pausad"
   },
   "logs": {

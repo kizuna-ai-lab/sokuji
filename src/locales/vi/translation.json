@@ -806,6 +806,7 @@
     "upgradeToPremium": "Nâng cấp lên Premium",
     "orgBalance": "Số dư của {{name}}",
     "yourBalance": "Số dư của bạn",
+    "orgHeld": "{{held}} trong số này đang được giữ cho các phiên đang diễn ra; phần không dùng đến sẽ được hoàn lại khi phiên kết thúc.",
     "paused": "Tạm dừng"
   },
   "logs": {

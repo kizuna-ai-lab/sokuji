@@ -806,6 +806,7 @@
     "upgradeToPremium": "Premium'a Yükselt",
     "orgBalance": "{{name}} bakiyesi",
     "yourBalance": "Bakiyeniz",
+    "orgHeld": "Bunun {{held}} kadarı devam eden oturumlarda ayrılmıştır; kullanılmayan kısım oturumlar bittiğinde iade edilir.",
     "paused": "Duraklatıldı"
   },
   "logs": {
