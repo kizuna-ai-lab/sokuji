@@ -18,10 +18,11 @@ vi.mock('react-i18next', () => ({
     },
   }),
 }));
+// No token by default: the panel must not fetch without one, which is also what
+// keeps most of these tests off the network. The per-side tests opt in.
+const auth = vi.hoisted(() => ({ token: undefined as string | undefined }));
 vi.mock('../../lib/auth/hooks', () => ({
-  // No `getToken`: the panel must not fetch without one, which is also what
-  // keeps these tests off the network.
-  useAuth: () => ({ isLoaded: true, isSignedIn: true }),
+  useAuth: () => ({ isLoaded: true, isSignedIn: true, getToken: async () => auth.token }),
   useUser: () => ({ user: { emailVerified: true, createdAt: new Date(0) }, refetch: vi.fn() }),
 }));
 let quota: unknown;
@@ -63,6 +64,8 @@ const rowValue = (label: string): string => row(label).querySelector('.quota-val
 beforeEach(() => {
   cleanup();
   clearUsageSidesCache();
+  auth.token = undefined;
+  vi.unstubAllGlobals();
   // The payer switch is remembered per device (localStorage), so without this a
   // test that switched to the personal wallet would decide the next one's tab.
   localStorage.clear();
@@ -123,9 +126,11 @@ describe('UserAccountInfo with an organization', () => {
   it('keeps the 30-day figure personal on the personal tab, and claims none for the organization it does not know', () => {
     quota = memberQuota();
     const { container } = render(<UserAccountInfo />);
-    // No per-side figures in this test (no token), so the organization's spend is unknown.
+    // No per-side figures in this test (no token): the organization's spend is
+    // UNKNOWN, which must not read as "you spent nothing".
     expect(container.querySelector('.quota-zone')!.textContent).toContain('My usage in this org');
-    expect(screen.getByText('No usage yet')).toBeTruthy();
+    expect(row('Spent').textContent).toContain('—');
+    expect(screen.queryByText('No usage yet')).toBeNull();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
     expect(container.querySelector('.quota-zone')!.textContent).toContain('My usage · last 30 days');
@@ -194,6 +199,57 @@ describe('UserAccountInfo with an organization', () => {
     render(<UserAccountInfo idle={false} />);
     expect(screen.queryByRole('tab')).toBeNull();
     expect(screen.queryByText(/This session is paid by/)).toBeNull();
+  });
+});
+
+describe('the per-side figures, once the endpoint answers', () => {
+  const respond = (body: unknown) => {
+    auth.token = 't';
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => body })));
+  };
+
+  it('shows each side its own spend and the two of them as the total', async () => {
+    quota = memberQuota();
+    respond({
+      personal: { spendMicroUsd: 860_000, sessionSeconds: 5_600, sessionCount: 4 },
+      organization: { spendMicroUsd: 3_390_000, sessionSeconds: 22_000, sessionCount: 9 },
+    });
+    const { container } = render(<UserAccountInfo />);
+    await waitFor(() => expect(container.textContent).toContain('$3.39'));
+    expect(container.textContent).toContain('30-day total · $4.25');
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    await waitFor(() => expect(container.textContent).toContain('$0.86'));
+  });
+
+  it('draws a runway for the side it is showing, and none when there is nothing to divide by', async () => {
+    quota = memberQuota();
+    respond({ personal: { spendMicroUsd: 860_000, sessionSeconds: 5_600, sessionCount: 4 } });
+    const { container, unmount } = render(<UserAccountInfo />);
+    // The organization's side has no figures, so nothing to wait for: switch to
+    // the side that does.
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    await waitFor(() => expect(container.textContent).toContain('$0.86'));
+    expect(row('Runway').textContent).toMatch(/about \d+ hours/);
+    unmount();
+
+    // The organization's side has no figures here, so no runway — and no zero.
+    clearUsageSidesCache();
+    respond({});
+    render(<UserAccountInfo />);
+    expect(screen.queryByText(/^Runway/)).toBeNull();
+  });
+
+  it('a confirmed zero reads "No usage yet", a missing block reads "—"', async () => {
+    quota = memberQuota({ last30DaysUsage: 0 });
+    respond({ personal: { spendMicroUsd: 0, sessionSeconds: 0, sessionCount: 0 } });
+    const { container, unmount } = render(<UserAccountInfo />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    await waitFor(() => expect(screen.getByText('No usage yet')).toBeTruthy());
+    // The organization's own side never arrived: unknown, not zero — and the
+    // total cannot add a side it does not have.
+    expect(container.textContent).toContain('30-day total · —');
+    unmount();
   });
 });
 

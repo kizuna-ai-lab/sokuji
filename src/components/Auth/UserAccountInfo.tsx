@@ -133,12 +133,19 @@ export function UserAccountInfo({
   // under the organization's tab would be a different number with the same name.
   const shownSpendMicroUsd = shownSide?.spendMicroUsd
     ?? (useOwn || !organization ? quota?.last30DaysUsage : undefined);
+
+  // "No usage" and "we do not know" are different claims. The polled figure
+  // covers the caller's own wallet; the organization's side only exists once
+  // the endpoint answers with it, so a server that predates it must read as
+  // "not available" rather than as "$0 spent".
+  const personalSpend = sides?.personal?.spendMicroUsd ?? quota?.last30DaysUsage;
+  const organizationSpend = sides?.organization?.spendMicroUsd;
+  const totalKnown = personalSpend !== undefined && (!organization || organizationSpend !== undefined);
+  const totalSpendMicroUsd = totalKnown ? (personalSpend ?? 0) + (organizationSpend ?? 0) : undefined;
   const availableMicroUsd = organization
     ? (useOwn ? personal?.balanceMicroUsd : organization.availableMicroUsd)
     : (quota?.balance ?? quota?.remaining ?? 0);
   const runwayHours = shownSide ? estimateRunwayHours(availableMicroUsd ?? 0, shownSide) : null;
-  const totalSpendMicroUsd =
-    (sides?.personal?.spendMicroUsd ?? quota?.last30DaysUsage ?? 0) + (sides?.organization?.spendMicroUsd ?? 0);
 
   const subscription = quota?.plan || user?.subscription || 'free';
 
@@ -673,14 +680,22 @@ export function UserAccountInfo({
               <div className="quota-row">
                 <span className="quota-key">{t('tokenUsage.spent', 'Spent')}</span>
                 <span className="quota-val">
-                  {shownSpendMicroUsd !== undefined ? formatUsd(shownSpendMicroUsd) : t('tokenUsage.noUsage', 'No usage yet')}
+                  {shownSpendMicroUsd === undefined
+                    // Not "no usage": the figure never arrived.
+                    ? <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>
+                    : shownSpendMicroUsd === 0
+                      // A confirmed zero is a different claim from an unknown one.
+                      ? t('tokenUsage.noUsage', 'No usage yet')
+                      : formatUsd(shownSpendMicroUsd)}
                 </span>
               </div>
             </div>
 
             <div className="quota-foot">
               <span className="quota-foot__total">
-                {t('tokenUsage.total30d', '30-day total')} · {formatUsd(totalSpendMicroUsd)}
+                {t('tokenUsage.total30d', '30-day total')} · {totalSpendMicroUsd !== undefined
+                  ? formatUsd(totalSpendMicroUsd)
+                  : <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>}
               </span>
               <button
                 className="action-button-compact refresh-account"
