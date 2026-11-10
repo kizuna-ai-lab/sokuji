@@ -806,8 +806,26 @@
     "upgradeToPremium": "Uaktualnij do Premium",
     "orgBalance": "Saldo {{name}}",
     "yourBalance": "Twoje saldo",
+    "yourOrganization": "twoja organizacja",
     "orgHeld": "{{held}} z tej kwoty jest zarezerwowane przez trwające sesje; niewykorzystana część wraca po ich zakończeniu.",
-    "paused": "Wstrzymano"
+    "paused": "Wstrzymano",
+    "runPayer": "Tę sesję opłaca {{name}}",
+    "balance": "Saldo",
+    "availableBalance": "Dostępne",
+    "sessionHeld": "Zarezerwowane przez sesje",
+    "heldHint": "Trwające lub właśnie zakończone sesje rezerwują część salda. Po ich rozliczeniu niewykorzystana część wraca do dostępnego salda.",
+    "runwayLabel": "Szacowany pozostały czas",
+    "runwayHint": "To dostępne saldo podzielone przez Twoje średnie wydatki na godzinę audio z ostatnich 30 dni — zwykle wystarczy Ci na dłużej.",
+    "aboutDuration": "około {{amount}} {{unit}}",
+    "unitHours": "godz.",
+    "unitDays": "dni",
+    "unitMonths": "mies.",
+    "self30d": "Moje użycie · ostatnie 30 dni",
+    "org30d": "Moje użycie w tej organizacji · ostatnie 30 dni",
+    "spent": "Wydano",
+    "usageUnavailable": "Dane o użyciu niedostępne",
+    "noUsage": "Brak użycia do tej pory",
+    "total30d": "Suma z 30 dni"
   },
   "logs": {
     "webrtcFallback": "Połączenie WebRTC nie powiodło się, używanie WebSocket zamiast niego"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Konto",
+      "personal": "Osobiste",
+      "payerUnknown": "Konto",
       "lowBalance": "Konto — saldo zbyt niskie, aby rozpocząć sesję",
       "unverified": "Konto — e-mail niezweryfikowany"
     },

@@ -806,8 +806,26 @@
     "upgradeToPremium": "升級到高級版",
     "orgBalance": "{{name}}餘額",
     "yourBalance": "你的餘額",
+    "yourOrganization": "你的組織",
     "orgHeld": "其中 {{held}} 已被進行中的工作階段預留；未使用的部分會在工作階段結束後退回。",
-    "paused": "已暫停"
+    "paused": "已暫停",
+    "runPayer": "此工作階段由 {{name}} 付費",
+    "balance": "餘額",
+    "availableBalance": "可用餘額",
+    "sessionHeld": "工作階段預留金額",
+    "heldHint": "進行中或剛結束的工作階段會預留部分餘額。結算後，未使用的部分將退回可用餘額。",
+    "runwayLabel": "預計可用時長",
+    "runwayHint": "可用餘額除以過去 30 天的平均每小時花費，以音訊時間計算——實際可用時間通常會更長。",
+    "aboutDuration": "約 {{amount}} {{unit}}",
+    "unitHours": "小時",
+    "unitDays": "天",
+    "unitMonths": "個月",
+    "self30d": "我的用量 · 最近 30 天",
+    "org30d": "我在此組織的用量 · 最近 30 天",
+    "spent": "已花費",
+    "usageUnavailable": "無法取得用量資料",
+    "noUsage": "尚無用量",
+    "total30d": "近 30 天總計"
   },
   "logs": {
     "webrtcFallback": "WebRTC 連線失敗，改用 WebSocket"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "帳戶",
+      "personal": "個人",
+      "payerUnknown": "帳戶",
       "lowBalance": "帳戶 — 餘額不足，無法開始工作階段",
       "unverified": "帳戶 — 電子郵件未驗證"
     },

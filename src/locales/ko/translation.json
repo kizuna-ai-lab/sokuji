@@ -806,8 +806,26 @@
     "upgradeToPremium": "프리미엄으로 업그레이드",
     "orgBalance": "{{name}} 잔액",
     "yourBalance": "내 잔액",
+    "yourOrganization": "소속 조직",
     "orgHeld": "이 중 {{held}}은(는) 진행 중인 세션에 보류되어 있으며, 사용하지 않은 금액은 세션이 끝나면 반환됩니다.",
-    "paused": "일시 중지됨"
+    "paused": "일시 중지됨",
+    "runPayer": "이 세션은 {{name}}에서 비용을 지불합니다",
+    "balance": "잔액",
+    "availableBalance": "사용 가능한 잔액",
+    "sessionHeld": "세션에서 보류 중",
+    "heldHint": "진행 중이거나 방금 종료된 세션은 잔액의 일부를 보류합니다. 정산 후 사용하지 않은 금액은 사용 가능한 잔액으로 반환됩니다.",
+    "runwayLabel": "예상 사용 가능 시간",
+    "runwayHint": "사용 가능한 잔액을 지난 30일간의 오디오 사용 시간당 평균 지출로 나눈 값입니다. 일반적으로 이보다 더 오래 사용할 수 있습니다.",
+    "aboutDuration": "약 {{amount}}{{unit}}",
+    "unitHours": "시간",
+    "unitDays": "일",
+    "unitMonths": "개월",
+    "self30d": "내 사용량 · 지난 30일",
+    "org30d": "이 조직에서의 내 사용량 · 지난 30일",
+    "spent": "지출액",
+    "usageUnavailable": "사용량을 확인할 수 없음",
+    "noUsage": "아직 사용량 없음",
+    "total30d": "30일 총계"
   },
   "logs": {
     "webrtcFallback": "WebRTC 연결에 실패하여 WebSocket을 대신 사용합니다"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "계정",
+      "personal": "개인",
+      "payerUnknown": "계정",
       "lowBalance": "계정 — 잔액이 부족하여 세션을 시작할 수 없습니다",
       "unverified": "계정 — 이메일이 인증되지 않았습니다"
     },

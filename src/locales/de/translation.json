@@ -806,8 +806,26 @@
     "upgradeToPremium": "Auf Premium upgraden",
     "orgBalance": "Guthaben {{name}}",
     "yourBalance": "Ihr Guthaben",
+    "yourOrganization": "Ihre Organisation",
     "orgHeld": "{{held}} davon sind für laufende Sitzungen reserviert; ein nicht genutzter Teil wird zurückgegeben, sobald sie enden.",
-    "paused": "Pausiert"
+    "paused": "Pausiert",
+    "runPayer": "Diese Sitzung wird von {{name}} bezahlt",
+    "balance": "Guthaben",
+    "availableBalance": "Verfügbar",
+    "sessionHeld": "Für Sitzungen reserviert",
+    "heldHint": "Laufende oder gerade beendete Sitzungen reservieren einen Teil des Guthabens. Nach der Abrechnung wird der nicht genutzte Teil wieder als verfügbares Guthaben freigegeben.",
+    "runwayLabel": "Verbleibende Nutzungsdauer",
+    "runwayHint": "Das verfügbare Guthaben geteilt durch Ihre durchschnittlichen Ausgaben pro Stunde in den letzten 30 Tagen, ausgedrückt in Audiozeit – meist reicht es länger.",
+    "aboutDuration": "ca. {{amount}} {{unit}}",
+    "unitHours": "Stunden",
+    "unitDays": "Tage",
+    "unitMonths": "Monate",
+    "self30d": "Meine Nutzung · letzte 30 Tage",
+    "org30d": "Meine Nutzung in dieser Organisation · letzte 30 Tage",
+    "spent": "Ausgegeben",
+    "usageUnavailable": "Nutzungsdaten nicht verfügbar",
+    "noUsage": "Noch keine Nutzung",
+    "total30d": "Gesamt für 30 Tage"
   },
   "logs": {
     "webrtcFallback": "WebRTC-Verbindung fehlgeschlagen, WebSocket wird stattdessen verwendet"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Konto",
+      "personal": "Persönlich",
+      "payerUnknown": "Konto",
       "lowBalance": "Konto — Guthaben zu niedrig, um eine Sitzung zu starten",
       "unverified": "Konto — E-Mail nicht bestätigt"
     },

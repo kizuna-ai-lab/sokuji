@@ -806,8 +806,26 @@
     "upgradeToPremium": "Nâng cấp lên Premium",
     "orgBalance": "Số dư của {{name}}",
     "yourBalance": "Số dư của bạn",
+    "yourOrganization": "tổ chức của bạn",
     "orgHeld": "{{held}} trong số này đang được giữ cho các phiên đang diễn ra; phần không dùng đến sẽ được hoàn lại khi phiên kết thúc.",
-    "paused": "Tạm dừng"
+    "paused": "Tạm dừng",
+    "runPayer": "Phiên này do {{name}} thanh toán",
+    "balance": "Số dư",
+    "availableBalance": "Khả dụng",
+    "sessionHeld": "Đang tạm giữ cho các phiên",
+    "heldHint": "Các phiên đang diễn ra hoặc vừa kết thúc sẽ tạm giữ một phần số dư. Sau khi quyết toán, phần chưa sử dụng sẽ được hoàn lại vào số dư khả dụng.",
+    "runwayLabel": "Ước tính thời gian sử dụng còn lại",
+    "runwayHint": "Số dư khả dụng chia cho mức chi tiêu trung bình của bạn cho mỗi giờ âm thanh trong 30 ngày qua — thường thì bạn sẽ sử dụng được lâu hơn mức này.",
+    "aboutDuration": "khoảng {{amount}} {{unit}}",
+    "unitHours": "giờ",
+    "unitDays": "ngày",
+    "unitMonths": "tháng",
+    "self30d": "Mức sử dụng của tôi · 30 ngày qua",
+    "org30d": "Mức sử dụng của tôi trong tổ chức này · 30 ngày qua",
+    "spent": "Đã chi",
+    "usageUnavailable": "Dữ liệu sử dụng hiện không có sẵn",
+    "noUsage": "Chưa có hoạt động sử dụng",
+    "total30d": "Tổng trong 30 ngày"
   },
   "logs": {
     "webrtcFallback": "Kết nối WebRTC thất bại, đang sử dụng WebSocket thay thế"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Tài khoản",
+      "personal": "Cá nhân",
+      "payerUnknown": "Tài khoản",
       "lowBalance": "Tài khoản — số dư quá thấp để bắt đầu phiên",
       "unverified": "Tài khoản — email chưa được xác minh"
     },

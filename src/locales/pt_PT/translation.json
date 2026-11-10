@@ -806,8 +806,26 @@
     "upgradeToPremium": "Atualizar para Premium",
     "orgBalance": "Saldo de {{name}}",
     "yourBalance": "O seu saldo",
+    "yourOrganization": "a sua organização",
     "orgHeld": "{{held}} estão retidos por sessões em curso; qualquer parte não utilizada é devolvida quando terminam.",
-    "paused": "Em pausa"
+    "paused": "Em pausa",
+    "runPayer": "Esta sessão é paga por {{name}}",
+    "balance": "Saldo",
+    "availableBalance": "Disponível",
+    "sessionHeld": "Retido por sessões",
+    "heldHint": "As sessões em curso ou terminadas recentemente retêm parte do saldo. Após a liquidação, a parte não utilizada é devolvida ao saldo disponível.",
+    "runwayLabel": "Tempo restante estimado",
+    "runwayHint": "Saldo disponível dividido pelo seu gasto médio por hora nos últimos 30 dias, expresso em tempo de áudio — normalmente, poderá utilizá-lo durante mais tempo.",
+    "aboutDuration": "cerca de {{amount}} {{unit}}",
+    "unitHours": "horas",
+    "unitDays": "dias",
+    "unitMonths": "meses",
+    "self30d": "A minha utilização · últimos 30 dias",
+    "org30d": "A minha utilização nesta organização · últimos 30 dias",
+    "spent": "Gasto",
+    "usageUnavailable": "Dados de utilização indisponíveis",
+    "noUsage": "Ainda não há utilização",
+    "total30d": "Total de 30 dias"
   },
   "logs": {
     "webrtcFallback": "A ligação WebRTC falhou; a utilizar WebSocket em alternativa"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Conta",
+      "personal": "Pessoal",
+      "payerUnknown": "Conta",
       "lowBalance": "Conta — saldo insuficiente para iniciar uma sessão",
       "unverified": "Conta — e-mail não verificado"
     },

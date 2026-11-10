@@ -806,8 +806,26 @@
     "upgradeToPremium": "Naik taraf ke Premium",
     "orgBalance": "Baki {{name}}",
     "yourBalance": "Baki anda",
+    "yourOrganization": "organisasi anda",
     "orgHeld": "{{held}} daripadanya ditahan oleh sesi yang sedang berjalan; bahagian yang tidak digunakan dikembalikan apabila sesi tamat.",
-    "paused": "Dijeda"
+    "paused": "Dijeda",
+    "runPayer": "Sesi ini dibayar oleh {{name}}",
+    "balance": "Baki",
+    "availableBalance": "Tersedia",
+    "sessionHeld": "Ditahan oleh sesi",
+    "heldHint": "Sesi yang sedang berjalan atau baru selesai menahan sebahagian baki. Selepas pengiraan akhir selesai, bahagian yang tidak digunakan akan dikembalikan ke dalam baki tersedia.",
+    "runwayLabel": "Anggaran masa penggunaan yang tinggal",
+    "runwayHint": "Baki tersedia dibahagikan dengan purata perbelanjaan anda bagi setiap jam audio dalam tempoh 30 hari terakhir — biasanya baki ini akan bertahan lebih lama daripada itu.",
+    "aboutDuration": "kira-kira {{amount}} {{unit}}",
+    "unitHours": "jam",
+    "unitDays": "hari",
+    "unitMonths": "bulan",
+    "self30d": "Penggunaan saya · 30 hari terakhir",
+    "org30d": "Penggunaan saya dalam organisasi ini · 30 hari terakhir",
+    "spent": "Dibelanjakan",
+    "usageUnavailable": "Data penggunaan tidak tersedia",
+    "noUsage": "Belum ada penggunaan",
+    "total30d": "Jumlah bagi 30 hari"
   },
   "logs": {
     "webrtcFallback": "Sambungan WebRTC gagal, menggunakan WebSocket sebagai gantinya"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Akaun",
+      "personal": "Peribadi",
+      "payerUnknown": "Akaun",
       "lowBalance": "Akaun — baki terlalu rendah untuk memulakan sesi",
       "unverified": "Akaun — e-mel belum disahkan"
     },

@@ -806,8 +806,26 @@
     "upgradeToPremium": "Tingkatkan ke Premium",
     "orgBalance": "Saldo {{name}}",
     "yourBalance": "Saldo Anda",
+    "yourOrganization": "organisasi Anda",
     "orgHeld": "{{held}} darinya ditahan oleh sesi yang sedang berjalan; bagian yang tidak terpakai dikembalikan saat sesi berakhir.",
-    "paused": "Dijeda"
+    "paused": "Dijeda",
+    "runPayer": "Sesi ini dibayar oleh {{name}}",
+    "balance": "Saldo",
+    "availableBalance": "Tersedia",
+    "sessionHeld": "Ditahan oleh sesi",
+    "heldHint": "Sesi yang sedang berjalan atau baru selesai menahan sebagian saldo. Setelah penghitungannya selesai, bagian yang tidak terpakai akan dikembalikan ke saldo yang tersedia.",
+    "runwayLabel": "Perkiraan sisa waktu penggunaan",
+    "runwayHint": "Saldo yang tersedia dibagi dengan rata-rata pengeluaran Anda per jam audio selama 30 hari terakhir — biasanya saldo akan bertahan lebih lama dari ini.",
+    "aboutDuration": "sekitar {{amount}} {{unit}}",
+    "unitHours": "jam",
+    "unitDays": "hari",
+    "unitMonths": "bulan",
+    "self30d": "Penggunaan saya · 30 hari terakhir",
+    "org30d": "Penggunaan saya di organisasi ini · 30 hari terakhir",
+    "spent": "Terpakai",
+    "usageUnavailable": "Data penggunaan tidak tersedia",
+    "noUsage": "Belum ada penggunaan",
+    "total30d": "Total 30 hari"
   },
   "logs": {
     "webrtcFallback": "Koneksi WebRTC gagal, menggunakan WebSocket sebagai gantinya"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Akun",
+      "personal": "Pribadi",
+      "payerUnknown": "Akun",
       "lowBalance": "Akun — saldo tidak cukup untuk memulai sesi",
       "unverified": "Akun — email belum diverifikasi"
     },

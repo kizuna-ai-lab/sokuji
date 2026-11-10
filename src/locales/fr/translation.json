@@ -806,8 +806,26 @@
     "upgradeToPremium": "Passer à Premium",
     "orgBalance": "Solde de {{name}}",
     "yourBalance": "Votre solde",
+    "yourOrganization": "votre organisation",
     "orgHeld": "{{held}} sont réservés par les sessions en cours ; toute partie non utilisée est restituée à leur fin.",
-    "paused": "En pause"
+    "paused": "En pause",
+    "runPayer": "Cette session est payée par {{name}}",
+    "balance": "Solde",
+    "availableBalance": "Disponible",
+    "sessionHeld": "Réservé par les sessions",
+    "heldHint": "Les sessions en cours ou qui viennent de se terminer réservent une partie du solde. Une fois leur facturation finalisée, la partie non utilisée est reversée au solde disponible.",
+    "runwayLabel": "Autonomie estimée",
+    "runwayHint": "Le solde disponible divisé par vos dépenses horaires moyennes des 30 derniers jours, exprimé en temps audio — la durée réelle est généralement plus longue.",
+    "aboutDuration": "environ {{amount}} {{unit}}",
+    "unitHours": "heures",
+    "unitDays": "jours",
+    "unitMonths": "mois",
+    "self30d": "Mon utilisation · 30 derniers jours",
+    "org30d": "Mon utilisation dans cette organisation · 30 derniers jours",
+    "spent": "Dépensé",
+    "usageUnavailable": "Données d’utilisation indisponibles",
+    "noUsage": "Aucune utilisation pour le moment",
+    "total30d": "Total sur 30 jours"
   },
   "logs": {
     "webrtcFallback": "Échec de la connexion WebRTC, utilisation de WebSocket à la place"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Compte",
+      "personal": "Personnel",
+      "payerUnknown": "Compte",
       "lowBalance": "Compte — solde insuffisant pour démarrer une session",
       "unverified": "Compte — e-mail non vérifié"
     },
