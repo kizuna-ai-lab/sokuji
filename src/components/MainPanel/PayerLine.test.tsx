@@ -63,9 +63,15 @@ describe('PayerLine', () => {
     expect(toggle().getAttribute('aria-checked')).toBe('false');
   });
 
+  it('shows nothing while a session runs that was started with no payer: it does not guess one from the switch', () => {
+    useAccountStore.setState({ account: memberAccount });
+    const { container } = render(<PayerLine idle={false} />);
+    expect(container.innerHTML).toBe('');
+  });
+
   it('is disabled while a session runs: the running payer is fixed', () => {
     useAccountStore.setState({ account: memberAccount });
-    render(<PayerLine idle={false} />);
+    render(<PayerLine idle={false} runPayer="organization" />);
     expect(toggle().getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(toggle());
     expect(getUseOwnBalance()).toBe(false);

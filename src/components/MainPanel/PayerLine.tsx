@@ -21,13 +21,16 @@ export default function PayerLine({ idle, runPayer }: {
   const { t } = useTranslation();
   const account = useAccountStore((s) => s.account);
   const switchOn = useUseOwnBalance();
-  const useOwn = !idle && runPayer ? runPayer === 'personal' : switchOn;
+  // Idle: the switch, for the next Start. Running: the payer the session was started with.
+  const useOwn = idle ? switchOn : runPayer === 'personal';
   // Subscribed to what the provider lookup reads, so the line follows a selection or a load.
   useProviderStore((s) => s.selected);
   useProviderStore((s) => s.entries);
   const organization = account?.status === 'known' ? account.organization : undefined;
   // The gate's own test for a provider that bills a balance.
   if (!organization || !selectedFromStores()?.provider.session?.minimumBalance) return null;
+  // A session started with no payer (the account was not known as a member then): who pays is not ours to guess.
+  if (!idle && !runPayer) return null;
   return (
     <div className="payer-line">
       <span className="payer-line__paid-by">{useOwn ? t('mainPanel.payer.paidByYou') : t('mainPanel.payer.paidBy', { name: organization.name })}</span>
