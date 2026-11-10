@@ -21,6 +21,7 @@ export interface UsageSide {
     sessionCount: number;
 }
 
+/** Both sides of one answer; either may be absent, and absent is not zero. */
 export interface UsageSides {
     /** The caller's own wallet. Absent when the server did not send it (an older server, or a failed read). */
     personal?: UsageSide;
@@ -29,6 +30,7 @@ export interface UsageSides {
 }
 
 /** How long a cached answer is reused. The panel is opened far more often than the figures change. */
+/** How long an answer is reused: the panel is opened far more often than the figures change. */
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
@@ -46,6 +48,7 @@ const cache = new Map<string, { at: number; sides: UsageSides }>();
  */
 const issued = new Map<string, number>();
 
+/** The local calendar date as `y-m-d`: the window is a run of days where the viewer is, not where UTC is. */
 function localDay(now: number): string {
     const d = new Date(now);
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
