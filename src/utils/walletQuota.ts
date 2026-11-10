@@ -1,4 +1,4 @@
-import type { QuotaData } from '../contexts/UserProfileContext';
+import type { QuotaData, ExpiringSoon } from '../contexts/UserProfileContext';
 
 /** Raw shape returned by the backend `/api/wallet/status` endpoint. */
 export interface WalletStatus {
@@ -31,13 +31,29 @@ function parseOrganization(value: unknown): OrganizationQuota | undefined {
   return { id: o.id, name: o.name, availableMicroUsd: o.availableMicroUsd, frozen: o.frozen, role: o.role };
 }
 
-/** Keep the personal object only if every field has the right type. */
+/** A well-formed expiring-soon object, or null for null / absent / malformed. */
+function parseExpiringSoon(value: unknown): ExpiringSoon | null {
+  if (!value || typeof value !== 'object') return null;
+  const e = value as Record<string, unknown>;
+  if (!isFiniteNum(e.microUsd) || typeof e.usd !== 'string'
+    || !isFiniteNum(e.microUsdAtEarliest) || typeof e.usdAtEarliest !== 'string'
+    || !isFiniteNum(e.expiresAt)) return null;
+  return {
+    microUsd: e.microUsd, usd: e.usd,
+    microUsdAtEarliest: e.microUsdAtEarliest, usdAtEarliest: e.usdAtEarliest,
+    expiresAt: e.expiresAt,
+  };
+}
+
+/**
+ * Keep the personal object only if its balance and frozen flag are valid.
+ * `expiringSoon` is lenient: absent or malformed becomes null.
+ */
 function parsePersonal(value: unknown): PersonalQuota | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const p = value as Record<string, unknown>;
-  if (!isFiniteNum(p.balanceMicroUsd) || typeof p.frozen !== 'boolean'
-    || typeof p.expiringSoon !== 'boolean') return undefined;
-  return { balanceMicroUsd: p.balanceMicroUsd, frozen: p.frozen, expiringSoon: p.expiringSoon };
+  if (!isFiniteNum(p.balanceMicroUsd) || typeof p.frozen !== 'boolean') return undefined;
+  return { balanceMicroUsd: p.balanceMicroUsd, frozen: p.frozen, expiringSoon: parseExpiringSoon(p.expiringSoon) };
 }
 
 /**

@@ -152,19 +152,20 @@ describe('isWalletStatus', () => {
 });
 
 describe('mapWalletStatusToQuota organization fields', () => {
+  const expiring = { microUsd: 200, usd: '0.0002', microUsdAtEarliest: 100, usdAtEarliest: '0.0001', expiresAt: 1_800_000_000_000 };
   const member = {
     balanceMicroUsd: 5_000_000,
     frozen: false,
     expiringSoon: false,
     last30DaysUsageMicroUsd: 70,
     organization: { id: 'org_1', name: 'Acme', availableMicroUsd: 5_000_000, frozen: false, role: 'member' },
-    personal: { balanceMicroUsd: 300, frozen: true, expiringSoon: true },
+    personal: { balanceMicroUsd: 300, frozen: true, expiringSoon: expiring },
   };
 
   it('maps organization and personal objects for a member payload', () => {
     const q = mapWalletStatusToQuota(member);
     expect(q.organization).toEqual({ id: 'org_1', name: 'Acme', availableMicroUsd: 5_000_000, frozen: false, role: 'member' });
-    expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: true, expiringSoon: true });
+    expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: true, expiringSoon: expiring });
   });
 
   it('keeps top-level balance as the organization available balance', () => {
@@ -212,9 +213,9 @@ describe('mapWalletStatusToQuota organization fields', () => {
       expect(q.balance).toBe(5_000_000);
     }
     const badPersonals: unknown[] = [
-      null, [], { balanceMicroUsd: '1', frozen: false, expiringSoon: false },
-      { balanceMicroUsd: 1, frozen: 0, expiringSoon: false },
-      { balanceMicroUsd: 1, frozen: false },
+      null, [], { balanceMicroUsd: '1', frozen: false, expiringSoon: null },
+      { balanceMicroUsd: 1, frozen: 0, expiringSoon: null },
+      { frozen: false, expiringSoon: null },
     ];
     for (const personal of badPersonals) {
       const q = mapWalletStatusToQuota({ ...member, personal });
@@ -222,5 +223,21 @@ describe('mapWalletStatusToQuota organization fields', () => {
       expect(q.organization).toBeDefined();
     }
     expect(isWalletStatus({ ...member, organization: 7, personal: 'x' })).toBe(true);
+  });
+
+  it('keeps personal with expiringSoon null, absent, or malformed (field becomes null)', () => {
+    const base = { balanceMicroUsd: 300, frozen: false };
+    const cases: unknown[] = [
+      { ...base, expiringSoon: null },
+      base,
+      { ...base, expiringSoon: undefined },
+      { ...base, expiringSoon: 'soon' },
+      { ...base, expiringSoon: true },
+      { ...base, expiringSoon: { ...expiring, expiresAt: 'x' } },
+    ];
+    for (const personal of cases) {
+      const q = mapWalletStatusToQuota({ ...member, personal });
+      expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: false, expiringSoon: null });
+    }
   });
 });

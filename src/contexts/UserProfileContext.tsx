@@ -11,6 +11,15 @@ import { mapWalletStatusToQuota } from '../utils/walletQuota';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { useAccountStore } from '../stores/accountStore';
 
+/** Balance about to expire, as the backend reports it; null when nothing is. */
+export interface ExpiringSoon {
+  microUsd: number;
+  usd: string;
+  microUsdAtEarliest: number;
+  usdAtEarliest: string;
+  expiresAt: number;
+}
+
 export interface QuotaData {
   // Core wallet data (new fields)
   balance?: number;      // Wallet balance in micro-USD (never expires)
@@ -45,7 +54,7 @@ export interface QuotaData {
   personal?: {
     balanceMicroUsd: number;
     frozen: boolean;
-    expiringSoon: boolean;
+    expiringSoon: ExpiringSoon | null;
   };
 }
 
