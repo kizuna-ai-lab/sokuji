@@ -54,12 +54,12 @@ export function accountPayer(account: AccountState | null | undefined): Payer | 
   return account?.status === 'known' ? chosenPayer(account) : undefined;
 }
 
-/** The balance and frozen flag of the wallet the chosen payer spends; a non-member's is the account's own. */
-export function payerBalance(account: Extract<AccountState, { status: 'known' }>): { microUsd: number; frozen: boolean } {
-  switch (chosenPayer(account)) {
+/** The balance and frozen flag of the wallet `payer` spends (the one a run chose at Start, not the live switch); a non-member, with no payer, spends the account's own. */
+export function payerBalance(account: Extract<AccountState, { status: 'known' }>, payer: Payer | undefined): { microUsd: number; frozen: boolean } {
+  switch (payer) {
     case 'organization': {
-      const org = account.organization!;
-      return { microUsd: org.availableMicroUsd, frozen: org.frozen };
+      const org = account.organization;
+      return org ? { microUsd: org.availableMicroUsd, frozen: org.frozen } : { microUsd: account.balanceMicroUsd, frozen: account.frozen };
     }
     case 'personal': {
       const own = account.personal;

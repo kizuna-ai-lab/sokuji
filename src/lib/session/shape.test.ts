@@ -199,23 +199,28 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
 
     it('refuses with the switch off, allows with it on: organization 0, personal 5 USD', () => {
       const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
-      expect(balanceRefusal(input({ account }))?.code).toBe(BALANCE_BELOW_FLOOR);
-      setUseOwnBalance(true);
-      expect(balanceRefusal(input({ account }))).toBeNull();
+      expect(balanceRefusal(input({ account, payer: 'organization' }))?.code).toBe(BALANCE_BELOW_FLOOR);
+      expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
     });
 
     it('refuses a frozen organization with the switch off: wallet_frozen', () => {
       const account = memberAccount({ availableMicroUsd: 10_000, frozen: true }, { balanceMicroUsd: 5_000_000 });
-      expect(balanceRefusal(input({ account }))?.code).toBe('wallet_frozen');
-      setUseOwnBalance(true);
-      expect(balanceRefusal(input({ account }))).toBeNull();
+      expect(balanceRefusal(input({ account, payer: 'organization' }))?.code).toBe('wallet_frozen');
+      expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
     });
 
     it('refuses a frozen personal wallet only with the switch on', () => {
       const account = memberAccount({ availableMicroUsd: 10_000 }, { balanceMicroUsd: 5_000_000, frozen: true });
-      expect(balanceRefusal(input({ account }))).toBeNull();
+      expect(balanceRefusal(input({ account, payer: 'organization' }))).toBeNull();
+      expect(balanceRefusal(input({ account, payer: 'personal' }))?.code).toBe('wallet_frozen');
+    });
+
+    it("reads the shape's payer, not the live switch: a run's later steps do not follow the stores", () => {
+      const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
       setUseOwnBalance(true);
-      expect(balanceRefusal(input({ account }))?.code).toBe('wallet_frozen');
+      expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
+      setUseOwnBalance(false);
+      expect(gate(shape({ provider: leased, account, payer: 'personal' }), 'electron')).toBeNull();
     });
   });
 

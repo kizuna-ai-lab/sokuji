@@ -264,6 +264,14 @@ describe('ManagedVoicesClient.sessionKey', () => {
     expect(JSON.parse(init.body as string)).toEqual({ mode: 'voice_preview', region: 'eu' });
   });
 
+  it('carries payer in the body exactly when one is given', async () => {
+    fetchMock.mockImplementation(async () => json(200, { ttsApiKey: 'tk', region: 'us' }));
+    await make().sessionKey({ mode: 'voice_preview', payer: 'personal' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ mode: 'voice_preview', region: 'us', payer: 'personal' });
+    await make().sessionKey({ mode: 'voice_preview' });
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).not.toHaveProperty('payer');
+  });
+
   it('defaults to US when constructed with no region, same as every other method', async () => {
     fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'us' }));
     await make().sessionKey({ mode: 'voice_preview' });

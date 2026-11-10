@@ -339,7 +339,7 @@ export class ManagedVoicesClient {
    * (another session or preview already holds the account's lease), and 503
    * (Soniox capacity full) are this route's own documented outcomes.
    */
-  async sessionKey(request: { mode: 'voice_preview' }): Promise<ManagedPreviewSessionKey> {
+  async sessionKey(request: { mode: 'voice_preview'; payer?: Payer }): Promise<ManagedPreviewSessionKey> {
     // `fetchJsonWithAuth`, not `fetchWithAuth` + a separate `res.json()`: see
     // that method's docstring for why THIS call in particular needs the body
     // read bounded by the deadline. Un-abortable on purpose (no `signal`
@@ -351,7 +351,8 @@ export class ManagedVoicesClient {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: request.mode, region: this.region }),
+        // payer: a member's chosen wallet, set only for an organization member.
+        body: JSON.stringify({ mode: request.mode, region: this.region, ...(request.payer ? { payer: request.payer } : {}) }),
       },
       REQUEST_TIMEOUT_MS
     );

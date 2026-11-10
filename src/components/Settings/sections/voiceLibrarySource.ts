@@ -201,12 +201,17 @@ export function managedVoiceSource(
   // before (SonioxVoiceSection's mapTtsError). Nothing was leased by a
   // refused mint, so there is nothing to report done.
   const mintPreviewKey = async (signal?: AbortSignal) => {
+    // Whose balance the preview spends: a member's chosen wallet, read at the mint.
+    const request = () => {
+      const payer = accountPayer(useAccountStore.getState().account);
+      return { mode: 'voice_preview' as const, ...(payer ? { payer } : {}) };
+    };
     try {
-      return await client.sessionKey({ mode: 'voice_preview' });
+      return await client.sessionKey(request());
     } catch (error) {
       if (!(error instanceof SonioxVoicesError) || error.status !== 409) throw error;
       await retryDelay(error.retryAfterMs ?? 3000, signal);
-      return await client.sessionKey({ mode: 'voice_preview' });
+      return await client.sessionKey(request());
     }
   };
 

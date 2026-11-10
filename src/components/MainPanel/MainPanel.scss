@@ -388,11 +388,7 @@
   color: vars.$text-source;
 
   &__toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     margin-left: auto;
-    cursor: pointer;
   }
 }
 

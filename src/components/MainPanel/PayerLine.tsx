@@ -1,26 +1,38 @@
 import { useTranslation } from 'react-i18next';
 import { setUseOwnBalance, useUseOwnBalance } from '../../lib/session/payerChoice';
+import { selectedFromStores } from '../../lib/session/appShape';
 import { useAccountStore } from '../../stores/accountStore';
+import { useProviderStore } from '../../stores/providerStore';
+import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 
 /**
- * Who pays for the next Start, for a member of an organization: the
- * organization by default, or the member's own balance with the switch on
- * (remembered on this device). Read when Start is pressed; a running session
- * keeps the payer it started with. Nothing for anyone who is not a member.
+ * Who pays for the next Start, for a member of an organization using a
+ * provider that bills a balance: the organization by default, or the
+ * member's own balance with the switch on (remembered on this device). The
+ * payer is chosen at Start and a running session keeps it, so the switch is
+ * off-limits until the session ends. Nothing for anyone else.
  */
-export default function PayerLine() {
+export default function PayerLine({ idle }: { idle: boolean }) {
   const { t } = useTranslation();
   const account = useAccountStore((s) => s.account);
   const useOwn = useUseOwnBalance();
+  // Subscribed to what the provider lookup reads, so the line follows a selection or a load.
+  useProviderStore((s) => s.selected);
+  useProviderStore((s) => s.entries);
   const organization = account?.status === 'known' ? account.organization : undefined;
-  if (!organization) return null;
+  // The gate's own test for a provider that bills a balance.
+  if (!organization || !selectedFromStores()?.provider.session?.minimumBalance) return null;
   return (
     <div className="payer-line">
       {!useOwn && <span className="payer-line__paid-by">{t('mainPanel.payer.paidBy', { name: organization.name })}</span>}
-      <label className="payer-line__toggle">
-        <input type="checkbox" checked={useOwn} onChange={(event) => setUseOwnBalance(event.target.checked)} />
-        <span>{t('mainPanel.payer.useOwnBalance')}</span>
-      </label>
+      <ToggleSwitch
+        className="payer-line__toggle"
+        checked={useOwn}
+        onChange={() => setUseOwnBalance(!useOwn)}
+        label={t('mainPanel.payer.useOwnBalance')}
+        ariaLabel={t('mainPanel.payer.useOwnBalance')}
+        disabled={!idle}
+      />
     </div>
   );
 }

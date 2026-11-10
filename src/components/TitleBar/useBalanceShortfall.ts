@@ -7,7 +7,7 @@
  */
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';
-import { useUseOwnBalance } from '../../lib/session/payerChoice';
+import { accountPayer, useUseOwnBalance } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -34,5 +34,5 @@ export function useBalanceShortfall(): boolean {
   if (!found) return false;
   const { provider, entry } = found;
   const participantSpeech = speechFromStores(provider).them;
-  return balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account })?.code === BALANCE_BELOW_FLOOR;
+  return balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer: accountPayer(account) })?.code === BALANCE_BELOW_FLOOR;
 }

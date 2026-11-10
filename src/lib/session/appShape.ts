@@ -190,6 +190,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
 export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
   const selected = selectedFromStores();
   if (!selected) return null;
+  const account = useAccountStore.getState().account;
   return gate({
     provider: selected.provider,
     settings: selected.entry.settings,
@@ -199,7 +200,9 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
     textOnly: useSettingsStore.getState().textOnly,
     participantSpeech: speechFromStores(selected.provider).them,
     faceToFace: faceToFaceFromStores(),
-    account: useAccountStore.getState().account,
+    account,
+    // The stores as they stand: the payer a Start now would choose.
+    payer: accountPayer(account),
   }, platform);
 }
 

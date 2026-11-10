@@ -11,6 +11,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
+import { setUseOwnBalance } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -49,6 +50,25 @@ describe('useBalanceShortfall', () => {
       useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 41_667, frozen: false } });
     });
     expect(result.current).toBe(false);
+  });
+
+  it("follows a member's payer switch", () => {
+    useProviderStore.setState({
+      selected: 'kizunaai_soniox',
+      entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+    });
+    localStorage.clear();
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 0, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 0, frozen: false }, personal: { balanceMicroUsd: 5_000_000, frozen: false },
+    } });
+    const { result } = renderHook(() => useBalanceShortfall());
+    expect(result.current).toBe(true);
+    act(() => setUseOwnBalance(true));
+    expect(result.current).toBe(false);
+    act(() => setUseOwnBalance(false));
+    expect(result.current).toBe(true);
+    localStorage.clear();
   });
 
   it('follows text only and the mode', () => {

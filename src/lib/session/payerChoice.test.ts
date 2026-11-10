@@ -58,13 +58,14 @@ describe('chosenPayer', () => {
 
 describe('payerBalance', () => {
   it("is today's top-level wallet for a non-member", () => {
-    expect(payerBalance({ status: 'known', balanceMicroUsd: 42, frozen: true })).toEqual({ microUsd: 42, frozen: true });
+    expect(payerBalance({ status: 'known', balanceMicroUsd: 42, frozen: true }, undefined)).toEqual({ microUsd: 42, frozen: true });
   });
 
-  it('is the wallet the chosen payer spends for a member', () => {
-    expect(payerBalance(known())).toEqual({ microUsd: 7_000_000, frozen: false });
+  it('is the wallet of the payer it is given, never the live switch', () => {
     setUseOwnBalance(true);
-    expect(payerBalance(known())).toEqual({ microUsd: 3_000_000, frozen: false });
-    expect(payerBalance(known({ personal: { balanceMicroUsd: 1, frozen: true } }))).toEqual({ microUsd: 1, frozen: true });
+    expect(payerBalance(known(), 'organization')).toEqual({ microUsd: 7_000_000, frozen: false });
+    setUseOwnBalance(false);
+    expect(payerBalance(known(), 'personal')).toEqual({ microUsd: 3_000_000, frozen: false });
+    expect(payerBalance(known({ personal: { balanceMicroUsd: 1, frozen: true } }), 'personal')).toEqual({ microUsd: 1, frozen: true });
   });
 });
