@@ -1,3 +1,4 @@
+import { reportWarning } from '../lib/diagnostics/report';
 import type { QuotaData, ExpiringSoon } from '../contexts/UserProfileContext';
 
 /** Raw shape returned by the backend `/api/wallet/status` endpoint. */
@@ -21,13 +22,22 @@ type PersonalQuota = NonNullable<QuotaData['personal']>;
 
 const isFiniteNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 
+/** A present part of the payload that failed validation: dropped, but loudly once, so a drifting backend is seen rather than read as "no organization". */
+function malformed(key: 'organization' | 'personal', what: string): undefined {
+  reportWarning('WalletQuota', `The wallet status carried ${what} this app does not recognise; ignoring it.`, { dedupeKey: `wallet:${key}-malformed` });
+  return undefined;
+}
+
 /** Keep the organization object only if every field has the right type. */
 function parseOrganization(value: unknown): OrganizationQuota | undefined {
-  if (!value || typeof value !== 'object') return undefined;
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object') return malformed('organization', 'an organization');
   const o = value as Record<string, unknown>;
   if (typeof o.id !== 'string' || typeof o.name !== 'string'
     || !isFiniteNum(o.availableMicroUsd) || typeof o.frozen !== 'boolean'
-    || (o.role !== 'owner' && o.role !== 'member')) return undefined;
+    || (o.role !== 'owner' && o.role !== 'member')) {
+    return malformed('organization', 'an organization');
+  }
   return { id: o.id, name: o.name, availableMicroUsd: o.availableMicroUsd, frozen: o.frozen, role: o.role };
 }
 
@@ -50,9 +60,12 @@ function parseExpiringSoon(value: unknown): ExpiringSoon | null {
  * `expiringSoon` is lenient: absent or malformed becomes null.
  */
 function parsePersonal(value: unknown): PersonalQuota | undefined {
-  if (!value || typeof value !== 'object') return undefined;
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'object') return malformed('personal', 'a personal wallet');
   const p = value as Record<string, unknown>;
-  if (!isFiniteNum(p.balanceMicroUsd) || typeof p.frozen !== 'boolean') return undefined;
+  if (!isFiniteNum(p.balanceMicroUsd) || typeof p.frozen !== 'boolean') {
+    return malformed('personal', 'a personal wallet');
+  }
   return { balanceMicroUsd: p.balanceMicroUsd, frozen: p.frozen, expiringSoon: parseExpiringSoon(p.expiringSoon) };
 }
 

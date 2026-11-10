@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mapWalletStatusToQuota, isWalletStatus } from './walletQuota';
+import * as report from '../lib/diagnostics/report';
+import { vi } from 'vitest';
 
 describe('mapWalletStatusToQuota', () => {
   it('maps the backend wallet status into QuotaData with a DEFINED balance', () => {
@@ -239,5 +241,35 @@ describe('mapWalletStatusToQuota organization fields', () => {
       const q = mapWalletStatusToQuota({ ...member, personal });
       expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: false, expiringSoon: null });
     }
+  });
+});
+
+describe('mapWalletStatusToQuota: organization and personal drift', () => {
+  const base = { balance: 1000, frozen: false, usage: 0 };
+  const org = { id: 'o1', name: 'Acme', availableMicroUsd: 5, frozen: false, role: 'member' };
+
+  it('keeps a well-formed organization without warning', () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    expect(mapWalletStatusToQuota({ ...base, organization: org }).organization).toMatchObject({ role: 'member' });
+    expect(mapWalletStatusToQuota({ ...base, organization: { ...org, role: 'owner' } }).organization).toMatchObject({ role: 'owner' });
+    expect(mapWalletStatusToQuota(base).organization).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('drops a present-but-malformed organization (an unknown role) and warns with a dedupe key', () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    expect(mapWalletStatusToQuota({ ...base, organization: { ...org, role: 'admin' } }).organization).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: expect.any(String) });
+    warn.mockRestore();
+  });
+
+  it('drops a present-but-malformed personal and warns with a dedupe key', () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    expect(mapWalletStatusToQuota({ ...base, personal: { balanceMicroUsd: 'x', frozen: false } }).personal).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: expect.any(String) });
+    warn.mockRestore();
   });
 });

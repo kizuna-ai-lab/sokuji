@@ -16,7 +16,7 @@ import type { SonioxVoice, SonioxVoicesClient } from '../../../providers/soniox/
 import type { ManagedVoicesClient, ManagedVoice } from '../../../providers/soniox/managedVoicesClient';
 import { SonioxVoicesError } from '../../../providers/soniox/voicesClient';
 import { synthesizeOnce } from '../../../providers/soniox/ttsRest';
-import { accountPayer } from '../../../lib/session/payerChoice';
+import { accountPayer, type Payer } from '../../../lib/session/payerChoice';
 import { useAccountStore } from '../../../stores/accountStore';
 import type { SonioxRegion } from '../../../lib/soniox/regions';
 import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
@@ -25,6 +25,12 @@ import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../providers/soniox/managedVoicePolling';
 import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
 import { sonioxWire } from '../../../providers/soniox/languages';
+
+/** The `payer` a request carries: the chosen one for an organization member, nothing for anyone else. Read when the request is built. */
+const payerField = (): { payer: Payer } | Record<string, never> => {
+  const payer = accountPayer(useAccountStore.getState().account);
+  return payer ? { payer } : {};
+};
 
 /**
  * The preview sample is looked up by app code; Soniox's TTS REST call takes
@@ -203,8 +209,7 @@ export function managedVoiceSource(
   const mintPreviewKey = async (signal?: AbortSignal) => {
     // Whose balance the preview spends: a member's chosen wallet, read at the mint.
     const request = () => {
-      const payer = accountPayer(useAccountStore.getState().account);
-      return { mode: 'voice_preview' as const, ...(payer ? { payer } : {}) };
+      return { mode: 'voice_preview' as const, ...payerField() };
     };
     try {
       return await client.sessionKey(request());
@@ -247,8 +252,7 @@ export function managedVoiceSource(
       // a session, and a pin taken here would hold one of the pool's scarce
       // slots against eviction for no session's benefit.
       // Whose balance builds it: a member's chosen wallet, read now.
-      const payer = accountPayer(useAccountStore.getState().account);
-      const created = await client.ensure({ pin: false, clip, ...(payer ? { payer } : {}) });
+      const created = await client.ensure({ pin: false, clip, ...payerField() });
       return toSonioxVoice({ voiceId: created.voiceId, status: created.status, createdAt: Date.now() });
     },
 
