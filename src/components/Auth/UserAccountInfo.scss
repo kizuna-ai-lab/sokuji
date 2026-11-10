@@ -517,6 +517,13 @@
   }
 }
 
+// Under the organization's line: how much of it running sessions hold.
+.quota-org-held {
+  color: vars.$text-dim;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 // Ultra-compact single line display with badge and dividers
 .quota-compact-line {
   display: flex;
