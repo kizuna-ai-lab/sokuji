@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻譯內容正在字幕浮層中顯示",
+    "payer": {
+      "paidBy": "由 {{name}} 付費",
+      "paidByYou": "由你付費",
+      "useOwnBalance": "使用我的個人餘額"
+    },
     "function": "功能",
     "noChannelConfigured": "開始前請啟用麥克風或對方音訊。",
     "release": "釋放",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "無法載入配額資訊",
-    "upgradeToPremium": "升級到高級版"
+    "upgradeToPremium": "升級到高級版",
+    "orgBalance": "{{name}}餘額",
+    "yourBalance": "你的餘額",
+    "orgHeld": "其中 {{held}} 已被進行中的工作階段預留；未使用的部分會在工作階段結束後退回。",
+    "paused": "已暫停"
   },
   "logs": {
     "webrtcFallback": "WebRTC 連線失敗，改用 WebSocket"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "對方聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
     "participant_tts_missing": "我聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
     "participant_tts_over_budget": "我聽到的翻譯只顯示文字：記憶體不足，無法同時載入對方的語音模型。",
-    "screen_context_lost": "你選擇的螢幕已無法使用，翻譯將僅憑音訊繼續。"
+    "screen_context_lost": "你選擇的螢幕已無法使用，翻譯將僅憑音訊繼續。",
+    "org_balance_held": "您所屬組織的餘額已被進行中的工作階段預留。請在其中一個工作階段結束後再試，或使用您自己的餘額。",
+    "org_insufficient_balance": "請聯絡組織擁有者儲值，或使用您自己的餘額。",
+    "org_insufficient_balance_owner": "請為 {{organization}} 儲值，或使用您自己的餘額。",
+    "org_insufficient_balance_owner_unnamed": "請為您的組織儲值，或使用您自己的餘額。",
+    "not_org_member": "您已不在 {{organization}} 中。",
+    "not_org_member_unnamed": "您已不在所屬的組織中。",
+    "org_wallet_frozen": "{{organization}} 的帳戶已暫停。請聯絡其擁有者，或使用您自己的餘額。",
+    "org_wallet_frozen_unnamed": "該組織的帳戶已暫停。請聯絡其擁有者，或使用您自己的餘額。",
+    "org_wallet_frozen_owner": "{{organization}} 的帳戶已暫停。請聯絡 Sokuji 支援團隊，或使用您自己的餘額。",
+    "org_wallet_frozen_owner_unnamed": "該組織的帳戶已暫停。請聯絡 Sokuji 支援團隊，或使用您自己的餘額。"
   },
   "viewer": {
     "title": "Sokuji 字幕",

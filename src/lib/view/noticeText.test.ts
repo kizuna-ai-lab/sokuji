@@ -231,3 +231,47 @@ it("a managed Qwen lease's refusal names Qwen, and a region the backend cannot s
 it("a signed-out managed provider reads the sign-in sentence, word for word in en", () => {
   expect(at(en as unknown as Record<string, unknown>, NOTICE_ALIASES.sign_in_required)).toBe("Sign in to use Kizuna AI's built-in translation service.");
 });
+
+describe('organization refusal notices', () => {
+  const org = { organization: 'Acme' };
+  it('words a balance held by sessions in progress', () => {
+    expect(noticeText(plainT, { code: 'org_balance_held', message: 'x', params: org }))
+      .toBe("Your organization's balance is held by sessions in progress. Try again when one ends, or use your own balance.");
+  });
+  it('tells a member to ask the owner to top up, and the owner to top up', () => {
+    expect(noticeText(plainT, { code: 'org_insufficient_balance', message: 'x', params: { ...org, role: 'member' } }))
+      .toBe("Ask the organization's owner to top up, or use your own balance.");
+    expect(noticeText(plainT, { code: 'org_insufficient_balance', message: 'x', params: { ...org, role: 'owner' } }))
+      .toBe('Top up Acme, or use your own balance.');
+  });
+  it('says a removed member is no longer in the organization', () => {
+    expect(noticeText(plainT, { code: 'not_org_member', message: 'x', params: org })).toBe("You're no longer in Acme.");
+  });
+  it('words a frozen organization by role: a member contacts the owner, the owner contacts support', () => {
+    expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x', params: { ...org, role: 'member' } }))
+      .toBe("Acme's account is paused. Contact its owner, or use your own balance.");
+    expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x', params: { ...org, role: 'owner' } }))
+      .toBe("Acme's account is paused. Contact Sokuji support, or use your own balance.");
+  });
+  it('does not crash on a stale quota with no organization', () => {
+    expect(noticeText(plainT, { code: 'not_org_member', message: 'x' })).toBe("You're no longer in your organization.");
+    expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x' })).toBe("The organization's account is paused. Contact its owner, or use your own balance.");
+  });
+  it('keeps the owner wording when the name is missing, through the unnamed variant', () => {
+    expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x', params: { role: 'owner' } }))
+      .toBe("The organization's account is paused. Contact Sokuji support, or use your own balance.");
+  });
+  it('words an owner with no organization name as the owner, so the text matches the Top up action', () => {
+    expect(noticeText(plainT, { code: 'org_insufficient_balance', message: 'x', params: { role: 'owner' } }))
+      .toBe('Top up your organization, or use your own balance.');
+    expect(noticeText(plainT, { code: 'org_insufficient_balance', message: 'x' }))
+      .toBe("Ask the organization's owner to top up, or use your own balance.");
+  });
+  it('has the words in every locale', () => {
+    for (const [path, catalog] of Object.entries(catalogs)) {
+      for (const key of ['org_balance_held', 'org_insufficient_balance', 'org_insufficient_balance_owner', 'org_insufficient_balance_owner_unnamed', 'not_org_member', 'org_wallet_frozen', 'org_wallet_frozen_owner', 'not_org_member_unnamed', 'org_wallet_frozen_unnamed', 'org_wallet_frozen_owner_unnamed']) {
+        expect(at(catalog, `notices.${key}`), `${path}: ${key}`).toBeTypeOf('string');
+      }
+    }
+  });
+});

@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Tłumaczenia są wyświetlane w nakładce napisów",
+    "payer": {
+      "paidBy": "Płaci {{name}}",
+      "paidByYou": "Płacisz ty",
+      "useOwnBalance": "Użyj mojego własnego salda"
+    },
     "function": "Funkcja",
     "noChannelConfigured": "Włącz mikrofon lub dźwięk rozmówcy przed rozpoczęciem.",
     "release": "puść",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Nie można załadować informacji o limicie",
-    "upgradeToPremium": "Uaktualnij do Premium"
+    "upgradeToPremium": "Uaktualnij do Premium",
+    "orgBalance": "Saldo {{name}}",
+    "yourBalance": "Twoje saldo",
+    "orgHeld": "{{held}} z tej kwoty jest zarezerwowane przez trwające sesje; niewykorzystana część wraca po ich zakończeniu.",
+    "paused": "Wstrzymano"
   },
   "logs": {
     "webrtcFallback": "Połączenie WebRTC nie powiodło się, używanie WebSocket zamiast niego"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "Tłumaczenie, które słyszy druga strona, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_missing": "Tłumaczenie, które słyszę, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony.",
-    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
+    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku.",
+    "org_balance_held": "Saldo Twojej organizacji jest zablokowane przez trwające sesje. Spróbuj ponownie, gdy któraś się zakończy, lub użyj własnego salda.",
+    "org_insufficient_balance": "Poproś właściciela organizacji o doładowanie salda lub użyj własnego salda.",
+    "org_insufficient_balance_owner": "Doładuj saldo organizacji {{organization}} lub użyj własnego salda.",
+    "org_insufficient_balance_owner_unnamed": "Doładuj saldo swojej organizacji lub użyj własnego salda.",
+    "not_org_member": "Nie należysz już do organizacji {{organization}}.",
+    "not_org_member_unnamed": "Nie należysz już do swojej organizacji.",
+    "org_wallet_frozen": "Konto organizacji {{organization}} zostało wstrzymane. Skontaktuj się z jej właścicielem lub użyj własnego salda.",
+    "org_wallet_frozen_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z jej właścicielem lub użyj własnego salda.",
+    "org_wallet_frozen_owner": "Konto organizacji {{organization}} zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda.",
+    "org_wallet_frozen_owner_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda."
   },
   "viewer": {
     "title": "Napisy Sokuji",

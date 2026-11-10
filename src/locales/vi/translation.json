@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Bản dịch đang hiển thị trong lớp phủ phụ đề",
+    "payer": {
+      "paidBy": "{{name}} thanh toán",
+      "paidByYou": "Bạn thanh toán",
+      "useOwnBalance": "Dùng số dư của tôi"
+    },
     "function": "Hàm",
     "noChannelConfigured": "Hãy bật micrô hoặc âm thanh đối phương trước khi bắt đầu.",
     "release": "thả ra",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Không thể tải thông tin hạn ngạch",
-    "upgradeToPremium": "Nâng cấp lên Premium"
+    "upgradeToPremium": "Nâng cấp lên Premium",
+    "orgBalance": "Số dư của {{name}}",
+    "yourBalance": "Số dư của bạn",
+    "orgHeld": "{{held}} trong số này đang được giữ cho các phiên đang diễn ra; phần không dùng đến sẽ được hoàn lại khi phiên kết thúc.",
+    "paused": "Tạm dừng"
   },
   "logs": {
     "webrtcFallback": "Kết nối WebRTC thất bại, đang sử dụng WebSocket thay thế"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "Bản dịch bên kia nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_missing": "Bản dịch tôi nghe chỉ hiển thị chữ: không có mô hình giọng nói nào nói được {{target}}.",
     "participant_tts_over_budget": "Bản dịch tôi nghe chỉ hiển thị chữ: không đủ bộ nhớ để tải thêm mô hình giọng nói của bên kia.",
-    "screen_context_lost": "Màn hình bạn đã chọn không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
+    "screen_context_lost": "Màn hình bạn đã chọn không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh.",
+    "org_balance_held": "Số dư của tổ chức bạn đang bị giữ bởi các phiên đang chạy. Hãy thử lại khi một phiên kết thúc, hoặc dùng số dư cá nhân của bạn.",
+    "org_insufficient_balance": "Hãy nhờ chủ sở hữu tổ chức nạp thêm tiền, hoặc dùng số dư cá nhân của bạn.",
+    "org_insufficient_balance_owner": "Hãy nạp tiền cho {{organization}}, hoặc dùng số dư cá nhân của bạn.",
+    "org_insufficient_balance_owner_unnamed": "Hãy nạp tiền cho tổ chức của bạn, hoặc dùng số dư cá nhân của bạn.",
+    "not_org_member": "Bạn không còn thuộc {{organization}} nữa.",
+    "not_org_member_unnamed": "Bạn không còn thuộc tổ chức của mình nữa.",
+    "org_wallet_frozen": "Tài khoản của {{organization}} đã bị tạm dừng. Hãy liên hệ chủ sở hữu, hoặc dùng số dư cá nhân của bạn.",
+    "org_wallet_frozen_unnamed": "Tài khoản của tổ chức đã bị tạm dừng. Hãy liên hệ chủ sở hữu, hoặc dùng số dư cá nhân của bạn.",
+    "org_wallet_frozen_owner": "Tài khoản của {{organization}} đã bị tạm dừng. Hãy liên hệ bộ phận hỗ trợ Sokuji, hoặc dùng số dư cá nhân của bạn.",
+    "org_wallet_frozen_owner_unnamed": "Tài khoản của tổ chức đã bị tạm dừng. Hãy liên hệ bộ phận hỗ trợ Sokuji, hoặc dùng số dư cá nhân của bạn."
   },
   "viewer": {
     "title": "Phụ đề Sokuji",

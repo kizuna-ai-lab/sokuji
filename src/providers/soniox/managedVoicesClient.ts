@@ -27,8 +27,10 @@
  * than a new one for the same reason `mine`/`ensure`/`remove` do: one class
  * per Better-Auth-token-authenticated backend surface, one shared HTTP idiom.
  */
+import type { Payer } from '../../lib/session/types';
 import { DEFAULT_SONIOX_REGION, asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
+import { NOT_ORG_MEMBER, ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN } from '../../lib/session/orgNotice';
 import { SonioxVoicesError } from './voicesClient';
 
 export type ManagedVoiceStatus = 'not_computed' | 'processing' | 'ready' | 'failed';
@@ -57,6 +59,16 @@ export interface ManagedPreviewSessionKey {
    *  the request and the backend, and would route the returned key at the
    *  wrong TTS host. */
   region: SonioxRegion;
+}
+
+/**
+ * A 402 the organization was to pay is the organization's, whichever body it came in (the voice routes' slug, the
+ * session-key route's lease-style words): the payer sent says so. A balance held by sessions keeps its own code.
+ */
+function withOrgBalance(e: unknown, payer: Payer | undefined): unknown {
+  return e instanceof SonioxVoicesError && e.status === 402 && e.errorType !== ORG_BALANCE_HELD && payer === 'organization'
+    ? new SonioxVoicesError(ORG_INSUFFICIENT_BALANCE, e.message, e.status, e.retryAfterMs)
+    : e;
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -249,6 +261,11 @@ export class ManagedVoicesClient {
     try {
       const body = await res.json();
       if (typeof body?.error === 'string') slug = body.error;
+      // The session-key route words an organization's refusals by `reason` and `code`, not `error`.
+      if (body?.reason === 'org_balance_held') slug = ORG_BALANCE_HELD;
+      if (body?.code === 'not_org_member') slug = NOT_ORG_MEMBER;
+      // A frozen organization's wallet is told from the member's own freeze by the body's `subject`.
+      if (res.status === 403 && body?.subject === 'organization') slug = ORG_WALLET_FROZEN;
       if (typeof body?.retryAfterMs === 'number') retryAfterMs = body.retryAfterMs;
     } catch {
       // Non-JSON body (a gateway error page): the status still carries meaning.
@@ -297,11 +314,13 @@ export class ManagedVoicesClient {
    * same threading as `mine`.
    */
   async ensure(
-    opts: { pin: boolean; clip?: Blob; budgetMs?: number; signal?: AbortSignal }
+    opts: { pin: boolean; clip?: Blob; budgetMs?: number; signal?: AbortSignal; payer?: Payer }
   ): Promise<{ voiceId: string; status: 'ready' | 'processing' }> {
     const form = new FormData();
     form.set('pin', opts.pin ? '1' : '0');
     if (opts.clip) form.set('clip', opts.clip, 'reference.wav');
+    // Who pays: set only for an organization member, whose chosen wallet the backend checks.
+    if (opts.payer) form.set('payer', opts.payer);
     const defaultTimeout = opts.clip ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
     // No Content-Type header on purpose: fetch generates the multipart
     // boundary, and setting the header by hand strips it, which makes the
@@ -311,7 +330,7 @@ export class ManagedVoicesClient {
       { method: 'POST', body: form },
       opts.budgetMs !== undefined ? Math.min(defaultTimeout, opts.budgetMs) : defaultTimeout,
       opts.signal
-    );
+    ).catch((e) => { throw withOrgBalance(e, opts.payer); });
     const body = await res.json();
     return { voiceId: body.voiceId, status: body.status };
   }
@@ -336,7 +355,7 @@ export class ManagedVoicesClient {
    * (another session or preview already holds the account's lease), and 503
    * (Soniox capacity full) are this route's own documented outcomes.
    */
-  async sessionKey(request: { mode: 'voice_preview' }): Promise<ManagedPreviewSessionKey> {
+  async sessionKey(request: { mode: 'voice_preview'; payer?: Payer }): Promise<ManagedPreviewSessionKey> {
     // `fetchJsonWithAuth`, not `fetchWithAuth` + a separate `res.json()`: see
     // that method's docstring for why THIS call in particular needs the body
     // read bounded by the deadline. Un-abortable on purpose (no `signal`
@@ -348,10 +367,11 @@ export class ManagedVoicesClient {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: request.mode, region: this.region }),
+        // payer: a member's chosen wallet, set only for an organization member.
+        body: JSON.stringify({ mode: request.mode, region: this.region, ...(request.payer ? { payer: request.payer } : {}) }),
       },
       REQUEST_TIMEOUT_MS
-    );
+    ).catch((e) => { throw withOrgBalance(e, request.payer); });
     if (typeof body?.ttsApiKey !== 'string') {
       // A contract break, not a user-facing failure mode: this route always
       // mints a TTS key for `voice_preview` (backend design §5.6). Loud

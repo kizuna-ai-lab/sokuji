@@ -13,6 +13,7 @@
  */
 import type { Clock } from '../contract/clock';
 import type { DropInfo, ReconnectedInfo, GiveUp } from '../contract/reconnect';
+import { ORG_REFUSAL_CODES } from './orgNotice';
 
 export type { DropCause, DropInfo, ReconnectedInfo, GiveUp } from '../contract/reconnect';
 
@@ -39,7 +40,7 @@ const MINUTE_MS = 60000;
 export type AttemptResult =
   | { ok: true; reissued: boolean; reissueMs: number }
   | { ok: false; final: false; code?: string; message: string; reissued: boolean; reissueMs: number }
-  | { ok: false; final: true; reason: 'refused' | 'terminal_error' | 'lease_ended'; code: string; message: string; refusalCode?: string };
+  | { ok: false; final: true; reason: 'refused' | 'terminal_error' | 'lease_ended'; code: string; message: string; refusalCode?: string; params?: Record<string, string | number> };
 
 export interface ReconnectorOptions {
   clock: Clock;
@@ -76,15 +77,17 @@ const LOST = 'connection_lost';
 
 /**
  * A lease's refusal to reissue, as the attempt's answer (spec §6): final.
- * The two the user can act on show as themselves; any other as the
- * connection lost, its own code kept as `refusalCode`; `lease_ended` gives
- * up as such.
+ * The ones the user can act on show as themselves (signing in again, a
+ * frozen wallet, and each organization refusal: removed, held, spent,
+ * frozen); any other as the connection lost, its own code kept as
+ * `refusalCode`; `lease_ended` gives up as such.
  */
-export function refusalResult(answer: { code: string; message: string }): AttemptResult {
-  const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen';
+export function refusalResult(answer: { code: string; message: string; params?: Record<string, string | number> }): AttemptResult {
+  const actionable = answer.code === 'sign_in_required' || answer.code === 'wallet_frozen' || ORG_REFUSAL_CODES.has(answer.code);
   return {
     ok: false, final: true, reason: answer.code === 'lease_ended' ? 'lease_ended' : 'refused',
     code: actionable ? answer.code : LOST, message: answer.message, refusalCode: answer.code,
+    ...(answer.params ? { params: answer.params } : {}),
   };
 }
 
@@ -209,7 +212,7 @@ export function createReconnector(o: ReconnectorOptions): Reconnector {
     if (r.final) {
       // A final failure is still the last failed attempt: its code is the analytics `error_code`.
       c.lastCode = r.code;
-      giveUp(c, { reason: r.reason, code: r.code, message: r.message, ...(r.refusalCode !== undefined ? { refusalCode: r.refusalCode } : {}) });
+      giveUp(c, { reason: r.reason, code: r.code, message: r.message, ...(r.refusalCode !== undefined ? { refusalCode: r.refusalCode } : {}), ...(r.params ? { params: r.params } : {}) });
       return;
     }
     c.reissued ||= r.reissued;

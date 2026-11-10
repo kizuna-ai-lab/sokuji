@@ -6,6 +6,7 @@
  * from `useStatusLine`, so this is testable without React.
  */
 import type { EchoCause, EchoNoticeState } from '../modern-audio/EchoMonitor';
+import { ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN } from '../session/orgNotice';
 import { BALANCE_BELOW_FLOOR, NO_MICROPHONE, QUOTA_PENDING, QUOTA_UNKNOWN } from '../session/shape';
 import type { LegName } from '../conversation/types';
 import type { ReconnectProgress, RunEnd, RunState } from '../session/types';
@@ -56,7 +57,7 @@ export interface StatusLineInput {
 }
 
 const KEY_CODES: ReadonlySet<string> = new Set(['credentials_missing', 'sign_in_required', 'sign_in_pending', 'auth']);
-const WALLET_CODES: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance', QUOTA_PENDING, QUOTA_UNKNOWN, 'wallet_frozen']);
+const WALLET_CODES: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance', QUOTA_PENDING, QUOTA_UNKNOWN, 'wallet_frozen', ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, ORG_BALANCE_HELD]);
 
 function iconFor(code: string | undefined): StatusIcon {
   if (code === NO_MICROPHONE) return 'mic-off';
@@ -70,7 +71,7 @@ function blocker(key: string, code: string | undefined, message: string, params?
     key,
     icon: iconFor(code),
     words: { kind: 'notice', code: code ?? '', message, ...(params ? { params } : {}) },
-    action: actionForCode(code),
+    action: actionForCode(code, params),
     dismiss: null,
   };
 }

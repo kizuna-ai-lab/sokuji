@@ -16,11 +16,25 @@ import {
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
+import { payerDisplayBalance } from '../../lib/session/orgNotice';
+import { useAccountPayer } from '../../lib/session/payerChoice';
+import { useRunState } from '../../app/useRun';
+import type { AccountState, Payer } from '../../lib/session/types';
+import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
 import { useBalanceShortfall } from './useBalanceShortfall';
 import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
 import AccountPopover from './AccountPopover';
 import './AccountButton.scss';
+
+/**
+ * The micro-USD the title bar shows. A member shows the wallet the next Start spends, which is nothing (not $0) when that wallet is not known;
+ * anyone else shows the quota's balance.
+ */
+function shownBalance(account: AccountState | null, payer: Payer | undefined, quota: { balance?: number; remaining?: number } | null | undefined): number | undefined {
+  if (account?.status === 'known' && account.organization) return payerDisplayBalance(account, payer);
+  return quota?.balance ?? quota?.remaining;
+}
 
 const AccountButton: React.FC = () => {
   const { t } = useTranslation();
@@ -29,6 +43,13 @@ const AccountButton: React.FC = () => {
   const { quota } = useUserProfile();
   // The start gate's own answer for the selected provider (Stage 2 Kizuna Soniox, choice 9).
   const lowBalance = useBalanceShortfall();
+  const account = useAccountStore((s) => s.account);
+  // Which wallet the title bar shows. Idle: the switch. Running: the payer the
+  // session was started with — another window can flip the switch, and a
+  // running session keeps what it was granted.
+  const livePayer = useAccountPayer(account);
+  const run = useRunState();
+  const payer = run.phase === 'idle' ? livePayer : run.payer;
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -87,7 +108,18 @@ const AccountButton: React.FC = () => {
     );
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
-    const balance = quota?.balance ?? quota?.remaining;
+    // Who pays, spelled out rather than inferred from a missing prefix: a session
+    // started before the choice existed has no payer, and that must not look
+    // like the personal wallet.
+    const payerName: string | null = account?.status === 'known' && account.organization
+      ? payer === 'organization'
+        ? account.organization.name
+        : payer === 'personal'
+          ? t('titleBar.account.personal', 'Personal')
+          : t('titleBar.account.payerUnknown', 'Account')
+      : null;
+    // The balance of the wallet the next Start spends: the organization's, or the member's own with the switch on.
+    const balance = shownBalance(account, payer, quota);
 
     // The low-balance warning is the start gate's (useBalanceShortfall): a
     // provider with no floor (own key, local) never warns, and a managed one
@@ -116,6 +148,9 @@ const AccountButton: React.FC = () => {
     content = (
       <>
         <span className="account-button__initial" aria-hidden="true">{initial}</span>
+        {payerName !== null && payerName !== '' && (
+          <span className="account-button__payer" title={payerName}>{payerName}</span>
+        )}
         {balanceLabel !== null && (
           <span className="title-bar__action-label">{balanceLabel}</span>
         )}
@@ -141,7 +176,13 @@ const AccountButton: React.FC = () => {
       >
         {content}
       </button>
-      <AccountPopover open={open} anchorEl={btnRef.current} onClose={() => setOpen(false)} />
+      <AccountPopover
+        open={open}
+        anchorEl={btnRef.current}
+        onClose={() => setOpen(false)}
+        idle={run.phase === 'idle'}
+        runPayer={run.phase === 'idle' ? undefined : run.payer}
+      />
     </>
   );
 };

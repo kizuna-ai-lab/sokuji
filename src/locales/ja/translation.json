@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻訳は字幕オーバーレイに表示されています",
+    "payer": {
+      "paidBy": "{{name}} が支払い",
+      "paidByYou": "あなたが支払い",
+      "useOwnBalance": "自分の残高を使う"
+    },
     "function": "関数",
     "noChannelConfigured": "開始する前にマイクまたは相手の音声を有効にしてください。",
     "release": "離す",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "クォータ情報を読み込めません",
-    "upgradeToPremium": "プレミアムにアップグレード"
+    "upgradeToPremium": "プレミアムにアップグレード",
+    "orgBalance": "{{name}}の残高",
+    "yourBalance": "あなたの残高",
+    "orgHeld": "このうち {{held}} は進行中のセッションで保留されています。未使用分はセッション終了時に戻ります。",
+    "paused": "一時停止中"
   },
   "logs": {
     "webrtcFallback": "WebRTC接続に失敗したため、WebSocketを使用します"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "相手に聞こえる翻訳は文字のみです: {{target}}を話せる音声モデルがありません。",
     "participant_tts_missing": "自分に聞こえる翻訳は文字のみです: {{target}}を話せる音声モデルがありません。",
     "participant_tts_over_budget": "自分に聞こえる翻訳は文字のみです: 相手側の音声モデルも読み込むにはメモリが足りません。",
-    "screen_context_lost": "選択した画面は利用できなくなりました。翻訳は音声のみで続行します。"
+    "screen_context_lost": "選択した画面は利用できなくなりました。翻訳は音声のみで続行します。",
+    "org_balance_held": "組織の残高は、進行中のセッションによって確保されています。セッションが終了してからもう一度お試しいただくか、ご自身の残高をご利用ください。",
+    "org_insufficient_balance": "組織のオーナーにチャージを依頼するか、ご自身の残高をご利用ください。",
+    "org_insufficient_balance_owner": "{{organization}} にチャージするか、ご自身の残高をご利用ください。",
+    "org_insufficient_balance_owner_unnamed": "組織にチャージするか、ご自身の残高をご利用ください。",
+    "not_org_member": "{{organization}} のメンバーではなくなりました。",
+    "not_org_member_unnamed": "所属していた組織のメンバーではなくなりました。",
+    "org_wallet_frozen": "{{organization}} のアカウントは一時停止されています。オーナーにお問い合わせいただくか、ご自身の残高をご利用ください。",
+    "org_wallet_frozen_unnamed": "組織のアカウントは一時停止されています。オーナーにお問い合わせいただくか、ご自身の残高をご利用ください。",
+    "org_wallet_frozen_owner": "{{organization}} のアカウントは一時停止されています。Sokuji サポートにお問い合わせいただくか、ご自身の残高をご利用ください。",
+    "org_wallet_frozen_owner_unnamed": "組織のアカウントは一時停止されています。Sokuji サポートにお問い合わせいただくか、ご自身の残高をご利用ください。"
   },
   "viewer": {
     "title": "Sokuji 字幕",

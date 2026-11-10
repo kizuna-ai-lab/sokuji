@@ -1006,9 +1006,35 @@ describe('attach', () => {
     return { refetchQuota, detach };
   }
 
-  it.each(['insufficient_balance', 'wallet_frozen'])('refetches the balance once the service refuses a start with %s: the wallet it answered for has changed', async (code) => {
+  it.each(['insufficient_balance', 'wallet_frozen', 'not_org_member', 'org_wallet_frozen', 'org_balance_held', 'org_insufficient_balance'])('refetches the balance once the service refuses a start with %s: the wallet it answered for has changed', async (code) => {
     const { refetchQuota, detach } = await refusedLease(code);
     expect(refetchQuota).toHaveBeenCalledTimes(1);
+    detach();
+  });
+
+  /** A run that went live on the fake and then failed with `code` (a give-up the organization's wallet caused), with its balance refetch spied on. */
+  async function failedMidSession(code: string) {
+    const { session } = await setup();
+    const refetchQuota = vi.fn(async () => {});
+    session.setBridges({ refetchQuota });
+    let events!: Parameters<typeof fakeProvider.start>[1];
+    const start = vi.spyOn(fakeProvider, 'start').mockImplementationOnce(async (request, e) => {
+      events = e;
+      start.mockRestore();
+      return fakeProvider.start(request, e);
+    });
+    const detach = session.attach();
+    await session.runner.start();
+    events.failed({ message: 'Refused.', code });
+    await session.runner.settled();
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'leg-failed', notice: { code } } });
+    return { refetchQuota, detach };
+  }
+
+  it.each(['org_wallet_frozen', 'not_org_member', 'org_balance_held', 'org_insufficient_balance'])('refetches the balance once a live run ends with %s, as after a refused start', async (code) => {
+    const { refetchQuota, detach } = await failedMidSession(code);
+    // Once for the refusal; the run's own end may add its refetch.
+    expect(refetchQuota).toHaveBeenCalled();
     detach();
   });
 

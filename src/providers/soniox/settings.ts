@@ -139,7 +139,7 @@ export function sonioxVoiceField(region: SonioxRegion): 'voice' | 'voiceEu' | 'v
 export type SonioxReissue =
   | { ok: true; stt: string; clientReferenceId: string; expiresAt: number }
   | { ok: false; retry: true; message: string }
-  | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'unsupported'; message: string };
+  | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'org_wallet_frozen' | 'not_org_member' | 'org_balance_held' | 'org_insufficient_balance' | 'unsupported'; message: string; params?: Record<string, string | number> };
 
 /** What Kizuna Soniox's lease will hand the adapter (Plan B's seam; survey §2.12). An own key has none. */
 export interface SonioxLeasePort {

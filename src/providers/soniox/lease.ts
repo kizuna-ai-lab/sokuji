@@ -19,6 +19,7 @@ import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
+import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
@@ -143,10 +144,16 @@ function parseGrant(body: unknown): Grant {
  * `error_message`, so a 402's amounts go to the Logs' frame instead
  * (`refusalFrame`).
  */
-function refusal(status: number, body: unknown): Error {
-  const b = (body ?? {}) as { error?: unknown };
+function refusal(status: number, body: unknown, shape: RunShape): Error {
+  const b = (body ?? {}) as { error?: unknown; message?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
+  // The server's own text goes in, for the Logs; its figures never do.
+  const org = orgRefusalCode(status, body, shape.payer);
+  if (org) {
+    const said = server || (typeof b.message === 'string' ? b.message : '');
+    return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}${said ? `: ${said}` : ''}).`, org, orgNoticeParams(shape.account));
+  }
   switch (status) {
     case 401: return new AdapterStartError(`The session service did not accept the sign-in (HTTP 401${detail}).`, 'sign_in_required');
     case 402: return new AdapterStartError(`The session service refused the start: insufficient balance (HTTP 402${detail}).`, 'insufficient_balance');
@@ -280,7 +287,8 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Soniox session.', 'sign_in_required');
     const request = leaseRequest(shape, s, participantSpeech);
-    const sent = requestBody(request);
+    // Who pays was chosen once, at Start, and rides the shape: a member's choice, nothing for anyone else.
+    const sent = requestBody(request, shape.payer);
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
       // An abort that landed after the 409 wait resolved, before this attempt: its listener below would never fire.
@@ -354,7 +362,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     }
     if (answer.status < 200 || answer.status >= 300) {
       ctx.frame(refusalFrame(answer.status, answer.body));
-      throw refusal(answer.status, answer.body);
+      throw refusal(answer.status, answer.body, shape);
     }
     // A contract break past here leaves a never-started lease, which the
     // backend frees at its start window's end; `session-end` cannot (survey §1.2).
@@ -556,6 +564,12 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
           return { ok: true, stt, clientReferenceId: ref, expiresAt: Number.isFinite(parsed) ? parsed : ctx.clock.now() + 10_000 };
         }
         if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
+        // An organization refusal mid-session (frozen, removed, held, spent): its own words, named from the account the run started with.
+        const org = orgRefusalCode(status, body, shape.payer);
+        if (org) {
+          const params = orgNoticeParams(shape.account);
+          return { ok: false, retry: false, code: org, message: said, ...(params ? { params } : {}) };
+        }
         if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
         if (status === 409) {
           return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };

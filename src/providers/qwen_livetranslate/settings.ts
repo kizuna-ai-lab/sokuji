@@ -169,7 +169,7 @@ export const qwenLanguages: Provider<QwenSettings, never, never>['languages'] = 
 export type QwenReissue =
   | { ok: true; apiKey: string; expiresAt: number; fresh: boolean }
   | { ok: false; retry: true; message: string }
-  | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'unsupported'; message: string };
+  | { ok: false; retry: false; code: 'lease_ended' | 'reissue_limit' | 'sign_in_required' | 'wallet_frozen' | 'org_wallet_frozen' | 'not_org_member' | 'org_balance_held' | 'org_insufficient_balance' | 'unsupported'; message: string; params?: Record<string, string | number> };
 
 /** What the managed leg tells its lease: the session the endpoint opened and the handshake's request id (absent when the platform gave none), for the backend to match against Alibaba's logs. */
 export interface QwenLeasePort {

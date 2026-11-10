@@ -343,3 +343,19 @@ describe('voicePrepCode and resolveVoicePrepOutcome', () => {
     });
   });
 });
+
+describe('prepareManagedVoice: who pays', () => {
+  it('passes the payer to every ensure, read when the call is made, and omits it when there is none', async () => {
+    const ensure = vi.fn()
+      .mockRejectedValueOnce(new SonioxVoicesError('clip_required', 'need clip', 409))
+      .mockResolvedValueOnce({ voiceId: 'v2', status: 'ready' });
+    const payer = vi.fn<() => 'organization' | 'personal' | undefined>().mockReturnValue('personal');
+    await prepareManagedVoice({ ...deps({ ensure }), payer });
+    expect(ensure).toHaveBeenNthCalledWith(1, expect.objectContaining({ payer: 'personal' }));
+    expect(ensure).toHaveBeenNthCalledWith(2, expect.objectContaining({ payer: 'personal' }));
+
+    const plain = vi.fn().mockResolvedValue({ voiceId: 'v1', status: 'ready' });
+    await prepareManagedVoice({ ...deps({ ensure: plain }), payer: () => undefined });
+    expect(plain.mock.calls[0][0]).not.toHaveProperty('payer');
+  });
+});

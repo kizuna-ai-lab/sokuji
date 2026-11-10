@@ -35,6 +35,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { setUseOwnBalance } from './payerChoice';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -88,6 +89,27 @@ describe('readShapeFromStores', () => {
     // The participant's direction is the pair's reverse; instructions are no longer the shape's (Stage 2 Gemini, ruling 4).
     expect(shape.shared.reversed({ source: 'ja', target: 'en' })).toBe(true);
     expect(shape.shared).not.toHaveProperty('instructions');
+  });
+
+  it('freezes who pays at Start: a member\'s choice, nothing for a non-member', () => {
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
+    });
+    localStorage.clear();
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 9, frozen: false } });
+    expect(readShapeFromStores(auth)).not.toHaveProperty('payer');
+    setUseOwnBalance(true);
+    expect(readShapeFromStores(auth)).not.toHaveProperty('payer');
+    const member = { status: 'known' as const, balanceMicroUsd: 9, frozen: false, organization: { name: 'Acme', availableMicroUsd: 9, frozen: false }, personal: { balanceMicroUsd: 5, frozen: false } };
+    useAccountStore.setState({ account: member });
+    const own = readShapeFromStores(auth)!;
+    expect(own.payer).toBe('personal');
+    setUseOwnBalance(false);
+    // The shape taken at Start keeps its payer when the switch moves afterwards.
+    expect(own.payer).toBe('personal');
+    expect(readShapeFromStores(auth)!.payer).toBe('organization');
+    localStorage.clear();
   });
 
   // The one production line that turns
@@ -390,6 +412,29 @@ describe('liveGate', () => {
     expect(liveGate()?.code).toBe('quota_unknown');
     useAccountStore.setState({ account: null });
     expect(liveGate()).toBeNull();
+  });
+});
+
+describe('liveGate for an organization payer', () => {
+  const member = (organization: { availableMicroUsd: number; frozen: boolean }) => ({
+    status: 'known' as const, balanceMicroUsd: organization.availableMicroUsd, frozen: organization.frozen,
+    organization: { name: 'Acme', ...organization }, personal: { balanceMicroUsd: 0, frozen: false },
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAudioStore.setState({ mode: 'speaker' });
+    environment.value = 'electron';
+  });
+
+  it('leaves Start enabled below the floor, and disables it only while the organization is frozen', () => {
+    useAccountStore.setState({ account: member({ availableMicroUsd: 0, frozen: false }) });
+    expect(liveGate()).toBeNull();
+    useAccountStore.setState({ account: member({ availableMicroUsd: 0, frozen: true }) });
+    expect(liveGate()?.code).toBe('org_wallet_frozen');
   });
 });
 

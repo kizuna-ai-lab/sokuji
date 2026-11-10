@@ -8,7 +8,6 @@ import {useUserProfile} from '../../contexts/UserProfileContext';
 import {authClient} from '../../lib/auth-client';
 import {
   AlertCircle,
-  ChartColumn,
   CheckCircle,
   Loader2,
   LogOut,
@@ -16,8 +15,17 @@ import {
   MessageCircleQuestion,
   RefreshCw,
   UserCog,
-  Wallet
 } from 'lucide-react';
+import {orgDisplayBalance, orgHeldMicroUsd} from '../../lib/session/orgNotice';
+import {setUseOwnBalance, useUseOwnBalance} from '../../lib/session/payerChoice';
+import {
+  estimateRunwayHours,
+  fetchUsageSides,
+  runwayAmount,
+  runwayUnit,
+  type UsageSide,
+  type UsageSides,
+} from '../../lib/wallet/usageSides';
 import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
@@ -28,14 +36,20 @@ import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
   compact?: boolean;
+  /** Whether no session is running. Supplied by the popover's owner, which is the only place that reads the run. */
+  idle?: boolean;
+  /** The payer the running session was started with, when there is one: the panel never reads the live switch during a session. */
+  runPayer?: 'organization' | 'personal';
 }
 
 export function UserAccountInfo({
                                   compact = false,
+                                  idle = true,
+                                  runPayer,
                                 }: UserAccountInfoProps) {
   const {t} = useTranslation();
   const {trackEvent, resetUser} = useAnalytics();
-  const {isLoaded, isSignedIn} = useAuth();
+  const {isLoaded, isSignedIn, getToken} = useAuth();
   const {user: betterAuthUser, refetch: refetchSession} = useUser();
   const setAuthOverlay = useSetAuthOverlay();
 
@@ -70,6 +84,111 @@ export function UserAccountInfo({
   }
 
   // Get subscription from quota data (primary source) or user data (fallback)
+  // Membership is read defensively: a stale or malformed payload must degrade
+  // to fewer lines, never to a crash.
+  const organization = quota?.organization && typeof quota.organization.name === 'string'
+    ? quota.organization
+    : null;
+  const personal = organization && quota?.personal && typeof quota.personal.balanceMicroUsd === 'number'
+    ? quota.personal
+    : null;
+
+  // Which wallet the panel presents. Idle: the switch. Running: the payer the
+  // session was STARTED with — another window can change the switch, and the
+  // running session keeps what it was granted. A session started before the
+  // choice existed carries none: then neither tab is truthful, so none is shown.
+  const switchOn = useUseOwnBalance();
+  const knownPayer: 'organization' | 'personal' | undefined = organization
+    ? (idle ? (switchOn ? 'personal' : 'organization') : runPayer)
+    : undefined;
+  // A server that sends the organization but no personal wallet leaves the
+  // switch pointing at a wallet nobody has: the panel then shows the one wallet
+  // it does know rather than inventing a balance for the other.
+  const useOwn = knownPayer === 'personal' && !!personal;
+
+  // Both sides' 30-day figures, in one request, cached for five minutes. A
+  // failure leaves the balances alone and hides the usage lines.
+  const [sides, setSides] = useState<UsageSides | null>(null);
+  const [hint, setHint] = useState<'held' | 'runway' | null>(null);
+  // `useAuth().getToken` is a NEW function on every render, so putting it in the
+  // callback's dependencies would give `loadSides` a new identity each render,
+  // re-run the effect below, and — on a path that caches nothing (a failed
+  // request) — ask the endpoint once per render. The ref keeps the latest token
+  // getter without making the callback unstable.
+  const getTokenRef = useRef(getToken);
+  // Whose figures these are. A response is only painted while this is still the
+  // identity that asked: signing in as someone else, or switching organization,
+  // must not leave the previous identity's usage on screen.
+  const identity = `${betterAuthUser?.id ?? user.id}|${organization?.id ?? ''}`;
+  const identityRef = useRef(identity);
+
+  // Written AFTER commit, never during render: React may replay or discard
+  // render work, and a discarded render must not leave these pointing at state
+  // that never committed. Declared before the effects below, so they run first.
+  useEffect(() => {
+    getTokenRef.current = getToken;
+    identityRef.current = identity;
+  });
+
+  // The previous identity's figures go the moment the identity does; the effect
+  // below then asks for the new one's.
+  useEffect(() => {
+    setSides(null);
+    setHint(null);
+  }, [identity]);
+
+  // A request issued earlier can resolve later; only the newest one may paint.
+  const requestSeq = useRef(0);
+  const loadSides = useCallback(async (force: boolean) => {
+    const mine = ++requestSeq.current;
+    // No token means no request; a signed-out or not-yet-loaded session must not fire one.
+    const token = await getTokenRef.current?.();
+    if (!token) return;
+    const next = await fetchUsageSides({
+      apiUrl: getApiUrl(),
+      token,
+      userId: betterAuthUser?.id ?? user.id,
+      organizationId: organization?.id,
+      tzOffsetMinutes: -new Date().getTimezoneOffset(),
+      force,
+    });
+    if (mine !== requestSeq.current) return; // a later request superseded this one
+    if (identityRef.current !== identity) return; // it answered for someone else
+    if (next) setSides(next);
+  }, [betterAuthUser?.id, user.id, organization?.id]);
+  useEffect(() => { void loadSides(false); }, [loadSides]);
+
+  // The side this panel is about, and the other one, whichever the tab shows.
+  const shownSide: UsageSide | undefined = organization
+    ? (useOwn ? sides?.personal : sides?.organization)
+    : sides?.personal;
+  // Before the per-side figures land (or on a server that predates them), the
+  // personal side still has the polled 30-day figure. The organization's does
+  // not: `last30DaysUsage` is always the CALLER's own wallet, and showing it
+  // under the organization's tab would be a different number with the same name.
+  const shownSpendMicroUsd = shownSide?.spendMicroUsd
+    ?? (useOwn || !organization ? quota?.last30DaysUsage : undefined);
+
+  // "No usage" and "we do not know" are different claims. The polled figure
+  // covers the caller's own wallet; the organization's side only exists once
+  // the endpoint answers with it, so a server that predates it must read as
+  // "not available" rather than as "$0 spent".
+  const personalSpend = sides?.personal?.spendMicroUsd ?? quota?.last30DaysUsage;
+  const organizationSpend = sides?.organization?.spendMicroUsd;
+  const totalKnown = personalSpend !== undefined && (!organization || organizationSpend !== undefined);
+  const totalSpendMicroUsd = totalKnown ? (personalSpend ?? 0) + (organizationSpend ?? 0) : undefined;
+  // A side whose wallet the server did not send has no balance to show — and
+  // no runway either: dividing "unknown" by a rate yields a number nobody has.
+  const balanceShown: number | undefined = !organization
+    ? quota?.balance ?? quota?.remaining
+    : useOwn
+      ? personal?.balanceMicroUsd
+      : orgDisplayBalance(organization);
+  const availableMicroUsd = balanceShown;
+  const runwayHours = shownSide && availableMicroUsd !== undefined
+    ? estimateRunwayHours(availableMicroUsd, shownSide)
+    : null;
+
   const subscription = quota?.plan || user?.subscription || 'free';
 
   if (compact) {
@@ -329,6 +448,10 @@ export function UserAccountInfo({
   const handleRefresh = () => {
     trackEvent('user_profile_refresh_clicked', {});
     refetchAll();
+    // The balances and the usage figures come from different endpoints; a
+    // refresh that moved one and left the other for five minutes would look
+    // like the button half-worked.
+    void loadSides(true);
   };
 
   return (
@@ -476,17 +599,149 @@ export function UserAccountInfo({
         ) : (
           <>
 
-            <div className="quota-compact-line">
-              <Wallet size={14} className="wallet-icon"/>
-              <span className="balance-section">
-                {/* Floored, not rounded: a balance must never display more
-                    money than the wallet holds. See `formatUsdFloor`. */}
-                {formatUsdFloor(quota.balance || quota.remaining)}
-              </span>
-              <span className="divider">|</span>
-              <span className="usage-section">
-                <ChartColumn size={14} className="usage-icon"/>
-                30D: {formatUsd(quota.last30DaysUsage || 0)}
+            {/* The payer tabs. Members only, and only when who pays is known: a
+                session started before the choice existed carries no payer, and
+                neither tab would then be telling the truth. */}
+            {organization && knownPayer && (
+              <div className="quota-tabs" role="tablist">
+                <button
+                  type="button" role="tab" aria-selected={!useOwn}
+                  className={`quota-tab${!useOwn ? ' is-on' : ''}`}
+                  disabled={!idle}
+                  onClick={() => { if (idle) setUseOwnBalance(false); }}
+                >{organization.name}</button>
+                {/* No personal wallet (an older server, or a wallet that failed to
+                    load): offering a tab onto it would show a balance nobody has. */}
+                {personal && (
+                  <button
+                    type="button" role="tab" aria-selected={useOwn}
+                    className={`quota-tab${useOwn ? ' is-on' : ''}`}
+                    disabled={!idle}
+                    onClick={() => { if (idle) setUseOwnBalance(true); }}
+                  >{t('tokenUsage.yourBalance')}</button>
+                )}
+              </div>
+            )}
+
+            {!idle && knownPayer && (
+              <div className="quota-locked">
+                <span className="quota-locked__dot"/>
+                {t('tokenUsage.runPayer', {
+                  defaultValue: 'This session is paid by {{name}}',
+                  name: knownPayer === 'organization'
+                    ? organization?.name ?? t('tokenUsage.yourOrganization', 'your organization')
+                    : t('tokenUsage.yourBalance'),
+                })}
+              </div>
+            )}
+
+            {/* Two zones, labels left and figures right: the eye scans one
+                column of numbers instead of reading every label. */}
+            <div className="quota-rows">
+              <div className="quota-row">
+                <span className="quota-key">{t('tokenUsage.balance', 'Balance')}</span>
+                <span className="quota-val quota-val--big">
+                  {balanceShown === undefined
+                    // The title bar shows no number at all here; a "$0.00" would
+                    // say the wallet is empty, which is a different claim.
+                    ? <span title={t('tokenUsage.usageUnavailable', 'Unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>
+                    : formatUsdFloor(balanceShown)}
+                </span>
+                {organization && !useOwn && organization.frozen && (
+                  <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>
+                )}
+                {organization && useOwn && personal?.frozen && (
+                  <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>
+                )}
+              </div>
+
+              {organization && !useOwn && (
+                <div className="quota-row">
+                  <span className="quota-key">{t('tokenUsage.availableBalance', 'Available')}</span>
+                  <span className="quota-val">{formatUsdFloor(organization.availableMicroUsd)}</span>
+                </div>
+              )}
+
+              {organization && !useOwn && orgHeldMicroUsd(organization) > 0 && (
+                <div className="quota-row">
+                  <span className="quota-key">
+                    {t('tokenUsage.sessionHeld', 'Held by sessions')}
+                    <button
+                      type="button"
+                      className="quota-hint"
+                      aria-expanded={hint === 'held'}
+                      aria-label={t('tokenUsage.heldHint', 'Sessions in progress or just finished hold part of the balance. After they settle, the unused part returns to the available balance.')}
+                      onClick={() => setHint(hint === 'held' ? null : 'held')}
+                    >?</button>
+                  </span>
+                  <span className="quota-val">{formatUsdFloor(orgHeldMicroUsd(organization))}</span>
+                </div>
+              )}
+              {hint === 'held' && (
+                <p className="quota-hint-text">
+                  {t('tokenUsage.heldHint', 'Sessions in progress or just finished hold part of the balance. After they settle, the unused part returns to the available balance.')}
+                </p>
+              )}
+
+              {runwayHours !== null && (
+                <>
+                  <div className="quota-row">
+                    <span className="quota-key">
+                      {t('tokenUsage.runwayLabel', 'Runway')}
+                      <button
+                        type="button"
+                        className="quota-hint"
+                        aria-expanded={hint === 'runway'}
+                        aria-label={t('tokenUsage.runwayHint', 'Available balance divided by your average spend per hour over the last 30 days, measured in audio time — you will usually get longer than this.')}
+                        onClick={() => setHint(hint === 'runway' ? null : 'runway')}
+                      >?</button>
+                    </span>
+                    <span className="quota-val">
+                      {t('tokenUsage.aboutDuration', {
+                        defaultValue: 'about {{amount}} {{unit}}',
+                        amount: runwayAmount(runwayHours),
+                        unit: runwayUnit(runwayHours) === 'hour'
+                          ? t('tokenUsage.unitHours', 'hours')
+                          : runwayUnit(runwayHours) === 'day'
+                            ? t('tokenUsage.unitDays', 'days')
+                            : t('tokenUsage.unitMonths', 'months'),
+                      })}
+                    </span>
+                  </div>
+                  {hint === 'runway' && (
+                    <p className="quota-hint-text">
+                      {t('tokenUsage.runwayHint', 'Available balance divided by your average spend per hour over the last 30 days, measured in audio time — you will usually get longer than this.')}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="quota-zone">
+              {useOwn || !organization
+                ? t('tokenUsage.self30d', 'My usage · last 30 days')
+                : t('tokenUsage.org30d', 'My usage in this org · last 30 days')}
+            </div>
+            <div className="quota-rows">
+              <div className="quota-row">
+                <span className="quota-key">{t('tokenUsage.spent', 'Spent')}</span>
+                <span className="quota-val">
+                  {shownSpendMicroUsd === undefined
+                    // Not "no usage": the figure never arrived.
+                    ? <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>
+                    : shownSpendMicroUsd === 0
+                      // A confirmed zero is a different claim from an unknown one.
+                      ? t('tokenUsage.noUsage', 'No usage yet')
+                      : formatUsd(shownSpendMicroUsd)}
+                </span>
+              </div>
+            </div>
+
+            <div className="quota-foot">
+              <span className="quota-foot__total">
+                {t('tokenUsage.total30d', '30-day total')} · {totalSpendMicroUsd !== undefined
+                  ? formatUsd(totalSpendMicroUsd)
+                  : <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>}
               </span>
               <button
                 className="action-button-compact refresh-account"

@@ -46,6 +46,8 @@ export function createKizunaVoiceClaim(deps: VoiceClaimDeps = {}) {
       // This account's clip only: a recording on a shared device is never uploaded under another account.
       loadClip: () => loadClip(shape.auth.userId),
       signal,
+      // The payer this start chose.
+      payer: () => shape.payer,
     });
     // The start this claim belonged to is gone: nothing to apply.
     if (signal.aborted) return {};

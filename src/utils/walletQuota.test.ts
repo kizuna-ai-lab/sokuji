@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mapWalletStatusToQuota, isWalletStatus } from './walletQuota';
+import * as report from '../lib/diagnostics/report';
+import { vi } from 'vitest';
 
 describe('mapWalletStatusToQuota', () => {
   it('maps the backend wallet status into QuotaData with a DEFINED balance', () => {
@@ -148,5 +150,144 @@ describe('isWalletStatus', () => {
     expect(isWalletStatus(null)).toBe(false);
     expect(isWalletStatus({ balance: 1, frozen: false })).toBe(false);
     expect(isWalletStatus({ balance: Infinity, frozen: false, usage: 0 })).toBe(false);
+  });
+});
+
+describe('mapWalletStatusToQuota organization fields', () => {
+  const expiring = { microUsd: 200, usd: '0.0002', microUsdAtEarliest: 100, usdAtEarliest: '0.0001', expiresAt: 1_800_000_000_000 };
+  const member = {
+    balanceMicroUsd: 5_000_000,
+    frozen: false,
+    expiringSoon: false,
+    last30DaysUsageMicroUsd: 70,
+    organization: { id: 'org_1', name: 'Acme', availableMicroUsd: 5_000_000, frozen: false, role: 'member' },
+    personal: { balanceMicroUsd: 300, frozen: true, expiringSoon: expiring },
+  };
+
+  it('maps organization and personal objects for a member payload', () => {
+    const q = mapWalletStatusToQuota(member);
+    expect(q.organization).toEqual({ id: 'org_1', name: 'Acme', availableMicroUsd: 5_000_000, frozen: false, role: 'member' });
+    expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: true, expiringSoon: expiring });
+  });
+
+  it('keeps top-level balance as the organization available balance', () => {
+    const q = mapWalletStatusToQuota(member);
+    expect(q.balance).toBe(5_000_000);
+    expect(q.remaining).toBe(5_000_000);
+    expect(q.frozen).toBe(false);
+  });
+
+  it('carries committedBalanceMicroUsd when it is a finite number, and omits it otherwise', () => {
+    const withIt = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, committedBalanceMicroUsd: 8_000_000 } });
+    expect(withIt.organization?.committedBalanceMicroUsd).toBe(8_000_000);
+    expect(withIt.organization?.availableMicroUsd).toBe(5_000_000);
+    const without = mapWalletStatusToQuota(member);
+    expect(without.organization).toBeDefined();
+    expect('committedBalanceMicroUsd' in without.organization!).toBe(false);
+  });
+
+  it('treats a malformed committedBalanceMicroUsd as absent without dropping the organization', () => {
+    for (const bad of ['8', NaN, Infinity, null, {}]) {
+      const q = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, committedBalanceMicroUsd: bad } });
+      expect(q.organization).toBeDefined();
+      expect(q.organization?.committedBalanceMicroUsd).toBeUndefined();
+      expect(q.organization?.availableMicroUsd).toBe(5_000_000);
+    }
+  });
+
+  it('accepts the owner role', () => {
+    const q = mapWalletStatusToQuota({ ...member, organization: { ...member.organization, role: 'owner' } });
+    expect(q.organization?.role).toBe('owner');
+  });
+
+  it('maps an old payload exactly as before (snapshot)', () => {
+    const q = mapWalletStatusToQuota({ balance: 1000, frozen: false, usage: 50 });
+    expect(q).toStrictEqual({
+      balance: 1000,
+      frozen: false,
+      last30DaysUsage: 50,
+      total: 1000,
+      used: 50,
+      remaining: 1000,
+      resetDate: null,
+      plan: 'free',
+    });
+    expect('organization' in q).toBe(false);
+    expect('personal' in q).toBe(false);
+  });
+
+  it('drops a malformed organization or personal object without throwing', () => {
+    const badOrgs: unknown[] = [
+      null, 'x', 5,
+      { ...member.organization, id: 1 },
+      { ...member.organization, name: undefined },
+      { ...member.organization, availableMicroUsd: '5' },
+      { ...member.organization, availableMicroUsd: NaN },
+      { ...member.organization, frozen: 'no' },
+      { ...member.organization, role: 'admin' },
+    ];
+    for (const organization of badOrgs) {
+      const q = mapWalletStatusToQuota({ ...member, organization });
+      expect(q.organization).toBeUndefined();
+      expect(q.personal).toBeDefined();
+      expect(q.balance).toBe(5_000_000);
+    }
+    const badPersonals: unknown[] = [
+      null, [], { balanceMicroUsd: '1', frozen: false, expiringSoon: null },
+      { balanceMicroUsd: 1, frozen: 0, expiringSoon: null },
+      { frozen: false, expiringSoon: null },
+    ];
+    for (const personal of badPersonals) {
+      const q = mapWalletStatusToQuota({ ...member, personal });
+      expect(q.personal).toBeUndefined();
+      expect(q.organization).toBeDefined();
+    }
+    expect(isWalletStatus({ ...member, organization: 7, personal: 'x' })).toBe(true);
+  });
+
+  it('keeps personal with expiringSoon null, absent, or malformed (field becomes null)', () => {
+    const base = { balanceMicroUsd: 300, frozen: false };
+    const cases: unknown[] = [
+      { ...base, expiringSoon: null },
+      base,
+      { ...base, expiringSoon: undefined },
+      { ...base, expiringSoon: 'soon' },
+      { ...base, expiringSoon: true },
+      { ...base, expiringSoon: { ...expiring, expiresAt: 'x' } },
+    ];
+    for (const personal of cases) {
+      const q = mapWalletStatusToQuota({ ...member, personal });
+      expect(q.personal).toEqual({ balanceMicroUsd: 300, frozen: false, expiringSoon: null });
+    }
+  });
+});
+
+describe('mapWalletStatusToQuota: organization and personal drift', () => {
+  const base = { balance: 1000, frozen: false, usage: 0 };
+  const org = { id: 'o1', name: 'Acme', availableMicroUsd: 5, frozen: false, role: 'member' };
+
+  it('keeps a well-formed organization without warning', () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    expect(mapWalletStatusToQuota({ ...base, organization: org }).organization).toMatchObject({ role: 'member' });
+    expect(mapWalletStatusToQuota({ ...base, organization: { ...org, role: 'owner' } }).organization).toMatchObject({ role: 'owner' });
+    expect(mapWalletStatusToQuota(base).organization).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('drops a present-but-malformed organization (an unknown role) and warns with a dedupe key', () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    expect(mapWalletStatusToQuota({ ...base, organization: { ...org, role: 'admin' } }).organization).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: expect.any(String) });
+    warn.mockRestore();
+  });
+
+  it('drops a present-but-malformed personal and warns with a dedupe key', () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    expect(mapWalletStatusToQuota({ ...base, personal: { balanceMicroUsd: 'x', frozen: false } }).personal).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: expect.any(String) });
+    warn.mockRestore();
   });
 });

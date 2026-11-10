@@ -16,11 +16,14 @@ import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
+import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
+import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
 import type { QwenCredentials, QwenLeasePort, QwenReissue, QwenSettings } from './settings';
+
+const payerField = (payer: Payer | undefined) => (payer === undefined ? {} : { payer });
 
 /** What the backend accepts as a handshake request id (sokuji-backend `routes/qwen.ts`). */
 const REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -138,10 +141,16 @@ function parseGrant(body: unknown): Grant {
  * sends a failed start's message to analytics as `error_message`, so a
  * 402's amounts go to the Logs' frame instead (`refusalFrame`).
  */
-function refusal(status: number, body: unknown): Error {
-  const b = (body ?? {}) as { error?: unknown };
+function refusal(status: number, body: unknown, shape: RunShape): Error {
+  const b = (body ?? {}) as { error?: unknown; message?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
+  // The server's own text goes in, for the Logs; its figures never do.
+  const org = orgRefusalCode(status, body, shape.payer);
+  if (org) {
+    const said = server || (typeof b.message === 'string' ? b.message : '');
+    return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}${said ? `: ${said}` : ''}).`, org, orgNoticeParams(shape.account));
+  }
   switch (status) {
     case 401: return new AdapterStartError(`The session service did not accept the sign-in (HTTP 401${detail}).`, 'sign_in_required');
     case 402: return new AdapterStartError(`The session service refused the start: insufficient balance (HTTP 402${detail}).`, 'insufficient_balance');
@@ -286,6 +295,8 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       region: asQwenRegion(s.region),
       // The truth of this run, not the switch: a cancelled pick sent no source, so it is not billed the add-on.
       screenContext: shape.frames !== undefined,
+      // Who pays, chosen once at Start: a member's choice, nothing for anyone else.
+      ...payerField(shape.payer),
     };
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
@@ -358,7 +369,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     }
     if (answer.status < 200 || answer.status >= 300) {
       ctx.frame(refusalFrame(answer.status, answer.body));
-      throw refusal(answer.status, answer.body);
+      throw refusal(answer.status, answer.body, shape);
     }
     // A contract break past here leaves a never-reported lease, which the backend frees at its window's end; `session-end` cannot.
     const grant = parseGrant(answer.body);
@@ -523,6 +534,12 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           return { ok: true, apiKey, expiresAt, fresh: true };
         }
         if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
+        // An organization refusal mid-session (frozen, removed, held, spent): its own words, named from the account the run started with.
+        const org = orgRefusalCode(status, body, shape.payer);
+        if (org) {
+          const params = orgNoticeParams(shape.account);
+          return { ok: false, retry: false, code: org, message: said, ...(params ? { params } : {}) };
+        }
         if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
         if (status === 409) return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };
         if (status === 429 || status >= 500) return retry(said);

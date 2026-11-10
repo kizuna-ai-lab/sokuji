@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "התרגומים מוצגים בשכבת הכתוביות",
+    "payer": {
+      "paidBy": "משולם על ידי {{name}}",
+      "paidByYou": "משולם על ידך",
+      "useOwnBalance": "השתמש ביתרה האישית שלי"
+    },
     "function": "פונקציה",
     "noChannelConfigured": "הפעל מיקרופון או את שמע הצד השני לפני ההתחלה.",
     "release": "שחרר",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "לא ניתן לטעון מידע על מכסה",
-    "upgradeToPremium": "שדרג ל-Premium"
+    "upgradeToPremium": "שדרג ל-Premium",
+    "orgBalance": "יתרת {{name}}",
+    "yourBalance": "היתרה שלך",
+    "orgHeld": "{{held}} מתוכו מוחזקים עבור הפעלות פעילות; כל חלק שלא נוצל יוחזר עם סיומן.",
+    "paused": "מושהה"
   },
   "logs": {
     "webrtcFallback": "חיבור WebRTC נכשל, משתמש ב-WebSocket במקום"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "התרגום שהצד השני שומע מוצג כטקסט בלבד: אין מודל דיבור שמדבר {{target}}.",
     "participant_tts_missing": "התרגום שאני שומע מוצג כטקסט בלבד: אין מודל דיבור שמדבר {{target}}.",
     "participant_tts_over_budget": "התרגום שאני שומע מוצג כטקסט בלבד: אין מספיק זיכרון כדי לטעון גם את מודל הדיבור של הצד השני.",
-    "screen_context_lost": "המסך שנבחר אינו זמין עוד; התרגום ממשיך באמצעות אודיו בלבד."
+    "screen_context_lost": "המסך שנבחר אינו זמין עוד; התרגום ממשיך באמצעות אודיו בלבד.",
+    "org_balance_held": "יתרת הארגון שלך מוחזקת על ידי הפעלות שמתבצעות כעת. נסה שוב כשאחת מהן תסתיים, או השתמש ביתרה האישית שלך.",
+    "org_insufficient_balance": "בקש מבעל הארגון להטעין יתרה, או השתמש ביתרה האישית שלך.",
+    "org_insufficient_balance_owner": "הטען יתרה עבור {{organization}} או השתמש ביתרה האישית שלך.",
+    "org_insufficient_balance_owner_unnamed": "הטען יתרה עבור הארגון שלך או השתמש ביתרה האישית שלך.",
+    "not_org_member": "אינך עוד חבר בארגון {{organization}}.",
+    "not_org_member_unnamed": "אינך עוד חבר בארגון שלך.",
+    "org_wallet_frozen": "החשבון של {{organization}} מושהה. פנה לבעלים שלו או השתמש ביתרה האישית שלך.",
+    "org_wallet_frozen_unnamed": "חשבון הארגון מושהה. פנה לבעלים שלו או השתמש ביתרה האישית שלך.",
+    "org_wallet_frozen_owner": "החשבון של {{organization}} מושהה. פנה לתמיכה של Sokuji או השתמש ביתרה האישית שלך.",
+    "org_wallet_frozen_owner_unnamed": "חשבון הארגון מושהה. פנה לתמיכה של Sokuji או השתמש ביתרה האישית שלך."
   },
   "viewer": {
     "title": "כתוביות Sokuji",

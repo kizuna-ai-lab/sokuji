@@ -16,6 +16,8 @@ import type { SonioxVoice, SonioxVoicesClient } from '../../../providers/soniox/
 import type { ManagedVoicesClient, ManagedVoice } from '../../../providers/soniox/managedVoicesClient';
 import { SonioxVoicesError } from '../../../providers/soniox/voicesClient';
 import { synthesizeOnce } from '../../../providers/soniox/ttsRest';
+import { accountPayer, type Payer } from '../../../lib/session/payerChoice';
+import { useAccountStore } from '../../../stores/accountStore';
 import type { SonioxRegion } from '../../../lib/soniox/regions';
 import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
@@ -23,6 +25,12 @@ import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../providers/soniox/managedVoicePolling';
 import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
 import { sonioxWire } from '../../../providers/soniox/languages';
+
+/** The `payer` a request carries: the chosen one for an organization member, nothing for anyone else. Read when the request is built. */
+const payerField = (): { payer: Payer } | Record<string, never> => {
+  const payer = accountPayer(useAccountStore.getState().account);
+  return payer ? { payer } : {};
+};
 
 /**
  * The preview sample is looked up by app code; Soniox's TTS REST call takes
@@ -199,12 +207,16 @@ export function managedVoiceSource(
   // before (SonioxVoiceSection's mapTtsError). Nothing was leased by a
   // refused mint, so there is nothing to report done.
   const mintPreviewKey = async (signal?: AbortSignal) => {
+    // Whose balance the preview spends: a member's chosen wallet, read at the mint.
+    const request = () => {
+      return { mode: 'voice_preview' as const, ...payerField() };
+    };
     try {
-      return await client.sessionKey({ mode: 'voice_preview' });
+      return await client.sessionKey(request());
     } catch (error) {
       if (!(error instanceof SonioxVoicesError) || error.status !== 409) throw error;
       await retryDelay(error.retryAfterMs ?? 3000, signal);
-      return await client.sessionKey({ mode: 'voice_preview' });
+      return await client.sessionKey(request());
     }
   };
 
@@ -239,7 +251,8 @@ export function managedVoiceSource(
       // pin: false — building a voice from the settings panel is not starting
       // a session, and a pin taken here would hold one of the pool's scarce
       // slots against eviction for no session's benefit.
-      const created = await client.ensure({ pin: false, clip });
+      // Whose balance builds it: a member's chosen wallet, read now.
+      const created = await client.ensure({ pin: false, clip, ...payerField() });
       return toSonioxVoice({ voiceId: created.voiceId, status: created.status, createdAt: Date.now() });
     },
 

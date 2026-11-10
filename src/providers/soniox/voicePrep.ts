@@ -27,6 +27,7 @@
 import type { ManagedVoicesClient } from './managedVoicesClient';
 import { SonioxVoicesError } from './voicesClient';
 import { managedVoicePollDelayMs } from './managedVoicePolling';
+import type { Payer } from '../../lib/session/types';
 import { reportError, describeCause } from '../../lib/diagnostics/report';
 
 export type VoicePrepFailure = 'clip_required' | 'pool_exhausted' | 'voice_failed' | 'unavailable';
@@ -49,6 +50,8 @@ export interface PrepareManagedVoiceDeps {
    *  cancellation concept simply omits it, and behaviour is unchanged from
    *  before this parameter existed. */
   signal?: AbortSignal;
+  /** Who pays for the voice, asked when each `ensure` is made; none for a non-member. */
+  payer?: () => Payer | undefined;
   /** Budget for STARTING work — NOT a wall-clock ceiling on this call.
    *
    *  Every new attempt (a poll, the clip upload after `clip_required`, the
@@ -159,7 +162,8 @@ export async function prepareManagedVoice(deps: PrepareManagedVoiceDeps): Promis
       // own 120s timeout and blows straight through a 60s preparation budget,
       // with Start disabled and no way to cancel — the two together are what
       // make timeoutMs an actual ceiling rather than a hopeful one.
-      const value = await client.ensure({ pin: true, clip, budgetMs: deadline - now(), signal });
+      const payer = deps.payer?.();
+      const value = await client.ensure({ pin: true, clip, budgetMs: deadline - now(), signal, ...(payer ? { payer } : {}) });
       return { ok: true, value };
     } catch (error) {
       if (!(error instanceof SonioxVoicesError)) {

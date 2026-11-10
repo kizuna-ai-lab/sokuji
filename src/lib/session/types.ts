@@ -18,7 +18,21 @@ export type TurnMode = 'auto' | 'push-to-talk' | 'push-to-translate';
 export type AccountState =
   | { status: 'loading' }
   | { status: 'unknown' }
-  | { status: 'known'; balanceMicroUsd: number; frozen: boolean };
+  | ({ status: 'known'; balanceMicroUsd: number; frozen: boolean } & PayerWallets);
+
+/**
+ * The wallets a member of an organization can be billed to, as the wallet
+ * status names them (`QuotaData` carries the same fields). Absent for a
+ * non-member, whose account has the one wallet; for a member the top-level
+ * balance is the organization's.
+ */
+export interface PayerWallets {
+  organization?: { name: string; availableMicroUsd: number; committedBalanceMicroUsd?: number; frozen: boolean; role?: 'owner' | 'member' };
+  personal?: { balanceMicroUsd: number; frozen: boolean };
+}
+
+/** Who pays for a session an organization member starts; on the wire exactly these two values. */
+export type Payer = 'organization' | 'personal';
 
 /** Everything a run reads, frozen once at start (spec: "A run"); later steps read this, never the live stores. */
 export interface RunShape {
@@ -44,6 +58,8 @@ export interface RunShape {
   auth: AuthContext;
   /** The account's wallet at start, for a managed provider's floor (ruling 5). Null or absent when signed out, or where no account is wired (tests, the preview): then the sign-in check speaks, not the gate. */
   account?: AccountState | null;
+  /** Who pays, chosen once at start: set for an organization member only (`chosenPayer`), absent for everyone else, whose requests then carry no `payer`. */
+  payer?: Payer;
   /** The chosen capture area for a provider that takes one (Qwen); run-time state, never persisted. */
   frames?: FrameSource;
 }
@@ -147,9 +163,10 @@ export interface LoadingProgress {
   total: number;
 }
 
+/** `payer`: the one the run was started with (`RunShape.payer`), absent for a run with none; the payer line shows it while the run lasts. */
 export type RunState =
   | { phase: 'idle'; lastEnd?: RunEnd }
-  | { phase: 'starting'; participantSpeech: boolean; step: 'checking' | 'preparing' | 'opening' | 'waiting'; loading?: LoadingProgress }
+  | { phase: 'starting'; participantSpeech: boolean; payer?: Payer; step: 'checking' | 'preparing' | 'opening' | 'waiting'; loading?: LoadingProgress }
   /** `reconnect`: the reconnecting legs whose adapter reports attempts (the status line's); absent when there are none. */
-  | { phase: 'running'; participantSpeech: boolean; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget; reconnect?: Partial<Record<LegName, ReconnectProgress>> }
-  | { phase: 'stopping'; participantSpeech: boolean };
+  | { phase: 'running'; participantSpeech: boolean; payer?: Payer; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget; reconnect?: Partial<Record<LegName, ReconnectProgress>> }
+  | { phase: 'stopping'; participantSpeech: boolean; payer?: Payer };

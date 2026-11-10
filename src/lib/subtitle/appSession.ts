@@ -11,6 +11,7 @@ import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
 import { microphoneMissing } from '../session/shape';
 import type { ConversationViewState, Readable } from '../view/conversationView';
+import { subscribeUseOwnBalance } from '../session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -68,6 +69,8 @@ export function appSubtitleSession(
     useAudioStore.subscribe(update),
     view.subscribe(update),
     useAccountStore.subscribe(update),
+    // The payer switch moves the wallet the gate checks.
+    subscribeUseOwnBalance(update),
     useSettingsStore.subscribe((s) => s.textOnly, update),
     // A plain store (no subscribeWithSelector): fires on every change of it,
     // but `update` compares the computed session before it notifies its own

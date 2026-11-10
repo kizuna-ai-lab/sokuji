@@ -26,6 +26,7 @@ import type { ConversationViewState, Readable } from '../view/conversationView';
 import { fakeProvider } from '../../providers/fake/provider';
 import { fakeLeasedProvider } from '../../providers/fake/leased';
 import { FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { setUseOwnBalance } from '../session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -177,6 +178,31 @@ describe('appSubtitleSession — the balance floor (Stage 2 Kizuna Soniox, rulin
 
     useAccountStore.setState({ account: { status: 'loading' } });
     expect(session.get()).toMatchObject({ idle: { kind: 'unready', code: 'quota_pending' } });
+  });
+});
+
+describe('appSubtitleSession — the payer switch moves the wallet the gate checks', () => {
+  it('re-evaluates Start when a member flips the switch', () => {
+    const { session } = setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAudioStore.setState({ mode: 'speaker' });
+    localStorage.clear();
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 0, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 0, frozen: true }, personal: { balanceMicroUsd: 5000, frozen: false },
+    } });
+    expect(session.get().canStart).toBe(false);
+    const listener = vi.fn();
+    session.subscribe(listener);
+    setUseOwnBalance(true);
+    expect(listener).toHaveBeenCalled();
+    expect(session.get().canStart).toBe(true);
+    setUseOwnBalance(false);
+    expect(session.get().canStart).toBe(false);
+    localStorage.clear();
   });
 });
 

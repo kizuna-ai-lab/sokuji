@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Translations are showing in the subtitle overlay",
+    "payer": {
+      "paidBy": "Paid by {{name}}",
+      "paidByYou": "Paid by you",
+      "useOwnBalance": "Use my own balance"
+    },
     "function": "Function",
     "noChannelConfigured": "Enable microphone or Other's audio before starting.",
     "release": "release",
@@ -1015,7 +1020,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Unable to load quota information",
-    "upgradeToPremium": "Upgrade to Premium"
+    "upgradeToPremium": "Upgrade to Premium",
+    "orgBalance": "{{name}} balance",
+    "yourBalance": "Your balance",
+    "orgHeld": "{{held}} of it is held by sessions in progress; any unused part returns when they end.",
+    "paused": "Paused"
   },
   "logs": {
     "webrtcFallback": "WebRTC connection failed, using WebSocket instead"
@@ -1506,7 +1515,17 @@
     "speaker_tts_missing": "Translation the other side hears is text only: no speech model speaks {{target}}.",
     "participant_tts_missing": "Translation I hear is text only: no speech model speaks {{target}}.",
     "participant_tts_over_budget": "Translation I hear is text only: not enough memory to load the other side's speech model too.",
-    "screen_context_lost": "The screen you chose is no longer available; translation continues on audio alone."
+    "screen_context_lost": "The screen you chose is no longer available; translation continues on audio alone.",
+    "org_balance_held": "Your organization's balance is held by sessions in progress. Try again when one ends, or use your own balance.",
+    "org_insufficient_balance": "Ask the organization's owner to top up, or use your own balance.",
+    "org_insufficient_balance_owner": "Top up {{organization}}, or use your own balance.",
+    "org_insufficient_balance_owner_unnamed": "Top up your organization, or use your own balance.",
+    "not_org_member": "You're no longer in {{organization}}.",
+    "not_org_member_unnamed": "You're no longer in your organization.",
+    "org_wallet_frozen": "{{organization}}'s account is paused. Contact its owner, or use your own balance.",
+    "org_wallet_frozen_unnamed": "The organization's account is paused. Contact its owner, or use your own balance.",
+    "org_wallet_frozen_owner": "{{organization}}'s account is paused. Contact Sokuji support, or use your own balance.",
+    "org_wallet_frozen_owner_unnamed": "The organization's account is paused. Contact Sokuji support, or use your own balance."
   },
   "captionShare": {
     "button": "Share captions",

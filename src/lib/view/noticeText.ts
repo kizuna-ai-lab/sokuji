@@ -44,6 +44,18 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',
+  // A managed lease or the start gate refused an organization-paid start, or a running session's organization ended it. `_owner` is the owner's
+  // wording of the row, and `_unnamed` the sentence for a stale quota that no longer names the organization.
+  org_balance_held: "Your organization's balance is held by sessions in progress. Try again when one ends, or use your own balance.",
+  org_insufficient_balance: "Ask the organization's owner to top up, or use your own balance.",
+  org_insufficient_balance_owner: 'Top up {{organization}}, or use your own balance.',
+  org_insufficient_balance_owner_unnamed: 'Top up your organization, or use your own balance.',
+  not_org_member: "You're no longer in {{organization}}.",
+  not_org_member_unnamed: "You're no longer in your organization.",
+  org_wallet_frozen: "{{organization}}'s account is paused. Contact its owner, or use your own balance.",
+  org_wallet_frozen_unnamed: "The organization's account is paused. Contact its owner, or use your own balance.",
+  org_wallet_frozen_owner: "{{organization}}'s account is paused. Contact Sokuji support, or use your own balance.",
+  org_wallet_frozen_owner_unnamed: "The organization's account is paused. Contact Sokuji support, or use your own balance.",
   // The capture's degradations.
   app_capture_lost_using_system_audio: 'The app capture stopped, so all system audio is being translated instead.',
   app_capture_monitor_missing: "The app capture didn't start, so all system audio is being translated instead.",
@@ -146,12 +158,29 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   autosave_failed: 'mainPanel.export.autoSave.failed',
 };
 
+/**
+ * The row an organization's refusal is worded by: the owner's (`_owner`) when its role says owner, and the one for a
+ * stale quota (`_unnamed`) when no organization name came with it. Any other code is its own row.
+ */
+function wordsKey(code: string, params: Record<string, string | number> | undefined): string {
+  let key = code;
+  const named = Boolean(params?.organization);
+  // The owner's row; one that interpolates the name is used only when the name is there.
+  if (params?.role === 'owner') {
+    if (named && `${key}_owner` in NOTICE_WORDS) key = `${key}_owner`;
+    else if (!named && `${key}_owner_unnamed` in NOTICE_WORDS) key = `${key}_owner_unnamed`;
+  }
+  if (!named && !key.endsWith('_unnamed') && `${key}_unnamed` in NOTICE_WORDS) key = `${key}_unnamed`;
+  return key;
+}
+
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */
 export function noticeText(t: TFunction, notice: NoticeWords): string {
   const alias = notice.code === undefined ? undefined : NOTICE_ALIASES[notice.code];
   // A catalog lacking the key shows the diagnostic English, as a code with no words does.
   if (alias !== undefined) return t(alias, { defaultValue: notice.message, ...named(notice.params), detail: notice.message });
-  const words = notice.code === undefined ? undefined : NOTICE_WORDS[notice.code];
-  if (words === undefined) return notice.message;
-  return t(`notices.${notice.code}`, { defaultValue: words, ...named(notice.params), detail: notice.message });
+  const key = notice.code === undefined ? undefined : wordsKey(notice.code, notice.params);
+  const words = key === undefined ? undefined : NOTICE_WORDS[key];
+  if (key === undefined || words === undefined) return notice.message;
+  return t(`notices.${key}`, { defaultValue: words, ...named(notice.params), detail: notice.message });
 }

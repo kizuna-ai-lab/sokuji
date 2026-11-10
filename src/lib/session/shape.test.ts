@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
+import { setUseOwnBalance } from './payerChoice';
 import { AUTO } from '../provider/languages';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -184,6 +185,79 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
 
   it('refuses a frozen wallet before the floor', () => {
     expect(balanceRefusal(input({ account: known(10_000, true) }))).toEqual({ code: 'wallet_frozen', message: 'The wallet is frozen.' });
+  });
+
+  describe('a member pays from the wallet the switch chooses', () => {
+    const memberAccount = (org: { availableMicroUsd: number; frozen?: boolean }, personal: { balanceMicroUsd: number; frozen?: boolean }) => ({
+      status: 'known' as const,
+      balanceMicroUsd: org.availableMicroUsd,
+      frozen: org.frozen ?? false,
+      organization: { name: 'Acme', availableMicroUsd: org.availableMicroUsd, frozen: org.frozen ?? false },
+      personal: { balanceMicroUsd: personal.balanceMicroUsd, frozen: personal.frozen ?? false },
+    });
+    beforeEach(() => localStorage.clear());
+
+    it('reads the organization below the floor with the switch off, and the personal wallet with it on: organization 0, personal 5 USD', () => {
+      const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      expect(balanceRefusal(input({ account, payer: 'organization' }))?.code).toBe('org_insufficient_balance');
+      expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
+    });
+
+    it('does not refuse an organization payer below the floor at Start: the server tells held money from an empty organization', () => {
+      const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toBeNull();
+    });
+
+    it('leaves a personal payer with no known personal wallet to the server: no balance is invented', () => {
+      const account = { ...memberAccount({ availableMicroUsd: 9_000_000 }, { balanceMicroUsd: 0 }), personal: undefined };
+      expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
+      expect(gate(shape({ provider: leased, account, payer: 'personal' }), 'electron')).toBeNull();
+    });
+
+    it('still refuses a frozen organization at Start, and a personal payer below the floor before any request', () => {
+      const frozen = memberAccount({ availableMicroUsd: 0, frozen: true }, { balanceMicroUsd: 5_000_000 });
+      expect(gate(shape({ provider: leased, account: frozen, payer: 'organization' }), 'electron')).toMatchObject({ code: 'org_wallet_frozen' });
+      const poor = memberAccount({ availableMicroUsd: 9_000_000 }, { balanceMicroUsd: 0 });
+      expect(gate(shape({ provider: leased, account: poor, payer: 'personal' }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
+    });
+
+    it('names the organization and the role in an organization refusal, and keeps the personal wording for the personal wallet', () => {
+      const account = { ...memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 0 }), organization: { name: 'Acme', availableMicroUsd: 0, frozen: false, role: 'owner' as const } };
+      expect(balanceRefusal(input({ account, payer: 'organization' }))).toMatchObject({ code: 'org_insufficient_balance', params: { organization: 'Acme', role: 'owner' } });
+      expect(balanceRefusal(input({ account, payer: 'personal' }))?.code).toBe(BALANCE_BELOW_FLOOR);
+    });
+
+    it('refuses a frozen organization with the switch off: wallet_frozen', () => {
+      const account = memberAccount({ availableMicroUsd: 10_000, frozen: true }, { balanceMicroUsd: 5_000_000 });
+      expect(balanceRefusal(input({ account, payer: 'organization' }))).toMatchObject({ code: 'org_wallet_frozen', params: { organization: 'Acme' } });
+      expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
+    });
+
+    it('keeps the organization code when the name is empty: the code follows the payer, the params the name', () => {
+      const base = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      const account = { ...base, organization: { name: '', availableMicroUsd: 0, frozen: false, role: 'owner' as const } };
+      const refusal = balanceRefusal(input({ account, payer: 'organization' }));
+      expect(refusal?.code).toBe('org_insufficient_balance');
+      expect(refusal?.params).not.toHaveProperty('organization');
+      const frozen = { ...base, organization: { name: '', availableMicroUsd: 0, frozen: true } };
+      expect(balanceRefusal(input({ account: frozen, payer: 'organization' }))?.code).toBe('org_wallet_frozen');
+    });
+
+    it('refuses a frozen personal wallet only with the switch on', () => {
+      const account = memberAccount({ availableMicroUsd: 10_000 }, { balanceMicroUsd: 5_000_000, frozen: true });
+      expect(balanceRefusal(input({ account, payer: 'organization' }))).toBeNull();
+      expect(balanceRefusal(input({ account, payer: 'personal' }))?.code).toBe('wallet_frozen');
+    });
+
+    it("reads the shape's payer, not the live switch: a run's later steps do not follow the stores", () => {
+      const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      setUseOwnBalance(true);
+      expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toBeNull();
+      setUseOwnBalance(false);
+      expect(gate(shape({ provider: leased, account, payer: 'personal' }), 'electron')).toBeNull();
+      const poor = memberAccount({ availableMicroUsd: 5_000_000 }, { balanceMicroUsd: 0 });
+      expect(gate(shape({ provider: leased, account: poor, payer: 'personal' }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
+    });
   });
 
   it('refuses a balance below the floor for these legs, with the balance floored in USD', () => {

@@ -8,13 +8,14 @@ import { managedVoiceSource } from './voiceLibrarySource';
 import type { ManagedVoicesClient } from '../../../providers/soniox/managedVoicesClient';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { synthesizeOnce } from '../../../providers/soniox/ttsRest';
+import { useAccountStore } from '../../../stores/accountStore';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return {
     ...actual,
-    useTranslation: () => ({ t: (_k: string, def?: string) => def ?? _k, i18n: { language: 'en' } }),
+    useTranslation: () => ({ t: (_k: string, def?: string | { defaultValue?: string }) => (typeof def === 'string' ? def : def?.defaultValue ?? _k), i18n: { language: 'en' } }),
   };
 });
 
@@ -1469,6 +1470,23 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
     fireEvent.click(within(rowFor('My voice')).getByRole('button', { name: /^play$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/top up your balance/i);
+  });
+
+  it.each(['org_insufficient_balance', 'org_wallet_frozen', 'org_balance_held', 'not_org_member'])('words a managed preview\'s %s refusal as the organization\'s notice and refetches the wallet', async (errorType) => {
+    const refetchQuotaMock = vi.fn(async () => {});
+    useAccountStore.getState().setRefreshAccount(refetchQuotaMock);
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError(errorType, 'refused', errorType === 'not_org_member' || errorType === 'org_wallet_frozen' ? 403 : 402));
+    mount({ managed: true });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('My voice')).getByRole('button', { name: /^play$/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).not.toHaveTextContent(/top up your balance to preview/i);
+    expect(alert).toHaveTextContent(/organization/i);
+    expect(refetchQuotaMock).toHaveBeenCalledTimes(1);
+    useAccountStore.getState().setRefreshAccount(null);
   });
 
   it('maps a managed preview\'s 409 to "a session is running"', async () => {

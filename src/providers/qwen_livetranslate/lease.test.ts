@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { accountPayer, setUseOwnBalance } from '../../lib/session/payerChoice';
 import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
@@ -74,6 +75,33 @@ async function rejection(p: Promise<unknown>): Promise<unknown> {
 }
 
 const code = (e: unknown) => (e as AdapterStartError).code;
+
+describe('Qwen lease: who pays', () => {
+  const memberAccount = { status: 'known' as const, balanceMicroUsd: 9, frozen: false, organization: { name: 'Acme', availableMicroUsd: 9, frozen: false }, personal: { balanceMicroUsd: 5, frozen: false } };
+  const withAccount = async (account: RunShape['account']) => {
+    const net = stubFetch();
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    lease({ ...shapeFor(['speaker']), account, ...(accountPayer(account) ? { payer: accountPayer(account) } : {}) }, QWEN_DEFAULTS, ctx).catch(() => {});
+    await flush();
+    return { body: JSON.parse(net.last().init.body as string), ctx };
+  };
+  beforeEach(() => localStorage.clear());
+
+  it('sends no payer for a non-member, whatever the switch says', async () => {
+    setUseOwnBalance(true);
+    expect((await withAccount({ status: 'known', balanceMicroUsd: 9, frozen: false })).body).not.toHaveProperty('payer');
+    expect((await withAccount(null)).body).not.toHaveProperty('payer');
+  });
+
+  it('sends organization for a member with the switch off, personal with it on, in the body and in the Logs', async () => {
+    const off = await withAccount(memberAccount);
+    expect(off.body.payer).toBe('organization');
+    expect(off.ctx.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.key_requested', payload: expect.objectContaining({ payer: 'organization' }) }));
+    setUseOwnBalance(true);
+    expect((await withAccount(memberAccount)).body.payer).toBe('personal');
+  });
+});
 
 describe('Qwen lease: the session-key request', () => {
   it('asks for a speaker-only text-only run with nobody speaking', async () => {
@@ -1051,6 +1079,22 @@ describe('Qwen lease: reissue', () => {
     });
   }
 
+  it('maps a 403 for a frozen organization to org_wallet_frozen with the organization and role, a plain 403 to wallet_frozen', async () => {
+    const org = await reissuer(['speaker']);
+    org.shape.account = { status: 'known' as const, balanceMicroUsd: 0, frozen: false, organization: { name: 'Acme', availableMicroUsd: 0, frozen: false, role: 'owner' as const } };
+    const p = org.ports.speaker.reissue(dropNow(org));
+    await flush();
+    org.to(REISSUE)[0].respond(403, { error: 'Wallet is frozen', code: 'wallet_frozen', subject: 'organization' });
+    await expect(p).resolves.toMatchObject({ ok: false, retry: false, code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } });
+    const plain = await reissuer(['speaker']);
+    const q = plain.ports.speaker.reissue(dropNow(plain));
+    await flush();
+    plain.to(REISSUE)[0].respond(403, { code: 'wallet_frozen' });
+    const answer = await q;
+    expect(answer).toMatchObject({ code: 'wallet_frozen' });
+    expect(answer).not.toHaveProperty('params');
+  });
+
   it('a 200 without a key is a retry', async () => {
     const a = await reissuer(['speaker']);
     const p = a.ports.speaker.reissue(dropNow(a));
@@ -1099,5 +1143,70 @@ describe('Qwen lease: reissue', () => {
     const before = a.to(REISSUE).length;
     await expect(a.ports.speaker.reissue(dropNow(a))).resolves.toMatchObject({ ok: false, retry: false, code: 'lease_ended' });
     expect(a.to(REISSUE).length).toBe(before);
+  });
+});
+
+describe('Qwen lease: refusals for organization payers', () => {
+  const account = { status: 'known' as const, balanceMicroUsd: 0, frozen: false, organization: { name: 'Acme', availableMicroUsd: 0, frozen: false, role: 'member' as const }, personal: { balanceMicroUsd: 5, frozen: false } };
+  /** The refusal a start meets; `payer` is what the request carried, not the switch. */
+  const refused = async (status: number, body: unknown, over: Partial<RunShape> = {}) => {
+    const net = stubFetch();
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    const pending = lease({ ...shapeFor(['speaker']), account, ...over }, QWEN_DEFAULTS, ctx);
+    pending.catch(() => {});
+    await flush();
+    net.last().respond(status, body);
+    return rejection(pending) as Promise<AdapterStartError>;
+  };
+  beforeEach(() => localStorage.clear());
+
+  it('words a 402 whose reason is org_balance_held', async () => {
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'org_balance_held', availableMicroUsd: 3 }, { payer: 'organization' });
+    expect(e).toMatchObject({ code: 'org_balance_held' });
+  });
+
+  it('words a 402 insufficient_balance as the organization\'s when the request was organization-paid, with the name and role', async () => {
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'insufficient_balance', availableMicroUsd: 3 }, { payer: 'organization' });
+    expect(e).toMatchObject({ code: 'org_insufficient_balance', params: { organization: 'Acme', role: 'member' } });
+  });
+
+  it('decides by the payer sent, not the live switch', async () => {
+    setUseOwnBalance(false);
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'insufficient_balance' }, { payer: 'personal' });
+    expect(e).toMatchObject({ code: 'insufficient_balance' });
+    setUseOwnBalance(true);
+    expect(await refused(402, { error: 'Insufficient balance' }, { payer: 'organization' })).toMatchObject({ code: 'org_insufficient_balance' });
+  });
+
+  it('leaves a personal or non-member 402 as it was', async () => {
+    expect(await refused(402, { error: 'Insufficient balance' }, { account: undefined })).toMatchObject({ code: 'insufficient_balance' });
+  });
+
+  it('keeps the server\'s own text in an organization refusal, and no amount', async () => {
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'insufficient_balance', availableMicroUsd: 3123456 }, { payer: 'organization' });
+    expect(e.message).toContain('Insufficient balance');
+    expect(e.message).not.toContain('3123456');
+    const m = await refused(403, { message: 'Organization wallet paused', subject: 'organization' }, { payer: 'organization' });
+    expect(m.message).toContain('Organization wallet paused');
+  });
+
+  it('words a 403 not_org_member', async () => {
+    const e = await refused(403, { code: 'not_org_member' }, { payer: 'organization' });
+    expect(e).toMatchObject({ code: 'not_org_member', params: { organization: 'Acme' } });
+  });
+
+  it('words a 403 frozen with subject organization, and a personal one as before', async () => {
+    expect(await refused(403, { error: 'Wallet frozen', subject: 'organization' }, { payer: 'organization' })).toMatchObject({ code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'member' } });
+    expect(await refused(403, { error: 'Wallet frozen' }, { payer: 'personal' })).toMatchObject({ code: 'wallet_frozen' });
+    expect(await refused(403, undefined, { account: undefined })).toMatchObject({ code: 'wallet_frozen' });
+  });
+
+  it('carries the owner role, and survives a stale quota with no organization', async () => {
+    const owner = { ...account, organization: { ...account.organization, role: 'owner' as const } };
+    expect(await refused(403, { subject: 'organization' }, { payer: 'organization', account: owner })).toMatchObject({ code: 'org_wallet_frozen', params: { role: 'owner' } });
+    const stale = await refused(403, { code: 'not_org_member' }, { payer: 'organization', account: { status: 'known', balanceMicroUsd: 0, frozen: false } });
+    expect(stale).toMatchObject({ code: 'not_org_member' });
+    expect(stale.params).toBeUndefined();
   });
 });

@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
+    "payer": {
+      "paidBy": "Dibayar oleh {{name}}",
+      "paidByYou": "Dibayar oleh Anda",
+      "useOwnBalance": "Gunakan saldo saya sendiri"
+    },
     "function": "Fungsi",
     "noChannelConfigured": "Aktifkan mikrofon atau audio lawan bicara sebelum memulai.",
     "release": "lepas",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuat informasi kuota",
-    "upgradeToPremium": "Tingkatkan ke Premium"
+    "upgradeToPremium": "Tingkatkan ke Premium",
+    "orgBalance": "Saldo {{name}}",
+    "yourBalance": "Saldo Anda",
+    "orgHeld": "{{held}} darinya ditahan oleh sesi yang sedang berjalan; bagian yang tidak terpakai dikembalikan saat sesi berakhir.",
+    "paused": "Dijeda"
   },
   "logs": {
     "webrtcFallback": "Koneksi WebRTC gagal, menggunakan WebSocket sebagai gantinya"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya berupa teks: tidak ada model suara yang berbicara {{target}}.",
     "participant_tts_over_budget": "Terjemahan yang saya dengar hanya berupa teks: memori tidak cukup untuk memuat model suara pihak lain juga.",
-    "screen_context_lost": "Layar yang Anda pilih tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
+    "screen_context_lost": "Layar yang Anda pilih tidak lagi tersedia; terjemahan berlanjut hanya dengan audio.",
+    "org_balance_held": "Saldo organisasi Anda ditahan oleh sesi yang sedang berjalan. Coba lagi setelah salah satunya berakhir, atau gunakan saldo pribadi Anda.",
+    "org_insufficient_balance": "Minta pemilik organisasi untuk mengisi saldo, atau gunakan saldo pribadi Anda.",
+    "org_insufficient_balance_owner": "Isi saldo {{organization}}, atau gunakan saldo pribadi Anda.",
+    "org_insufficient_balance_owner_unnamed": "Isi saldo organisasi Anda, atau gunakan saldo pribadi Anda.",
+    "not_org_member": "Anda tidak lagi menjadi anggota {{organization}}.",
+    "not_org_member_unnamed": "Anda tidak lagi menjadi anggota organisasi Anda.",
+    "org_wallet_frozen": "Akun {{organization}} dijeda. Hubungi pemiliknya, atau gunakan saldo pribadi Anda.",
+    "org_wallet_frozen_unnamed": "Akun organisasi dijeda. Hubungi pemiliknya, atau gunakan saldo pribadi Anda.",
+    "org_wallet_frozen_owner": "Akun {{organization}} dijeda. Hubungi dukungan Sokuji, atau gunakan saldo pribadi Anda.",
+    "org_wallet_frozen_owner_unnamed": "Akun organisasi dijeda. Hubungi dukungan Sokuji, atau gunakan saldo pribadi Anda."
   },
   "viewer": {
     "title": "Subtitle Sokuji",

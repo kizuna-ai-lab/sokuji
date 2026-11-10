@@ -11,9 +11,14 @@ import type { AccountState } from '../lib/session/types';
 interface AccountStore {
   account: AccountState | null;
   setAccount(account: AccountState | null): void;
+  /** Fetches the wallet again, wired by `UserProfileProvider`; null where none is mounted. */
+  refreshAccount: (() => Promise<void>) | null;
+  setRefreshAccount(refresh: (() => Promise<void>) | null): void;
 }
 
 export const useAccountStore = create<AccountStore>()((set) => ({
   account: null,
   setAccount: (account) => set({ account }),
+  refreshAccount: null,
+  setRefreshAccount: (refresh) => set({ refreshAccount: refresh }),
 }));

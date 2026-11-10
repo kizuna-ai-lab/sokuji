@@ -5,6 +5,8 @@ import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
+import { payerBalance } from './orgNotice';
+import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
 import type { RunNotice, RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
@@ -101,7 +103,7 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
 }
 
 /** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. */
-export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account'>>;
+export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>>;
 
 /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
 export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
@@ -119,20 +121,31 @@ export const QUOTA_UNKNOWN = 'quota_unknown';
  * speaks, or none wired — or when the provider names no floor. The
  * backend's 402 still words a balance that changed since the fetch.
  */
-export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account'>): Refusal | null {
+export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>): Refusal | null {
   const floorFor = input.provider.session?.minimumBalance;
   const account = input.account;
   if (!floorFor || !account) return null;
   if (account.status === 'loading') return { code: QUOTA_PENDING, message: 'The wallet is still loading.' };
   if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
-  if (account.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+  // The wallet the chosen payer spends: a member's organization or own balance, a non-member's only one.
+  const wallet = payerBalance(account, input.payer);
+  // The organization pays (and the account still holds it): its refusals carry its name and the member's role.
+  // The code follows the payer; the params follow the name (an empty one leaves them out and the words fall back).
+  const org = input.payer === 'organization' && account.organization !== undefined;
+  const orgParams = org ? orgNoticeParams(account) : undefined;
+  if (wallet.frozen) {
+    return org
+      ? { code: ORG_WALLET_FROZEN, message: 'The organization wallet is frozen.', ...(orgParams ? { params: orgParams } : {}) }
+      : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+  }
   const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
-  if (account.balanceMicroUsd >= floor) return null;
+  // No balance known for the chosen wallet: the server checks it, as it does an organization below the floor.
+  if (wallet.microUsd === undefined || wallet.microUsd >= floor) return null;
   return {
-    code: BALANCE_BELOW_FLOOR,
-    message: `The balance (${account.balanceMicroUsd} µUSD) is below this start's floor (${floor} µUSD).`,
+    code: org ? ORG_INSUFFICIENT_BALANCE : BALANCE_BELOW_FLOOR,
+    message: `The balance (${wallet.microUsd} µUSD) is below this start's floor (${floor} µUSD).`,
     // Floored, as every balance is: this is the moment it is too low, the worst one to round up.
-    params: { balance: formatUsdFloor(account.balanceMicroUsd) },
+    params: { ...orgParams, balance: formatUsdFloor(wallet.microUsd) },
   };
 }
 
@@ -172,7 +185,11 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message, leg: 'participant' };
     }
   }
-  return balanceRefusal(shape);
+  const refusal = balanceRefusal(shape);
+  // An organization payer below the floor is not refused here: the status can be minutes old and cannot tell money held
+  // by colleagues' running sessions from an empty organization, so the server answers precisely. A frozen one still is.
+  if (refusal?.code === ORG_INSUFFICIENT_BALANCE) return null;
+  return refusal;
 }
 
 /** Why the app's surfaces keep Start off while no microphone is chosen. */

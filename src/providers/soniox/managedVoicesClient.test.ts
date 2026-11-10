@@ -70,6 +70,16 @@ describe('ManagedVoicesClient.ensure', () => {
     expect(init.headers['Content-Type']).toBeUndefined();
   });
 
+  it('carries a payer form field exactly when one is given', async () => {
+    fetchMock.mockImplementation(async () => json(200, { voiceId: 'v1', status: 'ready' }));
+    await make().ensure({ pin: true, payer: 'personal' });
+    expect((fetchMock.mock.calls[0][1].body as FormData).get('payer')).toBe('personal');
+    await make().ensure({ pin: true, payer: 'organization' });
+    expect((fetchMock.mock.calls[1][1].body as FormData).get('payer')).toBe('organization');
+    await make().ensure({ pin: true });
+    expect((fetchMock.mock.calls[2][1].body as FormData).has('payer')).toBe(false);
+  });
+
   it('attaches the clip when one is supplied, and pin=0 when not pinning', async () => {
     fetchMock.mockResolvedValue(json(200, { voiceId: 'v2', status: 'processing' }));
     const clip = new Blob([new Uint8Array([1, 2])], { type: 'audio/wav' });
@@ -102,6 +112,50 @@ describe('ManagedVoicesClient.ensure', () => {
   ])('passes the backend slug through for %i %s', async (status, slug) => {
     fetchMock.mockResolvedValue(json(status, { error: slug }));
     await expect(make().ensure({ pin: true })).rejects.toMatchObject({ errorType: slug, status });
+  });
+
+  describe('an organization payer', () => {
+    it('maps a frozen organization to org_wallet_frozen, and a personal freeze to wallet_frozen', async () => {
+      fetchMock.mockResolvedValue(json(403, { error: 'wallet_frozen', subject: 'organization' }));
+      await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_wallet_frozen', status: 403 });
+      fetchMock.mockResolvedValue(json(403, { error: 'wallet_frozen' }));
+      await expect(make().ensure({ pin: true, payer: 'personal' })).rejects.toMatchObject({ errorType: 'wallet_frozen' });
+    });
+    it('maps insufficient_balance by the payer sent', async () => {
+      // A fresh response per call: a body reads once.
+      fetchMock.mockImplementation(async () => json(402, { error: 'insufficient_balance' }));
+      await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_insufficient_balance', status: 402 });
+      await expect(make().ensure({ pin: true, payer: 'personal' })).rejects.toMatchObject({ errorType: 'insufficient_balance' });
+      await expect(make().ensure({ pin: true })).rejects.toMatchObject({ errorType: 'insufficient_balance' });
+    });
+    it('passes not_org_member through', async () => {
+      fetchMock.mockResolvedValue(json(403, { error: 'not_org_member' }));
+      await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'not_org_member', status: 403 });
+    });
+    describe('the preview session key, with the session-key route\'s real bodies', () => {
+      const preview = (payer?: 'organization' | 'personal') => make().sessionKey({ mode: 'voice_preview', ...(payer ? { payer } : {}) });
+      it('maps a 402 to org_insufficient_balance when the organization pays, and leaves it otherwise', async () => {
+        const body = { error: 'Insufficient balance', requiredMicroUsd: 41_667, balanceMicroUsd: 1_234, reason: 'insufficient_balance', availableMicroUsd: 1_234 };
+        fetchMock.mockImplementation(async () => json(402, body));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'org_insufficient_balance', status: 402 });
+        await expect(preview('personal')).rejects.toMatchObject({ status: 402, errorType: 'Insufficient balance' });
+        await expect(preview()).rejects.toMatchObject({ status: 402, errorType: 'Insufficient balance' });
+      });
+      it('maps a 402 held by sessions to org_balance_held', async () => {
+        fetchMock.mockImplementation(async () => json(402, { error: 'Insufficient balance', reason: 'org_balance_held', availableMicroUsd: 3 }));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'org_balance_held' });
+      });
+      it('maps a frozen organization 403 to org_wallet_frozen, a personal freeze to wallet_frozen', async () => {
+        fetchMock.mockImplementation(async () => json(403, { error: 'Wallet is frozen', code: 'wallet_frozen', subject: 'organization' }));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'org_wallet_frozen', status: 403 });
+        fetchMock.mockImplementation(async () => json(403, { error: 'Wallet is frozen', code: 'wallet_frozen' }));
+        await expect(preview('personal')).rejects.toMatchObject({ status: 403, errorType: 'Wallet is frozen' });
+      });
+      it('maps a removed member', async () => {
+        fetchMock.mockImplementation(async () => json(403, { code: 'not_org_member' }));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'not_org_member' });
+      });
+    });
   });
 
   it('normalizes a transport failure instead of leaking a TypeError', async () => {
@@ -252,6 +306,14 @@ describe('ManagedVoicesClient.sessionKey', () => {
     expect(init.method).toBe('POST');
     expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
     expect(JSON.parse(init.body as string)).toEqual({ mode: 'voice_preview', region: 'eu' });
+  });
+
+  it('carries payer in the body exactly when one is given', async () => {
+    fetchMock.mockImplementation(async () => json(200, { ttsApiKey: 'tk', region: 'us' }));
+    await make().sessionKey({ mode: 'voice_preview', payer: 'personal' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ mode: 'voice_preview', region: 'us', payer: 'personal' });
+    await make().sessionKey({ mode: 'voice_preview' });
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).not.toHaveProperty('payer');
   });
 
   it('defaults to US when constructed with no region, same as every other method', async () => {

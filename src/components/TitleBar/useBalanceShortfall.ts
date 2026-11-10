@@ -3,10 +3,13 @@
  * (choice 9): exactly when the start gate refuses the selected provider's
  * start below its floor — the same computation over the same stores as
  * Start, so the two never disagree (`AccountButton.tsx`'s own rule). A
- * frozen wallet is not a low balance.
+ * frozen wallet is not a low balance. For an organization payer the dot is only a
+ * hint: Start itself is not refused below the floor, the server answers it.
  */
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';
+import { ORG_INSUFFICIENT_BALANCE } from '../../lib/session/orgNotice';
+import { useAccountPayer } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -22,6 +25,8 @@ export function useBalanceShortfall(): boolean {
   useAudioStore((s) => s.otherSide);
   const textOnly = useSettingsStore((s) => s.textOnly);
   const account = useAccountStore((s) => s.account);
+  // Which wallet the gate checks follows the payer switch.
+  const payer = useAccountPayer(account);
   // What `speechFromStores` reads, subscribed so the dot follows the switch and the source.
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
@@ -31,5 +36,6 @@ export function useBalanceShortfall(): boolean {
   if (!found) return false;
   const { provider, entry } = found;
   const participantSpeech = speechFromStores(provider).them;
-  return balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account })?.code === BALANCE_BELOW_FLOOR;
+  const code = balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer })?.code;
+  return code === BALANCE_BELOW_FLOOR || code === ORG_INSUFFICIENT_BALANCE;
 }

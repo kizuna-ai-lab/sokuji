@@ -481,6 +481,54 @@
 }
 
 
+// One labelled balance per wallet, shown to organization members.
+.quota-balance-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.quota-balance-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  min-width: 0;
+
+  .quota-balance-label {
+    color: vars.$text-dim;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .balance-section {
+    color: vars.$text-primary;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+
+}
+
+// A paused wallet, on whichever row shape is rendering it: the old two-line
+// layout nested this under `.quota-balance-row`, and the panel's new rows are
+// `.quota-row`, so the rule lives on its own rather than under either.
+.quota-paused-marker {
+  color: tk.$color-warning;
+  font-size: 12px;
+}
+
+// Under the organization's line: how much of it running sessions hold.
+.quota-org-held {
+  color: vars.$text-dim;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 // Ultra-compact single line display with badge and dividers
 .quota-compact-line {
   display: flex;
@@ -617,5 +665,145 @@
   .user-profile-mount {
     // The Clerk UserProfile will mount here
     // It will handle its own styling
+  }
+}
+// The payer tabs: one current side, the other one click away.
+.quota-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 10px;
+  background: vars.$bg-control;
+  border-radius: 9px;
+}
+
+.quota-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: vars.$text-dim;
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+
+  &.is-on {
+    background: vars.$bg-surface;
+    color: vars.$text-primary;
+    font-weight: 600;
+    box-shadow: 0 1px 3px vars.$shadow;
+  }
+
+  &:disabled { cursor: default; }
+}
+
+// "This session is paid by X": read-only while a run is in flight.
+.quota-locked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: vars.$text-dim;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: tk.$color-primary;
+    flex: 0 0 auto;
+  }
+}
+
+// Labels left, figures right: the eye scans one column of numbers instead of
+// reading every label. tabular-nums keeps the digits in line.
+.quota-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quota-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.quota-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: vars.$text-dim;
+}
+
+.quota-val {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: vars.$text-primary;
+  font-variant-numeric: tabular-nums;
+
+  &--big {
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.2px;
+  }
+}
+
+.quota-hint {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 50%;
+  background: transparent;
+  color: vars.$text-dim;
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid tk.$color-primary;
+    outline-offset: 1px;
+  }
+}
+
+.quota-hint-text {
+  margin: 2px 0 4px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: vars.$text-dim;
+}
+
+// A zone header carries no figure of its own: it says which period the rows
+// under it describe.
+.quota-zone {
+  margin: 12px 0 3px;
+  font-size: 11px;
+  color: vars.$text-dim;
+}
+
+.quota-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid vars.$border-subtle;
+  font-size: 12px;
+  color: vars.$text-dim;
+
+  &__total {
+    font-variant-numeric: tabular-nums;
   }
 }

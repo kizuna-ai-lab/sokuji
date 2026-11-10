@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Les traductions s’affichent dans la superposition de sous-titres",
+    "payer": {
+      "paidBy": "Payé par {{name}}",
+      "paidByYou": "Payé par vous",
+      "useOwnBalance": "Utiliser mon propre solde"
+    },
     "function": "Fonction",
     "noChannelConfigured": "Activez le microphone ou l'audio de l'autre avant de démarrer.",
     "release": "relâcher",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Impossible de charger les informations de quota",
-    "upgradeToPremium": "Passer à Premium"
+    "upgradeToPremium": "Passer à Premium",
+    "orgBalance": "Solde de {{name}}",
+    "yourBalance": "Votre solde",
+    "orgHeld": "{{held}} sont réservés par les sessions en cours ; toute partie non utilisée est restituée à leur fin.",
+    "paused": "En pause"
   },
   "logs": {
     "webrtcFallback": "Échec de la connexion WebRTC, utilisation de WebSocket à la place"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "La traduction entendue par l'autre s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_missing": "La traduction que j'entends s'affiche en texte seul : aucun modèle vocal ne parle {{target}}.",
     "participant_tts_over_budget": "La traduction que j'entends s'affiche en texte seul : pas assez de mémoire pour charger aussi le modèle vocal de l'autre.",
-    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul."
+    "screen_context_lost": "L'écran que vous avez choisi n'est plus disponible ; la traduction continue avec l'audio seul.",
+    "org_balance_held": "Le solde de votre organisation est retenu par des sessions en cours. Réessayez lorsqu'une session se termine, ou utilisez votre propre solde.",
+    "org_insufficient_balance": "Demandez au propriétaire de l'organisation de recharger le solde, ou utilisez votre propre solde.",
+    "org_insufficient_balance_owner": "Rechargez le solde de {{organization}} ou utilisez votre propre solde.",
+    "org_insufficient_balance_owner_unnamed": "Rechargez le solde de votre organisation ou utilisez votre propre solde.",
+    "not_org_member": "Vous ne faites plus partie de {{organization}}.",
+    "not_org_member_unnamed": "Vous ne faites plus partie de votre organisation.",
+    "org_wallet_frozen": "Le compte de {{organization}} est suspendu. Contactez son propriétaire ou utilisez votre propre solde.",
+    "org_wallet_frozen_unnamed": "Le compte de l'organisation est suspendu. Contactez son propriétaire ou utilisez votre propre solde.",
+    "org_wallet_frozen_owner": "Le compte de {{organization}} est suspendu. Contactez l'assistance Sokuji ou utilisez votre propre solde.",
+    "org_wallet_frozen_owner_unnamed": "Le compte de l'organisation est suspendu. Contactez l'assistance Sokuji ou utilisez votre propre solde."
   },
   "viewer": {
     "title": "Sous-titres Sokuji",

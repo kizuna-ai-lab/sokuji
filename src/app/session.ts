@@ -38,6 +38,7 @@ import { registerRunPhase } from './runPhase';
 import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
+import { ORG_REFUSAL_CODES } from '../lib/session/orgNotice';
 
 /** What only React can reach, handed in by `useAppSessionBridges`. */
 export interface AppBridges {
@@ -352,12 +353,16 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // a wallet frozen since the last fetch): the wallet the gate and the
       // account button read is stale, so fetch it now — as the old app's
       // failed-start teardown did — rather than let every press meet the same
-      // refusal until the idle poll. A run that went live refetches in
-      // `onRunEnded` instead.
+      // refusal until the idle poll. A run that went live also refetches in
+      // `onRunEnded`.
       offs.push(runner.state.subscribe((now, before) => {
-        if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'start-failed') return;
-        const code = now.lastEnd.notice?.code;
-        if (code === 'insufficient_balance' || code === 'wallet_frozen') refetchQuota();
+        if (now.phase !== 'idle' || before.phase === 'idle') return;
+        const reason = now.lastEnd?.reason;
+        const code = now.lastEnd?.notice?.code;
+        if (code === undefined) return;
+        if (reason === 'start-failed' && (code === 'insufficient_balance' || code === 'wallet_frozen' || ORG_REFUSAL_CODES.has(code))) refetchQuota();
+        // A run the organization's wallet ended mid-session (frozen, removed, held, spent): its status is stale too.
+        else if (reason === 'leg-failed' && ORG_REFUSAL_CODES.has(code)) refetchQuota();
       }));
       // A reload, the window or side panel closing, a page frozen into the
       // back/forward cache: close every leg and capture now; nothing is saved

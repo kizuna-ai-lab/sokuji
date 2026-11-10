@@ -641,7 +641,7 @@ export class Run {
         this.failedReconnect(leg, event.payload);
         analytics.track('api_error', { provider, error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
-        this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, leg } });
+        this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, ...(event.payload.giveUp?.params ? { params: event.payload.giveUp.params } : {}), leg } });
         return;
       }
       case 'degraded': {

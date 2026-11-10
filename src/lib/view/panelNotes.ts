@@ -40,6 +40,6 @@ export function panelNoteEntries(notes: readonly PanelNote[]): NoticeEntry[] {
  * kinds it can honour.
  */
 export function noticeActionSpec(notice: NoticeEntry, notes: readonly PanelNote[]): NoticeActionSpec | null {
-  if (!isPanelNoteId(notice.id)) return actionForCode(notice.code);
+  if (!isPanelNoteId(notice.id)) return actionForCode(notice.code, notice.params);
   return notes.find((n) => `${PANEL_NOTE_ID_PREFIX}${n.id}` === notice.id)?.action ?? null;
 }

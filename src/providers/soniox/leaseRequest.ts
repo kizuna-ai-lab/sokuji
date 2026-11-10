@@ -11,7 +11,7 @@
  * `par_tts`; with it off, the body is byte for byte today's.
  */
 import type { LegName } from '../../lib/conversation/types';
-import type { RunShape } from '../../lib/session/types';
+import type { Payer, RunShape } from '../../lib/session/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSharedBoth, type SonioxSettings } from './settings';
 
@@ -56,14 +56,15 @@ export function leaseRequest(
   };
 }
 
-/** The JSON body: today's four fields, always and in today's order; then the participant's intent, only while the flag is on. */
-export function requestBody(r: LeaseRequest): Record<string, unknown> {
+/** The JSON body: today's four fields, always and in today's order; then the participant's intent, only while the flag is on; then who pays, only for an organization member. */
+export function requestBody(r: LeaseRequest, payer?: Payer): Record<string, unknown> {
   return {
     mode: r.mode,
     textOnly: r.textOnly,
     bothSplit: r.bothSplit,
     region: r.region,
     ...(r.participantSpeaks === undefined ? {} : { [PARTICIPANT_SPEECH_FIELD]: r.participantSpeaks }),
+    ...(payer === undefined ? {} : { payer }),
   };
 }
 

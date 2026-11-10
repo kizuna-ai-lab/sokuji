@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Ipinapakita ang mga pagsasalin sa subtitle overlay",
+    "payer": {
+      "paidBy": "Binabayaran ng {{name}}",
+      "paidByYou": "Binabayaran mo",
+      "useOwnBalance": "Gamitin ang sarili kong balanse"
+    },
     "function": "Function",
     "noChannelConfigured": "I-enable ang mikropono o ang audio ng kausap bago magsimula.",
     "release": "bitiwan",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Hindi ma-load ang impormasyon ng quota",
-    "upgradeToPremium": "Mag-upgrade sa Premium"
+    "upgradeToPremium": "Mag-upgrade sa Premium",
+    "orgBalance": "Balanse ng {{name}}",
+    "yourBalance": "Ang iyong balanse",
+    "orgHeld": "{{held}} nito ay naka-hold para sa mga session na kasalukuyang tumatakbo; ang hindi nagamit na bahagi ay ibabalik kapag natapos ang mga ito.",
+    "paused": "Naka-pause"
   },
   "logs": {
     "webrtcFallback": "Nabigo ang koneksyon ng WebRTC, gumagamit ng WebSocket sa halip"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "Teksto lang ang salin na naririnig ng kabilang panig: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_missing": "Teksto lang ang salin na naririnig ko: walang modelo ng pananalita na nagsasalita ng {{target}}.",
     "participant_tts_over_budget": "Teksto lang ang salin na naririnig ko: kulang ang memory para i-load din ang modelo ng pananalita ng kabilang panig.",
-    "screen_context_lost": "Hindi na available ang screen na pinili mo; magpapatuloy ang pagsasalin sa audio lang."
+    "screen_context_lost": "Hindi na available ang screen na pinili mo; magpapatuloy ang pagsasalin sa audio lang.",
+    "org_balance_held": "Hawak ng mga kasalukuyang session ang balanse ng iyong organisasyon. Subukan muli kapag natapos ang isa, o gamitin ang sarili mong balanse.",
+    "org_insufficient_balance": "Hilingin sa may-ari ng organisasyon na mag-top up, o gamitin ang sarili mong balanse.",
+    "org_insufficient_balance_owner": "Mag-top up sa {{organization}}, o gamitin ang sarili mong balanse.",
+    "org_insufficient_balance_owner_unnamed": "Mag-top up sa iyong organisasyon, o gamitin ang sarili mong balanse.",
+    "not_org_member": "Wala ka na sa {{organization}}.",
+    "not_org_member_unnamed": "Wala ka na sa iyong organisasyon.",
+    "org_wallet_frozen": "Naka-pause ang account ng {{organization}}. Makipag-ugnayan sa may-ari nito, o gamitin ang sarili mong balanse.",
+    "org_wallet_frozen_unnamed": "Naka-pause ang account ng organisasyon. Makipag-ugnayan sa may-ari nito, o gamitin ang sarili mong balanse.",
+    "org_wallet_frozen_owner": "Naka-pause ang account ng {{organization}}. Makipag-ugnayan sa suporta ng Sokuji, o gamitin ang sarili mong balanse.",
+    "org_wallet_frozen_owner_unnamed": "Naka-pause ang account ng organisasyon. Makipag-ugnayan sa suporta ng Sokuji, o gamitin ang sarili mong balanse."
   },
   "viewer": {
     "title": "Mga subtitle ng Sokuji",

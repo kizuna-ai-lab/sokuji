@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Terjemahan dipaparkan di tindanan sari kata",
+    "payer": {
+      "paidBy": "Dibayar oleh {{name}}",
+      "paidByYou": "Dibayar oleh anda",
+      "useOwnBalance": "Guna baki saya sendiri"
+    },
     "function": "Fungsi",
     "noChannelConfigured": "Dayakan mikrofon atau audio pihak lain sebelum bermula.",
     "release": "lepaskan",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuatkan maklumat kuota",
-    "upgradeToPremium": "Naik taraf ke Premium"
+    "upgradeToPremium": "Naik taraf ke Premium",
+    "orgBalance": "Baki {{name}}",
+    "yourBalance": "Baki anda",
+    "orgHeld": "{{held}} daripadanya ditahan oleh sesi yang sedang berjalan; bahagian yang tidak digunakan dikembalikan apabila sesi tamat.",
+    "paused": "Dijeda"
   },
   "logs": {
     "webrtcFallback": "Sambungan WebRTC gagal, menggunakan WebSocket sebagai gantinya"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "Terjemahan yang didengar pihak lain hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_missing": "Terjemahan yang saya dengar hanya dalam bentuk teks: tiada model suara yang bertutur dalam {{target}}.",
     "participant_tts_over_budget": "Terjemahan yang saya dengar hanya dalam bentuk teks: memori tidak mencukupi untuk memuatkan model suara pihak lain juga.",
-    "screen_context_lost": "Skrin yang anda pilih tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
+    "screen_context_lost": "Skrin yang anda pilih tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja.",
+    "org_balance_held": "Baki organisasi anda sedang ditahan oleh sesi yang sedang berjalan. Cuba lagi apabila salah satu tamat, atau gunakan baki peribadi anda.",
+    "org_insufficient_balance": "Minta pemilik organisasi menambah nilai, atau gunakan baki peribadi anda.",
+    "org_insufficient_balance_owner": "Tambah nilai {{organization}}, atau gunakan baki peribadi anda.",
+    "org_insufficient_balance_owner_unnamed": "Tambah nilai organisasi anda, atau gunakan baki peribadi anda.",
+    "not_org_member": "Anda bukan lagi ahli {{organization}}.",
+    "not_org_member_unnamed": "Anda bukan lagi ahli organisasi anda.",
+    "org_wallet_frozen": "Akaun {{organization}} digantung. Hubungi pemiliknya, atau gunakan baki peribadi anda.",
+    "org_wallet_frozen_unnamed": "Akaun organisasi digantung. Hubungi pemiliknya, atau gunakan baki peribadi anda.",
+    "org_wallet_frozen_owner": "Akaun {{organization}} digantung. Hubungi sokongan Sokuji, atau gunakan baki peribadi anda.",
+    "org_wallet_frozen_owner_unnamed": "Akaun organisasi digantung. Hubungi sokongan Sokuji, atau gunakan baki peribadi anda."
   },
   "viewer": {
     "title": "Sari kata Sokuji",

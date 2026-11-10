@@ -6,6 +6,8 @@ import { loadVoiceClip, resetVoiceClipStorageForTesting } from '../../../lib/son
 import type { ManagedVoicesClient } from '../../../providers/soniox/managedVoicesClient';
 import type { SonioxVoicesClient } from '../../../providers/soniox/voicesClient';
 import { settleReports, resetReportThrottle } from '../../../lib/diagnostics/report';
+import { setUseOwnBalance } from '../../../lib/session/payerChoice';
+import { useAccountStore } from '../../../stores/accountStore';
 import useLogStore from '../../../stores/logStore';
 
 beforeEach(async () => {
@@ -268,6 +270,28 @@ describe('managedVoiceSource previewing', () => {
     await source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 });
 
     expect(calls).toEqual(['key:voice_preview', 'synth:tk', 'done']);
+  });
+
+  it('mints the preview key for the payer a member chose, and for none otherwise', async () => {
+    const sessionKey = vi.fn(async (_body: unknown) => ({ ttsApiKey: 'tk', region: 'us' as const }));
+    const source = managedVoiceSource(fakeClient({ sessionKey }), ACCOUNT, { synthesize: (async () => ({ audio: new Float32Array(1), sampleRate: 24000 })) as any });
+    const preview = () => source.preview!({ id: 'v1', language: 'ja', text: 'x', speed: 1.0 });
+    try {
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 9, frozen: false } });
+      await preview();
+      expect(sessionKey).toHaveBeenLastCalledWith({ mode: 'voice_preview' });
+      const member = { status: 'known' as const, balanceMicroUsd: 9, frozen: false, organization: { name: 'Acme', availableMicroUsd: 9, frozen: false }, personal: { balanceMicroUsd: 5, frozen: false } };
+      localStorage.clear();
+      useAccountStore.setState({ account: member });
+      await preview();
+      expect(sessionKey).toHaveBeenLastCalledWith({ mode: 'voice_preview', payer: 'organization' });
+      setUseOwnBalance(true);
+      await preview();
+      expect(sessionKey).toHaveBeenLastCalledWith({ mode: 'voice_preview', payer: 'personal' });
+    } finally {
+      localStorage.clear();
+      useAccountStore.setState({ account: null });
+    }
   });
 
   it('reports done even when synthesis throws', async () => {

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
+import { noticeText } from '../view/noticeText';
 import { Conversation, DEGRADED_DEDUPE_MS, MARK_COMPACT_MS, type ConversationDiagnostic } from './Conversation';
 
 // The real rows, plus one test-only row whose severity is 'error': every real
@@ -205,6 +206,15 @@ describe('Conversation — notices and closing', () => {
     const [withParams, without] = conv.snapshot().notices;
     expect(withParams).toMatchObject({ code: 'tts_degraded', params: { target: 'ja' } });
     expect(without).not.toHaveProperty('params');
+  });
+
+  it("carries a give-up's notice params into the failed notice, so a frozen organization is worded by name and role", () => {
+    const { conv, apply } = make();
+    apply({ kind: 'failed', payload: { message: 'Frozen.', code: 'org_wallet_frozen', giveUp: { attempts: 1, reason: 'refused', refusalCode: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } } } });
+    const [notice] = conv.snapshot().notices;
+    expect(notice).toMatchObject({ code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } });
+    const t = ((_key: string, o: { defaultValue: string } & Record<string, string>) => o.defaultValue.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => o[k])) as unknown as Parameters<typeof noticeText>[0];
+    expect(noticeText(t, notice)).toBe("Acme's account is paused. Contact Sokuji support, or use your own balance.");
   });
 
   it('finalizes every open segment on failed, since nothing follows it', () => {

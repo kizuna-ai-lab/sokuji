@@ -6,6 +6,7 @@
 import { MIC_BLOCKED } from '../audio/capture/micFailure';
 import { LOOPBACK_DENIED } from '../audio/capture/systemAudio';
 import type { LegName } from '../conversation/types';
+import { ORG_INSUFFICIENT_BALANCE } from '../session/orgNotice';
 import { BALANCE_BELOW_FLOOR } from '../session/shape';
 import { settingsTargetForCode } from './noticeTargets';
 
@@ -29,8 +30,10 @@ const TTS_SLOT_LEGS: ReadonlyMap<string, LegName> = new Map([
   ['participant_tts_over_budget', 'participant'],
 ]);
 
-export function actionForCode(code: string | undefined): NoticeActionSpec | null {
+/** `params` is the notice's own: an organization's low balance is the owner's to top up, so it offers Top up by `role` (a member is told to ask the owner). */
+export function actionForCode(code: string | undefined, params?: Record<string, string | number>): NoticeActionSpec | null {
   if (code === undefined) return null;
+  if (code === ORG_INSUFFICIENT_BALANCE) return params?.role === 'owner' ? { kind: 'top-up' } : null;
   if (code === LOOPBACK_DENIED) return { kind: 'system-settings', pane: 'screen-recording' };
   if (code === MIC_BLOCKED) return { kind: 'windows-settings', page: 'microphone-privacy' };
   if (TOP_UP_CODES.has(code)) return { kind: 'top-up' };

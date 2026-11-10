@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "번역이 자막 오버레이에 표시되고 있습니다",
+    "payer": {
+      "paidBy": "{{name}}에서 결제",
+      "paidByYou": "내가 결제",
+      "useOwnBalance": "내 잔액 사용"
+    },
     "function": "기능",
     "noChannelConfigured": "시작하기 전에 마이크 또는 상대방 오디오를 활성화하세요.",
     "release": "놓기",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "할당량 정보를 로드할 수 없습니다",
-    "upgradeToPremium": "프리미엄으로 업그레이드"
+    "upgradeToPremium": "프리미엄으로 업그레이드",
+    "orgBalance": "{{name}} 잔액",
+    "yourBalance": "내 잔액",
+    "orgHeld": "이 중 {{held}}은(는) 진행 중인 세션에 보류되어 있으며, 사용하지 않은 금액은 세션이 끝나면 반환됩니다.",
+    "paused": "일시 중지됨"
   },
   "logs": {
     "webrtcFallback": "WebRTC 연결에 실패하여 WebSocket을 대신 사용합니다"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "상대방에게 들리는 번역은 텍스트로만 표시됩니다: {{target}}용 음성 모델이 없습니다.",
     "participant_tts_missing": "내가 듣는 번역은 텍스트로만 표시됩니다: {{target}}용 음성 모델이 없습니다.",
     "participant_tts_over_budget": "내가 듣는 번역은 텍스트로만 표시됩니다: 상대방 쪽 음성 모델까지 불러올 메모리가 부족합니다.",
-    "screen_context_lost": "선택한 화면을 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다."
+    "screen_context_lost": "선택한 화면을 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다.",
+    "org_balance_held": "조직의 잔액이 진행 중인 세션에 묶여 있습니다. 세션이 끝난 후 다시 시도하거나 개인 잔액을 사용하세요.",
+    "org_insufficient_balance": "조직 소유자에게 충전을 요청하거나 개인 잔액을 사용하세요.",
+    "org_insufficient_balance_owner": "{{organization}}에 충전하거나 개인 잔액을 사용하세요.",
+    "org_insufficient_balance_owner_unnamed": "조직에 충전하거나 개인 잔액을 사용하세요.",
+    "not_org_member": "더 이상 {{organization}}에 속해 있지 않습니다.",
+    "not_org_member_unnamed": "더 이상 해당 조직에 속해 있지 않습니다.",
+    "org_wallet_frozen": "{{organization}}의 계정이 일시 중지되었습니다. 소유자에게 문의하거나 개인 잔액을 사용하세요.",
+    "org_wallet_frozen_unnamed": "조직의 계정이 일시 중지되었습니다. 소유자에게 문의하거나 개인 잔액을 사용하세요.",
+    "org_wallet_frozen_owner": "{{organization}}의 계정이 일시 중지되었습니다. Sokuji 지원팀에 문의하거나 개인 잔액을 사용하세요.",
+    "org_wallet_frozen_owner_unnamed": "조직의 계정이 일시 중지되었습니다. Sokuji 지원팀에 문의하거나 개인 잔액을 사용하세요."
   },
   "viewer": {
     "title": "Sokuji 자막",

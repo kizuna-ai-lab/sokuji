@@ -630,6 +630,11 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
+    "payer": {
+      "paidBy": "Betaald door {{name}}",
+      "paidByYou": "Door jou betaald",
+      "useOwnBalance": "Mijn eigen saldo gebruiken"
+    },
     "function": "Functie",
     "noChannelConfigured": "Schakel de microfoon of Audio van de ander in voordat u begint.",
     "release": "loslaten",
@@ -798,7 +803,11 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kan quota-informatie niet laden",
-    "upgradeToPremium": "Upgrade naar Premium"
+    "upgradeToPremium": "Upgrade naar Premium",
+    "orgBalance": "Saldo van {{name}}",
+    "yourBalance": "Je saldo",
+    "orgHeld": "{{held}} daarvan is vastgehouden door lopende sessies; een ongebruikt deel komt terug zodra ze eindigen.",
+    "paused": "Gepauzeerd"
   },
   "logs": {
     "webrtcFallback": "WebRTC-verbinding mislukt, WebSocket wordt gebruikt"
@@ -1494,7 +1503,17 @@
     "speaker_tts_missing": "De vertaling die de ander hoort, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_missing": "De vertaling die ik hoor, is alleen tekst: geen spraakmodel spreekt {{target}}.",
     "participant_tts_over_budget": "De vertaling die ik hoor, is alleen tekst: niet genoeg geheugen om ook het spraakmodel van de ander te laden.",
-    "screen_context_lost": "Het scherm dat je hebt gekozen is niet meer beschikbaar; de vertaling gaat verder met alleen audio."
+    "screen_context_lost": "Het scherm dat je hebt gekozen is niet meer beschikbaar; de vertaling gaat verder met alleen audio.",
+    "org_balance_held": "Het saldo van je organisatie wordt vastgehouden door lopende sessies. Probeer het opnieuw wanneer er een eindigt, of gebruik je eigen saldo.",
+    "org_insufficient_balance": "Vraag de eigenaar van de organisatie om op te waarderen, of gebruik je eigen saldo.",
+    "org_insufficient_balance_owner": "Waardeer {{organization}} op of gebruik je eigen saldo.",
+    "org_insufficient_balance_owner_unnamed": "Waardeer je organisatie op of gebruik je eigen saldo.",
+    "not_org_member": "Je maakt geen deel meer uit van {{organization}}.",
+    "not_org_member_unnamed": "Je maakt geen deel meer uit van je organisatie.",
+    "org_wallet_frozen": "Het account van {{organization}} is gepauzeerd. Neem contact op met de eigenaar of gebruik je eigen saldo.",
+    "org_wallet_frozen_unnamed": "Het account van de organisatie is gepauzeerd. Neem contact op met de eigenaar of gebruik je eigen saldo.",
+    "org_wallet_frozen_owner": "Het account van {{organization}} is gepauzeerd. Neem contact op met Sokuji-support of gebruik je eigen saldo.",
+    "org_wallet_frozen_owner_unnamed": "Het account van de organisatie is gepauzeerd. Neem contact op met Sokuji-support of gebruik je eigen saldo."
   },
   "viewer": {
     "title": "Sokuji-ondertiteling",

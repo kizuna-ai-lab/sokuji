@@ -11,6 +11,15 @@ import { mapWalletStatusToQuota } from '../utils/walletQuota';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { useAccountStore } from '../stores/accountStore';
 
+/** Balance about to expire, as the backend reports it; null when nothing is. */
+export interface ExpiringSoon {
+  microUsd: number;
+  usd: string;
+  microUsdAtEarliest: number;
+  usdAtEarliest: string;
+  expiresAt: number;
+}
+
 export interface QuotaData {
   // Core wallet data (new fields)
   balance?: number;      // Wallet balance in micro-USD (never expires)
@@ -31,6 +40,24 @@ export interface QuotaData {
   features?: string[];   // Enabled features for the plan
   rateLimitRpm?: number; // Rate limit (requests per minute)
   maxConcurrentSessions?: number; // Max concurrent sessions allowed
+
+  // Organization membership (absent for non-members and older backends).
+  // When present, `balance` and `frozen` above are the organization's.
+  organization?: {
+    id: string;
+    name: string;
+    availableMicroUsd: number;
+    /** The organization's actual balance, before what running sessions hold. Absent from older servers. */
+    committedBalanceMicroUsd?: number;
+    frozen: boolean;
+    role: 'owner' | 'member';
+  };
+  // The member's own wallet, alongside the organization's.
+  personal?: {
+    balanceMicroUsd: number;
+    frozen: boolean;
+    expiringSoon: ExpiringSoon | null;
+  };
 }
 
 interface UserProfileContextValue {
@@ -279,6 +306,12 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, isSessionActive, userId]); // Depend on stable values, not the function
 
+  // Code outside React asks for a fresh wallet through the store (a refused voice preview).
+  useEffect(() => {
+    useAccountStore.getState().setRefreshAccount(fetchQuota);
+    return () => useAccountStore.getState().setRefreshAccount(null);
+  }, [fetchQuota]);
+
   // The start gate reads the wallet outside React (Stage 2 Kizuna Soniox,
   // ruling 5): null signed out, loading until the first fetch lands,
   // unknown once one failed with no wallet known.
@@ -286,7 +319,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     const balance = quota?.balance;
     useAccountStore.getState().setAccount(
       !isSignedIn || !userId ? null
-        : typeof balance === 'number' ? { status: 'known', balanceMicroUsd: balance, frozen: quota?.frozen === true }
+        : typeof balance === 'number' ? {
+          status: 'known', balanceMicroUsd: balance, frozen: quota?.frozen === true,
+          ...(quota?.organization ? { organization: { name: quota.organization.name, availableMicroUsd: quota.organization.availableMicroUsd, ...(quota.organization.committedBalanceMicroUsd !== undefined ? { committedBalanceMicroUsd: quota.organization.committedBalanceMicroUsd } : {}), frozen: quota.organization.frozen, role: quota.organization.role } } : {}),
+          ...(quota?.organization && quota.personal ? { personal: { balanceMicroUsd: quota.personal.balanceMicroUsd, frozen: quota.personal.frozen } } : {}),
+        }
         : walletFailed ? { status: 'unknown' }
         : { status: 'loading' },
     );
