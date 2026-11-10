@@ -4,7 +4,7 @@
  * words can be right before the backend says so (Stage 2 Kizuna Soniox,
  * rulings 3 and 6). Ported from `sonioxManagedMinBalance.ts` (deleted
  * since). KEEP IN SYNC with sokuji-backend
- * `src/services/soniox-budget.ts` (the conservative rates) and
+ * `src/services/soniox-budget.ts` (the conservative rates and their cap) and
  * `src/config/soniox.ts` (`MIN_SESSION_S`, `MAX_TRANSCRIPTION_SESSION_S`,
  * `TTS_KEY_MAX_TTL_S`, `MAX_SYNTHESIS_SESSION_S`); `kizunaBudget.test.ts`
  * restates the arithmetic. The backend's 402 stays the authority.
@@ -14,7 +14,9 @@ import { isSttRole, leaseRequest, requestedRoles, type StreamRole } from './leas
 import type { SonioxSettings } from './settings';
 
 /** One stream's conservative budget rate in µUSD per hour: any `*_stt` role, any `*_tts` role. Integers, so the floor's ceil is exact. */
-export const SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR = { stt: 1_100_000, tts: 1_400_000 } as const;
+export const SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR = { stt: 500_000, tts: 250_000 } as const;
+/** The most a whole stream set is budgeted at, in µUSD per hour ($1.00). */
+export const SONIOX_CONSERVATIVE_RATE_CAP_MICRO_USD_PER_HOUR = 1_000_000;
 /** The shortest session the backend starts, in seconds. */
 export const SONIOX_MANAGED_MIN_SESSION_S = 60;
 /** The longest grant for a session with no synthesis stream. */
@@ -22,9 +24,12 @@ export const SONIOX_MAX_TRANSCRIPTION_SESSION_S = 18_000;
 /** The longest grant for a session that speaks: its TTS key lives at most an hour. */
 export const SONIOX_MAX_SYNTHESIS_SESSION_S = 3_600;
 
-/** The backend's start floor for a stream set: its shortest session at the set's rate, rounded up — `ceil((n_stt × stt + n_tts × tts) × 60 / 3600)`. */
+/** The backend's start floor for a stream set: its shortest session at the set's rate, rounded up — `ceil(min(n_stt × stt + n_tts × tts, cap) × 60 / 3600)`. */
 export function sonioxStartFloorMicroUsd(stt: number, tts: number): number {
-  const rate = stt * SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.stt + tts * SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.tts;
+  const rate = Math.min(
+    stt * SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.stt + tts * SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.tts,
+    SONIOX_CONSERVATIVE_RATE_CAP_MICRO_USD_PER_HOUR,
+  );
   return Math.ceil((rate * SONIOX_MANAGED_MIN_SESSION_S) / 3600);
 }
 

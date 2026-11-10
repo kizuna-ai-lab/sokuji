@@ -186,7 +186,7 @@ describe('the flag off (a test-only twin from the same factory)', () => {
   });
 
   it("the floor prices no participant speech", () => {
-    expect(silent.session!.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(60_000);
+    expect(silent.session!.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(16_667); // spk_stt + spk_tts + par_stt: 1.25 $/h, capped at 1.00
   });
 });
 
@@ -222,8 +222,8 @@ describe('the flag on (as shipped)', () => {
 
   it("the floors count the participant's speech stream", () => {
     const floor = (legs: LegName[], shared: boolean) => speaking.session!.minimumBalance!({ legs, textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: shared });
-    expect(floor(['speaker', 'participant'], false)).toBe(83_334);
-    expect(floor(['speaker', 'participant'], true)).toBe(65_000);
-    expect(floor(['participant'], true)).toBe(41_667);
+    expect(floor(['speaker', 'participant'], false)).toBe(16_667); // two STT + two TTS, capped at 1.00 $/h
+    expect(floor(['speaker', 'participant'], true)).toBe(16_667); // mix_stt + mix_tts + par_tts: 1.00 $/h
+    expect(floor(['participant'], true)).toBe(12_500); // par_stt + par_tts: 0.75 $/h
   });
 });
