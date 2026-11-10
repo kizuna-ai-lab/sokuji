@@ -1506,6 +1506,7 @@
     "org_balance_held": "Le solde de votre organisation est retenu par des sessions en cours. Réessayez lorsqu'une session se termine, ou utilisez votre propre solde.",
     "org_insufficient_balance": "Demandez au propriétaire de l'organisation de recharger le solde, ou utilisez votre propre solde.",
     "org_insufficient_balance_owner": "Rechargez le solde de {{organization}} ou utilisez votre propre solde.",
+    "org_insufficient_balance_owner_unnamed": "Rechargez le solde de votre organisation ou utilisez votre propre solde.",
     "not_org_member": "Vous ne faites plus partie de {{organization}}.",
     "not_org_member_unnamed": "Vous ne faites plus partie de votre organisation.",
     "org_wallet_frozen": "Le compte de {{organization}} est suspendu. Contactez son propriétaire ou utilisez votre propre solde.",

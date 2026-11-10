@@ -208,6 +208,12 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
       expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toBeNull();
     });
 
+    it('leaves a personal payer with no known personal wallet to the server: no balance is invented', () => {
+      const account = { ...memberAccount({ availableMicroUsd: 9_000_000 }, { balanceMicroUsd: 0 }), personal: undefined };
+      expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
+      expect(gate(shape({ provider: leased, account, payer: 'personal' }), 'electron')).toBeNull();
+    });
+
     it('still refuses a frozen organization at Start, and a personal payer below the floor before any request', () => {
       const frozen = memberAccount({ availableMicroUsd: 0, frozen: true }, { balanceMicroUsd: 5_000_000 });
       expect(gate(shape({ provider: leased, account: frozen, payer: 'organization' }), 'electron')).toMatchObject({ code: 'org_wallet_frozen' });

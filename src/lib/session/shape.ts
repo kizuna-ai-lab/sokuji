@@ -139,7 +139,8 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
       : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
   }
   const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
-  if (wallet.microUsd >= floor) return null;
+  // No balance known for the chosen wallet: the server checks it, as it does an organization below the floor.
+  if (wallet.microUsd === undefined || wallet.microUsd >= floor) return null;
   return {
     code: org ? ORG_INSUFFICIENT_BALANCE : BALANCE_BELOW_FLOOR,
     message: `The balance (${wallet.microUsd} µUSD) is below this start's floor (${floor} µUSD).`,

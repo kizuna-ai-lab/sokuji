@@ -1276,6 +1276,14 @@ describe('Kizuna Soniox lease: refusals for organization payers', () => {
     expect(await refused(402, { error: 'Insufficient balance' }, { account: undefined })).toMatchObject({ code: 'insufficient_balance' });
   });
 
+  it('keeps the server\'s own text in an organization refusal, and no amount', async () => {
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'insufficient_balance', availableMicroUsd: 3123456 }, { payer: 'organization' });
+    expect(e.message).toContain('Insufficient balance');
+    expect(e.message).not.toContain('3123456');
+    const m = await refused(403, { message: 'Organization wallet paused', subject: 'organization' }, { payer: 'organization' });
+    expect(m.message).toContain('Organization wallet paused');
+  });
+
   it('words a 403 not_org_member', async () => {
     const e = await refused(403, { code: 'not_org_member' }, { payer: 'organization' });
     expect(e).toMatchObject({ code: 'not_org_member', params: { organization: 'Acme' } });

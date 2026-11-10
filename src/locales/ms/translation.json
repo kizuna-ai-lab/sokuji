@@ -1506,6 +1506,7 @@
     "org_balance_held": "Baki organisasi anda sedang ditahan oleh sesi yang sedang berjalan. Cuba lagi apabila salah satu tamat, atau gunakan baki peribadi anda.",
     "org_insufficient_balance": "Minta pemilik organisasi menambah nilai, atau gunakan baki peribadi anda.",
     "org_insufficient_balance_owner": "Tambah nilai {{organization}}, atau gunakan baki peribadi anda.",
+    "org_insufficient_balance_owner_unnamed": "Tambah nilai organisasi anda, atau gunakan baki peribadi anda.",
     "not_org_member": "Anda bukan lagi ahli {{organization}}.",
     "not_org_member_unnamed": "Anda bukan lagi ahli organisasi anda.",
     "org_wallet_frozen": "Akaun {{organization}} digantung. Hubungi pemiliknya, atau gunakan baki peribadi anda.",

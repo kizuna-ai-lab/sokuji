@@ -261,9 +261,15 @@ describe('organization refusal notices', () => {
     expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x', params: { role: 'owner' } }))
       .toBe("The organization's account is paused. Contact Sokuji support, or use your own balance.");
   });
+  it('words an owner with no organization name as the owner, so the text matches the Top up action', () => {
+    expect(noticeText(plainT, { code: 'org_insufficient_balance', message: 'x', params: { role: 'owner' } }))
+      .toBe('Top up your organization, or use your own balance.');
+    expect(noticeText(plainT, { code: 'org_insufficient_balance', message: 'x' }))
+      .toBe("Ask the organization's owner to top up, or use your own balance.");
+  });
   it('has the words in every locale', () => {
     for (const [path, catalog] of Object.entries(catalogs)) {
-      for (const key of ['org_balance_held', 'org_insufficient_balance', 'org_insufficient_balance_owner', 'not_org_member', 'org_wallet_frozen', 'org_wallet_frozen_owner', 'not_org_member_unnamed', 'org_wallet_frozen_unnamed', 'org_wallet_frozen_owner_unnamed']) {
+      for (const key of ['org_balance_held', 'org_insufficient_balance', 'org_insufficient_balance_owner', 'org_insufficient_balance_owner_unnamed', 'not_org_member', 'org_wallet_frozen', 'org_wallet_frozen_owner', 'not_org_member_unnamed', 'org_wallet_frozen_unnamed', 'org_wallet_frozen_owner_unnamed']) {
         expect(at(catalog, `notices.${key}`), `${path}: ${key}`).toBeTypeOf('string');
       }
     }

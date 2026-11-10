@@ -1518,6 +1518,7 @@
     "org_balance_held": "Your organization's balance is held by sessions in progress. Try again when one ends, or use your own balance.",
     "org_insufficient_balance": "Ask the organization's owner to top up, or use your own balance.",
     "org_insufficient_balance_owner": "Top up {{organization}}, or use your own balance.",
+    "org_insufficient_balance_owner_unnamed": "Top up your organization, or use your own balance.",
     "not_org_member": "You're no longer in {{organization}}.",
     "not_org_member_unnamed": "You're no longer in your organization.",
     "org_wallet_frozen": "{{organization}}'s account is paused. Contact its owner, or use your own balance.",

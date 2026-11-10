@@ -1506,6 +1506,7 @@
     "org_balance_held": "Saldo organisasi Anda ditahan oleh sesi yang sedang berjalan. Coba lagi setelah salah satunya berakhir, atau gunakan saldo pribadi Anda.",
     "org_insufficient_balance": "Minta pemilik organisasi untuk mengisi saldo, atau gunakan saldo pribadi Anda.",
     "org_insufficient_balance_owner": "Isi saldo {{organization}}, atau gunakan saldo pribadi Anda.",
+    "org_insufficient_balance_owner_unnamed": "Isi saldo organisasi Anda, atau gunakan saldo pribadi Anda.",
     "not_org_member": "Anda tidak lagi menjadi anggota {{organization}}.",
     "not_org_member_unnamed": "Anda tidak lagi menjadi anggota organisasi Anda.",
     "org_wallet_frozen": "Akun {{organization}} dijeda. Hubungi pemiliknya, atau gunakan saldo pribadi Anda.",

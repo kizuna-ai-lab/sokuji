@@ -16,13 +16,23 @@ import {
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
-import { accountPayer, payerBalance, useUseOwnBalance } from '../../lib/session/payerChoice';
+import { payerBalance, useAccountPayer } from '../../lib/session/payerChoice';
+import type { AccountState, Payer } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
 import { useBalanceShortfall } from './useBalanceShortfall';
 import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
 import AccountPopover from './AccountPopover';
 import './AccountButton.scss';
+
+/**
+ * The micro-USD the title bar shows. A member shows the wallet the next Start spends, which is nothing (not $0) when that wallet is not known;
+ * anyone else shows the quota's balance.
+ */
+function shownBalance(account: AccountState | null, payer: Payer | undefined, quota: { balance?: number; remaining?: number } | null | undefined): number | undefined {
+  if (account?.status === 'known' && account.organization) return payerBalance(account, payer).microUsd;
+  return quota?.balance ?? quota?.remaining;
+}
 
 const AccountButton: React.FC = () => {
   const { t } = useTranslation();
@@ -33,7 +43,7 @@ const AccountButton: React.FC = () => {
   const lowBalance = useBalanceShortfall();
   const account = useAccountStore((s) => s.account);
   // The switch moves which wallet the title bar shows.
-  useUseOwnBalance();
+  const payer = useAccountPayer(account);
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -93,7 +103,7 @@ const AccountButton: React.FC = () => {
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
     // The balance of the wallet the next Start spends: the organization's, or the member's own with the switch on.
-    const balance = account?.status === 'known' && account.organization ? payerBalance(account, accountPayer(account)).microUsd : quota?.balance ?? quota?.remaining;
+    const balance = shownBalance(account, payer, quota);
 
     // The low-balance warning is the start gate's (useBalanceShortfall): a
     // provider with no floor (own key, local) never warns, and a managed one

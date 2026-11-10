@@ -1506,6 +1506,7 @@
     "org_balance_held": "您所屬組織的餘額已被進行中的工作階段佔用。請在其中一個工作階段結束後再試，或使用您自己的餘額。",
     "org_insufficient_balance": "請聯絡組織擁有者儲值，或使用您自己的餘額。",
     "org_insufficient_balance_owner": "請為 {{organization}} 儲值，或使用您自己的餘額。",
+    "org_insufficient_balance_owner_unnamed": "請為您的組織儲值，或使用您自己的餘額。",
     "not_org_member": "您已不在 {{organization}} 中。",
     "not_org_member_unnamed": "您已不在所屬的組織中。",
     "org_wallet_frozen": "{{organization}} 的帳戶已暫停。請聯絡其擁有者，或使用您自己的餘額。",

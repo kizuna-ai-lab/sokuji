@@ -1506,6 +1506,7 @@
     "org_balance_held": "Hawak ng mga kasalukuyang session ang balanse ng iyong organisasyon. Subukan muli kapag natapos ang isa, o gamitin ang sarili mong balanse.",
     "org_insufficient_balance": "Hilingin sa may-ari ng organisasyon na mag-top up, o gamitin ang sarili mong balanse.",
     "org_insufficient_balance_owner": "Mag-top up sa {{organization}}, o gamitin ang sarili mong balanse.",
+    "org_insufficient_balance_owner_unnamed": "Mag-top up sa iyong organisasyon, o gamitin ang sarili mong balanse.",
     "not_org_member": "Wala ka na sa {{organization}}.",
     "not_org_member_unnamed": "Wala ka na sa iyong organisasyon.",
     "org_wallet_frozen": "Naka-pause ang account ng {{organization}}. Makipag-ugnayan sa may-ari nito, o gamitin ang sarili mong balanse.",

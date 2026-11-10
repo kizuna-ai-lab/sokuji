@@ -1506,6 +1506,7 @@
     "org_balance_held": "Din organisations saldo hålls av pågående sessioner. Försök igen när en avslutas, eller använd ditt eget saldo.",
     "org_insufficient_balance": "Be organisationens ägare att fylla på saldot, eller använd ditt eget saldo.",
     "org_insufficient_balance_owner": "Fyll på saldot för {{organization}} eller använd ditt eget saldo.",
+    "org_insufficient_balance_owner_unnamed": "Fyll på saldot för din organisation eller använd ditt eget saldo.",
     "not_org_member": "Du ingår inte längre i {{organization}}.",
     "not_org_member_unnamed": "Du ingår inte längre i din organisation.",
     "org_wallet_frozen": "Kontot för {{organization}} är pausat. Kontakta ägaren eller använd ditt eget saldo.",

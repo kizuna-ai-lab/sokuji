@@ -121,6 +121,21 @@ describe('AccountButton', () => {
     setUseOwnBalance(false);
   });
 
+  it('shows no balance, not $0, with the switch on and no personal wallet known', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 3_000_000 };
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false },
+    } });
+    localStorage.clear();
+    setUseOwnBalance(true);
+    render(<AccountButton />);
+    expect(screen.queryByText(/\$/)).toBeNull();
+    setUseOwnBalance(false);
+  });
+
   it('renders no balance label at all when signed out', () => {
     render(<AccountButton />);
     expect(screen.queryByText(/\$/)).toBeNull();

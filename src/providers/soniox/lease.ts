@@ -145,11 +145,15 @@ function parseGrant(body: unknown): Grant {
  * (`refusalFrame`).
  */
 function refusal(status: number, body: unknown, shape: RunShape): Error {
-  const org = orgRefusalCode(status, body, shape.payer);
-  if (org) return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}).`, org, orgNoticeParams(shape.account));
-  const b = (body ?? {}) as { error?: unknown };
+  const b = (body ?? {}) as { error?: unknown; message?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
+  // The server's own text goes in, for the Logs; its figures never do.
+  const org = orgRefusalCode(status, body, shape.payer);
+  if (org) {
+    const said = server || (typeof b.message === 'string' ? b.message : '');
+    return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}${said ? `: ${said}` : ''}).`, org, orgNoticeParams(shape.account));
+  }
   switch (status) {
     case 401: return new AdapterStartError(`The session service did not accept the sign-in (HTTP 401${detail}).`, 'sign_in_required');
     case 402: return new AdapterStartError(`The session service refused the start: insufficient balance (HTTP 402${detail}).`, 'insufficient_balance');
@@ -562,7 +566,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
         if (status === 403) {
           // A frozen organization mid-session: its own words, named from the account the run started with.
-          if (body?.subject === 'organization') {
+          if (orgRefusalCode(status, body, shape.payer) === ORG_WALLET_FROZEN) {
             const params = orgNoticeParams(shape.account);
             return { ok: false, retry: false, code: ORG_WALLET_FROZEN, message: said, ...(params ? { params } : {}) };
           }

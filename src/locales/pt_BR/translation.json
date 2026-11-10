@@ -1506,6 +1506,7 @@
     "org_balance_held": "O saldo da sua organização está retido por sessões em andamento. Tente novamente quando uma terminar ou use seu próprio saldo.",
     "org_insufficient_balance": "Peça ao proprietário da organização para recarregar o saldo ou use seu próprio saldo.",
     "org_insufficient_balance_owner": "Recarregue o saldo de {{organization}} ou use seu próprio saldo.",
+    "org_insufficient_balance_owner_unnamed": "Recarregue o saldo da sua organização ou use seu próprio saldo.",
     "not_org_member": "Você não faz mais parte de {{organization}}.",
     "not_org_member_unnamed": "Você não faz mais parte da sua organização.",
     "org_wallet_frozen": "A conta de {{organization}} está pausada. Entre em contato com o proprietário ou use seu próprio saldo.",

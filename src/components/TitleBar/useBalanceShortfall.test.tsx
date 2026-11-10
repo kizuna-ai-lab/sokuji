@@ -71,6 +71,22 @@ describe('useBalanceShortfall', () => {
     localStorage.clear();
   });
 
+  it('does not flag a low balance for a personal payer whose wallet is not known', () => {
+    useProviderStore.setState({
+      selected: 'kizunaai_soniox',
+      entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+    });
+    localStorage.clear();
+    setUseOwnBalance(true);
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 0, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 0, frozen: false },
+    } });
+    const { result } = renderHook(() => useBalanceShortfall());
+    expect(result.current).toBe(false);
+    localStorage.clear();
+  });
+
   it('follows text only and the mode', () => {
     useProviderStore.setState({
       selected: 'kizunaai_soniox',

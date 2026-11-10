@@ -271,17 +271,17 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   }, [refresh]);
 
   // An organization's refusal in the notice's own words (the same ones a refused Start shows).
-  // The wallet it answered for has changed, so it is fetched again, as a refused Start does.
   const orgWords = (code: string): string => {
-    const { account, refresh } = useAccountStore.getState();
-    const params = orgNoticeParams(account);
-    void refresh?.().catch(() => {});
+    const params = orgNoticeParams(useAccountStore.getState().account);
     return noticeText(t, { code, message: code, ...(params ? { params } : {}) });
   };
 
+  // An organization's refusal means the wallet it answered for has changed: fetched again, as a refused Start does.
+  const refreshWallet = () => { void useAccountStore.getState().refreshAccount?.().catch(() => {}); };
+
   const mapCreateError = (e: unknown): Error => {
     if (e instanceof SonioxVoicesError) {
-      if (ORG_REFUSAL_CODES.has(e.errorType)) return new Error(orgWords(e.errorType));
+      if (ORG_REFUSAL_CODES.has(e.errorType)) { refreshWallet(); return new Error(orgWords(e.errorType)); }
       if (e.errorType === 'voice_name_conflict') {
         return new Error(t('settings.sonioxVoiceNameConflict', 'A voice with this name already exists'));
       }
@@ -352,7 +352,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // a synthesis call can produce.
   const mapTtsError = (e: unknown): Error => {
     if (e instanceof SonioxVoicesError) {
-      if (ORG_REFUSAL_CODES.has(e.errorType)) return new Error(orgWords(e.errorType));
+      if (ORG_REFUSAL_CODES.has(e.errorType)) { refreshWallet(); return new Error(orgWords(e.errorType)); }
       // Two outcomes specific to a MANAGED preview's session-key mint
       // (ManagedVoicesClient.sessionKey) — checked ahead of the generic arms
       // below, which describe a direct Soniox call and would otherwise

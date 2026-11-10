@@ -1506,6 +1506,7 @@
     "org_balance_held": "조직의 잔액이 진행 중인 세션에 묶여 있습니다. 세션이 끝난 후 다시 시도하거나 개인 잔액을 사용하세요.",
     "org_insufficient_balance": "조직 소유자에게 충전을 요청하거나 개인 잔액을 사용하세요.",
     "org_insufficient_balance_owner": "{{organization}}에 충전하거나 개인 잔액을 사용하세요.",
+    "org_insufficient_balance_owner_unnamed": "조직에 충전하거나 개인 잔액을 사용하세요.",
     "not_org_member": "더 이상 {{organization}}에 속해 있지 않습니다.",
     "not_org_member_unnamed": "더 이상 해당 조직에 속해 있지 않습니다.",
     "org_wallet_frozen": "{{organization}}의 계정이 일시 중지되었습니다. 소유자에게 문의하거나 개인 잔액을 사용하세요.",

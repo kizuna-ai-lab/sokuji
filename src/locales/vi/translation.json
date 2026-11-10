@@ -1506,6 +1506,7 @@
     "org_balance_held": "Số dư của tổ chức bạn đang bị giữ bởi các phiên đang chạy. Hãy thử lại khi một phiên kết thúc, hoặc dùng số dư cá nhân của bạn.",
     "org_insufficient_balance": "Hãy nhờ chủ sở hữu tổ chức nạp thêm tiền, hoặc dùng số dư cá nhân của bạn.",
     "org_insufficient_balance_owner": "Hãy nạp tiền cho {{organization}}, hoặc dùng số dư cá nhân của bạn.",
+    "org_insufficient_balance_owner_unnamed": "Hãy nạp tiền cho tổ chức của bạn, hoặc dùng số dư cá nhân của bạn.",
     "not_org_member": "Bạn không còn thuộc {{organization}} nữa.",
     "not_org_member_unnamed": "Bạn không còn thuộc tổ chức của mình nữa.",
     "org_wallet_frozen": "Tài khoản của {{organization}} đã bị tạm dừng. Hãy liên hệ chủ sở hữu, hoặc dùng số dư cá nhân của bạn.",

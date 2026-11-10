@@ -12,13 +12,13 @@ interface AccountStore {
   account: AccountState | null;
   setAccount(account: AccountState | null): void;
   /** Fetches the wallet again, wired by `UserProfileProvider`; null where none is mounted. */
-  refresh: (() => Promise<void>) | null;
-  setRefresh(refresh: (() => Promise<void>) | null): void;
+  refreshAccount: (() => Promise<void>) | null;
+  setRefreshAccount(refresh: (() => Promise<void>) | null): void;
 }
 
 export const useAccountStore = create<AccountStore>()((set) => ({
   account: null,
   setAccount: (account) => set({ account }),
-  refresh: null,
-  setRefresh: (refresh) => set({ refresh }),
+  refreshAccount: null,
+  setRefreshAccount: (refresh) => set({ refreshAccount: refresh }),
 }));

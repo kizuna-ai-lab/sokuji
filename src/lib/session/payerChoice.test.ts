@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { chosenPayer, getUseOwnBalance, payerBalance, setUseOwnBalance, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
+import { act, renderHook } from '@testing-library/react';
+import { chosenPayer, getUseOwnBalance, payerBalance, setUseOwnBalance, useAccountPayer, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
 import type { AccountState } from './types';
 
 const member = {
@@ -68,6 +69,10 @@ describe('payerBalance', () => {
     expect(payerBalance(known(), 'personal')).toEqual({ microUsd: 3_000_000, frozen: false });
     expect(payerBalance(known({ personal: { balanceMicroUsd: 1, frozen: true } }), 'personal')).toEqual({ microUsd: 1, frozen: true });
   });
+
+  it('has no balance for a personal payer whose wallet the account does not hold, and does not call it frozen', () => {
+    expect(payerBalance(known({ personal: undefined }), 'personal')).toEqual({ microUsd: undefined, frozen: false });
+  });
 });
 
 describe('the switch across documents', () => {
@@ -98,5 +103,16 @@ describe('the switch across documents', () => {
     subscribeUseOwnBalance(listener)();
     fire(USE_OWN_BALANCE_KEY);
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAccountPayer', () => {
+  it('follows the switch for a member, and is none for a non-member or an unknown wallet', () => {
+    const { result } = renderHook(() => useAccountPayer(known()));
+    expect(result.current).toBe('organization');
+    act(() => setUseOwnBalance(true));
+    expect(result.current).toBe('personal');
+    expect(renderHook(() => useAccountPayer({ status: 'known', balanceMicroUsd: 1, frozen: false })).result.current).toBeUndefined();
+    expect(renderHook(() => useAccountPayer({ status: 'loading' })).result.current).toBeUndefined();
   });
 });

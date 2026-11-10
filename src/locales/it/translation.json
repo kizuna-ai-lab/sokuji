@@ -1506,6 +1506,7 @@
     "org_balance_held": "Il saldo della tua organizzazione è trattenuto da sessioni in corso. Riprova quando una termina, oppure usa il tuo saldo personale.",
     "org_insufficient_balance": "Chiedi al proprietario dell'organizzazione di ricaricare il saldo, oppure usa il tuo saldo personale.",
     "org_insufficient_balance_owner": "Ricarica il saldo di {{organization}} oppure usa il tuo saldo personale.",
+    "org_insufficient_balance_owner_unnamed": "Ricarica il saldo della tua organizzazione oppure usa il tuo saldo personale.",
     "not_org_member": "Non fai più parte di {{organization}}.",
     "not_org_member_unnamed": "Non fai più parte della tua organizzazione.",
     "org_wallet_frozen": "L'account di {{organization}} è sospeso. Contatta il proprietario oppure usa il tuo saldo personale.",

@@ -62,8 +62,18 @@ export function accountPayer(account: AccountState | null | undefined): Payer | 
   return account?.status === 'known' ? chosenPayer(account) : undefined;
 }
 
-/** The balance and frozen flag of the wallet `payer` spends (the one a run chose at Start, not the live switch); a non-member, with no payer, spends the account's own. */
-export function payerBalance(account: Extract<AccountState, { status: 'known' }>, payer: Payer | undefined): { microUsd: number; frozen: boolean } {
+/** The payer the next Start sends, following the switch; for a component that shows or checks the wallet it will spend. */
+export function useAccountPayer(account: AccountState | null | undefined): Payer | undefined {
+  // Subscribed, so the payer follows the switch; `accountPayer` reads the value the subscription just saw.
+  useUseOwnBalance();
+  return accountPayer(account);
+}
+
+/**
+ * The balance and frozen flag of the wallet `payer` spends (the one a run chose at Start, not the live switch); a non-member, with no payer, spends the account's own.
+ * `microUsd` is undefined for a personal payer whose wallet the account does not hold (the response carried none usable): no balance is made up, and the server checks that wallet.
+ */
+export function payerBalance(account: Extract<AccountState, { status: 'known' }>, payer: Payer | undefined): { microUsd: number | undefined; frozen: boolean } {
   switch (payer) {
     case 'organization': {
       const org = account.organization;
@@ -71,7 +81,7 @@ export function payerBalance(account: Extract<AccountState, { status: 'known' }>
     }
     case 'personal': {
       const own = account.personal;
-      return { microUsd: own?.balanceMicroUsd ?? 0, frozen: own?.frozen ?? false };
+      return { microUsd: own?.balanceMicroUsd, frozen: own?.frozen ?? false };
     }
     default:
       return { microUsd: account.balanceMicroUsd, frozen: account.frozen };

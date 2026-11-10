@@ -306,8 +306,8 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
   // Code outside React asks for a fresh wallet through the store (a refused voice preview).
   useEffect(() => {
-    useAccountStore.getState().setRefresh(fetchQuota);
-    return () => useAccountStore.getState().setRefresh(null);
+    useAccountStore.getState().setRefreshAccount(fetchQuota);
+    return () => useAccountStore.getState().setRefreshAccount(null);
   }, [fetchQuota]);
 
   // The start gate reads the wallet outside React (Stage 2 Kizuna Soniox,

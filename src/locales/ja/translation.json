@@ -1506,6 +1506,7 @@
     "org_balance_held": "組織の残高は、進行中のセッションによって確保されています。セッションが終了してからもう一度お試しいただくか、ご自身の残高をご利用ください。",
     "org_insufficient_balance": "組織のオーナーにチャージを依頼するか、ご自身の残高をご利用ください。",
     "org_insufficient_balance_owner": "{{organization}} にチャージするか、ご自身の残高をご利用ください。",
+    "org_insufficient_balance_owner_unnamed": "組織にチャージするか、ご自身の残高をご利用ください。",
     "not_org_member": "{{organization}} のメンバーではなくなりました。",
     "not_org_member_unnamed": "所属していた組織のメンバーではなくなりました。",
     "org_wallet_frozen": "{{organization}} のアカウントは一時停止されています。オーナーにお問い合わせいただくか、ご自身の残高をご利用ください。",
