@@ -268,6 +268,38 @@ describe('the refresh button', () => {
   });
 });
 
+describe('overlapping usage requests', () => {
+  it('keeps the newer figures when an earlier request lands last', async () => {
+    quota = memberQuota();
+    auth.token = 't';
+    const resolvers: Array<() => void> = [];
+    const bodies = [
+      { personal: { spendMicroUsd: 100_000, sessionSeconds: 600, sessionCount: 1 } },
+      { personal: { spendMicroUsd: 900_000, sessionSeconds: 600, sessionCount: 1 } },
+    ];
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => {
+      const i = resolvers.length;
+      resolvers.push(() => resolve({ ok: true, json: async () => bodies[i] }));
+    })));
+
+    const { container } = render(<UserAccountInfo />);
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+    // The user refreshes before the automatic read has answered.
+    fireEvent.click(screen.getByTitle('Refresh'));
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+
+    // The refresh answers first…
+    resolvers[1]();
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    await waitFor(() => expect(container.textContent).toContain('$0.90'));
+    // …and the earlier one must not paint over it.
+    resolvers[0]();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.textContent).toContain('$0.90');
+    expect(container.textContent).not.toContain('$0.10');
+  });
+});
+
 describe('a wallet the server did not send', () => {
   it('shows the organization side rather than a personal balance of zero', () => {
     quota = memberQuota({ personal: undefined });

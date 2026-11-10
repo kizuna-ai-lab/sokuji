@@ -38,6 +38,14 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
  */
 const cache = new Map<string, { at: number; sides: UsageSides }>();
 
+/**
+ * How many requests have been issued per cache key. A response is only stored
+ * when no LATER request for the same key has been issued, so an automatic read
+ * that was overtaken by the panel's Refresh cannot put the older figures back
+ * into the cache for the next five minutes.
+ */
+const issued = new Map<string, number>();
+
 function localDay(now: number): string {
     const d = new Date(now);
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -100,6 +108,10 @@ export async function fetchUsageSides(opts: {
     const hit = cache.get(key);
     if (!opts.force && hit && now - hit.at < CACHE_TTL_MS) return hit.sides;
 
+    // Claim the newest slot for this key before asking.
+    const mine = (issued.get(key) ?? 0) + 1;
+    issued.set(key, mine);
+
     const tz = opts.tzOffsetMinutes;
     const query = tz === undefined ? '' : `?tzOffsetMinutes=${tz}`;
     try {
@@ -109,7 +121,9 @@ export async function fetchUsageSides(opts: {
         });
         if (!res.ok) return null;
         const sides = parseUsageSides(await res.json());
-        cache.set(key, { at: now, sides });
+        // Superseded by a later request for the same key: answer this caller, but
+        // do not let its older figures win the cache.
+        if (issued.get(key) === mine) cache.set(key, { at: now, sides });
         return sides;
     } catch {
         return null;

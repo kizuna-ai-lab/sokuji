@@ -12,6 +12,7 @@ import {
 const side = (spendMicroUsd: number, sessionSeconds: number, sessionCount = 1) =>
     ({ spendMicroUsd, sessionSeconds, sessionCount });
 
+
 describe('parseUsageSides', () => {
     it('reads both blocks', () => {
         expect(parseUsageSides({
@@ -120,6 +121,28 @@ describe('fetchUsageSides', () => {
         expect(await call()).toBeNull();
         await call();
         expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not let a superseded response replace the newer figures in the cache', async () => {
+        let releaseFirst: (v: unknown) => void = () => {};
+        const first = new Promise((resolve) => { releaseFirst = resolve as (v: unknown) => void; });
+        const ok = (body: unknown) => ({ ok: true, json: async () => body });
+        fetchMock
+            .mockImplementationOnce(async () => ok(await first))
+            .mockImplementationOnce(async () => ok({ personal: side(900, 600) }));
+
+        // The automatic read goes out first, the user's Refresh second.
+        const slow = call({ force: true });
+        const fast = await call({ force: true });
+        expect(fast).toEqual({ personal: side(900, 600) });
+        // Now the older request lands, carrying the older figures.
+        releaseFirst({ personal: side(100, 600) });
+        await slow;
+
+        // What the panel asks for next must be the newer figures: still inside the
+        // five-minute window, so this reads the cache rather than asking again.
+        const next = await call({ now: 1_000_000 });
+        expect(next).toEqual({ personal: side(900, 600) });
     });
 
     it('passes the viewer offset so the window is their calendar, not UTC', async () => {

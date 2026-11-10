@@ -117,7 +117,10 @@ export function UserAccountInfo({
   // getter without making the callback unstable.
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
+  // A request issued earlier can resolve later; only the newest one may paint.
+  const requestSeq = useRef(0);
   const loadSides = useCallback(async (force: boolean) => {
+    const mine = ++requestSeq.current;
     // No token means no request; a signed-out or not-yet-loaded session must not fire one.
     const token = await getTokenRef.current?.();
     if (!token) return;
@@ -129,6 +132,7 @@ export function UserAccountInfo({
       tzOffsetMinutes: -new Date().getTimezoneOffset(),
       force,
     });
+    if (mine !== requestSeq.current) return; // a later request superseded this one
     if (next) setSides(next);
   }, [betterAuthUser?.id, user.id, organization?.id]);
   useEffect(() => { void loadSides(false); }, [loadSides]);
