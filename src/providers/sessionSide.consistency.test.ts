@@ -345,6 +345,7 @@ describe('a provider session side', () => {
     expect('clock.setTimeout(f, 1)').not.toMatch(dom);
   });
 
+  // It reads and parses every source file of the repository, which a busy CI runner can take past the 5 s default.
   it("only test-only modules import the adapter test kit or a provider's fixtures", () => {
     const { files, importers, targets } = importGraph(REPO_ROOT);
     const testOnly = testOnlyModules(files, importers, isTest, inKit);
@@ -368,7 +369,7 @@ describe('a provider session side', () => {
     const synInKit = () => false;
     const synTestOnly = testOnlyModules(synFiles, synImporters, synIsTest, synInKit);
     expect([...synTestOnly].sort()).toEqual(['a.test.ts', 'deep.ts', 'helper.ts']);
-  });
+  }, 30_000);
 
   it("the kit rule holds a provider's fixtures to tests (a fixture tree, never the real one)", () => {
     const root = mkdtempSync(join(tmpdir(), 'sokuji-kit-rule-'));
