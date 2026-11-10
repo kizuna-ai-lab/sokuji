@@ -116,13 +116,20 @@ export function UserAccountInfo({
   // request) — ask the endpoint once per render. The ref keeps the latest token
   // getter without making the callback unstable.
   const getTokenRef = useRef(getToken);
-  getTokenRef.current = getToken;
   // Whose figures these are. A response is only painted while this is still the
   // identity that asked: signing in as someone else, or switching organization,
   // must not leave the previous identity's usage on screen.
   const identity = `${betterAuthUser?.id ?? user.id}|${organization?.id ?? ''}`;
   const identityRef = useRef(identity);
-  identityRef.current = identity;
+
+  // Written AFTER commit, never during render: React may replay or discard
+  // render work, and a discarded render must not leave these pointing at state
+  // that never committed. Declared before the effects below, so they run first.
+  useEffect(() => {
+    getTokenRef.current = getToken;
+    identityRef.current = identity;
+  });
+
   // The previous identity's figures go the moment the identity does; the effect
   // below then asks for the new one's.
   useEffect(() => {
