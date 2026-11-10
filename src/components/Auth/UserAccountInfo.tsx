@@ -101,15 +101,25 @@ export function UserAccountInfo({
   const knownPayer: 'organization' | 'personal' | undefined = organization
     ? (idle ? (switchOn ? 'personal' : 'organization') : runPayer)
     : undefined;
-  const useOwn = knownPayer === 'personal';
+  // A server that sends the organization but no personal wallet leaves the
+  // switch pointing at a wallet nobody has: the panel then shows the one wallet
+  // it does know rather than inventing a balance for the other.
+  const useOwn = knownPayer === 'personal' && !!personal;
 
   // Both sides' 30-day figures, in one request, cached for five minutes. A
   // failure leaves the balances alone and hides the usage lines.
   const [sides, setSides] = useState<UsageSides | null>(null);
   const [hint, setHint] = useState<'held' | 'runway' | null>(null);
+  // `useAuth().getToken` is a NEW function on every render, so putting it in the
+  // callback's dependencies would give `loadSides` a new identity each render,
+  // re-run the effect below, and — on a path that caches nothing (a failed
+  // request) — ask the endpoint once per render. The ref keeps the latest token
+  // getter without making the callback unstable.
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
   const loadSides = useCallback(async (force: boolean) => {
     // No token means no request; a signed-out or not-yet-loaded session must not fire one.
-    const token = await getToken?.();
+    const token = await getTokenRef.current?.();
     if (!token) return;
     const next = await fetchUsageSides({
       apiUrl: getApiUrl(),
@@ -120,7 +130,7 @@ export function UserAccountInfo({
       force,
     });
     if (next) setSides(next);
-  }, [betterAuthUser?.id, user.id, organization?.id, getToken]);
+  }, [betterAuthUser?.id, user.id, organization?.id]);
   useEffect(() => { void loadSides(false); }, [loadSides]);
 
   // The side this panel is about, and the other one, whichever the tab shows.
@@ -142,10 +152,17 @@ export function UserAccountInfo({
   const organizationSpend = sides?.organization?.spendMicroUsd;
   const totalKnown = personalSpend !== undefined && (!organization || organizationSpend !== undefined);
   const totalSpendMicroUsd = totalKnown ? (personalSpend ?? 0) + (organizationSpend ?? 0) : undefined;
-  const availableMicroUsd = organization
-    ? (useOwn ? personal?.balanceMicroUsd : organization.availableMicroUsd)
-    : (quota?.balance ?? quota?.remaining ?? 0);
-  const runwayHours = shownSide ? estimateRunwayHours(availableMicroUsd ?? 0, shownSide) : null;
+  // A side whose wallet the server did not send has no balance to show — and
+  // no runway either: dividing "unknown" by a rate yields a number nobody has.
+  const balanceShown: number | undefined = !organization
+    ? quota?.balance ?? quota?.remaining
+    : useOwn
+      ? personal?.balanceMicroUsd
+      : orgDisplayBalance(organization);
+  const availableMicroUsd = balanceShown;
+  const runwayHours = shownSide && availableMicroUsd !== undefined
+    ? estimateRunwayHours(availableMicroUsd, shownSide)
+    : null;
 
   const subscription = quota?.plan || user?.subscription || 'free';
 
@@ -406,6 +423,10 @@ export function UserAccountInfo({
   const handleRefresh = () => {
     trackEvent('user_profile_refresh_clicked', {});
     refetchAll();
+    // The balances and the usage figures come from different endpoints; a
+    // refresh that moved one and left the other for five minutes would look
+    // like the button half-worked.
+    void loadSides(true);
   };
 
   return (
@@ -595,11 +616,11 @@ export function UserAccountInfo({
               <div className="quota-row">
                 <span className="quota-key">{t('tokenUsage.balance', 'Balance')}</span>
                 <span className="quota-val quota-val--big">
-                  {formatUsdFloor(
-                    organization
-                      ? (useOwn ? personal?.balanceMicroUsd ?? 0 : orgDisplayBalance(organization))
-                      : (quota.balance || quota.remaining),
-                  )}
+                  {balanceShown === undefined
+                    // The title bar shows no number at all here; a "$0.00" would
+                    // say the wallet is empty, which is a different claim.
+                    ? <span title={t('tokenUsage.usageUnavailable', 'Unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>
+                    : formatUsdFloor(balanceShown)}
                 </span>
                 {organization && !useOwn && organization.frozen && (
                   <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>

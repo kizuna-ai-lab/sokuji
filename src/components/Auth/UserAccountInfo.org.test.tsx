@@ -253,6 +253,33 @@ describe('the per-side figures, once the endpoint answers', () => {
   });
 });
 
+describe('the refresh button', () => {
+  it('refreshes the usage figures too, not only the balance', async () => {
+    quota = memberQuota();
+    auth.token = 't';
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<UserAccountInfo />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    // The first answer cached nothing useful, but the button must still ask again
+    // rather than serve the same figure for five minutes.
+    fireEvent.click(screen.getByTitle('Refresh'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('a wallet the server did not send', () => {
+  it('shows the organization side rather than a personal balance of zero', () => {
+    quota = memberQuota({ personal: undefined });
+    localStorage.setItem('sokuji.payer.useOwnBalance', 'true');
+    const { container } = render(<UserAccountInfo />);
+    // The switch points at a wallet that does not exist; the only wallet we know is shown.
+    expect(screen.queryByRole('tab', { name: 'Your balance' })).toBeNull();
+    expect(row('Balance').textContent).toContain('$50.00');
+    expect(container.textContent).not.toContain('$0.00');
+  });
+});
+
 describe('UserAccountInfo without an organization', () => {
   it('shows one balance, one usage zone and one total — no tabs', () => {
     const { container } = render(<UserAccountInfo />);

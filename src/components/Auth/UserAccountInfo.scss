@@ -511,10 +511,15 @@
     font-size: 14px;
   }
 
-  .quota-paused-marker {
-    color: tk.$color-warning;
-    font-size: 12px;
-  }
+
+}
+
+// A paused wallet, on whichever row shape is rendering it: the old two-line
+// layout nested this under `.quota-balance-row`, and the panel's new rows are
+// `.quota-row`, so the rule lives on its own rather than under either.
+.quota-paused-marker {
+  color: tk.$color-warning;
+  font-size: 12px;
 }
 
 // Under the organization's line: how much of it running sessions hold.
