@@ -18,7 +18,7 @@ import {
   UserCog,
   Wallet
 } from 'lucide-react';
-import {orgDisplayBalance} from '../../lib/session/orgNotice';
+import {orgDisplayBalance, orgHeldMicroUsd} from '../../lib/session/orgNotice';
 import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
@@ -500,9 +500,9 @@ export function UserAccountInfo({
                     <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>
                   )}
                 </div>
-                {organization.committedBalanceMicroUsd !== undefined && organization.committedBalanceMicroUsd - organization.availableMicroUsd > 0 && (
+                {orgHeldMicroUsd(organization) > 0 && (
                   <div className="quota-org-held">
-                    {t('tokenUsage.orgHeld', {held: formatUsdFloor(organization.committedBalanceMicroUsd - organization.availableMicroUsd)})}
+                    {t('tokenUsage.orgHeld', {held: formatUsdFloor(orgHeldMicroUsd(organization))})}
                   </div>
                 )}
                 {personal && (

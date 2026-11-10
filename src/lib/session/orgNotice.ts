@@ -50,6 +50,11 @@ export function orgDisplayBalance(org: { availableMicroUsd: number; committedBal
   return org.committedBalanceMicroUsd ?? org.availableMicroUsd;
 }
 
+/** What running sessions hold of the organization's balance (committed less available); 0 when the server sends no committed figure or nothing is held. */
+export function orgHeldMicroUsd(org: { availableMicroUsd: number; committedBalanceMicroUsd?: number }): number {
+  return org.committedBalanceMicroUsd === undefined ? 0 : Math.max(0, org.committedBalanceMicroUsd - org.availableMicroUsd);
+}
+
 /** What the title bar shows for `payer`: `payerBalance`, except an organization payer shows its committed balance. */
 export function payerDisplayBalance(account: Extract<AccountState, { status: 'known' }>, payer: Payer | undefined): number | undefined {
   if (payer === 'organization' && account.organization) return orgDisplayBalance(account.organization);

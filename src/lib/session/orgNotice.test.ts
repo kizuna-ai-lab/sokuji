@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { orgNoticeParams } from './orgNotice';
+import { orgHeldMicroUsd, orgNoticeParams } from './orgNotice';
 import type { AccountState } from './types';
 
 const account = (organization: { name: string; role?: 'owner' | 'member' } | undefined): AccountState => ({
@@ -20,5 +20,14 @@ describe('orgNoticeParams', () => {
     expect(orgNoticeParams(account(undefined))).toBeUndefined();
     expect(orgNoticeParams(account({ name: '' }))).toBeUndefined();
     expect(orgNoticeParams(null)).toBeUndefined();
+  });
+});
+
+describe('orgHeldMicroUsd', () => {
+  it('is committed less available, never below 0, and 0 without a committed figure', () => {
+    expect(orgHeldMicroUsd({ availableMicroUsd: 2_000_000, committedBalanceMicroUsd: 5_000_000 })).toBe(3_000_000);
+    expect(orgHeldMicroUsd({ availableMicroUsd: 5_000_000, committedBalanceMicroUsd: 5_000_000 })).toBe(0);
+    expect(orgHeldMicroUsd({ availableMicroUsd: 6_000_000, committedBalanceMicroUsd: 5_000_000 })).toBe(0);
+    expect(orgHeldMicroUsd({ availableMicroUsd: 2_000_000 })).toBe(0);
   });
 });
