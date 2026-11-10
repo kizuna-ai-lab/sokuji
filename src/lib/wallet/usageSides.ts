@@ -51,6 +51,11 @@ function localDay(now: number): string {
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
+/**
+ * The cache key for one identity on one local day. The window is calendar days
+ * in the viewer's zone, so an answer fetched yesterday evening is not the answer
+ * for today's first bar.
+ */
 export function usageCacheKey(userId: string, organizationId: string | undefined, now: number): string {
     return `${userId}|${organizationId ?? ''}|${localDay(now)}`;
 }
@@ -60,6 +65,11 @@ export function clearUsageSidesCache(): void {
     cache.clear();
 }
 
+/**
+ * One side's block, or `undefined` when it is missing or does not carry all
+ * three figures. Never a zero: a shape we did not recognise says nothing about
+ * what was spent.
+ */
 function numbers(v: unknown): UsageSide | undefined {
     if (!v || typeof v !== 'object') return undefined;
     const b = v as Record<string, unknown>;
