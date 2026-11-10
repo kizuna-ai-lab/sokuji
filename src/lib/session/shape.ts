@@ -6,6 +6,7 @@ import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import { payerBalance } from './payerChoice';
+import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
 import type { RunNotice, RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
@@ -128,14 +129,18 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
   if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
   // The wallet the chosen payer spends: a member's organization or own balance, a non-member's only one.
   const wallet = payerBalance(account, input.payer);
-  if (wallet.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+  // The organization pays (and the account still holds it): its refusals carry its name and the member's role.
+  const org = input.payer === 'organization' && account.organization ? orgNoticeParams(account) : undefined;
+  if (wallet.frozen) {
+    return org ? { code: ORG_WALLET_FROZEN, message: 'The organization wallet is frozen.', params: org } : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+  }
   const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
   if (wallet.microUsd >= floor) return null;
   return {
-    code: BALANCE_BELOW_FLOOR,
+    code: org ? ORG_INSUFFICIENT_BALANCE : BALANCE_BELOW_FLOOR,
     message: `The balance (${wallet.microUsd} µUSD) is below this start's floor (${floor} µUSD).`,
     // Floored, as every balance is: this is the moment it is too low, the worst one to round up.
-    params: { balance: formatUsdFloor(wallet.microUsd) },
+    params: { ...org, balance: formatUsdFloor(wallet.microUsd) },
   };
 }
 

@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "Tłumaczenie, które słyszy druga strona, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_missing": "Tłumaczenie, które słyszę, jest tylko tekstem: brak modelu mowy (język: {{target}}).",
     "participant_tts_over_budget": "Tłumaczenie, które słyszę, jest tylko tekstem: za mało pamięci, by wczytać także model mowy drugiej strony.",
-    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
+    "screen_context_lost": "Wybrany ekran nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku.",
+    "org_balance_held": "Saldo Twojej organizacji jest zablokowane przez trwające sesje. Spróbuj ponownie, gdy któraś się zakończy, lub użyj własnego salda.",
+    "org_insufficient_balance": "Poproś właściciela organizacji o doładowanie salda lub użyj własnego salda.",
+    "org_insufficient_balance_owner": "Doładuj saldo organizacji {{organization}} lub użyj własnego salda.",
+    "not_org_member": "Nie należysz już do organizacji {{organization}}.",
+    "not_org_member_unnamed": "Nie należysz już do swojej organizacji.",
+    "org_wallet_frozen": "Konto organizacji {{organization}} zostało wstrzymane. Skontaktuj się z jej właścicielem lub użyj własnego salda.",
+    "org_wallet_frozen_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z jej właścicielem lub użyj własnego salda.",
+    "org_wallet_frozen_owner": "Konto organizacji {{organization}} zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda.",
+    "org_wallet_frozen_owner_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda."
   },
   "viewer": {
     "title": "Napisy Sokuji",

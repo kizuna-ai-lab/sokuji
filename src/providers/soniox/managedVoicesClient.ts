@@ -30,6 +30,7 @@
 import type { Payer } from '../../lib/session/types';
 import { DEFAULT_SONIOX_REGION, asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
+import { NOT_ORG_MEMBER, ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN } from '../../lib/session/orgNotice';
 import { SonioxVoicesError } from './voicesClient';
 
 export type ManagedVoiceStatus = 'not_computed' | 'processing' | 'ready' | 'failed';
@@ -58,6 +59,13 @@ export interface ManagedPreviewSessionKey {
    *  the request and the backend, and would route the returned key at the
    *  wrong TTS host. */
   region: SonioxRegion;
+}
+
+/** A 402 the organization was to pay is the organization's: the slug-only body cannot say, so the payer sent does. */
+function withOrgBalance(e: unknown, payer: Payer | undefined): unknown {
+  return e instanceof SonioxVoicesError && e.errorType === 'insufficient_balance' && payer === 'organization'
+    ? new SonioxVoicesError(ORG_INSUFFICIENT_BALANCE, e.message, e.status, e.retryAfterMs)
+    : e;
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -250,6 +258,11 @@ export class ManagedVoicesClient {
     try {
       const body = await res.json();
       if (typeof body?.error === 'string') slug = body.error;
+      // A frozen organization's wallet, told from the member's own freeze by the body's `subject`.
+      // The session-key route words an organization's refusals by `reason` and `code`, not `error`.
+      if (body?.reason === 'org_balance_held') slug = ORG_BALANCE_HELD;
+      if (body?.code === 'not_org_member') slug = NOT_ORG_MEMBER;
+      if (slug === 'wallet_frozen' && body?.subject === 'organization') slug = ORG_WALLET_FROZEN;
       if (typeof body?.retryAfterMs === 'number') retryAfterMs = body.retryAfterMs;
     } catch {
       // Non-JSON body (a gateway error page): the status still carries meaning.
@@ -314,7 +327,7 @@ export class ManagedVoicesClient {
       { method: 'POST', body: form },
       opts.budgetMs !== undefined ? Math.min(defaultTimeout, opts.budgetMs) : defaultTimeout,
       opts.signal
-    );
+    ).catch((e) => { throw withOrgBalance(e, opts.payer); });
     const body = await res.json();
     return { voiceId: body.voiceId, status: body.status };
   }
@@ -355,7 +368,7 @@ export class ManagedVoicesClient {
         body: JSON.stringify({ mode: request.mode, region: this.region, ...(request.payer ? { payer: request.payer } : {}) }),
       },
       REQUEST_TIMEOUT_MS
-    );
+    ).catch((e) => { throw withOrgBalance(e, request.payer); });
     if (typeof body?.ttsApiKey !== 'string') {
       // A contract break, not a user-facing failure mode: this route always
       // mints a TTS key for `voice_preview` (backend design §5.6). Loud

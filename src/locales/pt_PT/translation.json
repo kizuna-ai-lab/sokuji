@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "A tradução que o outro lado ouve é apresentada apenas como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_missing": "A tradução que eu ouço é apresentada apenas como texto: nenhum modelo de voz fala {{target}}.",
     "participant_tts_over_budget": "A tradução que eu ouço é apresentada apenas como texto: não há memória suficiente para carregar também o modelo de voz do outro lado.",
-    "screen_context_lost": "O ecrã que escolheu já não está disponível; a tradução continua apenas com o áudio."
+    "screen_context_lost": "O ecrã que escolheu já não está disponível; a tradução continua apenas com o áudio.",
+    "org_balance_held": "O saldo da sua organização está retido por sessões em curso. Tente novamente quando uma terminar ou utilize o seu próprio saldo.",
+    "org_insufficient_balance": "Peça ao proprietário da organização que recarregue o saldo ou utilize o seu próprio saldo.",
+    "org_insufficient_balance_owner": "Recarregue o saldo de {{organization}} ou utilize o seu próprio saldo.",
+    "not_org_member": "Já não faz parte de {{organization}}.",
+    "not_org_member_unnamed": "Já não faz parte da sua organização.",
+    "org_wallet_frozen": "A conta de {{organization}} está em pausa. Contacte o proprietário ou utilize o seu próprio saldo.",
+    "org_wallet_frozen_unnamed": "A conta da organização está em pausa. Contacte o proprietário ou utilize o seu próprio saldo.",
+    "org_wallet_frozen_owner": "A conta de {{organization}} está em pausa. Contacte o suporte do Sokuji ou utilize o seu próprio saldo.",
+    "org_wallet_frozen_owner_unnamed": "A conta da organização está em pausa. Contacte o suporte do Sokuji ou utilize o seu próprio saldo."
   },
   "viewer": {
     "title": "Legendas do Sokuji",

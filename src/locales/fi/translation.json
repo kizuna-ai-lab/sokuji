@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "Käännös, jonka toinen osapuoli kuulee, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_missing": "Käännös, jonka kuulen, näkyy vain tekstinä: mikään puhemalli ei puhu kieltä {{target}}.",
     "participant_tts_over_budget": "Käännös, jonka kuulen, näkyy vain tekstinä: muisti ei riitä lataamaan myös toisen osapuolen puhemallia.",
-    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
+    "screen_context_lost": "Valitsemasi näyttö ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä.",
+    "org_balance_held": "Organisaatiosi saldoa pidetään varattuna käynnissä olevilla istunnoilla. Yritä uudelleen, kun yksi niistä päättyy, tai käytä omaa saldoasi.",
+    "org_insufficient_balance": "Pyydä organisaation omistajaa lataamaan saldoa tai käytä omaa saldoasi.",
+    "org_insufficient_balance_owner": "Lataa saldoa organisaatiolle {{organization}} tai käytä omaa saldoasi.",
+    "not_org_member": "Et kuulu enää organisaatioon {{organization}}.",
+    "not_org_member_unnamed": "Et kuulu enää organisaatioosi.",
+    "org_wallet_frozen": "Organisaation {{organization}} tili on keskeytetty. Ota yhteyttä sen omistajaan tai käytä omaa saldoasi.",
+    "org_wallet_frozen_unnamed": "Organisaation tili on keskeytetty. Ota yhteyttä sen omistajaan tai käytä omaa saldoasi.",
+    "org_wallet_frozen_owner": "Organisaation {{organization}} tili on keskeytetty. Ota yhteyttä Sokujin tukeen tai käytä omaa saldoasi.",
+    "org_wallet_frozen_owner_unnamed": "Organisaation tili on keskeytetty. Ota yhteyttä Sokujin tukeen tai käytä omaa saldoasi."
   },
   "viewer": {
     "title": "Sokuji-tekstitys",

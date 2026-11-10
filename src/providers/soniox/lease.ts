@@ -19,6 +19,7 @@ import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
+import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
@@ -143,7 +144,9 @@ function parseGrant(body: unknown): Grant {
  * `error_message`, so a 402's amounts go to the Logs' frame instead
  * (`refusalFrame`).
  */
-function refusal(status: number, body: unknown): Error {
+function refusal(status: number, body: unknown, shape: RunShape): Error {
+  const org = orgRefusalCode(status, body, shape.payer);
+  if (org) return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}).`, org, orgNoticeParams(shape.account));
   const b = (body ?? {}) as { error?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
@@ -355,7 +358,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     }
     if (answer.status < 200 || answer.status >= 300) {
       ctx.frame(refusalFrame(answer.status, answer.body));
-      throw refusal(answer.status, answer.body);
+      throw refusal(answer.status, answer.body, shape);
     }
     // A contract break past here leaves a never-started lease, which the
     // backend frees at its start window's end; `session-end` cannot (survey §1.2).

@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "La traducción que oye la otra parte se muestra solo como texto: ningún modelo de voz habla {{target}}.",
     "participant_tts_missing": "La traducción que yo oigo se muestra solo como texto: ningún modelo de voz habla {{target}}.",
     "participant_tts_over_budget": "La traducción que yo oigo se muestra solo como texto: no hay memoria suficiente para cargar también el modelo de voz de la otra parte.",
-    "screen_context_lost": "La pantalla que elegiste ya no está disponible; la traducción continúa solo con el audio."
+    "screen_context_lost": "La pantalla que elegiste ya no está disponible; la traducción continúa solo con el audio.",
+    "org_balance_held": "El saldo de tu organización está retenido por sesiones en curso. Inténtalo de nuevo cuando termine una, o usa tu propio saldo.",
+    "org_insufficient_balance": "Pide al propietario de la organización que recargue el saldo, o usa tu propio saldo.",
+    "org_insufficient_balance_owner": "Recarga el saldo de {{organization}} o usa tu propio saldo.",
+    "not_org_member": "Ya no formas parte de {{organization}}.",
+    "not_org_member_unnamed": "Ya no formas parte de tu organización.",
+    "org_wallet_frozen": "La cuenta de {{organization}} está en pausa. Contacta con su propietario o usa tu propio saldo.",
+    "org_wallet_frozen_unnamed": "La cuenta de la organización está en pausa. Contacta con su propietario o usa tu propio saldo.",
+    "org_wallet_frozen_owner": "La cuenta de {{organization}} está en pausa. Contacta con el soporte de Sokuji o usa tu propio saldo.",
+    "org_wallet_frozen_owner_unnamed": "La cuenta de la organización está en pausa. Contacta con el soporte de Sokuji o usa tu propio saldo."
   },
   "viewer": {
     "title": "Subtítulos de Sokuji",

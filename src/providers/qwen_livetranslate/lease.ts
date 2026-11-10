@@ -17,6 +17,7 @@ import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
+import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
@@ -140,7 +141,9 @@ function parseGrant(body: unknown): Grant {
  * sends a failed start's message to analytics as `error_message`, so a
  * 402's amounts go to the Logs' frame instead (`refusalFrame`).
  */
-function refusal(status: number, body: unknown): Error {
+function refusal(status: number, body: unknown, shape: RunShape): Error {
+  const org = orgRefusalCode(status, body, shape.payer);
+  if (org) return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}).`, org, orgNoticeParams(shape.account));
   const b = (body ?? {}) as { error?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
@@ -362,7 +365,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     }
     if (answer.status < 200 || answer.status >= 300) {
       ctx.frame(refusalFrame(answer.status, answer.body));
-      throw refusal(answer.status, answer.body);
+      throw refusal(answer.status, answer.body, shape);
     }
     // A contract break past here leaves a never-reported lease, which the backend frees at its window's end; `session-end` cannot.
     const grant = parseGrant(answer.body);

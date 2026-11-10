@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "Übersetzung, die das Gegenüber hört, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_missing": "Übersetzung, die ich höre, erscheint nur als Text: Kein Sprachausgabemodell spricht {{target}}.",
     "participant_tts_over_budget": "Übersetzung, die ich höre, erscheint nur als Text: Nicht genug Speicher, um auch das Sprachausgabemodell der Gegenseite zu laden.",
-    "screen_context_lost": "Der gewählte Bildschirm ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter."
+    "screen_context_lost": "Der gewählte Bildschirm ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter.",
+    "org_balance_held": "Das Guthaben Ihrer Organisation wird von laufenden Sitzungen reserviert. Versuchen Sie es erneut, sobald eine endet, oder nutzen Sie Ihr eigenes Guthaben.",
+    "org_insufficient_balance": "Bitten Sie den Inhaber der Organisation, das Guthaben aufzuladen, oder nutzen Sie Ihr eigenes Guthaben.",
+    "org_insufficient_balance_owner": "Laden Sie das Guthaben von {{organization}} auf oder nutzen Sie Ihr eigenes Guthaben.",
+    "not_org_member": "Sie gehören nicht mehr zu {{organization}}.",
+    "not_org_member_unnamed": "Sie gehören nicht mehr zu Ihrer Organisation.",
+    "org_wallet_frozen": "Das Konto von {{organization}} ist pausiert. Wenden Sie sich an den Inhaber oder nutzen Sie Ihr eigenes Guthaben.",
+    "org_wallet_frozen_unnamed": "Das Konto der Organisation ist pausiert. Wenden Sie sich an den Inhaber oder nutzen Sie Ihr eigenes Guthaben.",
+    "org_wallet_frozen_owner": "Das Konto von {{organization}} ist pausiert. Wenden Sie sich an den Sokuji-Support oder nutzen Sie Ihr eigenes Guthaben.",
+    "org_wallet_frozen_owner_unnamed": "Das Konto der Organisation ist pausiert. Wenden Sie sich an den Sokuji-Support oder nutzen Sie Ihr eigenes Guthaben."
   },
   "viewer": {
     "title": "Sokuji-Untertitel",

@@ -1226,3 +1226,60 @@ describe('the lease port: reissue()', () => {
     expect(a.to(REISSUE)).toHaveLength(0);
   });
 });
+
+describe('Kizuna Soniox lease: refusals for organization payers', () => {
+  const account = { status: 'known' as const, balanceMicroUsd: 0, frozen: false, organization: { name: 'Acme', availableMicroUsd: 0, frozen: false, role: 'member' as const }, personal: { balanceMicroUsd: 5, frozen: false } };
+  /** The refusal a start meets; `payer` is what the request carried, not the switch. */
+  const refused = async (status: number, body: unknown, over: Partial<RunShape> = {}) => {
+    const net = stubFetch();
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createKizunaLease({ participantSpeech: false, fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    const pending = lease({ ...shapeFor(['speaker']), account, ...over }, SONIOX_DEFAULTS, ctx);
+    pending.catch(() => {});
+    await flush();
+    net.last().respond(status, body);
+    return rejection(pending) as Promise<AdapterStartError>;
+  };
+  beforeEach(() => localStorage.clear());
+
+  it('words a 402 whose reason is org_balance_held', async () => {
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'org_balance_held', availableMicroUsd: 3 }, { payer: 'organization' });
+    expect(e).toMatchObject({ code: 'org_balance_held' });
+  });
+
+  it('words a 402 insufficient_balance as the organization\'s when the request was organization-paid, with the name and role', async () => {
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'insufficient_balance', availableMicroUsd: 3 }, { payer: 'organization' });
+    expect(e).toMatchObject({ code: 'org_insufficient_balance', params: { organization: 'Acme', role: 'member' } });
+  });
+
+  it('decides by the payer sent, not the live switch', async () => {
+    setUseOwnBalance(false);
+    const e = await refused(402, { error: 'Insufficient balance', reason: 'insufficient_balance' }, { payer: 'personal' });
+    expect(e).toMatchObject({ code: 'insufficient_balance' });
+    setUseOwnBalance(true);
+    expect(await refused(402, { error: 'Insufficient balance' }, { payer: 'organization' })).toMatchObject({ code: 'org_insufficient_balance' });
+  });
+
+  it('leaves a personal or non-member 402 as it was', async () => {
+    expect(await refused(402, { error: 'Insufficient balance' }, { account: undefined })).toMatchObject({ code: 'insufficient_balance' });
+  });
+
+  it('words a 403 not_org_member', async () => {
+    const e = await refused(403, { code: 'not_org_member' }, { payer: 'organization' });
+    expect(e).toMatchObject({ code: 'not_org_member', params: { organization: 'Acme' } });
+  });
+
+  it('words a 403 frozen with subject organization, and a personal one as before', async () => {
+    expect(await refused(403, { error: 'Wallet frozen', subject: 'organization' }, { payer: 'organization' })).toMatchObject({ code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'member' } });
+    expect(await refused(403, { error: 'Wallet frozen' }, { payer: 'personal' })).toMatchObject({ code: 'wallet_frozen' });
+    expect(await refused(403, undefined, { account: undefined })).toMatchObject({ code: 'wallet_frozen' });
+  });
+
+  it('carries the owner role, and survives a stale quota with no organization', async () => {
+    const owner = { ...account, organization: { ...account.organization, role: 'owner' as const } };
+    expect(await refused(403, { subject: 'organization' }, { payer: 'organization', account: owner })).toMatchObject({ code: 'org_wallet_frozen', params: { role: 'owner' } });
+    const stale = await refused(403, { code: 'not_org_member' }, { payer: 'organization', account: { status: 'known', balanceMicroUsd: 0, frozen: false } });
+    expect(stale).toMatchObject({ code: 'not_org_member' });
+    expect(stale.params).toBeUndefined();
+  });
+});

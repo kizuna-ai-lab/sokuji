@@ -313,7 +313,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       !isSignedIn || !userId ? null
         : typeof balance === 'number' ? {
           status: 'known', balanceMicroUsd: balance, frozen: quota?.frozen === true,
-          ...(quota?.organization ? { organization: { name: quota.organization.name, availableMicroUsd: quota.organization.availableMicroUsd, frozen: quota.organization.frozen } } : {}),
+          ...(quota?.organization ? { organization: { name: quota.organization.name, availableMicroUsd: quota.organization.availableMicroUsd, frozen: quota.organization.frozen, role: quota.organization.role } } : {}),
           ...(quota?.organization && quota.personal ? { personal: { balanceMicroUsd: quota.personal.balanceMicroUsd, frozen: quota.personal.frozen } } : {}),
         }
         : walletFailed ? { status: 'unknown' }

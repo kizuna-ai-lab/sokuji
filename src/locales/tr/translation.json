@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "Karşı tarafın duyduğu çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
     "participant_tts_missing": "Duyduğum çeviri yalnızca metin: {{target}} konuşan bir ses modeli yok.",
     "participant_tts_over_budget": "Duyduğum çeviri yalnızca metin: karşı tarafın ses modelini de yüklemeye yetecek bellek yok.",
-    "screen_context_lost": "Seçtiğiniz ekran artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
+    "screen_context_lost": "Seçtiğiniz ekran artık kullanılamıyor; çeviri yalnızca sesle devam ediyor.",
+    "org_balance_held": "Kuruluşunuzun bakiyesi devam eden oturumlar tarafından ayrılmış durumda. Biri bittiğinde tekrar deneyin veya kendi bakiyenizi kullanın.",
+    "org_insufficient_balance": "Kuruluşun sahibinden bakiye yüklemesini isteyin veya kendi bakiyenizi kullanın.",
+    "org_insufficient_balance_owner": "{{organization}} bakiyesini yükleyin veya kendi bakiyenizi kullanın.",
+    "not_org_member": "Artık {{organization}} kuruluşunda değilsiniz.",
+    "not_org_member_unnamed": "Artık kuruluşunuzda değilsiniz.",
+    "org_wallet_frozen": "{{organization}} hesabı duraklatıldı. Sahibiyle iletişime geçin veya kendi bakiyenizi kullanın.",
+    "org_wallet_frozen_unnamed": "Kuruluşun hesabı duraklatıldı. Sahibiyle iletişime geçin veya kendi bakiyenizi kullanın.",
+    "org_wallet_frozen_owner": "{{organization}} hesabı duraklatıldı. Sokuji desteğiyle iletişime geçin veya kendi bakiyenizi kullanın.",
+    "org_wallet_frozen_owner_unnamed": "Kuruluşun hesabı duraklatıldı. Sokuji desteğiyle iletişime geçin veya kendi bakiyenizi kullanın."
   },
   "viewer": {
     "title": "Sokuji altyazıları",

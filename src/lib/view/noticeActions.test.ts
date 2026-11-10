@@ -17,6 +17,12 @@ describe('actionForCode', () => {
     expect(actionForCode('balance_below_floor')).toEqual({ kind: 'top-up' });
     expect(actionForCode('insufficient_balance')).toEqual({ kind: 'top-up' });
   });
+  it('offers Top up for an organization balance only to its owner', () => {
+    expect(actionForCode('org_insufficient_balance', { role: 'owner' })).toEqual({ kind: 'top-up' });
+    expect(actionForCode('org_insufficient_balance', { role: 'member' })).toBeNull();
+    expect(actionForCode('org_insufficient_balance')).toBeNull();
+    for (const code of ['org_balance_held', 'not_org_member', 'org_wallet_frozen']) expect(actionForCode(code, { role: 'owner' })).toBeNull();
+  });
   it('sends a signed-out managed provider to Sign in', () => {
     expect(actionForCode('sign_in_required')).toEqual({ kind: 'sign-in' });
   });

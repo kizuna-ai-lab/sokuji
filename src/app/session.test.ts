@@ -1006,7 +1006,7 @@ describe('attach', () => {
     return { refetchQuota, detach };
   }
 
-  it.each(['insufficient_balance', 'wallet_frozen'])('refetches the balance once the service refuses a start with %s: the wallet it answered for has changed', async (code) => {
+  it.each(['insufficient_balance', 'wallet_frozen', 'not_org_member', 'org_wallet_frozen', 'org_balance_held', 'org_insufficient_balance'])('refetches the balance once the service refuses a start with %s: the wallet it answered for has changed', async (code) => {
     const { refetchQuota, detach } = await refusedLease(code);
     expect(refetchQuota).toHaveBeenCalledTimes(1);
     detach();

@@ -56,7 +56,7 @@ export interface StatusLineInput {
 }
 
 const KEY_CODES: ReadonlySet<string> = new Set(['credentials_missing', 'sign_in_required', 'sign_in_pending', 'auth']);
-const WALLET_CODES: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance', QUOTA_PENDING, QUOTA_UNKNOWN, 'wallet_frozen']);
+const WALLET_CODES: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance', QUOTA_PENDING, QUOTA_UNKNOWN, 'wallet_frozen', 'org_insufficient_balance', 'org_wallet_frozen', 'org_balance_held']);
 
 function iconFor(code: string | undefined): StatusIcon {
   if (code === NO_MICROPHONE) return 'mic-off';
@@ -70,7 +70,7 @@ function blocker(key: string, code: string | undefined, message: string, params?
     key,
     icon: iconFor(code),
     words: { kind: 'notice', code: code ?? '', message, ...(params ? { params } : {}) },
-    action: actionForCode(code),
+    action: actionForCode(code, params),
     dismiss: null,
   };
 }

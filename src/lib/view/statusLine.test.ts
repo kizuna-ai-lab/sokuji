@@ -25,6 +25,12 @@ describe('statusLine — cannot start (priority 1)', () => {
     expect(unready('quota_pending')?.icon).toBe('wallet');
     expect(unready('not_ready')).toMatchObject({ icon: 'circle-alert', action: null });
   });
+  it('shows the gate’s organization refusals: the owner gets Top up, a member and a frozen organization do not', () => {
+    const unready = (code: string, params: Record<string, string>) => statusLine(input({ canStart: false, idle: { kind: 'unready', message: 'm', code, params } }));
+    expect(unready('org_insufficient_balance', { organization: 'Acme', role: 'owner', balance: '$0.01' })).toMatchObject({ icon: 'wallet', action: { kind: 'top-up' } });
+    expect(unready('org_insufficient_balance', { organization: 'Acme', role: 'member', balance: '$0.01' })).toMatchObject({ icon: 'wallet', action: null });
+    expect(unready('org_wallet_frozen', { organization: 'Acme', role: 'owner' })).toMatchObject({ icon: 'wallet', action: null });
+  });
   it('an uncoded readiness reason keeps its message and offers nothing', () => {
     expect(statusLine(input({ canStart: false, idle: { kind: 'unready', message: 'HTTP 500' } }))).toMatchObject({ words: { kind: 'notice', code: '', message: 'HTTP 500' }, action: null });
   });

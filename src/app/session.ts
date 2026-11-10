@@ -40,6 +40,7 @@ import { registerRunPhase } from './runPhase';
 import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
+import { ORG_REFUSAL_CODES } from '../lib/session/orgNotice';
 
 /** What only React can reach, handed in by `useAppSessionBridges`. */
 export interface AppBridges {
@@ -372,7 +373,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'start-failed') return;
         const code = now.lastEnd.notice?.code;
-        if (code === 'insufficient_balance' || code === 'wallet_frozen') refetchQuota();
+        if (code === 'insufficient_balance' || code === 'wallet_frozen' || (code !== undefined && ORG_REFUSAL_CODES.has(code))) refetchQuota();
       }));
       // A reload, the window or side panel closing, a page frozen into the
       // back/forward cache: close every leg and capture now; nothing is saved

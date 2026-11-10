@@ -1498,7 +1498,16 @@
     "speaker_tts_missing": "الترجمة التي يسمعها الطرف الآخر نص فقط: لا يوجد نموذج صوتي يتحدث {{target}}.",
     "participant_tts_missing": "الترجمة التي أسمعها نص فقط: لا يوجد نموذج صوتي يتحدث {{target}}.",
     "participant_tts_over_budget": "الترجمة التي أسمعها نص فقط: الذاكرة لا تكفي لتحميل النموذج الصوتي للطرف الآخر أيضًا.",
-    "screen_context_lost": "الشاشة التي اخترتها لم تعد متاحة؛ تستمر الترجمة بالصوت وحده."
+    "screen_context_lost": "الشاشة التي اخترتها لم تعد متاحة؛ تستمر الترجمة بالصوت وحده.",
+    "org_balance_held": "رصيد مؤسستك محجوز لجلسات قيد التشغيل. حاول مرة أخرى عند انتهاء إحداها، أو استخدم رصيدك الخاص.",
+    "org_insufficient_balance": "اطلب من مالك المؤسسة شحن الرصيد، أو استخدم رصيدك الخاص.",
+    "org_insufficient_balance_owner": "اشحن رصيد {{organization}} أو استخدم رصيدك الخاص.",
+    "not_org_member": "لم تعد عضوًا في {{organization}}.",
+    "not_org_member_unnamed": "لم تعد عضوًا في مؤسستك.",
+    "org_wallet_frozen": "حساب {{organization}} متوقف مؤقتًا. تواصل مع مالكه أو استخدم رصيدك الخاص.",
+    "org_wallet_frozen_unnamed": "حساب المؤسسة متوقف مؤقتًا. تواصل مع مالكه أو استخدم رصيدك الخاص.",
+    "org_wallet_frozen_owner": "حساب {{organization}} متوقف مؤقتًا. تواصل مع دعم Sokuji أو استخدم رصيدك الخاص.",
+    "org_wallet_frozen_owner_unnamed": "حساب المؤسسة متوقف مؤقتًا. تواصل مع دعم Sokuji أو استخدم رصيدك الخاص."
   },
   "viewer": {
     "title": "ترجمة Sokuji",

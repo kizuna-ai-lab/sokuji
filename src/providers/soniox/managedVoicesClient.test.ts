@@ -114,6 +114,30 @@ describe('ManagedVoicesClient.ensure', () => {
     await expect(make().ensure({ pin: true })).rejects.toMatchObject({ errorType: slug, status });
   });
 
+  describe('an organization payer (ruling A-2)', () => {
+    it('maps a frozen organization to org_wallet_frozen, and a personal freeze to wallet_frozen', async () => {
+      fetchMock.mockResolvedValue(json(403, { error: 'wallet_frozen', subject: 'organization' }));
+      await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_wallet_frozen', status: 403 });
+      fetchMock.mockResolvedValue(json(403, { error: 'wallet_frozen' }));
+      await expect(make().ensure({ pin: true, payer: 'personal' })).rejects.toMatchObject({ errorType: 'wallet_frozen' });
+    });
+    it('maps insufficient_balance by the payer sent', async () => {
+      // A fresh response per call: a body reads once.
+      fetchMock.mockImplementation(async () => json(402, { error: 'insufficient_balance' }));
+      await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_insufficient_balance', status: 402 });
+      await expect(make().ensure({ pin: true, payer: 'personal' })).rejects.toMatchObject({ errorType: 'insufficient_balance' });
+      await expect(make().ensure({ pin: true })).rejects.toMatchObject({ errorType: 'insufficient_balance' });
+    });
+    it('passes not_org_member through', async () => {
+      fetchMock.mockResolvedValue(json(403, { error: 'not_org_member' }));
+      await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'not_org_member', status: 403 });
+    });
+    it('maps the preview session key the same way', async () => {
+      fetchMock.mockResolvedValue(json(402, { error: 'insufficient_balance' }));
+      await expect(make().sessionKey({ mode: 'voice_preview', payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_insufficient_balance' });
+    });
+  });
+
   it('normalizes a transport failure instead of leaking a TypeError', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const err = await make().ensure({ pin: true }).catch((e) => e);
