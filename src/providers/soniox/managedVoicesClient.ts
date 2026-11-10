@@ -27,6 +27,7 @@
  * than a new one for the same reason `mine`/`ensure`/`remove` do: one class
  * per Better-Auth-token-authenticated backend surface, one shared HTTP idiom.
  */
+import type { Payer } from '../../lib/session/types';
 import { DEFAULT_SONIOX_REGION, asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
 import { SonioxVoicesError } from './voicesClient';
@@ -297,11 +298,13 @@ export class ManagedVoicesClient {
    * same threading as `mine`.
    */
   async ensure(
-    opts: { pin: boolean; clip?: Blob; budgetMs?: number; signal?: AbortSignal }
+    opts: { pin: boolean; clip?: Blob; budgetMs?: number; signal?: AbortSignal; payer?: Payer }
   ): Promise<{ voiceId: string; status: 'ready' | 'processing' }> {
     const form = new FormData();
     form.set('pin', opts.pin ? '1' : '0');
     if (opts.clip) form.set('clip', opts.clip, 'reference.wav');
+    // Who pays: set only for an organization member, whose chosen wallet the backend checks.
+    if (opts.payer) form.set('payer', opts.payer);
     const defaultTimeout = opts.clip ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
     // No Content-Type header on purpose: fetch generates the multipart
     // boundary, and setting the header by hand strips it, which makes the

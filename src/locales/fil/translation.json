@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Ipinapakita ang mga pagsasalin sa subtitle overlay",
+    "payer": {
+      "paidBy": "Binabayaran ng {{name}}",
+      "useOwnBalance": "Gamitin ang sarili kong balanse"
+    },
     "function": "Function",
     "noChannelConfigured": "I-enable ang mikropono o ang audio ng kausap bago magsimula.",
     "release": "bitiwan",

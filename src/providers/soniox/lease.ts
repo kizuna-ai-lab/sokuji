@@ -280,7 +280,8 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Soniox session.', 'sign_in_required');
     const request = leaseRequest(shape, s, participantSpeech);
-    const sent = requestBody(request);
+    // Who pays was chosen once, at Start, and rides the shape: a member's choice, nothing for anyone else.
+    const sent = requestBody(request, shape.payer);
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
       // An abort that landed after the 409 wait resolved, before this attempt: its listener below would never fire.

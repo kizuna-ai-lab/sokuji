@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Översättningar visas i undertextöverlägget",
+    "payer": {
+      "paidBy": "Betalas av {{name}}",
+      "useOwnBalance": "Använd mitt eget saldo"
+    },
     "function": "Funktion",
     "noChannelConfigured": "Aktivera mikrofon eller den andras ljud innan du börjar.",
     "release": "släpp",

@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "คำแปลกำลังแสดงในชั้นคำบรรยาย",
+    "payer": {
+      "paidBy": "ชำระโดย {{name}}",
+      "useOwnBalance": "ใช้ยอดคงเหลือของฉันเอง"
+    },
     "function": "ฟังก์ชัน",
     "noChannelConfigured": "เปิดไมโครโฟนหรือเสียงอีกฝ่ายก่อนเริ่ม",
     "release": "ปล่อย",

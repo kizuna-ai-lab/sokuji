@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Käännökset näkyvät tekstityspeitossa",
+    "payer": {
+      "paidBy": "Maksaja: {{name}}",
+      "useOwnBalance": "Käytä omaa saldoani"
+    },
     "function": "Funktio",
     "noChannelConfigured": "Ota mikrofoni tai toisen ääni käyttöön ennen aloittamista.",
     "release": "vapauta",

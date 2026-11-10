@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Las traducciones se muestran en la superposición de subtítulos",
+    "payer": {
+      "paidBy": "Pagado por {{name}}",
+      "useOwnBalance": "Usar mi propio saldo"
+    },
     "function": "Función",
     "noChannelConfigured": "Activa el micrófono o el audio del otro antes de empezar.",
     "release": "soltar",

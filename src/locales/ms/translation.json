@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Terjemahan dipaparkan di tindanan sari kata",
+    "payer": {
+      "paidBy": "Dibayar oleh {{name}}",
+      "useOwnBalance": "Guna baki saya sendiri"
+    },
     "function": "Fungsi",
     "noChannelConfigured": "Dayakan mikrofon atau audio pihak lain sebelum bermula.",
     "release": "lepaskan",

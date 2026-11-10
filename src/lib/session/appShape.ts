@@ -10,6 +10,7 @@ import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
+import { accountPayer } from './payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
@@ -148,6 +149,8 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const faceToFace = faceToFaceFromStores();
   // Put there before Start, and only once its first frame was in hand (`prepareScreenContext`); a sampler left there
   // after the switch went off or another provider was picked is not this run's.
+  const account = useAccountStore.getState().account;
+  const payer = accountPayer(account);
   const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
   return {
     provider,
@@ -167,7 +170,9 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
       faceToFace,
     ),
     auth,
-    account: useAccountStore.getState().account,
+    account,
+    // Who pays is read here, once, at Start; a member's choice, nothing for anyone else.
+    ...(payer ? { payer } : {}),
     ...(frames ? { frames } : {}),
   };
 }

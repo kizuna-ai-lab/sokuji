@@ -16,6 +16,8 @@ import type { SonioxVoice, SonioxVoicesClient } from '../../../providers/soniox/
 import type { ManagedVoicesClient, ManagedVoice } from '../../../providers/soniox/managedVoicesClient';
 import { SonioxVoicesError } from '../../../providers/soniox/voicesClient';
 import { synthesizeOnce } from '../../../providers/soniox/ttsRest';
+import { accountPayer } from '../../../lib/session/payerChoice';
+import { useAccountStore } from '../../../stores/accountStore';
 import type { SonioxRegion } from '../../../lib/soniox/regions';
 import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
@@ -239,7 +241,9 @@ export function managedVoiceSource(
       // pin: false — building a voice from the settings panel is not starting
       // a session, and a pin taken here would hold one of the pool's scarce
       // slots against eviction for no session's benefit.
-      const created = await client.ensure({ pin: false, clip });
+      // Whose balance builds it: a member's chosen wallet, read now.
+      const payer = accountPayer(useAccountStore.getState().account);
+      const created = await client.ensure({ pin: false, clip, ...(payer ? { payer } : {}) });
       return toSonioxVoice({ voiceId: created.voiceId, status: created.status, createdAt: Date.now() });
     },
 

@@ -102,3 +102,17 @@ describe('createKizunaVoiceClaim', () => {
     expect(typeof createKizunaVoiceClaim()).toBe('function');
   });
 });
+
+describe('createKizunaVoiceClaim: who pays', () => {
+  const payerOf = async (payer?: 'organization' | 'personal') => {
+    const { deps, run } = claim();
+    await run({ ...shapeFor(['speaker']), ...(payer ? { payer } : {}) }, s({ voice: 'clone-1' }), live());
+    return (deps.prepare.mock.calls[0][0] as { payer?: () => unknown }).payer?.();
+  };
+
+  it("hands the voice routine the payer the start chose, and none for a non-member's", async () => {
+    expect(await payerOf('organization')).toBe('organization');
+    expect(await payerOf('personal')).toBe('personal');
+    expect(await payerOf()).toBeUndefined();
+  });
+});

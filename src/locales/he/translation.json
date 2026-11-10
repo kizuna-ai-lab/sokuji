@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "התרגומים מוצגים בשכבת הכתוביות",
+    "payer": {
+      "paidBy": "משולם על ידי {{name}}",
+      "useOwnBalance": "השתמש ביתרה האישית שלי"
+    },
     "function": "פונקציה",
     "noChannelConfigured": "הפעל מיקרופון או את שמע הצד השני לפני ההתחלה.",
     "release": "שחרר",

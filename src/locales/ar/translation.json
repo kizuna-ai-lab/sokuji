@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "تظهر الترجمات في طبقة الترجمة العائمة",
+    "payer": {
+      "paidBy": "يدفع {{name}}",
+      "useOwnBalance": "استخدام رصيدي الخاص"
+    },
     "function": "وظيفة",
     "noChannelConfigured": "فعّل الميكروفون أو صوت الآخر قبل البدء.",
     "release": "حرر",

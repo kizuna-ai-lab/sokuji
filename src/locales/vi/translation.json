@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Bản dịch đang hiển thị trong lớp phủ phụ đề",
+    "payer": {
+      "paidBy": "{{name}} thanh toán",
+      "useOwnBalance": "Dùng số dư của tôi"
+    },
     "function": "Hàm",
     "noChannelConfigured": "Hãy bật micrô hoặc âm thanh đối phương trước khi bắt đầu.",
     "release": "thả ra",

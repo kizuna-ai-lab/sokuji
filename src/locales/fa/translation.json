@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "ترجمه‌ها در پوشش زیرنویس نمایش داده می‌شوند",
+    "payer": {
+      "paidBy": "پرداخت توسط {{name}}",
+      "useOwnBalance": "استفاده از موجودی شخصی من"
+    },
     "function": "تابع",
     "noChannelConfigured": "پیش از شروع، میکروفون یا صدای طرف مقابل را فعال کنید.",
     "release": "رها کردن",

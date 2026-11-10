@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Übersetzungen erscheinen im Untertitel-Overlay",
+    "payer": {
+      "paidBy": "Bezahlt von {{name}}",
+      "useOwnBalance": "Mein eigenes Guthaben verwenden"
+    },
     "function": "Funktion",
     "noChannelConfigured": "Aktivieren Sie das Mikrofon oder das Audio des Gegenübers, bevor Sie starten.",
     "release": "loslassen",

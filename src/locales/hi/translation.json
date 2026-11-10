@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "अनुवाद सबटाइटल ओवरले में दिख रहे हैं",
+    "payer": {
+      "paidBy": "{{name}} द्वारा भुगतान",
+      "useOwnBalance": "मेरे अपने बैलेंस का उपयोग करें"
+    },
     "function": "फ़ंक्शन",
     "noChannelConfigured": "शुरू करने से पहले माइक्रोफ़ोन या दूसरे का ऑडियो सक्षम करें।",
     "release": "छोड़ें",

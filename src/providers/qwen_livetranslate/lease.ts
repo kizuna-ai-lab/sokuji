@@ -16,11 +16,13 @@ import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
+import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
 import type { QwenCredentials, QwenLeasePort, QwenReissue, QwenSettings } from './settings';
+
+const payerField = (payer: Payer | undefined) => (payer === undefined ? {} : { payer });
 
 /** What the backend accepts as a handshake request id (sokuji-backend `routes/qwen.ts`). */
 const REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -286,6 +288,8 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       region: asQwenRegion(s.region),
       // The truth of this run, not the switch: a cancelled pick sent no source, so it is not billed the add-on.
       screenContext: shape.frames !== undefined,
+      // Who pays, chosen once at Start: a member's choice, nothing for anyone else.
+      ...payerField(shape.payer),
     };
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {

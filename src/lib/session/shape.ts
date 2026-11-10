@@ -5,6 +5,7 @@ import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
+import { payerBalance } from './payerChoice';
 import type { RunNotice, RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
@@ -125,14 +126,16 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
   if (!floorFor || !account) return null;
   if (account.status === 'loading') return { code: QUOTA_PENDING, message: 'The wallet is still loading.' };
   if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
-  if (account.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+  // The wallet the chosen payer spends: a member's organization or own balance, a non-member's only one.
+  const wallet = payerBalance(account);
+  if (wallet.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
   const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
-  if (account.balanceMicroUsd >= floor) return null;
+  if (wallet.microUsd >= floor) return null;
   return {
     code: BALANCE_BELOW_FLOOR,
-    message: `The balance (${account.balanceMicroUsd} µUSD) is below this start's floor (${floor} µUSD).`,
+    message: `The balance (${wallet.microUsd} µUSD) is below this start's floor (${floor} µUSD).`,
     // Floored, as every balance is: this is the moment it is too low, the worst one to round up.
-    params: { balance: formatUsdFloor(account.balanceMicroUsd) },
+    params: { balance: formatUsdFloor(wallet.microUsd) },
   };
 }
 

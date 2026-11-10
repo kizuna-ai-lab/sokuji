@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
+    "payer": {
+      "paidBy": "Betaald door {{name}}",
+      "useOwnBalance": "Mijn eigen saldo gebruiken"
+    },
     "function": "Functie",
     "noChannelConfigured": "Schakel de microfoon of Audio van de ander in voordat u begint.",
     "release": "loslaten",

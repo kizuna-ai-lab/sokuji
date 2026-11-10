@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
+    "payer": {
+      "paidBy": "Dibayar oleh {{name}}",
+      "useOwnBalance": "Gunakan saldo saya sendiri"
+    },
     "function": "Fungsi",
     "noChannelConfigured": "Aktifkan mikrofon atau audio lawan bicara sebelum memulai.",
     "release": "lepas",

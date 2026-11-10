@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Çeviriler altyazı katmanında gösteriliyor",
+    "payer": {
+      "paidBy": "Ödemeyi {{name}} yapıyor",
+      "useOwnBalance": "Kendi bakiyemi kullan"
+    },
     "function": "İşlev",
     "noChannelConfigured": "Başlamadan önce mikrofonu veya karşı tarafın sesini etkinleştirin.",
     "release": "bırakın",

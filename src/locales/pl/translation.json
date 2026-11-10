@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Tłumaczenia są wyświetlane w nakładce napisów",
+    "payer": {
+      "paidBy": "Płaci {{name}}",
+      "useOwnBalance": "Użyj mojego własnego salda"
+    },
     "function": "Funkcja",
     "noChannelConfigured": "Włącz mikrofon lub dźwięk rozmówcy przed rozpoczęciem.",
     "release": "puść",

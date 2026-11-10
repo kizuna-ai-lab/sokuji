@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { accountPayer, setUseOwnBalance } from '../../lib/session/payerChoice';
 import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
@@ -74,6 +75,33 @@ async function rejection(p: Promise<unknown>): Promise<unknown> {
 }
 
 const code = (e: unknown) => (e as AdapterStartError).code;
+
+describe('Qwen lease: who pays', () => {
+  const memberAccount = { status: 'known' as const, balanceMicroUsd: 9, frozen: false, organization: { name: 'Acme', availableMicroUsd: 9, frozen: false }, personal: { balanceMicroUsd: 5, frozen: false } };
+  const withAccount = async (account: RunShape['account']) => {
+    const net = stubFetch();
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    lease({ ...shapeFor(['speaker']), account, ...(accountPayer(account) ? { payer: accountPayer(account) } : {}) }, QWEN_DEFAULTS, ctx).catch(() => {});
+    await flush();
+    return { body: JSON.parse(net.last().init.body as string), ctx };
+  };
+  beforeEach(() => localStorage.clear());
+
+  it('sends no payer for a non-member, whatever the switch says', async () => {
+    setUseOwnBalance(true);
+    expect((await withAccount({ status: 'known', balanceMicroUsd: 9, frozen: false })).body).not.toHaveProperty('payer');
+    expect((await withAccount(null)).body).not.toHaveProperty('payer');
+  });
+
+  it('sends organization for a member with the switch off, personal with it on, in the body and in the Logs', async () => {
+    const off = await withAccount(memberAccount);
+    expect(off.body.payer).toBe('organization');
+    expect(off.ctx.frame).toHaveBeenCalledWith(expect.objectContaining({ type: 'session.key_requested', payload: expect.objectContaining({ payer: 'organization' }) }));
+    setUseOwnBalance(true);
+    expect((await withAccount(memberAccount)).body.payer).toBe('personal');
+  });
+});
 
 describe('Qwen lease: the session-key request', () => {
   it('asks for a speaker-only text-only run with nobody speaking', async () => {

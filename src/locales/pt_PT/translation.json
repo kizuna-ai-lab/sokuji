@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "As traduções estão a ser apresentadas na sobreposição de legendas",
+    "payer": {
+      "paidBy": "Pago por {{name}}",
+      "useOwnBalance": "Utilizar o meu próprio saldo"
+    },
     "function": "Função",
     "noChannelConfigured": "Ative o microfone ou o áudio do outro antes de começar.",
     "release": "soltar",

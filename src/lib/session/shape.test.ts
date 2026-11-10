@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
+import { setUseOwnBalance } from './payerChoice';
 import { AUTO } from '../provider/languages';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -184,6 +185,38 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
 
   it('refuses a frozen wallet before the floor', () => {
     expect(balanceRefusal(input({ account: known(10_000, true) }))).toEqual({ code: 'wallet_frozen', message: 'The wallet is frozen.' });
+  });
+
+  describe('a member pays from the wallet the switch chooses', () => {
+    const memberAccount = (org: { availableMicroUsd: number; frozen?: boolean }, personal: { balanceMicroUsd: number; frozen?: boolean }) => ({
+      status: 'known' as const,
+      balanceMicroUsd: org.availableMicroUsd,
+      frozen: org.frozen ?? false,
+      organization: { name: 'Acme', availableMicroUsd: org.availableMicroUsd, frozen: org.frozen ?? false },
+      personal: { balanceMicroUsd: personal.balanceMicroUsd, frozen: personal.frozen ?? false },
+    });
+    beforeEach(() => localStorage.clear());
+
+    it('refuses with the switch off, allows with it on: organization 0, personal 5 USD', () => {
+      const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      expect(balanceRefusal(input({ account }))?.code).toBe(BALANCE_BELOW_FLOOR);
+      setUseOwnBalance(true);
+      expect(balanceRefusal(input({ account }))).toBeNull();
+    });
+
+    it('refuses a frozen organization with the switch off: wallet_frozen', () => {
+      const account = memberAccount({ availableMicroUsd: 10_000, frozen: true }, { balanceMicroUsd: 5_000_000 });
+      expect(balanceRefusal(input({ account }))?.code).toBe('wallet_frozen');
+      setUseOwnBalance(true);
+      expect(balanceRefusal(input({ account }))).toBeNull();
+    });
+
+    it('refuses a frozen personal wallet only with the switch on', () => {
+      const account = memberAccount({ availableMicroUsd: 10_000 }, { balanceMicroUsd: 5_000_000, frozen: true });
+      expect(balanceRefusal(input({ account }))).toBeNull();
+      setUseOwnBalance(true);
+      expect(balanceRefusal(input({ account }))?.code).toBe('wallet_frozen');
+    });
   });
 
   it('refuses a balance below the floor for these legs, with the balance floored in USD', () => {

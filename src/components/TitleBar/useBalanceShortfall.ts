@@ -7,6 +7,7 @@
  */
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';
+import { useUseOwnBalance } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -22,6 +23,8 @@ export function useBalanceShortfall(): boolean {
   useAudioStore((s) => s.otherSide);
   const textOnly = useSettingsStore((s) => s.textOnly);
   const account = useAccountStore((s) => s.account);
+  // Which wallet the gate checks follows the payer switch.
+  useUseOwnBalance();
   // What `speechFromStores` reads, subscribed so the dot follows the switch and the source.
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);

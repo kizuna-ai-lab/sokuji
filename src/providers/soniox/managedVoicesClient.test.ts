@@ -70,6 +70,16 @@ describe('ManagedVoicesClient.ensure', () => {
     expect(init.headers['Content-Type']).toBeUndefined();
   });
 
+  it('carries a payer form field exactly when one is given', async () => {
+    fetchMock.mockImplementation(async () => json(200, { voiceId: 'v1', status: 'ready' }));
+    await make().ensure({ pin: true, payer: 'personal' });
+    expect((fetchMock.mock.calls[0][1].body as FormData).get('payer')).toBe('personal');
+    await make().ensure({ pin: true, payer: 'organization' });
+    expect((fetchMock.mock.calls[1][1].body as FormData).get('payer')).toBe('organization');
+    await make().ensure({ pin: true });
+    expect((fetchMock.mock.calls[2][1].body as FormData).has('payer')).toBe(false);
+  });
+
   it('attaches the clip when one is supplied, and pin=0 when not pinning', async () => {
     fetchMock.mockResolvedValue(json(200, { voiceId: 'v2', status: 'processing' }));
     const clip = new Blob([new Uint8Array([1, 2])], { type: 'audio/wav' });

@@ -630,6 +630,10 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Translations are showing in the subtitle overlay",
+    "payer": {
+      "paidBy": "Paid by {{name}}",
+      "useOwnBalance": "Use my own balance"
+    },
     "function": "Function",
     "noChannelConfigured": "Enable microphone or Other's audio before starting.",
     "release": "release",
