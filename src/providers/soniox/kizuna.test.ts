@@ -61,7 +61,7 @@ describe('kizunaSonioxProvider', () => {
     expect(session.prepare).toBeTypeOf('function');
     expect(session.acquire).toBeTypeOf('function');
     // The flag is on: a voiced participant adds par_tts to split Both's floor.
-    expect(session.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(83_334);
+    expect(session.minimumBalance!({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false })).toBe(16_667); // two STT + two TTS: 1.50 $/h, capped at 1.00
     expect(KIZUNA_PARTICIPANT_SPEECH).toBe(true);
   });
 

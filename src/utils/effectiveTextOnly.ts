@@ -18,9 +18,9 @@
  * Written down once because the rule used to live inline at a single call site
  * (MainPanel's acquire) while three other places read the raw toggle. The
  * visible consequence was the Start-button balance floor: a participant-only
- * managed Soniox session opens ONE transcription stream ($0.018334 for the
+ * managed Soniox session opens ONE transcription stream ($0.008334 for the
  * backend's 60 s minimum) but was gated at the speech-to-speech floor
- * ($0.041667), so a user holding a balance between the two was told they had
+ * ($0.0125), so a user holding a balance between the two was told they had
  * insufficient funds for a session the backend would have started.
  *
  * @param speakerLegRuns Will the microphone (forward-direction) leg run?
