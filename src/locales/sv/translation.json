@@ -806,8 +806,26 @@
     "upgradeToPremium": "Uppgradera till Premium",
     "orgBalance": "Saldo för {{name}}",
     "yourBalance": "Ditt saldo",
+    "yourOrganization": "din organisation",
     "orgHeld": "{{held}} av beloppet är reserverat av pågående sessioner; oanvänd del återgår när de avslutas.",
-    "paused": "Pausad"
+    "paused": "Pausad",
+    "runPayer": "Den här sessionen betalas av {{name}}",
+    "balance": "Saldo",
+    "availableBalance": "Tillgängligt",
+    "sessionHeld": "Reserverat av sessioner",
+    "heldHint": "Pågående eller nyligen avslutade sessioner reserverar en del av saldot. När de har avräknats återgår den oanvända delen till det tillgängliga saldot.",
+    "runwayLabel": "Beräknad återstående tid",
+    "runwayHint": "Tillgängligt saldo dividerat med din genomsnittliga kostnad per ljudtimme under de senaste 30 dagarna — det brukar räcka längre än så.",
+    "aboutDuration": "cirka {{amount}} {{unit}}",
+    "unitHours": "timmar",
+    "unitDays": "dagar",
+    "unitMonths": "månader",
+    "self30d": "Min användning · senaste 30 dagarna",
+    "org30d": "Min användning i den här organisationen · senaste 30 dagarna",
+    "spent": "Spenderat",
+    "usageUnavailable": "Användningsuppgifterna är inte tillgängliga",
+    "noUsage": "Ingen användning ännu",
+    "total30d": "Totalt för 30 dagar"
   },
   "logs": {
     "webrtcFallback": "WebRTC-anslutningen misslyckades, använder WebSocket istället"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Konto",
+      "personal": "Personligt",
+      "payerUnknown": "Konto",
       "lowBalance": "Konto — saldot är för lågt för att starta en session",
       "unverified": "Konto — e-post inte verifierad"
     },

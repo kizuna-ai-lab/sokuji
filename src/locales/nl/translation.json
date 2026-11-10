@@ -806,8 +806,26 @@
     "upgradeToPremium": "Upgrade naar Premium",
     "orgBalance": "Saldo van {{name}}",
     "yourBalance": "Je saldo",
+    "yourOrganization": "je organisatie",
     "orgHeld": "{{held}} daarvan is vastgehouden door lopende sessies; een ongebruikt deel komt terug zodra ze eindigen.",
-    "paused": "Gepauzeerd"
+    "paused": "Gepauzeerd",
+    "runPayer": "Deze sessie wordt betaald door {{name}}",
+    "balance": "Saldo",
+    "availableBalance": "Beschikbaar",
+    "sessionHeld": "Vastgehouden door sessies",
+    "heldHint": "Lopende of zojuist beëindigde sessies houden een deel van het saldo vast. Na de afrekening komt het ongebruikte deel weer in het beschikbare saldo terecht.",
+    "runwayLabel": "Resterende gebruiksduur",
+    "runwayHint": "Beschikbaar saldo gedeeld door je gemiddelde uitgaven per uur van de afgelopen 30 dagen, uitgedrukt in audiotijd — meestal is de werkelijke gebruiksduur langer.",
+    "aboutDuration": "ongeveer {{amount}} {{unit}}",
+    "unitHours": "uur",
+    "unitDays": "dagen",
+    "unitMonths": "maanden",
+    "self30d": "Mijn gebruik · afgelopen 30 dagen",
+    "org30d": "Mijn gebruik in deze organisatie · afgelopen 30 dagen",
+    "spent": "Uitgegeven",
+    "usageUnavailable": "Gebruiksgegevens niet beschikbaar",
+    "noUsage": "Nog geen gebruik",
+    "total30d": "Totaal over 30 dagen"
   },
   "logs": {
     "webrtcFallback": "WebRTC-verbinding mislukt, WebSocket wordt gebruikt"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Account",
+      "personal": "Persoonlijk",
+      "payerUnknown": "Account",
       "lowBalance": "Account — saldo te laag om een sessie te starten",
       "unverified": "Account — e-mail niet geverifieerd"
     },

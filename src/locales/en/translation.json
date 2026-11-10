@@ -1023,8 +1023,26 @@
     "upgradeToPremium": "Upgrade to Premium",
     "orgBalance": "{{name}} balance",
     "yourBalance": "Your balance",
+    "yourOrganization": "your organization",
     "orgHeld": "{{held}} of it is held by sessions in progress; any unused part returns when they end.",
-    "paused": "Paused"
+    "paused": "Paused",
+    "runPayer": "This session is paid by {{name}}",
+    "balance": "Balance",
+    "availableBalance": "Available",
+    "sessionHeld": "Held by sessions",
+    "heldHint": "Sessions in progress or just finished hold part of the balance. After they settle, the unused part returns to the available balance.",
+    "runwayLabel": "Runway",
+    "runwayHint": "Available balance divided by your average spend per hour over the last 30 days, measured in audio time — you will usually get longer than this.",
+    "aboutDuration": "about {{amount}} {{unit}}",
+    "unitHours": "hours",
+    "unitDays": "days",
+    "unitMonths": "months",
+    "self30d": "My usage · last 30 days",
+    "org30d": "My usage in this org · last 30 days",
+    "spent": "Spent",
+    "usageUnavailable": "Usage unavailable",
+    "noUsage": "No usage yet",
+    "total30d": "30-day total"
   },
   "logs": {
     "webrtcFallback": "WebRTC connection failed, using WebSocket instead"
@@ -1298,6 +1316,8 @@
   "titleBar": {
     "account": {
       "label": "Account",
+      "personal": "Personal",
+      "payerUnknown": "Account",
       "lowBalance": "Account — balance too low to start a session",
       "unverified": "Account — e-mail not verified"
     },

@@ -806,8 +806,26 @@
     "upgradeToPremium": "Premium'a Yükselt",
     "orgBalance": "{{name}} bakiyesi",
     "yourBalance": "Bakiyeniz",
+    "yourOrganization": "kuruluşunuz",
     "orgHeld": "Bunun {{held}} kadarı devam eden oturumlarda ayrılmıştır; kullanılmayan kısım oturumlar bittiğinde iade edilir.",
-    "paused": "Duraklatıldı"
+    "paused": "Duraklatıldı",
+    "runPayer": "Bu oturumun ödemesini {{name}} yapıyor",
+    "balance": "Bakiye",
+    "availableBalance": "Kullanılabilir",
+    "sessionHeld": "Oturumlarda ayrılan",
+    "heldHint": "Devam eden veya yeni biten oturumlar bakiyenin bir kısmını ayırır. Kesin tutarlar belirlendiğinde kullanılmayan kısım kullanılabilir bakiyeye geri döner.",
+    "runwayLabel": "Tahmini kalan kullanım süresi",
+    "runwayHint": "Kullanılabilir bakiyenin, son 30 gündeki ses saati başına ortalama harcamanıza bölünmesiyle hesaplanır — bakiyeniz genellikle bundan daha uzun süre yeter.",
+    "aboutDuration": "yaklaşık {{amount}} {{unit}}",
+    "unitHours": "saat",
+    "unitDays": "gün",
+    "unitMonths": "ay",
+    "self30d": "Kullanımım · son 30 gün",
+    "org30d": "Bu kuruluştaki kullanımım · son 30 gün",
+    "spent": "Harcanan",
+    "usageUnavailable": "Kullanım verileri alınamıyor",
+    "noUsage": "Henüz kullanım yok",
+    "total30d": "30 günlük toplam"
   },
   "logs": {
     "webrtcFallback": "WebRTC bağlantısı başarısız oldu, bunun yerine WebSocket kullanılıyor"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Hesap",
+      "personal": "Kişisel",
+      "payerUnknown": "Hesap",
       "lowBalance": "Hesap — oturum başlatmak için bakiye çok düşük",
       "unverified": "Hesap — e-posta doğrulanmadı"
     },

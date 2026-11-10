@@ -806,8 +806,26 @@
     "upgradeToPremium": "Päivitä Premiumiin",
     "orgBalance": "{{name}}: saldo",
     "yourBalance": "Oma saldosi",
+    "yourOrganization": "organisaatiosi",
     "orgHeld": "{{held}} on varattu käynnissä oleville istunnoille; käyttämätön osa palautuu, kun ne päättyvät.",
-    "paused": "Keskeytetty"
+    "paused": "Keskeytetty",
+    "runPayer": "Tämän istunnon maksaa {{name}}",
+    "balance": "Saldo",
+    "availableBalance": "Käytettävissä",
+    "sessionHeld": "Istuntojen varaama",
+    "heldHint": "Käynnissä olevat tai juuri päättyneet istunnot varaavat osan saldosta. Kun ne on käsitelty loppuun, käyttämätön osa palautuu käytettävissä olevaan saldoon.",
+    "runwayLabel": "Arvioitu käyttöaika jäljellä",
+    "runwayHint": "Käytettävissä oleva saldo jaettuna keskimääräisillä kuluillasi äänituntia kohti viimeisen 30 päivän aikana — saldo riittää yleensä tätä pidempään.",
+    "aboutDuration": "noin {{amount}} {{unit}}",
+    "unitHours": "tuntia",
+    "unitDays": "päivää",
+    "unitMonths": "kuukautta",
+    "self30d": "Käyttöni · viimeiset 30 päivää",
+    "org30d": "Käyttöni tässä organisaatiossa · viimeiset 30 päivää",
+    "spent": "Kulutettu",
+    "usageUnavailable": "Käyttötiedot eivät ole saatavilla",
+    "noUsage": "Ei käyttöä vielä",
+    "total30d": "Yhteensä 30 päivältä"
   },
   "logs": {
     "webrtcFallback": "WebRTC-yhteys epäonnistui, käytetään sen sijaan WebSocketia"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Tili",
+      "personal": "Henkilökohtainen",
+      "payerUnknown": "Tili",
       "lowBalance": "Tili — saldo ei riitä istunnon aloittamiseen",
       "unverified": "Tili — sähköpostia ei ole vahvistettu"
     },

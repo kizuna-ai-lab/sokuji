@@ -806,8 +806,26 @@
     "upgradeToPremium": "升级到高级版",
     "orgBalance": "{{name}}余额",
     "yourBalance": "你的余额",
+    "yourOrganization": "你的组织",
     "orgHeld": "其中 {{held}} 已被进行中的会话预留；未使用的部分会在会话结束后退回。",
-    "paused": "已暂停"
+    "paused": "已暂停",
+    "runPayer": "本会话由 {{name}} 付费",
+    "balance": "余额",
+    "availableBalance": "可用余额",
+    "sessionHeld": "会话预留金额",
+    "heldHint": "进行中或刚结束的会话会预留部分余额。结算后，未使用的部分将退回可用余额。",
+    "runwayLabel": "预计可用时长",
+    "runwayHint": "可用余额除以过去 30 天的平均每小时花费，按音频时长计算——实际可用时间通常会更长。",
+    "aboutDuration": "约 {{amount}} {{unit}}",
+    "unitHours": "小时",
+    "unitDays": "天",
+    "unitMonths": "个月",
+    "self30d": "我的用量 · 最近 30 天",
+    "org30d": "我在本组织的用量 · 最近 30 天",
+    "spent": "已花费",
+    "usageUnavailable": "用量数据不可用",
+    "noUsage": "暂无用量",
+    "total30d": "近 30 天总计"
   },
   "logs": {
     "webrtcFallback": "WebRTC 连接失败，已改用 WebSocket"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "账户",
+      "personal": "个人",
+      "payerUnknown": "账户",
       "lowBalance": "账户 — 余额不足，无法开始会话",
       "unverified": "账户 — 邮箱未验证"
     },

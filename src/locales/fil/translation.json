@@ -806,8 +806,26 @@
     "upgradeToPremium": "Mag-upgrade sa Premium",
     "orgBalance": "Balanse ng {{name}}",
     "yourBalance": "Ang iyong balanse",
+    "yourOrganization": "iyong organisasyon",
     "orgHeld": "{{held}} nito ay naka-hold para sa mga session na kasalukuyang tumatakbo; ang hindi nagamit na bahagi ay ibabalik kapag natapos ang mga ito.",
-    "paused": "Naka-pause"
+    "paused": "Naka-pause",
+    "runPayer": "Ang session na ito ay binabayaran ng {{name}}",
+    "balance": "Balanse",
+    "availableBalance": "Magagamit",
+    "sessionHeld": "Naka-hold para sa mga session",
+    "heldHint": "Ang mga session na kasalukuyang tumatakbo o katatapos lang ay nagho-hold ng bahagi ng balanse. Kapag na-settle na ang mga ito, ibabalik ang hindi nagamit na bahagi sa magagamit na balanse.",
+    "runwayLabel": "Tantiyang natitirang oras ng paggamit",
+    "runwayHint": "Ang magagamit na balanse na hinati sa average mong gastos bawat oras ng audio sa nakalipas na 30 araw — karaniwang tatagal ito nang mas matagal kaysa rito.",
+    "aboutDuration": "mga {{amount}} {{unit}}",
+    "unitHours": "oras",
+    "unitDays": "araw",
+    "unitMonths": "buwan",
+    "self30d": "Paggamit ko · nakalipas na 30 araw",
+    "org30d": "Paggamit ko sa organisasyong ito · nakalipas na 30 araw",
+    "spent": "Nagastos",
+    "usageUnavailable": "Hindi available ang data ng paggamit",
+    "noUsage": "Wala pang paggamit",
+    "total30d": "Kabuuan sa 30 araw"
   },
   "logs": {
     "webrtcFallback": "Nabigo ang koneksyon ng WebRTC, gumagamit ng WebSocket sa halip"
@@ -1081,6 +1099,8 @@
   "titleBar": {
     "account": {
       "label": "Account",
+      "personal": "Personal",
+      "payerUnknown": "Account",
       "lowBalance": "Account — masyadong mababa ang balanse para magsimula ng session",
       "unverified": "Account — hindi pa na-verify ang email"
     },

@@ -644,7 +644,7 @@ export function UserAccountInfo({
                   {balanceShown === undefined
                     // The title bar shows no number at all here; a "$0.00" would
                     // say the wallet is empty, which is a different claim.
-                    ? <span title={t('tokenUsage.usageUnavailable', 'Unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>
+                    ? <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>—</span>
                     : formatUsdFloor(balanceShown)}
                 </span>
                 {organization && !useOwn && organization.frozen && (
@@ -728,7 +728,7 @@ export function UserAccountInfo({
                 <span className="quota-val">
                   {shownSpendMicroUsd === undefined
                     // Not "no usage": the figure never arrived.
-                    ? <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>
+                    ? <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>—</span>
                     : shownSpendMicroUsd === 0
                       // A confirmed zero is a different claim from an unknown one.
                       ? t('tokenUsage.noUsage', 'No usage yet')
@@ -741,7 +741,7 @@ export function UserAccountInfo({
               <span className="quota-foot__total">
                 {t('tokenUsage.total30d', '30-day total')} · {totalSpendMicroUsd !== undefined
                   ? formatUsd(totalSpendMicroUsd)
-                  : <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>{t('tokenUsage.usageUnavailable', '—')}</span>}
+                  : <span title={t('tokenUsage.usageUnavailable', 'Usage unavailable')}>—</span>}
               </span>
               <button
                 className="action-button-compact refresh-account"
