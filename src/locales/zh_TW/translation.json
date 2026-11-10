@@ -806,7 +806,7 @@
     "upgradeToPremium": "升級到高級版",
     "orgBalance": "{{name}}餘額",
     "yourBalance": "你的餘額",
-    "orgHeld": "其中 {{held}} 被進行中的工作階段保留；未使用的部分會在工作階段結束後退回。",
+    "orgHeld": "其中 {{held}} 已被進行中的工作階段預留；未使用的部分會在工作階段結束後退回。",
     "paused": "已暫停"
   },
   "logs": {
@@ -1504,7 +1504,7 @@
     "participant_tts_missing": "我聽到的翻譯只顯示文字：沒有能說{{target}}的語音模型。",
     "participant_tts_over_budget": "我聽到的翻譯只顯示文字：記憶體不足，無法同時載入對方的語音模型。",
     "screen_context_lost": "你選擇的螢幕已無法使用，翻譯將僅憑音訊繼續。",
-    "org_balance_held": "您所屬組織的餘額已被進行中的工作階段佔用。請在其中一個工作階段結束後再試，或使用您自己的餘額。",
+    "org_balance_held": "您所屬組織的餘額已被進行中的工作階段預留。請在其中一個工作階段結束後再試，或使用您自己的餘額。",
     "org_insufficient_balance": "請聯絡組織擁有者儲值，或使用您自己的餘額。",
     "org_insufficient_balance_owner": "請為 {{organization}} 儲值，或使用您自己的餘額。",
     "org_insufficient_balance_owner_unnamed": "請為您的組織儲值，或使用您自己的餘額。",

@@ -806,7 +806,7 @@
     "upgradeToPremium": "升级到高级版",
     "orgBalance": "{{name}}余额",
     "yourBalance": "你的余额",
-    "orgHeld": "其中 {{held}} 被进行中的会话占用；未使用的部分会在会话结束后退回。",
+    "orgHeld": "其中 {{held}} 已被进行中的会话预留；未使用的部分会在会话结束后退回。",
     "paused": "已暂停"
   },
   "logs": {
@@ -1504,7 +1504,7 @@
     "participant_tts_missing": "我听到的翻译只显示文字：没有能说{{target}}的语音模型。",
     "participant_tts_over_budget": "我听到的翻译只显示文字：内存不够同时加载对方的语音模型。",
     "screen_context_lost": "你选择的屏幕已不可用，翻译将仅凭音频继续。",
-    "org_balance_held": "您所在组织的余额已被进行中的会话占用。请在其中一个会话结束后重试，或使用您自己的余额。",
+    "org_balance_held": "您所在组织的余额已被进行中的会话预留。请在其中一个会话结束后重试，或使用您自己的余额。",
     "org_insufficient_balance": "请联系组织所有者充值，或使用您自己的余额。",
     "org_insufficient_balance_owner": "请为 {{organization}} 充值，或使用您自己的余额。",
     "org_insufficient_balance_owner_unnamed": "请为您的组织充值，或使用您自己的余额。",
