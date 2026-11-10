@@ -50,8 +50,10 @@ export function subscribeUseOwnBalance(listener: () => void): () => void {
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key !== null && event.key !== USE_OWN_BALANCE_KEY) return;
-    // Another document could write it, so the storage holds the choice again.
-    inMemory = null;
+    // Another document wrote a value for the switch, so the storage holds the choice again. A
+    // clear (`key === null`) or a removal (`newValue === null`) is no choice: a switch kept in
+    // memory because this document could not write it stays as the user set it.
+    if (event.key === USE_OWN_BALANCE_KEY && event.newValue !== null) inMemory = null;
     for (const listener of listeners) listener();
   });
 }

@@ -111,6 +111,29 @@ describe('payerBalance', () => {
   });
 });
 
+describe('a choice kept in memory, and other documents', () => {
+  const failWrites = () => vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+
+  it('is kept when another document clears the storage or removes the key', () => {
+    failWrites();
+    setUseOwnBalance(true);
+    expect(getUseOwnBalance()).toBe(true);
+    window.dispatchEvent(new StorageEvent('storage', { key: null }));
+    expect(getUseOwnBalance()).toBe(true);
+    window.dispatchEvent(new StorageEvent('storage', { key: USE_OWN_BALANCE_KEY, newValue: null }));
+    expect(getUseOwnBalance()).toBe(true);
+  });
+
+  it('gives way when another document writes a value for the key', () => {
+    const set = failWrites();
+    setUseOwnBalance(true);
+    set.mockRestore();
+    localStorage.setItem(USE_OWN_BALANCE_KEY, 'false');
+    window.dispatchEvent(new StorageEvent('storage', { key: USE_OWN_BALANCE_KEY, newValue: 'false' }));
+    expect(getUseOwnBalance()).toBe(false);
+  });
+});
+
 describe('the switch across documents', () => {
   const fire = (key: string | null) => window.dispatchEvent(new StorageEvent('storage', { key }));
 
