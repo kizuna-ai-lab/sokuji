@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kunde inte ladda kvotinformation",
-    "upgradeToPremium": "Uppgradera till Premium"
+    "upgradeToPremium": "Uppgradera till Premium",
+    "orgBalance": "Saldo för {{name}}",
+    "yourBalance": "Ditt saldo",
+    "paused": "Pausad"
   },
   "logs": {
     "webrtcFallback": "WebRTC-anslutningen misslyckades, använder WebSocket istället"

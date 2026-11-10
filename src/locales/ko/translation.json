@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "할당량 정보를 로드할 수 없습니다",
-    "upgradeToPremium": "프리미엄으로 업그레이드"
+    "upgradeToPremium": "프리미엄으로 업그레이드",
+    "orgBalance": "{{name}} 잔액",
+    "yourBalance": "내 잔액",
+    "paused": "일시 중지됨"
   },
   "logs": {
     "webrtcFallback": "WebRTC 연결에 실패하여 WebSocket을 대신 사용합니다"

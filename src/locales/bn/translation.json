@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "কোটা তথ্য লোড করতে অক্ষম",
-    "upgradeToPremium": "প্রিমিয়ামে আপগ্রেড করুন"
+    "upgradeToPremium": "প্রিমিয়ামে আপগ্রেড করুন",
+    "orgBalance": "{{name}}-এর ব্যালেন্স",
+    "yourBalance": "আপনার ব্যালেন্স",
+    "paused": "স্থগিত"
   },
   "logs": {
     "webrtcFallback": "WebRTC সংযোগ ব্যর্থ, পরিবর্তে WebSocket ব্যবহার করা হচ্ছে"

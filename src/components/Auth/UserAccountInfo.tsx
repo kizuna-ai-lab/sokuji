@@ -70,6 +70,15 @@ export function UserAccountInfo({
   }
 
   // Get subscription from quota data (primary source) or user data (fallback)
+  // Membership is read defensively: a stale or malformed payload must degrade
+  // to fewer lines, never to a crash.
+  const organization = quota?.organization && typeof quota.organization.name === 'string'
+    ? quota.organization
+    : null;
+  const personal = organization && quota?.personal && typeof quota.personal.balanceMicroUsd === 'number'
+    ? quota.personal
+    : null;
+
   const subscription = quota?.plan || user?.subscription || 'free';
 
   if (compact) {
@@ -476,14 +485,44 @@ export function UserAccountInfo({
         ) : (
           <>
 
+            {/* A member sees two wallets, each labelled, because the one that
+                pays for a session is not always the one they top up. The name
+                is interpolated as text by React, never as markup. */}
+            {organization && (
+              <div className="quota-balance-lines">
+                <div className="quota-balance-row">
+                  <span className="quota-balance-label">
+                    {t('tokenUsage.orgBalance', {name: organization.name})}
+                  </span>
+                  <span className="balance-section">{formatUsdFloor(organization.availableMicroUsd)}</span>
+                  {organization.frozen && (
+                    <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>
+                  )}
+                </div>
+                {personal && (
+                  <div className="quota-balance-row">
+                    <span className="quota-balance-label">{t('tokenUsage.yourBalance')}</span>
+                    <span className="balance-section">{formatUsdFloor(personal.balanceMicroUsd)}</span>
+                    {personal.frozen && (
+                      <span className="quota-paused-marker">{t('tokenUsage.paused')}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="quota-compact-line">
-              <Wallet size={14} className="wallet-icon"/>
-              <span className="balance-section">
-                {/* Floored, not rounded: a balance must never display more
-                    money than the wallet holds. See `formatUsdFloor`. */}
-                {formatUsdFloor(quota.balance || quota.remaining)}
-              </span>
-              <span className="divider">|</span>
+              {!organization && (
+                <>
+                  <Wallet size={14} className="wallet-icon"/>
+                  <span className="balance-section">
+                    {/* Floored, not rounded: a balance must never display more
+                        money than the wallet holds. See `formatUsdFloor`. */}
+                    {formatUsdFloor(quota.balance || quota.remaining)}
+                  </span>
+                  <span className="divider">|</span>
+                </>
+              )}
               <span className="usage-section">
                 <ChartColumn size={14} className="usage-icon"/>
                 30D: {formatUsd(quota.last30DaysUsage || 0)}

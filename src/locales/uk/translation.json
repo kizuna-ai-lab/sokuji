@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Не вдалося завантажити інформацію про квоту",
-    "upgradeToPremium": "Оновити до Premium"
+    "upgradeToPremium": "Оновити до Premium",
+    "orgBalance": "Баланс {{name}}",
+    "yourBalance": "Ваш баланс",
+    "paused": "Призупинено"
   },
   "logs": {
     "webrtcFallback": "Не вдалося встановити з'єднання WebRTC, використовується WebSocket"

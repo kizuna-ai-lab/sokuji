@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "غير قادر على تحميل معلومات الحصة",
-    "upgradeToPremium": "الترقية إلى Premium"
+    "upgradeToPremium": "الترقية إلى Premium",
+    "orgBalance": "رصيد {{name}}",
+    "yourBalance": "رصيدك",
+    "paused": "متوقف مؤقتًا"
   },
   "logs": {
     "webrtcFallback": "فشل اتصال WebRTC، يتم استخدام WebSocket بدلاً منه"

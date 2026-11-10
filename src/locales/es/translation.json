@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "No se puede cargar la información de cuota",
-    "upgradeToPremium": "Actualizar a Premium"
+    "upgradeToPremium": "Actualizar a Premium",
+    "orgBalance": "Saldo de {{name}}",
+    "yourBalance": "Tu saldo",
+    "paused": "En pausa"
   },
   "logs": {
     "webrtcFallback": "La conexión WebRTC falló, usando WebSocket en su lugar"

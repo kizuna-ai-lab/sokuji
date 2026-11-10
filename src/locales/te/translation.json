@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "కోటా సమాచారాన్ని లోడ్ చేయలేకపోయింది",
-    "upgradeToPremium": "ప్రీమియంకు అప్‌గ్రేడ్ చేయండి"
+    "upgradeToPremium": "ప్రీమియంకు అప్‌గ్రేడ్ చేయండి",
+    "orgBalance": "{{name}} బ్యాలెన్స్",
+    "yourBalance": "మీ బ్యాలెన్స్",
+    "paused": "పాజ్ చేయబడింది"
   },
   "logs": {
     "webrtcFallback": "WebRTC కనెక్షన్ విఫలమైంది, బదులుగా WebSocket ఉపయోగిస్తోంది"

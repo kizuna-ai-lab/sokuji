@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "無法載入配額資訊",
-    "upgradeToPremium": "升級到高級版"
+    "upgradeToPremium": "升級到高級版",
+    "orgBalance": "{{name}}餘額",
+    "yourBalance": "你的餘額",
+    "paused": "已暫停"
   },
   "logs": {
     "webrtcFallback": "WebRTC 連線失敗，改用 WebSocket"

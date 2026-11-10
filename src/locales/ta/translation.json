@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "ஒதுக்கீட்டு தகவலை ஏற்ற முடியவில்லை",
-    "upgradeToPremium": "பிரீமியத்திற்கு மேம்படுத்து"
+    "upgradeToPremium": "பிரீமியத்திற்கு மேம்படுத்து",
+    "orgBalance": "{{name}} இருப்பு",
+    "yourBalance": "உங்கள் இருப்பு",
+    "paused": "இடைநிறுத்தப்பட்டது"
   },
   "logs": {
     "webrtcFallback": "WebRTC இணைப்பு தோல்வியடைந்தது, அதற்குப் பதிலாக WebSocket பயன்படுத்தப்படுகிறது"

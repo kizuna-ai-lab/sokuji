@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Hindi ma-load ang impormasyon ng quota",
-    "upgradeToPremium": "Mag-upgrade sa Premium"
+    "upgradeToPremium": "Mag-upgrade sa Premium",
+    "orgBalance": "Balanse ng {{name}}",
+    "yourBalance": "Ang iyong balanse",
+    "paused": "Naka-pause"
   },
   "logs": {
     "webrtcFallback": "Nabigo ang koneksyon ng WebRTC, gumagamit ng WebSocket sa halip"

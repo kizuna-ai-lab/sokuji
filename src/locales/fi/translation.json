@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kiintiötietoja ei voitu ladata",
-    "upgradeToPremium": "Päivitä Premiumiin"
+    "upgradeToPremium": "Päivitä Premiumiin",
+    "orgBalance": "{{name}}: saldo",
+    "yourBalance": "Oma saldosi",
+    "paused": "Keskeytetty"
   },
   "logs": {
     "webrtcFallback": "WebRTC-yhteys epäonnistui, käytetään sen sijaan WebSocketia"

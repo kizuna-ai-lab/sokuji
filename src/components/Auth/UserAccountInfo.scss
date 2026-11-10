@@ -481,6 +481,42 @@
 }
 
 
+// One labelled balance per wallet, shown to organization members.
+.quota-balance-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.quota-balance-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  min-width: 0;
+
+  .quota-balance-label {
+    color: vars.$text-dim;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .balance-section {
+    color: vars.$text-primary;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .quota-paused-marker {
+    color: tk.$color-warning;
+    font-size: 12px;
+  }
+}
+
 // Ultra-compact single line display with badge and dividers
 .quota-compact-line {
   display: flex;

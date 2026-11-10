@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "לא ניתן לטעון מידע על מכסה",
-    "upgradeToPremium": "שדרג ל-Premium"
+    "upgradeToPremium": "שדרג ל-Premium",
+    "orgBalance": "יתרת {{name}}",
+    "yourBalance": "היתרה שלך",
+    "paused": "מושהה"
   },
   "logs": {
     "webrtcFallback": "חיבור WebRTC נכשל, משתמש ב-WebSocket במקום"

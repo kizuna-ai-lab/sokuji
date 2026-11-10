@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Kota bilgileri yüklenemiyor",
-    "upgradeToPremium": "Premium'a Yükselt"
+    "upgradeToPremium": "Premium'a Yükselt",
+    "orgBalance": "{{name}} bakiyesi",
+    "yourBalance": "Bakiyeniz",
+    "paused": "Duraklatıldı"
   },
   "logs": {
     "webrtcFallback": "WebRTC bağlantısı başarısız oldu, bunun yerine WebSocket kullanılıyor"

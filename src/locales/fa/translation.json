@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "قادر به بارگیری اطلاعات سهمیه نیست",
-    "upgradeToPremium": "ارتقا به Premium"
+    "upgradeToPremium": "ارتقا به Premium",
+    "orgBalance": "موجودی {{name}}",
+    "yourBalance": "موجودی شما",
+    "paused": "متوقف شده"
   },
   "logs": {
     "webrtcFallback": "اتصال WebRTC ناموفق بود، در عوض از WebSocket استفاده می‌شود"

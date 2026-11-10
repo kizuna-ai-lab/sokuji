@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Tidak dapat memuat informasi kuota",
-    "upgradeToPremium": "Tingkatkan ke Premium"
+    "upgradeToPremium": "Tingkatkan ke Premium",
+    "orgBalance": "Saldo {{name}}",
+    "yourBalance": "Saldo Anda",
+    "paused": "Dijeda"
   },
   "logs": {
     "webrtcFallback": "Koneksi WebRTC gagal, menggunakan WebSocket sebagai gantinya"

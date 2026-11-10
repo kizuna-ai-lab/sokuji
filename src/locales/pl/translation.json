@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Nie można załadować informacji o limicie",
-    "upgradeToPremium": "Uaktualnij do Premium"
+    "upgradeToPremium": "Uaktualnij do Premium",
+    "orgBalance": "Saldo {{name}}",
+    "yourBalance": "Twoje saldo",
+    "paused": "Wstrzymano"
   },
   "logs": {
     "webrtcFallback": "Połączenie WebRTC nie powiodło się, używanie WebSocket zamiast niego"

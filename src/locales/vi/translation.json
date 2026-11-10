@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Không thể tải thông tin hạn ngạch",
-    "upgradeToPremium": "Nâng cấp lên Premium"
+    "upgradeToPremium": "Nâng cấp lên Premium",
+    "orgBalance": "Số dư của {{name}}",
+    "yourBalance": "Số dư của bạn",
+    "paused": "Tạm dừng"
   },
   "logs": {
     "webrtcFallback": "Kết nối WebRTC thất bại, đang sử dụng WebSocket thay thế"

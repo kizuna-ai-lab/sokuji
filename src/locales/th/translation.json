@@ -802,7 +802,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "ไม่สามารถโหลดข้อมูลโควต้า",
-    "upgradeToPremium": "อัปเกรดเป็น Premium"
+    "upgradeToPremium": "อัปเกรดเป็น Premium",
+    "orgBalance": "ยอดคงเหลือของ {{name}}",
+    "yourBalance": "ยอดคงเหลือของคุณ",
+    "paused": "ระงับชั่วคราว"
   },
   "logs": {
     "webrtcFallback": "การเชื่อมต่อ WebRTC ล้มเหลว กำลังใช้ WebSocket แทน"

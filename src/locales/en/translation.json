@@ -1019,7 +1019,10 @@
   },
   "tokenUsage": {
     "unableToLoadQuota": "Unable to load quota information",
-    "upgradeToPremium": "Upgrade to Premium"
+    "upgradeToPremium": "Upgrade to Premium",
+    "orgBalance": "{{name}} balance",
+    "yourBalance": "Your balance",
+    "paused": "Paused"
   },
   "logs": {
     "webrtcFallback": "WebRTC connection failed, using WebSocket instead"
