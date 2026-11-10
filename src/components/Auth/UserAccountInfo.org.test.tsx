@@ -300,6 +300,28 @@ describe('overlapping usage requests', () => {
   });
 });
 
+describe('when the identity changes', () => {
+  it('drops the previous organization\'s figures rather than carrying them across', async () => {
+    quota = memberQuota();
+    auth.token = 't';
+    let release: () => void = () => {};
+    const body = { organization: { spendMicroUsd: 3_390_000, sessionSeconds: 22_000, sessionCount: 9 } };
+    vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => {
+      release = () => resolve({ ok: true, json: async () => body });
+    })));
+    const { container, rerender } = render(<UserAccountInfo />);
+    await waitFor(() => expect(typeof release).toBe('function'));
+    release();
+    await waitFor(() => expect(container.textContent).toContain('$3.39'));
+
+    // The same person in a different organization: the figures belong to the old one.
+    quota = memberQuota({ organization: { id: 'org_2', name: 'Other Org', availableMicroUsd: 50_000_000, frozen: false, role: 'member' } });
+    rerender(<UserAccountInfo />);
+    expect(container.textContent).not.toContain('$3.39');
+    expect(row('Spent').textContent).toContain('—');
+  });
+});
+
 describe('a wallet the server did not send', () => {
   it('shows the organization side rather than a personal balance of zero', () => {
     quota = memberQuota({ personal: undefined });

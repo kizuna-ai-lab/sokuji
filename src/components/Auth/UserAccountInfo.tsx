@@ -117,6 +117,19 @@ export function UserAccountInfo({
   // getter without making the callback unstable.
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
+  // Whose figures these are. A response is only painted while this is still the
+  // identity that asked: signing in as someone else, or switching organization,
+  // must not leave the previous identity's usage on screen.
+  const identity = `${betterAuthUser?.id ?? user.id}|${organization?.id ?? ''}`;
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+  // The previous identity's figures go the moment the identity does; the effect
+  // below then asks for the new one's.
+  useEffect(() => {
+    setSides(null);
+    setHint(null);
+  }, [identity]);
+
   // A request issued earlier can resolve later; only the newest one may paint.
   const requestSeq = useRef(0);
   const loadSides = useCallback(async (force: boolean) => {
@@ -133,6 +146,7 @@ export function UserAccountInfo({
       force,
     });
     if (mine !== requestSeq.current) return; // a later request superseded this one
+    if (identityRef.current !== identity) return; // it answered for someone else
     if (next) setSides(next);
   }, [betterAuthUser?.id, user.id, organization?.id]);
   useEffect(() => { void loadSides(false); }, [loadSides]);
