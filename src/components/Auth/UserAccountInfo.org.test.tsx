@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import en from '../../locales/en/translation.json';
 import { UserAccountInfo } from './UserAccountInfo';
+import { clearUsageSidesCache } from '../../lib/wallet/usageSides';
 
 // Resolve keys against the real English catalog so a missing key fails here.
 const lookup = (key: string): string | undefined =>
@@ -9,7 +10,8 @@ const lookup = (key: string): string | undefined =>
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: string | Record<string, unknown>) => {
-      const fallback = typeof opts === 'string' ? opts : undefined;
+      const fallback = typeof opts === 'string' ? opts
+        : (opts && typeof opts.defaultValue === 'string' ? opts.defaultValue : undefined);
       const vars = typeof opts === 'object' && opts ? opts : {};
       const raw = lookup(key) ?? fallback ?? key;
       return raw.replace(/\{\{(\w+)\}\}/g, (_m, name) => String(vars[name] ?? ''));
@@ -17,6 +19,8 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 vi.mock('../../lib/auth/hooks', () => ({
+  // No `getToken`: the panel must not fetch without one, which is also what
+  // keeps these tests off the network.
   useAuth: () => ({ isLoaded: true, isSignedIn: true }),
   useUser: () => ({ user: { emailVerified: true, createdAt: new Date(0) }, refetch: vi.fn() }),
 }));
@@ -40,10 +44,6 @@ vi.mock('../../utils/environment', () => ({
   getApiUrl: () => 'https://sokuji.kizuna.ai/api',
 }));
 
-// The quota section exactly as the panel rendered it before organizations.
-const TODAYS_QUOTA_SECTION =
-  '<div class="quota-status-section"><div class="quota-compact-line"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet wallet-icon" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg><span class="balance-section">$12.34</span><span class="divider">|</span><span class="usage-section"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-column usage-icon" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>30D: $3.42</span><button class="action-button-compact refresh-account" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg></button></div><button class="top-up-button">Top up</button></div>';
-
 const personalQuota = { balance: 12_340_000, last30DaysUsage: 3_420_000, plan: 'free' };
 const memberQuota = (over: Record<string, unknown> = {}) => ({
   balance: 50_000_000,
@@ -54,59 +54,82 @@ const memberQuota = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const row = (label: string): HTMLElement => {
+  const key = screen.getAllByText(new RegExp(`^${label}`), { selector: '.quota-key' })[0];
+  return key.closest('.quota-row') as HTMLElement;
+};
+const rowValue = (label: string): string => row(label).querySelector('.quota-val')!.textContent ?? '';
+
 beforeEach(() => {
   cleanup();
+  clearUsageSidesCache();
+  // The payer switch is remembered per device (localStorage), so without this a
+  // test that switched to the personal wallet would decide the next one's tab.
+  localStorage.clear();
   quota = personalQuota;
 });
 
 describe('UserAccountInfo with an organization', () => {
-  it('shows the organization and personal balances on separate labelled lines', () => {
-    quota = memberQuota();
-    render(<UserAccountInfo />);
-    const org = screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!;
-    expect(org.textContent).toContain('$50.00');
-    const own = screen.getByText('Your balance').closest('.quota-balance-row')!;
-    expect(own.textContent).toContain('$12.34');
-    expect(org).not.toBe(own);
-  });
-
-  it('shows the committed balance and a held line when sessions hold part of it', () => {
+  it('opens on the organization tab: the committed balance, the available one, and nothing from the other side', () => {
     quota = memberQuota({
-      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 3_000_000, committedBalanceMicroUsd: 5_000_000, frozen: false, role: 'member' },
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 30_000_000, committedBalanceMicroUsd: 50_000_000, frozen: false, role: 'member' },
     });
     render(<UserAccountInfo />);
-    const org = screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!;
-    expect(org.textContent).toContain('$5.00');
-    expect(org.textContent).not.toContain('$3.00');
-    expect(screen.getByText('$2.00 of it is held by sessions in progress; any unused part returns when they end.')).toBeTruthy();
+    // The tab is the organization's name; the big figure is what it holds.
+    expect(screen.getByRole('tab', { selected: true }).textContent).toBe('Acme Ltd');
+    expect(rowValue('Balance')).toBe('$50.00');
+    expect(rowValue('Available')).toBe('$30.00');
+    // The personal wallet is one click away, not a second line.
+    expect(screen.queryAllByText('$12.34')).toHaveLength(0);
   });
 
-  it('shows no held line when nothing is held, or when the server sent no committed balance', () => {
+  it('shows the held line, and only when something is held', () => {
     quota = memberQuota({
-      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 5_000_000, committedBalanceMicroUsd: 5_000_000, frozen: false, role: 'member' },
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 30_000_000, committedBalanceMicroUsd: 50_000_000, frozen: false, role: 'member' },
     });
     const { unmount } = render(<UserAccountInfo />);
-    expect(screen.queryByText(/held by sessions/)).toBeNull();
+    expect(rowValue('Held by sessions')).toBe('$20.00');
     unmount();
-    quota = memberQuota();
-    render(<UserAccountInfo />);
-    expect(screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!.textContent).toContain('$50.00');
-    expect(screen.queryByText(/held by sessions/)).toBeNull();
-  });
 
-  it('keeps the 30-day usage as the person\'s own', () => {
-    quota = memberQuota();
-    render(<UserAccountInfo />);
-    expect(screen.getByText(/30D: \$3\.42/)).toBeTruthy();
-  });
-
-  it('shows the same two lines for the owner', () => {
     quota = memberQuota({
-      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 50_000_000, frozen: false, role: 'owner' },
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 50_000_000, committedBalanceMicroUsd: 50_000_000, frozen: false, role: 'member' },
     });
     render(<UserAccountInfo />);
-    expect(screen.getByText('Acme Ltd balance')).toBeTruthy();
-    expect(screen.getByText('Your balance')).toBeTruthy();
+    expect(screen.queryByText(/Held by sessions/)).toBeNull();
+  });
+
+  it('explains the held figure behind a hint, not as a permanent sentence', () => {
+    quota = memberQuota({
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 30_000_000, committedBalanceMicroUsd: 50_000_000, frozen: false, role: 'member' },
+    });
+    render(<UserAccountInfo />);
+    expect(screen.queryByText(/unused part returns/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /hold part of the balance/i }));
+    expect(screen.getByText(/unused part returns/)).toBeTruthy();
+  });
+
+  it('switches to the personal wallet: its balance, and no organization-only rows', () => {
+    quota = memberQuota({
+      organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 30_000_000, committedBalanceMicroUsd: 50_000_000, frozen: false, role: 'member' },
+    });
+    render(<UserAccountInfo />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    expect(screen.getByRole('tab', { selected: true }).textContent).toBe('Your balance');
+    expect(rowValue('Balance')).toBe('$12.34');
+    expect(screen.queryByText('Available')).toBeNull();
+    expect(screen.queryByText('Held by sessions')).toBeNull();
+  });
+
+  it('keeps the 30-day figure personal on the personal tab, and claims none for the organization it does not know', () => {
+    quota = memberQuota();
+    const { container } = render(<UserAccountInfo />);
+    // No per-side figures in this test (no token), so the organization's spend is unknown.
+    expect(container.querySelector('.quota-zone')!.textContent).toContain('My usage in this org');
+    expect(screen.getByText('No usage yet')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    expect(container.querySelector('.quota-zone')!.textContent).toContain('My usage · last 30 days');
+    expect(screen.getByText('$3.42')).toBeTruthy();
   });
 
   it.each(['owner', 'member'])('offers Top up to the %s, opening the billing page', async (role) => {
@@ -121,27 +144,29 @@ describe('UserAccountInfo with an organization', () => {
     open.mockRestore();
   });
 
-  it('marks a paused organization and only that line', () => {
+  it('marks a paused organization on its own tab', () => {
     quota = memberQuota({
       organization: { id: 'org_1', name: 'Acme Ltd', availableMicroUsd: 0, frozen: true, role: 'member' },
     });
     render(<UserAccountInfo />);
-    expect(screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!.textContent).toContain('Paused');
-    expect(screen.getByText('Your balance').closest('.quota-balance-row')!.textContent).not.toContain('Paused');
+    expect(row('Balance').textContent).toContain('Paused');
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    expect(row('Balance').textContent).not.toContain('Paused');
   });
 
-  it('marks a paused personal wallet and only that line', () => {
+  it('marks a paused personal wallet on its own tab', () => {
     quota = memberQuota({ personal: { balanceMicroUsd: 0, frozen: true, expiringSoon: null } });
     render(<UserAccountInfo />);
-    expect(screen.getByText('Your balance').closest('.quota-balance-row')!.textContent).toContain('Paused');
-    expect(screen.getByText('Acme Ltd balance').closest('.quota-balance-row')!.textContent).not.toContain('Paused');
+    expect(row('Balance').textContent).not.toContain('Paused');
+    fireEvent.click(screen.getByRole('tab', { name: 'Your balance' }));
+    expect(row('Balance').textContent).toContain('Paused');
   });
 
-  it('shows only the organization line when personal is missing', () => {
+  it('offers no personal tab when the server sends no personal wallet', () => {
     quota = memberQuota({ personal: undefined });
     render(<UserAccountInfo />);
-    expect(screen.getByText('Acme Ltd balance')).toBeTruthy();
-    expect(screen.queryByText('Your balance')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Acme Ltd' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Your balance' })).toBeNull();
     expect(screen.getByRole('button', { name: /top up/i })).toBeTruthy();
   });
 
@@ -151,19 +176,41 @@ describe('UserAccountInfo with an organization', () => {
     });
     const { container } = render(<UserAccountInfo />);
     expect(container.querySelector('img[src="x"]')).toBeNull();
-    expect(container.textContent).toContain('<img src=x onerror=alert(1)> balance');
+    expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
+  });
+
+  it('locks both tabs while a session runs, and names the payer it was started with', () => {
+    quota = memberQuota();
+    const { container } = render(<UserAccountInfo idle={false} runPayer="organization" />);
+    expect((screen.getByRole('tab', { name: 'Acme Ltd' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('tab', { name: 'Your balance' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector('.quota-locked')!.textContent).toContain('This session is paid by Acme Ltd');
+    // The tab follows the run, not the switch.
+    expect(screen.getByRole('tab', { selected: true }).textContent).toBe('Acme Ltd');
+  });
+
+  it('shows no tabs at all for a session that carries no payer', () => {
+    quota = memberQuota();
+    render(<UserAccountInfo idle={false} />);
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.queryByText(/This session is paid by/)).toBeNull();
   });
 });
 
 describe('UserAccountInfo without an organization', () => {
-  it('renders exactly what it rendered before organizations existed', () => {
+  it('shows one balance, one usage zone and one total — no tabs', () => {
     const { container } = render(<UserAccountInfo />);
-    expect(container.querySelector('.quota-status-section')!.outerHTML).toBe(TODAYS_QUOTA_SECTION);
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(rowValue('Balance')).toBe('$12.34');
+    expect(container.querySelector('.quota-zone')!.textContent).toContain('My usage · last 30 days');
+    expect(screen.getByText('$3.42')).toBeTruthy();
+    expect(container.textContent).toContain('30-day total');
   });
 
   it('ignores a stray personal block when there is no organization', () => {
     quota = { ...personalQuota, personal: { balanceMicroUsd: 1, frozen: true, expiringSoon: null } };
-    const { container } = render(<UserAccountInfo />);
-    expect(container.querySelector('.quota-status-section')!.outerHTML).toBe(TODAYS_QUOTA_SECTION);
+    render(<UserAccountInfo />);
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(rowValue('Balance')).toBe('$12.34');
   });
 });

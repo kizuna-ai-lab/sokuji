@@ -10,6 +10,10 @@ vi.mock('react-i18next', () => ({
 }));
 
 const shortfall = vi.hoisted(() => ({ value: false }));
+// The button reads the run for the payer prefix; the real module pulls the whole
+// app session, which these tests do not build.
+const run = vi.hoisted(() => ({ value: { phase: 'idle' } as { phase: string; payer?: 'organization' | 'personal' } }));
+vi.mock('../../app/useRun', () => ({ useRunState: () => run.value }));
 vi.mock('./useBalanceShortfall', () => ({ useBalanceShortfall: () => shortfall.value }));
 
 // providerStore imports ServiceFactory at module scope, which chains into
@@ -40,6 +44,9 @@ let quota: any = null;
 let kizunaEnabled = true;
 vi.mock('../../utils/environment', () => ({
   isKizunaAIEnabled: () => kizunaEnabled,
+  // Reached through the run state this button now reads for the payer; the
+  // button itself never calls it.
+  getApiUrl: () => 'https://sokuji.test/api',
 }));
 
 vi.mock('../../contexts/UserProfileContext', () => ({
@@ -101,6 +108,64 @@ describe('AccountButton', () => {
     quota = { balance: 1_552 };
     render(<AccountButton />);
     expect(screen.getByText('< $0.01')).toBeTruthy();
+  });
+
+  it('names who pays beside the balance — never by leaving the prefix out', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 3_000_000 };
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false }, personal: { balanceMicroUsd: 40_000_000, frozen: false },
+    } });
+    localStorage.clear();
+    const { unmount } = render(<AccountButton />);
+    // The organization's name, because it is paying.
+    expect(screen.getByText('Acme')).toBeTruthy();
+    unmount();
+
+    setUseOwnBalance(true);
+    render(<AccountButton />);
+    // Spelled out: a session with no payer also shows no name, and the two must
+    // not look alike.
+    expect(screen.getByText('Personal')).toBeTruthy();
+    setUseOwnBalance(false);
+  });
+
+  it('follows the payer the running session was started with, not the switch', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 3_000_000 };
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false }, personal: { balanceMicroUsd: 40_000_000, frozen: false },
+    } });
+    // Another window flipped the switch; this session still spends the organization's money.
+    localStorage.clear();
+    setUseOwnBalance(true);
+    run.value = { phase: 'running', payer: 'organization' };
+    const { unmount } = render(<AccountButton />);
+    expect(screen.getByText('Acme')).toBeTruthy();
+    unmount();
+    run.value = { phase: 'idle' };
+    setUseOwnBalance(false);
+  });
+
+  it('shows no name at all for a session that carries no payer', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 3_000_000 };
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false }, personal: { balanceMicroUsd: 40_000_000, frozen: false },
+    } });
+    localStorage.clear();
+    run.value = { phase: 'running' };
+    render(<AccountButton />);
+    // Never "Personal" and never the organization's name: who pays is unknown.
+    expect(screen.queryByText('Acme')).toBeNull();
+    expect(screen.queryByText('Personal')).toBeNull();
+    run.value = { phase: 'idle' };
   });
 
   it('shows the balance of the payer that will be used: the organization, or the member\'s own with the switch on', () => {

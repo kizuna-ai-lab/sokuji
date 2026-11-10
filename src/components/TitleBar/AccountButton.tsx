@@ -18,6 +18,7 @@ import {
 } from '../../stores/settingsStore';
 import { payerDisplayBalance } from '../../lib/session/orgNotice';
 import { useAccountPayer } from '../../lib/session/payerChoice';
+import { useRunState } from '../../app/useRun';
 import type { AccountState, Payer } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
@@ -43,8 +44,12 @@ const AccountButton: React.FC = () => {
   // The start gate's own answer for the selected provider (Stage 2 Kizuna Soniox, choice 9).
   const lowBalance = useBalanceShortfall();
   const account = useAccountStore((s) => s.account);
-  // The switch moves which wallet the title bar shows.
-  const payer = useAccountPayer(account);
+  // Which wallet the title bar shows. Idle: the switch. Running: the payer the
+  // session was started with — another window can flip the switch, and a
+  // running session keeps what it was granted.
+  const livePayer = useAccountPayer(account);
+  const run = useRunState();
+  const payer = run.phase === 'idle' ? livePayer : run.payer;
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -103,6 +108,16 @@ const AccountButton: React.FC = () => {
     );
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
+    // Who pays, spelled out rather than inferred from a missing prefix: a session
+    // started before the choice existed has no payer, and that must not look
+    // like the personal wallet.
+    const payerName: string | null = account?.status === 'known' && account.organization
+      ? payer === 'organization'
+        ? account.organization.name
+        : payer === 'personal'
+          ? t('titleBar.account.personal', 'Personal')
+          : t('titleBar.account.payerUnknown', 'Account')
+      : null;
     // The balance of the wallet the next Start spends: the organization's, or the member's own with the switch on.
     const balance = shownBalance(account, payer, quota);
 
@@ -133,6 +148,9 @@ const AccountButton: React.FC = () => {
     content = (
       <>
         <span className="account-button__initial" aria-hidden="true">{initial}</span>
+        {payerName !== null && payerName !== '' && (
+          <span className="account-button__payer" title={payerName}>{payerName}</span>
+        )}
         {balanceLabel !== null && (
           <span className="title-bar__action-label">{balanceLabel}</span>
         )}
@@ -158,7 +176,13 @@ const AccountButton: React.FC = () => {
       >
         {content}
       </button>
-      <AccountPopover open={open} anchorEl={btnRef.current} onClose={() => setOpen(false)} />
+      <AccountPopover
+        open={open}
+        anchorEl={btnRef.current}
+        onClose={() => setOpen(false)}
+        idle={run.phase === 'idle'}
+        runPayer={run.phase === 'idle' ? undefined : run.payer}
+      />
     </>
   );
 };

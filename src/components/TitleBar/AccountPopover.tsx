@@ -20,9 +20,12 @@ interface AccountPopoverProps {
   open: boolean;
   anchorEl: HTMLElement | null;
   onClose: () => void;
+  /** Whether no session is running, and the payer a running one was started with: read by the account button, passed in so the panel itself owns no run knowledge. */
+  idle?: boolean;
+  runPayer?: 'organization' | 'personal';
 }
 
-const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose }) => {
+const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose, idle = true, runPayer }) => {
   const { t } = useTranslation();
   const setAuthOverlay = useSetAuthOverlay();
   const { isSignedIn } = useAuth();
@@ -79,7 +82,7 @@ const AccountPopover: React.FC<AccountPopoverProps> = ({ open, anchorEl, onClose
           {...getFloatingProps()}
         >
           {isSignedIn ? (
-            <UserAccountInfo />
+            <UserAccountInfo idle={idle} runPayer={runPayer} />
           ) : (
             <>
               <p className="account-popover__msg">
