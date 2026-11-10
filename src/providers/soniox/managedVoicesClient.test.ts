@@ -114,7 +114,7 @@ describe('ManagedVoicesClient.ensure', () => {
     await expect(make().ensure({ pin: true })).rejects.toMatchObject({ errorType: slug, status });
   });
 
-  describe('an organization payer (ruling A-2)', () => {
+  describe('an organization payer', () => {
     it('maps a frozen organization to org_wallet_frozen, and a personal freeze to wallet_frozen', async () => {
       fetchMock.mockResolvedValue(json(403, { error: 'wallet_frozen', subject: 'organization' }));
       await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_wallet_frozen', status: 403 });
@@ -132,9 +132,29 @@ describe('ManagedVoicesClient.ensure', () => {
       fetchMock.mockResolvedValue(json(403, { error: 'not_org_member' }));
       await expect(make().ensure({ pin: true, payer: 'organization' })).rejects.toMatchObject({ errorType: 'not_org_member', status: 403 });
     });
-    it('maps the preview session key the same way', async () => {
-      fetchMock.mockResolvedValue(json(402, { error: 'insufficient_balance' }));
-      await expect(make().sessionKey({ mode: 'voice_preview', payer: 'organization' })).rejects.toMatchObject({ errorType: 'org_insufficient_balance' });
+    describe('the preview session key, with the session-key route\'s real bodies', () => {
+      const preview = (payer?: 'organization' | 'personal') => make().sessionKey({ mode: 'voice_preview', ...(payer ? { payer } : {}) });
+      it('maps a 402 to org_insufficient_balance when the organization pays, and leaves it otherwise', async () => {
+        const body = { error: 'Insufficient balance', requiredMicroUsd: 41_667, balanceMicroUsd: 1_234, reason: 'insufficient_balance', availableMicroUsd: 1_234 };
+        fetchMock.mockImplementation(async () => json(402, body));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'org_insufficient_balance', status: 402 });
+        await expect(preview('personal')).rejects.toMatchObject({ status: 402, errorType: 'Insufficient balance' });
+        await expect(preview()).rejects.toMatchObject({ status: 402, errorType: 'Insufficient balance' });
+      });
+      it('maps a 402 held by sessions to org_balance_held', async () => {
+        fetchMock.mockImplementation(async () => json(402, { error: 'Insufficient balance', reason: 'org_balance_held', availableMicroUsd: 3 }));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'org_balance_held' });
+      });
+      it('maps a frozen organization 403 to org_wallet_frozen, a personal freeze to wallet_frozen', async () => {
+        fetchMock.mockImplementation(async () => json(403, { error: 'Wallet is frozen', code: 'wallet_frozen', subject: 'organization' }));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'org_wallet_frozen', status: 403 });
+        fetchMock.mockImplementation(async () => json(403, { error: 'Wallet is frozen', code: 'wallet_frozen' }));
+        await expect(preview('personal')).rejects.toMatchObject({ status: 403, errorType: 'Wallet is frozen' });
+      });
+      it('maps a removed member', async () => {
+        fetchMock.mockImplementation(async () => json(403, { code: 'not_org_member' }));
+        await expect(preview('organization')).rejects.toMatchObject({ errorType: 'not_org_member' });
+      });
     });
   });
 

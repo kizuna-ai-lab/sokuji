@@ -215,6 +215,16 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
       expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
     });
 
+    it('keeps the organization code when the name is empty: the code follows the payer, the params the name', () => {
+      const base = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      const account = { ...base, organization: { name: '', availableMicroUsd: 0, frozen: false, role: 'owner' as const } };
+      const refusal = balanceRefusal(input({ account, payer: 'organization' }));
+      expect(refusal?.code).toBe('org_insufficient_balance');
+      expect(refusal?.params).not.toHaveProperty('organization');
+      const frozen = { ...base, organization: { name: '', availableMicroUsd: 0, frozen: true } };
+      expect(balanceRefusal(input({ account: frozen, payer: 'organization' }))?.code).toBe('org_wallet_frozen');
+    });
+
     it('refuses a frozen personal wallet only with the switch on', () => {
       const account = memberAccount({ availableMicroUsd: 10_000 }, { balanceMicroUsd: 5_000_000, frozen: true });
       expect(balanceRefusal(input({ account, payer: 'organization' }))).toBeNull();

@@ -36,4 +36,6 @@ export interface GiveUp {
   /** The last failed attempt's code. */
   errorCode?: string;
   refusalCode?: string;
+  /** The final refusal's notice params (a frozen organization's name and role). */
+  params?: Record<string, string | number>;
 }

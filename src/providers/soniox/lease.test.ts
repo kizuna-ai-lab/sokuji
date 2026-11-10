@@ -1124,6 +1124,18 @@ describe('the lease port: reissue()', () => {
     await expect(result).resolves.toMatchObject(expected);
   });
 
+  it('maps a 403 for a frozen organization to org_wallet_frozen with the organization and role, a plain 403 to wallet_frozen', async () => {
+    const org = await reissuing();
+    org.shape.account = { status: 'known' as const, balanceMicroUsd: 0, frozen: false, organization: { name: 'Acme', availableMicroUsd: 0, frozen: false, role: 'owner' as const } };
+    org.call.respond(403, { error: 'Wallet is frozen', code: 'wallet_frozen', subject: 'organization' });
+    await expect(org.result).resolves.toMatchObject({ ok: false, retry: false, code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } });
+    const plain = await reissuing();
+    plain.call.respond(403, { code: 'wallet_frozen' });
+    const answer = await plain.result;
+    expect(answer).toMatchObject({ code: 'wallet_frozen' });
+    expect(answer).not.toHaveProperty('params');
+  });
+
   it('retries on a transport failure and on a timeout', async () => {
     const failed = await reissuing();
     failed.call.fail();

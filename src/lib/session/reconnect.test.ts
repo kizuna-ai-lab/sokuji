@@ -598,6 +598,17 @@ describe('refusalResult and reissueFailed: a lease\'s answer as an attempt\'s (s
     }
   });
 
+  it('a frozen organization is actionable as itself and keeps its notice params through the give-up', async () => {
+    const params = { organization: 'Acme', role: 'member' };
+    expect(refusalResult({ code: 'org_wallet_frozen', message: 'said so', params })).toEqual({ ok: false, final: true, reason: 'refused', code: 'org_wallet_frozen', message: 'said so', refusalCode: 'org_wallet_frozen', params });
+    const t = rig();
+    t.answers.push(refusalResult({ code: 'org_wallet_frozen', message: 'said so', params }));
+    t.r.dropped(DROP);
+    await flush();
+    await micro();
+    expect(t.gaveUp).toEqual([expect.objectContaining({ code: 'org_wallet_frozen', params })]);
+  });
+
   it('a reissue that could not answer is a failed attempt, the time it took counted', () => {
     expect(reissueFailed('HTTP 503', 120)).toEqual({ ok: false, final: false, code: 'reissue_failed', message: 'HTTP 503', reissued: false, reissueMs: 120 });
   });

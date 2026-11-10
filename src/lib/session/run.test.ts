@@ -347,6 +347,15 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     expect(tracks('connection_reconnect_failed')).toEqual([expect.objectContaining({ reason: 'refused', error_code: 'sign_in_required', refusal_code: 'sign_in_required', attempts: 1 })]);
   });
 
+  it('a refusal give-up puts its notice params on the run\'s notice (a frozen organization named mid-session)', async () => {
+    const { runner, events } = setup();
+    await runner.start();
+    events().reconnecting({ attempt: 1, drop: DROP });
+    events().failed({ message: 'Frozen.', code: 'org_wallet_frozen', giveUp: { attempts: 1, reason: 'refused', refusalCode: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } } });
+    await runner.settled();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'leg-failed', notice: { code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } } } });
+  });
+
   it('failed with a non-retryable drop sends connection_dropped retryable false, and no connection_reconnect_failed', async () => {
     const { runner, clock, events, tracks } = setup();
     await runner.start();

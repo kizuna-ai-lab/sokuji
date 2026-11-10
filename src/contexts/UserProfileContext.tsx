@@ -304,6 +304,12 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, isSessionActive, userId]); // Depend on stable values, not the function
 
+  // Code outside React asks for a fresh wallet through the store (a refused voice preview).
+  useEffect(() => {
+    useAccountStore.getState().setRefresh(fetchQuota);
+    return () => useAccountStore.getState().setRefresh(null);
+  }, [fetchQuota]);
+
   // The start gate reads the wallet outside React (Stage 2 Kizuna Soniox,
   // ruling 5): null signed out, loading until the first fetch lands,
   // unknown once one failed with no wallet known.

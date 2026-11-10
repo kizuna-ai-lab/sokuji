@@ -130,9 +130,13 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
   // The wallet the chosen payer spends: a member's organization or own balance, a non-member's only one.
   const wallet = payerBalance(account, input.payer);
   // The organization pays (and the account still holds it): its refusals carry its name and the member's role.
-  const org = input.payer === 'organization' && account.organization ? orgNoticeParams(account) : undefined;
+  // The code follows the payer; the params follow the name (an empty one leaves them out and the words fall back).
+  const org = input.payer === 'organization' && account.organization !== undefined;
+  const orgParams = org ? orgNoticeParams(account) : undefined;
   if (wallet.frozen) {
-    return org ? { code: ORG_WALLET_FROZEN, message: 'The organization wallet is frozen.', params: org } : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+    return org
+      ? { code: ORG_WALLET_FROZEN, message: 'The organization wallet is frozen.', ...(orgParams ? { params: orgParams } : {}) }
+      : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
   }
   const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
   if (wallet.microUsd >= floor) return null;
@@ -140,7 +144,7 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
     code: org ? ORG_INSUFFICIENT_BALANCE : BALANCE_BELOW_FLOOR,
     message: `The balance (${wallet.microUsd} µUSD) is below this start's floor (${floor} µUSD).`,
     // Floored, as every balance is: this is the moment it is too low, the worst one to round up.
-    params: { ...org, balance: formatUsdFloor(wallet.microUsd) },
+    params: { ...orgParams, balance: formatUsdFloor(wallet.microUsd) },
   };
 }
 

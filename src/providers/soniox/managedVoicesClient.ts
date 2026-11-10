@@ -61,9 +61,12 @@ export interface ManagedPreviewSessionKey {
   region: SonioxRegion;
 }
 
-/** A 402 the organization was to pay is the organization's: the slug-only body cannot say, so the payer sent does. */
+/**
+ * A 402 the organization was to pay is the organization's, whichever body it came in (the voice routes' slug, the
+ * session-key route's lease-style words): the payer sent says so. A balance held by sessions keeps its own code.
+ */
 function withOrgBalance(e: unknown, payer: Payer | undefined): unknown {
-  return e instanceof SonioxVoicesError && e.errorType === 'insufficient_balance' && payer === 'organization'
+  return e instanceof SonioxVoicesError && e.status === 402 && e.errorType !== ORG_BALANCE_HELD && payer === 'organization'
     ? new SonioxVoicesError(ORG_INSUFFICIENT_BALANCE, e.message, e.status, e.retryAfterMs)
     : e;
 }
@@ -258,11 +261,11 @@ export class ManagedVoicesClient {
     try {
       const body = await res.json();
       if (typeof body?.error === 'string') slug = body.error;
-      // A frozen organization's wallet, told from the member's own freeze by the body's `subject`.
       // The session-key route words an organization's refusals by `reason` and `code`, not `error`.
       if (body?.reason === 'org_balance_held') slug = ORG_BALANCE_HELD;
       if (body?.code === 'not_org_member') slug = NOT_ORG_MEMBER;
-      if (slug === 'wallet_frozen' && body?.subject === 'organization') slug = ORG_WALLET_FROZEN;
+      // A frozen organization's wallet is told from the member's own freeze by the body's `subject`.
+      if (res.status === 403 && body?.subject === 'organization') slug = ORG_WALLET_FROZEN;
       if (typeof body?.retryAfterMs === 'number') retryAfterMs = body.retryAfterMs;
     } catch {
       // Non-JSON body (a gateway error page): the status still carries meaning.

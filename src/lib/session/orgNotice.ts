@@ -26,7 +26,7 @@ export function orgNoticeParams(account: AccountState | null | undefined): Recor
 
 /**
  * The organization's client code for a lease refusal, or null when it is not
- * one. `payer` is what the request carried (ruling A-4), never the live switch.
+ * one. `payer` is what the request carried, never the live switch.
  */
 export function orgRefusalCode(status: number, body: unknown, payer: Payer | undefined): string | null {
   const b = (body ?? {}) as { reason?: unknown; code?: unknown; subject?: unknown };

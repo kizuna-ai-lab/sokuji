@@ -271,9 +271,12 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   }, [refresh]);
 
   // An organization's refusal in the notice's own words (the same ones a refused Start shows).
+  // The wallet it answered for has changed, so it is fetched again, as a refused Start does.
   const orgWords = (code: string): string => {
-    const account = useAccountStore.getState().account;
-    return noticeText(t, { code, message: code, ...(orgNoticeParams(account) ? { params: orgNoticeParams(account) } : {}) });
+    const { account, refresh } = useAccountStore.getState();
+    const params = orgNoticeParams(account);
+    void refresh?.().catch(() => {});
+    return noticeText(t, { code, message: code, ...(params ? { params } : {}) });
   };
 
   const mapCreateError = (e: unknown): Error => {

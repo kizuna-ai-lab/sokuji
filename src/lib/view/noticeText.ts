@@ -45,7 +45,7 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',
   // A managed lease or the start gate refused an organization-paid start (spec 2026-11-09 §7). `_owner` is the owner's
-  // wording of the row, and `_unnamed` the sentence for a stale quota that no longer names the organization (ruling A-6).
+  // wording of the row, and `_unnamed` the sentence for a stale quota that no longer names the organization.
   org_balance_held: "Your organization's balance is held by sessions in progress. Try again when one ends, or use your own balance.",
   org_insufficient_balance: "Ask the organization's owner to top up, or use your own balance.",
   org_insufficient_balance_owner: 'Top up {{organization}}, or use your own balance.',
