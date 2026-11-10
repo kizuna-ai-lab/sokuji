@@ -632,6 +632,7 @@
     "subtitleTakeover": "Les traductions s’affichent dans la superposition de sous-titres",
     "payer": {
       "paidBy": "Payé par {{name}}",
+      "paidByYou": "Payé par vous",
       "useOwnBalance": "Utiliser mon propre solde"
     },
     "function": "Fonction",

@@ -192,7 +192,7 @@ describe('appSubtitleSession — the payer switch moves the wallet the gate chec
     localStorage.clear();
     useAccountStore.setState({ account: {
       status: 'known', balanceMicroUsd: 0, frozen: false,
-      organization: { name: 'Acme', availableMicroUsd: 0, frozen: false }, personal: { balanceMicroUsd: 5000, frozen: false },
+      organization: { name: 'Acme', availableMicroUsd: 0, frozen: true }, personal: { balanceMicroUsd: 5000, frozen: false },
     } });
     expect(session.get().canStart).toBe(false);
     const listener = vi.fn();

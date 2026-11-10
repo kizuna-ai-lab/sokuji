@@ -632,6 +632,7 @@
     "subtitleTakeover": "התרגומים מוצגים בשכבת הכתוביות",
     "payer": {
       "paidBy": "משולם על ידי {{name}}",
+      "paidByYou": "משולם על ידך",
       "useOwnBalance": "השתמש ביתרה האישית שלי"
     },
     "function": "פונקציה",

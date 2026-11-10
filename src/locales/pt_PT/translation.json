@@ -632,6 +632,7 @@
     "subtitleTakeover": "As traduções estão a ser apresentadas na sobreposição de legendas",
     "payer": {
       "paidBy": "Pago por {{name}}",
+      "paidByYou": "Pago por si",
       "useOwnBalance": "Utilizar o meu próprio saldo"
     },
     "function": "Função",

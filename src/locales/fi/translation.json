@@ -632,6 +632,7 @@
     "subtitleTakeover": "Käännökset näkyvät tekstityspeitossa",
     "payer": {
       "paidBy": "Maksaja: {{name}}",
+      "paidByYou": "Maksajana sinä",
       "useOwnBalance": "Käytä omaa saldoani"
     },
     "function": "Funktio",

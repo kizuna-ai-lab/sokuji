@@ -632,6 +632,7 @@
     "subtitleTakeover": "Translations are showing in the subtitle overlay",
     "payer": {
       "paidBy": "Paid by {{name}}",
+      "paidByYou": "Paid by you",
       "useOwnBalance": "Use my own balance"
     },
     "function": "Function",

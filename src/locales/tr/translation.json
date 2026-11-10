@@ -632,6 +632,7 @@
     "subtitleTakeover": "Çeviriler altyazı katmanında gösteriliyor",
     "payer": {
       "paidBy": "Ödemeyi {{name}} yapıyor",
+      "paidByYou": "Ödemeyi siz yapıyorsunuz",
       "useOwnBalance": "Kendi bakiyemi kullan"
     },
     "function": "İşlev",

@@ -632,6 +632,7 @@
     "subtitleTakeover": "Översättningar visas i undertextöverlägget",
     "payer": {
       "paidBy": "Betalas av {{name}}",
+      "paidByYou": "Betalas av dig",
       "useOwnBalance": "Använd mitt eget saldo"
     },
     "function": "Funktion",

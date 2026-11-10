@@ -47,6 +47,7 @@ describe('PayerLine', () => {
     expect(getUseOwnBalance()).toBe(true);
     expect(toggle().getAttribute('aria-checked')).toBe('true');
     expect(screen.queryByText('Paid by Acme')).toBeNull();
+    expect(screen.getByText('Paid by you')).toBeTruthy();
   });
 
   it('is disabled while a session runs: the running payer is fixed', () => {

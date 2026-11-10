@@ -632,6 +632,7 @@
     "subtitleTakeover": "Ipinapakita ang mga pagsasalin sa subtitle overlay",
     "payer": {
       "paidBy": "Binabayaran ng {{name}}",
+      "paidByYou": "Binabayaran mo",
       "useOwnBalance": "Gamitin ang sarili kong balanse"
     },
     "function": "Function",

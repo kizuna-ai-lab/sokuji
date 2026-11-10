@@ -1,5 +1,5 @@
 /**
- * Refusals that name an organization payer (spec 2026-11-09 §7). Shared by
+ * Refusals that name an organization payer. Shared by
  * the managed leases and the start gate, so it imports nothing platform-bound.
  *
  * The client's codes: `org_balance_held` and `not_org_member` are the
@@ -17,11 +17,12 @@ export const ORG_WALLET_FROZEN = 'org_wallet_frozen';
 /** The codes whose refusal says the organization's wallet changed, so the quota is stale. */
 export const ORG_REFUSAL_CODES: ReadonlySet<string> = new Set([ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE, NOT_ORG_MEMBER, ORG_WALLET_FROZEN]);
 
-/** `name` and `role` for the notice's words; none when the account holds no organization (a stale quota), so the words fall back. */
+/** `name` and `role` for the notice's words, each only when known; none when the account holds no organization (a stale quota), so the words fall back. */
 export function orgNoticeParams(account: AccountState | null | undefined): Record<string, string> | undefined {
-  if (account?.status !== 'known' || !account.organization?.name) return undefined;
+  if (account?.status !== 'known' || !account.organization) return undefined;
   const { name, role } = account.organization;
-  return { organization: name, ...(role ? { role } : {}) };
+  const params = { ...(name ? { organization: name } : {}), ...(role ? { role } : {}) };
+  return Object.keys(params).length > 0 ? params : undefined;
 }
 
 /**

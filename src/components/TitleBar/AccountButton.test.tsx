@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import AccountButton from './AccountButton';
+import { setUseOwnBalance } from '../../lib/session/payerChoice';
+import { useAccountStore } from '../../stores/accountStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
@@ -99,6 +101,24 @@ describe('AccountButton', () => {
     quota = { balance: 1_552 };
     render(<AccountButton />);
     expect(screen.getByText('< $0.01')).toBeTruthy();
+  });
+
+  it('shows the balance of the payer that will be used: the organization, or the member\'s own with the switch on', () => {
+    signedIn = true;
+    authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
+    quota = { balance: 3_000_000 };
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false }, personal: { balanceMicroUsd: 40_000_000, frozen: false },
+    } });
+    localStorage.clear();
+    const { unmount } = render(<AccountButton />);
+    expect(screen.getByText('$3.00')).toBeTruthy();
+    unmount();
+    setUseOwnBalance(true);
+    render(<AccountButton />);
+    expect(screen.getByText('$40.00')).toBeTruthy();
+    setUseOwnBalance(false);
   });
 
   it('renders no balance label at all when signed out', () => {

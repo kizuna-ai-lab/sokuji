@@ -197,10 +197,22 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
     });
     beforeEach(() => localStorage.clear());
 
-    it('refuses with the switch off, allows with it on: organization 0, personal 5 USD', () => {
+    it('reads the organization below the floor with the switch off, and the personal wallet with it on: organization 0, personal 5 USD', () => {
       const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
       expect(balanceRefusal(input({ account, payer: 'organization' }))?.code).toBe('org_insufficient_balance');
       expect(balanceRefusal(input({ account, payer: 'personal' }))).toBeNull();
+    });
+
+    it('does not refuse an organization payer below the floor at Start: the server tells held money from an empty organization', () => {
+      const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
+      expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toBeNull();
+    });
+
+    it('still refuses a frozen organization at Start, and a personal payer below the floor before any request', () => {
+      const frozen = memberAccount({ availableMicroUsd: 0, frozen: true }, { balanceMicroUsd: 5_000_000 });
+      expect(gate(shape({ provider: leased, account: frozen, payer: 'organization' }), 'electron')).toMatchObject({ code: 'org_wallet_frozen' });
+      const poor = memberAccount({ availableMicroUsd: 9_000_000 }, { balanceMicroUsd: 0 });
+      expect(gate(shape({ provider: leased, account: poor, payer: 'personal' }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
     });
 
     it('names the organization and the role in an organization refusal, and keeps the personal wording for the personal wallet', () => {
@@ -234,9 +246,11 @@ describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', ()
     it("reads the shape's payer, not the live switch: a run's later steps do not follow the stores", () => {
       const account = memberAccount({ availableMicroUsd: 0 }, { balanceMicroUsd: 5_000_000 });
       setUseOwnBalance(true);
-      expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toMatchObject({ code: 'org_insufficient_balance' });
+      expect(gate(shape({ provider: leased, account, payer: 'organization' }), 'electron')).toBeNull();
       setUseOwnBalance(false);
       expect(gate(shape({ provider: leased, account, payer: 'personal' }), 'electron')).toBeNull();
+      const poor = memberAccount({ availableMicroUsd: 5_000_000 }, { balanceMicroUsd: 0 });
+      expect(gate(shape({ provider: leased, account: poor, payer: 'personal' }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
     });
   });
 

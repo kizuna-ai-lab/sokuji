@@ -184,7 +184,11 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message, leg: 'participant' };
     }
   }
-  return balanceRefusal(shape);
+  const refusal = balanceRefusal(shape);
+  // An organization payer below the floor is not refused here: the status can be minutes old and cannot tell money held
+  // by colleagues' running sessions from an empty organization, so the server answers precisely. A frozen one still is.
+  if (refusal?.code === ORG_INSUFFICIENT_BALANCE) return null;
+  return refusal;
 }
 
 /** Why the app's surfaces keep Start off while no microphone is chosen. */

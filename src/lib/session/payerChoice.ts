@@ -38,6 +38,14 @@ export function subscribeUseOwnBalance(listener: () => void): () => void {
   return () => { listeners.delete(listener); };
 }
 
+// Another document of this origin (the extension's side panel and a full-page tab) set the switch: follow it.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== null && event.key !== USE_OWN_BALANCE_KEY) return;
+    for (const listener of listeners) listener();
+  });
+}
+
 /** The switch as a React value. */
 export function useUseOwnBalance(): boolean {
   return useSyncExternalStore(subscribeUseOwnBalance, getUseOwnBalance);

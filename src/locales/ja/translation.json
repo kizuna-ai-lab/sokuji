@@ -632,6 +632,7 @@
     "subtitleTakeover": "翻訳は字幕オーバーレイに表示されています",
     "payer": {
       "paidBy": "{{name}} が支払い",
+      "paidByYou": "あなたが支払い",
       "useOwnBalance": "自分の残高を使う"
     },
     "function": "関数",

@@ -632,6 +632,7 @@
     "subtitleTakeover": "Tłumaczenia są wyświetlane w nakładce napisów",
     "payer": {
       "paidBy": "Płaci {{name}}",
+      "paidByYou": "Płacisz ty",
       "useOwnBalance": "Użyj mojego własnego salda"
     },
     "function": "Funkcja",

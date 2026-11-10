@@ -232,7 +232,7 @@ it("a signed-out managed provider reads the sign-in sentence, word for word in e
   expect(at(en as unknown as Record<string, unknown>, NOTICE_ALIASES.sign_in_required)).toBe("Sign in to use Kizuna AI's built-in translation service.");
 });
 
-describe('organization refusal notices (spec 2026-11-09 §7)', () => {
+describe('organization refusal notices', () => {
   const org = { organization: 'Acme' };
   it('words a balance held by sessions in progress', () => {
     expect(noticeText(plainT, { code: 'org_balance_held', message: 'x', params: org }))
@@ -256,6 +256,10 @@ describe('organization refusal notices (spec 2026-11-09 §7)', () => {
   it('does not crash on a stale quota with no organization', () => {
     expect(noticeText(plainT, { code: 'not_org_member', message: 'x' })).toBe("You're no longer in your organization.");
     expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x' })).toBe("The organization's account is paused. Contact its owner, or use your own balance.");
+  });
+  it('keeps the owner wording when the name is missing, through the unnamed variant', () => {
+    expect(noticeText(plainT, { code: 'org_wallet_frozen', message: 'x', params: { role: 'owner' } }))
+      .toBe("The organization's account is paused. Contact Sokuji support, or use your own balance.");
   });
   it('has the words in every locale', () => {
     for (const [path, catalog] of Object.entries(catalogs)) {

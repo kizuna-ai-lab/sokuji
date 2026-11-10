@@ -632,6 +632,7 @@
     "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
     "payer": {
       "paidBy": "Dibayar oleh {{name}}",
+      "paidByYou": "Dibayar oleh Anda",
       "useOwnBalance": "Gunakan saldo saya sendiri"
     },
     "function": "Fungsi",

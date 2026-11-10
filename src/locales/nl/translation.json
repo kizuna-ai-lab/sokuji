@@ -632,6 +632,7 @@
     "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
     "payer": {
       "paidBy": "Betaald door {{name}}",
+      "paidByYou": "Door jou betaald",
       "useOwnBalance": "Mijn eigen saldo gebruiken"
     },
     "function": "Functie",

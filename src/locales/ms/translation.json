@@ -632,6 +632,7 @@
     "subtitleTakeover": "Terjemahan dipaparkan di tindanan sari kata",
     "payer": {
       "paidBy": "Dibayar oleh {{name}}",
+      "paidByYou": "Dibayar oleh anda",
       "useOwnBalance": "Guna baki saya sendiri"
     },
     "function": "Fungsi",

@@ -632,6 +632,7 @@
     "subtitleTakeover": "翻译内容正在字幕浮层中显示",
     "payer": {
       "paidBy": "由 {{name}} 付费",
+      "paidByYou": "由你付费",
       "useOwnBalance": "使用我的个人余额"
     },
     "function": "功能",

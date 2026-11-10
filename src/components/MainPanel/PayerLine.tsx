@@ -24,7 +24,7 @@ export default function PayerLine({ idle }: { idle: boolean }) {
   if (!organization || !selectedFromStores()?.provider.session?.minimumBalance) return null;
   return (
     <div className="payer-line">
-      {!useOwn && <span className="payer-line__paid-by">{t('mainPanel.payer.paidBy', { name: organization.name })}</span>}
+      <span className="payer-line__paid-by">{useOwn ? t('mainPanel.payer.paidByYou') : t('mainPanel.payer.paidBy', { name: organization.name })}</span>
       <ToggleSwitch
         className="payer-line__toggle"
         checked={useOwn}

@@ -632,6 +632,7 @@
     "subtitleTakeover": "번역이 자막 오버레이에 표시되고 있습니다",
     "payer": {
       "paidBy": "{{name}}에서 결제",
+      "paidByYou": "내가 결제",
       "useOwnBalance": "내 잔액 사용"
     },
     "function": "기능",

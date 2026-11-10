@@ -16,6 +16,8 @@ import {
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
+import { accountPayer, payerBalance, useUseOwnBalance } from '../../lib/session/payerChoice';
+import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
 import { useBalanceShortfall } from './useBalanceShortfall';
 import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
@@ -29,6 +31,9 @@ const AccountButton: React.FC = () => {
   const { quota } = useUserProfile();
   // The start gate's own answer for the selected provider (Stage 2 Kizuna Soniox, choice 9).
   const lowBalance = useBalanceShortfall();
+  const account = useAccountStore((s) => s.account);
+  // The switch moves which wallet the title bar shows.
+  useUseOwnBalance();
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -87,7 +92,8 @@ const AccountButton: React.FC = () => {
     );
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
-    const balance = quota?.balance ?? quota?.remaining;
+    // The balance of the wallet the next Start spends: the organization's, or the member's own with the switch on.
+    const balance = account?.status === 'known' && account.organization ? payerBalance(account, accountPayer(account)).microUsd : quota?.balance ?? quota?.remaining;
 
     // The low-balance warning is the start gate's (useBalanceShortfall): a
     // provider with no floor (own key, local) never warns, and a managed one

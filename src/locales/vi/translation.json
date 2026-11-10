@@ -632,6 +632,7 @@
     "subtitleTakeover": "Bản dịch đang hiển thị trong lớp phủ phụ đề",
     "payer": {
       "paidBy": "{{name}} thanh toán",
+      "paidByYou": "Bạn thanh toán",
       "useOwnBalance": "Dùng số dư của tôi"
     },
     "function": "Hàm",

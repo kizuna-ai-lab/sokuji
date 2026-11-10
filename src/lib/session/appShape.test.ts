@@ -415,6 +415,29 @@ describe('liveGate', () => {
   });
 });
 
+describe('liveGate for an organization payer', () => {
+  const member = (organization: { availableMicroUsd: number; frozen: boolean }) => ({
+    status: 'known' as const, balanceMicroUsd: organization.availableMicroUsd, frozen: organization.frozen,
+    organization: { name: 'Acme', ...organization }, personal: { balanceMicroUsd: 0, frozen: false },
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAudioStore.setState({ mode: 'speaker' });
+    environment.value = 'electron';
+  });
+
+  it('leaves Start enabled below the floor, and disables it only while the organization is frozen', () => {
+    useAccountStore.setState({ account: member({ availableMicroUsd: 0, frozen: false }) });
+    expect(liveGate()).toBeNull();
+    useAccountStore.setState({ account: member({ availableMicroUsd: 0, frozen: true }) });
+    expect(liveGate()?.code).toBe('org_wallet_frozen');
+  });
+});
+
 describe('face-to-face from the stores', () => {
   const pick = (selected: string) => useProviderStore.setState({
     selected,

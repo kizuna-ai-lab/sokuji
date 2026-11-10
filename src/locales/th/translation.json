@@ -632,6 +632,7 @@
     "subtitleTakeover": "คำแปลกำลังแสดงในชั้นคำบรรยาย",
     "payer": {
       "paidBy": "ชำระโดย {{name}}",
+      "paidByYou": "ชำระโดยคุณ",
       "useOwnBalance": "ใช้ยอดคงเหลือของฉันเอง"
     },
     "function": "ฟังก์ชัน",

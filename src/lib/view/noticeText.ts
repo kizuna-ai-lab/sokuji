@@ -44,7 +44,7 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',
-  // A managed lease or the start gate refused an organization-paid start (spec 2026-11-09 §7). `_owner` is the owner's
+  // A managed lease or the start gate refused an organization-paid start, or a running session's organization ended it. `_owner` is the owner's
   // wording of the row, and `_unnamed` the sentence for a stale quota that no longer names the organization.
   org_balance_held: "Your organization's balance is held by sessions in progress. Try again when one ends, or use your own balance.",
   org_insufficient_balance: "Ask the organization's owner to top up, or use your own balance.",
@@ -163,8 +163,13 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
  */
 function wordsKey(code: string, params: Record<string, string | number> | undefined): string {
   let key = code;
-  if (params?.role === 'owner' && `${key}_owner` in NOTICE_WORDS) key = `${key}_owner`;
-  if (!params?.organization && `${key}_unnamed` in NOTICE_WORDS) key = `${key}_unnamed`;
+  const named = Boolean(params?.organization);
+  // The owner's row; one that interpolates the name is used only when the name is there.
+  if (params?.role === 'owner') {
+    if (named && `${key}_owner` in NOTICE_WORDS) key = `${key}_owner`;
+    else if (!named && `${key}_owner_unnamed` in NOTICE_WORDS) key = `${key}_owner_unnamed`;
+  }
+  if (!named && !key.endsWith('_unnamed') && `${key}_unnamed` in NOTICE_WORDS) key = `${key}_unnamed`;
   return key;
 }
 

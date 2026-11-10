@@ -3,7 +3,8 @@
  * (choice 9): exactly when the start gate refuses the selected provider's
  * start below its floor — the same computation over the same stores as
  * Start, so the two never disagree (`AccountButton.tsx`'s own rule). A
- * frozen wallet is not a low balance.
+ * frozen wallet is not a low balance. For an organization payer the dot is only a
+ * hint: Start itself is not refused below the floor, the server answers it.
  */
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';

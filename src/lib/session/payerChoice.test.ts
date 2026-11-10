@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { chosenPayer, getUseOwnBalance, payerBalance, setUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
+import { chosenPayer, getUseOwnBalance, payerBalance, setUseOwnBalance, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
 import type { AccountState } from './types';
 
 const member = {
@@ -67,5 +67,36 @@ describe('payerBalance', () => {
     setUseOwnBalance(false);
     expect(payerBalance(known(), 'personal')).toEqual({ microUsd: 3_000_000, frozen: false });
     expect(payerBalance(known({ personal: { balanceMicroUsd: 1, frozen: true } }), 'personal')).toEqual({ microUsd: 1, frozen: true });
+  });
+});
+
+describe('the switch across documents', () => {
+  const fire = (key: string | null) => window.dispatchEvent(new StorageEvent('storage', { key }));
+
+  it("tells a subscriber when another document changes the switch's key", () => {
+    const listener = vi.fn();
+    const off = subscribeUseOwnBalance(listener);
+    localStorage.setItem(USE_OWN_BALANCE_KEY, 'true');
+    fire(USE_OWN_BALANCE_KEY);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getUseOwnBalance()).toBe(true);
+    off();
+  });
+
+  it('tells it when storage is cleared, and ignores other keys', () => {
+    const listener = vi.fn();
+    const off = subscribeUseOwnBalance(listener);
+    fire('something.else');
+    expect(listener).not.toHaveBeenCalled();
+    fire(null);
+    expect(listener).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it('stops listening once unsubscribed', () => {
+    const listener = vi.fn();
+    subscribeUseOwnBalance(listener)();
+    fire(USE_OWN_BALANCE_KEY);
+    expect(listener).not.toHaveBeenCalled();
   });
 });

@@ -632,6 +632,7 @@
     "subtitleTakeover": "تظهر الترجمات في طبقة الترجمة العائمة",
     "payer": {
       "paidBy": "يدفع {{name}}",
+      "paidByYou": "تدفع أنت",
       "useOwnBalance": "استخدام رصيدي الخاص"
     },
     "function": "وظيفة",
