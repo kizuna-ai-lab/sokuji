@@ -1136,6 +1136,18 @@ describe('the lease port: reissue()', () => {
     expect(answer).not.toHaveProperty('params');
   });
 
+  it.each([
+    [403, { code: 'not_org_member' }, 'not_org_member'],
+    [402, { reason: 'org_balance_held' }, 'org_balance_held'],
+    [402, { error: 'Insufficient balance' }, 'org_insufficient_balance'],
+  ])('maps a %i %j reissue for the organization to %s with the organization and role', async (status, body, code) => {
+    const r = await reissuing();
+    r.shape.payer = 'organization';
+    r.shape.account = { status: 'known' as const, balanceMicroUsd: 0, frozen: false, organization: { name: 'Acme', availableMicroUsd: 0, frozen: false, role: 'member' as const } };
+    r.call.respond(status, body);
+    await expect(r.result).resolves.toMatchObject({ ok: false, retry: false, code, params: { organization: 'Acme', role: 'member' } });
+  });
+
   it('retries on a transport failure and on a timeout', async () => {
     const failed = await reissuing();
     failed.call.fail();

@@ -17,7 +17,7 @@ import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
-import { ORG_WALLET_FROZEN, orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
+import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
@@ -534,14 +534,13 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           return { ok: true, apiKey, expiresAt, fresh: true };
         }
         if (status === 401) return { ok: false, retry: false, code: 'sign_in_required', message: said };
-        if (status === 403) {
-          // A frozen organization mid-session: its own words, named from the account the run started with.
-          if (orgRefusalCode(status, body, shape.payer) === ORG_WALLET_FROZEN) {
-            const params = orgNoticeParams(shape.account);
-            return { ok: false, retry: false, code: ORG_WALLET_FROZEN, message: said, ...(params ? { params } : {}) };
-          }
-          return { ok: false, retry: false, code: 'wallet_frozen', message: said };
+        // An organization refusal mid-session (frozen, removed, held, spent): its own words, named from the account the run started with.
+        const org = orgRefusalCode(status, body, shape.payer);
+        if (org) {
+          const params = orgNoticeParams(shape.account);
+          return { ok: false, retry: false, code: org, message: said, ...(params ? { params } : {}) };
         }
+        if (status === 403) return { ok: false, retry: false, code: 'wallet_frozen', message: said };
         if (status === 409) return { ok: false, retry: false, code: body?.code === 'reissue_limit' ? 'reissue_limit' : 'lease_ended', message: said };
         if (status === 429 || status >= 500) return retry(said);
         return { ok: false, retry: false, code: 'unsupported', message: said };

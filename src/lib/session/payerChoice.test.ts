@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { chosenPayer, getUseOwnBalance, payerBalance, setUseOwnBalance, useAccountPayer, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
+import { chosenPayer, getUseOwnBalance, setUseOwnBalance, useAccountPayer, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
+import { payerBalance } from './orgNotice';
 import type { AccountState } from './types';
 
 const member = {

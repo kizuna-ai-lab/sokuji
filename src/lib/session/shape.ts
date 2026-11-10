@@ -5,7 +5,7 @@ import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
-import { payerBalance } from './payerChoice';
+import { payerBalance } from './orgNotice';
 import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
 import type { RunNotice, RunShape } from './types';
 

@@ -68,22 +68,3 @@ export function useAccountPayer(account: AccountState | null | undefined): Payer
   useUseOwnBalance();
   return accountPayer(account);
 }
-
-/**
- * The balance and frozen flag of the wallet `payer` spends (the one a run chose at Start, not the live switch); a non-member, with no payer, spends the account's own.
- * `microUsd` is undefined for a personal payer whose wallet the account does not hold (the response carried none usable): no balance is made up, and the server checks that wallet.
- */
-export function payerBalance(account: Extract<AccountState, { status: 'known' }>, payer: Payer | undefined): { microUsd: number | undefined; frozen: boolean } {
-  switch (payer) {
-    case 'organization': {
-      const org = account.organization;
-      return org ? { microUsd: org.availableMicroUsd, frozen: org.frozen } : { microUsd: account.balanceMicroUsd, frozen: account.frozen };
-    }
-    case 'personal': {
-      const own = account.personal;
-      return { microUsd: own?.balanceMicroUsd, frozen: own?.frozen ?? false };
-    }
-    default:
-      return { microUsd: account.balanceMicroUsd, frozen: account.frozen };
-  }
-}

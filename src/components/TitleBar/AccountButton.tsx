@@ -16,7 +16,8 @@ import {
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
-import { payerBalance, useAccountPayer } from '../../lib/session/payerChoice';
+import { payerBalance } from '../../lib/session/orgNotice';
+import { useAccountPayer } from '../../lib/session/payerChoice';
 import type { AccountState, Payer } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';

@@ -11,6 +11,7 @@ import type { NetworkPort } from './ports';
 import { FLAP_WINDOW_MS } from './reconnect';
 import type { NetworkType } from './reconnectEvents';
 import { apiErrorType } from './run';
+import { noticeText } from '../view/noticeText';
 import { createRunner } from './runner';
 import type { LeaseContext, RunShape, SessionHooks } from './types';
 
@@ -354,6 +355,18 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     events().failed({ message: 'Frozen.', code: 'org_wallet_frozen', giveUp: { attempts: 1, reason: 'refused', refusalCode: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } } });
     await runner.settled();
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'leg-failed', notice: { code: 'org_wallet_frozen', params: { organization: 'Acme', role: 'owner' } } } });
+  });
+
+  it('a removed member\'s give-up ends the run with the membership-ended notice, named, not a lost connection', async () => {
+    const { runner, events } = setup();
+    await runner.start();
+    events().reconnecting({ attempt: 1, drop: DROP });
+    events().failed({ message: 'Removed.', code: 'not_org_member', giveUp: { attempts: 1, reason: 'refused', refusalCode: 'not_org_member', params: { organization: 'Acme', role: 'member' } } });
+    await runner.settled();
+    const state = runner.state.getState();
+    expect(state).toMatchObject({ phase: 'idle', lastEnd: { reason: 'leg-failed', notice: { code: 'not_org_member', params: { organization: 'Acme', role: 'member' } } } });
+    const notice = (state as unknown as { lastEnd: { notice: Parameters<typeof noticeText>[1] } }).lastEnd.notice;
+    expect(noticeText(((_key: string, o: Record<string, unknown>) => String(o.defaultValue).replace(/\{\{(\w+)\}\}/g, (_, n: string) => String(o[n]))) as never, notice)).toBe("You're no longer in Acme.");
   });
 
   it('failed with a non-retryable drop sends connection_dropped retryable false, and no connection_reconnect_failed', async () => {
