@@ -21,11 +21,11 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** A `fetch` that answers only when told; an abort rejects it, as a real one does. */
 function stubFetch() {
-  const calls: Array<{ url: string; init: RequestInit; respond(status: number, body?: unknown): void; fail(error?: unknown): void }> = [];
+  const calls: Array<{ url: string; init: RequestInit; respond(status: number, body?: unknown): void; respondWith(response: Response): void; fail(error?: unknown): void }> = [];
   const fetch = vi.fn((url: string, init: RequestInit) => new Promise<Response>((resolve, reject) => {
     init.signal?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError')), { once: true });
     calls.push({
-      url, init,
+      url, init, respondWith: resolve,
       respond: (status, body) => resolve(new Response(body === undefined ? null : JSON.stringify(body), { status })),
       fail: (error = new TypeError('Failed to fetch')) => reject(error),
     });
@@ -91,6 +91,93 @@ async function rejection(p: Promise<unknown>): Promise<unknown> {
 const KEY = /k-(spk|par|mix)_(stt|tts)/;
 /** The lease's port (`SonioxLeasePort`), on every leg with an STT role of its own. */
 const PORT = expect.objectContaining({ streamAccepted: expect.any(Function), atGrantEnd: expect.any(Function), cutoff: expect.any(Function) });
+
+describe.each(['initial', 'reissue'] as const)('%s request network diagnostics', (stage) => {
+  const begin = async () => {
+    const live = stage === 'reissue' ? await granted(['speaker'], ['spk_stt']) : undefined;
+    const a = live ?? acquiring(['speaker']);
+    const result = live ? live.resources.credentials('speaker').lease!.reissue() : a.pending;
+    // Initial errors reject, whereas reissue returns an explicit retry result.
+    void result.catch(() => {});
+    await flush();
+    const call = a.last();
+    const records = () => a.frame.mock.calls.map(([f]) => f)
+      .filter((f) => f.type === 'session.network').map((f) => f.payload as Record<string, unknown>).filter((f) => f.stage === stage);
+    return { ...a, call, result, records };
+  };
+
+  it.each([401, 502, 503])('records HTTP %i without retaining response/error text', async (status) => {
+    const a = await begin();
+    a.clock.advance(35);
+    a.call.respond(status, { error: 'private response notice', apiKey: 'private-key' });
+    await a.result.catch(() => {});
+    expect(a.records()).toEqual([{
+      stage, path: `/api/soniox/session-key${stage === 'reissue' ? '/reissue' : ''}`,
+      timestamp: 0, durationMs: 35, outcome: 'response', status,
+    }]);
+  });
+
+  it('records a real fetch failure without retaining the thrown value', async () => {
+    const a = await begin();
+    a.clock.advance(24);
+    a.call.fail(new TypeError('https://private.test/?token=private-secret'));
+    await a.result.catch(() => {});
+    expect(a.records()).toEqual([{
+      stage, path: `/api/soniox/session-key${stage === 'reissue' ? '/reissue' : ''}`,
+      timestamp: 0, durationMs: 24, outcome: 'network',
+    }]);
+  });
+
+  it.each(['network', 'user', 'source-ended', 'page-hidden', 'timeout'] as const)('distinguishes %s while reading a response body', async (cause) => {
+    const a = await begin();
+    const stop = new Error('private cancellation notice');
+    a.ctx.cancellationCause = () => cause === 'network' || cause === 'timeout' ? undefined : cause;
+    let body!: ReadableStreamDefaultController<Uint8Array>;
+    const stream = new ReadableStream<Uint8Array>({ start: (controller) => { body = controller; } });
+    a.call.init.signal!.addEventListener('abort', () => body.error(new DOMException('private body error', 'AbortError')), { once: true });
+    a.call.respondWith(new Response(stream, { status: 200 }));
+    await flush(); // fetch settled; json() is waiting for the remainder of the stream
+    expect(a.records()).toEqual([]);
+    a.clock.advance(cause === 'timeout' ? SESSION_KEY_TIMEOUT_MS : 45);
+    if (cause === 'network') body.error(new TypeError('private transport failure'));
+    else if (cause !== 'timeout') a.controller.abort(stop);
+    const answer = await a.result.catch((error: unknown) => error);
+    if (stage === 'initial' && cause !== 'network' && cause !== 'timeout') expect(answer).toBe(stop);
+    if (stage === 'reissue') expect(answer).toMatchObject({ ok: false, retry: true });
+    expect(a.records()).toEqual([{
+      stage, path: `/api/soniox/session-key${stage === 'reissue' ? '/reissue' : ''}`,
+      timestamp: 0, durationMs: cause === 'timeout' ? SESSION_KEY_TIMEOUT_MS : 45,
+      outcome: cause === 'network' || cause === 'timeout' ? cause : 'run_cancelled', status: 200,
+      ...(cause === 'network' || cause === 'timeout' ? {} : { cancellationCause: cause }),
+    }]);
+    expect(a.clock.pending()).toBe(stage === 'initial' ? 0 : 1); // only the granted lease's budget remains
+  });
+
+  it('records timeout before headers separately from a network failure', async () => {
+    const a = await begin();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await a.result.catch(() => {});
+    expect(a.records()).toEqual([expect.objectContaining({ outcome: 'timeout', durationMs: SESSION_KEY_TIMEOUT_MS })]);
+    expect(a.records()[0]).not.toHaveProperty('status');
+  });
+
+  it('keeps malformed JSON as an HTTP response and never retains its body', async () => {
+    const a = await begin();
+    a.call.respondWith(new Response('private invalid JSON', { status: 503 }));
+    await a.result.catch(() => {});
+    expect(a.records()).toEqual([expect.objectContaining({ status: 503, outcome: 'response' })]);
+    expect(JSON.stringify(a.records())).not.toContain('private');
+  });
+
+  it('does not accept arbitrary cancellation text from a context', async () => {
+    const a = await begin();
+    a.ctx.cancellationCause = (() => 'private notice text') as unknown as LeaseContext['cancellationCause'];
+    a.controller.abort(new Error('private reason'));
+    await a.result.catch(() => {});
+    expect(a.records()).toEqual([expect.objectContaining({ outcome: 'run_cancelled' })]);
+    expect(a.records()[0]).not.toHaveProperty('cancellationCause');
+  });
+});
 
 describe('Kizuna Soniox lease: who pays', () => {
   const memberAccount = { status: 'known' as const, balanceMicroUsd: 9, frozen: false, organization: { name: 'Acme', availableMicroUsd: 9, frozen: false }, personal: { balanceMicroUsd: 5, frozen: false } };

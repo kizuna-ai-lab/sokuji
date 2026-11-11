@@ -79,6 +79,8 @@ const validReceiveChannels = [
   'caption-share:status',
   // System output devices may have changed (main → renderer)
   'output-devices:changed',
+  // Opt-in Soniox session-service transport diagnostics
+  'soniox-network:event',
 ];
 
 // Expose protected methods that allow the renderer process to use

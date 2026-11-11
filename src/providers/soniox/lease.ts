@@ -187,6 +187,28 @@ function refusalFrame(status: number, body: unknown): AdapterFrame {
   };
 }
 
+/** Client outcome complements Electron's request-id / Chromium / CF-Ray
+ * frames. A run abort and the local deadline both look like ERR_ABORTED to
+ * Chromium; only the lease knows why. No thrown value or response body goes
+ * into this frame. The existing frame sink gates it on Diagnostic logs. */
+function networkAttempt(ctx: LeaseContext, stage: 'initial' | 'reissue') {
+  const started = ctx.clock.now();
+  const timestamp = started;
+  return (outcome: 'response' | 'network' | 'timeout' | 'run_cancelled' | 'lease_released', status?: number) => {
+    const cause = outcome === 'run_cancelled' ? ctx.cancellationCause?.() : undefined;
+    const cancellationCause = cause && ['user', 'refused', 'start-failed', 'leg-failed', 'leg-closed', 'source-ended', 'lease-ended', 'page-hidden'].includes(cause) ? cause : undefined;
+    ctx.frame({
+      direction: 'out', type: 'session.network',
+      payload: {
+        stage, path: stage === 'initial' ? '/api/soniox/session-key' : '/api/soniox/session-key/reissue',
+        timestamp, durationMs: Math.max(0, Math.round(ctx.clock.now() - started)), outcome,
+        ...(cancellationCause ? { cancellationCause } : {}),
+        ...(status === undefined ? {} : { status }),
+      },
+    });
+  };
+}
+
 /** `ms` on the clock, or the abort's reason. */
 function wait(clock: Clock, ms: number, signal: AbortSignal): Promise<void> {
   return new Promise<void>((resolve, reject) => {
@@ -297,6 +319,9 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       // for, the participant's field included when the flag sends one —
       // never the token. Before the POST, so one that never answers shows.
       ctx.frame({ direction: 'out', type: 'session.key_requested', payload: sent });
+      const recordNetwork = networkAttempt(ctx, 'initial');
+      let status: number | undefined;
+      let outcome: Parameters<typeof recordNetwork>[0] = 'network';
       const controller = new AbortController();
       let timedOut = false;
       const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
@@ -309,21 +334,27 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
           body: JSON.stringify(sent),
           signal: controller.signal,
         });
+        status = res.status;
         let body: unknown = null;
         try {
           body = await res.json();
         } catch (error) {
-          // A body that is not JSON leaves the status to speak; an abort is not that.
-          if (controller.signal.aborted) throw error;
+          // Malformed JSON leaves the status to speak. A transport failure
+          // while consuming the body is still a failed network attempt.
+          if (controller.signal.aborted || !(error instanceof SyntaxError)) throw error;
         }
+        if (controller.signal.aborted) throw controller.signal.reason;
+        outcome = 'response';
         return { status: res.status, body };
       } catch (error) {
+        outcome = ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : 'network';
         if (ctx.signal.aborted) throw ctx.signal.reason ?? error;
         if (timedOut) throw new AdapterStartError('The Soniox session service did not answer within 15 s.', 'soniox_service_unavailable');
         throw new AdapterStartError(`Failed to reach the Soniox session service: ${describeCause(error)}`, 'network', undefined, { cause: error });
       } finally {
         cancelTimer();
         ctx.signal.removeEventListener('abort', onAbort);
+        recordNetwork(outcome, status);
       }
     };
 
@@ -511,6 +542,10 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     const reissue = async (role: SttRole): Promise<SonioxReissue> => {
       if (released) return { ok: false, retry: false, code: 'lease_ended', message: 'The lease has ended.' };
       const retry = (message: string): SonioxReissue => ({ ok: false, retry: true, message });
+      // Includes token refresh, which shares the reissue's 15 s budget.
+      const recordNetwork = networkAttempt(ctx, 'reissue');
+      let responseStatus: number | undefined;
+      let outcome: Parameters<typeof recordNetwork>[0] = 'network';
       // The timeout and the abort wiring start before the token await: a slow
       // or hung getToken is bounded like the request, and an abort during it
       // is seen (a listener added after the abort would never fire).
@@ -543,12 +578,17 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
           body: JSON.stringify({ leaseId: grant.leaseId, role }),
           signal: controller.signal,
         });
+        responseStatus = res.status;
         let body: Record<string, unknown> | null = null;
         try {
           body = (await res.json()) as Record<string, unknown> | null;
-        } catch {
-          // Not JSON: the status speaks.
+        } catch (error) {
+          // Malformed JSON leaves the status to speak; a failed body
+          // stream or an abort keeps its network/cancellation outcome.
+          if (controller.signal.aborted || !(error instanceof SyntaxError)) throw error;
         }
+        if (controller.signal.aborted) throw controller.signal.reason;
+        outcome = 'response';
         const status = res.status;
         const said = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : `HTTP ${status}`;
         if (status >= 200 && status < 300) {
@@ -577,10 +617,12 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         if (status === 429 || status >= 500) return retry(said);
         return { ok: false, retry: false, code: 'unsupported', message: said };
       } catch (error) {
+        if (ctx.signal.aborted) return retry('The reissue was cancelled.');
         if (timedOut) return retry('The Soniox session service did not answer within 15 s.');
         return retry(`Failed to reach the Soniox session service: ${describeCause(error)}`);
       } finally {
         cleanup();
+        recordNetwork(ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : released ? 'lease_released' : outcome, responseStatus);
       }
     };
     const ports = new Map<SttRole, SonioxLeasePort>([...bundles.keys()].map((role) => [role, {

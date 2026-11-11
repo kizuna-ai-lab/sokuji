@@ -24,6 +24,9 @@ export interface EventData {
     | 'session.retry'
     | 'session.started_refused'
     | 'session.notify_failed'
+    | 'session.network'
+    | 'session.network.error'
+    | 'session.network.transport'
     | 'participant.warning'
     | 'participant.info'
     // OpenAI server events

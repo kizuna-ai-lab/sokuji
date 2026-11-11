@@ -100,6 +100,9 @@ export interface Resources<K> {
 /** What a lease hears from its run (spec: "Session hooks on the provider definition"). */
 export interface LeaseContext {
   signal: AbortSignal;
+  /** Diagnostic cause only, set before abort. Never carries a notice's text or
+   * changes signal.reason, which existing error handling depends on. */
+  cancellationCause?(): EndReason | 'page-hidden' | undefined;
   /** The run's clock: a lease's timers read it. */
   clock: Clock;
   /**

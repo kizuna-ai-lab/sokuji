@@ -94,6 +94,7 @@ export class Run {
   /** When each leg's degradation code last reached analytics: L1's window, applied to `api_error` too (ruling 8). */
   private readonly degradedTrackedAt = new Map<string, number>();
   private readonly controller = new AbortController();
+  private cancellationCause: RunEnd['reason'] | 'page-hidden' | undefined;
   private readonly host: RunHost;
   private readonly stack: ResourceStack;
   private readonly conversations = new Map<LegName, Conversation>();
@@ -299,6 +300,7 @@ export class Run {
     if (p.session?.acquire) {
       const resources = await p.session.acquire(shape, settings, {
         signal: this.signal,
+        cancellationCause: () => this.cancellationCause,
         clock: deps.clock,
         // `close()` sets `ending` before it aborts; an abort listener that
         // reacts by calling this must not re-end a run already ending.
@@ -381,6 +383,7 @@ export class Run {
     this.ending = true;
     this.reconnectsCut(result, endedAt);
     if (this.turn?.close()) this.hold(false);
+    this.cancellationCause ??= result.reason;
     this.controller.abort(new Error('the run ended'));
     // A `start()` / `startBoth` / `openSource` / `acquire` still in flight
     // finishes (and defers its release) before we unwind, so every resource
@@ -428,6 +431,7 @@ export class Run {
   abandon(): void {
     this.ending = true;
     if (this.turn?.close()) this.hold(false);
+    this.cancellationCause ??= 'page-hidden';
     this.controller.abort(new Error('the page went away'));
     this.stack.abandon();
     // As `close()` does: a page restored from the back/forward cache must

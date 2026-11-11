@@ -9,11 +9,13 @@ import { useEffect } from 'react';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { getAppSession } from './session';
 import { useAppSessionBridges } from './useAppSession';
+import { attachNetworkDiagnostics } from './networkDiagnostics';
 
 export function AppSessionRoot(): null {
   const { refetchAll } = useUserProfile();
   // Today's MainPanel refetched the whole profile after a session (`refetchAll`).
   useAppSessionBridges(refetchAll);
   useEffect(() => getAppSession().attach(), []);
+  useEffect(() => attachNetworkDiagnostics(), []);
   return null;
 }
