@@ -20,6 +20,7 @@ import { createRequire } from 'node:module';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { EventEmitter } from 'node:events';
 
 // better-auth-adapter.js is a CommonJS main-process file whose
 // require('electron') is left as a native Node require by vite-node (the real
@@ -138,6 +139,32 @@ describe('packaged origin', () => {
 
     expect(adapter._sendHeadersConfig.origin).toBe('file://sokuji');
     expect(headers['access-control-allow-origin']).toEqual(['file://sokuji']);
+  });
+});
+
+describe('session-service diagnostics composition', () => {
+  it('observes the existing request/header listeners while preserving auth cookies, CORS and callbacks', () => {
+    const { createSessionNetworkDiagnostics } = nodeRequire('./session-network-diagnostics.js');
+    const owner = Object.assign(new EventEmitter(), { id: 3, send: vi.fn(), isDestroyed: () => false });
+    const diagnostics = createSessionNetworkDiagnostics({ backendUrl: BACKEND });
+    const adapter = loadAdapter({ networkDiagnostics: diagnostics });
+    diagnostics.setEnabled(owner, true);
+    const request = { id: 17, webContentsId: 3, method: 'POST', url: `${BACKEND}/api/soniox/session-key` };
+    const callback = vi.fn();
+    webRequestHandlers.get('beforeRequest')(request, callback);
+    expect(callback).toHaveBeenCalledExactlyOnceWith({ cancel: false });
+    const cookie = 'better-auth.' + 'dont_remember=1';
+    const responseHeaders = { 'cf-ray': ['0123456789abcdef-NRT'], 'set-cookie': [`${cookie}; Path=/`] };
+    const headers = receiveResponse(responseHeaders, { ...request, statusCode: 503 });
+    expect(headers['access-control-allow-origin']).toEqual(['file://sokuji']);
+    expect(headers['access-control-allow-credentials']).toEqual(['true']);
+    expect(headers['cf-ray']).toEqual(responseHeaders['cf-ray']);
+    const outgoing = {};
+    adapter._sendHeadersConfig.injectCookies(outgoing);
+    expect(outgoing.Cookie).toBe(cookie);
+    diagnostics.completed(request);
+    expect(owner.send.mock.calls[1][1]).toMatchObject({ phase: 'completed', status: 503, cfRay: '0123456789abcdef-NRT' });
+    expect(JSON.stringify(owner.send.mock.calls)).not.toContain('dont_remember');
   });
 });
 

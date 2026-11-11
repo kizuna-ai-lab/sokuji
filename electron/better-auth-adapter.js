@@ -169,6 +169,7 @@ function betterAuthAdapter(opts) {
   session.defaultSession.webRequest.onBeforeRequest(
     filter,
     (details, callback) => {
+      opts.networkDiagnostics?.beforeRequest(details);
       callback({ cancel: false });
     }
   );
@@ -187,6 +188,7 @@ function betterAuthAdapter(opts) {
   session.defaultSession.webRequest.onHeadersReceived(
     filter,
     (details, callback) => {
+      opts.networkDiagnostics?.headersReceived(details);
       const { responseHeaders } = details;
       if (details.resourceType === 'webSocket') {
         if (opts.onWebSocketResponse) opts.onWebSocketResponse(details);

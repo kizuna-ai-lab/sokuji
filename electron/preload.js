@@ -79,6 +79,8 @@ const validReceiveChannels = [
   'caption-share:status',
   // System output devices may have changed (main → renderer)
   'output-devices:changed',
+  // Opt-in managed session-service transport diagnostics
+  'session-network:event',
 ];
 
 // Expose protected methods that allow the renderer process to use

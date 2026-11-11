@@ -3,6 +3,7 @@ import { render, fireEvent, act } from '@testing-library/react';
 import LogsPanel from './LogsPanel';
 import useLogStore, { MAX_EVENTS_PER_GROUP } from '../../stores/logStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { attachNetworkDiagnostics } from '../../app/networkDiagnostics';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -66,6 +67,37 @@ describe('LogsPanel', () => {
     // only, so every plain entry — i.e. everything report() writes — was
     // silently dropped from the text a user pastes into a bug report. It
     // survived because LogsPanel had no test at all.
+    it('copies transport facts and lease cancellation under either tab without retaining private IPC fields', () => {
+      let receive!: (data: unknown) => void;
+      const detach = attachNetworkDiagnostics({
+        send: vi.fn(), invoke: vi.fn(async () => {}), removeListener: vi.fn(), removeAllListeners: vi.fn(),
+        receive: (_channel, callback) => { receive = callback; },
+      });
+      try {
+        write(() => {
+          receive({ requestId: 17, stage: 'soniox.session-key', phase: 'error', timestamp: 1234, durationMs: 15000,
+            status: 200, cfRay: '0123456789abcdef-NRT', chromiumError: 'net::ERR_ABORTED',
+            url: 'https://private.test/?token=private-token', Cookie: 'private-cookie', body: 'private-body', message: 'private-notice' });
+          useLogStore.getState().addRealtimeEvent({ type: 'session.network', data: {
+            stage: 'soniox.session-key', path: '/api/soniox/session-key', durationMs: 15000,
+            outcome: 'run_cancelled', cancellationCause: 'source-ended',
+          } }, 'client', 'session.network');
+        });
+        const { container, getByText } = render(<LogsPanel toggleLogs={() => {}} />);
+        const text = copy(container);
+        const parsed = text.split('\n').map((line) => JSON.parse(line));
+        expect(parsed.map((event) => event.type)).toEqual(['session.network.error', 'session.network']);
+        expect(parsed[0].data).toMatchObject({ chromiumError: 'net::ERR_ABORTED', durationMs: 15000, cfRay: '0123456789abcdef-NRT', status: 200 });
+        expect(parsed[1].data.cancellationCause).toBe('source-ended');
+        expect(text).not.toContain('private');
+        writeText.mockClear();
+        fireEvent.click(getByText('Other'));
+        expect(copy(container)).toBe(text);
+      } finally {
+        detach();
+      }
+    });
+
     it('exports plain entries, not just realtime events', () => {
       write(() => {
         useLogStore.getState().addLog('settings failed to load', 'error');

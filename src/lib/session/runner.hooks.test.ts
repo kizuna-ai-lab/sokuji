@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, LegStartError } from '../contract/adapter';
-import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
+import type { AdapterEvents, AdapterFrame, AdapterSession, StartRequest } from '../contract/adapter';
+import { createKizunaLease, SESSION_KEY_TIMEOUT_MS } from '../../providers/soniox/lease';
+import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import type { AnyProvider } from '../provider/types';
@@ -12,7 +14,7 @@ import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
 import type { FramePort } from './ports';
 import { createRunner } from './runner';
 import { SourceOpenError, type Source } from './source';
-import type { RunNotice, RunShape, SessionHooks } from './types';
+import type { LeaseContext, RunNotice, RunShape, SessionHooks } from './types';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -122,6 +124,78 @@ describe('runner — admit', () => {
     // The pair is en → ja: the speaker leg's source is en, the participant's ja.
     expect(started).toEqual(expect.arrayContaining([{ source: 'en', script: fakeScript('exchange') }, { source: 'ja', script: fakeScript('cjk') }]));
     expect(started).toHaveLength(2);
+  });
+});
+
+describe('runner — managed lease network outcomes', () => {
+  it.each(['user', 'source-ended', 'network', 'timeout'] as const)('passes %s through Run into the real lease diagnostic, even when fetch rejects with TypeError', async (cause) => {
+    let fail!: (error: unknown) => void;
+    const fetcher = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      fail = reject;
+      init.signal!.addEventListener('abort', () => reject(new TypeError('Failed to fetch')), { once: true });
+    }));
+    const acquire = createKizunaLease({ fetch: fetcher as unknown as typeof fetch, apiUrl: () => 'https://backend.test/api' });
+    const provider = withHooks({ acquire: (shape, _settings, ctx) => acquire(shape, SONIOX_DEFAULTS, ctx) });
+    const frames: AdapterFrame[] = [];
+    const track = vi.fn();
+    const { runner, clock, sources, shape } = setup(provider, ['speaker'], undefined, track, { frame: (_leg, f) => { frames.push(f); } });
+    shape.auth = { signedIn: true, getToken: async () => 'private-test-token' };
+    const starting = runner.start();
+    await flush();
+    expect(fetcher).toHaveBeenCalledOnce();
+    clock.advance(cause === 'timeout' ? SESSION_KEY_TIMEOUT_MS : 50);
+    if (cause === 'user') void runner.stop();
+    else if (cause === 'source-ended') sources[0].end('private source notice');
+    else if (cause === 'network') fail(new TypeError('Failed to fetch'));
+    await starting;
+    await runner.settled();
+    const outcome = frames.filter((f) => f.type === 'session.network');
+    expect(outcome).toEqual([{
+      direction: 'out', type: 'session.network', payload: {
+        stage: 'soniox.session-key', path: '/api/soniox/session-key', timestamp: 0,
+        durationMs: cause === 'timeout' ? SESSION_KEY_TIMEOUT_MS : 50,
+        outcome: cause === 'user' || cause === 'source-ended' ? 'run_cancelled' : cause,
+        ...(cause === 'user' || cause === 'source-ended' ? { cancellationCause: cause } : {}),
+      },
+    }]);
+    expect(JSON.stringify(outcome)).not.toContain('private');
+    const apiErrors = track.mock.calls.filter(([name]) => name === 'api_error');
+    if (cause === 'user' || cause === 'source-ended') {
+      expect(apiErrors).toEqual([]);
+      expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: cause } });
+    } else {
+      expect(apiErrors).toHaveLength(1);
+      expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: cause === 'timeout' ? 'soniox_service_unavailable' : 'network' } } });
+    }
+  });
+});
+
+describe('runner — diagnostic cancellation cause', () => {
+  it.each(['user', 'source-ended', 'lease-ended', 'page-hidden'] as const)('exposes %s synchronously to abort listeners, preserving signal.reason', async (cause) => {
+    let context!: LeaseContext;
+    const observed: Array<{ cause: ReturnType<NonNullable<LeaseContext['cancellationCause']>>; reason: unknown }> = [];
+    const provider = withHooks({
+      acquire: async (_shape, _settings, ctx) => {
+        context = ctx;
+        ctx.signal.addEventListener('abort', () => observed.push({ cause: ctx.cancellationCause?.(), reason: ctx.signal.reason }));
+        return { credentials: () => ({}), release: async () => {} };
+      },
+    });
+    const { runner, sources } = setup(provider);
+    await runner.start();
+    expect(context.cancellationCause?.()).toBeUndefined();
+    if (cause === 'user') await runner.stop();
+    else if (cause === 'source-ended') sources[0].end('private source notice');
+    else if (cause === 'lease-ended') context.end({ code: 'budget_exhausted', message: 'private lease notice' });
+    else runner.abandon();
+    await runner.settled();
+    expect(observed).toHaveLength(1);
+    expect(observed[0].cause).toBe(cause);
+    expect(observed[0].reason).toBeInstanceOf(Error);
+    expect((observed[0].reason as Error).message).toBe(cause === 'page-hidden' ? 'the page went away' : 'the run ended');
+    // Cleanup/abandon cannot replace the original cause after the abort.
+    runner.abandon();
+    expect(context.cancellationCause?.()).toBe(cause);
   });
 });
 
