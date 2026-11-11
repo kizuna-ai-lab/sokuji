@@ -383,20 +383,33 @@ async function supportsSystemAudioCapture() {
 }
 
 /**
- * List available system audio sources
- * Whole-system capture first (unchanged default, captured via getDisplayMedia in
- * the renderer), then one entry per application the capture helper can target.
- * A missing or failing helper yields just the former.
- * @param {{host?: object}} deps - `host` is injected in tests
- * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
+ * Core Audio process taps (and our helper's build target) require macOS 14.2.
+ * Electron supplies the product version, not the Darwin kernel release. An
+ * unknown version takes the legacy path rather than launching an unsupported
+ * binary. Keep this floor in sync with native/audio-host/mac/build.sh.
  */
-async function listSystemAudioSources({ host = audioHost } = {}) {
-  // No screen selection any more: the global tap needs no picker and no
-  // Screen Recording permission.
+function supportsProcessTaps(systemVersion) {
+  if (typeof systemVersion !== 'string') return false;
+  const match = /^(\d+)\.(\d+)(?:\.\d+)?$/.exec(systemVersion);
+  if (!match) return false;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  return major > 14 || (major === 14 && minor >= 2);
+}
+
+/**
+ * Whole-system capture is always offered; applications only when the process-tap
+ * helper can run. On older macOS, whole-system capture uses getDisplayMedia in
+ * the renderer and still needs Screen Recording permission.
+ * @param {{host?: object, systemVersion?: string}} deps - injected in tests
+ * @returns {Promise<Array<{deviceId: string, label: string}>>}
+ */
+async function listSystemAudioSources({ host = audioHost, systemVersion = process.getSystemVersion?.() } = {}) {
   const system = {
     deviceId: 'desktop-audio-loopback',
     label: 'System Audio (All Applications)'
   };
+  if (!supportsProcessTaps(systemVersion)) return [system];
   // The doc above promises that a missing or failing helper still yields the
   // system source; an unguarded rejection would instead leave the renderer with
   // no sources at all, including whole-system capture.
@@ -415,15 +428,21 @@ async function listSystemAudioSources({ host = audioHost } = {}) {
  * Records which capture path the renderer should take. Nothing is spawned here:
  * the helper starts when the session starts, via 'start-app-audio-capture'.
  * @param {string} sourceId - 'desktop-audio-loopback' or 'app:pid:<n>'
- * @param {{host?: object}} deps - `host` is injected in tests
- * @returns {Promise<{success: boolean, capture: 'app'|'system'}>} Result object
+ * @param {{systemVersion?: string}} deps - injected in tests
+ * @returns {Promise<{success: boolean, capture?: 'app'|'system', error?: string}>}
  */
-async function connectSystemAudioSource(sourceId, { host = audioHost } = {}) {
+async function connectSystemAudioSource(sourceId, { systemVersion = process.getSystemVersion?.() } = {}) {
   console.log(`[Sokuji] [macOS Audio] Connect system audio source: ${sourceId}`);
-  // Both paths go through the helper on macOS. Whole-system capture used to use
-  // getDisplayMedia, which requires Screen Recording; a global Core Audio tap
-  // does the same job under the audio-capture grant the per-application path
-  // already needs, so macOS asks for one permission instead of two.
+  if (!supportsProcessTaps(systemVersion)) {
+    if (sourceId === 'desktop-audio-loopback') return { success: true, capture: 'system' };
+    // A saved application selection must not silently capture other apps.
+    return {
+      success: false,
+      error: "Capturing a single application's audio requires macOS 14.2 or later. Choose System Audio (All Applications) instead.",
+    };
+  }
+  // On supported macOS, the global tap avoids the Screen Recording grant that
+  // getDisplayMedia needs; both whole-system and per-app capture use the helper.
   return { success: true, capture: 'app' };
 }
 
