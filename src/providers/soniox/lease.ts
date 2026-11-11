@@ -18,7 +18,7 @@ import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import { recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
+import { interruptedOutcome, recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
 import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
@@ -259,7 +259,7 @@ function signalEnd(
     } finally {
       cancelTimer();
       inFlight = null;
-      recordNetwork(cancelled ? 'lease_released' : timedOut ? 'timeout' : outcome, status);
+      recordNetwork(interruptedOutcome(outcome, { released: cancelled, timedOut }), status);
     }
   };
   const done = (async () => {
@@ -335,7 +335,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         outcome = 'response';
         return { status: res.status, body };
       } catch (error) {
-        outcome = ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : 'network';
+        outcome = interruptedOutcome('network', { runCancelled: ctx.signal.aborted, timedOut });
         if (ctx.signal.aborted) throw ctx.signal.reason ?? error;
         if (timedOut) throw new AdapterStartError('The Soniox session service did not answer within 15 s.', 'soniox_service_unavailable');
         throw new AdapterStartError(`Failed to reach the Soniox session service: ${describeCause(error)}`, 'network', undefined, { cause: error });
@@ -504,7 +504,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
           ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: describeCause(error) } });
           again = true;
         } finally {
-          recordNetwork(ctx.signal.aborted ? 'run_cancelled' : ended || released ? 'lease_released' : outcome, status);
+          recordNetwork(outcome, status);
         }
         if (!again) {
           key.sending = false;
@@ -618,7 +618,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         return retry(`Failed to reach the Soniox session service: ${describeCause(error)}`);
       } finally {
         cleanup();
-        recordNetwork(ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : released ? 'lease_released' : outcome, responseStatus);
+        recordNetwork(interruptedOutcome(outcome, { runCancelled: ctx.signal.aborted, timedOut, released }), responseStatus);
       }
     };
     const ports = new Map<SttRole, SonioxLeasePort>([...bundles.keys()].map((role) => [role, {

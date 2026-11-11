@@ -899,6 +899,23 @@ describe("the lease's port (SonioxLeasePort)", () => {
     expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: 'Failed to fetch' } });
   });
 
+  it('records a session-started attempt that outlives the run with what it actually did', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const records = () => a.frame.mock.calls.map(([f]) => f)
+      .filter((f) => f.type === 'session.network').map((f) => f.payload as Record<string, unknown>).filter((f) => f.stage === 'soniox.started');
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    a.clock.advance(6);
+    // The report is not wired to the run's signal: ending the run does not cancel it, so the
+    // attempt still records what it did rather than being labelled cancelled.
+    a.controller.abort(new Error('the run ended'));
+    await flush();
+    a.to('/soniox/session-started')[0].respond(200, { ok: true });
+    await flush();
+    expect(records()).toEqual([{
+      stage: 'soniox.started', path: '/api/soniox/session-started', timestamp: 0, durationMs: 6, outcome: 'response', status: 200,
+    }]);
+  });
+
   it('a 5xx is tried again a second later, and the 2xx after it is the report: nothing more goes out', async () => {
     const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
     const started = () => a.to('/soniox/session-started');

@@ -48,6 +48,24 @@ export const NETWORK_STAGE_PATHS: Readonly<Record<NetworkStage, string>> = {
 export type NetworkOutcome = 'response' | 'network' | 'timeout' | 'run_cancelled' | 'lease_released';
 
 /**
+ * What an attempt is recorded as when the run or the lease ended around it.
+ * The run's abort is named first (it also aborts the attempt's own controller),
+ * then the local deadline, then the lease's release; otherwise the attempt's
+ * own outcome stands. Only attempts that were actually interrupted get a
+ * cancellation label: `session-started` is not wired to a signal, so one that
+ * outlives the run still records what it did.
+ */
+export function interruptedOutcome(
+  outcome: NetworkOutcome,
+  flags: { runCancelled?: boolean; timedOut?: boolean; released?: boolean } = {},
+): NetworkOutcome {
+  if (flags.runCancelled) return 'run_cancelled';
+  if (flags.timedOut) return 'timeout';
+  if (flags.released) return 'lease_released';
+  return outcome;
+}
+
+/**
  * The run end reasons that may be named beside a cancelled request. Anything
  * else a context reports is dropped: a diagnostic frame is not a place for
  * free text.

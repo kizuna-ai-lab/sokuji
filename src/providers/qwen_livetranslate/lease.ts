@@ -16,7 +16,7 @@ import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import { recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
+import { interruptedOutcome, recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
 import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { getApiUrl } from '../../utils/environment';
@@ -260,7 +260,7 @@ function signalEnd(
     } finally {
       cancelTimer();
       inFlight = null;
-      recordNetwork(cancelled ? 'lease_released' : timedOut ? 'timeout' : outcome, status);
+      recordNetwork(interruptedOutcome(outcome, { released: cancelled, timedOut }), status);
     }
   };
   const done = (async () => {
@@ -342,7 +342,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         outcome = 'response';
         return { status: res.status, body };
       } catch (error) {
-        outcome = ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : 'network';
+        outcome = interruptedOutcome('network', { runCancelled: ctx.signal.aborted, timedOut });
         if (ctx.signal.aborted) throw ctx.signal.reason ?? error;
         if (timedOut) throw new AdapterStartError('The Qwen session service did not answer within 15 s.', 'qwen_service_unavailable');
         throw new AdapterStartError(`Failed to reach the Qwen session service: ${describeCause(error)}`, 'network', undefined, { cause: error });
@@ -499,7 +499,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           keepalive = false;
           last = describeCause(error);
         } finally {
-          recordNetwork(ctx.signal.aborted ? 'run_cancelled' : ended || released ? 'lease_released' : outcome, status);
+          recordNetwork(outcome, status);
         }
         // The connection over, the run ending: nothing is left for the report to protect. Asked again after the wait, which
         // a clock firing several timers in one step can end with the run already over.
@@ -579,13 +579,13 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         if (status === 429 || status >= 500) return retry(said);
         return { ok: false, retry: false, code: 'unsupported', message: said };
       } catch (error) {
-        outcome = ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : 'network';
+        outcome = interruptedOutcome('network', { runCancelled: ctx.signal.aborted, timedOut });
         if (timedOut) return retry('The Qwen session service did not answer within 15 s.');
         return retry(`Failed to reach the Qwen session service: ${describeCause(error)}`);
       } finally {
         cancelTimer();
         ctx.signal.removeEventListener('abort', onAbort);
-        recordNetwork(ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : released ? 'lease_released' : outcome, responseStatus);
+        recordNetwork(interruptedOutcome(outcome, { runCancelled: ctx.signal.aborted, timedOut, released }), responseStatus);
       }
     };
     /**

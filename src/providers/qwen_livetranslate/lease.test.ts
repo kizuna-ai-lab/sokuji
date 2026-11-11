@@ -1302,6 +1302,23 @@ describe('Qwen lease: network diagnostics', () => {
     expect(records(a, 'qwen.started')[1]).toMatchObject({ outcome: 'response', status: 200 });
   });
 
+  it('records a session-started attempt that outlives the run with what it actually did', async () => {
+    const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.sessionCreated('sess_a', UUID_1);
+    await flush();
+    a.clock.advance(4);
+    // The report is not wired to the run's signal: ending the run does not cancel it, so the
+    // attempt still records what it did rather than being labelled cancelled.
+    a.controller.abort(new Error('the run ended'));
+    await flush();
+    a.to('/qwen/session-started')[0].respond(200, { ok: true });
+    await flush();
+    expect(records(a, 'qwen.started')).toEqual([{
+      stage: 'qwen.started', path: '/api/qwen/session-started', timestamp: 0, durationMs: 4, outcome: 'response', status: 200,
+    }]);
+  });
+
   it('records the session-end attempt on release', async () => {
     const a = await granted(['speaker']);
     const releasing = a.resources.release();
