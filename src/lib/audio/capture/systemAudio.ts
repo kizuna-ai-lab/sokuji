@@ -2,9 +2,9 @@
  * Electron's system audio as the participant source (spec: "Sources, in
  * full"), replacing `ModernBrowserAudioService`'s sequence step by step:
  * connect the chosen source over IPC, then record it with the recorder the
- * main process asks for — the per-application helper (Windows, and all of
- * macOS), a PipeWire tap's monitor device (Linux per-application), or
- * getDisplayMedia loopback (whole-system on Windows and Linux).
+ * main process asks for — the per-application helper (Windows, and macOS
+ * 14.2+), a PipeWire tap's monitor device (Linux per-application), or
+ * getDisplayMedia loopback (whole-system on Windows, Linux and older macOS).
  */
 import { SAMPLE_RATE } from '../../contract/adapter';
 import { describeCause, reportWarning } from '../../diagnostics/report';
