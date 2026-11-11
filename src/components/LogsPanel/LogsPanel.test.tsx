@@ -75,11 +75,11 @@ describe('LogsPanel', () => {
       });
       try {
         write(() => {
-          receive({ requestId: 17, stage: 'initial', phase: 'error', timestamp: 1234, durationMs: 15000,
+          receive({ requestId: 17, stage: 'soniox.session-key', phase: 'error', timestamp: 1234, durationMs: 15000,
             status: 200, cfRay: '0123456789abcdef-NRT', chromiumError: 'net::ERR_ABORTED',
             url: 'https://private.test/?token=private-token', Cookie: 'private-cookie', body: 'private-body', message: 'private-notice' });
           useLogStore.getState().addRealtimeEvent({ type: 'session.network', data: {
-            stage: 'initial', path: '/api/soniox/session-key', durationMs: 15000,
+            stage: 'soniox.session-key', path: '/api/soniox/session-key', durationMs: 15000,
             outcome: 'run_cancelled', cancellationCause: 'source-ended',
           } }, 'client', 'session.network');
         });

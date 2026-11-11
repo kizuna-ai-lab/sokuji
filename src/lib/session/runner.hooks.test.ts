@@ -152,7 +152,7 @@ describe('runner — managed lease network outcomes', () => {
     const outcome = frames.filter((f) => f.type === 'session.network');
     expect(outcome).toEqual([{
       direction: 'out', type: 'session.network', payload: {
-        stage: 'initial', path: '/api/soniox/session-key', timestamp: 0,
+        stage: 'soniox.session-key', path: '/api/soniox/session-key', timestamp: 0,
         durationMs: cause === 'timeout' ? SESSION_KEY_TIMEOUT_MS : 50,
         outcome: cause === 'user' || cause === 'source-ended' ? 'run_cancelled' : cause,
         ...(cause === 'user' || cause === 'source-ended' ? { cancellationCause: cause } : {}),

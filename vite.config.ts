@@ -136,7 +136,7 @@ export default defineConfig(({ command, mode }) => {
           // Entry points for the main process
           entry: {
             'better-auth-adapter': 'electron/better-auth-adapter.js',
-            'soniox-network-diagnostics': 'electron/soniox-network-diagnostics.js',
+            'session-network-diagnostics': 'electron/session-network-diagnostics.js',
             'caption-share': 'electron/caption-share.js',
             'caption-share-core': 'electron/caption-share-core.js',
             'caption-share-net': 'electron/caption-share-net.js',

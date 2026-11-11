@@ -144,9 +144,9 @@ describe('packaged origin', () => {
 
 describe('session-service diagnostics composition', () => {
   it('observes the existing request/header listeners while preserving auth cookies, CORS and callbacks', () => {
-    const { createSonioxNetworkDiagnostics } = nodeRequire('./soniox-network-diagnostics.js');
+    const { createSessionNetworkDiagnostics } = nodeRequire('./session-network-diagnostics.js');
     const owner = Object.assign(new EventEmitter(), { id: 3, send: vi.fn(), isDestroyed: () => false });
-    const diagnostics = createSonioxNetworkDiagnostics({ backendUrl: BACKEND });
+    const diagnostics = createSessionNetworkDiagnostics({ backendUrl: BACKEND });
     const adapter = loadAdapter({ networkDiagnostics: diagnostics });
     diagnostics.setEnabled(owner, true);
     const request = { id: 17, webContentsId: 3, method: 'POST', url: `${BACKEND}/api/soniox/session-key` };

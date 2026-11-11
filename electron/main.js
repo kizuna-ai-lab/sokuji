@@ -10,7 +10,7 @@ const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { registerOutputFormFactor } = require('./output-form-factor.js');
 const { createWsHeaderRules } = require('./ws-header-rules.js');
-const { registerSonioxNetworkDiagnostics } = require('./soniox-network-diagnostics.js');
+const { registerSessionNetworkDiagnostics } = require('./session-network-diagnostics.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { captureSourceMode, listCaptureSources, screenRecordingState, reaskScreenRecording, MAC_BUNDLE_ID } = require('./capture-sources');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
@@ -554,7 +554,7 @@ app.whenReady().then(async () => {
 
     console.log(`[Sokuji] [Main] Initializing Better Auth adapter with backend: ${backendUrl}, origin: ${origin}`);
 
-    const networkDiagnostics = registerSonioxNetworkDiagnostics({
+    const networkDiagnostics = registerSessionNetworkDiagnostics({
       ipcMain, webRequest: session.defaultSession.webRequest, backendUrl, getMainWindow: () => mainWindow,
     });
     betterAuthAdapter({

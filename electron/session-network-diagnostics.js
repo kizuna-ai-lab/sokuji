@@ -1,8 +1,31 @@
 // Opt-in transport facts only. Never retain a webRequest details object: it
 // can contain credentials, upload data and arbitrary URLs.
-function createSonioxNetworkDiagnostics({ backendUrl, now = () => performance.now(), timestamp = () => Date.now() }) {
+
+/**
+ * The managed endpoints a run's Start, reconnect and end reach, on both
+ * providers: the same eight stages the leases name in their `session.network`
+ * frames. The renderer bridge keeps its own copy of this table and neither
+ * side trusts the other's strings;
+ * `src/lib/diagnostics/sessionNetwork.consistency.test.ts` holds all three
+ * together.
+ */
+const STAGE_PATHS = [
+  ['soniox.session-key', '/api/soniox/session-key'],
+  ['soniox.reissue', '/api/soniox/session-key/reissue'],
+  ['soniox.started', '/api/soniox/session-started'],
+  ['soniox.end', '/api/soniox/session-end'],
+  ['qwen.session-key', '/api/qwen/session-key'],
+  ['qwen.reissue', '/api/qwen/session-key/reissue'],
+  ['qwen.started', '/api/qwen/session-started'],
+  ['qwen.end', '/api/qwen/session-end'],
+];
+
+function createSessionNetworkDiagnostics({ backendUrl, now = () => performance.now(), timestamp = () => Date.now() }) {
   const root = new URL(backendUrl);
-  const apiPath = `${root.pathname.replace(/\/$/, '')}/api/soniox/session-key`;
+  const prefix = root.pathname.replace(/\/$/, '');
+  // Pathname under the configured root → the stage and the path the Logs show.
+  // Only the allowlisted path is ever reported, never the request's own URL.
+  const stages = new Map(STAGE_PATHS.map(([stage, suffix]) => [`${prefix}${suffix}`, { stage, path: suffix }]));
   const pending = new Map();
   let owner = null;
   let detach = () => {};
@@ -12,15 +35,14 @@ function createSonioxNetworkDiagnostics({ backendUrl, now = () => performance.no
     try {
       const url = new URL(details.url);
       if (url.origin !== root.origin || url.username || url.password) return null;
-      if (url.pathname === apiPath) return 'initial';
-      if (url.pathname === `${apiPath}/reissue`) return 'reissue';
+      return stages.get(url.pathname) ?? null;
     } catch { /* An invalid URL is never diagnostic data. */ }
     return null;
   };
   const emit = (data) => {
     if (!owner) return;
     try {
-      if (!owner.isDestroyed()) owner.send('soniox-network:event', data);
+      if (!owner.isDestroyed()) owner.send('session-network:event', data);
     } catch {
       // A renderer going away must never prevent Better Auth's callback.
       setEnabled(null, false);
@@ -59,8 +81,7 @@ function createSonioxNetworkDiagnostics({ backendUrl, now = () => performance.no
     for (const [id, record] of pending) if (started - record.started > 60_000) pending.delete(id);
     if (pending.size >= 128) pending.delete(pending.keys().next().value);
     const data = {
-      requestId: details.id, stage,
-      path: stage === 'initial' ? '/api/soniox/session-key' : '/api/soniox/session-key/reissue',
+      requestId: details.id, stage: stage.stage, path: stage.path,
       timestamp: timestamp(),
     };
     pending.set(details.id, { started, data });
@@ -95,9 +116,9 @@ function createSonioxNetworkDiagnostics({ backendUrl, now = () => performance.no
   return { setEnabled, beforeRequest, headersReceived, completed: (details) => finish(details, 'completed'), errorOccurred: (details) => finish(details, 'error') };
 }
 
-function registerSonioxNetworkDiagnostics({ ipcMain, webRequest, backendUrl, getMainWindow }) {
-  const diagnostics = createSonioxNetworkDiagnostics({ backendUrl });
-  ipcMain.handle('soniox-network:set-enabled', (event, enabled) => {
+function registerSessionNetworkDiagnostics({ ipcMain, webRequest, backendUrl, getMainWindow }) {
+  const diagnostics = createSessionNetworkDiagnostics({ backendUrl });
+  ipcMain.handle('session-network:set-enabled', (event, enabled) => {
     if (event.sender !== getMainWindow()?.webContents) return;
     diagnostics.setEnabled(event.sender, enabled);
   });
@@ -109,4 +130,4 @@ function registerSonioxNetworkDiagnostics({ ipcMain, webRequest, backendUrl, get
   return diagnostics;
 }
 
-module.exports = { createSonioxNetworkDiagnostics, registerSonioxNetworkDiagnostics };
+module.exports = { createSessionNetworkDiagnostics, registerSessionNetworkDiagnostics, STAGE_PATHS };

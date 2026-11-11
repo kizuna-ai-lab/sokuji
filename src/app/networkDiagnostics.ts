@@ -1,5 +1,11 @@
 import useLogStore from '../stores/logStore';
 import { reportWarning } from '../lib/diagnostics/report';
+import { NETWORK_STAGE_PATHS, type NetworkStage } from '../lib/diagnostics/sessionNetwork';
+
+/** Only a stage this build knows names a path; the payload's own `path` is
+ * never read. Main's table is its own copy of the same allowlist. */
+const isStage = (value: unknown): value is NetworkStage =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(NETWORK_STAGE_PATHS, value);
 
 /** Main sends only allowlisted transport facts; the usual event sink owns
  * display, redaction and Copy logs. Subscribe to the store's actual switch,
@@ -9,7 +15,7 @@ export function attachNetworkDiagnostics(electron = window.electron): () => void
   const receive = (value: unknown) => {
     if (!useLogStore.getState().enabled || !value || typeof value !== 'object') return;
     const data = value as Record<string, unknown>;
-    if (data.stage !== 'initial' && data.stage !== 'reissue') return;
+    if (!isStage(data.stage)) return;
     if (data.phase !== 'started' && data.phase !== 'completed' && data.phase !== 'error') return;
     if (!Number.isSafeInteger(data.requestId) || !Number.isSafeInteger(data.timestamp)
       || !Number.isSafeInteger(data.durationMs) || (data.durationMs as number) < 0) return;
@@ -17,7 +23,7 @@ export function attachNetworkDiagnostics(electron = window.electron): () => void
     // sink an arbitrary object, URL, header or error message to retain/export.
     const facts = {
       requestId: data.requestId, stage: data.stage, phase: data.phase,
-      path: data.stage === 'initial' ? '/api/soniox/session-key' : '/api/soniox/session-key/reissue',
+      path: NETWORK_STAGE_PATHS[data.stage],
       timestamp: data.timestamp, durationMs: data.durationMs,
       ...(Number.isInteger(data.status) && (data.status as number) >= 100 && (data.status as number) <= 599 ? { status: data.status } : {}),
       ...(typeof data.cfRay === 'string' && /^[a-f0-9]{16,32}-[a-z]{3}$/i.test(data.cfRay) ? { cfRay: data.cfRay } : {}),
@@ -27,18 +33,18 @@ export function attachNetworkDiagnostics(electron = window.electron): () => void
     useLogStore.getState().addRealtimeEvent({ type, data: facts }, 'client', type);
   };
   const sync = (enabled: boolean) => {
-    void electron.invoke('soniox-network:set-enabled', enabled).catch((cause: unknown) => {
+    void electron.invoke('session-network:set-enabled', enabled).catch((cause: unknown) => {
       if (enabled) reportWarning('NetworkDiagnostics', 'Could not enable session-service network diagnostics.', { cause, dedupeKey: 'network-diagnostics.enable' });
     });
   };
-  electron.receive('soniox-network:event', receive);
+  electron.receive('session-network:event', receive);
   const unsubscribe = useLogStore.subscribe((state, previous) => {
     if (state.enabled !== previous.enabled) sync(state.enabled);
   });
   sync(useLogStore.getState().enabled);
   return () => {
     unsubscribe();
-    electron.removeListener('soniox-network:event', receive);
+    electron.removeListener('session-network:event', receive);
     sync(false);
   };
 }

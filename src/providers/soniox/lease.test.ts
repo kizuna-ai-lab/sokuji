@@ -92,9 +92,12 @@ const KEY = /k-(spk|par|mix)_(stt|tts)/;
 /** The lease's port (`SonioxLeasePort`), on every leg with an STT role of its own. */
 const PORT = expect.objectContaining({ streamAccepted: expect.any(Function), atGrantEnd: expect.any(Function), cutoff: expect.any(Function) });
 
-describe.each(['initial', 'reissue'] as const)('%s request network diagnostics', (stage) => {
+describe.each([
+  ['soniox.session-key', 'initial'],
+  ['soniox.reissue', 'reissue'],
+] as const)('%s request network diagnostics', (stage, kind) => {
   const begin = async () => {
-    const live = stage === 'reissue' ? await granted(['speaker'], ['spk_stt']) : undefined;
+    const live = kind === 'reissue' ? await granted(['speaker'], ['spk_stt']) : undefined;
     const a = live ?? acquiring(['speaker']);
     const result = live ? live.resources.credentials('speaker').lease!.reissue() : a.pending;
     // Initial errors reject, whereas reissue returns an explicit retry result.
@@ -112,7 +115,7 @@ describe.each(['initial', 'reissue'] as const)('%s request network diagnostics',
     a.call.respond(status, { error: 'private response notice', apiKey: 'private-key' });
     await a.result.catch(() => {});
     expect(a.records()).toEqual([{
-      stage, path: `/api/soniox/session-key${stage === 'reissue' ? '/reissue' : ''}`,
+      stage, path: `/api/soniox/session-key${kind === 'reissue' ? '/reissue' : ''}`,
       timestamp: 0, durationMs: 35, outcome: 'response', status,
     }]);
   });
@@ -123,7 +126,7 @@ describe.each(['initial', 'reissue'] as const)('%s request network diagnostics',
     a.call.fail(new TypeError('https://private.test/?token=private-secret'));
     await a.result.catch(() => {});
     expect(a.records()).toEqual([{
-      stage, path: `/api/soniox/session-key${stage === 'reissue' ? '/reissue' : ''}`,
+      stage, path: `/api/soniox/session-key${kind === 'reissue' ? '/reissue' : ''}`,
       timestamp: 0, durationMs: 24, outcome: 'network',
     }]);
   });
@@ -142,15 +145,15 @@ describe.each(['initial', 'reissue'] as const)('%s request network diagnostics',
     if (cause === 'network') body.error(new TypeError('private transport failure'));
     else if (cause !== 'timeout') a.controller.abort(stop);
     const answer = await a.result.catch((error: unknown) => error);
-    if (stage === 'initial' && cause !== 'network' && cause !== 'timeout') expect(answer).toBe(stop);
-    if (stage === 'reissue') expect(answer).toMatchObject({ ok: false, retry: true });
+    if (kind === 'initial' && cause !== 'network' && cause !== 'timeout') expect(answer).toBe(stop);
+    if (kind === 'reissue') expect(answer).toMatchObject({ ok: false, retry: true });
     expect(a.records()).toEqual([{
-      stage, path: `/api/soniox/session-key${stage === 'reissue' ? '/reissue' : ''}`,
+      stage, path: `/api/soniox/session-key${kind === 'reissue' ? '/reissue' : ''}`,
       timestamp: 0, durationMs: cause === 'timeout' ? SESSION_KEY_TIMEOUT_MS : 45,
       outcome: cause === 'network' || cause === 'timeout' ? cause : 'run_cancelled', status: 200,
       ...(cause === 'network' || cause === 'timeout' ? {} : { cancellationCause: cause }),
     }]);
-    expect(a.clock.pending()).toBe(stage === 'initial' ? 0 : 1); // only the granted lease's budget remains
+    expect(a.clock.pending()).toBe(kind === 'initial' ? 0 : 1); // only the granted lease's budget remains
   });
 
   it('records timeout before headers separately from a network failure', async () => {

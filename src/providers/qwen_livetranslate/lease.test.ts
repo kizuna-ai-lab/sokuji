@@ -1210,3 +1210,122 @@ describe('Qwen lease: refusals for organization payers', () => {
     expect(stale.params).toBeUndefined();
   });
 });
+
+describe('Qwen lease: network diagnostics', () => {
+  const records = (a: { frame: ReturnType<typeof vi.fn> }, stage: string) => a.frame.mock.calls
+    .map(([f]) => f as { type: string; payload?: Record<string, unknown> })
+    .filter((f) => f.type === 'session.network')
+    .map((f) => f.payload!)
+    .filter((p) => p.stage === stage);
+
+  it('records the session-key attempt with its status, never the response body', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.clock.advance(35);
+    a.last().respond(502, { error: 'private response notice', apiKey: 'private-key' });
+    await rejection(a.pending);
+    expect(records(a, 'qwen.session-key')).toEqual([{
+      stage: 'qwen.session-key', path: '/api/qwen/session-key', timestamp: 0, durationMs: 35, outcome: 'response', status: 502,
+    }]);
+  });
+
+  it('records a real fetch failure without the thrown value', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.clock.advance(24);
+    a.last().fail(new TypeError('https://private.test/?token=private-secret'));
+    const error = await rejection(a.pending);
+    expect((error as Error).message).toContain('Failed to reach the Qwen session service:');
+    expect(records(a, 'qwen.session-key')).toEqual([{
+      stage: 'qwen.session-key', path: '/api/qwen/session-key', timestamp: 0, durationMs: 24, outcome: 'network',
+    }]);
+    expect(JSON.stringify(records(a, 'qwen.session-key'))).not.toContain('private');
+  });
+
+  it('records the deadline separately from a network failure', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.clock.advance(SESSION_KEY_TIMEOUT_MS);
+    await rejection(a.pending);
+    expect(records(a, 'qwen.session-key')).toEqual([expect.objectContaining({ outcome: 'timeout', durationMs: SESSION_KEY_TIMEOUT_MS })]);
+    expect(records(a, 'qwen.session-key')[0]).not.toHaveProperty('status');
+  });
+
+  it.each(['user', 'source-ended'] as const)('names the run cancellation cause for %s', async (cause) => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.ctx.cancellationCause = () => cause;
+    a.controller.abort(new Error('private reason'));
+    await rejection(a.pending);
+    expect(records(a, 'qwen.session-key')).toEqual([expect.objectContaining({ outcome: 'run_cancelled', cancellationCause: cause })]);
+  });
+
+  it('drops cancellation text a context reports', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.ctx.cancellationCause = (() => 'private notice') as unknown as LeaseContext['cancellationCause'];
+    a.controller.abort(new Error('private reason'));
+    await rejection(a.pending);
+    expect(records(a, 'qwen.session-key')).toEqual([expect.objectContaining({ outcome: 'run_cancelled' })]);
+    expect(records(a, 'qwen.session-key')[0]).not.toHaveProperty('cancellationCause');
+  });
+
+  it('records a reissue and the status it was answered with', async () => {
+    const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    const answer = port.reissue({ notBefore: 0 });
+    await flush();
+    a.clock.advance(12);
+    a.to('/qwen/session-key/reissue')[0].respond(429, { error: 'private response notice' });
+    expect(await answer).toMatchObject({ ok: false, retry: true });
+    expect(records(a, 'qwen.reissue')).toEqual([{
+      stage: 'qwen.reissue', path: '/api/qwen/session-key/reissue', timestamp: 0, durationMs: 12, outcome: 'response', status: 429,
+    }]);
+  });
+
+  it('records every session-started attempt, the retry included', async () => {
+    const a = await granted(['speaker']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.sessionCreated('sess_a', UUID_1);
+    await flush();
+    a.clock.advance(9);
+    a.to('/qwen/session-started')[0].respond(503);
+    await flush();
+    expect(records(a, 'qwen.started')).toEqual([{
+      stage: 'qwen.started', path: '/api/qwen/session-started', timestamp: 0, durationMs: 9, outcome: 'response', status: 503,
+    }]);
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
+    await flush();
+    a.to('/qwen/session-started')[1].respond(200, { ok: true });
+    await flush();
+    expect(records(a, 'qwen.started')).toHaveLength(2);
+    expect(records(a, 'qwen.started')[1]).toMatchObject({ outcome: 'response', status: 200 });
+  });
+
+  it('records the session-end attempt on release', async () => {
+    const a = await granted(['speaker']);
+    const releasing = a.resources.release();
+    await flush();
+    a.clock.advance(7);
+    a.to('/qwen/session-end')[0].respond(200);
+    await releasing;
+    expect(records(a, 'qwen.end')).toEqual([{
+      stage: 'qwen.end', path: '/api/qwen/session-end', timestamp: 0, durationMs: 7, outcome: 'response', status: 200,
+    }]);
+  });
+
+  it('records a session-end transport failure as a network attempt', async () => {
+    const a = await granted(['speaker']);
+    const releasing = a.resources.release();
+    await flush();
+    a.to('/qwen/session-end')[0].fail(new TypeError('Failed to fetch'));
+    await flush();
+    // The retry follows SESSION_END_RETRY_DELAYS_MS; the run's release waits for its budget.
+    a.clock.advance(500);
+    await flush();
+    a.to('/qwen/session-end')[1].respond(200);
+    await releasing;
+    expect(records(a, 'qwen.end')[0]).toMatchObject({ outcome: 'network' });
+    expect(records(a, 'qwen.end')[0]).not.toHaveProperty('status');
+  });
+});

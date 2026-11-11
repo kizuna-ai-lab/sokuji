@@ -68,8 +68,8 @@ export const INVOKE_CHANNELS = [
   'relaunch-app',
   // Linux: fix PipeWire monitor source volume after loopback capture starts
   'fix-monitor-volume',
-  // Opt-in Soniox session-service transport diagnostics
-  'soniox-network:set-enabled',
+  // Opt-in managed session-service transport diagnostics
+  'session-network:set-enabled',
   // WebSocket header injection (renderer → main)
   'ws-headers-set',
   'ws-headers-clear',

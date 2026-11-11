@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
-const { createSonioxNetworkDiagnostics, registerSonioxNetworkDiagnostics } = createRequire(import.meta.url)('./soniox-network-diagnostics.js');
+const { createSessionNetworkDiagnostics, registerSessionNetworkDiagnostics, STAGE_PATHS } = createRequire(import.meta.url)('./session-network-diagnostics.js');
 
 const BACKEND = 'https://backend.test';
 const RAY = '0123456789abcdef-NRT';
@@ -12,11 +12,11 @@ function sender(id = 3) {
 function setup() {
   let time = 100;
   const owner = sender();
-  const diagnostics = createSonioxNetworkDiagnostics({ backendUrl: BACKEND, now: () => time, timestamp: () => 123456 });
+  const diagnostics = createSessionNetworkDiagnostics({ backendUrl: BACKEND, now: () => time, timestamp: () => 123456 });
   return { owner, diagnostics, advance: (ms) => { time += ms; }, records: () => owner.send.mock.calls.map(([, data]) => data) };
 }
 
-describe('Soniox transport diagnostics', () => {
+describe('Managed session transport diagnostics', () => {
   it('captures nothing by default; disabling drops in-flight data, including after re-enabling', () => {
     const h = setup();
     h.diagnostics.beforeRequest(request());
@@ -34,6 +34,32 @@ describe('Soniox transport diagnostics', () => {
     expect(h.records().at(-1)).toMatchObject({ requestId: 18, phase: 'completed', status: 200 });
   });
 
+  it.each(STAGE_PATHS)('records %s at %s, and only on the configured backend', (stage, suffix) => {
+    const h = setup();
+    h.diagnostics.setEnabled(h.owner, true);
+    const details = request({ url: `${BACKEND}${suffix}` });
+    h.diagnostics.beforeRequest(details);
+    h.diagnostics.completed({ ...details, statusCode: 200 });
+    expect(h.records().map((r) => [r.stage, r.path])).toEqual([[stage, suffix], [stage, suffix]]);
+    // The same path on another origin is not ours.
+    h.diagnostics.beforeRequest(request({ id: 18, url: `https://other.test${suffix}` }));
+    h.diagnostics.completed(request({ id: 18, url: `https://other.test${suffix}`, statusCode: 200 }));
+    expect(h.records()).toHaveLength(2);
+  });
+
+  it('covers both providers and no other endpoint', () => {
+    expect(STAGE_PATHS.map(([stage]) => stage)).toEqual([
+      'soniox.session-key', 'soniox.reissue', 'soniox.started', 'soniox.end',
+      'qwen.session-key', 'qwen.reissue', 'qwen.started', 'qwen.end',
+    ]);
+    const h = setup();
+    h.diagnostics.setEnabled(h.owner, true);
+    for (const path of ['/api/qwen/session-key/extra', '/api/qwen/session-startedx', '/api/qwen/session', '/api/soniox/session-started/x', '/api/soniox/session-end/']) {
+      h.diagnostics.beforeRequest(request({ url: `${BACKEND}${path}` }));
+    }
+    expect(h.records()).toEqual([]);
+  });
+
   it.each([200, 401, 409, 502, 503])('retains HTTP %i and case-insensitive CF-Ray with duration, once', (status) => {
     const h = setup();
     h.diagnostics.setEnabled(h.owner, true);
@@ -44,8 +70,8 @@ describe('Soniox transport diagnostics', () => {
     h.diagnostics.completed(request());
     h.diagnostics.completed(request());
     expect(h.records()).toEqual([
-      { requestId: 17, stage: 'initial', path: '/api/soniox/session-key', timestamp: 123456, phase: 'started', durationMs: 0 },
-      { requestId: 17, stage: 'initial', path: '/api/soniox/session-key', timestamp: 123456, phase: 'completed', durationMs: 50, status, cfRay: RAY },
+      { requestId: 17, stage: 'soniox.session-key', path: '/api/soniox/session-key', timestamp: 123456, phase: 'started', durationMs: 0 },
+      { requestId: 17, stage: 'soniox.session-key', path: '/api/soniox/session-key', timestamp: 123456, phase: 'completed', durationMs: 50, status, cfRay: RAY },
     ]);
   });
 
@@ -56,7 +82,7 @@ describe('Soniox transport diagnostics', () => {
     h.diagnostics.beforeRequest(details);
     h.advance(15000);
     h.diagnostics.errorOccurred({ ...details, error });
-    expect(h.records().at(-1)).toEqual({ requestId: 17, stage: 'reissue', path: '/api/soniox/session-key/reissue', timestamp: 123456, phase: 'error', durationMs: 15000, chromiumError: error });
+    expect(h.records().at(-1)).toEqual({ requestId: 17, stage: 'soniox.reissue', path: '/api/soniox/session-key/reissue', timestamp: 123456, phase: 'error', durationMs: 15000, chromiumError: error });
   });
 
   it('keeps a response status and CF-Ray when reading the body then fails', () => {
@@ -131,7 +157,7 @@ describe('Soniox transport diagnostics', () => {
 
   it('handles a configured backend path and trailing slash without logging that URL', () => {
     const owner = sender();
-    const diagnostics = createSonioxNetworkDiagnostics({ backendUrl: `${BACKEND}/prefix/` });
+    const diagnostics = createSessionNetworkDiagnostics({ backendUrl: `${BACKEND}/prefix/` });
     diagnostics.setEnabled(owner, true);
     diagnostics.beforeRequest(request());
     expect(owner.send).not.toHaveBeenCalled();
@@ -170,19 +196,19 @@ describe('Soniox transport diagnostics', () => {
     const handlers = {};
     const ipcMain = { handle: vi.fn((channel, handler) => { handlers[channel] = handler; }) };
     const webRequest = { onCompleted: vi.fn(), onErrorOccurred: vi.fn(), onBeforeRequest: vi.fn(), onHeadersReceived: vi.fn(), onBeforeSendHeaders: vi.fn() };
-    const diagnostics = registerSonioxNetworkDiagnostics({ ipcMain, webRequest, backendUrl: BACKEND, getMainWindow: () => ({ webContents: owner }) });
+    const diagnostics = registerSessionNetworkDiagnostics({ ipcMain, webRequest, backendUrl: BACKEND, getMainWindow: () => ({ webContents: owner }) });
     expect(webRequest.onCompleted).toHaveBeenCalledOnce();
     expect(webRequest.onErrorOccurred).toHaveBeenCalledOnce();
     expect(webRequest.onBeforeRequest).not.toHaveBeenCalled();
     expect(webRequest.onHeadersReceived).not.toHaveBeenCalled();
     expect(webRequest.onBeforeSendHeaders).not.toHaveBeenCalled();
-    handlers['soniox-network:set-enabled']({ sender: sender(4) }, true);
+    handlers['session-network:set-enabled']({ sender: sender(4) }, true);
     diagnostics.beforeRequest(request());
     expect(owner.send).not.toHaveBeenCalled();
-    handlers['soniox-network:set-enabled']({ sender: owner }, true);
+    handlers['session-network:set-enabled']({ sender: owner }, true);
     diagnostics.beforeRequest(request());
     expect(owner.send).toHaveBeenCalledOnce();
-    handlers['soniox-network:set-enabled']({ sender: owner }, 'true');
+    handlers['session-network:set-enabled']({ sender: owner }, 'true');
     diagnostics.beforeRequest(request());
     expect(owner.send).toHaveBeenCalledOnce();
   });

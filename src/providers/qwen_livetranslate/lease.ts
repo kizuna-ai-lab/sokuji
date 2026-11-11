@@ -16,6 +16,7 @@ import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
 import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { getApiUrl } from '../../utils/environment';
@@ -222,8 +223,9 @@ interface Ending {
  * 4xx is final.
  */
 function signalEnd(
-  doFetch: NonNullable<QwenLeaseDeps['fetch']>, url: string, token: string, leaseId: string, clock: Clock, frame: (f: AdapterFrame) => void,
+  doFetch: NonNullable<QwenLeaseDeps['fetch']>, url: string, token: string, leaseId: string, ctx: LeaseContext,
 ): Ending {
+  const { clock, frame } = ctx;
   let cancelled = false;
   let inFlight: AbortController | null = null;
   // Dropped for good once an attempt fails in transport: a runtime that refuses a keepalive request needing a
@@ -233,7 +235,12 @@ function signalEnd(
   const attempt = async (): Promise<boolean> => {
     const controller = new AbortController();
     inFlight = controller;
-    const cancelTimer = clock.setTimeout(() => controller.abort(), Math.max(0, deadline - clock.now()));
+    // One record per attempt: a retry is its own request with its own duration.
+    const recordNetwork = recordNetworkAttempt(ctx, 'qwen.end');
+    let status: number | undefined;
+    let outcome: NetworkOutcome = 'network';
+    let timedOut = false;
+    const cancelTimer = clock.setTimeout(() => { timedOut = true; controller.abort(); }, Math.max(0, deadline - clock.now()));
     try {
       const res = await doFetch(url, {
         method: 'POST',
@@ -242,6 +249,8 @@ function signalEnd(
         body: JSON.stringify({ leaseId }),
         signal: controller.signal,
       });
+      status = res.status;
+      outcome = 'response';
       if (res.status >= 500) return false;
       if (!res.ok) frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-end', message: `HTTP ${res.status}` } });
       return true;
@@ -251,6 +260,7 @@ function signalEnd(
     } finally {
       cancelTimer();
       inFlight = null;
+      recordNetwork(cancelled ? 'lease_released' : timedOut ? 'timeout' : outcome, status);
     }
   };
   const done = (async () => {
@@ -304,6 +314,9 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
       // The request as the Logs show it, never the token; before the POST, so one that never answers shows.
       ctx.frame({ direction: 'out', type: 'session.key_requested', payload: sent });
+      const recordNetwork = recordNetworkAttempt(ctx, 'qwen.session-key');
+      let status: number | undefined;
+      let outcome: NetworkOutcome = 'network';
       const controller = new AbortController();
       let timedOut = false;
       const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
@@ -316,21 +329,27 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           body: JSON.stringify(sent),
           signal: controller.signal,
         });
+        status = res.status;
         let body: unknown = null;
         try {
           body = await res.json();
         } catch (error) {
-          // A body that is not JSON leaves the status to speak; an abort is not that.
-          if (controller.signal.aborted) throw error;
+          // A body that is not JSON leaves the status to speak; a failed
+          // body stream or an abort keeps its network/cancellation outcome.
+          if (controller.signal.aborted || !(error instanceof SyntaxError)) throw error;
         }
+        if (controller.signal.aborted) throw controller.signal.reason;
+        outcome = 'response';
         return { status: res.status, body };
       } catch (error) {
+        outcome = ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : 'network';
         if (ctx.signal.aborted) throw ctx.signal.reason ?? error;
         if (timedOut) throw new AdapterStartError('The Qwen session service did not answer within 15 s.', 'qwen_service_unavailable');
         throw new AdapterStartError(`Failed to reach the Qwen session service: ${describeCause(error)}`, 'network', undefined, { cause: error });
       } finally {
         cancelTimer();
         ctx.signal.removeEventListener('abort', onAbort);
+        recordNetwork(outcome, status);
       }
     };
 
@@ -450,6 +469,10 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       let keepalive = true;
       for (let tries = 0; ; tries += 1) {
         let last: string;
+        // One record per attempt: a retry is its own request with its own duration.
+        const recordNetwork = recordNetworkAttempt(ctx, 'qwen.started');
+        let status: number | undefined;
+        let outcome: NetworkOutcome = 'network';
         try {
           const res = await doFetch(`${apiUrl()}/qwen/session-started`, {
             method: 'POST',
@@ -457,6 +480,8 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body,
           });
+          status = res.status;
+          outcome = 'response';
           if (res.ok) return;
           if (res.status < 500) {
             let error: string | null = null;
@@ -473,6 +498,8 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         } catch (error) {
           keepalive = false;
           last = describeCause(error);
+        } finally {
+          recordNetwork(ctx.signal.aborted ? 'run_cancelled' : ended || released ? 'lease_released' : outcome, status);
         }
         // The connection over, the run ending: nothing is left for the report to protect. Asked again after the wait, which
         // a clock firing several timers in one step can end with the run already over.
@@ -492,6 +519,9 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
       const retry = (message: string): QwenReissue => ({ ok: false, retry: true, message });
       // The timeout and the abort wiring start before the token await: a slow or hung getToken is bounded like the request,
       // and an abort during it is seen (a listener added after the abort would never fire).
+      const recordNetwork = recordNetworkAttempt(ctx, 'qwen.reissue');
+      let responseStatus: number | undefined;
+      let outcome: NetworkOutcome = 'network';
       const controller = new AbortController();
       let timedOut = false;
       const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
@@ -516,12 +546,16 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
           body: JSON.stringify({ leaseId: grant.leaseId }),
           signal: controller.signal,
         });
+        responseStatus = res.status;
         let body: Record<string, unknown> | null = null;
         try {
           body = (await res.json()) as Record<string, unknown> | null;
-        } catch {
-          // Not JSON: the status speaks.
+        } catch (error) {
+          // Not JSON: the status speaks; a failed body stream or an abort keeps its network/cancellation outcome.
+          if (controller.signal.aborted || !(error instanceof SyntaxError)) throw error;
         }
+        if (controller.signal.aborted) throw controller.signal.reason;
+        outcome = 'response';
         const status = res.status;
         const said = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : `HTTP ${status}`;
         if (status >= 200 && status < 300) {
@@ -545,11 +579,13 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         if (status === 429 || status >= 500) return retry(said);
         return { ok: false, retry: false, code: 'unsupported', message: said };
       } catch (error) {
+        outcome = ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : 'network';
         if (timedOut) return retry('The Qwen session service did not answer within 15 s.');
         return retry(`Failed to reach the Qwen session service: ${describeCause(error)}`);
       } finally {
         cancelTimer();
         ctx.signal.removeEventListener('abort', onAbort);
+        recordNetwork(ctx.signal.aborted ? 'run_cancelled' : timedOut ? 'timeout' : released ? 'lease_released' : outcome, responseStatus);
       }
     };
     /**
@@ -611,7 +647,7 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
         for (const r of reports.values()) letGo(r);
         cancelBudget();
         ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
-        const ending = signalEnd(doFetch, `${apiUrl()}/qwen/session-end`, token, grant.leaseId, ctx.clock, ctx.frame);
+        const ending = signalEnd(doFetch, `${apiUrl()}/qwen/session-end`, token, grant.leaseId, ctx);
         previous = ending;
         await ending.done;
         if (previous === ending) previous = null;
