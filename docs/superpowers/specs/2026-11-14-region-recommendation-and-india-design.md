@@ -200,8 +200,10 @@ We measured your connection to each Soniox region:
 
 One event when the hint is resolved (the user chooses or closes it), or when the measurement decides nothing:
 `region_recommendation` with `provider`, per-region medians, `current`, `recommended`, and `outcome`
-(`switched` / `kept` / `no_change` / `gave_up`) plus `chosen`. No IP, no account fields beyond what analytics already
-carries. Purpose: check from the field that recommendations are right and how many are accepted.
+(`switched` / `kept` / `no_change` / `gave_up`) plus `chosen`. The event adds no IP or account fields of its own. Like
+every analytics event, PostHog sees the sender's IP on ingestion (project setting `anonymize_ips` is off) — a separate,
+existing privacy-policy gap raised with jiangzhuo, not changed here. Purpose: check from the field that recommendations
+are right and how many are accepted.
 
 ### C. The voice warning on a Soniox region change
 
@@ -257,7 +259,12 @@ the current account (or key) does not own in that region. Start then falls back,
 2. **When it runs** (signed in, online, field not built-in), for the region's own field only:
    - on an **account change** (the existing `signInWatchers` / `userId` change) — managed: `mine()` for the new account;
      if it owns a voice in that region, write its `voiceId`, else reconcile;
-   - on a **region change** (C) for the new region's field — managed `mine()`, own key `SonioxVoicesClient.list()`;
+   - on a **region change** (C) for the new region's field — managed `mine()`: if the account owns a voice in the new
+     region and the field does not hold a valid voice, **select the account's own custom voice** there (jiangzhuo:
+     switching back to a region where the user has a custom voice must use it); only with no owned voice does a stale
+     id fall back to the default. Own key: `SonioxVoicesClient.list()` — an id still in the list is kept (it is the
+     user's custom voice), a stale one falls back to the default. A field already holding a valid custom voice is
+     untouched, so switching back to a region normally keeps using its custom voice with no lookup needed;
    - after the Settings voice list loads authoritatively (`listState === 'idle'`);
    - at **Start**, managed `clip_required` with no device clip now also **persists** the default voice (other
      fallbacks — pool exhausted, unavailable, voice failed — stay per run: they may recover).
