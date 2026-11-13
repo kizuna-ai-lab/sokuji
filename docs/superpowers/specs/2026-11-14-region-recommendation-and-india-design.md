@@ -36,7 +36,8 @@ region change can silently cost a user their custom voice, so every region chang
 - No modal pop-up for the recommendation itself: a small dismissible hint; the full region list opens only on request.
 - Never recommend for own-key providers: an own key belongs to one region's project, so another region is not usable.
 - No price in the recommendation (jiangzhuo, explicit).
-- No re-measuring on network changes, no background re-probing, no server-side choice.
+- No re-measuring for the recommendation on network changes, no background re-probing, no server-side choice. (The
+  region drop-down measures live when shown — B7 — for display only.)
 - Mobile.
 
 ## What is true today (origin/main `b4be845ac`, v0.50.2)
@@ -80,8 +81,10 @@ the UK and India (raw data in task #77's research notes):
   China, Beijing is slow (300–400 ms) or unreachable.
 - A proxy/VPN adds the same delay to every region, so a **relative** threshold suppresses correct recommendations
   (Germany exit, current US: EU 101 ms faster but < 30 %). An **absolute** threshold works everywhere tested.
-- In a real Chromium page, `fetch(url, { mode: 'no-cors' })` works and is timeable; each 404 prints a harmless console
-  error.
+- In a real Chromium page, `fetch(url, { mode: 'no-cors' })` works and is timeable for **GET and HEAD** (same ranking,
+  HEAD has no body); each 404 prints a harmless console error. **OPTIONS is unusable in the browser**: `no-cors` forbids
+  it, and in `cors` mode the browser's own preflight fails against Soniox (no CORS headers), so only a failure could be
+  timed. No credentials are involved in any of these requests.
 
 ## Approaches considered
 
@@ -119,7 +122,7 @@ A small table, one entry per regional managed provider, so adding a region or a 
 | `kizunaai_qwen` | `QWEN_REGIONS` | `https://<maas host of r>/` (from `endpoints.ts`) | managed Qwen's `region` |
 
 `tts-rt` rather than `stt-rt`: equally clean in measurements, already allowed by the extension CSP and CORS-open. Qwen
-uses the same host its session socket dials.
+uses the same host its session socket dials. **The request is `HEAD /`** (jiangzhuo): no body either way, no credentials.
 
 #### B2. When it runs
 
@@ -138,7 +141,8 @@ If the user switches to the other regional provider later, that provider gets it
 Per provider, all regions in parallel:
 1. **Warm-up round**: one request per region, results discarded (DNS, TCP, TLS).
 2. **Five rounds**, 200 ms apart, one request per region per round; each request
-   `fetch(url, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' })` with a 3 s `AbortController` timeout,
+   `fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', credentials: 'omit' })` with a 3 s
+   `AbortController` timeout,
    timed with `performance.now()` around the awaited fetch.
 3. Per region, the **median** of its successful samples; a region with fewer than 3 successes is *unmeasured*.
 
@@ -204,6 +208,26 @@ One event when the hint is resolved (the user chooses or closes it), or when the
 every analytics event, PostHog sees the sender's IP on ingestion (project setting `anonymize_ips` is off) — a separate,
 existing privacy-policy gap raised with jiangzhuo, not changed here. Purpose: check from the field that recommendations
 are right and how many are accepted.
+
+#### B7. Latency in the region drop-downs (jiangzhuo)
+
+Every region select shows each region's latency next to its name — managed Soniox, own-key Soniox and managed Qwen:
+
+```
+Region: [ 日本 (Japan) — 13 ms     ▾ ]
+          United States — 177 ms
+          European Union — 237 ms
+          日本 (Japan) — 13 ms
+          India — 136 ms
+```
+
+- **Measured live** when the provider's settings with the region select are shown (jiangzhuo chose this over reusing
+  the one-time result): the same probe module (B3), same requests, ~3 s. Options read "— measuring…" until the
+  result arrives, then "— 13 ms", or "— unreachable" for an unmeasured region.
+- An in-memory cache per provider for **10 minutes**: reopening settings within that window shows the last result
+  without measuring again. A fresh one-time measurement (B3) also fills the cache.
+- Not during a session (the select is disabled then); the last cached numbers, if any, stay visible.
+- Display only: it never shows the hint, writes the recommendation record, or changes the region.
 
 ### C. The voice warning on a Soniox region change
 
@@ -303,6 +327,8 @@ Test-first (Vitest), pure logic separated from the UI:
   default; region change reconciles the new field; Start `clip_required` without clip persists the default; no
   "(deleted voice)" entry is ever rendered; own key reconciled after `list()`; `clearVoiceClip` only clears the
   deleting account's clip; compare-before-write never overwrites a newer user choice.
+- Drop-down latency: options show measuring… → "13 ms" / "unreachable"; a second open within 10 minutes reuses the
+  cache; nothing is measured during a session; the record and the hint are untouched; probes use HEAD.
 - Existing users: no record → measured once, whatever region is stored.
 - Hint: shown only with something to recommend; persists across launches until acted on; closing it = keep, writes
   the record; opening it shows the region list.
