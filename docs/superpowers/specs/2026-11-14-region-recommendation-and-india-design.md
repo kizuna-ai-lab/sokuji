@@ -191,7 +191,7 @@ We measured your connection to each Soniox region:
 
 - Each non-current measured row has its own button: the user may pick any region, not only the recommended one
   (jiangzhuo, explicit). Unmeasured regions show "Couldn't reach" and no button.
-- **Beijing row note** — *Anne's call, for jiangzhuo to keep or drop*: "Data is processed in mainland China." No price.
+- No per-region notes (jiangzhuo: a region already says where its data is processed) and no price.
 - Choosing a row goes through the same region-change path as the settings select (C), so the voice warning applies.
 - Closing (×, backdrop, "Keep …") keeps the current region. The record is written either way.
 - Copy is in the 30 client catalogues; region names stay the existing `*_REGION_LABELS`.
@@ -287,8 +287,7 @@ Test-first (Vitest), pure logic separated from the UI:
 - Decision table: recommend / no-change at 49 and 50 ms; current unmeasured; all unmeasured → retry, third → gave-up;
   a manual change writes `chose-manually`; a record suppresses any further measurement.
 - Gating: not during a session, not before sign-in/tour, not for own-key providers, only for the selected provider.
-- Region list: lists every region with its median, marks recommended and current, one button per measured non-current row,
-  Beijing note, keep/close writes the record and changes nothing.
+- Region list: lists every region with its median, marks recommended and current, one button per measured non-current row, keep/close writes the record and changes nothing.
 - Voice warning: shown when {from} holds a custom voice (managed and own key), not for a built-in voice; the text
   names {to}'s built-in voice, or {to}'s own custom voice when it has one; cancel changes nothing; confirm changes
   only the region (no voice field is copied); used by both the select and the region list.
