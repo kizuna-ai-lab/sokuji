@@ -170,7 +170,8 @@ no audio and no account data.
 
 Not a pop-up (jiangzhuo: "maybe not a pop-up, just a small hint"). Two layers:
 
-1. **A small dismissible hint** in the main panel, in the existing `Banner` style (`src/components/Banner/`), e.g.
+1. **A small dismissible hint strip at the top of the main panel** — a `Banner` rendered by `<Banners />` in
+   `MainPanel.tsx`, the same place and style as the "update available" strip; not a modal — e.g.
    "Japan is about 160 ms faster than your current region (United States) · See each region's speed".
    It appears only when there is something to recommend, never during a session, and stays (across launches) until
    the user acts on it: opening the list and choosing, or closing the hint (= keep the current region). Its pending
