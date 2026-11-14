@@ -2,11 +2,12 @@
  * The voice warning: a Soniox region change whose custom voice would not
  * follow asks here first. It only renders the question the region change path
  * put in `useRegionChangeStore` and answers it; Switch answers true, Cancel
- * and the X answer false.
+ * and the X answer false, and so does a session starting while it is open.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
+import { useProviderStore } from '../../stores/providerStore';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import Modal from '../Modal/Modal';
 import './Region.scss';
@@ -15,6 +16,11 @@ export default function RegionChangeConfirm(): React.JSX.Element | null {
   const { t } = useTranslation();
   const question = useRegionChangeStore((s) => s.question);
   const answer = useRegionChangeStore((s) => s.answer);
+  const locked = useProviderStore((s) => s.selectionLocked);
+  // A session that starts while the question is open answers it "no" (the change would be refused anyway), resolving the waiting change.
+  useEffect(() => {
+    if (locked && question) useRegionChangeStore.getState().answer(false);
+  }, [locked, question]);
   if (!question) return null;
 
   const from = SONIOX_REGION_LABELS[question.from];

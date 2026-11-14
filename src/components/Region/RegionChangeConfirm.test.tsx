@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 
-vi.mock('react-i18next', () => ({
+vi.mock('react-i18next', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-i18next')>()),
   useTranslation: () => ({
     t: (k: string, d?: unknown, o?: Record<string, unknown>) =>
       typeof d === 'string' ? d.replace(/\{\{(\w+)\}\}/g, (_, n: string) => String(o?.[n])) : k,
@@ -10,6 +11,9 @@ vi.mock('react-i18next', () => ({
 
 import RegionChangeConfirm from './RegionChangeConfirm';
 import { useRegionChangeStore, type RegionChangeQuestion } from '../../stores/regionChangeStore';
+import { useProviderStore } from '../../stores/providerStore';
+
+const realAnswer = useRegionChangeStore.getState().answer;
 
 const ask = (q: Partial<RegionChangeQuestion> = {}) =>
   act(() => {
@@ -19,7 +23,8 @@ const ask = (q: Partial<RegionChangeQuestion> = {}) =>
   });
 
 beforeEach(() => {
-  useRegionChangeStore.setState({ question: null });
+  useRegionChangeStore.setState({ question: null, answer: realAnswer });
+  useProviderStore.setState({ selectionLocked: false });
 });
 
 describe('RegionChangeConfirm', () => {
@@ -65,5 +70,18 @@ describe('RegionChangeConfirm', () => {
     fireEvent.click(document.querySelector('.close-button') as HTMLElement);
     expect(answer).toHaveBeenCalledTimes(3);
     expect(answer).toHaveBeenLastCalledWith(false);
+  });
+
+  it('a session starting while the question is open answers it false and closes it', async () => {
+    render(<RegionChangeConfirm />);
+    let answered!: Promise<boolean>;
+    act(() => {
+      answered = useRegionChangeStore.getState().ask({ providerId: 'kizunaai_soniox', managed: true, from: 'us', to: 'jp', warning: { kind: 'built-in', name: 'Adrian' } });
+    });
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    act(() => { useProviderStore.setState({ selectionLocked: true }); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(useRegionChangeStore.getState().question).toBeNull();
+    await expect(answered).resolves.toBe(false);
   });
 });
