@@ -14,6 +14,7 @@ import { CATEGORIES, GROUPS, filterCategories, targetToCategory, type Category, 
 import { LineUpCategory } from './LineUpCategory';
 import { AccountsCategory } from './AccountsCategory';
 import { AudioCategory, ModelsCategory } from './DeviceCategories';
+import { DisplayCategory } from './DisplayCategory';
 import './SettingsPage.scss';
 
 export interface CategoryBodyProps { locked: boolean }
@@ -25,6 +26,7 @@ export const CATEGORY_BODIES: CategoryBodies = {
   accounts: AccountsCategory,
   models: ModelsCategory,
   audio: AudioCategory,
+  display: DisplayCategory,
 };
 
 const WIDE_MIN = 768;
