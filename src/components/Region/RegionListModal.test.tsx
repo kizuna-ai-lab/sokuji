@@ -45,6 +45,13 @@ describe('RegionListModal', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('lists rows fastest first, unreachable last', () => {
+    open({ ...hint, medians: { us: 177, eu: null, jp: 13, in: 136 } });
+    render(<RegionListModal />);
+    expect(screen.getAllByRole('listitem').map((li) => li.querySelector('.region-list__name')?.textContent))
+      .toEqual(['日本 (Japan)', 'India', 'United States', 'European Union']);
+  });
+
   it('lists every region with its median, marks recommended and current, one Switch per measured non-current row', () => {
     render(<RegionListModal />);
     expect(screen.getByRole('dialog', { name: 'Choose a faster region' })).toBeTruthy();
@@ -112,5 +119,47 @@ describe('RegionListModal', () => {
     fireEvent.click(container.ownerDocument.querySelector('.close-button') as HTMLElement);
     expect(state().records.kizunaai_soniox?.status).toBe('acted');
     expect(trackEvent).toHaveBeenCalledWith('region_recommendation', expect.objectContaining({ outcome: 'kept', chosen: 'us' }));
+  });
+
+  it('Keep, x and Switch do nothing while a switch is pending', async () => {
+    let settle: (v: boolean) => void = () => {};
+    requestRegionChange.mockReturnValue(new Promise<boolean>((r) => { settle = r; }));
+    const { container } = render(<RegionListModal />);
+    const btn = within(row('India')).getByRole('button', { name: 'Switch' });
+    fireEvent.click(btn);
+    fireEvent.click(within(row('日本 (Japan)')).getByRole('button', { name: 'Switch' }));
+    expect(requestRegionChange).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Keep United States' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep United States' }));
+    fireEvent.click(container.ownerDocument.querySelector('.close-button') as HTMLElement);
+    expect(state().listOpen).toBe('kizunaai_soniox');
+    expect(trackEvent).not.toHaveBeenCalled();
+    await act(async () => { settle(true); });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('region_recommendation', expect.objectContaining({ outcome: 'switched', chosen: 'in' }));
+  });
+
+  it('closes without writing when a session starts, and the hint can come back', () => {
+    render(<RegionListModal />);
+    act(() => { useProviderStore.setState({ selectionLocked: true } as never); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(state().listOpen).toBeNull();
+    expect(state().records.kizunaai_soniox?.status).toBe('hint');
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it('closes without writing when its provider is deselected', () => {
+    render(<RegionListModal />);
+    act(() => { useProviderStore.setState({ selected: 'soniox' } as never); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(state().listOpen).toBeNull();
+    expect(state().records.kizunaai_soniox?.status).toBe('hint');
+  });
+
+  it('does not open for a record that cannot be listed', () => {
+    open({ ...hint, medians: undefined });
+    render(<RegionListModal />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(state().listOpen).toBeNull();
   });
 });

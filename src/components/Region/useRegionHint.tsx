@@ -9,10 +9,32 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { markActed } from '../../lib/region/record';
 import { regionRecommendationEvent } from '../../lib/region/runRecommendation';
-import { REGION_FAMILIES, REGION_FAMILY_OF, currentRegion, isRecommendedProvider } from '../../lib/region/regionalProviders';
+import { REGION_FAMILIES, REGION_FAMILY_OF, currentRegion, isRecommendedProvider, type RecommendedProviderId } from '../../lib/region/regionalProviders';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
+import type { RegionRecord } from '../../lib/region/record';
 import type { BannerProps } from '../Banner/Banner';
+
+/**
+ * Whether the hint (and its list) may show: the provider is selected and idle,
+ * the record is a `hint` whose recommended region belongs to the family with a
+ * measured median, and the live region is not already that one. Returns the live region.
+ */
+export function usableHint(
+  provider: string | null,
+  selected: string | null,
+  locked: boolean,
+  record: RegionRecord | undefined,
+  settings: unknown,
+): { provider: RecommendedProviderId; current: string; recommended: string } | null {
+  if (!isRecommendedProvider(provider) || provider !== selected || locked) return null;
+  if (!record || record.status !== 'hint' || !record.recommended) return null;
+  const family = REGION_FAMILIES[REGION_FAMILY_OF[provider]];
+  if (!family.regions.includes(record.recommended)) return null;
+  if (typeof record.medians?.[record.recommended] !== 'number') return null;
+  const current = currentRegion(provider, settings);
+  return current === record.recommended ? null : { provider, current, recommended: record.recommended };
+}
 
 export function useRegionHint(): BannerProps | null {
   const { t } = useTranslation();
@@ -24,16 +46,15 @@ export function useRegionHint(): BannerProps | null {
   const setRecord = useRegionRecommendationStore((s) => s.setRecord);
   const openList = useRegionRecommendationStore((s) => s.openList);
 
-  if (!isRecommendedProvider(selected) || locked || !record || record.status !== 'hint' || !record.recommended) return null;
-  const current = currentRegion(selected, settings);
-  if (current === record.recommended) return null;
+  const usable = usableHint(selected, selected, locked, record, settings);
+  if (!usable || !isRecommendedProvider(selected) || !record) return null;
+  const { current, recommended } = usable;
 
   const family = REGION_FAMILIES[REGION_FAMILY_OF[selected]];
-  const recommended = record.recommended;
   const currentMedian = record.medians?.[current];
-  const recommendedMedian = record.medians?.[recommended];
+  const recommendedMedian = record.medians?.[recommended] as number;
   const params = { region: family.label(recommended), current: family.label(current) };
-  const text = typeof currentMedian === 'number' && typeof recommendedMedian === 'number'
+  const text = typeof currentMedian === 'number'
     ? t('region.hintFaster', '{{region}} is about {{ms}} ms faster than your current region ({{current}})', { ...params, ms: Math.round((currentMedian - recommendedMedian) / 10) * 10 })
     : t('region.hintCurrentUnreachable', '{{region}} answers in {{ms}} ms; your current region ({{current}}) could not be reached', { ...params, ms: recommendedMedian });
 

@@ -88,4 +88,30 @@ describe('the region hint strip', () => {
     act(() => { useProviderStore.setState({ selected: 'kizunaai_soniox' } as never); });
     expect(screen.queryByText("See each region's speed")).toBeTruthy();
   });
+
+  it('hides a hint that appears on screen once the region is changed to the recommended one', () => {
+    render(<Banners />);
+    expect(screen.queryByText("See each region's speed")).toBeTruthy();
+    act(() => { seedRegion('jp'); });
+    expect(screen.queryByText("See each region's speed")).toBeNull();
+  });
+
+  it('shows nothing for a hint record that cannot be worded', () => {
+    for (const record of [
+      { ...hint, medians: undefined },
+      { ...hint, medians: { us: 177, eu: 237, jp: null, in: 136 } },
+      { ...hint, recommended: 'mars', medians: { ...hint.medians, mars: 5 } },
+    ] as RegionRecord[]) {
+      seed({ record });
+      const { unmount } = render(<Banners />);
+      expect(screen.queryByText("See each region's speed")).toBeNull();
+      unmount();
+    }
+  });
 });
+
+function seedRegion(region: string) {
+  useProviderStore.setState({
+    entries: { kizunaai_soniox: { settings: { region }, credentials: {}, pair: {} } },
+  } as never);
+}
