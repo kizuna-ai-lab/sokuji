@@ -9,6 +9,9 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+const reconcileSpy = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock('./voiceFieldReconcile', () => ({ reconcileSonioxVoiceField: reconcileSpy }));
+
 import { registerRunPhase } from '../../app/runPhase';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
@@ -21,6 +24,7 @@ const S: SonioxSettings = { ...SONIOX_DEFAULTS, region: 'us' };
 const settings = () => useProviderStore.getState().entries.kizunaai_soniox.settings as SonioxSettings;
 
 beforeEach(async () => {
+  reconcileSpy.mockClear();
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
   useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
@@ -93,5 +97,16 @@ describe('requestSonioxRegionChange', () => {
     useRegionChangeStore.getState().answer(true);
     await expect(pending).resolves.toBe(false);
     expect(settings().region).toBe('eu');
+  });
+});
+
+describe('after a confirmed region change', () => {
+  it('reconciles the new region’s field', async () => {
+    await requestSonioxRegionChange(kizunaSonioxProvider, 'us', 'jp');
+    expect(reconcileSpy).toHaveBeenCalledWith(kizunaSonioxProvider, 'jp', expect.any(Function));
+  });
+  it('and not for a refused change', async () => {
+    await requestSonioxRegionChange(kizunaSonioxProvider, 'us', 'us');
+    expect(reconcileSpy).not.toHaveBeenCalled();
   });
 });

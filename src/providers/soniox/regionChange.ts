@@ -11,6 +11,7 @@ import { SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../lib/soniox/tts
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import { sonioxVoiceField, type SonioxSettings } from './settings';
+import { reconcileSonioxVoiceField } from './voiceFieldReconcile';
 
 export type SonioxRegionWarning = { kind: 'built-in'; name: string } | { kind: 'custom' };
 
@@ -25,8 +26,8 @@ export function sonioxRegionWarning(s: SonioxSettings, from: SonioxRegion, to: S
 
 const entryOf = (p: AnyProvider) => useProviderStore.getState().entries[p.id];
 
-/** `auth` is accepted for the caller's symmetry with the list path; the change itself needs no account. */
-export async function requestSonioxRegionChange(p: AnyProvider, from: SonioxRegion, to: SonioxRegion, _auth?: AuthContext): Promise<boolean> {
+/** `auth` serves only the reconciliation of the new region's voice field after the write; the change itself needs no account. */
+export async function requestSonioxRegionChange(p: AnyProvider, from: SonioxRegion, to: SonioxRegion, auth?: AuthContext): Promise<boolean> {
   if (from === to || currentRunPhase() !== 'idle') return false;
   const entry = entryOf(p);
   if (!entry) return false;
@@ -46,5 +47,6 @@ export async function requestSonioxRegionChange(p: AnyProvider, from: SonioxRegi
     if (!now || asSonioxRegion((now.settings as SonioxSettings).region) !== from) return false;
   }
   await useProviderStore.getState().updateSettings(p, { region: to });
+  void reconcileSonioxVoiceField(p, to, () => auth);
   return true;
 }

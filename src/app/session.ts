@@ -5,6 +5,7 @@
  * `getAppSession()` builds on its first call, and the playback loads on the
  * first `audio()` or leg.
  */
+import { watchSonioxVoiceAccount } from './sonioxVoiceAccount';
 import { getAppAudio, type AppAudio } from '../lib/audio/appAudio';
 import { createAppCapture, type AppCapture } from '../lib/audio/appCapture';
 import type { Playback } from '../lib/audio/playback';
@@ -318,6 +319,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         watchSpeechFromStores(),
         driveReadiness({
           runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
+          watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
+        }),
+        // A custom voice filed under the previous account is checked against the new one (voice reconcile).
+        watchSonioxVoiceAccount({
+          auth: () => bridges.auth, providers: () => presentProviders(),
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
         }),
       ];
