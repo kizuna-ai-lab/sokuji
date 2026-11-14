@@ -108,6 +108,7 @@
     flex: 1;
     overflow-y: auto;
     padding: vars.$space-4;
+    container-type: inline-size;
   }
 
   &__icon {
@@ -125,3 +126,69 @@
     &:focus-visible { @include vars.focus-ring; }
   }
 }
+
+// Languages and line-up: one row per stage, the provider's own options folded under them.
+.lineup-category {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-4;
+}
+
+.lineup-stage {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-1;
+  padding: vars.$space-2 0;
+  border-bottom: 1px solid vars.$border-subtle;
+  &:last-child { border-bottom: none; }
+
+  &__head {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    align-items: center;
+    gap: vars.$space-3;
+    > span { color: vars.$text-secondary; font-size: vars.$font-caption; }
+  }
+
+  &__joint, &__moved {
+    margin: 0 0 0 calc(120px + #{vars.$space-3});
+    display: flex;
+    align-items: center;
+    gap: vars.$space-1;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+  }
+  &__moved { color: vars.$color-warning; }
+  &__state { display: block; font-style: normal; font-size: 11px; color: vars.$color-warning; &.is-ready { color: vars.$text-muted; } }
+}
+
+.provider-blocked {
+  font-style: normal;
+  font-size: 11px;
+  color: vars.$text-muted;
+}
+
+.lineup-options {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-3;
+  &__fold {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-1;
+    align-self: flex-start;
+    padding: vars.$space-1 0;
+    border: none;
+    background: transparent;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
+
+@container (max-width: 480px) {
+  .lineup-stage__head { grid-template-columns: minmax(0, 1fr); }
+  .lineup-stage__joint, .lineup-stage__moved { margin-left: 0; }
+}
+

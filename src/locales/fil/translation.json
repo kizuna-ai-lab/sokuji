@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Binibigyang-numero ang mga tao sa kabilang panig — Tagapagsalita 1, Tagapagsalita 2… — kapag higit sa isang boses ang narinig.\n\nMaaari nitong mapagkamalang marami ang iisang tao. Hindi pinagana: walang numerong ipinapakita.\n\nMag-aapply mula sa susunod na session."
     },
     "local_inference": {
-      "name": "Libre",
-      "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
+      "name": "Ang device na ito",
+      "description": "Gumagana kapag na-download na ang mga model sa computer na ito; sa unang beses, kailangang mag-download ng ilang GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Libre · offline"
     },
     "local_native": {
       "name": "Libre (Native)",
@@ -609,7 +610,15 @@
       "name": "Hindi Kilala",
       "description": "Hindi kilalang provider"
     },
-    "poweredBy": "Pinapagana ng <brand>{{name}}</brand>"
+    "poweredBy": "Pinapagana ng <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Libre · online, serbisyo ng Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Libre · online, serbisyo ng Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Naka-on ang auto-scroll",

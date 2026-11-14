@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
+import { useStoredLocalStages } from '../../stores/lineUpStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { TtsSpeedControl, TranslationPromptControl } from '../../components/Settings/sections/LocalSettingsControls';
@@ -46,17 +47,18 @@ export function LocalInferenceSettingsView({ settings, update, disabled = false,
   // Forces a recompute when a model finishes downloading elsewhere (mirrors
   // today's `ProviderSpecificSettings.tsx` speakerResolved memo).
   const modelStatuses = useModelStatuses();
+  const stages = useStoredLocalStages();
 
   const speakerResolved = useMemo(
-    () => useModelStore.getState().resolve(source, target, settings.selections),
-    [source, target, settings.selections, modelStatuses],
+    () => useModelStore.getState().resolve(source, target, settings.selections, stages),
+    [source, target, settings.selections, modelStatuses, stages],
   );
   // The participant direction is a peer of the speaker's, not its reversal:
   // its own worker type decides whether a custom prompt is supported too
   // (today's rule — `ProviderSpecificSettings.tsx`'s `localPromptSupported`).
   const participantResolved = useMemo(
-    () => useModelStore.getState().resolve(target, source, settings.selections),
-    [source, target, settings.selections, modelStatuses],
+    () => useModelStore.getState().resolve(target, source, settings.selections, stages),
+    [source, target, settings.selections, modelStatuses, stages],
   );
 
   const promptSupported = isQwenFamily(translationWorkerType(speakerResolved.translation?.modelId))

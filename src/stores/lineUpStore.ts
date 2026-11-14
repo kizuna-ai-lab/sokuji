@@ -5,6 +5,7 @@
 // values and written (the one migration, owner 2026-11-15). The session still
 // runs through the provider store's selected provider (phase 1): a choice here
 // keeps that selection in step.
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
 import { caps, familyDefaults, runOf } from '../lib/lineup/catalog';
@@ -117,6 +118,13 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
     return choice;
   },
 }));
+
+/** The same, for a component: it re-renders when the stored line-up changes. */
+export function useStoredLocalStages(): LocalStages | null {
+  const lineUp = useLineUpStore((s) => s.lineUp);
+  const stored = useLineUpStore((s) => s.stored);
+  return useMemo(() => (stored ? localStagesOf(lineUp) : null), [lineUp, stored]);
+}
 
 /** The local stages of the stored line-up; null until one is stored, so the local provider resolves as today. */
 export function storedLocalStages(): LocalStages | null {

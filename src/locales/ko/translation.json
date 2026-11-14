@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "상대방 쪽 사람들에게 번호를 붙입니다(화자 1, 화자 2…). 둘 이상의 목소리가 들리면 표시됩니다.\n\n한 사람을 여러 명으로 잘못 인식할 수 있습니다. 비활성화: 번호를 표시하지 않습니다.\n\n다음 세션부터 적용됩니다."
     },
     "local_inference": {
-      "name": "무료",
-      "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)",
+      "name": "이 기기",
+      "description": "모델을 이 컴퓨터에 내려받으면 사용할 수 있습니다. 처음에는 수 GB를 내려받아야 합니다.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "무료 · 오프라인"
     },
     "local_native": {
       "name": "무료 (Native)",
@@ -609,7 +610,15 @@
       "name": "알 수 없음",
       "description": "알 수 없는 제공업체"
     },
-    "poweredBy": "<brand>{{name}}</brand> 제공"
+    "poweredBy": "<brand>{{name}}</brand> 제공",
+    "bing": {
+      "name": "Bing",
+      "note": "무료 · 온라인, Microsoft 서비스"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "무료 · 온라인, Microsoft 서비스"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "자동 스크롤 켜짐",

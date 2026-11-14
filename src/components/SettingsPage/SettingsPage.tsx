@@ -11,13 +11,16 @@ import { useSessionLocked } from '../../app/useRun';
 import { useNavigateToSettings, useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { isExtension } from '../../utils/environment';
 import { CATEGORIES, GROUPS, filterCategories, targetToCategory, type Category, type CategoryId } from './categories';
+import { LineUpCategory } from './LineUpCategory';
 import './SettingsPage.scss';
 
 export interface CategoryBodyProps { locked: boolean }
 export type CategoryBodies = Partial<Record<CategoryId, ComponentType<CategoryBodyProps>>>;
 
-/** Filled by the category tasks; a category without a body shows its title only. */
-export const CATEGORY_BODIES: CategoryBodies = {};
+/** Each category's body; a category without one shows its title only. */
+export const CATEGORY_BODIES: CategoryBodies = {
+  lineup: LineUpCategory,
+};
 
 const WIDE_MIN = 768;
 

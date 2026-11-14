@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Numrerar personerna på andra sidan – Talare 1, Talare 2 … – så snart mer än en röst hörs.\n\nDen kan ta en person för flera. Inaktiverad: inga nummer visas.\n\nGäller från nästa session."
     },
     "local_inference": {
-      "name": "Gratis",
-      "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",
+      "name": "Den här enheten",
+      "description": "Fungerar när modellerna har laddats ned till den här datorn; första gången krävs en nedladdning på flera GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratis · offline"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -609,7 +610,15 @@
       "name": "Okänd",
       "description": "Okänd leverantör"
     },
-    "poweredBy": "Drivs av <brand>{{name}}</brand>"
+    "poweredBy": "Drivs av <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratis · online, en tjänst från Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratis · online, en tjänst från Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Autoscroll på",

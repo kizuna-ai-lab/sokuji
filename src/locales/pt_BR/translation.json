@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Numera as pessoas do outro lado — Falante 1, Falante 2… — assim que mais de uma voz é ouvida.\n\nPode confundir uma pessoa com várias. Desabilitado: nenhum número é exibido.\n\nAplica-se a partir da próxima sessão."
     },
     "local_inference": {
-      "name": "Gratuito",
-      "description": "Reconhecimento de fala gratuito (ASR) + Tradução + Síntese de fala (TTS)",
+      "name": "Este dispositivo",
+      "description": "Funciona depois que os modelos são baixados neste computador; na primeira vez é preciso baixar vários GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Grátis · offline"
     },
     "local_native": {
       "name": "Gratuito (Native)",
@@ -609,7 +610,15 @@
       "name": "Desconhecido",
       "description": "Provedor desconhecido"
     },
-    "poweredBy": "Com tecnologia <brand>{{name}}</brand>"
+    "poweredBy": "Com tecnologia <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Grátis · online, um serviço da Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Grátis · online, um serviço da Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Rolagem automática ligada",

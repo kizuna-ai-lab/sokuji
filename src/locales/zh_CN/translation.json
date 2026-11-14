@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "为对方的人编号（说话人 1、说话人 2…），听到不止一个声音时显示。\n\n可能会把一个人误认成几个人。禁用：不显示编号。\n\n将在下次会话生效。"
     },
     "local_inference": {
-      "name": "免费",
-      "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）",
+      "name": "本机",
+      "description": "模型下载到这台电脑后就能用，第一次要联网下载（数 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "免费 · 不联网"
     },
     "local_native": {
       "name": "免费 (Native)",
@@ -609,7 +610,15 @@
       "name": "未知",
       "description": "未知提供商"
     },
-    "poweredBy": "<brand>{{name}}</brand> 驱动"
+    "poweredBy": "<brand>{{name}}</brand> 驱动",
+    "bing": {
+      "name": "必应",
+      "note": "免费 · 联网，微软的服务"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "免费 · 联网，微软的服务"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "自动滚动 开",

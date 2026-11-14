@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { storedLocalStages, useStoredLocalStages } from '../../../stores/lineUpStore';
 import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, FolderInput } from 'lucide-react';
 import {
   useModelStore,
@@ -417,9 +418,10 @@ export function ModelManagementSection({
    * now lives once, inside resolve()/resolveStage(), and nothing here writes
    * settings just to display a value.
    */
+  const stages = useStoredLocalStages();
   const resolved = useMemo(
-    () => useModelStore.getState().resolve(sourceLanguage, targetLanguage, settings.selections),
-    [statuses, webgpuAvailable, deviceFeatures, sourceLanguage, targetLanguage, settings.selections],
+    () => useModelStore.getState().resolve(sourceLanguage, targetLanguage, settings.selections, stages),
+    [statuses, webgpuAvailable, deviceFeatures, sourceLanguage, targetLanguage, settings.selections, stages],
   );
   const selectedAsr = resolved.asr?.modelId ?? '';
   const selectedTranslation = resolved.translation?.modelId ?? '';
@@ -461,7 +463,8 @@ export function ModelManagementSection({
   }, []);
 
   const translationModels = useMemo(() => {
-    const all = [...getManifestByType('translation')];
+    // With a stored line-up Bing is a provider of its own, chosen in the line-up, not a local model card (owner, 2026-11-15).
+    const all = getManifestByType('translation').filter((m) => stages === null || !m.isCloudModel);
 
     // If the resolved ASR model supports AST, add it as a translation option
     const asrEntry = selectedAsr ? getManifestEntry(selectedAsr) : null;
@@ -475,7 +478,7 @@ export function ModelManagementSection({
     }
 
     return sortTranslationModels(all);
-  }, [selectedAsr]);
+  }, [selectedAsr, stages]);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
@@ -494,9 +497,10 @@ export function ModelManagementSection({
   );
 
   const ttsModels = useMemo(() => {
-    const all = getManifestByType('tts');
+    // Edge likewise.
+    const all = getManifestByType('tts').filter((m) => stages === null || !m.isCloudModel);
     return sortTtsModels(all);
-  }, []);
+  }, [stages]);
 
   const compatibleAsrModels = useMemo(
     () => asrModels.filter(m =>
@@ -668,7 +672,7 @@ export function ModelManagementSection({
     const users = Object.keys(stored).filter((dir) => {
       if (directionVoice(stored, dir).speaker !== sid) return false;
       const [src, tgt] = splitDirection(dir);
-      return useModelStore.getState().resolve(src, tgt, settings.selections).tts?.modelId === supertonicTtsEntry?.id;
+      return useModelStore.getState().resolve(src, tgt, settings.selections, storedLocalStages()).tts?.modelId === supertonicTtsEntry?.id;
     });
     if (users.length > 0) {
       updateLocalInference({ voices: Object.fromEntries(Object.entries(stored).map(([dir, v]) => [dir, users.includes(dir) ? { ...v, speaker: defaultSid } : v])) });

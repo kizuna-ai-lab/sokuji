@@ -1,6 +1,6 @@
 import { Cpu, ExternalLink, X } from 'lucide-react';
 import { useState } from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
@@ -9,6 +9,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
 import { ManagedAccountRow } from './ManagedAccountRow';
+import { ProviderOption, useOptionModel } from './ProviderOption';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
 // The rich option markup below (icon, name-line, description) is styled by
 // the shared rules ProviderSection.tsx also relies on (`.provider-select__*`,
@@ -68,6 +69,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   // would flatten or hide rich option children, so the option falls back to
   // plain text.
   const [richSelect] = useState(() => supportsBaseSelect());
+  const optionModel = useOptionModel();
 
   if (!selection) return null;
   const { provider, entry, readiness } = selection;
@@ -95,47 +97,9 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   // UI-layer lookup table.
   //
   // The first managed provider offered carries "Recommended" (Stage 2 Kizuna Soniox).
-  const renderProviderOption = (p: AnyProvider) => {
-    const name = t(`providers.${p.id}.name`, p.id);
-    if (!richSelect) {
-      // Chrome below 135 renders <option>{text}</option> and drops every
-      // child element, so on the extension's floor (116) the option holds
-      // text only.
-      return (
-        <option key={p.id} value={p.id}>
-          {p.id === recommendedId ? t('simpleSettings.recommendedOption', '{{name}} ({{label}})', { name, label: recommendedLabel }) : name}
-        </option>
-      );
-    }
-    const description = t(`providers.${p.id}.description`, '');
-    const vendor = p.vendor;
-    return (
-      <option key={p.id} value={p.id}>
-        <span className="provider-select__icon">
-          <p.icon size={20} />
-        </span>
-        <span className="provider-select__text">
-          {/* Name and engine credit share one line: crediting an engine only
-              matters where the name alone doesn't say which one it is (a
-              Kizuna-managed twin). */}
-          <span className="provider-name-line">
-            <span className="provider-select__name">{name}</span>
-            {vendor && (
-              <span className="powered-by">
-                <Trans
-                  i18nKey="providers.poweredBy"
-                  values={{ name: vendor }}
-                  components={{ brand: <span className="powered-by-vendor" /> }}
-                />
-              </span>
-            )}
-            {p.id === recommendedId && <em className="provider-recommended">{recommendedLabel}</em>}
-          </span>
-          {description && <span className="provider-select__description">{description}</span>}
-        </span>
-      </option>
-    );
-  };
+  const renderProviderOption = (p: AnyProvider) => (
+    <ProviderOption key={p.id} model={{ ...optionModel(p.id, p), recommended: p.id === recommendedId }} rich={richSelect} recommendedLabel={recommendedLabel} />
+  );
 
   return (
     <div className="config-section provider-section" id="provider-section" data-tour="provider-section">

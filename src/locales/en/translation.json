@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Numbers the other side's people — Speaker 1, Speaker 2… — once more than one voice is heard.\n\nIt can mistake one person for several. Disabled: no numbers are shown.\n\nApplies from the next session."
     },
     "local_inference": {
-      "name": "Free",
-      "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
+      "name": "This device",
+      "description": "Works once its models are downloaded to this computer; the first time needs a download of several GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Free · offline"
     },
     "local_native": {
       "name": "Free (Native)",
@@ -609,7 +610,15 @@
       "name": "Unknown",
       "description": "Unknown provider"
     },
-    "poweredBy": "Powered by <brand>{{name}}</brand>"
+    "poweredBy": "Powered by <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Free · online, a Microsoft service"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Free · online, a Microsoft service"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Auto-scroll on",

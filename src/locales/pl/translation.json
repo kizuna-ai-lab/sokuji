@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Numeruje osoby po drugiej stronie — Mówca 1, Mówca 2… — gdy słychać więcej niż jeden głos.\n\nMoże wziąć jedną osobę za kilka. Wyłączony: numery nie są wyświetlane.\n\nZaczyna obowiązywać od następnej sesji."
     },
     "local_inference": {
-      "name": "Darmowy",
-      "description": "Darmowe rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)",
+      "name": "To urządzenie",
+      "description": "Działa po pobraniu modeli na ten komputer; za pierwszym razem trzeba pobrać kilka GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Bezpłatnie · offline"
     },
     "local_native": {
       "name": "Darmowy (Native)",
@@ -609,7 +610,15 @@
       "name": "Nieznany",
       "description": "Nieznany dostawca"
     },
-    "poweredBy": "Napędzane przez <brand>{{name}}</brand>"
+    "poweredBy": "Napędzane przez <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Bezpłatnie · online, usługa Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Bezpłatnie · online, usługa Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Auto-przewijanie włączone",

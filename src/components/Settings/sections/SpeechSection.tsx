@@ -117,7 +117,7 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
  * Auto is each provider's own detection. The turn modes come first, then
  * that detection's tuning — the provider's own, drawn for `layout`.
  */
-export function SpeechSection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
+export function SpeechSection({ locked, layout = 'advanced' }: { locked: boolean; layout?: 'simple' | 'advanced' }) {
   const { t } = useTranslation();
   const tooltip = `${t('settings.speechModeTooltip', 'Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesToAuto', "Applies to your voice. Other's audio always uses the provider's automatic detection.")}`;
   return (

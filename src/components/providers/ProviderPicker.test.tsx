@@ -292,7 +292,8 @@ describe('ProviderPicker', () => {
 
       expect(document.querySelector('.provider-select option[value="managed-a"]')?.textContent).toBe('simpleSettings.recommendedOption');
       expect(document.querySelector('.provider-select option[value="fake"]')?.textContent).toBe('providers.fake.name');
-      expect(document.querySelector('.provider-select option[value="managed-b"]')?.textContent).toBe('providers.managed-b.name');
+      // A hosted provider carries its engine in text: the two hosted providers share one name (owner, 2026-11-15).
+      expect(document.querySelector('.provider-select option[value="managed-b"]')?.textContent).toBe('providers.managed-b.name (Sokuji)');
     });
 
     it('recommends nothing when no managed provider is offered', async () => {
@@ -360,7 +361,8 @@ describe('ProviderPicker', () => {
       expect(localOption?.querySelector('.provider-select__icon')?.firstElementChild).not.toBeNull();
       expect(localOption?.querySelector('.provider-select__name')?.textContent).toBe('providers.local_inference.name');
       expect(localOption?.querySelector('.provider-select__description')?.textContent).toBe('providers.local_inference.description');
-      expect(localOption?.querySelector('.powered-by')).toBeNull();
+      // No vendor: the local provider's own note takes the credit's place (owner, 2026-11-15).
+      expect(localOption?.querySelector('.powered-by')?.textContent).toBe('providers.local_inference.note');
 
       // The fake provider declares vendor: 'Sokuji' — the credit renders
       // beside its name.

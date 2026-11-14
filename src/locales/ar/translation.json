@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "يرقّم أشخاص الطرف الآخر — المتحدث 1، المتحدث 2… — عند سماع أكثر من صوت واحد.\n\nقد يظن شخصًا واحدًا عدة أشخاص. معطل: لا تظهر أي أرقام.\n\nيُطبَّق بدءًا من الجلسة التالية."
     },
     "local_inference": {
-      "name": "مجاني",
-      "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)",
+      "name": "هذا الجهاز",
+      "description": "يعمل بعد تنزيل النماذج على هذا الحاسوب؛ في المرة الأولى يلزم تنزيل عدة غيغابايتات.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "مجاني · بلا اتصال"
     },
     "local_native": {
       "name": "مجاني (Native)",
@@ -609,7 +610,15 @@
       "name": "غير معروف",
       "description": "مقدم خدمة غير معروف"
     },
-    "poweredBy": "مدعوم من <brand>{{name}}</brand>"
+    "poweredBy": "مدعوم من <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "مجاني · عبر الإنترنت، خدمة من Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "مجاني · عبر الإنترنت، خدمة من Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "التمرير التلقائي مفعل",

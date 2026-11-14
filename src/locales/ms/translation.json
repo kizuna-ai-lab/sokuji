@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Menomborkan orang di pihak sana — Penutur 1, Penutur 2… — sebaik sahaja lebih daripada satu suara kedengaran.\n\nIa mungkin menyangka seorang sebagai beberapa orang. Dilumpuhkan: tiada nombor dipaparkan.\n\nBerkuat kuasa mulai sesi seterusnya."
     },
     "local_inference": {
-      "name": "Percuma",
-      "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)",
+      "name": "Peranti ini",
+      "description": "Berfungsi selepas model dimuat turun ke komputer ini; kali pertama perlu memuat turun beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Percuma · luar talian"
     },
     "local_native": {
       "name": "Percuma (Native)",
@@ -609,7 +610,15 @@
       "name": "Tidak Diketahui",
       "description": "Penyedia tidak diketahui"
     },
-    "poweredBy": "Dikuasakan oleh <brand>{{name}}</brand>"
+    "poweredBy": "Dikuasakan oleh <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Percuma · dalam talian, perkhidmatan Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Percuma · dalam talian, perkhidmatan Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Auto-skrol hidup",

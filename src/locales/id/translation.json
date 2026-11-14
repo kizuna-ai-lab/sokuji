@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Memberi nomor orang-orang di pihak lain — Pembicara 1, Pembicara 2… — begitu terdengar lebih dari satu suara.\n\nFitur ini bisa mengira satu orang sebagai beberapa orang. Dinonaktifkan: tidak ada nomor yang ditampilkan.\n\nBerlaku mulai sesi berikutnya."
     },
     "local_inference": {
-      "name": "Gratis",
-      "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)",
+      "name": "Perangkat ini",
+      "description": "Berfungsi setelah model diunduh ke komputer ini; pertama kali perlu mengunduh beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratis · offline"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -609,7 +610,15 @@
       "name": "Tidak Diketahui",
       "description": "Penyedia tidak diketahui"
     },
-    "poweredBy": "Didukung oleh <brand>{{name}}</brand>"
+    "poweredBy": "Didukung oleh <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratis · online, layanan Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratis · online, layanan Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Gulir otomatis aktif",

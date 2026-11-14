@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Numérote les personnes de l'autre côté — Intervenant 1, Intervenant 2… — dès que plus d'une voix est entendue.\n\nIl peut prendre une seule personne pour plusieurs. Désactivé : aucun numéro n'est affiché.\n\nS'applique à partir de la prochaine session."
     },
     "local_inference": {
-      "name": "Gratuit",
-      "description": "Reconnaissance vocale gratuite (ASR) + Traduction + Synthèse vocale (TTS)",
+      "name": "Cet appareil",
+      "description": "Fonctionne une fois les modèles téléchargés sur cet ordinateur ; la première fois, il faut télécharger plusieurs Go.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratuit · hors ligne"
     },
     "local_native": {
       "name": "Gratuit (Native)",
@@ -609,7 +610,15 @@
       "name": "Inconnu",
       "description": "Fournisseur inconnu"
     },
-    "poweredBy": "Propulsé par <brand>{{name}}</brand>"
+    "poweredBy": "Propulsé par <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratuit · en ligne, un service Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratuit · en ligne, un service Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Défilement automatique activé",

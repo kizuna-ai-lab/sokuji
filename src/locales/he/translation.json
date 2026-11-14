@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "ממספר את האנשים בצד השני — דובר 1, דובר 2… — כשנשמע יותר מקול אחד.\n\nייתכן שיזהה אדם אחד ככמה אנשים. מבוטל: לא מוצגים מספרים.\n\nחל החל מההפעלה הבאה."
     },
     "local_inference": {
-      "name": "חינמי",
-      "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)",
+      "name": "מכשיר זה",
+      "description": "פועל אחרי שהמודלים הורדו למחשב הזה; בפעם הראשונה צריך להוריד כמה ג׳יגה-בייט.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "חינם · ללא חיבור"
     },
     "local_native": {
       "name": "חינמי (Native)",
@@ -609,7 +610,15 @@
       "name": "לא ידוע",
       "description": "ספק לא ידוע"
     },
-    "poweredBy": "מופעל על ידי <brand>{{name}}</brand>"
+    "poweredBy": "מופעל על ידי <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "חינם · מקוון, שירות של Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "חינם · מקוון, שירות של Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "גלילה אוטומטית פועלת",

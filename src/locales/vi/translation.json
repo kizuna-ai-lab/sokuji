@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Đánh số những người ở phía bên kia — Người nói 1, Người nói 2… — khi nghe thấy nhiều hơn một giọng.\n\nCó thể nhầm một người thành nhiều người. Đã tắt: không hiển thị số.\n\nÁp dụng từ phiên tiếp theo."
     },
     "local_inference": {
-      "name": "Miễn phí",
-      "description": "Nhận dạng giọng nói miễn phí (ASR) + Dịch + Tổng hợp giọng nói (TTS)",
+      "name": "Thiết bị này",
+      "description": "Dùng được sau khi tải các mô hình về máy tính này; lần đầu cần tải vài GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Miễn phí · ngoại tuyến"
     },
     "local_native": {
       "name": "Miễn phí (Native)",
@@ -609,7 +610,15 @@
       "name": "Không rõ",
       "description": "Nhà cung cấp không rõ"
     },
-    "poweredBy": "Được hỗ trợ bởi <brand>{{name}}</brand>"
+    "poweredBy": "Được hỗ trợ bởi <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Miễn phí · trực tuyến, dịch vụ của Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Miễn phí · trực tuyến, dịch vụ của Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Tự động cuộn: Bật",

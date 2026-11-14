@@ -583,7 +583,7 @@
       "vocabularyTranslations": "Bevorzugte Übersetzungen",
       "vocabularyTranslationsTooltip": "Beeinflusst, wie bestimmte Begriffe übersetzt werden – eine Präferenz, keine garantierte Ersetzung: Namen mit einer etablierten Übersetzung funktionieren am besten, während gängige Wörter unter Umständen in der eigenen Formulierung des Modells bleiben. Einträge sind gerichtet; die umgekehrte Richtung gibt es nur im Modus „Beides“, wo Sie eine umgekehrte Zeile hinzufügen können.",
       "vocabularyTranslationsPlaceholder": "Ein Eintrag Quelle=Ziel pro Zeile",
-      "screenContext": "Bildschirm\u00adkontext",
+      "screenContext": "Bildschirm­kontext",
       "screenContextTooltip": "Lässt das Modell ein Fenster, einen Tab oder einen Bildschirm sehen, den Sie auswählen, damit die darauf stehenden Namen und Begriffe erkannt und so übersetzt werden, wie sie geschrieben sind. Alles innerhalb dieses Bereichs wird als Bilder an den Qwen-Dienst von Alibaba Cloud gesendet, und zwar in der Region dieser Sitzung; Kizuna AI erhält sie nie. Solange es eingeschaltet ist, erhöht es die Gebühr für jede Sekunde Sprache – mit eigenem Schlüssel auf Ihrer Alibaba-Cloud-Rechnung, mit einem Kizuna-AI-Konto laut der Preisseite Ihres Kontos; im Modus „Beides“ wird die Sitzung jeder Richtung berechnet.",
       "screenContextPicked": "Das Modell sieht: {{name}}",
       "screenContextStill": "Bild vom Zeitpunkt Ihrer Auswahl",
@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Nummeriert die Personen auf der anderen Seite – Sprecher 1, Sprecher 2 … –, sobald mehr als eine Stimme zu hören ist.\n\nDabei kann eine Person für mehrere gehalten werden. Deaktiviert: Es werden keine Nummern angezeigt.\n\nWirkt sich erst ab der nächsten Sitzung aus."
     },
     "local_inference": {
-      "name": "Kostenlos",
-      "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)",
+      "name": "Dieses Gerät",
+      "description": "Funktioniert, sobald die Modelle auf diesen Computer heruntergeladen sind; beim ersten Mal sind einige GB herunterzuladen.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Kostenlos · offline"
     },
     "local_native": {
       "name": "Kostenlos (Native)",
@@ -609,7 +610,15 @@
       "name": "Unbekannt",
       "description": "Unbekannter Anbieter"
     },
-    "poweredBy": "Unterstützt von <brand>{{name}}</brand>"
+    "poweredBy": "Unterstützt von <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Kostenlos · online, ein Microsoft-Dienst"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Kostenlos · online, ein Microsoft-Dienst"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Auto-Scroll ein",

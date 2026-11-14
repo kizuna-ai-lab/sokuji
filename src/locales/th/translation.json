@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "ใส่หมายเลขให้คนฝั่งตรงข้าม — ผู้พูด 1, ผู้พูด 2… — เมื่อได้ยินเสียงมากกว่าหนึ่งเสียง\n\nอาจเข้าใจผิดว่าคนเดียวเป็นหลายคน ปิดใช้งาน: ไม่แสดงหมายเลข\n\nมีผลตั้งแต่เซสชันถัดไป"
     },
     "local_inference": {
-      "name": "ฟรี",
-      "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)",
+      "name": "อุปกรณ์นี้",
+      "description": "ใช้ได้เมื่อดาวน์โหลดโมเดลลงคอมพิวเตอร์เครื่องนี้แล้ว ครั้งแรกต้องดาวน์โหลดหลาย GB",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "ฟรี · ออฟไลน์"
     },
     "local_native": {
       "name": "ฟรี (Native)",
@@ -609,7 +610,15 @@
       "name": "ไม่ทราบ",
       "description": "ผู้ให้บริการที่ไม่ทราบ"
     },
-    "poweredBy": "ขับเคลื่อนโดย <brand>{{name}}</brand>"
+    "poweredBy": "ขับเคลื่อนโดย <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "ฟรี · ออนไลน์ บริการของ Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "ฟรี · ออนไลน์ บริการของ Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "เลื่อนอัตโนมัติเปิด",

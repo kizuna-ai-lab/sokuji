@@ -583,7 +583,7 @@
       "vocabularyTranslations": "優先する訳語",
       "vocabularyTranslationsTooltip": "特定の用語の訳し方に影響を与えます——これは優先指定であり、置き換えを保証するものではありません。定着した訳語がある固有名詞には特に効果的ですが、一般的な単語ではモデル自身の訳し方がそのまま使われることもあります。エントリには方向があります。逆方向は「両方」モードにのみ存在し、そこで逆方向の行を追加できます。",
       "vocabularyTranslationsPlaceholder": "1 行に 1 つ、「原語=訳語」の形式で入力",
-      "screenContext": "画面\u200bコンテキスト",
+      "screenContext": "画面​コンテキスト",
       "screenContextTooltip": "選んだウィンドウ・タブ・画面のどれか一つを、モデルが見られるようにします。そこに表示されている名前や用語を、表記どおりに認識して翻訳できます。その領域内のすべての内容は、画像としてこのセッションのリージョンにある Alibaba Cloud の Qwen サービスに送信されます。Kizuna AI がそれらを受け取ることはありません。オンの間、発話の毎秒ぶんの料金が加算されます。ご自身のキーでは Alibaba Cloud の請求に、Kizuna AI アカウントではアカウントの料金ページのとおりに加算されます。「両方」モードでは方向ごとのセッションに課金されます。",
       "screenContextPicked": "モデルが見る範囲：{{name}}",
       "screenContextStill": "選んだ時点の画像",
@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "相手側の人に番号を付けます（話者 1、話者 2…）。2 人以上の声が聞こえたときに表示されます。\n\n1 人を複数人と誤認することがあります。無効：番号は表示されません。\n\n次回のセッションから適用されます。"
     },
     "local_inference": {
-      "name": "無料",
-      "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
+      "name": "このデバイス",
+      "description": "モデルをこのパソコンにダウンロードすれば使えます。初回は数 GB のダウンロードが必要です。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "無料 · オフライン"
     },
     "local_native": {
       "name": "無料 (Native)",
@@ -609,7 +610,15 @@
       "name": "不明",
       "description": "不明なプロバイダー"
     },
-    "poweredBy": "<brand>{{name}}</brand> 提供"
+    "poweredBy": "<brand>{{name}}</brand> 提供",
+    "bing": {
+      "name": "Bing",
+      "note": "無料 · オンライン、Microsoft のサービス"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "無料 · オンライン、Microsoft のサービス"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "自動スクロール オン",

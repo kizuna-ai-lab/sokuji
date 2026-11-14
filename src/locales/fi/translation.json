@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Numeroi toisen osapuolen ihmiset – Puhuja 1, Puhuja 2… – kun kuuluu useampi kuin yksi ääni.\n\nSe voi luulla yhtä ihmistä useaksi. Pois käytöstä: numeroita ei näytetä.\n\nOtetaan käyttöön vasta seuraavasta istunnosta alkaen."
     },
     "local_inference": {
-      "name": "Ilmainen",
-      "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
+      "name": "Tämä laite",
+      "description": "Toimii, kun mallit on ladattu tälle tietokoneelle; ensimmäisellä kerralla on ladattava useita gigatavuja.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Ilmainen · ilman verkkoa"
     },
     "local_native": {
       "name": "Ilmainen (Native)",
@@ -609,7 +610,15 @@
       "name": "Tuntematon",
       "description": "Tuntematon palveluntarjoaja"
     },
-    "poweredBy": "Moottorina <brand>{{name}}</brand>"
+    "poweredBy": "Moottorina <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Ilmainen · verkossa, Microsoftin palvelu"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Ilmainen · verkossa, Microsoftin palvelu"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Automaattivieritys päällä",

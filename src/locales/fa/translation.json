@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "افراد طرف مقابل را شماره‌گذاری می‌کند — گوینده 1، گوینده 2… — وقتی بیش از یک صدا شنیده شود.\n\nممکن است یک نفر را چند نفر تشخیص دهد. غیرفعال: هیچ شماره‌ای نمایش داده نمی‌شود.\n\nاز جلسه بعدی اعمال می‌شود."
     },
     "local_inference": {
-      "name": "رایگان",
-      "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)",
+      "name": "این دستگاه",
+      "description": "پس از دانلود مدل‌ها روی این رایانه کار می‌کند؛ بار اول باید چند گیگابایت دانلود شود.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "رایگان · آفلاین"
     },
     "local_native": {
       "name": "رایگان (Native)",
@@ -609,7 +610,15 @@
       "name": "نامشخص",
       "description": "ارائه‌دهنده نامشخص"
     },
-    "poweredBy": "قدرت‌گرفته از <brand>{{name}}</brand>"
+    "poweredBy": "قدرت‌گرفته از <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "رایگان · آنلاین، سرویسی از Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "رایگان · آنلاین، سرویسی از Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "اسکرول خودکار روشن",

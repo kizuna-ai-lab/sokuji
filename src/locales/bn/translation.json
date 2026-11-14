@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "অন্য পক্ষের মানুষদের নম্বর দেয় — বক্তা 1, বক্তা 2… — যখন একাধিক কণ্ঠ শোনা যায়।\n\nএটি একজনকে কয়েকজন বলে ভুল করতে পারে। নিষ্ক্রিয়: কোনো নম্বর দেখানো হয় না।\n\nএটি পরবর্তী সেশন থেকে কার্যকর হবে।"
     },
     "local_inference": {
-      "name": "বিনামূল্যে",
-      "description": "বিনামূল্যে বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)",
+      "name": "এই ডিভাইস",
+      "description": "মডেলগুলো এই কম্পিউটারে ডাউনলোড হলে কাজ করে; প্রথমবার কয়েক GB ডাউনলোড করতে হয়।",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "বিনামূল্যে · অফলাইন"
     },
     "local_native": {
       "name": "বিনামূল্যে (Native)",
@@ -609,7 +610,15 @@
       "name": "অজানা",
       "description": "অজানা প্রদানকারী"
     },
-    "poweredBy": "<brand>{{name}}</brand> দ্বারা চালিত"
+    "poweredBy": "<brand>{{name}}</brand> দ্বারা চালিত",
+    "bing": {
+      "name": "Bing",
+      "note": "বিনামূল্যে · অনলাইন, Microsoft-এর পরিষেবা"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "বিনামূল্যে · অনলাইন, Microsoft-এর পরিষেবা"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "অটো স্ক্রল চালু",

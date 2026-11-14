@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "दूसरी ओर के लोगों को क्रमांक देता है — वक्ता 1, वक्ता 2… — जब एक से अधिक आवाज़ें सुनाई दें।\n\nयह एक व्यक्ति को कई समझ सकता है। अक्षम: कोई क्रमांक नहीं दिखाया जाता।\n\nयह अगले सत्र से लागू होगा।"
     },
     "local_inference": {
-      "name": "मुफ़्त",
-      "description": "मुफ़्त वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)",
+      "name": "यह डिवाइस",
+      "description": "मॉडल इस कंप्यूटर पर डाउनलोड होने के बाद काम करता है; पहली बार कई GB डाउनलोड करने होते हैं।",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "मुफ़्त · ऑफ़लाइन"
     },
     "local_native": {
       "name": "मुफ़्त (Native)",
@@ -609,7 +610,15 @@
       "name": "अज्ञात",
       "description": "अज्ञात प्रदाता"
     },
-    "poweredBy": "<brand>{{name}}</brand> द्वारा संचालित"
+    "poweredBy": "<brand>{{name}}</brand> द्वारा संचालित",
+    "bing": {
+      "name": "Bing",
+      "note": "मुफ़्त · ऑनलाइन, Microsoft की सेवा"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "मुफ़्त · ऑनलाइन, Microsoft की सेवा"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "ऑटो-स्क्रॉल चालू",

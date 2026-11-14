@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "అవతలి వైపు వ్యక్తులకు సంఖ్యలు ఇస్తుంది — వక్త 1, వక్త 2… — ఒకటి కంటే ఎక్కువ స్వరాలు వినిపించినప్పుడు.\n\nఇది ఒక వ్యక్తిని పలువురిగా పొరబడవచ్చు. నిష్క్రియం: సంఖ్యలు చూపబడవు.\n\nతదుపరి సెషన్ నుండి వర్తిస్తుంది."
     },
     "local_inference": {
-      "name": "ఉచిత",
-      "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)",
+      "name": "ఈ పరికరం",
+      "description": "మోడల్‌లు ఈ కంప్యూటర్‌కు డౌన్‌లోడ్ అయ్యాక పనిచేస్తుంది; మొదటిసారి అనేక GB డౌన్‌లోడ్ చేయాలి.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "ఉచితం · ఆఫ్‌లైన్"
     },
     "local_native": {
       "name": "ఉచిత (Native)",
@@ -609,7 +610,15 @@
       "name": "తెలియనిది",
       "description": "తెలియని ప్రదాత"
     },
-    "poweredBy": "<brand>{{name}}</brand> ద్వారా ఆధారితం"
+    "poweredBy": "<brand>{{name}}</brand> ద్వారా ఆధారితం",
+    "bing": {
+      "name": "Bing",
+      "note": "ఉచితం · ఆన్‌లైన్, Microsoft సేవ"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "ఉచితం · ఆన్‌లైన్, Microsoft సేవ"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "ఆటో-స్క్రోల్ ఆన్",

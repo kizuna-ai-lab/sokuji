@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "Birden fazla ses duyulduğunda karşı taraftaki kişileri numaralandırır — Konuşmacı 1, Konuşmacı 2…\n\nTek bir kişiyi birkaç kişi sanabilir. Devre dışı: numara gösterilmez.\n\nBir sonraki oturumdan itibaren geçerli olur."
     },
     "local_inference": {
-      "name": "Ücretsiz",
-      "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
+      "name": "Bu cihaz",
+      "description": "Modeller bu bilgisayara indirildikten sonra çalışır; ilk seferde birkaç GB indirmek gerekir.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Ücretsiz · çevrimdışı"
     },
     "local_native": {
       "name": "Ücretsiz (Native)",
@@ -609,7 +610,15 @@
       "name": "Bilinmeyen",
       "description": "Bilinmeyen sağlayıcı"
     },
-    "poweredBy": "<brand>{{name}}</brand> tarafından desteklenir"
+    "poweredBy": "<brand>{{name}}</brand> tarafından desteklenir",
+    "bing": {
+      "name": "Bing",
+      "note": "Ücretsiz · çevrimiçi, bir Microsoft hizmeti"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Ücretsiz · çevrimiçi, bir Microsoft hizmeti"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Otomatik kaydırma açık",

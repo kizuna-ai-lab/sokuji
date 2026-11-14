@@ -595,11 +595,12 @@
       "speakerLabelsTooltip": "為對方的人編號（說話者 1、說話者 2…），聽到不只一個聲音時顯示。\n\n可能會把一個人誤認成好幾個人。停用：不顯示編號。\n\n將於下次工作階段生效。"
     },
     "local_inference": {
-      "name": "免費",
-      "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",
+      "name": "本機",
+      "description": "模型下載到這台電腦後就能用，第一次要連網下載（數 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "翻譯",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "免費 · 不連網"
     },
     "local_native": {
       "name": "免費 (Native)",
@@ -609,7 +610,15 @@
       "name": "未知",
       "description": "未知的提供商"
     },
-    "poweredBy": "<brand>{{name}}</brand> 驅動"
+    "poweredBy": "<brand>{{name}}</brand> 驅動",
+    "bing": {
+      "name": "Bing",
+      "note": "免費 · 連網，微軟的服務"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "免費 · 連網，微軟的服務"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "自動捲動 開",

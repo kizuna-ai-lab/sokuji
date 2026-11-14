@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useStoredLocalStages } from '../../stores/lineUpStore';
 import { Cpu, AlertTriangle } from 'lucide-react';
 import type { EngineSummaryProps } from '../../lib/provider/types';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
@@ -27,18 +28,19 @@ export function LocalInferenceEngineSummary({
 
   const deviceFeatures = useModelStore((s) => s.deviceFeatures);
   const modelStatuses = useModelStore((s) => s.modelStatuses);
+  const stages = useStoredLocalStages();
 
   const speakerResolved: DirectionResult = useMemo(
-    () => useModelStore.getState().resolve(pair.source, pair.target, settings.selections),
-    [pair.source, pair.target, settings.selections, modelStatuses],
+    () => useModelStore.getState().resolve(pair.source, pair.target, settings.selections, stages),
+    [pair.source, pair.target, settings.selections, modelStatuses, stages],
   );
   // The participant direction (target→source) is a peer of the speaker
   // direction, not a reversal of it: resolve it directly via the same
   // resolve() the session-config builder uses, against its own selections
   // entry — never derived from the speaker's chosen models.
   const participantResolved: DirectionResult = useMemo(
-    () => useModelStore.getState().resolve(pair.target, pair.source, settings.selections),
-    [pair.source, pair.target, settings.selections, modelStatuses],
+    () => useModelStore.getState().resolve(pair.target, pair.source, settings.selections, stages),
+    [pair.source, pair.target, settings.selections, modelStatuses, stages],
   );
 
   const memoryEstimate = useMemo(() => {
