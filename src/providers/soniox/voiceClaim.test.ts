@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { LegName } from '../../lib/conversation/types';
 import type { RunShape } from '../../lib/session/types';
 import type { ManagedVoicesClient } from './managedVoicesClient';
@@ -20,6 +20,7 @@ function claim(result: Awaited<ReturnType<typeof prepareManagedVoice>> = { ok: t
     prepare: vi.fn(async (_d: Parameters<typeof prepareManagedVoice>[0]) => result),
     clientFor: vi.fn(() => client),
     loadClip: vi.fn(async () => null),
+    hasDeviceClip: vi.fn(async (_userId: string | null | undefined) => false),
   };
   return { deps, client, run: createKizunaVoiceClaim(deps) };
 }
@@ -123,5 +124,64 @@ describe('createKizunaVoiceClaim: who pays', () => {
     expect(await payerOf('organization')).toBe('organization');
     expect(await payerOf('personal')).toBe('personal');
     expect(await payerOf()).toBeUndefined();
+  });
+});
+
+describe('createKizunaVoiceClaim: clip_required persists the default only when this device provably has no clip', () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  const clipRequired = (hasDeviceClip: (userId: string | null | undefined) => Promise<boolean>) => {
+    const client = {} as ManagedVoicesClient;
+    const deps = {
+      prepare: vi.fn(async () => ({ ok: false, reason: 'clip_required' }) as const),
+      clientFor: vi.fn(() => client),
+      loadClip: vi.fn(async () => null),
+      hasDeviceClip: vi.fn(hasDeviceClip),
+    };
+    return { deps, run: createKizunaVoiceClaim(deps) };
+  };
+  const fallback = { override: { voiceEu: 'Adrian' }, notice: { code: 'voice_clip_missing', message: expect.any(String) } };
+
+  it("persists the default when this account's clip is provably not on the device", async () => {
+    const { deps, run } = clipRequired(async () => false);
+    const result = await run(shapeFor(['speaker']), s({ region: 'eu', voiceEu: 'clone-eu' }), live());
+    expect(result).toEqual({ ...fallback, persist: { voiceEu: 'Adrian' } });
+    expect(deps.hasDeviceClip).toHaveBeenCalledWith('u1');
+  });
+
+  it('a storage failure proves nothing: this run falls back, the stored voice is kept', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { run } = clipRequired(async () => { throw new Error('IndexedDB unavailable'); });
+    const result = await run(shapeFor(['speaker']), s({ region: 'eu', voiceEu: 'clone-eu' }), live());
+    expect(result).toEqual(fallback);
+    expect(result).not.toHaveProperty('persist');
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('the clip is here (it was uploaded and the backend still asked for one): this run falls back, the stored voice is kept', async () => {
+    const { run } = clipRequired(async () => true);
+    const result = await run(shapeFor(['speaker']), s({ region: 'eu', voiceEu: 'clone-eu' }), live());
+    expect(result).toEqual(fallback);
+    expect(result).not.toHaveProperty('persist');
+  });
+
+  it('by default asks the clip storage, and an unreadable store persists nothing', async () => {
+    vi.stubGlobal('indexedDB', undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const client = {} as ManagedVoicesClient;
+    const run = createKizunaVoiceClaim({
+      prepare: vi.fn(async () => ({ ok: false, reason: 'clip_required' }) as const),
+      clientFor: vi.fn(() => client),
+      loadClip: vi.fn(async () => null),
+    });
+    const result = await run(shapeFor(['speaker']), s({ region: 'eu', voiceEu: 'clone-eu' }), live());
+    expect(result).toEqual(fallback);
+    expect(result).not.toHaveProperty('persist');
+  });
+
+  it('applies nothing when the start was cancelled while the clip storage was checked', async () => {
+    const controller = new AbortController();
+    const { run } = clipRequired(async () => { controller.abort(); return false; });
+    expect(await run(shapeFor(['speaker']), s({ region: 'eu', voiceEu: 'clone-eu' }), controller.signal)).toEqual({});
   });
 });

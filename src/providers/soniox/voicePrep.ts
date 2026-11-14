@@ -281,7 +281,9 @@ export function resolveVoicePrepOutcome(
     // Persisted only for `clip_required`: this device holds no clip that could
     // ever rebuild the voice, so keeping the stored id would fall back again on
     // every later start. Every other failure (busy pool, build failure,
-    // unavailable) is this session's only.
+    // unavailable) is this session's only. `voiceClaim.ts` writes it only
+    // once `hasVoiceClip` confirms the clip is not here: an unreadable store
+    // also reaches `clip_required`, and proves nothing.
     settingsPatch: result.reason === 'clip_required' ? { voice: builtinFallbackVoice } : null,
     notice: {
       code: voicePrepCode(result.reason),
