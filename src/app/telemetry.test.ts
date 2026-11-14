@@ -239,6 +239,23 @@ describe('sessionStartProperties', () => {
   });
 });
 
+describe('the line-up at the start of a session', () => {
+  const base = {
+    audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+    speak: { other: true, me: false, them: false },
+    channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
+    segmentation: { mode: 'off' as const, size: 0 },
+    punctuationActive: false,
+  };
+  it('names the provider of each stage when a line-up is stored', () => {
+    expect(sessionStartProperties({ ...base, lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }))
+      .toMatchObject({ stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
+  });
+  it('adds nothing while no line-up is stored', () => {
+    expect(sessionStartProperties({ ...base, lineUp: null })).not.toHaveProperty('stages');
+  });
+});
+
 describe('sessionEndProperties', () => {
   const run: RunFacts = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] };
 

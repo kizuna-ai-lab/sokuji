@@ -30,6 +30,8 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     source_language: string;
     target_language: string;
     session_id: string;
+    /** The provider of each stage, from the stored line-up (provider ids only). */
+    stages?: { transcription: string; translation: string; speech: string };
     provider: string;
     model?: string;
     vad_mode?: string;
