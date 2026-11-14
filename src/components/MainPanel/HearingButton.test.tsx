@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
 const state = vi.hoisted(() => ({
   value: {} as Record<string, unknown>,
@@ -53,5 +53,20 @@ describe('the headphones entry', () => {
     state.value = { ...base, faceToFace: true };
     render(<HearingButton />);
     expect(screen.queryByRole('button', { name: 'What I hear' })).toBeNull();
+  });
+});
+
+// PR review: a keyboard user reaches the popover's controls and comes back to the button.
+describe('the headphones entry — keyboard', () => {
+  it('moves focus into the popover on opening and back to the button on Esc', async () => {
+    render(<HearingButton />);
+    const button = screen.getByRole('button', { name: 'What I hear' });
+    button.focus();
+    fireEvent.click(button);
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(button);
   });
 });

@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { HeadphoneOff, Headphones } from 'lucide-react';
 import {
   useFloating, autoUpdate, offset, flip, shift,
-  useClick, useDismiss, useRole, useInteractions, FloatingPortal,
+  useClick, useDismiss, useRole, useInteractions, FloatingPortal, FloatingFocusManager,
 } from '@floating-ui/react';
 import { useSessionLocked } from '../../app/useRun';
 import { useNavigateToSettings } from '../../stores/settingsStore';
@@ -59,6 +59,8 @@ export const HearingButton: React.FC = () => {
       </button>
       {open && (
         <FloatingPortal>
+          {/* Non-modal: the focus enters the popover, Tab follows on from the button, Esc or a click outside returns it. */}
+          <FloatingFocusManager context={floating.context} modal={false}>
           <div ref={floating.refs.setFloating} className="hearing-popover" style={floating.floatingStyles} aria-label={label} {...interactions.getFloatingProps()}>
             {them && row('them', themLabel, h.themOn, h.themLocked || h.recaptured || !h.participantOffered || h.speech !== 'optional', h.themLocked ? lockedByRun : undefined, h.toggleThem, 'them')}
             {me && row('me', meLabel, h.meChecked, h.meDisabled, undefined, h.toggleMe, 'me')}
@@ -66,6 +68,7 @@ export const HearingButton: React.FC = () => {
               {t('mainPanel.audioSettings', 'Audio settings')}
             </button>
           </div>
+          </FloatingFocusManager>
         </FloatingPortal>
       )}
     </>

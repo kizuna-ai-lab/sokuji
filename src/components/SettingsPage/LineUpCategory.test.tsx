@@ -139,3 +139,13 @@ describe('a stage named inside a sentence', () => {
     expect(stageInSentence('翻译', 'zh_CN')).toBe('翻译');
   });
 });
+
+// PR review: the options heading follows the selected provider when it changes on its own.
+describe('languages and line-up — the options heading', () => {
+  it('follows the selected provider', () => {
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByRole('button', { name: /Soniox options/ })).toBeInTheDocument();
+    act(() => { useProviderStore.setState({ selected: 'local_inference' }); });
+    expect(screen.getByRole('button', { name: /This device options/ })).toBeInTheDocument();
+  });
+});

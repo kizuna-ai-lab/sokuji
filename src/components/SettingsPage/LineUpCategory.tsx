@@ -125,7 +125,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (target) navigateToSettings(null);
   };
 
-  const selectedProvider = providers.find((p) => p.id === useProviderStore.getState().selected);
+  const selectedId = useProviderStore((s) => s.selected);
+  const selectedProvider = providers.find((p) => p.id === selectedId);
 
   /** A row's state: what the chosen provider lacks, or Ready. */
   const stateOf = (id: string): { ok: boolean; text: string } => {

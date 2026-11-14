@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Minus, Plus } from 'lucide-react';
 import {
-  CONVERSATION_FONT_SIZE_MAX, CONVERSATION_FONT_SIZE_MIN, useConversationDisplayStore,
+  CONVERSATION_FONT_SIZE_MAX, CONVERSATION_FONT_SIZE_MIN, useConversationColours, useConversationDisplayStore,
 } from '../../stores/conversationDisplayStore';
 import { FONT_SIZE_MAX, FONT_SIZE_MIN, useSubtitleStore, type DisplayMode } from '../../stores/subtitleStore';
 import useSettingsStore from '../../stores/settingsStore';
@@ -26,12 +26,14 @@ function useSurface(surface: Surface): PreviewValues & {
   setFontSize(n: number): void; setCompact(b: boolean): void; setMine(m: DisplayMode): void; setTheirs(m: DisplayMode): void; min: number; max: number;
 } {
   const conv = useConversationDisplayStore();
+  // The conversation's colours as it draws them: a colour left unset follows the background and the scheme.
+  const drawn = useConversationColours();
   const sub = useSubtitleStore();
   const settings = useSettingsStore();
   if (surface === 'conversation') {
     return {
       fontSize: conv.fontSize, compact: conv.compactMode, mine: settings.speakerDisplayMode, theirs: settings.participantDisplayMode,
-      bgColor: conv.bgColor ?? undefined, sourceColor: conv.sourceTextColor ?? undefined, translationColor: conv.translationTextColor ?? undefined,
+      bgColor: drawn.bgColor, sourceColor: drawn.sourceTextColor, translationColor: drawn.translationTextColor,
       setFontSize: (n) => void conv.setFontSize(n), setCompact: (b) => void conv.setCompactMode(b),
       setMine: (m) => void settings.setSpeakerDisplayMode(m), setTheirs: (m) => void settings.setParticipantDisplayMode(m),
       min: CONVERSATION_FONT_SIZE_MIN, max: CONVERSATION_FONT_SIZE_MAX,
@@ -63,9 +65,17 @@ export function DisplayCategory(_props: CategoryBodyProps) {
   );
   return (
     <div className="display-category">
-      <div className="display-category__surfaces" role="radiogroup" aria-label={t('settingsPage.display.surface', 'Which display')}>
+      <div className="display-category__surfaces" role="radiogroup" aria-label={t('settingsPage.display.surface', 'Which display')}
+        onKeyDown={(e) => {
+          // A radio group: the arrow keys move the choice and the focus; only the chosen one is in the tab order.
+          if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+          e.preventDefault();
+          const next: Surface = surface === 'conversation' ? 'subtitle' : 'conversation';
+          setSurface(next);
+          e.currentTarget.querySelector<HTMLButtonElement>(`[data-surface="${next}"]`)?.focus();
+        }}>
         {(['conversation', 'subtitle'] as const).map((id) => (
-          <button key={id} type="button" role="radio" aria-checked={surface === id}
+          <button key={id} type="button" role="radio" aria-checked={surface === id} data-surface={id} tabIndex={surface === id ? 0 : -1}
             className={`display-category__surface${surface === id ? ' is-on' : ''}`} onClick={() => setSurface(id)}>
             {id === 'conversation' ? t('settingsPage.display.main', 'Main window') : t('settingsPage.display.captions', 'Caption mode')}
           </button>

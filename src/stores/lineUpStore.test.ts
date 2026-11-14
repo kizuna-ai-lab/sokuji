@@ -57,6 +57,11 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
+  // A case may make a write fail or hang: every case starts with writes that land.
+  setSetting.mockImplementation(async (key: string, value: unknown) => {
+    stored.set(key, value);
+    return { success: true };
+  });
   model.scan = Promise.resolve();
   model.initialized = true;
   model.byDirection = {};
@@ -149,6 +154,36 @@ describe('the line-up store', () => {
     await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
     expect(useProviderStore.getState().selected).toBe('local_inference');
     await vi.waitFor(() => expect(stored.get('settings.common.provider')).toBe('local_inference'));
+  });
+
+  // PR review: a choice whose line-up did not land is not a choice; the provider stays where it was.
+  it('a choice whose line-up was not stored is undone, provider included', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    useProviderStore.setState({ selected: 'soniox' });
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === LINEUP_KEY) return { success: false };
+      stored.set(key, value);
+      return { success: true };
+    });
+    expect(await useLineUpStore.getState().choose('speech', 'edge')).toBeNull();
+    expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+    expect(useProviderStore.getState().selected).toBe('soniox');
+  });
+
+  // PR review: a run starting while the line-up is being saved must already find the new provider selected.
+  it('selects the provider that runs the new line-up before saving it', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    useProviderStore.setState({ selected: 'soniox' });
+    let release!: () => void;
+    setSetting.mockImplementation((key: string, value: unknown) => {
+      if (key !== LINEUP_KEY) { stored.set(key, value); return Promise.resolve({ success: true }); }
+      return new Promise((resolve) => { release = () => { stored.set(key, value); resolve({ success: true }); }; });
+    });
+    const choosing = useLineUpStore.getState().choose('speech', 'edge');
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(useProviderStore.getState().selected).toBe('local_inference');
+    release();
+    expect(await choosing).not.toBeNull();
   });
 
   it('does not change during a run', async () => {

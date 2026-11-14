@@ -26,6 +26,12 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
+  // A case may hold a read or fail a write: every case starts with storage that answers at once.
+  getSetting.mockImplementation(async (key: string, def: unknown) => (stored.has(key) ? stored.get(key) : def));
+  setSetting.mockImplementation(async (key: string, value: unknown) => {
+    stored.set(key, value);
+    return { success: true };
+  });
   useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
 });
 
@@ -65,5 +71,43 @@ describe('one OpenAI key', () => {
     stored.set('settings.openai.apiKey', '');
     await useProviderStore.getState().load(openaiTranslateProvider);
     expect(entry('openai_translate').credentials.apiKey).toBe('');
+  });
+});
+
+// PR review: the one key stays one key across a load in flight, and a flush answers for it.
+describe('one OpenAI key — loads and saves in flight', () => {
+  it('a key changed while another OpenAI provider is still loading reaches that provider', async () => {
+    stored.set('settings.openai.apiKey', 'sk-old');
+    await useProviderStore.getState().load(openaiProvider);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    getSetting.mockImplementation(async (key: string, def: unknown) => {
+      const value = stored.has(key) ? stored.get(key) : def;
+      if (key === 'settings.openai.apiKey') await held;
+      return value;
+    });
+    const loading = useProviderStore.getState().load(openaiLiveProvider);
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    useProviderStore.getState().setCredential(openaiProvider, 'apiKey', 'sk-new');
+    release();
+    await loading;
+    expect(entry('openai_live').credentials.apiKey).toBe('sk-new');
+  });
+
+  it('a flush of one OpenAI provider retries the one key and says when it did not land', async () => {
+    await useProviderStore.getState().load(openaiLiveProvider);
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === 'settings.openai.apiKey') return { success: false };
+      stored.set(key, value);
+      return { success: true };
+    });
+    useProviderStore.getState().setCredential(openaiLiveProvider, 'apiKey', 'sk-x');
+    expect(await useProviderStore.getState().flush(openaiLiveProvider)).toBe(false);
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      stored.set(key, value);
+      return { success: true };
+    });
+    expect(await useProviderStore.getState().flush(openaiLiveProvider)).toBe(true);
+    expect(stored.get('settings.openai.apiKey')).toBe('sk-x');
   });
 });

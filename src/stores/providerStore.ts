@@ -266,7 +266,18 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // edit made after the first one landed.
       if (get().entries[p.id]) return;
       const stored = Object.fromEntries(fields.map((f, i) => [f, values[i]]));
-      const credentials: CredentialValues = Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]]));
+      const credentials: Record<string, string> = Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]]));
+      // A key kept in one place with loaded providers may have been edited through one of them while this load read
+      // storage: theirs is the newer value (setCredential keeps them in step), so it is the one this entry takes.
+      const shared = p.credentials.storedAt?.key;
+      if (shared) {
+        for (const other of loadedProviders.values()) {
+          const otherEntry = get().entries[other.id];
+          if (other.id === p.id || other.credentials.storedAt?.key !== shared || !otherEntry) continue;
+          for (const k of p.credentials.keys) if (k in otherEntry.credentials) credentials[k] = otherEntry.credentials[k];
+          break;
+        }
+      }
       const legacy = Object.fromEntries(legacyKeys.map((k, i) => [k, legacyValues[i]]));
       const settings = p.settings.migrate ? p.settings.migrate(stored, { legacy, credentials }) : stored;
       // The first load to land reads the intent; a pick made meanwhile is newer and stays.
@@ -324,7 +335,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const covers = (key: string) => !p || key === 'settings.common.provider'
         || (fields
           ? fields.some((field) => key === storageKey(p, field) || key === credentialKey(p, field) || key === pairKey(field))
-          : key.startsWith(`settings.${p.settings.key}.`) || key === PAIR_KEYS.source || key === PAIR_KEYS.target);
+          : key.startsWith(`settings.${p.settings.key}.`) || key === PAIR_KEYS.source || key === PAIR_KEYS.target
+            // Its credentials too, where they are kept elsewhere (the one OpenAI key).
+            || p.credentials.keys.some((k) => key === credentialKey(p, k)));
       for (const [key, value] of [...unsaved]) {
         if (covers(key)) write(key, value);
       }

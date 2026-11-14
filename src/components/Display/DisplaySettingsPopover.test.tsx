@@ -131,6 +131,8 @@ describe('DisplaySettingsPopover', () => {
       await act(async () => { fireEvent.keyDown(container.querySelector('.color-picker')!, { key: 'Escape' }); });
       expect(container.querySelector('.color-picker')).toBeNull();
       expect(outer).toHaveReturnedWith(true);
+      // The keyboard user's place: back on the chip that opened the picker (PR review).
+      expect(document.activeElement).toBe(bgCustom);
     } finally {
       document.removeEventListener('keydown', outer);
     }

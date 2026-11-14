@@ -43,4 +43,35 @@ describe('the readings dictionary on the storage page', () => {
     expect(await screen.findByText(/Downloaded when Japanese readings are turned on/)).toBeInTheDocument();
     expect(screen.queryByTestId('storage-delete-readings-ja')).toBeNull();
   });
+
+  // PR review: Clear all empties the storage the dictionary lives in; the row must say so at once.
+  it('says the dictionary is gone after Clear all', async () => {
+    const { useModelStore } = await import('../../../stores/modelStore');
+    const { useSegmentationStore } = await import('../../../stores/segmentationStore');
+    const { useSmartTurnStore } = await import('../../../stores/smartTurnStore');
+    const restore = { model: useModelStore.getState(), seg: useSegmentationStore.getState().refresh, turn: useSmartTurnStore.getState().refresh };
+    useSegmentationStore.setState({ refresh: vi.fn().mockResolvedValue(undefined) });
+    useSmartTurnStore.setState({ refresh: vi.fn().mockResolvedValue(undefined) });
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded' }, webgpuAvailable: true,
+      deleteAllModels: vi.fn(async () => { dict.stored = false; }),
+    });
+    try {
+      render(<StoragePage provider="wasm" {...WASM} />);
+      await screen.findByTestId('storage-delete-readings-ja');
+      fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+      expect(await screen.findByText(/Downloaded when Japanese readings are turned on/)).toBeInTheDocument();
+      expect(screen.queryByTestId('storage-delete-readings-ja')).toBeNull();
+    } finally {
+      useModelStore.setState({ modelStatuses: restore.model.modelStatuses, deleteAllModels: restore.model.deleteAllModels });
+      useSegmentationStore.setState({ refresh: restore.seg });
+      useSmartTurnStore.setState({ refresh: restore.turn });
+    }
+  });
+
+  it('names its delete button', async () => {
+    render(<StoragePage provider="wasm" {...WASM} />);
+    expect(await screen.findByRole('button', { name: 'Delete: Readings dictionary (Japanese)' })).toBeInTheDocument();
+  });
 });
