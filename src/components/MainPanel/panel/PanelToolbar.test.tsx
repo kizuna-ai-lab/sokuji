@@ -54,6 +54,10 @@ vi.mock('../../CaptionShare/CaptionShareButton', () => ({
   __esModule: true,
   default: () => <div data-testid="caption-share-marker" />,
 }));
+// The headphones entry is a marker here too: its own tests cover its rows.
+vi.mock('../HearingButton', () => ({
+  HearingButton: () => <div data-testid="hearing-marker" />,
+}));
 const env = vi.hoisted(() => ({ electron: false }));
 vi.mock('../../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../utils/environment')>()),
@@ -174,5 +178,19 @@ describe('PanelToolbar — caption sharing', () => {
     renderToolbar(['speaker']);
     expect(screen.getByTestId('caption-share-marker')).toBeTruthy();
     env.electron = false;
+  });
+});
+
+describe('PanelToolbar — what I hear', () => {
+  it('puts the headphones entry before caption sharing, on every platform', () => {
+    env.electron = true;
+    renderToolbar(['speaker']);
+    const hearing = screen.getByTestId('hearing-marker');
+    const share = screen.getByTestId('caption-share-marker');
+    expect(hearing.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    cleanup();
+    env.electron = false;
+    renderToolbar(['speaker']);
+    expect(screen.getByTestId('hearing-marker')).toBeTruthy();
   });
 });

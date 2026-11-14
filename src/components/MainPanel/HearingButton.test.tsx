@@ -1,0 +1,57 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+
+const state = vi.hoisted(() => ({
+  value: {} as Record<string, unknown>,
+  toggleThem: vi.fn(), toggleMe: vi.fn(),
+}));
+vi.mock('./useHearingRows', () => ({ useHearingRows: () => ({ ...state.value, toggleThem: state.toggleThem, toggleMe: state.toggleMe }) }));
+vi.mock('../Settings/shared/OutletSelect', () => ({ OutletSelect: ({ label }: { label: string }) => <select aria-label={label} /> }));
+vi.mock('../../app/useRun', () => ({ useSessionLocked: () => false }));
+
+import { HearingButton } from './HearingButton';
+
+const base = {
+  mode: 'both', faceToFace: false, myLegRuns: true, theirLegRuns: true, otherOn: true, speech: 'optional', participantOffered: true,
+  themOn: true, themLocked: false, recaptured: false, meChecked: false, meDisabled: false,
+};
+
+beforeEach(() => { state.value = { ...base }; state.toggleThem.mockClear(); state.toggleMe.mockClear(); });
+afterEach(() => cleanup());
+
+describe('the headphones entry', () => {
+  it('opens a popover with the rows that apply, and is not itself a switch', () => {
+    render(<HearingButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'What I hear' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(2);
+    expect(state.toggleThem).not.toHaveBeenCalled();
+    expect(state.toggleMe).not.toHaveBeenCalled();
+  });
+
+  it('switches the spoken translation off and on during a session', () => {
+    render(<HearingButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'What I hear' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Translation I hear' }));
+    expect(state.toggleThem).toHaveBeenCalledTimes(1);
+  });
+
+  it('cannot turn on what was off at the start', () => {
+    state.value = { ...base, themOn: false, themLocked: true };
+    render(<HearingButton />);
+    fireEvent.click(screen.getByRole('button', { name: 'What I hear' }));
+    const sw = screen.getByRole('switch', { name: 'Translation I hear' });
+    expect(sw).toBeDisabled();
+    expect(sw).toHaveAttribute('title', 'Fixed for this session; stop it to change.');
+  });
+
+  it('shows crossed-out headphones when every row is off, and hides face to face', () => {
+    state.value = { ...base, themOn: false, meChecked: false };
+    const { container } = render(<HearingButton />);
+    expect(container.querySelector('[data-hearing="off"]')).not.toBeNull();
+    cleanup();
+    state.value = { ...base, faceToFace: true };
+    render(<HearingButton />);
+    expect(screen.queryByRole('button', { name: 'What I hear' })).toBeNull();
+  });
+});

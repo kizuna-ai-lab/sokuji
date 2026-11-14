@@ -7,18 +7,15 @@ import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { openTtsSlot } from '../../providers/openTtsSlot';
-import { useRunParticipantSpeech } from '../../../app/useRun';
 import { getAppAudio } from '../../../lib/audio/appAudio';
-import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../../lib/audio/outletOptions';
 import type { OutletName } from '../../../lib/audio/outlets';
 import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
 import type { LegName } from '../../../lib/conversation/types';
 import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { useAnalytics } from '../../../lib/analytics';
-import { heardFromStores, selectedFromStores } from '../../../lib/session/appShape';
-import { useAudioContext, useMode, useParticipantCaptureWidened, useOutlets, useSelectedParticipantSource, useSetOutletChannel, useSetOutletDevice } from '../../../stores/audioStore';
+import { selectedFromStores } from '../../../lib/session/appShape';
+import { useAudioContext, useMode } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
-import { useRoutingStore } from '../../../stores/routingStore';
 import { presentProviders } from '../../../providers/registry';
 import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
@@ -27,6 +24,8 @@ import { useFaceToFace } from '../../MainPanel/useFaceToFace';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { AUTO } from '../../../lib/provider/languages';
 import VbCableNotice from '../../VbCable/VbCableNotice';
+import { OutletSelect } from '../shared/OutletSelect';
+import { useHearingRows } from '../../MainPanel/useHearingRows';
 import { useVbCablePresence } from '../../../stores/vbCableStore';
 
 export interface SpeechOutputSectionProps {
@@ -96,35 +95,18 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const setTextOnly = useSetTextOnly();
   const keepReplayAudio = useKeepReplayAudio();
   const setKeepReplayAudio = useSetKeepReplayAudio();
-  const participantSpeech = useRoutingStore((s) => s.participantSpeech);
-  const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const {
     audioMonitorDevices, selectedMonitorDevice, selectMonitorDevice,
-    isMonitorMuted, setMonitorMuted,
     isRealVoicePassthroughEnabled, realVoicePassthroughVolume, toggleRealVoicePassthrough, setRealVoicePassthroughVolume,
     refreshDevices, isLoading,
   } = useAudioContext();
-  const outlets = useOutlets();
-  const setOutletDevice = useSetOutletDevice();
-  const setOutletChannel = useSetOutletChannel();
-  // Subscribed: `heardFromStores` reads the source from the store, not from render.
-  useSelectedParticipantSource();
   const devices = useFilteredDevices(audioMonitorDevices);
   const reasonId = useId();
 
-  const myLegRuns = mode !== 'participant';
-  const theirLegRuns = mode !== 'speaker';
-  // Subscribed so the blocked state follows a capture that widens mid-run.
-  useParticipantCaptureWidened();
-  const heard = heardFromStores(faceToFace);
-  // The recapture rule (D10): a whole-system capture would translate the playback again.
-  const recaptured = theirLegRuns && !faceToFace && !heard;
-  const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
-  // A run decided at Start whether the other side is spoken; one that is follows the switch live (#595), one that is not keeps it off.
-  const runSpeech = useRunParticipantSpeech();
-  const themLocked = isSessionActive && runSpeech !== true;
-  const themOn = runSpeech !== false && participantOffered && !recaptured && speech !== 'never' && (speech === 'always' || (participantSpeech ?? faceToFace));
+  // The rows of what I hear follow the same rules here and in the toolbar's headphones entry.
+  const hearing = useHearingRows(isSessionActive);
+  const { myLegRuns, theirLegRuns, recaptured, otherOn, themLocked, themOn } = hearing;
   const vbCable = useVbCablePresence();
   // On Windows the virtual microphone is VB-CABLE, a driver the user installs: while it is
   // missing there is no device to name and nothing for Passthrough to mix into (spec 2026-10-17 §4).
@@ -135,7 +117,6 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const notInMode = t('audioPanel.lockedByMode', { mode: modeName, defaultValue: 'Not in "{{mode}}" mode. Your setting is kept.' });
   const blockedWholeSystem = t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.');
   const lockedByRun = t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.');
-  const channelName = (channel: 'left' | 'right') => (channel === 'left' ? t('audioPanel.channelLeft', 'left channel') : t('audioPanel.channelRight', 'right channel'));
 
   const previewOn = (outlet: OutletName) => {
     void getAppAudio()
@@ -146,26 +127,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   /** An outlet's device·channel select (spec §1.3), and face-to-face's Preview beside it. */
   const outletSelect = (name: OutletName, rowLabel: string, withPreview: boolean) => (
     <>
-      <select
-        className="select-dropdown"
-        aria-label={rowLabel}
-        value={outletSelectValue(name, outlets[name], faceToFace, devices)}
-        onChange={(e) => {
-          const { device, channel } = parseEntryValue(e.target.value);
-          setOutletDevice(name, device);
-          setOutletChannel(name, channel);
-        }}
-      >
-        {outletEntries(devices).map((entry) => {
-          const base = entry.device === null
-            ? (entry.channel === 'auto'
-              ? (selectedMonitorDevice ? t('audioPanel.followDefaultNamed', { device: selectedMonitorDevice.label, defaultValue: 'Follow default ({{device}})' }) : t('audioPanel.followDefault', 'Follow default'))
-              : t('audioPanel.followDefault', 'Follow default'))
-            : entry.label!;
-          const text = entry.channel === 'left' || entry.channel === 'right' ? `${base} · ${channelName(entry.channel)}` : base;
-          return <option key={entryValue(entry)} value={entryValue(entry)}>{text}</option>;
-        })}
-      </select>
+      <OutletSelect name={name} label={rowLabel} faceToFace={faceToFace} />
       {withPreview && (
         // Icon-only, as the voice list's and the popover's preview keys are (owner, 2026-10-11); the label is its name and title.
         <button type="button" className="setting-row__preview" aria-label={t('audioPanel.previewRow', { row: rowLabel, defaultValue: 'Preview {{row}}' })} title={t('audioPanel.previewRow', { row: rowLabel, defaultValue: 'Preview {{row}}' })} onClick={() => previewOn(name)}>
@@ -259,7 +221,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           tooltip={t('audioPanel.meTooTip', 'Also plays the translation the other side hears on my side (the spoken translation, not my own voice).')}
           sub
           greyed={!myLegRuns ? notInMode : recaptured ? blockedWholeSystem : !otherOn ? t('audioPanel.needsOtherHears', 'Nothing to hear while the translation is not spoken. Your setting is kept.') : undefined}
-          switch={{ checked: !isMonitorMuted && !(recaptured && mode === 'both'), onChange: () => setMonitorMuted(!isMonitorMuted), disabled: recaptured && mode === 'both', describedBy: recaptured && mode === 'both' ? reasonId : undefined }}
+          switch={{ checked: hearing.meChecked, onChange: hearing.toggleMe, disabled: hearing.meDisabled, describedBy: hearing.meDisabled ? reasonId : undefined }}
         >
           {outletSelect('me', meLabel, false)}
         </SettingRow>
@@ -305,7 +267,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         greyed={!theirLegRuns ? notInMode : recaptured ? blockedWholeSystem : undefined}
         switch={{
           checked: themOn,
-          onChange: () => setParticipantSpeech(!(participantSpeech ?? faceToFace)),
+          onChange: hearing.toggleThem,
           disabled: themLocked || recaptured || !participantOffered || speech !== 'optional',
           title: themLocked ? lockedByRun : undefined,
           describedBy: recaptured ? reasonId : undefined,

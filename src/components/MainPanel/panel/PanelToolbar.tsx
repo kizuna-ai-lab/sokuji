@@ -18,6 +18,7 @@ import DisplayModeButton from '../DisplayModeButton';
 import { ExportMenuButton } from '../ExportButton';
 import DisplaySettingsPopover from '../../Display/DisplaySettingsPopover';
 import CaptionShareButton from '../../CaptionShare/CaptionShareButton';
+import { HearingButton } from '../HearingButton';
 import { useReadingTargets } from '../../../lib/reading/useReadingTargets';
 import { isElectron } from '../../../utils/environment';
 import {
@@ -177,6 +178,8 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
           speakerMode={speakerDisplayMode}
           participantMode={participantDisplayMode}
         />
+        {/* What I hear, without opening the settings: hidden face to face and when nothing applies. */}
+        <HearingButton />
         {/* LAN caption sharing (spec 2026-10-04 §7.1): the desktop app only. */}
         {isElectron() && <CaptionShareButton />}
         <button
