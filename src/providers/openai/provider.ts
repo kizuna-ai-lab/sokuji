@@ -1,3 +1,4 @@
+import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createRealtimeAdapter } from './adapter';
@@ -45,7 +46,8 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
   VoiceSummary: RealtimeVoiceSummary,
   TurnDetection: { Summary: RealtimeTurnDetectionSummary, Controls: RealtimeTurnDetectionControls, Help: RealtimeTurnDetectionHelp },
 
-  credentials: realtimeCredentials,
+  // One OpenAI key for the three OpenAI providers (owner, 2026-11-15).
+  credentials: { ...realtimeCredentials, storedAt: OPENAI_KEY_STORED_AT },
   check: (k, s, ctx) => checkRealtime(k, s, ctx),
   // The model list reads no setting (ruling 9): a slider or a prompt edit keeps Start on.
   checkReads: [],

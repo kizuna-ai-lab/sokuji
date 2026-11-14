@@ -1,3 +1,4 @@
+import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createTranslateAdapter } from './adapter';
@@ -37,7 +38,8 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
   settings: { key: 'openaiTranslate', defaults: TRANSLATE_DEFAULTS, migrate: migrateTranslateSettings },
   Settings: TranslateSettingsView,
 
-  credentials: translateCredentials,
+  // One OpenAI key for the three OpenAI providers (owner, 2026-11-15).
+  credentials: { ...translateCredentials, storedAt: OPENAI_KEY_STORED_AT },
   check: (k, s, ctx) => checkTranslate(k, s, ctx),
   // The model list reads the key alone.
   checkReads: [],

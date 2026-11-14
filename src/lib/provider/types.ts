@@ -306,6 +306,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     read(values: CredentialValues, auth: AuthContext): R | CredentialsMissing;
     /** A setting that picks which fields show, drawn by the credential form above them (F4). */
     choice?: CredentialChoice;
+    /**
+     * Where the credentials are stored when several providers share one key (the three OpenAI
+     * providers, owner 2026-11-15): read from `settings.<key>.<field>`, else the first non-empty
+     * `settings.<fallback>.<field>`; always written to `settings.<key>.<field>`.
+     */
+    storedAt?: { key: string; fallbacks: readonly string[] };
   };
   /**
    * Can this provider start now: a network validation, model readiness, or

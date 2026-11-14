@@ -1,3 +1,4 @@
+import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createLiveAdapter } from './adapter';
@@ -40,7 +41,8 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
   // The one voice, under each spoken Speech row.
   VoiceSummary: LiveVoiceSummary,
 
-  credentials: liveCredentials,
+  // One OpenAI key for the three OpenAI providers (owner, 2026-11-15).
+  credentials: { ...liveCredentials, storedAt: OPENAI_KEY_STORED_AT },
   check: (k, s, ctx) => checkLive(k, s, ctx),
   // The model list reads no setting: a voice or a prompt edit keeps Start on.
   checkReads: [],
