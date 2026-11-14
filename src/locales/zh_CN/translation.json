@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "直接开始",
         "desc": "由 Kizuna AI 为你运行翻译。",
-        "cost": "用邮箱注册 Kizuna AI 账号并完成邮箱验证——验证后即可获得试用额度。之后自行充值，按用量计费。"
+        "cost": "用邮箱注册 Kizuna AI 账号并完成邮箱验证——验证后即可获得试用额度。之后自行充值，按用量计费。",
+        "options": {
+          "kizunaai_soniox": "实时出转写，翻译很快。",
+          "kizunaai_qwen": "可以看屏幕，转写和翻译十分准确。"
+        }
       },
       "own-key": {
         "title": "我有自己的 API 密钥",
@@ -1373,14 +1377,15 @@
         "cost": "密钥只保存在这台设备上，由本机直接访问该服务。你是该服务的客户，按用量直接付费给它，不经过 Kizuna AI。"
       },
       "offline": {
-        "title": "免费离线",
-        "desc": "在你自己的电脑上运行，数据不外传。",
-        "cost": "需要下载模型到硬盘（数 GB）。有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
+        "title": "不用密钥",
+        "desc": "免费。识别在这台电脑上运行；翻译用必应、语音用 Edge，这两样联网，是微软的服务。",
+        "cost": "识别要先下载模型到硬盘。有 GPU 时运行流畅；只用 CPU 会明显变慢。",
         "native": "原生引擎——更快，可利用 GPU。",
         "wasm": "内置引擎——到处能用，速度较慢。"
       },
       "ownKeyNote": "选择你已有账号的服务，密钥要到各家自己的控制台申请：",
-      "ownKeyGuides": "各家服务的申请指南"
+      "ownKeyGuides": "各家服务的申请指南",
+      "managedPick": "用哪个托管服务？"
     },
     "fit": {
       "cannotSpeak": "该服务不能生成语音翻译。",
@@ -1417,6 +1422,10 @@
       "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → 提供商」里添加。",
       "pendingSignIn": "尚未登录——开始前请从账户按钮登录。",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "会写下的会话组成",
+      "later": "以后可以在“设置 → 语言与会话组成”里一项一项换。"
     }
   },
   "tour": {

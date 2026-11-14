@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Sofort loslegen",
         "desc": "Kizuna AI übernimmt die Übersetzung für Sie.",
-        "cost": "Registrieren Sie sich mit Ihrer E-Mail-Adresse und bestätigen Sie sie — bestätigte Konten erhalten ein Testguthaben. Danach laden Sie Ihr Guthaben auf, und die Übersetzung wird nach Nutzung abgerechnet."
+        "cost": "Registrieren Sie sich mit Ihrer E-Mail-Adresse und bestätigen Sie sie — bestätigte Konten erhalten ein Testguthaben. Danach laden Sie Ihr Guthaben auf, und die Übersetzung wird nach Nutzung abgerechnet.",
+        "options": {
+          "kizunaai_soniox": "Transkription in Echtzeit, schnelle Übersetzung.",
+          "kizunaai_qwen": "Kann Ihren Bildschirm sehen; sehr genaue Transkription und Übersetzung."
+        }
       },
       "own-key": {
         "title": "Ich habe einen eigenen API-Schlüssel",
@@ -1373,14 +1377,15 @@
         "cost": "Ihr Schlüssel bleibt auf diesem Gerät und erreicht den Anbieter direkt von dort aus. Sie sind dessen Kunde: Sie bezahlen den Anbieter für das, was Sie nutzen, und nichts läuft über Kizuna AI."
       },
       "offline": {
-        "title": "Kostenlos, offline",
-        "desc": "Läuft auf Ihrem eigenen Rechner. Nichts verlässt ihn.",
-        "cost": "Lädt Modelle auf Ihre Festplatte herunter (mehrere Gigabyte). Läuft gut mit einer GPU und ausreichend VRAM; nur mit CPU ist es spürbar langsamer.",
+        "title": "Kein Schlüssel nötig",
+        "desc": "Kostenlos. Die Erkennung läuft auf diesem Computer; die Übersetzung nutzt Bing und die Sprachausgabe Edge, Online-Dienste von Microsoft.",
+        "cost": "Für die Erkennung muss zuerst ein Modell auf die Festplatte geladen werden. Läuft gut mit einer GPU; nur mit CPU merklich langsamer.",
         "native": "Native Engine — schneller, nutzt Ihre GPU, sofern verfügbar.",
         "wasm": "In-App-Engine — funktioniert überall, langsamer."
       },
       "ownKeyNote": "Wählen Sie den Anbieter, bei dem Sie ein Konto haben. Jeder vergibt einen eigenen Schlüssel:",
-      "ownKeyGuides": "Anleitungen für jeden Anbieter"
+      "ownKeyGuides": "Anleitungen für jeden Anbieter",
+      "managedPick": "Welcher gehostete Dienst?"
     },
     "fit": {
       "cannotSpeak": "Dieser Anbieter kann keine gesprochene Übersetzung erzeugen.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Noch kein API-Schlüssel — fügen Sie ihn unter Einstellungen → Anbieter hinzu, bevor Sie starten.",
       "pendingSignIn": "Nicht angemeldet — melden Sie sich über die Konto-Schaltfläche an, bevor Sie starten.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Die Aufstellung, die damit eingerichtet wird",
+      "later": "Jede Stufe können Sie später unter Einstellungen → Sprachen und Aufstellung ändern."
     }
   },
   "tour": {

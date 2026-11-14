@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Direct starten",
         "desc": "Kizuna AI verzorgt de vertaling voor u.",
-        "cost": "Registreer u met uw e-mailadres en verifieer dit — geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op, en wordt vertaling gefactureerd naar gebruik."
+        "cost": "Registreer u met uw e-mailadres en verifieer dit — geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op, en wordt vertaling gefactureerd naar gebruik.",
+        "options": {
+          "kizunaai_soniox": "Transcriptie in realtime, snelle vertaling.",
+          "kizunaai_qwen": "Kan je scherm zien; zeer nauwkeurige transcriptie en vertaling."
+        }
       },
       "own-key": {
         "title": "Ik heb mijn eigen API-sleutel",
@@ -1373,14 +1377,15 @@
         "cost": "Uw sleutel blijft op dit apparaat en bereikt de provider rechtstreeks vanaf hier. U bent hun klant: u betaalt hen voor wat u gebruikt, en niets loopt via Kizuna AI."
       },
       "offline": {
-        "title": "Gratis, offline",
-        "desc": "Draait op uw eigen machine. Niets verlaat deze machine.",
-        "cost": "Downloadt modellen naar uw schijf (gigabytes). Werkt goed met een GPU en voldoende VRAM; alleen CPU is merkbaar trager.",
+        "title": "Geen sleutel nodig",
+        "desc": "Gratis. De herkenning draait op deze computer; de vertaling gebruikt Bing en de spraak Edge, online diensten van Microsoft.",
+        "cost": "Voor de herkenning moet eerst een model naar de schijf worden gedownload. Werkt goed met een GPU; merkbaar trager met alleen een CPU.",
         "native": "Native engine — sneller, gebruikt uw GPU indien beschikbaar.",
         "wasm": "In-app engine — werkt overal, trager."
       },
       "ownKeyNote": "Kies de provider waar u een account bij heeft. Elke provider geeft zijn eigen sleutel uit:",
-      "ownKeyGuides": "handleidingen voor elke provider"
+      "ownKeyGuides": "handleidingen voor elke provider",
+      "managedPick": "Welke gehoste dienst?"
     },
     "fit": {
       "cannotSpeak": "Deze provider kan geen gesproken vertaling produceren.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Nog geen API-sleutel — voeg deze toe in Instellingen → Provider voordat u begint.",
       "pendingSignIn": "Niet ingelogd — log in via de accountknop voordat u begint.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "De opstelling die hiermee wordt ingesteld",
+      "later": "Elke stap kun je later wijzigen bij Instellingen → Talen en opstelling."
     }
   },
   "tour": {

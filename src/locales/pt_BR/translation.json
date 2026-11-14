@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Comece agora",
         "desc": "A Kizuna AI executa a tradução para você.",
-        "cost": "Cadastre-se com seu e-mail e verifique-o — contas verificadas recebem um crédito de teste. Depois você recarrega o saldo, e a tradução é cobrada pelo quanto você usa."
+        "cost": "Cadastre-se com seu e-mail e verifique-o — contas verificadas recebem um crédito de teste. Depois você recarrega o saldo, e a tradução é cobrada pelo quanto você usa.",
+        "options": {
+          "kizunaai_soniox": "Transcrição em tempo real, tradução rápida.",
+          "kizunaai_qwen": "Pode ver sua tela; transcrição e tradução muito precisas."
+        }
       },
       "own-key": {
         "title": "Eu tenho minha própria chave de API",
@@ -1373,14 +1377,15 @@
         "cost": "Sua chave fica neste dispositivo e alcança o provedor diretamente daqui. Você é cliente dele: paga pelo que usar, e nada passa pela Kizuna AI."
       },
       "offline": {
-        "title": "Gratuito, offline",
-        "desc": "Roda na sua própria máquina. Nada sai dela.",
-        "cost": "Baixa modelos para o seu disco (gigabytes). Funciona bem com uma GPU e VRAM suficiente; somente com CPU é visivelmente mais lento.",
+        "title": "Sem chave",
+        "desc": "Grátis. O reconhecimento roda neste computador; a tradução usa o Bing e a fala usa o Edge, serviços online da Microsoft.",
+        "cost": "O reconhecimento precisa primeiro baixar um modelo para o disco. Roda bem com GPU; bem mais lento só com CPU.",
         "native": "Motor nativo — mais rápido, usa sua GPU quando disponível.",
         "wasm": "Motor interno — funciona em qualquer lugar, mas é mais lento."
       },
       "ownKeyNote": "Escolha o provedor com o qual você já tem conta. Cada um emite sua própria chave:",
-      "ownKeyGuides": "guias para cada provedor"
+      "ownKeyGuides": "guias para cada provedor",
+      "managedPick": "Qual serviço hospedado?"
     },
     "fit": {
       "cannotSpeak": "Este provedor não consegue gerar tradução falada.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Ainda sem chave de API — adicione em Configurações → Provedor antes de começar.",
       "pendingSignIn": "Você ainda não entrou — entre pelo botão Conta antes de começar.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "A composição que será configurada",
+      "later": "Você pode mudar cada etapa depois em Configurações → Idiomas e composição."
     }
   },
   "tour": {

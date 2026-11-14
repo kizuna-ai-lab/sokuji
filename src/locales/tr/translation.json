@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Hemen başlayın",
         "desc": "Çeviriyi Kizuna AI sizin için çalıştırır.",
-        "cost": "E-posta adresinizle kayıt olun ve doğrulayın — doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve çeviri, kullandığınız miktara göre faturalandırılır."
+        "cost": "E-posta adresinizle kayıt olun ve doğrulayın — doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve çeviri, kullandığınız miktara göre faturalandırılır.",
+        "options": {
+          "kizunaai_soniox": "Gerçek zamanlı transkripsiyon, hızlı çeviri.",
+          "kizunaai_qwen": "Ekranınızı görebilir; çok doğru transkripsiyon ve çeviri."
+        }
       },
       "own-key": {
         "title": "Kendi API anahtarım var",
@@ -1373,14 +1377,15 @@
         "cost": "Anahtarınız bu cihazda kalır ve buradan doğrudan sağlayıcıya ulaşır. Onların müşterisi sizsiniz: kullandığınız kadar onlara ödersiniz ve hiçbir şey Kizuna AI üzerinden geçmez."
       },
       "offline": {
-        "title": "Ücretsiz, çevrimdışı",
-        "desc": "Kendi makinenizde çalışır. Hiçbir şey dışarı çıkmaz.",
-        "cost": "Modelleri diskinize indirir (gigabaytlarca). GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU'da belirgin şekilde daha yavaştır.",
+        "title": "Anahtar gerekmez",
+        "desc": "Ücretsiz. Tanıma bu bilgisayarda çalışır; çeviri Bing, konuşma Edge kullanır; bunlar Microsoft’un çevrimiçi hizmetleridir.",
+        "cost": "Tanıma için önce diske bir model indirilmesi gerekir. GPU ile iyi çalışır; yalnızca CPU ile belirgin şekilde yavaştır.",
         "native": "Yerel motor — daha hızlı, mümkün olduğunda GPU'nuzu kullanır.",
         "wasm": "Uygulama içi motor — her yerde çalışır, daha yavaş."
       },
       "ownKeyNote": "Hesabınızın olduğu sağlayıcıyı seçin. Her biri kendi anahtarını verir:",
-      "ownKeyGuides": "her sağlayıcı için kılavuzlar"
+      "ownKeyGuides": "her sağlayıcı için kılavuzlar",
+      "managedPick": "Hangi barındırılan hizmet?"
     },
     "fit": {
       "cannotSpeak": "Bu sağlayıcı sesli çeviri üretemez.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Henüz API anahtarı yok — başlamadan önce Ayarlar → Sağlayıcı bölümünden ekleyin.",
       "pendingSignIn": "Giriş yapılmadı — başlamadan önce hesap düğmesinden giriş yapın.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Bununla kurulacak düzen",
+      "later": "Her aşamayı daha sonra Ayarlar → Diller ve düzen bölümünden değiştirebilirsiniz."
     }
   },
   "tour": {

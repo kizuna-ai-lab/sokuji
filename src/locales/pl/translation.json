@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Zacznij od razu",
         "desc": "Kizuna AI tłumaczy za Ciebie.",
-        "cost": "Zarejestruj się, podając adres e-mail, i zweryfikuj go — zweryfikowane konta otrzymują kredyt próbny. Później doładowujesz saldo, a tłumaczenie jest rozliczane według zużycia."
+        "cost": "Zarejestruj się, podając adres e-mail, i zweryfikuj go — zweryfikowane konta otrzymują kredyt próbny. Później doładowujesz saldo, a tłumaczenie jest rozliczane według zużycia.",
+        "options": {
+          "kizunaai_soniox": "Transkrypcja na żywo, szybkie tłumaczenie.",
+          "kizunaai_qwen": "Widzi Twój ekran; bardzo dokładna transkrypcja i tłumaczenie."
+        }
       },
       "own-key": {
         "title": "Mam własny klucz API",
@@ -1373,14 +1377,15 @@
         "cost": "Twój klucz pozostaje na tym urządzeniu i stąd łączy się bezpośrednio z dostawcą. Płacisz temu dostawcy za to, czego używasz — nic nie przechodzi przez Kizuna AI."
       },
       "offline": {
-        "title": "Darmowy, offline",
-        "desc": "Działa na Twoim własnym urządzeniu. Nic go nie opuszcza.",
-        "cost": "Pobiera modele na dysk (gigabajty). Działa dobrze z GPU i wystarczającą ilością VRAM; tylko na CPU jest zauważalnie wolniej.",
+        "title": "Bez klucza",
+        "desc": "Za darmo. Rozpoznawanie działa na tym komputerze; tłumaczenie korzysta z Bing, a mowa z Edge – usług online Microsoft.",
+        "cost": "Rozpoznawanie wymaga najpierw pobrania modelu na dysk. Działa dobrze z GPU; na samym CPU wyraźnie wolniej.",
         "native": "Silnik natywny — szybszy, korzysta z GPU, jeśli jest dostępne.",
         "wasm": "Silnik wbudowany w aplikację — działa wszędzie, ale wolniej."
       },
       "ownKeyNote": "Wybierz dostawcę, u którego masz konto. Każdy z nich wydaje własny klucz:",
-      "ownKeyGuides": "przewodniki dla każdego dostawcy"
+      "ownKeyGuides": "przewodniki dla każdego dostawcy",
+      "managedPick": "Która usługa hostowana?"
     },
     "fit": {
       "cannotSpeak": "Ten dostawca nie potrafi tworzyć tłumaczenia głosowego.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Nie masz jeszcze klucza API — dodaj go w Ustawieniach → Dostawca, zanim zaczniesz.",
       "pendingSignIn": "Nie zalogowano — zaloguj się za pomocą przycisku konta, zanim zaczniesz.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Zestaw, który zostanie ustawiony",
+      "later": "Każdy etap możesz później zmienić w Ustawienia → Języki i zestaw."
     }
   },
   "tour": {

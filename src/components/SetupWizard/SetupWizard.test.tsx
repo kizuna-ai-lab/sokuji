@@ -131,7 +131,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();                                           // the hardware notice
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
     next();                                           // language pair
@@ -151,7 +151,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next(); next(); next();                           // credentials, language pair, finish
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
@@ -171,7 +171,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next(); next(); next();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
@@ -188,7 +188,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();                                           // credentials: nothing to enter offline
     next();                                           // language pair
     const jaSource = matchLanguage([...localInferenceLanguages.sources(LOCAL_INFERENCE_DEFAULTS)], 'ja');
@@ -204,7 +204,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /can hear it too/ }));   // two-way voice: both, spoken
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();
     next();                                           // language pair
     const source = (screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement).value;
@@ -228,7 +228,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /both sides as text/ }));   // two-way text: Translation I hear off
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();
     next();                                           // language pair
     const sourceName = languageLabel((screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement).value, 'en');
@@ -243,7 +243,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();
     next();
     expect(screen.queryByText(/They speak .* I read/)).toBeNull();
@@ -254,7 +254,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));   // speaker, spoken
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();
     next();
     expect(screen.getByRole('combobox', { name: 'I speak' })).toBeInTheDocument();
@@ -266,7 +266,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();
     expect(screen.getByText(/GPU/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
@@ -294,7 +294,7 @@ describe('SetupWizard', () => {
     next();
     expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
     next();
-    expect(screen.getByRole('radio', { name: /Free, offline/ })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /No key needed/ })).toBeChecked();
     next();
     // Nothing to re-enter on the offline path.
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
@@ -351,7 +351,7 @@ describe('SetupWizard', () => {
 
     fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next(); next(); next();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
@@ -427,7 +427,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next(); next(); next();                           // credentials, language pair, finish
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
@@ -466,7 +466,7 @@ describe('SetupWizard', () => {
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
     next();                                           // credentials: nothing to enter
     next();                                           // language pair
 

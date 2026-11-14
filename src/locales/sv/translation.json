@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Kom igång direkt",
         "desc": "Kizuna AI sköter översättningen åt dig.",
-        "cost": "Registrera dig med din e-postadress och verifiera den — verifierade konton får en provkredit. Därefter fyller du på ditt saldo, och översättningen faktureras efter hur mycket du använder."
+        "cost": "Registrera dig med din e-postadress och verifiera den — verifierade konton får en provkredit. Därefter fyller du på ditt saldo, och översättningen faktureras efter hur mycket du använder.",
+        "options": {
+          "kizunaai_soniox": "Transkribering i realtid, snabb översättning.",
+          "kizunaai_qwen": "Kan se din skärm; mycket noggrann transkribering och översättning."
+        }
       },
       "own-key": {
         "title": "Jag har min egen API-nyckel",
@@ -1373,14 +1377,15 @@
         "cost": "Din nyckel stannar på den här enheten och når leverantören direkt härifrån. Du är deras kund: du betalar dem för det du använder, och inget går via Kizuna AI."
       },
       "offline": {
-        "title": "Gratis, offline",
-        "desc": "Körs på din egen dator. Inget lämnar den.",
-        "cost": "Laddar ner modeller till din disk (flera gigabyte). Går bra med GPU och tillräckligt VRAM; enbart CPU är märkbart långsammare.",
+        "title": "Ingen nyckel",
+        "desc": "Gratis. Igenkänningen körs på den här datorn; översättningen använder Bing och talet Edge, onlinetjänster från Microsoft.",
+        "cost": "Igenkänningen kräver att en modell först laddas ner till disken. Fungerar bra med GPU; märkbart långsammare med bara CPU.",
         "native": "Native-motor — snabbare, använder din GPU där det är möjligt.",
         "wasm": "Inbyggd motor — fungerar överallt, långsammare."
       },
       "ownKeyNote": "Välj den leverantör du har ett konto hos. Var och en utfärdar sin egen nyckel:",
-      "ownKeyGuides": "guider för varje leverantör"
+      "ownKeyGuides": "guider för varje leverantör",
+      "managedPick": "Vilken värdtjänst?"
     },
     "fit": {
       "cannotSpeak": "Den här leverantören kan inte producera talad översättning.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Ingen API-nyckel än — lägg till den i Inställningar → Leverantör innan du börjar.",
       "pendingSignIn": "Inte inloggad — logga in via kontoknappen innan du börjar.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Uppsättningen som ställs in",
+      "later": "Du kan ändra varje steg senare under Inställningar → Språk och uppsättning."
     }
   },
   "tour": {

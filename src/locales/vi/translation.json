@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Bắt đầu ngay",
         "desc": "Kizuna AI thực hiện việc dịch giúp bạn.",
-        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng."
+        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng.",
+        "options": {
+          "kizunaai_soniox": "Chép lời theo thời gian thực, dịch nhanh.",
+          "kizunaai_qwen": "Có thể nhìn màn hình của bạn; chép lời và dịch rất chính xác."
+        }
       },
       "own-key": {
         "title": "Tôi có khóa API riêng",
@@ -1373,14 +1377,15 @@
         "cost": "Khóa của bạn ở lại trên thiết bị này và gửi thẳng đến nhà cung cấp từ đây. Bạn là khách hàng của họ: bạn trả tiền cho họ theo mức sử dụng, và không có gì đi qua Kizuna AI."
       },
       "offline": {
-        "title": "Miễn phí, ngoại tuyến",
-        "desc": "Chạy trên chính máy của bạn. Không có gì rời khỏi máy.",
-        "cost": "Tải mô hình xuống ổ đĩa của bạn (vài GB). Chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
+        "title": "Không cần khóa",
+        "desc": "Miễn phí. Nhận dạng chạy trên máy tính này; dịch dùng Bing và giọng nói dùng Edge, là các dịch vụ trực tuyến của Microsoft.",
+        "cost": "Nhận dạng cần tải mô hình xuống ổ đĩa trước. Chạy tốt khi có GPU; chậm rõ rệt nếu chỉ dùng CPU.",
         "native": "Công cụ Native — nhanh hơn, dùng GPU nếu có.",
         "wasm": "Công cụ trong ứng dụng — hoạt động mọi nơi, chậm hơn."
       },
       "ownKeyNote": "Chọn nhà cung cấp mà bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
-      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp"
+      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp",
+      "managedPick": "Dùng dịch vụ lưu trữ nào?"
     },
     "fit": {
       "cannotSpeak": "Nhà cung cấp này không thể tạo bản dịch bằng giọng nói.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Nhà cung cấp trước khi bắt đầu.",
       "pendingSignIn": "Chưa đăng nhập — hãy đăng nhập từ nút tài khoản trước khi bắt đầu.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Cách phối hợp sẽ được thiết lập",
+      "later": "Bạn có thể đổi từng bước sau trong Cài đặt → Ngôn ngữ và cách phối hợp."
     }
   },
   "tour": {

@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Aloita heti",
         "desc": "Kizuna AI hoitaa kääntämisen puolestasi.",
-        "cost": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se — vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa, ja kääntäminen laskutetaan käyttösi mukaan."
+        "cost": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se — vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa, ja kääntäminen laskutetaan käyttösi mukaan.",
+        "options": {
+          "kizunaai_soniox": "Reaaliaikainen litterointi, nopea käännös.",
+          "kizunaai_qwen": "Voi katsoa näyttöäsi; erittäin tarkka litterointi ja käännös."
+        }
       },
       "own-key": {
         "title": "Minulla on oma API-avain",
@@ -1373,14 +1377,15 @@
         "cost": "Avaimesi pysyy tällä laitteella ja välittyy tarjoajalle suoraan sieltä. Olet heidän asiakkaansa: maksat heille käytöstäsi, eikä mikään kulje Kizuna AI:n kautta."
       },
       "offline": {
-        "title": "Ilmainen, offline",
-        "desc": "Toimii omalla koneellasi. Mikään ei poistu siitä.",
-        "cost": "Lataa malleja levyllesi (gigatavuja). Toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
+        "title": "Ei avainta",
+        "desc": "Ilmainen. Tunnistus toimii tällä tietokoneella; käännös käyttää Bingiä ja puhe Edgeä, jotka ovat Microsoftin verkkopalveluja.",
+        "cost": "Tunnistusta varten malli on ensin ladattava levylle. Toimii hyvin näytönohjaimella; pelkällä suorittimella selvästi hitaampi.",
         "native": "Native-moottori — nopeampi, käyttää GPU:ta, jos saatavilla.",
         "wasm": "Sovelluksen sisäinen moottori — toimii kaikkialla, hitaampi."
       },
       "ownKeyNote": "Valitse tarjoaja, jonka luona sinulla on tili. Jokainen myöntää oman avaimensa:",
-      "ownKeyGuides": "ohjeet jokaiselle tarjoajalle"
+      "ownKeyGuides": "ohjeet jokaiselle tarjoajalle",
+      "managedPick": "Mikä isännöity palvelu?"
     },
     "fit": {
       "cannotSpeak": "Tämä tarjoaja ei pysty tuottamaan puhuttua käännöstä.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Ei vielä API-avainta — lisää se kohdassa Asetukset → Tarjoaja ennen aloittamista.",
       "pendingSignIn": "Et ole kirjautunut sisään — kirjaudu sisään tilipainikkeesta ennen aloittamista.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Kokoonpano, joka otetaan käyttöön",
+      "later": "Voit vaihtaa jokaisen vaiheen myöhemmin kohdassa Asetukset → Kielet ja kokoonpano."
     }
   },
   "tour": {

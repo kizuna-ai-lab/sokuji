@@ -6,7 +6,8 @@ import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { Provider } from '../../../types/Provider';
 import type { ProviderType } from '../../../types/Provider';
 import type { ProviderPath } from '../../../lib/setup/types';
-import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, offlineFit, wizardProvider } from '../providerPaths';
+import { availablePaths, managedOptions, ownKeyOptions, offlineOptions, offlineFit, wizardProvider } from '../providerPaths';
+import { LineUpPreview } from '../LineUpPreview';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
@@ -23,10 +24,16 @@ const PATH_COPY: Record<ProviderPath, { title: string; desc: string; cost: strin
     cost: 'Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI.',
   },
   offline: {
-    title: 'Free, offline',
-    desc: 'Runs on your own machine. Nothing leaves it.',
-    cost: 'Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.',
+    title: 'No key needed',
+    desc: 'Free. Recognition runs on this computer; translation uses Bing and speech uses Edge, which go online as Microsoft services.',
+    cost: 'Recognition needs a model downloaded to disk first. Runs well with a GPU; noticeably slower on CPU only.',
   },
+};
+
+/** Each hosted service's strength, as the owner worded it (2026-11-15); nothing more on the cards. */
+const HOSTED_COPY: Record<string, string> = {
+  kizunaai_soniox: 'Real-time transcription, fast translation.',
+  kizunaai_qwen: 'Can look at your screen; very accurate transcription and translation.',
 };
 
 const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
@@ -43,13 +50,16 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
       ? t('setup.fit.cannotFaceToFace', 'This provider cannot translate two people at one microphone.')
       : t('setup.fit.cannotBeTextOnly', 'This provider always speaks; it cannot run subtitles-only.');
 
-  // The managed and offline paths each resolve to one fixed provider, so their
-  // fitness for the scenario is known before the user picks them.
-  const managedFit = managedOption(scenario)?.fit ?? { ok: true as const };
+  // The managed path is greyed only when no hosted service fits the scenario; the offline path resolves to one
+  // fixed provider, so its fitness is known before the user picks it.
+  const hosted = managedOptions(scenario);
+  const firstFitting = hosted.find((o) => o.fit.ok)?.id ?? null;
+  const managedFit = hosted.length === 0 || firstFitting ? { ok: true as const } : hosted[0].fit;
   const offline = offlineFit(scenario);
 
   const choosePath = (path: ProviderPath) => {
-    if (path === 'managed') dispatch({ type: 'setPath', path, provider: managedProvider() });
+    // Preselected with the first hosted service that fits: the recommended one unless the scenario rules it out.
+    if (path === 'managed') dispatch({ type: 'setPath', path, provider: firstFitting });
     else if (path === 'offline') dispatch({ type: 'setPath', path, provider: Provider.LOCAL_INFERENCE });
     else dispatch({ type: 'setPath', path, provider: null });
   };
@@ -75,6 +85,23 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
           );
         })}
       </div>
+
+      {draft.providerPath === 'managed' && hosted.length > 0 && (
+        <div className="setup-cards setup-cards--compact" role="radiogroup" aria-label={t('setup.paths.managedPick', 'Which hosted service?')}>
+          {hosted.map(({ id, fit }, i) => (
+            <label key={id} className={`setup-card${draft.provider === id ? ' is-selected' : ''}${fit.ok ? '' : ' is-disabled'}`}>
+              <input type="radio" name="provider" value={id} checked={draft.provider === id} disabled={!fit.ok}
+                onChange={() => dispatch({ type: 'setProvider', provider: id })} />
+              <span className="setup-card__title">
+                {wizardProvider(id)?.vendor ?? nameOf(id)}
+                {i === 0 && fit.ok && <em className="setup-card__badge">{t('setup.paths.recommended', 'Recommended')}</em>}
+              </span>
+              <span className="setup-card__desc">{t(`setup.paths.managed.options.${id}`, HOSTED_COPY[id] ?? '')}</span>
+              {!fit.ok && <span className="setup-card__reason">{reasonOf(fit.reason)}</span>}
+            </label>
+          ))}
+        </div>
+      )}
 
       {draft.providerPath === 'own-key' && (
         <>
@@ -119,6 +146,7 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
           ))}
         </div>
       )}
+      {draft.providerPath && draft.provider && <LineUpPreview provider={draft.provider} />}
     </section>
   );
 };

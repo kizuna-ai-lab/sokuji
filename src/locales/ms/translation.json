@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Mula serta-merta",
         "desc": "Kizuna AI menjalankan terjemahan untuk anda.",
-        "cost": "Daftar menggunakan alamat e-mel anda dan sahkannya — akaun yang disahkan mendapat kredit percubaan. Selepas itu, anda tambah nilai baki anda, dan terjemahan dikenakan bayaran mengikut penggunaan anda."
+        "cost": "Daftar menggunakan alamat e-mel anda dan sahkannya — akaun yang disahkan mendapat kredit percubaan. Selepas itu, anda tambah nilai baki anda, dan terjemahan dikenakan bayaran mengikut penggunaan anda.",
+        "options": {
+          "kizunaai_soniox": "Transkripsi masa nyata, terjemahan pantas.",
+          "kizunaai_qwen": "Boleh melihat skrin anda; transkripsi dan terjemahan sangat tepat."
+        }
       },
       "own-key": {
         "title": "Saya mempunyai kunci API sendiri",
@@ -1373,14 +1377,15 @@
         "cost": "Kunci anda kekal pada peranti ini dan sampai ke penyedia terus daripadanya. Anda ialah pelanggan mereka: anda membayar mereka untuk apa yang anda gunakan, dan tiada apa-apa yang melalui Kizuna AI."
       },
       "offline": {
-        "title": "Percuma, luar talian",
-        "desc": "Berjalan pada mesin anda sendiri. Tiada apa-apa yang meninggalkannya.",
-        "cost": "Memuat turun model ke cakera anda (beberapa gigabait). Berjalan lancar dengan GPU dan VRAM yang mencukupi; CPU sahaja jauh lebih perlahan.",
+        "title": "Tanpa kunci",
+        "desc": "Percuma. Pengecaman berjalan pada komputer ini; terjemahan menggunakan Bing dan pertuturan menggunakan Edge, perkhidmatan dalam talian Microsoft.",
+        "cost": "Pengecaman perlu memuat turun model ke cakera dahulu. Lancar dengan GPU; jelas lebih perlahan dengan CPU sahaja.",
         "native": "Enjin native — lebih pantas, menggunakan GPU anda jika tersedia.",
         "wasm": "Enjin dalam aplikasi — berfungsi di mana-mana, lebih perlahan."
       },
       "ownKeyNote": "Pilih penyedia yang anda mempunyai akaun dengannya. Setiap satu mengeluarkan kunci sendiri:",
-      "ownKeyGuides": "panduan untuk setiap penyedia"
+      "ownKeyGuides": "panduan untuk setiap penyedia",
+      "managedPick": "Perkhidmatan dihoskan yang mana?"
     },
     "fit": {
       "cannotSpeak": "Penyedia ini tidak dapat menghasilkan terjemahan suara.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Belum ada kunci API — tambahkannya dalam Tetapan → Penyedia sebelum anda mula.",
       "pendingSignIn": "Belum log masuk — log masuk daripada butang Akaun sebelum anda mula.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "Susunan yang akan disediakan",
+      "later": "Setiap peringkat boleh ditukar kemudian dalam Tetapan → Bahasa dan susunan."
     }
   },
   "tour": {

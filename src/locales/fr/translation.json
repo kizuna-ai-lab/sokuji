@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Commencez tout de suite",
         "desc": "Kizuna AI effectue la traduction pour vous.",
-        "cost": "Inscrivez-vous avec votre adresse e-mail et vérifiez-la — les comptes vérifiés reçoivent un crédit d'essai. Ensuite, vous rechargez votre solde, et la traduction est facturée selon votre utilisation."
+        "cost": "Inscrivez-vous avec votre adresse e-mail et vérifiez-la — les comptes vérifiés reçoivent un crédit d'essai. Ensuite, vous rechargez votre solde, et la traduction est facturée selon votre utilisation.",
+        "options": {
+          "kizunaai_soniox": "Transcription en temps réel, traduction rapide.",
+          "kizunaai_qwen": "Peut voir votre écran ; transcription et traduction très précises."
+        }
       },
       "own-key": {
         "title": "J'ai ma propre clé API",
@@ -1373,14 +1377,15 @@
         "cost": "Votre clé reste sur cet appareil et atteint le fournisseur directement depuis celui-ci. Vous êtes son client : vous le payez pour ce que vous utilisez, et rien ne transite par Kizuna AI."
       },
       "offline": {
-        "title": "Gratuit, hors ligne",
-        "desc": "Fonctionne sur votre propre machine. Rien n'en sort.",
-        "cost": "Télécharge des modèles sur votre disque (plusieurs gigaoctets). Fonctionne bien avec un GPU et suffisamment de VRAM ; sur CPU seul, c'est nettement plus lent.",
+        "title": "Sans clé",
+        "desc": "Gratuit. La reconnaissance tourne sur cet ordinateur ; la traduction utilise Bing et la voix Edge, des services Microsoft en ligne.",
+        "cost": "La reconnaissance demande d’abord de télécharger un modèle sur le disque. Fluide avec un GPU ; nettement plus lent sur CPU seul.",
         "native": "Moteur natif — plus rapide, utilise votre GPU si disponible.",
         "wasm": "Moteur intégré — fonctionne partout, plus lent."
       },
       "ownKeyNote": "Choisissez le fournisseur pour lequel vous avez un compte. Chacun délivre sa propre clé :",
-      "ownKeyGuides": "des guides pour chaque fournisseur"
+      "ownKeyGuides": "des guides pour chaque fournisseur",
+      "managedPick": "Quel service hébergé ?"
     },
     "fit": {
       "cannotSpeak": "Ce fournisseur ne peut pas produire de traduction parlée.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Pas encore de clé API — ajoutez-la dans Paramètres → Fournisseur avant de démarrer.",
       "pendingSignIn": "Non connecté — connectez-vous depuis le bouton Compte avant de démarrer.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "La composition mise en place",
+      "later": "Vous pourrez changer chaque étape plus tard dans Paramètres → Langues et composition."
     }
   },
   "tour": {

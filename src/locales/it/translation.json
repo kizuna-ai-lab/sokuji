@@ -1365,7 +1365,11 @@
       "managed": {
         "title": "Inizia subito",
         "desc": "Kizuna AI esegue la traduzione al posto tuo.",
-        "cost": "Registrati con il tuo indirizzo email e verificalo — gli account verificati ricevono un credito di prova. Dopodiché ricarichi il saldo, e la traduzione viene addebitata in base a quanto usi."
+        "cost": "Registrati con il tuo indirizzo email e verificalo — gli account verificati ricevono un credito di prova. Dopodiché ricarichi il saldo, e la traduzione viene addebitata in base a quanto usi.",
+        "options": {
+          "kizunaai_soniox": "Trascrizione in tempo reale, traduzione veloce.",
+          "kizunaai_qwen": "Può vedere il tuo schermo; trascrizione e traduzione molto precise."
+        }
       },
       "own-key": {
         "title": "Ho una mia chiave API",
@@ -1373,14 +1377,15 @@
         "cost": "La tua chiave resta su questo dispositivo e raggiunge il fornitore direttamente da qui. Sei tu il loro cliente: paghi loro in base a quanto usi, e nulla passa attraverso Kizuna AI."
       },
       "offline": {
-        "title": "Gratuito, offline",
-        "desc": "Funziona sul tuo computer. Niente ne esce.",
-        "cost": "Scarica i modelli sul disco (gigabyte). Funziona bene con una GPU e VRAM sufficiente; solo CPU è nettamente più lento.",
+        "title": "Nessuna chiave",
+        "desc": "Gratis. Il riconoscimento gira su questo computer; la traduzione usa Bing e la voce Edge, servizi online di Microsoft.",
+        "cost": "Il riconoscimento richiede prima il download di un modello su disco. Va bene con una GPU; solo con la CPU è sensibilmente più lento.",
         "native": "Motore nativo — più veloce, usa la GPU quando disponibile.",
         "wasm": "Motore integrato nell'app — funziona ovunque, più lento."
       },
       "ownKeyNote": "Scegli il fornitore con cui hai un account. Ognuno rilascia una propria chiave:",
-      "ownKeyGuides": "guide per ogni fornitore"
+      "ownKeyGuides": "guide per ogni fornitore",
+      "managedPick": "Quale servizio ospitato?"
     },
     "fit": {
       "cannotSpeak": "Questo fornitore non può produrre traduzione parlata.",
@@ -1417,6 +1422,10 @@
       "pendingKey": "Ancora nessuna chiave API — aggiungila in Impostazioni → Fornitore prima di iniziare.",
       "pendingSignIn": "Non hai effettuato l'accesso — accedi dal pulsante Account prima di iniziare.",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+    },
+    "lineup": {
+      "title": "La composizione che verrà impostata",
+      "later": "Puoi cambiare ogni fase più avanti in Impostazioni → Lingue e composizione."
     }
   },
   "tour": {

@@ -909,7 +909,11 @@
       "managed": {
         "title": "Start right away",
         "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use.",
+        "options": {
+          "kizunaai_soniox": "Real-time transcription, fast translation.",
+          "kizunaai_qwen": "Can look at your screen; very accurate transcription and translation."
+        }
       },
       "own-key": {
         "title": "I have my own API key",
@@ -917,12 +921,13 @@
         "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
+        "title": "No key needed",
+        "desc": "Free. Recognition runs on this computer; translation uses Bing and speech uses Edge, which go online as Microsoft services.",
+        "cost": "Recognition needs a model downloaded to disk first. Runs well with a GPU; noticeably slower on CPU only.",
         "native": "Native engine — faster, uses your GPU where available.",
         "wasm": "In-app engine — works everywhere, slower."
-      }
+      },
+      "managedPick": "Which hosted service?"
     },
     "fit": {
       "cannotSpeak": "This provider cannot produce spoken translation.",
@@ -959,6 +964,10 @@
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
       "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
       "pendingSignIn": "Not signed in — sign in from the account button before you start."
+    },
+    "lineup": {
+      "title": "The line-up this sets up",
+      "later": "You can change each stage later in Settings → Languages and line-up."
     }
   },
   "tour": {
