@@ -51,8 +51,12 @@ export function createKizunaVoiceClaim(deps: VoiceClaimDeps = {}) {
     if (signal.aborted) return {};
     const outcome = resolveVoicePrepOutcome(result, voice, SONIOX_DEFAULT_VOICE);
     const patch = { [field]: outcome.sessionVoice } as Partial<SonioxSettings>;
-    // This run only: the stored choice stays, so the next start tries the clone again.
-    if (outcome.notice) return { override: patch, notice: outcome.notice };
+    // A fallback is this run's only, unless no clip here can ever rebuild the voice (`clip_required`): then the outcome also carries the default to persist.
+    if (outcome.notice) {
+      return outcome.settingsPatch
+        ? { override: patch, notice: outcome.notice, persist: patch }
+        : { override: patch, notice: outcome.notice };
+    }
     // A rebuilt clone has a new id: the run uses it, and it is written back where the stored choice is still the one claimed (`persistIfUnchanged`).
     return outcome.settingsPatch ? { override: patch, persist: patch } : {};
   };

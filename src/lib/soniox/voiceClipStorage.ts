@@ -147,27 +147,29 @@ export async function hasVoiceClip(accountId: string | null | undefined): Promis
   return !!record && record.accountId === accountId;
 }
 
-/** Forget this device's clip. Called when the user deletes their voice: a
- *  delete that left the source recording behind would not be a delete.
+/** Forget `accountId`'s clip on this device. Called when the user deletes
+ *  their voice: a delete that left the source recording behind would not be a
+ *  delete.
  *
- *  Deliberately NOT account-scoped, and deliberately THROWS on failure:
+ *  Account-scoped, and deliberately THROWS on failure:
  *
- *  - Unscoped. The record is a single slot, so scoping the delete would mean
- *    refusing to remove another account's record — leaving one that nobody
- *    currently signed in can clear. That is not a free choice, and it does
- *    have a downside: since an evicted voice's placeholder became deletable,
- *    there is a concrete path where B, signed in on A's device, deletes A's
- *    stale placeholder and destroys A's recording along with it. The trade is
- *    made knowingly — erring toward removing biometric material rather than
- *    retaining it, and A can re-record — not because no cost exists.
+ *  - Scoped. The record is a single slot, and a clip belongs to whoever
+ *    recorded it: B deleting B's voice must not destroy A's recording on a
+ *    shared device. The record is read and deleted in ONE transaction, and
+ *    removed only when its `accountId` matches; another account's record, or
+ *    no account at all, deletes nothing (and is not an error).
  *  - Throwing, for the same reason `saveVoiceClip` throws. Swallowing the
  *    failure would let the UI report a voice deleted while the recording it
  *    was built from is still sitting on this device — precisely the "left
  *    behind after an explicit delete" outcome this feature's privacy claim
  *    rules out. The caller decides what to say about it. */
-export async function clearVoiceClip(): Promise<void> {
+export async function clearVoiceClip(accountId: string | null | undefined): Promise<void> {
+  if (!accountId) return;
   const db = await getDb();
-  await db.delete(STORE, KEY);
+  const tx = db.transaction(STORE, 'readwrite');
+  const record = (await tx.store.get(KEY)) as StoredClip | undefined;
+  if (record && record.accountId === accountId) await tx.store.delete(KEY);
+  await tx.done;
 }
 
 /** Test-only: drop the memoized connection so a fresh IDBFactory is picked up. */

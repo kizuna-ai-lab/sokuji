@@ -53,7 +53,17 @@ describe('voiceClipStorage', () => {
   it('reports no clip before anything is saved, and after a clear', async () => {
     expect(await loadVoiceClip(ACCOUNT_A)).toBeNull();
     await saveVoiceClip(ACCOUNT_A, clip([9]));
-    await clearVoiceClip();
+    await clearVoiceClip(ACCOUNT_A);
+    expect(await loadVoiceClip(ACCOUNT_A)).toBeNull();
+  });
+
+  it('clearVoiceClip only removes the clip of the account deleting its voice', async () => {
+    await saveVoiceClip(ACCOUNT_A, clip([1]));
+    await clearVoiceClip(ACCOUNT_B);
+    expect(await loadVoiceClip(ACCOUNT_A)).not.toBeNull();
+    await clearVoiceClip('');
+    expect(await loadVoiceClip(ACCOUNT_A)).not.toBeNull();
+    await clearVoiceClip(ACCOUNT_A);
     expect(await loadVoiceClip(ACCOUNT_A)).toBeNull();
   });
 
@@ -84,7 +94,7 @@ describe('voiceClipStorage', () => {
     // @ts-expect-error deliberately breaking the global for this assertion
     globalThis.indexedDB = { open: () => { throw new Error('denied'); } };
     try {
-      await expect(clearVoiceClip()).rejects.toThrow('denied');
+      await expect(clearVoiceClip(ACCOUNT_A)).rejects.toThrow('denied');
     } finally {
       globalThis.indexedDB = original;
       await resetVoiceClipStorageForTesting();

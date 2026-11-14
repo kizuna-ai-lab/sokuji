@@ -77,11 +77,20 @@ describe('createKizunaVoiceClaim', () => {
     for (const [reason, code] of cases) {
       const { run } = claim({ ok: false, reason: reason as never });
       const result = await run(shapeFor(['speaker']), s({ region: 'eu', voiceEu: 'clone-eu' }), live());
-      expect(result).toEqual({
-        override: { voiceEu: 'Adrian' },
-        notice: { code, message: expect.any(String) },
-      });
-      expect(result).not.toHaveProperty('persist');
+      if (reason === 'clip_required') {
+        // No clip here can rebuild it: the default is persisted, not retried forever.
+        expect(result).toEqual({
+          override: { voiceEu: 'Adrian' },
+          notice: { code, message: expect.any(String) },
+          persist: { voiceEu: 'Adrian' },
+        });
+      } else {
+        expect(result).toEqual({
+          override: { voiceEu: 'Adrian' },
+          notice: { code, message: expect.any(String) },
+        });
+        expect(result).not.toHaveProperty('persist');
+      }
     }
   });
 

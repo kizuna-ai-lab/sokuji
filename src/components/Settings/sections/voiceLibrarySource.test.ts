@@ -132,6 +132,12 @@ describe('managedVoiceSource.delete', () => {
     expect(await loadVoiceClip(ACCOUNT)).toBeNull();
   });
 
+  it("leaves another account's clip alone", async () => {
+    await saveVoiceClip('acct-a', clip());
+    await managedVoiceSource(fakeClient(), 'acct-b').delete('v1');
+    expect(await loadVoiceClip('acct-a')).not.toBeNull();
+  });
+
   it('keeps the clip when the backend refuses the delete', async () => {
     // A voice_pinned refusal means nothing was deleted anywhere. Dropping the
     // clip here would punish the user for a failed request.

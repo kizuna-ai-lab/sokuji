@@ -271,7 +271,7 @@ export function managedVoiceSource(
       // the recording even when the backend refuses (voice_pinned).
       await client.remove();
       try {
-        await clearVoiceClip();
+        await clearVoiceClip(accountId);
       } catch (error) {
         // The voice IS gone (at Soniox and from our table) — only the local
         // recording survived. Resolving here would tell the user their

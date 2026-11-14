@@ -233,7 +233,8 @@ export interface VoicePrepOutcome {
    *  attempt was worth making. */
   sessionVoice: string;
   /** Settings-store patch to write through, or null when nothing should be
-   *  persisted. */
+   *  persisted. Set for a changed rebuilt id, and for the default when
+   *  `clip_required`. */
   settingsPatch: { voice: string } | null;
   /** The notice to record once the session is up, or null on success. */
   notice: { code: VoicePrepNoticeCode; message: string } | null;
@@ -249,9 +250,10 @@ export interface VoicePrepOutcome {
  * itself, which performs the network calls, this is just the branching a
  * caller does on its result. Extracted out of `connectConversation` and
  * exported specifically so this decision — most importantly the ASYMMETRIC
- * write (persist only a genuinely CHANGED successful id; a fallback is
- * never persisted, so a busy pool tonight cannot silently demote the user's
- * stored preference) — can be imported and tested directly (see
+ * write (persist a genuinely CHANGED successful id; a fallback is persisted
+ * only for `clip_required`, where no clip here can rebuild the voice — any
+ * other fallback is per run, so a busy pool tonight cannot silently demote
+ * the user's stored preference) — can be imported and tested directly (see
  * `voicePrep.test.ts`) rather than hand-transcribed into a test
  * double. The caller still owns every actual side effect: `voiceClaim.ts`
  * returns the session's voice as an `override` and a changed id as a
@@ -275,9 +277,12 @@ export function resolveVoicePrepOutcome(
     };
   }
   return {
-    // Applies to THIS SESSION only — never persisted.
     sessionVoice: builtinFallbackVoice,
-    settingsPatch: null,
+    // Persisted only for `clip_required`: this device holds no clip that could
+    // ever rebuild the voice, so keeping the stored id would fall back again on
+    // every later start. Every other failure (busy pool, build failure,
+    // unavailable) is this session's only.
+    settingsPatch: result.reason === 'clip_required' ? { voice: builtinFallbackVoice } : null,
     notice: {
       code: voicePrepCode(result.reason),
       message: `The custom voice could not be prepared (${result.reason}); this session uses a built-in voice.`,
