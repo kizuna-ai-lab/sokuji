@@ -1662,7 +1662,10 @@
     "changeCustom": "Sessions in {{to}} will use the custom voice you created there. Your {{from}} voice stays in {{from}}.",
     "changeBuiltInOwnKey": "Your custom voice is in your {{from}} Soniox project and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice in your {{to}} project. Your {{from}} voice stays; switching back to {{from}} uses it again.",
     "changeCustomOwnKey": "Sessions in {{to}} will use the custom voice in your {{to}} Soniox project. Your {{from}} voice stays in your {{from}} project.",
-    "changeConfirm": "Switch to {{to}}"
+    "changeConfirm": "Switch to {{to}}",
+    "latencyMeasuring": "measuring…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "unreachable"
   },
   "screenContext": {
     "picker": {

@@ -1,6 +1,9 @@
 import { useContext } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, within } from '@testing-library/react';
+import { setRegionMeasure } from '../../lib/region/measure';
+import type { RegionMedians } from '../../lib/region/probe';
+import { useRegionLatencyStore } from '../../stores/regionLatencyStore';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import type { ProviderAccount, PreviewPort, SettingsProps } from '../../lib/provider/types';
 import type { SonioxVoiceSectionProps } from '../../components/Settings/sections/SonioxVoiceSection';
@@ -8,7 +11,7 @@ import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
-  return { ...actual, useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }) };
+  return { ...actual, useTranslation: () => ({ t: (key: string, fallback?: unknown, values?: Record<string, unknown>) => (typeof fallback !== 'string' ? key : values ? fallback.replace(/\{\{(\w+)\}\}/g, (_, n: string) => String(values[n])) : fallback) }) };
 });
 
 // Captured instead of rendered: floating-ui's Tooltip opens only on hover
@@ -80,11 +83,53 @@ describe('createSonioxSettingsView', () => {
     const { rerender } = render(<BYOK {...props({ update })} />);
     const select = screen.getByLabelText('Region') as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.textContent);
-    expect(options).toEqual(['United States', 'European Union', '日本 (Japan)', 'India']);
+    expect(options).toEqual(['United States — measuring…', 'European Union — measuring…', '日本 (Japan) — measuring…', 'India — measuring…']);
     expect(select.disabled).toBe(false);
 
     rerender(<BYOK {...props({ update, disabled: true })} />);
     expect(screen.getByLabelText('Region')).toBeDisabled();
+  });
+
+  describe('latency in the region select', () => {
+    const optionTexts = () => Array.from((screen.getByLabelText('Region') as HTMLSelectElement).options).map((o) => o.textContent);
+
+    it('options read measuring… until the result, then the milliseconds or unreachable', async () => {
+      let done!: (m: RegionMedians) => void;
+      setRegionMeasure(() => new Promise((r) => { done = r; }));
+      render(<BYOK {...props()} />);
+      expect(optionTexts()).toEqual(['United States — measuring…', 'European Union — measuring…', '日本 (Japan) — measuring…', 'India — measuring…']);
+      await act(async () => done({ us: 177, eu: 237, jp: 13, in: null }));
+      expect(optionTexts()).toEqual(['United States — 177 ms', 'European Union — 237 ms', '日本 (Japan) — 13 ms', 'India — unreachable']);
+    });
+
+    it('reopening within 10 minutes reuses the numbers', async () => {
+      const measure = vi.fn(async (): Promise<RegionMedians | null> => ({ us: 1, eu: 2, jp: 3, in: 4 }));
+      setRegionMeasure(measure);
+      const first = render(<BYOK {...props()} />);
+      await act(async () => {});
+      first.unmount();
+      render(<BYOK {...props()} />);
+      expect(measure).toHaveBeenCalledTimes(1);
+      expect(optionTexts()[0]).toBe('United States — 1 ms');
+    });
+
+    it('measures nothing during a session and keeps the last numbers', () => {
+      const measure = vi.fn(async (): Promise<RegionMedians | null> => null);
+      setRegionMeasure(measure);
+      act(() => useRegionLatencyStore.getState().fill('soniox', { us: 5, eu: 6, jp: 7, in: 8 }, Date.now() - 700_000));
+      render(<BYOK {...props({ disabled: true })} />);
+      expect(measure).not.toHaveBeenCalled();
+      expect(optionTexts()).toEqual(['United States — 5 ms', 'European Union — 6 ms', '日本 (Japan) — 7 ms', 'India — 8 ms']);
+    });
+
+    it('never writes the recommendation record nor opens the hint', async () => {
+      setRegionMeasure(async () => ({ us: 1, eu: 2, jp: 3, in: 4 }));
+      const before = Object.keys(localStorage).filter((k) => k.startsWith('regionRecommendation.'));
+      render(<BYOK {...props()} />);
+      await act(async () => {});
+      expect(Object.keys(localStorage).filter((k) => k.startsWith('regionRecommendation.'))).toEqual(before);
+      expect(before).toEqual([]);
+    });
   });
 
   it('the TTS speed runs 0.7–1.3 in 0.05 steps and writes a number', () => {

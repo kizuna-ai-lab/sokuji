@@ -37,6 +37,7 @@ import nl from '../../locales/nl/translation.json';
 import type { SettingsProps } from '../../lib/provider/types';
 import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
 import { useScreenContextStore, type PickedSource, type PickReason } from '../../stores/screenContextStore';
+import { useRegionLatencyStore } from '../../stores/regionLatencyStore';
 const requestRegionChange = vi.hoisted(() => vi.fn(async () => true));
 vi.mock('../../lib/region/regionChange', () => ({ requestRegionChange }));
 
@@ -527,10 +528,11 @@ describe('Screen context — the area chosen in the settings (owner, 2026-10-22,
 
 describe('KizunaQwenSettingsView (the managed view, Beijing region spec §8)', () => {
   it('renders a Region select with Singapore and 北京 (Beijing), selected from the settings, above the shared view', () => {
+    act(() => useRegionLatencyStore.getState().fill('qwen', { sg: 80, cn: 150 }, Date.now()));
     const { container } = render(<KizunaQwenSettingsView {...props({ settings: { ...QWEN_DEFAULTS, region: 'cn' } })} />);
     const select = container.querySelector('#qwen-region-select') as HTMLSelectElement;
     expect(select.value).toBe('cn');
-    expect(Array.from(select.options).map((o) => [o.value, o.textContent])).toEqual([['sg', 'Singapore'], ['cn', '北京 (Beijing)']]);
+    expect(Array.from(select.options).map((o) => [o.value, o.textContent])).toEqual([['sg', 'Singapore — 80 ms'], ['cn', '北京 (Beijing) — 150 ms']]);
     expect(select.closest('.settings-section')?.querySelector('h2')?.textContent).toContain('Region');
     expect(library).toHaveLength(1);
   });
