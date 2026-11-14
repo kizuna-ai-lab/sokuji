@@ -11,7 +11,7 @@
  */
 import type { Prepared, RunShape } from '../../lib/session/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
-import { SONIOX_DEFAULT_VOICE, SONIOX_VOICES } from '../../lib/soniox/ttsCatalog';
+import { SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../lib/soniox/ttsCatalog';
 import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { ManagedVoicesClient } from './managedVoicesClient';
 import { sonioxVoiceField, type SonioxSettings } from './settings';
@@ -26,8 +26,6 @@ export interface VoiceClaimDeps {
   loadClip?(userId: string | null | undefined): Promise<Blob | null>;
 }
 
-const BUILT_IN = new Set(SONIOX_VOICES.map((v) => v.value));
-
 export function createKizunaVoiceClaim(deps: VoiceClaimDeps = {}) {
   const prepare = deps.prepare ?? prepareManagedVoice;
   const clientFor = deps.clientFor ?? ((getToken, region) => new ManagedVoicesClient(getToken, region));
@@ -40,7 +38,7 @@ export function createKizunaVoiceClaim(deps: VoiceClaimDeps = {}) {
     // A clone is a UUID inside one region's project: that region's own field.
     const field = sonioxVoiceField(region);
     const voice = s[field];
-    if (!voice || BUILT_IN.has(voice)) return {};
+    if (!voice || isSonioxBuiltInVoice(voice)) return {};
     const result = await prepare({
       client: clientFor(() => shape.auth.getToken(), region),
       // This account's clip only: a recording on a shared device is never uploaded under another account.

@@ -81,3 +81,10 @@ export const SONIOX_VOICES: VoiceOption[] = SONIOX_VOICE_ROSTER.map((voice) => (
   name: voice.id,
   value: voice.id,
 }));
+
+const BUILT_IN_VOICES = new Set(SONIOX_VOICES.map((v) => v.value));
+
+/** Whether a stored voice is one of the built-in names, as opposed to a cloned voice's UUID. */
+export function isSonioxBuiltInVoice(id: string): boolean {
+  return BUILT_IN_VOICES.has(id);
+}
