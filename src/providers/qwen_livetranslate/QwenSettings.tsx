@@ -15,6 +15,7 @@ import {
   useRole,
 } from '@floating-ui/react';
 import { ScreenContextPicture } from '../../components/MainPanel/panel/ScreenContextChip';
+import { useAnalytics } from '../../lib/analytics';
 import { LinesField } from '../../components/providers/fields/LinesField';
 import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
 import type { VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
@@ -267,6 +268,7 @@ function PickedSourceChip({ source, disabled, onChoose }: { source: CaptureSourc
  */
 export function KizunaQwenSettingsView(props: SettingsProps<S>) {
   const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
   const { settings, disabled = false, account } = props;
   const latencies = useRegionLatencies('qwen', !disabled);
   return (
@@ -288,7 +290,7 @@ export function KizunaQwenSettingsView(props: SettingsProps<S>) {
             aria-label={t('settings.qwenRegion', 'Region')}
             value={settings.region}
             disabled={disabled}
-            onChange={(e) => { void requestRegionChange({ providerId: 'kizunaai_qwen', to: e.target.value, origin: 'select', auth: account?.auth }); }}
+            onChange={(e) => { void requestRegionChange({ providerId: 'kizunaai_qwen', to: e.target.value, origin: 'select', auth: account?.auth, track: (ev) => trackEvent('region_recommendation', ev) }); }}
           >
             {QWEN_REGIONS.map((r) => <option key={r} value={r}>{regionOptionLabel(t, QWEN_REGION_LABELS[r], latencies?.[r])}</option>)}
           </select>

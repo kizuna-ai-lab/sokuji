@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
@@ -22,6 +22,7 @@ vi.mock('../diagnostics/report', () => ({ reportWarning }));
 import { requestRegionChange } from './regionChange';
 
 const region = (id: string) => (useProviderStore.getState().entries[id].settings as { region: string }).region;
+const realUpdateSettings = useProviderStore.getState().updateSettings;
 
 beforeEach(async () => {
   registerRunPhase(() => 'idle');
@@ -31,6 +32,11 @@ beforeEach(async () => {
   await useProviderStore.getState().load(kizunaSonioxProvider);
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().load(kizunaQwenProvider);
+});
+// The rejecting `updateSettings` spy of the throw test must not leak into later tests: the store holds it too.
+afterEach(() => {
+  vi.restoreAllMocks();
+  useProviderStore.setState({ updateSettings: realUpdateSettings });
 });
 
 describe('requestRegionChange', () => {
@@ -77,5 +83,47 @@ describe('requestRegionChange', () => {
     await expect(requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select' })).resolves.toBe(false);
     expect(reportWarning).toHaveBeenCalledTimes(1);
     expect(reportWarning).toHaveBeenCalledWith('RegionChange', expect.any(String), expect.objectContaining({ dedupeKey: 'region:change', cause: boom }));
+  });
+
+  describe('following a pending hint through the drop-down', () => {
+    const hint = { status: 'hint' as const, medians: { sg: 200, cn: 40 }, recommended: 'cn', at: 1, attempts: 1 };
+
+    it('a select change while the hint is pending reports one switched event, then records chose-manually', async () => {
+      useRegionRecommendationStore.setState({ records: { kizunaai_qwen: hint } });
+      const track = vi.fn();
+      await expect(requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select', track })).resolves.toBe(true);
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith({
+        provider: 'kizunaai_qwen', medians: { sg: 200, cn: 40 }, current: 'sg', recommended: 'cn', outcome: 'switched', chosen: 'cn',
+      });
+      expect(useRegionRecommendationStore.getState().records.kizunaai_qwen?.status).toBe('chose-manually');
+    });
+
+    it('chosen is the region picked, even when it is not the recommended one (Soniox)', async () => {
+      useRegionRecommendationStore.setState({ records: { kizunaai_soniox: { ...hint, medians: { us: 177, eu: 237, jp: 13, in: 136 }, recommended: 'jp' } } });
+      const track = vi.fn();
+      await expect(requestRegionChange({ providerId: 'kizunaai_soniox', to: 'in', origin: 'select', track })).resolves.toBe(true);
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track.mock.calls[0][0]).toMatchObject({ provider: 'kizunaai_soniox', current: 'us', recommended: 'jp', outcome: 'switched', chosen: 'in' });
+      expect(useRegionRecommendationStore.getState().records.kizunaai_soniox?.status).toBe('chose-manually');
+    });
+
+    it('no event without a pending hint, for a list change (the list reports itself), or when nothing changed', async () => {
+      const track = vi.fn();
+      await requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select', track });
+      useRegionRecommendationStore.setState({ records: { kizunaai_qwen: { ...hint, status: 'acted' } } });
+      await requestRegionChange({ providerId: 'kizunaai_qwen', to: 'sg', origin: 'select', track });
+      useRegionRecommendationStore.setState({ records: { kizunaai_qwen: hint } });
+      await requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'list', track });
+      expect(useRegionRecommendationStore.getState().records.kizunaai_qwen?.status).toBe('hint');
+      await requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select', track });
+      expect(track).not.toHaveBeenCalled();
+    });
+
+    it('a select change without a tracker still records chose-manually', async () => {
+      useRegionRecommendationStore.setState({ records: { kizunaai_qwen: hint } });
+      await expect(requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select' })).resolves.toBe(true);
+      expect(useRegionRecommendationStore.getState().records.kizunaai_qwen?.status).toBe('chose-manually');
+    });
   });
 });

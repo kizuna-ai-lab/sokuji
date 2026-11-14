@@ -3,6 +3,7 @@
  * recommendation list both call `requestRegionChange`. Refuses during a run;
  * a Soniox change may ask about the custom voice first.
  */
+import type { AnalyticsEvents } from '../analytics';
 import { reportWarning } from '../diagnostics/report';
 import { currentRunPhase } from '../../app/runPhase';
 import { requestSonioxRegionChange } from '../../providers/soniox/regionChange';
@@ -12,10 +13,18 @@ import type { SonioxRegion } from '../soniox/regions';
 import type { AuthContext } from '../provider/types';
 import { markChoseManually } from './record';
 import { REGION_FAMILIES, REGION_FAMILY_OF, currentRegion, isRecommendedProvider, type RegionalProviderId } from './regionalProviders';
+import { regionRecommendationEvent } from './runRecommendation';
 
 export type RegionChangeOrigin = 'select' | 'list';
 
-type RegionChangeRequest = { providerId: string; to: string; origin: RegionChangeOrigin; auth?: AuthContext };
+type RegionChangeRequest = {
+  providerId: string;
+  to: string;
+  origin: RegionChangeOrigin;
+  auth?: AuthContext;
+  /** Reports a pending hint the select change resolves (the list reports its own). */
+  track?(e: AnalyticsEvents['region_recommendation']): void;
+};
 
 /** A throw anywhere in the path is recorded and the change does not happen: callers fire this without a `.catch`. */
 export async function requestRegionChange(r: RegionChangeRequest): Promise<boolean> {
@@ -48,7 +57,10 @@ async function changeRegion(r: RegionChangeRequest): Promise<boolean> {
 
   if (changed && r.origin === 'select' && isRecommendedProvider(id)) {
     const store = useRegionRecommendationStore.getState();
-    store.setRecord(id, markChoseManually(store.records[id], Date.now()));
+    const prev = store.records[id];
+    // Following a pending hint by hand resolves it: reported as switched, recorded as chose-manually.
+    if (prev?.status === 'hint') r.track?.(regionRecommendationEvent(id, prev, from, 'switched', to));
+    store.setRecord(id, markChoseManually(prev, Date.now()));
   }
   return changed;
 }

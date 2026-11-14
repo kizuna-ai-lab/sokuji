@@ -5,6 +5,7 @@ import { TtsSpeedControl } from '../../components/Settings/sections/LocalSetting
 import { LinesField } from '../../components/providers/fields/LinesField';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import Tooltip from '../../components/Tooltip/Tooltip';
+import { useAnalytics } from '../../lib/analytics';
 import type { SettingsProps } from '../../lib/provider/types';
 import { regionOptionLabel, useRegionLatencies } from '../../components/Region/regionLatency';
 import { requestRegionChange } from '../../lib/region/regionChange';
@@ -34,6 +35,7 @@ export interface SonioxSettingsFlavour {
 export function createSonioxSettingsView({ providerId, managed, useVoiceSource }: SonioxSettingsFlavour): ComponentType<SettingsProps<S>> {
   return function SonioxSettingsView({ settings, update, disabled = false, pair, account, legs, participantSpeaks, faceToFace, preview }: SettingsProps<S>) {
     const { t } = useTranslation();
+    const { trackEvent } = useAnalytics();
     const region = asSonioxRegion(settings.region);
     const latencies = useRegionLatencies('soniox', !disabled);
     const inBoth = legs?.length === 2;
@@ -71,7 +73,7 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
               aria-label={t('settings.sonioxRegion', 'Region')}
               value={region}
               disabled={disabled}
-              onChange={(e) => { void requestRegionChange({ providerId, to: e.target.value, origin: 'select', auth: account?.auth }); }}
+              onChange={(e) => { void requestRegionChange({ providerId, to: e.target.value, origin: 'select', auth: account?.auth, track: (ev) => trackEvent('region_recommendation', ev) }); }}
             >
               {SONIOX_REGIONS.map((r) => <option key={r} value={r}>{regionOptionLabel(t, SONIOX_REGION_LABELS[r], latencies?.[r])}</option>)}
             </select>

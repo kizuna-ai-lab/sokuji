@@ -37,8 +37,10 @@ vi.mock('../../components/Settings/sections/SonioxVoiceSection', () => ({
   },
 }));
 
-const requestRegionChange = vi.hoisted(() => vi.fn(async () => true));
+const requestRegionChange = vi.hoisted(() => vi.fn(async (_r: unknown) => true));
 vi.mock('../../lib/region/regionChange', () => ({ requestRegionChange }));
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 
 import { createSonioxSettingsView } from './SonioxSettings';
 
@@ -74,8 +76,19 @@ describe('createSonioxSettingsView', () => {
     const update = vi.fn();
     render(<BYOK {...props({ update })} />);
     fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'in' } });
-    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'soniox', to: 'in', origin: 'select', auth: expect.anything() });
+    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'soniox', to: 'in', origin: 'select', auth: expect.anything(), track: expect.any(Function) });
     expect(update).not.toHaveBeenCalledWith(expect.objectContaining({ region: expect.anything() }));
+  });
+
+  it("hands the region path the analytics tracker, so following a pending hint from the select is reported", () => {
+    trackEvent.mockReset();
+    requestRegionChange.mockClear();
+    render(<BYOK {...props()} />);
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'jp' } });
+    const { track } = requestRegionChange.mock.calls[0][0] as { track: (e: unknown) => void };
+    const event = { provider: 'kizunaai_soniox', medians: {}, current: 'us', recommended: 'jp', outcome: 'switched', chosen: 'jp' };
+    track(event);
+    expect(trackEvent).toHaveBeenCalledWith('region_recommendation', event);
   });
 
   it('lists the regions, and locks the select while a run is on', () => {

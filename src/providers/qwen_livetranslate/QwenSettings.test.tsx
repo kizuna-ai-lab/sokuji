@@ -38,8 +38,10 @@ import type { SettingsProps } from '../../lib/provider/types';
 import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
 import { useScreenContextStore, type PickedSource, type PickReason } from '../../stores/screenContextStore';
 import { useRegionLatencyStore } from '../../stores/regionLatencyStore';
-const requestRegionChange = vi.hoisted(() => vi.fn(async () => true));
+const requestRegionChange = vi.hoisted(() => vi.fn(async (_r: unknown) => true));
 vi.mock('../../lib/region/regionChange', () => ({ requestRegionChange }));
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 
 import { KizunaQwenSettingsView, QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QWEN_DEFAULTS, QWEN_VOICES, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings } from './settings';
@@ -541,8 +543,19 @@ describe('KizunaQwenSettingsView (the managed view, Beijing region spec §8)', (
     const update = vi.fn();
     const { container } = render(<KizunaQwenSettingsView {...props({ update })} />);
     fireEvent.change(container.querySelector('#qwen-region-select') as HTMLSelectElement, { target: { value: 'cn' } });
-    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select', auth: undefined });
+    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select', auth: undefined, track: expect.any(Function) });
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('hands the region path the analytics tracker, so following a pending hint from the select is reported', () => {
+    trackEvent.mockReset();
+    requestRegionChange.mockClear();
+    const { container } = render(<KizunaQwenSettingsView {...props()} />);
+    fireEvent.change(container.querySelector('#qwen-region-select') as HTMLSelectElement, { target: { value: 'cn' } });
+    const { track } = requestRegionChange.mock.calls[0][0] as { track: (e: unknown) => void };
+    const event = { provider: 'kizunaai_qwen', medians: {}, current: 'sg', recommended: 'cn', outcome: 'switched', chosen: 'cn' };
+    track(event);
+    expect(trackEvent).toHaveBeenCalledWith('region_recommendation', event);
   });
 
   it('locks the select while a run is not idle', () => {
