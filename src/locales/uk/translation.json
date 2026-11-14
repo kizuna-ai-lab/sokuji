@@ -1700,7 +1700,7 @@
     "changeCustomOwnKey": "Сеанси в регіоні {{to}} використовуватимуть користувацький голос із вашого проєкту Soniox в регіоні {{to}}. Ваш голос у регіоні {{from}} залишається у вашому проєкті в регіоні {{from}}.",
     "changeConfirm": "Перейти до {{to}}",
     "latencyMeasuring": "вимірювання…",
-    "latencyMs": "{{ms}} ms",
+    "latencyMs": "{{ms}} мс",
     "latencyUnreachable": "недоступний",
     "hintFaster": "{{region}} швидший за ваш поточний регіон ({{current}}) приблизно на {{ms}} мс",
     "hintCurrentUnreachable": "{{region}} відповідає за {{ms}} мс; ваш поточний регіон ({{current}}) недоступний",

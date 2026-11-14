@@ -1703,7 +1703,7 @@
     "latencyMs": "{{ms}} ms",
     "latencyUnreachable": "تعذّر الوصول",
     "hintFaster": "{{region}} أسرع بنحو {{ms}} ms من منطقتك الحالية ({{current}})",
-    "hintCurrentUnreachable": "{{region}} يستجيب خلال {{ms}} ms؛ وتعذّر الوصول إلى منطقتك الحالية ({{current}})",
+    "hintCurrentUnreachable": "{{region}} تستجيب خلال {{ms}} ms؛ وتعذّر الوصول إلى منطقتك الحالية ({{current}})",
     "hintAction": "عرض سرعة كل منطقة",
     "listTitle": "اختر منطقة أسرع",
     "listIntro": "قسنا اتصالك بكل منطقة من مناطق {{vendor}}:",

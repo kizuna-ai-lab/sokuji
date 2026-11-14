@@ -1693,24 +1693,24 @@
     }
   },
   "region": {
-    "changeTitle": "切換區域?",
-    "changeBuiltIn": "你的自訂聲音儲存在{{from}}區域,無法在{{to}}使用。在該區域建立自訂聲音之前,{{to}}的工作階段將使用內建聲音{{name}}。你在{{from}}的聲音會保留,切換回{{from}}後會再次使用。",
-    "changeCustom": "{{to}}的工作階段將使用你在該區域建立的自訂聲音。你在{{from}}的聲音仍保留在{{from}}。",
-    "changeBuiltInOwnKey": "你的自訂聲音位於你的{{from}} Soniox 專案中,無法在{{to}}使用。在你的{{to}}專案中建立自訂聲音之前,{{to}}的工作階段將使用內建聲音{{name}}。你在{{from}}的聲音會保留,切換回{{from}}後會再次使用。",
-    "changeCustomOwnKey": "{{to}}的工作階段將使用你的{{to}} Soniox 專案中的自訂聲音。你在{{from}}的聲音仍保留在你的{{from}}專案中。",
-    "changeConfirm": "切換到{{to}}",
+    "changeTitle": "切換區域？",
+    "changeBuiltIn": "您的自訂聲音儲存在 {{from}} 區域，無法在 {{to}} 使用。在該區域建立自訂聲音之前，{{to}} 的工作階段將使用內建聲音 {{name}}。您在 {{from}} 的聲音會保留，切換回 {{from}} 後會再次使用。",
+    "changeCustom": "{{to}} 的工作階段將使用您在該區域建立的自訂聲音。您在 {{from}} 的聲音仍保留在 {{from}}。",
+    "changeBuiltInOwnKey": "您的自訂聲音位於您的 {{from}} Soniox 專案中，無法在 {{to}} 使用。在您的 {{to}} 專案中建立自訂聲音之前，{{to}} 的工作階段將使用內建聲音 {{name}}。您在 {{from}} 的聲音會保留，切換回 {{from}} 後會再次使用。",
+    "changeCustomOwnKey": "{{to}} 的工作階段將使用您的 {{to}} Soniox 專案中的自訂聲音。您在 {{from}} 的聲音仍保留在您的 {{from}} 專案中。",
+    "changeConfirm": "切換到 {{to}}",
     "latencyMeasuring": "測量中…",
     "latencyMs": "{{ms}} ms",
     "latencyUnreachable": "無法連線",
-    "hintFaster": "{{region}}比你目前的區域({{current}})快約 {{ms}} 毫秒",
-    "hintCurrentUnreachable": "{{region}}的回應時間為 {{ms}} 毫秒;無法連線到你目前的區域({{current}})",
+    "hintFaster": "{{region}} 比您目前的區域（{{current}}）快約 {{ms}} 毫秒",
+    "hintCurrentUnreachable": "{{region}} 的回應時間為 {{ms}} 毫秒；無法連線到您目前的區域（{{current}}）",
     "hintAction": "查看各區域的速度",
     "listTitle": "選擇更快的區域",
-    "listIntro": "我們測量了你到每個 {{vendor}} 區域的連線:",
-    "recommended": "建議",
+    "listIntro": "我們測量了您到每個 {{vendor}} 區域的連線：",
+    "recommended": "推薦",
     "current": "目前",
     "unreachable": "無法連線",
     "switch": "切換",
-    "keep": "維持{{region}}"
+    "keep": "維持 {{region}}"
   }
 }

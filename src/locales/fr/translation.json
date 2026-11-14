@@ -1710,7 +1710,7 @@
     "recommended": "Recommandée",
     "current": "Actuelle",
     "unreachable": "Injoignable",
-    "switch": "Passer",
+    "switch": "Basculer",
     "keep": "Garder {{region}}"
   }
 }

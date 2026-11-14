@@ -1699,7 +1699,7 @@
     "changeBuiltInOwnKey": "Din anpassade röst finns i ditt Soniox-projekt i {{from}} och kan inte användas i {{to}}. Sessioner i {{to}} använder den inbyggda rösten {{name}} tills du skapar en anpassad röst i ditt projekt i {{to}}. Din röst i {{from}} finns kvar; när du byter tillbaka till {{from}} används den igen.",
     "changeCustomOwnKey": "Sessioner i {{to}} använder den anpassade rösten i ditt Soniox-projekt i {{to}}. Din röst i {{from}} finns kvar i ditt projekt i {{from}}.",
     "changeConfirm": "Byt till {{to}}",
-    "latencyMeasuring": "mäter …",
+    "latencyMeasuring": "mäter…",
     "latencyMs": "{{ms}} ms",
     "latencyUnreachable": "kan inte nås",
     "hintFaster": "{{region}} är ungefär {{ms}} ms snabbare än din nuvarande region ({{current}})",

@@ -1707,7 +1707,7 @@
     "hintAction": "Lihat kecepatan tiap wilayah",
     "listTitle": "Pilih wilayah yang lebih cepat",
     "listIntro": "Kami mengukur koneksi Anda ke setiap wilayah {{vendor}}:",
-    "recommended": "Disarankan",
+    "recommended": "Direkomendasikan",
     "current": "Saat ini",
     "unreachable": "Tidak dapat dijangkau",
     "switch": "Beralih",

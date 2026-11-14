@@ -1699,7 +1699,7 @@
     "changeBuiltInOwnKey": "Ihre benutzerdefinierte Stimme befindet sich in Ihrem Soniox-Projekt in {{from}} und kann in {{to}} nicht verwendet werden. Sitzungen in {{to}} verwenden die integrierte Stimme {{name}}, bis Sie in Ihrem Projekt in {{to}} eine benutzerdefinierte Stimme erstellen. Ihre Stimme in {{from}} bleibt erhalten; beim Zurückwechseln zu {{from}} wird sie wieder verwendet.",
     "changeCustomOwnKey": "Sitzungen in {{to}} verwenden die benutzerdefinierte Stimme in Ihrem Soniox-Projekt in {{to}}. Ihre Stimme in {{from}} bleibt in Ihrem Projekt in {{from}} erhalten.",
     "changeConfirm": "Zu {{to}} wechseln",
-    "latencyMeasuring": "wird gemessen …",
+    "latencyMeasuring": "wird gemessen…",
     "latencyMs": "{{ms}} ms",
     "latencyUnreachable": "nicht erreichbar",
     "hintFaster": "{{region}} ist etwa {{ms}} ms schneller als Ihre aktuelle Region ({{current}})",

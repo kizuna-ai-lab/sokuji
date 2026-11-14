@@ -1694,9 +1694,9 @@
   },
   "region": {
     "changeTitle": "Zmienić region?",
-    "changeBuiltIn": "Twój niestandardowy głos jest zapisany w regionie {{from}} i nie można go używać w regionie {{to}}. Sesje w regionie {{to}} będą korzystać z wbudowanego głosu {{name}}, dopóki nie utworzysz tam niestandardowego głosu. Twój głos w regionie {{from}} zostaje; po powrocie do {{from}} będzie ponownie używany.",
-    "changeCustom": "Sesje w regionie {{to}} będą korzystać z niestandardowego głosu, który tam utworzyłeś(-aś). Twój głos w regionie {{from}} pozostaje w {{from}}.",
-    "changeBuiltInOwnKey": "Twój niestandardowy głos znajduje się w Twoim projekcie Soniox w regionie {{from}} i nie można go używać w regionie {{to}}. Sesje w regionie {{to}} będą korzystać z wbudowanego głosu {{name}}, dopóki nie utworzysz niestandardowego głosu w swoim projekcie w regionie {{to}}. Twój głos w regionie {{from}} zostaje; po powrocie do {{from}} będzie ponownie używany.",
+    "changeBuiltIn": "Twój niestandardowy głos jest zapisany w regionie {{from}} i nie można go używać w regionie {{to}}. Sesje w regionie {{to}} będą korzystać z wbudowanego głosu {{name}}, dopóki nie utworzysz tam niestandardowego głosu. Twój głos w regionie {{from}} zostaje; po powrocie do regionu {{from}} będzie ponownie używany.",
+    "changeCustom": "Sesje w regionie {{to}} będą korzystać z utworzonego tam niestandardowego głosu. Twój głos w regionie {{from}} pozostaje w {{from}}.",
+    "changeBuiltInOwnKey": "Twój niestandardowy głos znajduje się w Twoim projekcie Soniox w regionie {{from}} i nie można go używać w regionie {{to}}. Sesje w regionie {{to}} będą korzystać z wbudowanego głosu {{name}}, dopóki nie utworzysz niestandardowego głosu w swoim projekcie w regionie {{to}}. Twój głos w regionie {{from}} zostaje; po powrocie do regionu {{from}} będzie ponownie używany.",
     "changeCustomOwnKey": "Sesje w regionie {{to}} będą korzystać z niestandardowego głosu z Twojego projektu Soniox w regionie {{to}}. Twój głos w regionie {{from}} pozostaje w Twoim projekcie w regionie {{from}}.",
     "changeConfirm": "Przełącz na {{to}}",
     "latencyMeasuring": "pomiar…",
@@ -1711,6 +1711,6 @@
     "current": "Obecny",
     "unreachable": "Brak połączenia",
     "switch": "Przełącz",
-    "keep": "Zostań w {{region}}"
+    "keep": "Zostań w regionie {{region}}"
   }
 }

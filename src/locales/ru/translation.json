@@ -1700,7 +1700,7 @@
     "changeCustomOwnKey": "Сеансы в регионе {{to}} будут использовать пользовательский голос из вашего проекта Soniox в регионе {{to}}. Ваш голос в регионе {{from}} остаётся в вашем проекте в регионе {{from}}.",
     "changeConfirm": "Переключиться на {{to}}",
     "latencyMeasuring": "измерение…",
-    "latencyMs": "{{ms}} ms",
+    "latencyMs": "{{ms}} мс",
     "latencyUnreachable": "недоступен",
     "hintFaster": "{{region}} быстрее вашего текущего региона ({{current}}) примерно на {{ms}} мс",
     "hintCurrentUnreachable": "{{region}} отвечает за {{ms}} мс; ваш текущий регион ({{current}}) недоступен",
@@ -1710,7 +1710,7 @@
     "recommended": "Рекомендуется",
     "current": "Текущий",
     "unreachable": "Не удалось подключиться",
-    "switch": "Переключить",
+    "switch": "Переключиться",
     "keep": "Оставить {{region}}"
   }
 }
