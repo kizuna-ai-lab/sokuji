@@ -142,6 +142,39 @@ describe('reconcileSonioxVoiceField', () => {
     warn.mockRestore();
   });
 
+  it('a recording saved while the managed lookup runs keeps the field', async () => {
+    // managedVoiceSource.create() saves the clip before ensure(), so it can land while mine() is pending.
+    await useProviderStore.getState().updateSettings(kizunaSonioxProvider, { voiceJp: 'stale' });
+    let saved = false;
+    const hasDeviceClip = vi.fn(async () => saved);
+    let mineCalled!: () => void;
+    const called = new Promise<void>((r) => { mineCalled = r; });
+    let answer!: (v: null) => void;
+    const run = reconcileSonioxVoiceField(kizunaSonioxProvider, 'jp', () => signedIn(), {
+      managedClient: () => ({ mine: () => { mineCalled(); return new Promise<null>((r) => { answer = r; }); } }),
+      hasDeviceClip, online: () => true,
+    });
+    await called;
+    saved = true;
+    answer(null);
+    await run;
+    expect(settings().voiceJp).toBe('stale');
+    expect(hasDeviceClip).toHaveBeenCalledTimes(2);
+    expect(hasDeviceClip).toHaveBeenLastCalledWith('u1');
+  });
+
+  it('a clip re-check that rejects writes nothing', async () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    await useProviderStore.getState().updateSettings(kizunaSonioxProvider, { voiceJp: 'stale' });
+    const hasDeviceClip = vi.fn().mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('idb'));
+    await reconcileSonioxVoiceField(kizunaSonioxProvider, 'jp', () => signedIn(), {
+      managedClient: () => ({ mine: async () => null }), hasDeviceClip, online: () => true,
+    });
+    expect(settings().voiceJp).toBe('stale');
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
   it('own key ignores the managed clip: a stale id resets even when this account has a clip', async () => {
     await useProviderStore.getState().setCredential(sonioxProvider, 'apiKeyEu', 'k-eu');
     await useProviderStore.getState().updateSettings(sonioxProvider, { voiceEu: 'gone' });
