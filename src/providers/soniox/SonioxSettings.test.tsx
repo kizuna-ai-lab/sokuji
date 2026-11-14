@@ -34,6 +34,9 @@ vi.mock('../../components/Settings/sections/SonioxVoiceSection', () => ({
   },
 }));
 
+const requestRegionChange = vi.hoisted(() => vi.fn(async () => true));
+vi.mock('../../lib/region/regionChange', () => ({ requestRegionChange }));
+
 import { createSonioxSettingsView } from './SonioxSettings';
 
 const account = (credentials: Record<string, string>): ProviderAccount => ({
@@ -41,7 +44,7 @@ const account = (credentials: Record<string, string>): ProviderAccount => ({
   auth: { signedIn: false, getToken: async () => null },
 });
 
-const BYOK = createSonioxSettingsView({ managed: false, useVoiceSource: () => null });
+const BYOK = createSonioxSettingsView({ providerId: 'soniox', managed: false, useVoiceSource: () => null });
 
 const props = (patch: Partial<SettingsProps<SonioxSettings>> = {}): SettingsProps<SonioxSettings> => ({
   settings: SONIOX_DEFAULTS,
@@ -64,14 +67,20 @@ beforeEach(() => {
 });
 
 describe('createSonioxSettingsView', () => {
-  it('writes the region, and locks it while a run is on', () => {
+  it('the region select asks for the change through the region path and never writes the region itself', () => {
+    const update = vi.fn();
+    render(<BYOK {...props({ update })} />);
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'in' } });
+    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'soniox', to: 'in', origin: 'select', auth: expect.anything() });
+    expect(update).not.toHaveBeenCalledWith(expect.objectContaining({ region: expect.anything() }));
+  });
+
+  it('lists the regions, and locks the select while a run is on', () => {
     const update = vi.fn();
     const { rerender } = render(<BYOK {...props({ update })} />);
     const select = screen.getByLabelText('Region') as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.textContent);
     expect(options).toEqual(['United States', 'European Union', '日本 (Japan)', 'India']);
-    fireEvent.change(select, { target: { value: 'eu' } });
-    expect(update).toHaveBeenCalledWith({ region: 'eu' });
     expect(select.disabled).toBe(false);
 
     rerender(<BYOK {...props({ update, disabled: true })} />);
@@ -146,7 +155,7 @@ describe('createSonioxSettingsView', () => {
   });
 
   it("a managed view reads the managed region tooltip and states the cost of split in the shared-session help, not as a block of its own (Plan B's seam)", () => {
-    const Managed = createSonioxSettingsView({ managed: true, useVoiceSource: () => null });
+    const Managed = createSonioxSettingsView({ providerId: 'kizunaai_soniox', managed: true, useVoiceSource: () => null });
     render(<Managed {...props()} />);
     expect(tooltipContents).toContain(
       'Soniox runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.'
@@ -228,7 +237,7 @@ describe('SonioxSettings, speaker labels', () => {
 // Spec 2026-11-05 §4.4: Soniox's own setting, in the view own-key and managed share, each flavour with its own stored value.
 describe.each([
   ['own key', BYOK],
-  ['managed', createSonioxSettingsView({ managed: true, useVoiceSource: () => null })],
+  ['managed', createSonioxSettingsView({ providerId: 'kizunaai_soniox', managed: true, useVoiceSource: () => null })],
 ] as const)('SonioxSettings, use the read-aloud text to improve recognition (%s)', (_flavour, View) => {
   const HELP = 'Tells the recognition service what is about to be read aloud, so it recognizes replies better and leaves the read-aloud out of the transcript if your speakers reach the microphone. When speech plays on this computer, this adds a small charge.';
   const SPLIT_BOTH = 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.';

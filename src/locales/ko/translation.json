@@ -1692,5 +1692,13 @@
       "lostHint": "소스가 사라졌습니다. 다시 선택할 때까지 마지막 이미지가 유지됩니다.",
       "lostExtension": "회의 탭의 이미지를 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다."
     }
+  },
+  "region": {
+    "changeTitle": "Switch region?",
+    "changeBuiltIn": "Your custom voice is saved in the {{from}} region and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice there. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustom": "Sessions in {{to}} will use the custom voice you created there. Your {{from}} voice stays in {{from}}.",
+    "changeBuiltInOwnKey": "Your custom voice is in your {{from}} Soniox project and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice in your {{to}} project. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustomOwnKey": "Sessions in {{to}} will use the custom voice in your {{to}} Soniox project. Your {{from}} voice stays in your {{from}} project.",
+    "changeConfirm": "Switch to {{to}}"
   }
 }

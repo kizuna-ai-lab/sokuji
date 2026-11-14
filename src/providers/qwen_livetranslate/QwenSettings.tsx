@@ -25,7 +25,8 @@ import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
 import { useScreenContextStore, type PickedSource } from '../../stores/screenContextStore';
 import { isElectron } from '../../utils/environment';
 import { ENDPOINTS, isEndpointId } from './endpoints';
-import { asQwenRegion, QWEN_REGION_LABELS, QWEN_REGIONS } from './regions';
+import { requestRegionChange } from '../../lib/region/regionChange';
+import { QWEN_REGION_LABELS, QWEN_REGIONS } from './regions';
 import { QWEN_VOICES, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings as S } from './settings';
 
 /** The voice a spoken leg reads in, for the Speech rows, as its run resolves it: a preset's name, or whose own voice is cloned. */
@@ -265,7 +266,7 @@ function PickedSourceChip({ source, disabled, onChoose }: { source: CaptureSourc
  */
 export function KizunaQwenSettingsView(props: SettingsProps<S>) {
   const { t } = useTranslation();
-  const { settings, update, disabled = false } = props;
+  const { settings, disabled = false, account } = props;
   return (
     <>
       <div className="settings-section" id="qwen-region-section">
@@ -285,7 +286,7 @@ export function KizunaQwenSettingsView(props: SettingsProps<S>) {
             aria-label={t('settings.qwenRegion', 'Region')}
             value={settings.region}
             disabled={disabled}
-            onChange={(e) => update({ region: asQwenRegion(e.target.value) })}
+            onChange={(e) => { void requestRegionChange({ providerId: 'kizunaai_qwen', to: e.target.value, origin: 'select', auth: account?.auth }); }}
           >
             {QWEN_REGIONS.map((r) => <option key={r} value={r}>{QWEN_REGION_LABELS[r]}</option>)}
           </select>

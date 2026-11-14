@@ -1692,5 +1692,13 @@
       "lostHint": "La sorgente non c'è più; l'ultima immagine resta finché non scegli di nuovo.",
       "lostExtension": "L'immagine della scheda della riunione non è più disponibile; la traduzione continua solo con l'audio."
     }
+  },
+  "region": {
+    "changeTitle": "Switch region?",
+    "changeBuiltIn": "Your custom voice is saved in the {{from}} region and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice there. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustom": "Sessions in {{to}} will use the custom voice you created there. Your {{from}} voice stays in {{from}}.",
+    "changeBuiltInOwnKey": "Your custom voice is in your {{from}} Soniox project and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice in your {{to}} project. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustomOwnKey": "Sessions in {{to}} will use the custom voice in your {{to}} Soniox project. Your {{from}} voice stays in your {{from}} project.",
+    "changeConfirm": "Switch to {{to}}"
   }
 }

@@ -1692,5 +1692,13 @@
       "lostHint": "மூலம் இனி இல்லை; நீங்கள் மீண்டும் தேர்ந்தெடுக்கும் வரை கடைசிப் படம் வைத்திருக்கப்படும்.",
       "lostExtension": "கூட்டத் தாவலின் படம் இனி கிடைக்கவில்லை; மொழிபெயர்ப்பு ஆடியோவை மட்டும் கொண்டு தொடரும்."
     }
+  },
+  "region": {
+    "changeTitle": "Switch region?",
+    "changeBuiltIn": "Your custom voice is saved in the {{from}} region and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice there. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustom": "Sessions in {{to}} will use the custom voice you created there. Your {{from}} voice stays in {{from}}.",
+    "changeBuiltInOwnKey": "Your custom voice is in your {{from}} Soniox project and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice in your {{to}} project. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustomOwnKey": "Sessions in {{to}} will use the custom voice in your {{to}} Soniox project. Your {{from}} voice stays in your {{from}} project.",
+    "changeConfirm": "Switch to {{to}}"
   }
 }

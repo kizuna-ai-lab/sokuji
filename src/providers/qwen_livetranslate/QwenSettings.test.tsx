@@ -37,6 +37,9 @@ import nl from '../../locales/nl/translation.json';
 import type { SettingsProps } from '../../lib/provider/types';
 import type { CaptureSourceInfo } from '../../lib/screen/desktopFrames';
 import { useScreenContextStore, type PickedSource, type PickReason } from '../../stores/screenContextStore';
+const requestRegionChange = vi.hoisted(() => vi.fn(async () => true));
+vi.mock('../../lib/region/regionChange', () => ({ requestRegionChange }));
+
 import { KizunaQwenSettingsView, QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QWEN_DEFAULTS, QWEN_VOICES, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings } from './settings';
 
@@ -532,11 +535,12 @@ describe('KizunaQwenSettingsView (the managed view, Beijing region spec §8)', (
     expect(library).toHaveLength(1);
   });
 
-  it('picking Beijing writes the region and nothing else', () => {
+  it('picking Beijing asks the region path and writes no region itself', () => {
     const update = vi.fn();
     const { container } = render(<KizunaQwenSettingsView {...props({ update })} />);
     fireEvent.change(container.querySelector('#qwen-region-select') as HTMLSelectElement, { target: { value: 'cn' } });
-    expect(update).toHaveBeenCalledWith({ region: 'cn' });
+    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select', auth: undefined });
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('locks the select while a run is not idle', () => {

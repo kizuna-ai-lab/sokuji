@@ -10,7 +10,7 @@ import { createSonioxVoiceSummary } from './SonioxVoiceSummary';
 import { createKizunaVoiceClaim } from './voiceClaim';
 
 /** Kizuna Soniox's settings: Soniox's own, with the managed copy and the account's one cached voice (Plan A choice 12). */
-export const KizunaSonioxSettingsView = createSonioxSettingsView({ managed: true, useVoiceSource: useManagedVoiceSource });
+export const KizunaSonioxSettingsView = createSonioxSettingsView({ providerId: 'kizunaai_soniox', managed: true, useVoiceSource: useManagedVoiceSource });
 const KizunaSonioxVoiceSummary = createSonioxVoiceSummary({ managed: true });
 
 /**

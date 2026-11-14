@@ -14,6 +14,7 @@ import { useRegionRecommendationStore } from '../../stores/regionRecommendationS
 import { useSetupWizardOpen } from '../../stores/layoutStore';
 import { useAuthContext } from '../providers/useAuthContext';
 import { useTour } from '../Tour/TourProvider';
+import RegionChangeConfirm from './RegionChangeConfirm';
 import { useOnline } from './useOnline';
 
 export default function RegionRecommendation(): React.JSX.Element {
@@ -59,5 +60,9 @@ export default function RegionRecommendation(): React.JSX.Element {
     };
   }, [ready, selected]);
 
-  return <div data-testid="region-recommendation" />;
+  return (
+    <div data-testid="region-recommendation">
+      <RegionChangeConfirm />
+    </div>
+  );
 }

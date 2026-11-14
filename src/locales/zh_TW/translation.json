@@ -1692,5 +1692,13 @@
       "lostHint": "來源已不存在；在你重新選擇之前，會保留最後一張畫面。",
       "lostExtension": "會議分頁的畫面已無法使用，翻譯將僅憑音訊繼續。"
     }
+  },
+  "region": {
+    "changeTitle": "Switch region?",
+    "changeBuiltIn": "Your custom voice is saved in the {{from}} region and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice there. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustom": "Sessions in {{to}} will use the custom voice you created there. Your {{from}} voice stays in {{from}}.",
+    "changeBuiltInOwnKey": "Your custom voice is in your {{from}} Soniox project and can't be used in {{to}}. Sessions in {{to}} will use the built-in voice {{name}} until you create a custom voice in your {{to}} project. Your {{from}} voice stays; switching back to {{from}} uses it again.",
+    "changeCustomOwnKey": "Sessions in {{to}} will use the custom voice in your {{to}} Soniox project. Your {{from}} voice stays in your {{from}} project.",
+    "changeConfirm": "Switch to {{to}}"
   }
 }

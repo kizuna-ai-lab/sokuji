@@ -6,6 +6,7 @@ import { LinesField } from '../../components/providers/fields/LinesField';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps } from '../../lib/provider/types';
+import { requestRegionChange } from '../../lib/region/regionChange';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS } from '../../lib/soniox/regions';
 import { SonioxVoiceField, useByokVoiceSource, type VoiceSourceHook } from './SonioxVoiceField';
 import { sonioxSharedBoth, type SonioxSettings as S } from './settings';
@@ -13,6 +14,8 @@ import { sonioxSharedBoth, type SonioxSettings as S } from './settings';
 const helpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />;
 
 export interface SonioxSettingsFlavour {
+  /** The provider this view belongs to: the region change path keys its question and "chose manually" on it. */
+  providerId: 'soniox' | 'kizunaai_soniox';
   /** Kizuna Soniox (Plan B): the managed copy — the region tooltip, the split's cost note, the voice library's variant. */
   managed: boolean;
   useVoiceSource: VoiceSourceHook;
@@ -27,7 +30,7 @@ export interface SonioxSettingsFlavour {
  * off. The endpoint knobs are its `TurnDetection`. A
  * factory, so the managed twin reuses it with its own voice source (choice 12).
  */
-export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSettingsFlavour): ComponentType<SettingsProps<S>> {
+export function createSonioxSettingsView({ providerId, managed, useVoiceSource }: SonioxSettingsFlavour): ComponentType<SettingsProps<S>> {
   return function SonioxSettingsView({ settings, update, disabled = false, pair, account, legs, participantSpeaks, faceToFace, preview }: SettingsProps<S>) {
     const { t } = useTranslation();
     const region = asSonioxRegion(settings.region);
@@ -66,7 +69,7 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
               aria-label={t('settings.sonioxRegion', 'Region')}
               value={region}
               disabled={disabled}
-              onChange={(e) => update({ region: asSonioxRegion(e.target.value) })}
+              onChange={(e) => { void requestRegionChange({ providerId, to: e.target.value, origin: 'select', auth: account?.auth }); }}
             >
               {SONIOX_REGIONS.map((r) => <option key={r} value={r}>{SONIOX_REGION_LABELS[r]}</option>)}
             </select>
@@ -184,4 +187,4 @@ export function createSonioxSettingsView({ managed, useVoiceSource }: SonioxSett
 }
 
 /** An own key's settings. */
-export const SonioxSettingsView = createSonioxSettingsView({ managed: false, useVoiceSource: useByokVoiceSource });
+export const SonioxSettingsView = createSonioxSettingsView({ providerId: 'soniox', managed: false, useVoiceSource: useByokVoiceSource });

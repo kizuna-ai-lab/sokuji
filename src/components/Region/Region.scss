@@ -1,0 +1,46 @@
+@use '../Settings/shared/variables' as vars;
+
+// The voice-warning dialog. Its actions row follows .license-consent-modal in Settings.scss.
+.region-change {
+  text-align: left;
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      font-size: vars.$font-title;
+      transition: background-color vars.$transition-fast;
+    }
+  }
+
+  &__cancel {
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+
+    &:hover {
+      background-color: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+    }
+  }
+
+  &__confirm {
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
+
+    &:hover {
+      background-color: vars.$color-primary-fill-hover;
+    }
+  }
+}
