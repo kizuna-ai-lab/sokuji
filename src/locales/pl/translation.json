@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Ustawienia dostawcy",
-        "content": "Tutaj zmienisz klucz lub dostawcę.",
+        "content": "Tutaj zmienisz swój klucz.",
         "content_pending": "Wklej tutaj swój klucz API. Start odblokuje się, gdy klucz zostanie zweryfikowany."
       },
       "models": {

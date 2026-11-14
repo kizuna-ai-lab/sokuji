@@ -8,8 +8,9 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: () => <div id="languages-section" /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
+const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
 vi.mock('../providers/ProviderOwnSettings', () => ({
-  ProviderEngine: () => <div id="model-management-section"><div id="model-tts-section" /></div>,
+  ProviderEngine: (props: { initialSlot?: unknown; onInitialSlotConsumed?: () => void }) => { engineProps.push(props); return <div id="model-management-section"><div id="model-tts-section" /></div>; },
   ProviderOwnSettings: () => <div id="provider-own-settings" />,
   ProviderTurnDetectionControls: () => null,
 }));
@@ -22,7 +23,7 @@ vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedI
 const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
-import { LineUpCategory } from './LineUpCategory';
+import { LineUpCategory, stageInSentence } from './LineUpCategory';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import useSettingsStore from '../../stores/settingsStore';
@@ -99,3 +100,42 @@ describe('languages and line-up', () => {
   });
 });
 
+describe('languages and line-up — the way in from a notice', () => {
+  it("a 'provider-options' target unfolds the provider's options", () => {
+    render(<LineUpCategory locked={false} />);
+    expect(document.getElementById('provider-own-settings')).toBeNull();
+    act(() => { useSettingsStore.getState().navigateToSettings('provider-options'); });
+    expect(document.getElementById('provider-own-settings')).not.toBeNull();
+    expect(document.getElementById('provider-options-section')).not.toBeNull();
+  });
+
+  it("hands a pending engine slot to the provider's engine, and clears it once the engine has opened it", () => {
+    engineProps.length = 0;
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    useSettingsStore.setState({ engineSlotTarget: { dir: 'ja→en', stage: 'tts' } });
+    render(<LineUpCategory locked={false} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('provider-options'); });
+    const props = engineProps[engineProps.length - 1];
+    expect(props.initialSlot).toEqual({ dir: 'ja→en', stage: 'tts' });
+    act(() => props.onInitialSlotConsumed?.());
+    expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+  });
+
+  it('Bing and Edge need no model: their rows read Ready while the local models are missing', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference', readiness: { local_inference: { state: 'not-ready' } } as never });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getAllByText('Needs a model')).toHaveLength(1);
+    expect(screen.getAllByText('Ready')).toHaveLength(2);
+  });
+});
+
+describe('a stage named inside a sentence', () => {
+  it('is lower-cased where the language writes it so, and kept as is in German', () => {
+    expect(stageInSentence('Translation', 'en')).toBe('translation');
+    expect(stageInSentence('Übersetzung', 'de')).toBe('Übersetzung');
+    expect(stageInSentence('Traduction', 'fr')).toBe('traduction');
+    expect(stageInSentence('翻译', 'zh_CN')).toBe('翻译');
+  });
+});

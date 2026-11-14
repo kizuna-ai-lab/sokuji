@@ -53,7 +53,11 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'model-asr': { category: 'lineup', anchor: 'model-asr' },
   'model-translation': { category: 'lineup', anchor: 'model-translation' },
   'model-tts': { category: 'lineup', anchor: 'model-tts' },
-  // Today's 'provider' target switches only, without scrolling or highlighting (its section is the whole area).
+  // The stage rows: where a provider is chosen (a notice with no provider).
+  lineup: { category: 'lineup', anchor: 'lineup' },
+  // What a provider needs besides a key (models, memory, voices, an engine slot): its own options, unfolded.
+  'provider-options': { category: 'lineup', anchor: 'provider-options' },
+  // Today's 'provider' target is the key or the sign-in: the accounts, without scrolling or highlighting.
   provider: { category: 'accounts', anchor: null },
   'user-account': { category: 'accounts', anchor: 'user-account' },
   microphone: { category: 'audio', anchor: 'microphone' },

@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Pengaturan Penyedia",
-        "content": "Ubah kunci Anda atau ganti penyedia di sini.",
+        "content": "Ubah kunci Anda di sini.",
         "content_pending": "Tempel kunci API Anda di sini. Tombol Mulai aktif setelah kunci divalidasi."
       },
       "models": {

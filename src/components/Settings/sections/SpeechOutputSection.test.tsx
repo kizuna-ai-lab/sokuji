@@ -471,7 +471,7 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(document.querySelector('.setting-row__voice')).toBeNull();
   });
 
-  it("for a provider whose voices sit in its engine, the name opens that leg's TTS slot, without leaving Quick (#619)", () => {
+  it("for a provider whose voices sit in its engine, the name opens that leg's TTS slot in the provider's options (#619)", () => {
     useProviderStore.setState({
       selected: 'local_inference',
       entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { edge: 'en-US-AvaNeural' } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
@@ -482,7 +482,7 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Ava' }));
     expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');
   });
 });
 

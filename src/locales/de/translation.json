@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Anbieter-Einstellungen",
-        "content": "Ändern Sie hier Ihren Schlüssel oder wechseln Sie den Anbieter.",
+        "content": "Ändern Sie hier Ihren Schlüssel.",
         "content_pending": "Fügen Sie hier Ihren API-Schlüssel ein. \"Starten\" schaltet sich frei, sobald er gültig ist."
       },
       "models": {

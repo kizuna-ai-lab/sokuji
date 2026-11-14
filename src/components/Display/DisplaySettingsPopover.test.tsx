@@ -120,6 +120,22 @@ describe('DisplaySettingsPopover', () => {
     expect(container.querySelector('.color-picker')).toBeNull();
   });
 
+  // On the settings page Esc would otherwise close the whole page: an open picker takes it first.
+  it('Esc closes an open picker and goes no further', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(bgCustom); });
+    const outer = vi.fn((e: KeyboardEvent) => e.defaultPrevented);
+    document.addEventListener('keydown', outer);
+    try {
+      await act(async () => { fireEvent.keyDown(container.querySelector('.color-picker')!, { key: 'Escape' }); });
+      expect(container.querySelector('.color-picker')).toBeNull();
+      expect(outer).toHaveReturnedWith(true);
+    } finally {
+      document.removeEventListener('keydown', outer);
+    }
+  });
+
   it('opens the picker seeded with that row\'s current color', async () => {
     useConversationDisplayStore.setState({ sourceTextColor: '#7f3ac1' } as never);
     const { container } = render(<DisplaySettingsPopover source="conversation" />);

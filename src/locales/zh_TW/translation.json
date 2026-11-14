@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "提供商設定",
-        "content": "在這裡更換金鑰或切換提供商。",
+        "content": "在這裡換金鑰。",
         "content_pending": "在這裡貼上您的 API 金鑰。通過驗證後即可解鎖「開始」。"
       },
       "models": {

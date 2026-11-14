@@ -13,7 +13,7 @@ import { presentProviders } from '../../providers/registry';
 import { lineUpChangedEvent, useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useMode } from '../../stores/audioStore';
-import { useNavigateToSettings, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
+import { useEngineSlotTarget, useNavigateToSettings, useSetEngineSlotTarget, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, type Selections } from '../../lib/local-inference/selection/types';
@@ -28,7 +28,16 @@ import type { CategoryBodyProps } from './SettingsPage';
 const STAGE_TITLES: Record<RunStage, string> = { transcription: 'Transcription', translation: 'Translation', speech: 'Speech' };
 
 /** The navigation targets that live in the folded provider options: they unfold them first. */
-const FOLDED_TARGETS = new Set(['model-management', 'model-asr', 'model-translation', 'model-tts', 'system-instructions', 'voice-settings', 'turn-detection-tuning']);
+const FOLDED_TARGETS = new Set(['provider-options', 'model-management', 'model-asr', 'model-translation', 'model-tts', 'system-instructions', 'voice-settings', 'turn-detection-tuning']);
+
+/**
+ * A stage's name inside a sentence ("Goes with translation…"): lower-cased in the reader's language, except where
+ * that language writes it capitalised (German nouns).
+ */
+export function stageInSentence(name: string, language: string): string {
+  const tag = language.replace('_', '-');
+  return tag.toLowerCase().startsWith('de') ? name : name.toLocaleLowerCase(tag);
+}
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
 function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key' | 'sign-in' | null {
@@ -42,7 +51,7 @@ function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key
 }
 
 export function LineUpCategory({ locked }: CategoryBodyProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
   const providers = useMemo(() => presentProviders(), []);
   const auth = useAuthContext();
@@ -56,6 +65,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
   const [folded, setFolded] = useState(true);
+  // A slot a notice asked for (a voice to fix, #619): the engine opens it, then it is spent.
+  const engineSlotTarget = useEngineSlotTarget();
+  const setEngineSlotTarget = useSetEngineSlotTarget();
   const [moved, setMoved] = useState<{ stage: StageName; text: string } | null>(null);
 
   // Every provider with a key is loaded, so that its row can say whether the key is there.
@@ -67,6 +79,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   useEffect(() => {
     if (target && FOLDED_TARGETS.has(target)) setFolded(false);
   }, [target]);
+  useEffect(() => {
+    if (engineSlotTarget) setFolded(false);
+  }, [engineSlotTarget]);
 
   const offered = useMemo(() => {
     const ids = new Set(providers.map((p) => p.id));
@@ -74,7 +89,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     return ids;
   }, [providers]);
 
-  const stageName = (s: StageName) => t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage] ?? s).toLowerCase();
+  const stageName = (s: StageName) => stageInSentence(t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage] ?? s), i18n?.language ?? 'en');
 
   const optionsFor = (stage: RunStage): ProviderOptionModel[] => {
     void entries; // re-render when an entry loads, so the key state is current
@@ -115,6 +130,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   /** A row's state: what the chosen provider lacks, or Ready. */
   const stateOf = (id: string): { ok: boolean; text: string } => {
     const p = providers.find((x) => x.id === id) ?? (caps(id)?.family === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
+    // Bing and Edge are online services of the local family: no key and no model.
+    if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
@@ -174,14 +191,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         })}
       </div>
       {selectedProvider && (
-        <div className="lineup-options">
+        <div className="lineup-options" id="provider-options-section">
           <button type="button" className="lineup-options__fold" aria-expanded={!folded} onClick={() => setFolded((f) => !f)}>
             {folded ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
             {t('settingsPage.lineup.options', '{{provider}} options', { provider: model(selectedProvider.id, selectedProvider).name })}
           </button>
           {!folded && (
             <>
-              <ProviderEngine providers={providers} disabled={locked} />
+              <ProviderEngine providers={providers} disabled={locked}
+                initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
               <ProviderOwnSettings providers={providers} auth={auth} disabled={locked} />
               <ProviderTurnDetectionControls providers={providers} disabled={locked} />
             </>

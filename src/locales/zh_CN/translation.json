@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "服务设置",
-        "content": "在这里换密钥或换服务。",
+        "content": "在这里换密钥。",
         "content_pending": "把 API 密钥粘贴在这里。校验通过后才能开始。"
       },
       "models": {

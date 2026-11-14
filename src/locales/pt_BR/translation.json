@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Configurações do provedor",
-        "content": "Troque sua chave ou mude de provedor aqui.",
+        "content": "Troque sua chave aqui.",
         "content_pending": "Cole sua chave de API aqui. O botão Iniciar é desbloqueado assim que ela for validada."
       },
       "models": {

@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Paramètres du fournisseur",
-        "content": "Modifiez votre clé ou changez de fournisseur ici.",
+        "content": "Modifiez votre clé ici.",
         "content_pending": "Collez votre clé API ici. Démarrer se déverrouille une fois qu'elle est validée."
       },
       "models": {

@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Impostazioni fornitore",
-        "content": "Cambia la tua chiave o il fornitore qui.",
+        "content": "Cambia qui la tua chiave.",
         "content_pending": "Incolla qui la tua chiave API. Avvia si sblocca una volta convalidata."
       },
       "models": {

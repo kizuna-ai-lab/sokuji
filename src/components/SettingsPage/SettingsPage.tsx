@@ -8,7 +8,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, type Comp
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Lock, Search, X } from 'lucide-react';
 import { useSessionLocked } from '../../app/useRun';
-import { useNavigateToSettings, useSettingsNavigationTarget } from '../../stores/settingsStore';
+import useSettingsStore, { useNavigateToSettings, useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { isExtension } from '../../utils/environment';
 import { CATEGORIES, GROUPS, filterCategories, targetToCategory, type Category, type CategoryId } from './categories';
 import { LineUpCategory } from './LineUpCategory';
@@ -16,9 +16,15 @@ import { AccountsCategory } from './AccountsCategory';
 import { AudioCategory, ModelsCategory } from './DeviceCategories';
 import { DisplayCategory } from './DisplayCategory';
 import { GeneralCategory } from './GeneralCategory';
+// Today's sections (rows, selects, key fields) are styled there; the old panel that loaded it is gone.
+import '../Settings/Settings.scss';
 import './SettingsPage.scss';
 
-export interface CategoryBodyProps { locked: boolean }
+export interface CategoryBodyProps {
+  locked: boolean;
+  /** The navigation target that opened this category (a notice, the tour), or null when the user picked it. */
+  openedBy?: string | null;
+}
 export type CategoryBodies = Partial<Record<CategoryId, ComponentType<CategoryBodyProps>>>;
 
 /** Each category's body; a category without one shows its title only. */
@@ -83,7 +89,11 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
   const shown = useMemo(() => CATEGORIES.filter((c) => c.shown() && !(c.desktopOnly && isExtension())), []);
   const [query, setQuery] = useState('');
   /** The open category; null in the narrow form means the list. */
-  const [open, setOpen] = useState<CategoryId | null>(null);
+  const [open, setOpenState] = useState<CategoryId | null>(null);
+  const [openedBy, setOpenedBy] = useState<string | null>(null);
+  /** The user's own pick: no target opened it. */
+  const setOpen = (id: CategoryId | null) => { setOpenedBy(null); setOpenState(id); };
+  const navigationRun = useRef(0);
   const current: CategoryId | null = open ?? (wide ? shown[0]?.id ?? null : null);
 
   const title = (c: Category) => t(c.titleKey, TITLES[c.id]);
@@ -92,8 +102,10 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
   // A navigation target opens its category, then highlights its element as the old panel did.
   useEffect(() => {
     if (!target) return;
+    const run = ++navigationRun.current;
     const { category, anchor } = targetToCategory(target);
-    setOpen(category);
+    setOpenState(category);
+    setOpenedBy(target);
     if (!anchor) {
       navigateToSettings(null);
       return;
@@ -119,6 +131,13 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
       clearTimeout(scrollTimer);
       if (highlightTimer) clearTimeout(highlightTimer);
       highlighted?.classList.remove('highlight');
+      // Closing the page hides it, which cancels the timer that would have cleared the target; left set, the next
+      // navigation to the same target would change nothing and the page would not open. Deferred a microtask: by
+      // then StrictMode's rehearsal, a newer target or a reopened page has started a newer run; a real close has not.
+      queueMicrotask(() => {
+        if (navigationRun.current !== run) return;
+        if (useSettingsStore.getState().settingsNavigationTarget === target) navigateToSettings(null);
+      });
     };
   }, [target, navigateToSettings]);
 
@@ -144,6 +163,8 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
       <label className="settings-page__search">
         <Search size={14} aria-hidden="true" />
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+          // Esc first clears what was typed; on an empty box it closes the page as anywhere else.
+          onKeyDown={(e) => { if (e.key === 'Escape' && query) { e.preventDefault(); setQuery(''); } }}
           placeholder={t('settingsPage.search', 'Search settings')} aria-label={t('settingsPage.search', 'Search settings')} />
       </label>
       {GROUPS.map((group) => {
@@ -182,7 +203,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
           </button>
         )}
       </header>
-      <div className="settings-page__body">{Body ? <Body locked={locked} /> : null}</div>
+      <div className="settings-page__body">{Body ? <Body locked={locked} openedBy={openedBy} /> : null}</div>
     </section>
   );
 

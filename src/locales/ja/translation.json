@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "プロバイダー設定",
-        "content": "キーの変更やプロバイダーの切り替えはここです。",
+        "content": "キーの変更はここです。",
         "content_pending": "ここに API キーを貼り付けてください。検証が通ると開始できます。"
       },
       "models": {

@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Sağlayıcı ayarları",
-        "content": "Anahtarınızı buradan değiştirin veya sağlayıcı değiştirin.",
+        "content": "Anahtarınızı burada değiştirin.",
         "content_pending": "API anahtarınızı buraya yapıştırın. Doğrulandığında Başlat'ın kilidi açılır."
       },
       "models": {

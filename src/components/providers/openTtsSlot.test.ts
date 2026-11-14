@@ -19,11 +19,11 @@ beforeEach(() => {
 });
 
 describe('openTtsSlot', () => {
-  it("opens the TTS slot of the direction each leg speaks, on the Provider tab", () => {
+  it("opens the TTS slot of the direction each leg speaks, in the line-up's provider options", () => {
     select('local_inference', LOCAL_INFERENCE_DEFAULTS);
     openTtsSlot('speaker');
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');
     openTtsSlot('participant');
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'tts' });
   });
@@ -34,12 +34,12 @@ describe('openTtsSlot', () => {
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ko→zh', stage: 'tts' });
   });
 
-  it('under a provider with no engine, opens the Provider tab and leaves no slot target behind', () => {
+  it("under a provider with no engine, opens the provider's options and leaves no slot target behind", () => {
     select('soniox', SONIOX_DEFAULTS);
     expect(selectedFromStores()?.provider.id).toBe('soniox');
     openTtsSlot('participant');
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');
   });
 
   it('under a provider with no engine, clears a slot target still pending from before, so it cannot open later under another provider', () => {

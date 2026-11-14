@@ -31,7 +31,7 @@ interface Account {
   serves: readonly string[];
 }
 
-export function AccountsCategory({ locked }: CategoryBodyProps) {
+export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps) {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const auth = useAuthContext();
@@ -39,6 +39,15 @@ export function AccountsCategory({ locked }: CategoryBodyProps) {
   const entries = useProviderStore((s) => s.entries);
   const readiness = useProviderStore((s) => s.readiness);
   const [open, setOpen] = useState<string | null>(null);
+
+  // Opened by a notice or the tour about a key or a sign-in: the selected provider's account is shown open.
+  useEffect(() => {
+    if (openedBy === 'user-account') { setOpen('kizuna'); return; }
+    if (openedBy !== 'provider') return;
+    const p = providers.find((x) => x.id === useProviderStore.getState().selected);
+    if (p?.kind === 'managed') setOpen('kizuna');
+    else if (p?.kind === 'own-key') setOpen(OPENAI_IDS.includes(p.id) ? 'openai' : p.id);
+  }, [openedBy, providers]);
 
   // Every provider with a key is loaded, so its row can say whether the key is there.
   useEffect(() => {

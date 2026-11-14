@@ -9,35 +9,34 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   // A Windows microphone that would not open: besides closing the application holding it, choose another (spec 2026-10-13 §3).
   mic_in_use: 'microphone',
   mic_unreadable: 'microphone',
-  no_provider: 'provider',
+  // The settings page splits what the old provider section held: choosing a provider is the line-up's
+  // stage rows, a key or a sign-in is "Accounts and keys" ('provider'), and models, memory and voices are
+  // the provider's own options under the line-up ('provider-options').
+  no_provider: 'lineup',
   credentials_missing: 'provider',
   // A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox).
   sign_in_required: 'provider',
-  // Ruling 5's fix: the missing-models gap is shown as amber "None" chips
-  // under the picker, each a link to its slot — the same target the
-  // engine-chip flash flow uses, not `model-management` (a pushed page's
-  // section, never rendered where Settings would highlight it — review
-  // Minor 2).
-  local_models_missing: 'provider',
-  no_asr: 'provider',
-  memory_exceeded: 'provider',
-  gpu_out_of_memory: 'provider',
+  // The missing models are chosen and downloaded in the local engine, among the provider's options.
+  local_models_missing: 'provider-options',
+  no_asr: 'provider-options',
+  memory_exceeded: 'provider-options',
+  gpu_out_of_memory: 'provider-options',
   turn_mode_unsupported: 'turn-detection',
   participant_unsupported: 'languages',
-  // Gemini's model codes (Stage 2 Gemini): the key and the model are the provider section's.
+  // Gemini's and OpenAI's model codes say the key lists no model: the fix is another key, in "Accounts and keys".
   no_realtime_model: 'provider',
   models_required: 'provider',
-  // OpenAI Translate's check codes (Stage 2 OpenAI Translate): the key, and the choice of another provider, are the provider section's.
+  // OpenAI Translate's check codes (Stage 2 OpenAI Translate): the key's own limits, in "Accounts and keys".
   no_translate_model: 'provider',
   region_unsupported: 'provider',
-  // The run continues on another voice (spec 2026-10-05 §2): the voice picker is the provider
-  // section's. Not `voice-settings`: that id is the prebuilt-voice fields' and Soniox's voice
+  // The run continues on another voice (spec 2026-10-05 §2): the voices are the provider's own
+  // options. Not `voice-settings`: that id is the prebuilt-voice fields' and Soniox's voice
   // section, and the local voices are not drawn there.
-  voice_clip_missing: 'provider',
-  voice_pool_busy: 'provider',
-  voice_build_failed: 'provider',
-  voice_unavailable: 'provider',
-  voice_fallback: 'provider',
+  voice_clip_missing: 'provider-options',
+  voice_pool_busy: 'provider-options',
+  voice_build_failed: 'provider-options',
+  voice_unavailable: 'provider-options',
+  voice_fallback: 'provider-options',
 };
 
 export function settingsTargetForCode(code: string | undefined): string | null {

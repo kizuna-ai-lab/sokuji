@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within, cleanup } from '@testing-library/react';
 
@@ -12,7 +13,9 @@ import { SettingsPage } from './SettingsPage';
 import useSettingsStore from '../../stores/settingsStore';
 
 const AudioBody = () => <div id="microphone-section">microphone</div>;
-const bodies = { audio: AudioBody };
+const opened: Array<string | null | undefined> = [];
+const AccountsBody = ({ openedBy }: { openedBy?: string | null }) => { opened.push(openedBy); return <div id="provider-section">accounts</div>; };
+const bodies = { audio: AudioBody, accounts: AccountsBody };
 
 beforeEach(() => {
   env.extension = false; env.locked = false;
@@ -79,5 +82,78 @@ describe('the settings page', () => {
     render(<SettingsPage onClose={onClose} bodies={bodies} />);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The page hides (not unmounts) when closed; a target left set would make the
+// next navigation to the same target a no-op, and the page would not reopen.
+describe('the settings page — a navigation target never outlives the page', () => {
+  const flushMicrotasks = () => act(async () => { await Promise.resolve(); });
+  const target = () => useSettingsStore.getState().settingsNavigationTarget;
+
+  it('closing mid-highlight clears the target, so the same target can open the page again', async () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('microphone'); });
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(document.getElementById('microphone-section')).toHaveClass('highlight');
+    unmount();
+    await flushMicrotasks();
+    expect(target()).toBeNull();
+  });
+
+  it('closing before the highlight landed clears the target too', async () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('microphone'); });
+    act(() => { vi.advanceTimersByTime(50); });
+    unmount();
+    await flushMicrotasks();
+    expect(target()).toBeNull();
+  });
+
+  it('a newer target set meanwhile is kept', async () => {
+    vi.useFakeTimers();
+    render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('microphone'); });
+    act(() => { vi.advanceTimersByTime(200); });
+    act(() => { useSettingsStore.getState().navigateToSettings('speech'); });
+    await flushMicrotasks();
+    expect(target()).toBe('speech');
+    expect(document.getElementById('microphone-section')).not.toHaveClass('highlight');
+  });
+
+  it("StrictMode's rehearsal leaves the target alone and the highlight still lands", async () => {
+    vi.useFakeTimers();
+    useSettingsStore.setState({ settingsNavigationTarget: 'microphone' });
+    render(<StrictMode><SettingsPage onClose={vi.fn()} bodies={bodies} /></StrictMode>);
+    await flushMicrotasks();
+    expect(target()).toBe('microphone');
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(document.getElementById('microphone-section')).toHaveClass('highlight');
+  });
+});
+
+describe('the settings page — keys and how a category was opened', () => {
+  it('Esc in the search box clears it and keeps the page open; Esc again closes it', () => {
+    const onClose = vi.fn();
+    render(<SettingsPage onClose={onClose} bodies={bodies} />);
+    const search = screen.getByRole('searchbox', { name: 'Search settings' });
+    fireEvent.change(search, { target: { value: 'micro' } });
+    fireEvent.keyDown(search, { key: 'Escape' });
+    expect(search).toHaveValue('');
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(search, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the category the target that opened it, and nothing once the user picks one', () => {
+    opened.length = 0;
+    render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('provider'); });
+    expect(opened[opened.length - 1]).toBe('provider');
+    fireEvent.click(screen.getByRole('button', { name: /^Audio/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Accounts and keys/ }));
+    expect(opened[opened.length - 1]).toBeNull();
   });
 });

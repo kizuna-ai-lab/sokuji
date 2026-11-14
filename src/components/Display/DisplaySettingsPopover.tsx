@@ -206,8 +206,15 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
   // @floating-ui/react's useRole, which also wires aria-haspopup / aria-
   // expanded / aria-controls on the trigger. Keeping the role on a single
   // level avoids duplicate dialog announcements.
+  // Esc with a picker open closes the picker and goes no further (the settings page would otherwise close).
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Escape' || openPicker === null) return;
+    e.preventDefault();
+    setOpenPicker(null);
+  };
+
   return (
-    <div className="display-settings-popover">
+    <div className="display-settings-popover" onKeyDown={onKeyDown}>
       {includeOpacity && (
         <OpacitySlider value={bindings.bgOpacity!} onCommit={bindings.setBgOpacity!} />
       )}

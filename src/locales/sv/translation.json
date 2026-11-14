@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Leverantörsinställningar",
-        "content": "Ändra din nyckel eller byt leverantör här.",
+        "content": "Byt din nyckel här.",
         "content_pending": "Klistra in din API-nyckel här. Starta-knappen låses upp så snart den valideras."
       },
       "models": {

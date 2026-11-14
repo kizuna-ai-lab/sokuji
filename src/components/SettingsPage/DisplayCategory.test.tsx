@@ -4,7 +4,11 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
 }));
-vi.mock('../Display/DisplaySettingsPopover', () => ({ default: ({ source }: { source: string }) => <div data-testid={`popover-${source}`} /> }));
+vi.mock('../Display/DisplaySettingsPopover', () => ({
+  default: ({ source, readingTargets }: { source: string; readingTargets?: ReadonlySet<string> }) => <div data-testid={`popover-${source}`} data-readings={[...(readingTargets ?? [])].join(',')} />,
+}));
+vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), isElectron: () => true }));
+vi.mock('../../lib/reading/useReadingTargets', () => ({ useReadingTargets: () => new Set(['ja']) }));
 
 import { DisplayCategory } from './DisplayCategory';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
@@ -42,5 +46,19 @@ describe('display with a preview', () => {
     fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
     expect(screen.getByTestId('popover-subtitle')).toBeInTheDocument();
     expect(screen.queryByTestId('popover-conversation')).toBeNull();
+  });
+});
+
+describe('display — readings', () => {
+  it("offers the readings switch for the main window, and for caption mode on the desktop unless it is compact", () => {
+    render(<DisplayCategory locked={false} />);
+    expect(screen.getByTestId('popover-conversation')).toHaveAttribute('data-readings', 'ja');
+    fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
+    expect(screen.getByTestId('popover-subtitle')).toHaveAttribute('data-readings', 'ja');
+    useSubtitleStore.setState({ compactMode: true });
+    cleanup();
+    render(<DisplayCategory locked={false} />);
+    fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
+    expect(screen.getByTestId('popover-subtitle')).toHaveAttribute('data-readings', '');
   });
 });

@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "제공자 설정",
-        "content": "여기서 키를 변경하거나 제공자를 전환할 수 있습니다.",
+        "content": "여기서 키를 바꿉니다.",
         "content_pending": "여기에 API 키를 붙여넣으세요. 검증되면 시작이 활성화됩니다."
       },
       "models": {

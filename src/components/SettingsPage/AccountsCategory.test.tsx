@@ -75,3 +75,23 @@ describe('accounts and keys', () => {
     for (const input of inputs) expect(input).toBeDisabled();
   });
 });
+
+describe('accounts and keys — opened from a notice or the tour', () => {
+  it("opened by the 'provider' target, shows the selected provider's key at once", () => {
+    useProviderStore.setState({ selected: 'openai' });
+    render(<AccountsCategory locked={false} openedBy="provider" />);
+    expect(within(row('OpenAI')).getByRole('button', { name: 'Add key' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it("opened by the 'provider' target under a hosted provider, shows the Kizuna AI sign-in", () => {
+    useProviderStore.setState({ selected: 'kizunaai_soniox' });
+    render(<AccountsCategory locked={false} openedBy="provider" />);
+    expect(within(row('Kizuna AI')).getByText('account row')).toBeInTheDocument();
+  });
+
+  it('opened from the list, keeps every row folded', () => {
+    render(<AccountsCategory locked={false} />);
+    expect(screen.queryByText('account row')).toBeNull();
+  });
+});

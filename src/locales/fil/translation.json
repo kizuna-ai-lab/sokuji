@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Mga setting ng provider",
-        "content": "Palitan ang inyong key o lumipat ng provider dito.",
+        "content": "Palitan dito ang iyong key.",
         "content_pending": "I-paste ang inyong API key dito. Mabubuksan ang Start kapag na-validate na ito."
       },
       "models": {

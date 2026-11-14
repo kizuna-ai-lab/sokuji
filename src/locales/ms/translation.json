@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Tetapan Penyedia",
-        "content": "Tukar kunci anda atau tukar penyedia di sini.",
+        "content": "Tukar kunci anda di sini.",
         "content_pending": "Tampal kunci API anda di sini. Mula dibuka kuncinya sebaik sahaja ia disahkan."
       },
       "models": {

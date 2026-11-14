@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Tarjoajan asetukset",
-        "content": "Vaihda avaimesi tai tarjoajasi täältä.",
+        "content": "Vaihda avaimesi täällä.",
         "content_pending": "Liitä API-avaimesi tähän. Aloita vapautuu, kun avain vahvistuu."
       },
       "models": {

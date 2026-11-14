@@ -12,6 +12,8 @@ import {
 import { FONT_SIZE_MAX, FONT_SIZE_MIN, useSubtitleStore, type DisplayMode } from '../../stores/subtitleStore';
 import useSettingsStore from '../../stores/settingsStore';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
+import { useReadingTargets } from '../../lib/reading/useReadingTargets';
+import { isElectron } from '../../utils/environment';
 import { DisplayPreview, type PreviewValues } from './DisplayPreview';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -48,6 +50,9 @@ export function DisplayCategory(_props: CategoryBodyProps) {
   const { t } = useTranslation();
   const [surface, setSurface] = useState<Surface>('conversation');
   const s = useSurface(surface);
+  // Readings follow each surface's own rule: always in the main window; in caption mode on the desktop, not compact.
+  const readingTargets = useReadingTargets();
+  const readingsHere = surface === 'conversation' || (isElectron() && !s.compact) ? readingTargets : undefined;
   const modeSelect = (label: string, value: DisplayMode, onChange: (m: DisplayMode) => void) => (
     <label className="display-category__row">
       <span>{label}</span>
@@ -81,7 +86,7 @@ export function DisplayCategory(_props: CategoryBodyProps) {
         <span>{t('settingsPage.display.compact', 'Compact view')}</span>
         <input type="checkbox" role="switch" checked={s.compact} onChange={(e) => s.setCompact(e.target.checked)} />
       </label>
-      <DisplaySettingsPopover source={surface} />
+      <DisplaySettingsPopover source={surface} readingTargets={readingsHere} />
     </div>
   );
 }

@@ -37,3 +37,11 @@ describe('the settings categories', () => {
     expect(CATEGORIES.map((c) => c.id)).toEqual(['lineup', 'words', 'accounts', 'models', 'audio', 'display', 'history', 'general']);
   });
 });
+
+describe('the targets that lead into the line-up', () => {
+  it("opens the provider's own options for what a provider needs besides a key, and the stage rows for choosing one", () => {
+    expect(targetToCategory('provider-options')).toEqual({ category: 'lineup', anchor: 'provider-options' });
+    expect(targetToCategory('lineup')).toEqual({ category: 'lineup', anchor: 'lineup' });
+    expect(targetToCategory('provider')).toEqual({ category: 'accounts', anchor: null });
+  });
+});

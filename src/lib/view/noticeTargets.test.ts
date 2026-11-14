@@ -7,9 +7,12 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode('no_microphone')).toBe('microphone');
   });
 
-  it('sends every provider-readiness code to the provider section', () => {
-    for (const code of ['no_asr', 'credentials_missing', 'no_provider', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing']) {
-      expect(settingsTargetForCode(code)).toBe('provider');
+  // On the settings page a key is in "Accounts and keys"; models and the engine are the provider's own options in the line-up.
+  it("sends a missing key to the accounts, a missing model to the provider's options, and no provider to the line-up", () => {
+    expect(settingsTargetForCode('credentials_missing')).toBe('provider');
+    expect(settingsTargetForCode('no_provider')).toBe('lineup');
+    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing']) {
+      expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
   });
 

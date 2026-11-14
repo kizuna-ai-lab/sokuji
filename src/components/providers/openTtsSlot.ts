@@ -5,8 +5,9 @@ import { useSettingsStore } from '../../stores/settingsStore';
 
 /**
  * Opens the TTS slot of the direction `leg` speaks under the pair as it is
- * now (#619), by the model chips' path: the slot target, then Settings on the
- * Provider tab. A provider with no `Engine` gets the Provider tab only, and any
+ * now (#619): the slot target, then the settings page at the line-up's
+ * provider options, whose engine opens that slot. A provider with no `Engine`
+ * gets its options only, and any
  * slot target still pending is cleared: nothing there would consume it, and it
  * would open later under another provider.
  */
@@ -19,5 +20,5 @@ export function openTtsSlot(leg: LegName): void {
   } else {
     setEngineSlotTarget(null);
   }
-  navigateToSettings('provider');
+  navigateToSettings('provider-options');
 }

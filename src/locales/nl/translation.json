@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Providerinstellingen",
-        "content": "Wijzig hier uw sleutel of wissel van provider.",
+        "content": "Wijzig hier je sleutel.",
         "content_pending": "Plak hier uw API-sleutel. Start wordt ontgrendeld zodra deze is gevalideerd."
       },
       "models": {

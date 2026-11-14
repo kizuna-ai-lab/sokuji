@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Configuración del proveedor",
-        "content": "Aquí puedes cambiar tu clave o cambiar de proveedor.",
+        "content": "Cambia tu clave aquí.",
         "content_pending": "Pega aquí tu clave API. Iniciar se desbloquea en cuanto se valide."
       },
       "models": {

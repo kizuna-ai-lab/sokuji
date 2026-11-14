@@ -1470,7 +1470,7 @@
       },
       "provider-settings": {
         "title": "Cài đặt nhà cung cấp",
-        "content": "Thay đổi khóa hoặc chuyển nhà cung cấp ở đây.",
+        "content": "Đổi khóa của bạn tại đây.",
         "content_pending": "Dán khóa API của bạn vào đây. Bắt đầu sẽ mở khóa khi khóa được xác thực."
       },
       "models": {

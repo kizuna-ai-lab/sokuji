@@ -1012,7 +1012,7 @@
       },
       "provider-settings": {
         "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
+        "content": "Change your key here.",
         "content_pending": "Paste your API key here. Start unlocks once it validates."
       },
       "models": {
