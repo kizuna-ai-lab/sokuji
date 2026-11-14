@@ -9,7 +9,7 @@
 import { AUTO } from '../../lib/provider/languages';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { distinctVoice } from '../../lib/provider/voices';
-import { asSonioxRegion, DEFAULT_SONIOX_REGION, type SonioxRegion } from '../../lib/soniox/regions';
+import { asSonioxRegion, DEFAULT_SONIOX_REGION, SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE, SONIOX_PARTICIPANT_DEFAULT_VOICE, SONIOX_VOICES } from '../../lib/soniox/ttsCatalog';
 import { SONIOX_LANGUAGES, sonioxWire } from './languages';
 
@@ -22,6 +22,7 @@ export interface SonioxSettings {
   voice: string;
   voiceEu: string;
   voiceJp: string;
+  voiceIn: string;
   /** The voice that reads the other person's words to me: built-in only, one for every region (D12). */
   participantVoice: string;
   /** Both mode on one shared two_way session (true) or two sessions (false). */
@@ -55,6 +56,7 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   voice: SONIOX_DEFAULT_VOICE,
   voiceEu: SONIOX_DEFAULT_VOICE,
   voiceJp: SONIOX_DEFAULT_VOICE,
+  voiceIn: SONIOX_DEFAULT_VOICE,
   participantVoice: SONIOX_PARTICIPANT_DEFAULT_VOICE,
   bothModeSharedSession: false,
   speakerLabels: true,
@@ -68,7 +70,7 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   ttsSpeed: 1.0,
 };
 
-type StringField = 'voice' | 'voiceEu' | 'voiceJp' | 'vocabularyTerms' | 'vocabularyTranslations' | 'contextText';
+type StringField = 'voice' | 'voiceEu' | 'voiceJp' | 'voiceIn' | 'vocabularyTerms' | 'vocabularyTranslations' | 'contextText';
 type NumberField = 'endpointSensitivity' | 'endpointLatencyAdjustmentLevel' | 'endpointMaxDelayMs' | 'ttsSpeed';
 
 /** What was stored, made valid field by field; clamping stays in `build`, as the old descriptor did. Nothing is written back. */
@@ -83,6 +85,7 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
     voice: str('voice'),
     voiceEu: str('voiceEu'),
     voiceJp: str('voiceJp'),
+    voiceIn: str('voiceIn'),
     // Built-in voices only: a clone id (or anything else) falls to the default, never into the participant's mouth.
     participantVoice: typeof stored.participantVoice === 'string' && SONIOX_VOICES.some((v) => v.value === stored.participantVoice)
       ? stored.participantVoice
@@ -112,7 +115,7 @@ export function sonioxSharedBoth(faceToFace: boolean, s: Pick<SonioxSettings, 'b
 }
 
 /** The speaker's voice for a run: the active region's voice, or the default when none is stored. */
-export function sonioxSpeakerVoice(s: Pick<SonioxSettings, 'region' | 'voice' | 'voiceEu' | 'voiceJp'>): string {
+export function sonioxSpeakerVoice(s: Pick<SonioxSettings, 'region' | SonioxVoiceField>): string {
   return s[sonioxVoiceField(asSonioxRegion(s.region))] || SONIOX_DEFAULT_VOICE;
 }
 
@@ -121,18 +124,24 @@ export function participantVoiceFor(s: Pick<SonioxSettings, 'participantVoice'>,
   return distinctVoice(s.participantVoice || SONIOX_PARTICIPANT_DEFAULT_VOICE, speakerVoice, { participant: SONIOX_PARTICIPANT_DEFAULT_VOICE, speaker: SONIOX_DEFAULT_VOICE });
 }
 
-export type SonioxKeyField = 'apiKey' | 'apiKeyEu' | 'apiKeyJp';
-export const SONIOX_KEY_FIELDS: readonly SonioxKeyField[] = ['apiKey', 'apiKeyEu', 'apiKeyJp'];
-const REGION_OF_KEY: Readonly<Record<SonioxKeyField, SonioxRegion>> = { apiKey: 'us', apiKeyEu: 'eu', apiKeyJp: 'jp' };
+export type SonioxKeyField = 'apiKey' | 'apiKeyEu' | 'apiKeyJp' | 'apiKeyIn';
+export type SonioxVoiceField = 'voice' | 'voiceEu' | 'voiceJp' | 'voiceIn';
+
+/** Exhaustive on purpose: a fifth region is a compile error here, never a silent reuse of another region's key or voice. */
+export const SONIOX_KEY_FIELD: Readonly<Record<SonioxRegion, SonioxKeyField>> = { us: 'apiKey', eu: 'apiKeyEu', jp: 'apiKeyJp', in: 'apiKeyIn' };
+export const SONIOX_VOICE_FIELD: Readonly<Record<SonioxRegion, SonioxVoiceField>> = { us: 'voice', eu: 'voiceEu', jp: 'voiceJp', in: 'voiceIn' };
+
+export const SONIOX_KEY_FIELDS: readonly SonioxKeyField[] = SONIOX_REGIONS.map((r) => SONIOX_KEY_FIELD[r]);
+const REGION_OF_KEY = Object.fromEntries(SONIOX_REGIONS.map((r) => [SONIOX_KEY_FIELD[r], r])) as Readonly<Record<SonioxKeyField, SonioxRegion>>;
 
 /** The field holding a region's key: the only mapping from region to storage (the old descriptor's rule). */
 export function sonioxKeyField(region: SonioxRegion): SonioxKeyField {
-  return region === 'us' ? 'apiKey' : region === 'eu' ? 'apiKeyEu' : 'apiKeyJp';
+  return SONIOX_KEY_FIELD[region];
 }
 
 /** The field holding a region's voice: a cloned voice is a UUID inside one region's project. */
-export function sonioxVoiceField(region: SonioxRegion): 'voice' | 'voiceEu' | 'voiceJp' {
-  return region === 'us' ? 'voice' : region === 'eu' ? 'voiceEu' : 'voiceJp';
+export function sonioxVoiceField(region: SonioxRegion): SonioxVoiceField {
+  return SONIOX_VOICE_FIELD[region];
 }
 
 /** The answer to `reissue()`: a fresh single-use STT key for the same lease and role, or why there is none. */

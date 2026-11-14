@@ -119,6 +119,14 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   };
   
   // Settings & Configuration
+  'region_recommendation': {
+    provider: 'kizunaai_soniox' | 'kizunaai_qwen';
+    medians: Record<string, number | null>;
+    current: string;
+    recommended: string | null;
+    outcome: 'switched' | 'kept' | 'no_change' | 'gave_up';
+    chosen: string;
+  };
   'settings_modified': { 
     setting_name: string;
     old_value?: any;

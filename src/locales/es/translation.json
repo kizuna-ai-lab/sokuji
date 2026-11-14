@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nombre para una nueva voz clonada (opcional)",
     "sonioxVoiceDefaultName": "Mi voz {{n}}",
     "sonioxManagedVoiceName": "Mi voz",
-    "sonioxVoiceDeletedPlaceholder": "(voz eliminada)",
     "palabraVoiceProcessingBadge": "procesando…",
     "palabraVoiceFailedBadge": "fallida",
     "palabraVoiceDeletedPlaceholder": "(voz eliminada)",
@@ -1692,5 +1691,26 @@
       "lostHint": "La fuente ya no está; se conserva la última imagen hasta que elijas de nuevo.",
       "lostExtension": "La imagen de la pestaña de la reunión ya no está disponible; la traducción continúa solo con el audio."
     }
+  },
+  "region": {
+    "changeTitle": "¿Cambiar de región?",
+    "changeBuiltIn": "Tu voz personalizada está guardada en la región {{from}} y no se puede usar en {{to}}. Las sesiones en {{to}} usarán la voz integrada {{name}} hasta que crees allí una voz personalizada. Tu voz de {{from}} se conserva; al volver a {{from}} se usará de nuevo.",
+    "changeCustom": "Las sesiones en {{to}} usarán la voz personalizada que creaste allí. Tu voz de {{from}} permanece en {{from}}.",
+    "changeBuiltInOwnKey": "Tu voz personalizada está en tu proyecto de Soniox de {{from}} y no se puede usar en {{to}}. Las sesiones en {{to}} usarán la voz integrada {{name}} hasta que crees una voz personalizada en tu proyecto de {{to}}. Tu voz de {{from}} se conserva; al volver a {{from}} se usará de nuevo.",
+    "changeCustomOwnKey": "Las sesiones en {{to}} usarán la voz personalizada de tu proyecto de Soniox de {{to}}. Tu voz de {{from}} permanece en tu proyecto de {{from}}.",
+    "changeConfirm": "Cambiar a {{to}}",
+    "latencyMeasuring": "midiendo…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "sin conexión",
+    "hintFaster": "{{region}} es unos {{ms}} ms más rápida que tu región actual ({{current}})",
+    "hintCurrentUnreachable": "{{region}} responde en {{ms}} ms; no se pudo conectar con tu región actual ({{current}})",
+    "hintAction": "Ver la velocidad de cada región",
+    "listTitle": "Elige una región más rápida",
+    "listIntro": "Hemos medido tu conexión con cada región de {{vendor}}:",
+    "recommended": "Recomendada",
+    "current": "Actual",
+    "unreachable": "No se pudo conectar",
+    "switch": "Cambiar",
+    "keep": "Mantener {{region}}"
   }
 }

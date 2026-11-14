@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nome per una nuova voce clonata (facoltativo)",
     "sonioxVoiceDefaultName": "La mia voce {{n}}",
     "sonioxManagedVoiceName": "La mia voce",
-    "sonioxVoiceDeletedPlaceholder": "(voce eliminata)",
     "palabraVoiceProcessingBadge": "elaborazione…",
     "palabraVoiceFailedBadge": "non riuscita",
     "palabraVoiceDeletedPlaceholder": "(voce eliminata)",
@@ -1692,5 +1691,26 @@
       "lostHint": "La sorgente non c'è più; l'ultima immagine resta finché non scegli di nuovo.",
       "lostExtension": "L'immagine della scheda della riunione non è più disponibile; la traduzione continua solo con l'audio."
     }
+  },
+  "region": {
+    "changeTitle": "Cambiare regione?",
+    "changeBuiltIn": "La tua voce personalizzata è salvata nella regione {{from}} e non può essere usata in {{to}}. Le sessioni in {{to}} useranno la voce integrata {{name}} finché non creerai lì una voce personalizzata. La tua voce in {{from}} resta salvata; tornando a {{from}} verrà usata di nuovo.",
+    "changeCustom": "Le sessioni in {{to}} useranno la voce personalizzata che hai creato lì. La tua voce in {{from}} resta in {{from}}.",
+    "changeBuiltInOwnKey": "La tua voce personalizzata si trova nel tuo progetto Soniox in {{from}} e non può essere usata in {{to}}. Le sessioni in {{to}} useranno la voce integrata {{name}} finché non creerai una voce personalizzata nel tuo progetto in {{to}}. La tua voce in {{from}} resta salvata; tornando a {{from}} verrà usata di nuovo.",
+    "changeCustomOwnKey": "Le sessioni in {{to}} useranno la voce personalizzata nel tuo progetto Soniox in {{to}}. La tua voce in {{from}} resta nel tuo progetto in {{from}}.",
+    "changeConfirm": "Passa a {{to}}",
+    "latencyMeasuring": "misurazione in corso…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "non raggiungibile",
+    "hintFaster": "{{region}} è circa {{ms}} ms più veloce della tua regione attuale ({{current}})",
+    "hintCurrentUnreachable": "{{region}} risponde in {{ms}} ms; la tua regione attuale ({{current}}) non è raggiungibile",
+    "hintAction": "Vedi la velocità di ogni regione",
+    "listTitle": "Scegli una regione più veloce",
+    "listIntro": "Abbiamo misurato la tua connessione a ogni regione {{vendor}}:",
+    "recommended": "Consigliata",
+    "current": "Attuale",
+    "unreachable": "Non raggiungibile",
+    "switch": "Passa",
+    "keep": "Mantieni {{region}}"
   }
 }

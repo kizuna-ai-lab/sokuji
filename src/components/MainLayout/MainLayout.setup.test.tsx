@@ -5,6 +5,7 @@ import MainLayout from './MainLayout';
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => <div data-testid="tour-overlay" /> }));
 vi.mock('../VbCable/VbCableIntro', () => ({ default: () => <div data-testid="vbcable-intro" /> }));
+vi.mock('../Region/RegionRecommendation', () => ({ default: () => <div data-testid="region-recommendation" /> }));
 vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => <div data-testid="subtitle-takeover" /> }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
@@ -103,6 +104,20 @@ describe('MainLayout first-run gating (spec §1.1)', () => {
     complete = false;
     render(<MainLayout />);
     expect(screen.queryByTestId('vbcable-intro')).toBeNull();
+  });
+
+  it('mounts the region recommendation with the layout, never with the first-run wizard or in a subtitle takeover', () => {
+    render(<MainLayout />);
+    expect(screen.getByTestId('region-recommendation')).toBeInTheDocument();
+    cleanup();
+    complete = false;
+    render(<MainLayout />);
+    expect(screen.queryByTestId('region-recommendation')).toBeNull();
+    cleanup();
+    complete = true;
+    flags.electron = true; flags.subtitleActive = true;
+    render(<MainLayout />);
+    expect(screen.queryByTestId('region-recommendation')).toBeNull();
   });
 
   it('drops the VB-CABLE introduction during an Electron subtitle takeover', () => {

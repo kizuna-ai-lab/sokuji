@@ -1,0 +1,137 @@
+@use '../Settings/shared/variables' as vars;
+
+// The voice-warning dialog. Its actions row follows .license-consent-modal in Settings.scss.
+.region-change {
+  text-align: left;
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      font-size: vars.$font-title;
+      transition: background-color vars.$transition-fast;
+    }
+  }
+
+  &__cancel {
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+
+    &:hover {
+      background-color: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+    }
+  }
+
+  &__confirm {
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
+
+    &:hover {
+      background-color: vars.$color-primary-fill-hover;
+    }
+  }
+}
+
+// The region list: one row per region.
+.region-list {
+  text-align: left;
+
+  &__intro {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    color: vars.$text-primary;
+  }
+
+  &__name {
+    flex: 1;
+  }
+
+  &__ms {
+    color: vars.$text-secondary;
+  }
+
+  &__tags {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__tag {
+    padding: 2px 8px;
+    border-radius: vars.$radius-sm;
+    background-color: vars.$bg-surface;
+    color: vars.$text-secondary;
+    font-size: vars.$font-caption;
+
+    &--recommended {
+      background-color: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
+    }
+  }
+
+  &__switch,
+  &__keep {
+    padding: 6px 14px;
+    border: none;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    transition: background-color vars.$transition-fast;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+  }
+
+  &__switch {
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
+
+    &:hover:not(:disabled) {
+      background-color: vars.$color-primary-fill-hover;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    margin-top: 15px;
+  }
+
+  &__keep {
+    flex: 1;
+    padding: 10px 20px;
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+    font-size: vars.$font-title;
+
+    &:hover {
+      background-color: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+    }
+  }
+}

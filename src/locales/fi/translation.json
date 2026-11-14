@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",
     "sonioxManagedVoiceName": "Oma ääni",
-    "sonioxVoiceDeletedPlaceholder": "(poistettu ääni)",
     "palabraVoiceProcessingBadge": "käsitellään…",
     "palabraVoiceFailedBadge": "epäonnistui",
     "palabraVoiceDeletedPlaceholder": "(poistettu ääni)",
@@ -1692,5 +1691,26 @@
       "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen.",
       "lostExtension": "Kokouksen välilehden kuva ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
     }
+  },
+  "region": {
+    "changeTitle": "Vaihdetaanko alue?",
+    "changeBuiltIn": "Mukautettu äänesi on tallennettu alueelle {{from}}, eikä sitä voi käyttää alueella {{to}}. Istunnot alueella {{to}} käyttävät sisäänrakennettua ääntä {{name}}, kunnes luot sinne mukautetun äänen. Äänesi alueella {{from}} säilyy; kun vaihdat takaisin alueelle {{from}}, sitä käytetään taas.",
+    "changeCustom": "Istunnot alueella {{to}} käyttävät sinne luomaasi mukautettua ääntä. Äänesi alueella {{from}} säilyy alueella {{from}}.",
+    "changeBuiltInOwnKey": "Mukautettu äänesi on Soniox-projektissasi alueella {{from}}, eikä sitä voi käyttää alueella {{to}}. Istunnot alueella {{to}} käyttävät sisäänrakennettua ääntä {{name}}, kunnes luot mukautetun äänen projektiisi alueella {{to}}. Äänesi alueella {{from}} säilyy; kun vaihdat takaisin alueelle {{from}}, sitä käytetään taas.",
+    "changeCustomOwnKey": "Istunnot alueella {{to}} käyttävät Soniox-projektisi mukautettua ääntä alueella {{to}}. Äänesi alueella {{from}} säilyy projektissasi alueella {{from}}.",
+    "changeConfirm": "Vaihda alueeseen {{to}}",
+    "latencyMeasuring": "mitataan…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "ei tavoitettavissa",
+    "hintFaster": "{{region}} on noin {{ms}} ms nopeampi kuin nykyinen alueesi ({{current}})",
+    "hintCurrentUnreachable": "{{region}} vastaa {{ms}} ms:ssa; nykyistä aluettasi ({{current}}) ei tavoitettu",
+    "hintAction": "Katso kunkin alueen nopeus",
+    "listTitle": "Valitse nopeampi alue",
+    "listIntro": "Mittasimme yhteytesi jokaiseen {{vendor}}-alueeseen:",
+    "recommended": "Suositeltu",
+    "current": "Nykyinen",
+    "unreachable": "Ei tavoitettavissa",
+    "switch": "Vaihda",
+    "keep": "Pysy alueella {{region}}"
   }
 }

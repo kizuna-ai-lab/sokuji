@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Tên cho giọng nói nhân bản mới (không bắt buộc)",
     "sonioxVoiceDefaultName": "Giọng nói của tôi {{n}}",
     "sonioxManagedVoiceName": "Giọng nói của tôi",
-    "sonioxVoiceDeletedPlaceholder": "(giọng nói đã xóa)",
     "palabraVoiceProcessingBadge": "đang xử lý…",
     "palabraVoiceFailedBadge": "thất bại",
     "palabraVoiceDeletedPlaceholder": "(giọng nói đã xóa)",
@@ -1692,5 +1691,26 @@
       "lostHint": "Nguồn không còn nữa; hình ảnh cuối cùng được giữ cho đến khi bạn chọn lại.",
       "lostExtension": "Hình ảnh của tab cuộc họp không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
     }
+  },
+  "region": {
+    "changeTitle": "Chuyển khu vực?",
+    "changeBuiltIn": "Giọng tùy chỉnh của bạn được lưu ở khu vực {{from}} và không thể dùng ở {{to}}. Các phiên ở {{to}} sẽ dùng giọng có sẵn {{name}} cho đến khi bạn tạo giọng tùy chỉnh ở đó. Giọng của bạn ở {{from}} vẫn được giữ; khi chuyển lại {{from}}, giọng đó sẽ được dùng trở lại.",
+    "changeCustom": "Các phiên ở {{to}} sẽ dùng giọng tùy chỉnh bạn đã tạo ở đó. Giọng của bạn ở {{from}} vẫn nằm ở {{from}}.",
+    "changeBuiltInOwnKey": "Giọng tùy chỉnh của bạn nằm trong dự án Soniox của bạn ở {{from}} và không thể dùng ở {{to}}. Các phiên ở {{to}} sẽ dùng giọng có sẵn {{name}} cho đến khi bạn tạo giọng tùy chỉnh trong dự án của bạn ở {{to}}. Giọng của bạn ở {{from}} vẫn được giữ; khi chuyển lại {{from}}, giọng đó sẽ được dùng trở lại.",
+    "changeCustomOwnKey": "Các phiên ở {{to}} sẽ dùng giọng tùy chỉnh trong dự án Soniox của bạn ở {{to}}. Giọng của bạn ở {{from}} vẫn nằm trong dự án của bạn ở {{from}}.",
+    "changeConfirm": "Chuyển sang {{to}}",
+    "latencyMeasuring": "đang đo…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "không kết nối được",
+    "hintFaster": "{{region}} nhanh hơn khu vực hiện tại của bạn ({{current}}) khoảng {{ms}} ms",
+    "hintCurrentUnreachable": "{{region}} phản hồi trong {{ms}} ms; không kết nối được tới khu vực hiện tại của bạn ({{current}})",
+    "hintAction": "Xem tốc độ của từng khu vực",
+    "listTitle": "Chọn khu vực nhanh hơn",
+    "listIntro": "Chúng tôi đã đo kết nối của bạn tới từng khu vực {{vendor}}:",
+    "recommended": "Được đề xuất",
+    "current": "Hiện tại",
+    "unreachable": "Không kết nối được",
+    "switch": "Chuyển",
+    "keep": "Giữ {{region}}"
   }
 }

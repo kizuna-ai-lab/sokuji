@@ -116,6 +116,11 @@ const lastAnswer = new Map<string, { inputs: string; readiness: Readiness }>();
 /** The definition each entry was loaded from: what a language context change derives its pair with. */
 const loadedProviders = new Map<string, AnyProvider>();
 
+/** The definition an entry was loaded from, for code that cannot import the registry (a cycle). */
+export function loadedProvider(id: string): AnyProvider | undefined {
+  return loadedProviders.get(id);
+}
+
 export const useProviderStore = create<ProviderStore>()((set, get) => {
   /** Writing to a provider before `load` resolves is a bug in the caller. */
   const loaded = (p: AnyProvider): ProviderEntry => {

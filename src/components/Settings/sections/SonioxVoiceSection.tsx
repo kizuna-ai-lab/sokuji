@@ -48,7 +48,9 @@ import {
 import { resolvePreviewSample } from '../../../lib/tts/previewSample';
 import { previewCacheKey, getCachedPreview, setCachedPreview, clearPreviewCache } from '../../../lib/tts/previewCache';
 import { clampNumber } from '../../../providers/soniox/config';
-import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
+import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../../lib/soniox/ttsCatalog';
+import { reportWarning } from '../../../lib/diagnostics/report';
+import { reconcileSonioxVoice, reconcileManagedSonioxVoice } from '../../../lib/soniox/voiceReconcile';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
 import {
   validateVoiceClip,
@@ -212,9 +214,12 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   const sourceRef = useRef(source);
   useEffect(() => { sourceRef.current = source; }, [source]);
   const [clones, setClones] = useState<SonioxVoice[]>([]);
-  // Start 'loading' whenever a source exists so the first paint never shows
-  // the "(deleted voice)" placeholder for a settings.voice that simply
-  // hasn't been checked against the fetched list yet.
+  // The source `clones` was loaded for. After a source change `listState` and
+  // `clones` still describe the previous source for one render; reconciling
+  // against that would reset an id that is valid for the new source.
+  const [loadedFor, setLoadedFor] = useState<VoiceLibrarySource | null>(null);
+  // Start 'loading' whenever a source exists so the first paint does not
+  // treat a settings.voice as unchecked-yet-stale before the list arrives.
   const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(source ? 'loading' : 'idle');
   const [captureError, setCaptureError] = useState<string | null>(null);
   // A clip that's been picked/recorded and passed client-side validation,
@@ -246,6 +251,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       const voices = await requestSource.list();
       if (generation !== loadGeneration.current || sourceRef.current !== requestSource) return;
       setClones(voices);
+      setLoadedFor(requestSource);
       setListState('idle');
       // A fresh, successful load supersedes whatever the capture banner was
       // still reporting. Without this the banner had no way OFF the screen
@@ -506,6 +512,54 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // must not be silently overwritten.
   const selectedVoiceRef = useRef(settings.voice);
   useEffect(() => { selectedVoiceRef.current = settings.voice; }, [settings.voice]);
+
+  // Once the list has loaded, a stored id this account/project cannot use is
+  // reconciled (spec D2-D4). Runs at most once per (source, stored id,
+  // clones): `onUpdate` changes `settings.voice`, which re-enters this effect.
+  // A failed list or clip lookup changes nothing.
+  // The once-guard below makes this effect un-cancellable, so it must not
+  // depend on a callback identity that can change between renders.
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => { onUpdateRef.current = onUpdate; }, [onUpdate]);
+  // The list a pending clip check was reconciled against may have been replaced meanwhile (a refresh
+  // can bring the stored voice back); an answer about a superseded list must not be applied.
+  const clonesRef = useRef(clones);
+  useEffect(() => { clonesRef.current = clones; }, [clones]);
+  const reconciledRef = useRef<{ source: unknown; stored: string; clones: unknown } | null>(null);
+  useEffect(() => {
+    const stored = settings.voice;
+    if (!source || loadedFor !== source || listState !== 'idle' || !stored) return;
+    if (isSonioxBuiltInVoice(stored) || clones.some((c) => c.id === stored)) return;
+    const last = reconciledRef.current;
+    if (last && last.source === source && last.stored === stored && last.clones === clones) return;
+    reconciledRef.current = { source, stored, clones };
+    void (async () => {
+      let hasClip = false;
+      if (managed && source.hasDeviceClip) {
+        try {
+          hasClip = await source.hasDeviceClip();
+        } catch (cause) {
+          // Unknown is not "no clip": leave the voice alone.
+          reportWarning('SonioxVoice', 'Could not check this device for the voice recording; the voice was left unchanged.', { dedupeKey: 'voice:clip-check', cause });
+          return;
+        }
+      }
+      let next: string;
+      if (managed) {
+        const first = clones[0];
+        next = reconcileManagedSonioxVoice(
+          stored,
+          first ? { voiceId: first.id, status: isFailed(first) ? 'failed' : 'ready' } : null,
+          hasClip,
+        );
+      } else {
+        next = reconcileSonioxVoice(stored, clones.map((c) => c.id), false);
+      }
+      if (next !== stored && selectedVoiceRef.current === stored && sourceRef.current === source && clonesRef.current === clones) {
+        onUpdateRef.current({ voice: next });
+      }
+    })();
+  }, [listState, clones, loadedFor, source, settings.voice, managed]);
 
   const finishCreate = async (
     created: SonioxVoice,
@@ -804,33 +858,28 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       disabled: !isReady(v),
     }));
     const known = new Set([...builtin, ...custom].map((e) => e.id));
-    // Only synthesize the placeholder once we're not mid-fetch: a settings
-    // value pointing at a real (not-yet-loaded) clone must not flash the
-    // "(deleted voice)" label before the list arrives. Without a source
-    // (no API key yet, or a managed account with no session) there's no
-    // fetch to settle at all, so the entry makes no claim about deletion —
-    // it shows the raw id rather than asserting something we have no
-    // evidence for.
-    if (settings.voice && !known.has(settings.voice) && listState !== 'loading') {
+    // An unknown id is shown in every list state, labelled neutrally: the
+    // panel cannot tell a deleted voice from one it merely has not seen yet,
+    // so it claims nothing. Once the list has loaded the effect above resets
+    // an id that is genuinely stale.
+    if (settings.voice && !known.has(settings.voice)) {
       custom.push({
         id: settings.voice,
-        label: source
-          ? t('settings.sonioxVoiceDeletedPlaceholder', '(deleted voice)')
-          : settings.voice,
+        label: t('settings.voiceCustom', 'Custom voice'),
         group: 'custom',
-        // MANAGED, and only once the list is KNOWN: an unknown id here is
-        // this account's OWN voice after an eviction — the normal outcome of
-        // a small LRU cache serving unbounded users, not an anomaly. Without
-        // a delete button the panel would show "(deleted voice)" above "No
-        // imported voices yet." with no way forward, the on-device recording
-        // would stay there indefinitely, and every later Start would silently
-        // re-upload it. The backend's DELETE /mine answers 200 when there is
-        // no row, so removing a genuine placeholder is safe and idempotent;
-        // it clears the local clip and resets the stale setting.
+        // MANAGED, and only once the list is KNOWN: an unknown id that
+        // survives reconciliation is this account's OWN voice after an
+        // eviction, kept because this device still holds the clip a Start
+        // rebuilds it from. Without a delete button the panel would show a
+        // "Custom voice" above "No imported voices yet." with no way
+        // forward, and the on-device recording would stay there indefinitely.
+        // The backend's DELETE /mine answers 200 when there is no row, so
+        // removing such a placeholder is safe and idempotent; it clears the
+        // local clip and resets the stale setting.
         //
         // `managedListKnown` is load-bearing, not belt-and-braces. This
         // placeholder also renders when the fetch FAILED — and there the
-        // label "(deleted voice)" is a guess, not a fact. `delete` ignores
+        // row only LOOKS stale; it is a guess, not a fact. `delete` ignores
         // the id and issues an unconditional DELETE /mine, so one click on a
         // row that only LOOKS stale destroys a healthy voice at Soniox AND
         // the reference clip that is the only thing that could rebuild it.
@@ -844,7 +893,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       });
     }
     return [...builtin, ...custom];
-  }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
+  }, [clones, managed, managedName, managedListKnown, settings.voice, source, t]);
 
   return (
     // `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`), the Speech rows' voice links.
