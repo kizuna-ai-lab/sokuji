@@ -9,11 +9,11 @@ import { REGION_FAMILIES, type RegionFamily } from './regionalProviders';
 type Measure = (family: RegionFamily, signal?: AbortSignal) => Promise<RegionMedians | null>;
 
 /**
- * The real probe. Under the Vite dev server's cross-origin isolation headers
- * (COEP `require-corp`, vite.config.ts) Chromium blocks these no-cors probe
- * responses, so every region reads "unreachable" in `npm run dev` and the
- * Electron dev build. The packaged app (file://) and the extension are not
- * cross-origin isolated and measure normally.
+ * The real probe. The requests are no-cors and carry no credentials, so they
+ * also pass a page that is cross-origin isolated with COEP `credentialless`
+ * (the Vite dev server, vite.config.ts). Under COEP `require-corp` Chromium
+ * would block these responses and every region would read "unreachable". The
+ * packaged app (file://) and the extension are not cross-origin isolated.
  */
 const realMeasure: Measure = (family, signal) => {
   const spec = REGION_FAMILIES[family];

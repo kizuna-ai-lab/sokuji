@@ -25,7 +25,7 @@ function serveModelPacks(): Plugin {
         if (!stat.isFile()) return next()
         // Manual pipe bypasses server.headers — set isolation headers here too.
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
         res.setHeader('Content-Length', stat.size)
         if (filePath.endsWith('.json')) res.setHeader('Content-Type', 'application/json')
         else res.setHeader('Content-Type', 'application/octet-stream')
@@ -76,7 +76,7 @@ function serveOrtWasm(): Plugin {
         // multi-threaded and loads its threaded runtime .mjs as nested pthread
         // worker scripts (need COEP); the .wasm needs CORP. Set both here.
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
         res.setHeader('Content-Length', stat.size)
         if (filename.endsWith('.mjs') || filename.endsWith('.js'))
           res.setHeader('Content-Type', 'application/javascript')
@@ -108,7 +108,7 @@ function crossOriginIsolationHeaders(): Plugin {
     configureServer(server) {
       server.middlewares.use((_req, res, next) => {
         res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+        res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
         next()
       })
@@ -277,7 +277,7 @@ export default defineConfig(({ command, mode }) => {
       // (The crossOriginIsolationHeaders plugin covers responses this misses.)
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Embedder-Policy': 'credentialless',
         'Cross-Origin-Resource-Policy': 'cross-origin',
       },
     },
