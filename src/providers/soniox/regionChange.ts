@@ -4,6 +4,7 @@
  * that would leave a custom voice behind asks first, and nothing is ever
  * copied across regions.
  */
+import { currentAuth } from '../../app/currentAuth';
 import { currentRunPhase } from '../../app/runPhase';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
@@ -47,6 +48,6 @@ export async function requestSonioxRegionChange(p: AnyProvider, from: SonioxRegi
     if (!now || asSonioxRegion((now.settings as SonioxSettings).region) !== from) return false;
   }
   await useProviderStore.getState().updateSettings(p, { region: to });
-  void reconcileSonioxVoiceField(p, to, () => auth);
+  void reconcileSonioxVoiceField(p, to, () => currentAuth() ?? auth);
   return true;
 }

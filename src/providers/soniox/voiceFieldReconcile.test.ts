@@ -10,6 +10,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import * as report from '../../lib/diagnostics/report';
 import { useProviderStore } from '../../stores/providerStore';
 import { kizunaSonioxProvider } from './kizuna';
 import { sonioxProvider } from './provider';
@@ -54,6 +55,7 @@ describe('reconcileSonioxVoiceField', () => {
   });
 
   it('offline, signed out, a failed lookup or a built-in field change nothing; a built-in field is never looked up', async () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
     await useProviderStore.getState().updateSettings(kizunaSonioxProvider, { voiceJp: 'stale' });
     const mine = vi.fn(async () => null);
     const base = { managedClient: () => ({ mine }), hasDeviceClip: noClip };
@@ -65,6 +67,9 @@ describe('reconcileSonioxVoiceField', () => {
       ...base, managedClient: () => ({ mine: async () => { throw new Error('401'); } }), online: () => true,
     })).resolves.toBeUndefined();
     expect(settings().voiceJp).toBe('stale');
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][2]).toMatchObject({ dedupeKey: 'voice:reconcile' });
+    warn.mockRestore();
 
     await useProviderStore.getState().updateSettings(kizunaSonioxProvider, { voiceJp: 'Kenji' });
     await reconcileSonioxVoiceField(kizunaSonioxProvider, 'jp', () => signedIn(), { ...base, online: () => true });
@@ -96,5 +101,30 @@ describe('reconcileSonioxVoiceField', () => {
     release();
     await run;
     expect(settings().voiceJp).toBe('stale');
+  });
+
+  it('own key ignores the managed clip: a stale id resets even when this account has a clip', async () => {
+    await useProviderStore.getState().setCredential(sonioxProvider, 'apiKeyEu', 'k-eu');
+    await useProviderStore.getState().updateSettings(sonioxProvider, { voiceEu: 'gone' });
+    const hasDeviceClip = vi.fn(async () => true);
+    await reconcileSonioxVoiceField(sonioxProvider, 'eu', () => signedIn(), {
+      ownKeyClient: () => ({ list: async () => [] }), hasDeviceClip, online: () => true,
+    });
+    expect(settings(sonioxProvider).voiceEu).toBe('Adrian');
+    expect(hasDeviceClip).not.toHaveBeenCalled();
+  });
+
+  it('own key writes nothing when the region key changed during the lookup', async () => {
+    await useProviderStore.getState().setCredential(sonioxProvider, 'apiKeyEu', 'k1');
+    await useProviderStore.getState().updateSettings(sonioxProvider, { voiceEu: 'gone' });
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const run = reconcileSonioxVoiceField(sonioxProvider, 'eu', () => undefined, {
+      ownKeyClient: () => ({ list: async () => { await gate; return []; } }), hasDeviceClip: noClip, online: () => true,
+    });
+    await useProviderStore.getState().setCredential(sonioxProvider, 'apiKeyEu', 'k2');
+    release();
+    await run;
+    expect(settings(sonioxProvider).voiceEu).toBe('gone');
   });
 });

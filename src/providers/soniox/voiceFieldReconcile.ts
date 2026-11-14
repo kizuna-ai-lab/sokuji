@@ -40,23 +40,25 @@ export async function reconcileSonioxVoiceField(
     if (!(deps.online ?? defaultOnline)()) return;
 
     const startUser = auth()?.userId ?? null;
-    const hasClip = await (deps.hasDeviceClip ?? defaultHasDeviceClip)(startUser).catch(() => false);
     let next: string;
     if (p.kind === 'managed') {
       const a = auth();
       if (!a || !a.signedIn || a.loaded === false) return;
+      // Only a managed start can rebuild a voice from this account's clip.
+      const hasClip = await (deps.hasDeviceClip ?? defaultHasDeviceClip)(startUser).catch(() => false);
       const client = (deps.managedClient ?? ((getToken, r) => new ManagedVoicesClient(getToken, r)))(() => (auth() ?? a).getToken(), region);
       next = reconcileManagedSonioxVoice(stored, await client.mine(), hasClip);
     } else {
       const key = (snapshot.credentials as Record<string, string | undefined>)[sonioxKeyField(region)];
       if (!key) return;
       const client = (deps.ownKeyClient ?? ((k, r) => new SonioxVoicesClient(k, r)))(key, region);
-      next = reconcileSonioxVoice(stored, (await client.list()).map((v) => v.id), hasClip);
+      next = reconcileSonioxVoice(stored, (await client.list()).map((v) => v.id), false);
     }
     if (next === stored) return;
     const now = entryOf();
     if (!now || (now.settings as Record<string, unknown>)[field] !== stored) return;
     if ((auth()?.userId ?? null) !== startUser) return;
+    if (p.kind !== 'managed' && (now.credentials as Record<string, string | undefined>)[sonioxKeyField(region)] !== (snapshot.credentials as Record<string, string | undefined>)[sonioxKeyField(region)]) return;
     await useProviderStore.getState().updateSettings(p, { [field]: next });
   } catch (cause) {
     reportWarning('SonioxVoice', 'Could not check the custom voice against the account; it was left unchanged.', { dedupeKey: 'voice:reconcile', cause });

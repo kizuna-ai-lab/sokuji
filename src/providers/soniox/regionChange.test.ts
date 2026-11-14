@@ -12,6 +12,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 const reconcileSpy = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('./voiceFieldReconcile', () => ({ reconcileSonioxVoiceField: reconcileSpy }));
 
+import { registerAuth } from '../../app/currentAuth';
 import { registerRunPhase } from '../../app/runPhase';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
@@ -108,5 +109,20 @@ describe('after a confirmed region change', () => {
   it('and not for a refused change', async () => {
     await requestSonioxRegionChange(kizunaSonioxProvider, 'us', 'us');
     expect(reconcileSpy).not.toHaveBeenCalled();
+  });
+
+  it('hands the reconcile the live auth, not the caller’s snapshot', async () => {
+    const snapshot = { signedIn: true, loaded: true, userId: 'old', getToken: async () => 't' };
+    const live = { ...snapshot, userId: 'new' };
+    registerAuth(() => live);
+    try {
+      await requestSonioxRegionChange(kizunaSonioxProvider, 'us', 'jp', snapshot);
+      const reader = (reconcileSpy.mock.calls[0] as unknown as [unknown, unknown, () => { userId?: string | null } | undefined])[2];
+      expect(reader()?.userId).toBe('new');
+      live.userId = 'newer';
+      expect(reader()?.userId).toBe('newer');
+    } finally {
+      registerAuth(() => undefined);
+    }
   });
 });
