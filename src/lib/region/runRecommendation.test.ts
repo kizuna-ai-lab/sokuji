@@ -8,6 +8,7 @@ import { useRegionRecommendationStore } from '../../stores/regionRecommendationS
 import { useRegionLatencyStore } from '../../stores/regionLatencyStore';
 import { useProviderStore } from '../../stores/providerStore';
 import type { AnalyticsEvents } from '../analytics';
+import { markChoseManually } from './record';
 
 const open: GateInputs = { provider: 'kizunaai_soniox', loaded: true, signedIn: true, wizardOpen: false, tourActive: false, locked: false, online: true, record: undefined };
 const live = () => new AbortController().signal;
@@ -101,5 +102,19 @@ describe('runRegionRecommendation', () => {
     setRegionMeasure(measure);
     await runRegionRecommendation('kizunaai_soniox', { signal: live(), track });
     expect(measure).toHaveBeenCalledTimes(1);
+  });
+
+  it('a region chosen by hand while measuring is kept: the run fills the latency cache but writes no record and tracks nothing', async () => {
+    let resolve!: (m: Record<string, number | null>) => void;
+    setRegionMeasure(() => new Promise((r) => { resolve = r; }));
+    const run = runRegionRecommendation('kizunaai_soniox', { signal: live(), track });
+    // The user picks a region in Settings (data residency) during the measurement.
+    useRegionRecommendationStore.getState().setRecord('kizunaai_soniox', markChoseManually(undefined, 7));
+    resolve({ us: 170, eu: 240, jp: 300, in: 136 });
+    await run;
+    expect(rec()).toEqual({ status: 'chose-manually', at: 7, attempts: 0 });
+    expect(localStorage.getItem('regionRecommendation.kizunaai_soniox')).toContain('"chose-manually"');
+    expect(track).not.toHaveBeenCalled();
+    expect(useRegionLatencyStore.getState().families.soniox?.medians).toMatchObject({ in: 136 });
   });
 });

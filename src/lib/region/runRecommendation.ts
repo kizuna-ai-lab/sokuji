@@ -88,9 +88,12 @@ export async function runRegionRecommendation(
 
   const now = (deps.now ?? Date.now)();
   useRegionLatencyStore.getState().fill(family, result, now);
+  // A record written while measuring (the user chose a region in Settings) wins: the numbers still fill the cache.
+  const latest = useRegionRecommendationStore.getState().records[provider];
+  if (!needsMeasurement(latest)) return;
   const current = currentRegion(provider, useProviderStore.getState().entries[provider]?.settings);
   const decision = decideRegion(REGION_FAMILIES[family].regions, result, current);
-  const record = recordAfterMeasurement(useRegionRecommendationStore.getState().records[provider], decision, result, now);
+  const record = recordAfterMeasurement(latest, decision, result, now);
   useRegionRecommendationStore.getState().setRecord(provider, record);
 
   if (record.status === 'no-change') {
