@@ -19,6 +19,7 @@ export const MOBILE_SHARED_ROOTS = [
   'src/providers/soniox/leaseRequest.ts',
   'src/providers/soniox/lease.ts',
   'src/lib/soniox/regions.ts',
+  'src/lib/region/probe.ts',
   'src/lib/contract/clock.ts',
   'src/lib/segmentation/SentenceStream.ts',
   'src/lib/segmentation/continuousSegments.ts',
