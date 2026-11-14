@@ -16,9 +16,9 @@
  * This is the ONLY place in the client where that shape exists.
  */
 
-export type SonioxRegion = 'us' | 'eu' | 'jp';
+export type SonioxRegion = 'us' | 'eu' | 'jp' | 'in';
 
-export const SONIOX_REGIONS: readonly SonioxRegion[] = ['us', 'eu', 'jp'] as const;
+export const SONIOX_REGIONS: readonly SonioxRegion[] = ['us', 'eu', 'jp', 'in'] as const;
 
 export const DEFAULT_SONIOX_REGION: SonioxRegion = 'us';
 
@@ -31,6 +31,7 @@ export const SONIOX_REGION_LABELS: Record<SonioxRegion, string> = {
   us: 'United States',
   eu: 'European Union',
   jp: '日本 (Japan)',
+  in: 'India',
 };
 
 export interface SonioxHosts {

@@ -69,7 +69,7 @@ describe('createSonioxSettingsView', () => {
     const { rerender } = render(<BYOK {...props({ update })} />);
     const select = screen.getByLabelText('Region') as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.textContent);
-    expect(options).toEqual(['United States', 'European Union', '日本 (Japan)']);
+    expect(options).toEqual(['United States', 'European Union', '日本 (Japan)', 'India']);
     fireEvent.change(select, { target: { value: 'eu' } });
     expect(update).toHaveBeenCalledWith({ region: 'eu' });
     expect(select.disabled).toBe(false);

@@ -29,6 +29,13 @@ describe('sonioxHosts', () => {
     });
   });
 
+  it('India: infix after the service name, labelled India, narrowed as itself', () => {
+    expect(SONIOX_REGIONS).toEqual(['us', 'eu', 'jp', 'in']);
+    expect(sonioxHosts('in')).toEqual({ api: 'api.in.soniox.com', sttRt: 'stt-rt.in.soniox.com', ttsRt: 'tts-rt.in.soniox.com' });
+    expect(SONIOX_REGION_LABELS.in).toBe('India');
+    expect(asSonioxRegion('in')).toBe('in');
+  });
+
   // `eu.api.soniox.com` is the shape everyone reaches for first, and it is
   // NXDOMAIN (DNS-verified 2026-08-15). Asserting the negative keeps a
   // "tidy-up" that flips the two segments from silently breaking every

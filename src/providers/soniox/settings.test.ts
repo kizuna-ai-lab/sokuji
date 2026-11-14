@@ -11,8 +11,10 @@ import {
   sonioxKeyField,
   SONIOX_LANGUAGES,
   sonioxLanguages,
+  sonioxSpeakerVoice,
   sonioxVoiceField,
 } from './settings';
+import { SONIOX_REGIONS } from '../../lib/soniox/regions';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 
@@ -23,6 +25,7 @@ describe('SONIOX_DEFAULTS', () => {
       voice: 'Adrian',
       voiceEu: 'Adrian',
       voiceJp: 'Adrian',
+      voiceIn: 'Adrian',
       participantVoice: 'Grace',
       bothModeSharedSession: false,
       speakerLabels: true,
@@ -88,9 +91,9 @@ describe('sonioxCredentials.fields', () => {
 });
 
 describe('sonioxCredentials.keys', () => {
-  it('lists all three region keys, so a region switch never waits on storage', () => {
-    expect(sonioxCredentials.keys).toEqual(['apiKey', 'apiKeyEu', 'apiKeyJp']);
-    expect(SONIOX_KEY_FIELDS).toEqual(['apiKey', 'apiKeyEu', 'apiKeyJp']);
+  it('lists all four region keys, so a region switch never waits on storage', () => {
+    expect(sonioxCredentials.keys).toEqual(['apiKey', 'apiKeyEu', 'apiKeyJp', 'apiKeyIn']);
+    expect(SONIOX_KEY_FIELDS).toEqual(['apiKey', 'apiKeyEu', 'apiKeyJp', 'apiKeyIn']);
   });
 });
 
@@ -126,6 +129,20 @@ describe('sonioxLanguages', () => {
   it('an auto source never reverses, so it refuses the participant leg (D20)', () => {
     expect(reverseSupported(p, SONIOX_DEFAULTS, { source: 'auto', target: 'en' })).toBe(false);
     expect(reverseSupported(p, SONIOX_DEFAULTS, { source: 'ja', target: 'en' })).toBe(true);
+  });
+});
+
+describe('India has its own key and voice fields', () => {
+  it('maps every region to its own key and voice field — India never reuses Japan', () => {
+    expect(SONIOX_REGIONS.map((r) => sonioxKeyField(r))).toEqual(['apiKey', 'apiKeyEu', 'apiKeyJp', 'apiKeyIn']);
+    expect(SONIOX_REGIONS.map((r) => sonioxVoiceField(r))).toEqual(['voice', 'voiceEu', 'voiceJp', 'voiceIn']);
+    expect(sonioxCredentials.read({ apiKeyIn: 'k' }, signedOut)).toEqual({ region: 'in', stt: 'k', tts: 'k' });
+    expect(sonioxSpeakerVoice({ ...SONIOX_DEFAULTS, region: 'in', voiceIn: 'clone-in', voiceJp: 'clone-jp' })).toBe('clone-in');
+  });
+
+  it('migration keeps voiceIn and defaults a wrong-typed one', () => {
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, voiceIn: 'clone-in' }).voiceIn).toBe('clone-in');
+    expect(migrateSonioxSettings({ ...SONIOX_DEFAULTS, voiceIn: 7 }).voiceIn).toBe('Adrian');
   });
 });
 
