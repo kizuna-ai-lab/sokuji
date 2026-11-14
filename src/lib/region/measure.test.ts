@@ -24,8 +24,23 @@ describe('measureRegionFamily', () => {
     expect(urls.has('https://tts-rt.in.soniox.com/')).toBe(true);
   });
 
-  it('uses the injected measurement and restores the real one on null', async () => {
+  it('uses the injected measurement, and null restores the real probe', async () => {
     setRegionMeasure(async () => ({ us: 1 }));
     expect(await measureRegionFamily('soniox')).toEqual({ us: 1 });
+    setRegionMeasure(null);
+    const fetchMock = vi.fn(async () => new Response(null));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.useFakeTimers();
+    const run = measureRegionFamily('qwen');
+    await vi.runAllTimersAsync();
+    await run;
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it('rejects, rather than throws, when the injected measurement throws synchronously', async () => {
+    setRegionMeasure(() => { throw new Error('sync'); });
+    let promise: Promise<unknown> | undefined;
+    expect(() => { promise = measureRegionFamily('soniox'); }).not.toThrow();
+    await expect(promise).rejects.toThrow('sync');
   });
 });

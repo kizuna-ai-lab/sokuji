@@ -47,6 +47,16 @@ describe('regionLatencyStore', () => {
     expect(st().families.soniox).toEqual({ medians: { us: 20 }, at, measuring: false });
   });
 
+  it('a synchronous throw from the measurement does not throw, and clears measuring', async () => {
+    st().fill('soniox', { us: 20 }, Date.now());
+    const at = st().families.soniox!.at;
+    vi.setSystemTime(Date.now() + LATENCY_CACHE_MS + 1);
+    setRegionMeasure(() => { throw new Error('sync'); });
+    expect(() => st().ensureFresh('soniox')).not.toThrow();
+    await flush();
+    expect(st().families.soniox).toEqual({ medians: { us: 20 }, at, measuring: false });
+  });
+
   it('writes nothing to localStorage', async () => {
     setRegionMeasure(async () => ({ us: 5 }));
     st().ensureFresh('soniox');

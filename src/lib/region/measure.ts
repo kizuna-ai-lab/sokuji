@@ -23,7 +23,8 @@ const realMeasure: Measure = (family, signal) => {
 
 let current: Measure = realMeasure;
 
-export function measureRegionFamily(family: RegionFamily, signal?: AbortSignal): Promise<RegionMedians | null> {
+/** Always a promise: a synchronous throw while setting up the probe (or from an injected fn) becomes a rejection. */
+export async function measureRegionFamily(family: RegionFamily, signal?: AbortSignal): Promise<RegionMedians | null> {
   return current(family, signal);
 }
 
