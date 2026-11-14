@@ -11,7 +11,7 @@ import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
 import { caps, familyDefaults, runOf } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
-import type { LineUp, StageName } from '../lib/lineup/types';
+import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { Selections } from '../lib/local-inference/selection/types';
 import { guardAstCrossStage } from '../services/providers/astGuard';
@@ -32,6 +32,12 @@ export interface LineUpStore {
   load(): Promise<void>;
   /** Refused (null, nothing written) during a run or before the migration has written. */
   choose(stage: StageName, providerId: string | null): Promise<Choice | null>;
+  /**
+   * The setup wizard's whole line-up (Plan 6): the stored notes choice kept, the line-up then stored, so a local
+   * migration still waiting on its scan writes nothing over it. False, and nothing kept, during a run or when the
+   * write did not land.
+   */
+  replace(stages: Pick<LineUp, RunStage>): Promise<boolean>;
 }
 
 const STAGE_NAMES: readonly StageName[] = ['transcription', 'translation', 'speech', 'summarisation'];
@@ -105,6 +111,19 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
       const lineUp = lineUpFromToday({ selected, local: todayLocal() });
       set({ lineUp, stored: await write(lineUp) });
     })();
+  },
+
+  async replace(stages) {
+    if (useProviderStore.getState().selectionLocked) return false;
+    const value = await ServiceFactory.getSettingsService().getSetting<unknown>(LINEUP_KEY, null);
+    const summarisation = isStoredLineUp(value) ? value.stages.summarisation : get().lineUp?.summarisation ?? null;
+    const lineUp: LineUp = { ...stages, summarisation };
+    const before = { lineUp: get().lineUp, stored: get().stored };
+    // Marked stored before the write: a migration whose scan ends meanwhile must already see it.
+    set({ lineUp, stored: true });
+    if (await write(lineUp)) return true;
+    set(before);
+    return false;
   },
 
   async choose(stage, providerId) {

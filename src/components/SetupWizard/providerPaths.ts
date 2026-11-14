@@ -11,8 +11,7 @@ import { presentProviders } from '../../providers/registry';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import { getScenario, providerFitForScenario } from '../../lib/setup/scenarios';
 import type { ProviderFit } from '../../lib/setup/scenarios';
-import { caps, familyDefaults } from '../../lib/lineup/catalog';
-import type { LineUp, RunStage } from '../../lib/lineup/types';
+export { lineUpOf } from './lineUpOf';
 
 export interface ProviderOption {
   id: ProviderType;
@@ -70,11 +69,6 @@ export function managedOptions(scenario: ScenarioId): ProviderOption[] {
 /** The first managed option, the recommended one, or null in a build that registers none. */
 export function managedOption(scenario: ScenarioId): ProviderOption | null {
   return managedOptions(scenario)[0] ?? null;
-}
-
-/** The line-up the wizard writes for a provider: its family's default (Plan 6, ruling 1). */
-export function lineUpOf(provider: string): Pick<LineUp, RunStage> {
-  return familyDefaults(caps(provider)?.family ?? provider);
 }
 
 /** The wizard path a provider sits on, or null when the wizard does not offer it. */

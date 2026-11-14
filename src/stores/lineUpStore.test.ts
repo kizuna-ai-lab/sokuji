@@ -163,3 +163,45 @@ describe('the line-up store', () => {
       .toEqual({ stage: 'speech', from: 'soniox', to: 'edge', moved: ['transcription', 'translation'], during_session: false });
   });
 });
+
+// Plan 6, Task 4: the setup wizard stores a whole line-up at Finish.
+describe('replace (the setup wizard)', () => {
+  const openaiLive = { transcription: 'openai_live', translation: 'openai_live', speech: 'openai_live' };
+
+  it('stores the stages, keeps the stored notes choice, and marks the line-up stored', async () => {
+    stored.set(LINEUP_KEY, { version: 1, stages: { ...soniox, summarisation: 'notes-x' } });
+    useLineUpStore.setState({ lineUp: null, stored: false });
+    expect(await useLineUpStore.getState().replace(openaiLive)).toBe(true);
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { ...openaiLive, summarisation: 'notes-x' } });
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: { ...openaiLive, summarisation: 'notes-x' } });
+  });
+
+  it('is refused during a run, and writes nothing', async () => {
+    useProviderStore.setState({ selectionLocked: true });
+    try {
+      expect(await useLineUpStore.getState().replace(openaiLive)).toBe(false);
+      expect(setSetting).not.toHaveBeenCalled();
+    } finally {
+      useProviderStore.setState({ selectionLocked: false });
+    }
+  });
+
+  it('says so when the write did not land', async () => {
+    setSetting.mockImplementationOnce(async () => ({ success: false }));
+    expect(await useLineUpStore.getState().replace(openaiLive)).toBe(false);
+    expect(useLineUpStore.getState().stored).toBe(false);
+  });
+
+  it('a wizard line-up stays when the local migration finishes later', async () => {
+    let finishScan!: () => void;
+    model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } as never });
+    useLineUpStore.setState({ lineUp: null, stored: false });
+    await useLineUpStore.getState().load();
+    expect(await useLineUpStore.getState().replace({ transcription: 'soniox', translation: 'soniox', speech: 'soniox' })).toBe(true);
+    finishScan();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: soniox });
+    expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+  });
+});

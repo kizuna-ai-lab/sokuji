@@ -11,6 +11,8 @@ import { getScenario } from '../../lib/setup/scenarios';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import type { ProviderType } from '../../types/Provider';
 import type { SetupDraft } from './setupDraft';
+import type { LineUp, RunStage } from '../../lib/lineup/types';
+import { lineUpOf } from './lineUpOf';
 
 export interface ApplySetupDeps {
   setMode: (m: 'speaker' | 'participant' | 'both') => void;
@@ -31,6 +33,8 @@ export interface ApplySetupDeps {
     credentials: Record<string, string>,
     settings: Record<string, string>,
   ) => Promise<void>;
+  /** The line-up of the chosen path (Plan 6): stored after the provider, before the record; a rejection stops Finish there. */
+  applyLineUp: (lineUp: Pick<LineUp, RunStage>) => Promise<void>;
   completeSetup: (r: { scenario: ScenarioId; providerPath: ProviderPath; provider: string }) => Promise<void>;
 }
 
@@ -56,5 +60,6 @@ export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): 
   // Awaited: a rejected write has to reach Finish's error path rather than
   // becoming an unhandled rejection behind a "done" wizard.
   await deps.applyProvider(provider, { source: sourceLanguage, target: targetLanguage }, credentials, settings);
+  await deps.applyLineUp(lineUpOf(provider));
   await deps.completeSetup({ scenario, providerPath, provider });
 }

@@ -14,6 +14,7 @@ function deps(overrides: Partial<ApplySetupDeps> = {}): ApplySetupDeps {
     setTextOnly: vi.fn(),
     setParticipantSpeech: vi.fn(),
     applyProvider: vi.fn(async () => {}),
+    applyLineUp: vi.fn(async () => {}),
     completeSetup: vi.fn(async () => {}),
     ...overrides,
   };
