@@ -20,7 +20,7 @@ import { accountPayer, type Payer } from '../../../lib/session/payerChoice';
 import { useAccountStore } from '../../../stores/accountStore';
 import type { SonioxRegion } from '../../../lib/soniox/regions';
 import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
-import { saveVoiceClip, clearVoiceClip, loadVoiceClip } from '../../../lib/soniox/voiceClipStorage';
+import { saveVoiceClip, clearVoiceClip, hasVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../providers/soniox/managedVoicePolling';
 import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
@@ -66,7 +66,8 @@ export interface VoiceLibrarySource {
   readonly cacheNamespace?: string;
   /** Whether this device holds the recording a Start could rebuild the voice
    *  from. Managed only; an own-key source cannot rebuild from a clip, so it
-   *  is absent there (read as false). Rejects when storage cannot be read. */
+   *  is absent there (read as false). Rejects when storage cannot be read, so
+   *  a caller never mistakes a storage failure for "no clip". */
   hasDeviceClip?(): Promise<boolean>;
 }
 
@@ -261,7 +262,7 @@ export function managedVoiceSource(
     },
 
     async hasDeviceClip() {
-      return (await loadVoiceClip(accountId)) !== null;
+      return hasVoiceClip(accountId);
     },
 
     async delete(_id) {

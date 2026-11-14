@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import {
   saveVoiceClip,
   loadVoiceClip,
+  hasVoiceClip,
   clearVoiceClip,
   resetVoiceClipStorageForTesting,
 } from './voiceClipStorage';
@@ -144,5 +145,28 @@ describe('voiceClipStorage account scoping', () => {
     await saveVoiceClip(ACCOUNT_A, clip([1]));
     expect(await loadVoiceClip(undefined)).toBeNull();
     expect(await loadVoiceClip(null)).toBeNull();
+  });
+});
+
+describe('hasVoiceClip', () => {
+  it('answers true only for the owning account, false for another or nobody', async () => {
+    expect(await hasVoiceClip(ACCOUNT_A)).toBe(false);
+    await saveVoiceClip(ACCOUNT_A, clip([1]));
+    expect(await hasVoiceClip(ACCOUNT_A)).toBe(true);
+    expect(await hasVoiceClip(ACCOUNT_B)).toBe(false);
+    expect(await hasVoiceClip(null)).toBe(false);
+  });
+
+  it('rejects when storage cannot be read, unlike loadVoiceClip', async () => {
+    await resetVoiceClipStorageForTesting();
+    const original = globalThis.indexedDB;
+    // @ts-expect-error deliberately breaking the global for this assertion
+    globalThis.indexedDB = { open: () => { throw new Error('denied'); } };
+    try {
+      await expect(hasVoiceClip(ACCOUNT_A)).rejects.toThrow('denied');
+    } finally {
+      globalThis.indexedDB = original;
+      await resetVoiceClipStorageForTesting();
+    }
   });
 });

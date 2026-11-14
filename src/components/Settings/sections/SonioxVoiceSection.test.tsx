@@ -209,13 +209,13 @@ const openCreateModal = () => {
 
 // Scopes a query to the grid: the picker's own TRIGGER button's accessible
 // name is the concatenation of its value span and its subtitle span, so an
-// unscoped `getByRole('button', { name: /deleted voice/i })` matches the
+// unscoped `getByRole('button', { name: 'Custom voice' })` matches the
 // trigger too, not just the row — the same "computed accessible name" trap
 // the row's own gridcell has, one level up.
 //
 // Clones no longer carry a subtitle, which made this trap SHARPER rather than
-// milder: the trigger used to read "(deleted voice) My Voices" while the row
-// read "(deleted voice)", so a name that happened to be exact matched only
+// milder: the trigger used to read "Custom voice My Voices" while the row
+// read "Custom voice", so a name that happened to be exact matched only
 // one of them. Now both compute to the same string, so any query for the
 // SELECTED voice's name is ambiguous unless it is scoped. Three cases in this
 // file were relying on that accidental difference.
@@ -443,9 +443,12 @@ describe('SonioxVoiceSection', () => {
       settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
     });
     await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
     openPicker();
     await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
     expect(within(rowFor('Custom voice')).getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    // Without the clip the same empty list resets the id (next test group), so
+    // this only holds because the clip answer was honoured.
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
@@ -498,8 +501,51 @@ describe('SonioxVoiceSection', () => {
         settings={{ voice: 'Grace', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }}
       />
     );
+    // 'No clip' would reset the stale id; the user's pick must survive it.
     release(false);
     await new Promise((r) => setTimeout(r, 20));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('managed with an empty list, no clip and no clip support resets the id', async () => {
+    listMock.mockResolvedValue([]);
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip: async () => false }),
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
+  });
+
+  it('a region switch never reconciles against the previous source\'s list (own key)', async () => {
+    const onUpdate = vi.fn();
+    const a = fakeSource({ list: vi.fn(async () => [cloned({ id: 'uuid-A' })] as any) });
+    const view = (source: VoiceLibrarySource | null, voice: string) => (
+      <SonioxVoiceSection
+        settings={{ voice, apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+        onUpdate={onUpdate} source={source} managed={false} isSessionActive={false}
+      />
+    );
+    const { rerender } = render(view(a, 'uuid-A'));
+    await waitFor(() => expect(a.list).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 30));
+    const b = fakeSource({ list: vi.fn(async () => [cloned({ id: 'uuid-B' })] as any) });
+    rerender(view(b, 'uuid-B'));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('going from no source to a source never reconciles against the empty initial list', async () => {
+    const onUpdate = vi.fn();
+    const view = (source: VoiceLibrarySource | null) => (
+      <SonioxVoiceSection
+        settings={{ voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+        onUpdate={onUpdate} source={source} managed={false} isSessionActive={false}
+      />
+    );
+    const { rerender } = render(view(null));
+    rerender(view(fakeSource({ list: vi.fn(async () => [cloned({ id: 'uuid-1' })] as any) })));
+    await new Promise((r) => setTimeout(r, 30));
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
@@ -1040,22 +1086,12 @@ describe('SonioxVoiceSection', () => {
     expect(onUpdate).not.toHaveBeenCalledWith({ voice: 'new-id' });
   });
 
-  // NOTE(Task 3 — VoiceLibrarySource seam): before this refactor, `managed`
-  // was special-cased in the deleted-voice-placeholder guard purely to
-  // suppress the section's own internally-constructed client. The guard now
-  // reacts to `source` — exactly like BYOK always did — so a stale UUID with
-  // no source (this account's actual state today; a managed source arrives
-  // in Task 4) renders as a disabled, raw-id placeholder instead of being
-  // hidden outright. That state cannot exist today (the managed twin has
-  // never been able to create a custom voice), and Task 4's real managed
-  // source resolves it properly by actually finding the voice. This is a
-  // documented, intentional consequence of the Task 3 plan (see
-  // voiceLibrarySource.ts's task brief), not an unnoticed regression.
-  it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', () => {
+  // With no source there is no list to reconcile against, so a stale UUID is
+  // left alone and rendered as a disabled neutral "Custom voice" row.
+  it('managed mode with no source shows a stale UUID as a disabled neutral row', () => {
     mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
     openPicker();
-    // No source, so the raw id is shown verbatim (see SonioxVoiceSection's
-    // entries memo) rather than the "(deleted voice)" placeholder text.
+    // No source: nothing to reconcile against, so the id stays, labelled neutrally.
     expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeDisabled();
     // Still grouped under "My Voices", not "Presets" — the picker's own
     // group label is a `role="columnheader"` (VoicePicker.tsx:771-772), and
@@ -1135,10 +1171,9 @@ describe('SonioxVoiceSection', () => {
   });
 
   // Eviction is the NORMAL outcome of a small LRU cache serving unbounded
-  // users. Before this, the placeholder was `removable: false`, so the panel
-  // showed "(deleted voice)" above "No imported voices yet." with no delete
-  // button — the on-device recording stayed there forever and every later
-  // Start silently re-uploaded it.
+  // users. When this device still holds the clip, the id is kept (a Start
+  // rebuilds the voice) and its neutral row must be deletable, or the
+  // on-device recording would stay there forever.
   it('managed mode lets an evicted voice\'s placeholder be deleted, clearing the stale setting', async () => {
     listMock.mockResolvedValue([]);
     const source = fakeSource({ canPreview: false, hasDeviceClip: async () => true });

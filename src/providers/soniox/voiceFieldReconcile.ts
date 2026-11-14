@@ -7,7 +7,7 @@ import { reportWarning } from '../../lib/diagnostics/report';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import type { SonioxRegion } from '../../lib/soniox/regions';
 import { isSonioxBuiltInVoice } from '../../lib/soniox/ttsCatalog';
-import { loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
+import { hasVoiceClip } from '../../lib/soniox/voiceClipStorage';
 import { reconcileManagedSonioxVoice, reconcileSonioxVoice } from '../../lib/soniox/voiceReconcile';
 import { useProviderStore } from '../../stores/providerStore';
 import { ManagedVoicesClient } from './managedVoicesClient';
@@ -22,7 +22,7 @@ export interface VoiceFieldReconcileDeps {
 }
 
 const defaultOnline = () => typeof navigator === 'undefined' || navigator.onLine !== false;
-const defaultHasDeviceClip = async (userId: string | null | undefined) => (await loadVoiceClip(userId)) !== null;
+const defaultHasDeviceClip = (userId: string | null | undefined) => hasVoiceClip(userId);
 
 export async function reconcileSonioxVoiceField(
   p: AnyProvider,
@@ -45,7 +45,7 @@ export async function reconcileSonioxVoiceField(
       const a = auth();
       if (!a || !a.signedIn || a.loaded === false) return;
       // Only a managed start can rebuild a voice from this account's clip.
-      const hasClip = await (deps.hasDeviceClip ?? defaultHasDeviceClip)(startUser).catch(() => false);
+      const hasClip = await (deps.hasDeviceClip ?? defaultHasDeviceClip)(startUser);
       const client = (deps.managedClient ?? ((getToken, r) => new ManagedVoicesClient(getToken, r)))(() => (auth() ?? a).getToken(), region);
       next = reconcileManagedSonioxVoice(stored, await client.mine(), hasClip);
     } else {

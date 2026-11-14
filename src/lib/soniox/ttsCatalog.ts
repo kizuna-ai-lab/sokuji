@@ -22,10 +22,10 @@
  *    degrades to subtitles the way any other TTS failure does.
  *  - Managed (Kizuna AI): MainPanel reads it as a cloned voice and runs the
  *    managed-voice preparation path first.
- *  - Settings: SonioxVoiceSection shows it as "(deleted voice)", never
- *    selectable. The delete affordance beside that row is managed-only
- *    (`removable: managed && !!source && managedListKnown`), so BYOK gets the
- *    label without a destructive action next to it.
+ *  - Settings: once the list has loaded SonioxVoiceSection resets it to
+ *    the default voice (it shows as "Custom voice", never selectable, until
+ *    then). The delete affordance beside such a row is managed-only
+ *    (`removable: managed && !!source && managedListKnown`).
  *
  * Only the first is a property of this module. The other two are the existing
  * "unknown id ⇒ cloned voice" heuristic meeting a roster that shrank, and they

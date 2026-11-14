@@ -136,6 +136,17 @@ export async function loadVoiceClip(accountId: string | null | undefined): Promi
   }
 }
 
+/** Whether `accountId`'s clip is on this device. Unlike `loadVoiceClip` this
+ *  REJECTS when storage cannot be read, so a caller deciding whether to discard
+ *  a voice never reads an IndexedDB failure as "no clip". A missing account is
+ *  a successful `false`. */
+export async function hasVoiceClip(accountId: string | null | undefined): Promise<boolean> {
+  if (!accountId) return false;
+  const db = await getDb();
+  const record = (await db.get(STORE, KEY)) as StoredClip | undefined;
+  return !!record && record.accountId === accountId;
+}
+
 /** Forget this device's clip. Called when the user deletes their voice: a
  *  delete that left the source recording behind would not be a delete.
  *

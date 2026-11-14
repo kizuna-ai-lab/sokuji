@@ -16,6 +16,7 @@ import { kizunaSonioxProvider } from './kizuna';
 import { sonioxProvider } from './provider';
 import type { SonioxSettings } from './settings';
 import { reconcileSonioxVoiceField } from './voiceFieldReconcile';
+import { resetVoiceClipStorageForTesting } from '../../lib/soniox/voiceClipStorage';
 
 const settings = (p: AnyProvider = kizunaSonioxProvider) => useProviderStore.getState().entries[p.id].settings as SonioxSettings;
 const signedIn = (userId = 'u1'): AuthContext => ({ signedIn: true, loaded: true, userId, getToken: async () => 't' });
@@ -126,5 +127,25 @@ describe('reconcileSonioxVoiceField', () => {
     release();
     await run;
     expect(settings(sonioxProvider).voiceEu).toBe('gone');
+  });
+
+  it('the default clip check rejects on a storage failure: nothing is written and it is reported', async () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    await resetVoiceClipStorageForTesting();
+    const original = globalThis.indexedDB;
+    // @ts-expect-error deliberately breaking the global for this assertion
+    globalThis.indexedDB = { open: () => { throw new Error('denied'); } };
+    try {
+      await useProviderStore.getState().updateSettings(kizunaSonioxProvider, { voiceJp: 'stale' });
+      await reconcileSonioxVoiceField(kizunaSonioxProvider, 'jp', () => signedIn(), {
+        managedClient: () => ({ mine: async () => null }), online: () => true,
+      });
+      expect(settings().voiceJp).toBe('stale');
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.indexedDB = original;
+      await resetVoiceClipStorageForTesting();
+      warn.mockRestore();
+    }
   });
 });
