@@ -59,4 +59,11 @@ describe('one OpenAI key', () => {
     expect(entry('openai').credentials.apiKey).toBe('sk-new');
     expect(entry('openai_live').credentials.apiKey).toBe('sk-new');
   });
+
+  it('a cleared key stays cleared: the old keys are read only while the one key was never stored', async () => {
+    stored.set('settings.openaiLive.apiKey', 'sk-l');
+    stored.set('settings.openai.apiKey', '');
+    await useProviderStore.getState().load(openaiTranslateProvider);
+    expect(entry('openai_translate').credentials.apiKey).toBe('');
+  });
 });

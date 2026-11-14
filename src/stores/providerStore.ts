@@ -244,7 +244,14 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const [values, secrets, legacyValues, source, target] = await Promise.all([
         Promise.all(fields.map((f) => service.getSetting<unknown>(storageKey(p, f), defaults[f]))),
         Promise.all(p.credentials.keys.map(async (k) => {
-          for (const key of credentialReadKeys(p, k)) {
+          if (!p.credentials.storedAt) return service.getSetting(storageKey(p, k), '');
+          // The shared key once stored, even cleared, is the answer; the old per-provider keys are read only
+          // while it was never stored (a user who filled only OpenAI Live's key before keeps it).
+          // Read without a string default (to tell "never stored" apart), so a key that parses as JSON comes back
+          // as a number or a boolean: turned back into the text that was stored.
+          const shared = await service.getSetting<unknown>(credentialKey(p, k), undefined);
+          if (shared !== undefined) return typeof shared === 'string' ? shared : String(shared);
+          for (const key of credentialReadKeys(p, k).slice(1)) {
             const value = await service.getSetting(key, '');
             if (value) return value;
           }

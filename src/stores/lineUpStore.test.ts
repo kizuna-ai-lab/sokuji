@@ -4,6 +4,7 @@ const { stored, getSetting, setSetting, model } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
   const model = {
     scan: Promise.resolve() as Promise<void>,
+    initialized: true,
     resolved: { translation: 'bing-translator', tts: 'edge-tts' } as { translation: string | null; tts: string | null },
   };
   return {
@@ -23,6 +24,7 @@ vi.mock('./modelStore', () => ({
   useModelStore: {
     getState: () => ({
       initialize: () => model.scan,
+      get initialized() { return model.initialized; },
       resolve: () => ({
         asr: null,
         translation: model.resolved.translation ? { modelId: model.resolved.translation, source: 'auto' } : null,
@@ -31,6 +33,13 @@ vi.mock('./modelStore', () => ({
       }),
     }),
   },
+}));
+
+// The AST cross-stage guard, as a session applies it: a test may make it downgrade the translation stage.
+const guard = vi.hoisted(() => ({ translation: undefined as string | null | undefined }));
+vi.mock('../services/providers/astGuard', () => ({
+  guardAstCrossStage: (_s: string, _t: string, _sel: unknown, raw: { translation: unknown }) =>
+    guard.translation === undefined ? raw : { ...raw, translation: guard.translation ? { modelId: guard.translation, source: 'auto' } : null },
 }));
 
 import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent } from './lineUpStore';
@@ -44,6 +53,8 @@ beforeEach(() => {
   getSetting.mockClear();
   setSetting.mockClear();
   model.scan = Promise.resolve();
+  model.initialized = true;
+  guard.translation = undefined;
   model.resolved = { translation: 'bing-translator', tts: 'edge-tts' };
   useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
   useLineUpStore.setState({ lineUp: null, stored: false });
@@ -67,6 +78,14 @@ describe('the line-up store', () => {
     expect(setSetting).not.toHaveBeenCalled();
   });
 
+  it('a stored line-up naming a provider this build does not know is neither used nor overwritten', async () => {
+    stored.set(LINEUP_KEY, { version: 1, stages: { transcription: 'later_provider', translation: 'later_provider', speech: 'later_provider', summarisation: null } });
+    useProviderStore.setState({ selected: 'soniox' });
+    await useLineUpStore.getState().load();
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(useLineUpStore.getState().stored).toBe(false);
+  });
+
   it('the local migration waits for the scan, then writes what today resolves to', async () => {
     let finishScan!: () => void;
     model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
@@ -77,6 +96,24 @@ describe('the line-up store', () => {
     finishScan();
     await vi.waitFor(() => expect(useLineUpStore.getState().stored).toBe(true));
     expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+  });
+
+  it('works out the local line-up as a session would, through the AST guard', async () => {
+    model.resolved = { translation: 'granite-speech', tts: 'edge-tts' };
+    guard.translation = 'bing-translator'; // today's guard drops a mismatched Granite pick back to automatic: Bing
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    await vi.waitFor(() => expect(useLineUpStore.getState().stored).toBe(true));
+    expect(useLineUpStore.getState().lineUp).toMatchObject({ translation: 'bing' });
+  });
+
+  it('writes nothing when the scan of downloaded models failed', async () => {
+    model.initialized = false;
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(useLineUpStore.getState().stored).toBe(false);
   });
 
   it('refuses a choice before the migration has written', async () => {

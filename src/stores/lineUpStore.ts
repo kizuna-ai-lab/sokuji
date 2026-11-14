@@ -7,12 +7,13 @@
 // keeps that selection in step.
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
-import { familyDefaults, runOf } from '../lib/lineup/catalog';
+import { caps, familyDefaults, runOf } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, StageName } from '../lib/lineup/types';
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { Selections } from '../lib/local-inference/selection/types';
+import { guardAstCrossStage } from '../services/providers/astGuard';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { useModelStore } from './modelStore';
@@ -38,7 +39,8 @@ function isStoredLineUp(value: unknown): value is StoredLineUp {
   if (!value || typeof value !== 'object') return false;
   const v = value as { version?: unknown; stages?: Record<string, unknown> };
   if (v.version !== 1 || !v.stages || typeof v.stages !== 'object') return false;
-  return STAGE_NAMES.every((s) => v.stages![s] === null || typeof v.stages![s] === 'string');
+  // Every run stage names a provider this build knows (the notes stage is not in the catalog yet).
+  return STAGE_NAMES.every((s) => v.stages![s] === null || (typeof v.stages![s] === 'string' && (s === 'summarisation' || caps(v.stages![s] as string) !== undefined)));
 }
 
 async function write(lineUp: LineUp): Promise<boolean> {
@@ -50,7 +52,9 @@ function todayLocal(): { translation: string | null; tts: string | null } {
   const entry = useProviderStore.getState().entries.local_inference;
   const selections = ((entry?.settings as { selections?: Selections } | undefined)?.selections) ?? {};
   const pair = entry?.pair ?? { source: '', target: '' };
-  const r = useModelStore.getState().resolve(pair.source, pair.target, selections);
+  const resolve = (masked: Selections) => useModelStore.getState().resolve(pair.source, pair.target, masked);
+  // As a session would resolve it: the AST guard drops a Granite pick that does not match the recognition stage.
+  const r = guardAstCrossStage(pair.source, pair.target, selections, resolve(selections), resolve);
   return { translation: r.translation?.modelId ?? null, tts: r.tts?.modelId ?? null };
 }
 
@@ -66,6 +70,12 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
     }
     const selected = useProviderStore.getState().selected;
     if (!selected) return;
+    if (value !== null && value !== undefined) {
+      // Stored, but not something this build can use (another version, a provider it does not know): shown as
+      // today's values, never overwritten by the migration; a session resolves as today.
+      set({ lineUp: selected === 'local_inference' ? { ...familyDefaults('local_inference'), summarisation: null } : lineUpFromToday({ selected, local: null }), stored: false });
+      return;
+    }
     if (selected !== 'local_inference') {
       const lineUp = lineUpFromToday({ selected, local: null });
       set({ lineUp, stored: await write(lineUp) });
@@ -76,6 +86,9 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
     set({ lineUp: { ...familyDefaults('local_inference'), summarisation: null }, stored: false });
     void (async () => {
       await useModelStore.getState().initialize();
+      // A failed scan reports no downloaded model: worked out now, every local choice would read as Bing and
+      // Edge for good. Write nothing; the next start tries again, and until then a session resolves as today.
+      if (!useModelStore.getState().initialized) return;
       if (get().stored) return; // a line-up was stored meanwhile (the setup wizard): it stands
       const lineUp = lineUpFromToday({ selected, local: todayLocal() });
       set({ lineUp, stored: await write(lineUp) });

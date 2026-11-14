@@ -21,6 +21,7 @@ import { sentenceEnds } from '../lib/segmentation/sentenceEnd';
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { useLineUpStore } from '../stores/lineUpStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import {
   appStartInputs,
@@ -300,6 +301,21 @@ describe('sessionEndProperties', () => {
       text: { 'speaker|m': { leg: 'speaker', model: 'm', chars: 0, terminals: 0 } },
     };
     expect(sessionEndProperties(tally, run)).toEqual({});
+  });
+});
+
+describe('appStartInputs and the line-up', () => {
+  const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+  afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
+  it('carries the stored line-up when it runs on the selected provider', () => {
+    useProviderStore.setState({ selected: 'local_inference', entries: {} });
+    useLineUpStore.setState({ lineUp: local, stored: true });
+    expect(appStartInputs(false).lineUp).toEqual(local);
+  });
+  it('leaves it out when the selected provider was changed elsewhere and no longer runs it', () => {
+    useProviderStore.setState({ selected: 'openai', entries: {} });
+    useLineUpStore.setState({ lineUp: local, stored: true });
+    expect(appStartInputs(false).lineUp).toBeNull();
   });
 });
 
