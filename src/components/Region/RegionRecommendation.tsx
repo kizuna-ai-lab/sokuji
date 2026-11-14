@@ -6,6 +6,7 @@
  */
 import React, { useEffect } from 'react';
 import { useAnalytics } from '../../lib/analytics';
+import { reportWarning } from '../../lib/diagnostics/report';
 import { isRecommendedProvider } from '../../lib/region/regionalProviders';
 import { RECOMMENDATION_DELAY_MS, recommendationGate, runRegionRecommendation } from '../../lib/region/runRecommendation';
 import { useProviderStore } from '../../stores/providerStore';
@@ -45,9 +46,11 @@ export default function RegionRecommendation(): React.JSX.Element {
     if (!ready || !isRecommendedProvider(selected)) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      void runRegionRecommendation(selected, {
+      runRegionRecommendation(selected, {
         signal: controller.signal,
         track: (e) => trackRef.current('region_recommendation', e),
+      }).catch((cause) => {
+        reportWarning('RegionRecommendation', 'The region measurement failed.', { dedupeKey: 'region:run', cause });
       });
     }, RECOMMENDATION_DELAY_MS);
     return () => {

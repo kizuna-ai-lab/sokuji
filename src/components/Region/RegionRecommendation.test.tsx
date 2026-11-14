@@ -12,6 +12,8 @@ const auth = vi.hoisted(() => ({ signedIn: true, loaded: true }));
 vi.mock('../providers/useAuthContext', () => ({
   useAuthContext: () => ({ signedIn: auth.signedIn, loaded: auth.loaded, userId: 'u', getToken: vi.fn() }),
 }));
+const reportWarning = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/diagnostics/report', () => ({ reportWarning }));
 const trackEvent = vi.hoisted(() => vi.fn());
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 const layout = vi.hoisted(() => ({ wizardOpen: false }));
@@ -33,6 +35,7 @@ function seed(selected: string | null, entries: string[] = selected ? [selected]
 
 beforeEach(() => {
   vi.useFakeTimers();
+  reportWarning.mockReset();
   run.mockReset().mockResolvedValue(undefined);
   tour.active = false; auth.signedIn = true; auth.loaded = true; layout.wizardOpen = false;
   useRegionRecommendationStore.setState({ records: {} });
@@ -107,13 +110,49 @@ describe('RegionRecommendation', () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it('waits for the entry to load, the sign-in to load, the wizard to close, and the network', () => {
-    seed('kizunaai_qwen', []);
-    auth.loaded = false; layout.wizardOpen = true;
-    const spy = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-    render(<RegionRecommendation />);
+  const blockers: Array<[string, () => () => void, () => void]> = [
+    ['the provider entry to load', () => { seed('kizunaai_soniox', []); return () => {}; },
+      () => useProviderStore.setState({ entries: { kizunaai_soniox: entry } } as never)],
+    ['the sign-in to load', () => { auth.loaded = false; return () => {}; }, () => { auth.loaded = true; }],
+    ['the wizard to close', () => { layout.wizardOpen = true; return () => {}; }, () => { layout.wizardOpen = false; }],
+    ['the network', () => {
+      const spy = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      return () => spy.mockRestore();
+    }, () => { window.dispatchEvent(new Event('online')); }],
+  ];
+  it.each(blockers)('waits for %s, then runs 5 s after it clears', (_n, block, open) => {
+    const restore = block();
+    const { rerender } = render(<RegionRecommendation />);
     act(() => { vi.advanceTimersByTime(10000); });
     expect(run).not.toHaveBeenCalled();
-    spy.mockRestore();
+    restore();
+    act(() => { open(); });
+    rerender(<RegionRecommendation />);
+    act(() => { vi.advanceTimersByTime(4999); });
+    expect(run).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('changing the selected provider clears the pending timer and aborts a run in flight', () => {
+    seed('kizunaai_soniox', ['kizunaai_soniox', 'kizunaai_qwen']);
+    render(<RegionRecommendation />);
+    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => { useProviderStore.setState({ selected: 'kizunaai_qwen' }); });
+    act(() => { vi.advanceTimersByTime(4999); });
+    expect(run).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(run).toHaveBeenCalledWith('kizunaai_qwen', expect.anything());
+    const { signal } = run.mock.calls[0][1];
+    act(() => { useProviderStore.setState({ selected: 'kizunaai_soniox' }); });
+    expect(signal.aborted).toBe(true);
+  });
+
+  it('records a failed run once and leaves no unhandled rejection', async () => {
+    run.mockRejectedValue(new Error('boom'));
+    render(<RegionRecommendation />);
+    await act(async () => { vi.advanceTimersByTime(5000); });
+    expect(reportWarning).toHaveBeenCalledTimes(1);
+    expect(reportWarning).toHaveBeenCalledWith('RegionRecommendation', expect.any(String), expect.objectContaining({ dedupeKey: 'region:run', cause: expect.any(Error) }));
   });
 });
