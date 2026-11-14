@@ -186,6 +186,8 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     source_language: string;
     target_language: string;
     credentials_pending: boolean;
+    /** The line-up Finish wrote: a provider id per stage. */
+    stages: { transcription: string; translation: string; speech: string };
   };
   'push_to_talk_used': {
     session_id: string;

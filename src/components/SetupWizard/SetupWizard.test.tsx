@@ -92,6 +92,7 @@ import { matchLanguage } from './languageDefaults';
 import { useProviderStore } from '../../stores/providerStore';
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
+import { useLineUpStore } from '../../stores/lineUpStore';
 
 beforeEach(() => {
   cleanup();
@@ -480,5 +481,44 @@ describe('SetupWizard', () => {
     expect(startedCalls).toHaveLength(1);
     expect(stepViewedCalls).toHaveLength(5);
     expect(stepViewedCalls[stepViewedCalls.length - 1][1]).toEqual({ step: 4, step_id: 'language-pair' });
+  });
+});
+
+// Plan 6, Task 5: a re-run starts from the line-up in use (ruling 3); the completion event names the stages.
+describe('SetupWizard — the line-up in use', () => {
+  afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
+
+  it('a re-run starts from the line-up in use', () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'managed', provider: 'kizunaai_soniox', completedAt: 'x' };
+    useLineUpStore.setState({ lineUp: { transcription: 'openai', translation: 'openai', speech: 'openai', summarisation: null }, stored: true });
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
+    next();
+    expect(screen.getByRole('radio', { name: /I have my own API key/ })).toBeChecked();
+    // This file's translation stand-in names a provider by its id.
+    expect(screen.getByRole('radio', { name: /^openai$/ })).toBeChecked();
+  });
+
+  it('a re-run whose line-up the wizard cannot offer starts from the default', () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'managed', provider: 'kizunaai_soniox', completedAt: 'x' };
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'openai', speech: 'openai', summarisation: null }, stored: true });
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
+  });
+
+  it('reports the stages it set up', async () => {
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /No key needed/ }));
+    next(); next(); next();
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() => expect(applied).toHaveLength(1));
+    expect(trackSpy).toHaveBeenCalledWith('setup_completed', expect.objectContaining({
+      stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' },
+    }));
   });
 });

@@ -20,7 +20,7 @@ describe('the hosted providers and the line-up of each path', () => {
   });
 
   it('greys Qwen face to face but keeps the Kizuna AI path', () => {
-    expect(managedOptions('face-to-face-voice').find((o) => o.id === 'kizunaai_qwen')!.fit).toEqual({ ok: false, reason: 'cannot-face-to-face' });
+    expect(managedOptions('face-to-face-voice').find((o) => (o.id as string) === 'kizunaai_qwen')!.fit).toEqual({ ok: false, reason: 'cannot-face-to-face' });
     expect(managedOptions('face-to-face-voice')[0].fit.ok).toBe(true);
   });
 

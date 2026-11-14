@@ -20,7 +20,10 @@ import { isElectron, isExtension, isLinux, isMacOS, isWindows } from '../../util
 import { initialDraft, draftFromRecord, setupReducer, canAdvance, LAST_STEP } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
 import { useApplySetup } from './useApplySetup';
-import { offersRecord } from './providerPaths';
+import { lineUpOf, offersRecord, pathOf } from './providerPaths';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { runOf } from '../../lib/lineup/catalog';
+import type { ProviderPath } from '../../lib/setup/types';
 import StepLanguage from './steps/StepLanguage';
 import StepScenario from './steps/StepScenario';
 import StepProviderPath from './steps/StepProviderPath';
@@ -37,6 +40,21 @@ interface SetupWizardProps {
   onClose?: () => void;
 }
 
+/** The line-up Finish writes for a provider, as the completion event reports it. */
+function stagesOf(provider: string): { transcription: string; translation: string; speech: string } {
+  const lineUp = lineUpOf(provider);
+  return { transcription: lineUp.transcription ?? '', translation: lineUp.translation ?? '', speech: lineUp.speech ?? '' };
+}
+
+/** The provider and path of the stored line-up, 'not-offered' when the wizard cannot offer it, null when none is stored. */
+function lineUpInUse(): { provider: string; providerPath: ProviderPath } | 'not-offered' | null {
+  const { lineUp, stored } = useLineUpStore.getState();
+  if (!stored || !lineUp) return null;
+  const run = runOf(lineUp);
+  const providerPath = run.ok ? pathOf(run.provider) : null;
+  return run.ok && providerPath ? { provider: run.provider, providerPath } : 'not-offered';
+}
+
 const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const { t } = useTranslation();
   const { isSignedIn } = useAuth();
@@ -47,11 +65,17 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const { start: startTour } = useTour();
 
   const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft => {
-    if (variant !== 'rerun' || !record || !offersRecord(record)) return initialDraft();
+    if (variant !== 'rerun' || !record) return initialDraft();
+    // A re-run starts from the line-up in use (Plan 6, ruling 3): a stored line-up the wizard can offer chooses the
+    // provider and its path; one it cannot offer starts the wizard from its default; none at all leaves the record.
+    const inUse = lineUpInUse();
+    if (inUse === 'not-offered') return initialDraft();
+    const from = inUse ? { ...record, ...inUse } : record;
+    if (!offersRecord(from)) return initialDraft();
     // A saved key counts as validated when the provider's last readiness answer was ready.
-    const id = providerIdFromStored(record.provider);
+    const id = providerIdFromStored(from.provider);
     const ready = id !== null && useProviderStore.getState().readiness[id]?.state === 'ready';
-    return draftFromRecord(record, { credentialsAlreadyValid: ready });
+    return draftFromRecord(from, { credentialsAlreadyValid: ready });
   });
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
@@ -106,6 +130,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
         scenario: draft.scenario ?? '', provider_path: draft.providerPath ?? '', provider: draft.provider ?? '',
         source_language: draft.sourceLanguage ?? '', target_language: draft.targetLanguage ?? '',
         credentials_pending: credentialsPending,
+        // The line-up Finish wrote (Plan 6): provider ids per stage, nothing typed.
+        stages: stagesOf(draft.provider ?? ''),
       });
       onClose?.();
     } catch (err) {

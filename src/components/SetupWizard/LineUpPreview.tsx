@@ -17,7 +17,7 @@ export function LineUpPreview({ provider, bare = false }: { provider: string; ba
   const rows = (
     <dl className="lineup-preview__rows">
       {RUN_STAGES.map((stage) => {
-        const id = lineUp[stage];
+        const id = lineUp[stage] ?? '';
         // Bing and Edge have no description, only their short note.
         const about = t(`providers.${id}.description`, { defaultValue: t(`providers.${id}.note`, '') });
         return (
