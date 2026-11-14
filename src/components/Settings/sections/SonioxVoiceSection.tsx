@@ -521,6 +521,10 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // depend on a callback identity that can change between renders.
   const onUpdateRef = useRef(onUpdate);
   useEffect(() => { onUpdateRef.current = onUpdate; }, [onUpdate]);
+  // The list a pending clip check was reconciled against may have been replaced meanwhile (a refresh
+  // can bring the stored voice back); an answer about a superseded list must not be applied.
+  const clonesRef = useRef(clones);
+  useEffect(() => { clonesRef.current = clones; }, [clones]);
   const reconciledRef = useRef<{ source: unknown; stored: string; clones: unknown } | null>(null);
   useEffect(() => {
     const stored = settings.voice;
@@ -551,7 +555,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       } else {
         next = reconcileSonioxVoice(stored, clones.map((c) => c.id), false);
       }
-      if (next !== stored && selectedVoiceRef.current === stored && sourceRef.current === source) {
+      if (next !== stored && selectedVoiceRef.current === stored && sourceRef.current === source && clonesRef.current === clones) {
         onUpdateRef.current({ voice: next });
       }
     })();

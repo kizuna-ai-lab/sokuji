@@ -507,6 +507,30 @@ describe('SonioxVoiceSection', () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
+  it('a clip check answering after a refresh listed the stored voice changes nothing', async () => {
+    // The first list is empty, so the stored id goes to the clip check; while it runs, a refresh
+    // brings the voice back. The late "no clip" answer was reconciled against the old, empty list.
+    listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([cloned({ id: 'v1' })]);
+    let release!: (v: boolean) => void;
+    const hasDeviceClip = vi.fn(() => new Promise<boolean>((r) => { release = r; }));
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+      settings: { voice: 'v1', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    openPicker();
+    const refreshButton = screen.getByRole('button', { name: /refresh voice list/i });
+    await waitFor(() => expect(refreshButton).not.toBeDisabled());
+    fireEvent.click(refreshButton);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(refreshButton).not.toBeDisabled());
+    release(false);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(hasDeviceClip).toHaveBeenCalledTimes(1);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
   it('managed with an empty list, no clip and no clip support resets the id', async () => {
     listMock.mockResolvedValue([]);
     const { onUpdate } = mount({
