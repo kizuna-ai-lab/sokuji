@@ -1406,26 +1406,29 @@
       "createAccount": "注册账号",
       "signedIn": "已登录，可以继续。",
       "managedDesc": "用邮箱注册或登录，并到邮箱完成验证；验证后即可获得试用额度。之后自行充值，按用量计费。",
-      "offlineNotice": "模型在设置完成后从「设置」里下载，会占用数 GB 硬盘。有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
-      "pendingKey": "可以稍后在「设置 → 提供商」里添加密钥。密钥校验通过前无法开始。",
+      "offlineNotice": "识别模型在设置完成后从「设置 → 模型与存储」下载。翻译用必应、语音用 Edge，不用下载，也不用账号；要翻译的文字和要念的译文会发给微软。",
+      "pendingKey": "可以稍后在「设置 → 账号与密钥」里添加密钥。密钥校验通过前无法开始。",
       "pendingSignIn": "可以稍后从账户按钮登录。登录前无法开始。",
       "verifyEmail": "已登录。请到邮箱打开我们发送的链接完成验证——验证后试用额度才会到账。",
       "ownKeyDesc": "密钥只保存在这台设备上，由本机直接调用该服务，不会传给 Kizuna AI。用量费用由你直接付给该服务。",
       "guide": "如何获取这个密钥",
-      "onFile": "已保存密钥——留空即沿用。"
+      "onFile": "已保存密钥——留空即沿用。",
+      "offlineHardware": "有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
+      "openaiOneKey": "这一把密钥给 OpenAI Realtime、Translate、Live 三种服务共用。"
     },
     "summary": {
       "scenario": "场景",
       "mode": "模式",
       "provider": "服务",
       "languages": "语言",
-      "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → 提供商」里添加。",
+      "pendingKey": "尚未设置 API 密钥——开始前请在「设置 → 账号与密钥」里添加。",
       "pendingSignIn": "尚未登录——开始前请从账户按钮登录。",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "会话组成"
     },
     "lineup": {
       "title": "会写下的会话组成",
-      "later": "以后可以在“设置 → 语言与会话组成”里一项一项换。"
+      "later": "以后可以在「设置 → 语言与会话组成」里一项一项换。"
     }
   },
   "tour": {

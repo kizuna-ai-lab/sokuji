@@ -952,9 +952,11 @@
       "signedIn": "Signed in. You can continue.",
       "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
       "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+      "offlineNotice": "The recognition model is downloaded after setup, from Settings → Models and storage. Translation uses Bing and speech uses Edge: nothing to download and no account; the text to translate and the translation to speak are sent to Microsoft.",
+      "pendingKey": "You can add the key later in Settings → Accounts and keys. Start stays locked until it validates.",
+      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
+      "offlineHardware": "Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
+      "openaiOneKey": "This one key serves OpenAI Realtime, Translate and Live."
     },
     "summary": {
       "scenario": "Scenario",
@@ -962,8 +964,9 @@
       "provider": "Provider",
       "languages": "Languages",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start."
+      "pendingKey": "No API key yet — add it in Settings → Accounts and keys before you start.",
+      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "lineup": "Line-up"
     },
     "lineup": {
       "title": "The line-up this sets up",

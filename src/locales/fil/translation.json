@@ -1406,22 +1406,25 @@
       "createAccount": "Gumawa ng Account",
       "signedIn": "Naka-sign in na. Maaari na kayong magpatuloy.",
       "managedDesc": "Mag-sign up gamit ang inyong email address at i-verify ito mula sa inyong inbox; makakakuha ng trial credit ang mga na-verify na account. Pagkatapos, mag-top up ng inyong balanse at magbayad lamang para sa ginamit ninyo.",
-      "offlineNotice": "Dina-download ang mga modelo pagkatapos ng setup, mula sa Mga Setting. Umaabot ito ng ilang gigabytes sa disk. Maayos tumatakbo ang Sokuji gamit ang GPU at sapat na VRAM; sa CPU lang, mas mabagal ito nang halata.",
-      "pendingKey": "Maaari ninyong idagdag ang key mamaya sa Mga Setting → Provider. Mananatiling naka-lock ang Start hanggang ma-validate ito.",
+      "offlineNotice": "Dina-download ang model ng pagkilala pagkatapos ng setup, mula sa Mga Setting → Mga model at storage. Bing ang gamit sa salin at Edge sa pagsasalita: walang ida-download at walang account; ipinapadala sa Microsoft ang tekstong isasalin at ang salin na babasahin.",
+      "pendingKey": "Maidadagdag mo ang key sa ibang pagkakataon sa Mga Setting → Mga account at key. Naka-lock ang Simulan hanggang ma-validate ito.",
       "pendingSignIn": "Maaari kayong mag-sign in mamaya mula sa account button. Mananatiling naka-lock ang Start hanggang doon.",
       "ownKeyDesc": "Naka-imbak ang key na ito sa device na ito lamang, at direktang tumatawag ang app sa provider mula rito — hindi ito umaabot sa Kizuna AI. Nagbabayad kayo sa provider para sa ginamit ninyo.",
       "guide": "Paano makuha ang key na ito",
       "verifyEmail": "Naka-sign in na. Buksan ang link na ipinadala namin sa inyong email para i-verify ang inyong address — makukuha ang trial credit kapag nagawa na ninyo ito.",
-      "onFile": "Mayroon nang naka-save na key — iwanan itong blangko para mapanatili ito."
+      "onFile": "Mayroon nang naka-save na key — iwanan itong blangko para mapanatili ito.",
+      "offlineHardware": "Maayos ang Sokuji kapag may GPU at sapat na VRAM; kapansin-pansing mas mabagal kung CPU lang.",
+      "openaiOneKey": "Itong iisang key ang gamit ng OpenAI Realtime, Translate at Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Mode",
       "provider": "Provider",
       "languages": "Mga Wika",
-      "pendingKey": "Wala pang API key — idagdag ito sa Mga Setting → Provider bago kayo magsimula.",
+      "pendingKey": "Wala pang API key — idagdag ito sa Mga Setting → Mga account at key bago magsimula.",
       "pendingSignIn": "Hindi naka-sign in — mag-sign in mula sa account button bago kayo magsimula.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Line-up"
     },
     "lineup": {
       "title": "Ang line-up na ise-set up nito",

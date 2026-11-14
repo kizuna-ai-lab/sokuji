@@ -1406,22 +1406,25 @@
       "createAccount": "Registrati",
       "signedIn": "Accesso effettuato. Puoi continuare.",
       "managedDesc": "Registrati con il tuo indirizzo email e verificalo dalla tua posta in arrivo; gli account verificati ricevono un credito di prova. Dopodiché ricarichi il saldo e paghi solo per quanto usi.",
-      "offlineNotice": "I modelli vengono scaricati dopo la configurazione, dalle Impostazioni. Occupano gigabyte di spazio su disco. Sokuji funziona bene con una GPU e VRAM sufficiente; solo con la CPU è nettamente più lento.",
-      "pendingKey": "Puoi aggiungere la chiave più avanti in Impostazioni → Fornitore. Avvia resta bloccato finché non viene convalidata.",
+      "offlineNotice": "Il modello di riconoscimento si scarica dopo la configurazione, da Impostazioni → Modelli e spazio. La traduzione usa Bing e la voce Edge: niente da scaricare e nessun account; il testo da tradurre e la traduzione da leggere vengono inviati a Microsoft.",
+      "pendingKey": "Puoi aggiungere la chiave più tardi in Impostazioni → Account e chiavi. Avvia resta bloccato finché non è convalidata.",
       "pendingSignIn": "Puoi accedere più avanti dal pulsante Account. Avvia resta bloccato fino ad allora.",
       "ownKeyDesc": "Questa chiave è memorizzata solo su questo dispositivo, e l'app chiama il fornitore direttamente da qui — non raggiunge mai Kizuna AI. Paghi il fornitore in base a quanto usi.",
       "guide": "Come ottenere questa chiave",
       "verifyEmail": "Accesso effettuato. Apri il link che ti abbiamo inviato via email per verificare il tuo indirizzo — il credito di prova arriva non appena lo fai.",
-      "onFile": "Una chiave è già salvata — lascia vuoto per mantenerla."
+      "onFile": "Una chiave è già salvata — lascia vuoto per mantenerla.",
+      "offlineHardware": "Sokuji funziona bene con una GPU e abbastanza VRAM; solo con la CPU è sensibilmente più lento.",
+      "openaiOneKey": "Questa sola chiave vale per OpenAI Realtime, Translate e Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Modalità",
       "provider": "Fornitore",
       "languages": "Lingue",
-      "pendingKey": "Ancora nessuna chiave API — aggiungila in Impostazioni → Fornitore prima di iniziare.",
+      "pendingKey": "Nessuna chiave API per ora — aggiungila in Impostazioni → Account e chiavi prima di iniziare.",
       "pendingSignIn": "Non hai effettuato l'accesso — accedi dal pulsante Account prima di iniziare.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Composizione"
     },
     "lineup": {
       "title": "La composizione che verrà impostata",

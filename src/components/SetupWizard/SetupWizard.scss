@@ -156,3 +156,6 @@
 }
 .lineup-preview__name { color: vars.$text-primary; }
 .lineup-preview__about { font-size: vars.$font-caption; color: vars.$text-muted; }
+
+// A notice in two sentences, each on its own line.
+.setup-notice-line { display: block; & + & { margin-top: vars.$space-1; } }

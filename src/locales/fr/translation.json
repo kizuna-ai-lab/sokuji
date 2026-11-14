@@ -1406,22 +1406,25 @@
       "createAccount": "Créer un compte",
       "signedIn": "Connecté. Vous pouvez continuer.",
       "managedDesc": "Inscrivez-vous avec votre adresse e-mail et vérifiez-la depuis votre boîte de réception ; les comptes vérifiés reçoivent un crédit d'essai. Ensuite, vous rechargez votre solde et vous ne payez que ce que vous utilisez.",
-      "offlineNotice": "Les modèles sont téléchargés après la configuration, depuis les Paramètres. Ils occupent plusieurs gigaoctets d'espace disque. Sokuji fonctionne bien avec un GPU et suffisamment de VRAM ; sur CPU seul, c'est nettement plus lent.",
-      "pendingKey": "Vous pouvez ajouter la clé plus tard dans Paramètres → Fournisseur. Démarrer reste verrouillé jusqu'à validation.",
+      "offlineNotice": "Le modèle de reconnaissance se télécharge après la configuration, dans Paramètres → Modèles et stockage. La traduction utilise Bing et la voix Edge : rien à télécharger, aucun compte ; le texte à traduire et la traduction à lire sont envoyés à Microsoft.",
+      "pendingKey": "Vous pourrez ajouter la clé plus tard dans Paramètres → Comptes et clés. Le démarrage reste verrouillé tant qu’elle n’est pas validée.",
       "pendingSignIn": "Vous pouvez vous connecter plus tard depuis le bouton Compte. Démarrer reste verrouillé jusque-là.",
       "ownKeyDesc": "Cette clé est stockée uniquement sur cet appareil, et l'application contacte le fournisseur directement depuis ici — elle n'atteint jamais Kizuna AI. Vous payez le fournisseur pour ce que vous utilisez.",
       "guide": "Comment obtenir cette clé",
       "verifyEmail": "Connecté. Ouvrez le lien que nous vous avons envoyé par e-mail pour vérifier votre adresse — le crédit d'essai est accordé dès que c'est fait.",
-      "onFile": "Une clé est déjà enregistrée — laissez ce champ vide pour la conserver."
+      "onFile": "Une clé est déjà enregistrée — laissez ce champ vide pour la conserver.",
+      "offlineHardware": "Sokuji tourne bien avec un GPU et assez de VRAM ; sur CPU seul, il est nettement plus lent.",
+      "openaiOneKey": "Cette seule clé sert à OpenAI Realtime, Translate et Live."
     },
     "summary": {
       "scenario": "Scénario",
       "mode": "Mode",
       "provider": "Fournisseur",
       "languages": "Langues",
-      "pendingKey": "Pas encore de clé API — ajoutez-la dans Paramètres → Fournisseur avant de démarrer.",
+      "pendingKey": "Pas encore de clé API — ajoutez-la dans Paramètres → Comptes et clés avant de commencer.",
       "pendingSignIn": "Non connecté — connectez-vous depuis le bouton Compte avant de démarrer.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Composition"
     },
     "lineup": {
       "title": "La composition mise en place",

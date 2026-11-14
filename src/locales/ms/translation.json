@@ -1406,22 +1406,25 @@
       "createAccount": "Cipta akaun",
       "signedIn": "Log masuk berjaya. Anda boleh teruskan.",
       "managedDesc": "Daftar menggunakan alamat e-mel anda dan sahkannya melalui peti masuk anda; akaun yang disahkan mendapat kredit percubaan. Selepas itu, anda tambah nilai baki anda dan hanya membayar untuk apa yang anda gunakan.",
-      "offlineNotice": "Model dimuat turun selepas persediaan, daripada Tetapan. Ia mengambil beberapa gigabait ruang cakera. Sokuji berjalan lancar dengan GPU dan VRAM yang mencukupi; dengan CPU sahaja, ia jauh lebih perlahan.",
-      "pendingKey": "Anda boleh menambah kunci kemudian dalam Tetapan → Penyedia. Mula kekal dikunci sehingga ia disahkan.",
+      "offlineNotice": "Model pengecaman dimuat turun selepas persediaan, daripada Tetapan → Model dan storan. Terjemahan menggunakan Bing dan pertuturan menggunakan Edge: tiada apa untuk dimuat turun dan tanpa akaun; teks untuk diterjemah dan terjemahan untuk dibacakan dihantar kepada Microsoft.",
+      "pendingKey": "Anda boleh menambah kunci kemudian dalam Tetapan → Akaun dan kunci. Mula kekal dikunci sehingga kunci disahkan.",
       "pendingSignIn": "Anda boleh log masuk kemudian daripada butang Akaun. Mula kekal dikunci sehingga itu.",
       "ownKeyDesc": "Kunci ini disimpan pada peranti ini sahaja, dan aplikasi menghubungi penyedia terus dari sini — ia tidak pernah sampai ke Kizuna AI. Anda membayar penyedia untuk apa yang anda gunakan.",
       "guide": "Cara mendapatkan kunci ini",
       "verifyEmail": "Log masuk berjaya. Buka pautan yang kami e-melkan kepada anda untuk mengesahkan alamat anda — kredit percubaan akan masuk sebaik sahaja anda berbuat demikian.",
-      "onFile": "Kunci sudah disimpan — biarkan ini kosong untuk mengekalkannya."
+      "onFile": "Kunci sudah disimpan — biarkan ini kosong untuk mengekalkannya.",
+      "offlineHardware": "Sokuji berjalan lancar dengan GPU dan VRAM yang mencukupi; dengan CPU sahaja ia jelas lebih perlahan.",
+      "openaiOneKey": "Satu kunci ini digunakan untuk OpenAI Realtime, Translate dan Live."
     },
     "summary": {
       "scenario": "Senario",
       "mode": "Mod",
       "provider": "Penyedia",
       "languages": "Bahasa",
-      "pendingKey": "Belum ada kunci API — tambahkannya dalam Tetapan → Penyedia sebelum anda mula.",
+      "pendingKey": "Belum ada kunci API — tambahkannya dalam Tetapan → Akaun dan kunci sebelum bermula.",
       "pendingSignIn": "Belum log masuk — log masuk daripada butang Akaun sebelum anda mula.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Susunan"
     },
     "lineup": {
       "title": "Susunan yang akan disediakan",

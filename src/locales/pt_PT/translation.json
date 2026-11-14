@@ -1406,22 +1406,25 @@
       "createAccount": "Criar conta",
       "signedIn": "Sessão iniciada. Pode continuar.",
       "managedDesc": "Registe-se com o seu endereço de e-mail e verifique-o a partir da caixa de entrada; as contas verificadas recebem um crédito de teste. Depois, carregue o saldo e pague apenas pelo que utilizar.",
-      "offlineNotice": "Os modelos são descarregados depois da configuração, a partir de Definições. Ocupam vários gigabytes em disco. O Sokuji funciona bem com uma GPU e VRAM suficiente; só com CPU é visivelmente mais lento.",
-      "pendingKey": "Pode adicionar a chave mais tarde em Definições → Fornecedor. O botão Iniciar permanece bloqueado até ser validada.",
+      "offlineNotice": "O modelo de reconhecimento é transferido depois da configuração, em Definições → Modelos e armazenamento. A tradução usa o Bing e a fala usa o Edge: nada a transferir e sem conta; o texto a traduzir e a tradução a ler são enviados à Microsoft.",
+      "pendingKey": "Pode adicionar a chave mais tarde em Definições → Contas e chaves. Iniciar fica bloqueado até ser validada.",
       "pendingSignIn": "Pode iniciar sessão mais tarde a partir do botão de conta. O botão Iniciar permanece bloqueado até lá.",
       "ownKeyDesc": "Esta chave fica guardada apenas neste dispositivo, e a app comunica diretamente com o fornecedor a partir daqui — nunca chega à Kizuna AI. Paga ao fornecedor pelo que utilizar.",
       "guide": "Como obter esta chave",
       "verifyEmail": "Sessão iniciada. Abra a ligação que lhe enviámos por e-mail para verificar o seu endereço — o crédito de teste chega assim que o fizer.",
-      "onFile": "Já existe uma chave guardada — deixe em branco para a manter."
+      "onFile": "Já existe uma chave guardada — deixe em branco para a manter.",
+      "offlineHardware": "O Sokuji funciona bem com GPU e VRAM suficiente; só com CPU fica bastante mais lento.",
+      "openaiOneKey": "Esta única chave serve para OpenAI Realtime, Translate e Live."
     },
     "summary": {
       "scenario": "Cenário",
       "mode": "Modo",
       "provider": "Fornecedor",
       "languages": "Idiomas",
-      "pendingKey": "Ainda sem chave de API — adicione-a em Definições → Fornecedor antes de começar.",
+      "pendingKey": "Ainda sem chave de API — adicione-a em Definições → Contas e chaves antes de começar.",
       "pendingSignIn": "Sem sessão iniciada — inicie sessão a partir do botão de conta antes de começar.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Composição"
     },
     "lineup": {
       "title": "A composição que será configurada",

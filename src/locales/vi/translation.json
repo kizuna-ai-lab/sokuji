@@ -1406,22 +1406,25 @@
       "createAccount": "Tạo tài khoản",
       "signedIn": "Đã đăng nhập. Bạn có thể tiếp tục.",
       "managedDesc": "Đăng ký bằng địa chỉ email và xác minh qua hộp thư của bạn; tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư và chỉ trả tiền theo mức sử dụng.",
-      "offlineNotice": "Các mô hình được tải xuống sau khi cài đặt, từ Cài đặt. Chúng chiếm vài GB dung lượng ổ đĩa. Sokuji chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
-      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Nhà cung cấp. Bắt đầu vẫn bị khóa cho đến khi khóa được xác thực.",
+      "offlineNotice": "Mô hình nhận dạng được tải xuống sau khi thiết lập, trong Cài đặt → Mô hình và bộ nhớ. Dịch dùng Bing và giọng nói dùng Edge: không cần tải gì và không cần tài khoản; văn bản cần dịch và bản dịch cần đọc được gửi tới Microsoft.",
+      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Tài khoản và khóa. Nút bắt đầu bị khóa cho đến khi khóa được xác thực.",
       "pendingSignIn": "Bạn có thể đăng nhập sau từ nút tài khoản. Bắt đầu vẫn bị khóa cho đến khi đó.",
       "ownKeyDesc": "Khóa này chỉ được lưu trên thiết bị này, và ứng dụng gọi trực tiếp đến nhà cung cấp từ đây — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức sử dụng.",
       "guide": "Cách lấy khóa này",
       "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi đã gửi qua email để xác minh địa chỉ của bạn — tín dụng dùng thử sẽ được cấp ngay khi bạn hoàn tất.",
-      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên."
+      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên.",
+      "offlineHardware": "Sokuji chạy tốt khi có GPU và đủ VRAM; chỉ dùng CPU sẽ chậm rõ rệt.",
+      "openaiOneKey": "Một khóa này dùng chung cho OpenAI Realtime, Translate và Live."
     },
     "summary": {
       "scenario": "Kịch bản",
       "mode": "Chế độ",
       "provider": "Nhà cung cấp",
       "languages": "Ngôn ngữ",
-      "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Nhà cung cấp trước khi bắt đầu.",
+      "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Tài khoản và khóa trước khi bắt đầu.",
       "pendingSignIn": "Chưa đăng nhập — hãy đăng nhập từ nút tài khoản trước khi bắt đầu.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Cách phối hợp"
     },
     "lineup": {
       "title": "Cách phối hợp sẽ được thiết lập",

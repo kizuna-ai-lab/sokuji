@@ -1406,22 +1406,25 @@
       "createAccount": "회원가입",
       "signedIn": "로그인되었습니다. 계속 진행할 수 있습니다.",
       "managedDesc": "이메일 주소로 가입한 후 받은편지함에서 인증하세요. 인증된 계정에는 체험 크레딧이 제공됩니다. 이후에는 잔액을 충전하고 사용한 만큼만 결제합니다.",
-      "offlineNotice": "모델은 초기 설정을 마친 후 '설정'에서 다운로드합니다. 디스크 용량을 수 기가바이트 차지합니다. GPU와 충분한 VRAM이 있으면 Sokuji가 원활하게 작동하며, CPU만 사용하면 눈에 띄게 느려집니다.",
-      "pendingKey": "키는 나중에 설정 → 제공자에서 추가할 수 있습니다. 검증 전까지는 시작이 잠겨 있습니다.",
+      "offlineNotice": "인식 모델은 설정을 마친 뒤 설정 → 모델과 저장 공간에서 내려받습니다. 번역은 Bing, 음성은 Edge를 쓰므로 내려받을 것도 계정도 필요 없습니다. 번역할 글과 읽어 줄 번역문은 Microsoft로 전송됩니다.",
+      "pendingKey": "키는 나중에 설정 → 계정과 키에서 추가할 수 있습니다. 확인될 때까지 시작이 잠겨 있습니다.",
       "pendingSignIn": "나중에 계정 버튼에서 로그인할 수 있습니다. 그때까지는 시작이 잠겨 있습니다.",
       "ownKeyDesc": "이 키는 이 기기에만 저장되며, 앱이 여기서 제공업체에 직접 요청합니다 — Kizuna AI로는 전달되지 않습니다. 사용한 만큼 제공업체에 직접 결제합니다.",
       "guide": "이 키를 받는 방법",
       "verifyEmail": "로그인되었습니다. 이메일로 보내드린 링크를 열어 주소를 인증하세요 — 인증하면 체험 크레딧이 지급됩니다.",
-      "onFile": "이미 저장된 키가 있습니다 — 그대로 두면 유지됩니다."
+      "onFile": "이미 저장된 키가 있습니다 — 그대로 두면 유지됩니다.",
+      "offlineHardware": "GPU와 충분한 VRAM이 있으면 Sokuji가 원활하게 동작하고, CPU만으로는 눈에 띄게 느립니다.",
+      "openaiOneKey": "이 키 하나로 OpenAI Realtime, Translate, Live를 모두 씁니다."
     },
     "summary": {
       "scenario": "시나리오",
       "mode": "모드",
       "provider": "제공자",
       "languages": "언어",
-      "pendingKey": "아직 API 키가 없습니다 — 시작 전에 설정 → 제공자에서 추가하세요.",
+      "pendingKey": "아직 API 키가 없습니다. 시작하기 전에 설정 → 계정과 키에서 추가하세요.",
       "pendingSignIn": "로그인하지 않았습니다 — 시작 전에 계정 버튼에서 로그인하세요.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "구성"
     },
     "lineup": {
       "title": "이 선택으로 설정되는 구성",

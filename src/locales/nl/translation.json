@@ -1406,22 +1406,25 @@
       "createAccount": "Account aanmaken",
       "signedIn": "Ingelogd. U kunt doorgaan.",
       "managedDesc": "Registreer u met uw e-mailadres en verifieer dit vanuit uw inbox; geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op en betaalt u alleen voor wat u gebruikt.",
-      "offlineNotice": "Modellen worden na de setup gedownload, vanuit Instellingen. Ze nemen enkele gigabytes aan schijfruimte in beslag. Sokuji werkt goed met een GPU en voldoende VRAM; alleen op CPU is het merkbaar trager.",
-      "pendingKey": "U kunt de sleutel later toevoegen in Instellingen → Provider. Start blijft vergrendeld totdat deze is gevalideerd.",
+      "offlineNotice": "Het herkenningsmodel wordt na de installatie gedownload via Instellingen → Modellen en opslag. De vertaling gebruikt Bing en de spraak Edge: niets te downloaden en geen account; de te vertalen tekst en de voor te lezen vertaling gaan naar Microsoft.",
+      "pendingKey": "Je kunt de sleutel later toevoegen bij Instellingen → Accounts en sleutels. Starten blijft vergrendeld tot hij is gevalideerd.",
       "pendingSignIn": "U kunt later inloggen via de accountknop. Tot die tijd blijft Start vergrendeld.",
       "ownKeyDesc": "Deze sleutel wordt alleen op dit apparaat opgeslagen, en de app benadert de provider rechtstreeks vanaf hier — hij bereikt Kizuna AI nooit. U betaalt de provider voor wat u gebruikt.",
       "guide": "Hoe u deze sleutel verkrijgt",
       "verifyEmail": "Ingelogd. Open de link die we u per e-mail hebben gestuurd om uw adres te verifiëren — het proeftegoed wordt bijgeschreven zodra u dat doet.",
-      "onFile": "Er is al een sleutel opgeslagen — laat dit veld leeg om deze te behouden."
+      "onFile": "Er is al een sleutel opgeslagen — laat dit veld leeg om deze te behouden.",
+      "offlineHardware": "Sokuji werkt goed met een GPU en genoeg VRAM; met alleen een CPU is het merkbaar trager.",
+      "openaiOneKey": "Deze ene sleutel geldt voor OpenAI Realtime, Translate en Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Modus",
       "provider": "Provider",
       "languages": "Talen",
-      "pendingKey": "Nog geen API-sleutel — voeg deze toe in Instellingen → Provider voordat u begint.",
+      "pendingKey": "Nog geen API-sleutel — voeg die toe bij Instellingen → Accounts en sleutels voordat je begint.",
       "pendingSignIn": "Niet ingelogd — log in via de accountknop voordat u begint.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Opstelling"
     },
     "lineup": {
       "title": "De opstelling die hiermee wordt ingesteld",

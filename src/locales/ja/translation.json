@@ -1406,22 +1406,25 @@
       "createAccount": "アカウント作成",
       "signedIn": "サインイン済みです。続行できます。",
       "managedDesc": "メールアドレスでサインアップし、受信したメールで認証してください。認証すると試用クレジットが付きます。以降は残高をチャージし、使った分だけのお支払いです。",
-      "offlineNotice": "モデルはセットアップ後に「設定」からダウンロードします。数 GB のディスク容量が必要です。GPU と十分な VRAM があれば快適ですが、CPU のみでは明らかに遅くなります。",
-      "pendingKey": "キーは後で「設定 → プロバイダー」から追加できます。検証が通るまで開始できません。",
+      "offlineNotice": "認識モデルはセットアップ後に「設定 → モデルとストレージ」からダウンロードします。翻訳は Bing、音声は Edge を使うのでダウンロードもアカウントも不要です。翻訳する文章と読み上げる訳文は Microsoft に送られます。",
+      "pendingKey": "キーは後で「設定 → アカウントとキー」から追加できます。検証が通るまで開始できません。",
       "pendingSignIn": "後でアカウントボタンからサインインできます。それまで開始できません。",
       "verifyEmail": "サインイン済みです。お送りしたメールのリンクを開いて認証してください。認証すると試用クレジットが付きます。",
       "ownKeyDesc": "このキーはこの端末にだけ保存され、提供元へはこの端末から直接接続します。Kizuna AI に渡ることはありません。利用料は提供元にお支払いいただきます。",
       "guide": "キーの取得方法",
-      "onFile": "キーは保存済みです。空欄のままにすると、そのまま使われます。"
+      "onFile": "キーは保存済みです。空欄のままにすると、そのまま使われます。",
+      "offlineHardware": "GPU と十分な VRAM があれば Sokuji は快適に動きます。CPU のみでは明らかに遅くなります。",
+      "openaiOneKey": "このキー 1 つで OpenAI Realtime・Translate・Live のすべてに使えます。"
     },
     "summary": {
       "scenario": "シナリオ",
       "mode": "モード",
       "provider": "プロバイダー",
       "languages": "言語",
-      "pendingKey": "API キー未設定——開始前に「設定 → プロバイダー」で追加してください。",
+      "pendingKey": "API キー未設定——開始前に「設定 → アカウントとキー」で追加してください。",
       "pendingSignIn": "未サインイン——開始前にアカウントボタンからサインインしてください。",
-      "langSentence": "{{myLabel}}は{{myLanguage}} → {{theirLabel}}は{{theirLanguage}}"
+      "langSentence": "{{myLabel}}は{{myLanguage}} → {{theirLabel}}は{{theirLanguage}}",
+      "lineup": "構成"
     },
     "lineup": {
       "title": "この選択で設定される構成",

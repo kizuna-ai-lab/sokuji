@@ -1406,22 +1406,25 @@
       "createAccount": "Kayıt Ol",
       "signedIn": "Giriş yapıldı. Devam edebilirsiniz.",
       "managedDesc": "E-posta adresinizle kayıt olun ve gelen kutunuzdan doğrulayın; doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve yalnızca kullandığınız kadar ödersiniz.",
-      "offlineNotice": "Modeller kurulumdan sonra Ayarlar'dan indirilir. Diskte gigabaytlarca yer kaplarlar. Sokuji, GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU'da belirgin şekilde daha yavaştır.",
-      "pendingKey": "Anahtarı daha sonra Ayarlar → Sağlayıcı bölümünden ekleyebilirsiniz. Doğrulanana kadar Başlat kilitli kalır.",
+      "offlineNotice": "Tanıma modeli kurulumdan sonra Ayarlar → Modeller ve depolama bölümünden indirilir. Çeviri Bing, konuşma Edge kullanır: indirilecek bir şey ve hesap yok; çevrilecek metin ve okunacak çeviri Microsoft’a gönderilir.",
+      "pendingKey": "Anahtarı daha sonra Ayarlar → Hesaplar ve anahtarlar bölümünden ekleyebilirsiniz. Doğrulanana kadar başlatma kilitli kalır.",
       "pendingSignIn": "Daha sonra hesap düğmesinden giriş yapabilirsiniz. O zamana kadar Başlat kilitli kalır.",
       "ownKeyDesc": "Bu anahtar yalnızca bu cihazda saklanır ve uygulama sağlayıcıyı doğrudan buradan çağırır — Kizuna AI'ye asla ulaşmaz. Kullandığınız için sağlayıcıya ödeme yaparsınız.",
       "guide": "Bu anahtarı nasıl alırım",
       "verifyEmail": "Giriş yapıldı. Adresinizi doğrulamak için size e-postayla gönderdiğimiz bağlantıyı açın — doğruladığınızda deneme kredisi hesabınıza geçer.",
-      "onFile": "Zaten kayıtlı bir anahtar var — onu korumak için bu alanı boş bırakın."
+      "onFile": "Zaten kayıtlı bir anahtar var — onu korumak için bu alanı boş bırakın.",
+      "offlineHardware": "Sokuji, GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU ile belirgin şekilde yavaştır.",
+      "openaiOneKey": "Bu tek anahtar OpenAI Realtime, Translate ve Live için geçerlidir."
     },
     "summary": {
       "scenario": "Senaryo",
       "mode": "Mod",
       "provider": "Sağlayıcı",
       "languages": "Diller",
-      "pendingKey": "Henüz API anahtarı yok — başlamadan önce Ayarlar → Sağlayıcı bölümünden ekleyin.",
+      "pendingKey": "Henüz API anahtarı yok — başlamadan önce Ayarlar → Hesaplar ve anahtarlar bölümünden ekleyin.",
       "pendingSignIn": "Giriş yapılmadı — başlamadan önce hesap düğmesinden giriş yapın.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Düzen"
     },
     "lineup": {
       "title": "Bununla kurulacak düzen",

@@ -1406,22 +1406,25 @@
       "createAccount": "Utwórz konto",
       "signedIn": "Zalogowano. Możesz kontynuować.",
       "managedDesc": "Zarejestruj się, podając swój adres e-mail, i zweryfikuj go w swojej skrzynce odbiorczej — zweryfikowane konta otrzymują kredyt próbny. Później doładowujesz saldo i płacisz tylko za to, czego używasz.",
-      "offlineNotice": "Modele pobierasz po konfiguracji, z Ustawień. Zajmują gigabajty miejsca na dysku. Sokuji działa dobrze z GPU i wystarczającą ilością VRAM; tylko na CPU jest zauważalnie wolniej.",
-      "pendingKey": "Klucz możesz dodać później w Ustawieniach → Dostawca. Start pozostanie zablokowany, dopóki klucz nie zostanie zweryfikowany.",
+      "offlineNotice": "Model rozpoznawania pobierasz po konfiguracji, w Ustawienia → Modele i miejsce na dysku. Tłumaczenie korzysta z Bing, a mowa z Edge: nic do pobrania i bez konta; tekst do przetłumaczenia i tłumaczenie do odczytania trafiają do Microsoft.",
+      "pendingKey": "Klucz możesz dodać później w Ustawienia → Konta i klucze. Start pozostaje zablokowany, dopóki klucz nie zostanie zweryfikowany.",
       "pendingSignIn": "Możesz zalogować się później za pomocą przycisku konta. Do tego czasu Start pozostanie zablokowany.",
       "ownKeyDesc": "Ten klucz jest przechowywany wyłącznie na tym urządzeniu, a aplikacja łączy się z dostawcą bezpośrednio stąd — nigdy nie trafia do Kizuna AI. Płacisz dostawcy za to, czego używasz.",
       "guide": "Jak zdobyć ten klucz",
       "verifyEmail": "Zalogowano. Otwórz link, który wysłaliśmy Ci e-mailem, aby zweryfikować swój adres — kredyt próbny pojawi się, gdy to zrobisz.",
-      "onFile": "Klucz jest już zapisany — zostaw to pole puste, aby go zachować."
+      "onFile": "Klucz jest już zapisany — zostaw to pole puste, aby go zachować.",
+      "offlineHardware": "Sokuji działa dobrze z GPU i wystarczającą ilością VRAM; na samym CPU jest wyraźnie wolniejsze.",
+      "openaiOneKey": "Ten jeden klucz obsługuje OpenAI Realtime, Translate i Live."
     },
     "summary": {
       "scenario": "Scenariusz",
       "mode": "Tryb",
       "provider": "Dostawca",
       "languages": "Języki",
-      "pendingKey": "Nie masz jeszcze klucza API — dodaj go w Ustawieniach → Dostawca, zanim zaczniesz.",
+      "pendingKey": "Brak klucza API — dodaj go w Ustawienia → Konta i klucze przed rozpoczęciem.",
       "pendingSignIn": "Nie zalogowano — zaloguj się za pomocą przycisku konta, zanim zaczniesz.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Zestaw"
     },
     "lineup": {
       "title": "Zestaw, który zostanie ustawiony",

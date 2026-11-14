@@ -1406,22 +1406,25 @@
       "createAccount": "Konto erstellen",
       "signedIn": "Angemeldet. Sie können fortfahren.",
       "managedDesc": "Registrieren Sie sich mit Ihrer E-Mail-Adresse und bestätigen Sie sie über Ihren Posteingang; bestätigte Konten erhalten ein Testguthaben. Danach laden Sie Ihr Guthaben auf und zahlen nur für das, was Sie nutzen.",
-      "offlineNotice": "Modelle werden nach der Einrichtung über die Einstellungen heruntergeladen. Sie benötigen mehrere Gigabyte Speicherplatz. Sokuji läuft gut mit einer GPU und ausreichend VRAM; nur mit CPU ist es spürbar langsamer.",
-      "pendingKey": "Sie können den Schlüssel später unter Einstellungen → Anbieter hinzufügen. \"Starten\" bleibt gesperrt, bis er gültig ist.",
+      "offlineNotice": "Das Erkennungsmodell wird nach der Einrichtung unter Einstellungen → Modelle und Speicher heruntergeladen. Die Übersetzung nutzt Bing und die Sprachausgabe Edge: nichts herunterzuladen, kein Konto; der zu übersetzende Text und die vorzulesende Übersetzung gehen an Microsoft.",
+      "pendingKey": "Den Schlüssel können Sie später unter Einstellungen → Konten und Schlüssel hinzufügen. Starten bleibt gesperrt, bis er geprüft ist.",
       "pendingSignIn": "Sie können sich später über die Konto-Schaltfläche anmelden. \"Starten\" bleibt bis dahin gesperrt.",
       "ownKeyDesc": "Dieser Schlüssel wird nur auf diesem Gerät gespeichert, und die App ruft den Anbieter direkt von hier aus auf — er erreicht Kizuna AI nie. Sie bezahlen den Anbieter für das, was Sie nutzen.",
       "guide": "So erhalten Sie diesen Schlüssel",
       "verifyEmail": "Angemeldet. Öffnen Sie den Link, den wir Ihnen per E-Mail geschickt haben, um Ihre Adresse zu bestätigen — das Testguthaben wird gutgeschrieben, sobald Sie das tun.",
-      "onFile": "Es ist bereits ein Schlüssel gespeichert — lassen Sie dieses Feld leer, um ihn zu behalten."
+      "onFile": "Es ist bereits ein Schlüssel gespeichert — lassen Sie dieses Feld leer, um ihn zu behalten.",
+      "offlineHardware": "Sokuji läuft gut mit einer GPU und genug VRAM; nur mit CPU ist es merklich langsamer.",
+      "openaiOneKey": "Dieser eine Schlüssel gilt für OpenAI Realtime, Translate und Live."
     },
     "summary": {
       "scenario": "Szenario",
       "mode": "Modus",
       "provider": "Anbieter",
       "languages": "Sprachen",
-      "pendingKey": "Noch kein API-Schlüssel — fügen Sie ihn unter Einstellungen → Anbieter hinzu, bevor Sie starten.",
+      "pendingKey": "Noch kein API-Schlüssel — fügen Sie ihn vor dem Start unter Einstellungen → Konten und Schlüssel hinzu.",
       "pendingSignIn": "Nicht angemeldet — melden Sie sich über die Konto-Schaltfläche an, bevor Sie starten.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Aufstellung"
     },
     "lineup": {
       "title": "Die Aufstellung, die damit eingerichtet wird",

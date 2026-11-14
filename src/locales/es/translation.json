@@ -1406,22 +1406,25 @@
       "createAccount": "Crear cuenta",
       "signedIn": "Sesión iniciada. Puedes continuar.",
       "managedDesc": "Regístrate con tu dirección de correo electrónico y verifícala desde tu bandeja de entrada; las cuentas verificadas reciben un crédito de prueba. Después, recargas tu saldo y pagas solo por lo que uses.",
-      "offlineNotice": "Los modelos se descargan más tarde, desde Configuración. Ocupan varios gigabytes de disco. Sokuji funciona bien con una GPU y suficiente VRAM; solo con CPU es notablemente más lento.",
-      "pendingKey": "Puedes añadir la clave más tarde en Configuración → Proveedor. Iniciar permanece bloqueado hasta que se valide.",
+      "offlineNotice": "El modelo de reconocimiento se descarga después de la configuración, en Configuración → Modelos y almacenamiento. La traducción usa Bing y la voz usa Edge: nada que descargar y sin cuenta; el texto que se traduce y la traducción que se lee se envían a Microsoft.",
+      "pendingKey": "Puedes añadir la clave más tarde en Configuración → Cuentas y claves. Iniciar seguirá bloqueado hasta que se valide.",
       "pendingSignIn": "Puedes iniciar sesión más tarde desde el botón de cuenta. Iniciar permanece bloqueado hasta entonces.",
       "ownKeyDesc": "Esta clave se guarda solo en este dispositivo, y la app se conecta con el proveedor directamente desde aquí — nunca llega a Kizuna AI. Le pagas al proveedor por lo que uses.",
       "guide": "Cómo obtener esta clave",
       "verifyEmail": "Sesión iniciada. Abre el enlace que te enviamos por correo para verificar tu dirección — el crédito de prueba llega en cuanto lo hagas.",
-      "onFile": "Ya hay una clave guardada — deja esto en blanco para conservarla."
+      "onFile": "Ya hay una clave guardada — deja esto en blanco para conservarla.",
+      "offlineHardware": "Sokuji va bien con una GPU y suficiente VRAM; solo con CPU es notablemente más lento.",
+      "openaiOneKey": "Esta única clave sirve para OpenAI Realtime, Translate y Live."
     },
     "summary": {
       "scenario": "Escenario",
       "mode": "Modo",
       "provider": "Proveedor",
       "languages": "Idiomas",
-      "pendingKey": "Aún no hay clave API — añádela en Configuración → Proveedor antes de empezar.",
+      "pendingKey": "Aún no hay clave de API: añádela en Configuración → Cuentas y claves antes de empezar.",
       "pendingSignIn": "Sesión no iniciada — inicia sesión desde el botón de cuenta antes de empezar.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Combinación"
     },
     "lineup": {
       "title": "La combinación que se configura",

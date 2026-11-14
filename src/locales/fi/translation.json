@@ -1406,22 +1406,25 @@
       "createAccount": "Luo tili",
       "signedIn": "Kirjauduttu sisään. Voit jatkaa.",
       "managedDesc": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se saapuneet-kansiostasi; vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa ja maksat vain käytöstäsi.",
-      "offlineNotice": "Mallit ladataan asennuksen jälkeen Asetuksista. Ne vievät gigatavuja levytilaa. Sokuji toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
-      "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tarjoaja. Aloita pysyy lukittuna, kunnes avain vahvistuu.",
+      "offlineNotice": "Tunnistusmalli ladataan käyttöönoton jälkeen kohdasta Asetukset → Mallit ja tallennustila. Käännös käyttää Bingiä ja puhe Edgeä: ei ladattavaa eikä tiliä; käännettävä teksti ja luettava käännös lähetetään Microsoftille.",
+      "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tilit ja avaimet. Aloitus pysyy lukittuna, kunnes avain on vahvistettu.",
       "pendingSignIn": "Voit kirjautua sisään myöhemmin tilipainikkeesta. Aloita pysyy lukittuna siihen asti.",
       "ownKeyDesc": "Tämä avain tallennetaan vain tälle laitteelle, ja sovellus ottaa yhteyttä tarjoajaan suoraan täältä — se ei koskaan kulje Kizuna AI:n kautta. Maksat tarjoajalle käytöstäsi.",
       "guide": "Näin hankit tämän avaimen",
       "verifyEmail": "Kirjauduttu sisään. Avaa sähköpostitse lähettämämme linkki vahvistaaksesi osoitteesi — kokeilusaldo tulee voimaan, kun teet niin.",
-      "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen."
+      "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen.",
+      "offlineHardware": "Sokuji toimii hyvin näytönohjaimella, jossa on riittävästi muistia; pelkällä suorittimella se on selvästi hitaampi.",
+      "openaiOneKey": "Tämä yksi avain käy OpenAI Realtimelle, Translatelle ja Livelle."
     },
     "summary": {
       "scenario": "Skenaario",
       "mode": "Tila",
       "provider": "Tarjoaja",
       "languages": "Kielet",
-      "pendingKey": "Ei vielä API-avainta — lisää se kohdassa Asetukset → Tarjoaja ennen aloittamista.",
+      "pendingKey": "API-avainta ei vielä ole — lisää se ennen aloitusta kohdassa Asetukset → Tilit ja avaimet.",
       "pendingSignIn": "Et ole kirjautunut sisään — kirjaudu sisään tilipainikkeesta ennen aloittamista.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Kokoonpano"
     },
     "lineup": {
       "title": "Kokoonpano, joka otetaan käyttöön",

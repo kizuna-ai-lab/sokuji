@@ -1406,22 +1406,25 @@
       "createAccount": "Skapa konto",
       "signedIn": "Inloggad. Du kan fortsätta.",
       "managedDesc": "Registrera dig med din e-postadress och verifiera den från din inkorg; verifierade konton får en provkredit. Därefter fyller du på ditt saldo och betalar bara för det du använder.",
-      "offlineNotice": "Modellerna laddas ner efter konfigurationen, från Inställningar. De tar flera gigabyte disk. Sokuji fungerar bra med en GPU och tillräckligt VRAM; med enbart CPU är det märkbart långsammare.",
-      "pendingKey": "Du kan lägga till nyckeln senare i Inställningar → Leverantör. Starta-knappen förblir låst tills den valideras.",
+      "offlineNotice": "Igenkänningsmodellen laddas ner efter konfigurationen, under Inställningar → Modeller och lagring. Översättningen använder Bing och talet Edge: inget att ladda ner och inget konto; texten som översätts och översättningen som läses upp skickas till Microsoft.",
+      "pendingKey": "Du kan lägga till nyckeln senare under Inställningar → Konton och nycklar. Start är låst tills den har validerats.",
       "pendingSignIn": "Du kan logga in senare via kontoknappen. Starta-knappen förblir låst tills dess.",
       "ownKeyDesc": "Den här nyckeln lagras bara på den här enheten, och appen anropar leverantören direkt härifrån — den når aldrig Kizuna AI. Du betalar leverantören för det du använder.",
       "guide": "Så här skaffar du den här nyckeln",
       "verifyEmail": "Inloggad. Öppna länken vi skickade via e-post för att verifiera din adress — provkrediten läggs till så snart du gör det.",
-      "onFile": "En nyckel är redan sparad — lämna detta tomt för att behålla den."
+      "onFile": "En nyckel är redan sparad — lämna detta tomt för att behålla den.",
+      "offlineHardware": "Sokuji fungerar bra med en GPU och tillräckligt med VRAM; med bara CPU är det märkbart långsammare.",
+      "openaiOneKey": "Den här enda nyckeln gäller för OpenAI Realtime, Translate och Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Läge",
       "provider": "Leverantör",
       "languages": "Språk",
-      "pendingKey": "Ingen API-nyckel än — lägg till den i Inställningar → Leverantör innan du börjar.",
+      "pendingKey": "Ingen API-nyckel ännu — lägg till den under Inställningar → Konton och nycklar innan du startar.",
       "pendingSignIn": "Inte inloggad — logga in via kontoknappen innan du börjar.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Uppsättning"
     },
     "lineup": {
       "title": "Uppsättningen som ställs in",
