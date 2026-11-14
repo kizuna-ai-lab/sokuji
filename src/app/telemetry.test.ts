@@ -244,7 +244,7 @@ describe('the line-up at the start of a session', () => {
     audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
     speak: { other: true, me: false, them: false },
     channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
-    segmentation: { mode: 'off' as const, size: 0 },
+    segmentation: { mode: 'off' as const, size: 0 as const },
     punctuationActive: false,
   };
   it('names the provider of each stage when a line-up is stored', () => {
