@@ -64,4 +64,38 @@ describe('regionLatencyStore', () => {
     st().fill('qwen', { sg: 1 }, Date.now());
     expect(localStorage.length).toBe(0);
   });
+
+  it('an all-unreachable result is shown but not cached as fresh: the next ensureFresh measures again', async () => {
+    const measure = vi.fn(async () => ({ us: null, eu: null, jp: null, in: null }));
+    setRegionMeasure(measure);
+    st().ensureFresh('soniox');
+    await flush();
+    expect(st().families.soniox).toEqual({
+      medians: { us: 'unreachable', eu: 'unreachable', jp: 'unreachable', in: 'unreachable' }, at: null, measuring: false,
+    });
+    st().ensureFresh('soniox');
+    expect(measure).toHaveBeenCalledTimes(2);
+  });
+
+  it('an all-unreachable fill from the one-time measurement does not count as fresh either', () => {
+    const measure = vi.fn(() => new Promise<null>(() => {}));
+    setRegionMeasure(measure);
+    st().fill('qwen', { sg: null, cn: null }, Date.now());
+    expect(st().families.qwen).toMatchObject({ medians: { sg: 'unreachable', cn: 'unreachable' }, at: null });
+    st().ensureFresh('qwen');
+    expect(measure).toHaveBeenCalledTimes(1);
+  });
+
+  it('setMeasuring marks a family measured elsewhere, so ensureFresh starts no parallel measurement', () => {
+    const measure = vi.fn(() => new Promise<null>(() => {}));
+    setRegionMeasure(measure);
+    st().setMeasuring('soniox', true);
+    st().ensureFresh('soniox');
+    expect(measure).not.toHaveBeenCalled();
+    expect(st().families.soniox?.measuring).toBe(true);
+    st().setMeasuring('soniox', false);
+    expect(st().families.soniox).toEqual({ medians: null, at: null, measuring: false });
+    st().ensureFresh('soniox');
+    expect(measure).toHaveBeenCalledTimes(1);
+  });
 });

@@ -22,7 +22,10 @@ interface RegionLatencyState {
   families: Partial<Record<RegionFamily, FamilyLatency>>;
   /** Measure unless the cached numbers are under 10 minutes old or a measurement is in flight. */
   ensureFresh(family: RegionFamily): void;
+  /** Store a result; one where no region answered is shown but not cached as fresh (`at: null`). */
   fill(family: RegionFamily, medians: RegionMedians, at: number): void;
+  /** A measurement of this family runs elsewhere (the one-time recommendation): drop-downs wait for its `fill`. */
+  setMeasuring(family: RegionFamily, measuring: boolean): void;
 }
 
 const EMPTY: FamilyLatency = { medians: null, at: null, measuring: false };
@@ -52,7 +55,13 @@ export const useRegionLatencyStore = create<RegionLatencyState>((set, get) => {
     fill(family, medians, at) {
       const mapped: Record<string, RegionLatency> = {};
       for (const [region, ms] of Object.entries(medians)) mapped[region] = ms === null ? 'unreachable' : ms;
-      patch(family, { medians: mapped, at, measuring: false });
+      // Every region unreachable (offline, blocked) is not worth keeping for 10 minutes: the next open measures again.
+      const reachedAny = Object.values(medians).some((ms) => ms !== null);
+      patch(family, { medians: mapped, at: reachedAny ? at : null, measuring: false });
+    },
+
+    setMeasuring(family, measuring) {
+      patch(family, { measuring });
     },
   };
 });

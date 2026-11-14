@@ -74,6 +74,8 @@ export async function runRegionRecommendation(
   attempted.add(provider);
 
   const family = REGION_FAMILY_OF[provider];
+  // A drop-down opened meanwhile waits for this measurement instead of starting its own.
+  useRegionLatencyStore.getState().setMeasuring(family, true);
   let result;
   try {
     result = await measureRegionFamily(family, deps.signal);
@@ -82,6 +84,7 @@ export async function runRegionRecommendation(
     result = null;
   }
   if (!result || deps.signal.aborted) {
+    useRegionLatencyStore.getState().setMeasuring(family, false);
     attempted.delete(provider);
     return;
   }

@@ -117,4 +117,43 @@ describe('runRegionRecommendation', () => {
     expect(track).not.toHaveBeenCalled();
     expect(useRegionLatencyStore.getState().families.soniox?.medians).toMatchObject({ in: 136 });
   });
+
+  describe('the latency cache while the one-time measurement runs', () => {
+    const latency = () => useRegionLatencyStore.getState().families.soniox;
+
+    it('marks the family measuring, so a drop-down opened meanwhile starts no parallel measurement; the result fills it', async () => {
+      let resolve!: (m: Record<string, number | null>) => void;
+      const measure = vi.fn(() => new Promise<Record<string, number | null>>((r) => { resolve = r; }));
+      setRegionMeasure(measure);
+      const run = runRegionRecommendation('kizunaai_soniox', { signal: live(), track });
+      expect(latency()?.measuring).toBe(true);
+      useRegionLatencyStore.getState().ensureFresh('soniox');
+      expect(measure).toHaveBeenCalledTimes(1);
+      resolve({ us: 170, eu: 240, jp: 300, in: 136 });
+      await run;
+      expect(latency()).toMatchObject({ measuring: false, medians: { in: 136 } });
+    });
+
+    it('clears measuring when the measurement comes back empty, is rejected, or the run was aborted', async () => {
+      const seen: Array<boolean | undefined> = [];
+      setRegionMeasure(async () => { seen.push(latency()?.measuring); return null; });
+      await runRegionRecommendation('kizunaai_soniox', { signal: live(), track });
+      expect(latency()?.measuring).toBe(false);
+
+      resetRecommendationAttemptsForTests();
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      setRegionMeasure(async () => { seen.push(latency()?.measuring); throw new Error('boom'); });
+      await runRegionRecommendation('kizunaai_soniox', { signal: live(), track });
+      expect(latency()?.measuring).toBe(false);
+      warn.mockRestore();
+
+      resetRecommendationAttemptsForTests();
+      const controller = new AbortController();
+      setRegionMeasure(async () => { seen.push(latency()?.measuring); controller.abort(); return { us: 170, eu: 240, jp: 300, in: 136 }; });
+      await runRegionRecommendation('kizunaai_soniox', { signal: controller.signal, track });
+      expect(latency()?.measuring).toBe(false);
+      expect(rec()).toBeUndefined();
+      expect(seen).toEqual([true, true, true]);
+    });
+  });
 });
