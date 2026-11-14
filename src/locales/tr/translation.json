@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Yeni klonlanmış ses için ad (isteğe bağlı)",
     "sonioxVoiceDefaultName": "Sesim {{n}}",
     "sonioxManagedVoiceName": "Sesim",
-    "sonioxVoiceDeletedPlaceholder": "(silinmiş ses)",
     "palabraVoiceProcessingBadge": "işleniyor…",
     "palabraVoiceFailedBadge": "başarısız",
     "palabraVoiceDeletedPlaceholder": "(silinmiş ses)",
@@ -1692,5 +1691,26 @@
       "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur.",
       "lostExtension": "Toplantı sekmesinin görüntüsü artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
     }
+  },
+  "region": {
+    "changeTitle": "Bölge değiştirilsin mi?",
+    "changeBuiltIn": "Özel sesiniz {{from}} bölgesinde kayıtlıdır ve {{to}} bölgesinde kullanılamaz. {{to}} bölgesindeki oturumlar, orada özel bir ses oluşturana kadar yerleşik {{name}} sesini kullanır. {{from}} bölgesindeki sesiniz korunur; {{from}} bölgesine geri döndüğünüzde yeniden kullanılır.",
+    "changeCustom": "{{to}} bölgesindeki oturumlar, orada oluşturduğunuz özel sesi kullanır. {{from}} bölgesindeki sesiniz {{from}} bölgesinde kalır.",
+    "changeBuiltInOwnKey": "Özel sesiniz {{from}} bölgesindeki Soniox projenizdedir ve {{to}} bölgesinde kullanılamaz. {{to}} bölgesindeki oturumlar, {{to}} projenizde özel bir ses oluşturana kadar yerleşik {{name}} sesini kullanır. {{from}} bölgesindeki sesiniz korunur; {{from}} bölgesine geri döndüğünüzde yeniden kullanılır.",
+    "changeCustomOwnKey": "{{to}} bölgesindeki oturumlar, {{to}} bölgesindeki Soniox projenizde bulunan özel sesi kullanır. {{from}} bölgesindeki sesiniz {{from}} projenizde kalır.",
+    "changeConfirm": "{{to}} bölgesine geç",
+    "latencyMeasuring": "ölçülüyor…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "ulaşılamıyor",
+    "hintFaster": "{{region}}, mevcut bölgenizden ({{current}}) yaklaşık {{ms}} ms daha hızlı",
+    "hintCurrentUnreachable": "{{region}} {{ms}} ms içinde yanıt veriyor; mevcut bölgenize ({{current}}) ulaşılamadı",
+    "hintAction": "Her bölgenin hızını gör",
+    "listTitle": "Daha hızlı bir bölge seçin",
+    "listIntro": "Her {{vendor}} bölgesine bağlantınızı ölçtük:",
+    "recommended": "Önerilen",
+    "current": "Mevcut",
+    "unreachable": "Ulaşılamadı",
+    "switch": "Geç",
+    "keep": "{{region}} bölgesinde kal"
   }
 }

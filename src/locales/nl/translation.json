@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Naam voor een nieuwe gekloonde stem (optioneel)",
     "sonioxVoiceDefaultName": "Mijn stem {{n}}",
     "sonioxManagedVoiceName": "Mijn stem",
-    "sonioxVoiceDeletedPlaceholder": "(verwijderde stem)",
     "palabraVoiceProcessingBadge": "wordt verwerkt…",
     "palabraVoiceFailedBadge": "mislukt",
     "palabraVoiceDeletedPlaceholder": "(verwijderde stem)",
@@ -1692,5 +1691,26 @@
       "lostHint": "De bron is weg; de laatste afbeelding blijft bewaard tot je opnieuw kiest.",
       "lostExtension": "Het beeld van het vergadertabblad is niet meer beschikbaar; de vertaling gaat verder met alleen audio."
     }
+  },
+  "region": {
+    "changeTitle": "Regio wisselen?",
+    "changeBuiltIn": "Je aangepaste stem is opgeslagen in de regio {{from}} en kan niet worden gebruikt in {{to}}. Sessies in {{to}} gebruiken de ingebouwde stem {{name}} totdat je daar een aangepaste stem maakt. Je stem in {{from}} blijft behouden; als je terugschakelt naar {{from}}, wordt die weer gebruikt.",
+    "changeCustom": "Sessies in {{to}} gebruiken de aangepaste stem die je daar hebt gemaakt. Je stem in {{from}} blijft in {{from}}.",
+    "changeBuiltInOwnKey": "Je aangepaste stem staat in je Soniox-project in {{from}} en kan niet worden gebruikt in {{to}}. Sessies in {{to}} gebruiken de ingebouwde stem {{name}} totdat je een aangepaste stem maakt in je project in {{to}}. Je stem in {{from}} blijft behouden; als je terugschakelt naar {{from}}, wordt die weer gebruikt.",
+    "changeCustomOwnKey": "Sessies in {{to}} gebruiken de aangepaste stem in je Soniox-project in {{to}}. Je stem in {{from}} blijft in je project in {{from}}.",
+    "changeConfirm": "Overschakelen naar {{to}}",
+    "latencyMeasuring": "meten…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "onbereikbaar",
+    "hintFaster": "{{region}} is ongeveer {{ms}} ms sneller dan je huidige regio ({{current}})",
+    "hintCurrentUnreachable": "{{region}} reageert in {{ms}} ms; je huidige regio ({{current}}) was onbereikbaar",
+    "hintAction": "Bekijk de snelheid van elke regio",
+    "listTitle": "Kies een snellere regio",
+    "listIntro": "We hebben je verbinding met elke {{vendor}}-regio gemeten:",
+    "recommended": "Aanbevolen",
+    "current": "Huidig",
+    "unreachable": "Onbereikbaar",
+    "switch": "Overschakelen",
+    "keep": "{{region}} behouden"
   }
 }

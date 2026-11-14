@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "שם לקול משוכפל חדש (אופציונלי)",
     "sonioxVoiceDefaultName": "הקול שלי {{n}}",
     "sonioxManagedVoiceName": "הקול שלי",
-    "sonioxVoiceDeletedPlaceholder": "(קול שנמחק)",
     "palabraVoiceProcessingBadge": "בעיבוד…",
     "palabraVoiceFailedBadge": "נכשל",
     "palabraVoiceDeletedPlaceholder": "(קול שנמחק)",
@@ -1692,5 +1691,26 @@
       "lostHint": "המקור אינו זמין עוד; התמונה האחרונה נשמרת עד לבחירה מחדש.",
       "lostExtension": "התמונה של לשונית הפגישה אינה זמינה עוד; התרגום ממשיך באמצעות אודיו בלבד."
     }
+  },
+  "region": {
+    "changeTitle": "להחליף אזור?",
+    "changeBuiltIn": "הקול המותאם אישית שלך שמור באזור {{from}} ולא ניתן להשתמש בו ב-{{to}}. מפגשים ב-{{to}} ישתמשו בקול המובנה {{name}} עד שתיצור שם קול מותאם אישית. הקול שלך ב-{{from}} נשמר; כשתחזור ל-{{from}} ייעשה בו שימוש שוב.",
+    "changeCustom": "מפגשים ב-{{to}} ישתמשו בקול המותאם אישית שיצרת שם. הקול שלך ב-{{from}} נשאר ב-{{from}}.",
+    "changeBuiltInOwnKey": "הקול המותאם אישית שלך נמצא בפרויקט Soniox שלך ב-{{from}} ולא ניתן להשתמש בו ב-{{to}}. מפגשים ב-{{to}} ישתמשו בקול המובנה {{name}} עד שתיצור קול מותאם אישית בפרויקט שלך ב-{{to}}. הקול שלך ב-{{from}} נשמר; כשתחזור ל-{{from}} ייעשה בו שימוש שוב.",
+    "changeCustomOwnKey": "מפגשים ב-{{to}} ישתמשו בקול המותאם אישית בפרויקט Soniox שלך ב-{{to}}. הקול שלך ב-{{from}} נשאר בפרויקט שלך ב-{{from}}.",
+    "changeConfirm": "מעבר ל-{{to}}",
+    "latencyMeasuring": "מודד…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "לא ניתן להגיע",
+    "hintFaster": "{{region}} מהיר בכ-{{ms}} ms מהאזור הנוכחי שלך ({{current}})",
+    "hintCurrentUnreachable": "{{region}} מגיב תוך {{ms}} ms; לא ניתן היה להגיע לאזור הנוכחי שלך ({{current}})",
+    "hintAction": "הצגת המהירות של כל אזור",
+    "listTitle": "בחירת אזור מהיר יותר",
+    "listIntro": "מדדנו את החיבור שלך לכל אזור של {{vendor}}:",
+    "recommended": "מומלץ",
+    "current": "נוכחי",
+    "unreachable": "לא ניתן היה להגיע",
+    "switch": "מעבר",
+    "keep": "להישאר ב-{{region}}"
   }
 }

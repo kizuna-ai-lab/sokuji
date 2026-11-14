@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nom pour une nouvelle voix clonée (facultatif)",
     "sonioxVoiceDefaultName": "Ma voix {{n}}",
     "sonioxManagedVoiceName": "Ma voix",
-    "sonioxVoiceDeletedPlaceholder": "(voix supprimée)",
     "palabraVoiceProcessingBadge": "traitement en cours…",
     "palabraVoiceFailedBadge": "échec",
     "palabraVoiceDeletedPlaceholder": "(voix supprimée)",
@@ -1692,5 +1691,26 @@
       "lostHint": "La source a disparu ; la dernière image est conservée jusqu'à ce que vous choisissiez à nouveau.",
       "lostExtension": "L'image de l'onglet de la réunion n'est plus disponible ; la traduction continue avec l'audio seul."
     }
+  },
+  "region": {
+    "changeTitle": "Changer de région ?",
+    "changeBuiltIn": "Votre voix personnalisée est enregistrée dans la région {{from}} et ne peut pas être utilisée dans {{to}}. Les sessions dans {{to}} utiliseront la voix intégrée {{name}} jusqu'à ce que vous y créiez une voix personnalisée. Votre voix de {{from}} est conservée ; en revenant à {{from}}, elle sera de nouveau utilisée.",
+    "changeCustom": "Les sessions dans {{to}} utiliseront la voix personnalisée que vous y avez créée. Votre voix de {{from}} reste dans {{from}}.",
+    "changeBuiltInOwnKey": "Votre voix personnalisée se trouve dans votre projet Soniox de {{from}} et ne peut pas être utilisée dans {{to}}. Les sessions dans {{to}} utiliseront la voix intégrée {{name}} jusqu'à ce que vous créiez une voix personnalisée dans votre projet de {{to}}. Votre voix de {{from}} est conservée ; en revenant à {{from}}, elle sera de nouveau utilisée.",
+    "changeCustomOwnKey": "Les sessions dans {{to}} utiliseront la voix personnalisée de votre projet Soniox de {{to}}. Votre voix de {{from}} reste dans votre projet de {{from}}.",
+    "changeConfirm": "Passer à {{to}}",
+    "latencyMeasuring": "mesure en cours…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "injoignable",
+    "hintFaster": "{{region}} est environ {{ms}} ms plus rapide que votre région actuelle ({{current}})",
+    "hintCurrentUnreachable": "{{region}} répond en {{ms}} ms ; votre région actuelle ({{current}}) est injoignable",
+    "hintAction": "Voir la vitesse de chaque région",
+    "listTitle": "Choisir une région plus rapide",
+    "listIntro": "Nous avons mesuré votre connexion à chaque région {{vendor}} :",
+    "recommended": "Recommandée",
+    "current": "Actuelle",
+    "unreachable": "Injoignable",
+    "switch": "Basculer",
+    "keep": "Garder {{region}}"
   }
 }

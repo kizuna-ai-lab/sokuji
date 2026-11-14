@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "新克隆声音的名称（可选）",
     "sonioxVoiceDefaultName": "我的声音 {{n}}",
     "sonioxManagedVoiceName": "我的声音",
-    "sonioxVoiceDeletedPlaceholder": "（已删除的声音）",
     "palabraVoiceProcessingBadge": "处理中…",
     "palabraVoiceFailedBadge": "失败",
     "palabraVoiceDeletedPlaceholder": "（已删除的声音）",
@@ -1692,5 +1691,26 @@
       "lostHint": "来源已不存在；在你重新选择之前，会保留最后一张画面。",
       "lostExtension": "会议标签页的画面已不可用，翻译将仅凭音频继续。"
     }
+  },
+  "region": {
+    "changeTitle": "切换区域？",
+    "changeBuiltIn": "您的自定义声音保存在 {{from}} 区域，无法在 {{to}} 使用。在该区域创建自定义声音之前，{{to}} 的会话将使用内置声音 {{name}}。您在 {{from}} 的声音会保留，切换回 {{from}} 后会再次使用。",
+    "changeCustom": "{{to}} 的会话将使用您在该区域创建的自定义声音。您在 {{from}} 的声音仍保留在 {{from}}。",
+    "changeBuiltInOwnKey": "您的自定义声音位于您的 {{from}} Soniox 项目中，无法在 {{to}} 使用。在您的 {{to}} 项目中创建自定义声音之前，{{to}} 的会话将使用内置声音 {{name}}。您在 {{from}} 的声音会保留，切换回 {{from}} 后会再次使用。",
+    "changeCustomOwnKey": "{{to}} 的会话将使用您的 {{to}} Soniox 项目中的自定义声音。您在 {{from}} 的声音仍保留在您的 {{from}} 项目中。",
+    "changeConfirm": "切换到 {{to}}",
+    "latencyMeasuring": "测量中…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "无法连接",
+    "hintFaster": "{{region}} 比您当前的区域（{{current}}）快约 {{ms}} 毫秒",
+    "hintCurrentUnreachable": "{{region}} 的响应时间为 {{ms}} 毫秒；无法连接到您当前的区域（{{current}}）",
+    "hintAction": "查看各区域的速度",
+    "listTitle": "选择更快的区域",
+    "listIntro": "我们测量了您到每个 {{vendor}} 区域的连接：",
+    "recommended": "推荐",
+    "current": "当前",
+    "unreachable": "无法连接",
+    "switch": "切换",
+    "keep": "保持 {{region}}"
   }
 }

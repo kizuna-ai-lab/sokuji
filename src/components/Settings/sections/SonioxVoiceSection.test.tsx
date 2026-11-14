@@ -209,13 +209,13 @@ const openCreateModal = () => {
 
 // Scopes a query to the grid: the picker's own TRIGGER button's accessible
 // name is the concatenation of its value span and its subtitle span, so an
-// unscoped `getByRole('button', { name: /deleted voice/i })` matches the
+// unscoped `getByRole('button', { name: 'Custom voice' })` matches the
 // trigger too, not just the row — the same "computed accessible name" trap
 // the row's own gridcell has, one level up.
 //
 // Clones no longer carry a subtitle, which made this trap SHARPER rather than
-// milder: the trigger used to read "(deleted voice) My Voices" while the row
-// read "(deleted voice)", so a name that happened to be exact matched only
+// milder: the trigger used to read "Custom voice My Voices" while the row
+// read "Custom voice", so a name that happened to be exact matched only
 // one of them. Now both compute to the same string, so any query for the
 // SELECTED voice's name is ambiguous unless it is scoped. Three cases in this
 // file were relying on that accidental difference.
@@ -399,27 +399,177 @@ describe('SonioxVoiceSection', () => {
     expect(onUpdate).toHaveBeenCalledWith({ voice: 'uuid-1' });
   });
 
-  it('shows a deleted-voice placeholder when the stored UUID is not in the fetched list', async () => {
+  it('resets a stale id to the default once the list has loaded, and never shows "(deleted voice)"', async () => {
     listMock.mockResolvedValue([]);
     const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
-    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
-    // The stored setting is not rewritten — nothing auto-selects a different
-    // voice out from under an id the panel merely doesn't recognize yet.
+    expect(screen.queryByText(/deleted voice/i)).toBeNull();
+  });
+
+  it('a retired built-in name (Maya) is reset the same way', async () => {
+    // 'Maya' was the shipped default under tts-rt-v1 and is absent from v2's
+    // roster, so it is neither a built-in nor a clone.
+    listMock.mockResolvedValue([]);
+    const { onUpdate } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
+    expect(screen.queryByText(/deleted voice/i)).toBeNull();
+  });
+
+  it('own key leaves a stored id this project owns, and fires once only', async () => {
+    listMock.mockResolvedValue([cloned({ id: 'uuid-1' })]);
+    const { onUpdate } = mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('renders a retired built-in the same way as any other unknown stored voice', async () => {
-    // 'Maya' was the shipped default under tts-rt-v1 and is absent from v2's
-    // roster, so after the upgrade it is neither a built-in nor a clone — the
-    // same shape as a deleted clone, and shown the same way. Nothing rewrites
-    // it: the stored setting stands until the user picks something else.
+  it('managed adopts the account\'s own voice when the stored id is another', async () => {
+    listMock.mockResolvedValue([cloned({ id: 'mine' })]);
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false }),
+      settings: { voice: 'other', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'mine' }));
+  });
+
+  it('managed keeps an unknown id this account can rebuild from its clip; its neutral row stays deletable', async () => {
     listMock.mockResolvedValue([]);
-    const { onUpdate } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
-    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    const hasDeviceClip = vi.fn(async () => true);
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
+    expect(within(rowFor('Custom voice')).getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    // Without the clip the same empty list resets the id (next test group), so
+    // this only holds because the clip answer was honoured.
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a clip check that rejects changes nothing', async () => {
+    listMock.mockResolvedValue([]);
+    const hasDeviceClip = vi.fn(async () => { throw new Error('idb'); });
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a failed list changes nothing and labels the id neutrally', async () => {
+    listMock.mockRejectedValue(new Error('offline'));
+    const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(screen.queryByText(/could not load cloned voices/i)).not.toBeNull());
+    openPicker();
+    expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument();
+    expect(within(rowFor('Custom voice')).queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a loading list labels the id neutrally and changes nothing', async () => {
+    listMock.mockReturnValue(new Promise(() => {}));
+    const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    openPicker();
+    expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a pick made while the clip check runs is kept', async () => {
+    listMock.mockResolvedValue([]);
+    let release!: (v: boolean) => void;
+    const hasDeviceClip = vi.fn(() => new Promise<boolean>((r) => { release = r; }));
+    const props = {
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+    };
+    const { onUpdate, rerender } = mount({ ...props, settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    rerender(
+      <SonioxVoiceSection
+        {...props}
+        onUpdate={onUpdate}
+        isSessionActive={false}
+        settings={{ voice: 'Grace', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+      />
+    );
+    // 'No clip' would reset the stale id; the user's pick must survive it.
+    release(false);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a clip check answering after a refresh listed the stored voice changes nothing', async () => {
+    // The first list is empty, so the stored id goes to the clip check; while it runs, a refresh
+    // brings the voice back. The late "no clip" answer was reconciled against the old, empty list.
+    listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([cloned({ id: 'v1' })]);
+    let release!: (v: boolean) => void;
+    const hasDeviceClip = vi.fn(() => new Promise<boolean>((r) => { release = r; }));
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+      settings: { voice: 'v1', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    openPicker();
+    const refreshButton = screen.getByRole('button', { name: /refresh voice list/i });
+    await waitFor(() => expect(refreshButton).not.toBeDisabled());
+    fireEvent.click(refreshButton);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(refreshButton).not.toBeDisabled());
+    release(false);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(hasDeviceClip).toHaveBeenCalledTimes(1);
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('managed with an empty list, no clip and no clip support resets the id', async () => {
+    listMock.mockResolvedValue([]);
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip: async () => false }),
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
+  });
+
+  it('a region switch never reconciles against the previous source\'s list (own key)', async () => {
+    const onUpdate = vi.fn();
+    const a = fakeSource({ list: vi.fn(async () => [cloned({ id: 'uuid-A' })] as any) });
+    const view = (source: VoiceLibrarySource | null, voice: string) => (
+      <SonioxVoiceSection
+        settings={{ voice, apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+        onUpdate={onUpdate} source={source} managed={false} isSessionActive={false}
+      />
+    );
+    const { rerender } = render(view(a, 'uuid-A'));
+    await waitFor(() => expect(a.list).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 30));
+    const b = fakeSource({ list: vi.fn(async () => [cloned({ id: 'uuid-B' })] as any) });
+    rerender(view(b, 'uuid-B'));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('going from no source to a source never reconciles against the empty initial list', async () => {
+    const onUpdate = vi.fn();
+    const view = (source: VoiceLibrarySource | null) => (
+      <SonioxVoiceSection
+        settings={{ voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+        onUpdate={onUpdate} source={source} managed={false} isSessionActive={false}
+      />
+    );
+    const { rerender } = render(view(null));
+    rerender(view(fakeSource({ list: vi.fn(async () => [cloned({ id: 'uuid-1' })] as any) })));
+    await new Promise((r) => setTimeout(r, 30));
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
@@ -960,29 +1110,19 @@ describe('SonioxVoiceSection', () => {
     expect(onUpdate).not.toHaveBeenCalledWith({ voice: 'new-id' });
   });
 
-  // NOTE(Task 3 — VoiceLibrarySource seam): before this refactor, `managed`
-  // was special-cased in the deleted-voice-placeholder guard purely to
-  // suppress the section's own internally-constructed client. The guard now
-  // reacts to `source` — exactly like BYOK always did — so a stale UUID with
-  // no source (this account's actual state today; a managed source arrives
-  // in Task 4) renders as a disabled, raw-id placeholder instead of being
-  // hidden outright. That state cannot exist today (the managed twin has
-  // never been able to create a custom voice), and Task 4's real managed
-  // source resolves it properly by actually finding the voice. This is a
-  // documented, intentional consequence of the Task 3 plan (see
-  // voiceLibrarySource.ts's task brief), not an unnoticed regression.
-  it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', () => {
+  // With no source there is no list to reconcile against, so a stale UUID is
+  // left alone and rendered as a disabled neutral "Custom voice" row.
+  it('managed mode with no source shows a stale UUID as a disabled neutral row', () => {
     mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
     openPicker();
-    // No source, so the raw id is shown verbatim (see SonioxVoiceSection's
-    // entries memo) rather than the "(deleted voice)" placeholder text.
-    expect(inGrid().getByRole('button', { name: 'stale-uuid' })).toBeDisabled();
+    // No source: nothing to reconcile against, so the id stays, labelled neutrally.
+    expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeDisabled();
     // Still grouped under "My Voices", not "Presets" — the picker's own
     // group label is a `role="columnheader"` (VoicePicker.tsx:771-772), and
     // this row must sit BEFORE the "Presets" header in the grid, in the
     // clones section the placeholder was pushed into.
     const presetsHeader = screen.getByRole('columnheader', { name: /Presets/i }).closest('[role="row"]')!;
-    expect(rowFor('stale-uuid').compareDocumentPosition(presetsHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(rowFor('Custom voice').compareDocumentPosition(presetsHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   // A managed account with a healthy voice cannot replace it by recording
@@ -1055,13 +1195,12 @@ describe('SonioxVoiceSection', () => {
   });
 
   // Eviction is the NORMAL outcome of a small LRU cache serving unbounded
-  // users. Before this, the placeholder was `removable: false`, so the panel
-  // showed "(deleted voice)" above "No imported voices yet." with no delete
-  // button — the on-device recording stayed there forever and every later
-  // Start silently re-uploaded it.
+  // users. When this device still holds the clip, the id is kept (a Start
+  // rebuilds the voice) and its neutral row must be deletable, or the
+  // on-device recording would stay there forever.
   it('managed mode lets an evicted voice\'s placeholder be deleted, clearing the stale setting', async () => {
     listMock.mockResolvedValue([]);
-    const source = fakeSource({ canPreview: false });
+    const source = fakeSource({ canPreview: false, hasDeviceClip: async () => true });
     const { onUpdate } = mount({
       managed: true,
       source,
@@ -1069,7 +1208,7 @@ describe('SonioxVoiceSection', () => {
     });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
     confirmDelete();
     // DELETE /mine answers 200 with no row, so this is safe and idempotent.
     await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('evicted-uuid'));
@@ -1081,8 +1220,8 @@ describe('SonioxVoiceSection', () => {
     mount({ settings: { voice: 'someone-elses-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
-    expect(within(rowFor(/deleted voice/i)).queryByRole('button', { name: /^delete$/i })).toBeNull();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
+    expect(within(rowFor('Custom voice')).queryByRole('button', { name: /^delete$/i })).toBeNull();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
@@ -1142,8 +1281,8 @@ describe('SonioxVoiceSection', () => {
     });
     await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
-    expect(within(rowFor(/deleted voice/i)).queryByRole('button', { name: /^delete$/i })).toBeNull();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
+    expect(within(rowFor('Custom voice')).queryByRole('button', { name: /^delete$/i })).toBeNull();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 

@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import {
   saveVoiceClip,
   loadVoiceClip,
+  hasVoiceClip,
   clearVoiceClip,
   resetVoiceClipStorageForTesting,
 } from './voiceClipStorage';
@@ -52,7 +53,17 @@ describe('voiceClipStorage', () => {
   it('reports no clip before anything is saved, and after a clear', async () => {
     expect(await loadVoiceClip(ACCOUNT_A)).toBeNull();
     await saveVoiceClip(ACCOUNT_A, clip([9]));
-    await clearVoiceClip();
+    await clearVoiceClip(ACCOUNT_A);
+    expect(await loadVoiceClip(ACCOUNT_A)).toBeNull();
+  });
+
+  it('clearVoiceClip only removes the clip of the account deleting its voice', async () => {
+    await saveVoiceClip(ACCOUNT_A, clip([1]));
+    await clearVoiceClip(ACCOUNT_B);
+    expect(await loadVoiceClip(ACCOUNT_A)).not.toBeNull();
+    await clearVoiceClip('');
+    expect(await loadVoiceClip(ACCOUNT_A)).not.toBeNull();
+    await clearVoiceClip(ACCOUNT_A);
     expect(await loadVoiceClip(ACCOUNT_A)).toBeNull();
   });
 
@@ -83,7 +94,7 @@ describe('voiceClipStorage', () => {
     // @ts-expect-error deliberately breaking the global for this assertion
     globalThis.indexedDB = { open: () => { throw new Error('denied'); } };
     try {
-      await expect(clearVoiceClip()).rejects.toThrow('denied');
+      await expect(clearVoiceClip(ACCOUNT_A)).rejects.toThrow('denied');
     } finally {
       globalThis.indexedDB = original;
       await resetVoiceClipStorageForTesting();
@@ -144,5 +155,28 @@ describe('voiceClipStorage account scoping', () => {
     await saveVoiceClip(ACCOUNT_A, clip([1]));
     expect(await loadVoiceClip(undefined)).toBeNull();
     expect(await loadVoiceClip(null)).toBeNull();
+  });
+});
+
+describe('hasVoiceClip', () => {
+  it('answers true only for the owning account, false for another or nobody', async () => {
+    expect(await hasVoiceClip(ACCOUNT_A)).toBe(false);
+    await saveVoiceClip(ACCOUNT_A, clip([1]));
+    expect(await hasVoiceClip(ACCOUNT_A)).toBe(true);
+    expect(await hasVoiceClip(ACCOUNT_B)).toBe(false);
+    expect(await hasVoiceClip(null)).toBe(false);
+  });
+
+  it('rejects when storage cannot be read, unlike loadVoiceClip', async () => {
+    await resetVoiceClipStorageForTesting();
+    const original = globalThis.indexedDB;
+    // @ts-expect-error deliberately breaking the global for this assertion
+    globalThis.indexedDB = { open: () => { throw new Error('denied'); } };
+    try {
+      await expect(hasVoiceClip(ACCOUNT_A)).rejects.toThrow('denied');
+    } finally {
+      globalThis.indexedDB = original;
+      await resetVoiceClipStorageForTesting();
+    }
   });
 });

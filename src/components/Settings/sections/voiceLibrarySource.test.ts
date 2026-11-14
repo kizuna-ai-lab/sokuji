@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { byokVoiceSource, managedVoiceSource } from './voiceLibrarySource';
 import { SonioxVoicesError } from '../../../providers/soniox/voicesClient';
-import { loadVoiceClip, resetVoiceClipStorageForTesting } from '../../../lib/soniox/voiceClipStorage';
+import { loadVoiceClip, saveVoiceClip, resetVoiceClipStorageForTesting } from '../../../lib/soniox/voiceClipStorage';
 import type { ManagedVoicesClient } from '../../../providers/soniox/managedVoicesClient';
 import type { SonioxVoicesClient } from '../../../providers/soniox/voicesClient';
 import { settleReports, resetReportThrottle } from '../../../lib/diagnostics/report';
@@ -130,6 +130,12 @@ describe('managedVoiceSource.delete', () => {
     await source.delete('v1');
     expect(client.remove).toHaveBeenCalled();
     expect(await loadVoiceClip(ACCOUNT)).toBeNull();
+  });
+
+  it("leaves another account's clip alone", async () => {
+    await saveVoiceClip('acct-a', clip());
+    await managedVoiceSource(fakeClient(), 'acct-b').delete('v1');
+    expect(await loadVoiceClip('acct-a')).not.toBeNull();
   });
 
   it('keeps the clip when the backend refuses the delete', async () => {
@@ -611,5 +617,16 @@ describe('preview request language is Soniox\'s code, not the app\'s', () => {
     const source = byokVoiceSource(fakeSonioxClient(), { synthesize: synthesize as any, apiKey: 'k' });
     await source.preview!({ id: 'v1', language: 'yue', text: 'x', speed: 1.0 });
     expect(synthesize.mock.calls[0][0]).toMatchObject({ language: 'yue' });
+  });
+});
+
+describe('managed hasDeviceClip', () => {
+  it('answers for this account only', async () => {
+    await saveVoiceClip(ACCOUNT, clip());
+    expect(await managedVoiceSource(fakeClient(), ACCOUNT).hasDeviceClip!()).toBe(true);
+    expect(await managedVoiceSource(fakeClient(), 'user-b').hasDeviceClip!()).toBe(false);
+  });
+  it('the own-key source has none', () => {
+    expect(byokVoiceSource(fakeSonioxClient(), { apiKey: 'k', region: 'us' }).hasDeviceClip).toBeUndefined();
   });
 });
