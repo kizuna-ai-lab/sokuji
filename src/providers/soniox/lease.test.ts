@@ -230,6 +230,7 @@ describe('Kizuna Soniox lease: the session-key request', () => {
     expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
     expect(JSON.parse(call.init.body as string)).toEqual({ mode: 'speaker', textOnly: false, bothSplit: false, region: 'eu' });
     call.respond(200, grant(['spk_stt', 'spk_tts'], { region: 'eu' }));
+    await expect(a.pending).resolves.toBeDefined();
   });
 
   it("asks for India's region in the body", async () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setRegionMeasure } from './measure';
 import {
   recommendationGate, regionRecommendationEvent, runRegionRecommendation, resetRecommendationAttemptsForTests,
@@ -24,6 +24,8 @@ beforeEach(() => {
   track = vi.fn<(e: AnalyticsEvents['region_recommendation']) => void>();
   seed('jp');
 });
+// The console.warn spies (rejection tests) must not outlive their test.
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('recommendationGate', () => {
   it('opens only for a managed regional provider, signed in, after setup and the tour, idle and online, with no final record', () => {
