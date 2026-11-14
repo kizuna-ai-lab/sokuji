@@ -111,11 +111,17 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
     const { lineUp, stored } = get();
     if (useProviderStore.getState().selectionLocked || !stored || !lineUp) return null;
     const choice = chooseIn(lineUp, stage, providerId);
-    set({ lineUp: choice.lineUp });
-    await write(choice.lineUp);
     const run = runOf(choice.lineUp);
-    if (run.ok && useProviderStore.getState().selected !== run.provider) useProviderStore.getState().select(run.provider, 'pick');
-    return choice;
+    const before = useProviderStore.getState().selected;
+    const moves = run.ok && before !== run.provider;
+    set({ lineUp: choice.lineUp });
+    // The provider before the save: a run starting while the line-up is being written finds the two in step.
+    if (moves) useProviderStore.getState().select(run.provider, 'pick');
+    if (await write(choice.lineUp)) return choice;
+    // Not stored: the choice is undone, the provider with it, so what is kept stays one line-up and its provider.
+    set({ lineUp });
+    if (moves && before && useProviderStore.getState().selected === run.provider) useProviderStore.getState().select(before, 'pick');
+    return null;
   },
 }));
 
