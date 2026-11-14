@@ -77,17 +77,25 @@ export default function RegionListModal(): React.JSX.Element | null {
             const nameId = `${idPrefix}-${r}-name`;
             return (
               <li key={r} className="region-list__row">
-                <span className="region-list__name" id={nameId}>{family.label(r)}</span>
-                <span className="region-list__ms">{measured ? t('region.latencyMs', '{{ms}} ms', { ms }) : t('region.unreachable', "Couldn't reach")}</span>
-                <span className="region-list__tags">
+                <span className="region-list__label">
+                  <span className="region-list__name" id={nameId}>{family.label(r)}</span>
                   {r === record.recommended && <span className="region-list__tag region-list__tag--recommended">{t('region.recommended', 'Recommended')}</span>}
-                  {r === current && <span className="region-list__tag">{t('region.current', 'Current')}</span>}
+                  {r === current && <span className="region-list__tag region-list__tag--current">{t('region.current', 'Current')}</span>}
                 </span>
-                {measured && r !== current && (
-                  <button type="button" className="region-list__switch" aria-describedby={nameId} disabled={pending} onClick={() => { void switchTo(r); }}>
-                    {t('region.switch', 'Switch')}
-                  </button>
-                )}
+                <span className="region-list__ms">{measured ? t('region.latencyMs', '{{ms}} ms', { ms }) : t('region.unreachable', "Couldn't reach")}</span>
+                <span className="region-list__action">
+                  {measured && r !== current && (
+                    <button
+                      type="button"
+                      className={`region-list__switch${r === record.recommended ? ' region-list__switch--primary' : ''}`}
+                      aria-describedby={nameId}
+                      disabled={pending}
+                      onClick={() => { void switchTo(r); }}
+                    >
+                      {t('region.switch', 'Switch')}
+                    </button>
+                  )}
+                </span>
               </li>
             );
           })}
