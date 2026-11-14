@@ -1,0 +1,127 @@
+@use '../Settings/shared/variables' as vars;
+
+// The settings page: on a wide desktop window the navigation beside the content; otherwise one at a time.
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: vars.$bg-base;
+  color: vars.$text-primary;
+
+  &__locked {
+    padding: vars.$space-2 vars.$space-4;
+    font-size: vars.$font-caption;
+    color: vars.$color-warning;
+    background: vars.$color-warning-bg;
+    border-bottom: 1px solid vars.$color-warning-border;
+  }
+
+  &__columns {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-2;
+    padding: vars.$space-3;
+    overflow-y: auto;
+  }
+
+  &--wide &__nav {
+    width: 224px;
+    flex: none;
+    border-right: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  &--narrow &__nav { flex: 1; }
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-1;
+    align-self: flex-start;
+    padding: vars.$space-1 vars.$space-2;
+    border: none;
+    background: transparent;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-2;
+    @include vars.control-base;
+    padding: 6px 8px;
+    input { flex: 1; min-width: 0; border: none; background: transparent; color: inherit; font: inherit; outline: none; }
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    h3 { margin: vars.$space-2 0 vars.$space-1; font-size: vars.$font-caption; font-weight: vars.$weight-medium; color: vars.$text-muted; }
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 8px;
+    border: none;
+    border-radius: vars.$radius-md;
+    background: transparent;
+    color: vars.$text-secondary;
+    text-align: left;
+    cursor: pointer;
+    small { font-size: 11px; color: vars.$text-muted; display: inline-flex; align-items: center; gap: 3px; }
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+    &.is-current { background: color-mix(in srgb, vars.$color-primary 14%, transparent); color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    header {
+      display: flex;
+      align-items: center;
+      gap: vars.$space-2;
+      padding: vars.$space-3 vars.$space-4;
+      border-bottom: 1px solid vars.$border-subtle;
+      h2 { flex: 1; margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; }
+    }
+  }
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: vars.$space-4;
+  }
+
+  &__icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-md;
+    background: transparent;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { border-color: vars.$color-primary; color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}

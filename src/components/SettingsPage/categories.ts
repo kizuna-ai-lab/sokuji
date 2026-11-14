@@ -1,0 +1,76 @@
+// src/components/SettingsPage/categories.ts
+//
+// The categories of the settings page, in the agreed order (providers and
+// stages design, section 8.1), and where each of today's navigation targets
+// lands on the page.
+
+export type CategoryId = 'lineup' | 'words' | 'accounts' | 'models' | 'audio' | 'display' | 'history' | 'general';
+export type CategoryGroup = 'session' | 'providers' | 'devices' | 'data' | 'app';
+
+export interface Category {
+  id: CategoryId;
+  group: CategoryGroup;
+  /** `settingsPage.categories.<id>` */
+  titleKey: string;
+  /** `settingsPage.words.<id>`: the search words in the interface language, space-separated. */
+  wordsKey: string;
+  /** English search words, used too when a locale has none. */
+  words: readonly string[];
+  desktopOnly?: true;
+  /** During a session: everything locked, part of it, or nothing. */
+  lockedInSession: 'locked' | 'partly' | 'open';
+  /** Whether the category is listed at all in this build. */
+  shown(): boolean;
+}
+
+const category = (c: Omit<Category, 'titleKey' | 'wordsKey'>): Category => ({
+  ...c, titleKey: `settingsPage.categories.${c.id}`, wordsKey: `settingsPage.words.${c.id}`,
+});
+
+export const CATEGORIES: readonly Category[] = [
+  category({ id: 'lineup', group: 'session', words: ['language', 'languages', 'speech mode', 'push to talk', 'transcription', 'translation', 'speech', 'voice', 'provider', 'model', 'line-up'], lockedInSession: 'locked', shown: () => true }),
+  // Shown once the word list exists (design A, phase 5).
+  category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => false }),
+  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance'], lockedInSession: 'partly', shown: () => true }),
+  category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'open', shown: () => true }),
+  category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
+  category({ id: 'display', group: 'devices', words: ['font', 'size', 'colour', 'color', 'compact', 'subtitles', 'captions', 'preview'], lockedInSession: 'open', shown: () => true }),
+  // Desktop only; listed once History is built (Plan 3).
+  category({ id: 'history', group: 'data', words: ['history', 'notes', 'folder', 'auto-save'], desktopOnly: true, lockedInSession: 'open', shown: () => false }),
+  category({ id: 'general', group: 'app', words: ['interface language', 'appearance', 'theme', 'updates', 'logs', 'setup', 'help', 'version'], lockedInSession: 'open', shown: () => true }),
+];
+
+export const GROUPS: readonly CategoryGroup[] = ['session', 'providers', 'devices', 'data', 'app'];
+
+/** Today's `navigateToSettings` targets: the category that holds each, and the element to highlight (`#<anchor>-section`). */
+const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> = {
+  languages: { category: 'lineup', anchor: 'languages' },
+  'turn-detection': { category: 'lineup', anchor: 'turn-detection' },
+  'turn-detection-tuning': { category: 'lineup', anchor: 'turn-detection-tuning' },
+  'system-instructions': { category: 'lineup', anchor: 'system-instructions' },
+  'voice-settings': { category: 'lineup', anchor: 'voice-settings' },
+  'model-management': { category: 'lineup', anchor: 'model-management' },
+  'model-asr': { category: 'lineup', anchor: 'model-asr' },
+  'model-translation': { category: 'lineup', anchor: 'model-translation' },
+  'model-tts': { category: 'lineup', anchor: 'model-tts' },
+  // Today's 'provider' target switches only, without scrolling or highlighting (its section is the whole area).
+  provider: { category: 'accounts', anchor: null },
+  'user-account': { category: 'accounts', anchor: 'user-account' },
+  microphone: { category: 'audio', anchor: 'microphone' },
+  speech: { category: 'audio', anchor: 'speech' },
+  participant: { category: 'audio', anchor: 'participant' },
+  // Lands on the other side's audio, the section that holds the system audio choice.
+  'system-audio': { category: 'audio', anchor: 'participant' },
+};
+
+/** Where a target lands; a target the page does not know opens "General" without a highlight. */
+export function targetToCategory(target: string): { category: CategoryId; anchor: string | null } {
+  return TARGETS[target] ?? { category: 'general', anchor: null };
+}
+
+/** The categories whose title or search words contain the query, in order; an empty query keeps them all. */
+export function filterCategories(query: string, t: (key: string) => string, list: readonly Category[] = CATEGORIES): readonly Category[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((c) => [t(c.titleKey), t(c.wordsKey), ...c.words].some((text) => text.toLowerCase().includes(q)));
+}
