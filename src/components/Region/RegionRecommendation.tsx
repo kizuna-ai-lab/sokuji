@@ -15,6 +15,7 @@ import { useSetupWizardOpen } from '../../stores/layoutStore';
 import { useAuthContext } from '../providers/useAuthContext';
 import { useTour } from '../Tour/TourProvider';
 import RegionChangeConfirm from './RegionChangeConfirm';
+import RegionListModal from './RegionListModal';
 import { useOnline } from './useOnline';
 
 export default function RegionRecommendation(): React.JSX.Element {
@@ -62,6 +63,7 @@ export default function RegionRecommendation(): React.JSX.Element {
 
   return (
     <div data-testid="region-recommendation">
+      <RegionListModal />
       <RegionChangeConfirm />
     </div>
   );

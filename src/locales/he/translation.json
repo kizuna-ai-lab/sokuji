@@ -1702,6 +1702,16 @@
     "changeConfirm": "Switch to {{to}}",
     "latencyMeasuring": "measuring…",
     "latencyMs": "{{ms}} ms",
-    "latencyUnreachable": "unreachable"
+    "latencyUnreachable": "unreachable",
+    "hintFaster": "{{region}} is about {{ms}} ms faster than your current region ({{current}})",
+    "hintCurrentUnreachable": "{{region}} answers in {{ms}} ms; your current region ({{current}}) could not be reached",
+    "hintAction": "See each region's speed",
+    "listTitle": "Choose a faster region",
+    "listIntro": "We measured your connection to each {{vendor}} region:",
+    "recommended": "Recommended",
+    "current": "Current",
+    "unreachable": "Couldn't reach",
+    "switch": "Switch",
+    "keep": "Keep {{region}}"
   }
 }

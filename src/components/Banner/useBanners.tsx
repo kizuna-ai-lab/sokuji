@@ -10,6 +10,7 @@ import {
   useUpdateNewVersion, useUpdateProgressPercent,
   useUpdateProgressIndeterminate, useUpdateStatus, useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
+import { useRegionHint } from '../Region/useRegionHint';
 import { Banner, type BannerProps } from './Banner';
 
 /**
@@ -93,6 +94,8 @@ export function useBanners(): BannerProps[] {
       action: { label: t('update.restartNow'), onClick: installUpdate }, onDismiss: dismissBanner, dismissLabel,
     });
   }
+  const regionHint = useRegionHint();
+  if (regionHint) banners.push(regionHint);
   return banners;
 }
 
