@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "새로 복제할 음성 이름(선택 사항)",
     "sonioxVoiceDefaultName": "내 음성 {{n}}",
     "sonioxManagedVoiceName": "내 음성",
-    "sonioxVoiceDeletedPlaceholder": "(삭제된 음성)",
     "palabraVoiceProcessingBadge": "처리 중…",
     "palabraVoiceFailedBadge": "실패",
     "palabraVoiceDeletedPlaceholder": "(삭제된 음성)",

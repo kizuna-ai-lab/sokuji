@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nom pour une nouvelle voix clonée (facultatif)",
     "sonioxVoiceDefaultName": "Ma voix {{n}}",
     "sonioxManagedVoiceName": "Ma voix",
-    "sonioxVoiceDeletedPlaceholder": "(voix supprimée)",
     "palabraVoiceProcessingBadge": "traitement en cours…",
     "palabraVoiceFailedBadge": "échec",
     "palabraVoiceDeletedPlaceholder": "(voix supprimée)",

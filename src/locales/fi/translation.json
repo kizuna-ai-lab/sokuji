@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nimi uudelle kloonatulle äänelle (valinnainen)",
     "sonioxVoiceDefaultName": "Oma ääni {{n}}",
     "sonioxManagedVoiceName": "Oma ääni",
-    "sonioxVoiceDeletedPlaceholder": "(poistettu ääni)",
     "palabraVoiceProcessingBadge": "käsitellään…",
     "palabraVoiceFailedBadge": "epäonnistui",
     "palabraVoiceDeletedPlaceholder": "(poistettu ääni)",

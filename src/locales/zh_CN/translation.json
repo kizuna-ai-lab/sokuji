@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "新克隆声音的名称（可选）",
     "sonioxVoiceDefaultName": "我的声音 {{n}}",
     "sonioxManagedVoiceName": "我的声音",
-    "sonioxVoiceDeletedPlaceholder": "（已删除的声音）",
     "palabraVoiceProcessingBadge": "处理中…",
     "palabraVoiceFailedBadge": "失败",
     "palabraVoiceDeletedPlaceholder": "（已删除的声音）",

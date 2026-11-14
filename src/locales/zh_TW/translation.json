@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "新複製語音的名稱（可選）",
     "sonioxVoiceDefaultName": "我的語音 {{n}}",
     "sonioxManagedVoiceName": "我的語音",
-    "sonioxVoiceDeletedPlaceholder": "（已刪除的語音）",
     "palabraVoiceProcessingBadge": "處理中…",
     "palabraVoiceFailedBadge": "失敗",
     "palabraVoiceDeletedPlaceholder": "（已刪除的語音）",

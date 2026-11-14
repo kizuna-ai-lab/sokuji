@@ -48,7 +48,8 @@ import {
 import { resolvePreviewSample } from '../../../lib/tts/previewSample';
 import { previewCacheKey, getCachedPreview, setCachedPreview, clearPreviewCache } from '../../../lib/tts/previewCache';
 import { clampNumber } from '../../../providers/soniox/config';
-import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
+import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../../lib/soniox/ttsCatalog';
+import { reconcileSonioxVoice, reconcileManagedSonioxVoice } from '../../../lib/soniox/voiceReconcile';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
 import {
   validateVoiceClip,
@@ -507,6 +508,44 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   const selectedVoiceRef = useRef(settings.voice);
   useEffect(() => { selectedVoiceRef.current = settings.voice; }, [settings.voice]);
 
+  // Once the list has loaded, a stored id this account/project cannot use is
+  // reconciled (spec D2-D4). Runs at most once per (source, stored id,
+  // clones): `onUpdate` changes `settings.voice`, which re-enters this effect.
+  // A failed list or clip lookup changes nothing.
+  // The once-guard below makes this effect un-cancellable, so it must not
+  // depend on a callback identity that can change between renders.
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => { onUpdateRef.current = onUpdate; }, [onUpdate]);
+  const reconciledRef = useRef<{ source: unknown; stored: string; clones: unknown } | null>(null);
+  useEffect(() => {
+    const stored = settings.voice;
+    if (!source || listState !== 'idle' || !stored) return;
+    if (isSonioxBuiltInVoice(stored) || clones.some((c) => c.id === stored)) return;
+    const last = reconciledRef.current;
+    if (last && last.source === source && last.stored === stored && last.clones === clones) return;
+    reconciledRef.current = { source, stored, clones };
+    void (async () => {
+      let hasClip = false;
+      if (managed && source.hasDeviceClip) {
+        try { hasClip = await source.hasDeviceClip(); } catch { return; }
+      }
+      let next: string;
+      if (managed) {
+        const first = clones[0];
+        next = reconcileManagedSonioxVoice(
+          stored,
+          first && { voiceId: first.id, status: isFailed(first) ? 'failed' : 'ready' },
+          hasClip,
+        );
+      } else {
+        next = reconcileSonioxVoice(stored, clones.map((c) => c.id), false);
+      }
+      if (next !== stored && selectedVoiceRef.current === stored && sourceRef.current === source) {
+        onUpdateRef.current({ voice: next });
+      }
+    })();
+  }, [listState, clones, source, settings.voice, managed]);
+
   const finishCreate = async (
     created: SonioxVoice,
     createSource: VoiceLibrarySource,
@@ -804,19 +843,14 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       disabled: !isReady(v),
     }));
     const known = new Set([...builtin, ...custom].map((e) => e.id));
-    // Only synthesize the placeholder once we're not mid-fetch: a settings
-    // value pointing at a real (not-yet-loaded) clone must not flash the
-    // "(deleted voice)" label before the list arrives. Without a source
-    // (no API key yet, or a managed account with no session) there's no
-    // fetch to settle at all, so the entry makes no claim about deletion —
-    // it shows the raw id rather than asserting something we have no
-    // evidence for.
-    if (settings.voice && !known.has(settings.voice) && listState !== 'loading') {
+    // An unknown id is shown in every list state, labelled neutrally: the
+    // panel cannot tell a deleted voice from one it merely has not seen yet,
+    // so it claims nothing. Once the list has loaded the effect above resets
+    // an id that is genuinely stale.
+    if (settings.voice && !known.has(settings.voice)) {
       custom.push({
         id: settings.voice,
-        label: source
-          ? t('settings.sonioxVoiceDeletedPlaceholder', '(deleted voice)')
-          : settings.voice,
+        label: t('settings.voiceCustom', 'Custom voice'),
         group: 'custom',
         // MANAGED, and only once the list is KNOWN: an unknown id here is
         // this account's OWN voice after an eviction — the normal outcome of
@@ -844,7 +878,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       });
     }
     return [...builtin, ...custom];
-  }, [clones, managed, managedName, managedListKnown, settings.voice, listState, source, t]);
+  }, [clones, managed, managedName, managedListKnown, settings.voice, source, t]);
 
   return (
     // `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`), the Speech rows' voice links.

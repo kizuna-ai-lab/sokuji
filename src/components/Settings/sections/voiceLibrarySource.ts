@@ -20,7 +20,7 @@ import { accountPayer, type Payer } from '../../../lib/session/payerChoice';
 import { useAccountStore } from '../../../stores/accountStore';
 import type { SonioxRegion } from '../../../lib/soniox/regions';
 import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
-import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
+import { saveVoiceClip, clearVoiceClip, loadVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../providers/soniox/managedVoicePolling';
 import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
@@ -64,6 +64,10 @@ export interface VoiceLibrarySource {
   /** Namespace for the shared preview cache — distinct per voice project.
    *  Paired with `preview`: a source that can preview always sets this too. */
   readonly cacheNamespace?: string;
+  /** Whether this device holds the recording a Start could rebuild the voice
+   *  from. Managed only; an own-key source cannot rebuild from a clip, so it
+   *  is absent there (read as false). Rejects when storage cannot be read. */
+  hasDeviceClip?(): Promise<boolean>;
 }
 
 /** What BYOK preview needs beyond the voices-CRUD client: the TTS REST call
@@ -254,6 +258,10 @@ export function managedVoiceSource(
       // Whose balance builds it: a member's chosen wallet, read now.
       const created = await client.ensure({ pin: false, clip, ...payerField() });
       return toSonioxVoice({ voiceId: created.voiceId, status: created.status, createdAt: Date.now() });
+    },
+
+    async hasDeviceClip() {
+      return (await loadVoiceClip(accountId)) !== null;
     },
 
     async delete(_id) {

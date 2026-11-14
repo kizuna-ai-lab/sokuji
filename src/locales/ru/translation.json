@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Имя для нового клонированного голоса (необязательно)",
     "sonioxVoiceDefaultName": "Мой голос {{n}}",
     "sonioxManagedVoiceName": "Мой голос",
-    "sonioxVoiceDeletedPlaceholder": "(удалённый голос)",
     "palabraVoiceProcessingBadge": "обработка…",
     "palabraVoiceFailedBadge": "ошибка",
     "palabraVoiceDeletedPlaceholder": "(удалённый голос)",

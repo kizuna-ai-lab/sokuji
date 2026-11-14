@@ -399,27 +399,107 @@ describe('SonioxVoiceSection', () => {
     expect(onUpdate).toHaveBeenCalledWith({ voice: 'uuid-1' });
   });
 
-  it('shows a deleted-voice placeholder when the stored UUID is not in the fetched list', async () => {
+  it('resets a stale id to the default once the list has loaded, and never shows "(deleted voice)"', async () => {
     listMock.mockResolvedValue([]);
     const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
-    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
-    // The stored setting is not rewritten — nothing auto-selects a different
-    // voice out from under an id the panel merely doesn't recognize yet.
+    expect(screen.queryByText(/deleted voice/i)).toBeNull();
+  });
+
+  it('a retired built-in name (Maya) is reset the same way', async () => {
+    // 'Maya' was the shipped default under tts-rt-v1 and is absent from v2's
+    // roster, so it is neither a built-in nor a clone.
+    listMock.mockResolvedValue([]);
+    const { onUpdate } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
+    expect(screen.queryByText(/deleted voice/i)).toBeNull();
+  });
+
+  it('own key leaves a stored id this project owns, and fires once only', async () => {
+    listMock.mockResolvedValue([cloned({ id: 'uuid-1' })]);
+    const { onUpdate } = mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('renders a retired built-in the same way as any other unknown stored voice', async () => {
-    // 'Maya' was the shipped default under tts-rt-v1 and is absent from v2's
-    // roster, so after the upgrade it is neither a built-in nor a clone — the
-    // same shape as a deleted clone, and shown the same way. Nothing rewrites
-    // it: the stored setting stands until the user picks something else.
+  it('managed adopts the account\'s own voice when the stored id is another', async () => {
+    listMock.mockResolvedValue([cloned({ id: 'mine' })]);
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false }),
+      settings: { voice: 'other', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: 'mine' }));
+  });
+
+  it('managed keeps an unknown id this account can rebuild from its clip; its neutral row stays deletable', async () => {
     listMock.mockResolvedValue([]);
-    const { onUpdate } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
-    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    const hasDeviceClip = vi.fn(async () => true);
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
+    expect(within(rowFor('Custom voice')).getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a clip check that rejects changes nothing', async () => {
+    listMock.mockResolvedValue([]);
+    const hasDeviceClip = vi.fn(async () => { throw new Error('idb'); });
+    const { onUpdate } = mount({
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+      settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a failed list changes nothing and labels the id neutrally', async () => {
+    listMock.mockRejectedValue(new Error('offline'));
+    const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(screen.queryByText(/could not load cloned voices/i)).not.toBeNull());
+    openPicker();
+    expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument();
+    expect(within(rowFor('Custom voice')).queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a loading list labels the id neutrally and changes nothing', async () => {
+    listMock.mockReturnValue(new Promise(() => {}));
+    const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    openPicker();
+    expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('a pick made while the clip check runs is kept', async () => {
+    listMock.mockResolvedValue([]);
+    let release!: (v: boolean) => void;
+    const hasDeviceClip = vi.fn(() => new Promise<boolean>((r) => { release = r; }));
+    const props = {
+      managed: true,
+      source: fakeSource({ canPreview: false, hasDeviceClip }),
+    };
+    const { onUpdate, rerender } = mount({ ...props, settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    await waitFor(() => expect(hasDeviceClip).toHaveBeenCalled());
+    rerender(
+      <SonioxVoiceSection
+        {...props}
+        onUpdate={onUpdate}
+        isSessionActive={false}
+        settings={{ voice: 'Grace', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }}
+      />
+    );
+    release(false);
+    await new Promise((r) => setTimeout(r, 20));
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
@@ -976,13 +1056,13 @@ describe('SonioxVoiceSection', () => {
     openPicker();
     // No source, so the raw id is shown verbatim (see SonioxVoiceSection's
     // entries memo) rather than the "(deleted voice)" placeholder text.
-    expect(inGrid().getByRole('button', { name: 'stale-uuid' })).toBeDisabled();
+    expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeDisabled();
     // Still grouped under "My Voices", not "Presets" — the picker's own
     // group label is a `role="columnheader"` (VoicePicker.tsx:771-772), and
     // this row must sit BEFORE the "Presets" header in the grid, in the
     // clones section the placeholder was pushed into.
     const presetsHeader = screen.getByRole('columnheader', { name: /Presets/i }).closest('[role="row"]')!;
-    expect(rowFor('stale-uuid').compareDocumentPosition(presetsHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(rowFor('Custom voice').compareDocumentPosition(presetsHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   // A managed account with a healthy voice cannot replace it by recording
@@ -1061,7 +1141,7 @@ describe('SonioxVoiceSection', () => {
   // Start silently re-uploaded it.
   it('managed mode lets an evicted voice\'s placeholder be deleted, clearing the stale setting', async () => {
     listMock.mockResolvedValue([]);
-    const source = fakeSource({ canPreview: false });
+    const source = fakeSource({ canPreview: false, hasDeviceClip: async () => true });
     const { onUpdate } = mount({
       managed: true,
       source,
@@ -1069,7 +1149,7 @@ describe('SonioxVoiceSection', () => {
     });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
     confirmDelete();
     // DELETE /mine answers 200 with no row, so this is safe and idempotent.
     await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('evicted-uuid'));
@@ -1081,8 +1161,8 @@ describe('SonioxVoiceSection', () => {
     mount({ settings: { voice: 'someone-elses-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
-    expect(within(rowFor(/deleted voice/i)).queryByRole('button', { name: /^delete$/i })).toBeNull();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
+    expect(within(rowFor('Custom voice')).queryByRole('button', { name: /^delete$/i })).toBeNull();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
@@ -1142,8 +1222,8 @@ describe('SonioxVoiceSection', () => {
     });
     await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
     openPicker();
-    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
-    expect(within(rowFor(/deleted voice/i)).queryByRole('button', { name: /^delete$/i })).toBeNull();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Custom voice' })).toBeInTheDocument());
+    expect(within(rowFor('Custom voice')).queryByRole('button', { name: /^delete$/i })).toBeNull();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 

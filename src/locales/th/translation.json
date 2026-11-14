@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "ชื่อสำหรับเสียงโคลนใหม่ (ไม่บังคับ)",
     "sonioxVoiceDefaultName": "เสียงของฉัน {{n}}",
     "sonioxManagedVoiceName": "เสียงของฉัน",
-    "sonioxVoiceDeletedPlaceholder": "(เสียงที่ถูกลบ)",
     "palabraVoiceProcessingBadge": "กำลังประมวลผล…",
     "palabraVoiceFailedBadge": "ล้มเหลว",
     "palabraVoiceDeletedPlaceholder": "(เสียงที่ถูกลบ)",
