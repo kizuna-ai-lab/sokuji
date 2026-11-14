@@ -522,3 +522,16 @@ describe('SetupWizard — the line-up in use', () => {
     }));
   });
 });
+
+// Plan 6 review: the line-up's provider is preselected only where it serves the stored scenario.
+describe('SetupWizard — a line-up that cannot serve the scenario', () => {
+  afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
+
+  it('a re-run whose line-up provider cannot serve the stored scenario starts from the default', () => {
+    setupRecord = { version: 1, scenario: 'face-to-face-voice', providerPath: 'managed', provider: 'kizunaai_soniox', completedAt: 'x' };
+    useLineUpStore.setState({ lineUp: { transcription: 'openai', translation: 'openai', speech: 'openai', summarisation: null }, stored: true });
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
+  });
+});

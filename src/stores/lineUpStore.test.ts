@@ -205,3 +205,25 @@ describe('replace (the setup wizard)', () => {
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
   });
 });
+
+// Plan 6 review: a migration write still in flight when the wizard stores its line-up must not end up on top.
+describe('replace while the local migration is writing', () => {
+  it("the wizard's line-up ends up stored and shown, whatever order the writes resolve in", async () => {
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } as never, selectionLocked: false });
+    useLineUpStore.setState({ lineUp: null, stored: false });
+    let releaseMigration!: () => void;
+    setSetting.mockImplementationOnce((key: string, value: unknown) => new Promise((resolve) => {
+      releaseMigration = () => { stored.set(key, value); resolve({ success: true }); };
+    }));
+    await useLineUpStore.getState().load();
+    await new Promise((resolve) => { setTimeout(resolve, 0); }); // the scan has ended; the migration's write is held
+    expect(typeof releaseMigration).toBe('function');
+    const replacing = useLineUpStore.getState().replace({ transcription: 'soniox', translation: 'soniox', speech: 'soniox' });
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    releaseMigration();
+    expect(await replacing).toBe(true);
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: soniox });
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: soniox });
+  });
+});

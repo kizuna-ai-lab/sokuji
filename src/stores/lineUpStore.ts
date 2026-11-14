@@ -76,6 +76,11 @@ function todayLocal(): { translation: string | null; tts: string | null } {
   };
 }
 
+/** Replaces in progress (the setup wizard's Finish): the local migration writes nothing while one runs. */
+let replacing = 0;
+/** The local migration's write while it is in flight: a replace waits for it, so its own write lands last. */
+let migrationWrite: Promise<boolean> | null = null;
+
 export const useLineUpStore = create<LineUpStore>()((set, get) => ({
   lineUp: null,
   stored: false,
@@ -107,23 +112,35 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
       // A failed scan reports no downloaded model: worked out now, every local choice would read as Bing and
       // Edge for good. Write nothing; the next start tries again, and until then a session resolves as today.
       if (!useModelStore.getState().initialized) return;
-      if (get().stored) return; // a line-up was stored meanwhile (the setup wizard): it stands
+      if (get().stored || replacing > 0) return; // a line-up was stored meanwhile (the setup wizard): it stands
       const lineUp = lineUpFromToday({ selected, local: todayLocal() });
-      set({ lineUp, stored: await write(lineUp) });
+      migrationWrite = write(lineUp);
+      const landed = await migrationWrite;
+      migrationWrite = null;
+      // The wizard may have stored its line-up while this write was in flight: its line-up stands.
+      if (get().stored || replacing > 0) return;
+      set({ lineUp, stored: landed });
     })();
   },
 
   async replace(stages) {
     if (useProviderStore.getState().selectionLocked) return false;
-    const value = await ServiceFactory.getSettingsService().getSetting<unknown>(LINEUP_KEY, null);
-    const summarisation = isStoredLineUp(value) ? value.stages.summarisation : get().lineUp?.summarisation ?? null;
-    const lineUp: LineUp = { ...stages, summarisation };
-    const before = { lineUp: get().lineUp, stored: get().stored };
-    // Marked stored before the write: a migration whose scan ends meanwhile must already see it.
-    set({ lineUp, stored: true });
-    if (await write(lineUp)) return true;
-    set(before);
-    return false;
+    // Claimed at once, before any wait: a migration whose scan ends from here on writes nothing, and one already
+    // writing is waited for, so this write lands last in storage.
+    replacing += 1;
+    try {
+      if (migrationWrite) await migrationWrite;
+      const value = await ServiceFactory.getSettingsService().getSetting<unknown>(LINEUP_KEY, null);
+      const summarisation = isStoredLineUp(value) ? value.stages.summarisation : get().lineUp?.summarisation ?? null;
+      const lineUp: LineUp = { ...stages, summarisation };
+      const before = { lineUp: get().lineUp, stored: get().stored };
+      set({ lineUp, stored: true });
+      if (await write(lineUp)) return true;
+      set(before);
+      return false;
+    } finally {
+      replacing -= 1;
+    }
   },
 
   async choose(stage, providerId) {

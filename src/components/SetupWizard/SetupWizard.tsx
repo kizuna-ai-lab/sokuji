@@ -20,10 +20,11 @@ import { isElectron, isExtension, isLinux, isMacOS, isWindows } from '../../util
 import { initialDraft, draftFromRecord, setupReducer, canAdvance, LAST_STEP } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
 import { useApplySetup } from './useApplySetup';
-import { lineUpOf, offersRecord, pathOf } from './providerPaths';
+import { lineUpOf, offersRecord, pathOf, providerFits } from './providerPaths';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { runOf } from '../../lib/lineup/catalog';
-import type { ProviderPath } from '../../lib/setup/types';
+import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
+import type { ProviderType } from '../../types/Provider';
 import StepLanguage from './steps/StepLanguage';
 import StepScenario from './steps/StepScenario';
 import StepProviderPath from './steps/StepProviderPath';
@@ -46,13 +47,19 @@ function stagesOf(provider: string): { transcription: string; translation: strin
   return { transcription: lineUp.transcription ?? '', translation: lineUp.translation ?? '', speech: lineUp.speech ?? '' };
 }
 
-/** The provider and path of the stored line-up, 'not-offered' when the wizard cannot offer it, null when none is stored. */
-function lineUpInUse(): { provider: string; providerPath: ProviderPath } | 'not-offered' | null {
+/**
+ * The provider and path of the stored line-up; 'not-offered' when the wizard cannot offer it for the stored scenario
+ * (no single provider runs it, the wizard has no card for it, or its card is greyed for that scenario); null when no
+ * line-up is stored.
+ */
+function lineUpInUse(scenario: ScenarioId | null): { provider: string; providerPath: ProviderPath } | 'not-offered' | null {
   const { lineUp, stored } = useLineUpStore.getState();
   if (!stored || !lineUp) return null;
   const run = runOf(lineUp);
   const providerPath = run.ok ? pathOf(run.provider) : null;
-  return run.ok && providerPath ? { provider: run.provider, providerPath } : 'not-offered';
+  if (!run.ok || !providerPath) return 'not-offered';
+  if (scenario && !providerFits(run.provider as ProviderType, scenario)) return 'not-offered';
+  return { provider: run.provider, providerPath };
 }
 
 const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
@@ -68,7 +75,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
     if (variant !== 'rerun' || !record) return initialDraft();
     // A re-run starts from the line-up in use (Plan 6, ruling 3): a stored line-up the wizard can offer chooses the
     // provider and its path; one it cannot offer starts the wizard from its default; none at all leaves the record.
-    const inUse = lineUpInUse();
+    const inUse = lineUpInUse(record.scenario as ScenarioId | null);
     if (inUse === 'not-offered') return initialDraft();
     const from = inUse ? { ...record, ...inUse } : record;
     if (!offersRecord(from)) return initialDraft();
