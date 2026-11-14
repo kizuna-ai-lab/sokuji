@@ -16,6 +16,9 @@ import { sonioxProvider } from '../../providers/soniox/provider';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
+const reportWarning = vi.hoisted(() => vi.fn());
+vi.mock('../diagnostics/report', () => ({ reportWarning }));
+
 import { requestRegionChange } from './regionChange';
 
 const region = (id: string) => (useProviderStore.getState().entries[id].settings as { region: string }).region;
@@ -64,5 +67,15 @@ describe('requestRegionChange', () => {
     registerRunPhase(() => 'running');
     await expect(requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select' })).resolves.toBe(false);
     expect(region('kizunaai_qwen')).not.toBe('cn');
+  });
+
+  it('a throw inside the path is reported once and the change resolves false', async () => {
+    reportWarning.mockClear();
+    const boom = new Error('boom');
+    const spy = vi.spyOn(useProviderStore.getState(), 'updateSettings').mockRejectedValue(boom);
+    useProviderStore.setState({ updateSettings: spy } as never);
+    await expect(requestRegionChange({ providerId: 'kizunaai_qwen', to: 'cn', origin: 'select' })).resolves.toBe(false);
+    expect(reportWarning).toHaveBeenCalledTimes(1);
+    expect(reportWarning).toHaveBeenCalledWith('RegionChange', expect.any(String), expect.objectContaining({ dedupeKey: 'region:change', cause: boom }));
   });
 });
