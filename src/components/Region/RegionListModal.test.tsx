@@ -65,6 +65,25 @@ describe('RegionListModal', () => {
     expect(screen.getByRole('button', { name: 'Keep United States' })).toBeTruthy();
   });
 
+  it('each Switch keeps its name and is described by its row\'s region, for screen readers', () => {
+    render(<RegionListModal />);
+    for (const label of ['日本 (Japan)', 'India', 'European Union']) {
+      expect(within(row(label)).getByRole('button', { name: 'Switch' })).toHaveAccessibleDescription(label);
+    }
+  });
+
+  it('closes without writing once the live region is within 50 ms of the recommended one', () => {
+    open({ ...hint, medians: { us: 177, eu: 40, jp: 13, in: 136 } });
+    render(<RegionListModal />);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    act(() => {
+      useProviderStore.setState({ entries: { kizunaai_soniox: { settings: { region: 'eu' }, credentials: {}, pair: {} } } } as never);
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(state().records.kizunaai_soniox?.status).toBe('hint');
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
   it("an unmeasured region reads Couldn't reach and has no button", () => {
     open({ ...hint, medians: { ...hint.medians, in: null } });
     render(<RegionListModal />);

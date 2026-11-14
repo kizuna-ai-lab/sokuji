@@ -7,6 +7,7 @@
 import { Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { RECOMMEND_MIN_GAIN_MS } from '../../lib/region/decision';
 import { markActed } from '../../lib/region/record';
 import { regionRecommendationEvent } from '../../lib/region/runRecommendation';
 import { REGION_FAMILIES, REGION_FAMILY_OF, currentRegion, isRecommendedProvider, type RecommendedProviderId } from '../../lib/region/regionalProviders';
@@ -18,7 +19,9 @@ import type { BannerProps } from '../Banner/Banner';
 /**
  * Whether the hint (and its list) may show: the provider is selected and idle,
  * the record is a `hint` whose recommended region belongs to the family with a
- * measured median, and the live region is not already that one. Returns the live region.
+ * measured median, and the live region is not already that one nor, when
+ * measured, within `RECOMMEND_MIN_GAIN_MS` of it (changed elsewhere to a
+ * near-best region; the record stays a hint). Returns the live region.
  */
 export function usableHint(
   provider: string | null,
@@ -31,9 +34,13 @@ export function usableHint(
   if (!record || record.status !== 'hint' || !record.recommended) return null;
   const family = REGION_FAMILIES[REGION_FAMILY_OF[provider]];
   if (!family.regions.includes(record.recommended)) return null;
-  if (typeof record.medians?.[record.recommended] !== 'number') return null;
+  const recommendedMedian = record.medians?.[record.recommended];
+  if (typeof recommendedMedian !== 'number') return null;
   const current = currentRegion(provider, settings);
-  return current === record.recommended ? null : { provider, current, recommended: record.recommended };
+  if (current === record.recommended) return null;
+  const currentMedian = record.medians?.[current];
+  if (typeof currentMedian === 'number' && currentMedian - recommendedMedian < RECOMMEND_MIN_GAIN_MS) return null;
+  return { provider, current, recommended: record.recommended };
 }
 
 export function useRegionHint(): BannerProps | null {

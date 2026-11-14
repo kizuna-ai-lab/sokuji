@@ -4,7 +4,7 @@
  * one. Switch goes through the shared region-change path (which may ask the
  * voice question first); Keep, the X and the backdrop keep the current region.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { markActed } from '../../lib/region/record';
@@ -31,6 +31,7 @@ export default function RegionListModal(): React.JSX.Element | null {
   const settings = useProviderStore((s) => (providerId ? s.entries[providerId]?.settings : undefined));
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
+  const idPrefix = useId();
 
   // The list lives only while the hint's own conditions hold; otherwise it closes, writing nothing (the hint returns later).
   const usable = usableHint(providerId, selected, locked, record, settings);
@@ -73,16 +74,17 @@ export default function RegionListModal(): React.JSX.Element | null {
         <ul className="region-list__rows">
           {rows.map(({ r, ms }) => {
             const measured = typeof ms === 'number';
+            const nameId = `${idPrefix}-${r}-name`;
             return (
               <li key={r} className="region-list__row">
-                <span className="region-list__name">{family.label(r)}</span>
+                <span className="region-list__name" id={nameId}>{family.label(r)}</span>
                 <span className="region-list__ms">{measured ? t('region.latencyMs', '{{ms}} ms', { ms }) : t('region.unreachable', "Couldn't reach")}</span>
                 <span className="region-list__tags">
                   {r === record.recommended && <span className="region-list__tag region-list__tag--recommended">{t('region.recommended', 'Recommended')}</span>}
                   {r === current && <span className="region-list__tag">{t('region.current', 'Current')}</span>}
                 </span>
                 {measured && r !== current && (
-                  <button type="button" className="region-list__switch" disabled={pending} onClick={() => { void switchTo(r); }}>
+                  <button type="button" className="region-list__switch" aria-describedby={nameId} disabled={pending} onClick={() => { void switchTo(r); }}>
                     {t('region.switch', 'Switch')}
                   </button>
                 )}

@@ -19,6 +19,7 @@ import useUpdateStore from '../../stores/updateStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import type { RegionRecord } from '../../lib/region/record';
+import { usableHint } from './useRegionHint';
 
 const hint: RegionRecord = { status: 'hint', medians: { us: 177, eu: 237, jp: 13, in: 136 }, recommended: 'jp', at: 1, attempts: 1 };
 
@@ -94,6 +95,19 @@ describe('the region hint strip', () => {
     expect(screen.queryByText("See each region's speed")).toBeTruthy();
     act(() => { seedRegion('jp'); });
     expect(screen.queryByText("See each region's speed")).toBeNull();
+  });
+
+  it('hides the hint while the live region is within 50 ms of the recommended one; the record stays a hint', () => {
+    // The region was changed elsewhere (another page, the own-key twin's sync) to a near-best one.
+    const near = { ...hint, medians: { us: 177, eu: 50, jp: 13, in: 136 } };
+    seed({ record: near, region: 'eu' });
+    render(<Banners />);
+    expect(screen.queryByText("See each region's speed")).toBeNull();
+    expect(useRegionRecommendationStore.getState().records.kizunaai_soniox?.status).toBe('hint');
+    expect(usableHint('kizunaai_soniox', 'kizunaai_soniox', false, near, { region: 'eu' })).toBeNull();
+    // 50 ms or more is still worth saying; an unmeasured live region still shows it.
+    expect(usableHint('kizunaai_soniox', 'kizunaai_soniox', false, { ...near, medians: { ...near.medians, eu: 63 } }, { region: 'eu' })).toMatchObject({ current: 'eu', recommended: 'jp' });
+    expect(usableHint('kizunaai_soniox', 'kizunaai_soniox', false, { ...near, medians: { ...near.medians, eu: null } }, { region: 'eu' })).toMatchObject({ current: 'eu', recommended: 'jp' });
   });
 
   it('shows nothing for a hint record that cannot be worded', () => {
