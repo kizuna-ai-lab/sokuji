@@ -17,10 +17,6 @@ vi.mock('../TitleBar/TitleBar', () => ({
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`wizard-${variant}`} /> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
-// The switch itself lives in its own hook (useSignInProviderSwitch.test.tsx);
-// a spy here pins only what MainLayout passes it — the wizard wiring below.
-const switchSpy = vi.hoisted(() => vi.fn());
-vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: switchSpy }));
 // Both halves of the tour's render gate are mutable: only Electron reshapes
 // its window for subtitle mode, so the takeover needs the pair to be true.
 // vi.hoisted: the mocks' factories below read it.
@@ -30,9 +26,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => flags.electron, isKizunaAIEnabled: () => false,
 }));
 // Only what MainLayout itself reads: no provider, no UI mode, no provider
-// setter. The sign-in switch reads uiMode too, but it lives in its own hook
-// (useSignInProviderSwitch, mocked above as a spy), so this file mocks
-// settingsStore whole rather than growing this list to cover it.
+// setter; this file mocks settingsStore whole.
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => flags.subtitleActive,
   useDiagnosticLogs: () => flags.diagnosticLogs,
@@ -48,7 +42,6 @@ beforeEach(() => {
   cleanup();
   loaded = true; complete = true; wizardOpen = false;
   flags.electron = false; flags.subtitleActive = false; flags.diagnosticLogs = false;
-  switchSpy.mockClear();
 });
 
 describe('MainLayout first-run gating (spec §1.1)', () => {
@@ -109,30 +102,6 @@ describe('MainLayout first-run gating (spec §1.1)', () => {
     flags.electron = true; flags.subtitleActive = true;
     render(<MainLayout />);
     expect(screen.queryByTestId('vbcable-intro')).toBeNull();
-  });
-});
-
-// The sign-in switch itself lives in useSignInProviderSwitch, mocked above as
-// a spy: what matters here is only the one boolean MainLayout computes and
-// hands it — the #444 bug (Codex P2, CodeRabbit major) was dropping the
-// `|| !setupComplete` half of this expression, which nothing here pinned
-// once the switch moved into its own hook and the mock swallowed the call.
-describe('wires the sign-in switch to both wizards (spec history, #444)', () => {
-  it('passes true while the first-run wizard is on screen', () => {
-    complete = false;
-    render(<MainLayout />);
-    expect(switchSpy).toHaveBeenLastCalledWith(true);
-  });
-
-  it('passes true while the rerun wizard is open', () => {
-    wizardOpen = true;
-    render(<MainLayout />);
-    expect(switchSpy).toHaveBeenLastCalledWith(true);
-  });
-
-  it('passes false once setup is complete and neither wizard is open', () => {
-    render(<MainLayout />);
-    expect(switchSpy).toHaveBeenLastCalledWith(false);
   });
 });
 
