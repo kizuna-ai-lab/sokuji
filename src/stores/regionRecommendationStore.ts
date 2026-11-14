@@ -1,9 +1,11 @@
 /**
  * The device-local region recommendation records, one per managed provider,
- * mirrored to localStorage; and which provider's region list is open.
+ * mirrored to localStorage; and which provider's region list is open. Pages
+ * sharing that storage (the extension's side panel and app tab) follow each
+ * other's writes through the `storage` event.
  */
 import { create } from 'zustand';
-import { readRegionRecord, writeRegionRecord, type RegionRecord } from '../lib/region/record';
+import { readRegionRecord, regionRecordKey, writeRegionRecord, type RegionRecord } from '../lib/region/record';
 import { RECOMMENDED_PROVIDER_IDS, type RecommendedProviderId } from '../lib/region/regionalProviders';
 
 type Records = Partial<Record<RecommendedProviderId, RegionRecord>>;
@@ -43,3 +45,12 @@ export const useRegionRecommendationStore = create<RegionRecommendationState>((s
   openList: (p) => set({ listOpen: p }),
   closeList: () => set({ listOpen: null }),
 }));
+
+// Another page wrote (or cleared) a record: reload them all. The event never fires for this page's own writes.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === null || RECOMMENDED_PROVIDER_IDS.some((id) => regionRecordKey(id) === e.key)) {
+      useRegionRecommendationStore.setState({ records: loadRegionRecords(browserStorage()) });
+    }
+  });
+}

@@ -22,4 +22,17 @@ describe('regionRecommendationStore', () => {
     useRegionRecommendationStore.getState().closeList();
     expect(useRegionRecommendationStore.getState().listOpen).toBeNull();
   });
+
+  it('picks up a record another page (side panel / app tab) wrote, through the storage event', () => {
+    const records = () => useRegionRecommendationStore.getState().records;
+    localStorage.setItem('regionRecommendation.kizunaai_soniox', JSON.stringify({ status: 'chose-manually', at: 9, attempts: 1 }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'unrelated.key' }));
+    expect(records()).toEqual({});
+    window.dispatchEvent(new StorageEvent('storage', { key: 'regionRecommendation.kizunaai_soniox' }));
+    expect(records()).toEqual({ kizunaai_soniox: { status: 'chose-manually', at: 9, attempts: 1 } });
+    // Another page cleared its storage.
+    localStorage.clear();
+    window.dispatchEvent(new StorageEvent('storage', { key: null }));
+    expect(records()).toEqual({});
+  });
 });
