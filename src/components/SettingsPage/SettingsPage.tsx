@@ -12,6 +12,7 @@ import { useNavigateToSettings, useSettingsNavigationTarget } from '../../stores
 import { isExtension } from '../../utils/environment';
 import { CATEGORIES, GROUPS, filterCategories, targetToCategory, type Category, type CategoryId } from './categories';
 import { LineUpCategory } from './LineUpCategory';
+import { AccountsCategory } from './AccountsCategory';
 import './SettingsPage.scss';
 
 export interface CategoryBodyProps { locked: boolean }
@@ -20,6 +21,7 @@ export type CategoryBodies = Partial<Record<CategoryId, ComponentType<CategoryBo
 /** Each category's body; a category without one shows its title only. */
 export const CATEGORY_BODIES: CategoryBodies = {
   lineup: LineUpCategory,
+  accounts: AccountsCategory,
 };
 
 const WIDE_MIN = 768;
