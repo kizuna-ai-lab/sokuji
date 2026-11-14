@@ -85,7 +85,8 @@ function ReadingsDictionaryRow({ isSessionActive }: { isSessionActive: boolean }
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
     let live = true;
-    void isDictionaryStored().then((v) => { if (live) setStored(v); });
+    // Storage that cannot be read (no IndexedDB) leaves the row's state unknown rather than failing.
+    isDictionaryStored().then((v) => { if (live) setStored(v); }, () => { if (live) setStored(null); });
     return () => { live = false; };
   }, []);
   const name = t('models.readingsDictionary', 'Readings dictionary (Japanese)');
@@ -108,7 +109,7 @@ function ReadingsDictionaryRow({ isSessionActive }: { isSessionActive: boolean }
         <div className="engine-storage-confirm" data-testid="storage-confirm">
           <p>{t('engineUi.deleteConfirm', 'Delete {{name}}?', { name })}</p>
           <button type="button" className="model-management__clear-btn model-management__clear-btn--yes" disabled={isSessionActive}
-            onClick={() => { setConfirming(false); void deleteDictionary().then(() => setStored(false)); }}>{t('models.confirmYes', 'Yes')}</button>
+            onClick={() => { setConfirming(false); deleteDictionary().then(() => setStored(false), () => setStored(null)); }}>{t('models.confirmYes', 'Yes')}</button>
           <button type="button" className="model-management__clear-btn model-management__clear-btn--no"
             onClick={() => setConfirming(false)}>{t('models.confirmNo', 'No')}</button>
         </div>
