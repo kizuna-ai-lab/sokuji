@@ -8,7 +8,7 @@ vi.mock('../VbCable/VbCableIntro', () => ({ default: () => <div data-testid="vbc
 vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => <div data-testid="subtitle-takeover" /> }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
-vi.mock('../Settings', () => ({ Settings: () => null }));
+vi.mock('../SettingsPage/SettingsPage', () => ({ SettingsPage: () => null }));
 vi.mock('../TitleBar/TitleBar', () => ({
   default: ({ showLogsButton }: { showLogsButton: boolean }) => (
     <div data-testid="title-bar" data-logs-button={String(showLogsButton)} />

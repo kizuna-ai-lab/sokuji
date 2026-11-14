@@ -24,8 +24,8 @@ vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({
   default: () => <CounterStub label="logs" />,
 }));
-vi.mock('../Settings', () => ({
-  Settings: () => <CounterStub label="settings" />,
+vi.mock('../SettingsPage/SettingsPage', () => ({
+  SettingsPage: () => <CounterStub label="settings" />,
 }));
 
 // TitleBar: just the two toggle buttons MainLayout wires up.

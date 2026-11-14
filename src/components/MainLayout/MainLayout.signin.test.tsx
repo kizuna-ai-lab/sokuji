@@ -10,7 +10,7 @@ vi.mock('../VbCable/VbCableIntro', () => ({ default: () => null }));
 vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
-vi.mock('../Settings', () => ({ Settings: () => null }));
+vi.mock('../SettingsPage/SettingsPage', () => ({ SettingsPage: () => null }));
 vi.mock('../TitleBar/TitleBar', () => ({ default: () => <div data-testid="title-bar" /> }));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: () => null }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
