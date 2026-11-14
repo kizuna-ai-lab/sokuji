@@ -20,7 +20,7 @@ import { useAudioContext, useMode, useParticipantCaptureWidened, useOutlets, use
 import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { presentProviders } from '../../../providers/registry';
-import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useSetUIMode, useTextOnly, useUIMode } from '../../../stores/settingsStore';
+import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { getEnvironment } from '../../../utils/environment';
 import { useFaceToFace } from '../../MainPanel/useFaceToFace';
@@ -47,11 +47,8 @@ export interface SpeechOutputSectionProps {
  */
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   const { t } = useTranslation();
-  const { trackEvent } = useAnalytics();
   const providers = useMemo(() => presentProviders(), []);
   const selection = useSelectedProvider(providers);
-  const uiMode = useUIMode();
-  const setUIMode = useSetUIMode();
   const navigateToSettings = useNavigateToSettings();
   const Summary = selection?.provider.VoiceSummary;
   if (!selection?.entry || !Summary) return null;
@@ -61,11 +58,7 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
       openTtsSlot(leg);
       return;
     }
-    if (uiMode === 'basic') {
-      // The Settings panel's own mode toggle, analytics event included.
-      setUIMode('advanced');
-      trackEvent('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: locked });
-    }
+    // One settings page now (no Quick or Advanced layout): the voice settings are reached directly.
     navigateToSettings('voice-settings');
   };
 
@@ -215,7 +208,11 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         </button>
       </h3>
 
-      <SettingRow label={t('audioPanel.defaultPlayback', 'Default playback device')} tooltip={t('audioPanel.defaultPlaybackTip', 'Sounds with no device of their own play here.')}>
+      <SettingRow
+        label={t('audioPanel.defaultPlayback', 'Default playback device')}
+        tooltip={t('audioPanel.defaultPlaybackTip', 'Sounds with no device of their own play here.')}
+        footer={<p className="setting-row__aid">{t('audioPanel.defaultPlaybackAid', 'Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too.')}</p>}
+      >
         <select
           className="select-dropdown"
           aria-label={t('audioPanel.defaultPlayback', 'Default playback device')}
@@ -232,6 +229,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         </select>
       </SettingRow>
 
+      <p className="speech-section__caption">{t('audioPanel.captionMine', 'What I say, as speech')}</p>
       <SettingRow
         label={otherLabel}
         tooltip={playsOnTip(f2f.other) ?? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.'))}
@@ -300,6 +298,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
         </SettingRow>
       )}
 
+      <p className="speech-section__caption">{t('audioPanel.captionTheirs', 'What the other side says, as speech')}</p>
       <SettingRow
         label={themLabel}
         tooltip={playsOnTip(f2f.me) ?? (!participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.") : t('audioPanel.iHearTip', 'What the other side says, translated and read aloud to me.'))}

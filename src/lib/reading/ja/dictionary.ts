@@ -47,6 +47,11 @@ export async function isDictionaryStored(expectedBytes = DICTIONARY_BYTES): Prom
   return (await storedBlob(expectedBytes)) !== null;
 }
 
+/** Deletes the stored dictionary (the storage page's delete); Japanese readings download it again when next turned on. */
+export async function deleteDictionary(): Promise<void> {
+  await deleteModelFiles(DICTIONARY_STORE_ID);
+}
+
 /** The stored dictionary's bytes, or null when it is not stored at the size this version pins. */
 export async function storedDictionary(expectedBytes = DICTIONARY_BYTES): Promise<ArrayBuffer | null> {
   const blob = await storedBlob(expectedBytes);

@@ -13,6 +13,7 @@ import { isExtension } from '../../utils/environment';
 import { CATEGORIES, GROUPS, filterCategories, targetToCategory, type Category, type CategoryId } from './categories';
 import { LineUpCategory } from './LineUpCategory';
 import { AccountsCategory } from './AccountsCategory';
+import { AudioCategory, ModelsCategory } from './DeviceCategories';
 import './SettingsPage.scss';
 
 export interface CategoryBodyProps { locked: boolean }
@@ -22,6 +23,8 @@ export type CategoryBodies = Partial<Record<CategoryId, ComponentType<CategoryBo
 export const CATEGORY_BODIES: CategoryBodies = {
   lineup: LineUpCategory,
   accounts: AccountsCategory,
+  models: ModelsCategory,
+  audio: AudioCategory,
 };
 
 const WIDE_MIN = 768;

@@ -2506,3 +2506,18 @@
   color: vars.$color-warning;
   margin-top: 8px;
 }
+
+// The speech section's aids (providers and stages design, section 8): a caption over each group of rows, and the
+// sentence under the default playback device.
+.speech-section__caption {
+  margin: vars.$space-3 0 vars.$space-1;
+  font-size: vars.$font-caption;
+  font-weight: vars.$weight-medium;
+  color: vars.$text-muted;
+}
+.setting-row__aid {
+  margin: vars.$space-1 0 0;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DICTIONARY_BYTES, deleteDictionary, isDictionaryStored } from '../../../lib/reading/ja/dictionary';
 import { HardDrive, Trash2, FolderInput, Cpu } from 'lucide-react';
 import {
   useModelStore, useModelStatuses, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures,
@@ -72,6 +73,48 @@ function computeDeleteNotes(
     }
   }
   return out;
+}
+
+/**
+ * The Japanese readings dictionary, kept with the other downloads so every downloaded model is in one place
+ * (providers and stages design, ruling 14). It is downloaded when Japanese readings are turned on in Display.
+ */
+function ReadingsDictionaryRow({ isSessionActive }: { isSessionActive: boolean }) {
+  const { t } = useTranslation();
+  const [stored, setStored] = useState<boolean | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void isDictionaryStored().then((v) => { if (live) setStored(v); });
+    return () => { live = false; };
+  }, []);
+  const name = t('models.readingsDictionary', 'Readings dictionary (Japanese)');
+  return (
+    <div className="engine-storage-row" data-testid="storage-row-readings-ja">
+      <div className="engine-storage-row__info">
+        <span className="engine-storage-row__name">{name}</span>
+        {stored === true && <span className="engine-storage-row__meta">{(DICTIONARY_BYTES / 1_048_576).toFixed(1)} MB</span>}
+        {stored === false && (
+          <span className="engine-storage-row__meta">{t('models.readingsDictionaryNotStored', 'Downloaded when Japanese readings are turned on in Display.')}</span>
+        )}
+      </div>
+      {stored === true && (
+        <button type="button" className="engine-storage-row__delete" data-testid="storage-delete-readings-ja"
+          onClick={() => setConfirming(true)} disabled={isSessionActive}>
+          <Trash2 size={12} />
+        </button>
+      )}
+      {confirming && (
+        <div className="engine-storage-confirm" data-testid="storage-confirm">
+          <p>{t('engineUi.deleteConfirm', 'Delete {{name}}?', { name })}</p>
+          <button type="button" className="model-management__clear-btn model-management__clear-btn--yes" disabled={isSessionActive}
+            onClick={() => { setConfirming(false); void deleteDictionary().then(() => setStored(false)); }}>{t('models.confirmYes', 'Yes')}</button>
+          <button type="button" className="model-management__clear-btn model-management__clear-btn--no"
+            onClick={() => setConfirming(false)}>{t('models.confirmNo', 'No')}</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Storage: a flat list of everything downloaded (wasm) / ready (native),
@@ -288,6 +331,8 @@ export const StoragePage: React.FC<
           )}
         </div>
       ))}
+
+      {isWasm && <ReadingsDictionaryRow isSessionActive={isSessionActive} />}
 
       <div className="engine-storage-page__actions">
         {canClearAll && (

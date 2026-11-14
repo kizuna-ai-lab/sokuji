@@ -457,11 +457,11 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(voiceLine('Translation I hear')).toBeNull();
   });
 
-  it('the name opens the voice settings, switching Quick to Advanced first; a run leaves it usable', () => {
+  it('the name opens the voice settings and no longer switches the settings layout; a run leaves it usable', () => {
     useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null });
     mount(true);
     fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Adrian' }));
-    expect(useSettingsStore.getState().uiMode).toBe('advanced');
+    expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('voice-settings');
   });
 
@@ -545,3 +545,18 @@ describe('SpeechOutputSection — VB-CABLE on Windows (spec 2026-10-17 §4)', ()
     expect(screen.queryByTestId('vbcable-row')).toBeNull();
   });
 });
+
+describe('SpeechOutputSection — the aids (providers and stages design, section 8)', () => {
+  it('names the two groups of speech rows and explains the default playback device', () => {
+    mount();
+    const mine = screen.getByText('What I say, as speech');
+    const theirs = screen.getByText('What the other side says, as speech');
+    const otherRow = row('Translation the other side hears');
+    const themRow = row('Translation I hear');
+    expect(mine.compareDocumentPosition(otherRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(theirs.compareDocumentPosition(themRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(otherRow.compareDocumentPosition(theirs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/Sounds on my side play here unless a row names its own device/)).toBeInTheDocument();
+  });
+});
+
