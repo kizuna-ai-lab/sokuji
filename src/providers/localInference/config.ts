@@ -1,5 +1,6 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
+import { storedLocalStages } from '../../stores/lineUpStore';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
@@ -80,12 +81,14 @@ export function buildLocalInference(
   shared: SharedSettings,
 ): LocalInferenceConfig | ProviderRefusal {
   const { source, target } = context.direction;
-  const rawResolved = useModelStore.getState().resolve(source, target, s.selections);
+  // A stored line-up says whether translation and speech go to Bing and Edge or to this machine's models.
+  const stages = storedLocalStages();
+  const rawResolved = useModelStore.getState().resolve(source, target, s.selections, stages);
   // AST cross-stage guard (see astGuard.ts): downgrades an explicit
   // AST-mismatched translation pick back to auto before it is judged.
   const resolved = guardAstCrossStage(
     source, target, s.selections, rawResolved,
-    (masked) => useModelStore.getState().resolve(source, target, masked));
+    (masked) => useModelStore.getState().resolve(source, target, masked, stages));
 
   if (!resolved.asr) {
     return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };

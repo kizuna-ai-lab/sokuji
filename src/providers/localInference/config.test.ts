@@ -54,6 +54,8 @@ vi.mock('../../lib/local-inference/modelManifest', () => ({
   },
 }));
 
+let mockStages: { translation: 'bing' | 'local'; speech: 'edge' | 'local' } | null = null;
+vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => mockStages }));
 import { buildLocalInference, describeLocalInference, admitLocalInference, type LocalInferenceConfig } from './config';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from './settings';
 
@@ -320,5 +322,15 @@ describe('describeLocalInference / admitLocalInference', () => {
     budget(1_000);
     sizes({ a: 500, t: 300, x: 300 });
     expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }) })).toMatchObject({ code: 'memory_exceeded' });
+  });
+});
+
+describe('the stored line-up', () => {
+  it('passes its local stages to the resolver', () => {
+    mockStages = { translation: 'bing', speech: 'local' };
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared());
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'bing', speech: 'local' });
+    mockStages = null;
   });
 });

@@ -1,5 +1,6 @@
 import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
+import { storedLocalStages } from '../../stores/lineUpStore';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings } from './settings';
@@ -35,8 +36,9 @@ export async function checkLocalInference(
     await raceInitialize(ctx.signal);
   }
 
+  const stages = storedLocalStages();
   const resolve = (src: string, tgt: string, selections: Selections) =>
-    useModelStore.getState().resolve(src, tgt, selections);
+    useModelStore.getState().resolve(src, tgt, selections, stages);
   // AST cross-stage guard (see astGuard.ts): `build` applies this same guard
   // to the resolved translation stage before a session starts, which can
   // downgrade an explicit AST-mismatched pick to auto (possibly null).

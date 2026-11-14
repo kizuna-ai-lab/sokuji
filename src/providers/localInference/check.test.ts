@@ -45,6 +45,8 @@ vi.mock('../../stores/modelStore', () => ({
   },
 }));
 
+let mockStages: { translation: 'bing' | 'local'; speech: 'edge' | 'local' } | null = null;
+vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => mockStages }));
 import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 
@@ -177,5 +179,15 @@ describe('watchLocalInferenceReadiness', () => {
     listener();
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(off).toBe(mockOff);
+  });
+});
+
+describe('the stored line-up in the readiness check', () => {
+  it('passes its local stages to the resolver', async () => {
+    mockStages = { translation: 'local', speech: 'edge' };
+    resolved({ 'ja>en': { asr: 'a', translation: 't', tts: null } });
+    await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: 'edge' });
+    mockStages = null;
   });
 });

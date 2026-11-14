@@ -141,6 +141,14 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     to_provider: string;
     during_session: boolean;
   };
+  /** A stage of the line-up changed on the settings page: provider ids, never content. */
+  'lineup_changed': {
+    stage: 'transcription' | 'translation' | 'speech' | 'summarisation';
+    from: string | null;
+    to: string | null;
+    moved: readonly ('transcription' | 'translation' | 'speech' | 'summarisation')[];
+    during_session: boolean;
+  };
   'api_key_validated': {
     provider: string;
     success: boolean;
