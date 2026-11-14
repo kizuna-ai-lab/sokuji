@@ -10,6 +10,8 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ModelManager, type DownloadProgress } from '../lib/local-inference/ModelManager';
 import {
   MODEL_MANIFEST,
+  getManifestEntry,
+  isTranslationModelCompatible,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
@@ -371,7 +373,9 @@ export const useModelStore = create<ModelStoreState>()(
       // stored local choice says (left as it is); every other stage resolves among this machine's models only.
       const out = resolveDirection(direction, selections, wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures, withCloud: false }));
       const cloud: Array<[Stage, string]> = [];
-      if (stages.translation === 'bing') cloud.push(['translation', 'bing-translator']);
+      // Bing keeps its own list of languages: a pair outside it stays on this machine's models, as it would without a line-up.
+      const bing = getManifestEntry('bing-translator');
+      if (stages.translation === 'bing' && bing && isTranslationModelCompatible(bing, src, tgt)) cloud.push(['translation', 'bing-translator']);
       if (stages.speech === 'edge') cloud.push(['tts', 'edge-tts']);
       for (const [stage, modelId] of cloud) {
         out[stage] = { modelId, variant: undefined, source: 'explicit' };
