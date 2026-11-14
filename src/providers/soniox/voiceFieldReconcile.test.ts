@@ -104,6 +104,44 @@ describe('reconcileSonioxVoiceField', () => {
     expect(settings().voiceJp).toBe('stale');
   });
 
+  it('never looks up with another account’s token, even when the account switched back before the answer', async () => {
+    const warn = vi.spyOn(report, 'reportWarning').mockImplementation(() => {});
+    await useProviderStore.getState().updateSettings(kizunaSonioxProvider, { voiceJp: 'stale' });
+    const account = (userId: string): AuthContext => ({ signedIn: true, loaded: true, userId, getToken: async () => `t-${userId}` });
+    let user = 'a';
+    let answerClip!: (v: boolean) => void;
+    const clip = new Promise<boolean>((r) => { answerClip = r; });
+    let tokenRead!: () => void;
+    const read = new Promise<void>((r) => { tokenRead = r; });
+    let releaseMine!: () => void;
+    const mineGate = new Promise<void>((r) => { releaseMine = r; });
+    const tokens: Array<string | null> = [];
+    const run = reconcileSonioxVoiceField(kizunaSonioxProvider, 'jp', () => account(user), {
+      managedClient: (getToken) => ({
+        mine: async () => {
+          const token = await getToken();
+          tokens.push(token);
+          tokenRead();
+          await mineGate;
+          // As ManagedVoicesClient does: no token, no request.
+          if (!token) throw new Error('authentication_required');
+          return { voiceId: `v-${token}`, status: 'ready', createdAt: 1 };
+        },
+      }),
+      hasDeviceClip: () => clip, online: () => true,
+    });
+    user = 'b';
+    answerClip(false);
+    await read;
+    user = 'a';
+    releaseMine();
+    await run;
+    expect(settings().voiceJp).toBe('stale');
+    expect(tokens).toEqual([null]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
   it('own key ignores the managed clip: a stale id resets even when this account has a clip', async () => {
     await useProviderStore.getState().setCredential(sonioxProvider, 'apiKeyEu', 'k-eu');
     await useProviderStore.getState().updateSettings(sonioxProvider, { voiceEu: 'gone' });

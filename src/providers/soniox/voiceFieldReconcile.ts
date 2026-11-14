@@ -46,7 +46,13 @@ export async function reconcileSonioxVoiceField(
       if (!a || !a.signedIn || a.loaded === false) return;
       // Only a managed start can rebuild a voice from this account's clip.
       const hasClip = await (deps.hasDeviceClip ?? defaultHasDeviceClip)(startUser);
-      const client = (deps.managedClient ?? ((getToken, r) => new ManagedVoicesClient(getToken, r)))(() => (auth() ?? a).getToken(), region);
+      // Bound to the account this started for: another account's token must never answer for it, even if
+      // the account switches back before the answer lands. No token, no lookup, nothing written.
+      const getToken = async () => {
+        const now = auth();
+        return (now?.userId ?? null) === startUser ? (now ?? a).getToken() : null;
+      };
+      const client = (deps.managedClient ?? ((t, r) => new ManagedVoicesClient(t, r)))(getToken, region);
       next = reconcileManagedSonioxVoice(stored, await client.mine(), hasClip);
     } else {
       const key = (snapshot.credentials as Record<string, string | undefined>)[sonioxKeyField(region)];
