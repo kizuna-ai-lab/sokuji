@@ -17,7 +17,8 @@ import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelIm
 import { checkWebGPU } from '../utils/webgpu';
 import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
-import { directionKey, type DirectionResult, type Selections } from '../lib/local-inference/selection/types';
+import { directionKey, type DirectionResult, type Selections, type Stage } from '../lib/local-inference/selection/types';
+import type { LocalStages } from '../lib/lineup/localStages';
 import { reportError } from '../lib/diagnostics/report';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ interface ModelStoreState {
    * written back — that distinction is what lets the system tell a user's
    * choice from a machine's guess.
    */
-  resolve: (src: string, tgt: string, selections: Selections) => DirectionResult;
+  resolve: (src: string, tgt: string, selections: Selections, stages?: LocalStages | null) => DirectionResult;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -359,13 +360,25 @@ export const useModelStore = create<ModelStoreState>()(
      * caller (the LocalInference provider, or the engine surface it renders)
      * owns them.
      */
-    resolve: (src, tgt, selections) => {
+    resolve: (src, tgt, selections, stages = null) => {
       const { modelStatuses, webgpuAvailable, deviceFeatures } = get();
-      return resolveDirection(
-        directionKey(src, tgt),
-        selections,
-        wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures }),
-      );
+      const direction = directionKey(src, tgt);
+      // No stored line-up: today's list, Bing and Edge among the local choices.
+      if (!stages) {
+        return resolveDirection(direction, selections, wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures }));
+      }
+      // A stored line-up: Bing and Edge are providers of their own. A stage given to one runs it whatever the
+      // stored local choice says (left as it is); every other stage resolves among this machine's models only.
+      const out = resolveDirection(direction, selections, wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures, withCloud: false }));
+      const cloud: Array<[Stage, string]> = [];
+      if (stages.translation === 'bing') cloud.push(['translation', 'bing-translator']);
+      if (stages.speech === 'edge') cloud.push(['tts', 'edge-tts']);
+      for (const [stage, modelId] of cloud) {
+        out[stage] = { modelId, variant: undefined, source: 'explicit' };
+        out.notes = out.notes.filter((n) => n.stage !== stage);
+        out.prunes = out.prunes.filter((p) => p.stage !== stage);
+      }
+      return out;
     },
 
   })),
