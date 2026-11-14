@@ -47,15 +47,26 @@ async function write(lineUp: LineUp): Promise<boolean> {
   return persistSetting(LINEUP_KEY, { version: 1, stages: lineUp } satisfies StoredLineUp);
 }
 
-/** What today's local choices resolve to, Bing and Edge included, for the current pair. */
+/**
+ * What today's local choices resolve to, Bing and Edge included, in both directions of the current pair, as a
+ * session resolves them (with the AST guard). One line-up serves both directions: where either direction uses
+ * Bing or Edge today, the line-up keeps them, so both directions go on working (owner, 2026-11-15).
+ */
 function todayLocal(): { translation: string | null; tts: string | null } {
   const entry = useProviderStore.getState().entries.local_inference;
   const selections = ((entry?.settings as { selections?: Selections } | undefined)?.selections) ?? {};
   const pair = entry?.pair ?? { source: '', target: '' };
-  const resolve = (masked: Selections) => useModelStore.getState().resolve(pair.source, pair.target, masked);
-  // As a session would resolve it: the AST guard drops a Granite pick that does not match the recognition stage.
-  const r = guardAstCrossStage(pair.source, pair.target, selections, resolve(selections), resolve);
-  return { translation: r.translation?.modelId ?? null, tts: r.tts?.modelId ?? null };
+  const direction = (src: string, tgt: string) => {
+    const resolve = (masked: Selections) => useModelStore.getState().resolve(src, tgt, masked);
+    return guardAstCrossStage(src, tgt, selections, resolve(selections), resolve);
+  };
+  const results = [direction(pair.source, pair.target), direction(pair.target, pair.source)];
+  const either = (pick: (r: (typeof results)[number]) => string | null | undefined, cloud: string) =>
+    results.some((r) => pick(r) === cloud) ? cloud : (pick(results[0]) ?? null);
+  return {
+    translation: either((r) => r.translation?.modelId, 'bing-translator'),
+    tts: either((r) => r.tts?.modelId, 'edge-tts'),
+  };
 }
 
 export const useLineUpStore = create<LineUpStore>()((set, get) => ({

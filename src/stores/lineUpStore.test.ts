@@ -6,6 +6,8 @@ const { stored, getSetting, setSetting, model } = vi.hoisted(() => {
     scan: Promise.resolve() as Promise<void>,
     initialized: true,
     resolved: { translation: 'bing-translator', tts: 'edge-tts' } as { translation: string | null; tts: string | null },
+    /** Per direction ('ja>en'), when a test needs the two directions to differ. */
+    byDirection: {} as Record<string, { translation: string | null; tts: string | null }>,
   };
   return {
     stored,
@@ -25,12 +27,15 @@ vi.mock('./modelStore', () => ({
     getState: () => ({
       initialize: () => model.scan,
       get initialized() { return model.initialized; },
-      resolve: () => ({
-        asr: null,
-        translation: model.resolved.translation ? { modelId: model.resolved.translation, source: 'auto' } : null,
-        tts: model.resolved.tts ? { modelId: model.resolved.tts, source: 'auto' } : null,
-        notes: [], prunes: [],
-      }),
+      resolve: (src: string, tgt: string) => {
+        const r = model.byDirection[`${src}>${tgt}`] ?? model.resolved;
+        return {
+          asr: null,
+          translation: r.translation ? { modelId: r.translation, source: 'auto' } : null,
+          tts: r.tts ? { modelId: r.tts, source: 'auto' } : null,
+          notes: [], prunes: [],
+        };
+      },
     }),
   },
 }));
@@ -54,6 +59,7 @@ beforeEach(() => {
   setSetting.mockClear();
   model.scan = Promise.resolve();
   model.initialized = true;
+  model.byDirection = {};
   guard.translation = undefined;
   model.resolved = { translation: 'bing-translator', tts: 'edge-tts' };
   useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
@@ -105,6 +111,18 @@ describe('the line-up store', () => {
     await useLineUpStore.getState().load();
     await vi.waitFor(() => expect(useLineUpStore.getState().stored).toBe(true));
     expect(useLineUpStore.getState().lineUp).toMatchObject({ translation: 'bing' });
+  });
+
+  it('keeps Bing and Edge when either direction uses them today (owner, 2026-11-15)', async () => {
+    // Supertonic has no Chinese: the English voice is the local model, the Chinese one is Edge today.
+    model.byDirection = {
+      'ja>en': { translation: 'hy-mt15-1.8b-translation', tts: 'supertonic-3' },
+      'en>ja': { translation: 'bing-translator', tts: 'edge-tts' },
+    };
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    await vi.waitFor(() => expect(useLineUpStore.getState().stored).toBe(true));
+    expect(useLineUpStore.getState().lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null });
   });
 
   it('writes nothing when the scan of downloaded models failed', async () => {
