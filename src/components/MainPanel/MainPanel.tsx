@@ -41,7 +41,6 @@ import {
   useSetAuthOverlay,
   useSpeakerDisplayMode,
   useSubtitleModeActive,
-  useUIMode,
 } from '../../stores/settingsStore';
 import { useSetSubtitleEntryHint } from '../../stores/subtitleStore';
 import { useCleanupUpdateListeners, useInitUpdateListeners } from '../../stores/updateStore';
@@ -159,7 +158,6 @@ export default function MainPanel() {
   const exporter = useConversationExporter(viewState);
   const audio = useLoadedAudio(session, run.phase);
 
-  const uiMode = useUIMode();
   const speakerMode = useSpeakerDisplayMode();
   const participantMode = useParticipantDisplayMode();
   const keepReplayAudio = useKeepReplayAudio();
@@ -371,7 +369,8 @@ export default function MainPanel() {
         )}
         {canSendText && <TypedText onSend={(text) => runner.sendText(text)} />}
         {status && <StatusLine entry={status} onAction={runNoticeAction} onDismiss={onDismissStatus} />}
-        {footer(uiMode === 'advanced' ? 'advanced' : 'basic')}
+        {/* One settings page, no Quick or Advanced layout: everyone gets the full footer (settings page plan, ruling 4). */}
+        {footer('advanced')}
       </div>
       <WarningModal
         isOpen={permission.warning !== null}

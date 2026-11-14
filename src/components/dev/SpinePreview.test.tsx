@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 vi.mock('../../lib/auth/hooks', () => ({
@@ -75,6 +75,11 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 
 describe('SpinePreview', () => {
+  // `&panel=1` draws the main panel's full footer, whose strips paint one frame on mount; no canvas is real here.
+  let getContext: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => { getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null); });
+  afterEach(() => { getContext.mockRestore(); });
+
   // The preview's conversation draws the resolved colours, so it carries
   // their tone as MainPanel's does (spec 2026-10-22 §3).
   it('the conversation carries the tone of the background it draws', async () => {
@@ -297,78 +302,43 @@ describe('SpinePreview', () => {
     }
   });
 
-  // Task 3, plan 1e-3b-2: `&settings=simple` draws the new Settings blocks in
-  // place of ProviderPanel (its fake `Script` select), including the global
-  // turn mode's own section.
-  it('with &settings=simple, draws the new blocks in place of ProviderPanel', async () => {
+  // `&settings=1` draws the app's one settings page in place of ProviderPanel
+  // (its fake `Script` select), the global turn mode's section included.
+  it('with &settings=1, draws the settings page in place of ProviderPanel', async () => {
     const before = window.location.href;
-    window.history.replaceState(null, '', '/?preview=spine&settings=simple');
+    window.history.replaceState(null, '', '/?preview=spine&settings=1');
     try {
       const { container } = render(<SpinePreview />);
       await waitFor(() => expect(container.querySelector('#turn-detection-section')).not.toBeNull());
+      expect(container.querySelector('[data-testid="settings-page"]')).not.toBeNull();
       expect(screen.queryByLabelText('Script')).not.toBeInTheDocument();
     } finally {
       window.history.replaceState(null, '', before);
     }
   });
 
-  // `&settings=advanced` draws Advanced's Provider tab alone: the General
-  // tab's blocks (its own #provider-section) are &settings=simple's, so this
-  // page never doubles the id.
-  it('with &settings=advanced&provider=local_inference, draws only the Advanced Provider tab', async () => {
-    const before = window.location.href;
-    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=local_inference');
-    try {
-      const { container } = render(<SpinePreview />);
-      await waitFor(() => expect(container.querySelector('.engine-surface')).not.toBeNull());
-      expect(container.querySelectorAll('#provider-section')).toHaveLength(1);
-      // Bites against the old composition: ProviderPanel (still drawn without
-      // &settings=) shows the language pair alongside the provider — this
-      // page's Provider tab alone does not (review Minor 2).
-      expect(container.querySelector('#languages-section')).toBeNull();
-    } finally {
-      window.history.replaceState(null, '', before);
-    }
-  });
-
-  // `&signedin=1` also reaches the `&settings=` blocks through
-  // `AuthStandIn`, so Kizuna Soniox's Settings show as signed in there too —
-  // and its voice library, which would otherwise call the backend for the
-  // account's cached voice, runs on the stand-in `setManagedVoiceStandIn`
-  // installs (choice 15): no network at all.
-  it('&signedin=1 reaches the Settings blocks, and the managed voice library calls no backend', async () => {
-    const before = window.location.href;
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=kizunaai_soniox&signedin=1');
-    try {
-      render(<SpinePreview />);
-      await screen.findByText('simpleSettings.autoAuthenticated');
-      for (const call of fetchMock.mock.calls) {
-        expect(String(call[0])).not.toContain('/soniox/');
+  // `&signedin=1` also reaches the settings page through `AuthStandIn`, so
+  // its Kizuna AI account reads signed in, with no network for Kizuna Soniox.
+  it.each([['1', 'settingsPage.accounts.signedIn'], ['0', 'settingsPage.accounts.signedOut']] as const)(
+    '&signedin=%s: the settings page shows the account so, and Kizuna Soniox calls no backend',
+    async (signedIn, state) => {
+      const before = window.location.href;
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
+      vi.stubGlobal('fetch', fetchMock);
+      window.history.replaceState(null, '', `/?preview=spine&settings=1&provider=kizunaai_soniox&signedin=${signedIn}`);
+      try {
+        render(<SpinePreview />);
+        fireEvent.click(await screen.findByRole('button', { name: 'settingsPage.categories.accounts' }));
+        await screen.findByText(state);
+        for (const call of fetchMock.mock.calls) {
+          expect(String(call[0])).not.toContain('/soniox/');
+        }
+      } finally {
+        window.history.replaceState(null, '', before);
+        vi.unstubAllGlobals();
       }
-    } finally {
-      window.history.replaceState(null, '', before);
-      vi.unstubAllGlobals();
-    }
-  });
-
-  it("signed out, Kizuna Soniox's Settings offer the sign-in", async () => {
-    const before = window.location.href;
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
-    vi.stubGlobal('fetch', fetchMock);
-    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=kizunaai_soniox');
-    try {
-      const { container } = render(<SpinePreview />);
-      await waitFor(() => expect(container.querySelector('.sign-in-link')).not.toBeNull());
-      for (const call of fetchMock.mock.calls) {
-        expect(String(call[0])).not.toContain('/soniox/');
-      }
-    } finally {
-      window.history.replaceState(null, '', before);
-      vi.unstubAllGlobals();
-    }
-  });
+    },
+  );
 
   // Task 5, plan 1e-2b ruling 12: `&punctuation=1` downloads the punctuation
   // pack before autostart so a `sentences` cut gets a real punctuator instead

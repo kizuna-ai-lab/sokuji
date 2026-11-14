@@ -270,7 +270,6 @@ export interface SettingsStore {
   // had no way to know they should await it — a failed write surfaced as an
   // unhandled rejection with the UI already changed.
   setUILanguage: (lang: string) => Promise<void>;
-  setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
@@ -435,12 +434,6 @@ const useSettingsStore = create<SettingsStore>()(
       set({uiLanguage});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.uiLanguage', uiLanguage);
-    },
-
-    setUIMode: async (uiMode) => {
-      set({uiMode});
-      const service = ServiceFactory.getSettingsService();
-      await service.setSetting('settings.common.uiMode', uiMode);
     },
 
     setTextOnly: async (textOnly) => {
@@ -817,7 +810,6 @@ const useSettingsStore = create<SettingsStore>()(
 // Common settings
 export const useProvider = () => useSettingsStore((state) => state.provider);
 export const useUILanguage = () => useSettingsStore((state) => state.uiLanguage);
-export const useUIMode = () => useSettingsStore((state) => state.uiMode);
 export const useSpeakerDisplayMode = () => useSettingsStore((state) => state.speakerDisplayMode);
 export const useParticipantDisplayMode = () => useSettingsStore((state) => state.participantDisplayMode);
 export const useSubtitleModeActive = () => useSettingsStore((state) => state.subtitleModeActive);
@@ -881,7 +873,6 @@ export const useSetSegmentationTranslationPause = () => useSettingsStore((state)
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
-export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
 export const useSetKeepReplayAudio = () => useSettingsStore((state) => state.setKeepReplayAudio);
 export const useSetAutoSaveOnStop = () => useSettingsStore((state) => state.setAutoSaveOnStop);

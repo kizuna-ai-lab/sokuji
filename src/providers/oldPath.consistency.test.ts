@@ -29,11 +29,8 @@ const SHARED = new Set([
   'src/services/interfaces/ISettingsService', // the settings service's interface, which the new session's stores read
 ]);
 
-/** Besides `src/services/` itself, the files that may import the old path: the unmounted shell that renders Local Native, and the old store with its Local Native slice, with the tests that pin them. */
+/** Besides `src/services/` itself, the files that may import the old path: the old store with its Local Native slice, with the test that pins it. */
 const OLD_PATH_FILES = new Set([
-  'src/components/Settings/sections/LanguageSection.tsx',
-  'src/components/Settings/sections/LanguageSection.sentence.test.tsx',
-  'src/components/Settings/sections/ProviderSection.tsx',
   'src/stores/settingsStore.ts',
   'src/stores/settingsStore.selections.test.ts',
 ]);

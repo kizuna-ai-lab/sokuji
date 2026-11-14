@@ -23,7 +23,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 }));
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => false,
-  useDiagnosticLogs: () => false, useUIMode: () => 'basic',
+  useDiagnosticLogs: () => false,
 }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', () => ({
