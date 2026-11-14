@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Seçilen kaynaktan henüz ses gelmedi",
     "audioCaptureUnprovenText1": "Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa macOS büyük olasılıkla sessizlik iletiyordur: bir uygulamayı yakalamak \"Yalnızca Sistem Sesi Kaydı\" iznini gerektirir ve bu izin olmadan hata oluşmaz, yalnızca sessizlik olur.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" bu listede yalnızca bir kez yakalama denendikten sonra görünür; bu deneme az önce yapıldı. Etkinleştirdikten sonra oturumu yeniden başlatın. Kaynak yalnızca sessizse hiçbir şeyi değiştirmeniz gerekmez.",
-    "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz."
+    "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz.",
+    "captionMine": "Söylediklerim, sesli",
+    "captionTheirs": "Karşı tarafın söyledikleri, sesli",
+    "defaultPlaybackAid": "Bir satır kendi cihazını belirtmedikçe benim tarafımdaki sesler burada çalar; kendi cihazı çıkarılmış bir ses de burada çalar."
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -749,7 +752,9 @@
     "preparingVoice": "Sesiniz hazırlanıyor…",
     "waitingForPreviousSession": "Bekleniyor…",
     "waitingForPreviousSessionTitle": "Önceki oturumun sona ermesi bekleniyor. İptal etmek için tıklayın.",
-    "clickToCancel": "İptal etmek için tıklayın"
+    "clickToCancel": "İptal etmek için tıklayın",
+    "whatIHear": "Duyduklarım",
+    "audioSettings": "Ses ayarları"
   },
   "modePicker": {
     "modeYou": "Ben",
@@ -972,7 +977,9 @@
       "cancel": "İptal",
       "accept": "Anladım — yalnızca ticari olmayan kullanım",
       "acceptRestricted": "Anladım — lisansı kabul ediyorum"
-    }
+    },
+    "readingsDictionary": "Okunuş sözlüğü (Japonca)",
+    "readingsDictionaryNotStored": "Görünüm’de Japonca okunuşlar açıldığında indirilir."
   },
   "notes": {
     "stageAsr": "konuşma tanıma",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Yeniden seç",
       "lostHint": "Kaynak artık yok; siz yeniden seçene kadar son görüntü tutulur.",
       "lostExtension": "Toplantı sekmesinin görüntüsü artık kullanılamıyor; çeviri yalnızca sesle devam ediyor."
+    }
+  },
+  "settingsPage": {
+    "title": "Ayarlar",
+    "search": "Ayarlarda ara",
+    "back": "Geri",
+    "backToList": "Listeye dön",
+    "changeable": "Oturum sırasında değiştirilebilir",
+    "lockedNote": "Oturum sırasında kilitli",
+    "partlyLocked": "Oturum sırasında kısmen kilitli",
+    "lockedLine": "Bir oturum sürüyor. Diller, düzen, kelime listesi ve anahtarlar kilitli; ses, görünüm ve diğerleri değiştirilebilir.",
+    "categories": {
+      "lineup": "Diller ve düzen",
+      "words": "Kelime listesi ve arka plan",
+      "accounts": "Hesaplar ve anahtarlar",
+      "models": "Modeller ve depolama",
+      "audio": "Ses",
+      "display": "Görünüm",
+      "history": "Geçmiş ve notlar",
+      "general": "Genel"
+    },
+    "groups": {
+      "session": "Oturum",
+      "providers": "Sağlayıcılar ve modeller",
+      "devices": "Cihazlar ve görünüm",
+      "data": "Veriler",
+      "app": "Uygulama"
+    },
+    "words": {
+      "lineup": "dil, diller, konuşma modu, bas konuş, transkripsiyon, çeviri, konuşma, ses, sağlayıcı, model, düzen",
+      "words": "kelime listesi, terimler, sözlük, arka plan",
+      "accounts": "hesap, oturum aç, API anahtarı, anahtarlar, kimlik bilgileri, bakiye",
+      "models": "modeller, indir, depolama, sil, disk",
+      "audio": "mikrofon, gürültü bastırma, yankı, hoparlör, kulaklık, izleme, doğrudan geçiş, sanal mikrofon, sistem sesi",
+      "display": "yazı tipi, boyut, renk, sıkışık, altyazı, başlıklar, önizleme",
+      "history": "geçmiş, notlar, klasör, otomatik kaydet",
+      "general": "arayüz dili, görünüm, tema, güncellemeler, günlükler, kurulum, yardım, sürüm"
+    },
+    "accounts": {
+      "addKey": "Anahtar ekle",
+      "keySaved": "Anahtar kaydedildi",
+      "local": "Bu bilgisayarda çalışır",
+      "needsKey": "Anahtar gerekli",
+      "online": "Anahtar gerekmez; çevrimiçi, bir Microsoft hizmeti",
+      "signedIn": "Oturum açık",
+      "signedOut": "Oturum açılmadı",
+      "together": "birlikte",
+      "view": "Görüntüle"
+    },
+    "lineup": {
+      "title": "Düzen",
+      "stages": {
+        "transcription": "Transkripsiyon",
+        "translation": "Çeviri",
+        "speech": "Konuşma",
+        "summarisation": "Notlar"
+      },
+      "and": " ve ",
+      "joint": "{{stages}} ile tek bağlantı üzerinden çalışır; birlikte değişirler.",
+      "granite": "Çeviriyle: Granite Speech konuşmayı doğrudan çeviriye dönüştürür.",
+      "moved": "{{stages}} da {{providers}} sağlayıcısına geçti: şu an bu seçimle birlikte kullanılamaz. Karıştırma daha sonra gelecek.",
+      "needsKey": "anahtar gerekli",
+      "needsSignIn": "oturum açılmalı",
+      "options": "{{provider}} seçenekleri",
+      "state": {
+        "needsKey": "Anahtar gerekli",
+        "needsModel": "Model gerekli",
+        "needsSignIn": "Oturum açılmalı",
+        "ready": "Hazır"
+      }
+    },
+    "display": {
+      "surface": "Hangi görünüm",
+      "main": "Ana pencere",
+      "captions": "Altyazı modu",
+      "compact": "Kompakt görünüm",
+      "preview": "Önizleme",
+      "mine": "Söylediklerim",
+      "theirs": "Karşı tarafın söyledikleri",
+      "fontSize": "Metin boyutu",
+      "smaller": "Daha küçük metin",
+      "larger": "Daha büyük metin",
+      "modes": {
+        "both": "Orijinal ve çeviri",
+        "source": "Yalnızca orijinal",
+        "translation": "Yalnızca çeviri",
+        "none": "Hiçbiri"
+      }
     }
   }
 }

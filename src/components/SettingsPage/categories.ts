@@ -63,6 +63,24 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'system-audio': { category: 'audio', anchor: 'participant' },
 };
 
+/**
+ * The category that holds each element the tour points at (its `data-tour`
+ * value): Audio's three sections, the account rows, and the line-up's local
+ * engine in the provider's options.
+ */
+const ANCHOR_CATEGORY: Readonly<Record<string, CategoryId>> = {
+  'microphone-section': 'audio',
+  'speech-section': 'audio',
+  'participant-section': 'audio',
+  'provider-section': 'accounts',
+  'engine-chips': 'lineup',
+};
+
+/** The category whose body draws the tour anchor, or null when no category does. */
+export function categoryHolding(anchor: string): CategoryId | null {
+  return ANCHOR_CATEGORY[anchor] ?? null;
+}
+
 /** Where a target lands; a target the page does not know opens "General" without a highlight. */
 export function targetToCategory(target: string): { category: CategoryId; anchor: string | null } {
   return TARGETS[target] ?? { category: 'general', anchor: null };

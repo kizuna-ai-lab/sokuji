@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì.",
-    "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu."
+    "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu.",
+    "captionMine": "Điều tôi nói, thành tiếng",
+    "captionTheirs": "Điều phía bên kia nói, thành tiếng",
+    "defaultPlaybackAid": "Âm thanh phía tôi phát ở đây, trừ khi một hàng chọn thiết bị riêng; âm thanh có thiết bị riêng bị rút ra cũng phát ở đây."
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -749,7 +752,9 @@
     "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
     "waitingForPreviousSession": "Đang chờ…",
     "waitingForPreviousSessionTitle": "Đang chờ phiên trước kết thúc. Nhấp để hủy.",
-    "clickToCancel": "Nhấp để hủy"
+    "clickToCancel": "Nhấp để hủy",
+    "whatIHear": "Những gì tôi nghe",
+    "audioSettings": "Cài đặt âm thanh"
   },
   "modePicker": {
     "modeYou": "Tôi",
@@ -972,7 +977,9 @@
       "cancel": "Hủy",
       "accept": "Tôi hiểu — chỉ dùng phi thương mại",
       "acceptRestricted": "Tôi hiểu — chấp nhận giấy phép"
-    }
+    },
+    "readingsDictionary": "Từ điển cách đọc (tiếng Nhật)",
+    "readingsDictionaryNotStored": "Được tải xuống khi bật cách đọc tiếng Nhật trong Hiển thị."
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Chọn lại",
       "lostHint": "Nguồn không còn nữa; hình ảnh cuối cùng được giữ cho đến khi bạn chọn lại.",
       "lostExtension": "Hình ảnh của tab cuộc họp không còn khả dụng; bản dịch tiếp tục chỉ bằng âm thanh."
+    }
+  },
+  "settingsPage": {
+    "title": "Cài đặt",
+    "search": "Tìm trong cài đặt",
+    "back": "Quay lại",
+    "backToList": "Quay lại danh sách",
+    "changeable": "Có thể thay đổi trong phiên",
+    "lockedNote": "Bị khóa trong phiên",
+    "partlyLocked": "Bị khóa một phần trong phiên",
+    "lockedLine": "Đang có một phiên. Ngôn ngữ, cách phối hợp, danh sách từ và khóa bị khóa; âm thanh, hiển thị và các mục khác vẫn đổi được.",
+    "categories": {
+      "lineup": "Ngôn ngữ và cách phối hợp",
+      "words": "Danh sách từ và bối cảnh",
+      "accounts": "Tài khoản và khóa",
+      "models": "Mô hình và bộ nhớ",
+      "audio": "Âm thanh",
+      "display": "Hiển thị",
+      "history": "Lịch sử và ghi chú",
+      "general": "Chung"
+    },
+    "groups": {
+      "session": "Phiên",
+      "providers": "Nhà cung cấp và mô hình",
+      "devices": "Thiết bị và hiển thị",
+      "data": "Dữ liệu",
+      "app": "Ứng dụng"
+    },
+    "words": {
+      "lineup": "ngôn ngữ, chế độ nói, nhấn để nói, chép lời, dịch, giọng nói, giọng, nhà cung cấp, mô hình, cách phối hợp",
+      "words": "danh sách từ, thuật ngữ, bảng thuật ngữ, bối cảnh",
+      "accounts": "tài khoản, đăng nhập, khóa API, khóa, thông tin xác thực, số dư",
+      "models": "mô hình, tải xuống, bộ nhớ, xóa, ổ đĩa",
+      "audio": "micrô, khử ồn, tiếng vang, loa, tai nghe, nghe lại, truyền thẳng, micrô ảo, âm thanh hệ thống",
+      "display": "phông chữ, cỡ chữ, màu, gọn, phụ đề, chú thích, xem trước",
+      "history": "lịch sử, ghi chú, thư mục, tự động lưu",
+      "general": "ngôn ngữ giao diện, giao diện, chủ đề, cập nhật, nhật ký, thiết lập, trợ giúp, phiên bản"
+    },
+    "accounts": {
+      "addKey": "Thêm khóa",
+      "keySaved": "Đã lưu khóa",
+      "local": "Chạy trên máy tính này",
+      "needsKey": "Cần khóa",
+      "online": "Không cần khóa; trực tuyến, dịch vụ của Microsoft",
+      "signedIn": "Đã đăng nhập",
+      "signedOut": "Chưa đăng nhập",
+      "together": "cùng nhau",
+      "view": "Xem"
+    },
+    "lineup": {
+      "title": "Cách phối hợp",
+      "stages": {
+        "transcription": "Chép lời",
+        "translation": "Dịch",
+        "speech": "Giọng nói",
+        "summarisation": "Ghi chú"
+      },
+      "and": " và ",
+      "joint": "Đi cùng {{stages}} qua một kết nối; chúng đổi cùng nhau.",
+      "granite": "Cùng với dịch: Granite Speech chuyển thẳng lời nói thành bản dịch.",
+      "moved": "{{stages}} cũng chuyển sang {{providers}}: hiện chưa thể kết hợp với lựa chọn này. Việc phối trộn sẽ có sau.",
+      "needsKey": "cần khóa",
+      "needsSignIn": "cần đăng nhập",
+      "options": "Tùy chọn của {{provider}}",
+      "state": {
+        "needsKey": "Cần khóa",
+        "needsModel": "Cần mô hình",
+        "needsSignIn": "Cần đăng nhập",
+        "ready": "Sẵn sàng"
+      }
+    },
+    "display": {
+      "surface": "Hiển thị nào",
+      "main": "Cửa sổ chính",
+      "captions": "Chế độ phụ đề",
+      "compact": "Chế độ thu gọn",
+      "preview": "Xem trước",
+      "mine": "Điều tôi nói",
+      "theirs": "Điều phía bên kia nói",
+      "fontSize": "Cỡ chữ",
+      "smaller": "Chữ nhỏ hơn",
+      "larger": "Chữ lớn hơn",
+      "modes": {
+        "both": "Bản gốc và bản dịch",
+        "source": "Chỉ bản gốc",
+        "translation": "Chỉ bản dịch",
+        "none": "Không hiển thị"
+      }
     }
   }
 }

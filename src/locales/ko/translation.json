@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\"은(는) 한 번 캡처를 시도한 뒤에야 그 목록에 나타나며, 방금 시도했습니다. 활성화한 뒤 세션을 다시 시작하세요. 소스가 단순히 무음이었다면 아무것도 바꿀 필요가 없습니다.",
-    "otherSideBesideNote": "상대방이 내 마이크를 함께 사용하므로 시스템 오디오는 캡처하지 않습니다."
+    "otherSideBesideNote": "상대방이 내 마이크를 함께 사용하므로 시스템 오디오는 캡처하지 않습니다.",
+    "captionMine": "내가 하는 말, 음성으로",
+    "captionTheirs": "상대방이 하는 말, 음성으로",
+    "defaultPlaybackAid": "각 줄에 별도 장치를 지정하지 않으면 내 쪽 소리는 여기서 재생됩니다. 지정한 장치가 분리된 소리도 여기서 재생됩니다."
   },
   "auth": {
     "signIn": "로그인",
@@ -749,7 +752,9 @@
     "preparingVoice": "음성을 준비하는 중…",
     "waitingForPreviousSession": "대기 중…",
     "waitingForPreviousSessionTitle": "이전 세션이 끝나기를 기다리는 중입니다. 취소하려면 클릭하세요.",
-    "clickToCancel": "취소하려면 클릭"
+    "clickToCancel": "취소하려면 클릭",
+    "whatIHear": "내가 듣는 소리",
+    "audioSettings": "오디오 설정"
   },
   "modePicker": {
     "modeYou": "나",
@@ -972,7 +977,9 @@
       "cancel": "취소",
       "accept": "이해했습니다 — 비상업적 사용만",
       "acceptRestricted": "이해했습니다 — 라이선스에 동의"
-    }
+    },
+    "readingsDictionary": "읽는 법 사전(일본어)",
+    "readingsDictionaryNotStored": "표시에서 일본어 읽는 법을 켜면 다운로드됩니다."
   },
   "notes": {
     "stageAsr": "음성 인식",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "다시 선택",
       "lostHint": "소스가 사라졌습니다. 다시 선택할 때까지 마지막 이미지가 유지됩니다.",
       "lostExtension": "회의 탭의 이미지를 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다."
+    }
+  },
+  "settingsPage": {
+    "title": "설정",
+    "search": "설정 검색",
+    "back": "뒤로",
+    "backToList": "목록으로 돌아가기",
+    "changeable": "세션 중에도 변경 가능",
+    "lockedNote": "세션 중 잠김",
+    "partlyLocked": "세션 중 일부 잠김",
+    "lockedLine": "세션이 진행 중입니다. 언어, 구성, 단어 목록, 키는 잠겨 있고 오디오, 표시 등 나머지는 바꿀 수 있습니다.",
+    "categories": {
+      "lineup": "언어와 구성",
+      "words": "단어 목록과 배경",
+      "accounts": "계정과 키",
+      "models": "모델과 저장 공간",
+      "audio": "오디오",
+      "display": "표시",
+      "history": "기록과 메모",
+      "general": "일반"
+    },
+    "groups": {
+      "session": "세션",
+      "providers": "제공업체와 모델",
+      "devices": "장치와 표시",
+      "data": "데이터",
+      "app": "앱"
+    },
+    "words": {
+      "lineup": "언어, 말하기 모드, 눌러서 말하기, 전사, 번역, 음성, 목소리, 제공업체, 모델, 구성",
+      "words": "단어 목록, 용어, 용어집, 배경",
+      "accounts": "계정, 로그인, API 키, 키, 자격 증명, 잔액",
+      "models": "모델, 다운로드, 저장 공간, 삭제, 디스크",
+      "audio": "마이크, 소음 억제, 에코, 스피커, 헤드폰, 모니터, 패스스루, 가상 마이크, 시스템 오디오",
+      "display": "글꼴, 크기, 색상, 간단히, 자막, 캡션, 미리보기",
+      "history": "기록, 메모, 폴더, 자동 저장",
+      "general": "인터페이스 언어, 모양, 테마, 업데이트, 로그, 설정 마법사, 도움말, 버전"
+    },
+    "accounts": {
+      "addKey": "키 추가",
+      "keySaved": "키 저장됨",
+      "local": "이 컴퓨터에서 실행",
+      "needsKey": "키 필요",
+      "online": "키 필요 없음, 온라인, Microsoft 서비스",
+      "signedIn": "로그인됨",
+      "signedOut": "로그인 안 됨",
+      "together": "함께",
+      "view": "보기"
+    },
+    "lineup": {
+      "title": "구성",
+      "stages": {
+        "transcription": "전사",
+        "translation": "번역",
+        "speech": "음성",
+        "summarisation": "메모"
+      },
+      "and": " 및 ",
+      "joint": "{{stages}}와 하나의 연결로 함께 동작하며, 함께 바뀝니다.",
+      "granite": "번역과 함께: Granite Speech가 음성을 바로 번역문으로 바꿉니다.",
+      "moved": "{{stages}}도 {{providers}}(으)로 바뀌었습니다. 지금은 이 선택과 함께 쓸 수 없습니다. 섞어 쓰기는 나중에 지원됩니다.",
+      "needsKey": "키 필요",
+      "needsSignIn": "로그인 필요",
+      "options": "{{provider}} 옵션",
+      "state": {
+        "needsKey": "키 필요",
+        "needsModel": "모델 필요",
+        "needsSignIn": "로그인 필요",
+        "ready": "준비됨"
+      }
+    },
+    "display": {
+      "surface": "어느 화면",
+      "main": "기본 창",
+      "captions": "자막 모드",
+      "compact": "간략 보기",
+      "preview": "미리보기",
+      "mine": "내가 하는 말",
+      "theirs": "상대방이 하는 말",
+      "fontSize": "글자 크기",
+      "smaller": "글자 작게",
+      "larger": "글자 크게",
+      "modes": {
+        "both": "원문과 번역문",
+        "source": "원문만",
+        "translation": "번역문만",
+        "none": "표시 안 함"
+      }
     }
   }
 }

@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",
     "audioCaptureUnprovenText3Named": "「{{app}}」は一度取得を試みた後にのみそのリストに表示されます（今その試行を行いました）。有効にしたら、セッションをもう一度開始してください。ソースが単に無音だっただけなら、何も変更する必要はありません。",
-    "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。"
+    "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。",
+    "captionMine": "自分の発言を音声で",
+    "captionTheirs": "相手の発言を音声で",
+    "defaultPlaybackAid": "自分側の音は、行ごとに専用のデバイスを指定しない限りここで再生されます。専用のデバイスが外れた音もここで再生されます。"
   },
   "auth": {
     "signIn": "サインイン",
@@ -749,7 +752,9 @@
     "preparingVoice": "音声を準備しています…",
     "waitingForPreviousSession": "待機中…",
     "waitingForPreviousSessionTitle": "前回のセッションの終了を待っています。キャンセルするにはクリック",
-    "clickToCancel": "キャンセルするにはクリック"
+    "clickToCancel": "キャンセルするにはクリック",
+    "whatIHear": "自分に聞こえる音",
+    "audioSettings": "音声の設定"
   },
   "modePicker": {
     "modeYou": "自分",
@@ -972,7 +977,9 @@
       "cancel": "キャンセル",
       "accept": "理解しました — 非商用のみ",
       "acceptRestricted": "理解しました — ライセンスに同意する"
-    }
+    },
+    "readingsDictionary": "読み辞書（日本語）",
+    "readingsDictionaryNotStored": "「表示」で日本語の読みをオンにするとダウンロードされます。"
   },
   "notes": {
     "stageAsr": "音声認識",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "選び直す",
       "lostHint": "ソースがなくなりました。選び直すまで最後の画像が保持されます。",
       "lostExtension": "会議タブの画像は利用できなくなりました。翻訳は音声のみで続行します。"
+    }
+  },
+  "settingsPage": {
+    "title": "設定",
+    "search": "設定を検索",
+    "back": "戻る",
+    "backToList": "一覧に戻る",
+    "changeable": "セッション中も変更可",
+    "lockedNote": "セッション中はロック",
+    "partlyLocked": "セッション中は一部ロック",
+    "lockedLine": "セッション実行中です。言語・構成・単語リスト・キーはロックされています。音声・表示・その他は変更できます。",
+    "categories": {
+      "lineup": "言語と構成",
+      "words": "単語リストと背景",
+      "accounts": "アカウントとキー",
+      "models": "モデルとストレージ",
+      "audio": "音声",
+      "display": "表示",
+      "history": "履歴とメモ",
+      "general": "一般"
+    },
+    "groups": {
+      "session": "セッション",
+      "providers": "プロバイダーとモデル",
+      "devices": "デバイスと表示",
+      "data": "データ",
+      "app": "アプリ"
+    },
+    "words": {
+      "lineup": "言語, 話し方, プッシュトゥトーク, 文字起こし, 翻訳, 音声, 声, プロバイダー, モデル, 構成",
+      "words": "単語リスト, 用語, 用語集, 背景",
+      "accounts": "アカウント, サインイン, APIキー, キー, 認証情報, 残高",
+      "models": "モデル, ダウンロード, ストレージ, 削除, ディスク, 辞書",
+      "audio": "マイク, ノイズ抑制, エコー, スピーカー, ヘッドホン, モニター, パススルー, 仮想マイク, システム音声",
+      "display": "フォント, 文字サイズ, 色, コンパクト, 字幕, キャプション, プレビュー, ふりがな",
+      "history": "履歴, メモ, フォルダー, 自動保存",
+      "general": "表示言語, 外観, テーマ, アップデート, ログ, セットアップ, ヘルプ, バージョン"
+    },
+    "accounts": {
+      "addKey": "キーを追加",
+      "keySaved": "キー保存済み",
+      "local": "このコンピューターで動作",
+      "needsKey": "キーが必要",
+      "online": "キー不要・オンライン、Microsoft のサービス",
+      "signedIn": "サインイン済み",
+      "signedOut": "未サインイン",
+      "together": "一括",
+      "view": "表示"
+    },
+    "lineup": {
+      "title": "構成",
+      "stages": {
+        "transcription": "文字起こし",
+        "translation": "翻訳",
+        "speech": "音声",
+        "summarisation": "メモ"
+      },
+      "and": "・",
+      "joint": "{{stages}}と1つの接続で動きます。一緒に切り替わります。",
+      "granite": "翻訳と一緒に：Granite Speech が音声をそのまま訳文にします。",
+      "moved": "{{stages}}も{{providers}}に切り替わりました。現在はこの選択と組み合わせられません。組み合わせは今後対応します。",
+      "needsKey": "キーが必要",
+      "needsSignIn": "サインインが必要",
+      "options": "{{provider}} のオプション",
+      "state": {
+        "needsKey": "キーが必要",
+        "needsModel": "モデルが必要",
+        "needsSignIn": "サインインが必要",
+        "ready": "準備完了"
+      }
+    },
+    "display": {
+      "surface": "どの表示",
+      "main": "メインウィンドウ",
+      "captions": "字幕モード",
+      "compact": "コンパクト表示",
+      "preview": "プレビュー",
+      "mine": "自分の発言",
+      "theirs": "相手の発言",
+      "fontSize": "文字サイズ",
+      "smaller": "文字を小さく",
+      "larger": "文字を大きく",
+      "modes": {
+        "both": "原文と訳文",
+        "source": "原文のみ",
+        "translation": "訳文のみ",
+        "none": "表示しない"
+      }
     }
   }
 }

@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" baru muncul di daftar itu setelah mencoba menangkap satu kali, yang baru saja terjadi. Mulai sesi lagi setelah mengaktifkannya. Jika sumber memang hening, tidak ada yang perlu diubah.",
-    "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam."
+    "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam.",
+    "captionMine": "Yang saya ucapkan, sebagai suara",
+    "captionTheirs": "Yang diucapkan pihak lain, sebagai suara",
+    "defaultPlaybackAid": "Suara di sisi saya diputar di sini kecuali sebuah baris menyebut perangkatnya sendiri; suara yang perangkatnya dicabut juga diputar di sini."
   },
   "auth": {
     "signIn": "Masuk",
@@ -749,7 +752,9 @@
     "preparingVoice": "Menyiapkan suara Anda…",
     "waitingForPreviousSession": "Menunggu…",
     "waitingForPreviousSessionTitle": "Menunggu sesi sebelumnya berakhir. Klik untuk membatalkan.",
-    "clickToCancel": "Klik untuk membatalkan"
+    "clickToCancel": "Klik untuk membatalkan",
+    "whatIHear": "Yang saya dengar",
+    "audioSettings": "Pengaturan audio"
   },
   "modePicker": {
     "modeYou": "Saya",
@@ -972,7 +977,9 @@
       "cancel": "Batal",
       "accept": "Saya mengerti — hanya nonkomersial",
       "acceptRestricted": "Saya mengerti — saya menerima lisensinya"
-    }
+    },
+    "readingsDictionary": "Kamus cara baca (Jepang)",
+    "readingsDictionaryNotStored": "Diunduh saat cara baca Jepang diaktifkan di Tampilan."
   },
   "notes": {
     "stageAsr": "pengenalan suara",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Pilih lagi",
       "lostHint": "Sumbernya sudah tidak ada; gambar terakhir disimpan sampai Anda memilih lagi.",
       "lostExtension": "Gambar tab rapat tidak lagi tersedia; terjemahan berlanjut hanya dengan audio."
+    }
+  },
+  "settingsPage": {
+    "title": "Pengaturan",
+    "search": "Cari pengaturan",
+    "back": "Kembali",
+    "backToList": "Kembali ke daftar",
+    "changeable": "Dapat diubah selama sesi",
+    "lockedNote": "Terkunci selama sesi",
+    "partlyLocked": "Sebagian terkunci selama sesi",
+    "lockedLine": "Sesi sedang berjalan. Bahasa, susunan, daftar kata, dan kunci terkunci; audio, tampilan, dan lainnya dapat diubah.",
+    "categories": {
+      "lineup": "Bahasa dan susunan",
+      "words": "Daftar kata dan latar",
+      "accounts": "Akun dan kunci",
+      "models": "Model dan penyimpanan",
+      "audio": "Audio",
+      "display": "Tampilan",
+      "history": "Riwayat dan catatan",
+      "general": "Umum"
+    },
+    "groups": {
+      "session": "Sesi",
+      "providers": "Penyedia dan model",
+      "devices": "Perangkat dan tampilan",
+      "data": "Data",
+      "app": "Aplikasi"
+    },
+    "words": {
+      "lineup": "bahasa, mode bicara, tekan untuk bicara, transkripsi, terjemahan, ucapan, suara, penyedia, model, susunan",
+      "words": "daftar kata, istilah, glosarium, latar",
+      "accounts": "akun, masuk, kunci API, kunci, kredensial, saldo",
+      "models": "model, unduh, penyimpanan, hapus, disk",
+      "audio": "mikrofon, peredam bising, gema, speaker, headphone, monitor, passthrough, mikrofon virtual, audio sistem",
+      "display": "fon, ukuran, warna, ringkas, subtitel, takarir, pratinjau",
+      "history": "riwayat, catatan, folder, simpan otomatis",
+      "general": "bahasa antarmuka, tampilan, tema, pembaruan, log, penyiapan, bantuan, versi"
+    },
+    "accounts": {
+      "addKey": "Tambahkan kunci",
+      "keySaved": "Kunci tersimpan",
+      "local": "Berjalan di komputer ini",
+      "needsKey": "Perlu kunci",
+      "online": "Tidak perlu kunci; daring, layanan Microsoft",
+      "signedIn": "Sudah masuk",
+      "signedOut": "Belum masuk",
+      "together": "bersama",
+      "view": "Lihat"
+    },
+    "lineup": {
+      "title": "Susunan",
+      "stages": {
+        "transcription": "Transkripsi",
+        "translation": "Terjemahan",
+        "speech": "Ucapan",
+        "summarisation": "Catatan"
+      },
+      "and": " dan ",
+      "joint": "Berjalan bersama {{stages}} lewat satu koneksi; keduanya berubah bersama.",
+      "granite": "Bersama terjemahan: Granite Speech mengubah ucapan langsung menjadi terjemahan.",
+      "moved": "{{stages}} juga pindah ke {{providers}}: saat ini tidak dapat digabung dengan pilihan ini. Pencampuran menyusul nanti.",
+      "needsKey": "perlu kunci",
+      "needsSignIn": "perlu masuk",
+      "options": "Opsi {{provider}}",
+      "state": {
+        "needsKey": "Perlu kunci",
+        "needsModel": "Perlu model",
+        "needsSignIn": "Perlu masuk",
+        "ready": "Siap"
+      }
+    },
+    "display": {
+      "surface": "Tampilan mana",
+      "main": "Jendela utama",
+      "captions": "Mode subtitle",
+      "compact": "Tampilan ringkas",
+      "preview": "Pratinjau",
+      "mine": "Yang saya ucapkan",
+      "theirs": "Yang diucapkan pihak lain",
+      "fontSize": "Ukuran teks",
+      "smaller": "Teks lebih kecil",
+      "larger": "Teks lebih besar",
+      "modes": {
+        "both": "Asli dan terjemahan",
+        "source": "Hanya asli",
+        "translation": "Hanya terjemahan",
+        "none": "Tidak ada"
+      }
     }
   }
 }

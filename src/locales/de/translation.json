@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",
     "audioCaptureUnprovenText3Named": "„{{app}}“ erscheint in dieser Liste erst, nachdem einmal eine Erfassung versucht wurde, und das ist gerade geschehen. Starten Sie die Sitzung nach dem Aktivieren erneut. War die Quelle einfach nur still, muss nichts geändert werden.",
-    "otherSideBesideNote": "Die andere Person teilt sich Ihr Mikrofon; es wird kein Systemaudio aufgenommen."
+    "otherSideBesideNote": "Die andere Person teilt sich Ihr Mikrofon; es wird kein Systemaudio aufgenommen.",
+    "captionMine": "Was ich sage, als Sprache",
+    "captionTheirs": "Was die Gegenseite sagt, als Sprache",
+    "defaultPlaybackAid": "Töne auf meiner Seite laufen hier, sofern eine Zeile kein eigenes Gerät nennt; ein Ton, dessen eigenes Gerät abgesteckt ist, läuft ebenfalls hier."
   },
   "auth": {
     "signIn": "Anmelden",
@@ -749,7 +752,9 @@
     "preparingVoice": "Ihre Stimme wird vorbereitet…",
     "waitingForPreviousSession": "Warten…",
     "waitingForPreviousSessionTitle": "Warten, bis die vorherige Sitzung beendet ist. Klicken Sie, um abzubrechen.",
-    "clickToCancel": "Klicken Sie, um abzubrechen"
+    "clickToCancel": "Klicken Sie, um abzubrechen",
+    "whatIHear": "Was ich höre",
+    "audioSettings": "Audioeinstellungen"
   },
   "modePicker": {
     "modeYou": "Ich",
@@ -972,7 +977,9 @@
       "cancel": "Abbrechen",
       "accept": "Verstanden — nur nichtkommerziell",
       "acceptRestricted": "Verstanden — Lizenz akzeptieren"
-    }
+    },
+    "readingsDictionary": "Lesungswörterbuch (Japanisch)",
+    "readingsDictionaryNotStored": "Wird geladen, wenn japanische Lesungen unter „Anzeige“ eingeschaltet werden."
   },
   "notes": {
     "stageAsr": "Spracherkennung",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Erneut wählen",
       "lostHint": "Die Quelle ist weg; das letzte Bild bleibt erhalten, bis Sie erneut wählen.",
       "lostExtension": "Das Bild des Meeting-Tabs ist nicht mehr verfügbar; die Übersetzung läuft nur mit Audio weiter."
+    }
+  },
+  "settingsPage": {
+    "title": "Einstellungen",
+    "search": "Einstellungen durchsuchen",
+    "back": "Zurück",
+    "backToList": "Zurück zur Liste",
+    "changeable": "Während einer Sitzung änderbar",
+    "lockedNote": "Während einer Sitzung gesperrt",
+    "partlyLocked": "Während einer Sitzung teilweise gesperrt",
+    "lockedLine": "Eine Sitzung läuft. Sprachen, Aufstellung, Wortliste und Schlüssel sind gesperrt; Audio, Anzeige und der Rest lassen sich ändern.",
+    "categories": {
+      "lineup": "Sprachen und Aufstellung",
+      "words": "Wortliste und Hintergrund",
+      "accounts": "Konten und Schlüssel",
+      "models": "Modelle und Speicher",
+      "audio": "Audio",
+      "display": "Anzeige",
+      "history": "Verlauf und Notizen",
+      "general": "Allgemein"
+    },
+    "groups": {
+      "session": "Sitzung",
+      "providers": "Anbieter und Modelle",
+      "devices": "Geräte und Anzeige",
+      "data": "Daten",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "Sprache, Sprachen, Sprechmodus, Push-to-Talk, Transkription, Übersetzung, Sprachausgabe, Stimme, Anbieter, Modell, Aufstellung",
+      "words": "Wortliste, Begriffe, Glossar, Hintergrund",
+      "accounts": "Konto, Anmelden, API-Schlüssel, Schlüssel, Zugangsdaten, Guthaben",
+      "models": "Modelle, Download, Speicher, Löschen, Festplatte",
+      "audio": "Mikrofon, Rauschunterdrückung, Echo, Lautsprecher, Kopfhörer, Mithören, Durchleitung, virtuelles Mikrofon, Systemaudio",
+      "display": "Schrift, Größe, Farbe, kompakt, Untertitel, Captions, Vorschau",
+      "history": "Verlauf, Notizen, Ordner, automatisch speichern",
+      "general": "Oberflächensprache, Erscheinungsbild, Design, Updates, Protokolle, Einrichtung, Hilfe, Version"
+    },
+    "accounts": {
+      "addKey": "Schlüssel hinzufügen",
+      "keySaved": "Schlüssel gespeichert",
+      "local": "Läuft auf diesem Computer",
+      "needsKey": "Braucht einen Schlüssel",
+      "online": "Kein Schlüssel nötig; online, ein Microsoft-Dienst",
+      "signedIn": "Angemeldet",
+      "signedOut": "Nicht angemeldet",
+      "together": "gemeinsam",
+      "view": "Anzeigen"
+    },
+    "lineup": {
+      "title": "Aufstellung",
+      "stages": {
+        "transcription": "Transkription",
+        "translation": "Übersetzung",
+        "speech": "Sprachausgabe",
+        "summarisation": "Notizen"
+      },
+      "and": " und ",
+      "joint": "Läuft mit {{stages}} über eine Verbindung; sie wechseln gemeinsam.",
+      "granite": "Mit Übersetzung: Granite Speech macht aus Sprache direkt die Übersetzung.",
+      "moved": "{{stages}} ist ebenfalls zu {{providers}} gewechselt: Mit dieser Wahl lässt sich das derzeit nicht kombinieren. Mischen kommt später.",
+      "needsKey": "braucht einen Schlüssel",
+      "needsSignIn": "Anmeldung nötig",
+      "options": "Optionen von {{provider}}",
+      "state": {
+        "needsKey": "Braucht einen Schlüssel",
+        "needsModel": "Braucht ein Modell",
+        "needsSignIn": "Anmeldung nötig",
+        "ready": "Bereit"
+      }
+    },
+    "display": {
+      "surface": "Welche Anzeige",
+      "main": "Hauptfenster",
+      "captions": "Untertitel-Modus",
+      "compact": "Kompakte Ansicht",
+      "preview": "Vorschau",
+      "mine": "Was ich sage",
+      "theirs": "Was die Gegenseite sagt",
+      "fontSize": "Textgröße",
+      "smaller": "Kleinerer Text",
+      "larger": "Größerer Text",
+      "modes": {
+        "both": "Original und Übersetzung",
+        "source": "Nur Original",
+        "translation": "Nur Übersetzung",
+        "none": "Nichts"
+      }
     }
   }
 }

@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" näkyy luettelossa vasta yhden kaappausyrityksen jälkeen, joka juuri tehtiin. Aloita istunto uudelleen, kun olet ottanut sen käyttöön. Jos lähde oli vain hiljainen, mitään ei tarvitse muuttaa.",
-    "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta."
+    "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta.",
+    "captionMine": "Mitä sanon, puheena",
+    "captionTheirs": "Mitä toinen osapuoli sanoo, puheena",
+    "defaultPlaybackAid": "Oman puoleni äänet soivat täällä, ellei rivi nimeä omaa laitettaan; ääni, jonka oma laite on irrotettu, soi myös täällä."
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -749,7 +752,9 @@
     "preparingVoice": "Valmistellaan ääntäsi…",
     "waitingForPreviousSession": "Odotetaan…",
     "waitingForPreviousSessionTitle": "Odotetaan edellisen istunnon päättymistä. Napsauta peruuttaaksesi.",
-    "clickToCancel": "Napsauta peruuttaaksesi"
+    "clickToCancel": "Napsauta peruuttaaksesi",
+    "whatIHear": "Mitä kuulen",
+    "audioSettings": "Ääniasetukset"
   },
   "modePicker": {
     "modeYou": "Minä",
@@ -972,7 +977,9 @@
       "cancel": "Peruuta",
       "accept": "Ymmärrän — vain ei-kaupallinen käyttö",
       "acceptRestricted": "Ymmärrän — hyväksyn lisenssin"
-    }
+    },
+    "readingsDictionary": "Lukutapasanakirja (japani)",
+    "readingsDictionaryNotStored": "Ladataan, kun japanin lukutavat otetaan käyttöön Näkymässä."
   },
   "notes": {
     "stageAsr": "puheentunnistus",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Valitse uudelleen",
       "lostHint": "Lähde on poissa; viimeisin kuva säilytetään, kunnes valitset uudelleen.",
       "lostExtension": "Kokouksen välilehden kuva ei ole enää käytettävissä; käännös jatkuu pelkällä äänellä."
+    }
+  },
+  "settingsPage": {
+    "title": "Asetukset",
+    "search": "Hae asetuksista",
+    "back": "Takaisin",
+    "backToList": "Takaisin luetteloon",
+    "changeable": "Muutettavissa istunnon aikana",
+    "lockedNote": "Lukittu istunnon ajaksi",
+    "partlyLocked": "Osittain lukittu istunnon ajaksi",
+    "lockedLine": "Istunto on käynnissä. Kielet, kokoonpano, sanalista ja avaimet ovat lukittuina; ääntä, näkymää ja muuta voi muuttaa.",
+    "categories": {
+      "lineup": "Kielet ja kokoonpano",
+      "words": "Sanalista ja tausta",
+      "accounts": "Tilit ja avaimet",
+      "models": "Mallit ja tallennustila",
+      "audio": "Ääni",
+      "display": "Näkymä",
+      "history": "Historia ja muistiinpanot",
+      "general": "Yleiset"
+    },
+    "groups": {
+      "session": "Istunto",
+      "providers": "Palveluntarjoajat ja mallit",
+      "devices": "Laitteet ja näkymä",
+      "data": "Tiedot",
+      "app": "Sovellus"
+    },
+    "words": {
+      "lineup": "kieli, kielet, puhetila, paina ja puhu, litterointi, käännös, puhe, ääni, palveluntarjoaja, malli, kokoonpano",
+      "words": "sanalista, termit, sanasto, tausta",
+      "accounts": "tili, kirjaudu, API-avain, avaimet, tunnistetiedot, saldo",
+      "models": "mallit, lataus, tallennustila, poista, levy",
+      "audio": "mikrofoni, kohinanvaimennus, kaiku, kaiutin, kuulokkeet, kuuntelu, läpivienti, virtuaalimikrofoni, järjestelmän ääni",
+      "display": "fontti, koko, väri, tiivis, tekstitys, kuvatekstit, esikatselu",
+      "history": "historia, muistiinpanot, kansio, automaattinen tallennus",
+      "general": "käyttöliittymän kieli, ulkoasu, teema, päivitykset, lokit, käyttöönotto, ohje, versio"
+    },
+    "accounts": {
+      "addKey": "Lisää avain",
+      "keySaved": "Avain tallennettu",
+      "local": "Toimii tällä tietokoneella",
+      "needsKey": "Tarvitsee avaimen",
+      "online": "Avainta ei tarvita; verkossa, Microsoftin palvelu",
+      "signedIn": "Kirjautunut",
+      "signedOut": "Ei kirjautunut",
+      "together": "yhdessä",
+      "view": "Näytä"
+    },
+    "lineup": {
+      "title": "Kokoonpano",
+      "stages": {
+        "transcription": "Litterointi",
+        "translation": "Käännös",
+        "speech": "Puhe",
+        "summarisation": "Muistiinpanot"
+      },
+      "and": " ja ",
+      "joint": "Kulkee yhdessä vaiheen {{stages}} kanssa yhden yhteyden kautta; ne vaihtuvat yhdessä.",
+      "granite": "Käännöksen kanssa: Granite Speech muuttaa puheen suoraan käännökseksi.",
+      "moved": "{{stages}} siirtyi myös palveluun {{providers}}: tätä valintaa ei voi vielä yhdistellä muiden kanssa. Yhdistely tulee myöhemmin.",
+      "needsKey": "tarvitsee avaimen",
+      "needsSignIn": "vaatii kirjautumisen",
+      "options": "{{provider}}: asetukset",
+      "state": {
+        "needsKey": "Tarvitsee avaimen",
+        "needsModel": "Tarvitsee mallin",
+        "needsSignIn": "Vaatii kirjautumisen",
+        "ready": "Valmis"
+      }
+    },
+    "display": {
+      "surface": "Mikä näkymä",
+      "main": "Pääikkuna",
+      "captions": "Tekstitystila",
+      "compact": "Kompakti näkymä",
+      "preview": "Esikatselu",
+      "mine": "Mitä minä sanon",
+      "theirs": "Mitä toinen osapuoli sanoo",
+      "fontSize": "Tekstin koko",
+      "smaller": "Pienempi teksti",
+      "larger": "Suurempi teksti",
+      "modes": {
+        "both": "Alkuperäinen ja käännös",
+        "source": "Vain alkuperäinen",
+        "translation": "Vain käännös",
+        "none": "Ei mitään"
+      }
     }
   }
 }

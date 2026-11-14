@@ -49,6 +49,12 @@ const asrSelect = (index = 0) =>
   screen.getAllByRole('combobox', { name: /ASR/ })[index] as HTMLSelectElement;
 
 describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
+  // The tour's models step points at the engine's slots on the settings page.
+  it('carries the tour anchor of the models step on its slots page', () => {
+    const { container } = surface();
+    expect(container.querySelector('[data-tour="engine-chips"]')).toHaveClass('engine-surface');
+  });
+
   it('renders both directions in "both" mode: speaker leg 3 selects, participant leg 2', () => {
     surface();
     expect(screen.getByText('ja → en')).toBeInTheDocument();

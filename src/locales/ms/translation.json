@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Belum ada audio diterima daripada sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang dimainkan tetapi tiada apa yang diterjemahkan, macOS berkemungkinan menghantar kesenyapan: menangkap sesebuah aplikasi memerlukan kebenaran \"System Audio Recording Only\", dan tanpanya tiada ralat, hanya kesenyapan.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" hanya muncul dalam senarai itu selepas cuba menangkap sekali, yang baru sahaja berlaku. Mulakan sesi semula selepas mendayakannya. Jika sumber itu sekadar senyap, tiada apa yang perlu diubah.",
-    "otherSideBesideNote": "Pihak lain berkongsi mikrofon anda; audio sistem tidak dirakam."
+    "otherSideBesideNote": "Pihak lain berkongsi mikrofon anda; audio sistem tidak dirakam.",
+    "captionMine": "Apa yang saya cakap, sebagai suara",
+    "captionTheirs": "Apa yang dicakap pihak lain, sebagai suara",
+    "defaultPlaybackAid": "Bunyi di pihak saya dimainkan di sini melainkan satu baris menamakan perantinya sendiri; bunyi yang perantinya dicabut juga dimainkan di sini."
   },
   "auth": {
     "signIn": "Log Masuk",
@@ -749,7 +752,9 @@
     "preparingVoice": "Menyediakan suara anda…",
     "waitingForPreviousSession": "Menunggu…",
     "waitingForPreviousSessionTitle": "Menunggu sesi sebelumnya tamat. Klik untuk membatalkan.",
-    "clickToCancel": "Klik untuk membatalkan"
+    "clickToCancel": "Klik untuk membatalkan",
+    "whatIHear": "Apa yang saya dengar",
+    "audioSettings": "Tetapan audio"
   },
   "modePicker": {
     "modeYou": "Saya",
@@ -972,7 +977,9 @@
       "cancel": "Batal",
       "accept": "Saya faham — bukan komersial sahaja",
       "acceptRestricted": "Saya faham — saya menerima lesen ini"
-    }
+    },
+    "readingsDictionary": "Kamus bacaan (Jepun)",
+    "readingsDictionaryNotStored": "Dimuat turun apabila bacaan Jepun dihidupkan dalam Paparan."
   },
   "notes": {
     "stageAsr": "pengecaman suara",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Pilih semula",
       "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula.",
       "lostExtension": "Gambar tab mesyuarat tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
+    }
+  },
+  "settingsPage": {
+    "title": "Tetapan",
+    "search": "Cari tetapan",
+    "back": "Kembali",
+    "backToList": "Kembali ke senarai",
+    "changeable": "Boleh diubah semasa sesi",
+    "lockedNote": "Dikunci semasa sesi",
+    "partlyLocked": "Sebahagiannya dikunci semasa sesi",
+    "lockedLine": "Satu sesi sedang berjalan. Bahasa, susunan, senarai perkataan dan kunci dikunci; audio, paparan dan yang lain boleh diubah.",
+    "categories": {
+      "lineup": "Bahasa dan susunan",
+      "words": "Senarai perkataan dan latar",
+      "accounts": "Akaun dan kunci",
+      "models": "Model dan storan",
+      "audio": "Audio",
+      "display": "Paparan",
+      "history": "Sejarah dan nota",
+      "general": "Umum"
+    },
+    "groups": {
+      "session": "Sesi",
+      "providers": "Penyedia dan model",
+      "devices": "Peranti dan paparan",
+      "data": "Data",
+      "app": "Aplikasi"
+    },
+    "words": {
+      "lineup": "bahasa, mod pertuturan, tekan untuk bercakap, transkripsi, terjemahan, pertuturan, suara, penyedia, model, susunan",
+      "words": "senarai perkataan, istilah, glosari, latar",
+      "accounts": "akaun, log masuk, kunci API, kunci, kelayakan, baki",
+      "models": "model, muat turun, storan, padam, cakera",
+      "audio": "mikrofon, penindasan hingar, gema, pembesar suara, fon kepala, pantau, passthrough, mikrofon maya, audio sistem",
+      "display": "fon, saiz, warna, padat, sari kata, kapsyen, pratonton",
+      "history": "sejarah, nota, folder, simpan automatik",
+      "general": "bahasa antara muka, rupa, tema, kemas kini, log, persediaan, bantuan, versi"
+    },
+    "accounts": {
+      "addKey": "Tambah kunci",
+      "keySaved": "Kunci disimpan",
+      "local": "Berjalan pada komputer ini",
+      "needsKey": "Perlu kunci",
+      "online": "Tidak perlu kunci; dalam talian, perkhidmatan Microsoft",
+      "signedIn": "Sudah log masuk",
+      "signedOut": "Belum log masuk",
+      "together": "bersama",
+      "view": "Lihat"
+    },
+    "lineup": {
+      "title": "Susunan",
+      "stages": {
+        "transcription": "Transkripsi",
+        "translation": "Terjemahan",
+        "speech": "Pertuturan",
+        "summarisation": "Nota"
+      },
+      "and": " dan ",
+      "joint": "Berjalan bersama {{stages}} melalui satu sambungan; kedua-duanya berubah bersama.",
+      "granite": "Bersama terjemahan: Granite Speech menukar pertuturan terus kepada terjemahan.",
+      "moved": "{{stages}} juga beralih ke {{providers}}: buat masa ini tidak boleh digabungkan dengan pilihan ini. Campuran akan datang kemudian.",
+      "needsKey": "perlu kunci",
+      "needsSignIn": "perlu log masuk",
+      "options": "Pilihan {{provider}}",
+      "state": {
+        "needsKey": "Perlu kunci",
+        "needsModel": "Perlu model",
+        "needsSignIn": "Perlu log masuk",
+        "ready": "Sedia"
+      }
+    },
+    "display": {
+      "surface": "Paparan mana",
+      "main": "Tetingkap utama",
+      "captions": "Mod Sari Kata",
+      "compact": "Paparan padat",
+      "preview": "Pratonton",
+      "mine": "Apa yang saya cakap",
+      "theirs": "Apa yang dicakap pihak lain",
+      "fontSize": "Saiz teks",
+      "smaller": "Teks lebih kecil",
+      "larger": "Teks lebih besar",
+      "modes": {
+        "both": "Asal dan terjemahan",
+        "source": "Asal sahaja",
+        "translation": "Terjemahan sahaja",
+        "none": "Tiada"
+      }
     }
   }
 }

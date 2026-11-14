@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk",
     "audioCaptureUnprovenText1": "Jeśli źródło odtwarza, a nic nie jest tłumaczone, macOS prawdopodobnie dostarcza ciszę: przechwytywanie aplikacji wymaga uprawnienia „Tylko nagrywanie dźwięku systemowego”, a bez niego nie ma błędu, tylko cisza.",
     "audioCaptureUnprovenText3Named": "„{{app}}” pojawia się na tej liście dopiero po pierwszej próbie przechwytywania, która właśnie się odbyła. Po włączeniu uruchom sesję ponownie. Jeśli źródło było po prostu ciche, nic nie trzeba zmieniać.",
-    "otherSideBesideNote": "Rozmówca dzieli z Tobą mikrofon; dźwięk systemowy nie jest przechwytywany."
+    "otherSideBesideNote": "Rozmówca dzieli z Tobą mikrofon; dźwięk systemowy nie jest przechwytywany.",
+    "captionMine": "Co mówię, jako mowa",
+    "captionTheirs": "Co mówi druga strona, jako mowa",
+    "defaultPlaybackAid": "Dźwięki po mojej stronie grają tutaj, chyba że wiersz wskazuje własne urządzenie; dźwięk, którego urządzenie odłączono, też gra tutaj."
   },
   "auth": {
     "signIn": "Zaloguj się",
@@ -749,7 +752,9 @@
     "preparingVoice": "Przygotowywanie Twojego głosu…",
     "waitingForPreviousSession": "Oczekiwanie…",
     "waitingForPreviousSessionTitle": "Oczekiwanie na zakończenie poprzedniej sesji. Kliknij, aby anulować.",
-    "clickToCancel": "Kliknij, aby anulować"
+    "clickToCancel": "Kliknij, aby anulować",
+    "whatIHear": "Co słyszę",
+    "audioSettings": "Ustawienia dźwięku"
   },
   "modePicker": {
     "modeYou": "Ja",
@@ -972,7 +977,9 @@
       "cancel": "Anuluj",
       "accept": "Rozumiem — tylko użytek niekomercyjny",
       "acceptRestricted": "Rozumiem — akceptuję licencję"
-    }
+    },
+    "readingsDictionary": "Słownik czytań (japoński)",
+    "readingsDictionaryNotStored": "Pobierany po włączeniu japońskich czytań w Wyświetlaniu."
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Wybierz ponownie",
       "lostHint": "Źródło zniknęło; ostatni obraz zostaje zachowany, dopóki nie wybierzesz ponownie.",
       "lostExtension": "Obraz karty spotkania nie jest już dostępny; tłumaczenie trwa dalej tylko na podstawie dźwięku."
+    }
+  },
+  "settingsPage": {
+    "title": "Ustawienia",
+    "search": "Szukaj w ustawieniach",
+    "back": "Wstecz",
+    "backToList": "Wróć do listy",
+    "changeable": "Można zmieniać w trakcie sesji",
+    "lockedNote": "Zablokowane w trakcie sesji",
+    "partlyLocked": "Częściowo zablokowane w trakcie sesji",
+    "lockedLine": "Trwa sesja. Języki, zestaw, lista słów i klucze są zablokowane; dźwięk, wyświetlanie i resztę można zmieniać.",
+    "categories": {
+      "lineup": "Języki i zestaw",
+      "words": "Lista słów i kontekst",
+      "accounts": "Konta i klucze",
+      "models": "Modele i miejsce na dysku",
+      "audio": "Dźwięk",
+      "display": "Wyświetlanie",
+      "history": "Historia i notatki",
+      "general": "Ogólne"
+    },
+    "groups": {
+      "session": "Sesja",
+      "providers": "Dostawcy i modele",
+      "devices": "Urządzenia i wyświetlanie",
+      "data": "Dane",
+      "app": "Aplikacja"
+    },
+    "words": {
+      "lineup": "język, języki, tryb mowy, naciśnij i mów, transkrypcja, tłumaczenie, mowa, głos, dostawca, model, zestaw",
+      "words": "lista słów, terminy, słowniczek, kontekst",
+      "accounts": "konto, zaloguj, klucz API, klucze, dane logowania, saldo",
+      "models": "modele, pobierz, miejsce, usuń, dysk",
+      "audio": "mikrofon, tłumienie szumów, echo, głośnik, słuchawki, odsłuch, przekazywanie, wirtualny mikrofon, dźwięk systemowy",
+      "display": "czcionka, rozmiar, kolor, kompaktowy, napisy, podpisy, podgląd",
+      "history": "historia, notatki, folder, autozapis",
+      "general": "język interfejsu, wygląd, motyw, aktualizacje, logi, konfiguracja, pomoc, wersja"
+    },
+    "accounts": {
+      "addKey": "Dodaj klucz",
+      "keySaved": "Klucz zapisany",
+      "local": "Działa na tym komputerze",
+      "needsKey": "Wymaga klucza",
+      "online": "Bez klucza; online, usługa Microsoft",
+      "signedIn": "Zalogowano",
+      "signedOut": "Nie zalogowano",
+      "together": "razem",
+      "view": "Pokaż"
+    },
+    "lineup": {
+      "title": "Zestaw",
+      "stages": {
+        "transcription": "Transkrypcja",
+        "translation": "Tłumaczenie",
+        "speech": "Mowa",
+        "summarisation": "Notatki"
+      },
+      "and": " i ",
+      "joint": "Działa razem z: {{stages}} przez jedno połączenie; zmieniają się razem.",
+      "granite": "Z tłumaczeniem: Granite Speech zamienia mowę od razu w tłumaczenie.",
+      "moved": "{{stages}} również przechodzi na {{providers}}: na razie nie da się tego połączyć z tym wyborem. Mieszanie pojawi się później.",
+      "needsKey": "wymaga klucza",
+      "needsSignIn": "wymaga zalogowania",
+      "options": "Opcje: {{provider}}",
+      "state": {
+        "needsKey": "Wymaga klucza",
+        "needsModel": "Wymaga modelu",
+        "needsSignIn": "Wymaga zalogowania",
+        "ready": "Gotowe"
+      }
+    },
+    "display": {
+      "surface": "Który widok",
+      "main": "Okno główne",
+      "captions": "Tryb napisów",
+      "compact": "Widok kompaktowy",
+      "preview": "Podgląd",
+      "mine": "Co mówię",
+      "theirs": "Co mówi druga strona",
+      "fontSize": "Rozmiar tekstu",
+      "smaller": "Mniejszy tekst",
+      "larger": "Większy tekst",
+      "modes": {
+        "both": "Oryginał i tłumaczenie",
+        "source": "Tylko oryginał",
+        "translation": "Tylko tłumaczenie",
+        "none": "Nic"
+      }
     }
   }
 }

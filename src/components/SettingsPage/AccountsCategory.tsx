@@ -97,7 +97,7 @@ export function AccountsCategory({ locked }: CategoryBodyProps) {
   };
 
   return (
-    <div className="config-section accounts-category" id="provider-section">
+    <div className="config-section accounts-category" id="provider-section" data-tour="provider-section">
       {accounts.map((a) => {
         const p = a.provider;
         const entry = p ? entries[p.id] : undefined;

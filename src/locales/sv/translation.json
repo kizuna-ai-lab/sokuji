@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras.",
-    "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas."
+    "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas.",
+    "captionMine": "Det jag säger, som tal",
+    "captionTheirs": "Det den andra sidan säger, som tal",
+    "defaultPlaybackAid": "Ljud på min sida spelas här om inte en rad anger en egen enhet; ett ljud vars egen enhet kopplats ur spelas också här."
   },
   "auth": {
     "signIn": "Logga in",
@@ -749,7 +752,9 @@
     "preparingVoice": "Förbereder din röst…",
     "waitingForPreviousSession": "Väntar…",
     "waitingForPreviousSessionTitle": "Väntar på att den föregående sessionen ska avslutas. Klicka för att avbryta.",
-    "clickToCancel": "Klicka för att avbryta"
+    "clickToCancel": "Klicka för att avbryta",
+    "whatIHear": "Det jag hör",
+    "audioSettings": "Ljudinställningar"
   },
   "modePicker": {
     "modeYou": "Jag",
@@ -972,7 +977,9 @@
       "cancel": "Avbryt",
       "accept": "Jag förstår — endast icke-kommersiellt",
       "acceptRestricted": "Jag förstår — jag accepterar licensen"
-    }
+    },
+    "readingsDictionary": "Läsningsordbok (japanska)",
+    "readingsDictionaryNotStored": "Laddas ner när japanska läsningar slås på under Visning."
   },
   "notes": {
     "stageAsr": "taligenkänning",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Välj igen",
       "lostHint": "Källan är borta; den senaste bilden behålls tills du väljer igen.",
       "lostExtension": "Mötesflikens bild är inte längre tillgänglig; översättningen fortsätter med enbart ljud."
+    }
+  },
+  "settingsPage": {
+    "title": "Inställningar",
+    "search": "Sök i inställningar",
+    "back": "Tillbaka",
+    "backToList": "Tillbaka till listan",
+    "changeable": "Kan ändras under en session",
+    "lockedNote": "Låst under en session",
+    "partlyLocked": "Delvis låst under en session",
+    "lockedLine": "En session pågår. Språk, uppsättning, ordlista och nycklar är låsta; ljud, visning och resten kan ändras.",
+    "categories": {
+      "lineup": "Språk och uppsättning",
+      "words": "Ordlista och bakgrund",
+      "accounts": "Konton och nycklar",
+      "models": "Modeller och lagring",
+      "audio": "Ljud",
+      "display": "Visning",
+      "history": "Historik och anteckningar",
+      "general": "Allmänt"
+    },
+    "groups": {
+      "session": "Session",
+      "providers": "Leverantörer och modeller",
+      "devices": "Enheter och visning",
+      "data": "Data",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "språk, talläge, tryck för att prata, transkribering, översättning, tal, röst, leverantör, modell, uppsättning",
+      "words": "ordlista, termer, glosslista, bakgrund",
+      "accounts": "konto, logga in, API-nyckel, nycklar, inloggningsuppgifter, saldo",
+      "models": "modeller, ladda ner, lagring, ta bort, disk",
+      "audio": "mikrofon, brusreducering, eko, högtalare, hörlurar, medhörning, genomkoppling, virtuell mikrofon, systemljud",
+      "display": "teckensnitt, storlek, färg, kompakt, undertexter, textning, förhandsvisning",
+      "history": "historik, anteckningar, mapp, spara automatiskt",
+      "general": "gränssnittsspråk, utseende, tema, uppdateringar, loggar, konfiguration, hjälp, version"
+    },
+    "accounts": {
+      "addKey": "Lägg till nyckel",
+      "keySaved": "Nyckel sparad",
+      "local": "Körs på den här datorn",
+      "needsKey": "Behöver en nyckel",
+      "online": "Ingen nyckel behövs; online, en tjänst från Microsoft",
+      "signedIn": "Inloggad",
+      "signedOut": "Inte inloggad",
+      "together": "tillsammans",
+      "view": "Visa"
+    },
+    "lineup": {
+      "title": "Uppsättning",
+      "stages": {
+        "transcription": "Transkribering",
+        "translation": "Översättning",
+        "speech": "Tal",
+        "summarisation": "Anteckningar"
+      },
+      "and": " och ",
+      "joint": "Går ihop med {{stages}} över en anslutning; de byts tillsammans.",
+      "granite": "Med översättning: Granite Speech gör tal direkt till översättningen.",
+      "moved": "{{stages}} flyttades också till {{providers}}: det går ännu inte att kombinera med det här valet. Blandning kommer senare.",
+      "needsKey": "behöver nyckel",
+      "needsSignIn": "kräver inloggning",
+      "options": "Alternativ för {{provider}}",
+      "state": {
+        "needsKey": "Behöver en nyckel",
+        "needsModel": "Behöver en modell",
+        "needsSignIn": "Kräver inloggning",
+        "ready": "Klar"
+      }
+    },
+    "display": {
+      "surface": "Vilken visning",
+      "main": "Huvudfönster",
+      "captions": "Undertextläge",
+      "compact": "Kompakt vy",
+      "preview": "Förhandsvisning",
+      "mine": "Det jag säger",
+      "theirs": "Det den andra sidan säger",
+      "fontSize": "Textstorlek",
+      "smaller": "Mindre text",
+      "larger": "Större text",
+      "modes": {
+        "both": "Original och översättning",
+        "source": "Bara original",
+        "translation": "Bara översättning",
+        "none": "Inget"
+      }
     }
   }
 }

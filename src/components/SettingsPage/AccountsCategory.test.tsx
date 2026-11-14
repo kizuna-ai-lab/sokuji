@@ -40,6 +40,12 @@ describe('accounts and keys', () => {
     expect(within(row('Soniox')).getByText('Transcription')).toBeInTheDocument();
   });
 
+  // The tour's key step points at the account rows.
+  it('carries the tour anchor of the key step', () => {
+    const { container } = render(<AccountsCategory locked={false} />);
+    expect(container.querySelector('[data-tour="provider-section"]')).toHaveClass('accounts-category');
+  });
+
   it('saves a key through the provider store and checks it', () => {
     const setCredential = vi.spyOn(useProviderStore.getState(), 'setCredential');
     const refreshReadiness = vi.spyOn(useProviderStore.getState(), 'refreshReadiness').mockResolvedValue({ state: 'ready' } as never);

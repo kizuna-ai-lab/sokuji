@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
     "audioCaptureUnprovenText3Named": "'{{app}}' verschijnt pas in die lijst nadat er één keer is geprobeerd vast te leggen, wat zojuist is gebeurd. Start de sessie opnieuw nadat u die hebt ingeschakeld. Was de bron gewoon stil, dan hoeft er niets te veranderen.",
-    "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen."
+    "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen.",
+    "captionMine": "Wat ik zeg, als spraak",
+    "captionTheirs": "Wat de andere kant zegt, als spraak",
+    "defaultPlaybackAid": "Geluiden aan mijn kant spelen hier af, tenzij een rij een eigen apparaat noemt; een geluid waarvan het eigen apparaat is losgekoppeld, speelt ook hier."
   },
   "auth": {
     "signIn": "Inloggen",
@@ -749,7 +752,9 @@
     "preparingVoice": "Uw stem wordt voorbereid…",
     "waitingForPreviousSession": "Wachten…",
     "waitingForPreviousSessionTitle": "Wachten tot de vorige sessie is beëindigd. Klik om te annuleren.",
-    "clickToCancel": "Klik om te annuleren"
+    "clickToCancel": "Klik om te annuleren",
+    "whatIHear": "Wat ik hoor",
+    "audioSettings": "Audio-instellingen"
   },
   "modePicker": {
     "modeYou": "Ik",
@@ -972,7 +977,9 @@
       "cancel": "Annuleren",
       "accept": "Begrepen — alleen niet-commercieel",
       "acceptRestricted": "Begrepen — licentie accepteren"
-    }
+    },
+    "readingsDictionary": "Woordenboek met lezingen (Japans)",
+    "readingsDictionaryNotStored": "Wordt gedownload als je Japanse lezingen aanzet bij Weergave."
   },
   "notes": {
     "stageAsr": "spraakherkenning",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Opnieuw kiezen",
       "lostHint": "De bron is weg; de laatste afbeelding blijft bewaard tot je opnieuw kiest.",
       "lostExtension": "Het beeld van het vergadertabblad is niet meer beschikbaar; de vertaling gaat verder met alleen audio."
+    }
+  },
+  "settingsPage": {
+    "title": "Instellingen",
+    "search": "Instellingen zoeken",
+    "back": "Terug",
+    "backToList": "Terug naar de lijst",
+    "changeable": "Te wijzigen tijdens een sessie",
+    "lockedNote": "Vergrendeld tijdens een sessie",
+    "partlyLocked": "Deels vergrendeld tijdens een sessie",
+    "lockedLine": "Er loopt een sessie. Talen, opstelling, woordenlijst en sleutels zijn vergrendeld; audio, weergave en de rest kun je wijzigen.",
+    "categories": {
+      "lineup": "Talen en opstelling",
+      "words": "Woordenlijst en achtergrond",
+      "accounts": "Accounts en sleutels",
+      "models": "Modellen en opslag",
+      "audio": "Audio",
+      "display": "Weergave",
+      "history": "Geschiedenis en notities",
+      "general": "Algemeen"
+    },
+    "groups": {
+      "session": "Sessie",
+      "providers": "Aanbieders en modellen",
+      "devices": "Apparaten en weergave",
+      "data": "Gegevens",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "taal, talen, spraakmodus, push-to-talk, transcriptie, vertaling, spraak, stem, aanbieder, model, opstelling",
+      "words": "woordenlijst, termen, glossarium, achtergrond",
+      "accounts": "account, inloggen, API-sleutel, sleutels, inloggegevens, saldo",
+      "models": "modellen, downloaden, opslag, verwijderen, schijf",
+      "audio": "microfoon, ruisonderdrukking, echo, luidspreker, koptelefoon, meeluisteren, doorgifte, virtuele microfoon, systeemaudio",
+      "display": "lettertype, grootte, kleur, compact, ondertitels, bijschriften, voorbeeld",
+      "history": "geschiedenis, notities, map, automatisch opslaan",
+      "general": "interfacetaal, uiterlijk, thema, updates, logboeken, installatie, help, versie"
+    },
+    "accounts": {
+      "addKey": "Sleutel toevoegen",
+      "keySaved": "Sleutel opgeslagen",
+      "local": "Draait op deze computer",
+      "needsKey": "Sleutel nodig",
+      "online": "Geen sleutel nodig; online, een dienst van Microsoft",
+      "signedIn": "Ingelogd",
+      "signedOut": "Niet ingelogd",
+      "together": "samen",
+      "view": "Bekijken"
+    },
+    "lineup": {
+      "title": "Opstelling",
+      "stages": {
+        "transcription": "Transcriptie",
+        "translation": "Vertaling",
+        "speech": "Spraak",
+        "summarisation": "Notities"
+      },
+      "and": " en ",
+      "joint": "Gaat samen met {{stages}} over één verbinding; ze wisselen samen.",
+      "granite": "Met vertaling: Granite Speech zet spraak meteen om in de vertaling.",
+      "moved": "{{stages}} is ook naar {{providers}} gegaan: dit is nu niet te combineren met deze keuze. Mengen komt later.",
+      "needsKey": "sleutel nodig",
+      "needsSignIn": "inloggen nodig",
+      "options": "Opties van {{provider}}",
+      "state": {
+        "needsKey": "Sleutel nodig",
+        "needsModel": "Model nodig",
+        "needsSignIn": "Inloggen nodig",
+        "ready": "Klaar"
+      }
+    },
+    "display": {
+      "surface": "Welke weergave",
+      "main": "Hoofdvenster",
+      "captions": "Ondertitelmodus",
+      "compact": "Compacte weergave",
+      "preview": "Voorbeeld",
+      "mine": "Wat ik zeg",
+      "theirs": "Wat de andere kant zegt",
+      "fontSize": "Tekstgrootte",
+      "smaller": "Kleinere tekst",
+      "larger": "Grotere tekst",
+      "modes": {
+        "both": "Origineel en vertaling",
+        "source": "Alleen origineel",
+        "translation": "Alleen vertaling",
+        "none": "Niets"
+      }
     }
   }
 }

@@ -441,7 +441,10 @@
     "audioCaptureUnprovenTitle": "Wala pang audio na dumarating mula sa napiling source",
     "audioCaptureUnprovenText1": "Kung tumutugtog ang source at walang naisasalin, malamang na katahimikan ang ibinibigay ng macOS: kailangan ng pahintulot na \"System Audio Recording Only\" para makuha ang audio ng isang app, at kung wala ito ay walang error, katahimikan lang.",
     "audioCaptureUnprovenText3Named": "Lumalabas lang ang \"{{app}}\" sa listahang iyon pagkatapos nitong subukang kumuha nang isang beses, na katatapos lang. Simulan muli ang session pagkatapos itong paganahin. Kung tahimik lang talaga ang source, walang kailangang baguhin.",
-    "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio."
+    "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio.",
+    "captionMine": "Ang sinasabi ko, bilang boses",
+    "captionTheirs": "Ang sinasabi ng kabilang panig, bilang boses",
+    "defaultPlaybackAid": "Dito tumutunog ang mga tunog sa panig ko maliban kung may sariling device ang isang row; dito rin tumutunog ang tunog na natanggal ang sariling device."
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -749,7 +752,9 @@
     "preparingVoice": "Inihahanda ang iyong boses…",
     "waitingForPreviousSession": "Naghihintay…",
     "waitingForPreviousSessionTitle": "Hinihintay na matapos ang nakaraang session. I-click upang kanselahin.",
-    "clickToCancel": "I-click upang kanselahin"
+    "clickToCancel": "I-click upang kanselahin",
+    "whatIHear": "Ang naririnig ko",
+    "audioSettings": "Mga setting ng audio"
   },
   "modePicker": {
     "modeYou": "Ako",
@@ -972,7 +977,9 @@
       "cancel": "Kanselahin",
       "accept": "Nauunawaan ko — hindi pangkomersyo lamang",
       "acceptRestricted": "Nauunawaan ko — tinatanggap ko ang lisensya"
-    }
+    },
+    "readingsDictionary": "Diksyunaryo ng pagbasa (Japanese)",
+    "readingsDictionaryNotStored": "Dina-download kapag in-on ang pagbasa sa Japanese sa Display."
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Pumili ulit",
       "lostHint": "Wala na ang source; itatago ang huling larawan hanggang pumili ka ulit.",
       "lostExtension": "Hindi na available ang larawan ng meeting tab; magpapatuloy ang pagsasalin sa audio lang."
+    }
+  },
+  "settingsPage": {
+    "title": "Mga Setting",
+    "search": "Maghanap sa mga setting",
+    "back": "Bumalik",
+    "backToList": "Bumalik sa listahan",
+    "changeable": "Mababago habang may session",
+    "lockedNote": "Naka-lock habang may session",
+    "partlyLocked": "Bahagyang naka-lock habang may session",
+    "lockedLine": "May tumatakbong session. Naka-lock ang mga wika, ang line-up, ang listahan ng salita at ang mga key; mababago ang audio, ang display at ang iba pa.",
+    "categories": {
+      "lineup": "Mga wika at line-up",
+      "words": "Listahan ng salita at background",
+      "accounts": "Mga account at key",
+      "models": "Mga model at storage",
+      "audio": "Audio",
+      "display": "Display",
+      "history": "Kasaysayan at mga tala",
+      "general": "Pangkalahatan"
+    },
+    "groups": {
+      "session": "Session",
+      "providers": "Mga provider at model",
+      "devices": "Mga device at display",
+      "data": "Data",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "wika, mga wika, speech mode, pindutin para magsalita, transkripsyon, salin, pagsasalita, boses, provider, model, line-up",
+      "words": "listahan ng salita, mga termino, glosaryo, background",
+      "accounts": "account, mag-sign in, API key, mga key, kredensyal, balanse",
+      "models": "mga model, i-download, storage, burahin, disk",
+      "audio": "mikropono, pagpigil ng ingay, echo, speaker, headphones, monitor, passthrough, virtual na mikropono, audio ng system",
+      "display": "font, laki, kulay, compact, subtitle, caption, preview",
+      "history": "kasaysayan, mga tala, folder, awtomatikong pag-save",
+      "general": "wika ng interface, hitsura, tema, mga update, log, setup, tulong, bersyon"
+    },
+    "accounts": {
+      "addKey": "Magdagdag ng key",
+      "keySaved": "Naka-save ang key",
+      "local": "Tumatakbo sa computer na ito",
+      "needsKey": "Kailangan ng key",
+      "online": "Walang key na kailangan; online, serbisyo ng Microsoft",
+      "signedIn": "Naka-sign in",
+      "signedOut": "Hindi naka-sign in",
+      "together": "magkasama",
+      "view": "Tingnan"
+    },
+    "lineup": {
+      "title": "Line-up",
+      "stages": {
+        "transcription": "Transkripsyon",
+        "translation": "Salin",
+        "speech": "Pagsasalita",
+        "summarisation": "Mga tala"
+      },
+      "and": " at ",
+      "joint": "Kasama ng {{stages}} sa iisang koneksyon; sabay silang nagbabago.",
+      "granite": "Kasama ang salin: ginagawang salin agad ng Granite Speech ang pagsasalita.",
+      "moved": "Inilipat din ang {{stages}} sa {{providers}}: sa ngayon, hindi ito maisasama sa pinili mo. Darating ang paghahalo sa susunod.",
+      "needsKey": "kailangan ng key",
+      "needsSignIn": "kailangang mag-sign in",
+      "options": "Mga opsyon ng {{provider}}",
+      "state": {
+        "needsKey": "Kailangan ng key",
+        "needsModel": "Kailangan ng model",
+        "needsSignIn": "Kailangang mag-sign in",
+        "ready": "Handa"
+      }
+    },
+    "display": {
+      "surface": "Aling display",
+      "main": "Pangunahing window",
+      "captions": "Subtitle mode",
+      "compact": "Compact na view",
+      "preview": "Preview",
+      "mine": "Ang sinasabi ko",
+      "theirs": "Ang sinasabi ng kabilang panig",
+      "fontSize": "Laki ng teksto",
+      "smaller": "Mas maliit na teksto",
+      "larger": "Mas malaking teksto",
+      "modes": {
+        "both": "Orihinal at salin",
+        "source": "Orihinal lang",
+        "translation": "Salin lang",
+        "none": "Wala"
+      }
     }
   }
 }

@@ -441,7 +441,10 @@
     "audioCaptureUnprovenText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Start the session again after enabling it. If the source was simply silent, nothing needs to change.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as Other's audio source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch Other's audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "captionMine": "What I say, as speech",
+    "captionTheirs": "What the other side says, as speech",
+    "defaultPlaybackAid": "Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too."
   },
   "auth": {
     "signIn": "Sign In",
@@ -749,7 +752,9 @@
     "preparingVoice": "Preparing your voice…",
     "waitingForPreviousSession": "Waiting…",
     "waitingForPreviousSessionTitle": "Waiting for the previous session to end. Click to cancel.",
-    "clickToCancel": "Click to cancel"
+    "clickToCancel": "Click to cancel",
+    "whatIHear": "What I hear",
+    "audioSettings": "Audio settings"
   },
   "modePicker": {
     "modeYou": "Me",
@@ -1189,7 +1194,9 @@
       "cancel": "Cancel",
       "accept": "I understand — non-commercial only",
       "acceptRestricted": "I understand — accept the license"
-    }
+    },
+    "readingsDictionary": "Readings dictionary (Japanese)",
+    "readingsDictionaryNotStored": "Downloaded when Japanese readings are turned on in Display."
   },
   "notes": {
     "stageAsr": "speech recognition",
@@ -1700,6 +1707,94 @@
       "chooseAgain": "Choose again",
       "lostHint": "The source is gone; the last picture is kept until you choose again.",
       "lostExtension": "The meeting tab's picture is no longer available; translation continues on audio alone."
+    }
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "search": "Search settings",
+    "back": "Back",
+    "backToList": "Back to the list",
+    "changeable": "Changeable during a session",
+    "lockedNote": "Locked during a session",
+    "partlyLocked": "Partly locked during a session",
+    "lockedLine": "A session is running. Languages, the line-up, the word list and keys are locked; audio, display and the rest can be changed.",
+    "categories": {
+      "lineup": "Languages and line-up",
+      "words": "Word list and background",
+      "accounts": "Accounts and keys",
+      "models": "Models and storage",
+      "audio": "Audio",
+      "display": "Display",
+      "history": "History and notes",
+      "general": "General"
+    },
+    "groups": {
+      "session": "Session",
+      "providers": "Providers and models",
+      "devices": "Devices and display",
+      "data": "Data",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "language, languages, speech mode, push to talk, transcription, translation, speech, voice, provider, model, line-up",
+      "words": "word list, terms, glossary, background",
+      "accounts": "account, sign in, api key, keys, credential, balance",
+      "models": "models, download, storage, delete, disk",
+      "audio": "microphone, noise suppression, echo, speaker, headphones, monitor, passthrough, virtual microphone, system audio",
+      "display": "font, size, colour, color, compact, subtitles, captions, preview",
+      "history": "history, notes, folder, auto-save",
+      "general": "interface language, appearance, theme, updates, logs, setup, help, version"
+    },
+    "accounts": {
+      "addKey": "Add key",
+      "keySaved": "Key saved",
+      "local": "Runs on this computer",
+      "needsKey": "Needs a key",
+      "online": "No key needed; online, a Microsoft service",
+      "signedIn": "Signed in",
+      "signedOut": "Not signed in",
+      "together": "together",
+      "view": "View"
+    },
+    "lineup": {
+      "title": "Line-up",
+      "stages": {
+        "transcription": "Transcription",
+        "translation": "Translation",
+        "speech": "Speech",
+        "summarisation": "Notes"
+      },
+      "and": " and ",
+      "joint": "Goes with {{stages}} over one connection; they change together.",
+      "granite": "With translation: Granite Speech turns speech straight into the translation.",
+      "moved": "{{stages}} moved to {{providers}} too: today they cannot be combined with this choice. Mixing comes later.",
+      "needsKey": "needs a key",
+      "needsSignIn": "needs a sign-in",
+      "options": "{{provider}} options",
+      "state": {
+        "needsKey": "Needs a key",
+        "needsModel": "Needs a model",
+        "needsSignIn": "Needs a sign-in",
+        "ready": "Ready"
+      }
+    },
+    "display": {
+      "surface": "Which display",
+      "main": "Main window",
+      "captions": "Caption mode",
+      "compact": "Compact view",
+      "preview": "Preview",
+      "mine": "What I say",
+      "theirs": "What the other side says",
+      "fontSize": "Text size",
+      "smaller": "Smaller text",
+      "larger": "Larger text",
+      "modes": {
+        "both": "Original and translation",
+        "source": "Original only",
+        "translation": "Translation only",
+        "none": "Nothing"
+      }
     }
   }
 }

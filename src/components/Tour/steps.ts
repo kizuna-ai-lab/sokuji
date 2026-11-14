@@ -8,7 +8,7 @@ import type { Placement } from '@floating-ui/react';
 import type { TourCtx } from './tourContext';
 
 export interface TourActions {
-  /** Open the settings panel and scroll/highlight `target` (a navigateToSettings key). */
+  /** Open the settings page and scroll/highlight `target` (a navigateToSettings key). */
   openSettings: (target: string | null) => void;
   closeSettings: () => void;
 }
@@ -22,11 +22,19 @@ export interface TourStep {
   prepare?: (ctx: TourCtx, actions: TourActions) => void;
   placement?: Placement;
   copyVariant?: (ctx: TourCtx) => string | null;
+  /** The settings target the step opens (a navigateToSettings key); its category holds `anchor`. */
+  settingsTarget?: string;
   /** i18n suffixes under tour.steps.<id>., rendered one per line under the
    *  body. For a control whose options each need naming — a paragraph listing
    *  three modes reads as one blur (feedback 2026-08-25). */
   bullets?: readonly string[];
 }
+
+/** A step that opens the settings page at `target`, the category that holds its anchor. */
+const opens = (target: string): Pick<TourStep, 'settingsTarget' | 'prepare'> => ({
+  settingsTarget: target,
+  prepare: (_c, a) => a.openSettings(target),
+});
 
 const speaks = (c: TourCtx) => c.mode !== 'participant' && !c.textOnly;
 const hasMic = (c: TourCtx) => c.mode !== 'participant';
@@ -35,8 +43,8 @@ const hasParticipant = (c: TourCtx) => c.mode !== 'speaker';
 export const BASICS_STEPS: readonly TourStep[] = [
   { id: 'welcome' },
   { id: 'mode-picker', anchor: 'mode-picker', placement: 'top', bullets: ['modeMe', 'modeOthers', 'modeBoth'] },
-  { id: 'microphone', anchor: 'microphone-section', when: hasMic, prepare: (_c, a) => a.openSettings('microphone'), placement: 'left' },
-  { id: 'monitor', anchor: 'speech-section', when: (c) => c.mode === 'speaker' && !c.textOnly, prepare: (_c, a) => a.openSettings('speech'), placement: 'left' },
+  { id: 'microphone', anchor: 'microphone-section', when: hasMic, ...opens('microphone'), placement: 'left' },
+  { id: 'monitor', anchor: 'speech-section', when: (c) => c.mode === 'speaker' && !c.textOnly, ...opens('speech'), placement: 'left' },
   {
     id: 'output-routing', when: speaks,
     // Electron is the only platform whose routing depends on the OS; web reads
@@ -45,7 +53,7 @@ export const BASICS_STEPS: readonly TourStep[] = [
   },
   {
     id: 'participant-source', anchor: 'participant-section', when: hasParticipant,
-    prepare: (_c, a) => a.openSettings('participant'), placement: 'left',
+    ...opens('participant'), placement: 'left',
     // Only two copies exist; web takes the extension one.
     copyVariant: (c) => (c.platform === 'electron' ? 'electron' : 'extension'),
   },
@@ -63,10 +71,11 @@ export const BASICS_STEPS: readonly TourStep[] = [
   },
   {
     id: 'provider-settings', anchor: 'provider-section', when: (c) => c.providerPath === 'own-key',
-    prepare: (_c, a) => a.openSettings('provider'), placement: 'left',
+    ...opens('provider'), placement: 'left',
     copyVariant: (c) => (c.apiKeyValid === true ? null : 'pending'),
   },
-  { id: 'models', anchor: 'engine-chips', when: (c) => c.providerPath === 'offline', prepare: (_c, a) => a.openSettings('provider'), placement: 'left' },
+  // The local engine sits in the line-up's provider options, which this target unfolds.
+  { id: 'models', anchor: 'engine-chips', when: (c) => c.providerPath === 'offline', ...opens('model-management'), placement: 'left' },
   {
     id: 'start', anchor: 'main-action', prepare: (_c, a) => a.closeSettings(), placement: 'top',
     copyVariant: (c) =>
