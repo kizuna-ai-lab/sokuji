@@ -303,8 +303,10 @@ the current account (or key) does not own in that region. Start then falls back,
 
 **Accepted trade-off (extension):** the voice fields sync across a user's Chrome browsers. If device A (no clip) resets
 an id that device B could have rebuilt from its clip, device B loses the automatic rebuild. The account has no voice
-in that region either way; B's user picks the voice again (the clip is still on B). Making voice fields device-local is
-a larger change, not done here.
+in that region either way, and nothing on B offers to rebuild from its clip: the user records the voice again. The
+reset can happen on any launch of A after the voice is gone (the account watcher reconciles at launch), not only on an
+account or region change. Making voice fields device-local, or offering "restore from this device's recording", is a
+larger change, not done here (jiangzhuo, 2026-11-14: accepted).
 
 ## Testing
 
