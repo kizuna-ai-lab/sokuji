@@ -11,7 +11,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await import
 vi.mock('../../lib/reading/useReadingTargets', () => ({ useReadingTargets: () => new Set(['ja']) }));
 
 import { DisplayCategory } from './DisplayCategory';
-import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
+import { CONVERSATION_SCHEME_COLOURS, useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 
 beforeEach(() => {
@@ -60,5 +60,34 @@ describe('display — readings', () => {
     render(<DisplayCategory locked={false} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
     expect(screen.getByTestId('popover-subtitle')).toHaveAttribute('data-readings', '');
+  });
+});
+
+// PR review: the preview draws what the conversation draws, unset text colours resolved against the background.
+describe('display — the preview colours', () => {
+  it('resolves unset text colours against a custom background, as the conversation does', () => {
+    useConversationDisplayStore.setState({ bgColor: '#000000', sourceTextColor: null, translationTextColor: null } as never);
+    try {
+      render(<DisplayCategory locked={false} />);
+      const source = preview().querySelector<HTMLElement>('.display-preview__source')!;
+      expect(source.style.color).not.toBe('');
+      const probe = document.createElement('div');
+      probe.style.color = CONVERSATION_SCHEME_COLOURS.dark.sourceTextColor;
+      expect(source.style.color).toBe(probe.style.color);
+    } finally {
+      useConversationDisplayStore.setState({ bgColor: null } as never);
+    }
+  });
+
+  it('moves between the two displays with the arrow keys, as a radio group does', () => {
+    render(<DisplayCategory locked={false} />);
+    const main = screen.getByRole('radio', { name: 'Main window' });
+    main.focus();
+    fireEvent.keyDown(main, { key: 'ArrowRight' });
+    const caption = screen.getByRole('radio', { name: 'Caption mode' });
+    expect(caption).toHaveAttribute('aria-checked', 'true');
+    expect(document.activeElement).toBe(caption);
+    fireEvent.keyDown(caption, { key: 'ArrowLeft' });
+    expect(screen.getByRole('radio', { name: 'Main window' })).toHaveAttribute('aria-checked', 'true');
   });
 });

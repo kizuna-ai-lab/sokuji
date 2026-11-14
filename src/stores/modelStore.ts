@@ -10,16 +10,13 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ModelManager, type DownloadProgress } from '../lib/local-inference/ModelManager';
 import {
   MODEL_MANIFEST,
-  getManifestEntry,
-  isTranslationModelCompatible,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
 import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelImport';
 import { checkWebGPU } from '../utils/webgpu';
-import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
-import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
-import { directionKey, type DirectionResult, type Selections, type Stage } from '../lib/local-inference/selection/types';
+import type { DirectionResult, Selections } from '../lib/local-inference/selection/types';
+import { resolveWasmDirection } from '../lib/local-inference/selection/resolveWithStages';
 import type { LocalStages } from '../lib/lineup/localStages';
 import { reportError } from '../lib/diagnostics/report';
 
@@ -364,25 +361,7 @@ export const useModelStore = create<ModelStoreState>()(
      */
     resolve: (src, tgt, selections, stages = null) => {
       const { modelStatuses, webgpuAvailable, deviceFeatures } = get();
-      const direction = directionKey(src, tgt);
-      // No stored line-up: today's list, Bing and Edge among the local choices.
-      if (!stages) {
-        return resolveDirection(direction, selections, wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures }));
-      }
-      // A stored line-up: Bing and Edge are providers of their own. A stage given to one runs it whatever the
-      // stored local choice says (left as it is); every other stage resolves among this machine's models only.
-      const out = resolveDirection(direction, selections, wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures, withCloud: false }));
-      const cloud: Array<[Stage, string]> = [];
-      // Bing keeps its own list of languages: a pair outside it stays on this machine's models, as it would without a line-up.
-      const bing = getManifestEntry('bing-translator');
-      if (stages.translation === 'bing' && bing && isTranslationModelCompatible(bing, src, tgt)) cloud.push(['translation', 'bing-translator']);
-      if (stages.speech === 'edge') cloud.push(['tts', 'edge-tts']);
-      for (const [stage, modelId] of cloud) {
-        out[stage] = { modelId, variant: undefined, source: 'explicit' };
-        out.notes = out.notes.filter((n) => n.stage !== stage);
-        out.prunes = out.prunes.filter((p) => p.stage !== stage);
-      }
-      return out;
+      return resolveWasmDirection(src, tgt, selections, { modelStatuses, webgpuAvailable, deviceFeatures }, stages);
     },
 
   })),

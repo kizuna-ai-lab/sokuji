@@ -94,6 +94,9 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
   /** The user's own pick: no target opened it. */
   const setOpen = (id: CategoryId | null) => { setOpenedBy(null); setOpenState(id); };
   const navigationRun = useRef(0);
+  const heading = useRef<HTMLHeadingElement>(null);
+  /** The category last open in the narrow form: Back returns the focus to its entry in the list. */
+  const lastOpen = useRef<CategoryId | null>(null);
   const current: CategoryId | null = open ?? (wide ? shown[0]?.id ?? null : null);
 
   const title = (c: Category) => t(c.titleKey, TITLES[c.id]);
@@ -141,6 +144,18 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
     };
   }, [target, navigateToSettings]);
 
+  // In the narrow form one view replaces the other: the focus goes to the category opened, and back to its entry.
+  useEffect(() => {
+    if (wide) return;
+    if (open) {
+      lastOpen.current = open;
+      heading.current?.focus();
+    } else if (lastOpen.current) {
+      root.current?.querySelector<HTMLButtonElement>(`[data-category="${lastOpen.current}"]`)?.focus();
+      lastOpen.current = null;
+    }
+  }, [wide, open]);
+
   // Esc: back to the list from a category in the narrow form; otherwise close. A field or a dialog that handled it wins.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -174,7 +189,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
           <div className="settings-page__group" key={group}>
             <h3>{t(`settingsPage.groups.${group}`, GROUP_TITLES[group])}</h3>
             {items.map((c) => (
-              <button key={c.id} type="button" className={`settings-page__item${c.id === current ? ' is-current' : ''}`}
+              <button key={c.id} type="button" data-category={c.id} className={`settings-page__item${c.id === current ? ' is-current' : ''}`}
                 aria-current={c.id === current ? 'page' : undefined} onClick={() => setOpen(c.id)}>
                 <span>{title(c)}</span>
                 {locked && <small>{c.lockedInSession !== 'open' && <Lock size={10} aria-hidden="true" />} {lockNote(c)}</small>}
@@ -196,7 +211,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
             <ArrowLeft size={16} />
           </button>
         )}
-        <h2>{title(currentCategory)}</h2>
+        <h2 ref={heading} tabIndex={-1}>{title(currentCategory)}</h2>
         {wide && (
           <button type="button" className="settings-page__icon" onClick={onClose} aria-label={t('common.close', 'Close')}>
             <X size={16} />

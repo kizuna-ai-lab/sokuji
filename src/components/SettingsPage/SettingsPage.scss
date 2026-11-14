@@ -100,7 +100,7 @@
       gap: vars.$space-2;
       padding: vars.$space-3 vars.$space-4;
       border-bottom: 1px solid vars.$border-subtle;
-      h2 { flex: 1; margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; }
+      h2 { flex: 1; margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; &:focus { outline: none; } }
     }
   }
 

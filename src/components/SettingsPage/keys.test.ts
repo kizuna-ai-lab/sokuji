@@ -30,4 +30,9 @@ describe('the settings page words', () => {
     ];
     expect(keys.filter((k) => typeof EN[k] !== 'string')).toEqual([]);
   });
+
+  // PR review: the Quick/Advanced layouts are gone, so the tour must not send anyone to their toggle.
+  it("the tour's last step names no Advanced toggle", () => {
+    expect(EN['tour.steps.done.content']).not.toMatch(/Advanced/);
+  });
 });

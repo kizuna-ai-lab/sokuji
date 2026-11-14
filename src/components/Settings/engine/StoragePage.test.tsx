@@ -40,6 +40,10 @@ vi.mock('../../../services/ServiceFactory', () => ({
   },
 }));
 
+// The stored line-up's local stages: null (none stored) unless a case sets them.
+const lineUp = vi.hoisted(() => ({ stages: null as null | { translation: 'bing' | 'local'; speech: 'edge' | 'local' } }));
+vi.mock('../../../stores/lineUpStore', () => ({ useStoredLocalStages: () => lineUp.stages, storedLocalStages: () => lineUp.stages }));
+
 const { StoragePage } = await import('./StoragePage');
 const { useModelStore } = await import('../../../stores/modelStore');
 const { useNativeModelStore } = await import('../../../stores/nativeModelStore');
@@ -75,6 +79,23 @@ const trIds = () => getManifestByType('translation')
   .map(m => m.id);
 
 describe('StoragePage (wasm)', () => {
+  // PR review: the badge follows what a session runs; a translation stage given to Bing runs Bing, not the local pick.
+  it('marks no local translation model in use while the line-up gives translation to Bing', () => {
+    const tr = trIds()[0];
+    const selections = { 'ja→en': { asr: { modelId: asrId() }, translation: { modelId: tr }, tts: { modelId: '' } } };
+    useModelStore.setState({ modelStatuses: { [asrId()]: 'downloaded', [tr]: 'downloaded' }, webgpuAvailable: true });
+    const { unmount } = render(<StoragePage provider="wasm" {...WASM} settings={{ ...WASM.settings, selections }} />);
+    expect(screen.getByTestId(`storage-row-${tr}`)).toHaveTextContent('In use');
+    unmount();
+    lineUp.stages = { translation: 'bing', speech: 'local' };
+    try {
+      render(<StoragePage provider="wasm" {...WASM} settings={{ ...WASM.settings, selections }} />);
+      expect(screen.getByTestId(`storage-row-${tr}`)).not.toHaveTextContent('In use');
+    } finally {
+      lineUp.stages = null;
+    }
+  });
+
   it('lists downloaded models with an in-use badge on resolved ones', () => {
     useModelStore.setState({
       modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true,

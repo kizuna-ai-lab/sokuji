@@ -157,3 +157,15 @@ describe('the settings page — keys and how a category was opened', () => {
     expect(opened[opened.length - 1]).toBeNull();
   });
 });
+
+// PR review: in the narrow form a keyboard user keeps their place when a view replaces another.
+describe('the settings page — focus in the narrow form', () => {
+  it('moves focus to the opened category, and back to its entry in the list', () => {
+    env.extension = true;
+    render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Audio/ }));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Audio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the list' }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Audio/ }));
+  });
+});

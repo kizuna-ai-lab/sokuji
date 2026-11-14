@@ -1486,7 +1486,7 @@
       },
       "done": {
         "title": "É isso",
-        "content": "As configurações avançadas — detecção de fala, prompts, vozes, logs — ficam atrás da opção Avançado, no canto superior direito de Configurações. Reveja este guia quando quiser, em Ajuda."
+        "content": "Todo o resto fica em Configurações, uma categoria por vez; a pesquisa encontra qualquer configuração pelo nome. Reveja este guia quando quiser, em Ajuda."
       }
     }
   },

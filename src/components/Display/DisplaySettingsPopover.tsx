@@ -210,7 +210,10 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'Escape' || openPicker === null) return;
     e.preventDefault();
+    // The focus goes back to the chip that opened the picker, which is about to unmount the focused control.
+    const opener = e.currentTarget.querySelector<HTMLButtonElement>('button.swatch.custom[aria-expanded="true"]');
     setOpenPicker(null);
+    opener?.focus();
   };
 
   return (

@@ -10,9 +10,10 @@ import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { MODEL_MANIFEST, getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { useSmartTurnStore } from '../../../stores/smartTurnStore';
-import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { nativeCandidates } from '../../../lib/local-inference/selection/candidates.native';
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
+import { resolveWasmDirection } from '../../../lib/local-inference/selection/resolveWithStages';
+import { useStoredLocalStages } from '../../../stores/lineUpStore';
 import { directionKey, type DirectionResult, type Selections, type Stage } from '../../../lib/local-inference/selection/types';
 import { ModelImportModal } from '../sections/ModelImportModal';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -79,7 +80,8 @@ function computeDeleteNotes(
  * The Japanese readings dictionary, kept with the other downloads so every downloaded model is in one place
  * (providers and stages design, ruling 14). It is downloaded when Japanese readings are turned on in Display.
  */
-function ReadingsDictionaryRow({ isSessionActive }: { isSessionActive: boolean }) {
+/** `cleared` changes after Clear all, which empties the storage the dictionary lives in: the row looks again. */
+function ReadingsDictionaryRow({ isSessionActive, cleared }: { isSessionActive: boolean; cleared: number }) {
   const { t } = useTranslation();
   const [stored, setStored] = useState<boolean | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -88,7 +90,7 @@ function ReadingsDictionaryRow({ isSessionActive }: { isSessionActive: boolean }
     // Storage that cannot be read (no IndexedDB) leaves the row's state unknown rather than failing.
     isDictionaryStored().then((v) => { if (live) setStored(v); }, () => { if (live) setStored(null); });
     return () => { live = false; };
-  }, []);
+  }, [cleared]);
   const name = t('models.readingsDictionary', 'Readings dictionary (Japanese)');
   return (
     <div className="engine-storage-row" data-testid="storage-row-readings-ja">
@@ -101,7 +103,7 @@ function ReadingsDictionaryRow({ isSessionActive }: { isSessionActive: boolean }
       </div>
       {stored === true && (
         <button type="button" className="engine-storage-row__delete" data-testid="storage-delete-readings-ja"
-          onClick={() => setConfirming(true)} disabled={isSessionActive}>
+          aria-label={`${t('models.delete', 'Delete')}: ${name}`} onClick={() => setConfirming(true)} disabled={isSessionActive}>
           <Trash2 size={12} />
         </button>
       )}
@@ -167,6 +169,8 @@ export const StoragePage: React.FC<
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [clearAllPending, setClearAllPending] = useState(false);
+  /** Counts the Clear alls done here, so the readings dictionary row looks again after one. */
+  const [cleared, setCleared] = useState(0);
   const [importOpen, setImportOpen] = useState(false);
   const [importTarget, setImportTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -182,11 +186,15 @@ export const StoragePage: React.FC<
   const displayName = (id: string): string =>
     isWasm ? (getManifestEntry(id)?.name ?? id) : (nativeCatalog[id]?.name ?? id);
 
+  const stages = useStoredLocalStages();
+  /** A direction key's two languages. */
+  const splitDirection = (dir: string): [string, string] => { const [src, tgt] = dir.split('→'); return [src, tgt]; };
   const resolveWith = (statuses: Record<string, string>) => (dir: string): DirectionResult =>
     isWasm
-      ? resolveDirection(dir, selections, wasmCandidates({
+      // As the engine resolves it: a stored line-up's Bing and Edge stages included.
+      ? resolveWasmDirection(...splitDirection(dir), selections, {
           modelStatuses: statuses as Record<string, any>, webgpuAvailable, deviceFeatures,
-        }))
+        }, stages)
       : resolveDirection(dir, selections, nativeCandidates({
           catalog: nativeCatalog, statuses: statuses as Record<string, any>,
         }));
@@ -249,6 +257,7 @@ export const StoragePage: React.FC<
     setClearAllPending(false);
     if (isWasm) {
       await useModelStore.getState().deleteAllModels();
+      setCleared((n) => n + 1);
       // The clear wipes the whole IndexedDB, punctuation and Smart Turn models
       // included — their own stores must be told, or their settings keep
       // claiming the models are ready.
@@ -333,7 +342,7 @@ export const StoragePage: React.FC<
         </div>
       ))}
 
-      {isWasm && <ReadingsDictionaryRow isSessionActive={isSessionActive} />}
+      {isWasm && <ReadingsDictionaryRow isSessionActive={isSessionActive} cleared={cleared} />}
 
       <div className="engine-storage-page__actions">
         {canClearAll && (

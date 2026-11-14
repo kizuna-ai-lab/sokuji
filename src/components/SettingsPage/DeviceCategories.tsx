@@ -6,6 +6,8 @@ import { useEffect, useMemo } from 'react';
 import { presentProviders } from '../../providers/registry';
 import { useMode } from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useModelStore } from '../../stores/modelStore';
+import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from '../../providers/localInference/settings';
 import StoragePage from '../Settings/engine/StoragePage';
 import AudioDeviceSection from '../Settings/sections/AudioDeviceSection';
@@ -20,6 +22,12 @@ export function ModelsCategory({ locked }: CategoryBodyProps) {
   useEffect(() => {
     if (local && !entry) void useProviderStore.getState().load(local);
   }, [local, entry]);
+  // What is on disk is known only after a scan, which otherwise runs only while the local provider is selected.
+  useEffect(() => {
+    if (useModelStore.getState().initialized) return;
+    useModelStore.getState().initialize().catch((error: unknown) =>
+      reportWarning('ModelsCategory', `Scanning the downloaded models failed: ${describeCause(error)}`, { cause: error }));
+  }, []);
   const settings = (entry?.settings as LocalInferenceSettings | undefined) ?? LOCAL_INFERENCE_DEFAULTS;
   const pair = entry?.pair ?? { source: 'en', target: 'ja' };
   return <StoragePage provider="wasm" isSessionActive={locked} settings={settings} pair={pair} />;
