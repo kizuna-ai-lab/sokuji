@@ -140,4 +140,45 @@ describe('a record\'s recording', () => {
     expect(report).toHaveBeenCalledWith(expect.stringContaining('cannot keep up'), null);
     expect(recorder.queuedBytes()).toBeLessThanOrEqual(2000);
   });
+
+  // Review: a session's first audio arrives before its record exists, and while the previous record is still closing.
+  describe('audio before its record exists', () => {
+    // A piece carries the track's length so far.
+    const msOf = (source: 'speaker' | 'participant', id = ID) => Math.max(0, ...pieces.filter((p) => p.recordId === id && p.source === source).map((p) => p.durationMs));
+
+    it('is held from where it arrived and written once the record exists', async () => {
+      recorder.prepare(ID, 0);
+      await run(500, () => ['speaker']);
+      expect(pieces).toEqual([]);
+      recorder.begin(ID, 0);
+      await run(1500, () => ['speaker']);
+      await recorder.end(ID);
+      expect(pieces[0].offsetMs).toBe(0);
+      expect(msOf('speaker')).toBeGreaterThanOrEqual(1400);
+    });
+
+    it("goes to the new record, never to the one still closing", async () => {
+      const B = 'run-0002-bbbb';
+      recorder.begin(ID, 0);
+      await run(1000, () => ['speaker']);
+      recorder.prepare(B, 1000);
+      await run(2000, () => ['speaker']);
+      await recorder.end(ID);
+      expect(msOf('speaker')).toBeLessThanOrEqual(1000);
+      recorder.begin(B, 1000);
+      await run(2500, () => ['speaker']);
+      await recorder.end(B);
+      expect(msOf('speaker', B)).toBeGreaterThanOrEqual(1400);
+      expect(pieces.filter((p) => p.recordId === B)[0].offsetMs).toBe(0);
+    });
+
+    it('is let go when the record could not be opened', async () => {
+      recorder.prepare(ID, 0);
+      await run(500, () => ['speaker']);
+      recorder.drop(ID);
+      await run(1500, () => ['speaker']);
+      await recorder.end(ID);
+      expect(pieces).toEqual([]);
+    });
+  });
 });

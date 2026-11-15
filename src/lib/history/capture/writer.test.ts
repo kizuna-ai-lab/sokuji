@@ -194,8 +194,10 @@ describe('the history writer', () => {
     writer.dispose();
     const order: string[] = [];
     const recorder = {
+      prepare: (id: string, startedAt: number) => { order.push(`prepare:${id}:${startedAt}`); },
       begin: (id: string, startedAt: number) => { order.push(`begin:${id}:${startedAt}`); },
-      end: async () => { order.push('end'); },
+      drop: (id: string) => { order.push(`drop:${id}`); },
+      end: async (id: string) => { order.push(`end:${id}`); },
     };
     const tracked = recordingPort();
     const base = tracked.port as unknown as Record<string, (a: unknown) => Promise<unknown>>;
@@ -209,19 +211,21 @@ describe('the history writer', () => {
     await writer.settled();
     end();
     await writer.settled();
-    expect(order).toEqual(['openRecord', 'begin:run-0001-aaaa:1000', 'end', 'closeRecord']);
+    expect(order).toEqual(['prepare:run-0001-aaaa:1000', 'openRecord', 'begin:run-0001-aaaa:1000', 'end:run-0001-aaaa', 'closeRecord']);
   });
 
   it('does not begin the recording when the record could not be opened', async () => {
     writer.dispose();
     const begun: string[] = [];
-    const recorder = { begin: (id: string) => { begun.push(id); }, end: async () => {} };
+    const dropped: string[] = [];
+    const recorder = { prepare: () => {}, begin: (id: string) => { begun.push(id); }, drop: (id: string) => { dropped.push(id); }, end: async () => {} };
     const tracked = recordingPort();
     tracked.fail('openRecord', 1);
     writer = createHistoryWriter({ state, conversation, port: tracked.port, clock, facts: () => facts, report, recorder });
     start('run-0001-aaaa');
     await writer.settled();
     expect(begun).toEqual([]);
+    expect(dropped).toEqual(['run-0001-aaaa']);
   });
 
   it('closes the record when the run ends, after the last corrections', async () => {

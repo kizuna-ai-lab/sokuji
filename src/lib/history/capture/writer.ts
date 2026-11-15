@@ -48,8 +48,17 @@ export interface HistoryWriterDeps {
   clock: Clock;
   facts: () => CaptureFacts;
   report?: (message: string, cause: unknown) => void;
-  /** The record's recording: begun once the record exists, ended before it is closed. */
-  recorder?: { begin(recordId: string, startedAt: number): void; end(): Promise<void> };
+  /**
+   * The record's recording: prepared when the record is opened (the session's audio is its own from then on, the
+   * previous record's still closing), begun once the record exists, let go when it could not be opened, ended before
+   * it is closed.
+   */
+  recorder?: {
+    prepare(recordId: string, startedAt: number): void;
+    begin(recordId: string, startedAt: number): void;
+    drop(recordId: string): void;
+    end(recordId: string): Promise<void>;
+  };
   /** Tells the user, once per record, that some of its transcript could not be saved. */
   tell?: () => void;
 }
@@ -178,12 +187,13 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     };
     rec = r;
     known.add(session);
-    // The recording's pieces need the record to exist: it begins once the record is open, and not at all when the
-    // record could not be opened (every piece would be refused).
+    // The recording's pieces need the record to exist: the audio from now on is held for it, written once the record
+    // is open, and let go when the record could not be opened (every piece would be refused).
+    deps.recorder?.prepare(session, r.startedAt);
     send(r, 'record', () => port.openRecord({
       id: session, startedAt: r.startedAt, mode: facts.mode, myLanguage, targetLanguage,
       services: { provider: info?.provider ?? '', models }, appVersion: facts.appVersion,
-    }).then(() => { deps.recorder?.begin(session, r.startedAt); }));
+    }).then(() => { deps.recorder?.begin(session, r.startedAt); }), () => { deps.recorder?.drop(session); });
     for (const leg of legs) {
       const c = facts.legs[leg.leg];
       send(r, 'record', () => port.putLeg({
@@ -336,7 +346,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     });
     // The recording's last pages before the record closes; ended even when the record's writes were given up.
     const recorder = deps.recorder;
-    if (recorder) chain = chain.then(() => recorder.end().catch((error) => report('History could not finish the recording', error)));
+    if (recorder) chain = chain.then(() => recorder.end(r.id).catch((error) => report('History could not finish the recording', error)));
     send(r, 'record', () => port.closeRecord({ id: r.id, endedAt: clock.now() }));
     rec = null;
     cancelTick?.();
