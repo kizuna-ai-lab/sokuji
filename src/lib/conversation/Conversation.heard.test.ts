@@ -51,4 +51,13 @@ describe('Conversation — heard', () => {
     text(1, 'Hi', { heard: { pieces: [{ at: 0, len: 2, startAt: 1, endAt: 2 }], stableLen: 2 } });
     expect(seg(1)).toBe(before);
   });
+
+  it('Clear drops it with the text of a segment still open', () => {
+    const { open, text, seg, conv } = make();
+    open(1);
+    text(1, 'Hello', { heard: { pieces: [{ at: 0, len: 5, startAt: 1, endAt: 2 }], stableLen: 5 } });
+    conv.clear();
+    expect(seg(1).text).toBe('');
+    expect(seg(1).heard).toBeUndefined();
+  });
 });

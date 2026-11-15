@@ -159,7 +159,7 @@ export class Conversation {
       const dropped = (ref: number, n: number) => { if (n > 0) this.clearedEntries.set(ref, (this.clearedEntries.get(ref) ?? 0) + n); };
       for (const seg of this.segments) dropped(seg.ref, seg.speech.length);
       for (const [ref, list] of this.pending) dropped(ref, list.length);
-      const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined }));
+      const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined, heard: undefined }));
       this.segments = kept;
       this.notices = [];
       this.indexByRef.clear();
