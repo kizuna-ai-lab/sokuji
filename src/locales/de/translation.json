@@ -980,7 +980,40 @@
       "acceptRestricted": "Verstanden — Lizenz akzeptieren"
     },
     "readingsDictionary": "Lesungswörterbuch (Japanisch)",
-    "readingsDictionaryNotStored": "Wird geladen, wenn japanische Lesungen unter „Anzeige“ eingeschaltet werden."
+    "readingsDictionaryNotStored": "Wird geladen, wenn japanische Lesungen unter „Anzeige“ eingeschaltet werden.",
+    "page": {
+      "tag": {
+        "asr": "Erkennung",
+        "translation": "Übersetzung",
+        "tts": "Sprache",
+        "turn": "Redeende",
+        "punctuation": "Sätze und Satzzeichen",
+        "readings": "Lesungen",
+        "voice": "Stimme"
+      },
+      "manyLanguages": "Viele Sprachen",
+      "languages": "{{count}} Sprachen",
+      "direct": "kann auch direkt übersetzen",
+      "downloading": "Wird geladen {{percent}} %",
+      "failed": "Download fehlgeschlagen",
+      "cannotRun": "Läuft auf diesem Computer nicht",
+      "notDownloaded": "Nicht geladen",
+      "download": "Laden",
+      "listJoin": ", ",
+      "summary": "{{count}} geladen, zusammen {{size}}",
+      "import": "Modell aus Dateien importieren",
+      "sessionTitle": "Modelle für die Sitzung (der Dienst „Dieses Gerät“)",
+      "sessionHint": "Stufen, die unter „Sprachen und Zusammenstellung“ auf „Dieses Gerät“ stehen, nutzen die hier geladenen Modelle.",
+      "otherLanguages": "Modelle für andere Sprachen ({{count}})",
+      "helpersTitle": "Hilfsmodelle",
+      "helpersHint": "Kleine Modelle, die zu keiner einzelnen Stufe gehören.",
+      "turnMeta": "Erkennt, wann Sie zu Ende gesprochen haben; wird in den Optionen des Sprechmodus eingeschaltet",
+      "packMeta": "Teilt den Text in Sätze; die drei werden zusammen geladen",
+      "dictMeta": "Zeigt japanische Lesungen; wird unter „Anzeige“ eingeschaltet",
+      "voicesTitle": "Importierte Stimmen",
+      "voicesHint": "Supertonic-Stimmdateien, die Sie importiert haben.",
+      "importedOn": "Importiert am {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "Spracherkennung",

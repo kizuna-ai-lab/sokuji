@@ -980,7 +980,40 @@
       "acceptRestricted": "我已瞭解——接受該授權"
     },
     "readingsDictionary": "讀音詞典（日語）",
-    "readingsDictionaryNotStored": "在「顯示」裡開啟日語讀音時下載。"
+    "readingsDictionaryNotStored": "在「顯示」裡開啟日語讀音時下載。",
+    "page": {
+      "tag": {
+        "asr": "辨識",
+        "translation": "翻譯",
+        "tts": "語音",
+        "turn": "斷句",
+        "punctuation": "分句和標點",
+        "readings": "注音",
+        "voice": "音色"
+      },
+      "manyLanguages": "多語言",
+      "languages": "{{count}} 種語言",
+      "direct": "也能直接出譯文",
+      "downloading": "下載中 {{percent}}%",
+      "failed": "下載失敗",
+      "cannotRun": "這台電腦跑不了",
+      "notDownloaded": "未下載",
+      "download": "下載",
+      "listJoin": "、",
+      "summary": "已下載 {{count}} 項，共 {{size}}",
+      "import": "從檔案匯入模型",
+      "sessionTitle": "工作階段用的模型（「本機」服務商）",
+      "sessionHint": "在「語言與工作階段組成」裡選了「本機」的階段，用的就是這裡下載的模型。",
+      "otherLanguages": "其他語言的模型（{{count}} 個）",
+      "helpersTitle": "輔助模型",
+      "helpersHint": "不屬於哪個階段的小模型。",
+      "turnMeta": "判斷一段話說完了沒有；在語音模式的選項裡打開",
+      "packMeta": "按句子分段用；三個一起下載",
+      "dictMeta": "顯示日語讀音用；在「顯示」裡打開",
+      "voicesTitle": "匯入的音色",
+      "voicesHint": "自己匯入的 Supertonic 音色檔案。",
+      "importedOn": "匯入於 {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "語音辨識",

@@ -980,7 +980,40 @@
       "acceptRestricted": "הבנתי — אני מקבל את הרישיון"
     },
     "readingsDictionary": "מילון הגייה (יפנית)",
-    "readingsDictionaryNotStored": "יורד כשמפעילים הגייה יפנית בתצוגה."
+    "readingsDictionaryNotStored": "יורד כשמפעילים הגייה יפנית בתצוגה.",
+    "page": {
+      "tag": {
+        "asr": "זיהוי",
+        "translation": "תרגום",
+        "tts": "דיבור",
+        "turn": "סוף תור",
+        "punctuation": "משפטים ופיסוק",
+        "readings": "הגייה",
+        "voice": "קול"
+      },
+      "manyLanguages": "שפות רבות",
+      "languages": "{{count}} שפות",
+      "direct": "יכול גם לתת את התרגום ישירות",
+      "downloading": "מוריד {{percent}}%",
+      "failed": "ההורדה נכשלה",
+      "cannotRun": "המחשב הזה לא יכול להריץ אותו",
+      "notDownloaded": "לא הורד",
+      "download": "הורדה",
+      "listJoin": ", ",
+      "summary": "{{count}} הורדו, {{size}} בסך הכול",
+      "import": "ייבוא מודל מקבצים",
+      "sessionTitle": "מודלים לסשן (השירות \"המכשיר הזה\")",
+      "sessionHint": "שלבים שמוגדרים \"המכשיר הזה\" ב\"שפות והרכב הסשן\" משתמשים במודלים שהורדו כאן.",
+      "otherLanguages": "מודלים לשפות אחרות ({{count}})",
+      "helpersTitle": "מודלים עוזרים",
+      "helpersHint": "מודלים קטנים שלא שייכים לשלב מסוים.",
+      "turnMeta": "מזהה מתי סיימת לדבר; מופעל באפשרויות מצב הדיבור",
+      "packMeta": "מחלק את הטקסט למשפטים; שלושתם יורדים יחד",
+      "dictMeta": "מציג הגייה ביפנית; מופעל ב\"תצוגה\"",
+      "voicesTitle": "קולות מיובאים",
+      "voicesHint": "קובצי קול של Supertonic שייבאת.",
+      "importedOn": "יובא ב-{{date}}"
+    }
   },
   "notes": {
     "stageAsr": "זיהוי דיבור",

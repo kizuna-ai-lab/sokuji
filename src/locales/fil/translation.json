@@ -980,7 +980,40 @@
       "acceptRestricted": "Nauunawaan ko — tinatanggap ko ang lisensya"
     },
     "readingsDictionary": "Diksyunaryo ng pagbasa (Japanese)",
-    "readingsDictionaryNotStored": "Dina-download kapag in-on ang pagbasa sa Japanese sa Display."
+    "readingsDictionaryNotStored": "Dina-download kapag in-on ang pagbasa sa Japanese sa Display.",
+    "page": {
+      "tag": {
+        "asr": "Pagkilala",
+        "translation": "Pagsasalin",
+        "tts": "Pananalita",
+        "turn": "Dulo ng sinasabi",
+        "punctuation": "Pangungusap at bantas",
+        "readings": "Pagbasa",
+        "voice": "Boses"
+      },
+      "manyLanguages": "Maraming wika",
+      "languages": "{{count}} wika",
+      "direct": "kaya ring direktang magbigay ng salin",
+      "downloading": "Dina-download {{percent}}%",
+      "failed": "Nabigo ang pag-download",
+      "cannotRun": "Hindi ito kayang patakbuhin ng computer na ito",
+      "notDownloaded": "Hindi pa na-download",
+      "download": "I-download",
+      "listJoin": ", ",
+      "summary": "{{count}} ang na-download, {{size}} lahat",
+      "import": "Mag-import ng model mula sa mga file",
+      "sessionTitle": "Mga model para sa session (ang serbisyong \"Ang device na ito\")",
+      "sessionHint": "Ang mga yugtong naka-\"Ang device na ito\" sa \"Mga wika at bumubuo ng session\" ay gumagamit ng mga model na na-download dito.",
+      "otherLanguages": "Mga model para sa ibang wika ({{count}})",
+      "helpersTitle": "Mga pantulong na model",
+      "helpersHint": "Maliliit na model na hindi kabilang sa iisang yugto.",
+      "turnMeta": "Nalalaman kung tapos ka nang magsalita; binubuksan sa mga opsyon ng speech mode",
+      "packMeta": "Hinahati ang teksto sa mga pangungusap; sabay na dina-download ang tatlo",
+      "dictMeta": "Ipinapakita ang pagbasa sa Hapon; binubuksan sa \"Display\"",
+      "voicesTitle": "Mga in-import na boses",
+      "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
+      "importedOn": "In-import noong {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",

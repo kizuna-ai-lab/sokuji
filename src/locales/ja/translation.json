@@ -980,7 +980,40 @@
       "acceptRestricted": "理解しました — ライセンスに同意する"
     },
     "readingsDictionary": "読み辞書（日本語）",
-    "readingsDictionaryNotStored": "「表示」で日本語の読みをオンにするとダウンロードされます。"
+    "readingsDictionaryNotStored": "「表示」で日本語の読みをオンにするとダウンロードされます。",
+    "page": {
+      "tag": {
+        "asr": "認識",
+        "translation": "翻訳",
+        "tts": "音声",
+        "turn": "発話の区切り",
+        "punctuation": "文の区切りと句読点",
+        "readings": "読み",
+        "voice": "ボイス"
+      },
+      "manyLanguages": "多言語",
+      "languages": "{{count}} 言語",
+      "direct": "訳文も直接出せる",
+      "downloading": "ダウンロード中 {{percent}}%",
+      "failed": "ダウンロード失敗",
+      "cannotRun": "このパソコンでは動かせません",
+      "notDownloaded": "未ダウンロード",
+      "download": "ダウンロード",
+      "listJoin": "、",
+      "summary": "ダウンロード済み {{count}} 件、合計 {{size}}",
+      "import": "ファイルからモデルを取り込む",
+      "sessionTitle": "セッションで使うモデル（「このデバイス」サービス）",
+      "sessionHint": "「言語とセッション構成」で「このデバイス」を選んだ段階は、ここでダウンロードしたモデルを使います。",
+      "otherLanguages": "ほかの言語のモデル（{{count}}）",
+      "helpersTitle": "補助モデル",
+      "helpersHint": "どの段階にも属さない小さなモデルです。",
+      "turnMeta": "話し終えたかどうかを判断します。音声モードのオプションでオンにします",
+      "packMeta": "文章を文ごとに区切ります。3 つまとめてダウンロードします",
+      "dictMeta": "日本語の読みを表示します。「表示」でオンにします",
+      "voicesTitle": "取り込んだボイス",
+      "voicesHint": "自分で取り込んだ Supertonic のボイスファイルです。",
+      "importedOn": "{{date}} に取り込み"
+    }
   },
   "notes": {
     "stageAsr": "音声認識",

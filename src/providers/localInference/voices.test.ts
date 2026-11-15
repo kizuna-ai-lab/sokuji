@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { directionVoice, speakerIdFor, withDirectionVoice } from './voices';
+import { directionVoice, speakerIdFor, voicesWithoutImported, withDirectionVoice } from './voices';
 import type { LocalInferenceSettings } from './settings';
 
 const table = (v: unknown) => v as LocalInferenceSettings['voices'];
@@ -51,5 +51,29 @@ describe('withDirectionVoice', () => {
 
   it('starts a fresh table over a stored value that is not one', () => {
     expect(withDirectionVoice(table('x'), 'd', { speaker: 1 })).toEqual({ voices: { d: { speaker: 1 } } });
+  });
+});
+
+// An imported Supertonic voice deleted (from the engine's voice library or the Models page): every direction that
+// spoke in it on Supertonic goes back to Supertonic's default speaker; on another model the same number is one of
+// that model's own speakers, and stays (#619).
+describe('voicesWithoutImported', () => {
+  const tts = (map: Record<string, string>) => (dir: string) => map[dir];
+
+  it('puts every direction that spoke in the voice on Supertonic back on its default speaker', () => {
+    const voices = table({ 'ja→en': { speaker: 1001, edge: 'x' }, 'en→ja': { speaker: 1001 }, 'zh→en': { speaker: 3 } });
+    expect(voicesWithoutImported(voices, 1001, tts({ 'ja→en': 'supertonic-3', 'en→ja': 'supertonic-3', 'zh→en': 'supertonic-3' }))).toEqual({
+      'ja→en': { speaker: 7, edge: 'x' }, 'en→ja': { speaker: 7 }, 'zh→en': { speaker: 3 },
+    });
+  });
+
+  it('leaves a direction whose speech is another model, where the number is its own speaker', () => {
+    const voices = table({ 'ja→en': { speaker: 1001 } });
+    expect(voicesWithoutImported(voices, 1001, tts({ 'ja→en': 'kokoro' }))).toBeNull();
+  });
+
+  it('changes nothing, and says so, when no direction spoke in it', () => {
+    expect(voicesWithoutImported(table({ d: { speaker: 2 } }), 1001, tts({ d: 'supertonic-3' }))).toBeNull();
+    expect(voicesWithoutImported(undefined as never, 1001, tts({}))).toBeNull();
   });
 });

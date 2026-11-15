@@ -980,7 +980,40 @@
       "acceptRestricted": "Begrepen — licentie accepteren"
     },
     "readingsDictionary": "Woordenboek met lezingen (Japans)",
-    "readingsDictionaryNotStored": "Wordt gedownload als je Japanse lezingen aanzet bij Weergave."
+    "readingsDictionaryNotStored": "Wordt gedownload als je Japanse lezingen aanzet bij Weergave.",
+    "page": {
+      "tag": {
+        "asr": "Herkenning",
+        "translation": "Vertaling",
+        "tts": "Spraak",
+        "turn": "Einde beurt",
+        "punctuation": "Zinnen en leestekens",
+        "readings": "Uitspraak",
+        "voice": "Stem"
+      },
+      "manyLanguages": "Veel talen",
+      "languages": "{{count}} talen",
+      "direct": "kan ook direct de vertaling geven",
+      "downloading": "Downloaden {{percent}}%",
+      "failed": "Downloaden mislukt",
+      "cannotRun": "Deze computer kan het niet draaien",
+      "notDownloaded": "Niet gedownload",
+      "download": "Downloaden",
+      "listJoin": ", ",
+      "summary": "{{count}} gedownload, samen {{size}}",
+      "import": "Model uit bestanden importeren",
+      "sessionTitle": "Modellen voor de sessie (de dienst ‘Dit apparaat’)",
+      "sessionHint": "Stappen die in ‘Talen en samenstelling’ op ‘Dit apparaat’ staan, gebruiken de modellen die hier zijn gedownload.",
+      "otherLanguages": "Modellen voor andere talen ({{count}})",
+      "helpersTitle": "Hulpmodellen",
+      "helpersHint": "Kleine modellen die bij geen enkele stap horen.",
+      "turnMeta": "Herkent wanneer u klaar bent met praten; aan te zetten in de opties van de spraakmodus",
+      "packMeta": "Deelt de tekst op in zinnen; de drie worden samen gedownload",
+      "dictMeta": "Toont Japanse uitspraak; aan te zetten in ‘Weergave’",
+      "voicesTitle": "Geïmporteerde stemmen",
+      "voicesHint": "Supertonic-stembestanden die u hebt geïmporteerd.",
+      "importedOn": "Geïmporteerd op {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "spraakherkenning",

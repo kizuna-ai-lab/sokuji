@@ -980,7 +980,40 @@
       "acceptRestricted": "Rozumiem — akceptuję licencję"
     },
     "readingsDictionary": "Słownik czytań (japoński)",
-    "readingsDictionaryNotStored": "Pobierany po włączeniu japońskich czytań w Wyświetlaniu."
+    "readingsDictionaryNotStored": "Pobierany po włączeniu japońskich czytań w Wyświetlaniu.",
+    "page": {
+      "tag": {
+        "asr": "Rozpoznawanie",
+        "translation": "Tłumaczenie",
+        "tts": "Mowa",
+        "turn": "Koniec wypowiedzi",
+        "punctuation": "Zdania i interpunkcja",
+        "readings": "Czytanie",
+        "voice": "Głos"
+      },
+      "manyLanguages": "Wiele języków",
+      "languages": "{{count}} języków",
+      "direct": "potrafi też od razu podać tłumaczenie",
+      "downloading": "Pobieranie {{percent}}%",
+      "failed": "Pobieranie nie powiodło się",
+      "cannotRun": "Ten komputer nie może go uruchomić",
+      "notDownloaded": "Nie pobrano",
+      "download": "Pobierz",
+      "listJoin": ", ",
+      "summary": "Pobrano: {{count}}, razem {{size}}",
+      "import": "Importuj model z plików",
+      "sessionTitle": "Modele do sesji (usługa „To urządzenie”)",
+      "sessionHint": "Etapy ustawione na „To urządzenie” w „Języki i skład sesji” używają modeli pobranych tutaj.",
+      "otherLanguages": "Modele dla innych języków ({{count}})",
+      "helpersTitle": "Modele pomocnicze",
+      "helpersHint": "Małe modele, które nie należą do żadnego etapu.",
+      "turnMeta": "Rozpoznaje, kiedy skończysz mówić; włączany w opcjach trybu mowy",
+      "packMeta": "Dzieli tekst na zdania; wszystkie trzy pobierają się razem",
+      "dictMeta": "Pokazuje czytanie japońskiego; włączany w „Wyświetlanie”",
+      "voicesTitle": "Zaimportowane głosy",
+      "voicesHint": "Zaimportowane przez Ciebie pliki głosów Supertonic.",
+      "importedOn": "Zaimportowano {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",

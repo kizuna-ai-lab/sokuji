@@ -980,7 +980,40 @@
       "acceptRestricted": "我已了解——接受该许可"
     },
     "readingsDictionary": "读音词典（日语）",
-    "readingsDictionaryNotStored": "在“显示”里打开日语读音时下载。"
+    "readingsDictionaryNotStored": "在“显示”里打开日语读音时下载。",
+    "page": {
+      "tag": {
+        "asr": "识别",
+        "translation": "翻译",
+        "tts": "语音",
+        "turn": "断句",
+        "punctuation": "分句和标点",
+        "readings": "注音",
+        "voice": "音色"
+      },
+      "manyLanguages": "多语言",
+      "languages": "{{count}} 种语言",
+      "direct": "也能直接出译文",
+      "downloading": "下载中 {{percent}}%",
+      "failed": "下载失败",
+      "cannotRun": "这台电脑跑不了",
+      "notDownloaded": "未下载",
+      "download": "下载",
+      "listJoin": "、",
+      "summary": "已下载 {{count}} 项，共 {{size}}",
+      "import": "从文件导入模型",
+      "sessionTitle": "会话用的模型（“本机”服务商）",
+      "sessionHint": "在“语言与会话组成”里选了“本机”的阶段，用的就是这里下载的模型。",
+      "otherLanguages": "其他语言的模型（{{count}} 个）",
+      "helpersTitle": "辅助模型",
+      "helpersHint": "不属于哪个阶段的小模型。",
+      "turnMeta": "判断一段话说完了没有；在语音模式的选项里打开",
+      "packMeta": "按句子分段用；三个一起下载",
+      "dictMeta": "显示日语读音用；在“显示”里打开",
+      "voicesTitle": "导入的音色",
+      "voicesHint": "自己导入的 Supertonic 音色文件。",
+      "importedOn": "导入于 {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "语音识别",

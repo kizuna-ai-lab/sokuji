@@ -1197,7 +1197,40 @@
       "acceptRestricted": "I understand — accept the license"
     },
     "readingsDictionary": "Readings dictionary (Japanese)",
-    "readingsDictionaryNotStored": "Downloaded when Japanese readings are turned on in Display."
+    "readingsDictionaryNotStored": "Downloaded when Japanese readings are turned on in Display.",
+    "page": {
+      "tag": {
+        "asr": "Recognition",
+        "translation": "Translation",
+        "tts": "Speech",
+        "turn": "Turn end",
+        "punctuation": "Sentences and punctuation",
+        "readings": "Readings",
+        "voice": "Voice"
+      },
+      "manyLanguages": "Many languages",
+      "languages": "{{count}} languages",
+      "direct": "can also give the translation directly",
+      "downloading": "Downloading {{percent}}%",
+      "failed": "Download failed",
+      "cannotRun": "This computer can't run it",
+      "notDownloaded": "Not downloaded",
+      "download": "Download",
+      "listJoin": ", ",
+      "summary": "{{count}} downloaded, {{size}} in all",
+      "import": "Import a model from files",
+      "sessionTitle": "Models for the session (the “This device” service)",
+      "sessionHint": "Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "otherLanguages": "Models for other languages ({{count}})",
+      "helpersTitle": "Helper models",
+      "helpersHint": "Small models that belong to no one stage.",
+      "turnMeta": "Tells when you have finished speaking; turned on in the speech mode options",
+      "packMeta": "Splits the text into sentences; the three download together",
+      "dictMeta": "Shows Japanese readings; turned on in Display",
+      "voicesTitle": "Imported voices",
+      "voicesHint": "Supertonic voice files you imported.",
+      "importedOn": "Imported {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "speech recognition",

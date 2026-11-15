@@ -980,7 +980,40 @@
       "acceptRestricted": "Jag förstår — jag accepterar licensen"
     },
     "readingsDictionary": "Läsningsordbok (japanska)",
-    "readingsDictionaryNotStored": "Laddas ner när japanska läsningar slås på under Visning."
+    "readingsDictionaryNotStored": "Laddas ner när japanska läsningar slås på under Visning.",
+    "page": {
+      "tag": {
+        "asr": "Igenkänning",
+        "translation": "Översättning",
+        "tts": "Tal",
+        "turn": "Turslut",
+        "punctuation": "Meningar och skiljetecken",
+        "readings": "Uttal",
+        "voice": "Röst"
+      },
+      "manyLanguages": "Många språk",
+      "languages": "{{count}} språk",
+      "direct": "kan också ge översättningen direkt",
+      "downloading": "Laddar ned {{percent}} %",
+      "failed": "Nedladdningen misslyckades",
+      "cannotRun": "Den här datorn kan inte köra den",
+      "notDownloaded": "Inte nedladdad",
+      "download": "Ladda ned",
+      "listJoin": ", ",
+      "summary": "{{count}} nedladdade, totalt {{size}}",
+      "import": "Importera en modell från filer",
+      "sessionTitle": "Modeller för sessionen (tjänsten ”Den här enheten”)",
+      "sessionHint": "Steg som har ”Den här enheten” under ”Språk och sammansättning” använder modellerna som laddats ned här.",
+      "otherLanguages": "Modeller för andra språk ({{count}})",
+      "helpersTitle": "Hjälpmodeller",
+      "helpersHint": "Små modeller som inte hör till något enskilt steg.",
+      "turnMeta": "Känner av när du har talat klart; slås på i talläget alternativ",
+      "packMeta": "Delar upp texten i meningar; alla tre laddas ned tillsammans",
+      "dictMeta": "Visar japanskt uttal; slås på under ”Visning”",
+      "voicesTitle": "Importerade röster",
+      "voicesHint": "Supertonic-röstfiler som du har importerat.",
+      "importedOn": "Importerad {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "taligenkänning",

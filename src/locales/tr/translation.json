@@ -980,7 +980,40 @@
       "acceptRestricted": "Anladım — lisansı kabul ediyorum"
     },
     "readingsDictionary": "Okunuş sözlüğü (Japonca)",
-    "readingsDictionaryNotStored": "Görünüm’de Japonca okunuşlar açıldığında indirilir."
+    "readingsDictionaryNotStored": "Görünüm’de Japonca okunuşlar açıldığında indirilir.",
+    "page": {
+      "tag": {
+        "asr": "Tanıma",
+        "translation": "Çeviri",
+        "tts": "Konuşma",
+        "turn": "Sıra sonu",
+        "punctuation": "Cümleler ve noktalama",
+        "readings": "Okunuş",
+        "voice": "Ses"
+      },
+      "manyLanguages": "Birçok dil",
+      "languages": "{{count}} dil",
+      "direct": "çeviriyi de doğrudan verebilir",
+      "downloading": "İndiriliyor %{{percent}}",
+      "failed": "İndirme başarısız",
+      "cannotRun": "Bu bilgisayar çalıştıramaz",
+      "notDownloaded": "İndirilmedi",
+      "download": "İndir",
+      "listJoin": ", ",
+      "summary": "{{count}} indirildi, toplam {{size}}",
+      "import": "Dosyalardan model içe aktar",
+      "sessionTitle": "Oturum modelleri (\"Bu cihaz\" hizmeti)",
+      "sessionHint": "\"Diller ve oturum düzeni\"nde \"Bu cihaz\" seçilen aşamalar burada indirilen modelleri kullanır.",
+      "otherLanguages": "Diğer diller için modeller ({{count}})",
+      "helpersTitle": "Yardımcı modeller",
+      "helpersHint": "Hiçbir aşamaya ait olmayan küçük modeller.",
+      "turnMeta": "Konuşmanızın bittiğini anlar; konuşma modu seçeneklerinden açılır",
+      "packMeta": "Metni cümlelere böler; üçü birlikte indirilir",
+      "dictMeta": "Japonca okunuşları gösterir; \"Görünüm\"den açılır",
+      "voicesTitle": "İçe aktarılan sesler",
+      "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
+      "importedOn": "{{date}} tarihinde içe aktarıldı"
+    }
   },
   "notes": {
     "stageAsr": "konuşma tanıma",

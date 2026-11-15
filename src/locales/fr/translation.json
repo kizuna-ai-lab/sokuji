@@ -980,7 +980,40 @@
       "acceptRestricted": "J’ai compris — j’accepte la licence"
     },
     "readingsDictionary": "Dictionnaire de lectures (japonais)",
-    "readingsDictionaryNotStored": "Téléchargé quand les lectures japonaises sont activées dans Affichage."
+    "readingsDictionaryNotStored": "Téléchargé quand les lectures japonaises sont activées dans Affichage.",
+    "page": {
+      "tag": {
+        "asr": "Reconnaissance",
+        "translation": "Traduction",
+        "tts": "Voix",
+        "turn": "Fin de tour",
+        "punctuation": "Phrases et ponctuation",
+        "readings": "Lectures",
+        "voice": "Voix"
+      },
+      "manyLanguages": "Nombreuses langues",
+      "languages": "{{count}} langues",
+      "direct": "peut aussi donner directement la traduction",
+      "downloading": "Téléchargement {{percent}} %",
+      "failed": "Échec du téléchargement",
+      "cannotRun": "Cet ordinateur ne peut pas l’exécuter",
+      "notDownloaded": "Non téléchargé",
+      "download": "Télécharger",
+      "listJoin": ", ",
+      "summary": "{{count}} téléchargés, {{size}} au total",
+      "import": "Importer un modèle depuis des fichiers",
+      "sessionTitle": "Modèles pour la session (le service « Cet appareil »)",
+      "sessionHint": "Les étapes réglées sur « Cet appareil » dans « Langues et composition » utilisent les modèles téléchargés ici.",
+      "otherLanguages": "Modèles pour d’autres langues ({{count}})",
+      "helpersTitle": "Modèles d’appoint",
+      "helpersHint": "De petits modèles qui n’appartiennent à aucune étape.",
+      "turnMeta": "Repère quand vous avez fini de parler ; s’active dans les options du mode de parole",
+      "packMeta": "Découpe le texte en phrases ; les trois se téléchargent ensemble",
+      "dictMeta": "Affiche les lectures du japonais ; s’active dans « Affichage »",
+      "voicesTitle": "Voix importées",
+      "voicesHint": "Les fichiers de voix Supertonic que vous avez importés.",
+      "importedOn": "Importée le {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "reconnaissance vocale",

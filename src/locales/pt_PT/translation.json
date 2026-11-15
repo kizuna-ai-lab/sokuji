@@ -980,7 +980,40 @@
       "acceptRestricted": "Compreendi — aceito a licença"
     },
     "readingsDictionary": "Dicionário de leituras (japonês)",
-    "readingsDictionaryNotStored": "Transferido quando as leituras em japonês são ativadas em Apresentação."
+    "readingsDictionaryNotStored": "Transferido quando as leituras em japonês são ativadas em Apresentação.",
+    "page": {
+      "tag": {
+        "asr": "Reconhecimento",
+        "translation": "Tradução",
+        "tts": "Fala",
+        "turn": "Fim de turno",
+        "punctuation": "Frases e pontuação",
+        "readings": "Leituras",
+        "voice": "Voz"
+      },
+      "manyLanguages": "Muitos idiomas",
+      "languages": "{{count}} idiomas",
+      "direct": "também pode dar a tradução diretamente",
+      "downloading": "A transferir {{percent}}%",
+      "failed": "Falha na transferência",
+      "cannotRun": "Este computador não o consegue executar",
+      "notDownloaded": "Não transferido",
+      "download": "Transferir",
+      "listJoin": ", ",
+      "summary": "{{count}} transferidos, {{size}} no total",
+      "import": "Importar um modelo de ficheiros",
+      "sessionTitle": "Modelos para a sessão (o serviço «Este dispositivo»)",
+      "sessionHint": "As etapas com «Este dispositivo» em «Idiomas e composição» usam os modelos transferidos aqui.",
+      "otherLanguages": "Modelos para outros idiomas ({{count}})",
+      "helpersTitle": "Modelos auxiliares",
+      "helpersHint": "Modelos pequenos que não pertencem a nenhuma etapa.",
+      "turnMeta": "Reconhece quando terminou de falar; ativado nas opções do modo de fala",
+      "packMeta": "Divide o texto em frases; os três são transferidos juntos",
+      "dictMeta": "Mostra as leituras do japonês; ativado em «Apresentação»",
+      "voicesTitle": "Vozes importadas",
+      "voicesHint": "Ficheiros de voz Supertonic que importou.",
+      "importedOn": "Importada a {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "reconhecimento de voz",

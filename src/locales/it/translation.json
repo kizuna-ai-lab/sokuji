@@ -980,7 +980,40 @@
       "acceptRestricted": "Ho capito: accetto la licenza"
     },
     "readingsDictionary": "Dizionario delle letture (giapponese)",
-    "readingsDictionaryNotStored": "Si scarica quando attivi le letture giapponesi in Visualizzazione."
+    "readingsDictionaryNotStored": "Si scarica quando attivi le letture giapponesi in Visualizzazione.",
+    "page": {
+      "tag": {
+        "asr": "Riconoscimento",
+        "translation": "Traduzione",
+        "tts": "Voce",
+        "turn": "Fine turno",
+        "punctuation": "Frasi e punteggiatura",
+        "readings": "Letture",
+        "voice": "Voce"
+      },
+      "manyLanguages": "Molte lingue",
+      "languages": "{{count}} lingue",
+      "direct": "può anche dare direttamente la traduzione",
+      "downloading": "Download {{percent}}%",
+      "failed": "Download non riuscito",
+      "cannotRun": "Questo computer non può eseguirlo",
+      "notDownloaded": "Non scaricato",
+      "download": "Scarica",
+      "listJoin": ", ",
+      "summary": "{{count}} scaricati, {{size}} in tutto",
+      "import": "Importa un modello da file",
+      "sessionTitle": "Modelli per la sessione (il servizio «Questo dispositivo»)",
+      "sessionHint": "Le fasi impostate su «Questo dispositivo» in «Lingue e composizione» usano i modelli scaricati qui.",
+      "otherLanguages": "Modelli per altre lingue ({{count}})",
+      "helpersTitle": "Modelli di supporto",
+      "helpersHint": "Piccoli modelli che non appartengono a nessuna fase.",
+      "turnMeta": "Capisce quando hai finito di parlare; si attiva nelle opzioni della modalità vocale",
+      "packMeta": "Divide il testo in frasi; i tre si scaricano insieme",
+      "dictMeta": "Mostra le letture del giapponese; si attiva in «Visualizzazione»",
+      "voicesTitle": "Voci importate",
+      "voicesHint": "I file di voce Supertonic che hai importato.",
+      "importedOn": "Importata il {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "riconoscimento vocale",

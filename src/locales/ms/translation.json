@@ -980,7 +980,40 @@
       "acceptRestricted": "Saya faham — saya menerima lesen ini"
     },
     "readingsDictionary": "Kamus bacaan (Jepun)",
-    "readingsDictionaryNotStored": "Dimuat turun apabila bacaan Jepun dihidupkan dalam Paparan."
+    "readingsDictionaryNotStored": "Dimuat turun apabila bacaan Jepun dihidupkan dalam Paparan.",
+    "page": {
+      "tag": {
+        "asr": "Pengecaman",
+        "translation": "Terjemahan",
+        "tts": "Suara",
+        "turn": "Akhir giliran",
+        "punctuation": "Ayat dan tanda baca",
+        "readings": "Sebutan",
+        "voice": "Suara"
+      },
+      "manyLanguages": "Banyak bahasa",
+      "languages": "{{count}} bahasa",
+      "direct": "juga boleh terus memberi terjemahan",
+      "downloading": "Memuat turun {{percent}}%",
+      "failed": "Muat turun gagal",
+      "cannotRun": "Komputer ini tidak dapat menjalankannya",
+      "notDownloaded": "Belum dimuat turun",
+      "download": "Muat turun",
+      "listJoin": ", ",
+      "summary": "{{count}} dimuat turun, jumlah {{size}}",
+      "import": "Import model daripada fail",
+      "sessionTitle": "Model untuk sesi (perkhidmatan \"Peranti ini\")",
+      "sessionHint": "Peringkat yang ditetapkan kepada \"Peranti ini\" dalam \"Bahasa dan susunan sesi\" menggunakan model yang dimuat turun di sini.",
+      "otherLanguages": "Model untuk bahasa lain ({{count}})",
+      "helpersTitle": "Model pembantu",
+      "helpersHint": "Model kecil yang bukan milik mana-mana satu peringkat.",
+      "turnMeta": "Mengesan bila anda selesai bercakap; dihidupkan dalam pilihan mod pertuturan",
+      "packMeta": "Membahagi teks kepada ayat; ketiga-tiganya dimuat turun bersama",
+      "dictMeta": "Memaparkan sebutan bahasa Jepun; dihidupkan dalam \"Paparan\"",
+      "voicesTitle": "Suara yang diimport",
+      "voicesHint": "Fail suara Supertonic yang anda import.",
+      "importedOn": "Diimport pada {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "pengecaman suara",

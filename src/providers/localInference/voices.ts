@@ -28,3 +28,26 @@ export function withDirectionVoice(voices: LocalInferenceSettings['voices'], dir
   const table = voices && typeof voices === 'object' && !Array.isArray(voices) ? voices : {};
   return { voices: { ...table, [dir]: { ...directionVoice(table, dir), ...patch } } };
 }
+
+/**
+ * The voices after an imported Supertonic voice (`sid`) is deleted, or null when no direction spoke in it: each
+ * direction that spoke in it on a Supertonic model goes back to that model's default speaker; on another model the
+ * same number is one of that model's own speakers, and stays (#619). `ttsModelFor` is the direction's resolved TTS.
+ */
+export function voicesWithoutImported(
+  voices: LocalInferenceSettings['voices'],
+  sid: number,
+  ttsModelFor: (dir: string) => string | undefined,
+): LocalInferenceSettings['voices'] | null {
+  const table = voices && typeof voices === 'object' && !Array.isArray(voices) ? voices : {};
+  const users = Object.keys(table).filter((dir) => {
+    if (directionVoice(table, dir).speaker !== sid) return false;
+    const model = ttsModelFor(dir);
+    return model !== undefined && getManifestEntry(model)?.engine === 'supertonic';
+  });
+  if (users.length === 0) return null;
+  return Object.fromEntries(Object.entries(table).map(([dir, v]) => [
+    dir,
+    users.includes(dir) ? { ...directionVoice(table, dir), speaker: getManifestEntry(ttsModelFor(dir)!)?.ttsConfig?.defaultSid ?? 0 } : v,
+  ]));
+}

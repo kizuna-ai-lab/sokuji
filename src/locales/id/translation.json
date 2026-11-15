@@ -980,7 +980,40 @@
       "acceptRestricted": "Saya mengerti — saya menerima lisensinya"
     },
     "readingsDictionary": "Kamus cara baca (Jepang)",
-    "readingsDictionaryNotStored": "Diunduh saat cara baca Jepang diaktifkan di Tampilan."
+    "readingsDictionaryNotStored": "Diunduh saat cara baca Jepang diaktifkan di Tampilan.",
+    "page": {
+      "tag": {
+        "asr": "Pengenalan",
+        "translation": "Terjemahan",
+        "tts": "Suara",
+        "turn": "Akhir giliran",
+        "punctuation": "Kalimat dan tanda baca",
+        "readings": "Cara baca",
+        "voice": "Suara"
+      },
+      "manyLanguages": "Banyak bahasa",
+      "languages": "{{count}} bahasa",
+      "direct": "juga bisa langsung memberi terjemahan",
+      "downloading": "Mengunduh {{percent}}%",
+      "failed": "Unduhan gagal",
+      "cannotRun": "Komputer ini tidak bisa menjalankannya",
+      "notDownloaded": "Belum diunduh",
+      "download": "Unduh",
+      "listJoin": ", ",
+      "summary": "{{count}} diunduh, total {{size}}",
+      "import": "Impor model dari file",
+      "sessionTitle": "Model untuk sesi (layanan \"Perangkat ini\")",
+      "sessionHint": "Tahap yang diatur ke \"Perangkat ini\" di \"Bahasa dan susunan sesi\" memakai model yang diunduh di sini.",
+      "otherLanguages": "Model untuk bahasa lain ({{count}})",
+      "helpersTitle": "Model pembantu",
+      "helpersHint": "Model kecil yang tidak termasuk satu tahap mana pun.",
+      "turnMeta": "Mengenali kapan Anda selesai bicara; dinyalakan di opsi mode bicara",
+      "packMeta": "Membagi teks menjadi kalimat; ketiganya diunduh bersama",
+      "dictMeta": "Menampilkan cara baca Jepang; dinyalakan di \"Tampilan\"",
+      "voicesTitle": "Suara yang diimpor",
+      "voicesHint": "File suara Supertonic yang Anda impor.",
+      "importedOn": "Diimpor {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "pengenalan suara",

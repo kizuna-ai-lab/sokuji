@@ -980,7 +980,40 @@
       "acceptRestricted": "Ymmärrän — hyväksyn lisenssin"
     },
     "readingsDictionary": "Lukutapasanakirja (japani)",
-    "readingsDictionaryNotStored": "Ladataan, kun japanin lukutavat otetaan käyttöön Näkymässä."
+    "readingsDictionaryNotStored": "Ladataan, kun japanin lukutavat otetaan käyttöön Näkymässä.",
+    "page": {
+      "tag": {
+        "asr": "Tunnistus",
+        "translation": "Käännös",
+        "tts": "Puhe",
+        "turn": "Vuoron loppu",
+        "punctuation": "Virkkeet ja välimerkit",
+        "readings": "Lukutavat",
+        "voice": "Ääni"
+      },
+      "manyLanguages": "Monta kieltä",
+      "languages": "{{count}} kieltä",
+      "direct": "voi antaa myös käännöksen suoraan",
+      "downloading": "Ladataan {{percent}} %",
+      "failed": "Lataus epäonnistui",
+      "cannotRun": "Tämä tietokone ei pysty ajamaan sitä",
+      "notDownloaded": "Ei ladattu",
+      "download": "Lataa",
+      "listJoin": ", ",
+      "summary": "{{count}} ladattu, yhteensä {{size}}",
+      "import": "Tuo malli tiedostoista",
+      "sessionTitle": "Istunnon mallit (”Tämä laite” -palvelu)",
+      "sessionHint": "Vaiheet, joille on valittu ”Tämä laite” kohdassa ”Kielet ja kokoonpano”, käyttävät tänne ladattuja malleja.",
+      "otherLanguages": "Muiden kielten mallit ({{count}})",
+      "helpersTitle": "Apumallit",
+      "helpersHint": "Pieniä malleja, jotka eivät kuulu mihinkään yksittäiseen vaiheeseen.",
+      "turnMeta": "Tunnistaa, milloin lopetat puhumisen; otetaan käyttöön puhetilan asetuksista",
+      "packMeta": "Jakaa tekstin virkkeisiin; kaikki kolme ladataan yhdessä",
+      "dictMeta": "Näyttää japanin lukutavat; otetaan käyttöön kohdassa ”Näyttö”",
+      "voicesTitle": "Tuodut äänet",
+      "voicesHint": "Tuomasi Supertonic-äänitiedostot.",
+      "importedOn": "Tuotu {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "puheentunnistus",
