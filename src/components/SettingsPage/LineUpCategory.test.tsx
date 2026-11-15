@@ -140,13 +140,32 @@ describe('a stage named inside a sentence', () => {
   });
 });
 
-// PR review: the options heading follows the selected provider when it changes on its own.
-describe('languages and line-up — the options heading', () => {
-  it('follows the selected provider', () => {
+// Mock v19 (the owner's call, 2026-11-15): each stage card holds the options of the provider serving it, inside it.
+describe('languages and line-up — options inside each stage card', () => {
+  const card = (name: string) => screen.getByText(name, { selector: '.lineup-stage__name' }).closest('.lineup-stage') as HTMLElement;
+
+  it("this device, Bing and Edge: each card names its provider's options; Bing has none", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(screen.getByRole('button', { name: /Soniox options/ })).toBeInTheDocument();
-    act(() => { useProviderStore.setState({ selected: 'local_inference' }); });
-    expect(screen.getByRole('button', { name: /This device options/ })).toBeInTheDocument();
+    expect(within(card('Transcription')).getByRole('button', { name: /This device options/ })).toBeInTheDocument();
+    expect(within(card('Translation')).queryByRole('button', { name: /options/ })).toBeNull();
+    expect(within(card('Speech')).getByRole('button', { name: /Edge options/ })).toBeInTheDocument();
+  });
+
+  it('opens one card without the others', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    fireEvent.click(within(card('Speech')).getByRole('button', { name: /options/ }));
+    expect(within(card('Speech')).getByRole('button', { name: /options/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(card('Transcription')).getByRole('button', { name: /options/ })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(card('Speech')).queryByText((_, el) => el?.id === 'provider-own-settings')).not.toBeNull();
+  });
+
+  it("a later card points back to the first for the options acting on several stages, naming them", () => {
+    // Soniox's region acts on all three stages, its session background on transcription and translation.
+    render(<LineUpCategory locked={false} />);
+    fireEvent.click(within(card('Translation')).getByRole('button', { name: /Soniox options/ }));
+    expect(within(card('Translation')).getByText('The options acting on transcription, translation and speech are in the “Transcription” card.')).toBeInTheDocument();
   });
 });
 

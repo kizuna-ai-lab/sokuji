@@ -9,6 +9,7 @@ import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../
 import { useSetUILanguage } from '../../../stores/settingsStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { changeLanguageWithLoad } from '../../../locales';
+import { describeCause, reportError } from '../../../lib/diagnostics/report';
 
 /** Open a link outside the app: the system browser on the desktop, a new tab elsewhere. */
 export function openExternalUrl(url: string): void {
@@ -48,15 +49,13 @@ export function useInterfaceLanguageChange(source: string): (newLanguage: string
 
       // Split deliberately: these two failures need opposite
       // treatment, and one catch around both would have to guess.
-      // TODO(#441): both console lines belong in logStore once the
-      // repo-wide logging convention lands.
       try {
         await changeLanguageWithLoad(newLanguage);
       } catch (err) {
         // The catalogue never loaded, so i18n never switched. There
         // is nothing to undo, and trying to "restore" would kick off
         // another load for a language that was never left.
-        console.error(`[${source}] Could not load the interface language:`, err);
+        reportError(source, `Could not load the interface language: ${describeCause(err)}`, { cause: err });
         return;
       }
 
@@ -71,7 +70,7 @@ export function useInterfaceLanguageChange(source: string): (newLanguage: string
         // is wearing a language it could not save. Put it back,
         // unless the user has since asked for something else and a
         // later link in the chain is about to set it anyway.
-        console.error(`[${source}] Could not save the interface language:`, err);
+        reportError(source, `Could not save the interface language: ${describeCause(err)}`, { cause: err });
         if (wantedLanguageRef.current === newLanguage) {
           wantedLanguageRef.current = oldLanguage;
           try {

@@ -12,6 +12,8 @@ import {
   type RealtimeSettings as S,
 } from './settings';
 import { TranscriptionField } from './TranscriptionField';
+import { ALL_STAGES, SP, TL, TR } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 const VOICES = REALTIME_VOICES.map(presetVoice);
 
@@ -38,17 +40,31 @@ export function RealtimeSettingsView({ settings, update, disabled = false, pair,
   const preview = resolveInstructions(settings, { participant: false, source: realtimeLanguageName(source), target: realtimeLanguageName(target) });
   return (
     <>
+      <StagePart stages={TL}>
       <InstructionsField value={settings} onChange={update} preview={preview} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={SP}>
       <PresetVoiceField
         voices={VOICES} value={settings.voice} onChange={(voice) => update({ voice })} onPreview={previewRealtimeVoice} preview={port} disabled={disabled}
         // The published samples are one clip per voice: the second row auditions the same way.
         participant={participantSpeaks ? { value: settings.participantVoice, effective: realtimeParticipantVoice(settings), onChange: (participantVoice) => update({ participantVoice }) } : undefined}
       />
+      </StagePart>
+      <StagePart stages={ALL_STAGES}>
       <ModelField value={model} models={models} onChange={(m) => update({ model: m })} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={TR}>
       <TranscriptionField model={settings.transcriptModel} keywords={settings.transcriptKeywords} onChange={update} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={TR}>
       <NoiseReductionField value={settings.noiseReduction} options={NOISE_REDUCTIONS} onChange={(noiseReduction) => update({ noiseReduction })} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={TL}>
       <ModelConfigurationField maxTokens={settings.maxTokens} maxTokensRange={REALTIME_MAX_TOKENS_RANGE} onChange={({ maxTokens }) => { if (maxTokens !== undefined) update({ maxTokens }); }} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={TL}>
       {takesReasoning(model) && <ReasoningEffortField value={settings.reasoningEffort} onChange={(reasoningEffort) => update({ reasoningEffort })} disabled={disabled} />}
+      </StagePart>
     </>
   );
 }

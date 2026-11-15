@@ -1829,7 +1829,9 @@
         "releasedValue": "ten fragment idzie do tłumaczenia",
         "notHeld": "Gdy nie jest wciśnięty",
         "notHeldValue": "Twój głos trafia prosto do drugiej strony, bez tłumaczenia"
-      }
+      },
+      "actsOn": "Dotyczy: {{stages}}",
+      "pointer": "Opcje dotyczące {{stages}} są na karcie „{{card}}”."
     },
     "display": {
       "surface": "Który widok",

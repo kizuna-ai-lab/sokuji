@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { NoiseReductionField } from '../../components/providers/fields/NoiseReductionField';
 import type { SettingsProps } from '../../lib/provider/types';
 import { NOISE_REDUCTIONS, type TranslateSettings } from './settings';
+import { TR } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 /**
  * OpenAI Translate's own settings (D18): what the old tab showed for it once
@@ -16,13 +18,17 @@ export function TranslateSettingsView({ settings, update, disabled = false }: Se
   const { t } = useTranslation();
   return (
     <>
+      <StagePart stages={TR}>
       <div className="settings-section translate-info-banner">
         <div className="info-banner">
           <Info size={14} />
           <span>{t('settings.translateInfoBanner')}</span>
         </div>
       </div>
+      </StagePart>
+      <StagePart stages={TR}>
       <NoiseReductionField value={settings.noiseReduction} options={NOISE_REDUCTIONS} onChange={(noiseReduction) => update({ noiseReduction })} disabled={disabled} />
+      </StagePart>
     </>
   );
 }

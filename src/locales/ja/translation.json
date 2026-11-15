@@ -1829,7 +1829,9 @@
         "releasedValue": "その区切りを翻訳に送る",
         "notHeld": "押していないとき",
         "notHeldValue": "自分の声がそのまま翻訳せずに相手へ届く"
-      }
+      },
+      "actsOn": "{{stages}}に作用します",
+      "pointer": "{{stages}}に作用するオプションは「{{card}}」カードにあります。"
     },
     "display": {
       "surface": "どの表示",

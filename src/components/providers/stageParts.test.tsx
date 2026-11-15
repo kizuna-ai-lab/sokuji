@@ -10,7 +10,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 import { render, screen, cleanup } from '@testing-library/react';
-import { SettingsStage, StagePart } from './stageParts';
+import { SettingsStage, StagePart, cardOptions } from './stageParts';
 import type { RunStage } from '../../lib/lineup/types';
 
 afterEach(() => cleanup());
@@ -59,5 +59,33 @@ describe('StagePart', () => {
   it('shows nothing that acts only on stages the provider does not serve', () => {
     render(<SettingsStage stage="transcription" served={['transcription']}>{<StagePart stages={['speech']}><span>Voice</span></StagePart>}</SettingsStage>);
     expect(screen.queryByText('Voice')).toBeNull();
+  });
+});
+
+describe('cardOptions', () => {
+  // Soniox's sets: the region on all three, voices on speech, background on transcription and translation, labels on transcription.
+  const SONIOX = [ALL, ['speech'], ['transcription', 'translation'], ['transcription']] as RunStage[][];
+
+  it('gives the first card its own options and the shared ones; a later card its own, pointing back for the rest', () => {
+    expect(cardOptions(SONIOX, ALL, 'transcription', false)).toEqual({ has: true, pointerTo: null, pointerStages: [] });
+    expect(cardOptions(SONIOX, ALL, 'translation', false)).toEqual({ has: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation', 'speech'] });
+    expect(cardOptions(SONIOX, ALL, 'speech', false)).toEqual({ has: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation', 'speech'] });
+  });
+
+  it('counts only the stages served: with speech elsewhere, the region acts on transcription and translation', () => {
+    expect(cardOptions(SONIOX, ['transcription', 'translation'], 'translation', false)).toEqual({ has: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation'] });
+  });
+
+  it('has nothing for a card whose stage no option acts on', () => {
+    expect(cardOptions([['speech']], ['translation', 'speech'], 'translation', false)).toEqual({ has: false, pointerTo: null, pointerStages: [] });
+  });
+
+  it("puts the turn detection in the transcription card", () => {
+    expect(cardOptions([], ['transcription'], 'transcription', true).has).toBe(true);
+  });
+
+  it('without a declaration, everything shows in the first card it serves', () => {
+    expect(cardOptions(undefined, ALL, 'transcription', false).has).toBe(true);
+    expect(cardOptions(undefined, ALL, 'speech', false).has).toBe(false);
   });
 });

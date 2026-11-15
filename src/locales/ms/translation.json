@@ -1829,7 +1829,9 @@
         "releasedValue": "potongan itu dihantar untuk diterjemah",
         "notHeld": "Semasa tidak ditekan",
         "notHeldValue": "suara anda terus kepada pihak lain tanpa terjemahan"
-      }
+      },
+      "actsOn": "Terpakai pada {{stages}}",
+      "pointer": "Pilihan yang terpakai pada {{stages}} ada dalam kad \"{{card}}\"."
     },
     "display": {
       "surface": "Paparan mana",

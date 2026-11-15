@@ -1829,7 +1829,9 @@
         "releasedValue": "esse trecho vai para a tradução",
         "notHeld": "Enquanto não está pressionada",
         "notHeldValue": "sua própria voz vai direto para o outro lado, sem tradução"
-      }
+      },
+      "actsOn": "Vale para {{stages}}",
+      "pointer": "As opções que valem para {{stages}} estão no cartão “{{card}}”."
     },
     "display": {
       "surface": "Qual exibição",

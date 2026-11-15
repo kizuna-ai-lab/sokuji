@@ -1829,7 +1829,9 @@
         "releasedValue": "skickas stycket för översättning",
         "notHeld": "När den inte hålls ned",
         "notHeldValue": "går din egen röst direkt till den andra sidan, oöversatt"
-      }
+      },
+      "actsOn": "Gäller {{stages}}",
+      "pointer": "Alternativen som gäller {{stages}} finns i kortet ”{{card}}”."
     },
     "display": {
       "surface": "Vilken visning",

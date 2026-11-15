@@ -1829,7 +1829,9 @@
         "releasedValue": "quel tratto va alla traduzione",
         "notHeld": "Quando non è premuto",
         "notHeldValue": "la tua voce va direttamente all’altra parte, senza traduzione"
-      }
+      },
+      "actsOn": "Vale per {{stages}}",
+      "pointer": "Le opzioni che valgono per {{stages}} sono nella scheda «{{card}}»."
     },
     "display": {
       "surface": "Quale visualizzazione",

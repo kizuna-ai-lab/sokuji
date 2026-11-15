@@ -1829,7 +1829,9 @@
         "releasedValue": "gaat dat stuk naar de vertaling",
         "notHeld": "Zolang niet ingedrukt",
         "notHeldValue": "gaat uw eigen stem onvertaald rechtstreeks naar de andere kant"
-      }
+      },
+      "actsOn": "Geldt voor {{stages}}",
+      "pointer": "De opties voor {{stages}} staan in de kaart ‘{{card}}’."
     },
     "display": {
       "surface": "Welke weergave",

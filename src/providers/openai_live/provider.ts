@@ -5,6 +5,7 @@ import { createLiveAdapter } from './adapter';
 import { checkLive } from './check';
 import { buildLive, describeLive, type LiveConfig } from './config';
 import { LiveSettingsView, LiveVoiceSummary } from './LiveSettings';
+import { SP, TL } from '../../lib/lineup/types';
 import {
   LIVE_DEFAULTS,
   LIVE_LEGACY_KEYS,
@@ -38,6 +39,8 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
 
   settings: { key: 'openaiLive', defaults: LIVE_DEFAULTS, legacyKeys: LIVE_LEGACY_KEYS, migrate: migrateLiveSettings },
   Settings: LiveSettingsView,
+  // The instructions on translation, the voices on speech (mock v19).
+  optionStages: [TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: LiveVoiceSummary,
 

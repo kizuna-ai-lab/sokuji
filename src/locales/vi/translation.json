@@ -1829,7 +1829,9 @@
         "releasedValue": "đoạn đó được gửi đi dịch",
         "notHeld": "Khi không giữ",
         "notHeldValue": "giọng của bạn đến thẳng phía bên kia, không dịch"
-      }
+      },
+      "actsOn": "Áp dụng cho {{stages}}",
+      "pointer": "Các tùy chọn áp dụng cho {{stages}} nằm trong thẻ \"{{card}}\"."
     },
     "display": {
       "surface": "Hiển thị nào",

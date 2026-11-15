@@ -1829,7 +1829,9 @@
         "releasedValue": "se pätkä lähtee käännettäväksi",
         "notHeld": "Kun et pidä pohjassa",
         "notHeldValue": "oma äänesi menee kääntämättä suoraan toiselle osapuolelle"
-      }
+      },
+      "actsOn": "Koskee: {{stages}}",
+      "pointer": "Asetukset, jotka koskevat näitä: {{stages}}, ovat kortilla ”{{card}}”."
     },
     "display": {
       "surface": "Mikä näkymä",

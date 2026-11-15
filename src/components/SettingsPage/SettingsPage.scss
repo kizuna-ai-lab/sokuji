@@ -729,3 +729,42 @@
     }
   }
 }
+
+// Each stage card's options (mock v19): the fold under the choice, the options under a hairline when open; a setting
+// acting on several stages says which under it; a later card points back to the first.
+.lineup-stage__options { margin-top: 2px; }
+.lineup-stage__options-body {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid vars.$border-subtle;
+  .config-section, .settings-section { margin: 0 0 8px; padding: 0; border: none; }
+}
+.lineup-stage__pointer { margin: 4px 0 0; font-size: 11.5px; color: vars.$text-muted; }
+.stage-part { display: flex; flex-direction: column; }
+.stage-part__acts { margin: -4px 0 8px; font-size: 11px; color: vars.$text-muted; }
+
+// The providers' own settings inside a stage card, at the page's compact scale: small headings, compact choices.
+.lineup-stage__options-body {
+  font-size: 12.5px;
+  h2, h3 { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; font-size: 13px; font-weight: vars.$weight-semibold; }
+  .setting-item { margin: 0 0 8px; }
+  .setting-label { font-size: 12.5px; }
+  textarea { font-size: 12.5px; }
+  .turn-detection-options {
+    display: inline-flex;
+    width: auto;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    overflow: hidden;
+    .option-button {
+      flex: none;
+      height: 24px;
+      padding: 0 12px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      & + .option-button { border-left: 1px solid vars.$border-subtle; }
+      &.active { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+    }
+  }
+}

@@ -1829,7 +1829,9 @@
         "releasedValue": "potongan itu dikirim untuk diterjemahkan",
         "notHeld": "Saat tidak ditahan",
         "notHeldValue": "suara Anda langsung ke pihak lain tanpa diterjemahkan"
-      }
+      },
+      "actsOn": "Berlaku untuk {{stages}}",
+      "pointer": "Opsi yang berlaku untuk {{stages}} ada di kartu \"{{card}}\"."
     },
     "display": {
       "surface": "Tampilan mana",

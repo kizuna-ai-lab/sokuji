@@ -1829,7 +1829,9 @@
         "releasedValue": "geht dieses Stück zur Übersetzung",
         "notHeld": "Solange sie nicht gedrückt ist",
         "notHeldValue": "geht Ihre eigene Stimme unübersetzt direkt zur Gegenseite"
-      }
+      },
+      "actsOn": "Gilt für {{stages}}",
+      "pointer": "Die Optionen für {{stages}} stehen in der Karte „{{card}}“."
     },
     "display": {
       "surface": "Welche Anzeige",

@@ -1829,7 +1829,9 @@
         "releasedValue": "这一段送去翻译",
         "notHeld": "没有按住的时候",
         "notHeldValue": "原声直接给对方，不翻译"
-      }
+      },
+      "actsOn": "作用于{{stages}}",
+      "pointer": "作用于{{stages}}的选项在“{{card}}”卡片里。"
     },
     "display": {
       "surface": "哪个界面",

@@ -1829,7 +1829,9 @@
         "releasedValue": "ipinapadala sa pagsasalin ang bahaging iyon",
         "notHeld": "Kapag hindi pinipindot",
         "notHeldValue": "diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin"
-      }
+      },
+      "actsOn": "Para sa {{stages}}",
+      "pointer": "Ang mga opsyon para sa {{stages}} ay nasa card na \"{{card}}\"."
     },
     "display": {
       "surface": "Aling display",

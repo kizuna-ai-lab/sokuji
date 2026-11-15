@@ -1829,7 +1829,9 @@
         "releasedValue": "這一段送去翻譯",
         "notHeld": "沒有按住的時候",
         "notHeldValue": "原聲直接給對方，不翻譯"
-      }
+      },
+      "actsOn": "作用於{{stages}}",
+      "pointer": "作用於{{stages}}的選項在「{{card}}」卡片裡。"
     },
     "display": {
       "surface": "哪個介面",

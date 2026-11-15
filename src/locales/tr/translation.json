@@ -1829,7 +1829,9 @@
         "releasedValue": "o parça çeviriye gider",
         "notHeld": "Basılı değilken",
         "notHeldValue": "kendi sesiniz çevrilmeden doğrudan karşı tarafa gider"
-      }
+      },
+      "actsOn": "{{stages}} için geçerli",
+      "pointer": "{{stages}} için geçerli seçenekler \"{{card}}\" kartında."
     },
     "display": {
       "surface": "Hangi görünüm",
