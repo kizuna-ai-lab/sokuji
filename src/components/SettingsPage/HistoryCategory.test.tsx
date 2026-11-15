@@ -30,7 +30,7 @@ const row = (name: string) => screen.getByText(name, { selector: '.general-row__
 
 beforeEach(() => {
   history.status = { available: true, dir: '/home/u/History' };
-  useSettingsStore.setState({ notesAfterSession: false, notesExplained: false, notesModel: 'gpt-6-luna' } as never);
+  useSettingsStore.setState({ notesAfterSession: false, notesExplained: false, notesModel: 'gpt-6-luna', liveNotes: false, liveNotesExplained: false } as never);
   useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
 });
 afterEach(() => cleanup());
@@ -170,5 +170,33 @@ describe('notes after the session', () => {
     await settle();
     expect((within(modelSelect()).getByRole('option', { name: 'Other' }) as HTMLOptionElement).selected).toBe(true);
     expect(within(row('Notes model')).getByRole('textbox', { name: 'Model name' })).toHaveValue('o3');
+  });
+});
+
+describe('live notes during a session', () => {
+  const NAME = 'Live notes during a session';
+  const toggle = () => within(row(NAME)).getByRole('switch');
+
+  it('cannot be turned on before a notes service is chosen', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    expect(toggle()).toHaveAttribute('aria-disabled', 'true');
+    expect(within(row(NAME)).getByText('Choose a notes service in Languages and line-up first.')).toBeInTheDocument();
+  });
+
+  it('explains once what is sent every 20 seconds, then switches at once; it can be turned off during a session', async () => {
+    render(<HistoryCategory locked />);
+    await settle();
+    fireEvent.click(toggle());
+    const explained = screen.getByRole('group', { name: 'Before live notes are written' });
+    expect(within(explained).getByText(/every 20 seconds/)).toBeInTheDocument();
+    fireEvent.click(within(explained).getByRole('button', { name: 'Turn on' }));
+    await settle();
+    expect(useSettingsStore.getState()).toMatchObject({ liveNotes: true, liveNotesExplained: true });
+    fireEvent.click(toggle());
+    await settle();
+    expect(screen.queryByRole('group', { name: 'Before live notes are written' })).toBeNull();
+    expect(useSettingsStore.getState().liveNotes).toBe(false);
   });
 });

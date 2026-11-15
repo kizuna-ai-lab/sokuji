@@ -12,7 +12,8 @@ import { NOTES_MODELS } from '../../lib/notes/chat';
 import type { HistoryStatus, HistoryUsage } from '../../lib/history/types';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import useSettingsStore, {
-  useNotesAfterSession, useNotesExplained, useNotesModel, useSetNotesAfterSession, useSetNotesExplained, useSetNotesModel,
+  useLiveNotesExplained, useLiveNotesSetting, useNotesAfterSession, useNotesExplained, useNotesModel, useSetLiveNotes,
+  useSetLiveNotesExplained, useSetNotesAfterSession, useSetNotesExplained, useSetNotesModel,
 } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import FormInput from '../Settings/shared/FormInput';
@@ -49,7 +50,12 @@ export function HistoryCategory(_props: CategoryBodyProps) {
   const setNotesOn = useSetNotesAfterSession();
   const setExplained = useSetNotesExplained();
   const setModel = useSetNotesModel();
-  const [explaining, setExplaining] = useState(false);
+  const liveOn = useLiveNotesSetting();
+  const liveExplained = useLiveNotesExplained();
+  const setLiveOn = useSetLiveNotes();
+  const setLiveExplained = useSetLiveNotesExplained();
+  /** Which switch's once-only explanation is shown. */
+  const [explaining, setExplaining] = useState<'after' | 'live' | null>(null);
   // The list, or "Other" with the name typed by hand (a stored model not on the list shows there).
   const listed = (m: string) => (NOTES_MODELS as readonly string[]).includes(m);
   const [typing, setTyping] = useState(!listed(model));
@@ -57,17 +63,31 @@ export function HistoryCategory(_props: CategoryBodyProps) {
   useEffect(() => { if (!listed(model)) { setTyping(true); setModelDraft(model); } }, [model]);
   const notesName = t('history.notesAfterSession', 'Write notes after each session');
   const modelName = t('history.notesModel', 'Notes model');
-  const explainTitle = t('history.notesExplainTitle', 'Before notes are written');
+  const liveName = t('history.liveNotes', 'Live notes during a session');
+  const explainTitle = explaining === 'live'
+    ? t('history.liveExplainTitle', 'Before live notes are written')
+    : t('history.notesExplainTitle', 'Before notes are written');
 
   // The first time on, the explanation comes first; after that the switch switches.
   const flipNotes = () => {
-    if (!notesOn && !explained) { setExplaining(true); return; }
+    if (!notesOn && !explained) { setExplaining('after'); return; }
     void setNotesOn(!notesOn);
   };
+  // Live notes take effect at the next session, or stop the running one's at once when turned off.
+  const flipLive = () => {
+    if (!liveOn && !liveExplained) { setExplaining('live'); return; }
+    void setLiveOn(!liveOn);
+  };
   const turnOn = async () => {
-    setExplaining(false);
-    await setExplained(true);
-    await setNotesOn(true);
+    const which = explaining;
+    setExplaining(null);
+    if (which === 'live') {
+      await setLiveExplained(true);
+      await setLiveOn(true);
+    } else {
+      await setExplained(true);
+      await setNotesOn(true);
+    }
   };
   const chooseModel = (value: string) => {
     if (value === OTHER_MODEL) { setTyping(true); setModelDraft(listed(model) ? '' : model); return; }
@@ -138,12 +158,19 @@ export function HistoryCategory(_props: CategoryBodyProps) {
           : t('history.notesNoService', 'Choose a notes service in Languages and line-up first.')}>
           <ToggleSwitch checked={notesOn && Boolean(service)} onChange={flipNotes} disabled={!service} label="" ariaLabel={notesName} />
         </Row>
+        <Row name={liveName} line={serviceName
+          ? t('history.liveLine', 'During a session, {{service}} keeps short notes every 20 seconds beside the conversation. They are not kept.', { service: serviceName })
+          : t('history.notesNoService', 'Choose a notes service in Languages and line-up first.')}>
+          <ToggleSwitch checked={liveOn && Boolean(service)} onChange={flipLive} disabled={!service} label="" ariaLabel={liveName} />
+        </Row>
         {explaining && serviceName && (
           <div className="history-category__explain" role="group" aria-label={explainTitle}>
             <strong>{explainTitle}</strong>
-            <p>{t('history.notesExplain', 'For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: serviceName })}</p>
+            <p>{explaining === 'live'
+              ? t('history.liveExplain', 'During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them) and the notes so far are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: serviceName })
+              : t('history.notesExplain', 'For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: serviceName })}</p>
             <div className="history-category__explain-actions">
-              <button type="button" className="model-row__btn" onClick={() => setExplaining(false)}>{t('history.cancel', 'Cancel')}</button>
+              <button type="button" className="model-row__btn" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
               <button type="button" className="model-row__btn model-row__btn--primary" onClick={() => void turnOn()}>{t('history.notesTurnOn', 'Turn on')}</button>
             </div>
           </div>
