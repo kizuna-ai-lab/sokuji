@@ -76,6 +76,16 @@ function createCloseHandshake({
   /** True when the close/quit may proceed now; otherwise it is held. */
   function hold(event, quit) {
     if (state === 'approved') return true;
+    // The page that was to answer is gone (crashed, reloaded mid-question): nothing will answer, so let it close.
+    if (state === 'waiting' && !hasLivePage()) {
+      if (timer) {
+        clearTimer(timer);
+        timer = null;
+      }
+      pendingAction = null;
+      state = 'approved';
+      return true;
+    }
     if (state === 'waiting') {
       event.preventDefault();
       if (quit) quitPending = true;

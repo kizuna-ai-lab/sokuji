@@ -52,6 +52,16 @@ describe('close handshake', () => {
     expect(win.close).toHaveBeenCalledTimes(1);
   });
 
+  it('lets a close through when the page that was asking is gone', () => {
+    hs.onWindowClose(event());
+    hs.asking();
+    win.webContents.crashed = true;
+    const again = event();
+    hs.onWindowClose(again);
+    expect(again.preventDefault).not.toHaveBeenCalled();
+    expect(hs.onBeforeQuit(event())).toBe(true);
+  });
+
   it('stays open when the user chooses to stay, and asks again at the next close', () => {
     const quit = event();
     expect(hs.onBeforeQuit(quit)).toBe(false);

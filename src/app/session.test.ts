@@ -1001,6 +1001,55 @@ describe('attach', () => {
       detach();
     });
 
+    it('writes no notes for a session the window closed, and asks nothing', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const notes = writingNotes([]);
+      const askQuit = vi.fn(async () => 'quit' as const);
+      const lineUpBefore = useLineUpStore.getState().lineUp;
+      useSettingsStore.setState({ notesAfterSession: true } as never);
+      useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
+      try {
+        const calls: string[] = [];
+        const answer = (name: string, value: unknown) => async () => { calls.push(name); return value; };
+        const port = { port: {
+          openRecord: answer('openRecord', undefined), putLeg: answer('putLeg', undefined), createTranscript: answer('createTranscript', 1),
+          putSegments: answer('putSegments', undefined), putNotices: answer('putNotices', undefined),
+          appendSentences: answer('appendSentences', { added: 0 }), reviseSentences: answer('reviseSentences', undefined),
+          closeRecord: answer('closeRecord', { kept: true }),
+        } as unknown as HistoryPort, calls: { map: <T>(f: (c: [string]) => T) => calls.map((c) => f([c])) } };
+        const { session, clock } = await setup({ ipc, notes, askQuit, history: port.port });
+        const detach = session.attach();
+        await session.runner.start();
+        clock.advance(8000);
+        await closeRequested();
+        await flush();
+        expect(port.calls.map((c) => c[0])).toContain('closeRecord');
+        expect(notes.start).not.toHaveBeenCalled();
+        expect(askQuit).not.toHaveBeenCalled();
+        expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+        detach();
+      } finally {
+        useSettingsStore.setState({ notesAfterSession: false } as never);
+        useLineUpStore.setState({ lineUp: lineUpBefore });
+      }
+    });
+
+    it('asks before ending a live session, and Stay leaves it running', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const notes = writingNotes(['run-0001-aaaa']);
+      let phaseWhenAsked = '';
+      const { session } = await setup({ ipc, notes, history: null, askQuit: async () => { phaseWhenAsked = session.runner.state.getState().phase; return 'stay'; } });
+      const detach = session.attach();
+      await session.runner.start();
+      await closeRequested();
+      expect(phaseWhenAsked).toBe('running');
+      expect(session.runner.state.getState().phase).toBe('running');
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-cancelled');
+      expect(ipc.invoke).not.toHaveBeenCalledWith('app:close-ready');
+      await session.runner.stop();
+      detach();
+    });
+
     it('closes at once when no notes are being written', async () => {
       const { ipc, closeRequested } = electronIpc();
       const askQuit = vi.fn(async () => 'stay' as const);

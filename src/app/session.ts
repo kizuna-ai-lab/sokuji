@@ -235,6 +235,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       });
     }
   }
+  /** Records whose run the app's own closing ended: no notes are written for them (spec §5.1). */
+  const closedByApp = new Set<string>();
   /** The notes runner: the app's on the desktop unless one is given. */
   const notesRunner = () => (options.notes === undefined ? (isElectron() ? appNotesRunner() : null) : options.notes);
   /** The titles of the records whose notes are being written, as far as History can tell. */
@@ -271,6 +273,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
       // Notes after the session: when the switch is on and the line-up names a notes service.
       onClosed: (recordId) => {
+        if (closedByApp.has(recordId)) return;
         const notes = notesRunner();
         if (notes && useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) notes.start(recordId);
       },
@@ -502,12 +505,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           // `abandon()` here — `settled()` no longer waits for an abandoned unwind
           // (roadmap 1e-1). The main process waits the runner's bound + 1 s.
           // Notes being written then: the user is asked (ruling 7). Quit stores them as cancelled; Stay keeps the app.
+          // Asked before anything stops, so Stay leaves a live session as it was.
           const onCloseRequested = async () => {
             let close = true;
             try {
-              await runner.stop('window');
-              await runner.settled();
-              await historySettled();
               const writing = notes?.running() ?? [];
               if (notes && writing.length > 0) {
                 await ipc.invoke('app:close-asking');
@@ -517,8 +518,17 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
                   await ipc.invoke('app:close-cancelled');
                   return;
                 }
-                for (const id of writing) notes.cancel(id);
-                await notesCancelled(notes, writing);
+              }
+              // A session the app's closing ends gets no notes, now or later (spec §5.1).
+              const live = runner.conversation.snapshot()[0]?.session;
+              if (live) closedByApp.add(live);
+              await runner.stop('window');
+              await runner.settled();
+              await historySettled();
+              const still = notes?.running() ?? [];
+              if (notes && still.length > 0) {
+                for (const id of still) notes.cancel(id);
+                await notesCancelled(notes, still);
               }
             } finally {
               if (close) {
