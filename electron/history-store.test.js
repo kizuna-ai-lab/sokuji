@@ -263,3 +263,51 @@ describe('speakers', () => {
     expect(() => s.reassignSentence({ transcriptId: t, n: 9, speaker: '1' })).toThrow(expect.objectContaining({ code: 'NO_SENTENCE' }));
   });
 });
+
+describe('notes versions', () => {
+  const BODY = {
+    title: 'Budget review',
+    overview: { text: 'We went through the budget.', format: 'plain' },
+    topics: [{ title: 'Costs', summary: 'Travel is down by a fifth.' }],
+    points: [{ text: 'Send the revised sheet by Friday.' }],
+    names: [],
+  };
+  let t;
+  const notes = (over = {}) => ({ recordId: ID, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'model-a' }, language: 'zh', state: 'complete', body: BODY, ...over });
+  beforeEach(() => {
+    s.openRecord(rec());
+    t = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'live' } });
+  });
+
+  it('every version is kept, newest first, and none replaces another', () => {
+    const a = s.saveNotes(notes({ language: 'zh' }));
+    const b = s.saveNotes(notes({ language: 'en' }));
+    expect(s.listNotes({ recordId: ID }).map((x) => [x.id, x.language])).toEqual([[b, 'en'], [a, 'zh']]);
+    expect(s.getNotes({ id: a }).body.title).toBe('Budget review');
+    expect(s.getNotes({ id: 999 })).toBeNull();
+  });
+
+  it('a failed version is stored with its reason and no body', () => {
+    const id = s.saveNotes(notes({ state: 'failed', failure: 'part 2 of 3 failed twice', body: null, requestIds: ['req-1', 'req-2'] }));
+    expect(s.getNotes({ id })).toEqual(expect.objectContaining({ state: 'failed', failure: 'part 2 of 3 failed twice', body: null, requestIds: ['req-1', 'req-2'] }));
+  });
+
+  it('a complete version without a body is refused', () => {
+    expect(() => s.saveNotes(notes({ body: null }))).toThrow(expect.objectContaining({ code: 'BAD_NOTES' }));
+  });
+
+  it("notes name their transcript, and it must be the record's", () => {
+    s.openRecord(rec({ id: 'run-0002-bbbb' }));
+    const other = s.createTranscript({ recordId: 'run-0002-bbbb', origin: { service: 'soniox', kind: 'live' } });
+    expect(() => s.saveNotes(notes({ transcriptId: other }))).toThrow(expect.objectContaining({ code: 'TRANSCRIPT_MISMATCH' }));
+    expect(s.listNotes({ recordId: ID })[0]).toBeUndefined();
+  });
+
+  it('the first complete version titles the record unless the user already did', () => {
+    s.saveNotes(notes());
+    expect(s.getRecord(ID).title).toBe('Budget review');
+    s.renameRecord({ id: ID, title: 'Mine' });
+    s.saveNotes(notes({ body: { ...BODY, title: 'Other' } }));
+    expect(s.getRecord(ID).title).toBe('Mine');
+  });
+});

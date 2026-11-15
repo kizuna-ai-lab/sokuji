@@ -19,6 +19,8 @@ const TRACKS = new Set(['microphone', 'other']);
 const TIME_KINDS = new Set(['given', 'spread', 'estimated']);
 const TEXT_KINDS = new Set(['original', 'translation']);
 const ORIGIN_KINDS = new Set(['live', 'file']);
+const NOTES_STATES = new Set(['complete', 'failed', 'cancelled']);
+const WRITERS = new Set(['sokuji', 'service']);
 
 class HistoryError extends Error {
   constructor(code, message) {
@@ -46,6 +48,25 @@ const ROW_COLUMNS = `
   exists (select 1 from tracks k where k.record_id = r.id and k.gone_at is null) as has_recording,
   (select count(*) from notes n where n.record_id = r.id) as notes_versions,
   (select coalesce(sum(k.bytes), 0) from tracks k where k.record_id = r.id and k.gone_at is null) as audio_bytes`;
+
+/** A notes body: { title, overview: { text, format }, topics, points, names }. */
+function isNotesBody(b) {
+  return isPlainObject(b) && isString(b.title) && isPlainObject(b.overview) && isString(b.overview.text)
+    && (b.overview.format === 'plain' || b.overview.format === 'markdown')
+    && Array.isArray(b.topics) && Array.isArray(b.points) && Array.isArray(b.names);
+}
+
+/** What search reads of a notes body: the title, the overview, each topic's title and summary, each point. */
+function notesSearchText(b) {
+  const parts = [b.title, b.overview.text];
+  for (const topic of b.topics) {
+    if (isPlainObject(topic)) parts.push(topic.title, topic.summary);
+  }
+  for (const point of b.points) {
+    if (isPlainObject(point)) parts.push(point.text);
+  }
+  return parts.filter(isString).join('\n');
+}
 
 function rowOf(r) {
   return {
@@ -413,6 +434,51 @@ function openHistory({ dir, now = () => Date.now() }) {
          order by k.side = 'other', k.speaker`,
         transcriptId,
       ).map((x) => ({ side: x.side, speaker: x.speaker, name: x.name, sentences: x.sentence_count }));
+    },
+
+    saveNotes({ recordId, transcriptId, writtenBy, language, state, failure = null, requestIds = [], body = null } = {}) {
+      const r = recordOrFail(recordId);
+      if (!isPlainObject(writtenBy) || !WRITERS.has(writtenBy.kind) || !isString(language) || !NOTES_STATES.has(state)
+        || !isOptionalString(failure) || !Array.isArray(requestIds) || !requestIds.every(isString)) {
+        fail('BAD_NOTES', 'Notes need writtenBy, language, state and request ids');
+      }
+      if (body !== null && !isNotesBody(body)) fail('BAD_NOTES', 'A notes body needs title, overview, topics, points and names');
+      if (state === 'complete' && body === null) fail('BAD_NOTES', 'Complete notes need a body');
+      if (transcriptId !== null && transcriptId !== undefined) {
+        const t = isInt(transcriptId) ? one('select record_id from transcripts where id = ?', transcriptId) : undefined;
+        if (!t || t.record_id !== recordId) fail('TRANSCRIPT_MISMATCH', `Transcript ${transcriptId} is not of record ${recordId}`);
+      }
+      return transaction(db, () => {
+        const { lastInsertRowid } = run(
+          `insert into notes (record_id, transcript_id, written_by, language, created_at, state, failure, request_ids, body, search_text)
+           values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          recordId, transcriptId ?? null, JSON.stringify(writtenBy), language, now(), state, failure ?? null,
+          JSON.stringify(requestIds), body === null ? null : JSON.stringify(body), body === null ? null : notesSearchText(body),
+        );
+        // A complete version titles the record unless the user named it.
+        if (state === 'complete' && r.title_by_user === 0 && body.title.trim()) {
+          run('update records set title = ? where id = ?', body.title.trim(), recordId);
+        }
+        return Number(lastInsertRowid);
+      });
+    },
+
+    listNotes({ recordId } = {}) {
+      return all('select id, transcript_id, written_by, language, created_at, state, failure from notes where record_id = ? order by id desc', recordId)
+        .map((n) => ({
+          id: n.id, transcriptId: n.transcript_id, writtenBy: JSON.parse(n.written_by), language: n.language,
+          createdAt: n.created_at, state: n.state, failure: n.failure,
+        }));
+    },
+
+    getNotes({ id } = {}) {
+      const n = isInt(id) ? one('select * from notes where id = ?', id) : undefined;
+      if (!n) return null;
+      return {
+        id: n.id, recordId: n.record_id, transcriptId: n.transcript_id, writtenBy: JSON.parse(n.written_by), language: n.language,
+        createdAt: n.created_at, state: n.state, failure: n.failure, requestIds: JSON.parse(n.request_ids),
+        body: n.body === null ? null : JSON.parse(n.body),
+      };
     },
 
     recordDir(id) {
