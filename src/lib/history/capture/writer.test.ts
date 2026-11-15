@@ -273,6 +273,22 @@ describe('the history writer', () => {
     ]);
   });
 
+  it('hands a sentence cut from words the recognizer has made final as settled, though its segment is still open', async () => {
+    writer.dispose();
+    const handed: Array<{ n: number; text: string; fromOpen: boolean }> = [];
+    writer = createHistoryWriter({
+      state, conversation, port: port.port, clock, facts: () => facts, report,
+      onSentences: (_id, list) => { for (const x of list) handed.push({ n: x.n, text: x.text, fromOpen: x.fromOpen }); },
+    });
+    start('run-0001-aaaa');
+    open('speaker', 1, 'source');
+    const words = 'Hello there. How';
+    text('speaker', 1, words, { heard: { pieces: [{ at: 0, len: 12, startAt: 1000, endAt: 1600 }], stableLen: 12 } });
+    clock.advance(1000);
+    await writer.settled();
+    expect(handed).toEqual([{ n: 1, text: 'Hello there.', fromOpen: false }]);
+  });
+
   it('closes the record when the run ends, after the last corrections', async () => {
     start('run-0001-aaaa');
     say('speaker', 1, 'hello');

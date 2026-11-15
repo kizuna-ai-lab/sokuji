@@ -70,7 +70,7 @@ export interface HistoryWriterDeps {
   onEnded?(recordId: string): void;
   /**
    * Sentences as they are numbered, each once, for the live notes; a later revision is never handed on (spec §5.2).
-   * `fromOpen`: cut from a segment the recognizer had not finished.
+   * `fromOpen`: cut from text the recognizer had not made final (an open segment that states no final part).
    */
   onSentences?(recordId: string, sentences: Array<HistorySentenceInput & { fromOpen: boolean }>): void;
 }
@@ -347,7 +347,9 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
             language: seg.language ?? (cutSide === 'source' ? leg.languages.source : leg.languages.target), timeKind: s.timeKind,
           };
           sentences.push(sentence);
-          handed.push({ ...sentence, fromOpen: !seg.final });
+          // Unsettled only when cut before the recognizer said its words were final: with a stated final part
+          // (`heard`) the cut never goes past it, so the sentence's text does not change.
+          handed.push({ ...sentence, fromOpen: !seg.final && !seg.heard });
         }
         for (const v of result.revised) {
           const n = t.numbers[v.index];
