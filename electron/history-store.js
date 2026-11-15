@@ -109,7 +109,6 @@ function openHistory({ dir, now = () => Date.now() }) {
   const run = (sql, ...params) => db.prepare(sql).run(...params);
 
   const folderOf = (id) => path.join(dir, 'records', id);
-  const removeFolder = (id) => fs.rmSync(folderOf(id), { recursive: true, force: true });
 
   function openRecordOrFail(id) {
     const r = recordOrFail(id);
@@ -169,10 +168,13 @@ function openHistory({ dir, now = () => Date.now() }) {
 
   const hasContent = (id) => one(`select ${HAS_CONTENT} as yes from records r where r.id = ?`, id)?.yes === 1;
 
-  /** Deletes a record's rows (the rest cascade) and its folder. */
+  /**
+   * Deletes a record's folder, then its rows (the rest cascade). The folder goes first: one that cannot be removed
+   * (a file held open, a folder without write access) leaves the record, so its space is never lost track of.
+   */
   function dropRecord(id) {
+    fs.rmSync(folderOf(id), { recursive: true, force: true, maxRetries: 3 });
     run('delete from records where id = ?', id);
-    removeFolder(id);
   }
 
   const store = {
@@ -213,8 +215,11 @@ function openHistory({ dir, now = () => Date.now() }) {
       const dropped = [];
       for (const r of all("select id, started_at from records where state = 'open' order by started_at, id")) {
         if (!hasContent(r.id)) {
-          dropRecord(r.id);
-          dropped.push(r.id);
+          // A folder that cannot be removed now leaves the record open: the next launch tries again.
+          try {
+            dropRecord(r.id);
+            dropped.push(r.id);
+          } catch { /* left for the next launch */ }
           continue;
         }
         const lastSentence = one(
@@ -567,14 +572,20 @@ function openHistory({ dir, now = () => Date.now() }) {
     purgeRecords({ ids } = {}) {
       if (!isIdList(ids)) fail('BAD_INPUT', 'ids must be a list of record ids');
       const purged = [];
+      const failed = [];
       for (const id of ids) {
         // The id comes back from the database: a path is never taken from the caller.
         const r = one('select id from records where id = ? and binned_at is not null', id);
         if (!r) continue;
-        dropRecord(r.id);
-        purged.push(r.id);
+        // One that cannot be removed stays in the bin; the daily purge tries it again.
+        try {
+          dropRecord(r.id);
+          purged.push(r.id);
+        } catch {
+          failed.push(r.id);
+        }
       }
-      return { purged };
+      return { purged, failed };
     },
 
     purgeExpired() {
@@ -618,11 +629,16 @@ function openHistory({ dir, now = () => Date.now() }) {
       const records = path.join(dir, 'records');
       for (const d of fs.readdirSync(records, { withFileTypes: true }).filter((x) => x.isDirectory()).map((x) => x.name).sort()) {
         if (known.has(d)) continue;
-        // A folder left by an interrupted purge or a crash: removed when empty; files in it are never deleted here.
-        if (fs.readdirSync(path.join(records, d)).length === 0) {
-          fs.rmdirSync(path.join(records, d));
-          removedEmpty.push(d);
-        } else {
+        // A folder left by an interrupted purge or a crash: removed when empty; files in it are never deleted here,
+        // and one that cannot be read or removed is only named.
+        try {
+          if (fs.readdirSync(path.join(records, d)).length === 0) {
+            fs.rmdirSync(path.join(records, d));
+            removedEmpty.push(d);
+          } else {
+            strays.push(d);
+          }
+        } catch {
           strays.push(d);
         }
       }

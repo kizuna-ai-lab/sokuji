@@ -1,7 +1,7 @@
 // electron/history-store.test.js
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
-import { mkdtempSync, rmSync, mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, existsSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -410,7 +410,7 @@ describe('bin, purge and space', () => {
     writeFileSync(join(s.recordDir(A), 'mine.ogg'), 'x');
     writeFileSync(join(s.recordDir(A), 'stray.tmp'), 'y');
     s.binRecords({ ids: [A] });
-    expect(s.purgeRecords({ ids: [A, B] })).toEqual({ purged: [A] });
+    expect(s.purgeRecords({ ids: [A, B] })).toEqual({ purged: [A], failed: [] });
     expect(existsSync(join(dir, 'records', A))).toBe(false);
     expect(s.getRecord(A)).toBeNull();
     expect(s.getRecord(B)).not.toBeNull();
@@ -425,9 +425,28 @@ describe('bin, purge and space', () => {
     kept(A);
     s.binRecords({ ids: [A] });
     clock += 29 * 86_400_000;
-    expect(s.purgeExpired()).toEqual({ purged: [] });
+    expect(s.purgeExpired()).toEqual({ purged: [], failed: [] });
     clock += 1 * 86_400_000;
-    expect(s.purgeExpired()).toEqual({ purged: [A] });
+    expect(s.purgeExpired()).toEqual({ purged: [A], failed: [] });
+  });
+
+  // Review: a folder that cannot be removed (a file held open, a folder without write access) must not orphan its audio.
+  it('a record whose folder cannot be removed stays in the bin with its audio, and the others are purged', () => {
+    kept(A, 1000); kept(B, 2000);
+    const locked = join(s.recordDir(A), 'held');
+    mkdirSync(locked);
+    writeFileSync(join(locked, 'mine.ogg'), 'x');
+    chmodSync(locked, 0o500);
+    try {
+      s.binRecords({ ids: [A, B] });
+      expect(s.purgeRecords({ ids: [A, B] })).toEqual({ purged: [B], failed: [A] });
+      expect(s.getRecord(A)).toEqual(expect.objectContaining({ binnedAt: expect.any(Number) }));
+      expect(existsSync(join(locked, 'mine.ogg'))).toBe(true);
+    } finally {
+      chmodSync(locked, 0o700);
+    }
+    expect(s.purgeRecords({ ids: [A] })).toEqual({ purged: [A], failed: [] });
+    expect(existsSync(join(dir, 'records', A))).toBe(false);
   });
 
   it('dropping a track removes the file and keeps the text', () => {
@@ -475,6 +494,19 @@ describe('bin, purge and space', () => {
     expect(existsSync(join(dir, 'records', 'run-0009-empty'))).toBe(false);
     expect(existsSync(join(dir, 'records', 'run-0008-files', 'mine.ogg'))).toBe(true);
     expect(existsSync(join(dir, 'records', A))).toBe(true);
+  });
+
+  it('at launch a folder that cannot be read is named and left alone, and the rest is still reconciled', () => {
+    const unreadable = join(dir, 'records', 'run-0007-lock');
+    mkdirSync(unreadable, { recursive: true });
+    mkdirSync(join(dir, 'records', 'run-0009-empty'), { recursive: true });
+    chmodSync(unreadable, 0o000);
+    try {
+      expect(s.reconcile()).toEqual(expect.objectContaining({ removedEmpty: ['run-0009-empty'], strays: ['run-0007-lock'] }));
+    } finally {
+      chmodSync(unreadable, 0o700);
+    }
+    expect(existsSync(unreadable)).toBe(true);
   });
 
   it('at launch a track whose file is gone is marked gone and the text stays', () => {

@@ -33,7 +33,8 @@ export interface HistoryPort {
   search(args: { query: string; limit?: number }): Promise<HistorySearchResult[]>;
   binRecords(args: { ids: string[] }): Promise<{ changed: number }>;
   restoreRecords(args: { ids: string[] }): Promise<{ changed: number }>;
-  purgeRecords(args: { ids: string[] }): Promise<{ purged: string[] }>;
+  /** `failed`: records whose folder could not be removed; they stay in the bin and are tried again. */
+  purgeRecords(args: { ids: string[] }): Promise<{ purged: string[]; failed: string[] }>;
   dropTrack(args: { recordId: string; source: string }): Promise<void>;
   usage(): Promise<HistoryUsage>;
   status(): Promise<HistoryStatus>;
@@ -146,7 +147,7 @@ export const nullHistoryPort: HistoryPort = {
   search: async () => [],
   binRecords: async () => ({ changed: 0 }),
   restoreRecords: async () => ({ changed: 0 }),
-  purgeRecords: async () => ({ purged: [] }),
+  purgeRecords: async () => ({ purged: [], failed: [] }),
   dropTrack: nothing,
   usage: async () => ({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 }),
   status: async () => ({ available: false, dir: '' }),
