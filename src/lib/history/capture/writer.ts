@@ -64,6 +64,11 @@ export interface HistoryWriterDeps {
   /** A record the store kept has closed (its notes may be written now). */
   onClosed?(recordId: string): void;
   /**
+   * A record's run has ended: called once, right after its last sentences were handed on and before the record is
+   * closed, whether or not the store keeps it (the live notes end with the run, not with the record's writes).
+   */
+  onEnded?(recordId: string): void;
+  /**
    * Sentences as they are numbered, each once, for the live notes; a later revision is never handed on (spec §5.2).
    * `fromOpen`: cut from a segment the recognizer had not finished.
    */
@@ -126,6 +131,13 @@ type WriteKind = 'record' | 'segments' | 'notices' | 'sentences' | 'corrections'
 type RetriedKind = Exclude<WriteKind, 'record'>;
 
 const withoutSpeech = ({ speech: _speech, heard: _heard, ...rest }: Segment): HistorySegment => rest;
+
+/** The record's "my language": what my side speaks, else what the other side is translated into. */
+export function myLanguageOf(legs: readonly Leg[]): string {
+  const speaker = legs.find((l) => l.leg === 'speaker');
+  const participant = legs.find((l) => l.leg === 'participant');
+  return speaker ? speaker.languages.source : participant?.languages.target ?? '';
+}
 
 export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
   const { state, conversation, port, clock } = deps;
@@ -204,7 +216,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const info = conversation.info;
     const speaker = legs.find((l) => l.leg === 'speaker');
     const participant = legs.find((l) => l.leg === 'participant');
-    const myLanguage = speaker ? speaker.languages.source : participant?.languages.target ?? '';
+    const myLanguage = myLanguageOf(legs);
     const targetLanguage = speaker ? speaker.languages.target : participant?.languages.source ?? '';
     const models = Object.fromEntries(Object.entries(info?.models ?? {}).filter((e): e is [string, string] => typeof e[1] === 'string'));
     const r: Rec = {
@@ -425,6 +437,11 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       report(`History closed record ${r.id} with some of its transcript that could not be written`, null);
       tellOnce(r);
     });
+    try {
+      deps.onEnded?.(r.id);
+    } catch (error) {
+      report('History could not tell the end of the session', error);
+    }
     // The recording's last pages before the record closes; ended even when the record's writes were given up.
     const recorder = deps.recorder;
     if (recorder) chain = chain.then(() => recorder.end(r.id).catch((error) => report('History could not finish the recording', error)));

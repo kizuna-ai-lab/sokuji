@@ -27,7 +27,7 @@ afterEach(() => cleanup());
 
 describe('the live notes panel', () => {
   it('shows the title, the topics in order with their points and kinds, the open one marked', () => {
-    act(() => useLiveNotes.getState().update(notes));
+    act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
     const panel = screen.getByRole('complementary', { name: 'Live notes' });
     expect(within(panel).getByRole('heading', { name: 'Supplier sync' })).toBeInTheDocument();
@@ -42,15 +42,15 @@ describe('the live notes panel', () => {
   it('says when it is waiting for the first notes, when updates fail, and when it was turned off', () => {
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
     expect(screen.getByText('Notes appear here as the conversation goes on.')).toBeInTheDocument();
-    act(() => useLiveNotes.getState().setHint(true));
+    act(() => useLiveNotes.getState().setHint('run-0001-aaaa', true));
     expect(screen.getByRole('status')).toHaveTextContent('Live notes could not be updated. They will try again.');
-    act(() => useLiveNotes.getState().turnedOff());
+    act(() => useLiveNotes.getState().turnedOff('run-0001-aaaa'));
     expect(screen.getByText('Live notes are off.')).toBeInTheDocument();
   });
 
   it('after Stop, leads to History', () => {
     const open = vi.fn();
-    act(() => { useLiveNotes.getState().update(notes); useLiveNotes.getState().end(); });
+    act(() => { useLiveNotes.getState().update('run-0001-aaaa', notes); useLiveNotes.getState().end('run-0001-aaaa'); });
     useSettingsStore.setState({ notesAfterSession: true } as never);
     render(<LiveNotesPanel onOpenHistory={open} />);
     expect(screen.getByText('The full notes will be in History.')).toBeInTheDocument();

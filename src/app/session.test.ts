@@ -42,6 +42,11 @@ const devices = vi.hoisted(() => ({
   },
 }));
 vi.mock('../lib/audio/capture/mic', () => ({ openMic: () => devices.open() }));
+const labellerBuilds = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../lib/notes/runner', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/notes/runner')>();
+  return { ...actual, notesSpeakerLabel: (...args: Parameters<typeof actual.notesSpeakerLabel>) => { labellerBuilds.count += 1; return actual.notesSpeakerLabel(...args); } };
+});
 vi.mock('../lib/audio/capture/systemAudio', () => ({ openSystemAudio: () => devices.open() }));
 vi.mock('../lib/audio/capture/tab', () => ({ openTab: () => devices.open() }));
 vi.mock('../lib/audio/capture/echoWatch', () => ({
@@ -1026,6 +1031,114 @@ describe('attach', () => {
       });
     });
 
+    type LiveDeps = import('../lib/notes/live/loop').LiveNotesDeps;
+    /** A loop whose Stop gives one last answer, and whose Stop can be held. */
+    function answeringLive(o: { hold?: boolean } = {}) {
+      const made: Array<{ deps: LiveDeps; stopped: boolean; disposed: boolean; release: () => void }> = [];
+      const factory = (deps: LiveDeps) => {
+        let release = () => {};
+        const held = new Promise<void>((resolve) => { release = resolve; });
+        const one = { deps, stopped: false, disposed: false, release };
+        made.push(one);
+        return {
+          sentences: () => {},
+          stop: async () => {
+            one.stopped = true;
+            if (o.hold) await held;
+            deps.onState({ title: 'Last word', topics: [] });
+          },
+          dispose: () => { one.disposed = true; },
+        };
+      };
+      return { made, factory };
+    }
+
+    it('shows the last update the loop gives at Stop', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', state: { title: 'Last word' }, ended: true }));
+      });
+    });
+
+    it("leaves a new session's notes alone when the last session's final update comes late", async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive({ hold: true });
+        let runs = 0;
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never, newSessionId: () => `run${++runs}` });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(2));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run2', running: true });
+        live.made[0].release();
+        await flush();
+        await flush();
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run2', state: null, running: true, ended: false });
+        await session.runner.stop();
+      });
+    });
+
+    it('ends the loop with the run even when History does not keep the record', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const port = historyPort();
+        (port as unknown as { closeRecord: () => Promise<unknown> }).closeRecord = async () => ({ kept: false });
+        const { session, clock } = await setup({ history: port, ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true }));
+      });
+    });
+
+    it('a new start takes the last session\'s notes off the screen, the line saying they were off included', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useSettingsStore.setState({ liveNotes: false } as never);
+        await session.runner.stop();
+        await session.runner.settled();
+        expect(useLiveNotes.getState()).toMatchObject({ off: true });
+        await session.runner.start();
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, off: false, ended: false, running: false });
+        await session.runner.stop();
+      });
+    });
+
+    it('builds the speaker labels once per update, not once per sentence', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(20_000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await vi.waitFor(() => expect(live.made[0].sentences.length).toBeGreaterThan(1));
+        const deps = live.made[0].deps as LiveDeps;
+        const sentence = { n: live.made[0].sentences[0], side: 'other', sideCertain: true, speaker: '1', startMs: 0, endMs: 1, text: 'x', fromOpen: false } as never;
+        labellerBuilds.count = 0;
+        for (let i = 0; i < 50; i++) deps.speakerLabel(sentence);
+        expect(labellerBuilds.count).toBeLessThanOrEqual(1);
+        await session.runner.stop();
+      });
+    });
+
     it('Clear empties the notes on screen, not the loop', async () => {
       await withLive(true, 'openai', async () => {
         const live = fakeLive();
@@ -1034,7 +1147,7 @@ describe('attach', () => {
         await session.runner.start();
         clock.advance(8000);
         await vi.waitFor(() => expect(live.made).toHaveLength(1));
-        useLiveNotes.getState().update({ title: 'T', topics: [] });
+        useLiveNotes.getState().update('run1', { title: 'T', topics: [] });
         session.runner.clear();
         expect(useLiveNotes.getState().state).toBeNull();
         expect(live.made[0].disposed).toBe(false);

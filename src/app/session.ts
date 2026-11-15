@@ -12,7 +12,7 @@ import { realClock, type Clock } from '../lib/contract/clock';
 import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportError, reportWarning } from '../lib/diagnostics/report';
 import { historyPort, type HistoryPort } from '../lib/history/port';
-import { createHistoryWriter } from '../lib/history/capture/writer';
+import { createHistoryWriter, myLanguageOf } from '../lib/history/capture/writer';
 import { captureFactsFromStores } from '../lib/history/capture/facts';
 import { createHistoryRecorder, type HistoryRecorder } from '../lib/history/recording/recorder';
 import { opusRecordingSupported, webCodecsOpusEncoder } from '../lib/history/recording/opusEncoder';
@@ -252,22 +252,37 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const asHistory = (s: LiveSentence): HistorySentence => ({
     ...s, segmentId: s.segmentId ?? null, speakerByUser: null, speakerName: null, language: s.language ?? null,
   });
+  /** The speaker labels for a loop, built again only when sentences were added (an update asks for each it sends). */
+  const labelsFor = (seen: readonly LiveSentence[]) => {
+    let label: ((s: HistorySentence) => string) | null = null;
+    let builtFor = -1;
+    return (s: LiveSentence): string => {
+      if (!label || builtFor !== seen.length) {
+        label = notesSpeakerLabel(seen.map(asHistory));
+        builtFor = seen.length;
+      }
+      return label(asHistory(s));
+    };
+  };
   const onLiveSentences = (recordId: string, list: LiveSentence[]) => {
     if (!liveFactory) return;
     if (!live || live.recordId !== recordId) {
+      // Another record's loop still here (its run's end was not seen): it has its last update now.
+      if (live) endLive(live.recordId, false);
       if (!liveWanted()) return;
       const begun = { recordId, loop: null as Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> | null, pending: [] as LiveSentence[], seen: [] as LiveSentence[] };
       live = begun;
       useLiveNotes.getState().begin(recordId);
       void notesChatFromStores().then((service) => {
         if (live !== begun) return;
-        if (!service) { live = null; useLiveNotes.getState().turnedOff(); return; }
-        const mine = runner.conversation.snapshot().find((l) => l.leg === 'speaker')?.languages.source ?? 'auto';
+        if (!service) { live = null; useLiveNotes.getState().turnedOff(recordId); return; }
         begun.loop = liveFactory({
-          chat: service.chat, clock, language: notesLanguageOf({ myLanguage: mine }),
-          speakerLabel: (s) => notesSpeakerLabel(begun.seen.map(asHistory))(asHistory(s)),
-          onState: (state) => { if (live === begun) useLiveNotes.getState().update(state); },
-          onHint: (shown) => { if (live === begun) useLiveNotes.getState().setHint(shown); },
+          // The record's own "my language", as the notes after the session use (spec §6.5).
+          chat: service.chat, clock, language: notesLanguageOf({ myLanguage: myLanguageOf(runner.conversation.snapshot()) }),
+          speakerLabel: labelsFor(begun.seen),
+          // Keyed by the record: the last update after Stop still lands, and nothing lands once another session shows.
+          onState: (state) => useLiveNotes.getState().update(recordId, state),
+          onHint: (shown) => useLiveNotes.getState().setHint(recordId, shown),
           log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
         });
         begun.loop.sentences(begun.pending);
@@ -283,15 +298,19 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     if (!live || live.recordId !== recordId) return;
     const ending = live;
     live = null;
-    if (closing) { ending.loop?.dispose(); useLiveNotes.getState().end(); return; }
-    void (ending.loop?.stop() ?? Promise.resolve()).finally(() => useLiveNotes.getState().end());
+    if (closing) { ending.loop?.dispose(); useLiveNotes.getState().end(recordId); return; }
+    void (ending.loop?.stop() ?? Promise.resolve()).finally(() => useLiveNotes.getState().end(recordId));
   };
+  // A new run: the last session's live notes leave the screen, and its late answers no longer land there.
+  runner.state.subscribe((now, before) => {
+    if (now.phase === 'starting' && before.phase === 'idle') useLiveNotes.getState().reset();
+  });
   // Turned off during a session: the loop goes at once, and the panel says so.
   useSettingsStore.subscribe((now, before) => {
     if (!before.liveNotes || now.liveNotes || !live) return;
     live.loop?.dispose();
+    useLiveNotes.getState().turnedOff(live.recordId);
     live = null;
-    useLiveNotes.getState().turnedOff();
   });
   /** The notes runner: the app's on the desktop unless one is given. */
   const notesRunner = () => (options.notes === undefined ? (isElectron() ? appNotesRunner() : null) : options.notes);
@@ -329,8 +348,9 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
       // Notes after the session: when the switch is on and the line-up names a notes service.
       onSentences: onLiveSentences,
+      // The live notes end with the run, whether or not History keeps the record.
+      onEnded: (recordId) => endLive(recordId, closedByApp.has(recordId)),
       onClosed: (recordId) => {
-        endLive(recordId, closedByApp.has(recordId));
         if (closedByApp.has(recordId)) return;
         const notes = notesRunner();
         if (notes && useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) notes.start(recordId);

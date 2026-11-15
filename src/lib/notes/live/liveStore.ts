@@ -19,25 +19,35 @@ export interface LiveNotesView {
   ended: boolean;
 }
 
+/** Each action that comes from a loop names its record: an answer of a session that has ended changes nothing once the
+ *  screen shows another (or none). */
 export interface LiveNotesActions {
   begin(recordId: string): void;
-  update(state: LiveState): void;
-  setHint(shown: boolean): void;
+  update(recordId: string, state: LiveState): void;
+  setHint(recordId: string, shown: boolean): void;
   /** The session ended (its last update is in). */
-  end(): void;
-  turnedOff(): void;
-  /** Clear: the notes on screen go; a running loop goes on. */
+  end(recordId: string): void;
+  turnedOff(recordId: string): void;
+  /** Clear: the notes on screen go; a running loop goes on. After the session, nothing is left. */
   clear(): void;
+  /** A new run starts: the last session's notes go, and nothing of it lands here any more. */
+  reset(): void;
 }
 
 const EMPTY: LiveNotesView = { recordId: null, state: null, hint: false, running: false, off: false, ended: false };
 
-export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => ({
-  ...EMPTY,
-  begin: (recordId) => set({ ...EMPTY, recordId, running: true }),
-  update: (state) => set({ state }),
-  setHint: (hint) => set({ hint }),
-  end: () => set({ running: false, ended: true, hint: false }),
-  turnedOff: () => set({ running: false, off: true, hint: false }),
-  clear: () => set((s) => ({ state: null, ended: s.running ? false : s.ended, off: s.running ? false : s.off })),
-}));
+export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
+  /** Applies `change` only while the screen shows `recordId`'s notes. */
+  const forRecord = (recordId: string, change: Partial<LiveNotesView>) =>
+    set((s) => (s.recordId === recordId ? change : s));
+  return {
+    ...EMPTY,
+    begin: (recordId) => set({ ...EMPTY, recordId, running: true }),
+    update: (recordId, state) => forRecord(recordId, { state }),
+    setHint: (recordId, hint) => forRecord(recordId, { hint }),
+    end: (recordId) => forRecord(recordId, { running: false, ended: true, hint: false }),
+    turnedOff: (recordId) => forRecord(recordId, { running: false, off: true, hint: false }),
+    clear: () => set((s) => (s.running ? { state: null } : EMPTY)),
+    reset: () => set(EMPTY),
+  };
+});

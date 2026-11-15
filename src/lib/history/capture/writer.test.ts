@@ -8,7 +8,7 @@ import type { LegName } from '../../conversation/types';
 import { ConversationSet } from '../../session/conversationSet';
 import type { RunState } from '../../session/types';
 import type { HistoryPort } from '../port';
-import { createHistoryWriter, TICK_MS, type CaptureFacts, type HistoryWriter } from './writer';
+import { createHistoryWriter, myLanguageOf, TICK_MS, type CaptureFacts, type HistoryWriter } from './writer';
 
 type Call = [string, any];
 function recordingPort() {
@@ -302,6 +302,36 @@ describe('the history writer', () => {
     end();
     await writer.settled();
     expect(closed).toEqual(['run-0001-aaaa']);
+  });
+
+  it('says when a run has ended, after its last sentences and before the record is closed, kept or not', async () => {
+    writer.dispose();
+    const events: string[] = [];
+    writer = createHistoryWriter({
+      state, conversation, port: port.port, clock, facts: () => facts, report,
+      onSentences: (id, list) => events.push(`sentences ${id} ${list.map((s) => s.n).join(',')}`),
+      onEnded: (id) => events.push(`ended ${id}`),
+    });
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Said before Stop.');
+    port.slow('closeRecord');
+    end();
+    expect(events).toEqual(['sentences run-0001-aaaa 1', 'ended run-0001-aaaa']);
+    port.release();
+    await writer.settled();
+
+    port.fail('closeRecord', 1);
+    start('run-0002-bbbb');
+    end();
+    await writer.settled();
+    expect(events).toEqual(['sentences run-0001-aaaa 1', 'ended run-0001-aaaa', 'ended run-0002-bbbb']);
+  });
+
+  it("names the record's language the same way for the record and the live notes: my side's, else what the other side is translated into", () => {
+    const leg = (name: LegName, source: string, target: string) => ({ leg: name, session: 's', languages: { source, target }, segments: [], notices: [] });
+    expect(myLanguageOf([leg('speaker', 'zh', 'ja'), leg('participant', 'ja', 'zh')])).toBe('zh');
+    expect(myLanguageOf([leg('participant', 'en', 'ja')])).toBe('ja');
+    expect(myLanguageOf([])).toBe('');
   });
 
   it('keeps what was written when Clear is pressed and goes on with new segments', async () => {
