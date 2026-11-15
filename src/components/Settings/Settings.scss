@@ -1113,51 +1113,17 @@
 }
 
 // The one range slider, top level so a `.config-section` row gets it as well as a
-// `.settings-section .setting-item` (the passthrough volume, the segmentation pauses).
+// `.settings-section .setting-item` (the providers' options, the segmentation pauses). Drawn as Display's
+// background opacity is (owner, 2026-11-15): the browser's own slider in the primary colour, its run filled.
 .slider {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
   width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  background: vars.$bg-elevated;
-  outline: none;
+  accent-color: vars.$color-primary;
   cursor: pointer;
-
-  &::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: vars.$slider-thumb-size;
-    height: vars.$slider-thumb-size;
-    border-radius: 50%;
-    background: vars.$color-primary;
-    cursor: pointer;
-  }
-
-  &::-moz-range-thumb {
-    width: vars.$slider-thumb-size;
-    height: vars.$slider-thumb-size;
-    border-radius: 50%;
-    background: vars.$color-primary;
-    cursor: pointer;
-    border: none;
-  }
 
   &:disabled {
     @include vars.disabled-state;
     opacity: 0.6;
     cursor: not-allowed;
-
-    &::-webkit-slider-thumb {
-      background: vars.$text-disabled;
-      cursor: not-allowed;
-    }
-
-    &::-moz-range-thumb {
-      background: vars.$text-disabled;
-      cursor: not-allowed;
-    }
   }
 }
 
