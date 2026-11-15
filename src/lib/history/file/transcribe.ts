@@ -66,7 +66,10 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   // everyone on one track, so who is on which side is not known.
   const sideCertain = record.mode !== 'import'
     && !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
-  const languageHints = hintsOf(record.legs.map((l) => l.languages));
+  // In the service's own codes; one it does not know is not sent.
+  const hint = o.service.languageHint;
+  const languageHints = hintsOf(record.legs.map((l) => l.languages))
+    .map((code) => (hint ? hint(code) : code)).filter((code): code is string => !!code);
 
   const lists: FileSentence[][] = [];
   for (const track of tracks) {

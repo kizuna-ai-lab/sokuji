@@ -15,9 +15,9 @@ beforeEach(() => {
 
 describe('the file recognition service', () => {
   it('is Soniox with the key of the selected region', async () => {
-    expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-us', region: 'us' });
+    expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-us', region: 'us', languageHint: expect.any(Function) });
     soniox({ region: 'eu' }, { apiKey: 'sk-us', apiKeyEu: 'sk-eu' });
-    expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-eu', region: 'eu' });
+    expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-eu', region: 'eu', languageHint: expect.any(Function) });
   });
 
   it('is missing when the recognition service cannot transcribe files, or the region has no key', async () => {

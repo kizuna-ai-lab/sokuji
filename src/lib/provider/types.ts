@@ -216,6 +216,8 @@ export interface FileRecognitionSpec {
   service: string;
   apiKey: string;
   region?: string;
+  /** The service's code for an app language code, or null when it has none (the hint is then not sent). */
+  languageHint?: (code: string) => string | null;
 }
 
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object, R extends { missing?: never } & object = K> {

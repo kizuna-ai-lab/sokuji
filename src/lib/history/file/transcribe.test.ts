@@ -78,6 +78,13 @@ describe('transcribing a record again', () => {
     expect(sentences.map((s) => [s.side, s.sideCertain])).toEqual([['other', false]]);
   });
 
+  it('sends the language hints in the service’s own codes, dropping those it does not know', async () => {
+    const { port, asked } = fakePort({ words: { speaker: said('One.', 0), participant: said('Two.', 0) } });
+    const service = { ...SERVICE, languageHint: (code: string) => (code === 'zh' ? 'zh' : null) };
+    await transcribeRecord({ port, recordId: ID, service, newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => r.languageHints)).toEqual([['zh'], ['zh']]);
+  });
+
   it('writes nothing when one track fails, and passes its reason on', async () => {
     const { port, written } = fakePort({ fail: 'participant', words: { speaker: said('One.', 0) } });
     await expect(transcribeRecord({ port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) })).rejects.toMatchObject({ code: 'NO_KEY' });
