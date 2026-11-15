@@ -68,6 +68,9 @@ function notesSearchText(b) {
   return parts.filter(isString).join('\n');
 }
 
+/** A LIKE pattern matching `query` literally anywhere: `\\`, `%` and `_` stand for themselves. */
+const likeAnywhere = (query) => `%${query.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
 function rowOf(r) {
   return {
     id: r.id,
@@ -479,6 +482,53 @@ function openHistory({ dir, now = () => Date.now() }) {
         createdAt: n.created_at, state: n.state, failure: n.failure, requestIds: JSON.parse(n.request_ids),
         body: n.body === null ? null : JSON.parse(n.body),
       };
+    },
+
+    search({ query, limit = 50 } = {}) {
+      if (!isString(query)) fail('BAD_INPUT', 'query must be a string');
+      if (!isInt(limit) || limit < 1) fail('BAD_INPUT', 'limit must be a positive integer');
+      const text = query.trim();
+      if (!text) return [];
+      const pattern = likeAnywhere(text);
+      const found = new Map();
+      const entry = (id) => {
+        if (!found.has(id)) found.set(id, { sentences: [], translations: [], notes: [], title: false });
+        return found.get(id);
+      };
+      for (const x of all(
+        `select t.record_id, t.id as transcript_id, t.text_kind, s.n, s.text, s.start_ms, s.segment_id
+         from sentences s join transcripts t on t.id = s.transcript_id join records r on r.id = t.record_id
+         where r.binned_at is null and s.text like ? escape '\\'`, pattern,
+      )) entry(x.record_id).sentences.push(x);
+      for (const g of all(
+        `select g.record_id, g.id, g.text, g.opened_at, g.position from segments g join records r on r.id = g.record_id
+         where r.binned_at is null and g.side = 'translation' and g.text like ? escape '\\'`, pattern,
+      )) entry(g.record_id).translations.push(g);
+      for (const n of all(
+        `select n.record_id, n.id from notes n join records r on r.id = n.record_id
+         where r.binned_at is null and n.search_text like ? escape '\\'`, pattern,
+      )) entry(n.record_id).notes.push(n);
+      for (const r of all("select id from records where binned_at is null and title like ? escape '\\'", pattern)) entry(r.id).title = true;
+
+      const results = [];
+      for (const [recordId, m] of found) {
+        // Sentences: those of the newest transcript that matches; a translation segment one of them was cut from is that sentence.
+        const newest = m.sentences.reduce((max, x) => Math.max(max, x.transcript_id), -1);
+        const sentences = m.sentences.filter((x) => x.transcript_id === newest)
+          .sort((a, b) => a.start_ms - b.start_ms || a.n - b.n);
+        const cutFrom = new Set(m.sentences.filter((x) => x.text_kind === 'translation' && x.segment_id).map((x) => x.segment_id));
+        const translations = m.translations.filter((g) => !cutFrom.has(g.id)).sort((a, b) => a.opened_at - b.opened_at || a.position - b.position);
+        const notes = [...m.notes].sort((a, b) => b.id - a.id);
+        const hits = sentences.length + translations.length + notes.length + (m.title ? 1 : 0);
+        if (hits === 0) continue;
+        const first = sentences.length > 0 ? { kind: 'sentence', transcriptId: sentences[0].transcript_id, n: sentences[0].n, text: sentences[0].text }
+          : translations.length > 0 ? { kind: 'translation', segmentId: translations[0].id, text: translations[0].text }
+          : notes.length > 0 ? { kind: 'notes', notesId: notes[0].id }
+          : { kind: 'title' };
+        const r = one('select title, started_at from records where id = ?', recordId);
+        results.push({ recordId, title: r.title, startedAt: r.started_at, hits, first });
+      }
+      return results.sort((a, b) => b.startedAt - a.startedAt || (a.recordId < b.recordId ? 1 : -1)).slice(0, limit);
     },
 
     recordDir(id) {

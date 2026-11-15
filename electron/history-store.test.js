@@ -311,3 +311,65 @@ describe('notes versions', () => {
     expect(s.getRecord(ID).title).toBe('Mine');
   });
 });
+
+describe('search', () => {
+  const sent = (n, text, over = {}) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text, timeKind: 'given', ...over });
+  /** A record with one live transcript holding these sentence texts; returns the transcript id. */
+  const make = (id, startedAt, texts) => {
+    s.openRecord(rec({ id, startedAt }));
+    const t = s.createTranscript({ recordId: id, origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: t, sentences: texts.map((x, i) => sent(i + 1, x)) });
+    return t;
+  };
+  const A = 'run-000a-aaaa';
+  const B = 'run-000b-bbbb';
+
+  it('finds a record by a word in a sentence and says where', () => {
+    const tA = make(A, 1000, ['我们讨论视频通话的延迟', '下周再看']);
+    make(B, 2000, ['nothing here']);
+    expect(s.search({ query: '视频通话' })).toEqual([{ recordId: A, title: null, startedAt: 1000, hits: 1, first: { kind: 'sentence', transcriptId: tA, n: 1, text: '我们讨论视频通话的延迟' } }]);
+  });
+
+  it('matches two-character words and is case-insensitive for Latin text', () => {
+    make(A, 1000, ['我们讨论视频通话的延迟']);
+    make(B, 2000, ['nothing here']);
+    expect(s.search({ query: '通话' }).length).toBe(1);
+    expect(s.search({ query: 'NOTHING' }).map((r) => r.recordId)).toEqual([B]);
+  });
+
+  it('treats % _ and backslash as plain characters', () => {
+    make('run-000c-cccc', 1000, ['完成 100% 了']);
+    make('run-000d-dddd', 2000, ['a_b']);
+    make('run-000e-eeee', 3000, ['path C:\\temp']);
+    expect(s.search({ query: '100%' }).map((r) => r.recordId)).toEqual(['run-000c-cccc']);
+    expect(s.search({ query: '%' }).map((r) => r.recordId)).toEqual(['run-000c-cccc']);
+    expect(s.search({ query: '_' }).map((r) => r.recordId)).toEqual(['run-000d-dddd']);
+    expect(s.search({ query: 'C:\\temp' }).map((r) => r.recordId)).toEqual(['run-000e-eeee']);
+  });
+
+  it('also looks in translations, notes and titles, and counts them', () => {
+    const t = make(A, 1000, ['开会']);
+    s.putLeg({ recordId: A, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    s.putSegments({ recordId: A, leg: 'speaker', segments: [{ id: `${A}:speaker:2`, ref: 1, side: 'translation', text: 'The budget is tight', final: true, openedAt: 5, marks: [] }] });
+    s.saveNotes({ recordId: A, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', state: 'complete',
+      body: { title: 'Weekly', overview: { text: 'Budget first.', format: 'plain' }, topics: [], points: [], names: [] } });
+    s.renameRecord({ id: A, title: 'Budget sync' });
+    expect(s.search({ query: 'budget' })).toEqual([expect.objectContaining({ recordId: A, title: 'Budget sync', hits: 3, first: { kind: 'translation', segmentId: `${A}:speaker:2`, text: 'The budget is tight' } })]);
+  });
+
+  it('an empty query finds nothing', () => {
+    make(A, 1000, ['anything']);
+    expect(s.search({ query: '   ' })).toEqual([]);
+  });
+
+  it.todo('leaves binned records out');
+
+  it('counts a sentence cut from the translation once, not again as its translation segment', () => {
+    s.openRecord(rec({ id: A, startedAt: 1000 }));
+    s.putLeg({ recordId: A, leg: 'participant', languages: { source: 'ja', target: 'zh' } });
+    s.putSegments({ recordId: A, leg: 'participant', segments: [{ id: `${A}:participant:1`, ref: 1, side: 'translation', text: 'see you tomorrow', final: true, openedAt: 5, marks: [] }] });
+    const t = s.createTranscript({ recordId: A, origin: { service: 'local_inference', kind: 'live' }, textKind: 'translation' });
+    s.appendSentences({ transcriptId: t, sentences: [sent(1, 'see you tomorrow', { segmentId: `${A}:participant:1`, side: 'other', track: 'other' })] });
+    expect(s.search({ query: 'tomorrow' })).toEqual([expect.objectContaining({ recordId: A, hits: 1, first: { kind: 'sentence', transcriptId: t, n: 1, text: 'see you tomorrow' } })]);
+  });
+});
