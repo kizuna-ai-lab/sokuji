@@ -115,16 +115,16 @@ describe('Models and storage — the session models', () => {
     // A download in progress is shown without opening anything.
     const busy = row('Moonshine Tiny JA (quantized)');
     expect(within(busy).getByText('Downloading 25%')).toBeInTheDocument();
-    fireEvent.click(within(busy).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(busy).getByRole('button', { name: /^Cancel/ }));
     expect(store.cancelDownload).toHaveBeenCalledWith('moonshine-tiny-ja-quant');
     more('Recognition');
-    fireEvent.click(within(row('Moonshine Tiny EN (quantized)')).getByRole('button', { name: 'Download' }));
+    fireEvent.click(within(row('Moonshine Tiny EN (quantized)')).getByRole('button', { name: /^Download/ }));
     expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-en-quant');
   });
 
   it('deletes a downloaded model after asking', async () => {
     mount();
-    fireEvent.click(within(row('Opus-MT (en → ja)')).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(row('Opus-MT (en → ja)')).getByRole('button', { name: /^Delete/ }));
     fireEvent.click(within(row('Opus-MT (en → ja)')).getByRole('button', { name: 'Yes' }));
     await waitFor(() => expect(store.deleteModel).toHaveBeenCalledWith('opus-mt-en-jap'));
   });
@@ -134,26 +134,26 @@ describe('Models and storage — the session models', () => {
     more('Recognition');
     const gpu = row('Cohere Transcribe (WebGPU)');
     expect(within(gpu).getByText("This computer can't run it")).toBeInTheDocument();
-    expect(within(gpu).queryByRole('button', { name: 'Download' })).toBeNull();
+    expect(within(gpu).queryByRole('button', { name: /^Download/ })).toBeNull();
   });
 
   it('takes no download or delete during a session', () => {
     mount(true);
-    expect(within(row('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: 'Download' })).toBeDisabled();
-    expect(within(row('SenseVoice (int8)')).getByRole('button', { name: 'Delete' })).toBeDisabled();
+    expect(within(row('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: /^Download/ })).toBeDisabled();
+    expect(within(row('SenseVoice (int8)')).getByRole('button', { name: /^Delete/ })).toBeDisabled();
   });
 });
 
 describe('Models and storage — the helper models', () => {
   it('manages Smart Turn here: Delete when it is on disk, Download when not', async () => {
     const first = mount();
-    fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: /^Delete/ }));
     fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: 'Yes' }));
     await waitFor(() => expect(turn.remove).toHaveBeenCalled());
     first.unmount();
     useSmartTurnStore.setState({ phase: 'missing' } as never);
     mount();
-    fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: 'Download' }));
+    fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: /^Download/ }));
     expect(turn.download).toHaveBeenCalled();
   });
 
@@ -161,14 +161,14 @@ describe('Models and storage — the helper models', () => {
     mount();
     const pack = screen.getByText(/Edge-Punct-Casing/).closest('.model-row') as HTMLElement;
     expect(within(pack).getByText('Sentences and punctuation')).toBeInTheDocument();
-    fireEvent.click(within(pack).getByRole('button', { name: 'Download' }));
+    fireEvent.click(within(pack).getByRole('button', { name: /^Download/ }));
     expect(punct.download).toHaveBeenCalled();
   });
 
   it('keeps the Japanese readings dictionary here: deleted from its row, downloaded from Display', async () => {
     const first = mount();
     const dictRow = await screen.findByText('Readings dictionary (Japanese)');
-    fireEvent.click(within(dictRow.closest('.model-row') as HTMLElement).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(dictRow.closest('.model-row') as HTMLElement).getByRole('button', { name: /^Delete/ }));
     fireEvent.click(within(dictRow.closest('.model-row') as HTMLElement).getByRole('button', { name: 'Yes' }));
     await waitFor(() => expect(dict.deleteDictionary).toHaveBeenCalled());
     first.unmount();
@@ -184,7 +184,7 @@ describe('Models and storage — imported voices and the summary', () => {
     mount();
     const voice = (await screen.findByText('My voice 1')).closest('.model-row') as HTMLElement;
     expect(within(voice).getByText('Voice')).toBeInTheDocument();
-    fireEvent.click(within(voice).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(voice).getByRole('button', { name: /^Delete/ }));
     fireEvent.click(within(voice).getByRole('button', { name: 'Yes' }));
     await waitFor(() => expect(voices.deleteVoice).toHaveBeenCalledWith(4));
   });
@@ -239,5 +239,16 @@ describe('Models and storage — imported voices and the summary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import a model from files' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Choose a model to import' }), { target: { value: 'opus-mt-en-de' } });
     expect(screen.getByTestId('import-modal')).toHaveTextContent('Opus-MT (en → de)');
+  });
+});
+
+// PR review (#711): a row's buttons say which model they act on, so a screen reader's list of buttons is not a column of "Delete".
+describe('Models and storage — buttons named by their model', () => {
+  it('names the model in each Download, Delete and Cancel', () => {
+    useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
+    mount();
+    expect(screen.getByRole('button', { name: 'Delete: SenseVoice (int8)' })).toHaveTextContent('Delete');
+    expect(screen.getByRole('button', { name: 'Download: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' })).toHaveTextContent('Download');
+    expect(screen.getByRole('button', { name: 'Cancel: Moonshine Tiny JA (quantized)' })).toHaveTextContent('Cancel');
   });
 });

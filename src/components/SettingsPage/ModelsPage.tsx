@@ -176,11 +176,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
             onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useModelStore.getState().deleteModel(m.id); }} />
         )}>
         {dl ? (
-          <button type="button" className="model-row__btn" onClick={() => useModelStore.getState().cancelDownload(m.id)}>{t('models.cancel', 'Cancel')}</button>
+          <button type="button" className="model-row__btn" aria-label={`${t('models.cancel', 'Cancel')}: ${m.name}`} onClick={() => useModelStore.getState().cancelDownload(m.id)}>{t('models.cancel', 'Cancel')}</button>
         ) : statuses[m.id] === 'downloaded' ? (
-          <button type="button" className="model-row__btn" disabled={locked} onClick={() => setAsking(m.id)}>{t('models.delete', 'Delete')}</button>
+          <button type="button" className="model-row__btn" disabled={locked} aria-label={`${t('models.delete', 'Delete')}: ${m.name}`} onClick={() => setAsking(m.id)}>{t('models.delete', 'Delete')}</button>
         ) : runnable && (
-          <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} onClick={() => void useModelStore.getState().downloadModel(m.id)}>{t('models.page.download', 'Download')}</button>
+          <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} aria-label={`${t('models.page.download', 'Download')}: ${m.name}`} onClick={() => void useModelStore.getState().downloadModel(m.id)}>{t('models.page.download', 'Download')}</button>
         )}
       </ModelRow>
     );
@@ -188,8 +188,8 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
   // The helper models: each managed through its own store, as their settings do.
   const turnEntry = getManifestEntry(SMART_TURN_MODEL_ID);
-  const deleteButton = (key: string) => (
-    <button type="button" className="model-row__btn" disabled={locked} onClick={() => setAsking(key)}>{t('models.delete', 'Delete')}</button>
+  const deleteButton = (key: string, name: string) => (
+    <button type="button" className="model-row__btn" disabled={locked} aria-label={`${t('models.delete', 'Delete')}: ${name}`} onClick={() => setAsking(key)}>{t('models.delete', 'Delete')}</button>
   );
   const helperState = (phase: string, done: number, total: number) =>
     phase === 'ready' ? t('models.downloaded', 'Downloaded')
@@ -295,8 +295,8 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
               <Confirm question={t('engineUi.deleteConfirm', 'Delete {{name}}?', { name: turnEntry.name })} locked={locked}
                 onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useSmartTurnStore.getState().remove(); }} />
             )}>
-            {turnPhase === 'ready' ? deleteButton('turn') : turnPhase !== 'downloading' && (
-              <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} onClick={() => void useSmartTurnStore.getState().download()}>{t('models.page.download', 'Download')}</button>
+            {turnPhase === 'ready' ? deleteButton('turn', turnEntry.name) : turnPhase !== 'downloading' && (
+              <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} aria-label={`${t('models.page.download', 'Download')}: ${turnEntry.name}`} onClick={() => void useSmartTurnStore.getState().download()}>{t('models.page.download', 'Download')}</button>
             )}
           </ModelRow>
         )}
@@ -307,9 +307,9 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
             <Confirm question={t('engineUi.deleteConfirm', 'Delete {{name}}?', { name: packName })} locked={locked}
               onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useSegmentationStore.getState().deleteModels(); }} />
           )}>
-          {packPhase === 'ready' ? deleteButton('pack')
-            : packPhase === 'downloading' ? <button type="button" className="model-row__btn" onClick={() => useSegmentationStore.getState().cancel()}>{t('models.cancel', 'Cancel')}</button>
-              : <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} onClick={() => void useSegmentationStore.getState().download()}>{t('models.page.download', 'Download')}</button>}
+          {packPhase === 'ready' ? deleteButton('pack', packName)
+            : packPhase === 'downloading' ? <button type="button" className="model-row__btn" aria-label={`${t('models.cancel', 'Cancel')}: ${packName}`} onClick={() => useSegmentationStore.getState().cancel()}>{t('models.cancel', 'Cancel')}</button>
+              : <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} aria-label={`${t('models.page.download', 'Download')}: ${packName}`} onClick={() => void useSegmentationStore.getState().download()}>{t('models.page.download', 'Download')}</button>}
         </ModelRow>
         <ModelRow tag={t('models.page.tag.readings', 'Readings')} name={dictName}
           meta={dictStored === false
@@ -320,7 +320,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
             <Confirm question={t('engineUi.deleteConfirm', 'Delete {{name}}?', { name: dictName })} locked={locked}
               onNo={() => setAsking(null)} onYes={() => { setAsking(null); deleteDictionary().then(() => setLooks((n) => n + 1), () => setLooks((n) => n + 1)); }} />
           )}>
-          {dictStored === true && deleteButton('dict')}
+          {dictStored === true && deleteButton('dict', dictName)}
         </ModelRow>
       </Group>
 
@@ -333,7 +333,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
                 <Confirm question={t('engineUi.deleteConfirm', 'Delete {{name}}?', { name: v.name })} locked={locked}
                   onNo={() => setAsking(null)} onYes={() => { setAsking(null); void deleteVoice(v); }} />
               )}>
-              {deleteButton(`voice-${v.id}`)}
+              {deleteButton(`voice-${v.id}`, v.name)}
             </ModelRow>
           ))}
         </Group>
