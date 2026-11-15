@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Activar",
     "notesModel": "Modelo de las notas",
     "notesModelLine": "El modelo de texto que escribe las notas, con su nombre en el servicio.",
+    "notes": "Notas",
+    "transcript": "Transcripción",
+    "notesKind": {
+      "decision": "Decisión",
+      "todo": "Tarea",
+      "risk": "Riesgo"
+    },
+    "notesFilter": {
+      "all": "Todo",
+      "decision": "Decisiones",
+      "todo": "Tareas",
+      "risk": "Riesgos"
+    },
+    "notesFilterLabel": "Mostrar",
+    "notesStateFailed": "falló",
+    "notesStateCancelled": "detenido",
+    "notesVersion": "Versión",
+    "notesLanguage": "Idioma de las notas",
+    "notesWriting": "Escribiendo notas…",
+    "notesTooShort": "Este registro tiene demasiado poco para escribir notas.",
+    "notesWrite": "Escribir notas",
+    "notesWriteAgain": "Escribir una versión nueva",
+    "notesFailed": "No se pudieron escribir las notas: {{reason}}",
+    "notesTryAgain": "Reintentar",
+    "notesCancelled": "Se detuvo la escritura de estas notas.",
+    "tagWritingNotes": "Escribiendo notas",
+    "tagNotesFailed": "Notas fallidas",
     "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco.",
     "length": "Duración {{length}}"
   }

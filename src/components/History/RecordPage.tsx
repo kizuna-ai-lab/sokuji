@@ -8,7 +8,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import { ChevronLeft, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
-import { languageLabel } from '../../lib/language/label';
+import { englishLanguageName, languageLabel, uiLocale } from '../../lib/language/label';
+import type { NotesLanguage } from '../../lib/notes/runner';
+import { NOTES_MIN_MS } from '../../lib/notes/write';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
 import { recordRows, type RecordRow, type SpeakerLabels } from '../../lib/history/recordView';
 import type { HistorySentenceSide } from '../../lib/history/types';
@@ -17,6 +19,7 @@ import { useHistoryPageContext } from './historyContext';
 import { formatBytes, formatDateTime, formatLength, isComposing } from './format';
 import RecordExportMenu from './RecordExportMenu';
 import RecordPlayer, { type SeekFn } from './RecordPlayer';
+import RecordNotes from './RecordNotes';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import './History.scss';
 
@@ -34,6 +37,9 @@ const spaceBetween = (before: string, after: string) => {
   const b = [...after][0];
   return !(a && b && UNSPACED.test(a) && UNSPACED.test(b));
 };
+
+/** From this width of the page the notes stand beside the transcript; narrower, each has its tab. */
+const NOTES_WIDE_PX = 1000;
 
 /** A value inside a quoted attribute selector. */
 const quoted = (value: string) => value.replace(/["\\]/g, '\\$&');
@@ -146,8 +152,47 @@ export const RecordPage: React.FC = () => {
     transcriptRef.current?.querySelector<HTMLElement>(`[data-row="${quoted(playingKey)}"]`)?.scrollIntoView?.({ block: 'nearest' });
   }, [playingKey]);
 
+  // The notes: beside the transcript on a wide page, in a tab of their own on a narrow one.
+  const notesRunning = useStore(store, (s) => s.notesRunning);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const [wide, setWide] = useState(false);
+  const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
+  const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const watch = new ResizeObserver(() => setWide(el.clientWidth >= NOTES_WIDE_PX));
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A point or topic of the notes: the transcript shows its sentence, marked, and plays from it when there is sound.
+  useEffect(() => {
+    if (!jumpTo || !open) return;
+    setJumpTo(null);
+    const selector = `[data-n="${jumpTo.n}"]`;
+    transcriptRef.current?.querySelector<HTMLElement>(selector)?.scrollIntoView?.({ block: 'center' });
+    setHit(selector);
+    const sentence = open.sentences.find((s) => s.n === jumpTo.n);
+    if (sentence && playable(open.record.tracks).length > 0) seekRef.current?.(startFor(sentence), true);
+  }, [jumpTo, open]);
+  const notesLanguages = useMemo((): NotesLanguage[] => {
+    if (!open) return [];
+    const codes = [open.record.myLanguage, open.record.targetLanguage, uiLocale(language)]
+      .filter((c) => c && c !== 'auto' && !c.includes('+'));
+    return [...new Set(codes)].map((code) => ({ code, name: englishLanguageName(code) }));
+  }, [open, language]);
+
   if (!open) return null;
   const { record } = open;
+  const span = open.sentences.length > 0
+    ? Math.max(...open.sentences.map((s) => s.endMs)) - Math.min(...open.sentences.map((s) => s.startMs)) : 0;
+  const notesView = (
+    <RecordNotes
+      record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
+      onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
+      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }}
+    />
+  );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
@@ -304,7 +349,7 @@ export const RecordPage: React.FC = () => {
     });
 
   return (
-    <div className="record-page">
+    <div className="record-page" ref={pageRef}>
       <header className="record-page__head">
         <button type="button" className="settings-page__back" onClick={() => actions.closeRecord()}>
           <ChevronLeft size={14} aria-hidden="true" /> {t('history.backToList', 'Back to the list')}
@@ -405,9 +450,16 @@ export const RecordPage: React.FC = () => {
           </div>
         </div>
       )}
-      <div className="record-page__columns">
-        <div className="record-page__transcript" ref={transcriptRef}>{transcript}</div>
-        <aside className="record-page__side">{speakersPanel}</aside>
+      {!wide && (
+        <div className="record-page__panes" role="tablist">
+          <button type="button" role="tab" aria-selected={pane === 'notes'} onClick={() => setPane('notes')}>{t('history.notes', 'Notes')}</button>
+          <button type="button" role="tab" aria-selected={pane === 'transcript'} onClick={() => setPane('transcript')}>{t('history.transcript', 'Transcript')}</button>
+        </div>
+      )}
+      <div className={`record-page__columns${wide ? ' is-wide' : ''}`}>
+        <div className="record-page__notes" hidden={!wide && pane !== 'notes'}>{notesView}</div>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>{transcript}</div>
+        <aside className="record-page__side" hidden={!wide && pane !== 'transcript'}>{speakersPanel}</aside>
       </div>
       <div className="record-page__player">
         {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}

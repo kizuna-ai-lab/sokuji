@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Activer",
     "notesModel": "Modèle des notes",
     "notesModelLine": "Le modèle de texte qui rédige les notes, sous son nom chez le service.",
+    "notes": "Notes",
+    "transcript": "Transcription",
+    "notesKind": {
+      "decision": "Décision",
+      "todo": "À faire",
+      "risk": "Risque"
+    },
+    "notesFilter": {
+      "all": "Tout",
+      "decision": "Décisions",
+      "todo": "À faire",
+      "risk": "Risques"
+    },
+    "notesFilterLabel": "Afficher",
+    "notesStateFailed": "échec",
+    "notesStateCancelled": "arrêté",
+    "notesVersion": "Version",
+    "notesLanguage": "Langue des notes",
+    "notesWriting": "Rédaction des notes…",
+    "notesTooShort": "Cet enregistrement contient trop peu pour en rédiger des notes.",
+    "notesWrite": "Rédiger les notes",
+    "notesWriteAgain": "Rédiger une nouvelle version",
+    "notesFailed": "Impossible de rédiger les notes : {{reason}}",
+    "notesTryAgain": "Réessayer",
+    "notesCancelled": "La rédaction de ces notes a été arrêtée.",
+    "tagWritingNotes": "Notes en cours",
+    "tagNotesFailed": "Notes en échec",
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
     "length": "Durée {{length}}"
   }

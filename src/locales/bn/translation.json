@@ -2028,6 +2028,33 @@
     "notesTurnOn": "চালু করুন",
     "notesModel": "নোটের মডেল",
     "notesModelLine": "যে টেক্সট মডেল নোট লেখে, পরিষেবায় তার নাম।",
+    "notes": "নোট",
+    "transcript": "ট্রান্সক্রিপ্ট",
+    "notesKind": {
+      "decision": "সিদ্ধান্ত",
+      "todo": "করণীয়",
+      "risk": "ঝুঁকি"
+    },
+    "notesFilter": {
+      "all": "সব",
+      "decision": "সিদ্ধান্ত",
+      "todo": "করণীয়",
+      "risk": "ঝুঁকি"
+    },
+    "notesFilterLabel": "দেখান",
+    "notesStateFailed": "ব্যর্থ",
+    "notesStateCancelled": "থামানো হয়েছে",
+    "notesVersion": "সংস্করণ",
+    "notesLanguage": "নোটের ভাষা",
+    "notesWriting": "নোট লেখা হচ্ছে…",
+    "notesTooShort": "এই রেকর্ডে নোট লেখার মতো যথেষ্ট কিছু নেই।",
+    "notesWrite": "নোট লিখুন",
+    "notesWriteAgain": "নতুন সংস্করণ লিখুন",
+    "notesFailed": "নোট লেখা যায়নি: {{reason}}",
+    "notesTryAgain": "আবার চেষ্টা করুন",
+    "notesCancelled": "এই নোট লেখা থামানো হয়েছিল।",
+    "tagWritingNotes": "নোট লেখা হচ্ছে",
+    "tagNotesFailed": "নোট ব্যর্থ",
     "transcriptStopped": "এই সেশনের ট্রান্সক্রিপ্টের কিছু অংশ সংরক্ষণ করা যায়নি: ডিস্কে লেখা যায়নি।",
     "length": "দৈর্ঘ্য {{length}}"
   }

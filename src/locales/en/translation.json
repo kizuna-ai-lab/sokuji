@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Turn on",
     "notesModel": "Notes model",
     "notesModelLine": "The text model that writes the notes, by its name at the service.",
+    "notes": "Notes",
+    "transcript": "Transcript",
+    "notesKind": {
+      "decision": "Decision",
+      "todo": "To do",
+      "risk": "Risk"
+    },
+    "notesFilter": {
+      "all": "All",
+      "decision": "Decisions",
+      "todo": "To-dos",
+      "risk": "Risks"
+    },
+    "notesFilterLabel": "Show",
+    "notesStateFailed": "failed",
+    "notesStateCancelled": "stopped",
+    "notesVersion": "Version",
+    "notesLanguage": "Language of the notes",
+    "notesWriting": "Writing notes…",
+    "notesTooShort": "There is too little in this record to write notes from.",
+    "notesWrite": "Write notes",
+    "notesWriteAgain": "Write a new version",
+    "notesFailed": "The notes could not be written: {{reason}}",
+    "notesTryAgain": "Try again",
+    "notesCancelled": "Writing these notes was stopped.",
+    "tagWritingNotes": "Writing notes",
+    "tagNotesFailed": "Notes failed",
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "length": "Length {{length}}"
   }

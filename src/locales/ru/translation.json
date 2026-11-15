@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Включить",
     "notesModel": "Модель для заметок",
     "notesModelLine": "Текстовая модель, которая пишет заметки, под её названием в сервисе.",
+    "notes": "Заметки",
+    "transcript": "Расшифровка",
+    "notesKind": {
+      "decision": "Решение",
+      "todo": "Задача",
+      "risk": "Риск"
+    },
+    "notesFilter": {
+      "all": "Все",
+      "decision": "Решения",
+      "todo": "Задачи",
+      "risk": "Риски"
+    },
+    "notesFilterLabel": "Показать",
+    "notesStateFailed": "не удалось",
+    "notesStateCancelled": "остановлено",
+    "notesVersion": "Версия",
+    "notesLanguage": "Язык заметок",
+    "notesWriting": "Пишутся заметки…",
+    "notesTooShort": "В этой записи слишком мало, чтобы написать по ней заметки.",
+    "notesWrite": "Написать заметки",
+    "notesWriteAgain": "Написать новую версию",
+    "notesFailed": "Не удалось написать заметки: {{reason}}",
+    "notesTryAgain": "Повторить",
+    "notesCancelled": "Написание этих заметок было остановлено.",
+    "tagWritingNotes": "Пишутся заметки",
+    "tagNotesFailed": "Заметки не удались",
     "transcriptStopped": "Часть расшифровки этого сеанса не удалось сохранить: не удалось записать её на диск.",
     "length": "Длительность {{length}}"
   }

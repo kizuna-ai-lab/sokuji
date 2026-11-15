@@ -2028,6 +2028,33 @@
     "notesTurnOn": "روشن کردن",
     "notesModel": "مدل یادداشت‌ها",
     "notesModelLine": "مدل متنی که یادداشت‌ها را می‌نویسد، با نامش در سرویس.",
+    "notes": "یادداشت",
+    "transcript": "رونوشت",
+    "notesKind": {
+      "decision": "تصمیم",
+      "todo": "کار",
+      "risk": "ریسک"
+    },
+    "notesFilter": {
+      "all": "همه",
+      "decision": "تصمیم‌ها",
+      "todo": "کارها",
+      "risk": "ریسک‌ها"
+    },
+    "notesFilterLabel": "نمایش",
+    "notesStateFailed": "ناموفق",
+    "notesStateCancelled": "متوقف شد",
+    "notesVersion": "نسخه",
+    "notesLanguage": "زبان یادداشت‌ها",
+    "notesWriting": "در حال نوشتن یادداشت‌ها…",
+    "notesTooShort": "این رکورد برای نوشتن یادداشت محتوای کافی ندارد.",
+    "notesWrite": "نوشتن یادداشت‌ها",
+    "notesWriteAgain": "نوشتن نسخهٔ جدید",
+    "notesFailed": "یادداشت‌ها نوشته نشد: {{reason}}",
+    "notesTryAgain": "تلاش دوباره",
+    "notesCancelled": "نوشتن این یادداشت‌ها متوقف شد.",
+    "tagWritingNotes": "در حال نوشتن یادداشت",
+    "tagNotesFailed": "یادداشت ناموفق",
     "transcriptStopped": "بخشی از رونوشت این جلسه ذخیره نشد: روی دیسک نوشته نشد.",
     "length": "مدت {{length}}"
   }

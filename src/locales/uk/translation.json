@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Увімкнути",
     "notesModel": "Модель для нотаток",
     "notesModelLine": "Текстова модель, яка пише нотатки, під її назвою в сервісі.",
+    "notes": "Нотатки",
+    "transcript": "Розшифровка",
+    "notesKind": {
+      "decision": "Рішення",
+      "todo": "Завдання",
+      "risk": "Ризик"
+    },
+    "notesFilter": {
+      "all": "Усе",
+      "decision": "Рішення",
+      "todo": "Завдання",
+      "risk": "Ризики"
+    },
+    "notesFilterLabel": "Показати",
+    "notesStateFailed": "не вдалося",
+    "notesStateCancelled": "зупинено",
+    "notesVersion": "Версія",
+    "notesLanguage": "Мова нотаток",
+    "notesWriting": "Пишуться нотатки…",
+    "notesTooShort": "У цьому записі замало, щоб написати за ним нотатки.",
+    "notesWrite": "Написати нотатки",
+    "notesWriteAgain": "Написати нову версію",
+    "notesFailed": "Не вдалося написати нотатки: {{reason}}",
+    "notesTryAgain": "Спробувати ще раз",
+    "notesCancelled": "Написання цих нотаток зупинено.",
+    "tagWritingNotes": "Пишуться нотатки",
+    "tagNotesFailed": "Нотатки не вдалися",
     "transcriptStopped": "Частину розшифровки цього сеансу не вдалося зберегти: не вдалося записати її на диск.",
     "length": "Тривалість {{length}}"
   }

@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Inschakelen",
     "notesModel": "Model voor notities",
     "notesModelLine": "Het tekstmodel dat de notities schrijft, met de naam die de dienst gebruikt.",
+    "notes": "Notities",
+    "transcript": "Transcriptie",
+    "notesKind": {
+      "decision": "Besluit",
+      "todo": "Taak",
+      "risk": "Risico"
+    },
+    "notesFilter": {
+      "all": "Alles",
+      "decision": "Besluiten",
+      "todo": "Taken",
+      "risk": "Risico’s"
+    },
+    "notesFilterLabel": "Tonen",
+    "notesStateFailed": "mislukt",
+    "notesStateCancelled": "gestopt",
+    "notesVersion": "Versie",
+    "notesLanguage": "Taal van de notities",
+    "notesWriting": "Notities worden geschreven…",
+    "notesTooShort": "Deze opname bevat te weinig om er notities van te schrijven.",
+    "notesWrite": "Notities schrijven",
+    "notesWriteAgain": "Nieuwe versie schrijven",
+    "notesFailed": "De notities konden niet worden geschreven: {{reason}}",
+    "notesTryAgain": "Opnieuw proberen",
+    "notesCancelled": "Het schrijven van deze notities is gestopt.",
+    "tagWritingNotes": "Notities in de maak",
+    "tagNotesFailed": "Notities mislukt",
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "length": "Duur {{length}}"
   }

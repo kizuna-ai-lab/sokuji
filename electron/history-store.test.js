@@ -297,6 +297,13 @@ describe('notes versions', () => {
     expect(s.getNotes({ id: 999 })).toBeNull();
   });
 
+  it("a record's row says how its newest version ended", () => {
+    expect(s.listRecords({})[0].notesState).toBeNull();
+    s.saveNotes(notes());
+    s.saveNotes(notes({ state: 'failed', failure: 'Incorrect API key provided.', body: null }));
+    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ notesVersions: 2, notesState: 'failed' }));
+  });
+
   it('a failed version is stored with its reason and no body', () => {
     const id = s.saveNotes(notes({ state: 'failed', failure: 'part 2 of 3 failed twice', body: null, requestIds: ['req-1', 'req-2'] }));
     expect(s.getNotes({ id })).toEqual(expect.objectContaining({ state: 'failed', failure: 'part 2 of 3 failed twice', body: null, requestIds: ['req-1', 'req-2'] }));

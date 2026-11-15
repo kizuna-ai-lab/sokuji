@@ -2028,6 +2028,33 @@
     "notesTurnOn": "ఆన్ చేయండి",
     "notesModel": "గమనికల మోడల్",
     "notesModelLine": "గమనికలు రాసే టెక్స్ట్ మోడల్, సేవలో దాని పేరుతో.",
+    "notes": "గమనికలు",
+    "transcript": "ట్రాన్స్‌క్రిప్ట్",
+    "notesKind": {
+      "decision": "నిర్ణయం",
+      "todo": "చేయాల్సింది",
+      "risk": "ప్రమాదం"
+    },
+    "notesFilter": {
+      "all": "అన్నీ",
+      "decision": "నిర్ణయాలు",
+      "todo": "చేయాల్సినవి",
+      "risk": "ప్రమాదాలు"
+    },
+    "notesFilterLabel": "చూపించు",
+    "notesStateFailed": "విఫలమైంది",
+    "notesStateCancelled": "ఆపబడింది",
+    "notesVersion": "వెర్షన్",
+    "notesLanguage": "గమనికల భాష",
+    "notesWriting": "గమనికలు రాస్తోంది…",
+    "notesTooShort": "ఈ రికార్డులో గమనికలు రాయడానికి సరిపడా లేదు.",
+    "notesWrite": "గమనికలు రాయండి",
+    "notesWriteAgain": "కొత్త వెర్షన్ రాయండి",
+    "notesFailed": "గమనికలు రాయలేకపోయాం: {{reason}}",
+    "notesTryAgain": "మళ్లీ ప్రయత్నించండి",
+    "notesCancelled": "ఈ గమనికలు రాయడం ఆపబడింది.",
+    "tagWritingNotes": "గమనికలు రాస్తోంది",
+    "tagNotesFailed": "గమనికలు విఫలం",
     "transcriptStopped": "ఈ సెషన్ ట్రాన్స్‌క్రిప్ట్‌లో కొంత భాగాన్ని సేవ్ చేయలేకపోయాం: డిస్క్‌లో రాయలేకపోయాం.",
     "length": "నిడివి {{length}}"
   }

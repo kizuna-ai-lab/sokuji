@@ -2028,6 +2028,33 @@
     "notesTurnOn": "オンにする",
     "notesModel": "メモのモデル",
     "notesModelLine": "メモを書くテキストモデル。サービスでの名前で入力します。",
+    "notes": "メモ",
+    "transcript": "文字起こし",
+    "notesKind": {
+      "decision": "決定",
+      "todo": "やること",
+      "risk": "リスク"
+    },
+    "notesFilter": {
+      "all": "すべて",
+      "decision": "決定",
+      "todo": "やること",
+      "risk": "リスク"
+    },
+    "notesFilterLabel": "表示",
+    "notesStateFailed": "失敗",
+    "notesStateCancelled": "中止",
+    "notesVersion": "バージョン",
+    "notesLanguage": "メモの言語",
+    "notesWriting": "メモを書いています…",
+    "notesTooShort": "この記録はメモを書くには内容が少なすぎます。",
+    "notesWrite": "メモを書く",
+    "notesWriteAgain": "新しいバージョンを書く",
+    "notesFailed": "メモを書けませんでした：{{reason}}",
+    "notesTryAgain": "もう一度試す",
+    "notesCancelled": "このメモの作成は中止されました。",
+    "tagWritingNotes": "メモ作成中",
+    "tagNotesFailed": "メモ失敗",
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "length": "長さ {{length}}"
   }

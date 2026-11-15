@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Hidupkan",
     "notesModel": "Model nota",
     "notesModelLine": "Model teks yang menulis nota, mengikut namanya di perkhidmatan.",
+    "notes": "Nota",
+    "transcript": "Transkrip",
+    "notesKind": {
+      "decision": "Keputusan",
+      "todo": "Tugasan",
+      "risk": "Risiko"
+    },
+    "notesFilter": {
+      "all": "Semua",
+      "decision": "Keputusan",
+      "todo": "Tugasan",
+      "risk": "Risiko"
+    },
+    "notesFilterLabel": "Tunjukkan",
+    "notesStateFailed": "gagal",
+    "notesStateCancelled": "dihentikan",
+    "notesVersion": "Versi",
+    "notesLanguage": "Bahasa nota",
+    "notesWriting": "Menulis nota…",
+    "notesTooShort": "Rekod ini terlalu sedikit isinya untuk ditulis nota.",
+    "notesWrite": "Tulis nota",
+    "notesWriteAgain": "Tulis versi baharu",
+    "notesFailed": "Nota tidak dapat ditulis: {{reason}}",
+    "notesTryAgain": "Cuba lagi",
+    "notesCancelled": "Penulisan nota ini dihentikan.",
+    "tagWritingNotes": "Menulis nota",
+    "tagNotesFailed": "Nota gagal",
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "length": "Tempoh {{length}}"
   }

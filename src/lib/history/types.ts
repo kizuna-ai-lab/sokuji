@@ -38,6 +38,8 @@ export interface HistoryRecordRow {
   sentences: number;
   hasRecording: boolean;
   notesVersions: number;
+  /** How the newest version of the notes ended; null without notes. */
+  notesState: HistoryNotesState | null;
   audioBytes: number;
 }
 

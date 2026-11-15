@@ -2028,6 +2028,33 @@
     "notesTurnOn": "เปิด",
     "notesModel": "โมเดลสำหรับบันทึก",
     "notesModelLine": "โมเดลข้อความที่เขียนบันทึก ตามชื่อที่บริการใช้",
+    "notes": "บันทึก",
+    "transcript": "บทถอดความ",
+    "notesKind": {
+      "decision": "การตัดสินใจ",
+      "todo": "สิ่งที่ต้องทำ",
+      "risk": "ความเสี่ยง"
+    },
+    "notesFilter": {
+      "all": "ทั้งหมด",
+      "decision": "การตัดสินใจ",
+      "todo": "สิ่งที่ต้องทำ",
+      "risk": "ความเสี่ยง"
+    },
+    "notesFilterLabel": "แสดง",
+    "notesStateFailed": "ล้มเหลว",
+    "notesStateCancelled": "หยุดแล้ว",
+    "notesVersion": "เวอร์ชัน",
+    "notesLanguage": "ภาษาของบันทึก",
+    "notesWriting": "กำลังเขียนบันทึก…",
+    "notesTooShort": "รายการนี้มีเนื้อหาน้อยเกินกว่าจะเขียนบันทึกได้",
+    "notesWrite": "เขียนบันทึก",
+    "notesWriteAgain": "เขียนเวอร์ชันใหม่",
+    "notesFailed": "เขียนบันทึกไม่ได้: {{reason}}",
+    "notesTryAgain": "ลองอีกครั้ง",
+    "notesCancelled": "การเขียนบันทึกนี้ถูกหยุดไว้",
+    "tagWritingNotes": "กำลังเขียนบันทึก",
+    "tagNotesFailed": "บันทึกล้มเหลว",
     "transcriptStopped": "บันทึกบทถอดความบางส่วนของเซสชันนี้ไม่ได้: เขียนลงดิสก์ไม่ได้",
     "length": "ความยาว {{length}}"
   }

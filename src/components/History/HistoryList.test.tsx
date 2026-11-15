@@ -30,7 +30,7 @@ const DAY = 86_400_000;
 const START = Date.UTC(2026, 10, 12, 1, 0, 0);
 const rowOf = (id: string, over: Partial<HistoryRecordRow> = {}): HistoryRecordRow => ({
   id, startedAt: START, endedAt: START + 60_000, state: 'closed', mode: 'both', myLanguage: 'zh', targetLanguage: 'en', title: null,
-  titleByUser: false, binnedAt: null, sentences: 0, hasRecording: false, notesVersions: 0, audioBytes: 0, ...over,
+  titleByUser: false, binnedAt: null, sentences: 0, hasRecording: false, notesVersions: 0, notesState: null, audioBytes: 0, ...over,
 });
 const recordOf = (id: string): HistoryRecord => ({
   ...rowOf(id), services: { provider: 'soniox', models: {} }, appVersion: '1', textBytes: 0, legs: [], tracks: [], notes: [],
@@ -87,7 +87,7 @@ const rowWith = (text: string) => screen.getByText(text).closest('[data-record]'
 beforeEach(() => {
   status = { available: true, dir: '/home/u/History' };
   records = [
-    rowOf(A, { title: 'Weekly sync', endedAt: START + 3_723_000, sentences: 3, notesVersions: 1 }),
+    rowOf(A, { title: 'Weekly sync', endedAt: START + 3_723_000, sentences: 3, notesVersions: 1, notesState: 'complete' }),
     rowOf(B, { state: 'open', endedAt: null }),
   ];
   bin = [];
@@ -131,6 +131,19 @@ describe('the History list', () => {
     fireEvent.click(within(row).getByText(when));
     await settle();
     expect(calls('getRecord')).toEqual([B]);
+  });
+
+  it('says when notes are being written for a record, and when its newest notes failed', async () => {
+    records = [
+      rowOf(A, { title: 'Weekly sync', sentences: 3, notesVersions: 2, notesState: 'failed' }),
+      rowOf(C, { title: 'Demo', sentences: 3, notesVersions: 1, notesState: 'complete' }),
+    ];
+    await renderList();
+    expect(within(rowWith('Weekly sync')).getByText('Notes failed')).toBeInTheDocument();
+    expect(within(rowWith('Weekly sync')).queryByText('Notes')).toBeNull();
+    act(() => { store.setState({ notesRunning: [C] }); });
+    expect(within(rowWith('Demo')).getByText('Writing notes')).toBeInTheDocument();
+    expect(within(rowWith('Demo')).queryByText('Notes')).toBeNull();
   });
 
   it('shows checkboxes only after Select, and moves the selected records to the bin', async () => {

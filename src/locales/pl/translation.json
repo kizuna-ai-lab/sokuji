@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Włącz",
     "notesModel": "Model notatek",
     "notesModelLine": "Model tekstowy, który pisze notatki, pod nazwą używaną przez usługę.",
+    "notes": "Notatki",
+    "transcript": "Transkrypcja",
+    "notesKind": {
+      "decision": "Decyzja",
+      "todo": "Do zrobienia",
+      "risk": "Ryzyko"
+    },
+    "notesFilter": {
+      "all": "Wszystko",
+      "decision": "Decyzje",
+      "todo": "Do zrobienia",
+      "risk": "Ryzyka"
+    },
+    "notesFilterLabel": "Pokaż",
+    "notesStateFailed": "nieudane",
+    "notesStateCancelled": "przerwane",
+    "notesVersion": "Wersja",
+    "notesLanguage": "Język notatek",
+    "notesWriting": "Piszę notatki…",
+    "notesTooShort": "Ten zapis zawiera za mało, by napisać z niego notatki.",
+    "notesWrite": "Napisz notatki",
+    "notesWriteAgain": "Napisz nową wersję",
+    "notesFailed": "Nie udało się napisać notatek: {{reason}}",
+    "notesTryAgain": "Spróbuj ponownie",
+    "notesCancelled": "Pisanie tych notatek zostało przerwane.",
+    "tagWritingNotes": "Notatki w toku",
+    "tagNotesFailed": "Notatki nieudane",
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
     "length": "Czas trwania {{length}}"
   }

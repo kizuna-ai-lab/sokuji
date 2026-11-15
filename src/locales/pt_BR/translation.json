@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Ativar",
     "notesModel": "Modelo das notas",
     "notesModelLine": "O modelo de texto que escreve as notas, pelo nome dele no serviço.",
+    "notes": "Notas",
+    "transcript": "Transcrição",
+    "notesKind": {
+      "decision": "Decisão",
+      "todo": "Tarefa",
+      "risk": "Risco"
+    },
+    "notesFilter": {
+      "all": "Tudo",
+      "decision": "Decisões",
+      "todo": "Tarefas",
+      "risk": "Riscos"
+    },
+    "notesFilterLabel": "Mostrar",
+    "notesStateFailed": "falhou",
+    "notesStateCancelled": "interrompido",
+    "notesVersion": "Versão",
+    "notesLanguage": "Idioma das notas",
+    "notesWriting": "Escrevendo as notas…",
+    "notesTooShort": "Este registro tem muito pouco para escrever notas.",
+    "notesWrite": "Escrever notas",
+    "notesWriteAgain": "Escrever uma nova versão",
+    "notesFailed": "Não foi possível escrever as notas: {{reason}}",
+    "notesTryAgain": "Tentar de novo",
+    "notesCancelled": "A escrita destas notas foi interrompida.",
+    "tagWritingNotes": "Escrevendo notas",
+    "tagNotesFailed": "Notas falharam",
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser salva: não foi possível gravá-la no disco.",
     "length": "Duração {{length}}"
   }

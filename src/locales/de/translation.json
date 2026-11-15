@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Einschalten",
     "notesModel": "Modell für Notizen",
     "notesModelLine": "Das Textmodell, das die Notizen schreibt, mit seinem Namen beim Dienst.",
+    "notes": "Notizen",
+    "transcript": "Transkript",
+    "notesKind": {
+      "decision": "Entscheidung",
+      "todo": "Aufgabe",
+      "risk": "Risiko"
+    },
+    "notesFilter": {
+      "all": "Alle",
+      "decision": "Entscheidungen",
+      "todo": "Aufgaben",
+      "risk": "Risiken"
+    },
+    "notesFilterLabel": "Anzeigen",
+    "notesStateFailed": "fehlgeschlagen",
+    "notesStateCancelled": "abgebrochen",
+    "notesVersion": "Version",
+    "notesLanguage": "Sprache der Notizen",
+    "notesWriting": "Notizen werden geschrieben…",
+    "notesTooShort": "Diese Aufzeichnung enthält zu wenig, um Notizen daraus zu schreiben.",
+    "notesWrite": "Notizen schreiben",
+    "notesWriteAgain": "Neue Version schreiben",
+    "notesFailed": "Die Notizen konnten nicht geschrieben werden: {{reason}}",
+    "notesTryAgain": "Erneut versuchen",
+    "notesCancelled": "Das Schreiben dieser Notizen wurde abgebrochen.",
+    "tagWritingNotes": "Notizen werden geschrieben",
+    "tagNotesFailed": "Notizen fehlgeschlagen",
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}"
   }

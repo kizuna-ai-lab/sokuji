@@ -2028,6 +2028,33 @@
     "notesTurnOn": "चालू करें",
     "notesModel": "नोट्स का मॉडल",
     "notesModelLine": "नोट्स लिखने वाला टेक्स्ट मॉडल, सेवा पर उसके नाम से।",
+    "notes": "नोट्स",
+    "transcript": "ट्रांसक्रिप्ट",
+    "notesKind": {
+      "decision": "निर्णय",
+      "todo": "करना है",
+      "risk": "जोखिम"
+    },
+    "notesFilter": {
+      "all": "सभी",
+      "decision": "निर्णय",
+      "todo": "करने के काम",
+      "risk": "जोखिम"
+    },
+    "notesFilterLabel": "दिखाएँ",
+    "notesStateFailed": "विफल",
+    "notesStateCancelled": "रोका गया",
+    "notesVersion": "संस्करण",
+    "notesLanguage": "नोट्स की भाषा",
+    "notesWriting": "नोट्स लिखे जा रहे हैं…",
+    "notesTooShort": "इस रिकॉर्ड में नोट्स लिखने लायक बहुत कम है।",
+    "notesWrite": "नोट्स लिखें",
+    "notesWriteAgain": "नया संस्करण लिखें",
+    "notesFailed": "नोट्स नहीं लिखे जा सके: {{reason}}",
+    "notesTryAgain": "फिर से कोशिश करें",
+    "notesCancelled": "इन नोट्स का लेखन रोक दिया गया।",
+    "tagWritingNotes": "नोट्स लिखे जा रहे हैं",
+    "tagNotesFailed": "नोट्स विफल",
     "transcriptStopped": "इस सत्र के ट्रांसक्रिप्ट का कुछ हिस्सा सहेजा नहीं जा सका: इसे डिस्क पर नहीं लिखा जा सका।",
     "length": "अवधि {{length}}"
   }

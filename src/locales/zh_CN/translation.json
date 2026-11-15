@@ -2028,6 +2028,33 @@
     "notesTurnOn": "打开",
     "notesModel": "纪要模型",
     "notesModelLine": "写纪要用的文本模型，填它在服务那边的名字。",
+    "notes": "纪要",
+    "transcript": "转写",
+    "notesKind": {
+      "decision": "决定",
+      "todo": "待办",
+      "risk": "风险"
+    },
+    "notesFilter": {
+      "all": "全部",
+      "decision": "决定",
+      "todo": "待办",
+      "risk": "风险"
+    },
+    "notesFilterLabel": "显示",
+    "notesStateFailed": "失败",
+    "notesStateCancelled": "已停止",
+    "notesVersion": "版本",
+    "notesLanguage": "纪要语言",
+    "notesWriting": "正在写纪要…",
+    "notesTooShort": "这条记录内容太少，写不出纪要。",
+    "notesWrite": "写纪要",
+    "notesWriteAgain": "重写一版",
+    "notesFailed": "纪要没能写成：{{reason}}",
+    "notesTryAgain": "重试",
+    "notesCancelled": "这份纪要的写作已停止。",
+    "tagWritingNotes": "纪要生成中",
+    "tagNotesFailed": "纪要失败",
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "length": "时长 {{length}}"
   }

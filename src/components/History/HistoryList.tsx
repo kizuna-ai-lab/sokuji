@@ -60,6 +60,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   const status = useStore(store, (s) => s.status);
   const tab = useStore(store, (s) => s.tab);
   const rows = useStore(store, (s) => s.rows);
+  const notesRunning = useStore(store, (s) => s.notesRunning);
   const query = useStore(store, (s) => s.query);
   const results = useStore(store, (s) => s.results);
   const selected = useStore(store, (s) => s.selected);
@@ -138,7 +139,9 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   const tags = (r: HistoryRecordRow) => (
     <span className="history-row__tags">
       {r.sentences > 0 && <span className="history-tag">{t('history.tagTranscript', 'Transcript')}</span>}
-      {r.notesVersions > 0 && <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>}
+      {notesRunning.includes(r.id) ? <span className="history-tag">{t('history.tagWritingNotes', 'Writing notes')}</span>
+        : r.notesState === 'failed' ? <span className="history-tag history-tag--failed">{t('history.tagNotesFailed', 'Notes failed')}</span>
+          : r.notesState === 'complete' && <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>}
       {r.hasRecording && <span className="history-tag">{`${t('history.tagRecording', 'Recording')} · ${formatBytes(r.audioBytes)}`}</span>}
     </span>
   );

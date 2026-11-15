@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Aç",
     "notesModel": "Not modeli",
     "notesModelLine": "Notları yazan metin modeli, hizmetteki adıyla.",
+    "notes": "Notlar",
+    "transcript": "Döküm",
+    "notesKind": {
+      "decision": "Karar",
+      "todo": "Yapılacak",
+      "risk": "Risk"
+    },
+    "notesFilter": {
+      "all": "Tümü",
+      "decision": "Kararlar",
+      "todo": "Yapılacaklar",
+      "risk": "Riskler"
+    },
+    "notesFilterLabel": "Göster",
+    "notesStateFailed": "başarısız",
+    "notesStateCancelled": "durduruldu",
+    "notesVersion": "Sürüm",
+    "notesLanguage": "Notların dili",
+    "notesWriting": "Notlar yazılıyor…",
+    "notesTooShort": "Bu kayıtta not yazmak için çok az şey var.",
+    "notesWrite": "Not yaz",
+    "notesWriteAgain": "Yeni sürüm yaz",
+    "notesFailed": "Notlar yazılamadı: {{reason}}",
+    "notesTryAgain": "Tekrar dene",
+    "notesCancelled": "Bu notların yazılması durduruldu.",
+    "tagWritingNotes": "Notlar yazılıyor",
+    "tagNotesFailed": "Notlar başarısız",
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "length": "Süre {{length}}"
   }

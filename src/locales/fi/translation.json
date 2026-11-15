@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Ota käyttöön",
     "notesModel": "Muistiinpanojen malli",
     "notesModelLine": "Muistiinpanot kirjoittava tekstimalli palvelun käyttämällä nimellä.",
+    "notes": "Muistiinpanot",
+    "transcript": "Litterointi",
+    "notesKind": {
+      "decision": "Päätös",
+      "todo": "Tehtävä",
+      "risk": "Riski"
+    },
+    "notesFilter": {
+      "all": "Kaikki",
+      "decision": "Päätökset",
+      "todo": "Tehtävät",
+      "risk": "Riskit"
+    },
+    "notesFilterLabel": "Näytä",
+    "notesStateFailed": "epäonnistui",
+    "notesStateCancelled": "keskeytetty",
+    "notesVersion": "Versio",
+    "notesLanguage": "Muistiinpanojen kieli",
+    "notesWriting": "Kirjoitetaan muistiinpanoja…",
+    "notesTooShort": "Tässä tallenteessa on liian vähän muistiinpanoja varten.",
+    "notesWrite": "Kirjoita muistiinpanot",
+    "notesWriteAgain": "Kirjoita uusi versio",
+    "notesFailed": "Muistiinpanoja ei voitu kirjoittaa: {{reason}}",
+    "notesTryAgain": "Yritä uudelleen",
+    "notesCancelled": "Näiden muistiinpanojen kirjoittaminen keskeytettiin.",
+    "tagWritingNotes": "Muistiinpanoja kirjoitetaan",
+    "tagNotesFailed": "Muistiinpanot epäonnistuivat",
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}"
   }

@@ -9,6 +9,8 @@ import { useStore } from 'zustand';
 import { realClock } from '../../lib/contract/clock';
 import { historyPort } from '../../lib/history/port';
 import { createHistoryPageStore } from '../../lib/history/historyPageStore';
+import { appNotesRunner } from '../../lib/notes/appNotes';
+import { isElectron } from '../../utils/environment';
 import { HistoryPageContext } from './historyContext';
 import HistoryList from './HistoryList';
 import RecordPage from './RecordPage';
@@ -21,7 +23,9 @@ export interface HistoryPageProps {
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
   const { t } = useTranslation();
-  const [store] = useState(() => createHistoryPageStore(historyPort(), realClock, () => t('history.failed', 'That did not work. Try again.')));
+  const [store] = useState(() => createHistoryPageStore(
+    historyPort(), realClock, () => t('history.failed', 'That did not work. Try again.'), isElectron() ? appNotesRunner() : null,
+  ));
   const open = useStore(store, (s) => s.open);
   const error = useStore(store, (s) => s.error);
 

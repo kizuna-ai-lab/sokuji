@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Aktifkan",
     "notesModel": "Model catatan",
     "notesModelLine": "Model teks yang menulis catatan, sesuai namanya di layanan.",
+    "notes": "Catatan",
+    "transcript": "Transkrip",
+    "notesKind": {
+      "decision": "Keputusan",
+      "todo": "Tugas",
+      "risk": "Risiko"
+    },
+    "notesFilter": {
+      "all": "Semua",
+      "decision": "Keputusan",
+      "todo": "Tugas",
+      "risk": "Risiko"
+    },
+    "notesFilterLabel": "Tampilkan",
+    "notesStateFailed": "gagal",
+    "notesStateCancelled": "dihentikan",
+    "notesVersion": "Versi",
+    "notesLanguage": "Bahasa catatan",
+    "notesWriting": "Menulis catatan…",
+    "notesTooShort": "Isi rekaman ini terlalu sedikit untuk dibuatkan catatan.",
+    "notesWrite": "Tulis catatan",
+    "notesWriteAgain": "Tulis versi baru",
+    "notesFailed": "Catatan tidak bisa ditulis: {{reason}}",
+    "notesTryAgain": "Coba lagi",
+    "notesCancelled": "Penulisan catatan ini dihentikan.",
+    "tagWritingNotes": "Menulis catatan",
+    "tagNotesFailed": "Catatan gagal",
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}"
   }

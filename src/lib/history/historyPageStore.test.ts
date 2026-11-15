@@ -1,21 +1,39 @@
 // The History page's state and actions over a HistoryPort.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVirtualClock, type VirtualClock } from '../contract/clock';
 import type { HistoryPort } from './port';
-import type { HistoryRecord, HistoryRecordRow } from './types';
+import type { HistoryNotes, HistoryRecord, HistoryRecordRow } from './types';
 import { createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
 
 const A = 'run-000a-aaaa';
 const B = 'run-000b-bbbb';
 const rowOf = (id: string, over: Partial<HistoryRecordRow> = {}): HistoryRecordRow => ({
   id, startedAt: 1000, endedAt: 2000, state: 'closed', mode: 'both', myLanguage: 'zh', targetLanguage: 'en', title: null, titleByUser: false,
-  binnedAt: null, sentences: 1, hasRecording: false, notesVersions: 0, audioBytes: 0, ...over,
+  binnedAt: null, sentences: 1, hasRecording: false, notesVersions: 0, notesState: null, audioBytes: 0, ...over,
 });
 const recordOf = (id: string, transcripts: number[]): HistoryRecord => ({
   ...rowOf(id), services: { provider: 'soniox', models: {} }, appVersion: '1', textBytes: 0, legs: [], tracks: [], notes: [],
   transcripts: transcripts.map((t) => ({ id: t, origin: { service: 'soniox', kind: 'live' }, textKind: 'original', createdAt: 0, sentences: 1 })),
 });
 const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+const notesOf = (id: number): HistoryNotes => ({
+  id, recordId: A, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', createdAt: id * 1000,
+  state: 'complete', failure: null, requestIds: [],
+  body: { title: `Notes ${id}`, overview: { text: 'o', format: 'plain' }, topics: [], points: [], names: [] },
+});
+/** A notes runner the tests drive: start and cancel are recorded, and `finish` ends a run. */
+function fakeRunner() {
+  const running = new Set<string>();
+  const listeners = new Set<() => void>();
+  const notify = () => { for (const l of listeners) l(); };
+  return {
+    start: vi.fn((id: string) => { running.add(id); notify(); }),
+    cancel: vi.fn(),
+    running: () => [...running],
+    subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
+    finish: (id: string) => { running.delete(id); notify(); },
+  };
+}
 
 type Fake = HistoryPort & { calls: [string, unknown][] };
 function fakePort(): Fake {
@@ -38,6 +56,7 @@ function fakePort(): Fake {
     getSpeakers: answer('getSpeakers', []),
     renameSpeaker: answer('renameSpeaker', undefined),
     reassignSentence: answer('reassignSentence', undefined),
+    getNotes: async (arg: { id: number }) => { calls.push(['getNotes', arg]); return notesOf(arg.id); },
   } as unknown as Fake;
 }
 
@@ -179,5 +198,46 @@ describe('the History page state', () => {
   it('renames a record with its text trimmed', async () => {
     await store.getState().rename(A, '  Weekly  ');
     expect(calls('renameRecord')).toEqual([{ id: A, title: 'Weekly' }]);
+  });
+});
+
+describe("a record's notes", () => {
+  const withNotes = (ids: number[]) => {
+    port.getRecord = (async (arg: unknown) => {
+      port.calls.push(['getRecord', arg]);
+      return { ...recordOf(A, [1, 2]), notes: ids.map((id) => ({ id, transcriptId: 2, language: 'zh', createdAt: id * 1000, state: 'complete' })) };
+    }) as never;
+  };
+
+  it('opens a record with its newest version of the notes, and shows another on request', async () => {
+    withNotes([3, 7, 5]);
+    await store.getState().openRecord(A);
+    expect(calls('getNotes')).toEqual([{ id: 7 }]);
+    expect(store.getState().open?.notes?.body?.title).toBe('Notes 7');
+    await store.getState().showNotes(3);
+    expect(store.getState().open?.notes?.id).toBe(3);
+  });
+
+  it('opens a record without notes with none', async () => {
+    await store.getState().openRecord(A);
+    expect(store.getState().open?.notes).toBeNull();
+    expect(calls('getNotes')).toEqual([]);
+  });
+
+  it('writes notes through the runner, says they are being written, and shows them when they are done', async () => {
+    const runner = fakeRunner();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, runner);
+    await store.getState().load();
+    await store.getState().openRecord(A);
+    store.getState().generateNotes({ code: 'en', name: 'English' });
+    expect(runner.start).toHaveBeenCalledWith(A, { code: 'en', name: 'English' });
+    expect(store.getState().notesRunning).toEqual([A]);
+    withNotes([9]);
+    runner.finish(A);
+    await vi.waitFor(() => expect(store.getState().open?.notes?.id).toBe(9));
+    expect(store.getState().notesRunning).toEqual([]);
+    expect(calls('listRecords').length).toBeGreaterThan(1);
+    store.getState().cancelNotes();
+    expect(runner.cancel).toHaveBeenCalledWith(A);
   });
 });

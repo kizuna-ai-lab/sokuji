@@ -282,8 +282,9 @@
 // One record: the transcript, and beside it the speakers (the notes join them later); a strip along the bottom is kept
 // for the player. One column below 768px.
 .record-page {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  // The head, then (narrow) the notes and transcript tabs, the columns taking the rest, the player last.
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
 
@@ -400,8 +401,38 @@
   &__columns {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
+    flex: 1;
     min-height: 0;
+    // Wide (the page is 1000 px or more): the notes stand left of the transcript.
+    &.is-wide { grid-template-columns: minmax(280px, 380px) minmax(0, 1fr) 280px; }
   }
+
+  // Narrow: the notes and the transcript each have a tab; the notes take the whole width.
+  &__panes {
+    display: flex;
+    gap: vars.$space-1;
+    padding: vars.$space-1 vars.$space-4 0;
+    border-bottom: 1px solid vars.$border-subtle;
+    button {
+      padding: vars.$space-1 vars.$space-2;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: none;
+      color: vars.$text-secondary;
+      font-size: vars.$font-caption;
+      cursor: pointer;
+      &[aria-selected='true'] { color: vars.$text-primary; border-bottom-color: tk.$color-primary; }
+      &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+    }
+  }
+
+  &__notes {
+    min-height: 0;
+    overflow-y: auto;
+    padding: vars.$space-3 vars.$space-4;
+    border-right: 1px solid vars.$border-subtle;
+  }
+  &__columns:not(.is-wide) &__notes { grid-column: 1 / -1; border-right: none; }
 
   &__transcript {
     min-height: 0;
@@ -667,3 +698,63 @@
 }
 
 .record-page__confirm { margin: vars.$space-2 vars.$space-4 0; }
+
+// A record's notes (stage 3): title and overview, a filter, then topics with their points.
+.record-notes {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
+
+  &__version { align-self: flex-start; max-width: 100%; }
+  &__title { margin: 0; font-size: 15px; font-weight: vars.$weight-semibold; }
+  &__overview { margin: 0; color: vars.$text-secondary; line-height: 1.6; }
+  &__state { display: flex; flex-direction: column; align-items: flex-start; gap: vars.$space-2; color: vars.$text-secondary; p { margin: 0; } }
+  &__write { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; margin-top: vars.$space-2; }
+
+  &__filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: vars.$space-1;
+    button {
+      padding: 2px vars.$space-2;
+      border: 1px solid vars.$border-subtle;
+      border-radius: vars.$radius-sm;
+      background: none;
+      color: vars.$text-secondary;
+      font-size: vars.$font-caption;
+      cursor: pointer;
+      &[aria-pressed='true'] { color: vars.$text-primary; border-color: tk.$color-primary; }
+      &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+    }
+  }
+
+  &__topic { display: flex; flex-direction: column; gap: vars.$space-1; padding-top: vars.$space-2; border-top: 1px solid vars.$border-subtle; h4 { margin: 0; } }
+  &__summary { margin: 0; color: vars.$text-secondary; font-size: vars.$font-caption; line-height: 1.55; }
+  &__points { margin: 0; padding-left: vars.$space-4; display: flex; flex-direction: column; gap: vars.$space-1; }
+  &__point { line-height: 1.5; }
+  &__jump {
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+  }
+  h4 > &__jump { font-weight: vars.$weight-semibold; }
+  &__marks { display: inline-flex; flex-wrap: wrap; gap: vars.$space-1; margin-left: vars.$space-1; vertical-align: middle; }
+  &__kind, &__who {
+    padding: 0 5px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    font-size: 11px;
+    line-height: 16px;
+    color: vars.$text-tertiary;
+  }
+  &__kind--decision { color: tk.$color-primary; border-color: tk.$color-primary; }
+  &__kind--risk { color: vars.$color-error; border-color: vars.$color-error-border; }
+}
+
+.history-tag--failed { color: vars.$color-error; border-color: vars.$color-error-border; }

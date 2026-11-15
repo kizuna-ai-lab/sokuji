@@ -5,9 +5,10 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
+import type { NotesLanguage, NotesRunner } from '../notes/runner';
 import type { HistoryPort } from './port';
 import type {
-  HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
+  HistoryNotes, HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
 } from './types';
 
 /** Where to land in an opened record: a search hit. */
@@ -23,6 +24,8 @@ export interface OpenRecord {
   speakers: readonly HistorySpeaker[];
   legs: readonly Leg[];
   at: HitTarget | null;
+  /** The version of the notes shown: the newest when the record opens; null without notes. */
+  notes: HistoryNotes | null;
 }
 
 export interface HistoryPageState {
@@ -37,6 +40,8 @@ export interface HistoryPageState {
   more: boolean;
   usage: HistoryUsage | null;
   open: OpenRecord | null;
+  /** The records whose notes are being written. */
+  notesRunning: readonly string[];
   busy: boolean;
   error: string | null;
 }
@@ -61,6 +66,11 @@ export interface HistoryPageActions {
   /** Deletes the open record's recording, track by track; its transcript and notes stay. */
   dropRecording(): Promise<void>;
   closeRecord(): void;
+  /** Shows another version of the open record's notes. */
+  showNotes(id: number): Promise<void>;
+  /** Starts a version of the open record's notes, in `language` or the record's own. */
+  generateNotes(language?: NotesLanguage): void;
+  cancelNotes(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
   reassign(n: number, speaker: string | null): Promise<void>;
 }
@@ -76,11 +86,13 @@ export function createHistoryPageStore(
   port: HistoryPort,
   clock: Clock,
   errorText: (e: unknown) => string,
+  /** Who writes notes (desktop); absent: notes cannot be written from this page. */
+  notes?: Pick<NotesRunner, 'start' | 'cancel' | 'running' | 'subscribe'> | null,
 ): StoreApi<HistoryPageState & HistoryPageActions> {
   let cancelSearch: (() => void) | null = null;
   let searchSeq = 0;
 
-  return createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
+  const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
     /** One action: busy while it runs, a rejection shown and nothing else changed. */
     const act = async (fn: () => Promise<void>): Promise<void> => {
       set({ busy: true, error: null });
@@ -122,7 +134,9 @@ export function createHistoryPageStore(
       const newest = newestTranscript(record);
       const sentences = newest ? await port.getSentences({ transcriptId: newest.id }) : [];
       const speakers = newest ? await port.getSpeakers({ transcriptId: newest.id }) : [];
-      set({ open: { record, sentences, speakers, legs, at } });
+      const latest = [...record.notes].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id).pop();
+      const shown = latest ? await port.getNotes({ id: latest.id }) : null;
+      set({ open: { record, sentences, speakers, legs, at, notes: shown } });
     };
 
     return {
@@ -135,6 +149,7 @@ export function createHistoryPageStore(
       more: false,
       usage: null,
       open: null,
+      notesRunning: notes?.running() ?? [],
       busy: false,
       error: null,
 
@@ -238,6 +253,23 @@ export function createHistoryPageStore(
 
       closeRecord: () => set({ open: null }),
 
+      showNotes: (id) => act(async () => {
+        const open = get().open;
+        if (!open) return;
+        const shown = await port.getNotes({ id });
+        if (get().open?.record.id === open.record.id) set({ open: { ...get().open!, notes: shown } });
+      }),
+
+      generateNotes(language) {
+        const open = get().open;
+        if (open && notes) notes.start(open.record.id, language);
+      },
+
+      cancelNotes() {
+        const open = get().open;
+        if (open && notes) notes.cancel(open.record.id);
+      },
+
       renameSpeaker: (side, speaker, name) => act(async () => {
         const open = get().open;
         const newest = open && newestTranscript(open.record);
@@ -255,4 +287,17 @@ export function createHistoryPageStore(
       }),
     };
   });
+
+  // A version that ends shows itself: the open record and the list are read again (the list's tags follow).
+  notes?.subscribe(() => {
+    const before = store.getState().notesRunning;
+    const now = notes.running();
+    store.setState({ notesRunning: now });
+    const ended = before.filter((id) => !now.includes(id));
+    if (ended.length === 0) return;
+    const open = store.getState().open;
+    if (open && ended.includes(open.record.id)) void store.getState().refreshRecord();
+    if (store.getState().status?.available) void store.getState().load();
+  });
+  return store;
 }

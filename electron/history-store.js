@@ -56,6 +56,7 @@ const ROW_COLUMNS = `
   (select count(*) from sentences s where s.transcript_id = (select max(t.id) from transcripts t where t.record_id = r.id)) as sentence_count,
   exists (select 1 from tracks k where k.record_id = r.id and k.gone_at is null) as has_recording,
   (select count(*) from notes n where n.record_id = r.id) as notes_versions,
+  (select n.state from notes n where n.record_id = r.id order by n.created_at desc, n.id desc limit 1) as notes_state,
   (select coalesce(sum(k.bytes), 0) from tracks k where k.record_id = r.id and k.gone_at is null) as audio_bytes`;
 
 /** A notes body: { title, overview: { text, format }, topics, points, names }. */
@@ -95,6 +96,7 @@ function rowOf(r) {
     sentences: r.sentence_count,
     hasRecording: r.has_recording === 1,
     notesVersions: r.notes_versions,
+    notesState: r.notes_state ?? null,
     audioBytes: r.audio_bytes,
   };
 }

@@ -2028,6 +2028,33 @@
     "notesTurnOn": "הפעלה",
     "notesModel": "מודל ההערות",
     "notesModelLine": "מודל הטקסט שכותב את ההערות, בשמו אצל השירות.",
+    "notes": "הערות",
+    "transcript": "תמלול",
+    "notesKind": {
+      "decision": "החלטה",
+      "todo": "משימה",
+      "risk": "סיכון"
+    },
+    "notesFilter": {
+      "all": "הכול",
+      "decision": "החלטות",
+      "todo": "משימות",
+      "risk": "סיכונים"
+    },
+    "notesFilterLabel": "הצגה",
+    "notesStateFailed": "נכשל",
+    "notesStateCancelled": "הופסק",
+    "notesVersion": "גרסה",
+    "notesLanguage": "שפת ההערות",
+    "notesWriting": "כותב הערות…",
+    "notesTooShort": "ברשומה הזאת יש מעט מדי כדי לכתוב ממנה הערות.",
+    "notesWrite": "כתיבת הערות",
+    "notesWriteAgain": "כתיבת גרסה חדשה",
+    "notesFailed": "לא ניתן היה לכתוב את ההערות: {{reason}}",
+    "notesTryAgain": "ניסיון חוזר",
+    "notesCancelled": "כתיבת ההערות האלה הופסקה.",
+    "tagWritingNotes": "כותב הערות",
+    "tagNotesFailed": "ההערות נכשלו",
     "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
     "length": "משך {{length}}"
   }

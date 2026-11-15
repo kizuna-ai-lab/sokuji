@@ -2028,6 +2028,33 @@
     "notesTurnOn": "I-on",
     "notesModel": "Model ng mga tala",
     "notesModelLine": "Ang text model na sumusulat ng mga tala, ayon sa pangalan nito sa serbisyo.",
+    "notes": "Tala",
+    "transcript": "Transcript",
+    "notesKind": {
+      "decision": "Desisyon",
+      "todo": "Gagawin",
+      "risk": "Panganib"
+    },
+    "notesFilter": {
+      "all": "Lahat",
+      "decision": "Mga desisyon",
+      "todo": "Mga gagawin",
+      "risk": "Mga panganib"
+    },
+    "notesFilterLabel": "Ipakita",
+    "notesStateFailed": "nabigo",
+    "notesStateCancelled": "itinigil",
+    "notesVersion": "Bersyon",
+    "notesLanguage": "Wika ng mga tala",
+    "notesWriting": "Isinusulat ang mga tala…",
+    "notesTooShort": "Masyadong kaunti ang laman ng record na ito para gawan ng mga tala.",
+    "notesWrite": "Isulat ang mga tala",
+    "notesWriteAgain": "Sumulat ng bagong bersyon",
+    "notesFailed": "Hindi maisulat ang mga tala: {{reason}}",
+    "notesTryAgain": "Subukan ulit",
+    "notesCancelled": "Itinigil ang pagsulat ng mga talang ito.",
+    "tagWritingNotes": "Isinusulat ang mga tala",
+    "tagNotesFailed": "Nabigo ang mga tala",
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "length": "Haba {{length}}"
   }

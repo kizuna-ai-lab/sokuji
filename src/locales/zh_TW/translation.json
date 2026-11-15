@@ -2028,6 +2028,33 @@
     "notesTurnOn": "開啟",
     "notesModel": "紀要模型",
     "notesModelLine": "寫紀要用的文字模型，填它在服務那邊的名稱。",
+    "notes": "紀要",
+    "transcript": "轉寫",
+    "notesKind": {
+      "decision": "決定",
+      "todo": "待辦",
+      "risk": "風險"
+    },
+    "notesFilter": {
+      "all": "全部",
+      "decision": "決定",
+      "todo": "待辦",
+      "risk": "風險"
+    },
+    "notesFilterLabel": "顯示",
+    "notesStateFailed": "失敗",
+    "notesStateCancelled": "已停止",
+    "notesVersion": "版本",
+    "notesLanguage": "紀要語言",
+    "notesWriting": "正在寫紀要…",
+    "notesTooShort": "這筆記錄內容太少，寫不出紀要。",
+    "notesWrite": "寫紀要",
+    "notesWriteAgain": "重寫一版",
+    "notesFailed": "紀要沒能寫成：{{reason}}",
+    "notesTryAgain": "重試",
+    "notesCancelled": "這份紀要的寫作已停止。",
+    "tagWritingNotes": "紀要產生中",
+    "tagNotesFailed": "紀要失敗",
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "length": "時長 {{length}}"
   }

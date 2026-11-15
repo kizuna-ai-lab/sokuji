@@ -2028,6 +2028,33 @@
     "notesTurnOn": "켜기",
     "notesModel": "메모 모델",
     "notesModelLine": "메모를 작성하는 텍스트 모델. 서비스에서 쓰는 이름으로 입력합니다.",
+    "notes": "메모",
+    "transcript": "전사",
+    "notesKind": {
+      "decision": "결정",
+      "todo": "할 일",
+      "risk": "위험"
+    },
+    "notesFilter": {
+      "all": "전체",
+      "decision": "결정",
+      "todo": "할 일",
+      "risk": "위험"
+    },
+    "notesFilterLabel": "보기",
+    "notesStateFailed": "실패",
+    "notesStateCancelled": "중지됨",
+    "notesVersion": "버전",
+    "notesLanguage": "메모 언어",
+    "notesWriting": "메모 작성 중…",
+    "notesTooShort": "이 기록은 메모를 작성하기에 내용이 너무 적습니다.",
+    "notesWrite": "메모 작성",
+    "notesWriteAgain": "새 버전 작성",
+    "notesFailed": "메모를 작성하지 못했습니다: {{reason}}",
+    "notesTryAgain": "다시 시도",
+    "notesCancelled": "이 메모 작성은 중지되었습니다.",
+    "tagWritingNotes": "메모 작성 중",
+    "tagNotesFailed": "메모 실패",
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "length": "길이 {{length}}"
   }

@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Slå på",
     "notesModel": "Modell för anteckningar",
     "notesModelLine": "Textmodellen som skriver anteckningarna, med det namn tjänsten använder.",
+    "notes": "Anteckningar",
+    "transcript": "Transkription",
+    "notesKind": {
+      "decision": "Beslut",
+      "todo": "Att göra",
+      "risk": "Risk"
+    },
+    "notesFilter": {
+      "all": "Alla",
+      "decision": "Beslut",
+      "todo": "Att göra",
+      "risk": "Risker"
+    },
+    "notesFilterLabel": "Visa",
+    "notesStateFailed": "misslyckades",
+    "notesStateCancelled": "avbruten",
+    "notesVersion": "Version",
+    "notesLanguage": "Anteckningarnas språk",
+    "notesWriting": "Skriver anteckningar…",
+    "notesTooShort": "Den här posten innehåller för lite för att skriva anteckningar.",
+    "notesWrite": "Skriv anteckningar",
+    "notesWriteAgain": "Skriv en ny version",
+    "notesFailed": "Anteckningarna kunde inte skrivas: {{reason}}",
+    "notesTryAgain": "Försök igen",
+    "notesCancelled": "Skrivandet av de här anteckningarna avbröts.",
+    "tagWritingNotes": "Skriver anteckningar",
+    "tagNotesFailed": "Anteckningar misslyckades",
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}"
   }

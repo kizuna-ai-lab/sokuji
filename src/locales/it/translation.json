@@ -2028,6 +2028,33 @@
     "notesTurnOn": "Attiva",
     "notesModel": "Modello delle note",
     "notesModelLine": "Il modello di testo che scrive le note, con il suo nome presso il servizio.",
+    "notes": "Note",
+    "transcript": "Trascrizione",
+    "notesKind": {
+      "decision": "Decisione",
+      "todo": "Da fare",
+      "risk": "Rischio"
+    },
+    "notesFilter": {
+      "all": "Tutto",
+      "decision": "Decisioni",
+      "todo": "Da fare",
+      "risk": "Rischi"
+    },
+    "notesFilterLabel": "Mostra",
+    "notesStateFailed": "non riuscito",
+    "notesStateCancelled": "interrotto",
+    "notesVersion": "Versione",
+    "notesLanguage": "Lingua delle note",
+    "notesWriting": "Scrittura delle note…",
+    "notesTooShort": "Questa registrazione contiene troppo poco per scriverne le note.",
+    "notesWrite": "Scrivi le note",
+    "notesWriteAgain": "Scrivi una nuova versione",
+    "notesFailed": "Impossibile scrivere le note: {{reason}}",
+    "notesTryAgain": "Riprova",
+    "notesCancelled": "La scrittura di queste note è stata interrotta.",
+    "tagWritingNotes": "Note in corso",
+    "tagNotesFailed": "Note non riuscite",
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "length": "Durata {{length}}"
   }

@@ -2028,6 +2028,33 @@
     "notesTurnOn": "இயக்கு",
     "notesModel": "குறிப்புகளின் மாதிரி",
     "notesModelLine": "குறிப்புகளை எழுதும் உரை மாதிரி, சேவையில் உள்ள அதன் பெயரில்.",
+    "notes": "குறிப்புகள்",
+    "transcript": "எழுத்துப்படி",
+    "notesKind": {
+      "decision": "முடிவு",
+      "todo": "செய்ய வேண்டியது",
+      "risk": "அபாயம்"
+    },
+    "notesFilter": {
+      "all": "அனைத்தும்",
+      "decision": "முடிவுகள்",
+      "todo": "செய்ய வேண்டியவை",
+      "risk": "அபாயங்கள்"
+    },
+    "notesFilterLabel": "காட்டு",
+    "notesStateFailed": "தோல்வி",
+    "notesStateCancelled": "நிறுத்தப்பட்டது",
+    "notesVersion": "பதிப்பு",
+    "notesLanguage": "குறிப்புகளின் மொழி",
+    "notesWriting": "குறிப்புகள் எழுதப்படுகின்றன…",
+    "notesTooShort": "இந்தப் பதிவில் குறிப்புகள் எழுதப் போதுமானது இல்லை.",
+    "notesWrite": "குறிப்புகளை எழுது",
+    "notesWriteAgain": "புதிய பதிப்பை எழுது",
+    "notesFailed": "குறிப்புகளை எழுத முடியவில்லை: {{reason}}",
+    "notesTryAgain": "மீண்டும் முயல்",
+    "notesCancelled": "இந்தக் குறிப்புகளை எழுதுவது நிறுத்தப்பட்டது.",
+    "tagWritingNotes": "குறிப்புகள் எழுதப்படுகின்றன",
+    "tagNotesFailed": "குறிப்புகள் தோல்வி",
     "transcriptStopped": "இந்த அமர்வின் எழுத்துப்படியில் ஒரு பகுதியைச் சேமிக்க முடியவில்லை: வட்டில் எழுத முடியவில்லை.",
     "length": "நீளம் {{length}}"
   }

@@ -2028,6 +2028,33 @@
     "notesTurnOn": "تشغيل",
     "notesModel": "نموذج الملاحظات",
     "notesModelLine": "النموذج النصي الذي يكتب الملاحظات، باسمه لدى الخدمة.",
+    "notes": "ملاحظات",
+    "transcript": "نص مفرغ",
+    "notesKind": {
+      "decision": "قرار",
+      "todo": "مهمة",
+      "risk": "خطر"
+    },
+    "notesFilter": {
+      "all": "الكل",
+      "decision": "القرارات",
+      "todo": "المهام",
+      "risk": "المخاطر"
+    },
+    "notesFilterLabel": "عرض",
+    "notesStateFailed": "فشل",
+    "notesStateCancelled": "أُوقف",
+    "notesVersion": "الإصدار",
+    "notesLanguage": "لغة الملاحظات",
+    "notesWriting": "جارٍ كتابة الملاحظات…",
+    "notesTooShort": "لا يحتوي هذا السجل على ما يكفي لكتابة ملاحظات.",
+    "notesWrite": "كتابة الملاحظات",
+    "notesWriteAgain": "كتابة إصدار جديد",
+    "notesFailed": "تعذّرت كتابة الملاحظات: {{reason}}",
+    "notesTryAgain": "أعد المحاولة",
+    "notesCancelled": "أُوقفت كتابة هذه الملاحظات.",
+    "tagWritingNotes": "جارٍ كتابة الملاحظات",
+    "tagNotesFailed": "فشلت الملاحظات",
     "transcriptStopped": "تعذّر حفظ جزء من النص المفرغ لهذه الجلسة: تعذّرت كتابته على القرص.",
     "length": "المدة {{length}}"
   }

@@ -102,7 +102,7 @@ async function renderRecord(at: HitTarget | null = null) {
 beforeEach(() => {
   record = {
     id: A, startedAt: START, endedAt: START + 65_000, state: 'closed', mode: 'both', myLanguage: 'en', targetLanguage: 'zh', title: null,
-    titleByUser: false, binnedAt: null, sentences: 3, hasRecording: false, notesVersions: 0, audioBytes: 0,
+    titleByUser: false, binnedAt: null, sentences: 3, hasRecording: false, notesVersions: 0, notesState: null, audioBytes: 0,
     services: { provider: 'soniox', models: {} }, appVersion: '1.2.3', textBytes: 2048, legs: [], tracks: [], notes: [],
     transcripts: [{ id: 1, origin: { service: 'soniox', kind: 'live' }, textKind: 'original', createdAt: START, sentences: 3 }],
   };
@@ -350,6 +350,30 @@ describe('a record', () => {
     await settle();
     expect(vi.mocked(port.saveTrack).mock.calls.map((c) => c[0].title)).toEqual(['Save the recording']);
     expect(screen.getByText('The recording could not be saved.')).toBeTruthy();
+  });
+
+  it('shows the notes in their tab; a point takes the transcript to its sentence and plays from it', async () => {
+    record = { ...record, notesVersions: 1, notesState: 'complete', tracks: [
+      { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
+    ], notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: 'When it ships.', format: 'plain' }, topics: [{ title: 'Dates', summary: '', first: 1 }],
+        points: [{ topic: 0, text: 'Ships by Wednesday', sentences: [2], kinds: ['decision'] }], names: [] },
+    })) as never;
+    await renderRecord();
+    fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    expect(screen.getByRole('heading', { name: 'Shipping' })).toBeInTheDocument();
+    scrollIntoView.mockClear();
+    const play = vi.mocked(HTMLMediaElement.prototype.play);
+    play.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Ships by Wednesday' }));
+    await settle();
+    expect(screen.getByRole('tab', { name: 'Transcript' })).toHaveAttribute('aria-selected', 'true');
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(document.querySelector('[data-n="2"]')).toHaveClass('is-hit');
+    expect(play).toHaveBeenCalled();
   });
 
   it('a record still being written can be refreshed and not binned', async () => {
