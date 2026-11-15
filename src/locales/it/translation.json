@@ -2088,5 +2088,15 @@
     "unnamed": "Ci sono note in scrittura. Uscire comunque? Verranno segnate come annullate.",
     "quit": "Esci",
     "stay": "Resta"
+  },
+  "liveNotes": {
+    "title": "Note in diretta",
+    "hint": "Impossibile aggiornare le note in diretta. Si riproverà.",
+    "off": "Le note in diretta sono disattivate.",
+    "waiting": "Le note compaiono qui man mano che la conversazione procede.",
+    "openTopic": "{{title}} (ora)",
+    "fullInHistory": "Le note complete saranno nella cronologia.",
+    "notKept": "Le note in diretta non vengono conservate. La sessione è nella cronologia.",
+    "openHistory": "Apri la cronologia"
   }
 }

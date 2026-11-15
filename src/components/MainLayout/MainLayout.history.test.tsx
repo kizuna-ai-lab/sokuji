@@ -26,6 +26,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => true, isExtension: () => false, isKizunaAIEnabled: () => false,
 }));
 vi.mock('../../stores/settingsStore', () => ({
+  useLiveNotesSetting: () => false, useNotesAfterSession: () => false,
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => false, useDiagnosticLogs: () => logs.on,
 }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));

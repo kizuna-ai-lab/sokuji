@@ -2088,5 +2088,15 @@
     "unnamed": "Se están escribiendo notas. ¿Salir de todos modos? Se marcarán como canceladas.",
     "quit": "Salir",
     "stay": "Quedarse"
+  },
+  "liveNotes": {
+    "title": "Notas en directo",
+    "hint": "No se pudieron actualizar las notas en directo. Se volverá a intentar.",
+    "off": "Las notas en directo están desactivadas.",
+    "waiting": "Las notas aparecen aquí a medida que avanza la conversación.",
+    "openTopic": "{{title}} (ahora)",
+    "fullInHistory": "Las notas completas estarán en el historial.",
+    "notKept": "Las notas en directo no se guardan. La sesión está en el historial.",
+    "openHistory": "Abrir el historial"
   }
 }

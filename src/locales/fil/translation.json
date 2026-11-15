@@ -2088,5 +2088,15 @@
     "unnamed": "May isinusulat na mga tala. Isara pa rin? Mamarkahan itong kinansela.",
     "quit": "Isara",
     "stay": "Manatili"
+  },
+  "liveNotes": {
+    "title": "Live na tala",
+    "hint": "Hindi ma-update ang live na tala. Susubukan ulit.",
+    "off": "Naka-off ang live na tala.",
+    "waiting": "Lalabas dito ang mga tala habang tumatakbo ang usapan.",
+    "openTopic": "{{title}} (ngayon)",
+    "fullInHistory": "Nasa History ang buong tala.",
+    "notKept": "Hindi iniimbak ang live na tala. Nasa History ang session.",
+    "openHistory": "Buksan ang History"
   }
 }

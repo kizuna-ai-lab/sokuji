@@ -19,9 +19,11 @@ import './History.scss';
 
 export interface HistoryPageProps {
   onClose(): void;
+  /** A record to open at once (the live notes' way to History). */
+  recordId?: string | null;
 }
 
-export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
+export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose, recordId = null }) => {
   const { t } = useTranslation();
   const [store] = useState(() => createHistoryPageStore(
     historyPort(), realClock, () => t('history.failed', 'That did not work. Try again.'), isElectron() ? appNotesRunner() : null,
@@ -30,6 +32,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
   const error = useStore(store, (s) => s.error);
 
   useEffect(() => { void store.getState().load(); }, [store]);
+  useEffect(() => { if (recordId) void store.getState().openRecord(recordId); }, [store, recordId]);
   // The page's store follows the app's notes runner while the page is open, and no longer (StrictMode's second run
   // of the effect follows again).
   useEffect(() => {

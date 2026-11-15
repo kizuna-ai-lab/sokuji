@@ -2088,5 +2088,15 @@
     "unnamed": "Notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",
     "quit": "Çık",
     "stay": "Kal"
+  },
+  "liveNotes": {
+    "title": "Canlı notlar",
+    "hint": "Canlı notlar güncellenemedi. Yeniden denenecek.",
+    "off": "Canlı notlar kapalı.",
+    "waiting": "Konuşma ilerledikçe notlar burada görünür.",
+    "openTopic": "{{title}} (şimdi)",
+    "fullInHistory": "Notların tamamı Geçmiş’te olacak.",
+    "notKept": "Canlı notlar saklanmaz. Oturum Geçmiş’te.",
+    "openHistory": "Geçmişi aç"
   }
 }

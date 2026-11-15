@@ -2088,5 +2088,15 @@
     "unnamed": "Nota sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",
     "quit": "Keluar",
     "stay": "Kekal"
+  },
+  "liveNotes": {
+    "title": "Nota langsung",
+    "hint": "Nota langsung tidak dapat dikemas kini. Akan dicuba lagi.",
+    "off": "Nota langsung dimatikan.",
+    "waiting": "Nota muncul di sini semasa perbualan berjalan.",
+    "openTopic": "{{title}} (sekarang)",
+    "fullInHistory": "Nota penuh akan berada dalam Sejarah.",
+    "notKept": "Nota langsung tidak disimpan. Sesi ada dalam Sejarah.",
+    "openHistory": "Buka Sejarah"
   }
 }

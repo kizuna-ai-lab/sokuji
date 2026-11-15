@@ -2088,5 +2088,15 @@
     "unnamed": "Đang viết ghi chú. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",
     "quit": "Thoát",
     "stay": "Ở lại"
+  },
+  "liveNotes": {
+    "title": "Ghi chú trực tiếp",
+    "hint": "Không cập nhật được ghi chú trực tiếp. Sẽ thử lại.",
+    "off": "Ghi chú trực tiếp đang tắt.",
+    "waiting": "Ghi chú xuất hiện ở đây khi cuộc trò chuyện diễn ra.",
+    "openTopic": "{{title}} (đang diễn ra)",
+    "fullInHistory": "Ghi chú đầy đủ sẽ có trong Lịch sử.",
+    "notKept": "Ghi chú trực tiếp không được lưu. Phiên có trong Lịch sử.",
+    "openHistory": "Mở Lịch sử"
   }
 }

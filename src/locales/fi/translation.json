@@ -2088,5 +2088,15 @@
     "unnamed": "Muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",
     "quit": "Lopeta",
     "stay": "Jää"
+  },
+  "liveNotes": {
+    "title": "Reaaliaikaiset muistiinpanot",
+    "hint": "Reaaliaikaisia muistiinpanoja ei voitu päivittää. Yritetään uudelleen.",
+    "off": "Reaaliaikaiset muistiinpanot ovat pois päältä.",
+    "waiting": "Muistiinpanot ilmestyvät tähän keskustelun edetessä.",
+    "openTopic": "{{title}} (nyt)",
+    "fullInHistory": "Täydelliset muistiinpanot ovat historiassa.",
+    "notKept": "Reaaliaikaisia muistiinpanoja ei tallenneta. Istunto on historiassa.",
+    "openHistory": "Avaa historia"
   }
 }

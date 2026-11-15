@@ -98,8 +98,22 @@
     }
   }
   
+  // The conversation and, beside it, the live notes: on the right in a wide window, above in a narrow one.
+  .main-panel-row {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    > .live-notes { flex: 0 0 300px; }
+    @media (max-width: 767px) {
+      flex-direction: column;
+      > .live-notes { order: -1; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
+    }
+  }
+
   .main-panel-container {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden; // Prevent content from overflowing

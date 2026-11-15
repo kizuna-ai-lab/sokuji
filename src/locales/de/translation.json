@@ -2088,5 +2088,15 @@
     "unnamed": "Es werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",
     "quit": "Beenden",
     "stay": "Bleiben"
+  },
+  "liveNotes": {
+    "title": "Live-Notizen",
+    "hint": "Die Live-Notizen konnten nicht aktualisiert werden. Es wird erneut versucht.",
+    "off": "Live-Notizen sind aus.",
+    "waiting": "Die Notizen erscheinen hier, während das Gespräch läuft.",
+    "openTopic": "{{title}} (jetzt)",
+    "fullInHistory": "Die vollständigen Notizen stehen dann im Verlauf.",
+    "notKept": "Live-Notizen werden nicht gespeichert. Die Sitzung steht im Verlauf.",
+    "openHistory": "Verlauf öffnen"
   }
 }

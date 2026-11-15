@@ -2088,5 +2088,15 @@
     "unnamed": "Notes are being written. Quit anyway? They will be marked cancelled.",
     "quit": "Quit",
     "stay": "Stay"
+  },
+  "liveNotes": {
+    "title": "Live notes",
+    "hint": "Live notes could not be updated. They will try again.",
+    "off": "Live notes are off.",
+    "waiting": "Notes appear here as the conversation goes on.",
+    "openTopic": "{{title}} (now)",
+    "fullInHistory": "The full notes will be in History.",
+    "notKept": "Live notes are not kept. The session is in History.",
+    "openHistory": "Open History"
   }
 }

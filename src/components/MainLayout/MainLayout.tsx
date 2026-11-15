@@ -17,6 +17,7 @@ import { useAnalytics } from '../../lib/analytics';
 import { useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
 import { isElectron, isExtension } from '../../utils/environment';
 import NotesQuitDialog from '../Notes/NotesQuitDialog';
+import LiveNotesPanel from '../LiveNotes/LiveNotesPanel';
 import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen, useHistoryOpen, useSetHistoryOpen } from '../../stores/layoutStore';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
@@ -39,6 +40,8 @@ const MainLayout: React.FC = () => {
   const showSettings = useShowSettings();
   const historyOpen = useHistoryOpen();
   const setHistoryOpen = useSetHistoryOpen();
+  /** The record History opens at, when the live notes led there. */
+  const [historyRecord, setHistoryRecord] = useState<string | null>(null);
   const setShowSettings = useSetShowSettings();
   const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(readPanelWidth(), window.innerWidth));
 
@@ -198,8 +201,12 @@ const MainLayout: React.FC = () => {
         className={`main-content ${sidePanelOpen ? 'with-panel' : 'full-width'}`}
         style={pageInPlace || historyInPlace ? { display: 'none' } : undefined}
       >
-        <div className="main-panel-container">
-          <MainPanel />
+        {/* The conversation, and the live notes beside it (on the right; above it when narrow). */}
+        <div className="main-panel-row">
+          <div className="main-panel-container">
+            <MainPanel />
+          </div>
+          <LiveNotesPanel onOpenHistory={(id) => { setHistoryRecord(id); setHistoryOpen(true); }} />
         </div>
       </div>
       {/* Kept mounted behind an <Activity> boundary, like the side panels, so its open category and scroll survive a close. */}
@@ -212,7 +219,7 @@ const MainLayout: React.FC = () => {
       )}
       {historyInPlace && (
         <div className="history-page-container">
-          <HistoryPage onClose={() => setHistoryOpen(false)} />
+          <HistoryPage onClose={() => { setHistoryRecord(null); setHistoryOpen(false); }} recordId={historyRecord} />
         </div>
       )}
       {sidePanelOpen && !pageInPlace && (

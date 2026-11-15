@@ -2088,5 +2088,15 @@
     "unnamed": "Er worden notities geschreven. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",
     "quit": "Afsluiten",
     "stay": "Blijven"
+  },
+  "liveNotes": {
+    "title": "Live notities",
+    "hint": "De live notities konden niet worden bijgewerkt. Er wordt opnieuw geprobeerd.",
+    "off": "Live notities staan uit.",
+    "waiting": "Notities verschijnen hier naarmate het gesprek vordert.",
+    "openTopic": "{{title}} (nu)",
+    "fullInHistory": "De volledige notities komen in de geschiedenis.",
+    "notKept": "Live notities worden niet bewaard. De sessie staat in de geschiedenis.",
+    "openHistory": "Geschiedenis openen"
   }
 }

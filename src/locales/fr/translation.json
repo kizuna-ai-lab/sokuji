@@ -2088,5 +2088,15 @@
     "unnamed": "Des notes sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",
     "quit": "Quitter",
     "stay": "Rester"
+  },
+  "liveNotes": {
+    "title": "Notes en direct",
+    "hint": "Les notes en direct n’ont pas pu être mises à jour. Nouvel essai à venir.",
+    "off": "Les notes en direct sont désactivées.",
+    "waiting": "Les notes apparaissent ici au fil de la conversation.",
+    "openTopic": "{{title}} (en cours)",
+    "fullInHistory": "Les notes complètes seront dans l’historique.",
+    "notKept": "Les notes en direct ne sont pas conservées. La session est dans l’historique.",
+    "openHistory": "Ouvrir l’historique"
   }
 }

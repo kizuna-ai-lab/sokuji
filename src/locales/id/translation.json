@@ -2088,5 +2088,15 @@
     "unnamed": "Catatan sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",
     "quit": "Keluar",
     "stay": "Tetap di sini"
+  },
+  "liveNotes": {
+    "title": "Catatan langsung",
+    "hint": "Catatan langsung tidak bisa diperbarui. Akan dicoba lagi.",
+    "off": "Catatan langsung dimatikan.",
+    "waiting": "Catatan muncul di sini seiring berjalannya percakapan.",
+    "openTopic": "{{title}} (sekarang)",
+    "fullInHistory": "Catatan lengkap akan ada di Riwayat.",
+    "notKept": "Catatan langsung tidak disimpan. Sesinya ada di Riwayat.",
+    "openHistory": "Buka Riwayat"
   }
 }

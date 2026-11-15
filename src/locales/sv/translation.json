@@ -2088,5 +2088,15 @@
     "unnamed": "Anteckningar skrivs. Avsluta ändå? De markeras som avbrutna.",
     "quit": "Avsluta",
     "stay": "Stanna"
+  },
+  "liveNotes": {
+    "title": "Liveanteckningar",
+    "hint": "Liveanteckningarna kunde inte uppdateras. Ett nytt försök görs.",
+    "off": "Liveanteckningar är avstängda.",
+    "waiting": "Anteckningar visas här medan samtalet pågår.",
+    "openTopic": "{{title}} (nu)",
+    "fullInHistory": "De fullständiga anteckningarna hamnar i historiken.",
+    "notKept": "Liveanteckningar sparas inte. Sessionen finns i historiken.",
+    "openHistory": "Öppna historiken"
   }
 }

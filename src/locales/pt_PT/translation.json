@@ -2088,5 +2088,15 @@
     "unnamed": "Há notas a ser escritas. Sair mesmo assim? Serão marcadas como canceladas.",
     "quit": "Sair",
     "stay": "Ficar"
+  },
+  "liveNotes": {
+    "title": "Notas em direto",
+    "hint": "Não foi possível atualizar as notas em direto. Será feita nova tentativa.",
+    "off": "As notas em direto estão desativadas.",
+    "waiting": "As notas aparecem aqui à medida que a conversa avança.",
+    "openTopic": "{{title}} (agora)",
+    "fullInHistory": "As notas completas estarão no histórico.",
+    "notKept": "As notas em direto não são guardadas. A sessão está no histórico.",
+    "openHistory": "Abrir o histórico"
   }
 }
