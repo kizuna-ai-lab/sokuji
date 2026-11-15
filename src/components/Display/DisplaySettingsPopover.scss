@@ -52,8 +52,10 @@
       color: vars.$text-tertiary;
     }
 
+    // The settings' sliders' colour (2026-11-15); the size, the length and the value's place stay this bar's own.
     input[type="range"] {
       width: 100%;
+      accent-color: vars.$color-primary;
     }
 
     .palette {
