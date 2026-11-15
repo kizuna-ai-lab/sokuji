@@ -12,7 +12,7 @@ const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInit
 vi.mock('../providers/ProviderOwnSettings', () => ({
   ProviderEngine: (props: { initialSlot?: unknown; onInitialSlotConsumed?: () => void }) => { engineProps.push(props); return <div id="model-management-section"><div id="model-tts-section" /></div>; },
   ProviderOwnSettings: () => <div id="provider-own-settings" />,
-  ProviderTurnDetectionControls: () => null,
+  ProviderTurnDetectionControls: () => <div id="turn-detection-tuning-section" />,
 }));
 // Every released provider offered, and signed in: the list shows what a signed-in user of a release sees.
 vi.mock('../../providers/registry', async (importOriginal) => {
@@ -147,5 +147,17 @@ describe('languages and line-up — the options heading', () => {
     expect(screen.getByRole('button', { name: /Soniox options/ })).toBeInTheDocument();
     act(() => { useProviderStore.setState({ selected: 'local_inference' }); });
     expect(screen.getByRole('button', { name: /This device options/ })).toBeInTheDocument();
+  });
+});
+
+// The detailed VAD block of the old Advanced provider tab: in the provider's options, opened by the speech mode's summary link.
+describe('languages and line-up — the detailed turn detection', () => {
+  it("the summary link's target unfolds the provider's options, where the detailed block is", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    render(<LineUpCategory locked={false} />);
+    expect(document.getElementById('turn-detection-tuning-section')).toBeNull();
+    act(() => { useSettingsStore.getState().navigateToSettings('turn-detection-tuning'); });
+    expect(document.getElementById('turn-detection-tuning-section')).not.toBeNull();
   });
 });
