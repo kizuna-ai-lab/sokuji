@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Ladataan japanin sanakirjaa {{done}} / {{total}}",
       "readingsDownloadFailed": "Japanin sanakirjan lataaminen epäonnistui.",
-      "readingsFailed": "Japanin lukutavat eivät toimi."
+      "readingsFailed": "Japanin lukutavat eivät toimi.",
+      "defaultColour": "Oletus"
     },
     "pttHint": "Paina välilyöntiä puhuaksesi"
   },
@@ -1784,9 +1785,6 @@
       "main": "Pääikkuna",
       "captions": "Tekstitystila",
       "compact": "Kompakti näkymä",
-      "preview": "Esikatselu",
-      "mine": "Mitä minä sanon",
-      "theirs": "Mitä toinen osapuoli sanoo",
       "fontSize": "Tekstin koko",
       "smaller": "Pienempi teksti",
       "larger": "Suurempi teksti",
@@ -1795,7 +1793,12 @@
         "source": "Vain alkuperäinen",
         "translation": "Vain käännös",
         "none": "Ei mitään"
-      }
+      },
+      "mineSide": "Mitä minun puoleltani näytetään",
+      "theirsSide": "Mitä toisen osapuolen puolelta näytetään",
+      "previewMain": "Esikatselu: keskustelu pääikkunassa",
+      "previewCaptions": "Esikatselu: tekstitystila toisen ikkunan päällä",
+      "empty": "Täällä ei nyt näy mitään: molemmat puolet on asetettu tilaan ”Ei mitään”."
     },
     "intro": {
       "accounts": "Tilit ja avaimet: kukin palvelu täytetään kerran. Sen jälkeen sen tehtävät valitaan kohdassa ”Kielet ja kokoonpano”.",

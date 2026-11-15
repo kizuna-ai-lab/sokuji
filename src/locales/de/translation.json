@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Japanisches Wörterbuch wird heruntergeladen {{done}} / {{total}}",
       "readingsDownloadFailed": "Das japanische Wörterbuch konnte nicht heruntergeladen werden.",
-      "readingsFailed": "Die japanischen Lesungen funktionieren nicht."
+      "readingsFailed": "Die japanischen Lesungen funktionieren nicht.",
+      "defaultColour": "Standard"
     },
     "pttHint": "Leertaste zum Sprechen halten"
   },
@@ -1784,9 +1785,6 @@
       "main": "Hauptfenster",
       "captions": "Untertitel-Modus",
       "compact": "Kompakte Ansicht",
-      "preview": "Vorschau",
-      "mine": "Was ich sage",
-      "theirs": "Was die Gegenseite sagt",
       "fontSize": "Textgröße",
       "smaller": "Kleinerer Text",
       "larger": "Größerer Text",
@@ -1795,7 +1793,12 @@
         "source": "Nur Original",
         "translation": "Nur Übersetzung",
         "none": "Nichts"
-      }
+      },
+      "mineSide": "Was auf meiner Seite angezeigt wird",
+      "theirsSide": "Was auf der Gegenseite angezeigt wird",
+      "previewMain": "Vorschau: das Gespräch im Hauptfenster",
+      "previewCaptions": "Vorschau: Untertitel-Modus über einem anderen Fenster",
+      "empty": "Hier wird gerade nichts angezeigt: Beide Seiten stehen auf „Nichts“."
     },
     "intro": {
       "accounts": "Konten und Schlüssel: Für jeden Dienst trägt man sie einmal ein. Was er danach übernimmt, wählt man unter „Sprachen und Aufstellung“.",

@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Dina-download ang diksyunaryong Hapones {{done}} / {{total}}",
       "readingsDownloadFailed": "Hindi ma-download ang diksyunaryong Hapones.",
-      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones."
+      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones.",
+      "defaultColour": "Default"
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },
@@ -1784,9 +1785,6 @@
       "main": "Pangunahing window",
       "captions": "Subtitle mode",
       "compact": "Compact na view",
-      "preview": "Preview",
-      "mine": "Ang sinasabi ko",
-      "theirs": "Ang sinasabi ng kabilang panig",
       "fontSize": "Laki ng teksto",
       "smaller": "Mas maliit na teksto",
       "larger": "Mas malaking teksto",
@@ -1795,7 +1793,12 @@
         "source": "Orihinal lang",
         "translation": "Salin lang",
         "none": "Wala"
-      }
+      },
+      "mineSide": "Ang ipinapakita sa panig ko",
+      "theirsSide": "Ang ipinapakita sa kabilang panig",
+      "previewMain": "Preview: ang usapan sa pangunahing window",
+      "previewCaptions": "Preview: subtitle mode, nakapatong sa ibang window",
+      "empty": "Walang lumalabas dito ngayon: parehong panig ay naka-set sa \"Wala\"."
     },
     "intro": {
       "accounts": "Mga account at key: isang beses lang pinupunan ang bawat serbisyo. Pagkatapos, pinipili sa “Mga wika at line-up” ang gagawin nito.",

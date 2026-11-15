@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Pobieranie słownika japońskiego {{done}} / {{total}}",
       "readingsDownloadFailed": "Nie udało się pobrać słownika japońskiego.",
-      "readingsFailed": "Japońskie odczyty nie działają."
+      "readingsFailed": "Japońskie odczyty nie działają.",
+      "defaultColour": "Domyślny"
     },
     "pttHint": "Naciśnij spację, aby mówić"
   },
@@ -1784,9 +1785,6 @@
       "main": "Okno główne",
       "captions": "Tryb napisów",
       "compact": "Widok kompaktowy",
-      "preview": "Podgląd",
-      "mine": "Co mówię",
-      "theirs": "Co mówi druga strona",
       "fontSize": "Rozmiar tekstu",
       "smaller": "Mniejszy tekst",
       "larger": "Większy tekst",
@@ -1795,7 +1793,12 @@
         "source": "Tylko oryginał",
         "translation": "Tylko tłumaczenie",
         "none": "Nic"
-      }
+      },
+      "mineSide": "Co pokazuje moja strona",
+      "theirsSide": "Co pokazuje druga strona",
+      "previewMain": "Podgląd: rozmowa w oknie głównym",
+      "previewCaptions": "Podgląd: tryb napisów nad innym oknem",
+      "empty": "Nic tu teraz nie widać: obie strony mają ustawione „Nic”."
     },
     "intro": {
       "accounts": "Konta i klucze: każdą usługę wypełnia się raz. Potem jej zadania wybiera się w „Języki i zestaw”.",

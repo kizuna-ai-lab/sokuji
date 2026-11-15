@@ -107,7 +107,8 @@
       align-items: flex-start;
       gap: 6px;
       width: 100%;
-      max-width: 720px;
+      // The mock caps the content at 720px and keeps the padding outside it.
+      max-width: 720px + 2 * 28px;
       box-sizing: border-box;
       padding: 20px 28px 8px;
       h2 { margin: 0; font-size: 18px; font-weight: vars.$weight-semibold; line-height: 1.35; &:focus { outline: none; } }
@@ -120,7 +121,7 @@
   &__body {
     flex: none;
     width: 100%;
-    max-width: 720px;
+    max-width: 720px + 2 * 28px;
     box-sizing: border-box;
     padding: 12px 28px 32px;
     container-type: inline-size;
@@ -243,40 +244,138 @@
   }
 }
 
-// Display: the surface switch, a preview that stays in view, then the surface's controls.
-.display-category {
-  display: flex;
-  flex-direction: column;
-  gap: vars.$space-3;
-  &__surfaces { display: inline-flex; gap: 4px; align-self: flex-start; padding: 2px; border: 1px solid vars.$border-subtle; border-radius: vars.$radius-md; }
-  &__surface {
-    padding: 4px 12px; border: none; border-radius: vars.$radius-md; background: transparent; color: vars.$text-secondary; cursor: pointer;
-    &.is-on { background: color-mix(in srgb, vars.$color-primary 18%, transparent); color: vars.$text-primary; }
-    &:focus-visible { @include vars.focus-ring; }
-  }
-  &__row { display: flex; align-items: center; justify-content: space-between; gap: vars.$space-3; > span { color: vars.$text-secondary; } }
-  &__size {
-    display: inline-flex; align-items: center; gap: vars.$space-2;
-    button { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid vars.$border-default; border-radius: vars.$radius-md; background: transparent; color: vars.$text-secondary; cursor: pointer; }
-    output { min-width: 2.5em; text-align: center; }
+// A compact segmented choice (the mock's `.seg`): a few options side by side, the chosen one filled.
+.settings-seg {
+  display: inline-flex;
+  max-width: 100%;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 6px;
+  overflow: hidden;
+  button {
+    height: 24px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    color: vars.$text-secondary;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    & + button { border-left: 1px solid vars.$border-subtle; }
+    &:hover { background: vars.$bg-hover; }
+    &[aria-pressed='true'], &[aria-checked='true'] { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+    &:focus-visible { @include vars.focus-ring; outline-offset: -2px; }
+    &:disabled { opacity: 0.55; cursor: default; }
   }
 }
 
-.display-preview {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+// Display: the surface switch, a preview that stays in view, then the surface's rows.
+.display-category {
   display: flex;
   flex-direction: column;
-  gap: 0.6em;
-  padding: vars.$space-3;
+  gap: 8px;
+  &__surfaces { align-self: flex-start; }
+  &__rows { display: flex; flex-direction: column; }
+  // One row: the label on the left, its control on the right, a hairline between rows (the mock's `.drow`).
+  &__row,
+  .display-settings-popover--page > .field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 7px 0;
+    border-top: 1px solid vars.$border-subtle;
+    font-size: 12.5px;
+    color: vars.$text-secondary;
+  }
+  &__size {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    button {
+      height: 26px;
+      padding: 0 8px;
+      border: none;
+      border-radius: 5px;
+      background: transparent;
+      color: vars.$text-muted;
+      font-size: 12px;
+      cursor: pointer;
+      &:hover:not(:disabled) { background: vars.$bg-hover; color: vars.$text-primary; }
+      &:disabled { opacity: 0.45; cursor: default; }
+      &:focus-visible { @include vars.focus-ring; }
+    }
+    output { min-width: 2em; text-align: center; font-variant-numeric: tabular-nums; color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  }
+  .toggle-switch-component { margin: 0; }
+
+  // The colour rows, the readings and caption mode's rows, drawn as rows of the page rather than a floating box.
+  .display-settings-popover--page {
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    > .field {
+      > label { margin: 0; font-size: inherit; color: inherit; }
+      .palette {
+        gap: 7px; justify-content: flex-end; align-items: center;
+        .swatch { width: 22px; height: 22px; }
+        // The first chip in words (the mock's `.swt.auto`): "Follow theme", or caption mode's "Default".
+        .swatch.pill {
+          width: auto; padding: 0 9px; border-radius: 11px; outline: none;
+          border: 1px solid vars.$border-subtle; background: vars.$bg-control; color: vars.$text-secondary; font-size: 11.5px; line-height: 20px;
+          &.selected { border-color: vars.$border-subtle; box-shadow: 0 0 0 2px vars.$bg-base, 0 0 0 4px vars.$color-primary; }
+          &:focus-visible { outline: 2px solid vars.$color-primary; outline-offset: 2px; }
+        }
+        .swatch.selected:not(.pill) { box-shadow: 0 0 0 2px vars.$bg-base, 0 0 0 4px vars.$color-primary; border-color: transparent; }
+      }
+      // The free-choice picker opens under its row, the row's full width.
+      > :not(label):not(.palette):not(.range):not(.toggle-switch-component) { flex-basis: 100%; }
+      .range {
+        display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: vars.$text-muted;
+        input { width: 110px; accent-color: vars.$color-primary; }
+        output { min-width: 3em; text-align: right; font-variant-numeric: tabular-nums; }
+      }
+      // A switch row reads label first, switch last, like every other row.
+      .toggle-switch-component { flex: 1; }
+      .toggle-switch-label { flex: 1; flex-direction: row-reverse; justify-content: space-between; }
+      .toggle-label-text, .toggle-label-text.active { color: vars.$text-secondary; font-size: inherit; font-weight: inherit; }
+    }
+    > .readings-field { .readings-download { flex-basis: 100%; } }
+  }
+}
+
+// The preview: the mock's tagged box, kept in view while the rows scroll under it.
+.display-preview {
+  position: sticky;
+  top: 6px;
+  z-index: 2;
+  margin: 2px 0 8px;
   border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-md;
-  background: vars.$bg-surface;
-  line-height: 1.4;
-  &.is-compact { gap: 0.2em; }
-  &__row { display: flex; flex-direction: column; gap: 0.15em; }
-  &__row--mine { align-items: flex-end; text-align: right; }
-  &__source { opacity: 0.85; }
+  border-radius: 10px;
+  overflow: hidden;
+  background: vars.$bg-base;
+  // The page's own background around the box, so rows scrolling under it never show at its corners.
+  box-shadow: 0 0 0 8px vars.$bg-base;
+  &__tag { display: block; padding: 5px 10px; font-size: 11px; color: vars.$text-muted; background: vars.$bg-surface; border-bottom: 1px solid vars.$border-subtle; }
+  &__surface { background: vars.$bg-base; }
+  &__rows { padding: 8px 14px; max-height: 240px; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+  &__empty { padding: 18px 0; color: vars.$text-muted; font-size: 12.5px; text-align: center; }
+  rt { font-size: 0.5em; }
+  // Caption mode floats over another window.
+  &--subtitle {
+    background: vars.$bg-elevated;
+    .display-preview__tag { background: transparent; border-bottom: 0; }
+  }
+  &__backdrop { padding: 18px 18px 14px; }
+  &--subtitle &__surface { border-radius: 8px; overflow: hidden; }
+  &--subtitle &__rows { padding: 8px 16px; }
+  .subtitle-stream { flex: none; }
+  .subtitle-stream__item--lit { background-color: var(--subtitle-highlight-overlay); }
 }
 

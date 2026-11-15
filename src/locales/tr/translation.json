@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Japonca sözlük indiriliyor {{done}} / {{total}}",
       "readingsDownloadFailed": "Japonca sözlük indirilemedi.",
-      "readingsFailed": "Japonca okunuşlar çalışmıyor."
+      "readingsFailed": "Japonca okunuşlar çalışmıyor.",
+      "defaultColour": "Varsayılan"
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },
@@ -1784,9 +1785,6 @@
       "main": "Ana pencere",
       "captions": "Altyazı modu",
       "compact": "Kompakt görünüm",
-      "preview": "Önizleme",
-      "mine": "Söylediklerim",
-      "theirs": "Karşı tarafın söyledikleri",
       "fontSize": "Metin boyutu",
       "smaller": "Daha küçük metin",
       "larger": "Daha büyük metin",
@@ -1795,7 +1793,12 @@
         "source": "Yalnızca orijinal",
         "translation": "Yalnızca çeviri",
         "none": "Hiçbiri"
-      }
+      },
+      "mineSide": "Benim tarafımda gösterilen",
+      "theirsSide": "Karşı tarafta gösterilen",
+      "previewMain": "Önizleme: ana penceredeki konuşma",
+      "previewCaptions": "Önizleme: başka bir pencerenin üzerinde altyazı modu",
+      "empty": "Şu anda burada hiçbir şey görünmüyor: iki taraf da \"Hiçbiri\" olarak ayarlı."
     },
     "intro": {
       "accounts": "Hesaplar ve anahtarlar: her hizmet bir kez doldurulur. Ne yapacağı ardından “Diller ve düzen” bölümünde seçilir.",

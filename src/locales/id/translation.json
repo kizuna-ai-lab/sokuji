@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Mengunduh kamus bahasa Jepang {{done}} / {{total}}",
       "readingsDownloadFailed": "Kamus bahasa Jepang tidak dapat diunduh.",
-      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi."
+      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi.",
+      "defaultColour": "Bawaan"
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },
@@ -1784,9 +1785,6 @@
       "main": "Jendela utama",
       "captions": "Mode subtitle",
       "compact": "Tampilan ringkas",
-      "preview": "Pratinjau",
-      "mine": "Yang saya ucapkan",
-      "theirs": "Yang diucapkan pihak lain",
       "fontSize": "Ukuran teks",
       "smaller": "Teks lebih kecil",
       "larger": "Teks lebih besar",
@@ -1795,7 +1793,12 @@
         "source": "Hanya asli",
         "translation": "Hanya terjemahan",
         "none": "Tidak ada"
-      }
+      },
+      "mineSide": "Yang ditampilkan dari sisi saya",
+      "theirsSide": "Yang ditampilkan dari pihak lain",
+      "previewMain": "Pratinjau: percakapan di jendela utama",
+      "previewCaptions": "Pratinjau: mode subtitle, di atas jendela lain",
+      "empty": "Saat ini tidak ada yang tampil di sini: kedua sisi disetel ke \"Tidak ada\"."
     },
     "intro": {
       "accounts": "Akun dan kunci: setiap layanan diisi sekali saja. Setelah itu, tugasnya dipilih di “Bahasa dan susunan”.",

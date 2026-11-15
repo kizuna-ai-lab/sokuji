@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Descargando el diccionario de japonés {{done}} / {{total}}",
       "readingsDownloadFailed": "No se pudo descargar el diccionario de japonés.",
-      "readingsFailed": "La lectura en japonés no funciona."
+      "readingsFailed": "La lectura en japonés no funciona.",
+      "defaultColour": "Predeterminado"
     },
     "pttHint": "Pulsa Espacio para hablar"
   },
@@ -1784,9 +1785,6 @@
       "main": "Ventana principal",
       "captions": "Modo subtítulos",
       "compact": "Vista compacta",
-      "preview": "Vista previa",
-      "mine": "Lo que digo",
-      "theirs": "Lo que dice la otra parte",
       "fontSize": "Tamaño del texto",
       "smaller": "Texto más pequeño",
       "larger": "Texto más grande",
@@ -1795,7 +1793,12 @@
         "source": "Solo original",
         "translation": "Solo traducción",
         "none": "Nada"
-      }
+      },
+      "mineSide": "Qué se muestra de mi lado",
+      "theirsSide": "Qué se muestra de la otra parte",
+      "previewMain": "Vista previa: la conversación en la ventana principal",
+      "previewCaptions": "Vista previa: modo subtítulos, sobre otra ventana",
+      "empty": "Ahora no se muestra nada aquí: las dos partes están en «Nada»."
     },
     "intro": {
       "accounts": "Cuentas y claves: cada servicio se rellena una sola vez. Después, lo que hace se elige en «Idiomas y combinación».",

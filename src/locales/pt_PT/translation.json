@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "A transferir o dicionário de japonês {{done}} / {{total}}",
       "readingsDownloadFailed": "Não foi possível transferir o dicionário de japonês.",
-      "readingsFailed": "As leituras em japonês não estão a funcionar."
+      "readingsFailed": "As leituras em japonês não estão a funcionar.",
+      "defaultColour": "Predefinido"
     },
     "pttHint": "Prima Espaço para falar"
   },
@@ -1784,9 +1785,6 @@
       "main": "Janela principal",
       "captions": "Modo de legendas",
       "compact": "Vista compacta",
-      "preview": "Pré-visualização",
-      "mine": "O que eu digo",
-      "theirs": "O que o outro lado diz",
       "fontSize": "Tamanho do texto",
       "smaller": "Texto mais pequeno",
       "larger": "Texto maior",
@@ -1795,7 +1793,12 @@
         "source": "Apenas o original",
         "translation": "Apenas a tradução",
         "none": "Nada"
-      }
+      },
+      "mineSide": "O que o meu lado mostra",
+      "theirsSide": "O que o outro lado mostra",
+      "previewMain": "Pré-visualização: a conversa na janela principal",
+      "previewCaptions": "Pré-visualização: modo de legendas, sobre outra janela",
+      "empty": "Neste momento não aparece nada aqui: os dois lados estão em «Nada»."
     },
     "intro": {
       "accounts": "Contas e chaves: cada serviço é preenchido uma única vez. Depois, o que faz escolhe-se em “Idiomas e composição”.",

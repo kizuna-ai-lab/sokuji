@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Memuat turun kamus bahasa Jepun {{done}} / {{total}}",
       "readingsDownloadFailed": "Kamus bahasa Jepun tidak dapat dimuat turun.",
-      "readingsFailed": "Bacaan bahasa Jepun tidak berfungsi."
+      "readingsFailed": "Bacaan bahasa Jepun tidak berfungsi.",
+      "defaultColour": "Lalai"
     },
     "pttHint": "Tekan Bar Ruang untuk bercakap"
   },
@@ -1784,9 +1785,6 @@
       "main": "Tetingkap utama",
       "captions": "Mod Sari Kata",
       "compact": "Paparan padat",
-      "preview": "Pratonton",
-      "mine": "Apa yang saya cakap",
-      "theirs": "Apa yang dicakap pihak lain",
       "fontSize": "Saiz teks",
       "smaller": "Teks lebih kecil",
       "larger": "Teks lebih besar",
@@ -1795,7 +1793,12 @@
         "source": "Asal sahaja",
         "translation": "Terjemahan sahaja",
         "none": "Tiada"
-      }
+      },
+      "mineSide": "Apa yang dipaparkan bagi pihak saya",
+      "theirsSide": "Apa yang dipaparkan bagi pihak lain",
+      "previewMain": "Pratonton: perbualan dalam tetingkap utama",
+      "previewCaptions": "Pratonton: mod sari kata, di atas tetingkap lain",
+      "empty": "Tiada apa dipaparkan di sini sekarang: kedua-dua pihak ditetapkan kepada \"Tiada\"."
     },
     "intro": {
       "accounts": "Akaun dan kunci: setiap perkhidmatan diisi sekali sahaja. Selepas itu, tugasnya dipilih dalam “Bahasa dan susunan”.",

@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "正在下载日语词典 {{done}} / {{total}}",
       "readingsDownloadFailed": "日语词典下载失败。",
-      "readingsFailed": "日语读音无法显示。"
+      "readingsFailed": "日语读音无法显示。",
+      "defaultColour": "默认"
     },
     "pttHint": "按住空格说话"
   },
@@ -1784,18 +1785,20 @@
       "main": "主窗口",
       "captions": "字幕模式",
       "compact": "紧凑视图",
-      "preview": "预览",
-      "mine": "我说的",
-      "theirs": "对方说的",
       "fontSize": "字号",
       "smaller": "缩小字号",
       "larger": "放大字号",
       "modes": {
         "both": "原文和译文",
-        "source": "只显示原文",
-        "translation": "只显示译文",
+        "source": "只原文",
+        "translation": "只译文",
         "none": "不显示"
-      }
+      },
+      "mineSide": "“我”这一侧显示",
+      "theirsSide": "“对方”这一侧显示",
+      "previewMain": "预览：主窗口里的对话",
+      "previewCaptions": "预览：字幕模式，后面是别的窗口",
+      "empty": "这里现在什么都不显示：两侧都设成了“不显示”。"
     },
     "intro": {
       "accounts": "账号和密钥，每个服务只填一次。填好以后，它能做的事就可以在“语言与会话组成”里选。",

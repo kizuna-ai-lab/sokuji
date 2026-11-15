@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Đang tải từ điển tiếng Nhật {{done}} / {{total}}",
       "readingsDownloadFailed": "Không thể tải từ điển tiếng Nhật.",
-      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động."
+      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động.",
+      "defaultColour": "Mặc định"
     },
     "pttHint": "Nhấn Phím cách để nói"
   },
@@ -1784,9 +1785,6 @@
       "main": "Cửa sổ chính",
       "captions": "Chế độ phụ đề",
       "compact": "Chế độ thu gọn",
-      "preview": "Xem trước",
-      "mine": "Điều tôi nói",
-      "theirs": "Điều phía bên kia nói",
       "fontSize": "Cỡ chữ",
       "smaller": "Chữ nhỏ hơn",
       "larger": "Chữ lớn hơn",
@@ -1795,7 +1793,12 @@
         "source": "Chỉ bản gốc",
         "translation": "Chỉ bản dịch",
         "none": "Không hiển thị"
-      }
+      },
+      "mineSide": "Phía tôi hiển thị gì",
+      "theirsSide": "Phía bên kia hiển thị gì",
+      "previewMain": "Xem trước: cuộc trò chuyện trong cửa sổ chính",
+      "previewCaptions": "Xem trước: chế độ phụ đề, nằm trên một cửa sổ khác",
+      "empty": "Hiện không có gì hiển thị ở đây: cả hai phía đều đang đặt là \"Không hiển thị\"."
     },
     "intro": {
       "accounts": "Tài khoản và khóa: mỗi dịch vụ chỉ cần điền một lần. Sau đó, việc nó làm được chọn trong “Ngôn ngữ và cách phối hợp”.",

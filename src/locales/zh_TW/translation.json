@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "正在下載日語詞典 {{done}} / {{total}}",
       "readingsDownloadFailed": "日語詞典下載失敗。",
-      "readingsFailed": "日語讀音無法顯示。"
+      "readingsFailed": "日語讀音無法顯示。",
+      "defaultColour": "預設"
     },
     "pttHint": "按住空白鍵說話"
   },
@@ -1784,18 +1785,20 @@
       "main": "主視窗",
       "captions": "字幕模式",
       "compact": "緊湊檢視",
-      "preview": "預覽",
-      "mine": "我說的",
-      "theirs": "對方說的",
       "fontSize": "字級",
       "smaller": "縮小字級",
       "larger": "放大字級",
       "modes": {
         "both": "原文和譯文",
-        "source": "只顯示原文",
-        "translation": "只顯示譯文",
+        "source": "只原文",
+        "translation": "只譯文",
         "none": "不顯示"
-      }
+      },
+      "mineSide": "「我」這一側顯示",
+      "theirsSide": "「對方」這一側顯示",
+      "previewMain": "預覽：主視窗裡的對話",
+      "previewCaptions": "預覽：字幕模式，後面是別的視窗",
+      "empty": "這裡現在什麼都不顯示：兩側都設成了「不顯示」。"
     },
     "intro": {
       "accounts": "帳號和金鑰，每個服務只填一次。填好以後，它能做的事就可以在「語言與工作階段組成」裡選。",

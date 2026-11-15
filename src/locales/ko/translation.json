@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "일본어 사전 다운로드 중 {{done}} / {{total}}",
       "readingsDownloadFailed": "일본어 사전을 다운로드하지 못했습니다.",
-      "readingsFailed": "일본어 읽는 법을 표시할 수 없습니다."
+      "readingsFailed": "일본어 읽는 법을 표시할 수 없습니다.",
+      "defaultColour": "기본값"
     },
     "pttHint": "스페이스바를 눌러 말하세요"
   },
@@ -1784,9 +1785,6 @@
       "main": "기본 창",
       "captions": "자막 모드",
       "compact": "간략 보기",
-      "preview": "미리보기",
-      "mine": "내가 하는 말",
-      "theirs": "상대방이 하는 말",
       "fontSize": "글자 크기",
       "smaller": "글자 작게",
       "larger": "글자 크게",
@@ -1795,7 +1793,12 @@
         "source": "원문만",
         "translation": "번역문만",
         "none": "표시 안 함"
-      }
+      },
+      "mineSide": "내 쪽에 표시할 내용",
+      "theirsSide": "상대방 쪽에 표시할 내용",
+      "previewMain": "미리보기: 기본 창의 대화",
+      "previewCaptions": "미리보기: 다른 창 위의 자막 모드",
+      "empty": "지금은 여기에 아무것도 표시되지 않습니다. 양쪽 모두 '표시 안 함'으로 설정되어 있습니다."
     },
     "intro": {
       "accounts": "계정과 키는 서비스마다 한 번만 입력합니다. 그다음 어떤 일을 맡길지는 “언어와 구성”에서 고릅니다.",

@@ -24,7 +24,8 @@ describe('the settings page words', () => {
   it('the page, the headphones entry and the new audio and storage rows have their words in en', () => {
     const keys = [
       'settingsPage.title', 'settingsPage.search', 'settingsPage.back', 'settingsPage.backToList', 'settingsPage.lockedLine',
-      'settingsPage.accounts.signedIn', 'settingsPage.lineup.joint', 'settingsPage.display.preview',
+      'settingsPage.accounts.signedIn', 'settingsPage.lineup.joint', 'settingsPage.display.previewMain', 'settingsPage.display.previewCaptions',
+      'settingsPage.display.mineSide', 'settingsPage.display.theirsSide', 'settingsPage.display.empty', 'subtitle.settings.defaultColour',
       'mainPanel.whatIHear', 'mainPanel.audioSettings', 'audioPanel.captionMine', 'audioPanel.captionTheirs',
       'audioPanel.defaultPlaybackAid', 'models.readingsDictionary', 'models.readingsDictionaryNotStored',
     ];

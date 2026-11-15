@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Japans woordenboek downloaden {{done}} / {{total}}",
       "readingsDownloadFailed": "Het Japanse woordenboek kon niet worden gedownload.",
-      "readingsFailed": "De Japanse leesvormen werken niet."
+      "readingsFailed": "De Japanse leesvormen werken niet.",
+      "defaultColour": "Standaard"
     },
     "pttHint": "Druk op Spatie om te spreken"
   },
@@ -1784,9 +1785,6 @@
       "main": "Hoofdvenster",
       "captions": "Ondertitelmodus",
       "compact": "Compacte weergave",
-      "preview": "Voorbeeld",
-      "mine": "Wat ik zeg",
-      "theirs": "Wat de andere kant zegt",
       "fontSize": "Tekstgrootte",
       "smaller": "Kleinere tekst",
       "larger": "Grotere tekst",
@@ -1795,7 +1793,12 @@
         "source": "Alleen origineel",
         "translation": "Alleen vertaling",
         "none": "Niets"
-      }
+      },
+      "mineSide": "Wat mijn kant toont",
+      "theirsSide": "Wat de andere kant toont",
+      "previewMain": "Voorbeeld: het gesprek in het hoofdvenster",
+      "previewCaptions": "Voorbeeld: ondertitelmodus, boven een ander venster",
+      "empty": "Hier wordt nu niets getoond: beide kanten staan op 'Niets'."
     },
     "intro": {
       "accounts": "Accounts en sleutels: elke dienst vul je één keer in. Wat hij doet, kies je daarna bij ‘Talen en opstelling’.",

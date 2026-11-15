@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Download del dizionario giapponese {{done}} / {{total}}",
       "readingsDownloadFailed": "Impossibile scaricare il dizionario giapponese.",
-      "readingsFailed": "Le letture in giapponese non funzionano."
+      "readingsFailed": "Le letture in giapponese non funzionano.",
+      "defaultColour": "Predefinito"
     },
     "pttHint": "Premi Spazio per parlare"
   },
@@ -1784,9 +1785,6 @@
       "main": "Finestra principale",
       "captions": "Modalità sottotitoli",
       "compact": "Vista compatta",
-      "preview": "Anteprima",
-      "mine": "Quello che dico",
-      "theirs": "Quello che dice l’altra parte",
       "fontSize": "Dimensione del testo",
       "smaller": "Testo più piccolo",
       "larger": "Testo più grande",
@@ -1795,7 +1793,12 @@
         "source": "Solo originale",
         "translation": "Solo traduzione",
         "none": "Niente"
-      }
+      },
+      "mineSide": "Cosa mostra il mio lato",
+      "theirsSide": "Cosa mostra l’altra parte",
+      "previewMain": "Anteprima: la conversazione nella finestra principale",
+      "previewCaptions": "Anteprima: modalità sottotitoli, sopra un’altra finestra",
+      "empty": "Ora qui non si vede niente: entrambe le parti sono impostate su «Niente»."
     },
     "intro": {
       "accounts": "Account e chiavi: ogni servizio si compila una volta sola. Poi ciò che fa si sceglie in «Lingue e composizione».",

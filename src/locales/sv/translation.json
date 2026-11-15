@@ -1108,7 +1108,8 @@
       },
       "readingsDownloading": "Laddar ned den japanska ordboken {{done}} / {{total}}",
       "readingsDownloadFailed": "Det gick inte att ladda ned den japanska ordboken.",
-      "readingsFailed": "Det japanska uttalet fungerar inte."
+      "readingsFailed": "Det japanska uttalet fungerar inte.",
+      "defaultColour": "Standard"
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },
@@ -1784,9 +1785,6 @@
       "main": "Huvudfönster",
       "captions": "Undertextläge",
       "compact": "Kompakt vy",
-      "preview": "Förhandsvisning",
-      "mine": "Det jag säger",
-      "theirs": "Det den andra sidan säger",
       "fontSize": "Textstorlek",
       "smaller": "Mindre text",
       "larger": "Större text",
@@ -1795,7 +1793,12 @@
         "source": "Bara original",
         "translation": "Bara översättning",
         "none": "Inget"
-      }
+      },
+      "mineSide": "Vad min sida visar",
+      "theirsSide": "Vad den andra sidan visar",
+      "previewMain": "Förhandsvisning: samtalet i huvudfönstret",
+      "previewCaptions": "Förhandsvisning: undertextläge ovanpå ett annat fönster",
+      "empty": "Inget visas här just nu: båda sidorna är inställda på ”Inget”."
     },
     "intro": {
       "accounts": "Konton och nycklar: varje tjänst fylls i en gång. Vad den gör väljer du sedan under ”Språk och uppsättning”.",
