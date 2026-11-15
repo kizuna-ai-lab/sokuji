@@ -81,7 +81,21 @@ let replacing = 0;
 /** The local migration's write while it is in flight: a replace waits for it, so its own write lands last. */
 let migrationWrite: Promise<boolean> | null = null;
 
-export const useLineUpStore = create<LineUpStore>()((set, get) => ({
+export const useLineUpStore = create<LineUpStore>()((set, get) => {
+  /**
+   * The one migration's write. A line-up stored meanwhile (the setup wizard) stands: none is written over it, and
+   * one stored while this write is in flight is not replaced in memory either (the wizard waits for this write, so
+   * its own lands last in storage).
+   */
+  const migrate = async (lineUp: LineUp): Promise<void> => {
+    if (get().stored || replacing > 0) return;
+    migrationWrite = write(lineUp);
+    const landed = await migrationWrite;
+    migrationWrite = null;
+    if (get().stored || replacing > 0) return;
+    set({ lineUp, stored: landed });
+  };
+  return {
   lineUp: null,
   stored: false,
 
@@ -100,8 +114,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
       return;
     }
     if (selected !== 'local_inference') {
-      const lineUp = lineUpFromToday({ selected, local: null });
-      set({ lineUp, stored: await write(lineUp) });
+      await migrate(lineUpFromToday({ selected, local: null }));
       return;
     }
     // The local provider: what today's automatic choices pick is known only after the scan of downloaded
@@ -112,14 +125,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
       // A failed scan reports no downloaded model: worked out now, every local choice would read as Bing and
       // Edge for good. Write nothing; the next start tries again, and until then a session resolves as today.
       if (!useModelStore.getState().initialized) return;
-      if (get().stored || replacing > 0) return; // a line-up was stored meanwhile (the setup wizard): it stands
-      const lineUp = lineUpFromToday({ selected, local: todayLocal() });
-      migrationWrite = write(lineUp);
-      const landed = await migrationWrite;
-      migrationWrite = null;
-      // The wizard may have stored its line-up while this write was in flight: its line-up stands.
-      if (get().stored || replacing > 0) return;
-      set({ lineUp, stored: landed });
+      await migrate(lineUpFromToday({ selected, local: todayLocal() }));
     })();
   },
 
@@ -159,7 +165,8 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
     if (moves && before && useProviderStore.getState().selected === run.provider) useProviderStore.getState().select(before, 'pick');
     return null;
   },
-}));
+  };
+});
 
 /** The same, for a component: it re-renders when the stored line-up changes. */
 export function useStoredLocalStages(): LocalStages | null {

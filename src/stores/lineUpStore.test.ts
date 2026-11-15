@@ -262,3 +262,26 @@ describe('replace while the local migration is writing', () => {
     expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: soniox });
   });
 });
+
+// PR review: the migration of a network provider's line-up yields to the wizard as the local one does.
+describe('replace while the migration of a network provider is writing', () => {
+  it("the wizard's line-up ends up stored and shown", async () => {
+    useProviderStore.setState({ selected: 'soniox', selectionLocked: false });
+    useLineUpStore.setState({ lineUp: null, stored: false });
+    let releaseMigration!: () => void;
+    setSetting.mockImplementationOnce((key: string, value: unknown) => new Promise((resolve) => {
+      releaseMigration = () => { stored.set(key, value); resolve({ success: true }); };
+    }));
+    const loading = useLineUpStore.getState().load();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(typeof releaseMigration).toBe('function');
+    const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
+    const replacing = useLineUpStore.getState().replace(local);
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    releaseMigration();
+    await loading;
+    expect(await replacing).toBe(true);
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { ...local, summarisation: null } });
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: { ...local, summarisation: null } });
+  });
+});
