@@ -22,6 +22,7 @@ import {
   type StartRequest,
 } from '../../lib/contract/adapter';
 import { every } from '../../lib/contract/clock';
+import { createSentClock, type SentClock } from '../../lib/contract/sentClock';
 import { framePayload } from '../../lib/contract/framePayload';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
@@ -170,6 +171,8 @@ interface SttKey {
 class SonioxCore {
   private ended = false;
   private stt: SonioxSttStream | null = null;
+  /** Per socket, when its audio went out: Soniox times words in the audio its socket received, from zero on each socket. */
+  private readonly sentClocks = new WeakMap<SonioxSttStream, SentClock>();
   /** The socket whose first frame the lease was told of: it hears when that one ends. */
   private accepted: SonioxSttStream | null = null;
   private readonly utterances: Utterances;
@@ -219,6 +222,7 @@ class SonioxCore {
         onFrame: (mixed, energyA, energyB) => {
           if (!this.stt?.isOpen()) return;
           this.stt.sendAudio(mixed);
+          this.sentClocks.get(this.stt)?.sent(mixed.length, SAMPLE_RATE);
           this.audioSent();
           this.tracker?.recordFrame(energyA, energyB);
         },
@@ -226,6 +230,8 @@ class SonioxCore {
       : null;
     this.utterances = new Utterances({
       clock: o.primary.clock,
+      // The words of the socket being read, by the audio sent on it.
+      heardAt: (streamMs) => (this.stt ? this.sentClocks.get(this.stt)?.at(streamMs) : undefined),
       sink: {
         // Shared Both's speaker leg is me: a second label there (a misattribution, a reconnect's new epoch) would only number me twice.
         // Only a shared core names its legs truly; a lone leg is always 'speaker' here, the other side's included.
@@ -408,6 +414,7 @@ class SonioxCore {
       return;
     }
     this.stt.sendAudio(pcm);
+    this.sentClocks.get(this.stt)?.sent(pcm.length, SAMPLE_RATE);
     this.audioSent();
   }
 
@@ -470,6 +477,7 @@ class SonioxCore {
 
   private newStt(): SonioxSttStream {
     const stream = new SonioxSttStream({ clock: this.o.primary.clock, openSocket: this.o.openSocket });
+    this.sentClocks.set(stream, createSentClock(this.o.primary.clock));
     let first = true;
     // Per socket: a reconnect's socket starts readable, whatever episode the one before it was in.
     let readable = true;

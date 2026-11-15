@@ -31,6 +31,11 @@ export interface QwenSegmentsOptions {
   person: boolean;
   /** The first ref handed out; 1 by default. A reconnect's segments carry on from the dropped connection's (spec 2026-11-05 reconnect §4.3). */
   firstRef?: Ref;
+  /**
+   * Which connection of the run this is, 1 for the first: a reconnect numbers people from 1 again, so a speaker label
+   * is `${connection}.${speaker_id}` and two connections' speaker 3 stay apart. Absent: the bare `speaker_id`.
+   */
+  connection?: number;
 }
 
 interface Item {
@@ -258,6 +263,7 @@ export class QwenSegments {
   private person(itemId: string, it: Item): string | undefined {
     if (!this.o.person) return undefined;
     const heard = it.side === 'source' ? itemId : it.source;
-    return heard === undefined ? undefined : this.speakers.get(heard);
+    const speaker = heard === undefined ? undefined : this.speakers.get(heard);
+    return speaker === undefined || this.o.connection === undefined ? speaker : `${this.o.connection}.${speaker}`;
   }
 }
