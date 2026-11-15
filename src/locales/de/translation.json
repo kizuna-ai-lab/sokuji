@@ -1863,7 +1863,16 @@
       "micHint": "Wo meine Stimme hereinkommt",
       "otherHint": "Wo die Stimme der Gegenseite hereinkommt",
       "device": "Gerät",
-      "source": "Quelle"
+      "source": "Quelle",
+      "flow": {
+        "myMic": "Mein Mikrofon",
+        "toSpeech": "Zu Sprache",
+        "toThem": "Virtuelles Mikro → Gegenseite",
+        "theirVoice": "Stimme der Gegenseite",
+        "myDevice": "Mein Wiedergabegerät",
+        "caption": "Wohin der Ton geht. Helle Linien sind gerade an, gestrichelte aus; sie folgen den Schaltern darunter.",
+        "aria": "Wohin der Ton geht: Was ich sage, wird zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird zu Sprache und spielt auf meinem Wiedergabegerät."
+      }
     },
     "general": {
       "basics": "Grundeinstellungen",

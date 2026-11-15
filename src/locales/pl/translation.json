@@ -1863,7 +1863,16 @@
       "micHint": "Skąd wchodzi mój głos",
       "otherHint": "Skąd wchodzi głos drugiej strony",
       "device": "Urządzenie",
-      "source": "Źródło"
+      "source": "Źródło",
+      "flow": {
+        "myMic": "Mój mikrofon",
+        "toSpeech": "Na mowę",
+        "toThem": "Wirtualny mikrofon → druga strona",
+        "theirVoice": "Głos drugiej strony",
+        "myDevice": "Moje urządzenie odtwarzające",
+        "caption": "Dokąd idzie dźwięk. Jasne linie są teraz włączone, przerywane wyłączone; zmieniają się z przełącznikami poniżej.",
+        "aria": "Dokąd idzie dźwięk: to, co mówię, zamienione na mowę, trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, zamienione na mowę, gra na moim urządzeniu odtwarzającym."
+      }
     },
     "general": {
       "basics": "Podstawowe",

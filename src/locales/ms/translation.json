@@ -1863,7 +1863,16 @@
       "micHint": "Dari mana suara saya masuk",
       "otherHint": "Dari mana suara pihak lain masuk",
       "device": "Peranti",
-      "source": "Sumber"
+      "source": "Sumber",
+      "flow": {
+        "myMic": "Mikrofon saya",
+        "toSpeech": "Jadi suara",
+        "toThem": "Mikrofon maya → pihak lain",
+        "theirVoice": "Suara pihak lain",
+        "myDevice": "Peranti main balik saya",
+        "caption": "Ke mana bunyi pergi. Garisan terang kini aktif, garisan putus-putus tidak; ia mengikut suis di bawah.",
+        "aria": "Ke mana bunyi pergi: apa yang saya cakap, menjadi suara, masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap, menjadi suara, dimainkan pada peranti main balik saya."
+      }
     },
     "general": {
       "basics": "Tetapan asas",

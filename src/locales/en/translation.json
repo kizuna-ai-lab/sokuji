@@ -1863,7 +1863,16 @@
       "micHint": "Where my voice comes in",
       "otherHint": "Where the other side's voice comes in",
       "device": "Device",
-      "source": "Source"
+      "source": "Source",
+      "flow": {
+        "myMic": "My microphone",
+        "toSpeech": "Into speech",
+        "toThem": "Virtual mic → the other side",
+        "theirVoice": "The other side's voice",
+        "myDevice": "My playback device",
+        "caption": "Where the sound goes. Lit lines are on now, dashed ones off; they follow the switches below.",
+        "aria": "Where the sound goes: what I say, turned into speech, goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says, turned into speech, plays on my playback device."
+      }
     },
     "general": {
       "basics": "Basics",

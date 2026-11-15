@@ -1863,7 +1863,16 @@
       "micHint": "Mistä ääneni tulee sisään",
       "otherHint": "Mistä toisen osapuolen ääni tulee sisään",
       "device": "Laite",
-      "source": "Lähde"
+      "source": "Lähde",
+      "flow": {
+        "myMic": "Mikrofonini",
+        "toSpeech": "Puheeksi",
+        "toThem": "Virtuaalimikki → toinen osapuoli",
+        "theirVoice": "Toisen osapuolen ääni",
+        "myDevice": "Toistolaitteeni",
+        "caption": "Mihin ääni kulkee. Kirkkaat viivat ovat nyt päällä, katkoviivat pois; ne seuraavat alla olevia kytkimiä.",
+        "aria": "Mihin ääni kulkee: sanomani muuttuu puheeksi ja menee virtuaalimikrofoniin toiselle osapuolelle, ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma muuttuu puheeksi ja soi toistolaitteestani."
+      }
     },
     "general": {
       "basics": "Perusasetukset",

@@ -1863,7 +1863,16 @@
       "micHint": "Sesimin nereden geldiği",
       "otherHint": "Karşı tarafın sesinin nereden geldiği",
       "device": "Cihaz",
-      "source": "Kaynak"
+      "source": "Kaynak",
+      "flow": {
+        "myMic": "Mikrofonum",
+        "toSpeech": "Konuşmaya",
+        "toThem": "Sanal mikrofon → karşı taraf",
+        "theirVoice": "Karşı tarafın sesi",
+        "myDevice": "Oynatma cihazım",
+        "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
+        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar."
+      }
     },
     "general": {
       "basics": "Temel ayarlar",

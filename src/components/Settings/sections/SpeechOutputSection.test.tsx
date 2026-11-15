@@ -90,7 +90,8 @@ beforeEach(() => {
 });
 
 const mount = (isSessionActive = false) => render(<SpeechOutputSection isSessionActive={isSessionActive} />);
-const row = (label: string) => screen.getByText(label).closest('.setting-row') as HTMLElement;
+// The row named so (the drawing above the rows repeats some names).
+const row = (label: string) => screen.getByText(label, { selector: '.setting-row__label' }).closest('.setting-row') as HTMLElement;
 const sw = (label: string) => screen.getByRole('switch', { name: label });
 const greyed = (label: string) => row(label).classList.contains('setting-row--greyed');
 
@@ -572,5 +573,23 @@ describe('SpeechOutputSection — as the mock draws it', () => {
   it('says what the default playback device is for under its name', () => {
     mount();
     expect(within(row('Default playback device')).getByText(/Sounds on my side play here unless a row names its own device/)).toHaveClass('setting-row__desc');
+  });
+});
+
+// The owner chose the mock's "where the sound goes" drawing for wide windows (2026-11-15): above the rows, following them.
+describe('SpeechOutputSection — where the sound goes', () => {
+  it('draws it above the rows, its lines following the switches', () => {
+    mount();
+    const flow = document.querySelector('.sound-flow')!;
+    expect(flow).not.toBeNull();
+    expect(flow.compareDocumentPosition(document.querySelector('.speech-card')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(flow.querySelector('[data-leg="otherHears"]')).toHaveClass('is-on');
+    expect(flow.textContent).toContain('Passthrough 20%');
+  });
+
+  it('is not drawn face to face, where there is no virtual microphone', () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    mount();
+    expect(document.querySelector('.sound-flow')).toBeNull();
   });
 });

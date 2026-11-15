@@ -1863,7 +1863,16 @@
       "micHint": "Var min röst kommer in",
       "otherHint": "Var den andra sidans röst kommer in",
       "device": "Enhet",
-      "source": "Källa"
+      "source": "Källa",
+      "flow": {
+        "myMic": "Min mikrofon",
+        "toSpeech": "Till tal",
+        "toThem": "Virtuell mikrofon → andra sidan",
+        "theirVoice": "Andra sidans röst",
+        "myDevice": "Min uppspelningsenhet",
+        "caption": "Vart ljudet går. Ljusa linjer är på nu, streckade av; de följer reglagen nedanför.",
+        "aria": "Vart ljudet går: det jag säger blir tal och går till den virtuella mikrofonen för andra sidan, och spelas också hos mig när jag lyssnar; det andra sidan säger blir tal och spelas på min uppspelningsenhet."
+      }
     },
     "general": {
       "basics": "Grundinställningar",

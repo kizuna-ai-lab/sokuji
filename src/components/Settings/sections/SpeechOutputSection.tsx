@@ -26,6 +26,7 @@ import VbCableNotice from '../../VbCable/VbCableNotice';
 import { OutletSelect } from '../shared/OutletSelect';
 import { useHearingRows } from '../../MainPanel/useHearingRows';
 import { useVbCablePresence } from '../../../stores/vbCableStore';
+import { SoundFlow } from './SoundFlow';
 
 export interface SpeechOutputSectionProps {
   /** A run is live: Translation the other side hears and Translation I hear froze into its shape. */
@@ -169,6 +170,19 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
         </button>
       </h3>
+
+      {/* Where the sound goes (mock v18; the owner chose it for wide windows): not face to face, where there is no virtual microphone. */}
+      {!faceToFace && (
+        <SoundFlow
+          mine={myLegRuns}
+          theirs={theirLegRuns}
+          otherHears={otherOn}
+          meToo={hearing.meChecked}
+          iHear={themOn}
+          passthrough={hasVirtualBus && (isRealVoicePassthroughEnabled || pushToTranslate) ? Math.round(realVoicePassthroughVolume * 100) : null}
+          virtualBus={hasVirtualBus}
+        />
+      )}
 
       <div className="speech-card">
       <SettingRow

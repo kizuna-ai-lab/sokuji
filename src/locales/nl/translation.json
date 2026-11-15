@@ -1863,7 +1863,16 @@
       "micHint": "Waar mijn stem binnenkomt",
       "otherHint": "Waar de stem van de andere kant binnenkomt",
       "device": "Apparaat",
-      "source": "Bron"
+      "source": "Bron",
+      "flow": {
+        "myMic": "Mijn microfoon",
+        "toSpeech": "Naar spraak",
+        "toThem": "Virtuele mic → de andere kant",
+        "theirVoice": "Stem van de andere kant",
+        "myDevice": "Mijn afspeelapparaat",
+        "caption": "Waar het geluid heen gaat. Heldere lijnen staan nu aan, gestippelde uit; ze volgen de schakelaars hieronder.",
+        "aria": "Waar het geluid heen gaat: wat ik zeg wordt spraak en gaat naar de virtuele microfoon voor de andere kant, en speelt ook bij mij als ik meeluister; wat de andere kant zegt wordt spraak en speelt op mijn afspeelapparaat."
+      }
     },
     "general": {
       "basics": "Basisinstellingen",

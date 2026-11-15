@@ -1863,7 +1863,16 @@
       "micHint": "Da dove entra la mia voce",
       "otherHint": "Da dove entra la voce dell’altra parte",
       "device": "Dispositivo",
-      "source": "Sorgente"
+      "source": "Sorgente",
+      "flow": {
+        "myMic": "Il mio microfono",
+        "toSpeech": "In voce",
+        "toThem": "Microfono virtuale → l’altra parte",
+        "theirVoice": "La voce dell’altra parte",
+        "myDevice": "Il mio dispositivo di riproduzione",
+        "caption": "Dove va il suono. Le linee accese sono attive, quelle tratteggiate no; seguono gli interruttori qui sotto.",
+        "aria": "Dove va il suono: quello che dico, trasformato in voce, va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte, trasformato in voce, suona sul mio dispositivo di riproduzione."
+      }
     },
     "general": {
       "basics": "Impostazioni di base",

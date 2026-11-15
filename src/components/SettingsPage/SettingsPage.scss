@@ -66,6 +66,8 @@
     align-items: center;
     gap: vars.$space-2;
     @include vars.control-base;
+    // A thin line at rest (the colour review); the focus ring stays clear.
+    border-color: vars.$border-subtle;
     padding: 6px 8px;
     input { flex: 1; min-width: 0; border: none; background: transparent; color: inherit; font: inherit; outline: none; }
   }
@@ -117,7 +119,8 @@
   }
 
   // The line under a category's title: what the category is for.
-  &__intro { margin: 0; max-width: 560px; color: vars.$text-secondary; line-height: 1.6; }
+  // One level below the title (the colour review: the mock's text-tertiary).
+  &__intro { margin: 0; max-width: 560px; color: vars.$text-tertiary; line-height: 1.6; }
 
   &__body {
     flex: none;
@@ -248,7 +251,7 @@
     font-size: 12px;
     border: none;
     background: transparent;
-    color: vars.$text-secondary;
+    color: vars.$text-tertiary;
     cursor: pointer;
     &:hover { color: vars.$text-primary; }
     &:focus-visible { @include vars.focus-ring; }
@@ -280,15 +283,16 @@
   // The mock's `.caps`: small square-cornered tags on the control colour.
   &__chips { display: flex; flex-wrap: wrap; gap: 5px; }
   &__chip { font-size: 11px; line-height: 1; padding: 4px 7px; border-radius: 4px; background: vars.$bg-control; color: vars.$text-secondary; }
+  // At rest the control colour with a thin line; the hover colour is for hovering (the colour review).
   &__toggle {
     flex: none;
     padding: 5px 12px;
-    border: none;
+    border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-md;
-    background: vars.$bg-hover;
+    background: vars.$bg-control;
     color: vars.$text-primary;
     cursor: pointer;
-    &:hover { background: vars.$bg-elevated-hover; }
+    &:hover { background: vars.$bg-hover; }
     &:focus-visible { @include vars.focus-ring; }
   }
 }
@@ -775,3 +779,16 @@
 .settings-page .toggle-switch-component .toggle-track-container input:checked + .toggle-track {
   background-color: vars.$color-primary-fill;
 }
+
+// Where the sound goes (mock v18, wide windows only): boxes in the secondary text colour, lit lines in the primary
+// colour, dashed and dim while off; a side the mode does not use greyed. Hidden in a narrow window.
+.sound-flow {
+  margin: 6px 0 12px;
+  svg { display: block; width: 100%; height: auto; max-width: 660px; font-size: 11.5px; color: vars.$text-tertiary; }
+  &__box { color: vars.$text-secondary; }
+  &__leg.is-on { color: vars.$color-primary; }
+  &__leg.is-off { color: vars.$text-disabled; path { stroke-dasharray: 3 4; } }
+  &__side.is-unused { opacity: 0.3; }
+  figcaption { margin-top: 4px; font-size: 11.5px; color: vars.$text-muted; }
+}
+.settings-page--narrow .sound-flow { display: none; }
