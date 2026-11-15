@@ -83,10 +83,22 @@ describe('the line-up store', () => {
   it('a stored line-up is read, never migrated again', async () => {
     const openai = { transcription: 'openai', translation: 'openai', speech: 'openai', summarisation: null };
     stored.set(LINEUP_KEY, { version: 1, stages: openai });
-    useProviderStore.setState({ selected: 'soniox' });
+    useProviderStore.setState({ selected: 'openai' });
     await useLineUpStore.getState().load();
     expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: openai });
     expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  // PR review: the provider is stored before the line-up; a save cut short by a restart leaves the old line-up
+  // beside the new provider. The provider is the newer choice: the line-up is worked out from it again.
+  it('a stored line-up its stored provider does not run is worked out again from the provider', async () => {
+    const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+    stored.set(LINEUP_KEY, { version: 1, stages: local });
+    useProviderStore.setState({ selected: 'soniox' });
+    await useLineUpStore.getState().load();
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: soniox });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: soniox });
+    expect(useProviderStore.getState().selected).toBe('soniox');
   });
 
   it('a stored line-up naming a provider this build does not know is neither used nor overwritten', async () => {
@@ -207,6 +219,34 @@ describe('the line-up store', () => {
     useProviderStore.getState().setSelectionLocked(false);
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
     expect(useProviderStore.getState().selected).toBe('soniox');
+  });
+
+  // PR review: a second choice made while the first is being saved waits for it, so each undo puts back what it replaced.
+  it('two choices in a row whose saves both fail leave the line-up and the provider as they were', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    useProviderStore.setState({ selected: 'soniox' });
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === LINEUP_KEY) return { success: false };
+      stored.set(key, value);
+      return { success: true };
+    });
+    const first = useLineUpStore.getState().choose('speech', 'edge');
+    const second = useLineUpStore.getState().choose('transcription', 'openai');
+    expect(await first).toBeNull();
+    expect(await second).toBeNull();
+    expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+    expect(useProviderStore.getState().selected).toBe('soniox');
+  });
+
+  it('a second choice is made on top of the first once the first is saved', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    useProviderStore.setState({ selected: 'soniox' });
+    const first = useLineUpStore.getState().choose('speech', 'edge');
+    const second = useLineUpStore.getState().choose('translation', 'local_inference');
+    expect(await first).not.toBeNull();
+    expect(await second).not.toBeNull();
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: useLineUpStore.getState().lineUp });
+    expect(useLineUpStore.getState().lineUp).toMatchObject({ translation: 'local_inference', speech: 'edge' });
   });
 
   it('does not change during a run', async () => {
