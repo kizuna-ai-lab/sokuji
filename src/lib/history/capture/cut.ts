@@ -72,7 +72,8 @@ export function createSegmentCut(): SegmentCut {
   }
 
   function times(input: CutInput, start: number, end: number): Pick<CutSentence, 'startAt' | 'endAt' | 'timeKind'> {
-    const pieces = (input.heard?.pieces ?? []).filter((p) => p.at >= start && p.at < end);
+    // Pieces that overlap the sentence: a word's piece may begin on the space before it.
+    const pieces = (input.heard?.pieces ?? []).filter((p) => p.at + p.len > start && p.at < end);
     if (pieces.length > 0) {
       const startAt = pieces[0].startAt;
       return { startAt, endAt: Math.max(startAt, pieces[pieces.length - 1].endAt), timeKind: 'given' };
@@ -104,7 +105,8 @@ export function createSegmentCut(): SegmentCut {
       let limit: number;
       if (input.final) limit = text.length;
       else if (input.heard) limit = Math.min(text.length, input.heard.stableLen);
-      else if (input.now - input.openedAt >= LONG_CUT_MS) limit = ends.filter((e) => e <= text.length).pop() ?? 0;
+      // The sentence still being spoken is never taken: an end where the open text ends may be followed by more.
+      else if (input.now - input.openedAt >= LONG_CUT_MS) limit = ends.filter((e) => e < text.trimEnd().length).pop() ?? 0;
       else return { added, revised };
 
       let from = now.length > 0 ? now[now.length - 1][1] : 0;
@@ -133,7 +135,7 @@ export function createSegmentCut(): SegmentCut {
           if (input.now - lastGrowth >= PAUSE_CUT_MS || input.now - restBegan >= LONG_CUT_MS) cut(limit, false);
         }
       } else if (input.final && stored.length > 0 && from >= text.trimEnd().length) {
-        // Cut to its end by its sentence ends alone: what comes later belongs to the last sentence.
+        // Cut to its end by its sentence ends alone: from now on its last sentence runs to the end of the text too.
         toEnd = true;
       }
       return { added, revised };

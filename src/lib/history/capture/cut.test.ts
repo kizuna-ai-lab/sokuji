@@ -66,4 +66,18 @@ describe('the sentence cutter', () => {
     c.update(input);
     expect(c.update(input)).toEqual({ added: [], revised: [] });
   });
+
+  // Review: Soniox words carry their leading space: a piece starting on the space still times the sentence's first word.
+  it("times a sentence from its first word even when that word's piece begins with a space", () => {
+    const heard = { pieces: [{ at: 0, len: 5, startAt: 100, endAt: 400 }, { at: 5, len: 1, startAt: 400, endAt: 450 }, { at: 6, len: 5, startAt: 2000, endAt: 2300 }, { at: 11, len: 1, startAt: 2300, endAt: 2350 }], stableLen: 12 };
+    const r = createSegmentCut().update({ text: 'First. Next.', final: true, openedAt: 0, marks: [], heard, now: 3000 });
+    expect(r.added.map((s) => [s.text, s.startAt, s.endAt])).toEqual([['First.', 100, 450], ['Next.', 2000, 2350]]);
+  });
+
+  it('after 45 s does not take a sentence that ends exactly where the open text ends', () => {
+    const c = createSegmentCut();
+    expect(c.update({ text: 'We need to ship.', final: false, openedAt: 0, marks: marks([44_000, 16]), now: 45_000 }).added).toEqual([]);
+    expect(c.update({ text: 'Done. We need to ship.', final: false, openedAt: 0, marks: marks([44_000, 22]), now: 45_000 }).added.map((s) => s.text)).toEqual(['Done.']);
+  });
 });
+
