@@ -1,12 +1,22 @@
 // electron/history-store.test.js
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
-import { mkdtempSync, rmSync, mkdirSync, existsSync, writeFileSync, chmodSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const nodeRequire = createRequire(import.meta.url);
 const { openHistory, BIN_DAYS } = nodeRequire('./history-store.js');
+// The store's own `fs`: a failure is put in its way here, the same on every platform (Windows has no chmod to lean on).
+const storeFs = nodeRequire('node:fs');
+/** `fs[name]` fails with `code` for `target` only, until the test's end. */
+function failFor(name, target, code) {
+  const real = storeFs[name];
+  return vi.spyOn(storeFs, name).mockImplementation((p, ...rest) => {
+    if (p === target) throw Object.assign(new Error(`${code}: ${name} ${p}`), { code });
+    return real.call(storeFs, p, ...rest);
+  });
+}
 
 let dir;
 let s;
@@ -433,17 +443,16 @@ describe('bin, purge and space', () => {
   // Review: a folder that cannot be removed (a file held open, a folder without write access) must not orphan its audio.
   it('a record whose folder cannot be removed stays in the bin with its audio, and the others are purged', () => {
     kept(A, 1000); kept(B, 2000);
-    const locked = join(s.recordDir(A), 'held');
-    mkdirSync(locked);
-    writeFileSync(join(locked, 'mine.ogg'), 'x');
-    chmodSync(locked, 0o500);
+    const held = join(s.recordDir(A), 'mine.ogg');
+    writeFileSync(held, 'x');
+    const failing = failFor('rmSync', s.recordDir(A), 'EPERM');
     try {
       s.binRecords({ ids: [A, B] });
       expect(s.purgeRecords({ ids: [A, B] })).toEqual({ purged: [B], failed: [A] });
       expect(s.getRecord(A)).toEqual(expect.objectContaining({ binnedAt: expect.any(Number) }));
-      expect(existsSync(join(locked, 'mine.ogg'))).toBe(true);
+      expect(existsSync(held)).toBe(true);
     } finally {
-      chmodSync(locked, 0o700);
+      failing.mockRestore();
     }
     expect(s.purgeRecords({ ids: [A] })).toEqual({ purged: [A], failed: [] });
     expect(existsSync(join(dir, 'records', A))).toBe(false);
@@ -500,11 +509,11 @@ describe('bin, purge and space', () => {
     const unreadable = join(dir, 'records', 'run-0007-lock');
     mkdirSync(unreadable, { recursive: true });
     mkdirSync(join(dir, 'records', 'run-0009-empty'), { recursive: true });
-    chmodSync(unreadable, 0o000);
+    const failing = failFor('readdirSync', unreadable, 'EACCES');
     try {
       expect(s.reconcile()).toEqual(expect.objectContaining({ removedEmpty: ['run-0009-empty'], strays: ['run-0007-lock'] }));
     } finally {
-      chmodSync(unreadable, 0o700);
+      failing.mockRestore();
     }
     expect(existsSync(unreadable)).toBe(true);
   });
