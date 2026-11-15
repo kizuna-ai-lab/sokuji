@@ -1810,7 +1810,7 @@
       "audio": "Mikrofon, Rauschunterdrückung, Echo, Lautsprecher, Kopfhörer, Mithören, Durchleitung, virtuelles Mikrofon, Systemaudio",
       "display": "Schrift, Größe, Farbe, kompakt, Untertitel, Captions, Vorschau",
       "history": "Verlauf, Notizen, Ordner",
-      "general": "Oberflächensprache, Erscheinungsbild, Design, automatisch speichern, Updates, Protokolle, Einrichtung, Hilfe, Version"
+      "general": "Oberflächensprache, Erscheinungsbild, Design, Updates, Protokolle, Einrichtung, Hilfe, Version"
     },
     "accounts": {
       "addKey": "Schlüssel hinzufügen",

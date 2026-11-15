@@ -1810,7 +1810,7 @@
       "audio": "mikrofon, peredam bising, gema, speaker, headphone, monitor, passthrough, mikrofon virtual, audio sistem",
       "display": "fon, ukuran, warna, ringkas, subtitel, takarir, pratinjau",
       "history": "riwayat, catatan, folder",
-      "general": "bahasa antarmuka, tampilan, tema, simpan otomatis, pembaruan, log, penyiapan, bantuan, versi"
+      "general": "bahasa antarmuka, tampilan, tema, pembaruan, log, penyiapan, bantuan, versi"
     },
     "accounts": {
       "addKey": "Tambahkan kunci",

@@ -1810,7 +1810,7 @@
       "audio": "mikrofon, tłumienie szumów, echo, głośnik, słuchawki, odsłuch, przekazywanie, wirtualny mikrofon, dźwięk systemowy",
       "display": "czcionka, rozmiar, kolor, kompaktowy, napisy, podpisy, podgląd",
       "history": "historia, notatki, folder",
-      "general": "język interfejsu, wygląd, motyw, autozapis, aktualizacje, logi, konfiguracja, pomoc, wersja"
+      "general": "język interfejsu, wygląd, motyw, aktualizacje, logi, konfiguracja, pomoc, wersja"
     },
     "accounts": {
       "addKey": "Dodaj klucz",

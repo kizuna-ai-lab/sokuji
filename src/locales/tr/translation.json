@@ -1810,7 +1810,7 @@
       "audio": "mikrofon, gürültü bastırma, yankı, hoparlör, kulaklık, izleme, doğrudan geçiş, sanal mikrofon, sistem sesi",
       "display": "yazı tipi, boyut, renk, sıkışık, altyazı, başlıklar, önizleme",
       "history": "geçmiş, notlar, klasör",
-      "general": "arayüz dili, görünüm, tema, otomatik kaydet, güncellemeler, günlükler, kurulum, yardım, sürüm"
+      "general": "arayüz dili, görünüm, tema, güncellemeler, günlükler, kurulum, yardım, sürüm"
     },
     "accounts": {
       "addKey": "Anahtar ekle",

@@ -1810,7 +1810,7 @@
       "audio": "microphone, suppression du bruit, écho, haut-parleur, casque, retour, passthrough, micro virtuel, son du système",
       "display": "police, taille, couleur, compact, sous-titres, légendes, aperçu",
       "history": "historique, notes, dossier",
-      "general": "langue de l’interface, apparence, thème, enregistrement automatique, mises à jour, journaux, configuration, aide, version"
+      "general": "langue de l’interface, apparence, thème, mises à jour, journaux, configuration, aide, version"
     },
     "accounts": {
       "addKey": "Ajouter une clé",

@@ -1810,7 +1810,7 @@
       "audio": "mikrofoni, kohinanvaimennus, kaiku, kaiutin, kuulokkeet, kuuntelu, läpivienti, virtuaalimikrofoni, järjestelmän ääni",
       "display": "fontti, koko, väri, tiivis, tekstitys, kuvatekstit, esikatselu",
       "history": "historia, muistiinpanot, kansio",
-      "general": "käyttöliittymän kieli, ulkoasu, teema, automaattinen tallennus, päivitykset, lokit, käyttöönotto, ohje, versio"
+      "general": "käyttöliittymän kieli, ulkoasu, teema, päivitykset, lokit, käyttöönotto, ohje, versio"
     },
     "accounts": {
       "addKey": "Lisää avain",

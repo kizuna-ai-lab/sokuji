@@ -1810,7 +1810,7 @@
       "audio": "microfoon, ruisonderdrukking, echo, luidspreker, koptelefoon, meeluisteren, doorgifte, virtuele microfoon, systeemaudio",
       "display": "lettertype, grootte, kleur, compact, ondertitels, bijschriften, voorbeeld",
       "history": "geschiedenis, notities, map",
-      "general": "interfacetaal, uiterlijk, thema, automatisch opslaan, updates, logboeken, installatie, help, versie"
+      "general": "interfacetaal, uiterlijk, thema, updates, logboeken, installatie, help, versie"
     },
     "accounts": {
       "addKey": "Sleutel toevoegen",

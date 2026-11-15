@@ -1810,7 +1810,7 @@
       "audio": "microfone, supressão de ruído, eco, alto-falante, fones de ouvido, monitor, passagem direta, microfone virtual, áudio do sistema",
       "display": "fonte, tamanho, cor, compacto, legendas, legendas ao vivo, pré-visualização",
       "history": "histórico, notas, pasta",
-      "general": "idioma da interface, aparência, tema, salvamento automático, atualizações, registros, configuração, ajuda, versão"
+      "general": "idioma da interface, aparência, tema, atualizações, registros, configuração, ajuda, versão"
     },
     "accounts": {
       "addKey": "Adicionar chave",

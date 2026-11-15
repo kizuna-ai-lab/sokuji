@@ -1810,7 +1810,7 @@
       "audio": "microphone, noise suppression, echo, speaker, headphones, monitor, passthrough, virtual microphone, system audio",
       "display": "font, size, colour, color, compact, subtitles, captions, preview",
       "history": "history, notes, folder",
-      "general": "interface language, appearance, theme, auto-save, updates, logs, setup, help, version"
+      "general": "interface language, appearance, theme, updates, logs, setup, help, version"
     },
     "accounts": {
       "addKey": "Add key",

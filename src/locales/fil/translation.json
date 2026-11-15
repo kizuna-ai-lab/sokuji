@@ -1810,7 +1810,7 @@
       "audio": "mikropono, pagpigil ng ingay, echo, speaker, headphones, monitor, passthrough, virtual na mikropono, audio ng system",
       "display": "font, laki, kulay, compact, subtitle, caption, preview",
       "history": "kasaysayan, mga tala, folder",
-      "general": "wika ng interface, hitsura, tema, awtomatikong pag-save, mga update, log, setup, tulong, bersyon"
+      "general": "wika ng interface, hitsura, tema, mga update, log, setup, tulong, bersyon"
     },
     "accounts": {
       "addKey": "Magdagdag ng key",

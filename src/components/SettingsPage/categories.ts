@@ -37,8 +37,7 @@ export const CATEGORIES: readonly Category[] = [
   category({ id: 'display', group: 'devices', words: ['font', 'size', 'colour', 'color', 'compact', 'subtitles', 'captions', 'preview'], lockedInSession: 'open', shown: () => true }),
   // Desktop only: the extension has no History.
   category({ id: 'history', group: 'data', words: ['history', 'notes', 'folder'], desktopOnly: true, lockedInSession: 'open', shown: () => true }),
-  // The session-end auto-save is the browser's, in General's basics.
-  category({ id: 'general', group: 'app', words: ['interface language', 'appearance', 'theme', 'auto-save', 'updates', 'logs', 'setup', 'help', 'version'], lockedInSession: 'open', shown: () => true }),
+  category({ id: 'general', group: 'app', words: ['interface language', 'appearance', 'theme', 'updates', 'logs', 'setup', 'help', 'version'], lockedInSession: 'open', shown: () => true }),
 ];
 
 export const GROUPS: readonly CategoryGroup[] = ['session', 'providers', 'devices', 'data', 'app'];

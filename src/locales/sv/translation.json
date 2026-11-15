@@ -1810,7 +1810,7 @@
       "audio": "mikrofon, brusreducering, eko, högtalare, hörlurar, medhörning, genomkoppling, virtuell mikrofon, systemljud",
       "display": "teckensnitt, storlek, färg, kompakt, undertexter, textning, förhandsvisning",
       "history": "historik, anteckningar, mapp",
-      "general": "gränssnittsspråk, utseende, tema, spara automatiskt, uppdateringar, loggar, konfiguration, hjälp, version"
+      "general": "gränssnittsspråk, utseende, tema, uppdateringar, loggar, konfiguration, hjälp, version"
     },
     "accounts": {
       "addKey": "Lägg till nyckel",
