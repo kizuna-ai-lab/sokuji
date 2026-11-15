@@ -186,6 +186,29 @@ describe('the line-up store', () => {
     expect(await choosing).not.toBeNull();
   });
 
+  // PR review: a run that starts while the line-up is being saved locks the provider; a failed save is undone
+  // once the run ends, line-up and provider together, and until then both stay what the run started with.
+  it('a choice not stored while a run started is undone when the run ends, provider included', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    useProviderStore.setState({ selected: 'soniox' });
+    let fail!: () => void;
+    setSetting.mockImplementation((key: string, value: unknown) => {
+      if (key !== LINEUP_KEY) { stored.set(key, value); return Promise.resolve({ success: true }); }
+      return new Promise((resolve) => { fail = () => resolve({ success: false }); });
+    });
+    const choosing = useLineUpStore.getState().choose('speech', 'edge');
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    useProviderStore.getState().setSelectionLocked(true);
+    fail();
+    expect(await choosing).toBeNull();
+    // The run goes on with what it started with.
+    expect(useProviderStore.getState().selected).toBe('local_inference');
+    expect(useLineUpStore.getState().lineUp).toMatchObject({ speech: 'edge' });
+    useProviderStore.getState().setSelectionLocked(false);
+    expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+    expect(useProviderStore.getState().selected).toBe('soniox');
+  });
+
   it('does not change during a run', async () => {
     useLineUpStore.setState({ lineUp: soniox, stored: true });
     useProviderStore.setState({ selected: 'soniox', selectionLocked: true });
