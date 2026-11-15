@@ -444,7 +444,8 @@
     "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。",
     "captionMine": "自分の発言を音声で",
     "captionTheirs": "相手の発言を音声で",
-    "defaultPlaybackAid": "自分側の音は、行ごとに専用のデバイスを指定しない限りここで再生されます。専用のデバイスが外れた音もここで再生されます。"
+    "defaultPlaybackAid": "自分側の音は、行ごとに専用のデバイスを指定しない限りここで再生されます。専用のデバイスが外れた音もここで再生されます。",
+    "captionReplay": "再生し直し"
   },
   "auth": {
     "signIn": "サインイン",
@@ -979,7 +980,40 @@
       "acceptRestricted": "理解しました — ライセンスに同意する"
     },
     "readingsDictionary": "読み辞書（日本語）",
-    "readingsDictionaryNotStored": "「表示」で日本語の読みをオンにするとダウンロードされます。"
+    "readingsDictionaryNotStored": "「表示」で日本語の読みをオンにするとダウンロードされます。",
+    "page": {
+      "tag": {
+        "asr": "認識",
+        "translation": "翻訳",
+        "tts": "音声",
+        "turn": "発話の区切り",
+        "punctuation": "文の区切りと句読点",
+        "readings": "読み",
+        "voice": "ボイス"
+      },
+      "manyLanguages": "多言語",
+      "languages": "{{count}} 言語",
+      "direct": "訳文も直接出せる",
+      "downloading": "ダウンロード中 {{percent}}%",
+      "failed": "ダウンロード失敗",
+      "cannotRun": "このパソコンでは動かせません",
+      "notDownloaded": "未ダウンロード",
+      "download": "ダウンロード",
+      "listJoin": "、",
+      "summary": "ダウンロード済み {{count}} 件、合計 {{size}}",
+      "import": "ファイルからモデルを取り込む",
+      "sessionTitle": "セッションで使うモデル（「このデバイス」サービス）",
+      "sessionHint": "「言語とセッション構成」で「このデバイス」を選んだ段階は、ここでダウンロードしたモデルを使います。",
+      "otherLanguages": "ほかの言語のモデル（{{count}}）",
+      "helpersTitle": "補助モデル",
+      "helpersHint": "どの段階にも属さない小さなモデルです。",
+      "turnMeta": "話し終えたかどうかを判断します。音声モードのオプションでオンにします",
+      "packMeta": "文章を文ごとに区切ります。3 つまとめてダウンロードします",
+      "dictMeta": "日本語の読みを表示します。「表示」でオンにします",
+      "voicesTitle": "取り込んだボイス",
+      "voicesHint": "自分で取り込んだ Supertonic のボイスファイルです。",
+      "importedOn": "{{date}} に取り込み"
+    }
   },
   "notes": {
     "stageAsr": "音声認識",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "日本語辞書をダウンロード中 {{done}} / {{total}}",
       "readingsDownloadFailed": "日本語辞書をダウンロードできませんでした。",
-      "readingsFailed": "日本語の読みを表示できません。"
+      "readingsFailed": "日本語の読みを表示できません。",
+      "defaultColour": "デフォルト"
     },
     "pttHint": "スペースキーを押して話す"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "設定",
     "search": "設定を検索",
-    "back": "戻る",
+    "back": "セッションに戻る",
     "backToList": "一覧に戻る",
     "changeable": "セッション中も変更可",
     "lockedNote": "セッション中はロック",
@@ -1766,7 +1801,8 @@
       "signedIn": "サインイン済み",
       "signedOut": "未サインイン",
       "together": "一括",
-      "view": "表示"
+      "view": "表示",
+      "hide": "閉じる"
     },
     "lineup": {
       "title": "構成",
@@ -1788,16 +1824,15 @@
         "needsModel": "モデルが必要",
         "needsSignIn": "サインインが必要",
         "ready": "準備完了"
-      }
+      },
+      "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
+      "hint": "各段階をどのサービスが担当するか"
     },
     "display": {
       "surface": "どの表示",
       "main": "メインウィンドウ",
       "captions": "字幕モード",
       "compact": "コンパクト表示",
-      "preview": "プレビュー",
-      "mine": "自分の発言",
-      "theirs": "相手の発言",
       "fontSize": "文字サイズ",
       "smaller": "文字を小さく",
       "larger": "文字を大きく",
@@ -1806,7 +1841,24 @@
         "source": "原文のみ",
         "translation": "訳文のみ",
         "none": "表示しない"
-      }
+      },
+      "mineSide": "自分の側に表示するもの",
+      "theirsSide": "相手の側に表示するもの",
+      "previewMain": "プレビュー：メインウィンドウの会話",
+      "previewCaptions": "プレビュー：字幕モード（後ろは別のウィンドウ）",
+      "empty": "今ここには何も表示されません：両側とも「表示しない」になっています。"
+    },
+    "intro": {
+      "accounts": "アカウントとキーは、サービスごとに一度入力するだけです。何に使うかは「言語と構成」で選びます。",
+      "models": "このコンピューターにダウンロードしたモデルはすべてここで管理します。セッション用、補助用、取り込んだ声。",
+      "audio": "マイク、音声、相手の音声。「相手に聞こえる翻訳」以外は、セッション中も変更できます。",
+      "display": "会話の上のツールバーや字幕バーのボタンと同じ値です。どちらで変えても同じで、すぐに反映されます。メインウィンドウと字幕モードはそれぞれ別に持ちます。"
+    },
+    "audio": {
+      "micHint": "自分の声をどこから取り込むか",
+      "otherHint": "相手の声をどこから取り込むか",
+      "device": "デバイス",
+      "source": "取り込み元"
     }
   }
 }

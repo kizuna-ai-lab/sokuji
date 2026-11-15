@@ -6,7 +6,7 @@ const scan = vi.hoisted(() => ({ initialize: vi.fn(async () => {}), initialized:
 vi.mock('../../stores/modelStore', () => ({
   useModelStore: { getState: () => ({ initialize: scan.initialize, initialized: scan.initialized }) },
 }));
-vi.mock('../Settings/engine/StoragePage', () => ({ default: () => <div data-testid="storage" /> }));
+vi.mock('./ModelsPage', () => ({ ModelsPage: () => <div data-testid="storage" /> }));
 
 import { ModelsCategory } from './DeviceCategories';
 import { useProviderStore } from '../../stores/providerStore';

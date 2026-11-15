@@ -8,6 +8,10 @@
   min-height: 0;
   background: vars.$bg-base;
   color: vars.$text-primary;
+  // One body size for the whole page (the mock's 13px); controls take the page's type rather than the browser's.
+  font-size: 13px;
+  line-height: 1.5;
+  :where(button, input, select, textarea) { font: inherit; }
 
   &__locked {
     padding: vars.$space-2 vars.$space-4;
@@ -32,6 +36,8 @@
   }
 
   &--wide &__nav {
+    // 224px with its own padding (the mock's column), not 224px plus padding.
+    box-sizing: border-box;
     width: 224px;
     flex: none;
     border-right: 1px solid vars.$border-subtle;
@@ -94,20 +100,30 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
     header {
       display: flex;
-      align-items: center;
-      gap: vars.$space-2;
-      padding: vars.$space-3 vars.$space-4;
-      border-bottom: 1px solid vars.$border-subtle;
-      h2 { flex: 1; margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; &:focus { outline: none; } }
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+      // The mock caps the content at 720px and keeps the padding outside it.
+      max-width: 720px + 2 * 28px;
+      box-sizing: border-box;
+      padding: 20px 28px 8px;
+      h2 { margin: 0; font-size: 18px; font-weight: vars.$weight-semibold; line-height: 1.35; &:focus { outline: none; } }
     }
   }
 
+  // The line under a category's title: what the category is for.
+  &__intro { margin: 0; max-width: 560px; color: vars.$text-secondary; line-height: 1.6; }
+
   &__body {
-    flex: 1;
-    overflow-y: auto;
-    padding: vars.$space-4;
+    flex: none;
+    width: 100%;
+    max-width: 720px + 2 * 28px;
+    box-sizing: border-box;
+    padding: 12px 28px 32px;
     container-type: inline-size;
   }
 
@@ -127,39 +143,73 @@
   }
 }
 
-// Languages and line-up: one row per stage, the provider's own options folded under them.
+// Languages and line-up, as the mock draws them (v18): the pair, the speech mode and its summary box, then one
+// card per stage — its name and state on one line, the choice under it; the stages one provider serves over one
+// connection outlined together. The provider's own options stay folded under the cards.
 .lineup-category {
   display: flex;
   flex-direction: column;
-  gap: vars.$space-4;
+  gap: 4px;
+  .config-section { margin: 0; padding: 0; border: none; }
+  .language-pair-row {
+    gap: 8px;
+    .language-select-group label { margin-bottom: 4px; font-size: 12px; color: vars.$text-tertiary; }
+    .language-select { height: 30px; padding: 0 8px; font-size: 12.5px; border-radius: 6px; }
+    .language-swap-btn { padding: 6px; border: none; }
+  }
+  .language-mirror-line { font-size: 11.5px; color: vars.$text-muted; }
+  .turn-detection-section .setting-item { margin: 0; }
+  .turn-detection-options.settings-seg {
+    display: inline-flex;
+    width: auto;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    .option-button {
+      flex: none;
+      height: 24px;
+      padding: 0 12px;
+      background: transparent;
+      font-size: 12px;
+      & + .option-button { border-left: 1px solid vars.$border-subtle; }
+      &:not(:last-child) { border-right: none; }
+      &.active { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+    }
+  }
+  // The provider's detection, summed up: the mock's box under the modes; the line still opens its tuning.
+  .turn-detection-tuning {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+    font-size: 12.5px;
+  }
 }
 
 .lineup-stage {
   display: flex;
   flex-direction: column;
-  gap: vars.$space-1;
-  padding: vars.$space-2 0;
-  border-bottom: 1px solid vars.$border-subtle;
-  &:last-child { border-bottom: none; }
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 10px;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 8px;
+  background: vars.$bg-surface;
+  &.is-joint { border-color: vars.$color-primary; }
 
-  &__head {
-    display: grid;
-    grid-template-columns: 120px minmax(0, 1fr);
-    align-items: center;
-    gap: vars.$space-3;
-    > span { color: vars.$text-secondary; font-size: vars.$font-caption; }
-  }
+  &__head { display: flex; align-items: center; gap: 8px; }
+  &__name { font-size: 13px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
+  &__state { margin-left: auto; white-space: nowrap; font-style: normal; font-size: 11.5px; color: vars.$color-warning; &.is-ready { color: vars.$color-primary; } }
 
   &__joint, &__moved {
-    margin: 0 0 0 calc(120px + #{vars.$space-3});
+    margin: 0;
     display: flex;
     align-items: center;
-    gap: vars.$space-1;
-    font-size: vars.$font-caption;
-    color: vars.$text-muted;
+    gap: 4px;
+    font-size: 11.5px;
   }
+  &__joint { color: vars.$color-primary; }
   &__moved { color: vars.$color-warning; }
-  &__state { display: block; font-style: normal; font-size: 11px; color: vars.$color-warning; &.is-ready { color: vars.$text-muted; } }
 }
 
 .provider-blocked {
@@ -172,12 +222,14 @@
   display: flex;
   flex-direction: column;
   gap: vars.$space-3;
+  margin-top: 8px;
   &__fold {
     display: inline-flex;
     align-items: center;
     gap: vars.$space-1;
     align-self: flex-start;
     padding: vars.$space-1 0;
+    font-size: 12px;
     border: none;
     background: transparent;
     color: vars.$text-secondary;
@@ -187,76 +239,409 @@
   }
 }
 
-@container (max-width: 480px) {
-  .lineup-stage__head { grid-template-columns: minmax(0, 1fr); }
-  .lineup-stage__joint, .lineup-stage__moved { margin-left: 0; }
-}
 
-// Accounts and keys: one row per account.
-.accounts-category { display: flex; flex-direction: column; gap: vars.$space-2; }
+// Accounts and keys (the mock): one row per account, rows split by a thin line; the name, its state under it, one button.
+.accounts-category { display: flex; flex-direction: column; }
 .accounts-row {
   display: flex;
   flex-direction: column;
   gap: vars.$space-2;
-  padding: vars.$space-3;
-  border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-md;
-  &__head { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; }
-  &__name { font-weight: vars.$weight-medium; }
-  &__state { font-size: vars.$font-caption; color: vars.$text-muted; }
+  padding: 10px 0;
+  border-bottom: 1px solid vars.$border-subtle;
+  &:first-child { border-top: 1px solid vars.$border-subtle; }
+  &__head { display: flex; align-items: center; gap: vars.$space-3; }
+  &__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  &__name { font-size: 14px; font-weight: vars.$weight-medium; color: vars.$text-primary; }
+  &__state {
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: vars.$text-muted;
+    &.is-ok { color: vars.$color-primary; }
+  }
   &__guide {
-    display: inline-flex; align-items: center; gap: 3px; font-size: vars.$font-caption; color: vars.$color-primary; text-decoration: none;
-    &:hover { text-decoration: underline; }
+    display: inline-flex; align-items: center; gap: 3px; color: vars.$text-secondary; text-decoration: none;
+    &:hover { color: vars.$color-primary; text-decoration: underline; }
     &:focus-visible { @include vars.focus-ring; }
   }
-  &__chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+  &__chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
   &__chip { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: vars.$bg-hover; color: vars.$text-secondary; }
   &__toggle {
-    padding: 4px 10px;
-    border: 1px solid vars.$border-default;
+    flex: none;
+    padding: 5px 12px;
+    border: none;
     border-radius: vars.$radius-md;
-    background: transparent;
-    color: vars.$text-secondary;
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
     cursor: pointer;
-    &:hover { border-color: vars.$color-primary; color: vars.$text-primary; }
+    &:hover { background: vars.$bg-elevated-hover; }
     &:focus-visible { @include vars.focus-ring; }
   }
 }
 
-// Display: the surface switch, a preview that stays in view, then the surface's controls.
+// A compact segmented choice (the mock's `.seg`): a few options side by side, the chosen one filled.
+.settings-seg {
+  display: inline-flex;
+  max-width: 100%;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 6px;
+  overflow: hidden;
+  button {
+    height: 24px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    color: vars.$text-secondary;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    & + button { border-left: 1px solid vars.$border-subtle; }
+    &:hover { background: vars.$bg-hover; }
+    &[aria-pressed='true'], &[aria-checked='true'] { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+    &:focus-visible { @include vars.focus-ring; outline-offset: -2px; }
+    &:disabled { opacity: 0.55; cursor: default; }
+  }
+}
+
+// Display: the surface switch, a preview that stays in view, then the surface's rows.
 .display-category {
   display: flex;
   flex-direction: column;
-  gap: vars.$space-3;
-  &__surfaces { display: inline-flex; gap: 4px; align-self: flex-start; padding: 2px; border: 1px solid vars.$border-subtle; border-radius: vars.$radius-md; }
-  &__surface {
-    padding: 4px 12px; border: none; border-radius: vars.$radius-md; background: transparent; color: vars.$text-secondary; cursor: pointer;
-    &.is-on { background: color-mix(in srgb, vars.$color-primary 18%, transparent); color: vars.$text-primary; }
-    &:focus-visible { @include vars.focus-ring; }
+  gap: 8px;
+  &__surfaces { align-self: flex-start; }
+  &__rows { display: flex; flex-direction: column; }
+  // One row: the label on the left, its control on the right, a hairline between rows (the mock's `.drow`).
+  &__row,
+  .display-settings-popover--page > .field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 7px 0;
+    border-top: 1px solid vars.$border-subtle;
+    font-size: 12.5px;
+    color: vars.$text-secondary;
   }
-  &__row { display: flex; align-items: center; justify-content: space-between; gap: vars.$space-3; > span { color: vars.$text-secondary; } }
   &__size {
-    display: inline-flex; align-items: center; gap: vars.$space-2;
-    button { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid vars.$border-default; border-radius: vars.$radius-md; background: transparent; color: vars.$text-secondary; cursor: pointer; }
-    output { min-width: 2.5em; text-align: center; }
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    button {
+      height: 26px;
+      padding: 0 8px;
+      border: none;
+      border-radius: 5px;
+      background: transparent;
+      color: vars.$text-muted;
+      font-size: 12px;
+      cursor: pointer;
+      &:hover:not(:disabled) { background: vars.$bg-hover; color: vars.$text-primary; }
+      &:disabled { opacity: 0.45; cursor: default; }
+      &:focus-visible { @include vars.focus-ring; }
+    }
+    output { min-width: 2em; text-align: center; font-variant-numeric: tabular-nums; color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  }
+  .toggle-switch-component { margin: 0; }
+
+  // The colour rows, the readings and caption mode's rows, drawn as rows of the page rather than a floating box.
+  .display-settings-popover--page {
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    > .field {
+      > label { margin: 0; font-size: inherit; color: inherit; }
+      .palette {
+        gap: 7px; justify-content: flex-end; align-items: center;
+        .swatch { width: 22px; height: 22px; }
+        // The first chip in words (the mock's `.swt.auto`): "Follow theme", or caption mode's "Default".
+        .swatch.pill {
+          width: auto; padding: 0 9px; border-radius: 11px; outline: none;
+          border: 1px solid vars.$border-subtle; background: vars.$bg-control; color: vars.$text-secondary; font-size: 11.5px; line-height: 20px;
+          &.selected { border-color: vars.$border-subtle; box-shadow: 0 0 0 2px vars.$bg-base, 0 0 0 4px vars.$color-primary; }
+          &:focus-visible { outline: 2px solid vars.$color-primary; outline-offset: 2px; }
+        }
+        .swatch.selected:not(.pill) { box-shadow: 0 0 0 2px vars.$bg-base, 0 0 0 4px vars.$color-primary; border-color: transparent; }
+      }
+      // The free-choice picker opens under its row, the row's full width.
+      > :not(label):not(.palette):not(.range):not(.toggle-switch-component) { flex-basis: 100%; }
+      .range {
+        display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: vars.$text-muted;
+        input { width: 110px; accent-color: vars.$color-primary; }
+        output { min-width: 3em; text-align: right; font-variant-numeric: tabular-nums; }
+      }
+      // A switch row reads label first, switch last, like every other row.
+      .toggle-switch-component { flex: 1; }
+      .toggle-switch-label { flex: 1; flex-direction: row-reverse; justify-content: space-between; }
+      .toggle-label-text, .toggle-label-text.active { color: vars.$text-secondary; font-size: inherit; font-weight: inherit; }
+    }
+    > .readings-field { .readings-download { flex-basis: 100%; } }
   }
 }
 
+// The preview: the mock's tagged box, kept in view while the rows scroll under it.
 .display-preview {
   position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6em;
-  padding: vars.$space-3;
+  top: 6px;
+  z-index: 2;
+  margin: 2px 0 8px;
   border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-md;
-  background: vars.$bg-surface;
-  line-height: 1.4;
-  &.is-compact { gap: 0.2em; }
-  &__row { display: flex; flex-direction: column; gap: 0.15em; }
-  &__row--mine { align-items: flex-end; text-align: right; }
-  &__source { opacity: 0.85; }
+  border-radius: 10px;
+  overflow: hidden;
+  background: vars.$bg-base;
+  // The page's own background around the box, so rows scrolling under it never show at its corners.
+  box-shadow: 0 0 0 8px vars.$bg-base;
+  &__tag { display: block; padding: 5px 10px; font-size: 11px; color: vars.$text-muted; background: vars.$bg-surface; border-bottom: 1px solid vars.$border-subtle; }
+  &__surface { background: vars.$bg-base; }
+  &__rows { padding: 8px 14px; max-height: 240px; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+  &__empty { padding: 18px 0; color: vars.$text-muted; font-size: 12.5px; text-align: center; }
+  rt { font-size: 0.5em; }
+  // Caption mode floats over another window.
+  &--subtitle {
+    background: vars.$bg-elevated;
+    .display-preview__tag { background: transparent; border-bottom: 0; }
+  }
+  &__backdrop { padding: 18px 18px 14px; }
+  &--subtitle &__surface { border-radius: 8px; overflow: hidden; }
+  &--subtitle &__rows { padding: 8px 16px; }
+  .subtitle-stream { flex: none; }
+  .subtitle-stream__item--lit { background-color: var(--subtitle-highlight-overlay); }
 }
 
+
+// Audio, as the mock draws it (v18): three plain headings with a grey hint, the microphone's device and
+// choices as labelled fields, the speech rows in one card — each help written under its label, the control
+// and the switch beside it.
+.settings-page {
+  .microphone-section,
+  .speech-section,
+  .system-audio-section {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  .settings-subhead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 20px 0 8px;
+    font-size: 14px;
+    font-weight: vars.$weight-semibold;
+    small { font-size: 11.5px; font-weight: vars.$weight-normal; color: vars.$text-muted; }
+    .section-refresh-button { align-self: center; }
+  }
+  .microphone-section > .settings-subhead:first-child { margin-top: 4px; }
+  .settings-field {
+    display: grid;
+    gap: 4px;
+    margin: 8px 0;
+    &__label { font-size: 12px; color: vars.$text-tertiary; }
+    .settings-seg { justify-self: start; }
+  }
+  .settings-field .select-dropdown,
+  .setting-row--inline .setting-row__control .select-dropdown {
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid vars.$border-subtle;
+    background-color: vars.$bg-control;
+    font-size: 12.5px;
+    // One line, cut short: a long device name never makes the select taller, and its chevron stays.
+    // One line, cut short; the chevron keeps its place at the right edge whatever the value's length
+    // (classic selects draw it in the right padding, base-select's own chevron is pinned there).
+    position: relative;
+    overflow: hidden;
+    padding-right: 26px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    // The chevron sits on the select's own colour, so a cut-off value fades out before it rather than under it.
+    &::picker-icon {
+      position: absolute; right: 1px; top: 1px; bottom: 1px;
+      display: flex; align-items: center; padding: 0 9px 0 6px;
+      background: vars.$bg-control; box-shadow: -10px 0 8px vars.$bg-control; border-radius: 0 5px 5px 0;
+    }
+  }
+  .settings-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 8px 0;
+    &__text { font-size: 12.5px; color: vars.$text-secondary; }
+    .toggle-switch-component { margin: 0; }
+  }
+
+  .speech-card {
+    padding: 2px 12px 4px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+  }
+  .speech-card .speech-section__caption {
+    margin: 0;
+    padding: 12px 0 2px;
+    border-top: 1px solid vars.$border-subtle;
+    font-size: 12px;
+    font-weight: vars.$weight-semibold;
+    color: vars.$text-tertiary;
+  }
+  .setting-row--inline {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    margin: 0;
+    padding: 9px 0;
+    & + & { border-top: 1px solid vars.$border-subtle; }
+    .setting-row__label { font-size: 13px; color: vars.$text-primary; }
+    .setting-row__desc { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
+    .setting-row__voice { margin-top: 2px; font-size: 11.5px; }
+    .setting-row__control {
+      min-width: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      .select-dropdown { flex: 0 1 250px; max-width: 250px; }
+    }
+    // The virtual microphone, named rather than chosen: plain text at the right.
+    .setting-row__field { flex: 0 1 auto; padding: 0; border: none; background: none; font-size: 12px; color: vars.$text-tertiary; text-align: right; }
+    .setting-row__slider {
+      flex: 0 1 auto;
+      font-size: 12px;
+      input[type='range'] { flex: none; width: 110px; accent-color: vars.$color-primary; }
+      .setting-value { font-size: 12px; }
+    }
+    .setting-row__switch { margin: 0; }
+    .setting-row__switch-gap { width: vars.$toggle-width; }
+    // A sub-row: indented under its parent, the mock's rounded connector.
+    &.setting-row--sub {
+      margin-left: 0;
+      padding-left: 24px;
+      &::before { left: 8px; top: 0; width: 9px; height: 50%; border-left-width: 1px; border-bottom-width: 1px; border-bottom-left-radius: 6px; }
+    }
+    &.setting-row--greyed .setting-row__desc { opacity: 0.7; }
+  }
+  .speech-card > .setting-row__reason,
+  .speech-card > .ears-hint { margin: 4px 0 8px; font-size: 11.5px; }
+}
+
+// Models and storage, as the mock draws it (v18): a summary line with its two links, then each group under a
+// heading and a line about it, its rows in one card — a tag and the name, a line about the model, one button.
+.models-page {
+  display: flex;
+  flex-direction: column;
+  &__summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: vars.$text-secondary;
+  }
+  &__links { display: inline-flex; gap: 12px; }
+  &__link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: vars.$color-primary;
+    font-size: 12.5px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    &:disabled { opacity: 0.5; cursor: default; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+  &__confirm { margin-top: 8px; }
+  &__import { margin-top: 8px; height: 30px; font-size: 12.5px; }
+}
+
+.models-group {
+  margin-top: 20px;
+  &__title { margin: 0; font-size: 14px; font-weight: vars.$weight-semibold; }
+  &__hint { margin: 4px 0 8px; font-size: 12px; color: vars.$text-muted; }
+  &__list {
+    padding: 0 12px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+  }
+  &__fold { border-top: 1px solid vars.$border-subtle; }
+  &__fold-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    border: none;
+    background: none;
+    color: vars.$text-tertiary;
+    font-size: 12px;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
+
+.model-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  & + & { border-top: 1px solid vars.$border-subtle; }
+  .models-group__fold-btn + & { border-top: 1px solid vars.$border-subtle; }
+  &__main { flex: 1; min-width: 0; }
+  &__title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: vars.$text-primary; }
+  &__tag {
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: vars.$bg-control;
+    color: vars.$text-secondary;
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: vars.$text-muted;
+  }
+  &__actions { flex: none; display: flex; gap: 6px; }
+  &__btn {
+    height: 28px;
+    padding: 0 11px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font-size: 12px;
+    cursor: pointer;
+    &:hover:not(:disabled) { background: vars.$bg-hover; }
+    &:disabled { opacity: 0.5; cursor: default; }
+    &:focus-visible { @include vars.focus-ring; }
+    &--primary { background: vars.$color-primary-fill; border-color: vars.$color-primary-fill; color: vars.$color-on-primary; &:hover:not(:disabled) { background: vars.$color-primary-fill-hover; } }
+    &--danger { color: vars.$color-error; }
+  }
+  &__confirm {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: vars.$bg-elevated;
+    font-size: 12.5px;
+    p { margin: 0; flex-basis: 100%; }
+  }
+  &__note { color: vars.$text-muted; font-size: 11.5px; }
+}

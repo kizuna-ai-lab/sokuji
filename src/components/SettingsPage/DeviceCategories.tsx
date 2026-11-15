@@ -9,7 +9,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useModelStore } from '../../stores/modelStore';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from '../../providers/localInference/settings';
-import StoragePage from '../Settings/engine/StoragePage';
+import { ModelsPage } from './ModelsPage';
 import AudioDeviceSection from '../Settings/sections/AudioDeviceSection';
 import SpeechOutputSection from '../Settings/sections/SpeechOutputSection';
 import SystemAudioSection from '../Settings/sections/SystemAudioSection';
@@ -30,7 +30,7 @@ export function ModelsCategory({ locked }: CategoryBodyProps) {
   }, []);
   const settings = (entry?.settings as LocalInferenceSettings | undefined) ?? LOCAL_INFERENCE_DEFAULTS;
   const pair = entry?.pair ?? { source: 'en', target: 'ja' };
-  return <StoragePage provider="wasm" isSessionActive={locked} settings={settings} pair={pair} />;
+  return <ModelsPage locked={locked} settings={settings} pair={pair} />;
 }
 
 /** Microphone, speech, the other side's audio — today's hierarchy and locks. */

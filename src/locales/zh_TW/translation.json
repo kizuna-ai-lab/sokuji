@@ -442,9 +442,10 @@
     "audioCaptureUnprovenText1": "如果來源正在播放卻沒有譯文，很可能是 macOS 只給出了靜音：擷取某個應用程式的音訊需要「僅系統錄音」權限，沒有該權限時不會報錯，只會是靜音。",
     "audioCaptureUnprovenText3Named": "「{{app}}」只有在嘗試過一次擷取之後才會出現在該清單中，剛才已經嘗試過了。啟用後請重新開始。如果來源本來就是靜音的，則無需任何更改。",
     "otherSideBesideNote": "對方與您共用麥克風，不會擷取系統音訊。",
-    "captionMine": "我說的，唸出來",
-    "captionTheirs": "對方說的，唸出來",
-    "defaultPlaybackAid": "我這邊的聲音都從這裡播放，除非某一行單獨指定了裝置；單獨指定的裝置拔掉時，也回到這裡。"
+    "captionMine": "我說的話，翻譯成語音",
+    "captionTheirs": "對方說的話，翻譯成語音",
+    "defaultPlaybackAid": "我這邊的聲音都從這裡播放，除非某一行單獨指定了裝置；單獨指定的裝置拔掉時，也回到這裡。",
+    "captionReplay": "回放"
   },
   "auth": {
     "signIn": "登入",
@@ -979,7 +980,40 @@
       "acceptRestricted": "我已瞭解——接受該授權"
     },
     "readingsDictionary": "讀音詞典（日語）",
-    "readingsDictionaryNotStored": "在「顯示」裡開啟日語讀音時下載。"
+    "readingsDictionaryNotStored": "在「顯示」裡開啟日語讀音時下載。",
+    "page": {
+      "tag": {
+        "asr": "辨識",
+        "translation": "翻譯",
+        "tts": "語音",
+        "turn": "斷句",
+        "punctuation": "分句和標點",
+        "readings": "注音",
+        "voice": "音色"
+      },
+      "manyLanguages": "多語言",
+      "languages": "{{count}} 種語言",
+      "direct": "也能直接出譯文",
+      "downloading": "下載中 {{percent}}%",
+      "failed": "下載失敗",
+      "cannotRun": "這台電腦跑不了",
+      "notDownloaded": "未下載",
+      "download": "下載",
+      "listJoin": "、",
+      "summary": "已下載 {{count}} 項，共 {{size}}",
+      "import": "從檔案匯入模型",
+      "sessionTitle": "工作階段用的模型（「本機」服務商）",
+      "sessionHint": "在「語言與工作階段組成」裡選了「本機」的階段，用的就是這裡下載的模型。",
+      "otherLanguages": "其他語言的模型（{{count}} 個）",
+      "helpersTitle": "輔助模型",
+      "helpersHint": "不屬於哪個階段的小模型。",
+      "turnMeta": "判斷一段話說完了沒有；在語音模式的選項裡打開",
+      "packMeta": "按句子分段用；三個一起下載",
+      "dictMeta": "顯示日語讀音用；在「顯示」裡打開",
+      "voicesTitle": "匯入的音色",
+      "voicesHint": "自己匯入的 Supertonic 音色檔案。",
+      "importedOn": "匯入於 {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "語音辨識",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "正在下載日語詞典 {{done}} / {{total}}",
       "readingsDownloadFailed": "日語詞典下載失敗。",
-      "readingsFailed": "日語讀音無法顯示。"
+      "readingsFailed": "日語讀音無法顯示。",
+      "defaultColour": "預設"
     },
     "pttHint": "按住空白鍵說話"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "設定",
     "search": "搜尋設定",
-    "back": "返回",
+    "back": "返回工作階段",
     "backToList": "返回分類",
     "changeable": "工作階段中可改",
     "lockedNote": "工作階段中鎖定",
@@ -1766,7 +1801,8 @@
       "signedIn": "已登入",
       "signedOut": "未登入",
       "together": "一起",
-      "view": "檢視"
+      "view": "檢視",
+      "hide": "收起"
     },
     "lineup": {
       "title": "工作階段組成",
@@ -1788,25 +1824,41 @@
         "needsModel": "需要模型",
         "needsSignIn": "需要登入",
         "ready": "就緒"
-      }
+      },
+      "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
+      "hint": "每個階段由哪個服務來做"
     },
     "display": {
       "surface": "哪個介面",
       "main": "主視窗",
       "captions": "字幕模式",
       "compact": "緊湊檢視",
-      "preview": "預覽",
-      "mine": "我說的",
-      "theirs": "對方說的",
       "fontSize": "字級",
       "smaller": "縮小字級",
       "larger": "放大字級",
       "modes": {
         "both": "原文和譯文",
-        "source": "只顯示原文",
-        "translation": "只顯示譯文",
+        "source": "只原文",
+        "translation": "只譯文",
         "none": "不顯示"
-      }
+      },
+      "mineSide": "「我」這一側顯示",
+      "theirsSide": "「對方」這一側顯示",
+      "previewMain": "預覽：主視窗裡的對話",
+      "previewCaptions": "預覽：字幕模式，後面是別的視窗",
+      "empty": "這裡現在什麼都不顯示：兩側都設成了「不顯示」。"
+    },
+    "intro": {
+      "accounts": "帳號和金鑰，每個服務只填一次。填好以後，它能做的事就可以在「語言與工作階段組成」裡選。",
+      "models": "所有下載到這台電腦上的模型都在這一處管理：工作階段用的、輔助的、匯入的音色。",
+      "audio": "麥克風、語音、對方音訊。除了「對方聽到的翻譯」，工作階段進行中都可以改。",
+      "display": "和對話上方的工具列、字幕條上的按鈕是同一組值：在哪邊改都一樣，改了馬上生效。主視窗和字幕模式各一套，互不影響。"
+    },
+    "audio": {
+      "micHint": "我的聲音從哪裡進來",
+      "otherHint": "對方的聲音從哪裡進來",
+      "device": "裝置",
+      "source": "來源"
     }
   }
 }

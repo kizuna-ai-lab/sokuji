@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas.",
     "captionMine": "Det jag säger, som tal",
     "captionTheirs": "Det den andra sidan säger, som tal",
-    "defaultPlaybackAid": "Ljud på min sida spelas här om inte en rad anger en egen enhet; ett ljud vars egen enhet kopplats ur spelas också här."
+    "defaultPlaybackAid": "Ljud på min sida spelas här om inte en rad anger en egen enhet; ett ljud vars egen enhet kopplats ur spelas också här.",
+    "captionReplay": "Uppspelning"
   },
   "auth": {
     "signIn": "Logga in",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Jag förstår — jag accepterar licensen"
     },
     "readingsDictionary": "Läsningsordbok (japanska)",
-    "readingsDictionaryNotStored": "Laddas ner när japanska läsningar slås på under Visning."
+    "readingsDictionaryNotStored": "Laddas ner när japanska läsningar slås på under Visning.",
+    "page": {
+      "tag": {
+        "asr": "Igenkänning",
+        "translation": "Översättning",
+        "tts": "Tal",
+        "turn": "Turslut",
+        "punctuation": "Meningar och skiljetecken",
+        "readings": "Uttal",
+        "voice": "Röst"
+      },
+      "manyLanguages": "Många språk",
+      "languages": "{{count}} språk",
+      "direct": "kan också ge översättningen direkt",
+      "downloading": "Laddar ned {{percent}} %",
+      "failed": "Nedladdningen misslyckades",
+      "cannotRun": "Den här datorn kan inte köra den",
+      "notDownloaded": "Inte nedladdad",
+      "download": "Ladda ned",
+      "listJoin": ", ",
+      "summary": "{{count}} nedladdade, totalt {{size}}",
+      "import": "Importera en modell från filer",
+      "sessionTitle": "Modeller för sessionen (tjänsten ”Den här enheten”)",
+      "sessionHint": "Steg som har ”Den här enheten” under ”Språk och sammansättning” använder modellerna som laddats ned här.",
+      "otherLanguages": "Modeller för andra språk ({{count}})",
+      "helpersTitle": "Hjälpmodeller",
+      "helpersHint": "Små modeller som inte hör till något enskilt steg.",
+      "turnMeta": "Känner av när du har talat klart; slås på i talläget alternativ",
+      "packMeta": "Delar upp texten i meningar; alla tre laddas ned tillsammans",
+      "dictMeta": "Visar japanskt uttal; slås på under ”Visning”",
+      "voicesTitle": "Importerade röster",
+      "voicesHint": "Supertonic-röstfiler som du har importerat.",
+      "importedOn": "Importerad {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "taligenkänning",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Laddar ned den japanska ordboken {{done}} / {{total}}",
       "readingsDownloadFailed": "Det gick inte att ladda ned den japanska ordboken.",
-      "readingsFailed": "Det japanska uttalet fungerar inte."
+      "readingsFailed": "Det japanska uttalet fungerar inte.",
+      "defaultColour": "Standard"
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Inställningar",
     "search": "Sök i inställningar",
-    "back": "Tillbaka",
+    "back": "Tillbaka till sessionen",
     "backToList": "Tillbaka till listan",
     "changeable": "Kan ändras under en session",
     "lockedNote": "Låst under en session",
@@ -1766,7 +1801,8 @@
       "signedIn": "Inloggad",
       "signedOut": "Inte inloggad",
       "together": "tillsammans",
-      "view": "Visa"
+      "view": "Visa",
+      "hide": "Dölj"
     },
     "lineup": {
       "title": "Uppsättning",
@@ -1788,16 +1824,15 @@
         "needsModel": "Behöver en modell",
         "needsSignIn": "Kräver inloggning",
         "ready": "Klar"
-      }
+      },
+      "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
+      "hint": "Vilken tjänst som gör varje steg"
     },
     "display": {
       "surface": "Vilken visning",
       "main": "Huvudfönster",
       "captions": "Undertextläge",
       "compact": "Kompakt vy",
-      "preview": "Förhandsvisning",
-      "mine": "Det jag säger",
-      "theirs": "Det den andra sidan säger",
       "fontSize": "Textstorlek",
       "smaller": "Mindre text",
       "larger": "Större text",
@@ -1806,7 +1841,24 @@
         "source": "Bara original",
         "translation": "Bara översättning",
         "none": "Inget"
-      }
+      },
+      "mineSide": "Vad min sida visar",
+      "theirsSide": "Vad den andra sidan visar",
+      "previewMain": "Förhandsvisning: samtalet i huvudfönstret",
+      "previewCaptions": "Förhandsvisning: undertextläge ovanpå ett annat fönster",
+      "empty": "Inget visas här just nu: båda sidorna är inställda på ”Inget”."
+    },
+    "intro": {
+      "accounts": "Konton och nycklar: varje tjänst fylls i en gång. Vad den gör väljer du sedan under ”Språk och uppsättning”.",
+      "models": "Alla modeller som laddats ner till den här datorn hanteras här: sessionernas, hjälpmodellerna och importerade röster.",
+      "audio": "Mikrofon, tal och den andra sidans ljud. Allt utom ”Översättning som den andra sidan hör” kan ändras under en session.",
+      "display": "Samma värden som knapparna ovanför samtalet och i textningsfältet: var du än ändrar gäller det direkt. Huvudfönstret och textningsläget har var sina."
+    },
+    "audio": {
+      "micHint": "Var min röst kommer in",
+      "otherHint": "Var den andra sidans röst kommer in",
+      "device": "Enhet",
+      "source": "Källa"
     }
   }
 }

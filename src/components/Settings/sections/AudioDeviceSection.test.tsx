@@ -73,7 +73,7 @@ describe('AudioDeviceSection lockedReason', () => {
 
   it('describes the locked device list with the reason', () => {
     renderMic({ isLocked: true, lockedReason: REASON });
-    const list = screen.getByRole('listbox');
+    const list = screen.getByRole('combobox', { name: 'Device' });
     const describedBy = list.getAttribute('aria-describedby');
     expect(describedBy).toBeTruthy();
     expect(document.getElementById(describedBy!)).toHaveTextContent(REASON);
@@ -81,7 +81,7 @@ describe('AudioDeviceSection lockedReason', () => {
 
   it('leaves an unlocked device list undescribed', () => {
     renderMic({ isLocked: false, lockedReason: REASON });
-    expect(screen.getByRole('listbox')).not.toHaveAttribute('aria-describedby');
+    expect(screen.getByRole('combobox', { name: 'Device' })).not.toHaveAttribute('aria-describedby');
   });
 
   // Every option drops to tabIndex -1 while disabled, so unless the listbox
@@ -91,16 +91,14 @@ describe('AudioDeviceSection lockedReason', () => {
   // won't respond.
   it('keeps the locked list reachable by keyboard so the reason is announced', () => {
     renderMic({ isLocked: true, lockedReason: REASON });
-    const list = screen.getByRole('listbox');
-    expect(list).toHaveAttribute('tabindex', '0');
+    const list = screen.getByRole('combobox', { name: 'Device' });
+    expect(list).not.toBeDisabled();
     expect(list).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('keeps the unlocked list out of the tab order — its options carry it', () => {
+  it('leaves the unlocked list an ordinary select', () => {
     renderMic({ isLocked: false });
-    const list = screen.getByRole('listbox');
-    expect(list).not.toHaveAttribute('tabindex');
-    expect(list).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByRole('combobox', { name: 'Device' })).not.toHaveAttribute('aria-disabled');
   });
 });
 
@@ -120,7 +118,7 @@ describe('AudioDeviceSection warning modal under Activity hide', () => {
     const { rerender } = render(ui('visible'));
 
     // Picking a loopback-style input opens the warning modal.
-    fireEvent.click(screen.getByText('Stereo Mix (Realtek High Definition Audio)'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'loop-1' } });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     rerender(ui('hidden'));
@@ -190,5 +188,25 @@ describe('AudioDeviceSection echo cancellation', () => {
     renderMic();
     const pressed = screen.getAllByRole('button', { pressed: true }).map((b) => b.textContent);
     expect(pressed).toEqual(['settings.noiseSuppressionMode.off', 'settings.echoCancellationMode.all']);
+  });
+});
+
+// The mock's audio page (v18): a plain heading with a grey hint, no icon or help mark;
+// the device as one select under a "Device" label; each choice side by side.
+describe('AudioDeviceSection as the mock draws it', () => {
+  it('heads the section with its name and a hint, no icon or help mark', () => {
+    const { container } = renderMic();
+    const heading = screen.getByRole('heading', { name: /simpleConfig.microphone/ });
+    expect(heading).toHaveTextContent('Where my voice comes in');
+    expect(heading.querySelector('svg:not(.lucide-refresh-cw)')).toBeNull();
+    expect(container.querySelector('.tooltip-trigger, [data-tooltip], .help-icon')).toBeNull();
+  });
+
+  it('draws noise suppression and echo cancellation as compact segmented choices, each explained on hover', () => {
+    const { container } = renderMic();
+    const segs = container.querySelectorAll('.settings-seg');
+    expect(segs).toHaveLength(2);
+    const off = [...segs[0].querySelectorAll('button')][0];
+    expect(off).toHaveAttribute('title', 'settings.noiseSuppressionTooltip.off');
   });
 });

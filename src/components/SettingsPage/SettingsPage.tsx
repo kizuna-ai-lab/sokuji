@@ -6,7 +6,7 @@
 // windows the category list first, then one category at a time.
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Lock, Search, X } from 'lucide-react';
+import { ChevronLeft, Lock, Search } from 'lucide-react';
 import { useSessionLocked } from '../../app/useRun';
 import useSettingsStore, { useNavigateToSettings, useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { isExtension } from '../../utils/environment';
@@ -42,6 +42,13 @@ const WIDE_MIN = 768;
 const TITLES: Record<CategoryId, string> = {
   lineup: 'Languages and line-up', words: 'Word list and background', accounts: 'Accounts and keys', models: 'Models and storage',
   audio: 'Audio', display: 'Display', history: 'History and notes', general: 'General',
+};
+/** The line under a category's title (the mock's): what the category is for. Categories without one show none. */
+const INTROS: Partial<Record<CategoryId, string>> = {
+  accounts: 'Accounts and keys: each service is filled in once. Once it is, what it can do is chosen in "Languages and line-up".',
+  models: 'Every model downloaded to this computer is managed here: the ones sessions use, the helpers, and imported voices.',
+  audio: 'Microphone, speech and the other side\'s audio. Everything except "Translation the other side hears" can be changed during a session.',
+  display: 'The same values as the buttons above the conversation and on the caption bar: change them on either side, and they apply at once. The main window and caption mode each keep their own.',
 };
 const GROUP_TITLES: Record<string, string> = { session: 'Session', providers: 'Providers and models', devices: 'Devices and display', data: 'Data', app: 'App' };
 
@@ -207,16 +214,12 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
     <section className="settings-page__content">
       <header>
         {!wide && (
-          <button type="button" className="settings-page__icon" onClick={() => setOpen(null)} aria-label={t('settingsPage.backToList', 'Back to the list')}>
-            <ArrowLeft size={16} />
+          <button type="button" className="settings-page__back" onClick={() => setOpen(null)}>
+            <ChevronLeft size={14} aria-hidden="true" /> {t('settingsPage.backToList', 'Back to the list')}
           </button>
         )}
         <h2 ref={heading} tabIndex={-1}>{title(currentCategory)}</h2>
-        {wide && (
-          <button type="button" className="settings-page__icon" onClick={onClose} aria-label={t('common.close', 'Close')}>
-            <X size={16} />
-          </button>
-        )}
+        {INTROS[currentCategory.id] && <p className="settings-page__intro">{t(`settingsPage.intro.${currentCategory.id}`, INTROS[currentCategory.id]!)}</p>}
       </header>
       <div className="settings-page__body">{Body ? <Body locked={locked} openedBy={openedBy} /> : null}</div>
     </section>
@@ -233,7 +236,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
         <div className="settings-page__columns">
           <nav className="settings-page__nav" aria-label={t('settingsPage.title', 'Settings')}>
             <button type="button" className="settings-page__back" onClick={onClose}>
-              <ArrowLeft size={14} /> {t('settingsPage.back', 'Back')}
+              <ChevronLeft size={14} aria-hidden="true" /> {t('settingsPage.back', 'Back to the session')}
             </button>
             {list}
           </nav>
@@ -242,7 +245,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
       ) : current ? content : (
         <nav className="settings-page__nav" aria-label={t('settingsPage.title', 'Settings')}>
           <button type="button" className="settings-page__back" onClick={onClose}>
-            <ArrowLeft size={14} /> {t('settingsPage.back', 'Back')}
+            <ChevronLeft size={14} aria-hidden="true" /> {t('settingsPage.back', 'Back to the session')}
           </button>
           {list}
         </nav>

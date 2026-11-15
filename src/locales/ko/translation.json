@@ -444,7 +444,8 @@
     "otherSideBesideNote": "상대방이 내 마이크를 함께 사용하므로 시스템 오디오는 캡처하지 않습니다.",
     "captionMine": "내가 하는 말, 음성으로",
     "captionTheirs": "상대방이 하는 말, 음성으로",
-    "defaultPlaybackAid": "각 줄에 별도 장치를 지정하지 않으면 내 쪽 소리는 여기서 재생됩니다. 지정한 장치가 분리된 소리도 여기서 재생됩니다."
+    "defaultPlaybackAid": "각 줄에 별도 장치를 지정하지 않으면 내 쪽 소리는 여기서 재생됩니다. 지정한 장치가 분리된 소리도 여기서 재생됩니다.",
+    "captionReplay": "다시 듣기"
   },
   "auth": {
     "signIn": "로그인",
@@ -979,7 +980,40 @@
       "acceptRestricted": "이해했습니다 — 라이선스에 동의"
     },
     "readingsDictionary": "읽는 법 사전(일본어)",
-    "readingsDictionaryNotStored": "표시에서 일본어 읽는 법을 켜면 다운로드됩니다."
+    "readingsDictionaryNotStored": "표시에서 일본어 읽는 법을 켜면 다운로드됩니다.",
+    "page": {
+      "tag": {
+        "asr": "인식",
+        "translation": "번역",
+        "tts": "음성",
+        "turn": "말 끝",
+        "punctuation": "문장과 문장 부호",
+        "readings": "읽는 법",
+        "voice": "목소리"
+      },
+      "manyLanguages": "여러 언어",
+      "languages": "{{count}}개 언어",
+      "direct": "번역도 바로 낼 수 있음",
+      "downloading": "다운로드 중 {{percent}}%",
+      "failed": "다운로드 실패",
+      "cannotRun": "이 컴퓨터에서는 실행할 수 없음",
+      "notDownloaded": "다운로드 안 됨",
+      "download": "다운로드",
+      "listJoin": ", ",
+      "summary": "{{count}}개 다운로드됨, 모두 {{size}}",
+      "import": "파일에서 모델 가져오기",
+      "sessionTitle": "세션에 쓰는 모델(\"이 기기\" 서비스)",
+      "sessionHint": "\"언어와 세션 구성\"에서 \"이 기기\"로 정한 단계는 여기서 내려받은 모델을 씁니다.",
+      "otherLanguages": "다른 언어의 모델({{count}})",
+      "helpersTitle": "보조 모델",
+      "helpersHint": "어느 한 단계에 속하지 않는 작은 모델입니다.",
+      "turnMeta": "말을 마쳤는지 판단합니다. 음성 모드 옵션에서 켭니다",
+      "packMeta": "글을 문장으로 나눕니다. 세 개를 함께 내려받습니다",
+      "dictMeta": "일본어 읽는 법을 보여 줍니다. \"표시\"에서 켭니다",
+      "voicesTitle": "가져온 목소리",
+      "voicesHint": "직접 가져온 Supertonic 목소리 파일입니다.",
+      "importedOn": "{{date}}에 가져옴"
+    }
   },
   "notes": {
     "stageAsr": "음성 인식",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "일본어 사전 다운로드 중 {{done}} / {{total}}",
       "readingsDownloadFailed": "일본어 사전을 다운로드하지 못했습니다.",
-      "readingsFailed": "일본어 읽는 법을 표시할 수 없습니다."
+      "readingsFailed": "일본어 읽는 법을 표시할 수 없습니다.",
+      "defaultColour": "기본값"
     },
     "pttHint": "스페이스바를 눌러 말하세요"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "설정",
     "search": "설정 검색",
-    "back": "뒤로",
+    "back": "세션으로 돌아가기",
     "backToList": "목록으로 돌아가기",
     "changeable": "세션 중에도 변경 가능",
     "lockedNote": "세션 중 잠김",
@@ -1766,7 +1801,8 @@
       "signedIn": "로그인됨",
       "signedOut": "로그인 안 됨",
       "together": "함께",
-      "view": "보기"
+      "view": "보기",
+      "hide": "접기"
     },
     "lineup": {
       "title": "구성",
@@ -1788,16 +1824,15 @@
         "needsModel": "모델 필요",
         "needsSignIn": "로그인 필요",
         "ready": "준비됨"
-      }
+      },
+      "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
+      "hint": "각 단계를 어떤 서비스가 맡는지"
     },
     "display": {
       "surface": "어느 화면",
       "main": "기본 창",
       "captions": "자막 모드",
       "compact": "간략 보기",
-      "preview": "미리보기",
-      "mine": "내가 하는 말",
-      "theirs": "상대방이 하는 말",
       "fontSize": "글자 크기",
       "smaller": "글자 작게",
       "larger": "글자 크게",
@@ -1806,7 +1841,24 @@
         "source": "원문만",
         "translation": "번역문만",
         "none": "표시 안 함"
-      }
+      },
+      "mineSide": "내 쪽에 표시할 내용",
+      "theirsSide": "상대방 쪽에 표시할 내용",
+      "previewMain": "미리보기: 기본 창의 대화",
+      "previewCaptions": "미리보기: 다른 창 위의 자막 모드",
+      "empty": "지금은 여기에 아무것도 표시되지 않습니다. 양쪽 모두 '표시 안 함'으로 설정되어 있습니다."
+    },
+    "intro": {
+      "accounts": "계정과 키는 서비스마다 한 번만 입력합니다. 그다음 어떤 일을 맡길지는 “언어와 구성”에서 고릅니다.",
+      "models": "이 컴퓨터에 내려받은 모델은 모두 여기서 관리합니다: 세션용, 보조용, 가져온 목소리.",
+      "audio": "마이크, 음성, 상대방 오디오. “상대방이 듣는 번역”을 빼고는 모두 세션 중에도 바꿀 수 있습니다.",
+      "display": "대화 위 도구 모음과 자막 막대의 버튼과 같은 값입니다. 어디서 바꿔도 같고 바로 적용됩니다. 기본 창과 자막 모드는 따로 가집니다."
+    },
+    "audio": {
+      "micHint": "내 목소리가 들어오는 곳",
+      "otherHint": "상대방 목소리가 들어오는 곳",
+      "device": "장치",
+      "source": "소스"
     }
   }
 }

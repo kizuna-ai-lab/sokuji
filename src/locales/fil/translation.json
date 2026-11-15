@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio.",
     "captionMine": "Ang sinasabi ko, bilang boses",
     "captionTheirs": "Ang sinasabi ng kabilang panig, bilang boses",
-    "defaultPlaybackAid": "Dito tumutunog ang mga tunog sa panig ko maliban kung may sariling device ang isang row; dito rin tumutunog ang tunog na natanggal ang sariling device."
+    "defaultPlaybackAid": "Dito tumutunog ang mga tunog sa panig ko maliban kung may sariling device ang isang row; dito rin tumutunog ang tunog na natanggal ang sariling device.",
+    "captionReplay": "Replay"
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Nauunawaan ko — tinatanggap ko ang lisensya"
     },
     "readingsDictionary": "Diksyunaryo ng pagbasa (Japanese)",
-    "readingsDictionaryNotStored": "Dina-download kapag in-on ang pagbasa sa Japanese sa Display."
+    "readingsDictionaryNotStored": "Dina-download kapag in-on ang pagbasa sa Japanese sa Display.",
+    "page": {
+      "tag": {
+        "asr": "Pagkilala",
+        "translation": "Pagsasalin",
+        "tts": "Pananalita",
+        "turn": "Dulo ng sinasabi",
+        "punctuation": "Pangungusap at bantas",
+        "readings": "Pagbasa",
+        "voice": "Boses"
+      },
+      "manyLanguages": "Maraming wika",
+      "languages": "{{count}} wika",
+      "direct": "kaya ring direktang magbigay ng salin",
+      "downloading": "Dina-download {{percent}}%",
+      "failed": "Nabigo ang pag-download",
+      "cannotRun": "Hindi ito kayang patakbuhin ng computer na ito",
+      "notDownloaded": "Hindi pa na-download",
+      "download": "I-download",
+      "listJoin": ", ",
+      "summary": "{{count}} ang na-download, {{size}} lahat",
+      "import": "Mag-import ng model mula sa mga file",
+      "sessionTitle": "Mga model para sa session (ang serbisyong \"Ang device na ito\")",
+      "sessionHint": "Ang mga yugtong naka-\"Ang device na ito\" sa \"Mga wika at bumubuo ng session\" ay gumagamit ng mga model na na-download dito.",
+      "otherLanguages": "Mga model para sa ibang wika ({{count}})",
+      "helpersTitle": "Mga pantulong na model",
+      "helpersHint": "Maliliit na model na hindi kabilang sa iisang yugto.",
+      "turnMeta": "Nalalaman kung tapos ka nang magsalita; binubuksan sa mga opsyon ng speech mode",
+      "packMeta": "Hinahati ang teksto sa mga pangungusap; sabay na dina-download ang tatlo",
+      "dictMeta": "Ipinapakita ang pagbasa sa Hapon; binubuksan sa \"Display\"",
+      "voicesTitle": "Mga in-import na boses",
+      "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
+      "importedOn": "In-import noong {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Dina-download ang diksyunaryong Hapones {{done}} / {{total}}",
       "readingsDownloadFailed": "Hindi ma-download ang diksyunaryong Hapones.",
-      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones."
+      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones.",
+      "defaultColour": "Default"
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Mga Setting",
     "search": "Maghanap sa mga setting",
-    "back": "Bumalik",
+    "back": "Bumalik sa session",
     "backToList": "Bumalik sa listahan",
     "changeable": "Mababago habang may session",
     "lockedNote": "Naka-lock habang may session",
@@ -1766,7 +1801,8 @@
       "signedIn": "Naka-sign in",
       "signedOut": "Hindi naka-sign in",
       "together": "magkasama",
-      "view": "Tingnan"
+      "view": "Tingnan",
+      "hide": "Itago"
     },
     "lineup": {
       "title": "Line-up",
@@ -1788,16 +1824,15 @@
         "needsModel": "Kailangan ng model",
         "needsSignIn": "Kailangang mag-sign in",
         "ready": "Handa"
-      }
+      },
+      "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
+      "hint": "Aling serbisyo ang gumagawa ng bawat yugto"
     },
     "display": {
       "surface": "Aling display",
       "main": "Pangunahing window",
       "captions": "Subtitle mode",
       "compact": "Compact na view",
-      "preview": "Preview",
-      "mine": "Ang sinasabi ko",
-      "theirs": "Ang sinasabi ng kabilang panig",
       "fontSize": "Laki ng teksto",
       "smaller": "Mas maliit na teksto",
       "larger": "Mas malaking teksto",
@@ -1806,7 +1841,24 @@
         "source": "Orihinal lang",
         "translation": "Salin lang",
         "none": "Wala"
-      }
+      },
+      "mineSide": "Ang ipinapakita sa panig ko",
+      "theirsSide": "Ang ipinapakita sa kabilang panig",
+      "previewMain": "Preview: ang usapan sa pangunahing window",
+      "previewCaptions": "Preview: subtitle mode, nakapatong sa ibang window",
+      "empty": "Walang lumalabas dito ngayon: parehong panig ay naka-set sa \"Wala\"."
+    },
+    "intro": {
+      "accounts": "Mga account at key: isang beses lang pinupunan ang bawat serbisyo. Pagkatapos, pinipili sa “Mga wika at line-up” ang gagawin nito.",
+      "models": "Dito pinamamahalaan ang lahat ng model na na-download sa computer na ito: ginagamit ng session, pantulong, at in-import na boses.",
+      "audio": "Mikropono, pagsasalita, at audio ng kabilang panig. Mababago ang lahat habang may session maliban sa “Salin na naririnig ng kabilang panig”.",
+      "display": "Pareho ng mga button sa itaas ng usapan at sa caption bar: saanman baguhin, agad itong gumagana. May kani-kaniyang setting ang pangunahing window at caption mode."
+    },
+    "audio": {
+      "micHint": "Saan pumapasok ang boses ko",
+      "otherHint": "Saan pumapasok ang boses ng kabilang panig",
+      "device": "Device",
+      "source": "Pinagmulan"
     }
   }
 }

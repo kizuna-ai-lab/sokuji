@@ -59,7 +59,7 @@ beforeEach(() => {
 describe('AudioDeviceSection loopback input warning', () => {
   it('warns when a loopback-style input is picked, but still selects it', () => {
     renderMic();
-    fireEvent.click(screen.getByText('Stereo Mix (Realtek High Definition Audio)'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'loop-1' } });
 
     expect(screen.getByText(/re-captures what this computer is playing/i)).toBeInTheDocument();
     expect(selectInputDevice).toHaveBeenCalledWith(
@@ -69,7 +69,7 @@ describe('AudioDeviceSection loopback input warning', () => {
 
   it('selects a real microphone without any warning', () => {
     renderMic();
-    fireEvent.click(screen.getByText('Built-in Microphone'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Device' }), { target: { value: 'real-1' } });
 
     expect(screen.queryByText(/re-captures what this computer is playing/i)).not.toBeInTheDocument();
     expect(selectInputDevice).toHaveBeenCalledWith(

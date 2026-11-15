@@ -106,6 +106,14 @@ describe('LanguagePairSection', () => {
     expect(container.querySelector('h3 .tooltip-trigger')).toBeTruthy();
   });
 
+  it('leaves its heading out where the page names the languages already (the settings page, mock v18)', () => {
+    const { container } = render(
+      <LanguagePairSection provider={fakeProvider} settings={FAKE_DEFAULTS} pair={{ source: 'en', target: 'ja' }} onChange={vi.fn()} heading={false} />,
+    );
+    expect(container.querySelector('h3')).toBeNull();
+    expect(container.querySelector('.language-pair-row')).not.toBeNull();
+  });
+
   describe('with a sentence', () => {
     it("'both': I speak / they hear, and the mirror line shows", () => {
       draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'both', textOnly: false } });

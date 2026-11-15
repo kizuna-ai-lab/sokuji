@@ -42,7 +42,7 @@ interface Row {
 
 /** One row's delete-preview: which (direction, stage) resolutions the delete
  *  would change, already rendered to a sentence each. */
-function computeDeleteNotes(
+export function computeDeleteNotes(
   id: string,
   displayName: (id: string) => string,
   directions: Array<{ dir: string }>,

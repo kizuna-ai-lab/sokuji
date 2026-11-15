@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu.",
     "captionMine": "Điều tôi nói, thành tiếng",
     "captionTheirs": "Điều phía bên kia nói, thành tiếng",
-    "defaultPlaybackAid": "Âm thanh phía tôi phát ở đây, trừ khi một hàng chọn thiết bị riêng; âm thanh có thiết bị riêng bị rút ra cũng phát ở đây."
+    "defaultPlaybackAid": "Âm thanh phía tôi phát ở đây, trừ khi một hàng chọn thiết bị riêng; âm thanh có thiết bị riêng bị rút ra cũng phát ở đây.",
+    "captionReplay": "Phát lại"
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Tôi hiểu — chấp nhận giấy phép"
     },
     "readingsDictionary": "Từ điển cách đọc (tiếng Nhật)",
-    "readingsDictionaryNotStored": "Được tải xuống khi bật cách đọc tiếng Nhật trong Hiển thị."
+    "readingsDictionaryNotStored": "Được tải xuống khi bật cách đọc tiếng Nhật trong Hiển thị.",
+    "page": {
+      "tag": {
+        "asr": "Nhận dạng",
+        "translation": "Dịch",
+        "tts": "Giọng nói",
+        "turn": "Kết thúc lượt",
+        "punctuation": "Câu và dấu câu",
+        "readings": "Cách đọc",
+        "voice": "Giọng"
+      },
+      "manyLanguages": "Nhiều ngôn ngữ",
+      "languages": "{{count}} ngôn ngữ",
+      "direct": "cũng có thể cho bản dịch trực tiếp",
+      "downloading": "Đang tải {{percent}}%",
+      "failed": "Tải xuống thất bại",
+      "cannotRun": "Máy tính này không chạy được",
+      "notDownloaded": "Chưa tải",
+      "download": "Tải xuống",
+      "listJoin": ", ",
+      "summary": "Đã tải {{count}} mục, tổng {{size}}",
+      "import": "Nhập mô hình từ tệp",
+      "sessionTitle": "Mô hình cho phiên (dịch vụ \"Thiết bị này\")",
+      "sessionHint": "Các khâu đặt \"Thiết bị này\" trong \"Ngôn ngữ và thành phần phiên\" dùng các mô hình đã tải ở đây.",
+      "otherLanguages": "Mô hình cho ngôn ngữ khác ({{count}})",
+      "helpersTitle": "Mô hình phụ trợ",
+      "helpersHint": "Các mô hình nhỏ không thuộc khâu nào.",
+      "turnMeta": "Nhận biết khi bạn nói xong; bật trong tùy chọn chế độ giọng nói",
+      "packMeta": "Chia văn bản thành câu; cả ba được tải cùng lúc",
+      "dictMeta": "Hiển thị cách đọc tiếng Nhật; bật trong \"Hiển thị\"",
+      "voicesTitle": "Giọng đã nhập",
+      "voicesHint": "Các tệp giọng Supertonic bạn đã nhập.",
+      "importedOn": "Đã nhập ngày {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Đang tải từ điển tiếng Nhật {{done}} / {{total}}",
       "readingsDownloadFailed": "Không thể tải từ điển tiếng Nhật.",
-      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động."
+      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động.",
+      "defaultColour": "Mặc định"
     },
     "pttHint": "Nhấn Phím cách để nói"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Cài đặt",
     "search": "Tìm trong cài đặt",
-    "back": "Quay lại",
+    "back": "Quay lại phiên",
     "backToList": "Quay lại danh sách",
     "changeable": "Có thể thay đổi trong phiên",
     "lockedNote": "Bị khóa trong phiên",
@@ -1766,7 +1801,8 @@
       "signedIn": "Đã đăng nhập",
       "signedOut": "Chưa đăng nhập",
       "together": "cùng nhau",
-      "view": "Xem"
+      "view": "Xem",
+      "hide": "Ẩn"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1788,16 +1824,15 @@
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
         "ready": "Sẵn sàng"
-      }
+      },
+      "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
+      "hint": "Dịch vụ nào làm từng khâu"
     },
     "display": {
       "surface": "Hiển thị nào",
       "main": "Cửa sổ chính",
       "captions": "Chế độ phụ đề",
       "compact": "Chế độ thu gọn",
-      "preview": "Xem trước",
-      "mine": "Điều tôi nói",
-      "theirs": "Điều phía bên kia nói",
       "fontSize": "Cỡ chữ",
       "smaller": "Chữ nhỏ hơn",
       "larger": "Chữ lớn hơn",
@@ -1806,7 +1841,24 @@
         "source": "Chỉ bản gốc",
         "translation": "Chỉ bản dịch",
         "none": "Không hiển thị"
-      }
+      },
+      "mineSide": "Phía tôi hiển thị gì",
+      "theirsSide": "Phía bên kia hiển thị gì",
+      "previewMain": "Xem trước: cuộc trò chuyện trong cửa sổ chính",
+      "previewCaptions": "Xem trước: chế độ phụ đề, nằm trên một cửa sổ khác",
+      "empty": "Hiện không có gì hiển thị ở đây: cả hai phía đều đang đặt là \"Không hiển thị\"."
+    },
+    "intro": {
+      "accounts": "Tài khoản và khóa: mỗi dịch vụ chỉ cần điền một lần. Sau đó, việc nó làm được chọn trong “Ngôn ngữ và cách phối hợp”.",
+      "models": "Mọi mô hình đã tải về máy này đều được quản lý ở đây: mô hình cho phiên, mô hình phụ trợ và giọng đã nhập.",
+      "audio": "Micrô, giọng nói và âm thanh của phía bên kia. Mọi thứ đều đổi được trong phiên, trừ “Bản dịch phía bên kia nghe”.",
+      "display": "Cùng giá trị với các nút phía trên cuộc hội thoại và trên thanh phụ đề: đổi ở đâu cũng vậy, có hiệu lực ngay. Cửa sổ chính và chế độ phụ đề có giá trị riêng."
+    },
+    "audio": {
+      "micHint": "Giọng tôi đi vào từ đâu",
+      "otherHint": "Giọng phía bên kia đi vào từ đâu",
+      "device": "Thiết bị",
+      "source": "Nguồn"
     }
   }
 }

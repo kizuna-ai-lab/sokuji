@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam.",
     "captionMine": "Yang saya ucapkan, sebagai suara",
     "captionTheirs": "Yang diucapkan pihak lain, sebagai suara",
-    "defaultPlaybackAid": "Suara di sisi saya diputar di sini kecuali sebuah baris menyebut perangkatnya sendiri; suara yang perangkatnya dicabut juga diputar di sini."
+    "defaultPlaybackAid": "Suara di sisi saya diputar di sini kecuali sebuah baris menyebut perangkatnya sendiri; suara yang perangkatnya dicabut juga diputar di sini.",
+    "captionReplay": "Putar ulang"
   },
   "auth": {
     "signIn": "Masuk",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Saya mengerti — saya menerima lisensinya"
     },
     "readingsDictionary": "Kamus cara baca (Jepang)",
-    "readingsDictionaryNotStored": "Diunduh saat cara baca Jepang diaktifkan di Tampilan."
+    "readingsDictionaryNotStored": "Diunduh saat cara baca Jepang diaktifkan di Tampilan.",
+    "page": {
+      "tag": {
+        "asr": "Pengenalan",
+        "translation": "Terjemahan",
+        "tts": "Suara",
+        "turn": "Akhir giliran",
+        "punctuation": "Kalimat dan tanda baca",
+        "readings": "Cara baca",
+        "voice": "Suara"
+      },
+      "manyLanguages": "Banyak bahasa",
+      "languages": "{{count}} bahasa",
+      "direct": "juga bisa langsung memberi terjemahan",
+      "downloading": "Mengunduh {{percent}}%",
+      "failed": "Unduhan gagal",
+      "cannotRun": "Komputer ini tidak bisa menjalankannya",
+      "notDownloaded": "Belum diunduh",
+      "download": "Unduh",
+      "listJoin": ", ",
+      "summary": "{{count}} diunduh, total {{size}}",
+      "import": "Impor model dari file",
+      "sessionTitle": "Model untuk sesi (layanan \"Perangkat ini\")",
+      "sessionHint": "Tahap yang diatur ke \"Perangkat ini\" di \"Bahasa dan susunan sesi\" memakai model yang diunduh di sini.",
+      "otherLanguages": "Model untuk bahasa lain ({{count}})",
+      "helpersTitle": "Model pembantu",
+      "helpersHint": "Model kecil yang tidak termasuk satu tahap mana pun.",
+      "turnMeta": "Mengenali kapan Anda selesai bicara; dinyalakan di opsi mode bicara",
+      "packMeta": "Membagi teks menjadi kalimat; ketiganya diunduh bersama",
+      "dictMeta": "Menampilkan cara baca Jepang; dinyalakan di \"Tampilan\"",
+      "voicesTitle": "Suara yang diimpor",
+      "voicesHint": "File suara Supertonic yang Anda impor.",
+      "importedOn": "Diimpor {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "pengenalan suara",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Mengunduh kamus bahasa Jepang {{done}} / {{total}}",
       "readingsDownloadFailed": "Kamus bahasa Jepang tidak dapat diunduh.",
-      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi."
+      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi.",
+      "defaultColour": "Bawaan"
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Pengaturan",
     "search": "Cari pengaturan",
-    "back": "Kembali",
+    "back": "Kembali ke sesi",
     "backToList": "Kembali ke daftar",
     "changeable": "Dapat diubah selama sesi",
     "lockedNote": "Terkunci selama sesi",
@@ -1766,7 +1801,8 @@
       "signedIn": "Sudah masuk",
       "signedOut": "Belum masuk",
       "together": "bersama",
-      "view": "Lihat"
+      "view": "Lihat",
+      "hide": "Sembunyikan"
     },
     "lineup": {
       "title": "Susunan",
@@ -1788,16 +1824,15 @@
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu masuk",
         "ready": "Siap"
-      }
+      },
+      "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
+      "hint": "Layanan mana yang mengerjakan tiap tahap"
     },
     "display": {
       "surface": "Tampilan mana",
       "main": "Jendela utama",
       "captions": "Mode subtitle",
       "compact": "Tampilan ringkas",
-      "preview": "Pratinjau",
-      "mine": "Yang saya ucapkan",
-      "theirs": "Yang diucapkan pihak lain",
       "fontSize": "Ukuran teks",
       "smaller": "Teks lebih kecil",
       "larger": "Teks lebih besar",
@@ -1806,7 +1841,24 @@
         "source": "Hanya asli",
         "translation": "Hanya terjemahan",
         "none": "Tidak ada"
-      }
+      },
+      "mineSide": "Yang ditampilkan dari sisi saya",
+      "theirsSide": "Yang ditampilkan dari pihak lain",
+      "previewMain": "Pratinjau: percakapan di jendela utama",
+      "previewCaptions": "Pratinjau: mode subtitle, di atas jendela lain",
+      "empty": "Saat ini tidak ada yang tampil di sini: kedua sisi disetel ke \"Tidak ada\"."
+    },
+    "intro": {
+      "accounts": "Akun dan kunci: setiap layanan diisi sekali saja. Setelah itu, tugasnya dipilih di “Bahasa dan susunan”.",
+      "models": "Semua model yang diunduh ke komputer ini dikelola di sini: yang dipakai sesi, model pendukung, dan suara impor.",
+      "audio": "Mikrofon, ucapan, dan audio pihak lain. Semuanya bisa diubah selama sesi, kecuali “Terjemahan yang didengar pihak lain”.",
+      "display": "Nilai yang sama dengan tombol di atas percakapan dan di bilah subtitel: diubah di mana pun, langsung berlaku. Jendela utama dan mode subtitel punya nilainya sendiri."
+    },
+    "audio": {
+      "micHint": "Dari mana suara saya masuk",
+      "otherHint": "Dari mana suara pihak lain masuk",
+      "device": "Perangkat",
+      "source": "Sumber"
     }
   }
 }

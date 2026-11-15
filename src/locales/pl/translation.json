@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Rozmówca dzieli z Tobą mikrofon; dźwięk systemowy nie jest przechwytywany.",
     "captionMine": "Co mówię, jako mowa",
     "captionTheirs": "Co mówi druga strona, jako mowa",
-    "defaultPlaybackAid": "Dźwięki po mojej stronie grają tutaj, chyba że wiersz wskazuje własne urządzenie; dźwięk, którego urządzenie odłączono, też gra tutaj."
+    "defaultPlaybackAid": "Dźwięki po mojej stronie grają tutaj, chyba że wiersz wskazuje własne urządzenie; dźwięk, którego urządzenie odłączono, też gra tutaj.",
+    "captionReplay": "Ponowne odtwarzanie"
   },
   "auth": {
     "signIn": "Zaloguj się",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Rozumiem — akceptuję licencję"
     },
     "readingsDictionary": "Słownik czytań (japoński)",
-    "readingsDictionaryNotStored": "Pobierany po włączeniu japońskich czytań w Wyświetlaniu."
+    "readingsDictionaryNotStored": "Pobierany po włączeniu japońskich czytań w Wyświetlaniu.",
+    "page": {
+      "tag": {
+        "asr": "Rozpoznawanie",
+        "translation": "Tłumaczenie",
+        "tts": "Mowa",
+        "turn": "Koniec wypowiedzi",
+        "punctuation": "Zdania i interpunkcja",
+        "readings": "Czytanie",
+        "voice": "Głos"
+      },
+      "manyLanguages": "Wiele języków",
+      "languages": "{{count}} języków",
+      "direct": "potrafi też od razu podać tłumaczenie",
+      "downloading": "Pobieranie {{percent}}%",
+      "failed": "Pobieranie nie powiodło się",
+      "cannotRun": "Ten komputer nie może go uruchomić",
+      "notDownloaded": "Nie pobrano",
+      "download": "Pobierz",
+      "listJoin": ", ",
+      "summary": "Pobrano: {{count}}, razem {{size}}",
+      "import": "Importuj model z plików",
+      "sessionTitle": "Modele do sesji (usługa „To urządzenie”)",
+      "sessionHint": "Etapy ustawione na „To urządzenie” w „Języki i skład sesji” używają modeli pobranych tutaj.",
+      "otherLanguages": "Modele dla innych języków ({{count}})",
+      "helpersTitle": "Modele pomocnicze",
+      "helpersHint": "Małe modele, które nie należą do żadnego etapu.",
+      "turnMeta": "Rozpoznaje, kiedy skończysz mówić; włączany w opcjach trybu mowy",
+      "packMeta": "Dzieli tekst na zdania; wszystkie trzy pobierają się razem",
+      "dictMeta": "Pokazuje czytanie japońskiego; włączany w „Wyświetlanie”",
+      "voicesTitle": "Zaimportowane głosy",
+      "voicesHint": "Zaimportowane przez Ciebie pliki głosów Supertonic.",
+      "importedOn": "Zaimportowano {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Pobieranie słownika japońskiego {{done}} / {{total}}",
       "readingsDownloadFailed": "Nie udało się pobrać słownika japońskiego.",
-      "readingsFailed": "Japońskie odczyty nie działają."
+      "readingsFailed": "Japońskie odczyty nie działają.",
+      "defaultColour": "Domyślny"
     },
     "pttHint": "Naciśnij spację, aby mówić"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Ustawienia",
     "search": "Szukaj w ustawieniach",
-    "back": "Wstecz",
+    "back": "Wróć do sesji",
     "backToList": "Wróć do listy",
     "changeable": "Można zmieniać w trakcie sesji",
     "lockedNote": "Zablokowane w trakcie sesji",
@@ -1766,7 +1801,8 @@
       "signedIn": "Zalogowano",
       "signedOut": "Nie zalogowano",
       "together": "razem",
-      "view": "Pokaż"
+      "view": "Pokaż",
+      "hide": "Ukryj"
     },
     "lineup": {
       "title": "Zestaw",
@@ -1788,16 +1824,15 @@
         "needsModel": "Wymaga modelu",
         "needsSignIn": "Wymaga zalogowania",
         "ready": "Gotowe"
-      }
+      },
+      "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
+      "hint": "Która usługa wykonuje każdy etap"
     },
     "display": {
       "surface": "Który widok",
       "main": "Okno główne",
       "captions": "Tryb napisów",
       "compact": "Widok kompaktowy",
-      "preview": "Podgląd",
-      "mine": "Co mówię",
-      "theirs": "Co mówi druga strona",
       "fontSize": "Rozmiar tekstu",
       "smaller": "Mniejszy tekst",
       "larger": "Większy tekst",
@@ -1806,7 +1841,24 @@
         "source": "Tylko oryginał",
         "translation": "Tylko tłumaczenie",
         "none": "Nic"
-      }
+      },
+      "mineSide": "Co pokazuje moja strona",
+      "theirsSide": "Co pokazuje druga strona",
+      "previewMain": "Podgląd: rozmowa w oknie głównym",
+      "previewCaptions": "Podgląd: tryb napisów nad innym oknem",
+      "empty": "Nic tu teraz nie widać: obie strony mają ustawione „Nic”."
+    },
+    "intro": {
+      "accounts": "Konta i klucze: każdą usługę wypełnia się raz. Potem jej zadania wybiera się w „Języki i zestaw”.",
+      "models": "Tutaj zarządzasz wszystkimi modelami pobranymi na ten komputer: sesyjnymi, pomocniczymi i zaimportowanymi głosami.",
+      "audio": "Mikrofon, mowa i dźwięk drugiej strony. Wszystko poza „Tłumaczenie, które słyszy druga strona” można zmienić w trakcie sesji.",
+      "display": "Te same wartości co przyciski nad rozmową i na pasku napisów: gdziekolwiek je zmienisz, działają od razu. Okno główne i tryb napisów mają osobne."
+    },
+    "audio": {
+      "micHint": "Skąd wchodzi mój głos",
+      "otherHint": "Skąd wchodzi głos drugiej strony",
+      "device": "Urządzenie",
+      "source": "Źródło"
     }
   }
 }

@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Die andere Person teilt sich Ihr Mikrofon; es wird kein Systemaudio aufgenommen.",
     "captionMine": "Was ich sage, als Sprache",
     "captionTheirs": "Was die Gegenseite sagt, als Sprache",
-    "defaultPlaybackAid": "Töne auf meiner Seite laufen hier, sofern eine Zeile kein eigenes Gerät nennt; ein Ton, dessen eigenes Gerät abgesteckt ist, läuft ebenfalls hier."
+    "defaultPlaybackAid": "Töne auf meiner Seite laufen hier, sofern eine Zeile kein eigenes Gerät nennt; ein Ton, dessen eigenes Gerät abgesteckt ist, läuft ebenfalls hier.",
+    "captionReplay": "Wiedergabe"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Verstanden — Lizenz akzeptieren"
     },
     "readingsDictionary": "Lesungswörterbuch (Japanisch)",
-    "readingsDictionaryNotStored": "Wird geladen, wenn japanische Lesungen unter „Anzeige“ eingeschaltet werden."
+    "readingsDictionaryNotStored": "Wird geladen, wenn japanische Lesungen unter „Anzeige“ eingeschaltet werden.",
+    "page": {
+      "tag": {
+        "asr": "Erkennung",
+        "translation": "Übersetzung",
+        "tts": "Sprache",
+        "turn": "Redeende",
+        "punctuation": "Sätze und Satzzeichen",
+        "readings": "Lesungen",
+        "voice": "Stimme"
+      },
+      "manyLanguages": "Viele Sprachen",
+      "languages": "{{count}} Sprachen",
+      "direct": "kann auch direkt übersetzen",
+      "downloading": "Wird geladen {{percent}} %",
+      "failed": "Download fehlgeschlagen",
+      "cannotRun": "Läuft auf diesem Computer nicht",
+      "notDownloaded": "Nicht geladen",
+      "download": "Laden",
+      "listJoin": ", ",
+      "summary": "{{count}} geladen, zusammen {{size}}",
+      "import": "Modell aus Dateien importieren",
+      "sessionTitle": "Modelle für die Sitzung (der Dienst „Dieses Gerät“)",
+      "sessionHint": "Stufen, die unter „Sprachen und Zusammenstellung“ auf „Dieses Gerät“ stehen, nutzen die hier geladenen Modelle.",
+      "otherLanguages": "Modelle für andere Sprachen ({{count}})",
+      "helpersTitle": "Hilfsmodelle",
+      "helpersHint": "Kleine Modelle, die zu keiner einzelnen Stufe gehören.",
+      "turnMeta": "Erkennt, wann Sie zu Ende gesprochen haben; wird in den Optionen des Sprechmodus eingeschaltet",
+      "packMeta": "Teilt den Text in Sätze; die drei werden zusammen geladen",
+      "dictMeta": "Zeigt japanische Lesungen; wird unter „Anzeige“ eingeschaltet",
+      "voicesTitle": "Importierte Stimmen",
+      "voicesHint": "Supertonic-Stimmdateien, die Sie importiert haben.",
+      "importedOn": "Importiert am {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "Spracherkennung",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Japanisches Wörterbuch wird heruntergeladen {{done}} / {{total}}",
       "readingsDownloadFailed": "Das japanische Wörterbuch konnte nicht heruntergeladen werden.",
-      "readingsFailed": "Die japanischen Lesungen funktionieren nicht."
+      "readingsFailed": "Die japanischen Lesungen funktionieren nicht.",
+      "defaultColour": "Standard"
     },
     "pttHint": "Leertaste zum Sprechen halten"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Einstellungen",
     "search": "Einstellungen durchsuchen",
-    "back": "Zurück",
+    "back": "Zurück zur Sitzung",
     "backToList": "Zurück zur Liste",
     "changeable": "Während einer Sitzung änderbar",
     "lockedNote": "Während einer Sitzung gesperrt",
@@ -1766,7 +1801,8 @@
       "signedIn": "Angemeldet",
       "signedOut": "Nicht angemeldet",
       "together": "gemeinsam",
-      "view": "Anzeigen"
+      "view": "Anzeigen",
+      "hide": "Ausblenden"
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1788,16 +1824,15 @@
         "needsModel": "Braucht ein Modell",
         "needsSignIn": "Anmeldung nötig",
         "ready": "Bereit"
-      }
+      },
+      "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
+      "hint": "Welcher Dienst jede Stufe übernimmt"
     },
     "display": {
       "surface": "Welche Anzeige",
       "main": "Hauptfenster",
       "captions": "Untertitel-Modus",
       "compact": "Kompakte Ansicht",
-      "preview": "Vorschau",
-      "mine": "Was ich sage",
-      "theirs": "Was die Gegenseite sagt",
       "fontSize": "Textgröße",
       "smaller": "Kleinerer Text",
       "larger": "Größerer Text",
@@ -1806,7 +1841,24 @@
         "source": "Nur Original",
         "translation": "Nur Übersetzung",
         "none": "Nichts"
-      }
+      },
+      "mineSide": "Was auf meiner Seite angezeigt wird",
+      "theirsSide": "Was auf der Gegenseite angezeigt wird",
+      "previewMain": "Vorschau: das Gespräch im Hauptfenster",
+      "previewCaptions": "Vorschau: Untertitel-Modus über einem anderen Fenster",
+      "empty": "Hier wird gerade nichts angezeigt: Beide Seiten stehen auf „Nichts“."
+    },
+    "intro": {
+      "accounts": "Konten und Schlüssel: Für jeden Dienst trägt man sie einmal ein. Was er danach übernimmt, wählt man unter „Sprachen und Aufstellung“.",
+      "models": "Alle auf diesen Computer geladenen Modelle werden hier verwaltet: die der Sitzungen, die Hilfsmodelle und importierte Stimmen.",
+      "audio": "Mikrofon, Sprachausgabe und der Ton der Gegenseite. Außer „Übersetzung, die die Gegenseite hört“ lässt sich alles während einer Sitzung ändern.",
+      "display": "Dieselben Werte wie die Knöpfe über dem Gespräch und auf der Untertitelleiste: wo man sie ändert, ist gleich, sie gelten sofort. Hauptfenster und Untertitel-Modus haben jeweils eigene."
+    },
+    "audio": {
+      "micHint": "Wo meine Stimme hereinkommt",
+      "otherHint": "Wo die Stimme der Gegenseite hereinkommt",
+      "device": "Gerät",
+      "source": "Quelle"
     }
   }
 }

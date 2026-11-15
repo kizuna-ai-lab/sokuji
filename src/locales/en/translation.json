@@ -444,7 +444,8 @@
     "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
     "captionMine": "What I say, as speech",
     "captionTheirs": "What the other side says, as speech",
-    "defaultPlaybackAid": "Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too."
+    "defaultPlaybackAid": "Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too.",
+    "captionReplay": "Replay"
   },
   "auth": {
     "signIn": "Sign In",
@@ -1208,7 +1209,40 @@
       "acceptRestricted": "I understand — accept the license"
     },
     "readingsDictionary": "Readings dictionary (Japanese)",
-    "readingsDictionaryNotStored": "Downloaded when Japanese readings are turned on in Display."
+    "readingsDictionaryNotStored": "Downloaded when Japanese readings are turned on in Display.",
+    "page": {
+      "tag": {
+        "asr": "Recognition",
+        "translation": "Translation",
+        "tts": "Speech",
+        "turn": "Turn end",
+        "punctuation": "Sentences and punctuation",
+        "readings": "Readings",
+        "voice": "Voice"
+      },
+      "manyLanguages": "Many languages",
+      "languages": "{{count}} languages",
+      "direct": "can also give the translation directly",
+      "downloading": "Downloading {{percent}}%",
+      "failed": "Download failed",
+      "cannotRun": "This computer can't run it",
+      "notDownloaded": "Not downloaded",
+      "download": "Download",
+      "listJoin": ", ",
+      "summary": "{{count}} downloaded, {{size}} in all",
+      "import": "Import a model from files",
+      "sessionTitle": "Models for the session (the “This device” service)",
+      "sessionHint": "Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "otherLanguages": "Models for other languages ({{count}})",
+      "helpersTitle": "Helper models",
+      "helpersHint": "Small models that belong to no one stage.",
+      "turnMeta": "Tells when you have finished speaking; turned on in the speech mode options",
+      "packMeta": "Splits the text into sentences; the three download together",
+      "dictMeta": "Shows Japanese readings; turned on in Display",
+      "voicesTitle": "Imported voices",
+      "voicesHint": "Supertonic voice files you imported.",
+      "importedOn": "Imported {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "speech recognition",
@@ -1337,7 +1371,8 @@
       },
       "readingsDownloading": "Downloading the Japanese dictionary {{done}} / {{total}}",
       "readingsDownloadFailed": "Couldn't download the Japanese dictionary.",
-      "readingsFailed": "Japanese readings aren't working."
+      "readingsFailed": "Japanese readings aren't working.",
+      "defaultColour": "Default"
     },
     "pttHint": "Press Space to speak"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Settings",
     "search": "Search settings",
-    "back": "Back",
+    "back": "Back to the session",
     "backToList": "Back to the list",
     "changeable": "Changeable during a session",
     "lockedNote": "Locked during a session",
@@ -1766,7 +1801,8 @@
       "signedIn": "Signed in",
       "signedOut": "Not signed in",
       "together": "together",
-      "view": "View"
+      "view": "View",
+      "hide": "Hide"
     },
     "lineup": {
       "title": "Line-up",
@@ -1788,16 +1824,15 @@
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
         "ready": "Ready"
-      }
+      },
+      "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
+      "hint": "Which service does each stage"
     },
     "display": {
       "surface": "Which display",
       "main": "Main window",
       "captions": "Caption mode",
       "compact": "Compact view",
-      "preview": "Preview",
-      "mine": "What I say",
-      "theirs": "What the other side says",
       "fontSize": "Text size",
       "smaller": "Smaller text",
       "larger": "Larger text",
@@ -1806,7 +1841,24 @@
         "source": "Original only",
         "translation": "Translation only",
         "none": "Nothing"
-      }
+      },
+      "mineSide": "What my side shows",
+      "theirsSide": "What the other side shows",
+      "previewMain": "Preview: the conversation in the main window",
+      "previewCaptions": "Preview: caption mode, over another window",
+      "empty": "Nothing shows here now: both sides are set to “Nothing”."
+    },
+    "intro": {
+      "accounts": "Accounts and keys: each service is filled in once. Once it is, what it can do is chosen in \"Languages and line-up\".",
+      "models": "Every model downloaded to this computer is managed here: the ones sessions use, the helpers, and imported voices.",
+      "audio": "Microphone, speech and the other side's audio. Everything except \"Translation the other side hears\" can be changed during a session.",
+      "display": "The same values as the buttons above the conversation and on the caption bar: change them on either side, and they apply at once. The main window and caption mode each keep their own."
+    },
+    "audio": {
+      "micHint": "Where my voice comes in",
+      "otherHint": "Where the other side's voice comes in",
+      "device": "Device",
+      "source": "Source"
     }
   }
 }

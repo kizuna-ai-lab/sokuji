@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Pihak lain berkongsi mikrofon anda; audio sistem tidak dirakam.",
     "captionMine": "Apa yang saya cakap, sebagai suara",
     "captionTheirs": "Apa yang dicakap pihak lain, sebagai suara",
-    "defaultPlaybackAid": "Bunyi di pihak saya dimainkan di sini melainkan satu baris menamakan perantinya sendiri; bunyi yang perantinya dicabut juga dimainkan di sini."
+    "defaultPlaybackAid": "Bunyi di pihak saya dimainkan di sini melainkan satu baris menamakan perantinya sendiri; bunyi yang perantinya dicabut juga dimainkan di sini.",
+    "captionReplay": "Main semula"
   },
   "auth": {
     "signIn": "Log Masuk",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Saya faham — saya menerima lesen ini"
     },
     "readingsDictionary": "Kamus bacaan (Jepun)",
-    "readingsDictionaryNotStored": "Dimuat turun apabila bacaan Jepun dihidupkan dalam Paparan."
+    "readingsDictionaryNotStored": "Dimuat turun apabila bacaan Jepun dihidupkan dalam Paparan.",
+    "page": {
+      "tag": {
+        "asr": "Pengecaman",
+        "translation": "Terjemahan",
+        "tts": "Suara",
+        "turn": "Akhir giliran",
+        "punctuation": "Ayat dan tanda baca",
+        "readings": "Sebutan",
+        "voice": "Suara"
+      },
+      "manyLanguages": "Banyak bahasa",
+      "languages": "{{count}} bahasa",
+      "direct": "juga boleh terus memberi terjemahan",
+      "downloading": "Memuat turun {{percent}}%",
+      "failed": "Muat turun gagal",
+      "cannotRun": "Komputer ini tidak dapat menjalankannya",
+      "notDownloaded": "Belum dimuat turun",
+      "download": "Muat turun",
+      "listJoin": ", ",
+      "summary": "{{count}} dimuat turun, jumlah {{size}}",
+      "import": "Import model daripada fail",
+      "sessionTitle": "Model untuk sesi (perkhidmatan \"Peranti ini\")",
+      "sessionHint": "Peringkat yang ditetapkan kepada \"Peranti ini\" dalam \"Bahasa dan susunan sesi\" menggunakan model yang dimuat turun di sini.",
+      "otherLanguages": "Model untuk bahasa lain ({{count}})",
+      "helpersTitle": "Model pembantu",
+      "helpersHint": "Model kecil yang bukan milik mana-mana satu peringkat.",
+      "turnMeta": "Mengesan bila anda selesai bercakap; dihidupkan dalam pilihan mod pertuturan",
+      "packMeta": "Membahagi teks kepada ayat; ketiga-tiganya dimuat turun bersama",
+      "dictMeta": "Memaparkan sebutan bahasa Jepun; dihidupkan dalam \"Paparan\"",
+      "voicesTitle": "Suara yang diimport",
+      "voicesHint": "Fail suara Supertonic yang anda import.",
+      "importedOn": "Diimport pada {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "pengecaman suara",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Memuat turun kamus bahasa Jepun {{done}} / {{total}}",
       "readingsDownloadFailed": "Kamus bahasa Jepun tidak dapat dimuat turun.",
-      "readingsFailed": "Bacaan bahasa Jepun tidak berfungsi."
+      "readingsFailed": "Bacaan bahasa Jepun tidak berfungsi.",
+      "defaultColour": "Lalai"
     },
     "pttHint": "Tekan Bar Ruang untuk bercakap"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Tetapan",
     "search": "Cari tetapan",
-    "back": "Kembali",
+    "back": "Kembali ke sesi",
     "backToList": "Kembali ke senarai",
     "changeable": "Boleh diubah semasa sesi",
     "lockedNote": "Dikunci semasa sesi",
@@ -1766,7 +1801,8 @@
       "signedIn": "Sudah log masuk",
       "signedOut": "Belum log masuk",
       "together": "bersama",
-      "view": "Lihat"
+      "view": "Lihat",
+      "hide": "Sembunyikan"
     },
     "lineup": {
       "title": "Susunan",
@@ -1788,16 +1824,15 @@
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu log masuk",
         "ready": "Sedia"
-      }
+      },
+      "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
+      "hint": "Perkhidmatan mana yang membuat setiap peringkat"
     },
     "display": {
       "surface": "Paparan mana",
       "main": "Tetingkap utama",
       "captions": "Mod Sari Kata",
       "compact": "Paparan padat",
-      "preview": "Pratonton",
-      "mine": "Apa yang saya cakap",
-      "theirs": "Apa yang dicakap pihak lain",
       "fontSize": "Saiz teks",
       "smaller": "Teks lebih kecil",
       "larger": "Teks lebih besar",
@@ -1806,7 +1841,24 @@
         "source": "Asal sahaja",
         "translation": "Terjemahan sahaja",
         "none": "Tiada"
-      }
+      },
+      "mineSide": "Apa yang dipaparkan bagi pihak saya",
+      "theirsSide": "Apa yang dipaparkan bagi pihak lain",
+      "previewMain": "Pratonton: perbualan dalam tetingkap utama",
+      "previewCaptions": "Pratonton: mod sari kata, di atas tetingkap lain",
+      "empty": "Tiada apa dipaparkan di sini sekarang: kedua-dua pihak ditetapkan kepada \"Tiada\"."
+    },
+    "intro": {
+      "accounts": "Akaun dan kunci: setiap perkhidmatan diisi sekali sahaja. Selepas itu, tugasnya dipilih dalam “Bahasa dan susunan”.",
+      "models": "Semua model yang dimuat turun ke komputer ini diurus di sini: yang digunakan sesi, model bantuan dan suara yang diimport.",
+      "audio": "Mikrofon, pertuturan dan audio pihak lain. Semuanya boleh diubah semasa sesi kecuali “Terjemahan yang didengar pihak lain”.",
+      "display": "Nilai yang sama dengan butang di atas perbualan dan pada bar sari kata: diubah di mana-mana pun, ia berkuat kuasa serta-merta. Tetingkap utama dan mod sari kata ada nilai masing-masing."
+    },
+    "audio": {
+      "micHint": "Dari mana suara saya masuk",
+      "otherHint": "Dari mana suara pihak lain masuk",
+      "device": "Peranti",
+      "source": "Sumber"
     }
   }
 }

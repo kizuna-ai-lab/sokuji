@@ -444,7 +444,8 @@
     "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen.",
     "captionMine": "Wat ik zeg, als spraak",
     "captionTheirs": "Wat de andere kant zegt, als spraak",
-    "defaultPlaybackAid": "Geluiden aan mijn kant spelen hier af, tenzij een rij een eigen apparaat noemt; een geluid waarvan het eigen apparaat is losgekoppeld, speelt ook hier."
+    "defaultPlaybackAid": "Geluiden aan mijn kant spelen hier af, tenzij een rij een eigen apparaat noemt; een geluid waarvan het eigen apparaat is losgekoppeld, speelt ook hier.",
+    "captionReplay": "Opnieuw afspelen"
   },
   "auth": {
     "signIn": "Inloggen",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Begrepen — licentie accepteren"
     },
     "readingsDictionary": "Woordenboek met lezingen (Japans)",
-    "readingsDictionaryNotStored": "Wordt gedownload als je Japanse lezingen aanzet bij Weergave."
+    "readingsDictionaryNotStored": "Wordt gedownload als je Japanse lezingen aanzet bij Weergave.",
+    "page": {
+      "tag": {
+        "asr": "Herkenning",
+        "translation": "Vertaling",
+        "tts": "Spraak",
+        "turn": "Einde beurt",
+        "punctuation": "Zinnen en leestekens",
+        "readings": "Uitspraak",
+        "voice": "Stem"
+      },
+      "manyLanguages": "Veel talen",
+      "languages": "{{count}} talen",
+      "direct": "kan ook direct de vertaling geven",
+      "downloading": "Downloaden {{percent}}%",
+      "failed": "Downloaden mislukt",
+      "cannotRun": "Deze computer kan het niet draaien",
+      "notDownloaded": "Niet gedownload",
+      "download": "Downloaden",
+      "listJoin": ", ",
+      "summary": "{{count}} gedownload, samen {{size}}",
+      "import": "Model uit bestanden importeren",
+      "sessionTitle": "Modellen voor de sessie (de dienst ‘Dit apparaat’)",
+      "sessionHint": "Stappen die in ‘Talen en samenstelling’ op ‘Dit apparaat’ staan, gebruiken de modellen die hier zijn gedownload.",
+      "otherLanguages": "Modellen voor andere talen ({{count}})",
+      "helpersTitle": "Hulpmodellen",
+      "helpersHint": "Kleine modellen die bij geen enkele stap horen.",
+      "turnMeta": "Herkent wanneer u klaar bent met praten; aan te zetten in de opties van de spraakmodus",
+      "packMeta": "Deelt de tekst op in zinnen; de drie worden samen gedownload",
+      "dictMeta": "Toont Japanse uitspraak; aan te zetten in ‘Weergave’",
+      "voicesTitle": "Geïmporteerde stemmen",
+      "voicesHint": "Supertonic-stembestanden die u hebt geïmporteerd.",
+      "importedOn": "Geïmporteerd op {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "spraakherkenning",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Japans woordenboek downloaden {{done}} / {{total}}",
       "readingsDownloadFailed": "Het Japanse woordenboek kon niet worden gedownload.",
-      "readingsFailed": "De Japanse leesvormen werken niet."
+      "readingsFailed": "De Japanse leesvormen werken niet.",
+      "defaultColour": "Standaard"
     },
     "pttHint": "Druk op Spatie om te spreken"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Instellingen",
     "search": "Instellingen zoeken",
-    "back": "Terug",
+    "back": "Terug naar de sessie",
     "backToList": "Terug naar de lijst",
     "changeable": "Te wijzigen tijdens een sessie",
     "lockedNote": "Vergrendeld tijdens een sessie",
@@ -1766,7 +1801,8 @@
       "signedIn": "Ingelogd",
       "signedOut": "Niet ingelogd",
       "together": "samen",
-      "view": "Bekijken"
+      "view": "Bekijken",
+      "hide": "Verbergen"
     },
     "lineup": {
       "title": "Opstelling",
@@ -1788,16 +1824,15 @@
         "needsModel": "Model nodig",
         "needsSignIn": "Inloggen nodig",
         "ready": "Klaar"
-      }
+      },
+      "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
+      "hint": "Welke dienst elke stap doet"
     },
     "display": {
       "surface": "Welke weergave",
       "main": "Hoofdvenster",
       "captions": "Ondertitelmodus",
       "compact": "Compacte weergave",
-      "preview": "Voorbeeld",
-      "mine": "Wat ik zeg",
-      "theirs": "Wat de andere kant zegt",
       "fontSize": "Tekstgrootte",
       "smaller": "Kleinere tekst",
       "larger": "Grotere tekst",
@@ -1806,7 +1841,24 @@
         "source": "Alleen origineel",
         "translation": "Alleen vertaling",
         "none": "Niets"
-      }
+      },
+      "mineSide": "Wat mijn kant toont",
+      "theirsSide": "Wat de andere kant toont",
+      "previewMain": "Voorbeeld: het gesprek in het hoofdvenster",
+      "previewCaptions": "Voorbeeld: ondertitelmodus, boven een ander venster",
+      "empty": "Hier wordt nu niets getoond: beide kanten staan op 'Niets'."
+    },
+    "intro": {
+      "accounts": "Accounts en sleutels: elke dienst vul je één keer in. Wat hij doet, kies je daarna bij ‘Talen en opstelling’.",
+      "models": "Alle modellen die op deze computer staan, beheer je hier: die van de sessies, de hulpmodellen en geïmporteerde stemmen.",
+      "audio": "Microfoon, spraak en het geluid van de andere kant. Alles behalve ‘Vertaling die de andere kant hoort’ kun je tijdens een sessie wijzigen.",
+      "display": "Dezelfde waarden als de knoppen boven het gesprek en op de ondertitelbalk: waar je ze ook wijzigt, ze gelden meteen. Het hoofdvenster en de ondertitelmodus hebben elk hun eigen."
+    },
+    "audio": {
+      "micHint": "Waar mijn stem binnenkomt",
+      "otherHint": "Waar de stem van de andere kant binnenkomt",
+      "device": "Apparaat",
+      "source": "Bron"
     }
   }
 }

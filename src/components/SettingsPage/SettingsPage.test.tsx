@@ -169,3 +169,16 @@ describe('the settings page — focus in the narrow form', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Audio/ }));
   });
 });
+
+// Owner, 2026-11-15 (visual review): the page's frame as the mock draws it.
+describe('the settings page — its frame', () => {
+  it('goes back with "Back to the session", has no second close button, and says what a category is for', () => {
+    const onClose = vi.fn();
+    render(<SettingsPage onClose={onClose} bodies={bodies} />);
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Accounts and keys/ }));
+    expect(screen.getByText(/each service is filled in once/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the session' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

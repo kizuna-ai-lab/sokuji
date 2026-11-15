@@ -444,7 +444,8 @@
     "otherSideBesideNote": "L'autre personne partage votre microphone ; aucun audio système n'est capturé.",
     "captionMine": "Ce que je dis, en voix",
     "captionTheirs": "Ce que dit l’autre partie, en voix",
-    "defaultPlaybackAid": "Les sons de mon côté sont joués ici, sauf si une ligne indique son propre appareil ; un son dont l’appareil est débranché est aussi joué ici."
+    "defaultPlaybackAid": "Les sons de mon côté sont joués ici, sauf si une ligne indique son propre appareil ; un son dont l’appareil est débranché est aussi joué ici.",
+    "captionReplay": "Réécoute"
   },
   "auth": {
     "signIn": "Se connecter",
@@ -979,7 +980,40 @@
       "acceptRestricted": "J’ai compris — j’accepte la licence"
     },
     "readingsDictionary": "Dictionnaire de lectures (japonais)",
-    "readingsDictionaryNotStored": "Téléchargé quand les lectures japonaises sont activées dans Affichage."
+    "readingsDictionaryNotStored": "Téléchargé quand les lectures japonaises sont activées dans Affichage.",
+    "page": {
+      "tag": {
+        "asr": "Reconnaissance",
+        "translation": "Traduction",
+        "tts": "Voix",
+        "turn": "Fin de tour",
+        "punctuation": "Phrases et ponctuation",
+        "readings": "Lectures",
+        "voice": "Voix"
+      },
+      "manyLanguages": "Nombreuses langues",
+      "languages": "{{count}} langues",
+      "direct": "peut aussi donner directement la traduction",
+      "downloading": "Téléchargement {{percent}} %",
+      "failed": "Échec du téléchargement",
+      "cannotRun": "Cet ordinateur ne peut pas l’exécuter",
+      "notDownloaded": "Non téléchargé",
+      "download": "Télécharger",
+      "listJoin": ", ",
+      "summary": "{{count}} téléchargés, {{size}} au total",
+      "import": "Importer un modèle depuis des fichiers",
+      "sessionTitle": "Modèles pour la session (le service « Cet appareil »)",
+      "sessionHint": "Les étapes réglées sur « Cet appareil » dans « Langues et composition » utilisent les modèles téléchargés ici.",
+      "otherLanguages": "Modèles pour d’autres langues ({{count}})",
+      "helpersTitle": "Modèles d’appoint",
+      "helpersHint": "De petits modèles qui n’appartiennent à aucune étape.",
+      "turnMeta": "Repère quand vous avez fini de parler ; s’active dans les options du mode de parole",
+      "packMeta": "Découpe le texte en phrases ; les trois se téléchargent ensemble",
+      "dictMeta": "Affiche les lectures du japonais ; s’active dans « Affichage »",
+      "voicesTitle": "Voix importées",
+      "voicesHint": "Les fichiers de voix Supertonic que vous avez importés.",
+      "importedOn": "Importée le {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "reconnaissance vocale",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Téléchargement du dictionnaire japonais {{done}} / {{total}}",
       "readingsDownloadFailed": "Impossible de télécharger le dictionnaire japonais.",
-      "readingsFailed": "Les lectures en japonais ne fonctionnent pas."
+      "readingsFailed": "Les lectures en japonais ne fonctionnent pas.",
+      "defaultColour": "Par défaut"
     },
     "pttHint": "Appuyez sur Espace pour parler"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Paramètres",
     "search": "Rechercher dans les paramètres",
-    "back": "Retour",
+    "back": "Retour à la session",
     "backToList": "Retour à la liste",
     "changeable": "Modifiable pendant une session",
     "lockedNote": "Verrouillé pendant une session",
@@ -1766,7 +1801,8 @@
       "signedIn": "Connecté",
       "signedOut": "Non connecté",
       "together": "ensemble",
-      "view": "Afficher"
+      "view": "Afficher",
+      "hide": "Masquer"
     },
     "lineup": {
       "title": "Composition",
@@ -1788,16 +1824,15 @@
         "needsModel": "Modèle requis",
         "needsSignIn": "Connexion requise",
         "ready": "Prêt"
-      }
+      },
+      "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
+      "hint": "Quel service assure chaque étape"
     },
     "display": {
       "surface": "Quel affichage",
       "main": "Fenêtre principale",
       "captions": "Mode sous-titres",
       "compact": "Vue compacte",
-      "preview": "Aperçu",
-      "mine": "Ce que je dis",
-      "theirs": "Ce que dit l’autre partie",
       "fontSize": "Taille du texte",
       "smaller": "Texte plus petit",
       "larger": "Texte plus grand",
@@ -1806,7 +1841,24 @@
         "source": "Original seulement",
         "translation": "Traduction seulement",
         "none": "Rien"
-      }
+      },
+      "mineSide": "Ce qui s’affiche de mon côté",
+      "theirsSide": "Ce qui s’affiche du côté de l’autre partie",
+      "previewMain": "Aperçu : la conversation dans la fenêtre principale",
+      "previewCaptions": "Aperçu : mode sous-titres, par-dessus une autre fenêtre",
+      "empty": "Rien ne s’affiche ici pour l’instant : les deux côtés sont réglés sur « Rien »."
+    },
+    "intro": {
+      "accounts": "Comptes et clés : chaque service se renseigne une seule fois. Ensuite, ce qu’il fait se choisit dans « Langues et composition ».",
+      "models": "Tous les modèles téléchargés sur cet ordinateur se gèrent ici : ceux des sessions, les modèles d’appoint et les voix importées.",
+      "audio": "Micro, voix et son de l’autre partie. Tout se modifie pendant une session, sauf « Traduction entendue par l’autre partie ».",
+      "display": "Les mêmes valeurs que les boutons au-dessus de la conversation et sur la barre de sous-titres : où qu’on les change, elles s’appliquent aussitôt. La fenêtre principale et le mode sous-titres ont chacun les leurs."
+    },
+    "audio": {
+      "micHint": "Par où arrive ma voix",
+      "otherHint": "Par où arrive la voix de l’autre partie",
+      "device": "Appareil",
+      "source": "Source"
     }
   }
 }

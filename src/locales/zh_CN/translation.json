@@ -442,9 +442,10 @@
     "audioCaptureUnprovenText1": "如果来源正在播放却没有译文，很可能是 macOS 只给出了静音：捕获某个应用的音频需要“仅系统录音”权限，没有该权限时不会报错，只会是静音。",
     "audioCaptureUnprovenText3Named": "“{{app}}”只有在尝试过一次捕获之后才会出现在该列表中，刚才已经尝试过了。启用后请重新开始会话。如果来源本来就是静音的，则无需任何更改。",
     "otherSideBesideNote": "对方与您共用麦克风，不会捕获系统音频。",
-    "captionMine": "我说的，读出来",
-    "captionTheirs": "对方说的，读出来",
-    "defaultPlaybackAid": "我这边的声音都从这里播放，除非某一行单独指定了设备；单独指定的设备拔掉时，也回到这里。"
+    "captionMine": "我说的话，翻译成语音",
+    "captionTheirs": "对方说的话，翻译成语音",
+    "defaultPlaybackAid": "我这边的声音都从这里播放，除非某一行单独指定了设备；单独指定的设备拔掉时，也回到这里。",
+    "captionReplay": "回放"
   },
   "auth": {
     "signIn": "登录",
@@ -979,7 +980,40 @@
       "acceptRestricted": "我已了解——接受该许可"
     },
     "readingsDictionary": "读音词典（日语）",
-    "readingsDictionaryNotStored": "在“显示”里打开日语读音时下载。"
+    "readingsDictionaryNotStored": "在“显示”里打开日语读音时下载。",
+    "page": {
+      "tag": {
+        "asr": "识别",
+        "translation": "翻译",
+        "tts": "语音",
+        "turn": "断句",
+        "punctuation": "分句和标点",
+        "readings": "注音",
+        "voice": "音色"
+      },
+      "manyLanguages": "多语言",
+      "languages": "{{count}} 种语言",
+      "direct": "也能直接出译文",
+      "downloading": "下载中 {{percent}}%",
+      "failed": "下载失败",
+      "cannotRun": "这台电脑跑不了",
+      "notDownloaded": "未下载",
+      "download": "下载",
+      "listJoin": "、",
+      "summary": "已下载 {{count}} 项，共 {{size}}",
+      "import": "从文件导入模型",
+      "sessionTitle": "会话用的模型（“本机”服务商）",
+      "sessionHint": "在“语言与会话组成”里选了“本机”的阶段，用的就是这里下载的模型。",
+      "otherLanguages": "其他语言的模型（{{count}} 个）",
+      "helpersTitle": "辅助模型",
+      "helpersHint": "不属于哪个阶段的小模型。",
+      "turnMeta": "判断一段话说完了没有；在语音模式的选项里打开",
+      "packMeta": "按句子分段用；三个一起下载",
+      "dictMeta": "显示日语读音用；在“显示”里打开",
+      "voicesTitle": "导入的音色",
+      "voicesHint": "自己导入的 Supertonic 音色文件。",
+      "importedOn": "导入于 {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "语音识别",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "正在下载日语词典 {{done}} / {{total}}",
       "readingsDownloadFailed": "日语词典下载失败。",
-      "readingsFailed": "日语读音无法显示。"
+      "readingsFailed": "日语读音无法显示。",
+      "defaultColour": "默认"
     },
     "pttHint": "按住空格说话"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "设置",
     "search": "搜索设置",
-    "back": "返回",
+    "back": "返回会话",
     "backToList": "返回分类",
     "changeable": "会话中可改",
     "lockedNote": "会话中锁定",
@@ -1766,7 +1801,8 @@
       "signedIn": "已登录",
       "signedOut": "未登录",
       "together": "一起",
-      "view": "查看"
+      "view": "查看",
+      "hide": "收起"
     },
     "lineup": {
       "title": "会话组成",
@@ -1788,25 +1824,41 @@
         "needsModel": "需要模型",
         "needsSignIn": "需要登录",
         "ready": "就绪"
-      }
+      },
+      "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
+      "hint": "每个阶段由哪个服务来做"
     },
     "display": {
       "surface": "哪个界面",
       "main": "主窗口",
       "captions": "字幕模式",
       "compact": "紧凑视图",
-      "preview": "预览",
-      "mine": "我说的",
-      "theirs": "对方说的",
       "fontSize": "字号",
       "smaller": "缩小字号",
       "larger": "放大字号",
       "modes": {
         "both": "原文和译文",
-        "source": "只显示原文",
-        "translation": "只显示译文",
+        "source": "只原文",
+        "translation": "只译文",
         "none": "不显示"
-      }
+      },
+      "mineSide": "“我”这一侧显示",
+      "theirsSide": "“对方”这一侧显示",
+      "previewMain": "预览：主窗口里的对话",
+      "previewCaptions": "预览：字幕模式，后面是别的窗口",
+      "empty": "这里现在什么都不显示：两侧都设成了“不显示”。"
+    },
+    "intro": {
+      "accounts": "账号和密钥，每个服务只填一次。填好以后，它能做的事就可以在“语言与会话组成”里选。",
+      "models": "所有下载到这台电脑上的模型都在这一处管理：会话用的、辅助的、导入的音色。",
+      "audio": "麦克风、语音、对方音频。除了“对方听到的翻译”，会话进行中都可以改。",
+      "display": "和对话上方的工具栏、字幕条上的按钮是同一组值：在哪边改都一样，改了马上生效。主窗口和字幕模式各一套，互不影响。"
+    },
+    "audio": {
+      "micHint": "我的声音从哪里进来",
+      "otherHint": "对方的声音从哪里进来",
+      "device": "设备",
+      "source": "来源"
     }
   }
 }

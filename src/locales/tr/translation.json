@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz.",
     "captionMine": "Söylediklerim, sesli",
     "captionTheirs": "Karşı tarafın söyledikleri, sesli",
-    "defaultPlaybackAid": "Bir satır kendi cihazını belirtmedikçe benim tarafımdaki sesler burada çalar; kendi cihazı çıkarılmış bir ses de burada çalar."
+    "defaultPlaybackAid": "Bir satır kendi cihazını belirtmedikçe benim tarafımdaki sesler burada çalar; kendi cihazı çıkarılmış bir ses de burada çalar.",
+    "captionReplay": "Tekrar dinleme"
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Anladım — lisansı kabul ediyorum"
     },
     "readingsDictionary": "Okunuş sözlüğü (Japonca)",
-    "readingsDictionaryNotStored": "Görünüm’de Japonca okunuşlar açıldığında indirilir."
+    "readingsDictionaryNotStored": "Görünüm’de Japonca okunuşlar açıldığında indirilir.",
+    "page": {
+      "tag": {
+        "asr": "Tanıma",
+        "translation": "Çeviri",
+        "tts": "Konuşma",
+        "turn": "Sıra sonu",
+        "punctuation": "Cümleler ve noktalama",
+        "readings": "Okunuş",
+        "voice": "Ses"
+      },
+      "manyLanguages": "Birçok dil",
+      "languages": "{{count}} dil",
+      "direct": "çeviriyi de doğrudan verebilir",
+      "downloading": "İndiriliyor %{{percent}}",
+      "failed": "İndirme başarısız",
+      "cannotRun": "Bu bilgisayar çalıştıramaz",
+      "notDownloaded": "İndirilmedi",
+      "download": "İndir",
+      "listJoin": ", ",
+      "summary": "{{count}} indirildi, toplam {{size}}",
+      "import": "Dosyalardan model içe aktar",
+      "sessionTitle": "Oturum modelleri (\"Bu cihaz\" hizmeti)",
+      "sessionHint": "\"Diller ve oturum düzeni\"nde \"Bu cihaz\" seçilen aşamalar burada indirilen modelleri kullanır.",
+      "otherLanguages": "Diğer diller için modeller ({{count}})",
+      "helpersTitle": "Yardımcı modeller",
+      "helpersHint": "Hiçbir aşamaya ait olmayan küçük modeller.",
+      "turnMeta": "Konuşmanızın bittiğini anlar; konuşma modu seçeneklerinden açılır",
+      "packMeta": "Metni cümlelere böler; üçü birlikte indirilir",
+      "dictMeta": "Japonca okunuşları gösterir; \"Görünüm\"den açılır",
+      "voicesTitle": "İçe aktarılan sesler",
+      "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
+      "importedOn": "{{date}} tarihinde içe aktarıldı"
+    }
   },
   "notes": {
     "stageAsr": "konuşma tanıma",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "Japonca sözlük indiriliyor {{done}} / {{total}}",
       "readingsDownloadFailed": "Japonca sözlük indirilemedi.",
-      "readingsFailed": "Japonca okunuşlar çalışmıyor."
+      "readingsFailed": "Japonca okunuşlar çalışmıyor.",
+      "defaultColour": "Varsayılan"
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Ayarlar",
     "search": "Ayarlarda ara",
-    "back": "Geri",
+    "back": "Oturuma dön",
     "backToList": "Listeye dön",
     "changeable": "Oturum sırasında değiştirilebilir",
     "lockedNote": "Oturum sırasında kilitli",
@@ -1766,7 +1801,8 @@
       "signedIn": "Oturum açık",
       "signedOut": "Oturum açılmadı",
       "together": "birlikte",
-      "view": "Görüntüle"
+      "view": "Görüntüle",
+      "hide": "Gizle"
     },
     "lineup": {
       "title": "Düzen",
@@ -1788,16 +1824,15 @@
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
         "ready": "Hazır"
-      }
+      },
+      "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
+      "hint": "Her aşamayı hangi hizmetin yaptığı"
     },
     "display": {
       "surface": "Hangi görünüm",
       "main": "Ana pencere",
       "captions": "Altyazı modu",
       "compact": "Kompakt görünüm",
-      "preview": "Önizleme",
-      "mine": "Söylediklerim",
-      "theirs": "Karşı tarafın söyledikleri",
       "fontSize": "Metin boyutu",
       "smaller": "Daha küçük metin",
       "larger": "Daha büyük metin",
@@ -1806,7 +1841,24 @@
         "source": "Yalnızca orijinal",
         "translation": "Yalnızca çeviri",
         "none": "Hiçbiri"
-      }
+      },
+      "mineSide": "Benim tarafımda gösterilen",
+      "theirsSide": "Karşı tarafta gösterilen",
+      "previewMain": "Önizleme: ana penceredeki konuşma",
+      "previewCaptions": "Önizleme: başka bir pencerenin üzerinde altyazı modu",
+      "empty": "Şu anda burada hiçbir şey görünmüyor: iki taraf da \"Hiçbiri\" olarak ayarlı."
+    },
+    "intro": {
+      "accounts": "Hesaplar ve anahtarlar: her hizmet bir kez doldurulur. Ne yapacağı ardından “Diller ve düzen” bölümünde seçilir.",
+      "models": "Bu bilgisayara indirilen tüm modeller burada yönetilir: oturumların kullandıkları, yardımcı modeller ve içe aktarılan sesler.",
+      "audio": "Mikrofon, konuşma ve karşı tarafın sesi. “Karşı tarafın duyduğu çeviri” dışında her şey oturum sırasında değiştirilebilir.",
+      "display": "Konuşmanın üstündeki ve altyazı çubuğundaki düğmelerle aynı değerler: nerede değiştirirseniz değiştirin hemen uygulanır. Ana pencere ve altyazı modu ayrı değerler tutar."
+    },
+    "audio": {
+      "micHint": "Sesimin nereden geldiği",
+      "otherHint": "Karşı tarafın sesinin nereden geldiği",
+      "device": "Cihaz",
+      "source": "Kaynak"
     }
   }
 }

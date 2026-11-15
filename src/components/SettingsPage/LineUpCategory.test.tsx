@@ -6,7 +6,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isKizunaAIEnabled: () => true, isElectron: () => true, isExtension: () => false,
 }));
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
-vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: () => <div id="languages-section" /> }));
+vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading }: { heading?: boolean }) => <div id="languages-section" data-heading={String(heading)} /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
 const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
 vi.mock('../providers/ProviderOwnSettings', () => ({
@@ -159,5 +159,38 @@ describe('languages and line-up — the detailed turn detection', () => {
     expect(document.getElementById('turn-detection-tuning-section')).toBeNull();
     act(() => { useSettingsStore.getState().navigateToSettings('turn-detection-tuning'); });
     expect(document.getElementById('turn-detection-tuning-section')).not.toBeNull();
+  });
+});
+
+// The mock's line-up page (v18): the language pair without its own heading, then the line-up under a plain
+// heading with its hint, one card per stage — its name and state on top, the choice under them.
+describe('languages and line-up — as the mock draws them', () => {
+  it('asks the language pair to leave its heading out', () => {
+    render(<LineUpCategory locked={false} />);
+    expect(document.getElementById('languages-section')).toHaveAttribute('data-heading', 'false');
+  });
+
+  it('heads the line-up with its name and a hint', () => {
+    render(<LineUpCategory locked={false} />);
+    const heading = screen.getByRole('heading', { name: /Line-up/ });
+    expect(heading).toHaveClass('settings-subhead');
+    expect(heading).toHaveTextContent('Which service does each stage');
+  });
+
+  it('draws each stage as a card: its name and state on one line, the choice under them', () => {
+    render(<LineUpCategory locked={false} />);
+    const cards = document.querySelectorAll('.lineup-stage');
+    expect(cards).toHaveLength(3);
+    const first = cards[0];
+    const head = first.querySelector('.lineup-stage__head')!;
+    expect(head.querySelector('.lineup-stage__name')).toHaveTextContent('Transcription');
+    expect(head.querySelector('.lineup-stage__state')).not.toBeNull();
+    expect(head.nextElementSibling?.tagName).toBe('SELECT');
+  });
+
+  it('marks the cards one provider serves over one connection', () => {
+    render(<LineUpCategory locked={false} />);
+    const cards = [...document.querySelectorAll('.lineup-stage')];
+    expect(cards.map((c) => c.classList.contains('is-joint'))).toEqual([true, true, false]);
   });
 });

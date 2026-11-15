@@ -444,7 +444,8 @@
     "otherSideBesideNote": "A outra pessoa partilha o seu microfone; o áudio do sistema não é captado.",
     "captionMine": "O que eu digo, em voz",
     "captionTheirs": "O que o outro lado diz, em voz",
-    "defaultPlaybackAid": "Os sons do meu lado tocam aqui, a menos que uma linha indique um dispositivo próprio; um som cujo dispositivo foi desligado também toca aqui."
+    "defaultPlaybackAid": "Os sons do meu lado tocam aqui, a menos que uma linha indique um dispositivo próprio; um som cujo dispositivo foi desligado também toca aqui.",
+    "captionReplay": "Repetição"
   },
   "auth": {
     "signIn": "Iniciar sessão",
@@ -979,7 +980,40 @@
       "acceptRestricted": "Compreendi — aceito a licença"
     },
     "readingsDictionary": "Dicionário de leituras (japonês)",
-    "readingsDictionaryNotStored": "Transferido quando as leituras em japonês são ativadas em Apresentação."
+    "readingsDictionaryNotStored": "Transferido quando as leituras em japonês são ativadas em Apresentação.",
+    "page": {
+      "tag": {
+        "asr": "Reconhecimento",
+        "translation": "Tradução",
+        "tts": "Fala",
+        "turn": "Fim de turno",
+        "punctuation": "Frases e pontuação",
+        "readings": "Leituras",
+        "voice": "Voz"
+      },
+      "manyLanguages": "Muitos idiomas",
+      "languages": "{{count}} idiomas",
+      "direct": "também pode dar a tradução diretamente",
+      "downloading": "A transferir {{percent}}%",
+      "failed": "Falha na transferência",
+      "cannotRun": "Este computador não o consegue executar",
+      "notDownloaded": "Não transferido",
+      "download": "Transferir",
+      "listJoin": ", ",
+      "summary": "{{count}} transferidos, {{size}} no total",
+      "import": "Importar um modelo de ficheiros",
+      "sessionTitle": "Modelos para a sessão (o serviço «Este dispositivo»)",
+      "sessionHint": "As etapas com «Este dispositivo» em «Idiomas e composição» usam os modelos transferidos aqui.",
+      "otherLanguages": "Modelos para outros idiomas ({{count}})",
+      "helpersTitle": "Modelos auxiliares",
+      "helpersHint": "Modelos pequenos que não pertencem a nenhuma etapa.",
+      "turnMeta": "Reconhece quando terminou de falar; ativado nas opções do modo de fala",
+      "packMeta": "Divide o texto em frases; os três são transferidos juntos",
+      "dictMeta": "Mostra as leituras do japonês; ativado em «Apresentação»",
+      "voicesTitle": "Vozes importadas",
+      "voicesHint": "Ficheiros de voz Supertonic que importou.",
+      "importedOn": "Importada a {{date}}"
+    }
   },
   "notes": {
     "stageAsr": "reconhecimento de voz",
@@ -1108,7 +1142,8 @@
       },
       "readingsDownloading": "A transferir o dicionário de japonês {{done}} / {{total}}",
       "readingsDownloadFailed": "Não foi possível transferir o dicionário de japonês.",
-      "readingsFailed": "As leituras em japonês não estão a funcionar."
+      "readingsFailed": "As leituras em japonês não estão a funcionar.",
+      "defaultColour": "Predefinido"
     },
     "pttHint": "Prima Espaço para falar"
   },
@@ -1724,7 +1759,7 @@
   "settingsPage": {
     "title": "Definições",
     "search": "Pesquisar definições",
-    "back": "Voltar",
+    "back": "Voltar à sessão",
     "backToList": "Voltar à lista",
     "changeable": "Pode ser alterado durante uma sessão",
     "lockedNote": "Bloqueado durante uma sessão",
@@ -1766,7 +1801,8 @@
       "signedIn": "Sessão iniciada",
       "signedOut": "Sessão não iniciada",
       "together": "juntas",
-      "view": "Ver"
+      "view": "Ver",
+      "hide": "Ocultar"
     },
     "lineup": {
       "title": "Composição",
@@ -1788,16 +1824,15 @@
         "needsModel": "Precisa de um modelo",
         "needsSignIn": "Requer início de sessão",
         "ready": "Pronto"
-      }
+      },
+      "speechModeHint": "Quando um trecho de fala segue para tradução; fixo durante a sessão",
+      "hint": "Que serviço faz cada etapa"
     },
     "display": {
       "surface": "Qual apresentação",
       "main": "Janela principal",
       "captions": "Modo de legendas",
       "compact": "Vista compacta",
-      "preview": "Pré-visualização",
-      "mine": "O que eu digo",
-      "theirs": "O que o outro lado diz",
       "fontSize": "Tamanho do texto",
       "smaller": "Texto mais pequeno",
       "larger": "Texto maior",
@@ -1806,7 +1841,24 @@
         "source": "Apenas o original",
         "translation": "Apenas a tradução",
         "none": "Nada"
-      }
+      },
+      "mineSide": "O que o meu lado mostra",
+      "theirsSide": "O que o outro lado mostra",
+      "previewMain": "Pré-visualização: a conversa na janela principal",
+      "previewCaptions": "Pré-visualização: modo de legendas, sobre outra janela",
+      "empty": "Neste momento não aparece nada aqui: os dois lados estão em «Nada»."
+    },
+    "intro": {
+      "accounts": "Contas e chaves: cada serviço é preenchido uma única vez. Depois, o que faz escolhe-se em “Idiomas e composição”.",
+      "models": "Todos os modelos transferidos para este computador são geridos aqui: os das sessões, os auxiliares e as vozes importadas.",
+      "audio": "Microfone, fala e o áudio do outro lado. Tudo, exceto “Tradução que o outro lado ouve”, pode ser alterado durante uma sessão.",
+      "display": "Os mesmos valores dos botões acima da conversa e da barra de legendas: onde quer que os altere, aplicam-se de imediato. A janela principal e o modo de legendas têm os seus."
+    },
+    "audio": {
+      "micHint": "Por onde entra a minha voz",
+      "otherHint": "Por onde entra a voz do outro lado",
+      "device": "Dispositivo",
+      "source": "Origem"
     }
   }
 }

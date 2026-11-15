@@ -5,7 +5,7 @@ vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
 }));
 vi.mock('../Display/DisplaySettingsPopover', () => ({
-  default: ({ source, readingTargets }: { source: string; readingTargets?: ReadonlySet<string> }) => <div data-testid={`popover-${source}`} data-readings={[...(readingTargets ?? [])].join(',')} />,
+  default: ({ source, readingTargets, layout }: { source: string; readingTargets?: ReadonlySet<string>; layout?: string }) => <div data-testid={`popover-${source}`} data-layout={layout} data-readings={[...(readingTargets ?? [])].join(',')} />,
 }));
 vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), isElectron: () => true }));
 vi.mock('../../lib/reading/useReadingTargets', () => ({ useReadingTargets: () => new Set(['ja']) }));
@@ -13,6 +13,7 @@ vi.mock('../../lib/reading/useReadingTargets', () => ({ useReadingTargets: () =>
 import { DisplayCategory } from './DisplayCategory';
 import { CONVERSATION_SCHEME_COLOURS, useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
+import useSettingsStore from '../../stores/settingsStore';
 
 beforeEach(() => {
   useConversationDisplayStore.setState({ fontSize: 14, compactMode: false });
@@ -69,11 +70,8 @@ describe('display — the preview colours', () => {
     useConversationDisplayStore.setState({ bgColor: '#000000', sourceTextColor: null, translationTextColor: null } as never);
     try {
       render(<DisplayCategory locked={false} />);
-      const source = preview().querySelector<HTMLElement>('.display-preview__source')!;
-      expect(source.style.color).not.toBe('');
-      const probe = document.createElement('div');
-      probe.style.color = CONVERSATION_SCHEME_COLOURS.dark.sourceTextColor;
-      expect(source.style.color).toBe(probe.style.color);
+      const drawn = preview().querySelector<HTMLElement>('.display-preview__surface')!.style.getPropertyValue('--conversation-source-color');
+      expect(drawn).toBe(CONVERSATION_SCHEME_COLOURS.dark.sourceTextColor);
     } finally {
       useConversationDisplayStore.setState({ bgColor: null } as never);
     }
@@ -89,5 +87,89 @@ describe('display — the preview colours', () => {
     expect(document.activeElement).toBe(caption);
     fireEvent.keyDown(caption, { key: 'ArrowLeft' });
     expect(screen.getByRole('radio', { name: 'Main window' })).toHaveAttribute('aria-checked', 'true');
+  });
+});
+
+// The mock's display page (v18): compact segmented choices, a switch, the colour rows inline, and a preview drawn as the conversation draws.
+describe('display — the rows as the mock draws them', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both' } as never);
+    useSubtitleStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both', newItemHighlightEnabled: true } as never);
+  });
+
+  it("offers each side's four choices side by side, in the mock's order", () => {
+    render(<DisplayCategory locked={false} />);
+    const mine = screen.getByRole('group', { name: 'What my side shows' });
+    const choices = [...mine.querySelectorAll('button')];
+    expect(choices.map((b) => b.textContent)).toEqual(['Original and translation', 'Translation only', 'Original only', 'Nothing']);
+    expect(choices[0]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(choices[1]);
+    expect(useSettingsStore.getState().speakerDisplayMode).toBe('translation');
+    expect(screen.getByRole('group', { name: 'What the other side shows' })).toBeInTheDocument();
+  });
+
+  it('makes compact view a switch', async () => {
+    render(<DisplayCategory locked={false} />);
+    const compact = screen.getByRole('switch', { name: 'Compact view' });
+    expect(compact).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(compact);
+    await waitFor(() => expect(useConversationDisplayStore.getState().compactMode).toBe(true));
+  });
+
+  it('draws the text size buttons as A− and A+', () => {
+    render(<DisplayCategory locked={false} />);
+    expect(screen.getByRole('button', { name: 'Smaller text' })).toHaveTextContent('A−');
+    expect(screen.getByRole('button', { name: 'Larger text' })).toHaveTextContent('A+');
+  });
+
+  it('asks the colour rows for the page layout', () => {
+    render(<DisplayCategory locked={false} />);
+    expect(screen.getByTestId('popover-conversation')).toHaveAttribute('data-layout', 'page');
+  });
+
+  it("names the preview and draws it with the conversation's own rows", () => {
+    render(<DisplayCategory locked={false} />);
+    expect(screen.getByText('Preview: the conversation in the main window')).toBeInTheDocument();
+    const rows = preview().querySelectorAll('.conversation-row');
+    expect(rows.length).toBe(3);
+    expect(preview().querySelectorAll('.row-header').length).toBe(3);
+    expect(preview().querySelectorAll('.lang-badge').length).toBe(6);
+  });
+
+  it('drops the headers and the badges in compact view, as the conversation does', () => {
+    useConversationDisplayStore.setState({ compactMode: true });
+    render(<DisplayCategory locked={false} />);
+    expect(preview().querySelectorAll('.row-header').length).toBe(0);
+    expect(preview().querySelectorAll('.lang-badge').length).toBe(0);
+    expect(preview().querySelectorAll('.row-role-dot').length).toBe(3);
+  });
+
+  it("follows each side's choice in the preview, and says so when nothing is left", () => {
+    useSettingsStore.setState({ speakerDisplayMode: 'translation', participantDisplayMode: 'none' } as never);
+    render(<DisplayCategory locked={false} />);
+    expect(preview().querySelectorAll('.conversation-row').length).toBe(2);
+    expect(preview().querySelectorAll('.row-text.src').length).toBe(0);
+    cleanup();
+    useSettingsStore.setState({ speakerDisplayMode: 'none', participantDisplayMode: 'none' } as never);
+    render(<DisplayCategory locked={false} />);
+    expect(preview()).toHaveTextContent('Nothing shows here now: both sides are set to “Nothing”.');
+  });
+
+  it('draws caption mode over another window, as bands when compact, the newest one lit', () => {
+    useSubtitleStore.setState({ compactMode: true });
+    render(<DisplayCategory locked={false} />);
+    fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
+    expect(screen.getByText('Preview: caption mode, over another window')).toBeInTheDocument();
+    expect(preview().querySelectorAll('.subtitle-stream__line').length).toBe(4);
+    // The newest exchange is mine: lit in my source band and my translation band.
+    expect(preview().querySelectorAll('.subtitle-stream__item--lit').length).toBe(2);
+    // Each band one short sentence, the side's latest, so it reads whole on one line at the default size.
+    const lines = [...preview().querySelectorAll('.subtitle-stream__line')].map((l) => l.textContent?.trim());
+    expect(lines).toEqual(['结果什么时候出来？', '結果はいつ出ますか？', '認証試験の結果次第です。', '要看认证测试的结果。']);
+    useSubtitleStore.setState({ newItemHighlightEnabled: false } as never);
+    cleanup();
+    render(<DisplayCategory locked={false} />);
+    fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
+    expect(preview().querySelectorAll('.subtitle-stream__item--lit').length).toBe(0);
   });
 });
