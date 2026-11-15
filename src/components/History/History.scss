@@ -1,0 +1,268 @@
+@use '../Settings/shared/variables' as vars;
+@use '../../styles/tokens' as tk;
+
+// The History page: the list of records, or one record. It takes the conversation's place, on the page layer like
+// the settings page, in the same 13px body type.
+.history-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: vars.$bg-page;
+  color: vars.$text-primary;
+  font-size: 13px;
+  line-height: 1.5;
+  :where(button, input, select, textarea) { font: inherit; }
+
+  &__error {
+    margin: 0;
+    padding: vars.$space-2 vars.$space-4;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
+    background: vars.$color-error-bg;
+    border-bottom: 1px solid vars.$color-error-border;
+  }
+}
+
+.history-button {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$space-1;
+  padding: vars.$space-1 vars.$space-3;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  background: vars.$bg-control;
+  color: vars.$text-primary;
+  cursor: pointer;
+  transition: background vars.$transition-fast;
+  &:hover:not(:disabled) { background: vars.$bg-hover; }
+  &:disabled { opacity: vars.$disabled-opacity; cursor: default; }
+  &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: vars.$focus-ring-offset; }
+
+  &--quiet {
+    border-color: transparent;
+    background: transparent;
+    color: vars.$text-secondary;
+    &:hover:not(:disabled) { color: vars.$text-primary; }
+  }
+
+  &--danger {
+    border-color: vars.$color-error-border;
+    color: vars.$color-error;
+    &:hover:not(:disabled) { background: vars.$color-error-bg; }
+  }
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: vars.$space-3;
+    padding: vars.$space-3 vars.$space-4;
+    border-bottom: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-1;
+    padding: vars.$space-1 vars.$space-2;
+    border: none;
+    background: transparent;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: vars.$focus-ring-offset; }
+  }
+
+  &__title {
+    margin: 0;
+    font-size: vars.$font-title;
+    font-weight: vars.$weight-semibold;
+  }
+
+  &__search {
+    flex: 1 1 220px;
+    min-width: 0;
+    max-width: 420px;
+    margin-left: auto;
+    padding: vars.$space-1 vars.$space-2;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
+  }
+
+  &__space {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: vars.$space-2;
+    padding: vars.$space-2 vars.$space-4;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+  }
+
+  &__dir {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: vars.$text-tertiary;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: vars.$space-1;
+    padding: 0 vars.$space-4;
+    border-bottom: 1px solid vars.$border-subtle;
+  }
+
+  &__tab {
+    padding: vars.$space-2 vars.$space-3;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &[aria-selected='true'] {
+      color: vars.$text-primary;
+      border-bottom-color: vars.$color-primary;
+    }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
+  }
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: vars.$space-2;
+    padding: vars.$space-2 vars.$space-4;
+    border-bottom: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  &__note {
+    margin-right: auto;
+    font-size: vars.$font-caption;
+    color: vars.$text-tertiary;
+  }
+
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  &__rows {
+    margin: 0;
+    padding: vars.$space-2 vars.$space-4;
+    list-style: none;
+  }
+
+  &__empty {
+    margin: 0;
+    padding: vars.$space-6 vars.$space-4;
+    color: vars.$text-secondary;
+    text-align: center;
+  }
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  border-bottom: 1px solid vars.$border-subtle;
+
+  &__check {
+    flex: none;
+    width: 16px;
+    margin: 0 vars.$space-1;
+    accent-color: tk.$color-primary;
+  }
+
+  &__open,
+  &__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    padding: vars.$space-2;
+    text-align: left;
+    color: inherit;
+  }
+
+  &__open {
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    cursor: pointer;
+    &:hover { background: vars.$bg-hover; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
+  }
+
+  &__title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: vars.$weight-medium;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: vars.$space-3;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+  }
+
+  &__live { color: tk.$color-success; }
+
+  &__marks {
+    display: inline-flex;
+    gap: vars.$space-1;
+    color: tk.$color-toolbar-icon;
+    > span { display: inline-flex; }
+  }
+
+  &__snippet {
+    max-width: 100%;
+    color: vars.$text-source;
+    overflow-wrap: anywhere;
+  }
+
+  &__actions {
+    display: flex;
+    gap: vars.$space-2;
+    flex: none;
+  }
+}
+
+.history-confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$space-3;
+  margin: vars.$space-2 vars.$space-4;
+  padding: vars.$space-3;
+  border: 1px solid vars.$color-error-border;
+  border-radius: vars.$radius-md;
+  background: vars.$color-error-bg;
+
+  p { margin: 0; flex: 1 1 260px; }
+
+  &__actions { display: flex; gap: vars.$space-2; }
+}

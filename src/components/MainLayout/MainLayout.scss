@@ -10,7 +10,8 @@
   overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
 
   /* The settings page in place of the conversation (desktop): it takes the whole area. */
-  .settings-page-container {
+  .settings-page-container,
+  .history-page-container {
     flex: 1;
     min-width: 0;
     min-height: 0;
