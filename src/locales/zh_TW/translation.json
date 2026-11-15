@@ -1012,7 +1012,8 @@
       "dictMeta": "顯示日語讀音用；在「顯示」裡打開",
       "voicesTitle": "匯入的音色",
       "voicesHint": "自己匯入的 Supertonic 音色檔案。",
-      "importedOn": "匯入於 {{date}}"
+      "importedOn": "匯入於 {{date}}",
+      "more": "還有 {{count}} 個"
     }
   },
   "notes": {

@@ -1012,7 +1012,8 @@
       "dictMeta": "Toont Japanse uitspraak; aan te zetten in ‘Weergave’",
       "voicesTitle": "Geïmporteerde stemmen",
       "voicesHint": "Supertonic-stembestanden die u hebt geïmporteerd.",
-      "importedOn": "Geïmporteerd op {{date}}"
+      "importedOn": "Geïmporteerd op {{date}}",
+      "more": "Nog {{count}}"
     }
   },
   "notes": {

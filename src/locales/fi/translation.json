@@ -1012,7 +1012,8 @@
       "dictMeta": "Näyttää japanin lukutavat; otetaan käyttöön kohdassa ”Näyttö”",
       "voicesTitle": "Tuodut äänet",
       "voicesHint": "Tuomasi Supertonic-äänitiedostot.",
-      "importedOn": "Tuotu {{date}}"
+      "importedOn": "Tuotu {{date}}",
+      "more": "{{count}} lisää"
     }
   },
   "notes": {

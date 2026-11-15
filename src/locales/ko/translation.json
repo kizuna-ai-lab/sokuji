@@ -1012,7 +1012,8 @@
       "dictMeta": "일본어 읽는 법을 보여 줍니다. \"표시\"에서 켭니다",
       "voicesTitle": "가져온 목소리",
       "voicesHint": "직접 가져온 Supertonic 목소리 파일입니다.",
-      "importedOn": "{{date}}에 가져옴"
+      "importedOn": "{{date}}에 가져옴",
+      "more": "{{count}}개 더"
     }
   },
   "notes": {

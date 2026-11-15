@@ -1012,7 +1012,8 @@
       "dictMeta": "Ipinapakita ang pagbasa sa Hapon; binubuksan sa \"Display\"",
       "voicesTitle": "Mga in-import na boses",
       "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
-      "importedOn": "In-import noong {{date}}"
+      "importedOn": "In-import noong {{date}}",
+      "more": "{{count}} pa"
     }
   },
   "notes": {

@@ -1012,7 +1012,8 @@
       "dictMeta": "जापानी उच्चारण दिखाता है; \"डिस्प्ले\" में चालू होता है",
       "voicesTitle": "आयात की गई आवाज़ें",
       "voicesHint": "आपकी आयात की हुई Supertonic आवाज़ फ़ाइलें।",
-      "importedOn": "{{date}} को आयात"
+      "importedOn": "{{date}} को आयात",
+      "more": "{{count}} और"
     }
   },
   "notes": {

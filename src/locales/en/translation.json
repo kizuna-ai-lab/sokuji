@@ -1229,7 +1229,8 @@
       "dictMeta": "Shows Japanese readings; turned on in Display",
       "voicesTitle": "Imported voices",
       "voicesHint": "Supertonic voice files you imported.",
-      "importedOn": "Imported {{date}}"
+      "importedOn": "Imported {{date}}",
+      "more": "{{count}} more"
     }
   },
   "notes": {

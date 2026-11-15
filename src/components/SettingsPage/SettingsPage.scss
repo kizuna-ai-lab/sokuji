@@ -645,3 +645,14 @@
   }
   &__note { color: vars.$text-muted; font-size: 11.5px; }
 }
+
+// The session models' three small groups (owner 2026-11-15): a caption per stage, what is on disk and the
+// recommended ones, then "N more" holding the rest.
+.models-stage {
+  padding: 4px 0 2px;
+  & + & { border-top: 1px solid vars.$border-subtle; }
+  &__title { margin: 8px 0 0; font-size: 12px; font-weight: vars.$weight-semibold; color: vars.$text-tertiary; }
+  &__caption { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed vars.$border-subtle; font-size: 11.5px; color: vars.$text-muted; }
+  .models-group__fold { border-top: none; }
+  .models-stage__shown + .models-group__fold { border-top: 1px solid vars.$border-subtle; }
+}

@@ -1012,7 +1012,8 @@
       "dictMeta": "خوانش ژاپنی را نشان می‌دهد؛ در «نمایش» روشن می‌شود",
       "voicesTitle": "صداهای واردشده",
       "voicesHint": "فایل‌های صدای Supertonic که وارد کرده‌اید.",
-      "importedOn": "وارد شده در {{date}}"
+      "importedOn": "وارد شده در {{date}}",
+      "more": "{{count}} مورد دیگر"
     }
   },
   "notes": {

@@ -1012,7 +1012,8 @@
       "dictMeta": "يعرض طريقة قراءة اليابانية؛ يُشغَّل من «العرض»",
       "voicesTitle": "الأصوات المستوردة",
       "voicesHint": "ملفات أصوات Supertonic التي استوردتها.",
-      "importedOn": "استُورد في {{date}}"
+      "importedOn": "استُورد في {{date}}",
+      "more": "{{count}} أخرى"
     }
   },
   "notes": {

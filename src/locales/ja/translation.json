@@ -1012,7 +1012,8 @@
       "dictMeta": "日本語の読みを表示します。「表示」でオンにします",
       "voicesTitle": "取り込んだボイス",
       "voicesHint": "自分で取り込んだ Supertonic のボイスファイルです。",
-      "importedOn": "{{date}} に取り込み"
+      "importedOn": "{{date}} に取り込み",
+      "more": "ほか {{count}} 件"
     }
   },
   "notes": {

@@ -1012,7 +1012,8 @@
       "dictMeta": "מציג הגייה ביפנית; מופעל ב\"תצוגה\"",
       "voicesTitle": "קולות מיובאים",
       "voicesHint": "קובצי קול של Supertonic שייבאת.",
-      "importedOn": "יובא ב-{{date}}"
+      "importedOn": "יובא ב-{{date}}",
+      "more": "עוד {{count}}"
     }
   },
   "notes": {

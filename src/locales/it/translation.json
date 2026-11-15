@@ -1012,7 +1012,8 @@
       "dictMeta": "Mostra le letture del giapponese; si attiva in «Visualizzazione»",
       "voicesTitle": "Voci importate",
       "voicesHint": "I file di voce Supertonic che hai importato.",
-      "importedOn": "Importata il {{date}}"
+      "importedOn": "Importata il {{date}}",
+      "more": "Altri {{count}}"
     }
   },
   "notes": {

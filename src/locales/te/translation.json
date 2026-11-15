@@ -1012,7 +1012,8 @@
       "dictMeta": "జపనీస్ ఉచ్చారణ చూపుతుంది; \"ప్రదర్శన\"లో ఆన్ చేయాలి",
       "voicesTitle": "దిగుమతి చేసిన గొంతులు",
       "voicesHint": "మీరు దిగుమతి చేసిన Supertonic గొంతు ఫైళ్లు.",
-      "importedOn": "{{date}}న దిగుమతి"
+      "importedOn": "{{date}}న దిగుమతి",
+      "more": "మరో {{count}}"
     }
   },
   "notes": {

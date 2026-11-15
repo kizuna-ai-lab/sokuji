@@ -1012,7 +1012,8 @@
       "dictMeta": "Visar japanskt uttal; slås på under ”Visning”",
       "voicesTitle": "Importerade röster",
       "voicesHint": "Supertonic-röstfiler som du har importerat.",
-      "importedOn": "Importerad {{date}}"
+      "importedOn": "Importerad {{date}}",
+      "more": "{{count}} till"
     }
   },
   "notes": {

@@ -1012,7 +1012,8 @@
       "dictMeta": "Japonca okunuşları gösterir; \"Görünüm\"den açılır",
       "voicesTitle": "İçe aktarılan sesler",
       "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
-      "importedOn": "{{date}} tarihinde içe aktarıldı"
+      "importedOn": "{{date}} tarihinde içe aktarıldı",
+      "more": "{{count}} tane daha"
     }
   },
   "notes": {

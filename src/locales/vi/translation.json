@@ -1012,7 +1012,8 @@
       "dictMeta": "Hiển thị cách đọc tiếng Nhật; bật trong \"Hiển thị\"",
       "voicesTitle": "Giọng đã nhập",
       "voicesHint": "Các tệp giọng Supertonic bạn đã nhập.",
-      "importedOn": "Đã nhập ngày {{date}}"
+      "importedOn": "Đã nhập ngày {{date}}",
+      "more": "Thêm {{count}}"
     }
   },
   "notes": {

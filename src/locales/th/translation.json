@@ -1012,7 +1012,8 @@
       "dictMeta": "แสดงคำอ่านภาษาญี่ปุ่น เปิดใน \"การแสดงผล\"",
       "voicesTitle": "เสียงที่นำเข้า",
       "voicesHint": "ไฟล์เสียง Supertonic ที่คุณนำเข้า",
-      "importedOn": "นำเข้าเมื่อ {{date}}"
+      "importedOn": "นำเข้าเมื่อ {{date}}",
+      "more": "อีก {{count}} รายการ"
     }
   },
   "notes": {

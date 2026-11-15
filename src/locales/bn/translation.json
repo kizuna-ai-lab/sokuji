@@ -1012,7 +1012,8 @@
       "dictMeta": "জাপানি উচ্চারণ দেখায়; \"প্রদর্শন\"-এ চালু হয়",
       "voicesTitle": "আমদানি করা কণ্ঠস্বর",
       "voicesHint": "আপনার আমদানি করা Supertonic কণ্ঠস্বর ফাইল।",
-      "importedOn": "{{date}}-এ আমদানি"
+      "importedOn": "{{date}}-এ আমদানি",
+      "more": "আরও {{count}}টি"
     }
   },
   "notes": {

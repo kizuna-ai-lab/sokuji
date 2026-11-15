@@ -1012,7 +1012,8 @@
       "dictMeta": "Memaparkan sebutan bahasa Jepun; dihidupkan dalam \"Paparan\"",
       "voicesTitle": "Suara yang diimport",
       "voicesHint": "Fail suara Supertonic yang anda import.",
-      "importedOn": "Diimport pada {{date}}"
+      "importedOn": "Diimport pada {{date}}",
+      "more": "{{count}} lagi"
     }
   },
   "notes": {

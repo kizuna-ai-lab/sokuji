@@ -1012,7 +1012,8 @@
       "dictMeta": "Menampilkan cara baca Jepang; dinyalakan di \"Tampilan\"",
       "voicesTitle": "Suara yang diimpor",
       "voicesHint": "File suara Supertonic yang Anda impor.",
-      "importedOn": "Diimpor {{date}}"
+      "importedOn": "Diimpor {{date}}",
+      "more": "{{count}} lagi"
     }
   },
   "notes": {
