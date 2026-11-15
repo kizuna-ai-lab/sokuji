@@ -23,7 +23,7 @@ vi.mock('../../stores/settingsStore', () => ({
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', () => ({
   useShowSettings: () => state.showSettings, useSetShowSettings: () => state.setShowSettings,
-  useSetupWizardOpen: () => false, useSetSetupWizardOpen: () => vi.fn(),
+  useSetupWizardOpen: () => false, useHistoryOpen: () => false, useSetHistoryOpen: () => vi.fn(), useSetSetupWizardOpen: () => vi.fn(),
 }));
 
 import MainLayout from './MainLayout';

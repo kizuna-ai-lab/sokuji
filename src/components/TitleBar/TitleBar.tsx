@@ -5,6 +5,7 @@ import { Minus, Square, X, Settings, Terminal } from 'lucide-react';
 import { isElectron, isMacOS } from '../../utils/environment';
 import SubtitleEnterButton from '../Subtitle/SubtitleEnterButton';
 import AccountButton from './AccountButton';
+import HistoryButton from './HistoryButton';
 import './TitleBar.scss';
 
 interface TitleBarProps {
@@ -62,6 +63,7 @@ const TitleBar: React.FC<TitleBarProps> = ({
       <div className="title-bar__actions">
         <AccountButton />
         <SubtitleEnterButton />
+        <HistoryButton />
         <button
           type="button"
           data-tour="settings-button"
