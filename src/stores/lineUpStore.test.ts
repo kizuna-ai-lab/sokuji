@@ -308,3 +308,22 @@ describe('replace while the migration of a network provider is writing', () => {
     expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: { ...local, summarisation: null } });
   });
 });
+
+// PR review: the start's read of the line-up can return after the wizard stored one; it then changes nothing.
+describe("the start's read returning after the wizard's replace", () => {
+  it("leaves the wizard's line-up shown and stored", async () => {
+    useProviderStore.setState({ selected: 'soniox', selectionLocked: false });
+    useLineUpStore.setState({ lineUp: null, stored: false });
+    const older = { version: 1, stages: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null } };
+    stored.set(LINEUP_KEY, older);
+    let releaseRead!: () => void;
+    getSetting.mockImplementationOnce((_key: string, _def: unknown) => new Promise((resolve) => { releaseRead = () => resolve(older); }));
+    const loading = useLineUpStore.getState().load();
+    const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
+    expect(await useLineUpStore.getState().replace(local)).toBe(true);
+    releaseRead();
+    await loading;
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: { ...local, summarisation: null } });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { ...local, summarisation: null } });
+  });
+});

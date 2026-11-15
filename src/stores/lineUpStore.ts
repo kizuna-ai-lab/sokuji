@@ -101,6 +101,8 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
 
   async load() {
     const value = await ServiceFactory.getSettingsService().getSetting<unknown>(LINEUP_KEY, null);
+    // The wizard stored a line-up while this was reading: what it read is older, and changes nothing.
+    if (get().stored || replacing > 0) return;
     if (isStoredLineUp(value)) {
       set({ lineUp: value.stages, stored: true });
       return;
