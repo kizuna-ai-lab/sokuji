@@ -11,6 +11,8 @@ const path = require('node:path');
 const { openDatabase, transaction } = require('./history-db.js');
 
 const ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+const BIN_DAYS = 30;
+const DAY_MS = 86_400_000;
 const LEGS = new Set(['speaker', 'participant']);
 const INPUTS = new Set(['microphone', 'system', 'app', 'tab']);
 const SEGMENT_SIDES = new Set(['source', 'translation']);
@@ -35,6 +37,10 @@ const isString = (v) => typeof v === 'string';
 const isInt = (v) => Number.isSafeInteger(v);
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isOptionalString = (v) => v === undefined || v === null || isString(v);
+const isIdList = (v) => Array.isArray(v) && v.every(isString);
+/** A file name inside a record's folder: no separator, not `.` or `..`. */
+const isFileName = (v) => isString(v) && v !== '' && v !== '.' && v !== '..' && !/[\\/]/.test(v);
+const sizeOf = (file) => { try { return fs.statSync(file).size; } catch { return 0; } };
 
 /** A record has content when one of its transcripts has a sentence or one of its segments has text that is not blank. */
 const HAS_CONTENT = `(
@@ -230,6 +236,13 @@ function openHistory({ dir, now = () => Date.now() }) {
         ...rowOf(r),
         services: JSON.parse(r.services),
         appVersion: r.app_version,
+        textBytes: one(
+          `select
+             (select coalesce(sum(length(cast(text as blob))), 0) from segments where record_id = ?1)
+           + (select coalesce(sum(length(cast(s.text as blob))), 0) from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ?1)
+           + (select coalesce(sum(length(cast(body as blob))), 0) from notes where record_id = ?1) as bytes`,
+          id,
+        ).bytes,
         legs: all('select * from legs where record_id = ? order by leg = \'participant\', leg', id).map((l) => ({
           leg: l.leg,
           languages: { source: l.source_language, target: l.target_language },
@@ -531,6 +544,98 @@ function openHistory({ dir, now = () => Date.now() }) {
       return results.sort((a, b) => b.startedAt - a.startedAt || (a.recordId < b.recordId ? 1 : -1)).slice(0, limit);
     },
 
+    binRecords({ ids } = {}) {
+      if (!isIdList(ids)) fail('BAD_INPUT', 'ids must be a list of record ids');
+      const at = now();
+      let changed = 0;
+      transaction(db, () => {
+        // Only a closed record goes to the bin: a running session's folder is never purged under it.
+        for (const id of ids) changed += Number(run("update records set binned_at = ? where id = ? and binned_at is null and state = 'closed'", at, id).changes);
+      });
+      return { changed };
+    },
+
+    restoreRecords({ ids } = {}) {
+      if (!isIdList(ids)) fail('BAD_INPUT', 'ids must be a list of record ids');
+      let changed = 0;
+      transaction(db, () => {
+        for (const id of ids) changed += Number(run('update records set binned_at = null where id = ? and binned_at is not null', id).changes);
+      });
+      return { changed };
+    },
+
+    purgeRecords({ ids } = {}) {
+      if (!isIdList(ids)) fail('BAD_INPUT', 'ids must be a list of record ids');
+      const purged = [];
+      for (const id of ids) {
+        // The id comes back from the database: a path is never taken from the caller.
+        const r = one('select id from records where id = ? and binned_at is not null', id);
+        if (!r) continue;
+        dropRecord(r.id);
+        purged.push(r.id);
+      }
+      return { purged };
+    },
+
+    purgeExpired() {
+      const ids = all('select id from records where binned_at is not null and binned_at <= ? order by binned_at, id', now() - BIN_DAYS * DAY_MS).map((r) => r.id);
+      return store.purgeRecords({ ids });
+    },
+
+    putTrack({ recordId, source, file, format, durationMs, bytes, offsetMs } = {}) {
+      recordOrFail(recordId);
+      if (!isString(source) || !source || !isFileName(file) || !isString(format) || !isInt(durationMs) || !isInt(bytes) || !isInt(offsetMs)) {
+        fail('BAD_INPUT', 'A track needs source, a file name in its record folder, format, durationMs, bytes and offsetMs');
+      }
+      run(
+        `insert or replace into tracks (record_id, source, file, format, duration_ms, bytes, offset_ms, gone_at)
+         values (?, ?, ?, ?, ?, ?, ?, null)`,
+        recordId, source, file, format, durationMs, bytes, offsetMs,
+      );
+    },
+
+    dropTrack({ recordId, source } = {}) {
+      const k = one('select record_id, source, file from tracks where record_id = ? and source = ?', recordId, source);
+      if (!k) fail('NO_TRACK', `No ${source} track in record ${recordId}`);
+      fs.rmSync(path.join(folderOf(k.record_id), k.file), { force: true });
+      run('update tracks set gone_at = ? where record_id = ? and source = ?', now(), k.record_id, k.source);
+    },
+
+    usage() {
+      const file = path.join(dir, 'history.db');
+      return {
+        dbBytes: sizeOf(file) + sizeOf(`${file}-wal`),
+        audioBytes: one('select coalesce(sum(bytes), 0) as b from tracks where gone_at is null').b,
+        records: one('select count(*) as c from records').c,
+        binned: one('select count(*) as c from records where binned_at is not null').c,
+      };
+    },
+
+    reconcile() {
+      const removedEmpty = [];
+      const strays = [];
+      const known = new Set(all('select id from records').map((r) => r.id));
+      const records = path.join(dir, 'records');
+      for (const d of fs.readdirSync(records, { withFileTypes: true }).filter((x) => x.isDirectory()).map((x) => x.name).sort()) {
+        if (known.has(d)) continue;
+        // A folder left by an interrupted purge or a crash: removed when empty; files in it are never deleted here.
+        if (fs.readdirSync(path.join(records, d)).length === 0) {
+          fs.rmdirSync(path.join(records, d));
+          removedEmpty.push(d);
+        } else {
+          strays.push(d);
+        }
+      }
+      let tracksGone = 0;
+      const at = now();
+      for (const k of all('select record_id, source, file from tracks where gone_at is null')) {
+        if (fs.existsSync(path.join(folderOf(k.record_id), k.file))) continue;
+        run('update tracks set gone_at = ? where record_id = ? and source = ?', at, k.record_id, k.source);
+        tracksGone += 1;
+      }
+      return { removedEmpty, strays, tracksGone };
+    },
+
     recordDir(id) {
       if (!isString(id) || !ID_PATTERN.test(id)) fail('BAD_ID', 'A record id is 8 to 64 letters, digits or hyphens');
       const folder = folderOf(id);
@@ -542,4 +647,4 @@ function openHistory({ dir, now = () => Date.now() }) {
   return store;
 }
 
-module.exports = { openHistory, HistoryError, ID_PATTERN };
+module.exports = { openHistory, HistoryError, ID_PATTERN, BIN_DAYS };

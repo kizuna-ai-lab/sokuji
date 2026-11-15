@@ -1,12 +1,12 @@
 // electron/history-store.test.js
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
-import { mkdtempSync, rmSync, mkdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const nodeRequire = createRequire(import.meta.url);
-const { openHistory } = nodeRequire('./history-store.js');
+const { openHistory, BIN_DAYS } = nodeRequire('./history-store.js');
 
 let dir;
 let s;
@@ -362,7 +362,13 @@ describe('search', () => {
     expect(s.search({ query: '   ' })).toEqual([]);
   });
 
-  it.todo('leaves binned records out');
+  it('leaves binned records out', () => {
+    make(A, 1000, ['the plan']);
+    make(B, 2000, ['the plan']);
+    s.closeRecord({ id: A, endedAt: 5000 });
+    s.binRecords({ ids: [A] });
+    expect(s.search({ query: 'plan' }).map((r) => r.recordId)).toEqual([B]);
+  });
 
   it('counts a sentence cut from the translation once, not again as its translation segment', () => {
     s.openRecord(rec({ id: A, startedAt: 1000 }));
@@ -371,5 +377,111 @@ describe('search', () => {
     const t = s.createTranscript({ recordId: A, origin: { service: 'local_inference', kind: 'live' }, textKind: 'translation' });
     s.appendSentences({ transcriptId: t, sentences: [sent(1, 'see you tomorrow', { segmentId: `${A}:participant:1`, side: 'other', track: 'other' })] });
     expect(s.search({ query: 'tomorrow' })).toEqual([expect.objectContaining({ recordId: A, hits: 1, first: { kind: 'sentence', transcriptId: t, n: 1, text: 'see you tomorrow' } })]);
+  });
+});
+
+describe('bin, purge and space', () => {
+  const sent = (n, text = `s${n}`) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text, timeKind: 'given' });
+  const A = 'run-000a-aaaa';
+  const B = 'run-000b-bbbb';
+  /** A closed record with one sentence. */
+  const kept = (id, startedAt = 1000, text = 's1') => {
+    s.openRecord(rec({ id, startedAt }));
+    const t = s.createTranscript({ recordId: id, origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: t, sentences: [sent(1, text)] });
+    s.closeRecord({ id, endedAt: startedAt + 5000 });
+  };
+  const track = (id, source, bytes) => {
+    writeFileSync(join(s.recordDir(id), `${source}.ogg`), 'x'.repeat(bytes));
+    s.putTrack({ recordId: id, source, file: `${source}.ogg`, format: 'ogg-opus', durationMs: 5000, bytes, offsetMs: 0 });
+  };
+
+  it('a binned record leaves the list, shows in the bin and can come back', () => {
+    kept(A, 1000); kept(B, 2000);
+    expect(s.binRecords({ ids: [A, 'run-0zzz-zzzz'] })).toEqual({ changed: 1 });
+    expect(s.listRecords({}).map((r) => r.id)).toEqual([B]);
+    expect(s.listRecords({ binned: true }).map((r) => r.id)).toEqual([A]);
+    expect(s.restoreRecords({ ids: [A] })).toEqual({ changed: 1 });
+    expect(s.listRecords({}).map((r) => r.id).sort()).toEqual([A, B].sort());
+  });
+
+  it('purging removes rows and the folder with whatever is in it', () => {
+    kept(A, 1000); kept(B, 2000);
+    writeFileSync(join(s.recordDir(A), 'mine.ogg'), 'x');
+    writeFileSync(join(s.recordDir(A), 'stray.tmp'), 'y');
+    s.binRecords({ ids: [A] });
+    expect(s.purgeRecords({ ids: [A, B] })).toEqual({ purged: [A] });
+    expect(existsSync(join(dir, 'records', A))).toBe(false);
+    expect(s.getRecord(A)).toBeNull();
+    expect(s.getRecord(B)).not.toBeNull();
+    expect(existsSync(join(dir, 'history.db'))).toBe(true);
+  });
+
+  it('after 30 days in the bin a record is purged, a day earlier it is not', () => {
+    expect(BIN_DAYS).toBe(30);
+    let clock = 1_000_000;
+    s.close();
+    s = openHistory({ dir, now: () => clock });
+    kept(A);
+    s.binRecords({ ids: [A] });
+    clock += 29 * 86_400_000;
+    expect(s.purgeExpired()).toEqual({ purged: [] });
+    clock += 1 * 86_400_000;
+    expect(s.purgeExpired()).toEqual({ purged: [A] });
+  });
+
+  it('dropping a track removes the file and keeps the text', () => {
+    kept(A);
+    track(A, 'microphone', 5);
+    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ hasRecording: true, audioBytes: 5 }));
+    s.dropTrack({ recordId: A, source: 'microphone' });
+    expect(existsSync(join(dir, 'records', A, 'microphone.ogg'))).toBe(false);
+    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ hasRecording: false, sentences: 1, audioBytes: 0 }));
+    expect(s.getRecord(A).tracks).toEqual([expect.objectContaining({ source: 'microphone', goneAt: expect.any(Number) })]);
+  });
+
+  it('a track file name cannot leave its record folder', () => {
+    kept(A);
+    expect(() => s.putTrack({ recordId: A, source: 'microphone', file: '../x.ogg', format: 'ogg-opus', durationMs: 1, bytes: 1, offsetMs: 0 }))
+      .toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+  });
+
+  it('usage adds up what is on disk', () => {
+    kept(A, 1000); kept(B, 2000);
+    track(A, 'microphone', 100);
+    track(A, 'other', 250);
+    s.dropTrack({ recordId: A, source: 'other' });
+    s.binRecords({ ids: [B] });
+    expect(s.usage()).toEqual({ dbBytes: expect.any(Number), audioBytes: 100, records: 2, binned: 1 });
+    expect(s.usage().dbBytes).toBeGreaterThan(0);
+  });
+
+  it('a record tells how much text it holds', () => {
+    s.openRecord(rec({ id: A }));
+    s.putLeg({ recordId: A, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    s.putSegments({ recordId: A, leg: 'speaker', segments: [{ id: `${A}:speaker:1`, ref: 1, side: 'source', text: '你好', final: true, openedAt: 1, marks: [] }] });
+    const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: t, sentences: [sent(1, 'Hello.')] });
+    expect(s.getRecord(A).textBytes).toBe(12);
+  });
+
+  it('at launch an empty folder without a record is removed and one with files is only named', () => {
+    mkdirSync(join(dir, 'records', 'run-0009-empty'), { recursive: true });
+    mkdirSync(join(dir, 'records', 'run-0008-files'), { recursive: true });
+    writeFileSync(join(dir, 'records', 'run-0008-files', 'mine.ogg'), 'x');
+    kept(A);
+    s.recordDir(A);
+    expect(s.reconcile()).toEqual({ removedEmpty: ['run-0009-empty'], strays: ['run-0008-files'], tracksGone: 0 });
+    expect(existsSync(join(dir, 'records', 'run-0009-empty'))).toBe(false);
+    expect(existsSync(join(dir, 'records', 'run-0008-files', 'mine.ogg'))).toBe(true);
+    expect(existsSync(join(dir, 'records', A))).toBe(true);
+  });
+
+  it('at launch a track whose file is gone is marked gone and the text stays', () => {
+    kept(A);
+    track(A, 'microphone', 5);
+    rmSync(join(dir, 'records', A, 'microphone.ogg'));
+    expect(s.reconcile()).toEqual(expect.objectContaining({ tracksGone: 1 }));
+    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ hasRecording: false, sentences: 1 }));
   });
 });
