@@ -7,7 +7,8 @@ import { isElectron } from '../../utils/environment';
 import type {
   HistoryLegInput, HistoryNotes, HistoryNotesInput, HistoryNotesRow, HistoryRecord, HistoryRecordInput, HistoryRecordRow,
   HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker,
-  HistoryStatus, HistoryTrackPiece, HistoryTranscriptOrigin, HistoryUsage,
+  HistoryRecognizePhase, HistoryRecognizeRequest, HistoryStatus, HistoryTrackPiece, HistoryTranscriptOrigin, HistoryUsage,
+  SonioxFileToken,
 } from './types';
 
 export interface HistoryPort {
@@ -44,6 +45,12 @@ export interface HistoryPort {
   /** Saves a kept track where the user chooses: main asks with the system's Save dialog and copies the file. */
   saveTrack(args: { recordId: string; source: string; title: string; defaultName: string }): Promise<{ saved: boolean }>;
   status(): Promise<HistoryStatus>;
+  /** A kept track through Soniox's file recognition: its words, and the audio's length Soniox heard. */
+  recognize(args: HistoryRecognizeRequest): Promise<{ tokens: SonioxFileToken[]; audioMs: number }>;
+  /** Stops a running recognition; false when none runs by that id. */
+  cancelRecognition(args: { jobId: string }): Promise<boolean>;
+  /** The phase of a running recognition, or null. */
+  recognitionStatus(args: { jobId: string }): Promise<{ phase: HistoryRecognizePhase } | null>;
 }
 
 /** Main refused a call, or History is not there: `code` is the store's (RECORD_CLOSED, UNAVAILABLE, …) when it gave one. */
@@ -87,6 +94,9 @@ export const HISTORY_PORT_CHANNELS = [
   ['appendTrack', 'history:append-track'],
   ['saveTrack', 'history:save-track'],
   ['status', 'history:status'],
+  ['recognize', 'history:recognize'],
+  ['cancelRecognition', 'history:recognize-cancel'],
+  ['recognitionStatus', 'history:recognize-status'],
 ] as const satisfies ReadonlyArray<readonly [keyof HistoryPort, `history:${string}`]>;
 
 type Invoke = (channel: string, data?: unknown) => Promise<unknown>;
@@ -136,6 +146,9 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     appendTrack: (a) => call('history:append-track', a),
     saveTrack: (a) => call('history:save-track', a),
     status: () => call('history:status', {}),
+    recognize: (a) => call('history:recognize', a),
+    cancelRecognition: (a) => call('history:recognize-cancel', a),
+    recognitionStatus: (a) => call('history:recognize-status', a),
   };
 }
 
@@ -172,6 +185,9 @@ export const nullHistoryPort: HistoryPort = {
   appendTrack: async () => ({ bytes: 0 }),
   saveTrack: async () => ({ saved: false }),
   status: async () => ({ available: false, dir: '' }),
+  recognize: async () => ({ tokens: [], audioMs: 0 }),
+  cancelRecognition: async () => false,
+  recognitionStatus: async () => null,
 };
 
 /** The desktop's port in the desktop app, the null port anywhere else. */

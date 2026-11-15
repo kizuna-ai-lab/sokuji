@@ -150,6 +150,9 @@ export const INVOKE_CHANNELS = [
   'history:usage',
   'history:append-track',
   'history:save-track',
+  'history:recognize',
+  'history:recognize-cancel',
+  'history:recognize-status',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];

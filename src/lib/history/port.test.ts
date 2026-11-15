@@ -61,7 +61,7 @@ describe('the history port', () => {
   it('every port method has a channel, and every page-facing channel a method', () => {
     const port = electronHistoryPort(async () => ({ ok: true }));
     // `history:status` and `history:save-track` are answered by main itself, not by a store method.
-    const own = new Set(['history:status', 'history:save-track']);
+    const own = new Set(['history:status', 'history:save-track', 'history:recognize', 'history:recognize-cancel', 'history:recognize-status']);
     const pairs = Object.fromEntries(HISTORY_PORT_CHANNELS.filter(([, channel]) => !own.has(channel)).map(([method, channel]) => [channel, method]));
     expect(pairs).toEqual(HISTORY_CHANNELS);
     for (const [method] of HISTORY_PORT_CHANNELS) expect(typeof (port as unknown as Record<string, unknown>)[method], method).toBe('function');
@@ -76,6 +76,9 @@ describe('the history port', () => {
     expect(await nullHistoryPort.usage()).toEqual({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 });
     expect(await nullHistoryPort.status()).toEqual({ available: false, dir: '' });
     expect(await nullHistoryPort.saveTrack({ recordId: 'run-0001-aaaa', source: 'speaker', title: '', defaultName: '' })).toEqual({ saved: false });
+    expect(await nullHistoryPort.recognize({ recordId: 'run-0001-aaaa', source: 'speaker', apiKey: 'k', region: 'us', languageHints: [], jobId: 'j' })).toEqual({ tokens: [], audioMs: 0 });
+    expect(await nullHistoryPort.cancelRecognition({ jobId: 'j' })).toBe(false);
+    expect(await nullHistoryPort.recognitionStatus({ jobId: 'j' })).toBeNull();
     expect(Object.keys(nullHistoryPort).sort()).toEqual(HISTORY_PORT_CHANNELS.map(([method]) => method).sort());
   });
 });

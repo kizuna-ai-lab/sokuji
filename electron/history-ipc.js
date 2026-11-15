@@ -1,7 +1,8 @@
 // electron/history-ipc.js
 //
-// History's channels for the main window: one `history:*` channel per store method, plus `history:status` and
-// `history:save-track` (the system's Save dialog, then a copy of the recording; see history-audio.js).
+// History's channels for the main window: one `history:*` channel per store method, plus `history:status`,
+// `history:save-track` (the system's Save dialog, then a copy of the recording; see history-audio.js) and the file
+// recognition of a kept track (`history:recognize`, `-cancel`, `-status`; see file-recognition.js).
 // Each answers `{ ok: true, value }` or `{ ok: false, error, code? }` and never throws to the page. A caller that
 // is not the main window is refused; a store that could not be opened answers UNAVAILABLE.
 //
@@ -11,6 +12,7 @@
 
 const { HistoryError, openHistory } = require('./history-store.js');
 const { saveTrackAs } = require('./history-audio.js');
+const { createFileRecognizer } = require('./file-recognition.js');
 
 /** Channel → store method. `history:status` is answered here, without the store. */
 const HISTORY_CHANNELS = Object.freeze({
@@ -55,7 +57,10 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
  * ('newer' for a file from a newer app, 'error' otherwise). `showSaveDialog(options)` is the system's Save dialog
  * over the main window; `getDownloadsDir()` where it opens.
  */
-function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnavailableReason = () => null, showSaveDialog, getDownloadsDir }) {
+function setupHistoryHandlers({
+  ipcMain, getStore, isTrustedSender, dir, getUnavailableReason = () => null, showSaveDialog, getDownloadsDir,
+  recognizer = createFileRecognizer(),
+}) {
   /** Runs `fn(store, payload)` for the main window and answers with its value or its error. */
   const answer = (fn) => async (event, payload) => {
     if (!isTrustedSender(event.sender)) return REFUSED;
@@ -112,6 +117,18 @@ function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnav
     title: payload.title,
     defaultName: payload.defaultName,
   })));
+  // A kept track sent to Soniox's file recognition; the page asks for its phase while it waits.
+  ipcMain.handle('history:recognize', answer((store, payload) => recognizer.recognize({
+    store,
+    recordId: payload.recordId,
+    source: payload.source,
+    apiKey: payload.apiKey,
+    region: payload.region,
+    languageHints: payload.languageHints,
+    jobId: payload.jobId,
+  })));
+  ipcMain.handle('history:recognize-cancel', answer((_store, payload) => recognizer.cancel(payload.jobId)));
+  ipcMain.handle('history:recognize-status', answer((_store, payload) => recognizer.status(payload.jobId)));
 }
 
 /**

@@ -111,6 +111,28 @@ export interface HistoryTranscriptRow {
   sentences: number;
 }
 
+/** A word of a file transcript, as Soniox's file recognition gives it. */
+export interface SonioxFileToken {
+  text: string;
+  start_ms: number;
+  end_ms: number;
+  speaker?: string;
+  language?: string;
+  confidence?: number;
+}
+
+/** A kept track sent to file recognition: the key and its region, the languages to expect, and the job's id. */
+export interface HistoryRecognizeRequest {
+  recordId: string;
+  source: HistoryTrackSource;
+  apiKey: string;
+  region: 'us' | 'eu' | 'jp' | 'in';
+  languageHints: string[];
+  jobId: string;
+}
+
+export type HistoryRecognizePhase = 'uploading' | 'queued' | 'processing' | 'fetching';
+
 export type HistoryNotesState = 'complete' | 'failed' | 'cancelled';
 
 export interface HistoryNotesRef {

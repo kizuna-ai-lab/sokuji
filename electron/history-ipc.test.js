@@ -45,7 +45,7 @@ afterEach(() => {
 
 describe('the history channels', () => {
   it('registers exactly the channels in the map', () => {
-    expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track'].sort());
+    expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track', 'history:recognize', 'history:recognize-cancel', 'history:recognize-status'].sort());
     expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(27);
     expect(HISTORY_CHANNELS['history:update-notes-names']).toBe('updateNotesNames');
     expect(HISTORY_CHANNELS['history:append-track']).toBe('appendTrack');
@@ -54,7 +54,7 @@ describe('the history channels', () => {
   it('writes every channel out as a literal handle call, the way the registry guard reads them', () => {
     const src = readFileSync(join(__dirname, 'history-ipc.js'), 'utf8');
     const literal = [...src.matchAll(/ipcMain\.handle\(\s*'(history:[^']+)'/g)].map((m) => m[1]).sort();
-    expect(literal).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track'].sort());
+    expect(literal).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track', 'history:recognize', 'history:recognize-cancel', 'history:recognize-status'].sort());
   });
 
   it('maps every channel to a method the store has', () => {
@@ -102,6 +102,24 @@ describe('the history channels', () => {
     expect(asked[0]).toMatchObject({ title: 'Save the recording', defaultPath: join(dir, 'r-me.opus') });
     expect([...readFileSync(join(dir, 'saved.opus'))]).toEqual([1, 2, 3]);
     expect(await call('history:save-track', { ...payload, source: 'participant' })).toEqual({ ok: false, error: expect.any(String), code: 'NO_TRACK' });
+  });
+
+  it('hands a recognition to the recognizer with the store, and its cancel and state', async () => {
+    const asked = [];
+    const recognizer = {
+      recognize: async (r) => { asked.push(r); return { tokens: [], audioMs: 5 }; },
+      cancel: (jobId) => jobId === 'job-1',
+      status: (jobId) => (jobId === 'job-1' ? { phase: 'queued' } : null),
+    };
+    register({ recognizer });
+    const payload = { recordId: 'run-0001-aaaa', source: 'speaker', apiKey: 'k', region: 'us', languageHints: ['zh'], jobId: 'job-1' };
+    expect(await handlers.get('history:recognize')({ sender: POPOVER }, payload)).toEqual({ ok: false, error: 'History refused: not the main window' });
+    expect(asked).toEqual([]);
+    expect(await call('history:recognize', payload)).toEqual({ ok: true, value: { tokens: [], audioMs: 5 } });
+    expect(asked).toEqual([{ ...payload, store }]);
+    expect(await call('history:recognize-cancel', { jobId: 'job-1' })).toEqual({ ok: true, value: true });
+    expect(await call('history:recognize-status', { jobId: 'job-1' })).toEqual({ ok: true, value: { phase: 'queued' } });
+    expect(await call('history:recognize-status', { jobId: 'job-2' })).toEqual({ ok: true, value: null });
   });
 
   it('says the store is there when it is', async () => {
