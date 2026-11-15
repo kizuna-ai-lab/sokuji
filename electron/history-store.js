@@ -659,6 +659,13 @@ function openHistory({ dir, now = () => Date.now() }) {
       return { bytes };
     },
 
+    /** The file of a kept track, for the player; null for anything else (an unknown record or source, a dropped track). */
+    trackFile({ recordId, source } = {}) {
+      if (!isString(recordId) || !ID_PATTERN.test(recordId) || !isString(source)) return null;
+      const k = one('select file from tracks where record_id = ? and source = ? and gone_at is null', recordId, source);
+      return k ? path.join(folderOf(recordId), k.file) : null;
+    },
+
     dropTrack({ recordId, source } = {}) {
       const k = one('select record_id, source, file from tracks where record_id = ? and source = ?', recordId, source);
       if (!k) fail('NO_TRACK', `No ${source} track in record ${recordId}`);

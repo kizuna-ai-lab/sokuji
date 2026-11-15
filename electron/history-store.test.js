@@ -560,3 +560,16 @@ describe('appending to a track file', () => {
     expect(() => s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 0, durationMs: 0, data: piece(1) })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
   });
 });
+
+describe('a track file for the player', () => {
+  it('gives the path of a track that is kept, and nothing otherwise', () => {
+    s.openRecord(rec());
+    s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 0, durationMs: 20, data: new Uint8Array(3) });
+    expect(s.trackFile({ recordId: ID, source: 'speaker' })).toBe(join(s.recordDir(ID), 'speaker.opus'));
+    expect(s.trackFile({ recordId: ID, source: 'participant' })).toBeNull();
+    expect(s.trackFile({ recordId: 'run-0009-zzzz', source: 'speaker' })).toBeNull();
+    expect(s.trackFile({ recordId: '../x', source: 'speaker' })).toBeNull();
+    s.dropTrack({ recordId: ID, source: 'speaker' });
+    expect(s.trackFile({ recordId: ID, source: 'speaker' })).toBeNull();
+  });
+});

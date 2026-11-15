@@ -172,6 +172,7 @@ export default defineConfig(({ command, mode }) => {
             'history-schema': 'electron/history-schema.js',
             'history-store': 'electron/history-store.js',
             'history-ipc': 'electron/history-ipc.js',
+            'history-audio': 'electron/history-audio.js',
             'close-handshake': 'electron/close-handshake.js',
             'exit-handler': 'electron/exit-handler.js',
             'update-install-windows': 'electron/update-install-windows.js',

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, nativeTheme, powerMonitor } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, nativeTheme, powerMonitor, protocol } = require('electron');
 const path = require('path');
 const { betterAuthAdapter, PACKAGED_ORIGIN } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
@@ -7,6 +7,10 @@ const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { setupTranscriptSaveHandler } = require('./transcript-save.js');
 const { setupHistoryHandlers, openHistoryAtLaunch } = require('./history-ipc.js');
+const { HISTORY_SCHEME, registerHistoryScheme, trackResponse } = require('./history-audio.js');
+
+// The player's way to a recording: privileged before the app is ready, as Electron requires.
+registerHistoryScheme(protocol);
 const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { registerOutputFormFactor } = require('./output-form-factor.js');
@@ -670,6 +674,7 @@ app.whenReady().then(async () => {
     dir: historyDir,
     getUnavailableReason: () => historyUnavailable,
   });
+  protocol.handle(HISTORY_SCHEME, (request) => (historyStore ? trackResponse(historyStore, request) : new Response(null, { status: 404 })));
   setInterval(() => {
     try { historyStore?.purgeExpired(); } catch (error) { console.error('[Sokuji] [History] Purging the bin failed:', error); }
   }, HISTORY_PURGE_EVERY_MS).unref();
