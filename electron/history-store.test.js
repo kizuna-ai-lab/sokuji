@@ -152,3 +152,73 @@ describe('the conversation as the app holds it', () => {
     expect(s.getRecord(ID)).toBeNull();
   });
 });
+
+describe('transcripts and sentences', () => {
+  const sent = (n, over = {}) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text: `s${n}`, timeKind: 'given', ...over });
+  let t;
+  beforeEach(() => {
+    s.openRecord(rec());
+    t = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'live' } });
+  });
+
+  it('stores sentences and returns them in reading order, not arrival order', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1, { startMs: 5000 }), sent(2, { startMs: 1000, side: 'other', track: 'other' }), sent(3, { startMs: 1000 })] });
+    expect(s.getSentences({ transcriptId: t }).map((x) => x.n)).toEqual([3, 2, 1]);
+  });
+
+  it('a sentence sent twice is stored once', () => {
+    expect(s.appendSentences({ transcriptId: t, sentences: [sent(1)] })).toEqual({ added: 1 });
+    expect(s.appendSentences({ transcriptId: t, sentences: [sent(1), sent(2)] })).toEqual({ added: 1 });
+    expect(s.getSentences({ transcriptId: t }).length).toBe(2);
+  });
+
+  it('the same number with another time is refused and nothing of that call is kept', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1)] });
+    expect(() => s.appendSentences({ transcriptId: t, sentences: [sent(2), sent(1, { startMs: 9 })] })).toThrow(expect.objectContaining({ code: 'SENTENCE_CONFLICT' }));
+    expect(s.getSentences({ transcriptId: t }).map((x) => x.n)).toEqual([1]);
+  });
+
+  it('text can be revised while the record is open, and not after', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1)] });
+    s.reviseSentences({ transcriptId: t, revisions: [{ n: 1, text: 'Hello, world.' }] });
+    expect(s.getSentences({ transcriptId: t })[0]).toEqual(expect.objectContaining({ n: 1, text: 'Hello, world.', startMs: 1000 }));
+    expect(() => s.reviseSentences({ transcriptId: t, revisions: [{ n: 7, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'NO_SENTENCE' }));
+    s.closeRecord({ id: ID, endedAt: 99 });
+    expect(() => s.reviseSentences({ transcriptId: t, revisions: [{ n: 1, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
+  });
+
+  it('a record with a sentence is kept when closed', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1)] });
+    expect(s.closeRecord({ id: ID, endedAt: 99 })).toEqual({ kept: true });
+    expect(s.listRecords({})).toEqual([expect.objectContaining({ id: ID, sentences: 1, state: 'closed' })]);
+  });
+});
+
+describe('launch', () => {
+  const sent = (n, over = {}) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text: `s${n}`, timeKind: 'given', ...over });
+
+  it('at launch an open record is closed at its last sentence, or at its last segment when it has text only; one without content is dropped with its folder', () => {
+    s.openRecord(rec({ id: 'run-0001-aaaa', startedAt: 1000 }));
+    s.openRecord(rec({ id: 'run-0002-bbbb', startedAt: 2000 }));
+    s.openRecord(rec({ id: 'run-0003-cccc', startedAt: 3000 }));
+    const t = s.createTranscript({ recordId: 'run-0001-aaaa', origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: t, sentences: [sent(1), sent(2, { endMs: 7300 })] });
+    s.putLeg({ recordId: 'run-0003-cccc', leg: 'participant', languages: { source: 'ja', target: 'zh' } });
+    s.putSegments({ recordId: 'run-0003-cccc', leg: 'participant', segments: [{ id: 'run-0003-cccc:participant:1', ref: 1, side: 'translation', text: '好的。', final: true, openedAt: 9100, marks: [] }] });
+    mkdirSync(s.recordDir('run-0002-bbbb'), { recursive: true });
+    s.close();
+    s = openHistory({ dir });
+    expect(s.recoverOpenRecords()).toEqual({ closed: ['run-0001-aaaa', 'run-0003-cccc'], dropped: ['run-0002-bbbb'] });
+    expect(s.getRecord('run-0001-aaaa')).toEqual(expect.objectContaining({ state: 'closed', endedAt: 1000 + 7300 }));
+    expect(s.getRecord('run-0003-cccc')).toEqual(expect.objectContaining({ state: 'closed', endedAt: 9100 }));
+    expect(s.getRecord('run-0002-bbbb')).toBeNull();
+    expect(existsSync(join(dir, 'records', 'run-0002-bbbb'))).toBe(false);
+  });
+
+  it('a transcript says whether its text is the original or the translation', () => {
+    s.openRecord(rec());
+    const a = s.createTranscript({ recordId: 'run-0001-aaaa', origin: { service: 'soniox', kind: 'live' } });
+    const b = s.createTranscript({ recordId: 'run-0001-aaaa', origin: { service: 'local_inference', kind: 'live' }, textKind: 'translation' });
+    expect(s.getRecord('run-0001-aaaa').transcripts.map((x) => [x.id, x.textKind])).toEqual([[a, 'original'], [b, 'translation']]);
+  });
+});

@@ -14,6 +14,11 @@ const ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 const LEGS = new Set(['speaker', 'participant']);
 const INPUTS = new Set(['microphone', 'system', 'app', 'tab']);
 const SEGMENT_SIDES = new Set(['source', 'translation']);
+const SENTENCE_SIDES = new Set(['mine', 'other']);
+const TRACKS = new Set(['microphone', 'other']);
+const TIME_KINDS = new Set(['given', 'spread', 'estimated']);
+const TEXT_KINDS = new Set(['original', 'translation']);
+const ORIGIN_KINDS = new Set(['live', 'file']);
 
 class HistoryError extends Error {
   constructor(code, message) {
@@ -108,6 +113,22 @@ function openHistory({ dir, now = () => Date.now() }) {
       ...(g.origin !== null ? { origin: g.origin } : {}),
       speech: [],
     };
+  }
+
+  function transcriptOrFail(transcriptId) {
+    const t = isInt(transcriptId)
+      ? one('select t.id, t.record_id, r.state from transcripts t join records r on r.id = t.record_id where t.id = ?', transcriptId)
+      : undefined;
+    if (!t) fail('NO_TRANSCRIPT', `No transcript ${transcriptId}`);
+    return t;
+  }
+
+  function checkSentence(x) {
+    if (!isPlainObject(x) || !isInt(x.n) || !SENTENCE_SIDES.has(x.side) || typeof x.sideCertain !== 'boolean' || !TRACKS.has(x.track)
+      || !isString(x.speaker) || !isInt(x.startMs) || !isInt(x.endMs) || !isString(x.text) || !TIME_KINDS.has(x.timeKind)
+      || !isOptionalString(x.segmentId) || !isOptionalString(x.language)) {
+      fail('BAD_INPUT', 'A sentence needs n, side, sideCertain, track, speaker, startMs, endMs, text and timeKind');
+    }
   }
 
   function recordOrFail(id) {
@@ -288,6 +309,82 @@ function openHistory({ dir, now = () => Date.now() }) {
         languages: { source: l.source_language, target: l.target_language },
         segments: all('select * from segments where record_id = ? and leg = ? order by position', recordId, l.leg).map(segmentOf),
         notices: all('select body from notices where record_id = ? and leg = ? order by at, id', recordId, l.leg).map((n) => JSON.parse(n.body)),
+      }));
+    },
+
+    createTranscript({ recordId, origin, textKind = 'original' } = {}) {
+      recordOrFail(recordId);
+      if (!isPlainObject(origin) || !isString(origin.service) || !ORIGIN_KINDS.has(origin.kind)) fail('BAD_INPUT', 'origin needs service and kind (live or file)');
+      if (!TEXT_KINDS.has(textKind)) fail('BAD_INPUT', 'textKind must be original or translation');
+      const { lastInsertRowid } = run(
+        'insert into transcripts (record_id, origin, text_kind, created_at) values (?, ?, ?, ?)',
+        recordId, JSON.stringify(origin), textKind, now(),
+      );
+      return Number(lastInsertRowid);
+    },
+
+    appendSentences({ transcriptId, sentences } = {}) {
+      transcriptOrFail(transcriptId);
+      if (!Array.isArray(sentences)) fail('BAD_INPUT', 'sentences must be an array');
+      sentences.forEach(checkSentence);
+      return transaction(db, () => {
+        let added = 0;
+        for (const x of sentences) {
+          // A sentence's number, side, track and times never change once stored: the same arrival is skipped,
+          // a different one is refused, and nothing of the call is kept.
+          const known = one('select side, track, start_ms, end_ms from sentences where transcript_id = ? and n = ?', transcriptId, x.n);
+          if (known) {
+            if (known.side !== x.side || known.track !== x.track || known.start_ms !== x.startMs || known.end_ms !== x.endMs) {
+              fail('SENTENCE_CONFLICT', `Sentence ${x.n} is already stored with another side, track or time`);
+            }
+            continue;
+          }
+          run(
+            `insert into sentences (transcript_id, n, segment_id, side, side_certain, track, speaker, start_ms, end_ms, text, language, time_kind)
+             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            transcriptId, x.n, x.segmentId ?? null, x.side, x.sideCertain ? 1 : 0, x.track, x.speaker, x.startMs, x.endMs, x.text, x.language ?? null, x.timeKind,
+          );
+          added += 1;
+        }
+        return { added };
+      });
+    },
+
+    reviseSentences({ transcriptId, revisions } = {}) {
+      const t = transcriptOrFail(transcriptId);
+      if (t.state !== 'open') fail('RECORD_CLOSED', `Record ${t.record_id} is closed`);
+      if (!Array.isArray(revisions) || revisions.some((v) => !isPlainObject(v) || !isInt(v.n) || !isString(v.text))) {
+        fail('BAD_INPUT', 'revisions must be { n, text }');
+      }
+      transaction(db, () => {
+        for (const v of revisions) {
+          const { changes } = run('update sentences set text = ? where transcript_id = ? and n = ?', v.text, transcriptId, v.n);
+          if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${v.n}`);
+        }
+      });
+    },
+
+    getSentences({ transcriptId } = {}) {
+      transcriptOrFail(transcriptId);
+      return all(
+        `select s.*, p.name as speaker_name from sentences s
+         left join speakers p on p.transcript_id = s.transcript_id and p.side = s.side and p.speaker = coalesce(s.speaker_by_user, s.speaker)
+         where s.transcript_id = ? order by s.start_ms, s.side = 'other', s.n`,
+        transcriptId,
+      ).map((x) => ({
+        n: x.n,
+        segmentId: x.segment_id,
+        side: x.side,
+        sideCertain: x.side_certain === 1,
+        track: x.track,
+        speaker: x.speaker,
+        speakerByUser: x.speaker_by_user,
+        speakerName: x.speaker_name,
+        startMs: x.start_ms,
+        endMs: x.end_ms,
+        text: x.text,
+        language: x.language,
+        timeKind: x.time_kind,
       }));
     },
 
