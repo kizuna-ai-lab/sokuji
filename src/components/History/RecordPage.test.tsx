@@ -309,7 +309,10 @@ describe('a record', () => {
     expect(calls('dropTrack')).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete the recording' }));
+    const files = Array.from(document.querySelectorAll('audio'));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    // The player lets go of the files before they are deleted (Windows refuses to delete an open file).
+    expect(files.every((el) => !el.getAttribute('src'))).toBe(true);
     await settle();
     expect(calls('dropTrack')).toEqual([{ recordId: A, source: 'speaker' }, { recordId: A, source: 'participant' }]);
   });

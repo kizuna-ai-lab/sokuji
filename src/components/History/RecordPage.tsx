@@ -70,6 +70,8 @@ export const RecordPage: React.FC = () => {
   const [result, setResult] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  /** The recording is being deleted: the player is taken down first so the files are not held open. */
+  const [releasing, setReleasing] = useState(false);
   const cancelDropRef = useRef<HTMLButtonElement>(null);
   /** The player's position, once it has been played or sought. */
   const [position, setPosition] = useState<number | null>(null);
@@ -146,7 +148,7 @@ export const RecordPage: React.FC = () => {
 
   if (!open) return null;
   const { record } = open;
-  const hasPlayer = playable(record.tracks).length > 0;
+  const hasPlayer = playable(record.tracks).length > 0 && !releasing;
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
@@ -394,7 +396,7 @@ export const RecordPage: React.FC = () => {
         >
           <p>{t('history.confirmDropRecording', 'Delete this record’s recording? Its transcript and notes stay. The recording cannot be brought back.')}</p>
           <div className="history-confirm__actions">
-            <button type="button" className="history-button history-button--danger" disabled={busy} onClick={() => { setConfirmDrop(false); void actions.dropRecording(); }}>
+            <button type="button" className="history-button history-button--danger" disabled={busy} onClick={() => { setConfirmDrop(false); setReleasing(true); void actions.dropRecording().finally(() => setReleasing(false)); }}>
               {t('history.delete', 'Delete')}
             </button>
             <button type="button" ref={cancelDropRef} className="history-button" onClick={() => setConfirmDrop(false)}>

@@ -120,7 +120,32 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, length, kept]);
 
-  useEffect(() => () => { for (const el of audio.current.values()) el.pause(); }, []);
+  /** One ref callback per track, kept across renders: it is called with null only when the element really goes. */
+  const refs = useRef(new Map<string, (el: HTMLAudioElement | null) => void>());
+  const refFor = (source: string) => {
+    let ref = refs.current.get(source);
+    if (!ref) {
+      ref = (el) => {
+        if (el) {
+          audio.current.set(source, el);
+          return;
+        }
+        const gone = audio.current.get(source);
+        if (gone) release(gone);
+        audio.current.delete(source);
+      };
+      refs.current.set(source, ref);
+    }
+    return ref;
+  };
+
+  /** A track's element as it goes: paused and unloaded, so the main process can delete the file (Windows refuses an open one). */
+  const release = (el: HTMLAudioElement) => {
+    el.pause();
+    started.current.delete(el);
+    el.removeAttribute('src');
+    try { el.load(); } catch { /* nothing to unload */ }
+  };
 
   const changeSpeed = (next: number) => {
     const pos = now();
@@ -134,7 +159,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
       {kept.map((track) => (
         <audio
           key={track.source}
-          ref={(el) => { if (el) audio.current.set(track.source, el); else audio.current.delete(track.source); }}
+          ref={refFor(track.source)}
           src={trackUrl(recordId, track.source)}
           preload="metadata"
         />
