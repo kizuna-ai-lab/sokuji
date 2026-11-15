@@ -139,6 +139,9 @@ describe('a record\'s recording', () => {
     expect(tell).toHaveBeenCalledTimes(1);
     expect(report).toHaveBeenCalledWith(expect.stringContaining('cannot keep up'), null);
     expect(recorder.queuedBytes()).toBeLessThanOrEqual(2000);
+    // Stopped, it is ended at once: nothing waits on the write that never answers.
+    const ended = await Promise.race([recorder.end(ID).then(() => 'ended'), new Promise((resolve) => { setTimeout(() => resolve('waiting'), 50); })]);
+    expect(ended).toBe('ended');
   });
 
   // Review: a session's first audio arrives before its record exists, and while the previous record is still closing.

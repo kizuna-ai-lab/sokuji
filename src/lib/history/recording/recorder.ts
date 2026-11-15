@@ -209,6 +209,8 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
           }
         }
       }
+      // A stopped recording writes nothing more: its end never waits on a write that may not answer.
+      if (r.failed) return;
       await r.chain;
     },
 
