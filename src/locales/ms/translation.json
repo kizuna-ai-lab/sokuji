@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "Nama untuk suara klon baharu (pilihan)",
     "sonioxVoiceDefaultName": "Suara Saya {{n}}",
     "sonioxManagedVoiceName": "Suara saya",
-    "sonioxVoiceDeletedPlaceholder": "(suara dipadam)",
     "palabraVoiceProcessingBadge": "memproses…",
     "palabraVoiceFailedBadge": "gagal",
     "palabraVoiceDeletedPlaceholder": "(suara dipadam)",
@@ -1692,5 +1691,26 @@
       "lostHint": "Sumber sudah tiada; gambar terakhir disimpan sehingga anda memilih semula.",
       "lostExtension": "Gambar tab mesyuarat tidak lagi tersedia; terjemahan diteruskan dengan audio sahaja."
     }
+  },
+  "region": {
+    "changeTitle": "Tukar wilayah?",
+    "changeBuiltIn": "Suara tersuai anda disimpan di wilayah {{from}} dan tidak boleh digunakan di {{to}}. Sesi di {{to}} akan menggunakan suara terbina dalam {{name}} sehingga anda mencipta suara tersuai di sana. Suara anda di {{from}} kekal; apabila kembali ke {{from}}, suara itu digunakan semula.",
+    "changeCustom": "Sesi di {{to}} akan menggunakan suara tersuai yang anda cipta di sana. Suara anda di {{from}} kekal di {{from}}.",
+    "changeBuiltInOwnKey": "Suara tersuai anda berada dalam projek Soniox anda di {{from}} dan tidak boleh digunakan di {{to}}. Sesi di {{to}} akan menggunakan suara terbina dalam {{name}} sehingga anda mencipta suara tersuai dalam projek anda di {{to}}. Suara anda di {{from}} kekal; apabila kembali ke {{from}}, suara itu digunakan semula.",
+    "changeCustomOwnKey": "Sesi di {{to}} akan menggunakan suara tersuai dalam projek Soniox anda di {{to}}. Suara anda di {{from}} kekal dalam projek anda di {{from}}.",
+    "changeConfirm": "Tukar ke {{to}}",
+    "latencyMeasuring": "mengukur…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "tidak dapat dicapai",
+    "hintFaster": "{{region}} kira-kira {{ms}} ms lebih pantas daripada wilayah semasa anda ({{current}})",
+    "hintCurrentUnreachable": "{{region}} bertindak balas dalam {{ms}} ms; wilayah semasa anda ({{current}}) tidak dapat dicapai",
+    "hintAction": "Lihat kelajuan setiap wilayah",
+    "listTitle": "Pilih wilayah yang lebih pantas",
+    "listIntro": "Kami telah mengukur sambungan anda ke setiap wilayah {{vendor}}:",
+    "recommended": "Disyorkan",
+    "current": "Semasa",
+    "unreachable": "Tidak dapat dicapai",
+    "switch": "Tukar",
+    "keep": "Kekal di {{region}}"
   }
 }

@@ -1,6 +1,9 @@
 import { useContext } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, within } from '@testing-library/react';
+import { setRegionMeasure } from '../../lib/region/measure';
+import type { RegionMedians } from '../../lib/region/probe';
+import { useRegionLatencyStore } from '../../stores/regionLatencyStore';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import type { ProviderAccount, PreviewPort, SettingsProps } from '../../lib/provider/types';
 import type { SonioxVoiceSectionProps } from '../../components/Settings/sections/SonioxVoiceSection';
@@ -8,7 +11,7 @@ import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
-  return { ...actual, useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }) };
+  return { ...actual, useTranslation: () => ({ t: (key: string, fallback?: unknown, values?: Record<string, unknown>) => (typeof fallback !== 'string' ? key : values ? fallback.replace(/\{\{(\w+)\}\}/g, (_, n: string) => String(values[n])) : fallback) }) };
 });
 
 // Captured instead of rendered: floating-ui's Tooltip opens only on hover
@@ -34,6 +37,11 @@ vi.mock('../../components/Settings/sections/SonioxVoiceSection', () => ({
   },
 }));
 
+const requestRegionChange = vi.hoisted(() => vi.fn(async (_r: unknown) => true));
+vi.mock('../../lib/region/regionChange', () => ({ requestRegionChange }));
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
+
 import { createSonioxSettingsView } from './SonioxSettings';
 
 const account = (credentials: Record<string, string>): ProviderAccount => ({
@@ -41,7 +49,7 @@ const account = (credentials: Record<string, string>): ProviderAccount => ({
   auth: { signedIn: false, getToken: async () => null },
 });
 
-const BYOK = createSonioxSettingsView({ managed: false, useVoiceSource: () => null });
+const BYOK = createSonioxSettingsView({ providerId: 'soniox', managed: false, useVoiceSource: () => null });
 
 const props = (patch: Partial<SettingsProps<SonioxSettings>> = {}): SettingsProps<SonioxSettings> => ({
   settings: SONIOX_DEFAULTS,
@@ -64,18 +72,77 @@ beforeEach(() => {
 });
 
 describe('createSonioxSettingsView', () => {
-  it('writes the region, and locks it while a run is on', () => {
+  it('the region select asks for the change through the region path and never writes the region itself', () => {
+    const update = vi.fn();
+    render(<BYOK {...props({ update })} />);
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'in' } });
+    expect(requestRegionChange).toHaveBeenCalledWith({ providerId: 'soniox', to: 'in', origin: 'select', auth: expect.anything(), track: expect.any(Function) });
+    expect(update).not.toHaveBeenCalledWith(expect.objectContaining({ region: expect.anything() }));
+  });
+
+  it("hands the region path the analytics tracker, so following a pending hint from the select is reported", () => {
+    trackEvent.mockReset();
+    requestRegionChange.mockClear();
+    render(<BYOK {...props()} />);
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'jp' } });
+    const { track } = requestRegionChange.mock.calls[0][0] as { track: (e: unknown) => void };
+    const event = { provider: 'kizunaai_soniox', medians: {}, current: 'us', recommended: 'jp', outcome: 'switched', chosen: 'jp' };
+    track(event);
+    expect(trackEvent).toHaveBeenCalledWith('region_recommendation', event);
+  });
+
+  it('lists the regions, and locks the select while a run is on', () => {
     const update = vi.fn();
     const { rerender } = render(<BYOK {...props({ update })} />);
     const select = screen.getByLabelText('Region') as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.textContent);
-    expect(options).toEqual(['United States', 'European Union', '日本 (Japan)']);
-    fireEvent.change(select, { target: { value: 'eu' } });
-    expect(update).toHaveBeenCalledWith({ region: 'eu' });
+    expect(options).toEqual(['United States — measuring…', 'European Union — measuring…', '日本 (Japan) — measuring…', 'India — measuring…']);
     expect(select.disabled).toBe(false);
 
     rerender(<BYOK {...props({ update, disabled: true })} />);
     expect(screen.getByLabelText('Region')).toBeDisabled();
+  });
+
+  describe('latency in the region select', () => {
+    const optionTexts = () => Array.from((screen.getByLabelText('Region') as HTMLSelectElement).options).map((o) => o.textContent);
+
+    it('options read measuring… until the result, then the milliseconds or unreachable', async () => {
+      let done!: (m: RegionMedians) => void;
+      setRegionMeasure(() => new Promise((r) => { done = r; }));
+      render(<BYOK {...props()} />);
+      expect(optionTexts()).toEqual(['United States — measuring…', 'European Union — measuring…', '日本 (Japan) — measuring…', 'India — measuring…']);
+      await act(async () => done({ us: 177, eu: 237, jp: 13, in: null }));
+      expect(optionTexts()).toEqual(['United States — 177 ms', 'European Union — 237 ms', '日本 (Japan) — 13 ms', 'India — unreachable']);
+    });
+
+    it('reopening within 10 minutes reuses the numbers', async () => {
+      const measure = vi.fn(async (): Promise<RegionMedians | null> => ({ us: 1, eu: 2, jp: 3, in: 4 }));
+      setRegionMeasure(measure);
+      const first = render(<BYOK {...props()} />);
+      await act(async () => {});
+      first.unmount();
+      render(<BYOK {...props()} />);
+      expect(measure).toHaveBeenCalledTimes(1);
+      expect(optionTexts()[0]).toBe('United States — 1 ms');
+    });
+
+    it('measures nothing during a session and keeps the last numbers', () => {
+      const measure = vi.fn(async (): Promise<RegionMedians | null> => null);
+      setRegionMeasure(measure);
+      act(() => useRegionLatencyStore.getState().fill('soniox', { us: 5, eu: 6, jp: 7, in: 8 }, Date.now() - 700_000));
+      render(<BYOK {...props({ disabled: true })} />);
+      expect(measure).not.toHaveBeenCalled();
+      expect(optionTexts()).toEqual(['United States — 5 ms', 'European Union — 6 ms', '日本 (Japan) — 7 ms', 'India — 8 ms']);
+    });
+
+    it('never writes the recommendation record nor opens the hint', async () => {
+      setRegionMeasure(async () => ({ us: 1, eu: 2, jp: 3, in: 4 }));
+      const before = Object.keys(localStorage).filter((k) => k.startsWith('regionRecommendation.'));
+      render(<BYOK {...props()} />);
+      await act(async () => {});
+      expect(Object.keys(localStorage).filter((k) => k.startsWith('regionRecommendation.'))).toEqual(before);
+      expect(before).toEqual([]);
+    });
   });
 
   it('the TTS speed runs 0.7–1.3 in 0.05 steps and writes a number', () => {
@@ -146,7 +213,7 @@ describe('createSonioxSettingsView', () => {
   });
 
   it("a managed view reads the managed region tooltip and states the cost of split in the shared-session help, not as a block of its own (Plan B's seam)", () => {
-    const Managed = createSonioxSettingsView({ managed: true, useVoiceSource: () => null });
+    const Managed = createSonioxSettingsView({ providerId: 'kizunaai_soniox', managed: true, useVoiceSource: () => null });
     render(<Managed {...props()} />);
     expect(tooltipContents).toContain(
       'Soniox runs a separate deployment per region. Your audio is processed in the region you pick. Applies from the next session.'
@@ -228,7 +295,7 @@ describe('SonioxSettings, speaker labels', () => {
 // Spec 2026-11-05 §4.4: Soniox's own setting, in the view own-key and managed share, each flavour with its own stored value.
 describe.each([
   ['own key', BYOK],
-  ['managed', createSonioxSettingsView({ managed: true, useVoiceSource: () => null })],
+  ['managed', createSonioxSettingsView({ providerId: 'kizunaai_soniox', managed: true, useVoiceSource: () => null })],
 ] as const)('SonioxSettings, use the read-aloud text to improve recognition (%s)', (_flavour, View) => {
   const HELP = 'Tells the recognition service what is about to be read aloud, so it recognizes replies better and leaves the read-aloud out of the transcript if your speakers reach the microphone. When speech plays on this computer, this adds a small charge.';
   const SPLIT_BOTH = 'Off in two-way mode with separate sessions: there it did not keep the read-aloud out of recognition and made it harder to recognize someone talking over it. Your setting is kept.';

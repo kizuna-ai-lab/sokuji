@@ -268,7 +268,6 @@
     "sonioxVoiceNamePlaceholder": "새로 복제할 음성 이름(선택 사항)",
     "sonioxVoiceDefaultName": "내 음성 {{n}}",
     "sonioxManagedVoiceName": "내 음성",
-    "sonioxVoiceDeletedPlaceholder": "(삭제된 음성)",
     "palabraVoiceProcessingBadge": "처리 중…",
     "palabraVoiceFailedBadge": "실패",
     "palabraVoiceDeletedPlaceholder": "(삭제된 음성)",
@@ -1692,5 +1691,26 @@
       "lostHint": "소스가 사라졌습니다. 다시 선택할 때까지 마지막 이미지가 유지됩니다.",
       "lostExtension": "회의 탭의 이미지를 더 이상 사용할 수 없습니다. 번역은 오디오만으로 계속됩니다."
     }
+  },
+  "region": {
+    "changeTitle": "지역을 전환할까요?",
+    "changeBuiltIn": "사용자 정의 음성이 {{from}} 지역에 저장되어 있어 {{to}}에서는 사용할 수 없습니다. 그곳에서 사용자 정의 음성을 만들기 전까지 {{to}}의 세션에서는 기본 제공 음성 {{name}}이(가) 사용됩니다. {{from}}의 음성은 그대로 유지되며, {{from}}(으)로 다시 전환하면 다시 사용됩니다.",
+    "changeCustom": "{{to}}의 세션에서는 해당 지역에서 만든 사용자 정의 음성이 사용됩니다. {{from}}의 음성은 {{from}}에 그대로 남아 있습니다.",
+    "changeBuiltInOwnKey": "사용자 정의 음성이 내 {{from}} Soniox 프로젝트에 있어 {{to}}에서는 사용할 수 없습니다. 내 {{to}} 프로젝트에서 사용자 정의 음성을 만들기 전까지 {{to}}의 세션에서는 기본 제공 음성 {{name}}이(가) 사용됩니다. {{from}}의 음성은 그대로 유지되며, {{from}}(으)로 다시 전환하면 다시 사용됩니다.",
+    "changeCustomOwnKey": "{{to}}의 세션에서는 내 {{to}} Soniox 프로젝트의 사용자 정의 음성이 사용됩니다. {{from}}의 음성은 내 {{from}} 프로젝트에 그대로 남아 있습니다.",
+    "changeConfirm": "{{to}}(으)로 전환",
+    "latencyMeasuring": "측정 중…",
+    "latencyMs": "{{ms}} ms",
+    "latencyUnreachable": "연결할 수 없음",
+    "hintFaster": "{{region}}은(는) 현재 지역({{current}})보다 약 {{ms}} ms 더 빠릅니다",
+    "hintCurrentUnreachable": "{{region}}은(는) {{ms}} ms 만에 응답했지만 현재 지역({{current}})에는 연결할 수 없었습니다",
+    "hintAction": "지역별 속도 보기",
+    "listTitle": "더 빠른 지역 선택",
+    "listIntro": "각 {{vendor}} 지역과의 연결을 측정했습니다:",
+    "recommended": "추천",
+    "current": "현재",
+    "unreachable": "연결할 수 없음",
+    "switch": "전환",
+    "keep": "{{region}} 유지"
   }
 }
