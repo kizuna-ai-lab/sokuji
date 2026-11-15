@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createVirtualClock, type VirtualClock } from '../contract/clock';
 import type { HistoryPort } from './port';
 import type { HistoryRecord, HistoryRecordRow } from './types';
-import { createHistoryPageStore, SEARCH_DELAY_MS } from './historyPageStore';
+import { createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
 
 const A = 'run-000a-aaaa';
 const B = 'run-000b-bbbb';
@@ -44,6 +44,7 @@ let port: Fake;
 let clock: VirtualClock;
 let store: ReturnType<typeof createHistoryPageStore>;
 const calls = (name: string) => port.calls.filter((c) => c[0] === name).map((c) => c[1]);
+const lastCall = (name: string) => { const all = calls(name); return all[all.length - 1]; };
 
 beforeEach(() => {
   port = fakePort();
@@ -130,6 +131,34 @@ describe('the History page state', () => {
     await store.getState().binRecord(B);
     expect(calls('binRecords')).toEqual([{ ids: [A] }]);
     expect(store.getState().open?.record.id).toBe(B);
+  });
+
+  it('lists a page of records and fetches the older ones on request, keeping them on a reload', async () => {
+    const page = Array.from({ length: LIST_PAGE }, (_, i) => rowOf(`run-${String(i).padStart(4, '0')}-aaaa`, { startedAt: 10_000 - i }));
+    const older = [rowOf('run-9999-zzzz', { startedAt: 1 })];
+    port.listRecords = async (arg?: { before?: number | null; limit?: number }) => {
+      port.calls.push(['listRecords', arg]);
+      return arg?.before ? older : [...page, ...older].slice(0, arg?.limit ?? 200);
+    };
+    await store.getState().load();
+    expect(store.getState()).toMatchObject({ more: true });
+    expect(store.getState().rows).toHaveLength(LIST_PAGE);
+    await store.getState().showOlder();
+    expect(lastCall('listRecords')).toEqual({ binned: false, limit: LIST_PAGE, before: 10_000 - (LIST_PAGE - 1) });
+    expect(store.getState().rows).toHaveLength(LIST_PAGE + 1);
+    expect(store.getState().more).toBe(false);
+    await store.getState().load();
+    expect(lastCall('listRecords')).toEqual({ binned: false, limit: LIST_PAGE + 1 });
+    expect(store.getState().rows).toHaveLength(LIST_PAGE + 1);
+  });
+
+  it('searches again after a change while the box has text', async () => {
+    store.getState().setQuery('sync');
+    clock.advance(SEARCH_DELAY_MS);
+    await flush();
+    await store.getState().openRecord(A);
+    await store.getState().binRecord(A);
+    expect(calls('search')).toEqual([{ query: 'sync' }, { query: 'sync' }]);
   });
 
   it('renames a record with its text trimmed', async () => {

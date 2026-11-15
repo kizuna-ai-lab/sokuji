@@ -85,6 +85,8 @@ const MainLayout: React.FC = () => {
     } else {
       setShowLogs(true);
       setShowSettings(false);
+      // The logs are a side panel of the conversation: they leave History for it.
+      setHistoryOpen(false);
       sessionStorage.setItem('panelState.showLogs', 'true');
       trackPanelView('logs');
     }

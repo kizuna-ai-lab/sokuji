@@ -1983,6 +1983,11 @@
     "saveSrt": "I-save ang subtitle (.srt)",
     "saveVtt": "I-save ang subtitle (.vtt)",
     "folder": "Folder ng Kasaysayan",
-    "keptHere": "Itinatago sa computer na ito ang transcript ng bawat session. Walang ina-upload."
+    "keptHere": "Itinatago sa computer na ito ang transcript ng bawat session. Walang ina-upload.",
+    "confirmPurge_one": "Burahin nang tuluyan ang {{count}} na record? Hindi na maibabalik ang mga transcript at recording nila.",
+    "hits_one": "{{count}} na tugma",
+    "sentenceCount_one": "{{count}} pangungusap",
+    "space_one": "{{size}} sa {{count}} na record",
+    "showOlder": "Ipakita ang mas lumang mga record"
   }
 }

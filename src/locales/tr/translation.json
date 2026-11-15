@@ -1983,6 +1983,11 @@
     "saveSrt": "Altyazıyı kaydet (.srt)",
     "saveVtt": "Altyazıyı kaydet (.vtt)",
     "folder": "Geçmiş klasörü",
-    "keptHere": "Her oturumun dökümü bu bilgisayarda saklanır. Hiçbir şey yüklenmez."
+    "keptHere": "Her oturumun dökümü bu bilgisayarda saklanır. Hiçbir şey yüklenmez.",
+    "confirmPurge_one": "{{count}} kayıt kalıcı olarak silinsin mi? Dökümü ve ses kaydı geri getirilemez.",
+    "hits_one": "{{count}} eşleşme",
+    "sentenceCount_one": "{{count}} cümle",
+    "space_one": "{{count}} kayıtta {{size}}",
+    "showOlder": "Daha eski kayıtları göster"
   }
 }

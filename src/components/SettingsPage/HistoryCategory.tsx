@@ -26,7 +26,8 @@ function Row({ name, line, children }: { name: string; line?: ReactNode; childre
   );
 }
 
-export function HistoryCategory({ locked }: CategoryBodyProps) {
+// The category changes nothing a running session uses: the switch is read when a session ends, so it stays usable.
+export function HistoryCategory(_props: CategoryBodyProps) {
   const { t } = useTranslation();
   const autoSave = useAutoSaveOnStop();
   const setAutoSave = useSetAutoSaveOnStop();
@@ -81,7 +82,7 @@ export function HistoryCategory({ locked }: CategoryBodyProps) {
         </Row>
         <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript is kept on this computer. Nothing is uploaded.')}</p>
         <Row name={autoSaveName} line={t('mainPanel.export.autoSave.tooltipDesktop', 'When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.')}>
-          <ToggleSwitch checked={autoSave} onChange={() => void setAutoSave(!autoSave)} label="" ariaLabel={autoSaveName} disabled={locked} />
+          <ToggleSwitch checked={autoSave} onChange={() => void setAutoSave(!autoSave)} label="" ariaLabel={autoSaveName} />
         </Row>
       </div>
     </div>

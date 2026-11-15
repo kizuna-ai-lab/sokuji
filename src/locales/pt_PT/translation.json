@@ -1983,6 +1983,11 @@
     "saveSrt": "Guardar legendas (.srt)",
     "saveVtt": "Guardar legendas (.vtt)",
     "folder": "Pasta do histórico",
-    "keptHere": "A transcrição de cada sessão fica neste computador. Nada é carregado."
+    "keptHere": "A transcrição de cada sessão fica neste computador. Nada é carregado.",
+    "confirmPurge_one": "Eliminar definitivamente {{count}} registo? A transcrição e a gravação não poderão ser recuperadas.",
+    "hits_one": "{{count}} correspondência",
+    "sentenceCount_one": "{{count}} frase",
+    "space_one": "{{size}} em {{count}} registo",
+    "showOlder": "Mostrar registos mais antigos"
   }
 }

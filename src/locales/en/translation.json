@@ -1983,6 +1983,11 @@
     "saveSrt": "Save subtitles (.srt)",
     "saveVtt": "Save subtitles (.vtt)",
     "folder": "History folder",
-    "keptHere": "Each session’s transcript is kept on this computer. Nothing is uploaded."
+    "keptHere": "Each session’s transcript is kept on this computer. Nothing is uploaded.",
+    "confirmPurge_one": "Delete {{count}} record for good? Its transcript and recording cannot be brought back.",
+    "hits_one": "{{count}} match",
+    "sentenceCount_one": "{{count}} sentence",
+    "space_one": "{{size}} in {{count}} record",
+    "showOlder": "Show older records"
   }
 }

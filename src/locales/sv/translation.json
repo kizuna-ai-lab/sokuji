@@ -1983,6 +1983,11 @@
     "saveSrt": "Spara undertexter (.srt)",
     "saveVtt": "Spara undertexter (.vtt)",
     "folder": "Historikmapp",
-    "keptHere": "Transkriptionen av varje session sparas på den här datorn. Inget laddas upp."
+    "keptHere": "Transkriptionen av varje session sparas på den här datorn. Inget laddas upp.",
+    "confirmPurge_one": "Radera {{count}} post permanent? Dess transkription och inspelning går inte att få tillbaka.",
+    "hits_one": "{{count}} träff",
+    "sentenceCount_one": "{{count}} mening",
+    "space_one": "{{size}} i {{count}} post",
+    "showOlder": "Visa äldre poster"
   }
 }

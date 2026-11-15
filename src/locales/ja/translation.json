@@ -1983,6 +1983,11 @@
     "saveSrt": "字幕を保存 (.srt)",
     "saveVtt": "字幕を保存 (.vtt)",
     "folder": "履歴フォルダー",
-    "keptHere": "各セッションの文字起こしはこのコンピューターに保存されます。アップロードはされません。"
+    "keptHere": "各セッションの文字起こしはこのコンピューターに保存されます。アップロードはされません。",
+    "confirmPurge_one": "{{count}} 件の記録を完全に削除しますか？文字起こしと録音は元に戻せません。",
+    "hits_one": "{{count}} 件一致",
+    "sentenceCount_one": "{{count}} 文",
+    "space_one": "{{count}} 件の記録で {{size}}",
+    "showOlder": "古い記録を表示"
   }
 }

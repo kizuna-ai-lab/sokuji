@@ -1983,6 +1983,11 @@
     "saveSrt": "保存字幕（.srt）",
     "saveVtt": "保存字幕（.vtt）",
     "folder": "历史文件夹",
-    "keptHere": "每次会话的转写都保存在这台电脑上，不会上传。"
+    "keptHere": "每次会话的转写都保存在这台电脑上，不会上传。",
+    "confirmPurge_one": "彻底删除 {{count}} 条记录？它们的转写和录音将无法找回。",
+    "hits_one": "{{count}} 处匹配",
+    "sentenceCount_one": "{{count}} 句",
+    "space_one": "{{count}} 条记录，共 {{size}}",
+    "showOlder": "显示更早的记录"
   }
 }

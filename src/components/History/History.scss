@@ -169,6 +169,12 @@
     list-style: none;
   }
 
+  &__more {
+    display: flex;
+    justify-content: center;
+    padding: vars.$space-2 vars.$space-4 vars.$space-4;
+  }
+
   &__empty {
     margin: 0;
     padding: vars.$space-6 vars.$space-4;

@@ -159,9 +159,38 @@ describe('a record', () => {
     expect(calls('renameRecord')).toEqual([]);
   });
 
+  it('Escape or a click outside closes a sentence menu and stays on the record', async () => {
+    render(<HistoryPage onClose={() => {}} />);
+    await settle();
+    fireEvent.click(screen.getByText(when()));
+    expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
+    const second = document.querySelector('[data-n="2"]') as HTMLElement;
+    const button = within(second).getByRole('button', { name: 'Change speaker' });
+    fireEvent.click(button);
+    fireEvent.keyDown(button, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Change speaker' })).toBeNull();
+    expect(screen.getByText('Can you ship by Wednesday?')).toBeInTheDocument();
+    fireEvent.click(button);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('menu', { name: 'Change speaker' })).toBeNull();
+  });
+
+  it('an Enter or Escape that ends an input method composition does not save or cancel the title', async () => {
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    const field = screen.getByRole('textbox', { name: 'Title' });
+    fireEvent.change(field, { target: { value: '週次' } });
+    fireEvent.keyDown(field, { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(field, { key: 'Escape', keyCode: 229 });
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('週次');
+    expect(calls('renameRecord')).toEqual([]);
+  });
+
   it('renames a speaker and moves one sentence to a new speaker', async () => {
     await renderRecord();
     const panel = screen.getByRole('region', { name: 'Speakers' });
+    expect(within(panel).getByText('2 sentences')).toBeInTheDocument();
+    expect(within(panel).getByText('1 sentence')).toBeInTheDocument();
     fireEvent.click(within(panel).getByRole('button', { name: 'Rename Other' }));
     const field = within(panel).getByRole('textbox', { name: 'Name' });
     fireEvent.change(field, { target: { value: 'Mina' } });

@@ -139,7 +139,7 @@ describe('the History list', () => {
     await settle();
     const row = rowWith('Old call');
     fireEvent.click(within(row).getByRole('button', { name: 'Delete for good' }));
-    expect(screen.getByText('Delete 1 records for good? Their transcripts and recordings cannot be brought back.')).toBeInTheDocument();
+    expect(screen.getByText('Delete 1 record for good? Its transcript and recording cannot be brought back.')).toBeInTheDocument();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await settle();
@@ -194,6 +194,26 @@ describe('the History list', () => {
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.keyDown(box, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows older records on request', async () => {
+    await renderList();
+    expect(screen.queryByRole('button', { name: 'Show older records' })).toBeNull();
+    act(() => store.setState({ more: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show older records' }));
+    await settle();
+    expect(calls('listRecords').some((a) => (a as { before?: number }).before === START)).toBe(true);
+  });
+
+  it('an Escape or Enter that ends an input method composition is left to it', async () => {
+    render(<HistoryPage onClose={onClose} />);
+    await settle();
+    const box = screen.getByRole('searchbox', { name: 'Search History' });
+    fireEvent.change(box, { target: { value: 'しん' } });
+    fireEvent.keyDown(box, { key: 'Escape', isComposing: true });
+    expect(box).toHaveValue('しん');
+    fireEvent.keyDown(document, { key: 'Escape', isComposing: true });
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('opens the folder', async () => {

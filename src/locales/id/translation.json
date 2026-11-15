@@ -1983,6 +1983,11 @@
     "saveSrt": "Simpan subtitel (.srt)",
     "saveVtt": "Simpan subtitel (.vtt)",
     "folder": "Folder riwayat",
-    "keptHere": "Transkrip setiap sesi disimpan di komputer ini. Tidak ada yang diunggah."
+    "keptHere": "Transkrip setiap sesi disimpan di komputer ini. Tidak ada yang diunggah.",
+    "confirmPurge_one": "Hapus {{count}} rekaman secara permanen? Transkrip dan rekaman suaranya tidak bisa dikembalikan.",
+    "hits_one": "{{count}} kecocokan",
+    "sentenceCount_one": "{{count}} kalimat",
+    "space_one": "{{size}} dalam {{count}} rekaman",
+    "showOlder": "Tampilkan rekaman lebih lama"
   }
 }

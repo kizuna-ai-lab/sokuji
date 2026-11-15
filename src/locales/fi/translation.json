@@ -1983,6 +1983,11 @@
     "saveSrt": "Tallenna tekstitys (.srt)",
     "saveVtt": "Tallenna tekstitys (.vtt)",
     "folder": "Historiakansio",
-    "keptHere": "Jokaisen istunnon litterointi säilytetään tällä tietokoneella. Mitään ei ladata verkkoon."
+    "keptHere": "Jokaisen istunnon litterointi säilytetään tällä tietokoneella. Mitään ei ladata verkkoon.",
+    "confirmPurge_one": "Poistetaanko {{count}} tallenne pysyvästi? Sen litterointia ja äänitettä ei voi palauttaa.",
+    "hits_one": "{{count}} osuma",
+    "sentenceCount_one": "{{count}} lause",
+    "space_one": "{{size}}, {{count}} tallenne",
+    "showOlder": "Näytä vanhemmat tallenteet"
   }
 }

@@ -14,7 +14,7 @@ import { recordRows, type RecordRow, type SpeakerLabels } from '../../lib/histor
 import type { HistorySentenceSide } from '../../lib/history/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { useHistoryPageContext } from './historyContext';
-import { formatBytes, formatDateTime, formatLength } from './format';
+import { formatBytes, formatDateTime, formatLength, isComposing } from './format';
 import RecordExportMenu from './RecordExportMenu';
 import './History.scss';
 
@@ -99,6 +99,17 @@ export const RecordPage: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [hit]);
 
+  // A sentence's menu closes on a press anywhere outside it.
+  useEffect(() => {
+    if (menuFor === null) return undefined;
+    const onDown = (e: PointerEvent) => {
+      const inside = (e.target as Element | null)?.closest?.('.record-sentence__more');
+      if (!inside || inside.getAttribute('data-for') !== String(menuFor)) setMenuFor(null);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [menuFor]);
+
   useEffect(() => {
     if (!result) return undefined;
     const timer = window.setTimeout(() => setResult(null), RESULT_MS);
@@ -116,6 +127,7 @@ export const RecordPage: React.FC = () => {
     void actions.rename(record.id, titleDraft);
   };
   const onTitleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isComposing(e.nativeEvent)) return;
     if (e.key === 'Enter') saveTitle();
     else if (e.key === 'Escape') {
       // The edit is cancelled; the page does not take this Escape as a way back to the list.
@@ -167,6 +179,7 @@ export const RecordPage: React.FC = () => {
                         placeholder={s.label}
                         onChange={(e) => setNameDraft({ ...nameDraft, value: e.target.value })}
                         onKeyDown={(e) => {
+                          if (isComposing(e.nativeEvent)) return;
                           if (e.key === 'Enter') saveName();
                           else if (e.key === 'Escape') { e.preventDefault(); setNameDraft(null); }
                         }}
@@ -194,7 +207,12 @@ export const RecordPage: React.FC = () => {
   );
 
   const sentenceMenu = (row: RecordRow, n: number) => (
-    <span className="record-sentence__more">
+    <span
+      className="record-sentence__more"
+      data-for={n}
+      // Escape closes the menu, from its button or from inside it, and goes no further.
+      onKeyDown={(e) => { if (e.key === 'Escape' && menuFor === n && !isComposing(e.nativeEvent)) { e.preventDefault(); setMenuFor(null); } }}
+    >
       <button
         type="button"
         className="record-sentence__menu-button"
@@ -206,12 +224,7 @@ export const RecordPage: React.FC = () => {
         <UserRoundPen size={12} />
       </button>
       {menuFor === n && (
-        <span
-          className="record-sentence__menu"
-          role="menu"
-          aria-label={t('history.changeSpeaker', 'Change speaker')}
-          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setMenuFor(null); } }}
-        >
+        <span className="record-sentence__menu" role="menu" aria-label={t('history.changeSpeaker', 'Change speaker')}>
           {speakersOf(row.side).filter((s) => s.speaker !== row.speaker).map((s) => (
             <button key={s.speaker} type="button" role="menuitem" disabled={busy} onClick={() => moveSentence(n, s.speaker)}>{s.label}</button>
           ))}

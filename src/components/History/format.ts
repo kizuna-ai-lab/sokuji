@@ -32,3 +32,8 @@ export function formatDateTime(at: number, language: string | undefined): string
 export function formatDate(at: number, language: string | undefined): string {
   return new Intl.DateTimeFormat(uiLocale(language), { dateStyle: 'medium' }).format(at);
 }
+
+/** The key ends an input method composition (choosing a conversion): Enter and Escape belong to it then, not to the page. */
+export function isComposing(e: KeyboardEvent): boolean {
+  return e.isComposing || e.keyCode === 229;
+}

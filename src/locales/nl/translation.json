@@ -1983,6 +1983,11 @@
     "saveSrt": "Ondertitels opslaan (.srt)",
     "saveVtt": "Ondertitels opslaan (.vtt)",
     "folder": "Geschiedenismap",
-    "keptHere": "De transcriptie van elke sessie blijft op deze computer. Er wordt niets geüpload."
+    "keptHere": "De transcriptie van elke sessie blijft op deze computer. Er wordt niets geüpload.",
+    "confirmPurge_one": "{{count}} opname definitief verwijderen? De transcriptie en geluidsopname kunnen niet worden teruggehaald.",
+    "hits_one": "{{count}} treffer",
+    "sentenceCount_one": "{{count}} zin",
+    "space_one": "{{size}} in {{count}} opname",
+    "showOlder": "Oudere opnames tonen"
   }
 }

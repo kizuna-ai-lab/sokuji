@@ -12,6 +12,7 @@ import { createHistoryPageStore } from '../../lib/history/historyPageStore';
 import { HistoryPageContext } from './historyContext';
 import HistoryList from './HistoryList';
 import RecordPage from './RecordPage';
+import { isComposing } from './format';
 import './History.scss';
 
 export interface HistoryPageProps {
@@ -28,7 +29,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (e.key !== 'Escape' || e.defaultPrevented || isComposing(e)) return;
       if (store.getState().open) store.getState().closeRecord();
       else onClose();
     };

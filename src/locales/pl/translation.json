@@ -1983,6 +1983,11 @@
     "saveSrt": "Zapisz napisy (.srt)",
     "saveVtt": "Zapisz napisy (.vtt)",
     "folder": "Folder historii",
-    "keptHere": "Transkrypcja każdej sesji jest przechowywana na tym komputerze. Nic nie jest wysyłane."
+    "keptHere": "Transkrypcja każdej sesji jest przechowywana na tym komputerze. Nic nie jest wysyłane.",
+    "confirmPurge_one": "Usunąć na zawsze {{count}} zapis? Jego transkrypcji i nagrania nie da się przywrócić.",
+    "hits_one": "Dopasowania: {{count}}",
+    "sentenceCount_one": "Zdania: {{count}}",
+    "space_one": "{{size}} w {{count}} zapisie",
+    "showOlder": "Pokaż starsze zapisy"
   }
 }

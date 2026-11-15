@@ -33,6 +33,8 @@ export interface HistoryPageState {
   /** The search's results while the box is not empty; null otherwise. */
   results: readonly HistorySearchResult[] | null;
   selected: ReadonlySet<string>;
+  /** There are older records than the ones listed. */
+  more: boolean;
   usage: HistoryUsage | null;
   open: OpenRecord | null;
   busy: boolean;
@@ -42,6 +44,8 @@ export interface HistoryPageState {
 export interface HistoryPageActions {
   load(): Promise<void>;
   setTab(tab: 'records' | 'bin'): Promise<void>;
+  /** Lists the next page of older records under the ones shown. */
+  showOlder(): Promise<void>;
   setQuery(query: string): void;
   toggle(id: string): void;
   clearSelection(): void;
@@ -61,6 +65,8 @@ export interface HistoryPageActions {
 
 /** Search runs this long after the last keystroke. */
 export const SEARCH_DELAY_MS = 250;
+/** The list is read this many records at a time; "Show older records" reads the next page. */
+export const LIST_PAGE = 200;
 /** The bin is emptied by its records' ids, read in one page of at most this many. */
 const BIN_PAGE = 10_000;
 
@@ -85,13 +91,23 @@ export function createHistoryPageStore(
       }
     };
 
+    /** The search's results for `text`; an answer for an older query is dropped. */
+    const search = async (text: string, seq: number): Promise<void> => {
+      const results = await port.search({ query: text });
+      if (seq === searchSeq) set({ results });
+    };
+
+    /** The status, the list (as many records as are shown, at least a page), the space used, and the search again. */
     const reload = async (): Promise<void> => {
       const status = await port.status();
       set({ status });
       if (!status.available) return;
-      const rows = await port.listRecords({ binned: get().tab === 'bin' });
+      const limit = Math.max(LIST_PAGE, get().rows.length);
+      const rows = await port.listRecords({ binned: get().tab === 'bin', limit });
       const usage = await port.usage();
-      set({ rows, usage });
+      set({ rows, usage, more: rows.length === limit });
+      const text = get().query.trim();
+      if (text && get().results !== null) await search(text, searchSeq);
     };
 
     const newestTranscript = (record: HistoryRecord) => record.transcripts[record.transcripts.length - 1];
@@ -114,6 +130,7 @@ export function createHistoryPageStore(
       query: '',
       results: null,
       selected: new Set(),
+      more: false,
       usage: null,
       open: null,
       busy: false,
@@ -122,8 +139,16 @@ export function createHistoryPageStore(
       load: () => act(reload),
 
       setTab: (tab) => act(async () => {
-        set({ tab, selected: new Set() });
+        set({ tab, selected: new Set(), rows: [], more: false });
         await reload();
+      }),
+
+      showOlder: () => act(async () => {
+        const rows = get().rows;
+        const last = rows[rows.length - 1];
+        if (!last) return;
+        const older = await port.listRecords({ binned: get().tab === 'bin', limit: LIST_PAGE, before: last.startedAt });
+        set({ rows: [...rows, ...older.filter((r) => !rows.some((x) => x.id === r.id))], more: older.length === LIST_PAGE });
       }),
 
       setQuery(query) {
@@ -138,11 +163,7 @@ export function createHistoryPageStore(
         }
         cancelSearch = clock.setTimeout(() => {
           cancelSearch = null;
-          void act(async () => {
-            const results = await port.search({ query: text });
-            // An answer for an older query is dropped.
-            if (seq === searchSeq) set({ results });
-          });
+          void act(() => search(text, seq));
         }, SEARCH_DELAY_MS);
       },
 

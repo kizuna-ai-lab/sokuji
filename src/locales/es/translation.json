@@ -1983,6 +1983,11 @@
     "saveSrt": "Guardar subtítulos (.srt)",
     "saveVtt": "Guardar subtítulos (.vtt)",
     "folder": "Carpeta del historial",
-    "keptHere": "La transcripción de cada sesión se guarda en este ordenador. No se sube nada."
+    "keptHere": "La transcripción de cada sesión se guarda en este ordenador. No se sube nada.",
+    "confirmPurge_one": "¿Eliminar definitivamente {{count}} registro? Su transcripción y su grabación no se podrán recuperar.",
+    "hits_one": "{{count}} coincidencia",
+    "sentenceCount_one": "{{count}} frase",
+    "space_one": "{{size}} en {{count}} registro",
+    "showOlder": "Mostrar registros anteriores"
   }
 }

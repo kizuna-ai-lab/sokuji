@@ -11,7 +11,7 @@ import type { HitTarget } from '../../lib/history/historyPageStore';
 import type { HistoryRecordRow, HistorySearchHit, HistorySearchResult } from '../../lib/history/types';
 import { isElectron } from '../../utils/environment';
 import { useHistoryPageContext } from './historyContext';
-import { formatBytes, formatDate, formatDateTime, formatLength } from './format';
+import { formatBytes, formatDate, formatDateTime, formatLength, isComposing } from './format';
 import './History.scss';
 
 /** The matched text shown for a search result: at most this many characters around the match. */
@@ -50,6 +50,7 @@ export const HistoryList: React.FC = () => {
   const selected = useStore(store, (s) => s.selected);
   const usage = useStore(store, (s) => s.usage);
   const busy = useStore(store, (s) => s.busy);
+  const more = useStore(store, (s) => s.more);
   const actions = store.getState();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -87,7 +88,7 @@ export const HistoryList: React.FC = () => {
   const searching = query.trim() !== '';
   const openFolder = () => { if (status?.dir && isElectron()) void window.electron.invoke('open-directory', status.dir); };
   const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Escape' || query === '') return;
+    if (e.key !== 'Escape' || query === '' || isComposing(e.nativeEvent)) return;
     // The search is cleared; the page does not take this Escape as a way out.
     e.preventDefault();
     actions.setQuery('');
@@ -179,14 +180,21 @@ export const HistoryList: React.FC = () => {
     if (results === null) body = null;
     else if (results.length === 0) body = <p className="history-list__empty">{t('history.nothingFound', 'Nothing found for “{{query}}”.', { query: query.trim() })}</p>;
     else body = <ul className="history-list__rows">{results.map(resultRow)}</ul>;
-  } else if (tab === 'records') {
-    body = rows.length === 0
-      ? <p className="history-list__empty">{t('history.noRecords', 'Your sessions are kept here.')}</p>
-      : <ul className="history-list__rows">{rows.map(recordRow)}</ul>;
+  } else if (rows.length === 0) {
+    body = <p className="history-list__empty">{tab === 'records' ? t('history.noRecords', 'Your sessions are kept here.') : t('history.binEmpty', 'The bin is empty.')}</p>;
   } else {
-    body = rows.length === 0
-      ? <p className="history-list__empty">{t('history.binEmpty', 'The bin is empty.')}</p>
-      : <ul className="history-list__rows">{rows.map(binRow)}</ul>;
+    body = (
+      <>
+        <ul className="history-list__rows">{rows.map(tab === 'records' ? recordRow : binRow)}</ul>
+        {more && (
+          <div className="history-list__more">
+            <button type="button" className="history-button history-button--quiet" disabled={busy} onClick={() => void actions.showOlder()}>
+              {t('history.showOlder', 'Show older records')}
+            </button>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (

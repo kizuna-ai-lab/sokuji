@@ -1983,6 +1983,11 @@
     "saveSrt": "儲存字幕（.srt）",
     "saveVtt": "儲存字幕（.vtt）",
     "folder": "歷史資料夾",
-    "keptHere": "每次工作階段的轉寫都保存在這台電腦上，不會上傳。"
+    "keptHere": "每次工作階段的轉寫都保存在這台電腦上，不會上傳。",
+    "confirmPurge_one": "永久刪除 {{count}} 筆記錄？它們的轉寫和錄音將無法復原。",
+    "hits_one": "{{count}} 處相符",
+    "sentenceCount_one": "{{count}} 句",
+    "space_one": "{{count}} 筆記錄，共 {{size}}",
+    "showOlder": "顯示更早的記錄"
   }
 }

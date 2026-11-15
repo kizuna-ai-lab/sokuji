@@ -10,7 +10,15 @@ vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => null })
 vi.mock('./PanelResizer', () => ({ default: () => <div data-testid="panel-resizer" /> }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
 vi.mock('../SettingsPage/SettingsPage', () => ({ SettingsPage: () => <div data-testid="settings-page" />, default: () => <div data-testid="settings-page" /> }));
-vi.mock('../TitleBar/TitleBar', () => ({ default: () => <div data-testid="title-bar" /> }));
+vi.mock('../TitleBar/TitleBar', () => ({
+  default: (p: { onToggleLogs: () => void; showLogs: boolean }) => (
+    <div data-testid="title-bar">
+      <button type="button" onClick={p.onToggleLogs}>Logs</button>
+      <span data-testid="logs-active">{String(p.showLogs)}</span>
+    </div>
+  ),
+}));
+const logs = vi.hoisted(() => ({ on: false }));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: () => null }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
@@ -18,14 +26,14 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => true, isExtension: () => false, isKizunaAIEnabled: () => false,
 }));
 vi.mock('../../stores/settingsStore', () => ({
-  useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => false, useDiagnosticLogs: () => false,
+  useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => false, useDiagnosticLogs: () => logs.on,
 }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 
 import MainLayout from './MainLayout';
 import { useLayoutStore } from '../../stores/layoutStore';
 
-beforeEach(() => useLayoutStore.setState({ historyOpen: false, showSettings: false }));
+beforeEach(() => { logs.on = false; sessionStorage.clear(); useLayoutStore.setState({ historyOpen: false, showSettings: false }); });
 afterEach(() => cleanup());
 
 describe('the History page in the layout', () => {
@@ -42,6 +50,15 @@ describe('the History page in the layout', () => {
     const { container } = render(<MainLayout />);
     expect(screen.queryByTestId('history-page')).toBeNull();
     expect((container.querySelector('.main-content') as HTMLElement).style.display).toBe('');
+  });
+
+  it('the Logs button leaves History and shows the logs', () => {
+    logs.on = true;
+    useLayoutStore.setState({ historyOpen: true });
+    render(<MainLayout />);
+    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    expect(useLayoutStore.getState().historyOpen).toBe(false);
+    expect(screen.getByTestId('logs-active').textContent).toBe('true');
   });
 
   it('Escape on the list leaves History', () => {

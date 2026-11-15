@@ -29,6 +29,15 @@ describe('a record\'s transcript rows', () => {
     expect(rows).toEqual([expect.objectContaining({ segmentId: 'run:speaker:1', side: 'mine', speakerLabel: 'Me', sentences: [{ n: 1, text: 'One.' }, { n: 2, text: 'Two.' }], translation: 'Uno. Dos.', startMs: 1000, endMs: 2800 })]);
   });
 
+  it("joins a round's translation pieces as the export does", () => {
+    const rows = recordRows({
+      sentences: [s(1, 'run:speaker:1', 'One. Two.')],
+      legs: [leg('speaker', [seg('run:speaker:1', 'source', 'One. Two.', 'u1'), seg('run:speaker:2', 'translation', 'Uno.', 'u1'), seg('run:speaker:3', 'translation', 'Dos.', 'u1')])],
+      textKind: 'original', labels,
+    });
+    expect(rows[0].translation).toBe('Uno. Dos.');
+  });
+
   it('shows a transcript cut from the translation once, with no second translation line', () => {
     const rows = recordRows({ sentences: [s(1, 'run:speaker:2', 'Uno.')], legs: [leg('speaker', [seg('run:speaker:2', 'translation', 'Uno.', 'u1')])], textKind: 'translation', labels });
     expect(rows[0]).toEqual(expect.objectContaining({ sentences: [{ n: 1, text: 'Uno.' }], translation: null }));

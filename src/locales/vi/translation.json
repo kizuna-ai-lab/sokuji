@@ -1983,6 +1983,11 @@
     "saveSrt": "Lưu phụ đề (.srt)",
     "saveVtt": "Lưu phụ đề (.vtt)",
     "folder": "Thư mục lịch sử",
-    "keptHere": "Bản ghi lời của mỗi phiên được lưu trên máy tính này. Không có gì được tải lên."
+    "keptHere": "Bản ghi lời của mỗi phiên được lưu trên máy tính này. Không có gì được tải lên.",
+    "confirmPurge_one": "Xóa vĩnh viễn {{count}} bản ghi? Bản ghi lời và bản ghi âm của chúng sẽ không khôi phục được.",
+    "hits_one": "{{count}} kết quả khớp",
+    "sentenceCount_one": "{{count}} câu",
+    "space_one": "{{size}} trong {{count}} bản ghi",
+    "showOlder": "Hiện bản ghi cũ hơn"
   }
 }

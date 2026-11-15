@@ -1983,6 +1983,11 @@
     "saveSrt": "Simpan sari kata (.srt)",
     "saveVtt": "Simpan sari kata (.vtt)",
     "folder": "Folder sejarah",
-    "keptHere": "Transkrip setiap sesi disimpan pada komputer ini. Tiada apa-apa yang dimuat naik."
+    "keptHere": "Transkrip setiap sesi disimpan pada komputer ini. Tiada apa-apa yang dimuat naik.",
+    "confirmPurge_one": "Padam {{count}} rekod terus? Transkrip dan rakamannya tidak boleh dipulihkan.",
+    "hits_one": "{{count}} padanan",
+    "sentenceCount_one": "{{count}} ayat",
+    "space_one": "{{size}} dalam {{count}} rekod",
+    "showOlder": "Tunjukkan rekod lebih lama"
   }
 }

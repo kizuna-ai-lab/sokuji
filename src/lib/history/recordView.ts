@@ -5,6 +5,7 @@
 // subtitles.
 import type { Leg, LegName } from '../conversation/types';
 import type { TranscriptScope } from '../export/transcript';
+import { joinSegmentTexts } from '../projection/join';
 import { createProjector, DEFAULT_PROJECTION } from '../projection/project';
 import type { Cue } from './subtitles';
 import type { HistorySentence, HistorySentenceSide, HistoryTimeKind } from './types';
@@ -47,7 +48,7 @@ export function recordRows(o: {
   if (o.textKind === 'original' && o.legs.length > 0) {
     for (const e of createProjector().project(o.legs, DEFAULT_PROJECTION)) {
       if (e.kind !== 'exchange') continue;
-      const text = e.translation.map((r) => r.text).join('').trim();
+      const text = joinSegmentTexts(e.translation.map((r) => r.text));
       if (!text) continue;
       for (const r of e.source) if (!translationOf.has(r.segmentId)) translationOf.set(r.segmentId, text);
     }

@@ -1983,6 +1983,11 @@
     "saveSrt": "Salva sottotitoli (.srt)",
     "saveVtt": "Salva sottotitoli (.vtt)",
     "folder": "Cartella della cronologia",
-    "keptHere": "La trascrizione di ogni sessione resta su questo computer. Non viene caricato nulla."
+    "keptHere": "La trascrizione di ogni sessione resta su questo computer. Non viene caricato nulla.",
+    "confirmPurge_one": "Eliminare definitivamente {{count}} registrazione? La trascrizione e l’audio non si potranno recuperare.",
+    "hits_one": "{{count}} corrispondenza",
+    "sentenceCount_one": "{{count}} frase",
+    "space_one": "{{size}} in {{count}} registrazione",
+    "showOlder": "Mostra registrazioni meno recenti"
   }
 }

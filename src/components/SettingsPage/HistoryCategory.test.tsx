@@ -53,6 +53,16 @@ describe('history and notes', () => {
     expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
   });
 
+  it('keeps the auto-save switch usable during a session, as the export menu did', async () => {
+    render(<HistoryCategory locked />);
+    await settle();
+    const toggle = within(row('Auto-save when session ends')).getByRole('switch');
+    expect(toggle).not.toBeDisabled();
+    fireEvent.click(toggle);
+    await settle();
+    expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
+  });
+
   it('says so when History cannot be opened, and keeps the switch', async () => {
     history.status = { available: false, reason: 'newer', dir: '' };
     render(<HistoryCategory locked={false} />);

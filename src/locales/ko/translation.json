@@ -1983,6 +1983,11 @@
     "saveSrt": "자막 저장(.srt)",
     "saveVtt": "자막 저장(.vtt)",
     "folder": "기록 폴더",
-    "keptHere": "각 세션의 전사는 이 컴퓨터에 보관됩니다. 아무것도 업로드되지 않습니다."
+    "keptHere": "각 세션의 전사는 이 컴퓨터에 보관됩니다. 아무것도 업로드되지 않습니다.",
+    "confirmPurge_one": "기록 {{count}}개를 영구 삭제할까요? 전사와 녹음은 되돌릴 수 없습니다.",
+    "hits_one": "{{count}}건 일치",
+    "sentenceCount_one": "{{count}}문장",
+    "space_one": "기록 {{count}}개, {{size}}",
+    "showOlder": "이전 기록 보기"
   }
 }
