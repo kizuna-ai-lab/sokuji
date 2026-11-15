@@ -2055,6 +2055,12 @@
     "notesCancelled": "这份纪要的写作已停止。",
     "tagWritingNotes": "纪要生成中",
     "tagNotesFailed": "纪要失败",
+    "notesNames": "待核对的名称",
+    "notesNamesHint": "识别可能把这些写错了。",
+    "notesDismiss": "忽略",
+    "saveNotesMd": "保存纪要（.md）",
+    "saveNotesTxt": "保存纪要（.txt）",
+    "copyNotes": "复制纪要",
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "length": "时长 {{length}}"
   }

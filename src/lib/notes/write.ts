@@ -42,7 +42,7 @@ export type NotesPoint = {
   anchorMoved?: true;
 };
 /** A name or term the recognizer has probably written wrong. `likely` is null when what was meant is unclear. */
-export type NotesName = { written: string; likely: string | null; sentences: number[] };
+export type NotesName = { written: string; likely: string | null; sentences: number[]; dismissed?: true };
 export type NotesBody = {
   title: string;
   overview: { text: string; format: 'plain' };

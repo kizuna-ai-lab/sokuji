@@ -71,6 +71,8 @@ export interface HistoryPageActions {
   /** Starts a version of the open record's notes, in `language` or the record's own. */
   generateNotes(language?: NotesLanguage): void;
   cancelNotes(): void;
+  /** Dismisses name `index` of the shown version's names to check. */
+  dismissName(index: number): Promise<void>;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
   reassign(n: number, speaker: string | null): Promise<void>;
 }
@@ -264,6 +266,15 @@ export function createHistoryPageStore(
         const open = get().open;
         if (open && notes) notes.start(open.record.id, language);
       },
+
+      dismissName: (index) => act(async () => {
+        const shown = get().open?.notes;
+        const names = shown?.body?.names;
+        if (!shown || !names?.[index]) return;
+        await port.updateNotesNames({ notesId: shown.id, names: names.map((n, i) => (i === index ? { ...n, dismissed: true } : n)) });
+        const again = await port.getNotes({ id: shown.id });
+        if (get().open?.notes?.id === shown.id) set({ open: { ...get().open!, notes: again } });
+      }),
 
       cancelNotes() {
         const open = get().open;

@@ -33,6 +33,7 @@ const HISTORY_CHANNELS = Object.freeze({
   'history:save-notes': 'saveNotes',
   'history:list-notes': 'listNotes',
   'history:get-notes': 'getNotes',
+  'history:update-notes-names': 'updateNotesNames',
   'history:search': 'search',
   'history:bin-records': 'binRecords',
   'history:restore-records': 'restoreRecords',
@@ -94,6 +95,7 @@ function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnav
   ipcMain.handle('history:save-notes', handle('saveNotes'));
   ipcMain.handle('history:list-notes', handle('listNotes'));
   ipcMain.handle('history:get-notes', handle('getNotes'));
+  ipcMain.handle('history:update-notes-names', handle('updateNotesNames'));
   ipcMain.handle('history:search', handle('search'));
   ipcMain.handle('history:bin-records', handle('binRecords'));
   ipcMain.handle('history:restore-records', handle('restoreRecords'));

@@ -2055,6 +2055,12 @@
     "notesCancelled": "Penulisan nota ini dihentikan.",
     "tagWritingNotes": "Menulis nota",
     "tagNotesFailed": "Nota gagal",
+    "notesNames": "Nama untuk disemak",
+    "notesNamesHint": "Pengecam mungkin tersalah tulis.",
+    "notesDismiss": "Abaikan",
+    "saveNotesMd": "Simpan nota (.md)",
+    "saveNotesTxt": "Simpan nota (.txt)",
+    "copyNotes": "Salin nota",
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "length": "Tempoh {{length}}"
   }

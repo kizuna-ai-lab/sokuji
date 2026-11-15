@@ -138,6 +138,7 @@ export const INVOKE_CHANNELS = [
   'history:save-notes',
   'history:list-notes',
   'history:get-notes',
+  'history:update-notes-names',
   'history:search',
   'history:bin-records',
   'history:restore-records',

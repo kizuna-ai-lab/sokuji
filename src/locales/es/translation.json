@@ -2055,6 +2055,12 @@
     "notesCancelled": "Se detuvo la escritura de estas notas.",
     "tagWritingNotes": "Escribiendo notas",
     "tagNotesFailed": "Notas fallidas",
+    "notesNames": "Nombres por revisar",
+    "notesNamesHint": "Puede que el reconocimiento los haya escrito mal.",
+    "notesDismiss": "Descartar",
+    "saveNotesMd": "Guardar notas (.md)",
+    "saveNotesTxt": "Guardar notas (.txt)",
+    "copyNotes": "Copiar notas",
     "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco.",
     "length": "Duración {{length}}"
   }

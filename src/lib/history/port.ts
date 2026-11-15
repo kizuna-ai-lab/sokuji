@@ -30,6 +30,8 @@ export interface HistoryPort {
   saveNotes(args: HistoryNotesInput): Promise<number>;
   listNotes(args: { recordId: string }): Promise<HistoryNotesRow[]>;
   getNotes(args: { id: number }): Promise<HistoryNotes | null>;
+  /** A complete version's names to check, replaced as a whole. */
+  updateNotesNames(args: { notesId: number; names: Array<Record<string, unknown>> }): Promise<void>;
   search(args: { query: string; limit?: number }): Promise<HistorySearchResult[]>;
   binRecords(args: { ids: string[] }): Promise<{ changed: number }>;
   restoreRecords(args: { ids: string[] }): Promise<{ changed: number }>;
@@ -75,6 +77,7 @@ export const HISTORY_PORT_CHANNELS = [
   ['saveNotes', 'history:save-notes'],
   ['listNotes', 'history:list-notes'],
   ['getNotes', 'history:get-notes'],
+  ['updateNotesNames', 'history:update-notes-names'],
   ['search', 'history:search'],
   ['binRecords', 'history:bin-records'],
   ['restoreRecords', 'history:restore-records'],
@@ -123,6 +126,7 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     saveNotes: (a) => call('history:save-notes', a),
     listNotes: (a) => call('history:list-notes', a),
     getNotes: (a) => call('history:get-notes', a),
+    updateNotesNames: (a) => call('history:update-notes-names', a),
     search: (a) => call('history:search', a),
     binRecords: (a) => call('history:bin-records', a),
     restoreRecords: (a) => call('history:restore-records', a),
@@ -158,6 +162,7 @@ export const nullHistoryPort: HistoryPort = {
   saveNotes: async () => 0,
   listNotes: async () => [],
   getNotes: async () => null,
+  updateNotesNames: nothing,
   search: async () => [],
   binRecords: async () => ({ changed: 0 }),
   restoreRecords: async () => ({ changed: 0 }),

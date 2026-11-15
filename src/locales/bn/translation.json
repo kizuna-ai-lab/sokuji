@@ -2055,6 +2055,12 @@
     "notesCancelled": "এই নোট লেখা থামানো হয়েছিল।",
     "tagWritingNotes": "নোট লেখা হচ্ছে",
     "tagNotesFailed": "নোট ব্যর্থ",
+    "notesNames": "যাচাই করার নাম",
+    "notesNamesHint": "স্বীকৃতি ব্যবস্থা এগুলো ভুল লিখে থাকতে পারে।",
+    "notesDismiss": "বাদ দিন",
+    "saveNotesMd": "নোট সংরক্ষণ (.md)",
+    "saveNotesTxt": "নোট সংরক্ষণ (.txt)",
+    "copyNotes": "নোট কপি করুন",
     "transcriptStopped": "এই সেশনের ট্রান্সক্রিপ্টের কিছু অংশ সংরক্ষণ করা যায়নি: ডিস্কে লেখা যায়নি।",
     "length": "দৈর্ঘ্য {{length}}"
   }

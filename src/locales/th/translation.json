@@ -2055,6 +2055,12 @@
     "notesCancelled": "การเขียนบันทึกนี้ถูกหยุดไว้",
     "tagWritingNotes": "กำลังเขียนบันทึก",
     "tagNotesFailed": "บันทึกล้มเหลว",
+    "notesNames": "ชื่อที่ควรตรวจ",
+    "notesNamesHint": "ระบบรู้จำเสียงอาจเขียนคำเหล่านี้ผิด",
+    "notesDismiss": "ปิด",
+    "saveNotesMd": "บันทึกบันทึกย่อ (.md)",
+    "saveNotesTxt": "บันทึกบันทึกย่อ (.txt)",
+    "copyNotes": "คัดลอกบันทึก",
     "transcriptStopped": "บันทึกบทถอดความบางส่วนของเซสชันนี้ไม่ได้: เขียนลงดิสก์ไม่ได้",
     "length": "ความยาว {{length}}"
   }

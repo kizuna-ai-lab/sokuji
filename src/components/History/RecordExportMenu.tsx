@@ -15,7 +15,9 @@ import { conversationExporter, exportWords } from '../../lib/export/exporter';
 import { FULL_SCOPE, type TranscriptScope } from '../../lib/export/transcript';
 import { recordCues, type RecordRow } from '../../lib/history/recordView';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
-import type { HistoryRecord } from '../../lib/history/types';
+import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
+import { notesMarkdown, notesText, type NotesWords } from '../../lib/notes/exportNotes';
+import type { NotesBody } from '../../lib/notes/write';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { copyToClipboard, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
 import { playable } from '../../lib/history/playback';
@@ -27,6 +29,8 @@ export interface RecordExportMenuProps {
   record: HistoryRecord;
   legs: readonly Leg[];
   rows: readonly RecordRow[];
+  /** The version of the notes shown on the page: exported as it is. */
+  notes?: HistoryNotes | null;
   /** A line about what a copy did, for the page to show. */
   onResult?(message: string): void;
 }
@@ -41,7 +45,7 @@ function cueScope(scope: TranscriptScope, textKind: 'original' | 'translation'):
   return { speaker: one(scope.speaker), participant: one(scope.participant) };
 }
 
-export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportMenuProps) {
+export function RecordExportMenu({ record, legs, rows, notes = null, onResult }: RecordExportMenuProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -90,6 +94,12 @@ export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportM
   const hasScoped = exporter.hasScopedContent(scope);
   const file = (ext: 'txt' | 'json' | 'srt' | 'vtt') => exportFilename(ext, record.startedAt);
   const recorded = playable(record.tracks);
+  // The notes shown, when they are complete: their own items, not narrowed by the choice above.
+  const notesBody = notes?.state === 'complete' && notes.body ? (notes.body as unknown as NotesBody) : null;
+  const notesWords: NotesWords = {
+    decision: t('history.notesKind.decision', 'Decision'), todo: t('history.notesKind.todo', 'To do'), risk: t('history.notesKind.risk', 'Risk'),
+  };
+  const notesFile = (ext: 'md' | 'txt') => `sokuji-notes-${formatTimestampForFilename(record.startedAt)}.${ext}`;
 
   const items = [
     {
@@ -108,6 +118,22 @@ export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportM
     {
       key: 'vtt', label: t('history.saveVtt', 'Save subtitles (.vtt)'), Icon: Captions,
       run: () => downloadFile(renderVtt(recordCues(rows, cueScope(scope, textKind))), file('vtt'), 'text/vtt;charset=utf-8'),
+    },
+    {
+      key: 'notes-md', label: t('history.saveNotesMd', 'Save notes (.md)'), Icon: FileText, own: true, enabled: notesBody !== null,
+      run: () => { if (notesBody) downloadFile(notesMarkdown(notesBody, notesWords), notesFile('md'), 'text/markdown;charset=utf-8'); },
+    },
+    {
+      key: 'notes-txt', label: t('history.saveNotesTxt', 'Save notes (.txt)'), Icon: FileText, own: true, enabled: notesBody !== null,
+      run: () => { if (notesBody) downloadFile(notesText(notesBody, notesWords), notesFile('txt'), 'text/plain;charset=utf-8'); },
+    },
+    {
+      key: 'notes-copy', label: t('history.copyNotes', 'Copy notes'), Icon: Copy, own: true, enabled: notesBody !== null,
+      run: async () => {
+        if (!notesBody) return;
+        const ok = await copyToClipboard(notesText(notesBody, notesWords));
+        onResult?.(ok ? t('history.copied', 'Copied.') : t('history.copyFailed', 'Could not copy. Check the clipboard permission.'));
+      },
     },
     {
       // The stored files as they are, one per track (spec §7); not narrowed by the choice above. The main process asks

@@ -2055,6 +2055,12 @@
     "notesCancelled": "Itinigil ang pagsulat ng mga talang ito.",
     "tagWritingNotes": "Isinusulat ang mga tala",
     "tagNotesFailed": "Nabigo ang mga tala",
+    "notesNames": "Mga pangalang susuriin",
+    "notesNamesHint": "Maaaring mali ang pagkakasulat ng recognizer sa mga ito.",
+    "notesDismiss": "Balewalain",
+    "saveNotesMd": "I-save ang mga tala (.md)",
+    "saveNotesTxt": "I-save ang mga tala (.txt)",
+    "copyNotes": "Kopyahin ang mga tala",
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "length": "Haba {{length}}"
   }

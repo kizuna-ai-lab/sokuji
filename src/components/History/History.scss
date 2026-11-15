@@ -753,6 +753,18 @@
     line-height: 16px;
     color: vars.$text-tertiary;
   }
+  &__names { display: flex; flex-direction: column; gap: vars.$space-1; padding-top: vars.$space-2; border-top: 1px solid vars.$border-subtle; h4 { margin: 0; } }
+  &__dismiss {
+    margin-left: vars.$space-2;
+    padding: 0 vars.$space-1;
+    border: none;
+    background: none;
+    color: vars.$text-tertiary;
+    font-size: vars.$font-caption;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+  }
   &__kind--decision { color: tk.$color-primary; border-color: tk.$color-primary; }
   &__kind--risk { color: vars.$color-error; border-color: vars.$color-error-border; }
 }

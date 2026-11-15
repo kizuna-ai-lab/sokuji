@@ -2055,6 +2055,12 @@
     "notesCancelled": "Skrivandet av de här anteckningarna avbröts.",
     "tagWritingNotes": "Skriver anteckningar",
     "tagNotesFailed": "Anteckningar misslyckades",
+    "notesNames": "Namn att kontrollera",
+    "notesNamesHint": "Igenkänningen kan ha skrivit dessa fel.",
+    "notesDismiss": "Avfärda",
+    "saveNotesMd": "Spara anteckningar (.md)",
+    "saveNotesTxt": "Spara anteckningar (.txt)",
+    "copyNotes": "Kopiera anteckningar",
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}"
   }

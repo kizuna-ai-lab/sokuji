@@ -2055,6 +2055,12 @@
     "notesCancelled": "Pisanie tych notatek zostało przerwane.",
     "tagWritingNotes": "Notatki w toku",
     "tagNotesFailed": "Notatki nieudane",
+    "notesNames": "Nazwy do sprawdzenia",
+    "notesNamesHint": "Rozpoznawanie mogło zapisać je błędnie.",
+    "notesDismiss": "Odrzuć",
+    "saveNotesMd": "Zapisz notatki (.md)",
+    "saveNotesTxt": "Zapisz notatki (.txt)",
+    "copyNotes": "Kopiuj notatki",
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
     "length": "Czas trwania {{length}}"
   }

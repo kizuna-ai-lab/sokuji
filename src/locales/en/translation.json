@@ -2055,6 +2055,12 @@
     "notesCancelled": "Writing these notes was stopped.",
     "tagWritingNotes": "Writing notes",
     "tagNotesFailed": "Notes failed",
+    "notesNames": "Names to check",
+    "notesNamesHint": "The recognizer may have written these wrong.",
+    "notesDismiss": "Dismiss",
+    "saveNotesMd": "Save notes (.md)",
+    "saveNotesTxt": "Save notes (.txt)",
+    "copyNotes": "Copy notes",
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "length": "Length {{length}}"
   }

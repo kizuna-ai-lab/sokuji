@@ -2055,6 +2055,12 @@
     "notesCancelled": "نوشتن این یادداشت‌ها متوقف شد.",
     "tagWritingNotes": "در حال نوشتن یادداشت",
     "tagNotesFailed": "یادداشت ناموفق",
+    "notesNames": "نام‌هایی برای بررسی",
+    "notesNamesHint": "شاید تشخیص‌دهنده این‌ها را اشتباه نوشته باشد.",
+    "notesDismiss": "رد کردن",
+    "saveNotesMd": "ذخیرهٔ یادداشت‌ها (‎.md)",
+    "saveNotesTxt": "ذخیرهٔ یادداشت‌ها (‎.txt)",
+    "copyNotes": "کپی یادداشت‌ها",
     "transcriptStopped": "بخشی از رونوشت این جلسه ذخیره نشد: روی دیسک نوشته نشد.",
     "length": "مدت {{length}}"
   }

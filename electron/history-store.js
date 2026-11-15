@@ -489,6 +489,16 @@ function openHistory({ dir, now = () => Date.now() }) {
       });
     },
 
+    /** A complete version's names to check, replaced as a whole (a dismissed name stays, marked). */
+    updateNotesNames({ notesId, names } = {}) {
+      const n = isInt(notesId) ? one('select id, body from notes where id = ?', notesId) : undefined;
+      if (!n) fail('NO_NOTES', `No notes ${notesId}`);
+      if (!Array.isArray(names) || !names.every(isPlainObject)) fail('BAD_NOTES', 'Names are a list of objects');
+      if (n.body === null) fail('BAD_NOTES', `Notes ${notesId} have no body`);
+      const body = { ...JSON.parse(n.body), names };
+      run('update notes set body = ?, search_text = ? where id = ?', JSON.stringify(body), notesSearchText(body), notesId);
+    },
+
     listNotes({ recordId } = {}) {
       return all('select id, transcript_id, written_by, language, created_at, state, failure from notes where record_id = ? order by id desc', recordId)
         .map((n) => ({

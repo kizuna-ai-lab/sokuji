@@ -2055,6 +2055,12 @@
     "notesCancelled": "Das Schreiben dieser Notizen wurde abgebrochen.",
     "tagWritingNotes": "Notizen werden geschrieben",
     "tagNotesFailed": "Notizen fehlgeschlagen",
+    "notesNames": "Zu prüfende Namen",
+    "notesNamesHint": "Die Erkennung hat diese vielleicht falsch geschrieben.",
+    "notesDismiss": "Ausblenden",
+    "saveNotesMd": "Notizen speichern (.md)",
+    "saveNotesTxt": "Notizen speichern (.txt)",
+    "copyNotes": "Notizen kopieren",
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}"
   }

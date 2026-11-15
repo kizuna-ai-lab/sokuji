@@ -2055,6 +2055,12 @@
     "notesCancelled": "這份紀要的寫作已停止。",
     "tagWritingNotes": "紀要產生中",
     "tagNotesFailed": "紀要失敗",
+    "notesNames": "待核對的名稱",
+    "notesNamesHint": "辨識可能把這些寫錯了。",
+    "notesDismiss": "忽略",
+    "saveNotesMd": "儲存紀要（.md）",
+    "saveNotesTxt": "儲存紀要（.txt）",
+    "copyNotes": "複製紀要",
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "length": "時長 {{length}}"
   }

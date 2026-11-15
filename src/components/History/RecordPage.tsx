@@ -190,7 +190,7 @@ export const RecordPage: React.FC = () => {
     <RecordNotes
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
-      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }}
+      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)}
     />
   );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
@@ -390,7 +390,7 @@ export const RecordPage: React.FC = () => {
               {t('history.refresh', 'Refresh')}
             </button>
           )}
-          <RecordExportMenu record={record} legs={open.legs} rows={rows} onResult={setResult} />
+          <RecordExportMenu record={record} legs={open.legs} rows={rows} notes={open.notes} onResult={setResult} />
           <span
             className="record-page__more"
             onKeyDown={(e) => { if (e.key === 'Escape' && moreOpen && !isComposing(e.nativeEvent)) { e.preventDefault(); setMoreOpen(false); } }}

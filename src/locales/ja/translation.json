@@ -2055,6 +2055,12 @@
     "notesCancelled": "このメモの作成は中止されました。",
     "tagWritingNotes": "メモ作成中",
     "tagNotesFailed": "メモ失敗",
+    "notesNames": "確認したい名前",
+    "notesNamesHint": "音声認識が書き間違えたかもしれません。",
+    "notesDismiss": "閉じる",
+    "saveNotesMd": "メモを保存 (.md)",
+    "saveNotesTxt": "メモを保存 (.txt)",
+    "copyNotes": "メモをコピー",
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "length": "長さ {{length}}"
   }

@@ -304,6 +304,16 @@ describe('notes versions', () => {
     expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ notesVersions: 2, notesState: 'failed' }));
   });
 
+  it("a version's names to check can be replaced (dismissed ones kept, marked), and nothing else changes", () => {
+    const id = s.saveNotes(notes({ body: { ...BODY, names: [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }] } }));
+    s.updateNotesNames({ notesId: id, names: [{ written: 'Soku G', likely: 'Sokuji', sentences: [4], dismissed: true }] });
+    expect(s.getNotes({ id }).body).toEqual({ ...BODY, names: [{ written: 'Soku G', likely: 'Sokuji', sentences: [4], dismissed: true }] });
+    expect(() => s.updateNotesNames({ notesId: id, names: 'x' })).toThrow(expect.objectContaining({ code: 'BAD_NOTES' }));
+    const failed = s.saveNotes(notes({ state: 'failed', failure: 'no', body: null }));
+    expect(() => s.updateNotesNames({ notesId: failed, names: [] })).toThrow(expect.objectContaining({ code: 'BAD_NOTES' }));
+    expect(() => s.updateNotesNames({ notesId: 999, names: [] })).toThrow(expect.objectContaining({ code: 'NO_NOTES' }));
+  });
+
   it('a failed version is stored with its reason and no body', () => {
     const id = s.saveNotes(notes({ state: 'failed', failure: 'part 2 of 3 failed twice', body: null, requestIds: ['req-1', 'req-2'] }));
     expect(s.getNotes({ id })).toEqual(expect.objectContaining({ state: 'failed', failure: 'part 2 of 3 failed twice', body: null, requestIds: ['req-1', 'req-2'] }));

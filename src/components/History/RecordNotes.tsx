@@ -28,6 +28,8 @@ export interface RecordNotesProps {
   onShowVersion(id: number): void;
   /** Takes the transcript to sentence `n`. */
   onJump(n: number): void;
+  /** Dismisses name `index` of the version's names to check. */
+  onDismissName(index: number): void;
 }
 
 type Filter = 'all' | NoteKind;
@@ -143,6 +145,20 @@ export function RecordNotes(p: RecordNotesProps) {
             </section>
           );
         })}
+        {body.names.some((n) => !n.dismissed) && (
+          <section className="record-notes__names" aria-label={t('history.notesNames', 'Names to check')}>
+            <h4>{t('history.notesNames', 'Names to check')}</h4>
+            <p className="record-notes__summary">{t('history.notesNamesHint', 'The recognizer may have written these wrong.')}</p>
+            <ul className="record-notes__points">
+              {body.names.map((n, i) => (n.dismissed ? null : (
+                <li key={i} className="record-notes__point">
+                  <button type="button" className="record-notes__jump" onClick={() => p.onJump(n.sentences[0])}>{`${n.written} → ${n.likely ?? '?'}`}</button>
+                  <button type="button" className="record-notes__dismiss" onClick={() => p.onDismissName(i)}>{t('history.notesDismiss', 'Dismiss')}</button>
+                </li>
+              )))}
+            </ul>
+          </section>
+        )}
         {writeControls(t('history.notesWriteAgain', 'Write a new version'))}
       </>
     );

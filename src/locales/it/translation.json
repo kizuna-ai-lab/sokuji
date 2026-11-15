@@ -2055,6 +2055,12 @@
     "notesCancelled": "La scrittura di queste note è stata interrotta.",
     "tagWritingNotes": "Note in corso",
     "tagNotesFailed": "Note non riuscite",
+    "notesNames": "Nomi da controllare",
+    "notesNamesHint": "Il riconoscimento potrebbe averli scritti male.",
+    "notesDismiss": "Ignora",
+    "saveNotesMd": "Salva le note (.md)",
+    "saveNotesTxt": "Salva le note (.txt)",
+    "copyNotes": "Copia le note",
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "length": "Durata {{length}}"
   }

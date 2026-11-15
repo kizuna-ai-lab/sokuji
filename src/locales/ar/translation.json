@@ -2055,6 +2055,12 @@
     "notesCancelled": "أُوقفت كتابة هذه الملاحظات.",
     "tagWritingNotes": "جارٍ كتابة الملاحظات",
     "tagNotesFailed": "فشلت الملاحظات",
+    "notesNames": "أسماء للتحقق منها",
+    "notesNamesHint": "ربما كتب أداة التعرف هذه بشكل خاطئ.",
+    "notesDismiss": "تجاهل",
+    "saveNotesMd": "حفظ الملاحظات (‎.md)",
+    "saveNotesTxt": "حفظ الملاحظات (‎.txt)",
+    "copyNotes": "نسخ الملاحظات",
     "transcriptStopped": "تعذّر حفظ جزء من النص المفرغ لهذه الجلسة: تعذّرت كتابته على القرص.",
     "length": "المدة {{length}}"
   }

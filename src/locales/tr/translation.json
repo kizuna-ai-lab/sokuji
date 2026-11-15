@@ -2055,6 +2055,12 @@
     "notesCancelled": "Bu notların yazılması durduruldu.",
     "tagWritingNotes": "Notlar yazılıyor",
     "tagNotesFailed": "Notlar başarısız",
+    "notesNames": "Kontrol edilecek adlar",
+    "notesNamesHint": "Tanıma bunları yanlış yazmış olabilir.",
+    "notesDismiss": "Yok say",
+    "saveNotesMd": "Notları kaydet (.md)",
+    "saveNotesTxt": "Notları kaydet (.txt)",
+    "copyNotes": "Notları kopyala",
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "length": "Süre {{length}}"
   }

@@ -2055,6 +2055,12 @@
     "notesCancelled": "Näiden muistiinpanojen kirjoittaminen keskeytettiin.",
     "tagWritingNotes": "Muistiinpanoja kirjoitetaan",
     "tagNotesFailed": "Muistiinpanot epäonnistuivat",
+    "notesNames": "Tarkistettavat nimet",
+    "notesNamesHint": "Tunnistus on ehkä kirjoittanut nämä väärin.",
+    "notesDismiss": "Ohita",
+    "saveNotesMd": "Tallenna muistiinpanot (.md)",
+    "saveNotesTxt": "Tallenna muistiinpanot (.txt)",
+    "copyNotes": "Kopioi muistiinpanot",
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}"
   }

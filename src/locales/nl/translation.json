@@ -2055,6 +2055,12 @@
     "notesCancelled": "Het schrijven van deze notities is gestopt.",
     "tagWritingNotes": "Notities in de maak",
     "tagNotesFailed": "Notities mislukt",
+    "notesNames": "Namen om te controleren",
+    "notesNamesHint": "De herkenning heeft deze misschien verkeerd geschreven.",
+    "notesDismiss": "Negeren",
+    "saveNotesMd": "Notities opslaan (.md)",
+    "saveNotesTxt": "Notities opslaan (.txt)",
+    "copyNotes": "Notities kopiëren",
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "length": "Duur {{length}}"
   }

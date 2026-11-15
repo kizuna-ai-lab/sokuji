@@ -2055,6 +2055,12 @@
     "notesCancelled": "Việc viết ghi chú này đã bị dừng.",
     "tagWritingNotes": "Đang viết ghi chú",
     "tagNotesFailed": "Ghi chú thất bại",
+    "notesNames": "Tên cần kiểm tra",
+    "notesNamesHint": "Có thể trình nhận dạng đã viết sai những tên này.",
+    "notesDismiss": "Bỏ qua",
+    "saveNotesMd": "Lưu ghi chú (.md)",
+    "saveNotesTxt": "Lưu ghi chú (.txt)",
+    "copyNotes": "Sao chép ghi chú",
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "length": "Thời lượng {{length}}"
   }

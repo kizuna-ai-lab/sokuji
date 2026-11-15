@@ -376,6 +376,28 @@ describe('a record', () => {
     expect(play).toHaveBeenCalled();
   });
 
+  it('exports the shown notes as Markdown or text, or copies them; not without notes', async () => {
+    await renderRecord();
+    openExport();
+    expect(screen.getByRole('menuitem', { name: 'Save notes (.md)' })).toBeDisabled();
+    cleanup();
+    record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: '', format: 'plain' }, topics: [{ title: 'Dates', summary: '', first: 1 }],
+        points: [{ topic: 0, text: 'Ships by Wednesday', sentences: [2], kinds: ['decision'] }], names: [] },
+    })) as never;
+    await renderRecord();
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save notes (.md)' }));
+    expect(vi.mocked(downloadFile).mock.calls[0]).toEqual([expect.stringContaining('- Ships by Wednesday — Decision'), 'sokuji-notes-20260115-090000.md', 'text/markdown;charset=utf-8']);
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy notes' }));
+    await settle();
+    expect(copyToClipboard).toHaveBeenLastCalledWith(expect.stringContaining('  - Ships by Wednesday (Decision)'));
+  });
+
   it('a record still being written can be refreshed and not binned', async () => {
     record = { ...record, state: 'open', endedAt: null };
     await renderRecord();

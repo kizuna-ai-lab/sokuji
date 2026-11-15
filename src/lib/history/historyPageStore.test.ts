@@ -240,4 +240,19 @@ describe("a record's notes", () => {
     store.getState().cancelNotes();
     expect(runner.cancel).toHaveBeenCalledWith(A);
   });
+
+  it('dismisses a name to check in the shown version and shows it again', async () => {
+    withNotes([7]);
+    const names = [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }, { written: 'Ozaka', likely: 'Osaka', sentences: [9] }];
+    const getNotes = port.getNotes;
+    port.getNotes = (async (arg: { id: number }) => {
+      const n = await (getNotes as (a: { id: number }) => Promise<HistoryNotes>)(arg);
+      return { ...n, body: { ...n.body!, names } };
+    }) as never;
+    port.updateNotesNames = (async (arg: unknown) => { port.calls.push(['updateNotesNames', arg]); }) as never;
+    await store.getState().openRecord(A);
+    await store.getState().dismissName(1);
+    expect(calls('updateNotesNames')).toEqual([{ notesId: 7, names: [names[0], { ...names[1], dismissed: true }] }]);
+    expect(calls('getNotes')).toEqual([{ id: 7 }, { id: 7 }]);
+  });
 });

@@ -2055,6 +2055,12 @@
     "notesCancelled": "La rédaction de ces notes a été arrêtée.",
     "tagWritingNotes": "Notes en cours",
     "tagNotesFailed": "Notes en échec",
+    "notesNames": "Noms à vérifier",
+    "notesNamesHint": "La reconnaissance les a peut-être mal écrits.",
+    "notesDismiss": "Ignorer",
+    "saveNotesMd": "Enregistrer les notes (.md)",
+    "saveNotesTxt": "Enregistrer les notes (.txt)",
+    "copyNotes": "Copier les notes",
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
     "length": "Durée {{length}}"
   }

@@ -46,7 +46,8 @@ afterEach(() => {
 describe('the history channels', () => {
   it('registers exactly the channels in the map', () => {
     expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track'].sort());
-    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(26);
+    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(27);
+    expect(HISTORY_CHANNELS['history:update-notes-names']).toBe('updateNotesNames');
     expect(HISTORY_CHANNELS['history:append-track']).toBe('appendTrack');
   });
 

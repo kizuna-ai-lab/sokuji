@@ -23,14 +23,18 @@ const complete: HistoryNotes = {
       { topic: 1, text: 'The boxes were redone', sentences: [6], kinds: [] },
       { topic: 1, text: 'Customs may hold it', sentences: [8], kinds: ['risk'] },
     ],
-    names: [],
+    names: [
+      { written: 'Soku G', likely: 'Sokuji', sentences: [4] },
+      { written: 'Tanaka-san', likely: null, sentences: [7], dismissed: true },
+      { written: 'Ozaka', likely: 'Osaka', sentences: [9] },
+    ],
   },
 };
 
 const props = (over: Partial<RecordNotesProps> = {}): RecordNotesProps => ({
   record: record([{ id: 7, transcriptId: 1, language: 'en', createdAt: 0, state: 'complete' }]), notes: complete, writing: false, tooShort: false,
   languages: [{ code: 'zh', name: 'Chinese' }, { code: 'ja', name: 'Japanese' }],
-  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), ...over,
+  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(), ...over,
 });
 afterEach(() => cleanup());
 
@@ -103,5 +107,17 @@ describe("a record's notes", () => {
     render(<RecordNotes {...props({ record: record(), notes: null, tooShort: true })} />);
     expect(screen.getByText('There is too little in this record to write notes from.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Write notes' })).toBeNull();
+  });
+
+  it('lists the names that may be written wrong, leaves out dismissed ones, and dismisses or jumps on request', () => {
+    const p = props();
+    render(<RecordNotes {...p} />);
+    const names = screen.getByRole('region', { name: 'Names to check' });
+    expect(within(names).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(names).queryByText(/Tanaka-san/)).toBeNull();
+    fireEvent.click(within(names).getByRole('button', { name: 'Soku G → Sokuji' }));
+    expect(p.onJump).toHaveBeenCalledWith(4);
+    fireEvent.click(within(names).getAllByRole('button', { name: 'Dismiss' })[1]);
+    expect(p.onDismissName).toHaveBeenCalledWith(2);
   });
 });

@@ -2055,6 +2055,12 @@
     "notesCancelled": "Penulisan catatan ini dihentikan.",
     "tagWritingNotes": "Menulis catatan",
     "tagNotesFailed": "Catatan gagal",
+    "notesNames": "Nama yang perlu diperiksa",
+    "notesNamesHint": "Pengenal suara mungkin salah menuliskannya.",
+    "notesDismiss": "Abaikan",
+    "saveNotesMd": "Simpan catatan (.md)",
+    "saveNotesTxt": "Simpan catatan (.txt)",
+    "copyNotes": "Salin catatan",
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}"
   }
