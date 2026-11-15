@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLayoutStore } from '../../../stores/layoutStore';
 
 /**
  * The footer's push-to-talk hold: today's Space handler (`MainPanel.tsx:4094-4149`),
@@ -6,9 +7,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * The held state is the panel's own — `RunState` carries no such field (1e-3
  * ruling 16) — and is released whenever holding no longer makes sense: a
  * key-up, the window losing focus mid-hold, or `enabled` turning false
- * (the mode changed, or the run ended) while held.
+ * (the mode changed, or the run ended) while held. Nothing is held while the History page covers the panel: Space
+ * there belongs to the page's own buttons.
  */
-export function usePushToTalk({ enabled, press, release }: { enabled: boolean; press(): void; release(): void }) {
+export function usePushToTalk({ enabled: wanted, press, release }: { enabled: boolean; press(): void; release(): void }) {
+  const historyOpen = useLayoutStore((s) => s.historyOpen);
+  const enabled = wanted && !historyOpen;
   const [held, setHeld] = useState(false);
   const heldRef = useRef(false);
   const doPress = useCallback(() => {
