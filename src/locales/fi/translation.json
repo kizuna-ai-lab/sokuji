@@ -1848,6 +1848,21 @@
       "otherHint": "Mistä toisen osapuolen ääni tulee sisään",
       "device": "Laite",
       "source": "Lähde"
+    },
+    "general": {
+      "basics": "Perusasetukset",
+      "maintenance": "Ylläpito ja ohje",
+      "update": "Päivitykset",
+      "updateLine": "Sinulla on {{version}}.",
+      "version": "Versio",
+      "storeUpdates": "Selaimen kauppa pitää laajennuksen ajan tasalla.",
+      "wizard": "Ohjattu määritys",
+      "wizardLine": "Käy ohjattu toiminto läpi uudelleen; tallentamasi on valmiiksi valittuna.",
+      "rerun": "Suorita uudelleen",
+      "guide": "Opas",
+      "guideLine": "Vaiheittaiset vinkit päänäkymässä.",
+      "restart": "Aloita alusta",
+      "needHelp": "Tarvitsetko apua:"
     }
   }
 }

@@ -656,3 +656,31 @@
   .models-group__fold { border-top: none; }
   .models-stage__shown + .models-group__fold { border-top: 1px solid vars.$border-subtle; }
 }
+
+// General, as mock v19 draws it: two groups of plain rows, thin lines between, no cards; two quiet links last.
+.general-category {
+  .settings-subhead:first-child { margin-top: 4px; }
+}
+.general-list { border-top: 1px solid vars.$border-subtle; }
+.general-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid vars.$border-subtle;
+  &__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  &__name { font-size: 13px; color: vars.$text-primary; }
+  &__line { margin-top: 2px; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
+  &__control { flex: none; display: inline-flex; align-items: center; gap: 8px; .toggle-switch-component { margin: 0; } }
+  &__select { width: 200px; height: 30px; padding: 0 8px; font-size: 12.5px; border-radius: 6px; }
+  &__value { font-size: 12.5px; color: vars.$text-tertiary; font-variant-numeric: tabular-nums; }
+}
+.general-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 18px 0 0;
+  font-size: 12.5px;
+  color: vars.$text-muted;
+}

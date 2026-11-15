@@ -1848,6 +1848,21 @@
       "otherHint": "对方的声音从哪里进来",
       "device": "设备",
       "source": "来源"
+    },
+    "general": {
+      "basics": "基本设置",
+      "maintenance": "维护与帮助",
+      "update": "更新",
+      "updateLine": "现在是 {{version}}。",
+      "version": "版本",
+      "storeUpdates": "扩展由浏览器的商店自动更新。",
+      "wizard": "设置向导",
+      "wizardLine": "从头再走一遍向导；已经存好的选择会预先选上。",
+      "rerun": "重新运行",
+      "guide": "操作指南",
+      "guideLine": "主界面上一步一步的提示。",
+      "restart": "重新开始",
+      "needHelp": "需要帮助："
     }
   }
 }

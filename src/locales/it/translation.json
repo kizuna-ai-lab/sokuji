@@ -1848,6 +1848,21 @@
       "otherHint": "Da dove entra la voce dell’altra parte",
       "device": "Dispositivo",
       "source": "Sorgente"
+    },
+    "general": {
+      "basics": "Impostazioni di base",
+      "maintenance": "Manutenzione e aiuto",
+      "update": "Aggiornamenti",
+      "updateLine": "Hai la {{version}}.",
+      "version": "Versione",
+      "storeUpdates": "Lo store del browser mantiene l’estensione aggiornata.",
+      "wizard": "Configurazione guidata",
+      "wizardLine": "Ripeti la configurazione guidata; quello che hai salvato è già selezionato.",
+      "rerun": "Esegui di nuovo",
+      "guide": "Guida",
+      "guideLine": "Suggerimenti passo passo nella schermata principale.",
+      "restart": "Ricomincia",
+      "needHelp": "Serve aiuto:"
     }
   }
 }

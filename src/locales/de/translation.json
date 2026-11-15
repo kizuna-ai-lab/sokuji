@@ -1848,6 +1848,21 @@
       "otherHint": "Wo die Stimme der Gegenseite hereinkommt",
       "device": "Gerät",
       "source": "Quelle"
+    },
+    "general": {
+      "basics": "Grundeinstellungen",
+      "maintenance": "Wartung und Hilfe",
+      "update": "Updates",
+      "updateLine": "Sie haben {{version}}.",
+      "version": "Version",
+      "storeUpdates": "Der Store des Browsers hält die Erweiterung aktuell.",
+      "wizard": "Einrichtungsassistent",
+      "wizardLine": "Den Assistenten noch einmal durchgehen; Gespeichertes ist vorausgewählt.",
+      "rerun": "Erneut ausführen",
+      "guide": "Anleitung",
+      "guideLine": "Schritt-für-Schritt-Hinweise auf dem Hauptbildschirm.",
+      "restart": "Neu starten",
+      "needHelp": "Hilfe nötig:"
     }
   }
 }

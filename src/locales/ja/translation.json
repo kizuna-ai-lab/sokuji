@@ -1848,6 +1848,21 @@
       "otherHint": "相手の声をどこから取り込むか",
       "device": "デバイス",
       "source": "取り込み元"
+    },
+    "general": {
+      "basics": "基本設定",
+      "maintenance": "メンテナンスとヘルプ",
+      "update": "アップデート",
+      "updateLine": "現在は {{version}} です。",
+      "version": "バージョン",
+      "storeUpdates": "拡張機能はブラウザのストアが自動で更新します。",
+      "wizard": "セットアップウィザード",
+      "wizardLine": "ウィザードをもう一度たどります。保存済みの選択は最初から選ばれています。",
+      "rerun": "もう一度実行",
+      "guide": "操作ガイド",
+      "guideLine": "メイン画面で一歩ずつ表示されるヒントです。",
+      "restart": "もう一度始める",
+      "needHelp": "お困りのときは："
     }
   }
 }

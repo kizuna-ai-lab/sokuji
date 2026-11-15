@@ -1848,6 +1848,21 @@
       "otherHint": "Giọng phía bên kia đi vào từ đâu",
       "device": "Thiết bị",
       "source": "Nguồn"
+    },
+    "general": {
+      "basics": "Cài đặt cơ bản",
+      "maintenance": "Bảo trì và trợ giúp",
+      "update": "Cập nhật",
+      "updateLine": "Bạn đang dùng {{version}}.",
+      "version": "Phiên bản",
+      "storeUpdates": "Cửa hàng của trình duyệt tự cập nhật tiện ích.",
+      "wizard": "Trình hướng dẫn thiết lập",
+      "wizardLine": "Đi lại trình hướng dẫn; những gì đã lưu được chọn sẵn.",
+      "rerun": "Chạy lại",
+      "guide": "Hướng dẫn",
+      "guideLine": "Gợi ý từng bước trên màn hình chính.",
+      "restart": "Bắt đầu lại",
+      "needHelp": "Cần trợ giúp:"
     }
   }
 }

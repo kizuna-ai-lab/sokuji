@@ -1848,6 +1848,21 @@
       "otherHint": "Var den andra sidans röst kommer in",
       "device": "Enhet",
       "source": "Källa"
+    },
+    "general": {
+      "basics": "Grundinställningar",
+      "maintenance": "Underhåll och hjälp",
+      "update": "Uppdateringar",
+      "updateLine": "Du har {{version}}.",
+      "version": "Version",
+      "storeUpdates": "Webbläsarens butik håller tillägget uppdaterat.",
+      "wizard": "Installationsguide",
+      "wizardLine": "Gå igenom guiden igen; det du har sparat är redan valt.",
+      "rerun": "Kör igen",
+      "guide": "Guide",
+      "guideLine": "Steg-för-steg-tips på huvudskärmen.",
+      "restart": "Börja om",
+      "needHelp": "Behöver du hjälp:"
     }
   }
 }

@@ -1848,6 +1848,21 @@
       "otherHint": "Skąd wchodzi głos drugiej strony",
       "device": "Urządzenie",
       "source": "Źródło"
+    },
+    "general": {
+      "basics": "Podstawowe",
+      "maintenance": "Konserwacja i pomoc",
+      "update": "Aktualizacje",
+      "updateLine": "Masz wersję {{version}}.",
+      "version": "Wersja",
+      "storeUpdates": "Sklep przeglądarki aktualizuje rozszerzenie.",
+      "wizard": "Kreator konfiguracji",
+      "wizardLine": "Przejdź kreator jeszcze raz; zapisane wybory będą zaznaczone.",
+      "rerun": "Uruchom ponownie",
+      "guide": "Przewodnik",
+      "guideLine": "Wskazówki krok po kroku na ekranie głównym.",
+      "restart": "Zacznij od nowa",
+      "needHelp": "Potrzebujesz pomocy:"
     }
   }
 }

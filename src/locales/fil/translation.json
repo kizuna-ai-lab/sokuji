@@ -1848,6 +1848,21 @@
       "otherHint": "Saan pumapasok ang boses ng kabilang panig",
       "device": "Device",
       "source": "Pinagmulan"
+    },
+    "general": {
+      "basics": "Mga pangunahing setting",
+      "maintenance": "Pagpapanatili at tulong",
+      "update": "Mga update",
+      "updateLine": "Nasa {{version}} ka.",
+      "version": "Bersyon",
+      "storeUpdates": "Ang store ng browser ang nag-a-update sa extension.",
+      "wizard": "Setup wizard",
+      "wizardLine": "Daanan muli ang wizard; nakapili na ang mga naka-save mo.",
+      "rerun": "Patakbuhin muli",
+      "guide": "Gabay",
+      "guideLine": "Sunud-sunod na tips sa pangunahing screen.",
+      "restart": "Simulan muli",
+      "needHelp": "Kailangan ng tulong:"
     }
   }
 }

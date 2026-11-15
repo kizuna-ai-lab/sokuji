@@ -1848,6 +1848,21 @@
       "otherHint": "對方的聲音從哪裡進來",
       "device": "裝置",
       "source": "來源"
+    },
+    "general": {
+      "basics": "基本設定",
+      "maintenance": "維護與說明",
+      "update": "更新",
+      "updateLine": "現在是 {{version}}。",
+      "version": "版本",
+      "storeUpdates": "擴充功能由瀏覽器的商店自動更新。",
+      "wizard": "設定精靈",
+      "wizardLine": "從頭再走一遍精靈；已經存好的選擇會預先選上。",
+      "rerun": "重新執行",
+      "guide": "操作指南",
+      "guideLine": "主畫面上一步一步的提示。",
+      "restart": "重新開始",
+      "needHelp": "需要協助："
     }
   }
 }

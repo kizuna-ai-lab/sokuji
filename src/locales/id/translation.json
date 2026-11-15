@@ -1848,6 +1848,21 @@
       "otherHint": "Dari mana suara pihak lain masuk",
       "device": "Perangkat",
       "source": "Sumber"
+    },
+    "general": {
+      "basics": "Pengaturan dasar",
+      "maintenance": "Pemeliharaan dan bantuan",
+      "update": "Pembaruan",
+      "updateLine": "Anda memakai {{version}}.",
+      "version": "Versi",
+      "storeUpdates": "Toko browser menjaga ekstensi tetap terbaru.",
+      "wizard": "Wizard penyiapan",
+      "wizardLine": "Jalani wizard sekali lagi; yang sudah tersimpan langsung terpilih.",
+      "rerun": "Jalankan lagi",
+      "guide": "Panduan",
+      "guideLine": "Tips langkah demi langkah di layar utama.",
+      "restart": "Mulai lagi",
+      "needHelp": "Butuh bantuan:"
     }
   }
 }

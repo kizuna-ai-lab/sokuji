@@ -1848,6 +1848,21 @@
       "otherHint": "Where the other side's voice comes in",
       "device": "Device",
       "source": "Source"
+    },
+    "general": {
+      "basics": "Basics",
+      "maintenance": "Maintenance and help",
+      "update": "Updates",
+      "updateLine": "You have {{version}}.",
+      "version": "Version",
+      "storeUpdates": "The browser's store keeps the extension up to date.",
+      "wizard": "Setup wizard",
+      "wizardLine": "Go through the wizard again; what you have saved comes pre-selected.",
+      "rerun": "Run again",
+      "guide": "Guide",
+      "guideLine": "Step-by-step tips on the main screen.",
+      "restart": "Start again",
+      "needHelp": "Need help:"
     }
   }
 }

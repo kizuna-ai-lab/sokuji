@@ -1848,6 +1848,21 @@
       "otherHint": "Por dónde entra la voz de la otra parte",
       "device": "Dispositivo",
       "source": "Fuente"
+    },
+    "general": {
+      "basics": "Lo básico",
+      "maintenance": "Mantenimiento y ayuda",
+      "update": "Actualizaciones",
+      "updateLine": "Tienes la {{version}}.",
+      "version": "Versión",
+      "storeUpdates": "La tienda del navegador mantiene la extensión al día.",
+      "wizard": "Asistente de configuración",
+      "wizardLine": "Recorre el asistente otra vez; lo que tienes guardado viene seleccionado.",
+      "rerun": "Ejecutar de nuevo",
+      "guide": "Guía",
+      "guideLine": "Consejos paso a paso en la pantalla principal.",
+      "restart": "Empezar de nuevo",
+      "needHelp": "¿Necesitas ayuda?"
     }
   }
 }

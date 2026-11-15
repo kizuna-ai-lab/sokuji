@@ -1848,6 +1848,21 @@
       "otherHint": "Dari mana suara pihak lain masuk",
       "device": "Peranti",
       "source": "Sumber"
+    },
+    "general": {
+      "basics": "Tetapan asas",
+      "maintenance": "Penyelenggaraan dan bantuan",
+      "update": "Kemas kini",
+      "updateLine": "Anda menggunakan {{version}}.",
+      "version": "Versi",
+      "storeUpdates": "Kedai pelayar mengemas kini sambungan secara automatik.",
+      "wizard": "Wizard persediaan",
+      "wizardLine": "Lalui wizard sekali lagi; apa yang disimpan sudah dipilih terlebih dahulu.",
+      "rerun": "Jalankan semula",
+      "guide": "Panduan",
+      "guideLine": "Petua langkah demi langkah pada skrin utama.",
+      "restart": "Mula semula",
+      "needHelp": "Perlukan bantuan:"
     }
   }
 }

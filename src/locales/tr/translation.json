@@ -1848,6 +1848,21 @@
       "otherHint": "Karşı tarafın sesinin nereden geldiği",
       "device": "Cihaz",
       "source": "Kaynak"
+    },
+    "general": {
+      "basics": "Temel ayarlar",
+      "maintenance": "Bakım ve yardım",
+      "update": "Güncellemeler",
+      "updateLine": "Sizdeki sürüm {{version}}.",
+      "version": "Sürüm",
+      "storeUpdates": "Uzantıyı tarayıcının mağazası güncel tutar.",
+      "wizard": "Kurulum sihirbazı",
+      "wizardLine": "Sihirbazdan yeniden geçin; kaydettikleriniz önceden seçili gelir.",
+      "rerun": "Yeniden çalıştır",
+      "guide": "Rehber",
+      "guideLine": "Ana ekranda adım adım ipuçları.",
+      "restart": "Yeniden başlat",
+      "needHelp": "Yardım mı lazım:"
     }
   }
 }

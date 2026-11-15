@@ -1848,6 +1848,21 @@
       "otherHint": "Waar de stem van de andere kant binnenkomt",
       "device": "Apparaat",
       "source": "Bron"
+    },
+    "general": {
+      "basics": "Basisinstellingen",
+      "maintenance": "Onderhoud en hulp",
+      "update": "Updates",
+      "updateLine": "U hebt {{version}}.",
+      "version": "Versie",
+      "storeUpdates": "De winkel van de browser houdt de extensie bij.",
+      "wizard": "Installatiewizard",
+      "wizardLine": "De wizard opnieuw doorlopen; wat u hebt opgeslagen is al gekozen.",
+      "rerun": "Opnieuw uitvoeren",
+      "guide": "Rondleiding",
+      "guideLine": "Stapsgewijze tips op het hoofdscherm.",
+      "restart": "Opnieuw beginnen",
+      "needHelp": "Hulp nodig:"
     }
   }
 }

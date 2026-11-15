@@ -1848,6 +1848,21 @@
       "otherHint": "상대방 목소리가 들어오는 곳",
       "device": "장치",
       "source": "소스"
+    },
+    "general": {
+      "basics": "기본 설정",
+      "maintenance": "유지 관리와 도움말",
+      "update": "업데이트",
+      "updateLine": "지금은 {{version}}입니다.",
+      "version": "버전",
+      "storeUpdates": "확장 프로그램은 브라우저 스토어가 최신으로 유지합니다.",
+      "wizard": "설정 마법사",
+      "wizardLine": "마법사를 다시 진행합니다. 저장해 둔 선택은 미리 골라져 있습니다.",
+      "rerun": "다시 실행",
+      "guide": "사용 안내",
+      "guideLine": "메인 화면에서 단계별로 보여 주는 안내입니다.",
+      "restart": "다시 시작",
+      "needHelp": "도움이 필요하면:"
     }
   }
 }
