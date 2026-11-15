@@ -35,6 +35,14 @@ describe('the history port', () => {
     await expect(refused).rejects.toMatchObject({ message: 'no', code: 'RECORD_CLOSED' });
   });
 
+  // Review: a call the bridge itself refuses (a blocked channel, an argument that cannot be copied) is the same error.
+  it('rejects with HistoryUnavailable when the call itself fails', async () => {
+    const port = electronHistoryPort(async () => { throw new Error('An object could not be cloned.'); });
+    const failed = port.listRecords({});
+    await expect(failed).rejects.toBeInstanceOf(HistoryUnavailable);
+    await expect(failed).rejects.toMatchObject({ message: 'An object could not be cloned.' });
+  });
+
   it('every port method has a channel, and every page-facing channel a method', () => {
     const port = electronHistoryPort(async () => ({ ok: true }));
     const pairs = Object.fromEntries(HISTORY_PORT_CHANNELS.filter(([, channel]) => channel !== 'history:status').map(([method, channel]) => [channel, method]));

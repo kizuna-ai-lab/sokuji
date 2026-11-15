@@ -86,7 +86,13 @@ interface Answer { ok?: boolean; value?: unknown; error?: unknown; code?: unknow
 /** The desktop port: each method calls its channel and resolves with the value, or rejects with `HistoryUnavailable`. */
 export function electronHistoryPort(invoke: Invoke): HistoryPort {
   async function call<T>(channel: string, data: object): Promise<T> {
-    const answer = (await invoke(channel, data)) as Answer | null | undefined;
+    let answer: Answer | null | undefined;
+    try {
+      answer = (await invoke(channel, data)) as Answer | null | undefined;
+    } catch (error) {
+      // The bridge itself refused the call (a blocked channel, an argument that cannot be copied).
+      throw new HistoryUnavailable(error instanceof Error ? error.message : String(error));
+    }
     if (answer && answer.ok === true) return answer.value as T;
     const message = typeof answer?.error === 'string' ? answer.error : 'History did not answer';
     throw new HistoryUnavailable(message, typeof answer?.code === 'string' ? answer.code : undefined);
