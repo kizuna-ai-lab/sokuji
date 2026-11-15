@@ -721,7 +721,7 @@
       "headerNote": "Nota: as definições refletem o estado atual no momento da exportação, não as alterações efetuadas durante a sessão.",
       "headerNarrowed": "Nota: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas.",
       "autoSave": {
-        "label": "Guardar automaticamente ao terminar a sessão",
+        "label": "Exportar TXT no fim da sessão",
         "tooltipDesktop": "Ao terminar uma sessão, a conversa completa — os dois lados, originais e traduções — é guardada como ficheiro .txt na sua pasta Transferências.",
         "tooltipBrowser": "Ao terminar uma sessão, a conversa completa — os dois lados, originais e traduções — é transferida como ficheiro .txt. Fechar o painel lateral durante uma sessão não a guarda; termine primeiro a sessão.",
         "saved": "Conversa guardada: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} correspondência",
     "sentenceCount_one": "{{count}} frase",
     "space_one": "{{size}} em {{count}} registo",
-    "showOlder": "Mostrar registos mais antigos"
+    "showOlder": "Mostrar registos mais antigos",
+    "backToSession": "Voltar à sessão",
+    "backToList": "Voltar à lista",
+    "allRecords": "Todos os registos",
+    "binTitle": "Reciclagem",
+    "results": "Resultados da pesquisa",
+    "selectMode": "Selecionar",
+    "selectedCount": "{{count}} selecionados",
+    "tagTranscript": "Transcrição",
+    "tagNotes": "Notas",
+    "tagRecording": "Gravação",
+    "more": "Mais",
+    "binWhenEnded": "Um registo pode ir para a reciclagem quando a sessão terminar.",
+    "autoExportLine": "Guarda uma cópia .txt adicional da conversa completa na pasta Transferências. O histórico mantém o registo neste computador de qualquer forma.",
+    "sessionAt": "Sessão das {{time}}"
   }
 }

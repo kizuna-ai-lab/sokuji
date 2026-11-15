@@ -228,7 +228,7 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
     { key: 'json', label: t('mainPanel.export.downloadJson',    'Download as .json'),   Icon: FileJson, onClick: handleDownloadJson },
   ]), [t, handleCopy, handleDownloadTxt, handleDownloadJson]);
 
-  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Auto-save when session ends');
+  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Export TXT when a session ends');
   // A native title, like the toolbar buttons: the Tooltip component clones its
   // child and would fight the roving-tabindex ref, and the child-window host's
   // 240px OS window would clip a floating tooltip anyway.

@@ -721,7 +721,7 @@
       "headerNote": "Nota: la configuración refleja el estado actual en el momento de la exportación, no los cambios realizados durante la sesión.",
       "headerNarrowed": "Nota: esta exportación se limitó al exportar: se omitieron algunas líneas.",
       "autoSave": {
-        "label": "Guardar automáticamente al terminar la sesión",
+        "label": "Exportar TXT al terminar la sesión",
         "tooltipDesktop": "Al terminar una sesión, se guarda la conversación completa —ambas partes, originales y traducciones— como archivo .txt en tu carpeta de Descargas.",
         "tooltipBrowser": "Al terminar una sesión, se descarga la conversación completa —ambas partes, originales y traducciones— como archivo .txt. Cerrar el panel lateral durante una sesión no la guarda; termina la sesión primero.",
         "saved": "Conversación guardada: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} coincidencia",
     "sentenceCount_one": "{{count}} frase",
     "space_one": "{{size}} en {{count}} registro",
-    "showOlder": "Mostrar registros anteriores"
+    "showOlder": "Mostrar registros anteriores",
+    "backToSession": "Volver a la sesión",
+    "backToList": "Volver a la lista",
+    "allRecords": "Todos los registros",
+    "binTitle": "Papelera",
+    "results": "Resultados de la búsqueda",
+    "selectMode": "Seleccionar",
+    "selectedCount": "{{count}} seleccionados",
+    "tagTranscript": "Transcripción",
+    "tagNotes": "Notas",
+    "tagRecording": "Grabación",
+    "more": "Más",
+    "binWhenEnded": "Un registro puede ir a la papelera cuando su sesión haya terminado.",
+    "autoExportLine": "Guarda una copia .txt adicional de toda la conversación en la carpeta Descargas. El historial conserva el registro en este ordenador en cualquier caso.",
+    "sessionAt": "Sesión de las {{time}}"
   }
 }

@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ArrowLeft, Pencil, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { ChevronLeft, Ellipsis, Pencil, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
 import { languageLabel } from '../../lib/language/label';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
 import { recordRows, type RecordRow, type SpeakerLabels } from '../../lib/history/recordView';
@@ -66,6 +66,7 @@ export const RecordPage: React.FC = () => {
   const [menuFor, setMenuFor] = useState<number | null>(null);
   const [hit, setHit] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const markedAt = useRef<HitTarget | null>(null);
 
@@ -98,6 +99,14 @@ export const RecordPage: React.FC = () => {
     const timer = window.setTimeout(() => setHit(null), HIT_MARK_MS);
     return () => window.clearTimeout(timer);
   }, [hit]);
+
+  // "More" closes on a press anywhere outside it.
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+    const onDown = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.('.record-page__more')) setMoreOpen(false); };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [moreOpen]);
 
   // A sentence's menu closes on a press anywhere outside it.
   useEffect(() => {
@@ -269,15 +278,17 @@ export const RecordPage: React.FC = () => {
   return (
     <div className="record-page">
       <header className="record-page__head">
-        <button type="button" className="history-list__back" onClick={() => actions.closeRecord()}>
-          <ArrowLeft size={14} />
-          {t('history.back', 'Back')}
+        <button type="button" className="settings-page__back" onClick={() => actions.closeRecord()}>
+          <ChevronLeft size={14} aria-hidden="true" /> {t('history.backToList', 'Back to the list')}
         </button>
         <div className="record-page__heading">
           {titleDraft === null ? (
-            <button type="button" className="record-page__title" title={t('history.renameHint', 'Click to rename')} onClick={() => setTitleDraft(record.titleByUser ? record.title ?? '' : '')}>
-              {title}
-            </button>
+            <h2 className="record-page__h">
+              <button type="button" className="record-page__title" title={t('history.renameHint', 'Click to rename')} onClick={() => setTitleDraft(record.titleByUser ? record.title ?? '' : '')}>
+                <span>{title}</span>
+                <Pencil size={13} aria-hidden="true" className="record-page__pencil" />
+              </button>
+            </h2>
           ) : (
             <input
               className="record-page__title-field"
@@ -300,18 +311,43 @@ export const RecordPage: React.FC = () => {
         </div>
         <div className="record-page__actions">
           {result && <span className="record-page__result" role="status">{result}</span>}
-          {live ? (
+          {live && (
             <button type="button" className="history-button" disabled={busy} onClick={() => void actions.refreshRecord()}>
               <RefreshCw size={14} />
               {t('history.refresh', 'Refresh')}
             </button>
-          ) : (
-            <button type="button" className="history-button" disabled={busy} onClick={() => void actions.binRecord(record.id)}>
-              <Trash2 size={14} />
-              {t('history.moveOneToBin', 'Move to bin')}
-            </button>
           )}
           <RecordExportMenu record={record} legs={open.legs} rows={rows} onResult={setResult} />
+          <span
+            className="record-page__more"
+            onKeyDown={(e) => { if (e.key === 'Escape' && moreOpen && !isComposing(e.nativeEvent)) { e.preventDefault(); setMoreOpen(false); } }}
+          >
+            <button
+              type="button"
+              className="history-button history-button--icon"
+              aria-label={t('history.more', 'More')}
+              title={t('history.more', 'More')}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen(!moreOpen)}
+            >
+              <Ellipsis size={16} />
+            </button>
+            {moreOpen && (
+              <span className="record-page__menu" role="menu" aria-label={t('history.more', 'More')}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy || live}
+                  title={live ? t('history.binWhenEnded', 'A record can move to the bin once its session has ended.') : undefined}
+                  onClick={() => { setMoreOpen(false); void actions.binRecord(record.id); }}
+                >
+                  <Trash2 size={14} aria-hidden="true" />
+                  {t('history.moveOneToBin', 'Move to bin')}
+                </button>
+              </span>
+            )}
+          </span>
         </div>
       </header>
       <div className="record-page__columns">

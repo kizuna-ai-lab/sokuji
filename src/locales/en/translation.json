@@ -721,7 +721,7 @@
       "headerNote": "Note: settings reflect current state at export, not mid-session changes.",
       "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out.",
       "autoSave": {
-        "label": "Auto-save when session ends",
+        "label": "Export TXT when a session ends",
         "tooltipDesktop": "When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.",
         "tooltipBrowser": "When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.",
         "saved": "Conversation saved: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} match",
     "sentenceCount_one": "{{count}} sentence",
     "space_one": "{{size}} in {{count}} record",
-    "showOlder": "Show older records"
+    "showOlder": "Show older records",
+    "autoExportLine": "Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.",
+    "backToSession": "Back to the session",
+    "backToList": "Back to the list",
+    "allRecords": "All records",
+    "binTitle": "Bin",
+    "results": "Search results",
+    "selectMode": "Select",
+    "selectedCount": "{{count}} selected",
+    "tagTranscript": "Transcript",
+    "tagNotes": "Notes",
+    "tagRecording": "Recording",
+    "more": "More",
+    "binWhenEnded": "A record can move to the bin once its session has ended.",
+    "sessionAt": "Session at {{time}}"
   }
 }

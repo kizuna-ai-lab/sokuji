@@ -721,7 +721,7 @@
       "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session.",
       "headerNarrowed": "Tandaan: pinaliit ang saklaw ng export na ito noong nag-export — may ilang linyang hindi kasama.",
       "autoSave": {
-        "label": "Awtomatikong i-save kapag natapos ang session",
+        "label": "I-export ang TXT pagkatapos ng session",
         "tooltipDesktop": "Kapag natapos ang isang session, ise-save ang buong usapan — parehong panig, mga orihinal at salin — bilang .txt file sa iyong Downloads folder.",
         "tooltipBrowser": "Kapag natapos ang isang session, ida-download ang buong usapan — parehong panig, mga orihinal at salin — bilang .txt file. Hindi ito nase-save kapag isinara ang side panel habang may session; tapusin muna ang session.",
         "saved": "Na-save ang usapan: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} na tugma",
     "sentenceCount_one": "{{count}} pangungusap",
     "space_one": "{{size}} sa {{count}} na record",
-    "showOlder": "Ipakita ang mas lumang mga record"
+    "showOlder": "Ipakita ang mas lumang mga record",
+    "backToSession": "Bumalik sa session",
+    "backToList": "Bumalik sa listahan",
+    "allRecords": "Lahat ng record",
+    "binTitle": "Basurahan",
+    "results": "Mga resulta ng paghahanap",
+    "selectMode": "Pumili",
+    "selectedCount": "{{count}} ang napili",
+    "tagTranscript": "Transcript",
+    "tagNotes": "Tala",
+    "tagRecording": "Recording",
+    "more": "Higit pa",
+    "binWhenEnded": "Maililipat lang sa basurahan ang record kapag tapos na ang session nito.",
+    "autoExportLine": "Nagse-save ng dagdag na .txt na kopya ng buong usapan sa Downloads folder. Itinatago pa rin ng Kasaysayan ang record sa computer na ito.",
+    "sessionAt": "Session nang {{time}}"
   }
 }

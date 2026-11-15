@@ -721,7 +721,7 @@
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。",
       "headerNarrowed": "注意：本次导出在导出时已缩小范围，部分内容未包含。",
       "autoSave": {
-        "label": "会话结束时自动保存",
+        "label": "会话结束时导出 TXT",
         "tooltipDesktop": "会话结束时，把完整对话（双方的原文和译文）保存为 .txt 文件，放在「下载」文件夹。",
         "tooltipBrowser": "会话结束时，把完整对话（双方的原文和译文）下载为 .txt 文件。会话进行中关闭侧边栏不会保存，请先结束会话。",
         "saved": "对话已保存：{{filename}}",
@@ -1944,7 +1944,7 @@
     "clearSelection": "取消选择",
     "restore": "恢复",
     "deleteForGood": "彻底删除",
-    "confirmPurge": "彻底删除 {{count}} 条记录？它们的转写和录音将无法找回。",
+    "confirmPurge": "彻底删除 {{count}} 条记录？转写和录音都将无法找回。",
     "delete": "删除",
     "cancel": "取消",
     "emptyBin": "清空回收站",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} 处匹配",
     "sentenceCount_one": "{{count}} 句",
     "space_one": "{{count}} 条记录，共 {{size}}",
-    "showOlder": "显示更早的记录"
+    "showOlder": "显示更早的记录",
+    "backToSession": "返回会话",
+    "backToList": "返回列表",
+    "allRecords": "全部记录",
+    "binTitle": "回收站",
+    "results": "搜索结果",
+    "selectMode": "选择",
+    "selectedCount": "已选 {{count}} 条",
+    "tagTranscript": "转写",
+    "tagNotes": "纪要",
+    "tagRecording": "录音",
+    "more": "更多",
+    "binWhenEnded": "会话结束后才能移到回收站。",
+    "autoExportLine": "额外把整段对话另存一份 .txt 到“下载”文件夹。历史记录照常保存在这台电脑上。",
+    "sessionAt": "{{time}} 的会话"
   }
 }

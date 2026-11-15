@@ -721,7 +721,7 @@
       "headerNote": "Nota: as configurações refletem o estado atual no momento da exportação, não alterações feitas durante a sessão.",
       "headerNarrowed": "Observação: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas.",
       "autoSave": {
-        "label": "Salvar automaticamente ao encerrar a sessão",
+        "label": "Exportar TXT ao terminar a sessão",
         "tooltipDesktop": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é salva como arquivo .txt na sua pasta Downloads.",
         "tooltipBrowser": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é baixada como arquivo .txt. Fechar o painel lateral durante uma sessão não a salva; encerre a sessão primeiro.",
         "saved": "Conversa salva: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} correspondência",
     "sentenceCount_one": "{{count}} frase",
     "space_one": "{{size}} em {{count}} registro",
-    "showOlder": "Mostrar registros mais antigos"
+    "showOlder": "Mostrar registros mais antigos",
+    "backToSession": "Voltar à sessão",
+    "backToList": "Voltar à lista",
+    "allRecords": "Todos os registros",
+    "binTitle": "Lixeira",
+    "results": "Resultados da pesquisa",
+    "selectMode": "Selecionar",
+    "selectedCount": "{{count}} selecionados",
+    "tagTranscript": "Transcrição",
+    "tagNotes": "Notas",
+    "tagRecording": "Gravação",
+    "more": "Mais",
+    "binWhenEnded": "Um registro pode ir para a lixeira quando a sessão terminar.",
+    "autoExportLine": "Salva uma cópia .txt extra da conversa inteira na pasta Downloads. O histórico mantém o registro neste computador de qualquer forma.",
+    "sessionAt": "Sessão das {{time}}"
   }
 }

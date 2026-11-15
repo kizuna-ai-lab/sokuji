@@ -721,7 +721,7 @@
       "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil.",
       "headerNarrowed": "Not: bu dışa aktarmanın kapsamı aktarma sırasında daraltıldı — bazı satırlar dahil edilmedi.",
       "autoSave": {
-        "label": "Oturum bitince otomatik kaydet",
+        "label": "Oturum bitince TXT dışa aktar",
         "tooltipDesktop": "Bir oturum bittiğinde sohbetin tamamı — iki taraf, orijinaller ve çeviriler — .txt dosyası olarak İndirilenler klasörüne kaydedilir.",
         "tooltipBrowser": "Bir oturum bittiğinde sohbetin tamamı — iki taraf, orijinaller ve çeviriler — .txt dosyası olarak indirilir. Oturum sırasında yan paneli kapatmak sohbeti kaydetmez; önce oturumu sonlandırın.",
         "saved": "Sohbet kaydedildi: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} eşleşme",
     "sentenceCount_one": "{{count}} cümle",
     "space_one": "{{count}} kayıtta {{size}}",
-    "showOlder": "Daha eski kayıtları göster"
+    "showOlder": "Daha eski kayıtları göster",
+    "backToSession": "Oturuma dön",
+    "backToList": "Listeye dön",
+    "allRecords": "Tüm kayıtlar",
+    "binTitle": "Çöp kutusu",
+    "results": "Arama sonuçları",
+    "selectMode": "Seç",
+    "selectedCount": "{{count}} seçildi",
+    "tagTranscript": "Döküm",
+    "tagNotes": "Notlar",
+    "tagRecording": "Ses kaydı",
+    "more": "Diğer",
+    "binWhenEnded": "Kayıt, oturumu bittikten sonra çöp kutusuna taşınabilir.",
+    "autoExportLine": "Konuşmanın tamamının ek bir .txt kopyasını İndirilenler klasörüne kaydeder. Geçmiş kaydı her durumda bu bilgisayarda tutar.",
+    "sessionAt": "{{time}} oturumu"
   }
 }

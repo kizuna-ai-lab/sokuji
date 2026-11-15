@@ -1,8 +1,9 @@
 // src/components/SettingsPage/HistoryCategory.tsx
 //
 // "History and notes" (desktop only), as the settings mock draws it: the History folder with the space it takes and
-// a button that opens it, a line saying records stay on this computer, and the switch that saves the conversation as a
-// text file when a session ends (today's auto-save; it left the export menu when export moved into History).
+// a button that opens it, a line saying records stay on this computer, and the switch that exports the conversation as
+// a text file when a session ends (today's auto-save, renamed so it is not taken for History itself; it left the export
+// menu when export moved into History).
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderOpen } from 'lucide-react';
@@ -33,7 +34,7 @@ export function HistoryCategory(_props: CategoryBodyProps) {
   const setAutoSave = useSetAutoSaveOnStop();
   const [status, setStatus] = useState<HistoryStatus | null>(null);
   const [usage, setUsage] = useState<HistoryUsage | null>(null);
-  const autoSaveName = t('mainPanel.export.autoSave.label', 'Auto-save when session ends');
+  const autoSaveName = t('mainPanel.export.autoSave.label', 'Export TXT when a session ends');
 
   useEffect(() => {
     let live = true;
@@ -81,7 +82,7 @@ export function HistoryCategory(_props: CategoryBodyProps) {
           </button>
         </Row>
         <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript is kept on this computer. Nothing is uploaded.')}</p>
-        <Row name={autoSaveName} line={t('mainPanel.export.autoSave.tooltipDesktop', 'When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.')}>
+        <Row name={autoSaveName} line={t('history.autoExportLine', 'Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.')}>
           <ToggleSwitch checked={autoSave} onChange={() => void setAutoSave(!autoSave)} label="" ariaLabel={autoSaveName} />
         </Row>
       </div>

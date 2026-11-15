@@ -48,7 +48,8 @@ describe('history and notes', () => {
   it('saves the conversation as a text file when a session ends, from its switch', async () => {
     render(<HistoryCategory locked={false} />);
     await settle();
-    fireEvent.click(within(row('Auto-save when session ends')).getByRole('switch'));
+    expect(within(row('Export TXT when a session ends')).getByText('Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.')).toBeInTheDocument();
+    fireEvent.click(within(row('Export TXT when a session ends')).getByRole('switch'));
     await settle();
     expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
   });
@@ -56,7 +57,7 @@ describe('history and notes', () => {
   it('keeps the auto-save switch usable during a session, as the export menu did', async () => {
     render(<HistoryCategory locked />);
     await settle();
-    const toggle = within(row('Auto-save when session ends')).getByRole('switch');
+    const toggle = within(row('Export TXT when a session ends')).getByRole('switch');
     expect(toggle).not.toBeDisabled();
     fireEvent.click(toggle);
     await settle();
@@ -68,6 +69,6 @@ describe('history and notes', () => {
     render(<HistoryCategory locked={false} />);
     await settle();
     expect(screen.getByText('This History was written by a newer version of Sokuji. Update Sokuji to open it.')).toBeInTheDocument();
-    expect(within(row('Auto-save when session ends')).getByRole('switch')).toBeInTheDocument();
+    expect(within(row('Export TXT when a session ends')).getByRole('switch')).toBeInTheDocument();
   });
 });

@@ -36,7 +36,7 @@ describe('ExportMenuButton in the subtitle bar child window', () => {
         popoverHost="child-window"
       />,
     );
-    const row = screen.getByRole('menuitemcheckbox', { name: 'Auto-save when session ends' });
+    const row = screen.getByRole('menuitemcheckbox', { name: 'Export TXT when a session ends' });
     expect(row).not.toHaveAttribute('tabindex');
 
     fireEvent.click(row);

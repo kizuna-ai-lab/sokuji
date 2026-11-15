@@ -43,7 +43,9 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
     <HistoryPageContext.Provider value={context}>
       <section className="history-page" data-testid="history-page" aria-label={t('history.title', 'History')}>
         {error && <p className="history-page__error" role="alert">{error}</p>}
-        {open ? <RecordPage /> : <HistoryList />}
+        {/* The list stays mounted under an open record: going back finds its search, selection and scroll. */}
+        <div className="history-page__list" hidden={!!open}><HistoryList hidden={!!open} /></div>
+        {open && <RecordPage />}
       </section>
     </HistoryPageContext.Provider>
   );

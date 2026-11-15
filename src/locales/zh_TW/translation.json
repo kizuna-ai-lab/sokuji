@@ -721,7 +721,7 @@
       "headerNote": "注意：設定反映匯出時的當前狀態，不含會話中途的更改。",
       "headerNarrowed": "注意：本次匯出在匯出時已縮小範圍，部分內容未包含。",
       "autoSave": {
-        "label": "工作階段結束時自動儲存",
+        "label": "工作階段結束時匯出 TXT",
         "tooltipDesktop": "工作階段結束時，將完整對話（雙方的原文與譯文）儲存為 .txt 檔案，放在「下載」資料夾。",
         "tooltipBrowser": "工作階段結束時，將完整對話（雙方的原文與譯文）下載為 .txt 檔案。工作階段進行中關閉側邊欄不會儲存，請先結束工作階段。",
         "saved": "對話已儲存：{{filename}}",
@@ -1944,7 +1944,7 @@
     "clearSelection": "取消選取",
     "restore": "還原",
     "deleteForGood": "永久刪除",
-    "confirmPurge": "永久刪除 {{count}} 筆記錄？它們的轉寫和錄音將無法復原。",
+    "confirmPurge": "永久刪除 {{count}} 筆記錄？轉寫和錄音都將無法復原。",
     "delete": "刪除",
     "cancel": "取消",
     "emptyBin": "清空回收站",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} 處相符",
     "sentenceCount_one": "{{count}} 句",
     "space_one": "{{count}} 筆記錄，共 {{size}}",
-    "showOlder": "顯示更早的記錄"
+    "showOlder": "顯示更早的記錄",
+    "backToSession": "返回工作階段",
+    "backToList": "返回列表",
+    "allRecords": "全部記錄",
+    "binTitle": "回收站",
+    "results": "搜尋結果",
+    "selectMode": "選取",
+    "selectedCount": "已選 {{count}} 筆",
+    "tagTranscript": "轉寫",
+    "tagNotes": "紀要",
+    "tagRecording": "錄音",
+    "more": "更多",
+    "binWhenEnded": "工作階段結束後才能移到回收站。",
+    "autoExportLine": "額外把整段對話另存一份 .txt 到「下載」資料夾。歷史記錄照常保存在這台電腦上。",
+    "sessionAt": "{{time}} 的工作階段"
   }
 }

@@ -33,6 +33,25 @@ export function formatDate(at: number, language: string | undefined): string {
   return new Intl.DateTimeFormat(uiLocale(language), { dateStyle: 'medium' }).format(at);
 }
 
+/** A time of day in the interface language. */
+export function formatTime(at: number, language: string | undefined): string {
+  return new Intl.DateTimeFormat(uiLocale(language), { timeStyle: 'short' }).format(at);
+}
+
+const startOfDay = (at: number) => { const d = new Date(at); d.setHours(0, 0, 0, 0); return d.getTime(); };
+
+/** A list's day heading: today, yesterday, or the date with its weekday (and the year when it is not this year). */
+export function dayLabel(at: number, now: number, language: string | undefined): string {
+  const locale = uiLocale(language);
+  const days = Math.round((startOfDay(now) - startOfDay(at)) / 86_400_000);
+  if (days === 0 || days === 1) {
+    const word = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-days, 'day');
+    return word.charAt(0).toLocaleUpperCase(locale) + word.slice(1);
+  }
+  const sameYear = new Date(at).getFullYear() === new Date(now).getFullYear();
+  return new Intl.DateTimeFormat(locale, { weekday: 'short', ...(sameYear ? {} : { year: 'numeric' }), month: 'long', day: 'numeric' }).format(at);
+}
+
 /** The key ends an input method composition (choosing a conversion): Enter and Escape belong to it then, not to the page. */
 export function isComposing(e: KeyboardEvent): boolean {
   return e.isComposing || e.keyCode === 229;

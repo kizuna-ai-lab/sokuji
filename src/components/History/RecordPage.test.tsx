@@ -119,6 +119,8 @@ const openExport = () => fireEvent.click(screen.getByRole('button', { name: 'Exp
 describe('a record', () => {
   it('shows the transcript with speakers, times and translations', async () => {
     await renderRecord();
+    expect(screen.getByRole('button', { name: 'Back to the list' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(when());
     expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
     expect(screen.getByText('下周三之前能交货吗？')).toBeInTheDocument();
     expect(screen.getByText('~0:01')).toBeInTheDocument();
@@ -148,7 +150,7 @@ describe('a record', () => {
   it('Escape in the title field cancels the edit and stays on the record', async () => {
     render(<HistoryPage onClose={() => {}} />);
     await settle();
-    fireEvent.click(screen.getByText(when()));
+    fireEvent.click(screen.getByText(/^Session at /));
     expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: when() }));
     const field = screen.getByRole('textbox', { name: 'Title' });
@@ -162,7 +164,7 @@ describe('a record', () => {
   it('Escape or a click outside closes a sentence menu and stays on the record', async () => {
     render(<HistoryPage onClose={() => {}} />);
     await settle();
-    fireEvent.click(screen.getByText(when()));
+    fireEvent.click(screen.getByText(/^Session at /));
     expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
     const second = document.querySelector('[data-n="2"]') as HTMLElement;
     const button = within(second).getByRole('button', { name: 'Change speaker' });
@@ -254,7 +256,8 @@ describe('a record', () => {
   it('a record still being written can be refreshed and not binned', async () => {
     record = { ...record, state: 'open', endedAt: null };
     await renderRecord();
-    expect(screen.queryByRole('button', { name: 'Move to bin' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('menuitem', { name: 'Move to bin' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await settle();
     expect(calls('getRecord')).toEqual([A, A]);
@@ -263,7 +266,9 @@ describe('a record', () => {
   it('a finished record moves to the bin from its page', async () => {
     await renderRecord();
     expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Move to bin' }));
+    expect(screen.queryByRole('button', { name: 'Move to bin' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to bin' }));
     await settle();
     expect(calls('binRecords')).toEqual([{ ids: [A] }]);
     expect(store.getState().open).toBeNull();

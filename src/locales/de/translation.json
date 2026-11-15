@@ -721,7 +721,7 @@
       "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung.",
       "headerNarrowed": "Hinweis: Dieser Export wurde beim Exportieren eingeschränkt – einige Zeilen fehlen.",
       "autoSave": {
-        "label": "Bei Sitzungsende automatisch speichern",
+        "label": "TXT exportieren, wenn eine Sitzung endet",
         "tooltipDesktop": "Wenn eine Sitzung endet, wird die gesamte Unterhaltung – beide Seiten, Originale und Übersetzungen – als .txt-Datei im Downloads-Ordner gespeichert.",
         "tooltipBrowser": "Wenn eine Sitzung endet, wird die gesamte Unterhaltung – beide Seiten, Originale und Übersetzungen – als .txt-Datei heruntergeladen. Wird die Seitenleiste während einer Sitzung geschlossen, wird nichts gespeichert; zuerst die Sitzung beenden.",
         "saved": "Unterhaltung gespeichert: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} Treffer",
     "sentenceCount_one": "{{count}} Satz",
     "space_one": "{{size}} in {{count}} Aufzeichnung",
-    "showOlder": "Ältere Aufzeichnungen zeigen"
+    "showOlder": "Ältere Aufzeichnungen zeigen",
+    "backToSession": "Zurück zur Sitzung",
+    "backToList": "Zurück zur Liste",
+    "allRecords": "Alle Aufzeichnungen",
+    "binTitle": "Papierkorb",
+    "results": "Suchergebnisse",
+    "selectMode": "Auswählen",
+    "selectedCount": "{{count}} ausgewählt",
+    "tagTranscript": "Transkript",
+    "tagNotes": "Notizen",
+    "tagRecording": "Aufnahme",
+    "more": "Mehr",
+    "binWhenEnded": "Eine Aufzeichnung kann erst nach dem Ende ihrer Sitzung in den Papierkorb.",
+    "autoExportLine": "Speichert zusätzlich eine .txt-Kopie des ganzen Gesprächs im Download-Ordner. Der Verlauf behält die Aufzeichnung in jedem Fall auf diesem Computer.",
+    "sessionAt": "Sitzung um {{time}}"
   }
 }

@@ -721,7 +721,7 @@
       "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia.",
       "headerNarrowed": "Huomio: tätä vientiä rajattiin vietäessä – osa riveistä jätettiin pois.",
       "autoSave": {
-        "label": "Tallenna automaattisesti istunnon päättyessä",
+        "label": "Vie TXT, kun istunto päättyy",
         "tooltipDesktop": "Kun istunto päättyy, koko keskustelu – molemmat osapuolet, alkuperäiset ja käännökset – tallennetaan .txt-tiedostona Lataukset-kansioon.",
         "tooltipBrowser": "Kun istunto päättyy, koko keskustelu – molemmat osapuolet, alkuperäiset ja käännökset – ladataan .txt-tiedostona. Sivupaneelin sulkeminen istunnon aikana ei tallenna sitä; lopeta istunto ensin.",
         "saved": "Keskustelu tallennettu: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} osuma",
     "sentenceCount_one": "{{count}} lause",
     "space_one": "{{size}}, {{count}} tallenne",
-    "showOlder": "Näytä vanhemmat tallenteet"
+    "showOlder": "Näytä vanhemmat tallenteet",
+    "backToSession": "Takaisin istuntoon",
+    "backToList": "Takaisin luetteloon",
+    "allRecords": "Kaikki tallenteet",
+    "binTitle": "Roskakori",
+    "results": "Hakutulokset",
+    "selectMode": "Valitse",
+    "selectedCount": "{{count}} valittu",
+    "tagTranscript": "Litterointi",
+    "tagNotes": "Muistiinpanot",
+    "tagRecording": "Äänite",
+    "more": "Lisää",
+    "binWhenEnded": "Tallenteen voi siirtää roskakoriin, kun sen istunto on päättynyt.",
+    "autoExportLine": "Tallentaa koko keskustelusta ylimääräisen .txt-kopion Lataukset-kansioon. Historia säilyttää tallenteen tällä tietokoneella joka tapauksessa.",
+    "sessionAt": "Istunto klo {{time}}"
   }
 }

@@ -721,7 +721,7 @@
       "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji.",
       "headerNarrowed": "Uwaga: ten eksport został zawężony podczas eksportowania — pominięto niektóre wiersze.",
       "autoSave": {
-        "label": "Zapisuj automatycznie po zakończeniu sesji",
+        "label": "Eksportuj TXT po zakończeniu sesji",
         "tooltipDesktop": "Po zakończeniu sesji cała rozmowa — obie strony, oryginały i tłumaczenia — zostaje zapisana jako plik .txt w folderze Pobrane.",
         "tooltipBrowser": "Po zakończeniu sesji cała rozmowa — obie strony, oryginały i tłumaczenia — zostaje pobrana jako plik .txt. Zamknięcie panelu bocznego w trakcie sesji jej nie zapisuje; najpierw zakończ sesję.",
         "saved": "Rozmowa zapisana: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "Dopasowania: {{count}}",
     "sentenceCount_one": "Zdania: {{count}}",
     "space_one": "{{size}} w {{count}} zapisie",
-    "showOlder": "Pokaż starsze zapisy"
+    "showOlder": "Pokaż starsze zapisy",
+    "backToSession": "Wróć do sesji",
+    "backToList": "Wróć do listy",
+    "allRecords": "Wszystkie zapisy",
+    "binTitle": "Kosz",
+    "results": "Wyniki wyszukiwania",
+    "selectMode": "Zaznacz",
+    "selectedCount": "Zaznaczone: {{count}}",
+    "tagTranscript": "Transkrypcja",
+    "tagNotes": "Notatki",
+    "tagRecording": "Nagranie",
+    "more": "Więcej",
+    "binWhenEnded": "Zapis można przenieść do kosza dopiero po zakończeniu sesji.",
+    "autoExportLine": "Zapisuje dodatkową kopię .txt całej rozmowy w folderze Pobrane. Historia i tak przechowuje zapis na tym komputerze.",
+    "sessionAt": "Sesja o {{time}}"
   }
 }

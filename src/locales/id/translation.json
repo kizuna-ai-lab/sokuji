@@ -721,7 +721,7 @@
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung.",
       "headerNarrowed": "Catatan: ekspor ini dipersempit saat mengekspor — beberapa baris tidak disertakan.",
       "autoSave": {
-        "label": "Simpan otomatis saat sesi berakhir",
+        "label": "Ekspor TXT saat sesi berakhir",
         "tooltipDesktop": "Saat sesi berakhir, seluruh percakapan — kedua pihak, teks asli dan terjemahan — disimpan sebagai file .txt di folder Unduhan Anda.",
         "tooltipBrowser": "Saat sesi berakhir, seluruh percakapan — kedua pihak, teks asli dan terjemahan — diunduh sebagai file .txt. Menutup panel samping selama sesi tidak menyimpannya; akhiri sesi terlebih dahulu.",
         "saved": "Percakapan disimpan: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} kecocokan",
     "sentenceCount_one": "{{count}} kalimat",
     "space_one": "{{size}} dalam {{count}} rekaman",
-    "showOlder": "Tampilkan rekaman lebih lama"
+    "showOlder": "Tampilkan rekaman lebih lama",
+    "backToSession": "Kembali ke sesi",
+    "backToList": "Kembali ke daftar",
+    "allRecords": "Semua rekaman",
+    "binTitle": "Sampah",
+    "results": "Hasil pencarian",
+    "selectMode": "Pilih",
+    "selectedCount": "{{count}} dipilih",
+    "tagTranscript": "Transkrip",
+    "tagNotes": "Catatan",
+    "tagRecording": "Rekaman suara",
+    "more": "Lainnya",
+    "binWhenEnded": "Rekaman bisa dipindahkan ke sampah setelah sesinya selesai.",
+    "autoExportLine": "Menyimpan salinan .txt tambahan dari seluruh percakapan ke folder Unduhan. Riwayat tetap menyimpan rekamannya di komputer ini.",
+    "sessionAt": "Sesi pukul {{time}}"
   }
 }

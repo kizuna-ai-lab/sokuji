@@ -18,12 +18,15 @@ vi.mock('../../lib/history/port', async (importOriginal) => ({
 
 import '../../locales';
 import { HistoryPageContext } from './historyContext';
+import { dayLabel, formatDateTime, formatTime } from './format';
 import HistoryList from './HistoryList';
 import HistoryPage from './HistoryPage';
 
 const A = 'run-000a-aaaa';
 const B = 'run-000b-bbbb';
 const C = 'run-000c-cccc';
+const D = 'run-000d-dddd';
+const DAY = 86_400_000;
 const START = Date.UTC(2026, 10, 12, 1, 0, 0);
 const rowOf = (id: string, over: Partial<HistoryRecordRow> = {}): HistoryRecordRow => ({
   id, startedAt: START, endedAt: START + 60_000, state: 'closed', mode: 'both', myLanguage: 'zh', targetLanguage: 'en', title: null,
@@ -98,46 +101,70 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('the History list', () => {
-  it('lists records with title, length, languages and what they have', async () => {
+  it('lists records by day with their title, time, length, languages and what they have in words', async () => {
+    records.push(rowOf(D, { title: 'Earlier call', startedAt: START - 2 * DAY, endedAt: START - 2 * DAY + 65_000, sentences: 1 }));
     await renderList();
     expect(await screen.findByText('Weekly sync')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      dayLabel(START, Date.now(), 'en'), dayLabel(START - 2 * DAY, Date.now(), 'en'),
+    ]);
     const row = rowWith('Weekly sync');
+    expect(within(row).getByText(formatTime(START, 'en'))).toBeInTheDocument();
     expect(within(row).getByText('1:02:03')).toBeInTheDocument();
-    expect(within(row).getByLabelText('Has a transcript')).toBeInTheDocument();
-    expect(within(row).getByLabelText('Has notes')).toBeInTheDocument();
-    expect(within(row).queryByLabelText('Has a recording')).toBeNull();
     expect(within(row).getByText(/Chinese.*→.*English/)).toBeInTheDocument();
-    expect(screen.getByText('1.5 MB in 2 records')).toBeInTheDocument();
-    expect(screen.getByText('/home/u/History')).toBeInTheDocument();
+    expect(within(row).getByText('Transcript')).toBeInTheDocument();
+    expect(within(row).getByText('Notes')).toBeInTheDocument();
+    expect(within(row).queryByText('Recording')).toBeNull();
+    expect(screen.getByText('1.5 MB in 3 records')).toBeInTheDocument();
   });
 
-  it('shows the start time for a record without a title, and "In progress" without a checkbox for one being written', async () => {
+  it('names an untitled record by its start time under its day, and shows "In progress" for one being written', async () => {
     await renderList();
     const row = rowWith('In progress');
-    expect(within(row).queryByRole('checkbox')).toBeNull();
-    const when = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(START);
+    const when = `Session at ${formatTime(START, 'en')}`;
     expect(within(row).getByText(when)).toBeInTheDocument();
+    expect(within(row).queryByText(formatTime(START, 'en'))).toBeNull();
+    expect(within(row).queryByText(formatDateTime(START, 'en'))).toBeNull();
     fireEvent.click(within(row).getByText(when));
     await settle();
     expect(calls('getRecord')).toEqual([B]);
   });
 
-  it('moves the selected records to the bin', async () => {
+  it('shows checkboxes only after Select, and moves the selected records to the bin', async () => {
     await renderList();
-    fireEvent.click(within(rowWith('Weekly sync')).getByRole('checkbox'));
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    expect(within(rowWith('In progress')).queryByRole('checkbox')).toBeNull();
+    fireEvent.click(screen.getByText('Weekly sync'));
     expect(calls('getRecord')).toEqual([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Move to bin (1)' }));
+    expect(within(rowWith('Weekly sync')).getByRole('checkbox')).toBeChecked();
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Move to bin' }));
     await settle();
     expect(port.calls).toContainEqual(['binRecords', { ids: [A] }]);
-    expect(screen.queryByRole('button', { name: /Move to bin/ })).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('leaves Select without a change', async () => {
+    await renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    fireEvent.click(screen.getByText('Weekly sync'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(store.getState().selected.size).toBe(0);
+    expect(calls('binRecords')).toEqual([]);
   });
 
   it('asks before deleting for good and does nothing on Cancel', async () => {
     bin = [rowOf(C, { title: 'Old call', binnedAt: START + 1 })];
     await renderList();
-    fireEvent.click(screen.getByRole('tab', { name: 'Bin (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Bin/ }));
     await settle();
+    expect(screen.getByRole('heading', { level: 2, name: 'Bin' })).toBeInTheDocument();
+    expect(screen.getByText('Records in the bin are deleted for good after 30 days.')).toBeInTheDocument();
     const row = rowWith('Old call');
+    // The bin has no day headings: its rows carry their date.
+    expect(within(row).getByText(formatDateTime(START, 'en'))).toBeInTheDocument();
     fireEvent.click(within(row).getByRole('button', { name: 'Delete for good' }));
     expect(screen.getByText('Delete 1 record for good? Its transcript and recording cannot be brought back.')).toBeInTheDocument();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }));
@@ -152,19 +179,26 @@ describe('the History list', () => {
     expect(calls('purgeRecords')).toEqual([{ ids: [C] }]);
   });
 
-  it('opens a search result at its first hit', async () => {
+  it('keeps the navigation while searching, opens a result at its first hit, and the bin ends the search', async () => {
     found = [{ recordId: A, title: 'Weekly sync', startedAt: START, hits: 2, first: { kind: 'sentence', transcriptId: 1, n: 1, text: '我们先看一下这个视频的进度' } }];
     await renderList();
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search History' }), { target: { value: '视频' } });
     await act(async () => { clock.advance(250); });
     await settle();
     expect(calls('search')).toEqual([{ query: '视频' }]);
+    expect(screen.getByRole('heading', { level: 2, name: 'Search results' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^All records/ })).toBeInTheDocument();
     expect(screen.getByText('我们先看一下这个视频的进度')).toBeInTheDocument();
     expect(screen.getByText('2 matches')).toBeInTheDocument();
     expect(screen.queryByText('In progress')).toBeNull();
     fireEvent.click(screen.getByText('我们先看一下这个视频的进度'));
     await settle();
     expect(store.getState().open?.at).toEqual({ kind: 'sentence', transcriptId: 1, n: 1 });
+
+    act(() => store.getState().closeRecord());
+    fireEvent.click(screen.getByRole('button', { name: /^Bin/ }));
+    await settle();
+    expect(screen.getByRole('searchbox', { name: 'Search History' })).toHaveValue('');
   });
 
   it('says so when nothing is found', async () => {
@@ -180,7 +214,7 @@ describe('the History list', () => {
     await renderList();
     expect(screen.getByText('This History was written by a newer version of Sokuji. Update Sokuji to open it.')).toBeInTheDocument();
     expect(screen.queryByRole('searchbox')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the session' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -194,6 +228,22 @@ describe('the History list', () => {
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.keyDown(box, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('going back from a record finds the list as it was left', async () => {
+    render(<HistoryPage onClose={onClose} />);
+    await settle();
+    const list = screen.getByTestId('history-list');
+    const scroller = list.querySelector('.settings-page__content') as HTMLElement;
+    scroller.scrollTop = 120;
+    fireEvent.scroll(scroller);
+    fireEvent.click(screen.getByText('Weekly sync'));
+    await settle();
+    expect(screen.getByRole('button', { name: 'Back to the list' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the list' }));
+    expect(screen.getByTestId('history-list')).toBe(list);
+    expect(scroller.scrollTop).toBe(120);
+    expect(list).toBeVisible();
   });
 
   it('shows older records on request', async () => {

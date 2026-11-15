@@ -721,7 +721,7 @@
       "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi.",
       "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan.",
       "autoSave": {
-        "label": "Simpan secara automatik apabila sesi tamat",
+        "label": "Eksport TXT apabila sesi tamat",
         "tooltipDesktop": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — disimpan sebagai fail .txt dalam folder Muat Turun anda.",
         "tooltipBrowser": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — dimuat turun sebagai fail .txt. Menutup panel sisi semasa sesi tidak menyimpannya; tamatkan sesi dahulu.",
         "saved": "Perbualan disimpan: {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} padanan",
     "sentenceCount_one": "{{count}} ayat",
     "space_one": "{{size}} dalam {{count}} rekod",
-    "showOlder": "Tunjukkan rekod lebih lama"
+    "showOlder": "Tunjukkan rekod lebih lama",
+    "backToSession": "Kembali ke sesi",
+    "backToList": "Kembali ke senarai",
+    "allRecords": "Semua rekod",
+    "binTitle": "Tong sampah",
+    "results": "Hasil carian",
+    "selectMode": "Pilih",
+    "selectedCount": "{{count}} dipilih",
+    "tagTranscript": "Transkrip",
+    "tagNotes": "Nota",
+    "tagRecording": "Rakaman",
+    "more": "Lagi",
+    "binWhenEnded": "Rekod boleh dialih ke tong sampah selepas sesinya tamat.",
+    "autoExportLine": "Menyimpan salinan .txt tambahan bagi seluruh perbualan dalam folder Muat Turun. Sejarah tetap menyimpan rekod pada komputer ini.",
+    "sessionAt": "Sesi pukul {{time}}"
   }
 }

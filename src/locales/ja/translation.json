@@ -721,7 +721,7 @@
       "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。",
       "headerNarrowed": "注: このエクスポートは書き出し時に絞り込まれています。一部の行は含まれていません。",
       "autoSave": {
-        "label": "セッション終了時に自動保存",
+        "label": "セッション終了時に TXT をエクスポート",
         "tooltipDesktop": "セッションが終わると、会話全体（双方の原文と訳文）を .txt ファイルとして「ダウンロード」フォルダに保存します。",
         "tooltipBrowser": "セッションが終わると、会話全体（双方の原文と訳文）を .txt ファイルとしてダウンロードします。セッション中にサイドパネルを閉じると保存されません。先にセッションを終了してください。",
         "saved": "会話を保存しました：{{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} 件一致",
     "sentenceCount_one": "{{count}} 文",
     "space_one": "{{count}} 件の記録で {{size}}",
-    "showOlder": "古い記録を表示"
+    "showOlder": "古い記録を表示",
+    "backToSession": "セッションに戻る",
+    "backToList": "一覧に戻る",
+    "allRecords": "すべての記録",
+    "binTitle": "ごみ箱",
+    "results": "検索結果",
+    "selectMode": "選択",
+    "selectedCount": "{{count}} 件選択中",
+    "tagTranscript": "文字起こし",
+    "tagNotes": "メモ",
+    "tagRecording": "録音",
+    "more": "その他",
+    "binWhenEnded": "セッションが終わると、記録をごみ箱に移せます。",
+    "autoExportLine": "会話全体の .txt コピーをダウンロードフォルダーに追加で保存します。履歴の記録はどちらの場合もこのコンピューターに残ります。",
+    "sessionAt": "{{time}} のセッション"
   }
 }

@@ -721,7 +721,7 @@
       "headerNote": "Remarque : les paramètres reflètent l'état actuel au moment de l'export, pas les modifications en cours de session.",
       "headerNarrowed": "Remarque : cet export a été restreint au moment de l'export — certaines lignes ont été omises.",
       "autoSave": {
-        "label": "Enregistrer automatiquement en fin de session",
+        "label": "Exporter en TXT à la fin de la session",
         "tooltipDesktop": "À la fin d'une session, la conversation complète — les deux côtés, originaux et traductions — est enregistrée en fichier .txt dans votre dossier Téléchargements.",
         "tooltipBrowser": "À la fin d'une session, la conversation complète — les deux côtés, originaux et traductions — est téléchargée en fichier .txt. Fermer le panneau latéral pendant une session ne l'enregistre pas ; terminez d'abord la session.",
         "saved": "Conversation enregistrée : {{filename}}",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} correspondance",
     "sentenceCount_one": "{{count}} phrase",
     "space_one": "{{size}} pour {{count}} enregistrement",
-    "showOlder": "Afficher les enregistrements plus anciens"
+    "showOlder": "Afficher les enregistrements plus anciens",
+    "backToSession": "Retour à la session",
+    "backToList": "Retour à la liste",
+    "allRecords": "Tous les enregistrements",
+    "binTitle": "Corbeille",
+    "results": "Résultats de la recherche",
+    "selectMode": "Sélectionner",
+    "selectedCount": "{{count}} sélectionné(s)",
+    "tagTranscript": "Transcription",
+    "tagNotes": "Notes",
+    "tagRecording": "Audio",
+    "more": "Plus",
+    "binWhenEnded": "Un enregistrement peut aller à la corbeille une fois sa session terminée.",
+    "autoExportLine": "Enregistre une copie .txt supplémentaire de toute la conversation dans le dossier Téléchargements. L’historique garde l’enregistrement sur cet ordinateur dans tous les cas.",
+    "sessionAt": "Session de {{time}}"
   }
 }

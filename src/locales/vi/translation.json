@@ -721,7 +721,7 @@
       "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên.",
       "headerNarrowed": "Lưu ý: bản xuất này đã được thu hẹp khi xuất — một số dòng không được đưa vào.",
       "autoSave": {
-        "label": "Tự động lưu khi kết thúc phiên",
+        "label": "Xuất TXT khi phiên kết thúc",
         "tooltipDesktop": "Khi một phiên kết thúc, toàn bộ hội thoại — cả hai bên, bản gốc và bản dịch — được lưu thành tệp .txt trong thư mục Tải xuống của bạn.",
         "tooltipBrowser": "Khi một phiên kết thúc, toàn bộ hội thoại — cả hai bên, bản gốc và bản dịch — được tải xuống dưới dạng tệp .txt. Đóng bảng bên khi đang có phiên sẽ không lưu; hãy kết thúc phiên trước.",
         "saved": "Đã lưu hội thoại: {{filename}}",
@@ -1944,7 +1944,7 @@
     "clearSelection": "Bỏ chọn",
     "restore": "Khôi phục",
     "deleteForGood": "Xóa vĩnh viễn",
-    "confirmPurge": "Xóa vĩnh viễn {{count}} bản ghi? Bản ghi lời và bản ghi âm của chúng sẽ không khôi phục được.",
+    "confirmPurge": "Xóa vĩnh viễn {{count}} bản ghi? Bản ghi lời và bản ghi âm sẽ không khôi phục được.",
     "delete": "Xóa",
     "cancel": "Hủy",
     "emptyBin": "Dọn sạch thùng rác",
@@ -1988,6 +1988,20 @@
     "hits_one": "{{count}} kết quả khớp",
     "sentenceCount_one": "{{count}} câu",
     "space_one": "{{size}} trong {{count}} bản ghi",
-    "showOlder": "Hiện bản ghi cũ hơn"
+    "showOlder": "Hiện bản ghi cũ hơn",
+    "backToSession": "Quay lại phiên",
+    "backToList": "Quay lại danh sách",
+    "allRecords": "Tất cả bản ghi",
+    "binTitle": "Thùng rác",
+    "results": "Kết quả tìm kiếm",
+    "selectMode": "Chọn",
+    "selectedCount": "Đã chọn {{count}}",
+    "tagTranscript": "Bản ghi lời",
+    "tagNotes": "Ghi chú",
+    "tagRecording": "Bản ghi âm",
+    "more": "Thêm",
+    "binWhenEnded": "Bản ghi chỉ chuyển vào thùng rác được sau khi phiên kết thúc.",
+    "autoExportLine": "Lưu thêm một bản .txt của toàn bộ cuộc trò chuyện vào thư mục Tải xuống. Lịch sử vẫn giữ bản ghi trên máy tính này.",
+    "sessionAt": "Phiên lúc {{time}}"
   }
 }

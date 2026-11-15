@@ -1,17 +1,21 @@
 // src/components/History/HistoryList.tsx
 //
-// The list of records: search, the bin and the space History takes. A record still being written is listed as
+// The list of records in the settings page's frame (the owner chose it, 2026-11-16): on the left the way back to the
+// session, the search, "All records" and "Bin", and the space History takes; on the right the records by day, the
+// search's results or the bin. Checkboxes appear only after "Select". A record still being written is listed as
 // "In progress" and cannot be selected; nothing is deleted for good before the user answers a confirmation on the page.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ArrowLeft, FileText, FolderOpen, Mic, NotebookPen } from 'lucide-react';
+import { ChevronLeft, FolderOpen, Search } from 'lucide-react';
 import { languageLabel } from '../../lib/language/label';
 import type { HitTarget } from '../../lib/history/historyPageStore';
 import type { HistoryRecordRow, HistorySearchHit, HistorySearchResult } from '../../lib/history/types';
 import { isElectron } from '../../utils/environment';
 import { useHistoryPageContext } from './historyContext';
-import { formatBytes, formatDate, formatDateTime, formatLength, isComposing } from './format';
+import { dayLabel, formatBytes, formatDateTime, formatLength, formatTime, isComposing } from './format';
+import { useWideForm } from '../SettingsPage/useWideForm';
+import '../SettingsPage/SettingsPage.scss';
 import './History.scss';
 
 /** The matched text shown for a search result: at most this many characters around the match. */
@@ -39,7 +43,12 @@ const targetOf = (hit: HistorySearchHit): HitTarget => {
 /** What waits for an answer before records are deleted for good: these records, or the whole bin. */
 type Confirm = { ids: string[] } | { all: true; count: number };
 
-export const HistoryList: React.FC = () => {
+export interface HistoryListProps {
+  /** The list is kept, hidden, while a record is open: going back finds it as it was left. */
+  hidden?: boolean;
+}
+
+export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   const { t, i18n } = useTranslation();
   const { store, onClose } = useHistoryPageContext();
   const status = useStore(store, (s) => s.status);
@@ -53,39 +62,52 @@ export const HistoryList: React.FC = () => {
   const more = useStore(store, (s) => s.more);
   const actions = store.getState();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const [selecting, setSelecting] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLElement>(null);
+  const scrolledTo = useRef(0);
+  const wide = useWideForm(root);
   const language = i18n.language;
 
   useEffect(() => { if (confirm) cancelRef.current?.focus(); }, [confirm]);
-  useEffect(() => { setConfirm(null); }, [tab]);
+  useEffect(() => { setConfirm(null); setSelecting(false); }, [tab]);
+  // A hidden element may lose its scroll position: the last one is put back when the list shows again.
+  useLayoutEffect(() => {
+    if (!hidden && scroller.current) scroller.current.scrollTop = scrolledTo.current;
+  }, [hidden]);
 
   const titleOf = (r: { title: string | null; startedAt: number }) => r.title ?? formatDateTime(r.startedAt, language);
   const languagesOf = (r: HistoryRecordRow) => `${languageLabel(r.myLanguage, language)} → ${languageLabel(r.targetLanguage, language)}`;
+  const searching = query.trim() !== '';
 
   const back = (
-    <button type="button" className="history-list__back" onClick={onClose}>
-      <ArrowLeft size={14} />
-      {t('history.back', 'Back')}
+    <button type="button" className="settings-page__back" onClick={onClose}>
+      <ChevronLeft size={14} aria-hidden="true" /> {t('history.backToSession', 'Back to the session')}
     </button>
+  );
+  const frame = (nav: React.ReactNode, content: React.ReactNode) => (
+    <div ref={root} className={`settings-page settings-page--${wide ? 'wide' : 'narrow'} history-list`} data-testid="history-list">
+      <div className="settings-page__columns">{nav}{content}</div>
+    </div>
   );
 
   if (status && !status.available) {
-    return (
-      <div className="history-list">
-        <header className="history-list__head">
-          {back}
-          <h2 className="history-list__title">{t('history.title', 'History')}</h2>
-        </header>
-        <p className="history-list__empty" role="status">
-          {status.reason === 'newer'
-            ? t('history.unavailableNewer', 'This History was written by a newer version of Sokuji. Update Sokuji to open it.')
-            : t('history.unavailable', 'History could not be opened.')}
-        </p>
-      </div>
+    return frame(
+      <nav className="settings-page__nav history-nav" aria-label={t('history.title', 'History')}>{back}</nav>,
+      <section className="settings-page__content">
+        <header><h2>{t('history.title', 'History')}</h2></header>
+        <div className="settings-page__body">
+          <p className="history-list__empty" role="status">
+            {status.reason === 'newer'
+              ? t('history.unavailableNewer', 'This History was written by a newer version of Sokuji. Update Sokuji to open it.')
+              : t('history.unavailable', 'History could not be opened.')}
+          </p>
+        </div>
+      </section>,
     );
   }
 
-  const searching = query.trim() !== '';
   const openFolder = () => { if (status?.dir && isElectron()) void window.electron.invoke('open-directory', status.dir); };
   const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Escape' || query === '' || isComposing(e.nativeEvent)) return;
@@ -93,6 +115,12 @@ export const HistoryList: React.FC = () => {
     e.preventDefault();
     actions.setQuery('');
   };
+  /** The records or the bin; a search shown ends. */
+  const showTab = (next: 'records' | 'bin') => {
+    if (query) actions.setQuery('');
+    if (next !== tab) void actions.setTab(next);
+  };
+  const leaveSelect = () => { actions.clearSelection(); setSelecting(false); };
   const confirmCount = confirm ? ('all' in confirm ? confirm.count : confirm.ids.length) : 0;
   const purgeConfirmed = () => {
     if (!confirm) return;
@@ -100,31 +128,38 @@ export const HistoryList: React.FC = () => {
     void ('all' in confirm ? actions.emptyBin() : actions.purge(confirm.ids));
   };
 
-  const marks = (r: HistoryRecordRow) => (
-    <span className="history-row__marks">
-      {r.sentences > 0 && <span role="img" aria-label={t('history.hasTranscript', 'Has a transcript')}><FileText size={14} /></span>}
-      {r.hasRecording && <span role="img" aria-label={t('history.hasRecording', 'Has a recording')}><Mic size={14} /></span>}
-      {r.notesVersions > 0 && <span role="img" aria-label={t('history.hasNotes', 'Has notes')}><NotebookPen size={14} /></span>}
+  const tags = (r: HistoryRecordRow) => (
+    <span className="history-row__tags">
+      {r.sentences > 0 && <span className="history-tag">{t('history.tagTranscript', 'Transcript')}</span>}
+      {r.notesVersions > 0 && <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>}
+      {r.hasRecording && <span className="history-tag">{t('history.tagRecording', 'Recording')}</span>}
     </span>
   );
 
-  const meta = (r: HistoryRecordRow) => (
+  /** Under a day heading the time is enough; a list without headings (the bin) gives the date too. */
+  const meta = (r: HistoryRecordRow, withDate = false) => (
     <span className="history-row__meta">
-      {/* A record without a title already shows its start time as one. */}
-      {r.title !== null && <span>{formatDate(r.startedAt, language)}</span>}
+      {withDate
+        ? <span>{formatDateTime(r.startedAt, language)}</span>
+        : r.title !== null && <span>{formatTime(r.startedAt, language)}</span>}
       {r.state === 'open' || r.endedAt === null
         ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
         : <span>{formatLength(r.endedAt - r.startedAt)}</span>}
       <span>{languagesOf(r)}</span>
-      {marks(r)}
     </span>
   );
 
   const recordRow = (r: HistoryRecordRow) => {
-    const title = titleOf(r);
+    // Under its day heading an untitled record is named by its start time; the date would only repeat the heading.
+    const title = r.title ?? t('history.sessionAt', 'Session at {{time}}', { time: formatTime(r.startedAt, language) });
+    const live = r.state === 'open';
+    const onRow = () => {
+      if (!selecting) void actions.openRecord(r.id);
+      else if (!live) actions.toggle(r.id);
+    };
     return (
-      <li key={r.id} className="history-row" data-record={r.id}>
-        {r.state === 'open'
+      <li key={r.id} className={`history-row${selecting && selected.has(r.id) ? ' is-selected' : ''}`} data-record={r.id}>
+        {selecting && (live
           ? <span className="history-row__check" />
           : (
             <input
@@ -134,11 +169,12 @@ export const HistoryList: React.FC = () => {
               checked={selected.has(r.id)}
               onChange={() => actions.toggle(r.id)}
             />
-          )}
-        <button type="button" className="history-row__open" onClick={() => void actions.openRecord(r.id)}>
+          ))}
+        <button type="button" className="history-row__open" onClick={onRow}>
           <span className="history-row__title">{title}</span>
           {meta(r)}
         </button>
+        {tags(r)}
       </li>
     );
   };
@@ -147,7 +183,7 @@ export const HistoryList: React.FC = () => {
     <li key={r.id} className="history-row" data-record={r.id}>
       <div className="history-row__body">
         <span className="history-row__title">{titleOf(r)}</span>
-        {meta(r)}
+        {meta(r, r.title !== null)}
       </div>
       <div className="history-row__actions">
         <button type="button" className="history-button" disabled={busy} onClick={() => void actions.restore([r.id])}>
@@ -174,6 +210,24 @@ export const HistoryList: React.FC = () => {
     </li>
   );
 
+  /** Records grouped by the day they started, newest first as listed. */
+  const byDay = () => {
+    const now = Date.now();
+    const groups: Array<{ label: string; rows: HistoryRecordRow[] }> = [];
+    for (const r of rows) {
+      const label = dayLabel(r.startedAt, now, language);
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.rows.push(r);
+      else groups.push({ label, rows: [r] });
+    }
+    return groups.map((g) => (
+      <section key={g.label} className="history-day">
+        <h3 className="history-day__label">{g.label}</h3>
+        <ul className="history-list__rows">{g.rows.map(recordRow)}</ul>
+      </section>
+    ));
+  };
+
   let body: React.ReactNode;
   if (!status) body = null;
   else if (searching) {
@@ -185,7 +239,7 @@ export const HistoryList: React.FC = () => {
   } else {
     body = (
       <>
-        <ul className="history-list__rows">{rows.map(tab === 'records' ? recordRow : binRow)}</ul>
+        {tab === 'records' ? byDay() : <ul className="history-list__rows">{rows.map(binRow)}</ul>}
         {more && (
           <div className="history-list__more">
             <button type="button" className="history-button history-button--quiet" disabled={busy} onClick={() => void actions.showOlder()}>
@@ -197,89 +251,108 @@ export const HistoryList: React.FC = () => {
     );
   }
 
-  return (
-    <div className="history-list">
-      <header className="history-list__head">
-        {back}
-        <h2 className="history-list__title">{t('history.title', 'History')}</h2>
-        {status && (
+  const heading = searching ? t('history.results', 'Search results') : tab === 'records' ? t('history.allRecords', 'All records') : t('history.binTitle', 'Bin');
+  let headAction: React.ReactNode = null;
+  if (status && !searching && tab === 'records' && rows.length > 0 && !selecting) {
+    headAction = <button type="button" className="history-button" onClick={() => setSelecting(true)}>{t('history.selectMode', 'Select')}</button>;
+  } else if (status && !searching && tab === 'bin' && rows.length > 0) {
+    headAction = (
+      <button type="button" className="history-button history-button--danger" disabled={busy} onClick={() => setConfirm({ all: true, count: usage?.binned ?? rows.length })}>
+        {t('history.emptyBin', 'Empty bin')}
+      </button>
+    );
+  }
+
+  const navItem = (id: 'records' | 'bin', label: string, count: number | undefined) => {
+    const current = tab === id && !searching;
+    return (
+      <button type="button" className={`settings-page__item history-nav__item${current ? ' is-current' : ''}`} aria-current={current ? 'page' : undefined} onClick={() => showTab(id)}>
+        <span>{label}</span>
+        {count !== undefined && <small>{count}</small>}
+      </button>
+    );
+  };
+
+  return frame(
+    <nav className="settings-page__nav history-nav" aria-label={t('history.title', 'History')}>
+      {back}
+      {status && (
+        <label className="settings-page__search">
+          <Search size={14} aria-hidden="true" />
           <input
             type="search"
-            className="history-list__search"
             aria-label={t('history.search', 'Search History')}
             placeholder={t('history.searchPlaceholder', 'Search titles, transcripts and notes')}
             value={query}
             onChange={(e) => actions.setQuery(e.target.value)}
             onKeyDown={onSearchKey}
           />
-        )}
-      </header>
-
+        </label>
+      )}
       {status && (
-        <div className="history-list__space">
-          {usage && (
-            <span>{t('history.space', '{{size}} in {{count}} records', { size: formatBytes(usage.dbBytes + usage.audioBytes), count: usage.records })}</span>
-          )}
-          <span className="history-list__dir" title={status.dir}>{status.dir}</span>
-          <button type="button" className="history-button history-button--quiet" onClick={openFolder}>
-            <FolderOpen size={14} />
+        <div className="settings-page__group history-nav__items">
+          {navItem('records', t('history.allRecords', 'All records'), usage?.records)}
+          {navItem('bin', t('history.binTitle', 'Bin'), usage?.binned)}
+        </div>
+      )}
+      {status && (
+        <div className="history-nav__space">
+          {usage && <span>{t('history.space', '{{size}} in {{count}} records', { size: formatBytes(usage.dbBytes + usage.audioBytes), count: usage.records })}</span>}
+          <button type="button" className="history-nav__folder" title={status.dir} onClick={openFolder}>
+            <FolderOpen size={13} aria-hidden="true" />
             {t('history.openFolder', 'Open folder')}
           </button>
         </div>
       )}
-
-      {status && !searching && (
-        <div className="history-list__tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={tab === 'records'} className="history-list__tab" onClick={() => void actions.setTab('records')}>
-            {t('history.records', 'Records')}
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'bin'} className="history-list__tab" onClick={() => void actions.setTab('bin')}>
-            {t('history.bin', 'Bin ({{count}})', { count: usage?.binned ?? 0 })}
-          </button>
+    </nav>,
+    <section className="settings-page__content history-content" ref={scroller} onScroll={(e) => { if (!hidden) scrolledTo.current = e.currentTarget.scrollTop; }}>
+      <header>
+        <div className="history-content__head">
+          <h2>{heading}</h2>
+          {headAction}
         </div>
-      )}
-
-      {confirm && (
-        <div
-          className="history-confirm"
-          role="alertdialog"
-          aria-label={t('history.deleteForGood', 'Delete for good')}
-          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setConfirm(null); } }}
-        >
-          <p>{t('history.confirmPurge', 'Delete {{count}} records for good? Their transcripts and recordings cannot be brought back.', { count: confirmCount })}</p>
-          <div className="history-confirm__actions">
-            <button type="button" className="history-button history-button--danger" disabled={busy} onClick={purgeConfirmed}>
-              {t('history.delete', 'Delete')}
-            </button>
-            <button type="button" ref={cancelRef} className="history-button" onClick={() => setConfirm(null)}>
-              {t('history.cancel', 'Cancel')}
-            </button>
+        {!searching && tab === 'bin' && <p className="settings-page__intro">{t('history.binNote', 'Records in the bin are deleted for good after 30 days.')}</p>}
+      </header>
+      <div className="settings-page__body">
+        {confirm && (
+          <div
+            className="history-confirm"
+            role="alertdialog"
+            aria-label={t('history.deleteForGood', 'Delete for good')}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setConfirm(null); } }}
+          >
+            <p>{t('history.confirmPurge', 'Delete {{count}} records for good? Their transcripts and recordings cannot be brought back.', { count: confirmCount })}</p>
+            <div className="history-confirm__actions">
+              <button type="button" className="history-button history-button--danger" disabled={busy} onClick={purgeConfirmed}>
+                {t('history.delete', 'Delete')}
+              </button>
+              <button type="button" ref={cancelRef} className="history-button" onClick={() => setConfirm(null)}>
+                {t('history.cancel', 'Cancel')}
+              </button>
+            </div>
+          </div>
+        )}
+        {body}
+      </div>
+      {selecting && !searching && tab === 'records' && (
+        <div className="history-select-bar" role="toolbar">
+          <div className="history-select-bar__in">
+          <span>{t('history.selectedCount', '{{count}} selected', { count: selected.size })}</span>
+          <button
+            type="button"
+            className="history-button"
+            disabled={busy || selected.size === 0}
+            onClick={async () => { await actions.binSelected(); setSelecting(false); }}
+          >
+            {t('history.moveOneToBin', 'Move to bin')}
+          </button>
+          <button type="button" className="history-button history-button--quiet" onClick={leaveSelect}>
+            {t('history.cancel', 'Cancel')}
+          </button>
           </div>
         </div>
       )}
-
-      {status && !searching && tab === 'records' && selected.size > 0 && (
-        <div className="history-list__bar" role="toolbar">
-          <button type="button" className="history-button" disabled={busy} onClick={() => void actions.binSelected()}>
-            {t('history.moveToBin', 'Move to bin ({{count}})', { count: selected.size })}
-          </button>
-          <button type="button" className="history-button history-button--quiet" onClick={() => actions.clearSelection()}>
-            {t('history.clearSelection', 'Clear selection')}
-          </button>
-        </div>
-      )}
-
-      {status && !searching && tab === 'bin' && rows.length > 0 && (
-        <div className="history-list__bar" role="toolbar">
-          <span className="history-list__note">{t('history.binNote', 'Records in the bin are deleted for good after 30 days.')}</span>
-          <button type="button" className="history-button history-button--danger" disabled={busy} onClick={() => setConfirm({ all: true, count: usage?.binned ?? rows.length })}>
-            {t('history.emptyBin', 'Empty bin')}
-          </button>
-        </div>
-      )}
-
-      <div className="history-list__body">{body}</div>
-    </div>
+    </section>,
   );
 };
 

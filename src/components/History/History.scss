@@ -46,6 +46,8 @@
     &:hover:not(:disabled) { color: vars.$text-primary; }
   }
 
+  &--icon { padding: vars.$space-1; }
+
   &--danger {
     border-color: vars.$color-error-border;
     color: vars.$color-error;
@@ -53,135 +55,137 @@
   }
 }
 
-.history-list {
+.history-page__list {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  &[hidden] { display: none; }
+}
 
-  &__head {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: vars.$space-3;
-    padding: vars.$space-3 vars.$space-4;
-    border-bottom: 1px solid vars.$border-subtle;
-    background: vars.$bg-surface;
-  }
-
-  &__back {
-    display: inline-flex;
-    align-items: center;
-    gap: vars.$space-1;
-    padding: vars.$space-1 vars.$space-2;
-    border: none;
-    background: transparent;
-    color: vars.$text-secondary;
-    cursor: pointer;
-    &:hover { color: vars.$text-primary; }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: vars.$focus-ring-offset; }
-  }
-
-  &__title {
-    margin: 0;
-    font-size: vars.$font-title;
-    font-weight: vars.$weight-semibold;
-  }
-
-  &__search {
-    flex: 1 1 220px;
-    min-width: 0;
-    max-width: 420px;
-    margin-left: auto;
-    padding: vars.$space-1 vars.$space-2;
-    border: 1px solid vars.$border-default;
-    border-radius: vars.$radius-sm;
-    background: vars.$bg-control;
-    color: vars.$text-primary;
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
-  }
-
-  &__space {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: vars.$space-2;
-    padding: vars.$space-2 vars.$space-4;
-    font-size: vars.$font-caption;
-    color: vars.$text-secondary;
-  }
-
-  &__dir {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: vars.$text-tertiary;
-  }
-
-  &__tabs {
-    display: flex;
-    gap: vars.$space-1;
-    padding: 0 vars.$space-4;
-    border-bottom: 1px solid vars.$border-subtle;
-  }
-
-  &__tab {
-    padding: vars.$space-2 vars.$space-3;
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: vars.$text-secondary;
-    cursor: pointer;
-    &:hover { color: vars.$text-primary; }
-    &[aria-selected='true'] {
-      color: vars.$text-primary;
-      border-bottom-color: vars.$color-primary;
-    }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
-  }
-
-  &__bar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: vars.$space-2;
-    padding: vars.$space-2 vars.$space-4;
-    border-bottom: 1px solid vars.$border-subtle;
-    background: vars.$bg-surface;
-  }
-
-  &__note {
-    margin-right: auto;
-    font-size: vars.$font-caption;
-    color: vars.$text-tertiary;
-  }
-
-  &__body {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-  }
+// The list in the settings page's frame (`.settings-page` and its parts come from SettingsPage.scss).
+.history-list {
+  flex: 1;
+  // Narrow: the navigation sits above the records instead of beside them.
+  &.settings-page--narrow .settings-page__columns { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  &.settings-page--narrow .history-nav { flex: none; border-bottom: 1px solid vars.$border-subtle; }
+  &.settings-page--narrow .history-nav__items { flex-direction: row; flex-wrap: wrap; }
+  &.settings-page--narrow .settings-page__content { flex: 1; }
 
   &__rows {
     margin: 0;
-    padding: vars.$space-2 vars.$space-4;
+    padding: 0;
     list-style: none;
   }
 
   &__more {
     display: flex;
     justify-content: center;
-    padding: vars.$space-2 vars.$space-4 vars.$space-4;
+    padding: vars.$space-3 0;
   }
 
   &__empty {
     margin: 0;
-    padding: vars.$space-6 vars.$space-4;
+    padding: vars.$space-6 0;
     color: vars.$text-secondary;
     text-align: center;
   }
 }
+
+.history-nav {
+  &__item {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    small { font-variant-numeric: tabular-nums; }
+  }
+
+  // The space History takes, at the bottom of the column.
+  &__space {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    margin-top: auto;
+    padding: vars.$space-2;
+    font-size: 11.5px;
+    color: vars.$text-muted;
+  }
+
+  &__folder {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-1;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: vars.$text-secondary;
+    font-size: 11.5px;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; text-decoration: underline; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
+
+.history-content {
+  // The selection bar stays at the bottom of the scrolling content.
+  position: relative;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: vars.$space-3;
+    width: 100%;
+  }
+}
+
+.history-day {
+  & + & { margin-top: vars.$space-4; }
+
+  &__label {
+    margin: 0 0 vars.$space-1;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-medium;
+    color: vars.$text-muted;
+  }
+}
+
+.history-tag {
+  padding: 0 6px;
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-sm;
+  font-size: 11px;
+  line-height: 18px;
+  color: vars.$text-tertiary;
+  white-space: nowrap;
+}
+
+.history-select-bar {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  margin-top: auto;
+  border-top: 1px solid vars.$border-subtle;
+  background: vars.$bg-surface;
+
+  // Lined up with the list above it.
+  &__in {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-2;
+    max-width: 720px + 2 * 28px;
+    box-sizing: border-box;
+    padding: vars.$space-2 28px;
+    > span { margin-right: auto; color: vars.$text-secondary; }
+  }
+}
+
+// Inside the content column the confirmation lines up with the rows.
+.settings-page__body > .history-confirm { margin: 0 0 vars.$space-3; }
+
+// In "Select" a row is chosen, not opened: no hover block inside it.
+.history-row.is-selected .history-row__open:hover { background: transparent; }
 
 .history-row {
   display: flex;
@@ -237,12 +241,14 @@
 
   &__live { color: tk.$color-success; }
 
-  &__marks {
+  &__tags {
     display: inline-flex;
+    flex: none;
     gap: vars.$space-1;
-    color: tk.$color-toolbar-icon;
-    > span { display: inline-flex; }
+    margin-left: auto;
   }
+
+  &.is-selected { background: color-mix(in srgb, #{tk.$color-primary} 10%, transparent); }
 
   &__snippet {
     max-width: 100%;
@@ -299,7 +305,19 @@
     min-width: 0;
   }
 
+  // The title at the settings page's level (18px); a quiet pencil says it can be renamed.
+  &__h {
+    margin: 0;
+    max-width: 100%;
+    font-size: 18px;
+    font-weight: vars.$weight-semibold;
+    line-height: 1.35;
+  }
+
   &__title {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-2;
     max-width: 100%;
     padding: 0 vars.$space-1;
     margin-left: calc(-1 * #{vars.$space-1});
@@ -307,15 +325,19 @@
     border-radius: vars.$radius-sm;
     background: transparent;
     color: vars.$text-primary;
-    font-size: vars.$font-title;
-    font-weight: vars.$weight-semibold;
+    font: inherit;
     text-align: left;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     cursor: text;
+    > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     &:hover { border-color: vars.$border-default; }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: vars.$focus-ring-offset; }
+    &:hover .record-page__pencil, &:focus-visible .record-page__pencil { opacity: 1; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__pencil {
+    flex: none;
+    color: vars.$text-tertiary;
+    opacity: 0.55;
   }
 
   &__title-field {
@@ -325,8 +347,42 @@
     border-radius: vars.$radius-sm;
     background: vars.$bg-control;
     color: vars.$text-primary;
-    font-size: vars.$font-title;
+    font-size: 18px;
     font-weight: vars.$weight-semibold;
+  }
+
+  &__more { position: relative; }
+
+  &__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    padding: vars.$space-1;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-md;
+    background: vars.$bg-popover;
+    box-shadow: 0 4px 16px vars.$shadow;
+
+    > button {
+      display: flex;
+      align-items: center;
+      gap: vars.$space-2;
+      padding: vars.$space-1 vars.$space-2;
+      border: none;
+      border-radius: vars.$radius-sm;
+      background: transparent;
+      color: vars.$text-primary;
+      text-align: left;
+      white-space: nowrap;
+      cursor: pointer;
+      &:hover:not(:disabled) { background: vars.$bg-hover; }
+      &:disabled { opacity: vars.$disabled-opacity; cursor: default; }
+      &:focus-visible { @include vars.focus-ring; }
+    }
   }
 
   &__actions {
@@ -427,7 +483,7 @@
     background: transparent;
     font-weight: vars.$weight-medium;
     cursor: pointer;
-    > svg { color: vars.$text-tertiary; opacity: 0; }
+    > svg { color: vars.$text-tertiary; opacity: 0.55; }
     &:hover, &:focus-visible { background: vars.$bg-hover; > svg { opacity: 1; } }
     &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
   }
