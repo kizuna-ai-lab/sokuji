@@ -92,7 +92,7 @@ describe('the headphones entry — keyboard', () => {
     act(() => { guards().find((g) => g.getAttribute('data-type') === 'outside')!.focus(); });
     await waitFor(() => expect(document.activeElement).toBe(controls[0]));
     // Tab from the last control: out to what follows the button.
-    act(() => { inside().at(-1)!.focus(); });
+    act(() => { const all = inside(); all[all.length - 1].focus(); });
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' })));
   });
 });
