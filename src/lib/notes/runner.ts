@@ -8,7 +8,7 @@ import type { HistoryPort } from '../history/port';
 import type { HistoryNotesInput, HistoryRecord, HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort } from './chat';
 import { NOTES_PROMPT_VERSION } from './prompts';
-import { writeNotes } from './write';
+import { NOTES_MIN_MS, writeNotes } from './write';
 
 export interface NotesLanguage { code: string; name: string }
 
@@ -31,7 +31,8 @@ export interface NotesRunner {
   subscribe(listener: () => void): () => void;
 }
 
-export const NO_NOTES_SERVICE = 'No notes service is set up: choose one and add its key in the settings.';
+/** The failure stored when no notes service is set up (worded by the page). */
+export const NO_NOTES_SERVICE = 'notes:no-service';
 
 /**
  * How the notes model hears the speakers: by the name the user gave, else by side, numbered when a side has several
@@ -66,20 +67,27 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     const newest = [...(record?.transcripts ?? [])].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id).pop();
     if (!record || !newest) return;
     const language = asked ?? d.language(record);
-    const service = await d.chatFor();
     const sentences = await d.port.getSentences({ transcriptId: newest.id });
+    // Too little to write notes from: nothing is called and nothing is saved, set up or not.
+    const span = sentences.length > 0
+      ? Math.max(...sentences.map((s) => s.endMs)) - Math.min(...sentences.map((s) => s.startMs)) : 0;
+    if (span < NOTES_MIN_MS) return;
+    const service = await d.chatFor();
+    const requestIds: string[] = [];
     const base = {
       recordId, transcriptId: newest.id, language: language.code,
       writtenBy: { kind: 'sokuji' as const, promptVersion: NOTES_PROMPT_VERSION, model: service?.model ?? '' },
     };
-    const save = (rest: Pick<HistoryNotesInput, 'state' | 'failure' | 'body'>) => d.port.saveNotes({ ...base, ...rest });
+    const save = (rest: Pick<HistoryNotesInput, 'state' | 'failure' | 'body'>) => d.port.saveNotes({ ...base, ...rest, requestIds: [...requestIds] });
     if (!service) {
       await save({ state: 'failed', failure: NO_NOTES_SERVICE, body: null });
       return;
     }
     let result;
     try {
-      result = await writeNotes({ sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal });
+      result = await writeNotes({
+        sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal, requestIds,
+      });
     } catch (error) {
       if (controller.signal.aborted || isAbort(error)) {
         await save({ state: 'cancelled', failure: null, body: null });

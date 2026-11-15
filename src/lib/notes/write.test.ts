@@ -78,6 +78,7 @@ describe('writing the notes', () => {
     });
     expect(result).toEqual({
       ok: true,
+      requestIds: [],
       body: {
         title: 'Part 1', overview: { text: 'About part 1.', format: 'plain' },
         topics: [{ title: 'Topic 1', summary: 'Topic 1 summary.', first: 1 }],
@@ -106,8 +107,8 @@ describe('writing the notes', () => {
   });
 
   it('fails the version with the service\'s words when a part fails three times', async () => {
-    const model = fakeChat({ part: () => Promise.reject(new ChatError('refused', { status: 401, serviceMessage: 'Incorrect API key provided.' })) });
-    await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'Incorrect API key provided.' });
+    const model = fakeChat({ part: () => Promise.reject(new ChatError('busy', { status: 503, serviceMessage: 'The server is overloaded.' })) });
+    await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'The server is overloaded.', requestIds: [] });
     expect(model.of('part')).toHaveLength(3);
     expect(model.of('finish')).toHaveLength(0);
   });
@@ -272,5 +273,61 @@ describe('writing the notes', () => {
     controller.abort();
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
     expect(chat).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not try again what another try cannot fix', async () => {
+    const model = fakeChat({ part: () => Promise.reject(new ChatError('refused', { status: 401, serviceMessage: 'Incorrect API key provided.', retryable: false })) });
+    await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'Incorrect API key provided.', requestIds: [] });
+    expect(model.of('part')).toHaveLength(1);
+  });
+
+  it('tries again a part that wrote no topic, and fails the version when it never does', async () => {
+    let tries = 0;
+    const model = fakeChat({ part: (user, call) => (++tries < 2 ? { title: 'T', summary: 'S', topics: [] } : onePointPerPart(user, call)) });
+    expect((await write(everyMinute(26), model.chat)).ok).toBe(true);
+    expect(model.of('part')).toHaveLength(2);
+    const never = fakeChat({ part: () => ({ title: 'T', summary: 'S', topics: [{ title: '', points: [] }] }) });
+    await expect(write(everyMinute(26), never.chat)).resolves.toEqual({ ok: false, failure: 'notes:no-topics', requestIds: [] });
+    expect(never.of('part')).toHaveLength(3);
+  });
+
+  it('numbers the sentences for the model by their places in reading order, and maps them back', async () => {
+    // Both sides interleave: the store numbers sentences as they are finalized, not as they were spoken.
+    const sentences = [
+      sentence(1, 0, { side: 'mine', speaker: '1' }), sentence(3, 20_000), sentence(2, 40_000, { side: 'mine', speaker: '1' }),
+      ...Array.from({ length: 20 }, (_, i) => sentence(4 + i, 60_000 + i * 60_000)),
+    ];
+    const model = fakeChat({
+      part: () => ({ title: 'T', summary: 'S', topics: [{ title: 'A', sid: 1, summary: 'a', points: [{ text: 'Said third', sid: 3, kinds: [] }] }] }),
+    });
+    const result = await write(sentences, model.chat);
+    expect(model.of('part')[0].user.sentences.slice(0, 3).map((s: { sid: number; text: string }) => [s.sid, s.text])).toEqual([[1, 'sentence 1'], [2, 'sentence 3'], [3, 'sentence 2']]);
+    expect(result.ok && result.body.points[0].sentences).toEqual([2]);
+  });
+
+  it('cuts an owner back to a side only where the side is certain, whatever the speaker is called', async () => {
+    const sentences = everyMinute(26).map((s) => (s.n === 5 ? { ...s, speakerName: 'Tanaka' } : s.n === 9 ? { ...s, side: 'mine' as const, speaker: '1', sideCertain: false } : s));
+    const labels = (s: HistorySentence) => s.speakerName ?? (s.side === 'mine' ? 'My side' : 'Other side');
+    const model = fakeChat({
+      part: () => ({
+        title: 'T', summary: 'S',
+        topics: [{ title: 'A', sid: 1, summary: 'a', points: [
+          { text: 'Send the draft', sid: 5, kinds: ['todo'], owner: 'Tanaka', due: null },
+          { text: 'Book the room', sid: 9, kinds: ['todo'], owner: 'My side', due: null },
+          { text: 'Call Bob', sid: 6, kinds: ['todo'], owner: 'Bob', due: null },
+        ] }],
+      }),
+    });
+    const result = await writeNotes({ sentences, speakerLabel: labels, language: LANGUAGE, chat: model.chat, signal: new AbortController().signal });
+    expect(result.ok && result.body.points.map((p) => p.owner)).toEqual(['Other side', null, 'Bob']);
+  });
+
+  it('gives back the request ids of the calls it made', async () => {
+    let n = 0;
+    // One answer that serves every call: the part, the finishing call and the names step.
+    const answer = { title: 'T', summary: 'S', topics: [{ title: 'A', sid: 1, summary: 'a', points: [{ text: 'p', sid: 2, kinds: [] }] }], join: [], drop: [], merge: [], items: [] };
+    const chat: ChatPort = async (r) => { r.onAnswered?.({ requestId: `req_${++n}` }); return answer; };
+    const result = await write(everyMinute(26), chat);
+    expect(result).toMatchObject({ ok: true, requestIds: ['req_1', 'req_2', 'req_3', 'req_4'] });
   });
 });

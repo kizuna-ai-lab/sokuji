@@ -62,7 +62,7 @@ describe('the notes runner', () => {
     await vi.waitFor(() => expect(saved).toHaveLength(1));
     expect(raw.getSentences).toHaveBeenCalledWith({ transcriptId: 2 });
     expect(saved[0]).toEqual({
-      recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'ja', state: 'complete',
+      recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'ja', state: 'complete', requestIds: [],
       body: expect.objectContaining({ title: 'Weekly sync', topics: [{ title: 'Delivery', summary: 'The date.', first: 1 }] }),
     });
     await settle();
@@ -102,7 +102,7 @@ describe('the notes runner', () => {
     await vi.waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]).toEqual({
       recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'ja', state: 'failed',
-      failure: 'Incorrect API key provided.', body: null,
+      failure: 'Incorrect API key provided.', body: null, requestIds: [],
     });
   });
 
@@ -110,7 +110,7 @@ describe('the notes runner', () => {
     const { runner, saved } = setup({ chat: null });
     runner.start(ID);
     await vi.waitFor(() => expect(saved).toHaveLength(1));
-    expect(saved[0]).toMatchObject({ state: 'failed', failure: 'No notes service is set up: choose one and add its key in the settings.', body: null });
+    expect(saved[0]).toMatchObject({ state: 'failed', failure: 'notes:no-service', body: null });
   });
 
   it('stores a cancelled version when it is cancelled', async () => {
@@ -142,5 +142,22 @@ describe('the notes runner', () => {
     expect(saved).toEqual([]);
     expect(calls).toEqual([]);
     expect(runner.running()).toEqual([]);
+  });
+
+  it('saves nothing for too little transcript even without a notes service', async () => {
+    const { runner, saved } = setup({ chat: null, sentences: [sentence(1), sentence(2, { startMs: 20_000, endMs: 40_000 })] });
+    runner.start(ID);
+    await settle();
+    await settle();
+    expect(saved).toEqual([]);
+  });
+
+  it('saves the request ids of the calls a version made', async () => {
+    let n = 0;
+    const chat: ChatPort = async (r) => { r.onAnswered?.({ requestId: `req_${++n}` }); return ANSWER; };
+    const { runner, saved } = setup({ chat });
+    runner.start(ID);
+    await vi.waitFor(() => expect(saved).toHaveLength(1));
+    expect(saved[0]).toMatchObject({ state: 'complete', requestIds: ['req_1', 'req_2', 'req_3'] });
   });
 });

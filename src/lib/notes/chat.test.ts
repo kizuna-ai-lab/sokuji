@@ -82,4 +82,24 @@ describe('the notes chat', () => {
     controller.abort();
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   });
+
+  it('fails at once when the account is out of credit, without waiting it out', async () => {
+    const fetch = vi.fn(async () => answer(429, { error: { message: 'You exceeded your current quota.', type: 'insufficient_quota', code: 'insufficient_quota' } }));
+    await expect(ask(openAiChat({ ...base, fetch }))).rejects.toMatchObject({ status: 429, serviceMessage: 'You exceeded your current quota.', retryable: false });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('says which refusals another try cannot fix', async () => {
+    for (const [status, retryable] of [[400, false], [401, false], [403, false], [404, false], [500, true], [503, true]] as const) {
+      const fetch = vi.fn(async () => answer(status, { error: { message: 'x' } }));
+      await expect(ask(openAiChat({ ...base, fetch }))).rejects.toMatchObject({ status, retryable });
+    }
+  });
+
+  it("passes on the service's request id", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(content({ ok: 1 })), { status: 200, headers: { 'x-request-id': 'req_123' } }));
+    const seen: unknown[] = [];
+    await openAiChat({ ...base, fetch })({ system: 'S', user: {}, effort: 'none', maxTokens: 1, signal: new AbortController().signal, onAnswered: (info) => seen.push(info) });
+    expect(seen).toEqual([{ requestId: 'req_123' }]);
+  });
 });

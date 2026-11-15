@@ -13,20 +13,31 @@ export interface ChatRequest {
   effort: ChatEffort;
   maxTokens: number;
   signal: AbortSignal;
+  /** Each answer the service gave, with its request id when it names one (a hosted relay bills by these). */
+  onAnswered?(info: { requestId?: string }): void;
 }
 
 /** Resolves to the model's answer, parsed: always a JSON object. */
 export type ChatPort = (r: ChatRequest) => Promise<unknown>;
 
+/** Refusals another try cannot fix: a bad request, a wrong or missing key, no access, no such model. */
+const FINAL_STATUSES = new Set([400, 401, 403, 404]);
+
 export class ChatError extends Error {
   readonly status?: number;
   readonly serviceMessage?: string;
+  /** The program's own reason when the service gave none: `not-json`, `no-answer`, `no-topics`. */
+  readonly code?: string;
+  /** Whether trying again can help. */
+  readonly retryable: boolean;
 
-  constructor(message: string, o: { status?: number; serviceMessage?: string } = {}) {
+  constructor(message: string, o: { status?: number; serviceMessage?: string; code?: string; retryable?: boolean } = {}) {
     super(message);
     this.name = 'ChatError';
     this.status = o.status;
     this.serviceMessage = o.serviceMessage;
+    this.code = o.code;
+    this.retryable = o.retryable ?? !(o.status !== undefined && FINAL_STATUSES.has(o.status));
   }
 }
 
@@ -53,12 +64,14 @@ const wait = (ms: number, signal: AbortSignal) =>
     signal.addEventListener('abort', onAbort, { once: true });
   });
 
-const serviceMessageOf = async (response: Response): Promise<string | undefined> => {
+/** The service's own words about a refusal, and its error code or type. */
+const refusalOf = async (response: Response): Promise<{ message?: string; code?: string }> => {
   try {
-    const message = ((await response.json()) as { error?: { message?: unknown } })?.error?.message;
-    return typeof message === 'string' ? message : undefined;
+    const error = ((await response.json()) as { error?: { message?: unknown; code?: unknown; type?: unknown } })?.error;
+    const code = typeof error?.code === 'string' ? error.code : typeof error?.type === 'string' ? error.type : undefined;
+    return { message: typeof error?.message === 'string' ? error.message : undefined, code };
   } catch {
-    return undefined;
+    return {};
   }
 };
 
@@ -66,7 +79,7 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
   const send = o.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
   const url = `${o.baseUrl.replace(/\/+$/, '')}/chat/completions`;
 
-  return async ({ system, user, effort, maxTokens, signal }) => {
+  return async ({ system, user, effort, maxTokens, signal, onAnswered }) => {
     const body = JSON.stringify({
       model: o.model,
       messages: [
@@ -84,14 +97,20 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
         body,
         signal,
       });
-      if (response.status === 429 && waited < RATE_LIMIT_WAITS) {
-        waited += 1;
-        await wait(RATE_LIMIT_WAIT_MS * waited, signal);
-        continue;
-      }
+      const requestId = response.headers.get('x-request-id');
+      onAnswered?.(requestId ? { requestId } : {});
       if (!response.ok) {
-        const serviceMessage = await serviceMessageOf(response);
-        throw new ChatError(`The notes model refused the request (${response.status})`, { status: response.status, serviceMessage });
+        const refusal = await refusalOf(response);
+        // Out of credit also comes as 429, and no wait helps it.
+        const noCredit = refusal.code === 'insufficient_quota';
+        if (response.status === 429 && !noCredit && waited < RATE_LIMIT_WAITS) {
+          waited += 1;
+          await wait(RATE_LIMIT_WAIT_MS * waited, signal);
+          continue;
+        }
+        throw new ChatError(`The notes model refused the request (${response.status})`, {
+          status: response.status, serviceMessage: refusal.message, ...(noCredit ? { retryable: false } : {}),
+        });
       }
       let content: unknown;
       try {
@@ -99,15 +118,15 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
       } catch {
         content = undefined;
       }
-      if (typeof content !== 'string') throw new ChatError('The notes model gave no answer');
+      if (typeof content !== 'string') throw new ChatError('The notes model gave no answer', { code: 'no-answer' });
       let parsed: unknown;
       try {
         parsed = JSON.parse(content);
       } catch {
-        throw new ChatError('The notes model answered with something other than JSON');
+        throw new ChatError('The notes model answered with something other than JSON', { code: 'not-json' });
       }
       if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new ChatError('The notes model answered with something other than a JSON object');
+        throw new ChatError('The notes model answered with something other than a JSON object', { code: 'not-json' });
       }
       return parsed;
     }

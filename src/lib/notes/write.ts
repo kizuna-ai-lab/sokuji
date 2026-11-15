@@ -6,7 +6,7 @@
 // beside it. The model points at sentences by their numbers; the program's own rules then hold whatever it answers:
 // a point needs text, a number that is no sentence is moved to the nearest one and marked, only the three kinds are
 // kept, and a todo's owner that is only a speaker label becomes that speaker's side.
-import type { HistorySentence } from '../history/types';
+import type { HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort, ChatRequest } from './chat';
 import { ChatError } from './chat';
 import { finishPrompt, namesPrompt, partPrompt } from './prompts';
@@ -51,7 +51,11 @@ export type NotesBody = {
   names: NotesName[];
 };
 
-export type WriteNotesResult = { ok: true; body: NotesBody } | { ok: false; failure: string } | { ok: false; tooShort: true };
+/** `requestIds`: the service's ids of every answer the version got (a hosted relay bills by them). */
+export type WriteNotesResult =
+  | { ok: true; body: NotesBody; requestIds: string[] }
+  | { ok: false; failure: string; requestIds: string[] }
+  | { ok: false; tooShort: true };
 
 export interface WriteNotesOptions {
   sentences: readonly HistorySentence[];
@@ -59,6 +63,8 @@ export interface WriteNotesOptions {
   language: { code: string; name: string };
   chat: ChatPort;
   signal: AbortSignal;
+  /** Filled with the request ids as answers come, so they are known even when the version is cancelled. */
+  requestIds?: string[];
 }
 
 type Raw = Record<string, unknown>;
@@ -117,28 +123,44 @@ function namesParts(sentences: readonly HistorySentence[]): HistorySentence[][] 
 
 type Asked = { ok: true; value: Raw } | { ok: false; error: unknown };
 
-/** One call, tried again on its own when it fails; a cancellation is never retried. */
-async function ask(chat: ChatPort, r: ChatRequest): Promise<Asked> {
+/**
+ * One call, tried again on its own when it fails or its answer is of no use (`usable`); a cancellation, and a
+ * refusal another try cannot fix, are never retried.
+ */
+async function ask(chat: ChatPort, r: ChatRequest, usable: (value: Raw) => boolean = () => true): Promise<Asked> {
   let error: unknown = null;
   for (let attempt = 0; attempt < TRIES; attempt++) {
     if (r.signal.aborted) throw abortError();
     try {
       const value = await chat(r);
-      if (isRaw(value)) return { ok: true, value };
-      error = new ChatError('The notes model answered with something other than a JSON object');
+      if (isRaw(value) && usable(value)) return { ok: true, value };
+      error = isRaw(value)
+        ? new ChatError('The notes model wrote no topic', { code: 'no-topics' })
+        : new ChatError('The notes model answered with something other than a JSON object', { code: 'not-json' });
     } catch (e) {
       if (r.signal.aborted) throw abortError();
       error = e;
+      if (e instanceof ChatError && !e.retryable) break;
     }
   }
   return { ok: false, error };
 }
 
+/**
+ * What went wrong, for the version: the service's own words when it gave any, else the program's reason as a code
+ * the page words in the interface's language (`notes:<code>`).
+ */
 const failureOf = (error: unknown): string => {
-  if (error instanceof ChatError) return error.serviceMessage || error.message;
+  if (error instanceof ChatError) return error.serviceMessage || (error.code ? `notes:${error.code}` : error.status ? `notes:refused:${error.status}` : error.message);
+  if (error instanceof TypeError) return 'notes:network';
   if (error instanceof Error) return error.message;
   return String(error);
 };
+
+/** A part's answer is of use when it has at least one topic with a title. */
+const hasTopic = (value: Raw) => list(value.topics).some((t) => isRaw(t) && text(t.title) !== '');
+
+const SIDE_WORDS: Record<HistorySentenceSide, string> = { mine: 'My side', other: 'Other side' };
 
 interface Point {
   id: string;
@@ -167,25 +189,43 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
   const span = Math.max(...sentences.map((s) => s.endMs)) - Math.min(...sentences.map((s) => s.startMs));
   if (span < NOTES_MIN_MS) return { ok: false, tooShort: true };
 
-  const byN = new Map(sentences.map((s) => [s.n, s]));
-  const view = (s: HistorySentence) => ({ sid: s.n, speaker: o.speakerLabel(s), text: s.text });
+  const requestIds = o.requestIds ?? [];
+  const onAnswered = (info: { requestId?: string }) => { if (info.requestId) requestIds.push(info.requestId); };
+  const outcome = <T extends object>(r: T) => ({ ...r, requestIds: [...requestIds] });
 
-  // An owner that is exactly a speaker label ("Other side 2") is cut back to that speaker's side: a speaker's number
-  // is never an owner. The side of a label is the label without its number.
-  const sideOfLabel = new Map<string, string>();
+  // The model numbers sentences by their places in reading order (spec §4, as every test ran); the store's numbers
+  // follow the order sentences were finalized, which differs when both sides speak. Places are mapped back to them.
+  const ordered = [...sentences].sort((a, b) => a.startMs - b.startMs || a.n - b.n);
+  const placeOf = new Map(ordered.map((s, i) => [s.n, i + 1]));
+  const atPlace = (sid: unknown): HistorySentence | null =>
+    (isNumber(sid) && Number.isInteger(sid) && sid >= 1 && sid <= ordered.length ? ordered[sid - 1] : null);
+  const byN = new Map(sentences.map((s) => [s.n, s]));
+  const view = (s: HistorySentence) => ({ sid: placeOf.get(s.n)!, speaker: o.speakerLabel(s), text: s.text });
+
+  // A todo's owner that is only who was speaking (a speaker's label, named or numbered, or a side word) is cut back
+  // to that speaker's side, and left empty where the side was only inferred (ruling 13, §5.2).
+  const labelSide = new Map<string, { side: HistorySentenceSide; certain: boolean }>();
+  const uncertain: Record<HistorySentenceSide, boolean> = { mine: false, other: false };
   for (const s of sentences) {
-    const label = o.speakerLabel(s);
-    const words = label.split(' ');
-    const side = words.length > 1 && /^\d+$/.test(words[words.length - 1]) ? words.slice(0, -1).join(' ') : label;
-    sideOfLabel.set(label.trim().toLowerCase(), side);
+    const key = o.speakerLabel(s).trim().toLowerCase();
+    const known = labelSide.get(key);
+    labelSide.set(key, { side: known?.side ?? s.side, certain: (known?.certain ?? true) && s.sideCertain });
+    if (!s.sideCertain) uncertain[s.side] = true;
+  }
+  for (const side of ['mine', 'other'] as const) {
+    const key = SIDE_WORDS[side].toLowerCase();
+    if (!labelSide.has(key)) labelSide.set(key, { side, certain: !uncertain[side] });
   }
   const ownerOf = (value: unknown): string | null => {
     const owner = optional(value);
-    return owner === null ? null : sideOfLabel.get(owner.toLowerCase()) ?? owner;
+    if (owner === null) return null;
+    const who = labelSide.get(owner.toLowerCase());
+    if (!who) return owner;
+    return who.certain ? SIDE_WORDS[who.side] : null;
   };
 
   // The parts, all at once. A part that still fails after its tries fails the version: nothing half-written is kept.
-  const parts = cutParts(sentences);
+  const parts = cutParts(ordered);
   const multiPart = parts.length > 1;
   const written = await Promise.all(parts.map((part, k) => ask(chat, {
     system: partPrompt(language.name, multiPart),
@@ -199,17 +239,19 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
     effort: 'none',
     maxTokens: PART_TOKENS,
     signal,
-  })));
+    onAnswered,
+  }, hasTopic)));
   const failed = written.find((r): r is { ok: false; error: unknown } => !r.ok);
-  if (failed) return { ok: false, failure: failureOf(failed.error) };
+  if (failed) return outcome({ ok: false as const, failure: failureOf(failed.error) });
 
   /** The sentence a point names, or the nearest one in its part when the number is no sentence. */
   const anchor = (sid: unknown, part: readonly HistorySentence[]): { n: number; moved: boolean } => {
-    if (isNumber(sid) && byN.has(sid)) return { n: sid, moved: false };
+    const at = atPlace(sid);
+    if (at) return { n: at.n, moved: false };
     if (!isNumber(sid)) return { n: part[0].n, moved: true };
-    let nearest = part[0].n;
-    for (const s of part) if (Math.abs(s.n - sid) < Math.abs(nearest - sid)) nearest = s.n;
-    return { n: nearest, moved: true };
+    let nearest = part[0];
+    for (const s of part) if (Math.abs(placeOf.get(s.n)! - sid) < Math.abs(placeOf.get(nearest.n)! - sid)) nearest = s;
+    return { n: nearest.n, moved: true };
   };
 
   const topics: Topic[] = [];
@@ -236,14 +278,14 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
       // A topic starts at the sentence the model named, when that is a sentence and not after the topic's first point;
       // otherwise at its first point. A topic without points keeps the sentence it named, or its part's first.
       const startOf = (n: number) => byN.get(n)!.startMs;
-      const named = isNumber(t.sid) && byN.has(t.sid) ? t.sid : null;
+      const named = atPlace(t.sid)?.n ?? null;
       const firstPoint = own.length > 0 ? own.reduce((a, b) => (startOf(b.n) < startOf(a.n) ? b : a)).n : null;
       const first = firstPoint === null ? named ?? parts[k][0].n
         : named !== null && startOf(named) <= startOf(firstPoint) ? named : firstPoint;
       topics.push({ n: topics.length + 1, part: k + 1, title: text(t.title), summary: text(t.summary), first, points: own });
     }
   });
-  if (topics.length === 0) return { ok: false, failure: 'The notes model wrote no topics' };
+  if (topics.length === 0) return outcome({ ok: false as const, failure: 'notes:no-topics' });
 
   const opening = written[0].ok ? written[0].value : {};
   let title = text(opening.title);
@@ -263,13 +305,15 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
     effort: 'medium',
     maxTokens: FINISH_TOKENS,
     signal,
+    onAnswered,
   });
-  const naming = Promise.all(namesParts(sentences).map((part) => ask(chat, {
+  const naming = Promise.all(namesParts(ordered).map((part) => ask(chat, {
     system: namesPrompt(),
     user: { sentences: part.map(view) },
     effort: 'medium',
     maxTokens: NAMES_TOKENS,
     signal,
+    onAnswered,
   })));
   const [finished, named] = await Promise.all([finishing, naming]);
 
@@ -322,13 +366,14 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
   for (const r of named) {
     if (!r.ok) continue;
     for (const item of list(r.value.items)) {
-      if (!isRaw(item) || !isNumber(item.sid) || !byN.has(item.sid)) continue;
+      const at = isRaw(item) ? atPlace(item.sid) : null;
+      if (!isRaw(item) || !at) continue;
       const writtenAs = text(item.heard);
       const likely = optional(item.meant);
       if (!writtenAs || likely === writtenAs) continue;
       const known = names.find((x) => x.written === writtenAs && x.likely === likely);
-      if (!known) names.push({ written: writtenAs, likely, sentences: [item.sid] });
-      else if (!known.sentences.includes(item.sid)) known.sentences.push(item.sid);
+      if (!known) names.push({ written: writtenAs, likely, sentences: [at.n] });
+      else if (!known.sentences.includes(at.n)) known.sentences.push(at.n);
     }
   }
 
@@ -348,5 +393,5 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
     }))),
     names,
   };
-  return { ok: true, body };
+  return outcome({ ok: true as const, body });
 }
