@@ -6,7 +6,8 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: vars.$bg-base;
+  // The mock's page colour (the colour review, 2026-11-15): the content on the page layer, the list beside it on the surface.
+  background: vars.$bg-page;
   color: vars.$text-primary;
   // One body size for the whole page (the mock's 13px); controls take the page's type rather than the browser's.
   font-size: 13px;
@@ -208,7 +209,8 @@
   padding: 10px;
   border: 1px solid vars.$border-subtle;
   border-radius: 8px;
-  background: vars.$bg-surface;
+  // On the page's own colour, as the mock's `.stg`: the border marks the card, not another layer of grey.
+  background: vars.$bg-page;
   &.is-joint { border-color: vars.$color-primary; }
 
   &__head { display: flex; align-items: center; gap: 8px; }
@@ -767,4 +769,9 @@
       &.active { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
     }
   }
+}
+
+// Switches on the page turn on in the same deep green as the chosen segment (the mock's `.tg`), not the brighter accent.
+.settings-page .toggle-switch-component .toggle-track-container input:checked + .toggle-track {
+  background-color: vars.$color-primary-fill;
 }
