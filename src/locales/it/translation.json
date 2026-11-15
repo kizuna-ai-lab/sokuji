@@ -2002,6 +2002,7 @@
     "more": "Altro",
     "binWhenEnded": "Una registrazione può andare nel cestino quando la sua sessione è finita.",
     "autoExportLine": "Salva una copia .txt in più dell’intera conversazione nella cartella Download. La cronologia conserva comunque la registrazione su questo computer.",
-    "sessionAt": "Sessione delle {{time}}"
+    "sessionAt": "Sessione delle {{time}}",
+    "recordingStopped": "La registrazione audio di questa sessione si è fermata: non è stato possibile scriverla sul disco. La trascrizione viene comunque salvata."
   }
 }

@@ -109,13 +109,15 @@ export interface RunnerDeps {
   participantSpeech?: { get(): boolean; subscribe(listener: () => void): () => void };
   /** The microphone's mute, live (spec 2026-11-05 §4.2: agent text only while the microphone's audio reaches its socket): read at each chunk. Absent: never muted. */
   micMuted?: { get(): boolean };
+  /** Each leg's audio where it goes to the adapter, after the push-to-talk gate (History's recording). Absent: nothing taps it. */
+  audioTap?: { pcm(leg: LegName, pcm: Int16Array): void };
 }
 
 /**
  * The caller's ports, each method guarded: a port that throws is reported
  * once per method (a dedupe key) and never reaches the run or an adapter.
  */
-export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics' | 'frames' | 'network'> {
+export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics' | 'frames' | 'network' | 'audioTap'> {
   const report = (name: string, error: unknown) =>
     reportError('SessionRunner', `The ${name} port threw: ${describeCause(error)}`, { cause: error, dedupeKey: `port:${name}` });
   const guard = <A extends unknown[]>(name: string, fn: (...args: A) => void) => (...args: A): void => {
@@ -125,12 +127,27 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       report(name, error);
     }
   };
-  const { playback, analytics, frames, network } = deps;
+  const { playback, analytics, frames, network, audioTap } = deps;
   // Audio arrives per chunk: report when the port starts failing, not on every
   // chunk after, so a dead sink costs one console line per failing streak.
   let audioFailing = false;
   let framesFailing = false;
+  let tapFailing = false;
   return {
+    // Per chunk too: a tap that throws is reported when it starts failing, and never stops the audio going out.
+    ...(audioTap ? {
+      audioTap: {
+        pcm: (leg: LegName, pcm: Int16Array): void => {
+          try {
+            audioTap.pcm(leg, pcm);
+            tapFailing = false;
+          } catch (error) {
+            if (!tapFailing) report('audioTap.pcm', error);
+            tapFailing = true;
+          }
+        },
+      },
+    } : {}),
     playback: {
       audio: (leg: LegName, ref: number | undefined, pcm: Int16Array, voice?: LegName): readonly OutletName[] => {
         try {

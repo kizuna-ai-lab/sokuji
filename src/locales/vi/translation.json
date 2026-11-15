@@ -2002,6 +2002,7 @@
     "more": "Thêm",
     "binWhenEnded": "Bản ghi chỉ chuyển vào thùng rác được sau khi phiên kết thúc.",
     "autoExportLine": "Lưu thêm một bản .txt của toàn bộ cuộc trò chuyện vào thư mục Tải xuống. Lịch sử vẫn giữ bản ghi trên máy tính này.",
-    "sessionAt": "Phiên lúc {{time}}"
+    "sessionAt": "Phiên lúc {{time}}",
+    "recordingStopped": "Bản ghi âm của phiên này đã dừng: không ghi được vào ổ đĩa. Bản ghi lời vẫn được lưu."
   }
 }

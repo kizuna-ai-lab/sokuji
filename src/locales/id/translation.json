@@ -2002,6 +2002,7 @@
     "more": "Lainnya",
     "binWhenEnded": "Rekaman bisa dipindahkan ke sampah setelah sesinya selesai.",
     "autoExportLine": "Menyimpan salinan .txt tambahan dari seluruh percakapan ke folder Unduhan. Riwayat tetap menyimpan rekamannya di komputer ini.",
-    "sessionAt": "Sesi pukul {{time}}"
+    "sessionAt": "Sesi pukul {{time}}",
+    "recordingStopped": "Rekaman sesi ini berhenti: tidak bisa ditulis ke disk. Transkrip tetap disimpan."
   }
 }

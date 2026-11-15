@@ -2002,6 +2002,7 @@
     "more": "Meer",
     "binWhenEnded": "Een opname kan naar de prullenbak zodra de sessie is afgelopen.",
     "autoExportLine": "Slaat een extra .txt-kopie van het hele gesprek op in de map Downloads. De geschiedenis bewaart de opname hoe dan ook op deze computer.",
-    "sessionAt": "Sessie van {{time}}"
+    "sessionAt": "Sessie van {{time}}",
+    "recordingStopped": "De geluidsopname van deze sessie is gestopt: die kon niet naar de schijf worden geschreven. De transcriptie wordt nog wel bewaard."
   }
 }

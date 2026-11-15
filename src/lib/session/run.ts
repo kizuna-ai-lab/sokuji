@@ -592,6 +592,8 @@ export class Run {
       if (!this.turn?.isOpen) return;
       this.turn.add(pcm);
     }
+    // What goes to recognition is what History records (spec §5.3): after the key's gate, before the adapter.
+    this.deps.audioTap?.pcm(leg, pcm);
     // Per chunk: an adapter that throws is reported when it starts failing,
     // and the throw never reaches the source's delivery.
     try {

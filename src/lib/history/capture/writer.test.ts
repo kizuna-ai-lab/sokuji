@@ -188,6 +188,28 @@ describe('the history writer', () => {
     expect(allSentences().map((s) => [s.n, s.text])).toEqual([[1, 'First one.'], [2, 'And then more.']]);
   });
 
+  it('begins the recording with the record and ends it before closing the record', async () => {
+    writer.dispose();
+    const order: string[] = [];
+    const recorder = {
+      begin: (id: string, startedAt: number) => { order.push(`begin:${id}:${startedAt}`); },
+      end: async () => { order.push('end'); },
+    };
+    const tracked = recordingPort();
+    const base = tracked.port as unknown as Record<string, (a: unknown) => Promise<unknown>>;
+    const openRecord = base.openRecord;
+    const closeRecord = base.closeRecord;
+    base.openRecord = (a) => { order.push('openRecord'); return openRecord(a); };
+    base.closeRecord = (a) => { order.push('closeRecord'); return closeRecord(a); };
+    writer = createHistoryWriter({ state, conversation, port: tracked.port, clock, facts: () => facts, report, recorder });
+    start('run-0001-aaaa');
+    say('speaker', 1, '你好。');
+    await writer.settled();
+    end();
+    await writer.settled();
+    expect(order).toEqual(['openRecord', 'begin:run-0001-aaaa:1000', 'end', 'closeRecord']);
+  });
+
   it('closes the record when the run ends, after the last corrections', async () => {
     start('run-0001-aaaa');
     say('speaker', 1, 'hello');

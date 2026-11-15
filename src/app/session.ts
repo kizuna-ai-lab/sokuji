@@ -14,6 +14,9 @@ import { describeCause, reportError, reportWarning } from '../lib/diagnostics/re
 import { historyPort, type HistoryPort } from '../lib/history/port';
 import { createHistoryWriter } from '../lib/history/capture/writer';
 import { captureFactsFromStores } from '../lib/history/capture/facts';
+import { createHistoryRecorder, type HistoryRecorder } from '../lib/history/recording/recorder';
+import { opusRecordingSupported, webCodecsOpusEncoder } from '../lib/history/recording/opusEncoder';
+import type { OpusEncoderFactory } from '../lib/history/recording/track';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
@@ -26,7 +29,7 @@ import type { OpenSource } from '../lib/session/source';
 import { appSubtitleSession } from '../lib/subtitle/appSession';
 import type { SubtitleSession } from '../lib/subtitle/session';
 import type { AutoSaveNotifier } from '../lib/transcript/autoSave';
-import { panelNoteWriter, usePanelNotesStore } from '../stores/panelNotesStore';
+import { PANEL_NOTE_CODES, panelNoteWriter, usePanelNotesStore } from '../stores/panelNotesStore';
 import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
@@ -74,6 +77,8 @@ export interface AppSessionOptions {
   newSessionId?(): string;
   /** Where each run is written as a History record; default the desktop's port in Electron, none elsewhere; `null` for none. */
   history?: HistoryPort | null;
+  /** Tests: the recording's Opus encoder. Absent: the browser's, when the page can encode Opus; `null`: no recording. */
+  historyEncoder?: OpusEncoderFactory | null;
   /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
   ipc?: {
     invoke(channel: string, data?: unknown): Promise<unknown>;
@@ -144,8 +149,12 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     void refetch().catch((error: unknown) => reportWarning('AppSession', `Refreshing the account after the session failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:refetch' }));
   };
 
+  // The recording hears what goes to recognition; the recorder takes it once History can encode it.
+  const recordingTap: { recorder: HistoryRecorder | null } = { recorder: null };
+
   const runner: Runner = createRunner({
     clock,
+    audioTap: { pcm: (leg, pcm) => recordingTap.recorder?.pcm(leg, pcm) },
     platform: getEnvironment(),
     network: createBrowserNetwork(),
     readShape: () => (options.refuse?.() ? null : readShapeFromStores(bridges.auth)),
@@ -190,6 +199,29 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
 
   // History (desktop): every run becomes a record while it runs, written by an observer of the runner.
   const historyPortOrNull = options.history === undefined ? (isElectron() ? historyPort() : null) : options.history;
+  const historyRecorder = historyPortOrNull && options.historyEncoder !== null
+    ? createHistoryRecorder({
+      port: historyPortOrNull,
+      clock,
+      encoder: options.historyEncoder ?? webCodecsOpusEncoder,
+      report: (message, cause) => reportError('History', message, { cause }),
+      tell: () => panelNoteWriter()({
+        severity: 'warning',
+        code: PANEL_NOTE_CODES.historyRecordingStopped,
+        message: 'The recording of this session stopped: it could not be written to disk. The transcript is still saved.',
+        lifetime: 'transient',
+      }),
+    })
+    : null;
+  if (historyRecorder) {
+    if (options.historyEncoder) recordingTap.recorder = historyRecorder;
+    else {
+      void opusRecordingSupported().then((ok) => {
+        if (ok) recordingTap.recorder = historyRecorder;
+        else reportWarning('History', 'This page cannot encode Opus: sessions are kept without their recording.', { dedupeKey: 'history:no-opus' });
+      });
+    }
+  }
   const historyWriter = historyPortOrNull
     ? createHistoryWriter({
       state: runner.state,
@@ -201,6 +233,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         return captureFactsFromStores({ info: runner.conversation.info, participantSpeech: 'participantSpeech' in phase ? phase.participantSpeech : false });
       },
       report: (message, cause) => reportError('History', message, { cause }),
+      ...(historyRecorder ? { recorder: historyRecorder } : {}),
     })
     : null;
   /** The writer's last writes, or 2 s, whichever is first: the close waits for History, never longer than that. */

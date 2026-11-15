@@ -2002,6 +2002,7 @@
     "more": "Lagi",
     "binWhenEnded": "Rekod boleh dialih ke tong sampah selepas sesinya tamat.",
     "autoExportLine": "Menyimpan salinan .txt tambahan bagi seluruh perbualan dalam folder Muat Turun. Sejarah tetap menyimpan rekod pada komputer ini.",
-    "sessionAt": "Sesi pukul {{time}}"
+    "sessionAt": "Sesi pukul {{time}}",
+    "recordingStopped": "Rakaman sesi ini berhenti: ia tidak dapat ditulis ke cakera. Transkrip masih disimpan."
   }
 }

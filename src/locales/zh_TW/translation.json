@@ -2002,6 +2002,7 @@
     "more": "更多",
     "binWhenEnded": "工作階段結束後才能移到回收站。",
     "autoExportLine": "額外把整段對話另存一份 .txt 到「下載」資料夾。歷史記錄照常保存在這台電腦上。",
-    "sessionAt": "{{time}} 的工作階段"
+    "sessionAt": "{{time}} 的工作階段",
+    "recordingStopped": "這次工作階段的錄音已停止：無法寫入磁碟。轉寫仍在保存。"
   }
 }

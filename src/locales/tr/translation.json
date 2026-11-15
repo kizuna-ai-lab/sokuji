@@ -2002,6 +2002,7 @@
     "more": "Diğer",
     "binWhenEnded": "Kayıt, oturumu bittikten sonra çöp kutusuna taşınabilir.",
     "autoExportLine": "Konuşmanın tamamının ek bir .txt kopyasını İndirilenler klasörüne kaydeder. Geçmiş kaydı her durumda bu bilgisayarda tutar.",
-    "sessionAt": "{{time}} oturumu"
+    "sessionAt": "{{time}} oturumu",
+    "recordingStopped": "Bu oturumun ses kaydı durdu: diske yazılamadı. Döküm hâlâ kaydediliyor."
   }
 }

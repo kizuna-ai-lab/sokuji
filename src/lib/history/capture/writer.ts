@@ -46,6 +46,8 @@ export interface HistoryWriterDeps {
   clock: Clock;
   facts: () => CaptureFacts;
   report?: (message: string, cause: unknown) => void;
+  /** The record's recording: begun once the record exists, ended before it is closed. */
+  recorder?: { begin(recordId: string, startedAt: number): void; end(): Promise<void> };
 }
 
 export interface HistoryWriter {
@@ -152,6 +154,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       id: session, startedAt: r.startedAt, mode: facts.mode, myLanguage, targetLanguage,
       services: { provider: info?.provider ?? '', models }, appVersion: facts.appVersion,
     }));
+    // The recording's pieces need the record to exist: it begins once the record is open.
+    send(r, () => { deps.recorder?.begin(session, r.startedAt); return null; });
     for (const leg of legs) {
       const c = facts.legs[leg.leg];
       send(r, () => port.putLeg({
@@ -250,6 +254,9 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     if (!r) return;
     // One last pass: the run has finished its late corrections by now.
     sync(r, conversation.snapshot(), true);
+    // The recording's last pages before the record closes; ended even when the record's writes were given up.
+    const recorder = deps.recorder;
+    if (recorder) chain = chain.then(() => recorder.end().catch((error) => report('History could not finish the recording', error)));
     send(r, () => port.closeRecord({ id: r.id, endedAt: clock.now() }));
     rec = null;
     cancelTick?.();

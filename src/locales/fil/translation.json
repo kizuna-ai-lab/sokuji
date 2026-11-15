@@ -2002,6 +2002,7 @@
     "more": "Higit pa",
     "binWhenEnded": "Maililipat lang sa basurahan ang record kapag tapos na ang session nito.",
     "autoExportLine": "Nagse-save ng dagdag na .txt na kopya ng buong usapan sa Downloads folder. Itinatago pa rin ng Kasaysayan ang record sa computer na ito.",
-    "sessionAt": "Session nang {{time}}"
+    "sessionAt": "Session nang {{time}}",
+    "recordingStopped": "Huminto ang recording ng session na ito: hindi ito maisulat sa disk. Nase-save pa rin ang transcript."
   }
 }

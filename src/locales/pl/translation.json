@@ -2002,6 +2002,7 @@
     "more": "Więcej",
     "binWhenEnded": "Zapis można przenieść do kosza dopiero po zakończeniu sesji.",
     "autoExportLine": "Zapisuje dodatkową kopię .txt całej rozmowy w folderze Pobrane. Historia i tak przechowuje zapis na tym komputerze.",
-    "sessionAt": "Sesja o {{time}}"
+    "sessionAt": "Sesja o {{time}}",
+    "recordingStopped": "Nagrywanie tej sesji zostało zatrzymane: nie udało się zapisać go na dysku. Transkrypcja nadal jest zapisywana."
   }
 }

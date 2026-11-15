@@ -2002,6 +2002,7 @@
     "more": "Plus",
     "binWhenEnded": "Un enregistrement peut aller à la corbeille une fois sa session terminée.",
     "autoExportLine": "Enregistre une copie .txt supplémentaire de toute la conversation dans le dossier Téléchargements. L’historique garde l’enregistrement sur cet ordinateur dans tous les cas.",
-    "sessionAt": "Session de {{time}}"
+    "sessionAt": "Session de {{time}}",
+    "recordingStopped": "L’enregistrement audio de cette session s’est arrêté : impossible de l’écrire sur le disque. La transcription est toujours enregistrée."
   }
 }

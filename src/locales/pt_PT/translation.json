@@ -2002,6 +2002,7 @@
     "more": "Mais",
     "binWhenEnded": "Um registo pode ir para a reciclagem quando a sessão terminar.",
     "autoExportLine": "Guarda uma cópia .txt adicional da conversa completa na pasta Transferências. O histórico mantém o registo neste computador de qualquer forma.",
-    "sessionAt": "Sessão das {{time}}"
+    "sessionAt": "Sessão das {{time}}",
+    "recordingStopped": "A gravação desta sessão parou: não foi possível escrevê-la no disco. A transcrição continua a ser guardada."
   }
 }

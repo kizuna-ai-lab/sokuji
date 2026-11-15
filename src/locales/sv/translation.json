@@ -2002,6 +2002,7 @@
     "more": "Mer",
     "binWhenEnded": "En post kan flyttas till papperskorgen när sessionen har avslutats.",
     "autoExportLine": "Sparar en extra .txt-kopia av hela samtalet i mappen Hämtade filer. Historiken behåller posten på den här datorn i vilket fall.",
-    "sessionAt": "Session kl. {{time}}"
+    "sessionAt": "Session kl. {{time}}",
+    "recordingStopped": "Inspelningen av den här sessionen stoppades: den kunde inte skrivas till disken. Transkriptionen sparas fortfarande."
   }
 }

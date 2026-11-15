@@ -2002,6 +2002,7 @@
     "tagRecording": "Recording",
     "more": "More",
     "binWhenEnded": "A record can move to the bin once its session has ended.",
-    "sessionAt": "Session at {{time}}"
+    "sessionAt": "Session at {{time}}",
+    "recordingStopped": "The recording of this session stopped: it could not be written to disk. The transcript is still saved."
   }
 }

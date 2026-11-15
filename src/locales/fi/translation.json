@@ -2002,6 +2002,7 @@
     "more": "Lisää",
     "binWhenEnded": "Tallenteen voi siirtää roskakoriin, kun sen istunto on päättynyt.",
     "autoExportLine": "Tallentaa koko keskustelusta ylimääräisen .txt-kopion Lataukset-kansioon. Historia säilyttää tallenteen tällä tietokoneella joka tapauksessa.",
-    "sessionAt": "Istunto klo {{time}}"
+    "sessionAt": "Istunto klo {{time}}",
+    "recordingStopped": "Tämän istunnon äänitys pysähtyi: sitä ei voitu kirjoittaa levylle. Litterointi tallentuu edelleen."
   }
 }

@@ -2002,6 +2002,7 @@
     "more": "Mehr",
     "binWhenEnded": "Eine Aufzeichnung kann erst nach dem Ende ihrer Sitzung in den Papierkorb.",
     "autoExportLine": "Speichert zusätzlich eine .txt-Kopie des ganzen Gesprächs im Download-Ordner. Der Verlauf behält die Aufzeichnung in jedem Fall auf diesem Computer.",
-    "sessionAt": "Sitzung um {{time}}"
+    "sessionAt": "Sitzung um {{time}}",
+    "recordingStopped": "Die Aufnahme dieser Sitzung wurde beendet: Sie konnte nicht auf die Festplatte geschrieben werden. Das Transkript wird weiter gespeichert."
   }
 }

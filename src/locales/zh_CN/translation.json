@@ -2002,6 +2002,7 @@
     "more": "更多",
     "binWhenEnded": "会话结束后才能移到回收站。",
     "autoExportLine": "额外把整段对话另存一份 .txt 到“下载”文件夹。历史记录照常保存在这台电脑上。",
-    "sessionAt": "{{time}} 的会话"
+    "sessionAt": "{{time}} 的会话",
+    "recordingStopped": "这次会话的录音已停止：无法写入磁盘。转写仍在保存。"
   }
 }

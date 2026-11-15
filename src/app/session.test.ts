@@ -1173,6 +1173,45 @@ describe('history', () => {
     expect(names[names.length - 1]).toBe('closeRecord');
   });
 
+  it("records each side's audio into the record while the run goes on", async () => {
+    const port = recordingPort();
+    const pieces: Array<{ recordId: string; source: string }> = [];
+    (port.port as unknown as Record<string, unknown>).appendTrack = async (a: { recordId: string; source: string; data: Uint8Array }) => {
+      pieces.push({ recordId: a.recordId, source: a.source });
+      return { bytes: a.data.length };
+    };
+    const head = new Uint8Array([79, 112, 117, 115, 72, 101, 97, 100, 1, 1, 156, 0, 192, 93, 0, 0, 0, 0, 0]);
+    const historyEncoder = (onPacket: (d: Uint8Array, s: number) => void, onHead: (h: Uint8Array) => void) => {
+      let sent = false;
+      return { encode: (pcm: Int16Array) => { if (!sent) { sent = true; onHead(head); } for (let i = 0; i < pcm.length; i += 480) onPacket(new Uint8Array(3), 960); }, flush: async () => {}, close: () => {} };
+    };
+    const { session, clock } = await setup({ history: port.port, ipc: null, historyEncoder });
+    await session.runner.start();
+    clock.advance(3000);
+    await flush();
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    expect(pieces.length).toBeGreaterThan(0);
+    expect(pieces.every((p) => p.recordId === 'run1' && p.source === 'speaker')).toBe(true);
+    const names = port.calls.map((c) => c[0]);
+    expect(names[names.length - 1]).toBe('closeRecord');
+  });
+
+  it('records no audio where the page cannot encode it, and still writes the record', async () => {
+    const port = recordingPort();
+    const appendTrack = vi.fn();
+    (port.port as unknown as Record<string, unknown>).appendTrack = appendTrack;
+    const { session, clock } = await setup({ history: port.port, ipc: null, historyEncoder: null });
+    await session.runner.start();
+    clock.advance(3000);
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    expect(appendTrack).not.toHaveBeenCalled();
+    expect(port.calls.map((c) => c[0])).toContain('closeRecord');
+  });
+
   it('creates no writer without a port', async () => {
     const { session, clock } = await setup({ history: null, ipc: null });
     await session.runner.start();

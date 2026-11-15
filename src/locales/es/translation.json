@@ -2002,6 +2002,7 @@
     "more": "Más",
     "binWhenEnded": "Un registro puede ir a la papelera cuando su sesión haya terminado.",
     "autoExportLine": "Guarda una copia .txt adicional de toda la conversación en la carpeta Descargas. El historial conserva el registro en este ordenador en cualquier caso.",
-    "sessionAt": "Sesión de las {{time}}"
+    "sessionAt": "Sesión de las {{time}}",
+    "recordingStopped": "La grabación de esta sesión se ha detenido: no se pudo escribir en el disco. La transcripción se sigue guardando."
   }
 }
