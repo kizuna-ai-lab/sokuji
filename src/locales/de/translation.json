@@ -2011,10 +2011,13 @@
     "speed": "Geschwindigkeit",
     "playFromHere": "Ab hier abspielen",
     "saveRecording": "Aufnahme speichern (.opus)",
-    "saveRecordingFailed": "Die Aufnahme konnte nicht gelesen werden.",
+    "saveRecordingFailed": "Die Aufnahme konnte nicht gespeichert werden.",
     "dropRecording": "Aufnahme löschen",
     "confirmDropRecording": "Die Aufnahme dieser Aufzeichnung löschen? Transkript und Notizen bleiben. Die Aufnahme lässt sich nicht wiederherstellen.",
     "spaceNotice": "Der Verlauf belegt jetzt {{size}}. Aufzeichnungen lassen sich im Papierkorb endgültig löschen, oder unter „Mehr“ nur ihre Aufnahme.",
-    "gotIt": "Verstanden"
+    "gotIt": "Verstanden",
+    "saveRecordingTitle": "Aufnahme speichern",
+    "saveMyRecording": "Aufnahme Ihrer Seite speichern",
+    "saveOtherRecording": "Aufnahme der anderen Seite speichern"
   }
 }

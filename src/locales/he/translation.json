@@ -2011,10 +2011,13 @@
     "speed": "מהירות",
     "playFromHere": "הפעלה מכאן",
     "saveRecording": "שמירת ההקלטה (‎.opus)",
-    "saveRecordingFailed": "לא ניתן היה לקרוא את ההקלטה.",
+    "saveRecordingFailed": "לא ניתן היה לשמור את ההקלטה.",
     "dropRecording": "מחיקת ההקלטה",
     "confirmDropRecording": "למחוק את ההקלטה של הרשומה הזאת? התמלול וההערות נשארים. לא יהיה אפשר לשחזר את ההקלטה.",
     "spaceNotice": "ההיסטוריה תופסת עכשיו {{size}}. אפשר למחוק רשומות לצמיתות בסל המחזור, או רק את ההקלטה של רשומה דרך „עוד”.",
-    "gotIt": "הבנתי"
+    "gotIt": "הבנתי",
+    "saveRecordingTitle": "שמירת ההקלטה",
+    "saveMyRecording": "שמירת ההקלטה של הצד שלך",
+    "saveOtherRecording": "שמירת ההקלטה של הצד השני"
   }
 }

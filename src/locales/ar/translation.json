@@ -2011,10 +2011,13 @@
     "speed": "السرعة",
     "playFromHere": "تشغيل من هنا",
     "saveRecording": "حفظ التسجيل (‎.opus)",
-    "saveRecordingFailed": "تعذّرت قراءة التسجيل.",
+    "saveRecordingFailed": "تعذّر حفظ التسجيل.",
     "dropRecording": "حذف التسجيل",
     "confirmDropRecording": "حذف تسجيل هذا السجل؟ يبقى النص المفرغ والملاحظات. لا يمكن استعادة التسجيل.",
     "spaceNotice": "يشغل السجل الآن {{size}}. يمكن حذف السجلات نهائيًا من المهملات، أو حذف تسجيل سجلّ وحده من «المزيد».",
-    "gotIt": "حسنًا"
+    "gotIt": "حسنًا",
+    "saveRecordingTitle": "حفظ التسجيل",
+    "saveMyRecording": "حفظ تسجيل جانبك",
+    "saveOtherRecording": "حفظ تسجيل الجانب الآخر"
   }
 }

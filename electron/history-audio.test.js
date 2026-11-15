@@ -3,13 +3,13 @@
 // Recordings reach the player through the sokuji-history: scheme, which answers byte ranges.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const nodeRequire = createRequire(import.meta.url);
 const { openHistory } = nodeRequire('./history-store.js');
-const { HISTORY_SCHEME, registerHistoryScheme, trackResponse } = nodeRequire('./history-audio.js');
+const { HISTORY_SCHEME, registerHistoryScheme, trackResponse, saveTrackAs } = nodeRequire('./history-audio.js');
 
 const ID = 'run-0001-aaaa';
 let dir;
@@ -35,7 +35,7 @@ describe('the recordings scheme', () => {
     const calls = [];
     registerHistoryScheme({ registerSchemesAsPrivileged: (list) => calls.push(list) });
     expect(HISTORY_SCHEME).toBe('sokuji-history');
-    expect(calls).toEqual([[{ scheme: 'sokuji-history', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }]]);
+    expect(calls).toEqual([[{ scheme: 'sokuji-history', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]]);
   });
 
   it('answers the whole file with its length', async () => {
@@ -47,13 +47,11 @@ describe('the recordings scheme', () => {
     expect((await r.arrayBuffer()).byteLength).toBe(10_000);
   });
 
-  it("lets the app's own page read a recording (saving it), and no other origin", async () => {
-    const from = (origin) => trackResponse(s, new Request(url(), { headers: { Origin: origin } }));
-    expect((await from('null')).headers.get('Access-Control-Allow-Origin')).toBe('null');
-    expect((await from('file://')).headers.get('Access-Control-Allow-Origin')).toBe('file://');
-    expect((await from('http://localhost:5173')).headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173');
-    expect((await from('https://example.com')).headers.get('Access-Control-Allow-Origin')).toBeNull();
-    expect((await get(url())).headers.get('Access-Control-Allow-Origin')).toBeNull();
+  it('lets no page read a recording: the player does not need it, and saving copies in the main process', async () => {
+    for (const origin of ['null', 'file://', 'http://localhost:5173', 'https://example.com']) {
+      const r = await trackResponse(s, new Request(url(), { headers: { Origin: origin } }));
+      expect(r.headers.get('Access-Control-Allow-Origin'), origin).toBeNull();
+    }
   });
 
   it('answers a byte range', async () => {
@@ -85,5 +83,53 @@ describe('the recordings scheme', () => {
     expect((await get(`${HISTORY_SCHEME}://other/${ID}/speaker`)).status).toBe(404);
     s.dropTrack({ recordId: ID, source: 'speaker' });
     expect((await get(url())).status).toBe(404);
+  });
+});
+
+describe('saving a recording', () => {
+  const save = (over = {}) => {
+    const asked = [];
+    const answer = over.answer ?? { canceled: false, filePath: join(dir, 'out', 'chosen.opus') };
+    const result = saveTrackAs({
+      store: s,
+      showSaveDialog: async (options) => { asked.push(options); return answer; },
+      defaultDir: '/home/me/Downloads',
+      recordId: ID,
+      source: 'speaker',
+      title: 'Save your side’s recording',
+      defaultName: 'sokuji-recording-20270115-080000-me.opus',
+      ...over,
+    });
+    return { asked, result };
+  };
+  beforeEach(() => mkdirSync(join(dir, 'out')));
+
+  it('asks where with the system dialog and copies the file there', async () => {
+    const { asked, result } = save();
+    await expect(result).resolves.toEqual({ saved: true });
+    expect(asked).toEqual([{
+      title: 'Save your side’s recording',
+      defaultPath: join('/home/me/Downloads', 'sokuji-recording-20270115-080000-me.opus'),
+      filters: [{ name: 'Opus', extensions: ['opus'] }],
+    }]);
+    expect(readFileSync(join(dir, 'out', 'chosen.opus'))).toEqual(readFileSync(s.trackFile({ recordId: ID, source: 'speaker' })));
+  });
+
+  it('writes nothing when the user cancels', async () => {
+    const { result } = save({ answer: { canceled: true, filePath: '' } });
+    await expect(result).resolves.toEqual({ saved: false });
+    expect(existsSync(join(dir, 'out', 'chosen.opus'))).toBe(false);
+  });
+
+  it('proposes only a file name, never a folder of the page\'s choosing', async () => {
+    const { asked, result } = save({ defaultName: '../../secrets/x' });
+    await result;
+    expect(asked[0].defaultPath).toBe(join('/home/me/Downloads', 'x.opus'));
+  });
+
+  it('refuses a track that is not kept, without asking', async () => {
+    const { asked, result } = save({ source: 'participant' });
+    await expect(result).rejects.toMatchObject({ code: 'NO_TRACK' });
+    expect(asked).toEqual([]);
   });
 });

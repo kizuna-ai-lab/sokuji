@@ -2011,10 +2011,13 @@
     "speed": "Velocidad",
     "playFromHere": "Reproducir desde aquí",
     "saveRecording": "Guardar la grabación (.opus)",
-    "saveRecordingFailed": "No se pudo leer la grabación.",
+    "saveRecordingFailed": "No se pudo guardar la grabación.",
     "dropRecording": "Eliminar la grabación",
     "confirmDropRecording": "¿Eliminar la grabación de este registro? La transcripción y las notas se mantienen. La grabación no se podrá recuperar.",
     "spaceNotice": "El historial ocupa ahora {{size}}. Puedes eliminar registros definitivamente en la papelera, o solo la grabación de uno en «Más».",
-    "gotIt": "Entendido"
+    "gotIt": "Entendido",
+    "saveRecordingTitle": "Guardar la grabación",
+    "saveMyRecording": "Guardar la grabación de tu lado",
+    "saveOtherRecording": "Guardar la grabación del otro lado"
   }
 }

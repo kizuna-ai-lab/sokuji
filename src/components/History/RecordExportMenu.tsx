@@ -17,8 +17,9 @@ import { recordCues, type RecordRow } from '../../lib/history/recordView';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
 import type { HistoryRecord } from '../../lib/history/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
-import { copyToClipboard, downloadBlob, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
-import { playable, trackUrl } from '../../lib/history/playback';
+import { copyToClipboard, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
+import { playable } from '../../lib/history/playback';
+import { historyPort } from '../../lib/history/port';
 import { modeToToggles, togglesToMode, type ScopeToggles } from '../MainPanel/conversationFilter';
 import '../MainPanel/ExportButton.scss';
 
@@ -109,16 +110,21 @@ export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportM
       run: () => downloadFile(renderVtt(recordCues(rows, cueScope(scope, textKind))), file('vtt'), 'text/vtt;charset=utf-8'),
     },
     {
-      // The stored files as they are, one per track (spec §7); not narrowed by the choice above.
+      // The stored files as they are, one per track (spec §7); not narrowed by the choice above. The main process asks
+      // where with the system's Save dialog and copies each file: the page never reads a recording. With two tracks,
+      // each dialog names its side, and either can be cancelled on its own.
       key: 'audio', label: t('history.saveRecording', 'Save the recording (.opus)'), Icon: AudioLines, own: true, enabled: recorded.length > 0,
       run: async () => {
+        const stamp = formatTimestampForFilename(record.startedAt);
         for (const track of recorded) {
+          const mine = track.source === 'speaker';
+          const title = recorded.length === 1 ? t('history.saveRecordingTitle', 'Save the recording')
+            : mine ? t('history.saveMyRecording', 'Save your side’s recording')
+              : t('history.saveOtherRecording', 'Save the other side’s recording');
           try {
-            const answer = await fetch(trackUrl(record.id, track.source));
-            if (!answer.ok) throw new Error(`HTTP ${answer.status}`);
-            downloadBlob(await answer.blob(), `sokuji-recording-${formatTimestampForFilename(record.startedAt)}-${track.source === 'speaker' ? 'me' : 'other'}.opus`);
+            await historyPort().saveTrack({ recordId: record.id, source: track.source, title, defaultName: `sokuji-recording-${stamp}-${mine ? 'me' : 'other'}.opus` });
           } catch {
-            onResult?.(t('history.saveRecordingFailed', 'The recording could not be read.'));
+            onResult?.(t('history.saveRecordingFailed', 'The recording could not be saved.'));
             return;
           }
         }

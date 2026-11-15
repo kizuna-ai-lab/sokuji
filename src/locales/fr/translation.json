@@ -2011,10 +2011,13 @@
     "speed": "Vitesse",
     "playFromHere": "Lire à partir d’ici",
     "saveRecording": "Enregistrer l’audio (.opus)",
-    "saveRecordingFailed": "Impossible de lire l’enregistrement audio.",
+    "saveRecordingFailed": "Impossible d’enregistrer l’audio.",
     "dropRecording": "Supprimer l’audio",
     "confirmDropRecording": "Supprimer l’audio de cet enregistrement ? La transcription et les notes restent. L’audio ne pourra pas être récupéré.",
     "spaceNotice": "L’historique occupe maintenant {{size}}. Vous pouvez supprimer définitivement des enregistrements dans la corbeille, ou seulement l’audio d’un enregistrement via « Plus ».",
-    "gotIt": "Compris"
+    "gotIt": "Compris",
+    "saveRecordingTitle": "Enregistrer l’audio",
+    "saveMyRecording": "Enregistrer l’audio de votre côté",
+    "saveOtherRecording": "Enregistrer l’audio de l’autre côté"
   }
 }

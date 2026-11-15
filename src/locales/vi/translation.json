@@ -2011,10 +2011,13 @@
     "speed": "Tốc độ",
     "playFromHere": "Phát từ đây",
     "saveRecording": "Lưu bản ghi âm (.opus)",
-    "saveRecordingFailed": "Không đọc được bản ghi âm.",
+    "saveRecordingFailed": "Không lưu được bản ghi âm.",
     "dropRecording": "Xóa bản ghi âm",
     "confirmDropRecording": "Xóa bản ghi âm của bản ghi này? Bản ghi lời và ghi chú vẫn còn. Bản ghi âm sẽ không khôi phục được.",
     "spaceNotice": "Lịch sử hiện chiếm {{size}}. Có thể xóa vĩnh viễn bản ghi trong thùng rác, hoặc chỉ xóa bản ghi âm của một bản ghi trong “Thêm”.",
-    "gotIt": "Đã hiểu"
+    "gotIt": "Đã hiểu",
+    "saveRecordingTitle": "Lưu bản ghi âm",
+    "saveMyRecording": "Lưu bản ghi âm phía bạn",
+    "saveOtherRecording": "Lưu bản ghi âm phía bên kia"
   }
 }

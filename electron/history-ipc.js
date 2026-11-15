@@ -1,6 +1,7 @@
 // electron/history-ipc.js
 //
-// History's channels for the main window: one `history:*` channel per store method, plus `history:status`.
+// History's channels for the main window: one `history:*` channel per store method, plus `history:status` and
+// `history:save-track` (the system's Save dialog, then a copy of the recording; see history-audio.js).
 // Each answers `{ ok: true, value }` or `{ ok: false, error, code? }` and never throws to the page. A caller that
 // is not the main window is refused; a store that could not be opened answers UNAVAILABLE.
 //
@@ -9,6 +10,7 @@
 'use strict';
 
 const { HistoryError, openHistory } = require('./history-store.js');
+const { saveTrackAs } = require('./history-audio.js');
 
 /** Channel → store method. `history:status` is answered here, without the store. */
 const HISTORY_CHANNELS = Object.freeze({
@@ -49,22 +51,24 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
 
 /**
  * Registers the channels. `getStore()` returns the store or null; `getUnavailableReason()` says why it is null
- * ('newer' for a file from a newer app, 'error' otherwise).
+ * ('newer' for a file from a newer app, 'error' otherwise). `showSaveDialog(options)` is the system's Save dialog
+ * over the main window; `getDownloadsDir()` where it opens.
  */
-function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnavailableReason = () => null }) {
-  const handle = (method) => async (event, payload) => {
+function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnavailableReason = () => null, showSaveDialog, getDownloadsDir }) {
+  /** Runs `fn(store, payload)` for the main window and answers with its value or its error. */
+  const answer = (fn) => async (event, payload) => {
     if (!isTrustedSender(event.sender)) return REFUSED;
     const store = getStore();
     if (!store) return UNAVAILABLE;
     if (!isPlainObject(payload)) return { ok: false, error: 'History expects an object', code: 'BAD_PAYLOAD' };
     try {
-      const value = BY_ID.has(method) ? store[method](payload.id) : store[method](payload);
-      return { ok: true, value };
+      return { ok: true, value: await fn(store, payload) };
     } catch (error) {
       if (error instanceof HistoryError) return { ok: false, error: error.message, code: error.code };
       return { ok: false, error: error && error.message ? String(error.message) : String(error) };
     }
   };
+  const handle = (method) => answer((store, payload) => (BY_ID.has(method) ? store[method](payload.id) : store[method](payload)));
 
   ipcMain.handle('history:status', async (event) => {
     if (!isTrustedSender(event.sender)) return REFUSED;
@@ -97,6 +101,15 @@ function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnav
   ipcMain.handle('history:drop-track', handle('dropTrack'));
   ipcMain.handle('history:usage', handle('usage'));
   ipcMain.handle('history:append-track', handle('appendTrack'));
+  ipcMain.handle('history:save-track', answer((store, payload) => saveTrackAs({
+    store,
+    showSaveDialog,
+    defaultDir: getDownloadsDir(),
+    recordId: payload.recordId,
+    source: payload.source,
+    title: payload.title,
+    defaultName: payload.defaultName,
+  })));
 }
 
 /**

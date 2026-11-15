@@ -39,6 +39,8 @@ export interface HistoryPort {
   usage(): Promise<HistoryUsage>;
   /** One piece of a track being recorded (complete Ogg pages) and the length written so far. */
   appendTrack(args: HistoryTrackPiece): Promise<{ bytes: number }>;
+  /** Saves a kept track where the user chooses: main asks with the system's Save dialog and copies the file. */
+  saveTrack(args: { recordId: string; source: string; title: string; defaultName: string }): Promise<{ saved: boolean }>;
   status(): Promise<HistoryStatus>;
 }
 
@@ -80,6 +82,7 @@ export const HISTORY_PORT_CHANNELS = [
   ['dropTrack', 'history:drop-track'],
   ['usage', 'history:usage'],
   ['appendTrack', 'history:append-track'],
+  ['saveTrack', 'history:save-track'],
   ['status', 'history:status'],
 ] as const satisfies ReadonlyArray<readonly [keyof HistoryPort, `history:${string}`]>;
 
@@ -127,6 +130,7 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     dropTrack: (a) => call('history:drop-track', a),
     usage: () => call('history:usage', {}),
     appendTrack: (a) => call('history:append-track', a),
+    saveTrack: (a) => call('history:save-track', a),
     status: () => call('history:status', {}),
   };
 }
@@ -161,6 +165,7 @@ export const nullHistoryPort: HistoryPort = {
   dropTrack: nothing,
   usage: async () => ({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 }),
   appendTrack: async () => ({ bytes: 0 }),
+  saveTrack: async () => ({ saved: false }),
   status: async () => ({ available: false, dir: '' }),
 };
 

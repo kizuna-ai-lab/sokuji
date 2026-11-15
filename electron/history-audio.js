@@ -2,32 +2,28 @@
 //
 // Recordings reach the History player through the `sokuji-history:` scheme, so the page never holds a file's
 // address and the player can seek: `sokuji-history://track/<record id>/<source>` answers the file or a byte range
-// of it, streamed. Only kept tracks are served; anything else is not found.
+// of it, streamed. Only kept tracks are served; anything else is not found. No page reads a recording's bytes:
+// saving one is done here, the system's Save dialog asking where and this process copying the file.
 'use strict';
 
 const fs = require('node:fs');
+const path = require('node:path');
 const { Readable } = require('node:stream');
+const { HistoryError } = require('./history-store.js');
 
 const HISTORY_SCHEME = 'sokuji-history';
 
-/** Before the app is ready: the scheme may stream media and be fetched like https. */
+/**
+ * Before the app is ready: the scheme may stream media to the player. It is not open to cross-origin reads, so the
+ * page (loaded from file:// when packaged) can play a recording but cannot read its bytes.
+ */
 function registerHistoryScheme(protocol) {
   protocol.registerSchemesAsPrivileged([
-    { scheme: HISTORY_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } },
+    { scheme: HISTORY_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
   ]);
 }
 
 const notFound = () => new Response(null, { status: 404 });
-
-/**
- * The app's own page: the packaged page loads from file:// (its requests say `null` or `file://`), the development
- * one from the dev server. Saving a recording fetches it, which needs the answer to name the page; media loads do not.
- */
-const APP_ORIGINS = new Set(['null', 'file://', 'http://localhost:5173']);
-const corsFor = (request) => {
-  const origin = request.headers.get('Origin');
-  return origin && APP_ORIGINS.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
-};
 
 /** `bytes=a-b` or `bytes=a-` against a file of `size` bytes: the inclusive range, 'unsatisfiable', or null for none. */
 function rangeOf(header, size) {
@@ -58,7 +54,7 @@ async function trackResponse(store, request) {
   } catch {
     return notFound();
   }
-  const headers = { 'Accept-Ranges': 'bytes', 'Content-Type': 'audio/ogg', ...corsFor(request) };
+  const headers = { 'Accept-Ranges': 'bytes', 'Content-Type': 'audio/ogg' };
   const range = rangeOf(request.headers.get('Range'), size);
   if (range === 'unsatisfiable') return new Response(null, { status: 416, headers: { ...headers, 'Content-Range': `bytes */${size}` } });
   const { start, end } = range ?? { start: 0, end: size - 1 };
@@ -73,4 +69,24 @@ async function trackResponse(store, request) {
   });
 }
 
-module.exports = { HISTORY_SCHEME, registerHistoryScheme, trackResponse };
+/**
+ * Saving a kept track where the user says: the system's Save dialog proposes `defaultName` (a file name only, in
+ * `defaultDir`), and the file is copied there. Resolves `{ saved: false }` when the user cancels; rejects with
+ * NO_TRACK for a track that is not kept, before asking anything.
+ */
+async function saveTrackAs({ store, showSaveDialog, defaultDir, recordId, source, title, defaultName }) {
+  const file = store.trackFile({ recordId, source });
+  if (!file) throw new HistoryError('NO_TRACK', `No kept ${source} track in record ${recordId}`);
+  let name = path.basename(typeof defaultName === 'string' && defaultName.trim() ? defaultName.trim() : `${source}.opus`);
+  if (!name.toLowerCase().endsWith('.opus')) name += '.opus';
+  const answer = await showSaveDialog({
+    title: typeof title === 'string' ? title.slice(0, 200) : '',
+    defaultPath: path.join(defaultDir, name),
+    filters: [{ name: 'Opus', extensions: ['opus'] }],
+  });
+  if (!answer || answer.canceled || !answer.filePath) return { saved: false };
+  await fs.promises.copyFile(file, answer.filePath);
+  return { saved: true };
+}
+
+module.exports = { HISTORY_SCHEME, registerHistoryScheme, trackResponse, saveTrackAs };

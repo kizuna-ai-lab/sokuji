@@ -18,12 +18,11 @@ vi.mock('../../lib/history/port', async (importOriginal) => ({
 vi.mock('../../utils/conversationExport', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/conversationExport')>()),
   downloadFile: vi.fn(),
-  downloadBlob: vi.fn(),
   copyToClipboard: vi.fn(async () => true),
 }));
 
 import i18n from '../../locales';
-import { copyToClipboard, downloadBlob, downloadFile } from '../../utils/conversationExport';
+import { copyToClipboard, downloadFile } from '../../utils/conversationExport';
 import { HistoryPageContext } from './historyContext';
 import RecordPage from './RecordPage';
 import HistoryPage from './HistoryPage';
@@ -81,6 +80,7 @@ function fakePort(): Fake {
     renameSpeaker: answer('renameSpeaker', () => undefined),
     reassignSentence: answer('reassignSentence', () => undefined),
     dropTrack: answer('dropTrack', () => undefined),
+    saveTrack: answer('saveTrack', () => ({ saved: true })),
   } as unknown as Fake;
 }
 
@@ -114,7 +114,6 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.mocked(downloadFile).mockClear();
-  vi.mocked(downloadBlob).mockClear();
   vi.mocked(copyToClipboard).mockClear();
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -323,20 +322,34 @@ describe('a record', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete the recording' })).toBeDisabled();
   });
 
-  it('saves the recording as its stored files, one per track', async () => {
+  it('saves the recording through the system dialog, one file per track, each titled with its side', async () => {
     record = { ...record, tracks: [
       { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
       { source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
     ] };
-    const fetched: string[] = [];
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => { fetched.push(url); return new Response(new Uint8Array([1, 2, 3])); }));
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
     await renderRecord();
     openExport();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Save the recording (.opus)' }));
     await settle();
-    expect(fetched).toEqual([`sokuji-history://track/${A}/speaker`, `sokuji-history://track/${A}/participant`]);
-    expect(vi.mocked(downloadBlob).mock.calls.map((c) => c[1])).toEqual(['sokuji-recording-20260115-090000-me.opus', 'sokuji-recording-20260115-090000-other.opus']);
+    expect(calls('saveTrack')).toEqual([
+      { recordId: A, source: 'speaker', title: 'Save your side’s recording', defaultName: 'sokuji-recording-20260115-090000-me.opus' },
+      { recordId: A, source: 'participant', title: 'Save the other side’s recording', defaultName: 'sokuji-recording-20260115-090000-other.opus' },
+    ]);
+    expect(fetch).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it('names a lone track the recording, and says so when it cannot be saved', async () => {
+    record = { ...record, tracks: [{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null }] };
+    port.saveTrack = vi.fn(async () => { throw new Error('disk full'); });
+    await renderRecord();
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save the recording (.opus)' }));
+    await settle();
+    expect(vi.mocked(port.saveTrack).mock.calls.map((c) => c[0].title)).toEqual(['Save the recording']);
+    expect(screen.getByText('The recording could not be saved.')).toBeTruthy();
   });
 
   it('a record still being written can be refreshed and not binned', async () => {

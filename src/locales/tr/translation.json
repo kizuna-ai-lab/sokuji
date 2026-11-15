@@ -2011,10 +2011,13 @@
     "speed": "Hız",
     "playFromHere": "Buradan oynat",
     "saveRecording": "Ses kaydını kaydet (.opus)",
-    "saveRecordingFailed": "Ses kaydı okunamadı.",
+    "saveRecordingFailed": "Ses kaydı kaydedilemedi.",
     "dropRecording": "Ses kaydını sil",
     "confirmDropRecording": "Bu kaydın ses kaydı silinsin mi? Döküm ve notlar kalır. Ses kaydı geri getirilemez.",
     "spaceNotice": "Geçmiş artık {{size}} yer kaplıyor. Kayıtları çöp kutusunda kalıcı olarak silebilir ya da “Diğer” menüsünden yalnızca bir kaydın sesini silebilirsiniz.",
-    "gotIt": "Anladım"
+    "gotIt": "Anladım",
+    "saveRecordingTitle": "Ses kaydını kaydet",
+    "saveMyRecording": "Sizin tarafın ses kaydını kaydet",
+    "saveOtherRecording": "Karşı tarafın ses kaydını kaydet"
   }
 }

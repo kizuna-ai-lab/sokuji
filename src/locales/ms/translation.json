@@ -2011,10 +2011,13 @@
     "speed": "Kelajuan",
     "playFromHere": "Main dari sini",
     "saveRecording": "Simpan rakaman (.opus)",
-    "saveRecordingFailed": "Rakaman tidak dapat dibaca.",
+    "saveRecordingFailed": "Rakaman tidak dapat disimpan.",
     "dropRecording": "Padam rakaman",
     "confirmDropRecording": "Padam rakaman rekod ini? Transkrip dan nota kekal. Rakaman tidak boleh dipulihkan.",
     "spaceNotice": "Sejarah kini menggunakan {{size}}. Rekod boleh dipadam terus dalam tong sampah, atau rakamannya sahaja melalui “Lagi”.",
-    "gotIt": "Faham"
+    "gotIt": "Faham",
+    "saveRecordingTitle": "Simpan rakaman",
+    "saveMyRecording": "Simpan rakaman pihak anda",
+    "saveOtherRecording": "Simpan rakaman pihak lain"
   }
 }

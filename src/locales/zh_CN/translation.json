@@ -2011,10 +2011,13 @@
     "speed": "倍速",
     "playFromHere": "从这里播放",
     "saveRecording": "保存录音（.opus）",
-    "saveRecordingFailed": "无法读取录音。",
+    "saveRecordingFailed": "无法保存录音。",
     "dropRecording": "删除录音",
     "confirmDropRecording": "删除这条记录的录音？转写和纪要都会保留。录音删除后无法找回。",
     "spaceNotice": "历史已占用 {{size}}。可以在回收站彻底删除记录，或在记录的“更多”里只删除录音。",
-    "gotIt": "知道了"
+    "gotIt": "知道了",
+    "saveRecordingTitle": "保存录音",
+    "saveMyRecording": "保存我方的录音",
+    "saveOtherRecording": "保存对方的录音"
   }
 }

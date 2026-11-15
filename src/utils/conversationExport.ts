@@ -71,18 +71,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  * Works in both Electron renderer and Chrome extension side panel without
  * any extension permissions (uses HTML's standard `download` attribute).
  */
-/** Saves a file the page already holds (a recording), the way `downloadFile` saves text. */
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export function downloadFile(content: string, filename: string, mime: string): void {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);

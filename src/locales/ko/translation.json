@@ -2011,10 +2011,13 @@
     "speed": "속도",
     "playFromHere": "여기서부터 재생",
     "saveRecording": "녹음 저장(.opus)",
-    "saveRecordingFailed": "녹음을 읽을 수 없습니다.",
+    "saveRecordingFailed": "녹음을 저장할 수 없습니다.",
     "dropRecording": "녹음 삭제",
     "confirmDropRecording": "이 기록의 녹음을 삭제할까요? 전사와 메모는 남습니다. 녹음은 되돌릴 수 없습니다.",
     "spaceNotice": "기록이 이제 {{size}}를 차지합니다. 휴지통에서 기록을 영구 삭제하거나 “더보기”에서 녹음만 삭제할 수 있습니다.",
-    "gotIt": "확인"
+    "gotIt": "확인",
+    "saveRecordingTitle": "녹음 저장",
+    "saveMyRecording": "내 쪽 녹음 저장",
+    "saveOtherRecording": "상대 쪽 녹음 저장"
   }
 }

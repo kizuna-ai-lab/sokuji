@@ -2011,10 +2011,13 @@
     "speed": "سرعت",
     "playFromHere": "پخش از اینجا",
     "saveRecording": "ذخیرهٔ ضبط (‎.opus)",
-    "saveRecordingFailed": "ضبط خوانده نشد.",
+    "saveRecordingFailed": "ضبط ذخیره نشد.",
     "dropRecording": "حذف ضبط",
     "confirmDropRecording": "ضبط این رکورد حذف شود؟ رونوشت و یادداشت‌ها می‌مانند. ضبط قابل بازگرداندن نیست.",
     "spaceNotice": "تاریخچه اکنون {{size}} جا گرفته است. می‌توانید رکوردها را در سطل بازیافت برای همیشه حذف کنید، یا فقط ضبط یک رکورد را از «بیشتر».",
-    "gotIt": "متوجه شدم"
+    "gotIt": "متوجه شدم",
+    "saveRecordingTitle": "ذخیرهٔ ضبط",
+    "saveMyRecording": "ذخیرهٔ ضبط طرف شما",
+    "saveOtherRecording": "ذخیرهٔ ضبط طرف مقابل"
   }
 }

@@ -2011,10 +2011,13 @@
     "speed": "Nopeus",
     "playFromHere": "Toista tästä",
     "saveRecording": "Tallenna äänite (.opus)",
-    "saveRecordingFailed": "Äänitettä ei voitu lukea.",
+    "saveRecordingFailed": "Äänitettä ei voitu tallentaa.",
     "dropRecording": "Poista äänite",
     "confirmDropRecording": "Poistetaanko tämän tallenteen äänite? Litterointi ja muistiinpanot jäävät. Äänitettä ei voi palauttaa.",
     "spaceNotice": "Historia vie nyt {{size}}. Tallenteita voi poistaa pysyvästi roskakorista, tai pelkän äänitteen kohdasta ”Lisää”.",
-    "gotIt": "Selvä"
+    "gotIt": "Selvä",
+    "saveRecordingTitle": "Tallenna äänite",
+    "saveMyRecording": "Tallenna oman puolesi äänite",
+    "saveOtherRecording": "Tallenna toisen osapuolen äänite"
   }
 }

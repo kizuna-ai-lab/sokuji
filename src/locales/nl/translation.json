@@ -2011,10 +2011,13 @@
     "speed": "Snelheid",
     "playFromHere": "Vanaf hier afspelen",
     "saveRecording": "Geluidsopname opslaan (.opus)",
-    "saveRecordingFailed": "De geluidsopname kon niet worden gelezen.",
+    "saveRecordingFailed": "De geluidsopname kon niet worden opgeslagen.",
     "dropRecording": "Geluidsopname verwijderen",
     "confirmDropRecording": "De geluidsopname van deze opname verwijderen? De transcriptie en notities blijven. De geluidsopname kan niet worden teruggehaald.",
     "spaceNotice": "De geschiedenis neemt nu {{size}} in beslag. Opnames kun je definitief verwijderen in de prullenbak, of alleen de geluidsopname via ‘Meer’.",
-    "gotIt": "Begrepen"
+    "gotIt": "Begrepen",
+    "saveRecordingTitle": "Geluidsopname opslaan",
+    "saveMyRecording": "Geluidsopname van jouw kant opslaan",
+    "saveOtherRecording": "Geluidsopname van de andere kant opslaan"
   }
 }

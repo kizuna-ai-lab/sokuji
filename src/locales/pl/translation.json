@@ -2011,10 +2011,13 @@
     "speed": "Prędkość",
     "playFromHere": "Odtwórz od tego miejsca",
     "saveRecording": "Zapisz nagranie (.opus)",
-    "saveRecordingFailed": "Nie udało się odczytać nagrania.",
+    "saveRecordingFailed": "Nie udało się zapisać nagrania.",
     "dropRecording": "Usuń nagranie",
     "confirmDropRecording": "Usunąć nagranie z tego zapisu? Transkrypcja i notatki zostaną. Nagrania nie da się przywrócić.",
     "spaceNotice": "Historia zajmuje teraz {{size}}. Zapisy można usunąć na zawsze w koszu albo samo nagranie zapisu w menu „Więcej”.",
-    "gotIt": "Rozumiem"
+    "gotIt": "Rozumiem",
+    "saveRecordingTitle": "Zapisz nagranie",
+    "saveMyRecording": "Zapisz nagranie Twojej strony",
+    "saveOtherRecording": "Zapisz nagranie drugiej strony"
   }
 }

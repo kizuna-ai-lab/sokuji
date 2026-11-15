@@ -2011,10 +2011,13 @@
     "speed": "Bilis",
     "playFromHere": "I-play mula rito",
     "saveRecording": "I-save ang recording (.opus)",
-    "saveRecordingFailed": "Hindi mabasa ang recording.",
+    "saveRecordingFailed": "Hindi ma-save ang recording.",
     "dropRecording": "Burahin ang recording",
     "confirmDropRecording": "Burahin ang recording ng record na ito? Mananatili ang transcript at mga tala. Hindi na maibabalik ang recording.",
     "spaceNotice": "Gumagamit na ang Kasaysayan ng {{size}}. Puwedeng burahin nang tuluyan ang mga record sa basurahan, o ang recording lang ng isang record sa “Higit pa”.",
-    "gotIt": "Sige"
+    "gotIt": "Sige",
+    "saveRecordingTitle": "I-save ang recording",
+    "saveMyRecording": "I-save ang recording ng panig mo",
+    "saveOtherRecording": "I-save ang recording ng kabilang panig"
   }
 }

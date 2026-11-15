@@ -2011,10 +2011,13 @@
     "speed": "速度",
     "playFromHere": "ここから再生",
     "saveRecording": "録音を保存 (.opus)",
-    "saveRecordingFailed": "録音を読み込めませんでした。",
+    "saveRecordingFailed": "録音を保存できませんでした。",
     "dropRecording": "録音を削除",
     "confirmDropRecording": "この記録の録音を削除しますか？文字起こしとメモは残ります。録音は元に戻せません。",
     "spaceNotice": "履歴の使用量が {{size}} になりました。ごみ箱で記録を完全に削除するか、「その他」から録音だけを削除できます。",
-    "gotIt": "わかりました"
+    "gotIt": "わかりました",
+    "saveRecordingTitle": "録音を保存",
+    "saveMyRecording": "自分側の録音を保存",
+    "saveOtherRecording": "相手側の録音を保存"
   }
 }

@@ -2011,10 +2011,13 @@
     "speed": "Hastighet",
     "playFromHere": "Spela upp härifrån",
     "saveRecording": "Spara inspelningen (.opus)",
-    "saveRecordingFailed": "Inspelningen kunde inte läsas.",
+    "saveRecordingFailed": "Inspelningen kunde inte sparas.",
     "dropRecording": "Radera inspelningen",
     "confirmDropRecording": "Radera inspelningen i den här posten? Transkriptionen och anteckningarna finns kvar. Inspelningen går inte att få tillbaka.",
     "spaceNotice": "Historiken tar nu {{size}}. Poster kan raderas permanent i papperskorgen, eller bara en posts inspelning under ”Mer”.",
-    "gotIt": "Uppfattat"
+    "gotIt": "Uppfattat",
+    "saveRecordingTitle": "Spara inspelningen",
+    "saveMyRecording": "Spara inspelningen från din sida",
+    "saveOtherRecording": "Spara inspelningen från andra sidan"
   }
 }

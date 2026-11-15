@@ -36,6 +36,13 @@ describe('the history port', () => {
     expect(invoke).toHaveBeenCalledWith('history:append-track', a);
   });
 
+  it('saveTrack asks main to save a recording, and says whether it was saved', async () => {
+    const invoke = vi.fn(async () => ({ ok: true, value: { saved: false } }));
+    const a = { recordId: 'run-0001-aaaa', source: 'speaker', title: 'Save the recording', defaultName: 'r-me.opus' };
+    await expect(electronHistoryPort(invoke).saveTrack(a)).resolves.toEqual({ saved: false });
+    expect(invoke).toHaveBeenCalledWith('history:save-track', a);
+  });
+
   it('rejects with the code when main refuses', async () => {
     const port = electronHistoryPort(async () => ({ ok: false, error: 'no', code: 'RECORD_CLOSED' }));
     const refused = port.putSegments({ recordId: 'run-0001-aaaa', leg: 'speaker', segments: [] });
@@ -53,7 +60,9 @@ describe('the history port', () => {
 
   it('every port method has a channel, and every page-facing channel a method', () => {
     const port = electronHistoryPort(async () => ({ ok: true }));
-    const pairs = Object.fromEntries(HISTORY_PORT_CHANNELS.filter(([, channel]) => channel !== 'history:status').map(([method, channel]) => [channel, method]));
+    // `history:status` and `history:save-track` are answered by main itself, not by a store method.
+    const own = new Set(['history:status', 'history:save-track']);
+    const pairs = Object.fromEntries(HISTORY_PORT_CHANNELS.filter(([, channel]) => !own.has(channel)).map(([method, channel]) => [channel, method]));
     expect(pairs).toEqual(HISTORY_CHANNELS);
     for (const [method] of HISTORY_PORT_CHANNELS) expect(typeof (port as unknown as Record<string, unknown>)[method], method).toBe('function');
     expect(Object.keys(port).sort()).toEqual(HISTORY_PORT_CHANNELS.map(([method]) => method).sort());
@@ -66,6 +75,7 @@ describe('the history port', () => {
     expect(await nullHistoryPort.search({ query: 'x' })).toEqual([]);
     expect(await nullHistoryPort.usage()).toEqual({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 });
     expect(await nullHistoryPort.status()).toEqual({ available: false, dir: '' });
+    expect(await nullHistoryPort.saveTrack({ recordId: 'run-0001-aaaa', source: 'speaker', title: '', defaultName: '' })).toEqual({ saved: false });
     expect(Object.keys(nullHistoryPort).sort()).toEqual(HISTORY_PORT_CHANNELS.map(([method]) => method).sort());
   });
 });

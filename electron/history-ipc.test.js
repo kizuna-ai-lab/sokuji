@@ -22,6 +22,8 @@ const register = (over = {}) => {
     getStore: () => store,
     isTrustedSender: (sender) => sender === MAIN,
     dir,
+    showSaveDialog: async () => ({ canceled: true, filePath: '' }),
+    getDownloadsDir: () => dir,
     ...over,
   });
 };
@@ -43,7 +45,7 @@ afterEach(() => {
 
 describe('the history channels', () => {
   it('registers exactly the channels in the map', () => {
-    expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status'].sort());
+    expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track'].sort());
     expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(26);
     expect(HISTORY_CHANNELS['history:append-track']).toBe('appendTrack');
   });
@@ -51,7 +53,7 @@ describe('the history channels', () => {
   it('writes every channel out as a literal handle call, the way the registry guard reads them', () => {
     const src = readFileSync(join(__dirname, 'history-ipc.js'), 'utf8');
     const literal = [...src.matchAll(/ipcMain\.handle\(\s*'(history:[^']+)'/g)].map((m) => m[1]).sort();
-    expect(literal).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status'].sort());
+    expect(literal).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track'].sort());
   });
 
   it('maps every channel to a method the store has', () => {
@@ -85,6 +87,20 @@ describe('the history channels', () => {
     register({ getStore: () => null, getUnavailableReason: () => 'newer' });
     expect(await call('history:list-records', {})).toEqual({ ok: false, error: 'History is not available', code: 'UNAVAILABLE' });
     expect(await call('history:status', {})).toEqual({ ok: true, value: { available: false, reason: 'newer', dir } });
+  });
+
+  it('saves a recording through the system dialog, for the main window only', async () => {
+    await call('history:open-record', rec());
+    await call('history:append-track', { recordId: 'run-0001-aaaa', source: 'speaker', offsetMs: 0, durationMs: 20, data: new Uint8Array([1, 2, 3]) });
+    const asked = [];
+    register({ showSaveDialog: async (o) => { asked.push(o); return { canceled: false, filePath: join(dir, 'saved.opus') }; } });
+    const payload = { recordId: 'run-0001-aaaa', source: 'speaker', title: 'Save the recording', defaultName: 'r-me.opus' };
+    expect(await handlers.get('history:save-track')({ sender: POPOVER }, payload)).toEqual({ ok: false, error: 'History refused: not the main window' });
+    expect(asked).toEqual([]);
+    expect(await call('history:save-track', payload)).toEqual({ ok: true, value: { saved: true } });
+    expect(asked[0]).toMatchObject({ title: 'Save the recording', defaultPath: join(dir, 'r-me.opus') });
+    expect([...readFileSync(join(dir, 'saved.opus'))]).toEqual([1, 2, 3]);
+    expect(await call('history:save-track', { ...payload, source: 'participant' })).toEqual({ ok: false, error: expect.any(String), code: 'NO_TRACK' });
   });
 
   it('says the store is there when it is', async () => {

@@ -2011,10 +2011,13 @@
     "speed": "Velocità",
     "playFromHere": "Riproduci da qui",
     "saveRecording": "Salva la registrazione audio (.opus)",
-    "saveRecordingFailed": "Impossibile leggere la registrazione audio.",
+    "saveRecordingFailed": "Impossibile salvare la registrazione audio.",
     "dropRecording": "Elimina la registrazione audio",
     "confirmDropRecording": "Eliminare la registrazione audio di questa registrazione? Trascrizione e note restano. L’audio non si potrà recuperare.",
     "spaceNotice": "La cronologia occupa ora {{size}}. Puoi eliminare definitivamente le registrazioni nel cestino, o solo l’audio di una da «Altro».",
-    "gotIt": "Ho capito"
+    "gotIt": "Ho capito",
+    "saveRecordingTitle": "Salva la registrazione audio",
+    "saveMyRecording": "Salva la registrazione audio della tua parte",
+    "saveOtherRecording": "Salva la registrazione audio dell’altra parte"
   }
 }

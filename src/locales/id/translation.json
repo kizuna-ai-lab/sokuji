@@ -2011,10 +2011,13 @@
     "speed": "Kecepatan",
     "playFromHere": "Putar dari sini",
     "saveRecording": "Simpan rekaman suara (.opus)",
-    "saveRecordingFailed": "Rekaman suara tidak bisa dibaca.",
+    "saveRecordingFailed": "Rekaman suara tidak bisa disimpan.",
     "dropRecording": "Hapus rekaman suara",
     "confirmDropRecording": "Hapus rekaman suara dari rekaman ini? Transkrip dan catatannya tetap ada. Rekaman suara tidak bisa dikembalikan.",
     "spaceNotice": "Riwayat kini memakai {{size}}. Rekaman bisa dihapus permanen di sampah, atau hanya rekaman suaranya lewat “Lainnya”.",
-    "gotIt": "Mengerti"
+    "gotIt": "Mengerti",
+    "saveRecordingTitle": "Simpan rekaman suara",
+    "saveMyRecording": "Simpan rekaman suara pihak Anda",
+    "saveOtherRecording": "Simpan rekaman suara pihak lain"
   }
 }

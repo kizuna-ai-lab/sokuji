@@ -673,6 +673,9 @@ app.whenReady().then(async () => {
     isTrustedSender: (sender) => sender === mainWindow?.webContents,
     dir: historyDir,
     getUnavailableReason: () => historyUnavailable,
+    // Saving a recording: the system's Save dialog over the window, opening in Downloads.
+    showSaveDialog: (options) => (mainWindow ? dialog.showSaveDialog(mainWindow, options) : dialog.showSaveDialog(options)),
+    getDownloadsDir: () => app.getPath('downloads'),
   });
   protocol.handle(HISTORY_SCHEME, (request) => (historyStore ? trackResponse(historyStore, request) : new Response(null, { status: 404 })));
   setInterval(() => {
