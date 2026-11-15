@@ -1982,7 +1982,7 @@
     "saveSrt": "Simpan sari kata (.srt)",
     "saveVtt": "Simpan sari kata (.vtt)",
     "folder": "Folder sejarah",
-    "keptHere": "Transkrip dan rakaman setiap sesi disimpan pada komputer ini. Tiada apa-apa yang dimuat naik.",
+    "keptHere": "Transkrip dan rakaman setiap sesi disimpan pada komputer ini dan tidak dimuat naik.",
     "confirmPurge_one": "Padam {{count}} rekod terus? Transkrip dan rakamannya tidak boleh dipulihkan.",
     "hits_one": "{{count}} padanan",
     "sentenceCount_one": "{{count}} ayat",
@@ -2001,7 +2001,7 @@
     "more": "Lagi",
     "binWhenEnded": "Rekod boleh dialih ke tong sampah selepas sesinya tamat.",
     "sessionAt": "Sesi pukul {{time}}",
-    "recordingStopped": "Rakaman sesi ini berhenti: ia tidak dapat ditulis ke cakera. Transkrip masih disimpan.",
+    "recordingStopped": "Rakaman sesi ini berhenti: ia tidak dapat ditulis ke cakera.",
     "player": "Rakaman",
     "play": "Main",
     "pause": "Jeda",
@@ -2016,6 +2016,7 @@
     "gotIt": "Faham",
     "saveRecordingTitle": "Simpan rakaman",
     "saveMyRecording": "Simpan rakaman pihak anda",
-    "saveOtherRecording": "Simpan rakaman pihak lain"
+    "saveOtherRecording": "Simpan rakaman pihak lain",
+    "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera."
   }
 }

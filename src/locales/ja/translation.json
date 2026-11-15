@@ -1982,7 +1982,7 @@
     "saveSrt": "字幕を保存 (.srt)",
     "saveVtt": "字幕を保存 (.vtt)",
     "folder": "履歴フォルダー",
-    "keptHere": "各セッションの文字起こしと録音はこのコンピューターに保存されます。アップロードはされません。",
+    "keptHere": "各セッションの文字起こしと録音はこのコンピューターに保存され、アップロードされません。",
     "confirmPurge_one": "{{count}} 件の記録を完全に削除しますか？文字起こしと録音は元に戻せません。",
     "hits_one": "{{count}} 件一致",
     "sentenceCount_one": "{{count}} 文",
@@ -2001,7 +2001,7 @@
     "more": "その他",
     "binWhenEnded": "セッションが終わると、記録をごみ箱に移せます。",
     "sessionAt": "{{time}} のセッション",
-    "recordingStopped": "このセッションの録音が止まりました。ディスクに書き込めませんでした。文字起こしは引き続き保存されます。",
+    "recordingStopped": "このセッションの録音が止まりました。ディスクに書き込めませんでした。",
     "player": "録音",
     "play": "再生",
     "pause": "一時停止",
@@ -2016,6 +2016,7 @@
     "gotIt": "わかりました",
     "saveRecordingTitle": "録音を保存",
     "saveMyRecording": "自分側の録音を保存",
-    "saveOtherRecording": "相手側の録音を保存"
+    "saveOtherRecording": "相手側の録音を保存",
+    "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。"
   }
 }

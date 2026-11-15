@@ -75,7 +75,7 @@ export function HistoryCategory(_props: CategoryBodyProps) {
             {t('history.openFolder', 'Open folder')}
           </button>
         </Row>
-        <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript and recording are kept on this computer. Nothing is uploaded.')}</p>
+        <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript and recording are kept on this computer and are not uploaded.')}</p>
       </div>
     </div>
   );

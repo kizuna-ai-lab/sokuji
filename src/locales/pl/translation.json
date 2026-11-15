@@ -1982,7 +1982,7 @@
     "saveSrt": "Zapisz napisy (.srt)",
     "saveVtt": "Zapisz napisy (.vtt)",
     "folder": "Folder historii",
-    "keptHere": "Transkrypcja i nagranie każdej sesji są przechowywane na tym komputerze. Nic nie jest wysyłane.",
+    "keptHere": "Transkrypcja i nagranie każdej sesji są przechowywane na tym komputerze i nie są nigdzie wysyłane.",
     "confirmPurge_one": "Usunąć na zawsze {{count}} zapis? Jego transkrypcji i nagrania nie da się przywrócić.",
     "hits_one": "Dopasowania: {{count}}",
     "sentenceCount_one": "Zdania: {{count}}",
@@ -2001,7 +2001,7 @@
     "more": "Więcej",
     "binWhenEnded": "Zapis można przenieść do kosza dopiero po zakończeniu sesji.",
     "sessionAt": "Sesja o {{time}}",
-    "recordingStopped": "Nagrywanie tej sesji zostało zatrzymane: nie udało się zapisać go na dysku. Transkrypcja nadal jest zapisywana.",
+    "recordingStopped": "Nagrywanie tej sesji zostało zatrzymane: nie udało się zapisać go na dysku.",
     "player": "Nagranie",
     "play": "Odtwórz",
     "pause": "Wstrzymaj",
@@ -2016,6 +2016,7 @@
     "gotIt": "Rozumiem",
     "saveRecordingTitle": "Zapisz nagranie",
     "saveMyRecording": "Zapisz nagranie Twojej strony",
-    "saveOtherRecording": "Zapisz nagranie drugiej strony"
+    "saveOtherRecording": "Zapisz nagranie drugiej strony",
+    "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku."
   }
 }

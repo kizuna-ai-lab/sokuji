@@ -1982,7 +1982,7 @@
     "saveSrt": "Save subtitles (.srt)",
     "saveVtt": "Save subtitles (.vtt)",
     "folder": "History folder",
-    "keptHere": "Each session’s transcript and recording are kept on this computer. Nothing is uploaded.",
+    "keptHere": "Each session’s transcript and recording are kept on this computer and are not uploaded.",
     "confirmPurge_one": "Delete {{count}} record for good? Its transcript and recording cannot be brought back.",
     "hits_one": "{{count}} match",
     "sentenceCount_one": "{{count}} sentence",
@@ -2001,7 +2001,7 @@
     "more": "More",
     "binWhenEnded": "A record can move to the bin once its session has ended.",
     "sessionAt": "Session at {{time}}",
-    "recordingStopped": "The recording of this session stopped: it could not be written to disk. The transcript is still saved.",
+    "recordingStopped": "The recording of this session stopped: it could not be written to disk.",
     "player": "Recording",
     "play": "Play",
     "pause": "Pause",
@@ -2016,6 +2016,7 @@
     "gotIt": "Got it",
     "saveRecordingTitle": "Save the recording",
     "saveMyRecording": "Save your side’s recording",
-    "saveOtherRecording": "Save the other side’s recording"
+    "saveOtherRecording": "Save the other side’s recording",
+    "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk."
   }
 }

@@ -1982,7 +1982,7 @@
     "saveSrt": "Guardar subtítulos (.srt)",
     "saveVtt": "Guardar subtítulos (.vtt)",
     "folder": "Carpeta del historial",
-    "keptHere": "La transcripción y la grabación de cada sesión se guardan en este ordenador. No se sube nada.",
+    "keptHere": "La transcripción y la grabación de cada sesión se guardan en este ordenador y no se suben.",
     "confirmPurge_one": "¿Eliminar definitivamente {{count}} registro? Su transcripción y su grabación no se podrán recuperar.",
     "hits_one": "{{count}} coincidencia",
     "sentenceCount_one": "{{count}} frase",
@@ -2001,7 +2001,7 @@
     "more": "Más",
     "binWhenEnded": "Un registro puede ir a la papelera cuando su sesión haya terminado.",
     "sessionAt": "Sesión de las {{time}}",
-    "recordingStopped": "La grabación de esta sesión se ha detenido: no se pudo escribir en el disco. La transcripción se sigue guardando.",
+    "recordingStopped": "La grabación de esta sesión se ha detenido: no se pudo escribir en el disco.",
     "player": "Grabación",
     "play": "Reproducir",
     "pause": "Pausa",
@@ -2016,6 +2016,7 @@
     "gotIt": "Entendido",
     "saveRecordingTitle": "Guardar la grabación",
     "saveMyRecording": "Guardar la grabación de tu lado",
-    "saveOtherRecording": "Guardar la grabación del otro lado"
+    "saveOtherRecording": "Guardar la grabación del otro lado",
+    "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco."
   }
 }

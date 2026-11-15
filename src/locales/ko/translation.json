@@ -1982,7 +1982,7 @@
     "saveSrt": "자막 저장(.srt)",
     "saveVtt": "자막 저장(.vtt)",
     "folder": "기록 폴더",
-    "keptHere": "각 세션의 전사와 녹음은 이 컴퓨터에 보관됩니다. 아무것도 업로드되지 않습니다.",
+    "keptHere": "각 세션의 전사와 녹음은 이 컴퓨터에 보관되며 업로드되지 않습니다.",
     "confirmPurge_one": "기록 {{count}}개를 영구 삭제할까요? 전사와 녹음은 되돌릴 수 없습니다.",
     "hits_one": "{{count}}건 일치",
     "sentenceCount_one": "{{count}}문장",
@@ -2001,7 +2001,7 @@
     "more": "더보기",
     "binWhenEnded": "세션이 끝나야 기록을 휴지통으로 옮길 수 있습니다.",
     "sessionAt": "{{time}} 세션",
-    "recordingStopped": "이 세션의 녹음이 중지되었습니다. 디스크에 쓸 수 없었습니다. 전사는 계속 저장됩니다.",
+    "recordingStopped": "이 세션의 녹음이 중지되었습니다. 디스크에 쓸 수 없었습니다.",
     "player": "녹음",
     "play": "재생",
     "pause": "일시정지",
@@ -2016,6 +2016,7 @@
     "gotIt": "확인",
     "saveRecordingTitle": "녹음 저장",
     "saveMyRecording": "내 쪽 녹음 저장",
-    "saveOtherRecording": "상대 쪽 녹음 저장"
+    "saveOtherRecording": "상대 쪽 녹음 저장",
+    "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다."
   }
 }

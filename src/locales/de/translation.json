@@ -1982,7 +1982,7 @@
     "saveSrt": "Untertitel speichern (.srt)",
     "saveVtt": "Untertitel speichern (.vtt)",
     "folder": "Verlaufsordner",
-    "keptHere": "Transkript und Aufnahme jeder Sitzung bleiben auf diesem Computer. Es wird nichts hochgeladen.",
+    "keptHere": "Transkript und Aufnahme jeder Sitzung bleiben auf diesem Computer und werden nicht hochgeladen.",
     "confirmPurge_one": "{{count}} Aufzeichnung endgültig löschen? Ihr Transkript und ihre Aufnahme lassen sich nicht wiederherstellen.",
     "hits_one": "{{count}} Treffer",
     "sentenceCount_one": "{{count}} Satz",
@@ -2001,7 +2001,7 @@
     "more": "Mehr",
     "binWhenEnded": "Eine Aufzeichnung kann erst nach dem Ende ihrer Sitzung in den Papierkorb.",
     "sessionAt": "Sitzung um {{time}}",
-    "recordingStopped": "Die Aufnahme dieser Sitzung wurde beendet: Sie konnte nicht auf die Festplatte geschrieben werden. Das Transkript wird weiter gespeichert.",
+    "recordingStopped": "Die Aufnahme dieser Sitzung wurde beendet: Sie konnte nicht auf die Festplatte geschrieben werden.",
     "player": "Aufnahme",
     "play": "Abspielen",
     "pause": "Pause",
@@ -2016,6 +2016,7 @@
     "gotIt": "Verstanden",
     "saveRecordingTitle": "Aufnahme speichern",
     "saveMyRecording": "Aufnahme Ihrer Seite speichern",
-    "saveOtherRecording": "Aufnahme der anderen Seite speichern"
+    "saveOtherRecording": "Aufnahme der anderen Seite speichern",
+    "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden."
   }
 }

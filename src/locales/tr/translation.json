@@ -1982,7 +1982,7 @@
     "saveSrt": "Altyazıyı kaydet (.srt)",
     "saveVtt": "Altyazıyı kaydet (.vtt)",
     "folder": "Geçmiş klasörü",
-    "keptHere": "Her oturumun dökümü ve ses kaydı bu bilgisayarda saklanır. Hiçbir şey yüklenmez.",
+    "keptHere": "Her oturumun dökümü ve ses kaydı bu bilgisayarda saklanır ve yüklenmez.",
     "confirmPurge_one": "{{count}} kayıt kalıcı olarak silinsin mi? Dökümü ve ses kaydı geri getirilemez.",
     "hits_one": "{{count}} eşleşme",
     "sentenceCount_one": "{{count}} cümle",
@@ -2001,7 +2001,7 @@
     "more": "Diğer",
     "binWhenEnded": "Kayıt, oturumu bittikten sonra çöp kutusuna taşınabilir.",
     "sessionAt": "{{time}} oturumu",
-    "recordingStopped": "Bu oturumun ses kaydı durdu: diske yazılamadı. Döküm hâlâ kaydediliyor.",
+    "recordingStopped": "Bu oturumun ses kaydı durdu: diske yazılamadı.",
     "player": "Ses kaydı",
     "play": "Oynat",
     "pause": "Duraklat",
@@ -2016,6 +2016,7 @@
     "gotIt": "Anladım",
     "saveRecordingTitle": "Ses kaydını kaydet",
     "saveMyRecording": "Sizin tarafın ses kaydını kaydet",
-    "saveOtherRecording": "Karşı tarafın ses kaydını kaydet"
+    "saveOtherRecording": "Karşı tarafın ses kaydını kaydet",
+    "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı."
   }
 }

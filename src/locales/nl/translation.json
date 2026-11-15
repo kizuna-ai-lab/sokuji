@@ -1982,7 +1982,7 @@
     "saveSrt": "Ondertitels opslaan (.srt)",
     "saveVtt": "Ondertitels opslaan (.vtt)",
     "folder": "Geschiedenismap",
-    "keptHere": "De transcriptie en geluidsopname van elke sessie blijven op deze computer. Er wordt niets geüpload.",
+    "keptHere": "De transcriptie en geluidsopname van elke sessie blijven op deze computer en worden niet geüpload.",
     "confirmPurge_one": "{{count}} opname definitief verwijderen? De transcriptie en geluidsopname kunnen niet worden teruggehaald.",
     "hits_one": "{{count}} treffer",
     "sentenceCount_one": "{{count}} zin",
@@ -2001,7 +2001,7 @@
     "more": "Meer",
     "binWhenEnded": "Een opname kan naar de prullenbak zodra de sessie is afgelopen.",
     "sessionAt": "Sessie van {{time}}",
-    "recordingStopped": "De geluidsopname van deze sessie is gestopt: die kon niet naar de schijf worden geschreven. De transcriptie wordt nog wel bewaard.",
+    "recordingStopped": "De geluidsopname van deze sessie is gestopt: die kon niet naar de schijf worden geschreven.",
     "player": "Geluidsopname",
     "play": "Afspelen",
     "pause": "Pauzeren",
@@ -2016,6 +2016,7 @@
     "gotIt": "Begrepen",
     "saveRecordingTitle": "Geluidsopname opslaan",
     "saveMyRecording": "Geluidsopname van jouw kant opslaan",
-    "saveOtherRecording": "Geluidsopname van de andere kant opslaan"
+    "saveOtherRecording": "Geluidsopname van de andere kant opslaan",
+    "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven."
   }
 }

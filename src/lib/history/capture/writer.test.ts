@@ -8,7 +8,7 @@ import type { LegName } from '../../conversation/types';
 import { ConversationSet } from '../../session/conversationSet';
 import type { RunState } from '../../session/types';
 import type { HistoryPort } from '../port';
-import { createHistoryWriter, type CaptureFacts, type HistoryWriter } from './writer';
+import { createHistoryWriter, TICK_MS, type CaptureFacts, type HistoryWriter } from './writer';
 
 type Call = [string, any];
 function recordingPort() {
@@ -55,6 +55,7 @@ let conversation: ConversationSet;
 let port: ReturnType<typeof recordingPort>;
 let facts: CaptureFacts;
 let report: ReturnType<typeof vi.fn<(message: string, cause: unknown) => void>>;
+let tell: ReturnType<typeof vi.fn<() => void>>;
 let writer: HistoryWriter;
 let legs: Map<LegName, Conversation>;
 
@@ -65,7 +66,8 @@ beforeEach(() => {
   port = recordingPort();
   facts = defaultFacts();
   report = vi.fn<(message: string, cause: unknown) => void>();
-  writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => facts, report });
+  tell = vi.fn<() => void>();
+  writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => facts, report, tell });
 });
 afterEach(() => writer.dispose());
 
@@ -271,6 +273,7 @@ describe('the history writer', () => {
     say('speaker', 4, 'Four.');
     await writer.settled();
     expect(report).toHaveBeenCalledTimes(1);
+    expect(tell).toHaveBeenCalledTimes(1);
     expect(count('putSegments')).toBe(3);
     expect(state.getState().phase).toBe('running');
   });
@@ -316,5 +319,98 @@ describe('the history writer', () => {
     expect(state.getState().phase).toBe('running');
     expect(report).toHaveBeenCalled();
   });
-});
 
+  // Review: a write counts once it is answered; one that failed is made again at the next pass.
+  describe('a write that failed', () => {
+    const pass = async () => { clock.advance(TICK_MS); await writer.settled(); };
+
+    it('writes the segment again, unchanged as it is', async () => {
+      start();
+      open('speaker', 1, 'source');
+      text('speaker', 1, 'One.');
+      await writer.settled();
+      port.fail('putSegments', 1);
+      close('speaker', 1);
+      await writer.settled();
+      expect(count('putSegments')).toBe(2);
+      await pass();
+      expect(count('putSegments')).toBe(3);
+      expect(lastArg('putSegments').segments).toEqual([expect.objectContaining({ text: 'One.', final: true })]);
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    it('appends the same sentences again, with their numbers', async () => {
+      port.fail('appendSentences', 1);
+      start();
+      say('speaker', 1, 'One. Two.');
+      await writer.settled();
+      expect(count('appendSentences')).toBe(1);
+      await pass();
+      expect(count('appendSentences')).toBe(2);
+      expect(lastArg('appendSentences').sentences.map((x: { n: number; text: string }) => [x.n, x.text])).toEqual([[1, 'One.'], [2, 'Two.']]);
+      say('speaker', 2, 'Three.');
+      await writer.settled();
+      expect(lastArg('appendSentences').sentences.map((x: { n: number }) => x.n)).toEqual([3]);
+    });
+
+    it('puts a correction into a sentence still waiting to be appended', async () => {
+      port.fail('appendSentences', 1);
+      start();
+      say('speaker', 1, 'hello there');
+      await writer.settled();
+      text('speaker', 1, 'Hello there.');
+      await pass();
+      expect(lastArg('appendSentences').sentences.map((x: { n: number; text: string }) => [x.n, x.text])).toEqual([[1, 'Hello there.']]);
+      expect(count('reviseSentences')).toBe(0);
+    });
+
+    it('sends a correction again', async () => {
+      start();
+      say('speaker', 1, 'hello there');
+      await writer.settled();
+      port.fail('reviseSentences', 1);
+      text('speaker', 1, 'Hello there.');
+      await writer.settled();
+      await pass();
+      expect(count('reviseSentences')).toBe(2);
+      expect(lastArg('reviseSentences')).toEqual({ transcriptId: 1, revisions: [{ n: 1, text: 'Hello there.' }] });
+    });
+
+    it('writes a notice again', async () => {
+      port.fail('putNotices', 1);
+      start();
+      legs.get('speaker')!.apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'No speech' } });
+      await writer.settled();
+      await pass();
+      expect(count('putNotices')).toBe(2);
+    });
+
+    it('gives up only after three failures in a row', async () => {
+      port.fail('appendSentences', 2);
+      start();
+      say('speaker', 1, 'One.');
+      await writer.settled();
+      await pass();
+      await pass();
+      port.fail('appendSentences', 2);
+      say('speaker', 2, 'Two.');
+      await writer.settled();
+      await pass();
+      await pass();
+      expect(count('appendSentences')).toBe(6);
+      expect(lastArg('appendSentences').sentences.map((x: { n: number }) => x.n)).toEqual([2]);
+      expect(tell).not.toHaveBeenCalled();
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    it('tells the user when what failed at the close can no longer be written', async () => {
+      start();
+      say('speaker', 1, 'One.');
+      port.fail('appendSentences', 1);
+      end();
+      await writer.settled();
+      expect(tell).toHaveBeenCalledTimes(1);
+      expect(report).toHaveBeenCalledWith(expect.stringContaining('could not be written'), null);
+    });
+  });
+});

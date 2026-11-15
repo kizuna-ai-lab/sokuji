@@ -4,7 +4,9 @@
 // conversation set, never changes either, and sends ordered writes through the `HistoryPort`: the record is opened
 // when the run shows its legs, the conversation is stored as it changes, the original text is cut into numbered
 // sentences, later corrections are followed, and the record is closed when the run is over. History never disturbs
-// a session: every failed write is caught, and after three a record is given up and reported once.
+// a session: every failed write is caught. A write counts once it is answered: what failed is written again at the
+// next pass. After three failures in a row a record is given up; that, and anything still unwritten when the record
+// closes, is reported and told to the user once.
 import type { StoreApi } from 'zustand/vanilla';
 import type { Clock } from '../../contract/clock';
 import type { Leg, LegName, Segment } from '../../conversation/types';
@@ -18,7 +20,7 @@ import { createSegmentCut, type SegmentCut } from './cut';
 export const SEGMENT_WRITE_MS = 1000;
 /** While a record is open, the open segments and the time-based cuts are looked at again this often. */
 export const TICK_MS = 1000;
-/** A record whose writes failed this many times is given up. */
+/** A record whose writes failed this many times in a row is given up. */
 const FAILURES_TO_GIVE_UP = 3;
 
 export interface LegComposition {
@@ -48,6 +50,8 @@ export interface HistoryWriterDeps {
   report?: (message: string, cause: unknown) => void;
   /** The record's recording: begun once the record exists, ended before it is closed. */
   recorder?: { begin(recordId: string, startedAt: number): void; end(): Promise<void> };
+  /** Tells the user, once per record, that some of its transcript could not be saved. */
+  tell?: () => void;
 }
 
 export interface HistoryWriter {
@@ -79,11 +83,21 @@ interface Rec {
   nextNumber: number;
   segments: Map<string, Tracked>;
   noticesWritten: Set<string>;
-  failures: number;
+  /** Sentences whose append failed, to go again with the next ones. */
+  unsent: HistorySentenceInput[];
+  /** Corrections whose write failed, by sentence number. */
+  unrevised: Map<number, string>;
+  /** The text each corrected sentence was last given: a failed correction goes again only while it is the last. */
+  revisedTo: Map<number, string>;
+  /** Failures in a row, by kind of write: a kind that keeps failing gives the record up even while others succeed. */
+  failures: Map<WriteKind, number>;
   givenUp: boolean;
+  told: boolean;
 }
 
 const OPEN_PHASES = new Set<RunState['phase']>(['starting', 'running']);
+
+type WriteKind = 'record' | 'segments' | 'notices' | 'sentences' | 'corrections';
 
 const withoutSpeech = ({ speech: _speech, heard: _heard, ...rest }: Segment): HistorySegment => rest;
 
@@ -109,18 +123,31 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     }
   }
 
-  /** Queues one call for `r`; calls run one at a time, in the order produced. */
-  function send(r: Rec, call: () => Promise<unknown> | null): void {
+  function tellOnce(r: Rec): void {
+    if (r.told) return;
+    r.told = true;
+    try { deps.tell?.(); } catch { /* telling never reaches the run */ }
+  }
+
+  /**
+   * Queues one call for `r`; calls run one at a time, in the order produced. `failed` puts back what the call carried,
+   * so the next pass writes it again.
+   */
+  function send(r: Rec, kind: WriteKind, call: () => Promise<unknown> | null, failed?: () => void): void {
     chain = chain.then(async () => {
       if (r.givenUp) return;
       try {
         const pending = call();
         if (pending) await pending;
+        r.failures.set(kind, 0);
       } catch (error) {
-        r.failures += 1;
-        if (r.failures >= FAILURES_TO_GIVE_UP) {
+        try { failed?.(); } catch { /* the next pass starts from what is known */ }
+        const failures = (r.failures.get(kind) ?? 0) + 1;
+        r.failures.set(kind, failures);
+        if (failures >= FAILURES_TO_GIVE_UP) {
           r.givenUp = true;
-          report(`History stopped writing record ${r.id} after ${r.failures} failed writes`, error);
+          report(`History stopped writing record ${r.id} after ${failures} failed writes in a row`, error);
+          tellOnce(r);
         }
       }
     });
@@ -146,24 +173,25 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const models = Object.fromEntries(Object.entries(info?.models ?? {}).filter((e): e is [string, string] => typeof e[1] === 'string'));
     const r: Rec = {
       id: session, startedAt: clock.now(), facts, transcriptId: null, nextNumber: 1,
-      segments: new Map(), noticesWritten: new Set(), failures: 0, givenUp: false,
+      segments: new Map(), noticesWritten: new Set(), unsent: [], unrevised: new Map(), revisedTo: new Map(),
+      failures: new Map(), givenUp: false, told: false,
     };
     rec = r;
     known.add(session);
     // The recording's pieces need the record to exist: it begins once the record is open, and not at all when the
     // record could not be opened (every piece would be refused).
-    send(r, () => port.openRecord({
+    send(r, 'record', () => port.openRecord({
       id: session, startedAt: r.startedAt, mode: facts.mode, myLanguage, targetLanguage,
       services: { provider: info?.provider ?? '', models }, appVersion: facts.appVersion,
     }).then(() => { deps.recorder?.begin(session, r.startedAt); }));
     for (const leg of legs) {
       const c = facts.legs[leg.leg];
-      send(r, () => port.putLeg({
+      send(r, 'record', () => port.putLeg({
         recordId: session, leg: leg.leg, languages: leg.languages,
         input: c?.input ?? null, inputName: c?.inputName ?? null, inputId: c?.inputId ?? null, translated: true, spoken: c?.spoken ?? false,
       }));
     }
-    send(r, () => port.createTranscript({
+    send(r, 'record', () => port.createTranscript({
       recordId: session, origin: { service: info?.provider ?? '', kind: 'live' }, textKind: facts.originalText ? 'original' : 'translation',
     }).then((id) => { r.transcriptId = id; }));
     armTick();
@@ -232,32 +260,84 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
           if (n !== undefined) revisions.push({ n, text: v.text });
         }
       }
-      if (toWrite.length > 0) send(r, () => port.putSegments({ recordId: r.id, leg: leg.leg, segments: toWrite }));
+      if (toWrite.length > 0) {
+        send(r, 'segments', () => port.putSegments({ recordId: r.id, leg: leg.leg, segments: toWrite }), () => {
+          for (const g of toWrite) {
+            const t = r.segments.get(g.id);
+            if (t) t.dirty = true;
+          }
+        });
+      }
       const notices = leg.notices.filter((n) => n.lifetime !== 'transient' && !r.noticesWritten.has(n.id));
       if (notices.length > 0) {
         for (const n of notices) r.noticesWritten.add(n.id);
-        send(r, () => port.putNotices({ recordId: r.id, leg: leg.leg, notices }));
+        send(r, 'notices', () => port.putNotices({ recordId: r.id, leg: leg.leg, notices }), () => {
+          for (const n of notices) r.noticesWritten.delete(n.id);
+        });
       }
     }
     // A segment gone from the snapshot is forgotten, not deleted.
     for (const id of r.segments.keys()) if (!present.has(id)) r.segments.delete(id);
-    if (sentences.length > 0) {
-      send(r, () => (r.transcriptId === null ? Promise.reject(new Error('No transcript')) : port.appendSentences({ transcriptId: r.transcriptId, sentences })));
+    // What failed before goes first; a correction to a sentence still waiting goes into it.
+    const batch = [...r.unsent, ...sentences];
+    r.unsent = [];
+    const corrections = new Map(r.unrevised);
+    r.unrevised = new Map();
+    for (const v of revisions) {
+      corrections.set(v.n, v.text);
+      r.revisedTo.set(v.n, v.text);
     }
-    if (revisions.length > 0) {
-      send(r, () => (r.transcriptId === null ? Promise.reject(new Error('No transcript')) : port.reviseSentences({ transcriptId: r.transcriptId, revisions })));
+    const byNumber = new Map(batch.map((x) => [x.n, x]));
+    for (const [n, text] of corrections) {
+      const waiting = byNumber.get(n);
+      if (waiting) { waiting.text = text; corrections.delete(n); }
     }
+    if (batch.length > 0) {
+      send(
+        r,
+        'sentences',
+        () => (r.transcriptId === null ? Promise.reject(new Error('No transcript')) : port.appendSentences({ transcriptId: r.transcriptId, sentences: batch })),
+        () => { r.unsent = [...batch, ...r.unsent]; },
+      );
+    }
+    const toRevise = [...corrections].map(([n, text]) => ({ n, text }));
+    if (toRevise.length > 0) {
+      send(
+        r,
+        'corrections',
+        () => (r.transcriptId === null ? Promise.reject(new Error('No transcript')) : port.reviseSentences({ transcriptId: r.transcriptId, revisions: toRevise })),
+        () => {
+          for (const v of toRevise) if (r.revisedTo.get(v.n) === v.text && !r.unrevised.has(v.n)) r.unrevised.set(v.n, v.text);
+        },
+      );
+    }
+  }
+
+  /** What the last pass left unwritten: nothing is written for the record after its close. */
+  function unwritten(r: Rec, legs: readonly Leg[]): boolean {
+    if (r.unsent.length > 0 || r.unrevised.size > 0) return true;
+    for (const leg of legs) {
+      for (const seg of leg.segments) if (seg.text !== '' && r.segments.get(seg.id)?.dirty) return true;
+      if (leg.notices.some((n) => n.lifetime !== 'transient' && !r.noticesWritten.has(n.id))) return true;
+    }
+    return false;
   }
 
   function closeCurrent(): void {
     const r = rec;
     if (!r) return;
     // One last pass: the run has finished its late corrections by now.
-    sync(r, conversation.snapshot(), true);
+    const final = conversation.snapshot();
+    sync(r, final, true);
+    chain = chain.then(() => {
+      if (r.givenUp || !unwritten(r, final)) return;
+      report(`History closed record ${r.id} with some of its transcript that could not be written`, null);
+      tellOnce(r);
+    });
     // The recording's last pages before the record closes; ended even when the record's writes were given up.
     const recorder = deps.recorder;
     if (recorder) chain = chain.then(() => recorder.end().catch((error) => report('History could not finish the recording', error)));
-    send(r, () => port.closeRecord({ id: r.id, endedAt: clock.now() }));
+    send(r, 'record', () => port.closeRecord({ id: r.id, endedAt: clock.now() }));
     rec = null;
     cancelTick?.();
     cancelTick = null;

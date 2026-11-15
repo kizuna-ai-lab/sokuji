@@ -1982,7 +1982,7 @@
     "saveSrt": "Enregistrer les sous-titres (.srt)",
     "saveVtt": "Enregistrer les sous-titres (.vtt)",
     "folder": "Dossier de l’historique",
-    "keptHere": "La transcription et l’audio de chaque session sont conservés sur cet ordinateur. Rien n’est envoyé en ligne.",
+    "keptHere": "La transcription et l’audio de chaque session sont conservés sur cet ordinateur et ne sont pas envoyés en ligne.",
     "confirmPurge_one": "Supprimer définitivement {{count}} enregistrement ? Sa transcription et son enregistrement audio ne pourront pas être récupérés.",
     "hits_one": "{{count}} correspondance",
     "sentenceCount_one": "{{count}} phrase",
@@ -2001,7 +2001,7 @@
     "more": "Plus",
     "binWhenEnded": "Un enregistrement peut aller à la corbeille une fois sa session terminée.",
     "sessionAt": "Session de {{time}}",
-    "recordingStopped": "L’enregistrement audio de cette session s’est arrêté : impossible de l’écrire sur le disque. La transcription est toujours enregistrée.",
+    "recordingStopped": "L’enregistrement audio de cette session s’est arrêté : impossible de l’écrire sur le disque.",
     "player": "Audio",
     "play": "Lire",
     "pause": "Pause",
@@ -2016,6 +2016,7 @@
     "gotIt": "Compris",
     "saveRecordingTitle": "Enregistrer l’audio",
     "saveMyRecording": "Enregistrer l’audio de votre côté",
-    "saveOtherRecording": "Enregistrer l’audio de l’autre côté"
+    "saveOtherRecording": "Enregistrer l’audio de l’autre côté",
+    "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque."
   }
 }

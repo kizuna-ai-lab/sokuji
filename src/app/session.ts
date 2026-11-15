@@ -208,7 +208,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       tell: () => panelNoteWriter()({
         severity: 'warning',
         code: PANEL_NOTE_CODES.historyRecordingStopped,
-        message: 'The recording of this session stopped: it could not be written to disk. The transcript is still saved.',
+        message: 'The recording of this session stopped: it could not be written to disk.',
         lifetime: 'transient',
       }),
     })
@@ -233,6 +233,12 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         return captureFactsFromStores({ info: runner.conversation.info, participantSpeech: 'participantSpeech' in phase ? phase.participantSpeech : false });
       },
       report: (message, cause) => reportError('History', message, { cause }),
+      tell: () => panelNoteWriter()({
+        severity: 'warning',
+        code: PANEL_NOTE_CODES.historyTranscriptStopped,
+        message: 'Part of this session’s transcript could not be saved: it could not be written to disk.',
+        lifetime: 'transient',
+      }),
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
     })
     : null;

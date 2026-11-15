@@ -2001,7 +2001,7 @@
     "more": "更多",
     "binWhenEnded": "会话结束后才能移到回收站。",
     "sessionAt": "{{time}} 的会话",
-    "recordingStopped": "这次会话的录音已停止：无法写入磁盘。转写仍在保存。",
+    "recordingStopped": "这次会话的录音已停止：无法写入磁盘。",
     "player": "录音",
     "play": "播放",
     "pause": "暂停",
@@ -2016,6 +2016,7 @@
     "gotIt": "知道了",
     "saveRecordingTitle": "保存录音",
     "saveMyRecording": "保存我方的录音",
-    "saveOtherRecording": "保存对方的录音"
+    "saveOtherRecording": "保存对方的录音",
+    "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。"
   }
 }

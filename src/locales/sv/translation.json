@@ -1982,7 +1982,7 @@
     "saveSrt": "Spara undertexter (.srt)",
     "saveVtt": "Spara undertexter (.vtt)",
     "folder": "Historikmapp",
-    "keptHere": "Transkriptionen och inspelningen av varje session sparas på den här datorn. Inget laddas upp.",
+    "keptHere": "Transkriptionen och inspelningen av varje session sparas på den här datorn och laddas inte upp.",
     "confirmPurge_one": "Radera {{count}} post permanent? Dess transkription och inspelning går inte att få tillbaka.",
     "hits_one": "{{count}} träff",
     "sentenceCount_one": "{{count}} mening",
@@ -2001,7 +2001,7 @@
     "more": "Mer",
     "binWhenEnded": "En post kan flyttas till papperskorgen när sessionen har avslutats.",
     "sessionAt": "Session kl. {{time}}",
-    "recordingStopped": "Inspelningen av den här sessionen stoppades: den kunde inte skrivas till disken. Transkriptionen sparas fortfarande.",
+    "recordingStopped": "Inspelningen av den här sessionen stoppades: den kunde inte skrivas till disken.",
     "player": "Inspelning",
     "play": "Spela upp",
     "pause": "Pausa",
@@ -2016,6 +2016,7 @@
     "gotIt": "Uppfattat",
     "saveRecordingTitle": "Spara inspelningen",
     "saveMyRecording": "Spara inspelningen från din sida",
-    "saveOtherRecording": "Spara inspelningen från andra sidan"
+    "saveOtherRecording": "Spara inspelningen från andra sidan",
+    "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken."
   }
 }

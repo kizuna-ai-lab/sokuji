@@ -1982,7 +1982,7 @@
     "saveSrt": "Salva sottotitoli (.srt)",
     "saveVtt": "Salva sottotitoli (.vtt)",
     "folder": "Cartella della cronologia",
-    "keptHere": "Trascrizione e audio di ogni sessione restano su questo computer. Non viene caricato nulla.",
+    "keptHere": "Trascrizione e audio di ogni sessione restano su questo computer e non vengono caricati.",
     "confirmPurge_one": "Eliminare definitivamente {{count}} registrazione? La trascrizione e l’audio non si potranno recuperare.",
     "hits_one": "{{count}} corrispondenza",
     "sentenceCount_one": "{{count}} frase",
@@ -2001,7 +2001,7 @@
     "more": "Altro",
     "binWhenEnded": "Una registrazione può andare nel cestino quando la sua sessione è finita.",
     "sessionAt": "Sessione delle {{time}}",
-    "recordingStopped": "La registrazione audio di questa sessione si è fermata: non è stato possibile scriverla sul disco. La trascrizione viene comunque salvata.",
+    "recordingStopped": "La registrazione audio di questa sessione si è fermata: non è stato possibile scriverla sul disco.",
     "player": "Audio",
     "play": "Riproduci",
     "pause": "Pausa",
@@ -2016,6 +2016,7 @@
     "gotIt": "Ho capito",
     "saveRecordingTitle": "Salva la registrazione audio",
     "saveMyRecording": "Salva la registrazione audio della tua parte",
-    "saveOtherRecording": "Salva la registrazione audio dell’altra parte"
+    "saveOtherRecording": "Salva la registrazione audio dell’altra parte",
+    "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco."
   }
 }

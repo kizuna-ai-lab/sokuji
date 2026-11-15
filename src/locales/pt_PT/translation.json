@@ -1982,7 +1982,7 @@
     "saveSrt": "Guardar legendas (.srt)",
     "saveVtt": "Guardar legendas (.vtt)",
     "folder": "Pasta do histórico",
-    "keptHere": "A transcrição e a gravação de cada sessão ficam neste computador. Nada é carregado.",
+    "keptHere": "A transcrição e a gravação de cada sessão ficam neste computador e não são carregadas.",
     "confirmPurge_one": "Eliminar definitivamente {{count}} registo? A transcrição e a gravação não poderão ser recuperadas.",
     "hits_one": "{{count}} correspondência",
     "sentenceCount_one": "{{count}} frase",
@@ -2001,7 +2001,7 @@
     "more": "Mais",
     "binWhenEnded": "Um registo pode ir para a reciclagem quando a sessão terminar.",
     "sessionAt": "Sessão das {{time}}",
-    "recordingStopped": "A gravação desta sessão parou: não foi possível escrevê-la no disco. A transcrição continua a ser guardada.",
+    "recordingStopped": "A gravação desta sessão parou: não foi possível escrevê-la no disco.",
     "player": "Gravação",
     "play": "Reproduzir",
     "pause": "Pausa",
@@ -2016,6 +2016,7 @@
     "gotIt": "Entendido",
     "saveRecordingTitle": "Guardar a gravação",
     "saveMyRecording": "Guardar a gravação do seu lado",
-    "saveOtherRecording": "Guardar a gravação do outro lado"
+    "saveOtherRecording": "Guardar a gravação do outro lado",
+    "transcriptStopped": "Parte da transcrição desta sessão não pôde ser guardada: não foi possível escrevê-la no disco."
   }
 }

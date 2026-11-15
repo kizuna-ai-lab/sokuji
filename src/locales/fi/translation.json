@@ -1982,7 +1982,7 @@
     "saveSrt": "Tallenna tekstitys (.srt)",
     "saveVtt": "Tallenna tekstitys (.vtt)",
     "folder": "Historiakansio",
-    "keptHere": "Jokaisen istunnon litterointi ja äänite säilytetään tällä tietokoneella. Mitään ei ladata verkkoon.",
+    "keptHere": "Jokaisen istunnon litterointi ja äänite säilytetään tällä tietokoneella, eikä niitä ladata verkkoon.",
     "confirmPurge_one": "Poistetaanko {{count}} tallenne pysyvästi? Sen litterointia ja äänitettä ei voi palauttaa.",
     "hits_one": "{{count}} osuma",
     "sentenceCount_one": "{{count}} lause",
@@ -2001,7 +2001,7 @@
     "more": "Lisää",
     "binWhenEnded": "Tallenteen voi siirtää roskakoriin, kun sen istunto on päättynyt.",
     "sessionAt": "Istunto klo {{time}}",
-    "recordingStopped": "Tämän istunnon äänitys pysähtyi: sitä ei voitu kirjoittaa levylle. Litterointi tallentuu edelleen.",
+    "recordingStopped": "Tämän istunnon äänitys pysähtyi: sitä ei voitu kirjoittaa levylle.",
     "player": "Äänite",
     "play": "Toista",
     "pause": "Tauko",
@@ -2016,6 +2016,7 @@
     "gotIt": "Selvä",
     "saveRecordingTitle": "Tallenna äänite",
     "saveMyRecording": "Tallenna oman puolesi äänite",
-    "saveOtherRecording": "Tallenna toisen osapuolen äänite"
+    "saveOtherRecording": "Tallenna toisen osapuolen äänite",
+    "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle."
   }
 }

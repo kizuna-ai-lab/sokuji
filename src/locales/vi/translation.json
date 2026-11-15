@@ -1982,7 +1982,7 @@
     "saveSrt": "Lưu phụ đề (.srt)",
     "saveVtt": "Lưu phụ đề (.vtt)",
     "folder": "Thư mục lịch sử",
-    "keptHere": "Bản ghi lời và bản ghi âm của mỗi phiên được lưu trên máy tính này. Không có gì được tải lên.",
+    "keptHere": "Bản ghi lời và bản ghi âm của mỗi phiên được lưu trên máy tính này và không được tải lên.",
     "confirmPurge_one": "Xóa vĩnh viễn {{count}} bản ghi? Bản ghi lời và bản ghi âm của chúng sẽ không khôi phục được.",
     "hits_one": "{{count}} kết quả khớp",
     "sentenceCount_one": "{{count}} câu",
@@ -2001,7 +2001,7 @@
     "more": "Thêm",
     "binWhenEnded": "Bản ghi chỉ chuyển vào thùng rác được sau khi phiên kết thúc.",
     "sessionAt": "Phiên lúc {{time}}",
-    "recordingStopped": "Bản ghi âm của phiên này đã dừng: không ghi được vào ổ đĩa. Bản ghi lời vẫn được lưu.",
+    "recordingStopped": "Bản ghi âm của phiên này đã dừng: không ghi được vào ổ đĩa.",
     "player": "Bản ghi âm",
     "play": "Phát",
     "pause": "Tạm dừng",
@@ -2016,6 +2016,7 @@
     "gotIt": "Đã hiểu",
     "saveRecordingTitle": "Lưu bản ghi âm",
     "saveMyRecording": "Lưu bản ghi âm phía bạn",
-    "saveOtherRecording": "Lưu bản ghi âm phía bên kia"
+    "saveOtherRecording": "Lưu bản ghi âm phía bên kia",
+    "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa."
   }
 }

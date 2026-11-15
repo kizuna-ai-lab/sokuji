@@ -1982,7 +1982,7 @@
     "saveSrt": "I-save ang subtitle (.srt)",
     "saveVtt": "I-save ang subtitle (.vtt)",
     "folder": "Folder ng Kasaysayan",
-    "keptHere": "Itinatago sa computer na ito ang transcript at recording ng bawat session. Walang ina-upload.",
+    "keptHere": "Itinatago sa computer na ito ang transcript at recording ng bawat session, at hindi ina-upload ang mga ito.",
     "confirmPurge_one": "Burahin nang tuluyan ang {{count}} na record? Hindi na maibabalik ang mga transcript at recording nila.",
     "hits_one": "{{count}} na tugma",
     "sentenceCount_one": "{{count}} pangungusap",
@@ -2001,7 +2001,7 @@
     "more": "Higit pa",
     "binWhenEnded": "Maililipat lang sa basurahan ang record kapag tapos na ang session nito.",
     "sessionAt": "Session nang {{time}}",
-    "recordingStopped": "Huminto ang recording ng session na ito: hindi ito maisulat sa disk. Nase-save pa rin ang transcript.",
+    "recordingStopped": "Huminto ang recording ng session na ito: hindi ito maisulat sa disk.",
     "player": "Recording",
     "play": "I-play",
     "pause": "I-pause",
@@ -2016,6 +2016,7 @@
     "gotIt": "Sige",
     "saveRecordingTitle": "I-save ang recording",
     "saveMyRecording": "I-save ang recording ng panig mo",
-    "saveOtherRecording": "I-save ang recording ng kabilang panig"
+    "saveOtherRecording": "I-save ang recording ng kabilang panig",
+    "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk."
   }
 }

@@ -1982,7 +1982,7 @@
     "saveSrt": "Simpan subtitel (.srt)",
     "saveVtt": "Simpan subtitel (.vtt)",
     "folder": "Folder riwayat",
-    "keptHere": "Transkrip dan rekaman suara setiap sesi disimpan di komputer ini. Tidak ada yang diunggah.",
+    "keptHere": "Transkrip dan rekaman suara setiap sesi disimpan di komputer ini dan tidak diunggah.",
     "confirmPurge_one": "Hapus {{count}} rekaman secara permanen? Transkrip dan rekaman suaranya tidak bisa dikembalikan.",
     "hits_one": "{{count}} kecocokan",
     "sentenceCount_one": "{{count}} kalimat",
@@ -2001,7 +2001,7 @@
     "more": "Lainnya",
     "binWhenEnded": "Rekaman bisa dipindahkan ke sampah setelah sesinya selesai.",
     "sessionAt": "Sesi pukul {{time}}",
-    "recordingStopped": "Rekaman sesi ini berhenti: tidak bisa ditulis ke disk. Transkrip tetap disimpan.",
+    "recordingStopped": "Rekaman sesi ini berhenti: tidak bisa ditulis ke disk.",
     "player": "Rekaman suara",
     "play": "Putar",
     "pause": "Jeda",
@@ -2016,6 +2016,7 @@
     "gotIt": "Mengerti",
     "saveRecordingTitle": "Simpan rekaman suara",
     "saveMyRecording": "Simpan rekaman suara pihak Anda",
-    "saveOtherRecording": "Simpan rekaman suara pihak lain"
+    "saveOtherRecording": "Simpan rekaman suara pihak lain",
+    "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk."
   }
 }
