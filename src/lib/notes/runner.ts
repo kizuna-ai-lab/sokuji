@@ -23,7 +23,8 @@ export interface NotesRunnerDeps {
 
 export interface NotesRunner {
   /** Starts a version for the record, unless one is being written for it already. */
-  start(recordId: string, language?: NotesLanguage): void;
+  /** A version from `transcriptId` when the record has it, else from its newest transcript. */
+  start(recordId: string, language?: NotesLanguage, transcriptId?: number): void;
   /** Stops the record's version; it is saved as cancelled. */
   cancel(recordId: string): void;
   /** The records whose notes are being written. */
@@ -62,9 +63,10 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
   const notify = () => { for (const l of listeners) l(); };
   const report = (message: string, cause: unknown) => d.report?.(message, cause);
 
-  async function run(recordId: string, asked: NotesLanguage | undefined, controller: AbortController): Promise<void> {
+  async function run(recordId: string, asked: NotesLanguage | undefined, controller: AbortController, transcriptId?: number): Promise<void> {
     const record = await d.port.getRecord(recordId);
-    const newest = [...(record?.transcripts ?? [])].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id).pop();
+    const newest = record?.transcripts.find((t) => t.id === transcriptId)
+      ?? [...(record?.transcripts ?? [])].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id).pop();
     if (!record || !newest) return;
     const language = asked ?? d.language(record);
     const sentences = await d.port.getSentences({ transcriptId: newest.id });
@@ -105,12 +107,12 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
   }
 
   return {
-    start(recordId, language) {
+    start(recordId, language, transcriptId) {
       if (runs.has(recordId)) return;
       const controller = new AbortController();
       runs.set(recordId, controller);
       notify();
-      void run(recordId, language, controller)
+      void run(recordId, language, controller, transcriptId)
         .catch((error) => report(`The notes of ${recordId} could not be written`, error))
         .finally(() => {
           runs.delete(recordId);

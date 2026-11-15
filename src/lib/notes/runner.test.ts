@@ -72,6 +72,18 @@ describe('the notes runner', () => {
     expect(raw.renameRecord).not.toHaveBeenCalled();
   });
 
+  it('writes for the transcript asked for, and for the newest when that one is not the record’s', async () => {
+    const { runner, raw, saved } = setup();
+    runner.start(ID, undefined, 1);
+    await vi.waitFor(() => expect(saved).toHaveLength(1));
+    expect(raw.getSentences).toHaveBeenCalledWith({ transcriptId: 1 });
+    expect(saved[0]).toMatchObject({ transcriptId: 1 });
+    await settle();
+    runner.start(ID, undefined, 99);
+    await vi.waitFor(() => expect(saved).toHaveLength(2));
+    expect(saved[1]).toMatchObject({ transcriptId: 2 });
+  });
+
   it('writes in the language asked for', async () => {
     const { runner, saved, calls } = setup();
     runner.start(ID, { code: 'en', name: 'English' });
