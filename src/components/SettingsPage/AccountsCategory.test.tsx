@@ -12,6 +12,8 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: true, getToken: async () => null }) }));
 vi.mock('../providers/ManagedAccountRow', () => ({ ManagedAccountRow: () => <div>account row</div> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+const opened = vi.hoisted(() => [] as string[]);
+vi.mock('../../utils/openExternalUrl', () => ({ openExternalUrl: (url: string) => { opened.push(url); } }));
 
 import { AccountsCategory } from './AccountsCategory';
 import { useProviderStore } from '../../stores/providerStore';
@@ -93,5 +95,25 @@ describe('accounts and keys — opened from a notice or the tour', () => {
   it('opened from the list, keeps every row folded', () => {
     render(<AccountsCategory locked={false} />);
     expect(screen.queryByText('account row')).toBeNull();
+  });
+});
+
+// Owner, 2026-11-15: the setup guide each provider had in the old provider area belongs to its account row.
+describe('accounts and keys — setup guides', () => {
+  it("links each account's setup guide, and none where there is no guide", () => {
+    opened.length = 0;
+    render(<AccountsCategory locked={false} />);
+    const guide = (name: string) => within(row(name)).queryByRole('link', { name: 'Setup guide' });
+    fireEvent.click(guide('OpenAI')!);
+    fireEvent.click(guide('Kizuna AI')!);
+    fireEvent.click(guide('This device')!);
+    expect(opened).toEqual([
+      'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
+      'https://sokuji.kizuna.ai/docs/kizuna-ai/quick-start',
+      'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
+    ]);
+    expect(guide('Soniox')).not.toBeNull();
+    expect(guide('Bing')).toBeNull();
+    expect(guide('Edge')).toBeNull();
   });
 });
