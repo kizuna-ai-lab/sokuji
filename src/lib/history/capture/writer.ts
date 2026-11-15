@@ -61,7 +61,10 @@ interface Tracked {
   /** Sentence number by the cutter's index. */
   numbers: number[];
   writtenAt: number;
-  writtenFinal: boolean;
+  /** What was last written, and what the cutter last saw: a new segment object that changes neither (a speech chunk) is skipped. */
+  writtenKey: string;
+  pendingKey: string;
+  cutKey: string;
   /** Changed since it was last written. */
   dirty: boolean;
 }
@@ -91,6 +94,18 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
   let chain: Promise<void> = Promise.resolve();
   let cancelTick: (() => void) | null = null;
   let disposed = false;
+  let failedOnce = false;
+
+  /** A failure of the writer itself: reported once, and never passed on to the run. */
+  function guard(fn: () => void): void {
+    try {
+      fn();
+    } catch (error) {
+      if (failedOnce) return;
+      failedOnce = true;
+      report('History could not follow the session', error);
+    }
+  }
 
   /** Queues one call for `r`; calls run one at a time, in the order produced. */
   function send(r: Rec, call: () => Promise<unknown> | null): void {
@@ -114,8 +129,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     cancelTick = clock.setTimeout(() => {
       cancelTick = null;
       if (!rec || disposed) return;
-      sync(rec, conversation.snapshot());
-      armTick();
+      guard(() => { if (rec) sync(rec, conversation.snapshot()); });
+      if (rec) armTick();
     }, TICK_MS);
   }
 
@@ -170,20 +185,31 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
         present.add(seg.id);
         let t = r.segments.get(seg.id);
         if (!t) {
-          t = { seen: null, numbers: [], writtenAt: Number.NEGATIVE_INFINITY, writtenFinal: false, dirty: true };
+          t = { seen: null, numbers: [], writtenAt: Number.NEGATIVE_INFINITY, writtenKey: '', pendingKey: '', cutKey: '', dirty: false };
           r.segments.set(seg.id, t);
         }
-        const changed = t.seen !== seg;
-        if (changed) { t.dirty = true; t.seen = seg; }
+        let cutChanged = false;
+        if (t.seen !== seg) {
+          t.seen = seg;
+          const kept = withoutSpeech(seg);
+          const key = JSON.stringify(kept);
+          if (key !== t.writtenKey) { t.dirty = true; t.pendingKey = key; }
+          const cutKey = JSON.stringify([key, seg.heard ?? null]);
+          cutChanged = cutKey !== t.cutKey;
+          t.cutKey = cutKey;
+        }
+        // Empty text (a segment just opened, or one Clear emptied while it was still open) is neither written nor cut:
+        // the record keeps what it had, and the cuts already made stand when the text comes back.
+        if (seg.text === '') continue;
         // Final segments go at once; open ones at most once a second each.
         if (t.dirty && (seg.final || last || now - t.writtenAt >= SEGMENT_WRITE_MS)) {
           toWrite.push(withoutSpeech(seg));
           t.dirty = false;
           t.writtenAt = now;
-          t.writtenFinal = seg.final;
+          t.writtenKey = t.pendingKey;
         }
         // The cut: on every change, and for an open segment on every pass (its cuts wait on time).
-        if (seg.side !== cutSide || (!changed && seg.final)) continue;
+        if (seg.side !== cutSide || (!cutChanged && seg.final)) continue;
         t.cut ??= createSegmentCut();
         const result = t.cut.update({ text: seg.text, final: seg.final, openedAt: seg.openedAt, marks: seg.marks, heard: seg.heard, now });
         for (const s of result.added) {
@@ -232,6 +258,10 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
 
   function look(): void {
     if (disposed) return;
+    guard(lookNow);
+  }
+
+  function lookNow(): void {
     const phase = state.getState().phase;
     if (phase === 'idle') { closeCurrent(); return; }
     const legs = conversation.snapshot();
@@ -245,8 +275,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
 
   const offState = state.subscribe(look);
   const offConversation = conversation.subscribe(look);
-  // Clear empties the screen, not the record: tracking starts afresh, nothing is written for it.
-  const offReset = conversation.onReset((reason) => { if (reason === 'clear' && rec) rec.segments.clear(); });
+  // Clear empties the screen, not the record: what was written stays, and nothing is written for it (a segment Clear
+  // emptied while still open is skipped until its text comes back; one Clear removed is forgotten by the next pass).
   look();
 
   return {
@@ -255,7 +285,6 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       disposed = true;
       offState();
       offConversation();
-      offReset();
       cancelTick?.();
       cancelTick = null;
     },

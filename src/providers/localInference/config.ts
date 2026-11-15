@@ -69,13 +69,6 @@ function localInstructions(context: SessionContext, s: LocalInferenceSettings, s
 }
 
 /**
- * LocalInference's builder (spec: "`build`"). Ports `buildSessionConfig` /
- * `buildParticipantSessionConfig` (`LocalInferenceProviderConfig.ts`): model
- * resolution and the AST cross-stage guard run here, once, for whichever
- * direction `context.direction` names — the reversed (participant) direction
- * is just a different `context.direction`, not a separate code path.
- */
-/**
  * Whether the local provider turns speech straight into the translation: a Granite Speech recognition model also
  * chosen, explicitly, as the translation model. Such a session gives no original text.
  */
@@ -83,6 +76,13 @@ export function translatesSpeechDirectly(asrModelId: string | undefined, transla
   return !!asrModelId && translationModelId === asrModelId && getManifestEntry(asrModelId)?.asrEngine === 'granite-speech';
 }
 
+/**
+ * LocalInference's builder (spec: "`build`"). Ports `buildSessionConfig` /
+ * `buildParticipantSessionConfig` (`LocalInferenceProviderConfig.ts`): model
+ * resolution and the AST cross-stage guard run here, once, for whichever
+ * direction `context.direction` names — the reversed (participant) direction
+ * is just a different `context.direction`, not a separate code path.
+ */
 export function buildLocalInference(
   context: SessionContext,
   s: LocalInferenceSettings,

@@ -248,4 +248,39 @@ describe('the history writer', () => {
     expect(count('putNotices')).toBe(1);
     expect(lastArg('putNotices')).toEqual(expect.objectContaining({ recordId: 'run-0001-aaaa', leg: 'speaker', notices: [expect.objectContaining({ code: 'tts_degraded' })] }));
   });
+
+  // Review: Clear keeps a still-open segment with its text emptied; its sentences must neither be blanked nor appended again.
+  it('Clear while a segment is open neither blanks its sentences nor appends them again', async () => {
+    start();
+    open('speaker', 1, 'source');
+    const heard = { pieces: [{ at: 0, len: 10, startAt: 1200, endAt: 1900 }], stableLen: 11 };
+    text('speaker', 1, 'First one. And then', { heard });
+    await writer.settled();
+    conversation.clear();
+    await writer.settled();
+    text('speaker', 1, 'First one. And then more', { heard });
+    await writer.settled();
+    expect(count('reviseSentences')).toBe(0);
+    expect(allSentences().map((s) => [s.n, s.text])).toEqual([[1, 'First one.']]);
+    expect(port.calls.filter((c) => c[0] === 'putSegments').flatMap((c) => c[1].segments).every((g: { text: string }) => g.text !== '')).toBe(true);
+  });
+
+  it('does not write a segment again for audio that changes nothing it keeps', async () => {
+    start();
+    sayTranslation('speaker', 1, 'Hola.');
+    await writer.settled();
+    const before = count('putSegments');
+    for (let i = 0; i < 5; i++) legs.get('speaker')!.apply({ kind: 'audio', payload: { ref: 1, pcm: new Int16Array(240) } });
+    await writer.settled();
+    expect(count('putSegments')).toBe(before);
+  });
+
+  it('a failure of its own never reaches the run', async () => {
+    writer.dispose();
+    writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => { throw new Error('no facts'); }, report });
+    expect(() => start()).not.toThrow();
+    expect(state.getState().phase).toBe('running');
+    expect(report).toHaveBeenCalled();
+  });
 });
+
