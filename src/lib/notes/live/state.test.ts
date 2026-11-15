@@ -1,4 +1,4 @@
-// The live notes' state and the program's rules that fold an answer into it (run_append.py's apply()).
+// The live notes' state and the program's rules that fold an answer into it.
 import { describe, it, expect } from 'vitest';
 import { applyLive, emptyLive, livePayload, type LiveSentence, type LiveState } from './state';
 

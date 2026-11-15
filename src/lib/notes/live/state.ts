@@ -1,8 +1,8 @@
 // src/lib/notes/live/state.ts
 //
-// The live notes (stage 4): their state, what each update sends, and the program's rules that fold an answer in,
-// ported from the tested script (run_append.py with SEG_KINDS=2 SEG_WITHDRAW=1 SEG_ANCHOR=id SEG_OWNER=side and its
-// defaults). The notes only grow: a written point is never rewritten; the open topic takes new points until it has
+// The live notes (stage 4): their state, what each update sends, and the program's rules that fold an answer in, as
+// they were tested before this port (two kinds of marks, to-dos that can be withdrawn, points anchored to sentence
+// numbers, owners as sides). The notes only grow: a written point is never rewritten; the open topic takes new points until it has
 // twelve, then it is closed; a closed topic is frozen except for an `earlier` point; a to-do may be withdrawn (the mark
 // goes, the text stays). Sentences are named by their record numbers (`n`), which grow as sentences arrive.
 import type { HistorySentenceInput, HistorySentenceSide } from '../../history/types';
