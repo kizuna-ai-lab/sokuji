@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Configuración",
     "search": "Buscar en la configuración",
-    "back": "Volver",
+    "back": "Volver a la sesión",
     "backToList": "Volver a la lista",
     "changeable": "Se puede cambiar durante una sesión",
     "lockedNote": "Bloqueado durante una sesión",
@@ -1754,7 +1754,8 @@
       "signedIn": "Sesión iniciada",
       "signedOut": "Sin iniciar sesión",
       "together": "juntas",
-      "view": "Ver"
+      "view": "Ver",
+      "hide": "Ocultar"
     },
     "lineup": {
       "title": "Combinación",
@@ -1795,6 +1796,12 @@
         "translation": "Solo traducción",
         "none": "Nada"
       }
+    },
+    "intro": {
+      "accounts": "Cuentas y claves: cada servicio se rellena una sola vez. Después, lo que hace se elige en «Idiomas y combinación».",
+      "models": "Aquí se gestionan todos los modelos descargados en este ordenador: los de las sesiones, los auxiliares y las voces importadas.",
+      "audio": "Micrófono, voz y el audio de la otra parte. Todo menos «Traducción que oye la otra parte» se puede cambiar durante una sesión.",
+      "display": "Los mismos valores que los botones de encima de la conversación y de la barra de subtítulos: se cambien donde se cambien, se aplican al instante. La ventana principal y el modo subtítulos tienen los suyos."
     }
   }
 }

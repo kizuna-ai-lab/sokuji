@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Settings",
     "search": "Search settings",
-    "back": "Back",
+    "back": "Back to the session",
     "backToList": "Back to the list",
     "changeable": "Changeable during a session",
     "lockedNote": "Locked during a session",
@@ -1754,7 +1754,8 @@
       "signedIn": "Signed in",
       "signedOut": "Not signed in",
       "together": "together",
-      "view": "View"
+      "view": "View",
+      "hide": "Hide"
     },
     "lineup": {
       "title": "Line-up",
@@ -1795,6 +1796,12 @@
         "translation": "Translation only",
         "none": "Nothing"
       }
+    },
+    "intro": {
+      "accounts": "Accounts and keys: each service is filled in once. Once it is, what it can do is chosen in \"Languages and line-up\".",
+      "models": "Every model downloaded to this computer is managed here: the ones sessions use, the helpers, and imported voices.",
+      "audio": "Microphone, speech and the other side's audio. Everything except \"Translation the other side hears\" can be changed during a session.",
+      "display": "The same values as the buttons above the conversation and on the caption bar: change them on either side, and they apply at once. The main window and caption mode each keep their own."
     }
   }
 }

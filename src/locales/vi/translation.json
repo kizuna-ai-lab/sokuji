@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Cài đặt",
     "search": "Tìm trong cài đặt",
-    "back": "Quay lại",
+    "back": "Quay lại phiên",
     "backToList": "Quay lại danh sách",
     "changeable": "Có thể thay đổi trong phiên",
     "lockedNote": "Bị khóa trong phiên",
@@ -1754,7 +1754,8 @@
       "signedIn": "Đã đăng nhập",
       "signedOut": "Chưa đăng nhập",
       "together": "cùng nhau",
-      "view": "Xem"
+      "view": "Xem",
+      "hide": "Ẩn"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1795,6 +1796,12 @@
         "translation": "Chỉ bản dịch",
         "none": "Không hiển thị"
       }
+    },
+    "intro": {
+      "accounts": "Tài khoản và khóa: mỗi dịch vụ chỉ cần điền một lần. Sau đó, việc nó làm được chọn trong “Ngôn ngữ và cách phối hợp”.",
+      "models": "Mọi mô hình đã tải về máy này đều được quản lý ở đây: mô hình cho phiên, mô hình phụ trợ và giọng đã nhập.",
+      "audio": "Micrô, giọng nói và âm thanh của phía bên kia. Mọi thứ đều đổi được trong phiên, trừ “Bản dịch phía bên kia nghe”.",
+      "display": "Cùng giá trị với các nút phía trên cuộc hội thoại và trên thanh phụ đề: đổi ở đâu cũng vậy, có hiệu lực ngay. Cửa sổ chính và chế độ phụ đề có giá trị riêng."
     }
   }
 }

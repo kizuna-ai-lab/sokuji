@@ -8,6 +8,10 @@
   min-height: 0;
   background: vars.$bg-base;
   color: vars.$text-primary;
+  // One body size for the whole page (the mock's 13px); controls take the page's type rather than the browser's.
+  font-size: 13px;
+  line-height: 1.5;
+  :where(button, input, select, textarea) { font: inherit; }
 
   &__locked {
     padding: vars.$space-2 vars.$space-4;
@@ -32,6 +36,8 @@
   }
 
   &--wide &__nav {
+    // 224px with its own padding (the mock's column), not 224px plus padding.
+    box-sizing: border-box;
     width: 224px;
     flex: none;
     border-right: 1px solid vars.$border-subtle;
@@ -94,20 +100,29 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
     header {
       display: flex;
-      align-items: center;
-      gap: vars.$space-2;
-      padding: vars.$space-3 vars.$space-4;
-      border-bottom: 1px solid vars.$border-subtle;
-      h2 { flex: 1; margin: 0; font-size: 16px; font-weight: vars.$weight-semibold; &:focus { outline: none; } }
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+      max-width: 720px;
+      box-sizing: border-box;
+      padding: 20px 28px 8px;
+      h2 { margin: 0; font-size: 18px; font-weight: vars.$weight-semibold; line-height: 1.35; &:focus { outline: none; } }
     }
   }
 
+  // The line under a category's title: what the category is for.
+  &__intro { margin: 0; max-width: 560px; color: vars.$text-secondary; line-height: 1.6; }
+
   &__body {
-    flex: 1;
-    overflow-y: auto;
-    padding: vars.$space-4;
+    flex: none;
+    width: 100%;
+    max-width: 720px;
+    box-sizing: border-box;
+    padding: 12px 28px 32px;
     container-type: inline-size;
   }
 
@@ -192,33 +207,38 @@
   .lineup-stage__joint, .lineup-stage__moved { margin-left: 0; }
 }
 
-// Accounts and keys: one row per account.
-.accounts-category { display: flex; flex-direction: column; gap: vars.$space-2; }
+// Accounts and keys (the mock): one row per account, rows split by a thin line; the name, its state under it, one button.
+.accounts-category { display: flex; flex-direction: column; }
 .accounts-row {
   display: flex;
   flex-direction: column;
   gap: vars.$space-2;
-  padding: vars.$space-3;
-  border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-md;
-  &__head { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; }
-  &__name { font-weight: vars.$weight-medium; }
-  &__state { font-size: vars.$font-caption; color: vars.$text-muted; }
+  padding: 10px 0;
+  border-bottom: 1px solid vars.$border-subtle;
+  &:first-child { border-top: 1px solid vars.$border-subtle; }
+  &__head { display: flex; align-items: center; gap: vars.$space-3; }
+  &__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  &__name { font-size: 14px; font-weight: vars.$weight-medium; color: vars.$text-primary; }
+  &__state {
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: vars.$text-muted;
+    &.is-ok { color: vars.$color-primary; }
+  }
   &__guide {
-    display: inline-flex; align-items: center; gap: 3px; font-size: vars.$font-caption; color: vars.$color-primary; text-decoration: none;
-    &:hover { text-decoration: underline; }
+    display: inline-flex; align-items: center; gap: 3px; color: vars.$text-secondary; text-decoration: none;
+    &:hover { color: vars.$color-primary; text-decoration: underline; }
     &:focus-visible { @include vars.focus-ring; }
   }
-  &__chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+  &__chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
   &__chip { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: vars.$bg-hover; color: vars.$text-secondary; }
   &__toggle {
-    padding: 4px 10px;
-    border: 1px solid vars.$border-default;
+    flex: none;
+    padding: 5px 12px;
+    border: none;
     border-radius: vars.$radius-md;
-    background: transparent;
-    color: vars.$text-secondary;
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
     cursor: pointer;
-    &:hover { border-color: vars.$color-primary; color: vars.$text-primary; }
+    &:hover { background: vars.$bg-elevated-hover; }
     &:focus-visible { @include vars.focus-ring; }
   }
 }

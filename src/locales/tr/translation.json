@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Ayarlar",
     "search": "Ayarlarda ara",
-    "back": "Geri",
+    "back": "Oturuma dön",
     "backToList": "Listeye dön",
     "changeable": "Oturum sırasında değiştirilebilir",
     "lockedNote": "Oturum sırasında kilitli",
@@ -1754,7 +1754,8 @@
       "signedIn": "Oturum açık",
       "signedOut": "Oturum açılmadı",
       "together": "birlikte",
-      "view": "Görüntüle"
+      "view": "Görüntüle",
+      "hide": "Gizle"
     },
     "lineup": {
       "title": "Düzen",
@@ -1795,6 +1796,12 @@
         "translation": "Yalnızca çeviri",
         "none": "Hiçbiri"
       }
+    },
+    "intro": {
+      "accounts": "Hesaplar ve anahtarlar: her hizmet bir kez doldurulur. Ne yapacağı ardından “Diller ve düzen” bölümünde seçilir.",
+      "models": "Bu bilgisayara indirilen tüm modeller burada yönetilir: oturumların kullandıkları, yardımcı modeller ve içe aktarılan sesler.",
+      "audio": "Mikrofon, konuşma ve karşı tarafın sesi. “Karşı tarafın duyduğu çeviri” dışında her şey oturum sırasında değiştirilebilir.",
+      "display": "Konuşmanın üstündeki ve altyazı çubuğundaki düğmelerle aynı değerler: nerede değiştirirseniz değiştirin hemen uygulanır. Ana pencere ve altyazı modu ayrı değerler tutar."
     }
   }
 }

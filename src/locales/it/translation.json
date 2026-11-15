@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Impostazioni",
     "search": "Cerca nelle impostazioni",
-    "back": "Indietro",
+    "back": "Torna alla sessione",
     "backToList": "Torna all'elenco",
     "changeable": "Modificabile durante una sessione",
     "lockedNote": "Bloccato durante una sessione",
@@ -1754,7 +1754,8 @@
       "signedIn": "Accesso effettuato",
       "signedOut": "Accesso non effettuato",
       "together": "insieme",
-      "view": "Visualizza"
+      "view": "Visualizza",
+      "hide": "Nascondi"
     },
     "lineup": {
       "title": "Composizione",
@@ -1795,6 +1796,12 @@
         "translation": "Solo traduzione",
         "none": "Niente"
       }
+    },
+    "intro": {
+      "accounts": "Account e chiavi: ogni servizio si compila una volta sola. Poi ciò che fa si sceglie in «Lingue e composizione».",
+      "models": "Qui si gestiscono tutti i modelli scaricati su questo computer: quelli delle sessioni, quelli ausiliari e le voci importate.",
+      "audio": "Microfono, voce e audio dell’altra parte. Tutto si può cambiare durante una sessione, tranne «Traduzione che sente l’altra parte».",
+      "display": "Gli stessi valori dei pulsanti sopra la conversazione e della barra dei sottotitoli: ovunque li cambi, valgono subito. Finestra principale e modalità sottotitoli hanno ciascuna i propri."
     }
   }
 }

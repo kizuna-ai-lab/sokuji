@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Instellingen",
     "search": "Instellingen zoeken",
-    "back": "Terug",
+    "back": "Terug naar de sessie",
     "backToList": "Terug naar de lijst",
     "changeable": "Te wijzigen tijdens een sessie",
     "lockedNote": "Vergrendeld tijdens een sessie",
@@ -1754,7 +1754,8 @@
       "signedIn": "Ingelogd",
       "signedOut": "Niet ingelogd",
       "together": "samen",
-      "view": "Bekijken"
+      "view": "Bekijken",
+      "hide": "Verbergen"
     },
     "lineup": {
       "title": "Opstelling",
@@ -1795,6 +1796,12 @@
         "translation": "Alleen vertaling",
         "none": "Niets"
       }
+    },
+    "intro": {
+      "accounts": "Accounts en sleutels: elke dienst vul je één keer in. Wat hij doet, kies je daarna bij ‘Talen en opstelling’.",
+      "models": "Alle modellen die op deze computer staan, beheer je hier: die van de sessies, de hulpmodellen en geïmporteerde stemmen.",
+      "audio": "Microfoon, spraak en het geluid van de andere kant. Alles behalve ‘Vertaling die de andere kant hoort’ kun je tijdens een sessie wijzigen.",
+      "display": "Dezelfde waarden als de knoppen boven het gesprek en op de ondertitelbalk: waar je ze ook wijzigt, ze gelden meteen. Het hoofdvenster en de ondertitelmodus hebben elk hun eigen."
     }
   }
 }

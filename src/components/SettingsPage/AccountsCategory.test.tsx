@@ -39,7 +39,19 @@ describe('accounts and keys', () => {
     expect(row('OpenAI')).toHaveTextContent('Needs a key');
     expect(row('Bing')).toHaveTextContent('No key needed; online, a Microsoft service');
     expect(row('This device')).toHaveTextContent('Runs on this computer');
+    // What an account can do is shown once its row is open (the mock's rows carry name and state only).
+    expect(within(row('Soniox')).queryByText('Transcription')).toBeNull();
+    fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
     expect(within(row('Soniox')).getByText('Transcription')).toBeInTheDocument();
+    expect(within(row('Soniox')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  // The mock's order: the accounts that need no key first, then the ones with a key.
+  it('lists Kizuna AI, This device, Bing and Edge first, then the providers with a key', () => {
+    render(<AccountsCategory locked={false} />);
+    const names = screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
+    expect(names.slice(0, 4)).toEqual(['Kizuna AI', 'This device', 'Bing', 'Edge']);
+    expect(names).toContain('OpenAI');
   });
 
   // The tour's key step points at the account rows.
@@ -82,7 +94,7 @@ describe('accounts and keys — opened from a notice or the tour', () => {
   it("opened by the 'provider' target, shows the selected provider's key at once", () => {
     useProviderStore.setState({ selected: 'openai' });
     render(<AccountsCategory locked={false} openedBy="provider" />);
-    expect(within(row('OpenAI')).getByRole('button', { name: 'Add key' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(row('OpenAI')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
   });
 

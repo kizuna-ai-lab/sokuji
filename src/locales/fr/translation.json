@@ -1712,7 +1712,7 @@
   "settingsPage": {
     "title": "Paramètres",
     "search": "Rechercher dans les paramètres",
-    "back": "Retour",
+    "back": "Retour à la session",
     "backToList": "Retour à la liste",
     "changeable": "Modifiable pendant une session",
     "lockedNote": "Verrouillé pendant une session",
@@ -1754,7 +1754,8 @@
       "signedIn": "Connecté",
       "signedOut": "Non connecté",
       "together": "ensemble",
-      "view": "Afficher"
+      "view": "Afficher",
+      "hide": "Masquer"
     },
     "lineup": {
       "title": "Composition",
@@ -1795,6 +1796,12 @@
         "translation": "Traduction seulement",
         "none": "Rien"
       }
+    },
+    "intro": {
+      "accounts": "Comptes et clés : chaque service se renseigne une seule fois. Ensuite, ce qu’il fait se choisit dans « Langues et composition ».",
+      "models": "Tous les modèles téléchargés sur cet ordinateur se gèrent ici : ceux des sessions, les modèles d’appoint et les voix importées.",
+      "audio": "Micro, voix et son de l’autre partie. Tout se modifie pendant une session, sauf « Traduction entendue par l’autre partie ».",
+      "display": "Les mêmes valeurs que les boutons au-dessus de la conversation et sur la barre de sous-titres : où qu’on les change, elles s’appliquent aussitôt. La fenêtre principale et le mode sous-titres ont chacun les leurs."
     }
   }
 }

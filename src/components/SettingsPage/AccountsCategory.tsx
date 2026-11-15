@@ -62,6 +62,12 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     const list: Account[] = [];
     const managed = providers.filter((p) => p.kind === 'managed');
     if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id), guide: managed.find((p) => p.guideUrl)?.guideUrl });
+    // The accounts that need no key come first (the mock's order), then the providers with a key.
+    if (providers.some((p) => p.id === 'local_inference')) {
+      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: providers.find((p) => p.id === 'local_inference')?.guideUrl });
+      list.push({ key: 'bing', name: t('providers.bing.name', 'Bing'), kind: 'online', serves: ['bing'] });
+      list.push({ key: 'edge', name: t('providers.edge.name', 'Edge'), kind: 'online', serves: ['edge'] });
+    }
     const openai = providers.filter((p) => OPENAI_IDS.includes(p.id));
     let openaiListed = false;
     for (const p of providers) {
@@ -74,11 +80,6 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         continue;
       }
       list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'key', provider: p, serves: [p.id], guide: p.guideUrl });
-    }
-    if (providers.some((p) => p.id === 'local_inference')) {
-      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: providers.find((p) => p.id === 'local_inference')?.guideUrl });
-      list.push({ key: 'bing', name: t('providers.bing.name', 'Bing'), kind: 'online', serves: ['bing'] });
-      list.push({ key: 'edge', name: t('providers.edge.name', 'Edge'), kind: 'online', serves: ['edge'] });
     }
     return list;
   }, [providers, t]);
@@ -98,6 +99,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     }
   };
 
+  /** An account in working order: signed in, its key saved, or one that needs neither. */
+  const ready = (a: Account): boolean => (a.kind === 'kizuna' ? auth.signedIn : a.kind === 'key' ? keySaved(a.provider) : true);
+
   const chips = (a: Account) => {
     const stages = RUN_STAGES.filter((s) => a.serves.some((id) => caps(id)?.stages.includes(s)));
     const together = a.serves.some((id) => (caps(id)?.binds ?? []).some((g) => g.length > 1));
@@ -115,25 +119,28 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         const p = a.provider;
         const entry = p ? entries[p.id] : undefined;
         const isOpen = open === a.key;
-        const editable = a.kind === 'kizuna' || a.kind === 'key';
         return (
           <div className="accounts-row" role="group" aria-label={a.name} key={a.key} id={a.kind === 'kizuna' ? 'user-account-section' : undefined}>
+            {/* The mock's row: the name, its state under it, one button; what the account can do once it is open. */}
             <div className="accounts-row__head">
-              <span className="accounts-row__name">{a.name}</span>
-              <span className="accounts-row__state">{stateOf(a)}</span>
-              {a.guide && (
-                <a className="accounts-row__guide" href={a.guide} onClick={(e) => { e.preventDefault(); openExternalUrl(a.guide!); }}>
-                  <ExternalLink size={12} aria-hidden="true" />
-                  {t('simpleSettings.setupGuide', 'Setup guide')}
-                </a>
-              )}
-              {chips(a)}
-              {editable && (
-                <button type="button" className="accounts-row__toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : a.key)}>
-                  {a.kind === 'key' && !keySaved(p) ? t('settingsPage.accounts.addKey', 'Add key') : t('settingsPage.accounts.view', 'View')}
-                </button>
-              )}
+              <div className="accounts-row__main">
+                <span className="accounts-row__name">{a.name}</span>
+                <span className={`accounts-row__state${ready(a) ? ' is-ok' : ''}`}>
+                  {stateOf(a)}
+                  {a.guide && (
+                    <a className="accounts-row__guide" href={a.guide} onClick={(e) => { e.preventDefault(); openExternalUrl(a.guide!); }}>
+                      <ExternalLink size={12} aria-hidden="true" />
+                      {t('simpleSettings.setupGuide', 'Setup guide')}
+                    </a>
+                  )}
+                </span>
+              </div>
+              <button type="button" className="accounts-row__toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : a.key)}>
+                {isOpen ? t('settingsPage.accounts.hide', 'Hide')
+                  : a.kind === 'key' && !keySaved(p) ? t('settingsPage.accounts.addKey', 'Add key') : t('settingsPage.accounts.view', 'View')}
+              </button>
             </div>
+            {isOpen && chips(a)}
             {isOpen && a.kind === 'kizuna' && <ManagedAccountRow auth={auth} />}
             {isOpen && a.kind === 'key' && p && entry && (
               <CredentialForm
