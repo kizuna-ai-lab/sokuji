@@ -71,6 +71,18 @@ describe('the sentence cutter', () => {
     expect(r.added.map((s) => s.text)).toEqual(['Encore une fois !']);
   });
 
+  // Review: only ? and ! take the space before them; a word that begins with a dot stays the next sentence's.
+  it('does not pull a dot that begins the next sentence back into the one before', () => {
+    for (const [text, first] of [['Hi. .NET is great. And', 'Hi.'], ['Wait. ...and then. So', 'Wait.']]) {
+      const c = createSegmentCut();
+      const input = { text, final: false, openedAt: 0, marks: [], heard: { pieces: [], stableLen: text.lastIndexOf(' ') }, now: 1000 };
+      const added = c.update(input).added.map((s) => s.text);
+      expect(added[0]).toBe(first);
+      expect(added.join(' ')).toBe(text.slice(0, text.lastIndexOf(' ')));
+      expect(c.update(input)).toEqual({ added: [], revised: [] });
+    }
+  });
+
   it('reports nothing when nothing changed', () => {
     const c = createSegmentCut();
     const input = { text: 'Same. Text.', final: true, openedAt: 0, marks: [], now: 0 };

@@ -5,7 +5,7 @@
 // and times never change, its text follows the segment's. No timers: `now` comes in.
 import type { Heard } from '../../contract/adapter';
 import type { Mark } from '../../conversation/types';
-import { SENTENCE_TERMINALS, sentenceEnds } from '../../segmentation/sentenceEnd';
+import { SENTENCE_CLOSERS, sentenceEnds } from '../../segmentation/sentenceEnd';
 import { countSkeleton } from '../../segmentation/sealCursor';
 
 /** Text after the last sentence end is cut when nothing has grown for this long (inside what may be cut). */
@@ -28,6 +28,8 @@ export interface SegmentCut { update(input: CutInput): CutResult }
 
 const LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
 const WHITESPACE = /\s/u;
+/** The marks French and others write after a space. */
+const SPACED_TERMINALS = '?!？！';
 
 /** The offset just after the `count`-th letter or digit of `text` (0 for 0; the text's length when it holds fewer). */
 function afterCount(text: string, count: number): number {
@@ -51,9 +53,13 @@ function endOf(text: string, count: number): number {
     const ch = String.fromCodePoint(text.codePointAt(end)!);
     if (LETTER_OR_DIGIT.test(ch)) break;
     if (WHITESPACE.test(ch)) {
+      // Only a question or exclamation mark standing on its own after the space: a dot there begins the next sentence.
       let next = end;
       while (next < text.length && WHITESPACE.test(text[next])) next += 1;
-      if (next < text.length && SENTENCE_TERMINALS.includes(text[next])) { end = next; continue; }
+      let after = next;
+      while (after < text.length && SPACED_TERMINALS.includes(text[after])) after += 1;
+      const alone = after === text.length || WHITESPACE.test(text[after]) || SENTENCE_CLOSERS.includes(text[after]);
+      if (after > next && alone) { end = next; continue; }
       break;
     }
     end += ch.length;
