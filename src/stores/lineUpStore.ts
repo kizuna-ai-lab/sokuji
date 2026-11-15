@@ -118,8 +118,16 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => ({
     if (moves) useProviderStore.getState().select(run.provider, 'pick');
     if (await write(choice.lineUp)) return choice;
     // Not stored: the choice is undone, the provider with it, so what is kept stays one line-up and its provider.
-    set({ lineUp });
-    if (moves && before && useProviderStore.getState().selected === run.provider) useProviderStore.getState().select(before, 'pick');
+    // A run that started meanwhile locks the provider: both stay what it started with until it ends.
+    const undo = () => {
+      if (get().lineUp !== choice.lineUp) return;
+      set({ lineUp });
+      if (moves && before && useProviderStore.getState().selected === run.provider) useProviderStore.getState().select(before, 'pick');
+    };
+    if (!useProviderStore.getState().selectionLocked) undo();
+    else {
+      const off = useProviderStore.subscribe((s) => { if (!s.selectionLocked) { off(); undo(); } });
+    }
     return null;
   },
 }));
