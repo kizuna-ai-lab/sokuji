@@ -1848,7 +1848,8 @@
         "needsKey": "Perlu kunci",
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu log masuk",
-        "ready": "Sedia"
+        "ready": "Sedia",
+        "off": "Mati"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
       "hint": "Perkhidmatan mana yang membuat setiap peringkat",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Suara disimpan mengikut bahasa: ini suara untuk pasangan bahasa ini.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Tiada",
+      "notesNeedKey": "Tambah kunci OpenAI dalam “Akaun dan kunci” supaya nota ditulis."
     },
     "display": {
       "surface": "Paparan mana",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Simpan rakaman",
     "saveMyRecording": "Simpan rakaman pihak anda",
     "saveOtherRecording": "Simpan rakaman pihak lain",
+    "notesAfterSession": "Tulis nota selepas setiap sesi",
+    "notesLine": "Apabila sesi tamat, {{service}} menulis notanya daripada transkrip.",
+    "notesNoService": "Pilih dahulu perkhidmatan untuk nota dalam “Bahasa dan susunan”.",
+    "notesExplainTitle": "Sebelum nota ditulis",
+    "notesExplain": "Bagi setiap sesi, teks ayatnya, nombornya, serta pihak dan penutur yang menyebutnya dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
+    "notesTurnOn": "Hidupkan",
+    "notesModel": "Model nota",
+    "notesModelLine": "Model teks yang menulis nota, mengikut namanya di perkhidmatan.",
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "length": "Tempoh {{length}}"
   }

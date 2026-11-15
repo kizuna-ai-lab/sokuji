@@ -1848,7 +1848,8 @@
         "needsKey": "Anahtar gerekli",
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
-        "ready": "Hazır"
+        "ready": "Hazır",
+        "off": "Kapalı"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Sesler dile göre saklanır: bunlar bu dil çiftinin sesleri.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Yok",
+      "notesNeedKey": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin."
     },
     "display": {
       "surface": "Hangi görünüm",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Ses kaydını kaydet",
     "saveMyRecording": "Sizin tarafın ses kaydını kaydet",
     "saveOtherRecording": "Karşı tarafın ses kaydını kaydet",
+    "notesAfterSession": "Her oturumdan sonra not yaz",
+    "notesLine": "Bir oturum bittiğinde {{service}}, dökümden notlarını yazar.",
+    "notesNoService": "Önce “Diller ve düzen” bölümünde notlar için bir hizmet seçin.",
+    "notesExplainTitle": "Notlar yazılmadan önce",
+    "notesExplain": "Her oturum için cümlelerinin metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
+    "notesTurnOn": "Aç",
+    "notesModel": "Not modeli",
+    "notesModelLine": "Notları yazan metin modeli, hizmetteki adıyla.",
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "length": "Süre {{length}}"
   }

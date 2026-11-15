@@ -1848,7 +1848,8 @@
         "needsKey": "キーが必要",
         "needsModel": "モデルが必要",
         "needsSignIn": "サインインが必要",
-        "ready": "準備完了"
+        "ready": "準備完了",
+        "off": "オフ"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
       "hint": "各段階をどのサービスが担当するか",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "音声は言語ごとに保存されます。ここで変えるのは、いまの言語の組み合わせで使う音声です。",
         "voiceFor": "{{who}}（{{language}}）"
-      }
+      },
+      "notesNone": "なし",
+      "notesNeedKey": "メモを書くには「アカウントとキー」で OpenAI のキーを追加してください。"
     },
     "display": {
       "surface": "どの表示",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "録音を保存",
     "saveMyRecording": "自分側の録音を保存",
     "saveOtherRecording": "相手側の録音を保存",
+    "notesAfterSession": "セッションごとにメモを書く",
+    "notesLine": "セッションが終わると、{{service}} が文字起こしからメモを書きます。",
+    "notesNoService": "先に「言語と構成」でメモのサービスを選んでください。",
+    "notesExplainTitle": "メモを書く前に",
+    "notesExplain": "セッションごとに、文の本文、その番号、どちら側のどの話者が話したかが、あなた自身のキーで {{service}} に送られます。音声、翻訳、アカウントは送られません。",
+    "notesTurnOn": "オンにする",
+    "notesModel": "メモのモデル",
+    "notesModelLine": "メモを書くテキストモデル。サービスでの名前で入力します。",
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "length": "長さ {{length}}"
   }

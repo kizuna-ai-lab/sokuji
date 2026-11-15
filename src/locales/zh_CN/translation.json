@@ -1848,7 +1848,8 @@
         "needsKey": "需要密钥",
         "needsModel": "需要模型",
         "needsSignIn": "需要登录",
-        "ready": "就绪"
+        "ready": "就绪",
+        "off": "关闭"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
       "hint": "每个阶段由哪个服务来做",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "音色按语言分开存：这里改的是现在这对语言用的音色。",
         "voiceFor": "{{who}}（{{language}}）"
-      }
+      },
+      "notesNone": "无",
+      "notesNeedKey": "在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。"
     },
     "display": {
       "surface": "哪个界面",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "保存录音",
     "saveMyRecording": "保存我方的录音",
     "saveOtherRecording": "保存对方的录音",
+    "notesAfterSession": "每次会话结束后写纪要",
+    "notesLine": "会话结束时，由 {{service}} 根据转写写出纪要。",
+    "notesNoService": "请先在“语言与会话组成”里选择写纪要的服务。",
+    "notesExplainTitle": "写纪要之前",
+    "notesExplain": "每次会话会用你自己的 key 把这些发给 {{service}}：各句的文字、句子编号、是哪一方哪位说话人说的。不会发送声音、译文或你的账号信息。",
+    "notesTurnOn": "打开",
+    "notesModel": "纪要模型",
+    "notesModelLine": "写纪要用的文本模型，填它在服务那边的名字。",
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "length": "时长 {{length}}"
   }

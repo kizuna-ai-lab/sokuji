@@ -1848,7 +1848,8 @@
         "needsKey": "Perlu kunci",
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu masuk",
-        "ready": "Siap"
+        "ready": "Siap",
+        "off": "Mati"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
       "hint": "Layanan mana yang mengerjakan tiap tahap",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Suara disimpan per bahasa: ini suara untuk pasangan bahasa ini.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Tidak ada",
+      "notesNeedKey": "Tambahkan kunci OpenAI di “Akun dan kunci” agar catatan ditulis."
     },
     "display": {
       "surface": "Tampilan mana",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Simpan rekaman suara",
     "saveMyRecording": "Simpan rekaman suara pihak Anda",
     "saveOtherRecording": "Simpan rekaman suara pihak lain",
+    "notesAfterSession": "Tulis catatan setelah setiap sesi",
+    "notesLine": "Saat sesi berakhir, {{service}} menulis catatannya dari transkrip.",
+    "notesNoService": "Pilih dulu layanan untuk catatan di “Bahasa dan susunan”.",
+    "notesExplainTitle": "Sebelum catatan ditulis",
+    "notesExplain": "Untuk setiap sesi, teks kalimatnya, nomornya, serta pihak dan pembicara yang mengucapkannya dikirim ke {{service}} dengan kunci Anda sendiri. Tidak pernah audio, terjemahan, atau akun Anda.",
+    "notesTurnOn": "Aktifkan",
+    "notesModel": "Model catatan",
+    "notesModelLine": "Model teks yang menulis catatan, sesuai namanya di layanan.",
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}"
   }

@@ -1848,7 +1848,8 @@
         "needsKey": "키 필요",
         "needsModel": "모델 필요",
         "needsSignIn": "로그인 필요",
-        "ready": "준비됨"
+        "ready": "준비됨",
+        "off": "꺼짐"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "음성은 언어별로 저장됩니다. 여기서 바꾸는 것은 지금 언어 조합에서 쓰는 음성입니다.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "없음",
+      "notesNeedKey": "메모를 작성하려면 ‘계정과 키’에서 OpenAI 키를 추가하세요."
     },
     "display": {
       "surface": "어느 화면",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "녹음 저장",
     "saveMyRecording": "내 쪽 녹음 저장",
     "saveOtherRecording": "상대 쪽 녹음 저장",
+    "notesAfterSession": "세션이 끝날 때마다 메모 작성",
+    "notesLine": "세션이 끝나면 {{service}}가 전사를 바탕으로 메모를 작성합니다.",
+    "notesNoService": "먼저 ‘언어와 구성’에서 메모를 맡을 서비스를 선택하세요.",
+    "notesExplainTitle": "메모를 작성하기 전에",
+    "notesExplain": "세션마다 문장의 텍스트, 문장 번호, 어느 쪽의 어느 화자가 말했는지가 본인의 키로 {{service}}에 전송됩니다. 음성, 번역, 계정은 절대 보내지 않습니다.",
+    "notesTurnOn": "켜기",
+    "notesModel": "메모 모델",
+    "notesModelLine": "메모를 작성하는 텍스트 모델. 서비스에서 쓰는 이름으로 입력합니다.",
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "length": "길이 {{length}}"
   }

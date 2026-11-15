@@ -1848,7 +1848,8 @@
         "needsKey": "需要金鑰",
         "needsModel": "需要模型",
         "needsSignIn": "需要登入",
-        "ready": "就緒"
+        "ready": "就緒",
+        "off": "關閉"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
       "hint": "每個階段由哪個服務來做",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "音色依語言分開存：這裡改的是現在這組語言用的音色。",
         "voiceFor": "{{who}}（{{language}}）"
-      }
+      },
+      "notesNone": "無",
+      "notesNeedKey": "在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。"
     },
     "display": {
       "surface": "哪個介面",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "儲存錄音",
     "saveMyRecording": "儲存我方的錄音",
     "saveOtherRecording": "儲存對方的錄音",
+    "notesAfterSession": "每次工作階段結束後寫紀要",
+    "notesLine": "工作階段結束時，由 {{service}} 根據轉寫寫出紀要。",
+    "notesNoService": "請先在「語言與工作階段組成」裡選擇寫紀要的服務。",
+    "notesExplainTitle": "寫紀要之前",
+    "notesExplain": "每次工作階段會用你自己的金鑰把這些傳給 {{service}}：各句的文字、句子編號、是哪一方哪位說話者說的。不會傳送聲音、譯文或你的帳號資訊。",
+    "notesTurnOn": "開啟",
+    "notesModel": "紀要模型",
+    "notesModelLine": "寫紀要用的文字模型，填它在服務那邊的名稱。",
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "length": "時長 {{length}}"
   }

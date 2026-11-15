@@ -1848,7 +1848,8 @@
         "needsKey": "Behöver en nyckel",
         "needsModel": "Behöver en modell",
         "needsSignIn": "Kräver inloggning",
-        "ready": "Klar"
+        "ready": "Klar",
+        "off": "Av"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
       "hint": "Vilken tjänst som gör varje steg",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Röster sparas per språk: det här är rösterna för det här språkparet.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Ingen",
+      "notesNeedKey": "Lägg till en OpenAI-nyckel under ”Konton och nycklar” så skrivs anteckningar."
     },
     "display": {
       "surface": "Vilken visning",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Spara inspelningen",
     "saveMyRecording": "Spara inspelningen från din sida",
     "saveOtherRecording": "Spara inspelningen från andra sidan",
+    "notesAfterSession": "Skriv anteckningar efter varje session",
+    "notesLine": "När en session slutar skriver {{service}} anteckningarna utifrån transkriptionen.",
+    "notesNoService": "Välj först en tjänst för anteckningarna under ”Språk och uppsättning”.",
+    "notesExplainTitle": "Innan anteckningar skrivs",
+    "notesExplain": "För varje session skickas meningarnas text, deras nummer och vilken sida och talare som sa dem till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
+    "notesTurnOn": "Slå på",
+    "notesModel": "Modell för anteckningar",
+    "notesModelLine": "Textmodellen som skriver anteckningarna, med det namn tjänsten använder.",
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}"
   }

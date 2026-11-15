@@ -20,12 +20,18 @@ vi.mock('../../lib/history/port', async (importOriginal) => ({
 
 import '../../locales';
 import { HistoryCategory } from './HistoryCategory';
+import useSettingsStore from '../../stores/settingsStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+
+const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };
 
 const settle = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
 const row = (name: string) => screen.getByText(name, { selector: '.general-row__name' }).closest('.general-row') as HTMLElement;
 
 beforeEach(() => {
   history.status = { available: true, dir: '/home/u/History' };
+  useSettingsStore.setState({ notesAfterSession: false, notesExplained: false, notesModel: 'gpt-6-luna' } as never);
+  useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
 });
 afterEach(() => cleanup());
 
@@ -61,5 +67,68 @@ describe('history and notes', () => {
     render(<HistoryCategory locked={false} />);
     await settle();
     expect(screen.getByText('This History was written by a newer version of Sokuji. Update Sokuji to open it.')).toBeInTheDocument();
+  });
+});
+
+describe('notes after the session', () => {
+  const NAME = 'Write notes after each session';
+  const toggle = () => within(row(NAME)).getByRole('switch');
+
+  it('cannot be turned on before a notes service is chosen, and says where to choose one', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    expect(toggle()).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(toggle());
+    expect(screen.queryByRole('group', { name: 'Before notes are written' })).toBeNull();
+    expect(within(row(NAME)).getByText('Choose a notes service in Languages and line-up first.')).toBeInTheDocument();
+  });
+
+  it('explains once, the first time, what is sent where; Cancel leaves it off', async () => {
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    fireEvent.click(toggle());
+    const explained = screen.getByRole('group', { name: 'Before notes are written' });
+    expect(within(explained).getByText(/sent to OpenAI with your own key/)).toBeInTheDocument();
+    expect(within(explained).getByText(/Never the audio, the translation or your account\./)).toBeInTheDocument();
+    expect(useSettingsStore.getState().notesAfterSession).toBe(false);
+    fireEvent.click(within(explained).getByRole('button', { name: 'Cancel' }));
+    await settle();
+    expect(screen.queryByRole('group', { name: 'Before notes are written' })).toBeNull();
+    expect(useSettingsStore.getState()).toMatchObject({ notesAfterSession: false, notesExplained: false });
+
+    fireEvent.click(toggle());
+    fireEvent.click(within(screen.getByRole('group', { name: 'Before notes are written' })).getByRole('button', { name: 'Turn on' }));
+    await settle();
+    expect(useSettingsStore.getState()).toMatchObject({ notesAfterSession: true, notesExplained: true });
+  });
+
+  it('switches at once after that', async () => {
+    useSettingsStore.setState({ notesExplained: true } as never);
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    fireEvent.click(toggle());
+    await settle();
+    expect(screen.queryByRole('group', { name: 'Before notes are written' })).toBeNull();
+    expect(useSettingsStore.getState().notesAfterSession).toBe(true);
+    fireEvent.click(toggle());
+    await settle();
+    expect(useSettingsStore.getState().notesAfterSession).toBe(false);
+  });
+
+  it('names the model the notes use, and keeps the default when the field is emptied', async () => {
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    const field = within(row('Notes model')).getByRole('textbox', { name: 'Notes model' });
+    expect(field).toHaveValue('gpt-6-luna');
+    fireEvent.change(field, { target: { value: ' gpt-6.5 ' } });
+    fireEvent.blur(field);
+    await settle();
+    expect(useSettingsStore.getState().notesModel).toBe('gpt-6.5');
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.blur(field);
+    await settle();
+    expect(useSettingsStore.getState().notesModel).toBe('gpt-6-luna');
+    expect(field).toHaveValue('gpt-6-luna');
   });
 });

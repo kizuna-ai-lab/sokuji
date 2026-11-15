@@ -1848,7 +1848,8 @@
         "needsKey": "Braucht einen Schlüssel",
         "needsModel": "Braucht ein Modell",
         "needsSignIn": "Anmeldung nötig",
-        "ready": "Bereit"
+        "ready": "Bereit",
+        "off": "Aus"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Stimmen werden je Sprache gespeichert: Dies sind die für dieses Sprachpaar.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Keine",
+      "notesNeedKey": "Fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu, damit Notizen geschrieben werden."
     },
     "display": {
       "surface": "Welche Anzeige",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Aufnahme speichern",
     "saveMyRecording": "Aufnahme Ihrer Seite speichern",
     "saveOtherRecording": "Aufnahme der anderen Seite speichern",
+    "notesAfterSession": "Nach jeder Sitzung Notizen schreiben",
+    "notesLine": "Wenn eine Sitzung endet, schreibt {{service}} ihre Notizen aus dem Transkript.",
+    "notesNoService": "Wählen Sie zuerst unter „Sprachen und Aufstellung“ einen Dienst für die Notizen.",
+    "notesExplainTitle": "Bevor Notizen geschrieben werden",
+    "notesExplain": "Für jede Sitzung werden der Text ihrer Sätze, deren Nummern und welche Seite und welcher Sprecher sie gesagt hat mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
+    "notesTurnOn": "Einschalten",
+    "notesModel": "Modell für Notizen",
+    "notesModelLine": "Das Textmodell, das die Notizen schreibt, mit seinem Namen beim Dienst.",
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}"
   }

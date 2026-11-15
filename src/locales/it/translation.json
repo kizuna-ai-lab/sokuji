@@ -1848,7 +1848,8 @@
         "needsKey": "Serve una chiave",
         "needsModel": "Serve un modello",
         "needsSignIn": "Serve l’accesso",
-        "ready": "Pronto"
+        "ready": "Pronto",
+        "off": "Disattivato"
       },
       "speechModeHint": "Quando un tratto di parlato va alla traduzione; fisso durante la sessione",
       "hint": "Quale servizio svolge ogni fase",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Le voci sono salvate per lingua: queste sono quelle di questa coppia di lingue.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Nessuno",
+      "notesNeedKey": "Aggiungi una chiave OpenAI in «Account e chiavi» perché vengano scritte le note."
     },
     "display": {
       "surface": "Quale visualizzazione",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Salva la registrazione audio",
     "saveMyRecording": "Salva la registrazione audio della tua parte",
     "saveOtherRecording": "Salva la registrazione audio dell’altra parte",
+    "notesAfterSession": "Scrivi le note dopo ogni sessione",
+    "notesLine": "Quando una sessione finisce, {{service}} ne scrive le note dalla trascrizione.",
+    "notesNoService": "Prima scegli un servizio per le note in «Lingue e composizione».",
+    "notesExplainTitle": "Prima che vengano scritte le note",
+    "notesExplain": "Per ogni sessione vengono inviati a {{service}}, con la tua chiave, il testo delle sue frasi, i loro numeri e quale parte e quale interlocutore le ha dette. Mai l’audio, la traduzione o il tuo account.",
+    "notesTurnOn": "Attiva",
+    "notesModel": "Modello delle note",
+    "notesModelLine": "Il modello di testo che scrive le note, con il suo nome presso il servizio.",
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "length": "Durata {{length}}"
   }

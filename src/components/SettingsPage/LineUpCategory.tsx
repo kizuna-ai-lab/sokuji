@@ -3,6 +3,8 @@
 // "Languages and line-up": the language pair, the speech mode, and one row per
 // stage choosing the provider that serves it (Plan 4's line-up). Which model or
 // setting a provider uses is that provider's own options, folded under the rows.
+// On the desktop a fourth card chooses who writes the notes: none, or OpenAI with
+// the user's own key (client side only for now, owner 2026-11-16).
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
@@ -15,6 +17,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useMode } from '../../stores/audioStore';
 import { useEngineSlotTarget, useNavigateToSettings, useSetEngineSlotTarget, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
+import { isElectron } from '../../utils/environment';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, type Selections } from '../../lib/local-inference/selection/types';
 import { ProviderLanguages } from '../providers/ProviderLanguages';
@@ -102,6 +105,19 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         if (missing && lineUp?.[stage] !== id) m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
         return m;
       });
+  };
+
+  // The notes card: OpenAI is offered once it has a key (or while it is chosen, to show what it lacks).
+  const notesService = lineUp?.summarisation ?? null;
+  const openAi = providers.find((p) => p.id === 'openai');
+  const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
+  const notesState = notesService === null
+    ? { ok: false, text: t('settingsPage.lineup.state.off', 'Off') }
+    : openAiKeyed ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') } : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
+  const chooseNotes = async (id: string) => {
+    const before: LineUp | null = useLineUpStore.getState().lineUp;
+    const choice = await useLineUpStore.getState().choose('summarisation', id || null);
+    if (choice && before) trackEvent('lineup_changed', lineUpChangedEvent('summarisation', before, choice));
   };
 
   const choose = async (stage: RunStage, id: string) => {
@@ -265,6 +281,20 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
             </div>
           );
         })}
+        {isElectron() && (
+          <div className="lineup-stage">
+            <div className="lineup-stage__head">
+              <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
+              <em className={`lineup-stage__state${notesState.ok ? ' is-ready' : ''}`}>{notesState.text}</em>
+            </div>
+            <select className="select-dropdown" value={notesService ?? ''} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
+              onChange={(e) => void chooseNotes(e.target.value)}>
+              <option value="">{t('settingsPage.lineup.notesNone', 'None')}</option>
+              {(openAiKeyed || notesService === 'openai') && <option value="openai">OpenAI</option>}
+            </select>
+            {!openAiKeyed && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

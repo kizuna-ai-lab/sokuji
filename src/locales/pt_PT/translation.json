@@ -1848,7 +1848,8 @@
         "needsKey": "Precisa de uma chave",
         "needsModel": "Precisa de um modelo",
         "needsSignIn": "Requer início de sessão",
-        "ready": "Pronto"
+        "ready": "Pronto",
+        "off": "Desativado"
       },
       "speechModeHint": "Quando um trecho de fala segue para tradução; fixo durante a sessão",
       "hint": "Que serviço faz cada etapa",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "As vozes são guardadas por idioma: estas são as deste par de idiomas.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Nenhum",
+      "notesNeedKey": "Adicione uma chave da OpenAI em «Contas e chaves» para que as notas sejam escritas."
     },
     "display": {
       "surface": "Qual apresentação",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Guardar a gravação",
     "saveMyRecording": "Guardar a gravação do seu lado",
     "saveOtherRecording": "Guardar a gravação do outro lado",
+    "notesAfterSession": "Escrever notas após cada sessão",
+    "notesLine": "Quando uma sessão termina, {{service}} escreve as notas a partir da transcrição.",
+    "notesNoService": "Primeiro escolha um serviço para as notas em «Idiomas e composição».",
+    "notesExplainTitle": "Antes de as notas serem escritas",
+    "notesExplain": "De cada sessão, o texto das frases, os respetivos números e que lado e que orador as disse são enviados para {{service}} com a sua própria chave. Nunca o áudio, a tradução nem a sua conta.",
+    "notesTurnOn": "Ativar",
+    "notesModel": "Modelo das notas",
+    "notesModelLine": "O modelo de texto que escreve as notas, pelo nome que tem no serviço.",
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser guardada: não foi possível escrevê-la no disco.",
     "length": "Duração {{length}}"
   }

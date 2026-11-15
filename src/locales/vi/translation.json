@@ -1848,7 +1848,8 @@
         "needsKey": "Cần khóa",
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
-        "ready": "Sẵn sàng"
+        "ready": "Sẵn sàng",
+        "off": "Tắt"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Giọng được lưu theo từng ngôn ngữ: đây là giọng của cặp ngôn ngữ này.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Không",
+      "notesNeedKey": "Thêm khóa OpenAI trong “Tài khoản và khóa” để ghi chú được viết."
     },
     "display": {
       "surface": "Hiển thị nào",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Lưu bản ghi âm",
     "saveMyRecording": "Lưu bản ghi âm phía bạn",
     "saveOtherRecording": "Lưu bản ghi âm phía bên kia",
+    "notesAfterSession": "Viết ghi chú sau mỗi phiên",
+    "notesLine": "Khi phiên kết thúc, {{service}} viết ghi chú từ bản ghi lời.",
+    "notesNoService": "Trước tiên hãy chọn dịch vụ cho ghi chú trong “Ngôn ngữ và cách phối hợp”.",
+    "notesExplainTitle": "Trước khi viết ghi chú",
+    "notesExplain": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng và phía nào, người nói nào đã nói được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
+    "notesTurnOn": "Bật",
+    "notesModel": "Mô hình ghi chú",
+    "notesModelLine": "Mô hình văn bản viết ghi chú, theo tên của nó ở dịch vụ.",
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "length": "Thời lượng {{length}}"
   }

@@ -1848,7 +1848,8 @@
         "needsKey": "Kailangan ng key",
         "needsModel": "Kailangan ng model",
         "needsSignIn": "Kailangang mag-sign in",
-        "ready": "Handa"
+        "ready": "Handa",
+        "off": "Naka-off"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Nakatabi ang mga boses ayon sa wika: ito ang mga ginagamit ng pares ng wikang ito.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Wala",
+      "notesNeedKey": "Magdagdag ng OpenAI key sa “Mga account at key” para maisulat ang mga tala."
     },
     "display": {
       "surface": "Aling display",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "I-save ang recording",
     "saveMyRecording": "I-save ang recording ng panig mo",
     "saveOtherRecording": "I-save ang recording ng kabilang panig",
+    "notesAfterSession": "Magsulat ng mga tala pagkatapos ng bawat session",
+    "notesLine": "Kapag natapos ang session, isinusulat ng {{service}} ang mga tala nito mula sa transcript.",
+    "notesNoService": "Pumili muna ng serbisyo para sa mga tala sa “Mga wika at line-up”.",
+    "notesExplainTitle": "Bago isulat ang mga tala",
+    "notesExplain": "Para sa bawat session, ipinapadala sa {{service}} gamit ang sarili mong key ang teksto ng mga pangungusap nito, ang mga numero nila, at kung aling panig at aling tagapagsalita ang nagsabi. Hindi kailanman ang audio, ang salin o ang account mo.",
+    "notesTurnOn": "I-on",
+    "notesModel": "Model ng mga tala",
+    "notesModelLine": "Ang text model na sumusulat ng mga tala, ayon sa pangalan nito sa serbisyo.",
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "length": "Haba {{length}}"
   }

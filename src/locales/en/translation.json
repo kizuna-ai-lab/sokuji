@@ -1848,7 +1848,8 @@
         "needsKey": "Needs a key",
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
-        "ready": "Ready"
+        "ready": "Ready",
+        "off": "Off"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Voices are kept per language: these are the ones this language pair uses.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "None",
+      "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written."
     },
     "display": {
       "surface": "Which display",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Save the recording",
     "saveMyRecording": "Save your side’s recording",
     "saveOtherRecording": "Save the other side’s recording",
+    "notesAfterSession": "Write notes after each session",
+    "notesLine": "When a session ends, {{service}} writes its notes from the transcript.",
+    "notesNoService": "Choose a notes service in Languages and line-up first.",
+    "notesExplainTitle": "Before notes are written",
+    "notesExplain": "For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.",
+    "notesTurnOn": "Turn on",
+    "notesModel": "Notes model",
+    "notesModelLine": "The text model that writes the notes, by its name at the service.",
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "length": "Length {{length}}"
   }

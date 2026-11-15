@@ -1848,7 +1848,8 @@
         "needsKey": "Tarvitsee avaimen",
         "needsModel": "Tarvitsee mallin",
         "needsSignIn": "Vaatii kirjautumisen",
-        "ready": "Valmis"
+        "ready": "Valmis",
+        "off": "Pois"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",
@@ -1866,7 +1867,9 @@
       "edgeVoices": {
         "hint": "Äänet tallennetaan kielittäin: nämä ovat tämän kieliparin äänet.",
         "voiceFor": "{{who}} ({{language}})"
-      }
+      },
+      "notesNone": "Ei mitään",
+      "notesNeedKey": "Lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -2017,6 +2020,14 @@
     "saveRecordingTitle": "Tallenna äänite",
     "saveMyRecording": "Tallenna oman puolesi äänite",
     "saveOtherRecording": "Tallenna toisen osapuolen äänite",
+    "notesAfterSession": "Kirjoita muistiinpanot jokaisen istunnon jälkeen",
+    "notesLine": "Kun istunto päättyy, {{service}} kirjoittaa sen muistiinpanot litteroinnista.",
+    "notesNoService": "Valitse ensin muistiinpanojen palvelu kohdassa ”Kielet ja kokoonpano”.",
+    "notesExplainTitle": "Ennen kuin muistiinpanoja kirjoitetaan",
+    "notesExplain": "Jokaisesta istunnosta lähetetään {{service}}-palveluun omalla avaimellasi sen lauseiden teksti, niiden numerot sekä se, kumpi osapuoli ja kuka puhuja ne sanoi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
+    "notesTurnOn": "Ota käyttöön",
+    "notesModel": "Muistiinpanojen malli",
+    "notesModelLine": "Muistiinpanot kirjoittava tekstimalli palvelun käyttämällä nimellä.",
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}"
   }
