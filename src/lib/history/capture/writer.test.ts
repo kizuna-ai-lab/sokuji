@@ -266,6 +266,23 @@ describe('the history writer', () => {
     expect(lastArg('closeRecord')).toEqual({ id: 'run-0001-aaaa', endedAt: 5000 });
   });
 
+  it('says when a record it kept has closed, and not for one the store dropped', async () => {
+    writer.dispose();
+    const closed: string[] = [];
+    writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => facts, report, onClosed: (id) => closed.push(id) });
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Hello.');
+    end();
+    await writer.settled();
+    expect(closed).toEqual(['run-0001-aaaa']);
+
+    (port.port as unknown as { closeRecord: () => Promise<unknown> }).closeRecord = async () => ({ kept: false });
+    start('run-0002-bbbb');
+    end();
+    await writer.settled();
+    expect(closed).toEqual(['run-0001-aaaa']);
+  });
+
   it('keeps what was written when Clear is pressed and goes on with new segments', async () => {
     start();
     say('speaker', 1, 'Before.');

@@ -147,6 +147,7 @@ import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useLineUpStore } from '../stores/lineUpStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
@@ -1171,6 +1172,50 @@ describe('history', () => {
     expect(port.calls[0][1]).toEqual(expect.objectContaining({ id: 'run1', mode: 'speaker' }));
     expect(names).toContain('appendSentences');
     expect(names[names.length - 1]).toBe('closeRecord');
+  });
+
+  it('starts the notes of a closed record when notes after the session are on and a notes service is chosen', async () => {
+    const port = recordingPort();
+    const notes = { start: vi.fn() };
+    const lineUpBefore = useLineUpStore.getState().lineUp;
+    useSettingsStore.setState({ notesAfterSession: true } as never);
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
+    try {
+      const { session, clock } = await setup({ history: port.port, ipc: null, notes });
+      await session.runner.start();
+      clock.advance(8000);
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      expect(notes.start).toHaveBeenCalledTimes(1);
+      expect(notes.start).toHaveBeenCalledWith('run1');
+    } finally {
+      useSettingsStore.setState({ notesAfterSession: false } as never);
+      useLineUpStore.setState({ lineUp: lineUpBefore });
+    }
+  });
+
+  it('starts no notes when notes after the session are off, or no notes service is chosen', async () => {
+    for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
+      const port = recordingPort();
+      const notes = { start: vi.fn() };
+      const lineUpBefore = useLineUpStore.getState().lineUp;
+      useSettingsStore.setState({ notesAfterSession: on } as never);
+      useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: service } } as never);
+      try {
+        const { session, clock } = await setup({ history: port.port, ipc: null, notes });
+        await session.runner.start();
+        clock.advance(8000);
+        await session.runner.stop();
+        await session.runner.settled();
+        await flush();
+        expect(port.calls.map((c) => c[0])).toContain('closeRecord');
+        expect(notes.start).not.toHaveBeenCalled();
+      } finally {
+        useSettingsStore.setState({ notesAfterSession: false } as never);
+        useLineUpStore.setState({ lineUp: lineUpBefore });
+      }
+    }
   });
 
   it("records each side's audio into the record while the run goes on", async () => {

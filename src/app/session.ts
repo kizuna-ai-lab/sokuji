@@ -18,6 +18,7 @@ import { createHistoryRecorder, type HistoryRecorder } from '../lib/history/reco
 import { opusRecordingSupported, webCodecsOpusEncoder } from '../lib/history/recording/opusEncoder';
 import type { OpusEncoderFactory } from '../lib/history/recording/track';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
+import { appNotesRunner } from '../lib/notes/appNotes';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
@@ -36,6 +37,8 @@ import { createConversationView, type ConversationViewState, type Readable } fro
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import { useProviderStore } from '../stores/providerStore';
+import { useLineUpStore } from '../stores/lineUpStore';
+import useSettingsStore from '../stores/settingsStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
@@ -80,6 +83,8 @@ export interface AppSessionOptions {
   history?: HistoryPort | null;
   /** Tests: the recording's Opus encoder. Absent: the browser's, when the page can encode Opus; `null`: no recording. */
   historyEncoder?: OpusEncoderFactory | null;
+  /** Who writes a closed record's notes; default the app's notes runner; `null` for none. */
+  notes?: { start(recordId: string): void } | null;
   /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
   ipc?: {
     invoke(channel: string, data?: unknown): Promise<unknown>;
@@ -240,6 +245,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         message: 'Part of this session’s transcript could not be saved: it could not be written to disk.',
       }, shownRecord),
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
+      // Notes after the session: when the switch is on and the line-up names a notes service.
+      onClosed: (recordId) => {
+        const notes = options.notes === undefined ? appNotesRunner() : options.notes;
+        if (notes && useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) notes.start(recordId);
+      },
     })
     : null;
   /** The writer's last writes, or 2 s, whichever is first: the close waits for History, never longer than that. */

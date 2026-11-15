@@ -61,6 +61,8 @@ export interface HistoryWriterDeps {
   };
   /** Tells the user, once per record, that some of its transcript could not be saved. */
   tell?: (recordId: string) => void;
+  /** A record the store kept has closed (its notes may be written now). */
+  onClosed?(recordId: string): void;
 }
 
 export interface HistoryWriter {
@@ -418,10 +420,17 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const recorder = deps.recorder;
     if (recorder) chain = chain.then(() => recorder.end(r.id).catch((error) => report('History could not finish the recording', error)));
     // A record that cannot be closed stays open until the next launch closes it: said, not left silent.
-    send(r, 'record', () => port.closeRecord({ id: r.id, endedAt }).catch((error: unknown) => {
-      report(`History could not close record ${r.id}; the next launch closes it`, error);
-      tellOnce(r);
-    }));
+    send(r, 'record', async () => {
+      let answer: { kept: boolean } | undefined;
+      try {
+        answer = await port.closeRecord({ id: r.id, endedAt });
+      } catch (error) {
+        report(`History could not close record ${r.id}; the next launch closes it`, error);
+        tellOnce(r);
+        return;
+      }
+      if (answer?.kept) deps.onClosed?.(r.id);
+    });
     rec = null;
     cancelTick?.();
     cancelTick = null;
