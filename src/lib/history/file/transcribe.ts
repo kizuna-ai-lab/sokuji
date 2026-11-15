@@ -62,8 +62,10 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   const legOf = (source: HistoryTrackSource) => record.legs.find((l) => l.leg === source);
   const speaker = legOf('speaker');
   const participant = legOf('participant');
-  // As the live writer decides: two legs on one input may each have heard the other side.
-  const sideCertain = !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
+  // As the live writer decides: two legs on one input may each have heard the other side. An imported file holds
+  // everyone on one track, so who is on which side is not known.
+  const sideCertain = record.mode !== 'import'
+    && !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
   const languageHints = hintsOf(record.legs.map((l) => l.languages));
 
   const lists: FileSentence[][] = [];

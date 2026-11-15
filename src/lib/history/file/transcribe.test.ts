@@ -70,6 +70,14 @@ describe('transcribing a record again', () => {
     expect(sentences.every((s) => s.sideCertain === false)).toBe(true);
   });
 
+  it('is not certain of the side of an imported file: who speaks in it is not known', async () => {
+    const imported = { ...record({ tracks: [{ source: 'participant', offsetMs: 0 }] }), mode: 'import', legs: [record().legs[1]] } as unknown as HistoryRecord;
+    const { port, written } = fakePort({ record: imported, words: { participant: said('Hello.', 0) } });
+    await transcribeRecord({ port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
+    const sentences = (written[1] as [string, { sentences: Array<{ side: string; sideCertain: boolean }> }])[1].sentences;
+    expect(sentences.map((s) => [s.side, s.sideCertain])).toEqual([['other', false]]);
+  });
+
   it('writes nothing when one track fails, and passes its reason on', async () => {
     const { port, written } = fakePort({ fail: 'participant', words: { speaker: said('One.', 0) } });
     await expect(transcribeRecord({ port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) })).rejects.toMatchObject({ code: 'NO_KEY' });
