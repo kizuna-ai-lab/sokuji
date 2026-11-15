@@ -128,7 +128,7 @@ describe('importing a file', () => {
   it('refuses silence, and removes the record it had begun, files and all', async () => {
     const { port, names } = fakePort();
     await expect(importFile(base(port, { decode: async () => decoded(3, { silent: true }) }))).rejects.toMatchObject({ code: 'NO_AUDIO' });
-    expect(names().slice(-2)).toEqual(['binRecords', 'purgeRecords']);
+    expect(names().slice(-3)).toEqual(['closeRecord', 'binRecords', 'purgeRecords']);
     expect(names()).not.toContain('createTranscript');
   });
 
@@ -141,7 +141,7 @@ describe('importing a file', () => {
       async *pcm24k() { for (let i = 0; i < 3; i++) { if (++chunks === 2) controller.abort(); yield new Int16Array(SECOND).fill(3000); } },
     });
     await expect(importFile(base(port, { decode, signal: controller.signal }))).rejects.toMatchObject({ code: 'CANCELLED' });
-    expect(names().slice(-2)).toEqual(['binRecords', 'purgeRecords']);
+    expect(names().slice(-3)).toEqual(['closeRecord', 'binRecords', 'purgeRecords']);
   });
 
   it('keeps the recording without a transcript when recognition fails or is cancelled after it was stored', async () => {

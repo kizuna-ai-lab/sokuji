@@ -65,6 +65,21 @@ describe('records', () => {
     expect(s.listRecords({ before: 3000, limit: 1 }).map((r) => r.id)).toEqual(['run-0003-cccc']);
   });
 
+  it('an imported file’s record keeps its recording without a transcript, closed or recovered; a live one does not', () => {
+    const piece = { source: 'participant', offsetMs: 0, durationMs: 1000, data: new Uint8Array([1, 2, 3]) };
+    s.openRecord(rec({ id: 'imp-0001-aaaa', mode: 'import' }));
+    s.appendTrack({ recordId: 'imp-0001-aaaa', ...piece });
+    expect(s.closeRecord({ id: 'imp-0001-aaaa', endedAt: 5 })).toEqual({ kept: true });
+    expect(s.getRecord('imp-0001-aaaa')).toEqual(expect.objectContaining({ state: 'closed', hasRecording: true }));
+
+    s.openRecord(rec({ id: 'imp-0002-bbbb', mode: 'import' }));
+    s.appendTrack({ recordId: 'imp-0002-bbbb', ...piece });
+    s.openRecord(rec({ id: 'run-0003-cccc' }));
+    s.appendTrack({ recordId: 'run-0003-cccc', ...piece });
+    expect(s.recoverOpenRecords()).toEqual({ closed: ['imp-0002-bbbb'], dropped: ['run-0003-cccc'] });
+    expect(s.getRecord('imp-0002-bbbb')).toEqual(expect.objectContaining({ state: 'closed', hasRecording: true }));
+  });
+
   it('closing a record without content removes it and its folder', () => {
     s.openRecord(rec());
     mkdirSync(s.recordDir(ID), { recursive: true });

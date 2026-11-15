@@ -101,9 +101,11 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
     id: recordId, startedAt, mode: 'import', myLanguage: o.myLanguage, targetLanguage: o.language,
     services: { provider: o.service.service, models: { transcription: FILE_MODEL } }, appVersion: o.appVersion,
   });
-  // Through the bin, as any record is removed: the folder and its files go with the row.
+  // Closed first (the bin takes closed records only; one with nothing stored is dropped there), then through the bin,
+  // as any record is removed: the folder and its files go with the row.
   const remove = async () => {
     try {
+      await o.port.closeRecord({ id: recordId, endedAt: startedAt });
       await o.port.binRecords({ ids: [recordId] });
       await o.port.purgeRecords({ ids: [recordId] });
     } catch { /* an open record left behind is closed or dropped by the next launch's recovery */ }

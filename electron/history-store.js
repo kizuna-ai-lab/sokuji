@@ -45,10 +45,15 @@ const TRACK_SOURCES = new Set(['speaker', 'participant']);
 const MAX_TRACK_PIECE = 1024 * 1024;
 const sizeOf = (file) => { try { return fs.statSync(file).size; } catch { return 0; } };
 
-/** A record has content when one of its transcripts has a sentence or one of its segments has text that is not blank. */
+/**
+ * A record has content when one of its transcripts has a sentence or one of its segments has text that is not blank;
+ * an imported file's record, also when it keeps its recording (it is transcribed after it is stored, and may stay
+ * untranscribed after a failure, to be transcribed later).
+ */
 const HAS_CONTENT = `(
   exists (select 1 from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = r.id)
   or exists (select 1 from segments g where g.record_id = r.id and trim(g.text) <> '')
+  or (r.mode = 'import' and exists (select 1 from tracks k where k.record_id = r.id and k.gone_at is null))
 )`;
 
 const ROW_COLUMNS = `
