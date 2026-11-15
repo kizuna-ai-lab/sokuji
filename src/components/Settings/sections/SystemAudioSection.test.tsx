@@ -77,6 +77,9 @@ beforeEach(() => {
 
 const mount = (props: Record<string, unknown> = {}) =>
   render(<SystemAudioSection isSessionActive={false} {...props} />);
+// The sources are one select (the settings mock's "Source"), "Off" first.
+const source = () => screen.getByRole('combobox', { name: 'Source' });
+const pick = (deviceId: string) => fireEvent.change(source(), { target: { value: deviceId } });
 
 describe('SystemAudioSection', () => {
   it('renders exactly one participant section', () => {
@@ -92,7 +95,7 @@ describe('SystemAudioSection', () => {
 
   it('selecting an application calls the store action and switches the channel on', () => {
     mount();
-    fireEvent.click(screen.getByText('Chromium'));
+    pick(CHROMIUM.deviceId);
     expect(store.select).toHaveBeenCalledWith(CHROMIUM);
     // Picking a source is also how the channel is turned back on.
     expect(store.setMuted).toHaveBeenCalledWith(false);
@@ -107,7 +110,7 @@ describe('SystemAudioSection', () => {
 
   it('turning the channel off goes through the list Off row', () => {
     mount();
-    fireEvent.click(screen.getByText('Off'));
+    pick('');
     expect(store.setMuted).toHaveBeenCalledWith(true);
   });
 
@@ -115,7 +118,7 @@ describe('SystemAudioSection', () => {
     // Hiding the list when muted would strand the user with no control at all.
     store.muted = true;
     const { container } = mount();
-    expect(container.querySelector('.device-list, [role="listbox"]')).not.toBeNull();
+    expect(container.querySelector('select.device-select')).not.toBeNull();
     expect(screen.getByText('Chromium')).toBeInTheDocument();
   });
 
@@ -132,13 +135,13 @@ describe('SystemAudioSection', () => {
     // watches audioStore and reopens itself around the new source - so an
     // active session must not block the picker.
     mount({ isSessionActive: true });
-    fireEvent.click(screen.getByText('Chromium'));
+    pick(CHROMIUM.deviceId);
     expect(store.select).toHaveBeenCalled();
   });
 
   it('still blocks selection when the caller locks it by mode scope', () => {
     mount({ isSessionActive: true, isLocked: true });
-    fireEvent.click(screen.getByText('Chromium'));
+    pick(CHROMIUM.deviceId);
     expect(store.select).not.toHaveBeenCalled();
   });
 
@@ -200,5 +203,29 @@ describe('SystemAudioSection: the Other side choice', () => {
     expect(container.querySelector('.section-refresh-button')).toBeNull();
     expect(container.querySelector('.toggle-switch-component')).toBeNull();
     expect(screen.getByTestId('other-side-choice')).toBeInTheDocument();
+  });
+});
+
+// The mock's audio page (v18): "Other's audio" with its hint, the sources as one select.
+describe('SystemAudioSection as the mock draws it', () => {
+  it('heads the section with its name and a hint, no icon or help mark', () => {
+    mount();
+    const heading = screen.getByRole('heading', { name: /Other's audio/ });
+    expect(heading).toHaveTextContent("Where the other side's voice comes in");
+    expect(heading.querySelector('svg:not(.lucide-refresh-cw)')).toBeNull();
+  });
+
+  it('labels the sources "Source"', () => {
+    mount();
+    expect(screen.getByText('Source')).toBeInTheDocument();
+    expect(source()).toHaveValue(SYSTEM.deviceId);
+  });
+
+  it('says what the switch captures beside it in the extension', () => {
+    env.electron = false;
+    env.extension = true;
+    store.sources = [];
+    mount();
+    expect(screen.getByText('Translate audio from the active browser tab. The original audio plays through your system default output.')).toBeInTheDocument();
   });
 });

@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio.",
     "captionMine": "Ang sinasabi ko, bilang boses",
     "captionTheirs": "Ang sinasabi ng kabilang panig, bilang boses",
-    "defaultPlaybackAid": "Dito tumutunog ang mga tunog sa panig ko maliban kung may sariling device ang isang row; dito rin tumutunog ang tunog na natanggal ang sariling device."
+    "defaultPlaybackAid": "Dito tumutunog ang mga tunog sa panig ko maliban kung may sariling device ang isang row; dito rin tumutunog ang tunog na natanggal ang sariling device.",
+    "captionReplay": "Replay"
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -1805,6 +1806,12 @@
       "models": "Dito pinamamahalaan ang lahat ng model na na-download sa computer na ito: ginagamit ng session, pantulong, at in-import na boses.",
       "audio": "Mikropono, pagsasalita, at audio ng kabilang panig. Mababago ang lahat habang may session maliban sa “Salin na naririnig ng kabilang panig”.",
       "display": "Pareho ng mga button sa itaas ng usapan at sa caption bar: saanman baguhin, agad itong gumagana. May kani-kaniyang setting ang pangunahing window at caption mode."
+    },
+    "audio": {
+      "micHint": "Saan pumapasok ang boses ko",
+      "otherHint": "Saan pumapasok ang boses ng kabilang panig",
+      "device": "Device",
+      "source": "Pinagmulan"
     }
   }
 }

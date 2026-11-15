@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Rozmówca dzieli z Tobą mikrofon; dźwięk systemowy nie jest przechwytywany.",
     "captionMine": "Co mówię, jako mowa",
     "captionTheirs": "Co mówi druga strona, jako mowa",
-    "defaultPlaybackAid": "Dźwięki po mojej stronie grają tutaj, chyba że wiersz wskazuje własne urządzenie; dźwięk, którego urządzenie odłączono, też gra tutaj."
+    "defaultPlaybackAid": "Dźwięki po mojej stronie grają tutaj, chyba że wiersz wskazuje własne urządzenie; dźwięk, którego urządzenie odłączono, też gra tutaj.",
+    "captionReplay": "Ponowne odtwarzanie"
   },
   "auth": {
     "signIn": "Zaloguj się",
@@ -1805,6 +1806,12 @@
       "models": "Tutaj zarządzasz wszystkimi modelami pobranymi na ten komputer: sesyjnymi, pomocniczymi i zaimportowanymi głosami.",
       "audio": "Mikrofon, mowa i dźwięk drugiej strony. Wszystko poza „Tłumaczenie, które słyszy druga strona” można zmienić w trakcie sesji.",
       "display": "Te same wartości co przyciski nad rozmową i na pasku napisów: gdziekolwiek je zmienisz, działają od razu. Okno główne i tryb napisów mają osobne."
+    },
+    "audio": {
+      "micHint": "Skąd wchodzi mój głos",
+      "otherHint": "Skąd wchodzi głos drugiej strony",
+      "device": "Urządzenie",
+      "source": "Źródło"
     }
   }
 }

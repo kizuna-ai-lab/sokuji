@@ -444,7 +444,8 @@
     "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen.",
     "captionMine": "Wat ik zeg, als spraak",
     "captionTheirs": "Wat de andere kant zegt, als spraak",
-    "defaultPlaybackAid": "Geluiden aan mijn kant spelen hier af, tenzij een rij een eigen apparaat noemt; een geluid waarvan het eigen apparaat is losgekoppeld, speelt ook hier."
+    "defaultPlaybackAid": "Geluiden aan mijn kant spelen hier af, tenzij een rij een eigen apparaat noemt; een geluid waarvan het eigen apparaat is losgekoppeld, speelt ook hier.",
+    "captionReplay": "Opnieuw afspelen"
   },
   "auth": {
     "signIn": "Inloggen",
@@ -1805,6 +1806,12 @@
       "models": "Alle modellen die op deze computer staan, beheer je hier: die van de sessies, de hulpmodellen en geïmporteerde stemmen.",
       "audio": "Microfoon, spraak en het geluid van de andere kant. Alles behalve ‘Vertaling die de andere kant hoort’ kun je tijdens een sessie wijzigen.",
       "display": "Dezelfde waarden als de knoppen boven het gesprek en op de ondertitelbalk: waar je ze ook wijzigt, ze gelden meteen. Het hoofdvenster en de ondertitelmodus hebben elk hun eigen."
+    },
+    "audio": {
+      "micHint": "Waar mijn stem binnenkomt",
+      "otherHint": "Waar de stem van de andere kant binnenkomt",
+      "device": "Apparaat",
+      "source": "Bron"
     }
   }
 }

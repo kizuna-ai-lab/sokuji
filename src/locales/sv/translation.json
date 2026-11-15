@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas.",
     "captionMine": "Det jag säger, som tal",
     "captionTheirs": "Det den andra sidan säger, som tal",
-    "defaultPlaybackAid": "Ljud på min sida spelas här om inte en rad anger en egen enhet; ett ljud vars egen enhet kopplats ur spelas också här."
+    "defaultPlaybackAid": "Ljud på min sida spelas här om inte en rad anger en egen enhet; ett ljud vars egen enhet kopplats ur spelas också här.",
+    "captionReplay": "Uppspelning"
   },
   "auth": {
     "signIn": "Logga in",
@@ -1805,6 +1806,12 @@
       "models": "Alla modeller som laddats ner till den här datorn hanteras här: sessionernas, hjälpmodellerna och importerade röster.",
       "audio": "Mikrofon, tal och den andra sidans ljud. Allt utom ”Översättning som den andra sidan hör” kan ändras under en session.",
       "display": "Samma värden som knapparna ovanför samtalet och i textningsfältet: var du än ändrar gäller det direkt. Huvudfönstret och textningsläget har var sina."
+    },
+    "audio": {
+      "micHint": "Var min röst kommer in",
+      "otherHint": "Var den andra sidans röst kommer in",
+      "device": "Enhet",
+      "source": "Källa"
     }
   }
 }

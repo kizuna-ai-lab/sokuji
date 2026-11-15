@@ -20,15 +20,10 @@ vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
 });
-const tooltips = vi.hoisted(() => [] as unknown[]);
+// Each speech row's help, as the settings page writes it under the row's label.
+const tooltips = () => Array.from(document.querySelectorAll('.setting-row__desc')).map((el) => el.textContent);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: vi.fn(async () => {}) }) }));
-vi.mock('../../components/Tooltip/Tooltip', () => ({
-  default: ({ content }: { content: unknown }) => {
-    tooltips.push(content);
-    return null;
-  },
-}));
 // The switch finds the provider among the present ones, as a run does: a test can stand the flag-on twin in for the shipped one.
 const standIn = vi.hoisted(() => ({ provider: null as unknown }));
 vi.mock('../registry', async (importOriginal) => {
@@ -64,7 +59,6 @@ let answer: unknown = null;
 const bodies: string[] = [];
 beforeEach(() => {
   bodies.length = 0;
-  tooltips.length = 0;
   standIn.provider = null;
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     if (url.endsWith('/soniox/session-key')) {
@@ -146,7 +140,7 @@ describe('the switch', () => {
     const sw = screen.getByRole('switch', { name: 'audioPanel.iHear' });
     expect(sw.getAttribute('aria-checked')).toBe('false');
     expect(sw.getAttribute('aria-disabled')).toBe('true');
-    expect(tooltips).toContain('audioPanel.iHearNotOffered');
+    expect(tooltips()).toContain('audioPanel.iHearNotOffered');
     expect(useRoutingStore.getState().participantSpeech).toBe(true);
   });
 
@@ -158,8 +152,8 @@ describe('the switch', () => {
     const sw = screen.getByRole('switch', { name: 'audioPanel.iHear' });
     expect(sw.getAttribute('aria-checked')).toBe('true');
     expect(sw.getAttribute('aria-disabled')).not.toBe('true');
-    expect(tooltips).toContain('audioPanel.iHearTip');
-    expect(tooltips).not.toContain('audioPanel.iHearNotOffered');
+    expect(tooltips()).toContain('audioPanel.iHearTip');
+    expect(tooltips()).not.toContain('audioPanel.iHearNotOffered');
   });
 });
 

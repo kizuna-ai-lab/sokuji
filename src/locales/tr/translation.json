@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz.",
     "captionMine": "Söylediklerim, sesli",
     "captionTheirs": "Karşı tarafın söyledikleri, sesli",
-    "defaultPlaybackAid": "Bir satır kendi cihazını belirtmedikçe benim tarafımdaki sesler burada çalar; kendi cihazı çıkarılmış bir ses de burada çalar."
+    "defaultPlaybackAid": "Bir satır kendi cihazını belirtmedikçe benim tarafımdaki sesler burada çalar; kendi cihazı çıkarılmış bir ses de burada çalar.",
+    "captionReplay": "Tekrar dinleme"
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -1805,6 +1806,12 @@
       "models": "Bu bilgisayara indirilen tüm modeller burada yönetilir: oturumların kullandıkları, yardımcı modeller ve içe aktarılan sesler.",
       "audio": "Mikrofon, konuşma ve karşı tarafın sesi. “Karşı tarafın duyduğu çeviri” dışında her şey oturum sırasında değiştirilebilir.",
       "display": "Konuşmanın üstündeki ve altyazı çubuğundaki düğmelerle aynı değerler: nerede değiştirirseniz değiştirin hemen uygulanır. Ana pencere ve altyazı modu ayrı değerler tutar."
+    },
+    "audio": {
+      "micHint": "Sesimin nereden geldiği",
+      "otherHint": "Karşı tarafın sesinin nereden geldiği",
+      "device": "Cihaz",
+      "source": "Kaynak"
     }
   }
 }

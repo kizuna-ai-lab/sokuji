@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Pihak lain berkongsi mikrofon anda; audio sistem tidak dirakam.",
     "captionMine": "Apa yang saya cakap, sebagai suara",
     "captionTheirs": "Apa yang dicakap pihak lain, sebagai suara",
-    "defaultPlaybackAid": "Bunyi di pihak saya dimainkan di sini melainkan satu baris menamakan perantinya sendiri; bunyi yang perantinya dicabut juga dimainkan di sini."
+    "defaultPlaybackAid": "Bunyi di pihak saya dimainkan di sini melainkan satu baris menamakan perantinya sendiri; bunyi yang perantinya dicabut juga dimainkan di sini.",
+    "captionReplay": "Main semula"
   },
   "auth": {
     "signIn": "Log Masuk",
@@ -1805,6 +1806,12 @@
       "models": "Semua model yang dimuat turun ke komputer ini diurus di sini: yang digunakan sesi, model bantuan dan suara yang diimport.",
       "audio": "Mikrofon, pertuturan dan audio pihak lain. Semuanya boleh diubah semasa sesi kecuali “Terjemahan yang didengar pihak lain”.",
       "display": "Nilai yang sama dengan butang di atas perbualan dan pada bar sari kata: diubah di mana-mana pun, ia berkuat kuasa serta-merta. Tetingkap utama dan mod sari kata ada nilai masing-masing."
+    },
+    "audio": {
+      "micHint": "Dari mana suara saya masuk",
+      "otherHint": "Dari mana suara pihak lain masuk",
+      "device": "Peranti",
+      "source": "Sumber"
     }
   }
 }

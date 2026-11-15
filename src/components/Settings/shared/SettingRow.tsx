@@ -36,6 +36,12 @@ export interface SettingRowProps {
   footer?: React.ReactNode;
   className?: string;
   id?: string;
+  /**
+   * `inline`: the settings page's audio rows (mock v18) — the help written
+   * under the label instead of behind a help mark, the control and the switch
+   * beside them. Default `stacked`: the label row, then the control.
+   */
+  layout?: 'stacked' | 'inline';
 }
 
 /**
@@ -43,8 +49,38 @@ export interface SettingRowProps {
  * and, at the right edge, the switch (an accessory just before it); under
  * them the control. A greyed row says why in its title and takes no input.
  */
-const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, accessory, sub, greyed, switch: sw, children, footer, className = '', id }) => {
-  const classes = ['setting-row', sub ? 'setting-row--sub' : '', greyed ? 'setting-row--greyed' : '', className].filter(Boolean).join(' ');
+const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, accessory, sub, greyed, switch: sw, children, footer, className = '', id, layout = 'stacked' }) => {
+  const classes = ['setting-row', layout === 'inline' ? 'setting-row--inline' : '', sub ? 'setting-row--sub' : '', greyed ? 'setting-row--greyed' : '', className].filter(Boolean).join(' ');
+  const toggle = sw && (
+    <ToggleSwitch
+      className="setting-row__switch"
+      // A greyed row does nothing right now, so its switch shows off; the stored value is kept and returns when the row is live again (owner, 2026-10-11).
+      checked={greyed ? false : sw.checked}
+      onChange={sw.onChange}
+      disabled={sw.disabled || !!greyed}
+      label=""
+      ariaLabel={label}
+      title={greyed ?? sw.title}
+      ariaDescribedBy={sw.describedBy}
+    />
+  );
+  if (layout === 'inline') {
+    return (
+      <div className={classes} id={id} title={greyed} aria-disabled={greyed ? true : undefined}>
+        <div className="setting-row__text">
+          <span className="setting-row__label">{label}</span>
+          {badge && <span className="setting-row__badge">{badge}</span>}
+          <small className="setting-row__desc">{tooltip}</small>
+          {footer && !greyed && footer}
+        </div>
+        <div className="setting-row__control">
+          {children && (greyed ? <fieldset disabled className="setting-row__inert">{children}</fieldset> : children)}
+          {accessory && !greyed && <span className="setting-row__accessory">{accessory}</span>}
+        </div>
+        {toggle || <span className="setting-row__switch-gap" aria-hidden="true" />}
+      </div>
+    );
+  }
   return (
     <div className={classes} id={id} title={greyed} aria-disabled={greyed ? true : undefined}>
       <div className="setting-row__head">
@@ -52,19 +88,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, badge, tooltip, accessor
         {badge && <span className="setting-row__badge">{badge}</span>}
         <Tooltip content={tooltip} position="top" icon="help" maxWidth={300} />
         {accessory && !greyed && <span className="setting-row__accessory">{accessory}</span>}
-        {sw && (
-          <ToggleSwitch
-            className="setting-row__switch"
-            // A greyed row does nothing right now, so its switch shows off; the stored value is kept and returns when the row is live again (owner, 2026-10-11).
-            checked={greyed ? false : sw.checked}
-            onChange={sw.onChange}
-            disabled={sw.disabled || !!greyed}
-            label=""
-            ariaLabel={label}
-            title={greyed ?? sw.title}
-            ariaDescribedBy={sw.describedBy}
-          />
-        )}
+        {toggle}
       </div>
       {children && (
         <div className="setting-row__control">

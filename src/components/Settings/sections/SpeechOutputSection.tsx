@@ -1,8 +1,7 @@
 // src/components/Settings/sections/SpeechOutputSection.tsx
 import React, { useId, useMemo } from 'react';
-import { Info, Play, RefreshCw, Volume2 } from 'lucide-react';
+import { Info, Play, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import Tooltip from '../../Tooltip/Tooltip';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
@@ -156,24 +155,26 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
   return (
     <div className={`config-section speech-section ${className}`} id="speech-section" data-tour="speech-section">
-      <h3>
-        <Volume2 size={18} />
+      {/* The mock's audio page (v18): a plain heading with its hint, then every row in one card, each help written under its label. */}
+      <h3 className="settings-subhead">
         <span>{t('audioPanel.speechTitle', 'Speech')}</span>
-        <Tooltip content={t('audioPanel.speechTooltip', 'Which translations are spoken, to whom, and on which device.')} position="top" icon="help" maxWidth={300} />
+        <small>{t('audioPanel.speechTooltip', 'Which translations are spoken, to whom, and on which device.')}</small>
         <button
           className="section-refresh-button"
           onClick={refreshDevices}
           disabled={isLoading}
           title={t('audioPanel.refreshDevices')}
+          aria-label={t('audioPanel.refreshDevices')}
         >
           <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
         </button>
       </h3>
 
+      <div className="speech-card">
       <SettingRow
+        layout="inline"
         label={t('audioPanel.defaultPlayback', 'Default playback device')}
-        tooltip={t('audioPanel.defaultPlaybackTip', 'Sounds with no device of their own play here.')}
-        footer={<p className="setting-row__aid">{t('audioPanel.defaultPlaybackAid', 'Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too.')}</p>}
+        tooltip={t('audioPanel.defaultPlaybackAid', 'Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too.')}
       >
         <select
           className="select-dropdown"
@@ -193,6 +194,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       <p className="speech-section__caption">{t('audioPanel.captionMine', 'What I say, as speech')}</p>
       <SettingRow
+        layout="inline"
         label={otherLabel}
         tooltip={playsOnTip(f2f.other) ?? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.'))}
         greyed={myLegRuns ? undefined : notInMode}
@@ -217,6 +219,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       {!faceToFace && (
         <SettingRow
+          layout="inline"
           label={meLabel}
           tooltip={t('audioPanel.meTooTip', 'Also plays the translation the other side hears on my side (the spoken translation, not my own voice).')}
           sub
@@ -229,6 +232,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       {!faceToFace && hasVirtualBus && (
         <SettingRow
+          layout="inline"
           label={passthroughLabel}
           tooltip={pushToTranslate ? t('audioPanel.passthroughManagedByPushToTranslate') : t('audioPanel.passthroughTip', 'Mixes my own voice, at a lower level, under the translation into the virtual microphone. 60% at most.')}
           sub
@@ -262,6 +266,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       <p className="speech-section__caption">{t('audioPanel.captionTheirs', 'What the other side says, as speech')}</p>
       <SettingRow
+        layout="inline"
         label={themLabel}
         tooltip={playsOnTip(f2f.me) ?? (!participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.") : t('audioPanel.iHearTip', 'What the other side says, translated and read aloud to me.'))}
         greyed={!theirLegRuns ? notInMode : recaptured ? blockedWholeSystem : undefined}
@@ -289,12 +294,15 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
       )}
 
       {/* Replay keeps spoken clips: with no leg spoken, there is nothing to keep (owner, 2026-10-11). */}
+      <p className="speech-section__caption">{t('audioPanel.captionReplay', 'Replay')}</p>
       <SettingRow
+        layout="inline"
         label={t('audioPanel.keepReplay', 'Keep spoken translations for replay')}
         tooltip={t('audioPanel.keepReplayTip', "Keeps the spoken translations in memory so each message's ▶ works; a long session uses more memory.")}
         greyed={(myLegRuns && otherOn) || (theirLegRuns && themOn) ? undefined : t('audioPanel.keepReplayNothingSpoken', 'Nothing is spoken, so there is nothing to keep. Your setting is kept.')}
         switch={{ checked: keepReplayAudio, onChange: () => setKeepReplayAudio(!keepReplayAudio) }}
       />
+      </div>
     </div>
   );
 };

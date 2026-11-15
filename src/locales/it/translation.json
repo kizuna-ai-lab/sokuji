@@ -444,7 +444,8 @@
     "otherSideBesideNote": "L'altra persona condivide il tuo microfono; l'audio di sistema non viene acquisito.",
     "captionMine": "Quello che dico, a voce",
     "captionTheirs": "Quello che dice l’altra parte, a voce",
-    "defaultPlaybackAid": "I suoni dal mio lato vengono riprodotti qui, a meno che una riga indichi un dispositivo proprio; anche un suono il cui dispositivo è scollegato viene riprodotto qui."
+    "defaultPlaybackAid": "I suoni dal mio lato vengono riprodotti qui, a meno che una riga indichi un dispositivo proprio; anche un suono il cui dispositivo è scollegato viene riprodotto qui.",
+    "captionReplay": "Riascolto"
   },
   "auth": {
     "signIn": "Accedi",
@@ -1805,6 +1806,12 @@
       "models": "Qui si gestiscono tutti i modelli scaricati su questo computer: quelli delle sessioni, quelli ausiliari e le voci importate.",
       "audio": "Microfono, voce e audio dell’altra parte. Tutto si può cambiare durante una sessione, tranne «Traduzione che sente l’altra parte».",
       "display": "Gli stessi valori dei pulsanti sopra la conversazione e della barra dei sottotitoli: ovunque li cambi, valgono subito. Finestra principale e modalità sottotitoli hanno ciascuna i propri."
+    },
+    "audio": {
+      "micHint": "Da dove entra la mia voce",
+      "otherHint": "Da dove entra la voce dell’altra parte",
+      "device": "Dispositivo",
+      "source": "Sorgente"
     }
   }
 }

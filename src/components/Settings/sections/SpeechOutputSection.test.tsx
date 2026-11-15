@@ -43,19 +43,8 @@ vi.mock('../../../utils/environment', async (importOriginal) => ({
   isWindows: () => env.os === 'win',
   isLinux: () => env.os === 'linux',
 }));
-// Each row's help text, as the section hands it to the tooltip.
-const tooltips = vi.hoisted(() => [] as unknown[]);
-vi.mock('../../Tooltip/Tooltip', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../Tooltip/Tooltip')>();
-  const Real = actual.default;
-  return {
-    ...actual,
-    default: (props: React.ComponentProps<typeof Real>) => {
-      tooltips.push(props.content);
-      return Real(props);
-    },
-  };
-});
+// Each row's help text, as the page writes it under the row's label (mock v18).
+const tooltips = () => Array.from(document.querySelectorAll('.setting-row__desc')).map((el) => el.textContent);
 const preview = vi.hoisted(() => vi.fn(async (_outlet: string) => {}));
 vi.mock('../../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: preview }) }));
 vi.mock('../../VbCable/VbCableNotice', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`vbcable-${variant}`} /> }));
@@ -84,7 +73,6 @@ const pick = (id: string) => useProviderStore.setState({
 beforeEach(() => {
   shapeOverride.provider = null;
   runSpeech.value = null;
-  tooltips.length = 0;
   env.platform = 'electron';
   env.os = 'mac';
   preview.mockClear();
@@ -113,7 +101,8 @@ describe('SpeechOutputSection — the rows', () => {
     expect(screen.getByRole('heading', { name: /Speech/ })).toBeInTheDocument();
     const labels = Array.from(document.querySelectorAll('.setting-row__label')).map((el) => el.textContent);
     expect(labels).toEqual(['Default playback device', 'Translation the other side hears', 'I hear it too', 'Passthrough', 'Translation I hear', 'Keep spoken translations for replay']);
-    expect(document.querySelectorAll('.setting-row__head .tooltip-trigger')).toHaveLength(6);
+    expect(document.querySelectorAll('.setting-row--inline .setting-row__desc')).toHaveLength(6);
+    expect(document.querySelectorAll('.tooltip-trigger')).toHaveLength(0);
   });
 
   it('refreshes the device lists from the heading button, once per click', () => {
@@ -360,8 +349,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(screen.getByText(/Use headphones, one side each/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Preview/ })).toHaveLength(2);
     // Each row's help says where that language's translation plays, not what the row is in a meeting.
-    expect(tooltips).toContain('The English translation plays here: choose the device and side (left or right) the English listener wears.');
-    expect(tooltips).toContain('The Japanese translation plays here: choose the device and side (left or right) the Japanese listener wears.');
+    expect(tooltips()).toContain('The English translation plays here: choose the device and side (left or right) the English listener wears.');
+    expect(tooltips()).toContain('The Japanese translation plays here: choose the device and side (left or right) the Japanese listener wears.');
   });
 
   it('Both · beside me: an auto source keeps the generic name and tooltip, since it names no language', () => {
@@ -370,7 +359,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     mount();
     expect(row('English translation plays on')).toBeInTheDocument();
     expect(row('Translation I hear')).toBeInTheDocument();
-    expect(tooltips).toContain('What the other side says, translated and read aloud to me.');
+    expect(tooltips()).toContain('What the other side says, translated and read aloud to me.');
   });
 
   it('the preview plays on the row\'s outlet whatever its switch (Review Focus 3)', async () => {
@@ -416,8 +405,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     shapeOverride.provider = { id: 'x', speech: 'optional', participantSpeech: false };
     mount();
     expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
-    expect(tooltips).toContain("This service does not speak the other side's translation.");
-    expect(tooltips).not.toContain('What the other side says, translated and read aloud to me.');
+    expect(tooltips()).toContain("This service does not speak the other side's translation.");
+    expect(tooltips()).not.toContain('What the other side says, translated and read aloud to me.');
     expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
   });
 });
@@ -560,3 +549,26 @@ describe('SpeechOutputSection — the aids (providers and stages design, section
   });
 });
 
+
+// The mock's audio page (v18): a plain heading with its hint; the rows in one card, under the mock's captions.
+describe('SpeechOutputSection — as the mock draws it', () => {
+  it('heads the section with its name and hint, no icon or help mark', () => {
+    mount();
+    const heading = screen.getByRole('heading', { name: /Speech/ });
+    expect(heading).toHaveTextContent('Which translations are spoken, to whom, and on which device.');
+    expect(heading.querySelector('svg:not(.lucide-refresh-cw)')).toBeNull();
+  });
+
+  it('puts the rows in one card, under the captions for my speech, the other side\'s and replay', () => {
+    mount();
+    const card = document.querySelector('.speech-card')!;
+    expect(card.querySelectorAll('.setting-row')).toHaveLength(6);
+    expect(Array.from(card.querySelectorAll('.speech-section__caption')).map((c) => c.textContent))
+      .toEqual(['What I say, as speech', 'What the other side says, as speech', 'Replay']);
+  });
+
+  it('says what the default playback device is for under its name', () => {
+    mount();
+    expect(within(row('Default playback device')).getByText(/Sounds on my side play here unless a row names its own device/)).toHaveClass('setting-row__desc');
+  });
+});

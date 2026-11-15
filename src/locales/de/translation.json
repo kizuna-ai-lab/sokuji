@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Die andere Person teilt sich Ihr Mikrofon; es wird kein Systemaudio aufgenommen.",
     "captionMine": "Was ich sage, als Sprache",
     "captionTheirs": "Was die Gegenseite sagt, als Sprache",
-    "defaultPlaybackAid": "Töne auf meiner Seite laufen hier, sofern eine Zeile kein eigenes Gerät nennt; ein Ton, dessen eigenes Gerät abgesteckt ist, läuft ebenfalls hier."
+    "defaultPlaybackAid": "Töne auf meiner Seite laufen hier, sofern eine Zeile kein eigenes Gerät nennt; ein Ton, dessen eigenes Gerät abgesteckt ist, läuft ebenfalls hier.",
+    "captionReplay": "Wiedergabe"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -1805,6 +1806,12 @@
       "models": "Alle auf diesen Computer geladenen Modelle werden hier verwaltet: die der Sitzungen, die Hilfsmodelle und importierte Stimmen.",
       "audio": "Mikrofon, Sprachausgabe und der Ton der Gegenseite. Außer „Übersetzung, die die Gegenseite hört“ lässt sich alles während einer Sitzung ändern.",
       "display": "Dieselben Werte wie die Knöpfe über dem Gespräch und auf der Untertitelleiste: wo man sie ändert, ist gleich, sie gelten sofort. Hauptfenster und Untertitel-Modus haben jeweils eigene."
+    },
+    "audio": {
+      "micHint": "Wo meine Stimme hereinkommt",
+      "otherHint": "Wo die Stimme der Gegenseite hereinkommt",
+      "device": "Gerät",
+      "source": "Quelle"
     }
   }
 }

@@ -444,7 +444,8 @@
     "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
     "captionMine": "What I say, as speech",
     "captionTheirs": "What the other side says, as speech",
-    "defaultPlaybackAid": "Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too."
+    "defaultPlaybackAid": "Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too.",
+    "captionReplay": "Replay"
   },
   "auth": {
     "signIn": "Sign In",
@@ -1805,6 +1806,12 @@
       "models": "Every model downloaded to this computer is managed here: the ones sessions use, the helpers, and imported voices.",
       "audio": "Microphone, speech and the other side's audio. Everything except \"Translation the other side hears\" can be changed during a session.",
       "display": "The same values as the buttons above the conversation and on the caption bar: change them on either side, and they apply at once. The main window and caption mode each keep their own."
+    },
+    "audio": {
+      "micHint": "Where my voice comes in",
+      "otherHint": "Where the other side's voice comes in",
+      "device": "Device",
+      "source": "Source"
     }
   }
 }

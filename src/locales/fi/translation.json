@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta.",
     "captionMine": "Mitä sanon, puheena",
     "captionTheirs": "Mitä toinen osapuoli sanoo, puheena",
-    "defaultPlaybackAid": "Oman puoleni äänet soivat täällä, ellei rivi nimeä omaa laitettaan; ääni, jonka oma laite on irrotettu, soi myös täällä."
+    "defaultPlaybackAid": "Oman puoleni äänet soivat täällä, ellei rivi nimeä omaa laitettaan; ääni, jonka oma laite on irrotettu, soi myös täällä.",
+    "captionReplay": "Uudelleentoisto"
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -1805,6 +1806,12 @@
       "models": "Kaikkia tälle tietokoneelle ladattuja malleja hallitaan täällä: istuntojen malleja, apumalleja ja tuotuja ääniä.",
       "audio": "Mikrofoni, puhe ja toisen osapuolen ääni. Kaikkea paitsi ”Käännös, jonka toinen osapuoli kuulee” voi muuttaa istunnon aikana.",
       "display": "Samat arvot kuin keskustelun yläpuolen ja tekstityspalkin painikkeissa: missä tahansa muutat, ne pätevät heti. Pääikkunalla ja tekstitystilalla on omansa."
+    },
+    "audio": {
+      "micHint": "Mistä ääneni tulee sisään",
+      "otherHint": "Mistä toisen osapuolen ääni tulee sisään",
+      "device": "Laite",
+      "source": "Lähde"
     }
   }
 }

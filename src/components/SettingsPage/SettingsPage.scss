@@ -379,3 +379,122 @@
   .subtitle-stream__item--lit { background-color: var(--subtitle-highlight-overlay); }
 }
 
+
+// Audio, as the mock draws it (v18): three plain headings with a grey hint, the microphone's device and
+// choices as labelled fields, the speech rows in one card — each help written under its label, the control
+// and the switch beside it.
+.settings-page {
+  .microphone-section,
+  .speech-section,
+  .system-audio-section {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  .settings-subhead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 20px 0 8px;
+    font-size: 14px;
+    font-weight: vars.$weight-semibold;
+    small { font-size: 11.5px; font-weight: vars.$weight-normal; color: vars.$text-muted; }
+    .section-refresh-button { align-self: center; }
+  }
+  .microphone-section > .settings-subhead:first-child { margin-top: 4px; }
+  .settings-field {
+    display: grid;
+    gap: 4px;
+    margin: 8px 0;
+    &__label { font-size: 12px; color: vars.$text-tertiary; }
+    .settings-seg { justify-self: start; }
+  }
+  .settings-field .select-dropdown,
+  .setting-row--inline .setting-row__control .select-dropdown {
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid vars.$border-subtle;
+    background-color: vars.$bg-control;
+    font-size: 12.5px;
+    // One line, cut short: a long device name never makes the select taller, and its chevron stays.
+    // One line, cut short; the chevron keeps its place at the right edge whatever the value's length
+    // (classic selects draw it in the right padding, base-select's own chevron is pinned there).
+    position: relative;
+    overflow: hidden;
+    padding-right: 26px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    // The chevron sits on the select's own colour, so a cut-off value fades out before it rather than under it.
+    &::picker-icon {
+      position: absolute; right: 1px; top: 1px; bottom: 1px;
+      display: flex; align-items: center; padding: 0 9px 0 6px;
+      background: vars.$bg-control; box-shadow: -10px 0 8px vars.$bg-control; border-radius: 0 5px 5px 0;
+    }
+  }
+  .settings-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 8px 0;
+    &__text { font-size: 12.5px; color: vars.$text-secondary; }
+    .toggle-switch-component { margin: 0; }
+  }
+
+  .speech-card {
+    padding: 2px 12px 4px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+  }
+  .speech-card .speech-section__caption {
+    margin: 0;
+    padding: 12px 0 2px;
+    border-top: 1px solid vars.$border-subtle;
+    font-size: 12px;
+    font-weight: vars.$weight-semibold;
+    color: vars.$text-tertiary;
+  }
+  .setting-row--inline {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    margin: 0;
+    padding: 9px 0;
+    & + & { border-top: 1px solid vars.$border-subtle; }
+    .setting-row__label { font-size: 13px; color: vars.$text-primary; }
+    .setting-row__desc { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
+    .setting-row__voice { margin-top: 2px; font-size: 11.5px; }
+    .setting-row__control {
+      min-width: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      .select-dropdown { flex: 0 1 250px; max-width: 250px; }
+    }
+    // The virtual microphone, named rather than chosen: plain text at the right.
+    .setting-row__field { flex: 0 1 auto; padding: 0; border: none; background: none; font-size: 12px; color: vars.$text-tertiary; text-align: right; }
+    .setting-row__slider {
+      flex: 0 1 auto;
+      font-size: 12px;
+      input[type='range'] { flex: none; width: 110px; accent-color: vars.$color-primary; }
+      .setting-value { font-size: 12px; }
+    }
+    .setting-row__switch { margin: 0; }
+    .setting-row__switch-gap { width: vars.$toggle-width; }
+    // A sub-row: indented under its parent, the mock's rounded connector.
+    &.setting-row--sub {
+      margin-left: 0;
+      padding-left: 24px;
+      &::before { left: 8px; top: 0; width: 9px; height: 50%; border-left-width: 1px; border-bottom-width: 1px; border-bottom-left-radius: 6px; }
+    }
+    &.setting-row--greyed .setting-row__desc { opacity: 0.7; }
+  }
+  .speech-card > .setting-row__reason,
+  .speech-card > .ears-hint { margin: 4px 0 8px; font-size: 11.5px; }
+}

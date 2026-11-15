@@ -444,7 +444,8 @@
     "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam.",
     "captionMine": "Yang saya ucapkan, sebagai suara",
     "captionTheirs": "Yang diucapkan pihak lain, sebagai suara",
-    "defaultPlaybackAid": "Suara di sisi saya diputar di sini kecuali sebuah baris menyebut perangkatnya sendiri; suara yang perangkatnya dicabut juga diputar di sini."
+    "defaultPlaybackAid": "Suara di sisi saya diputar di sini kecuali sebuah baris menyebut perangkatnya sendiri; suara yang perangkatnya dicabut juga diputar di sini.",
+    "captionReplay": "Putar ulang"
   },
   "auth": {
     "signIn": "Masuk",
@@ -1805,6 +1806,12 @@
       "models": "Semua model yang diunduh ke komputer ini dikelola di sini: yang dipakai sesi, model pendukung, dan suara impor.",
       "audio": "Mikrofon, ucapan, dan audio pihak lain. Semuanya bisa diubah selama sesi, kecuali “Terjemahan yang didengar pihak lain”.",
       "display": "Nilai yang sama dengan tombol di atas percakapan dan di bilah subtitel: diubah di mana pun, langsung berlaku. Jendela utama dan mode subtitel punya nilainya sendiri."
+    },
+    "audio": {
+      "micHint": "Dari mana suara saya masuk",
+      "otherHint": "Dari mana suara pihak lain masuk",
+      "device": "Perangkat",
+      "source": "Sumber"
     }
   }
 }
