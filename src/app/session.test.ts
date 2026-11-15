@@ -148,6 +148,7 @@ import { useProviderStore } from '../stores/providerStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useLineUpStore } from '../stores/lineUpStore';
+import { useLiveNotes } from '../lib/notes/live/liveStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
@@ -945,6 +946,102 @@ describe('attach', () => {
     expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
 
     detach();
+  });
+
+  describe('live notes during a session', () => {
+    /** A live notes loop the test watches: what it was given, and whether it stopped or was let go. */
+    function fakeLive() {
+      const made: Array<{ deps: unknown; sentences: number[]; stopped: boolean; disposed: boolean }> = [];
+      const factory = (deps: unknown) => {
+        const one = { deps, sentences: [] as number[], stopped: false, disposed: false };
+        made.push(one);
+        return {
+          sentences: (list: ReadonlyArray<{ n: number }>) => { one.sentences.push(...list.map((x) => x.n)); },
+          stop: async () => { one.stopped = true; },
+          dispose: () => { one.disposed = true; },
+        };
+      };
+      return { made, factory };
+    }
+    const historyPort = () => {
+      const answer = (value: unknown) => async () => value;
+      return {
+        openRecord: answer(undefined), putLeg: answer(undefined), createTranscript: answer(1), putSegments: answer(undefined),
+        putNotices: answer(undefined), appendSentences: answer({ added: 0 }), reviseSentences: answer(undefined), closeRecord: answer({ kept: true }),
+      } as unknown as HistoryPort;
+    };
+    async function withLive(on: boolean, service: string | null, run: () => Promise<void>) {
+      const lineUpBefore = useLineUpStore.getState().lineUp;
+      useSettingsStore.setState({ liveNotes: on } as never);
+      useLineUpStore.setState({ lineUp: { transcription: 'fake', translation: 'fake', speech: 'fake', summarisation: service } } as never);
+      useProviderStore.setState({ entries: { ...useProviderStore.getState().entries, openai: { settings: {}, credentials: { apiKey: 'sk-test' }, pair: { source: 'en', target: 'ja' } } } } as never);
+      try { await run(); } finally {
+        useSettingsStore.setState({ liveNotes: false } as never);
+        useLineUpStore.setState({ lineUp: lineUpBefore });
+      }
+    }
+
+    it('feeds a loop for the record while the session runs, and gives it its last update at Stop', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await vi.waitFor(() => expect(live.made[0].sentences.length).toBeGreaterThan(0));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true });
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true }));
+      });
+    });
+
+    it('starts no loop when live notes are off, or no notes service is chosen', async () => {
+      for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
+        await withLive(on, service, async () => {
+          const live = fakeLive();
+          const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+          await session.runner.start();
+          clock.advance(8000);
+          await flush();
+          await session.runner.stop();
+          await session.runner.settled();
+          expect(live.made).toHaveLength(0);
+        });
+      }
+    });
+
+    it('lets the loop go when live notes are turned off during the session, and says so', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useSettingsStore.setState({ liveNotes: false } as never);
+        expect(live.made[0].disposed).toBe(true);
+        expect(useLiveNotes.getState()).toMatchObject({ running: false, off: true });
+        await session.runner.stop();
+      });
+    });
+
+    it('Clear empties the notes on screen, not the loop', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        const detach = session.attach();
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useLiveNotes.getState().update({ title: 'T', topics: [] });
+        session.runner.clear();
+        expect(useLiveNotes.getState().state).toBeNull();
+        expect(live.made[0].disposed).toBe(false);
+        await session.runner.stop();
+        detach();
+      });
+    });
   });
 
   describe('closing while notes are being written', () => {

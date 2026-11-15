@@ -252,6 +252,27 @@ describe('the history writer', () => {
     expect(dropped).toEqual(['run-0001-aaaa']);
   });
 
+  it('hands each numbered sentence to the live notes once, never a revision', async () => {
+    writer.dispose();
+    const handed: Array<{ recordId: string; n: number; text: string; fromOpen: boolean }> = [];
+    writer = createHistoryWriter({
+      state, conversation, port: port.port, clock, facts: () => facts, report,
+      onSentences: (recordId, list) => { for (const x of list) handed.push({ recordId, n: x.n, text: x.text, fromOpen: x.fromOpen }); },
+    });
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Hello there. How are you?');
+    await writer.settled();
+    text('speaker', 1, 'Hello there! How are you?');
+    await writer.settled();
+    say('speaker', 2, 'Fine.');
+    await writer.settled();
+    expect(handed).toEqual([
+      { recordId: 'run-0001-aaaa', n: 1, text: 'Hello there.', fromOpen: false },
+      { recordId: 'run-0001-aaaa', n: 2, text: 'How are you?', fromOpen: false },
+      { recordId: 'run-0001-aaaa', n: 3, text: 'Fine.', fromOpen: false },
+    ]);
+  });
+
   it('closes the record when the run ends, after the last corrections', async () => {
     start('run-0001-aaaa');
     say('speaker', 1, 'hello');

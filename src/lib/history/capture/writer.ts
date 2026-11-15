@@ -63,6 +63,11 @@ export interface HistoryWriterDeps {
   tell?: (recordId: string) => void;
   /** A record the store kept has closed (its notes may be written now). */
   onClosed?(recordId: string): void;
+  /**
+   * Sentences as they are numbered, each once, for the live notes; a later revision is never handed on (spec §5.2).
+   * `fromOpen`: cut from a segment the recognizer had not finished.
+   */
+  onSentences?(recordId: string, sentences: Array<HistorySentenceInput & { fromOpen: boolean }>): void;
 }
 
 export interface HistoryWriter {
@@ -279,6 +284,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       && speakerInput.inputId === participantInput.inputId;
     const sideCertain = !r.facts.shared && !sameInput;
     const sentences: HistorySentenceInput[] = [];
+    const handed: Array<HistorySentenceInput & { fromOpen: boolean }> = [];
     const revisions: Array<{ n: number; text: string }> = [];
     const present = new Set<string>();
     /** Segments the screen shows with text, and notices it shows: a failed write of anything else goes from what it wrote. */
@@ -322,12 +328,14 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
           const n = r.nextNumber++;
           t.numbers[s.index] = n;
           const startMs = Math.max(0, Math.round(s.startAt - r.startedAt));
-          sentences.push({
+          const sentence: HistorySentenceInput = {
             n, segmentId: seg.id, side: leg.leg === 'speaker' ? 'mine' : 'other', sideCertain,
             track: composition?.input === 'microphone' ? 'microphone' : 'other',
             speaker: seg.person ?? '1', startMs, endMs: Math.max(startMs, Math.round(s.endAt - r.startedAt)), text: s.text,
             language: seg.language ?? (cutSide === 'source' ? leg.languages.source : leg.languages.target), timeKind: s.timeKind,
-          });
+          };
+          sentences.push(sentence);
+          handed.push({ ...sentence, fromOpen: !seg.final });
         }
         for (const v of result.revised) {
           const n = t.numbers[v.index];
@@ -354,6 +362,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     }
     // A segment gone from the snapshot is forgotten, not deleted.
     for (const id of r.segments.keys()) if (!present.has(id)) r.segments.delete(id);
+    if (handed.length > 0) deps.onSentences?.(r.id, handed);
     // What failed before goes first; a correction to a sentence still waiting goes into it.
     const batch = [...r.unsent, ...sentences];
     r.unsent = [];

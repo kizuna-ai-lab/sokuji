@@ -18,7 +18,12 @@ import { createHistoryRecorder, type HistoryRecorder } from '../lib/history/reco
 import { opusRecordingSupported, webCodecsOpusEncoder } from '../lib/history/recording/opusEncoder';
 import type { OpusEncoderFactory } from '../lib/history/recording/track';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
-import { appNotesRunner } from '../lib/notes/appNotes';
+import { appNotesRunner, notesChatFromStores, notesLanguageOf } from '../lib/notes/appNotes';
+import { createLiveNotes, type LiveNotes, type LiveNotesDeps } from '../lib/notes/live/loop';
+import { useLiveNotes } from '../lib/notes/live/liveStore';
+import type { LiveSentence } from '../lib/notes/live/state';
+import { notesSpeakerLabel } from '../lib/notes/runner';
+import type { HistorySentence } from '../lib/history/types';
 import { askQuitWhileNotes, type QuitAnswer } from '../lib/notes/quitQuestion';
 import type { NotesRunner } from '../lib/notes/runner';
 import type { AuthContext } from '../lib/provider/types';
@@ -89,6 +94,8 @@ export interface AppSessionOptions {
   notes?: Pick<NotesRunner, 'start' | 'cancel' | 'running' | 'subscribe'> | null;
   /** Asks whether to quit while notes are written (the titles of their records); default the page's dialog. */
   askQuit?(titles: readonly string[]): Promise<QuitAnswer>;
+  /** Makes the live notes' loop; default the app's on the desktop; `null` for none. */
+  liveNotes?: ((deps: LiveNotesDeps) => Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'>) | null;
   /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
   ipc?: {
     invoke(channel: string, data?: unknown): Promise<unknown>;
@@ -237,6 +244,55 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   }
   /** Records whose run the app's own closing ended: no notes are written for them (spec §5.1). */
   const closedByApp = new Set<string>();
+
+  // Live notes (stage 4): a loop per record while its session runs, fed the sentences as the record numbers them.
+  const liveFactory = options.liveNotes === undefined ? (isElectron() ? createLiveNotes : null) : options.liveNotes;
+  let live: { recordId: string; loop: Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> | null; pending: LiveSentence[]; seen: LiveSentence[] } | null = null;
+  const liveWanted = () => useSettingsStore.getState().liveNotes && Boolean(useLineUpStore.getState().lineUp?.summarisation);
+  const asHistory = (s: LiveSentence): HistorySentence => ({
+    ...s, segmentId: s.segmentId ?? null, speakerByUser: null, speakerName: null, language: s.language ?? null,
+  });
+  const onLiveSentences = (recordId: string, list: LiveSentence[]) => {
+    if (!liveFactory) return;
+    if (!live || live.recordId !== recordId) {
+      if (!liveWanted()) return;
+      const begun = { recordId, loop: null as Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> | null, pending: [] as LiveSentence[], seen: [] as LiveSentence[] };
+      live = begun;
+      useLiveNotes.getState().begin(recordId);
+      void notesChatFromStores().then((service) => {
+        if (live !== begun) return;
+        if (!service) { live = null; useLiveNotes.getState().turnedOff(); return; }
+        const mine = runner.conversation.snapshot().find((l) => l.leg === 'speaker')?.languages.source ?? 'auto';
+        begun.loop = liveFactory({
+          chat: service.chat, clock, language: notesLanguageOf({ myLanguage: mine }),
+          speakerLabel: (s) => notesSpeakerLabel(begun.seen.map(asHistory))(asHistory(s)),
+          onState: (state) => { if (live === begun) useLiveNotes.getState().update(state); },
+          onHint: (shown) => { if (live === begun) useLiveNotes.getState().setHint(shown); },
+          log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
+        });
+        begun.loop.sentences(begun.pending);
+        begun.pending = [];
+      }, (error: unknown) => reportError('LiveNotes', 'Live notes could not start', { cause: error }));
+    }
+    live.seen.push(...list);
+    if (live.loop) live.loop.sentences(list);
+    else live.pending.push(...list);
+  };
+  /** The record's session ended: its last update, unless the app's closing ended it. */
+  const endLive = (recordId: string, closing: boolean) => {
+    if (!live || live.recordId !== recordId) return;
+    const ending = live;
+    live = null;
+    if (closing) { ending.loop?.dispose(); useLiveNotes.getState().end(); return; }
+    void (ending.loop?.stop() ?? Promise.resolve()).finally(() => useLiveNotes.getState().end());
+  };
+  // Turned off during a session: the loop goes at once, and the panel says so.
+  useSettingsStore.subscribe((now, before) => {
+    if (!before.liveNotes || now.liveNotes || !live) return;
+    live.loop?.dispose();
+    live = null;
+    useLiveNotes.getState().turnedOff();
+  });
   /** The notes runner: the app's on the desktop unless one is given. */
   const notesRunner = () => (options.notes === undefined ? (isElectron() ? appNotesRunner() : null) : options.notes);
   /** The titles of the records whose notes are being written, as far as History can tell. */
@@ -272,7 +328,9 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       }, shownRecord),
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
       // Notes after the session: when the switch is on and the line-up names a notes service.
+      onSentences: onLiveSentences,
       onClosed: (recordId) => {
+        endLive(recordId, closedByApp.has(recordId));
         if (closedByApp.has(recordId)) return;
         const notes = notesRunner();
         if (notes && useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) notes.start(recordId);
@@ -460,7 +518,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       }));
       // The conversation emptied — Clear from any surface (the subtitle bar's
       // reaches the runner, not MainPanel's handler) — and the notes go with it.
-      offs.push(runner.conversation.onReset(() => usePanelNotesStore.getState().clear()));
+      offs.push(runner.conversation.onReset(() => { usePanelNotesStore.getState().clear(); useLiveNotes.getState().clear(); }));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;

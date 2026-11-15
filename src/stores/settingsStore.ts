@@ -77,6 +77,10 @@ export interface CommonSettings {
   notesModel: string;
   /** Turning the notes on has been explained once (what is sent where). */
   notesExplained: boolean;
+  /** Live notes during a session (desktop): every 20 seconds, with the line-up's notes service. Off by default. */
+  liveNotes: boolean;
+  /** Turning live notes on has been explained once. */
+  liveNotesExplained: boolean;
   /**
    * How bubbles are cut: Off, By pause, or By sentences (Amendment A2).
    * Stored once for every provider and clamped on read to what the current
@@ -180,6 +184,8 @@ const defaultCommonSettings: CommonSettings = {
   notesAfterSession: false,
   notesModel: DEFAULT_NOTES_MODEL,
   notesExplained: false,
+  liveNotes: false,
+  liveNotesExplained: false,
   segmentationMode: SENTENCE_SEGMENTATION_SHOWN ? 'pause' : 'off',
   sentenceSegmentationChunkSentences: DEFAULT_CHUNK_SENTENCES,
   segmentationSourcePause: DEFAULT_SEGMENT_PAUSE_SECONDS,
@@ -250,6 +256,8 @@ export interface SettingsStore {
   notesAfterSession: boolean;
   notesModel: string;
   notesExplained: boolean;
+  liveNotes: boolean;
+  liveNotesExplained: boolean;
   // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
@@ -293,6 +301,8 @@ export interface SettingsStore {
   /** An empty name puts the default back. */
   setNotesModel: (model: string) => Promise<void>;
   setNotesExplained: (explained: boolean) => Promise<void>;
+  setLiveNotes: (on: boolean) => Promise<void>;
+  setLiveNotesExplained: (explained: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
   setTheme: (theme: ThemeSetting) => Promise<void>;
   setSegmentationMode: (mode: SegmentationMode) => Promise<void>;
@@ -497,6 +507,18 @@ const useSettingsStore = create<SettingsStore>()(
       const previous = get().notesExplained;
       set({ notesExplained });
       if (!await persistSetting('settings.notes.explained', notesExplained)) set({ notesExplained: previous });
+    },
+
+    setLiveNotes: async (liveNotes) => {
+      const previous = get().liveNotes;
+      set({ liveNotes });
+      if (!await persistSetting('settings.notes.live', liveNotes)) set({ liveNotes: previous });
+    },
+
+    setLiveNotesExplained: async (liveNotesExplained) => {
+      const previous = get().liveNotesExplained;
+      set({ liveNotesExplained });
+      if (!await persistSetting('settings.notes.liveExplained', liveNotesExplained)) set({ liveNotesExplained: previous });
     },
 
     // The log store follows this switch. Applied before the write so the
@@ -728,6 +750,8 @@ const useSettingsStore = create<SettingsStore>()(
         const storedNotesModel = await service.getSetting<unknown>('settings.notes.model', defaultCommonSettings.notesModel);
         const notesModel = typeof storedNotesModel === 'string' && storedNotesModel.trim() ? storedNotesModel.trim() : DEFAULT_NOTES_MODEL;
         const notesExplained = await service.getSetting('settings.notes.explained', defaultCommonSettings.notesExplained) === true;
+        const liveNotes = await service.getSetting('settings.notes.live', defaultCommonSettings.liveNotes) === true;
+        const liveNotesExplained = await service.getSetting('settings.notes.liveExplained', defaultCommonSettings.liveNotesExplained) === true;
         const segmentationMode = SENTENCE_SEGMENTATION_SHOWN
           ? clampSegmentationMode(await service.getSetting('settings.common.segmentationMode', defaultCommonSettings.segmentationMode))
           : 'off';
@@ -776,6 +800,8 @@ const useSettingsStore = create<SettingsStore>()(
           notesAfterSession,
           notesModel,
           notesExplained,
+          liveNotes,
+          liveNotesExplained,
           diagnosticLogs,
           segmentationMode,
           sentenceSegmentationChunkSentences,
@@ -928,6 +954,10 @@ export const useNotesExplained = () => useSettingsStore((state) => state.notesEx
 export const useSetNotesAfterSession = () => useSettingsStore((state) => state.setNotesAfterSession);
 export const useSetNotesModel = () => useSettingsStore((state) => state.setNotesModel);
 export const useSetNotesExplained = () => useSettingsStore((state) => state.setNotesExplained);
+export const useLiveNotesSetting = () => useSettingsStore((state) => state.liveNotes);
+export const useLiveNotesExplained = () => useSettingsStore((state) => state.liveNotesExplained);
+export const useSetLiveNotes = () => useSettingsStore((state) => state.setLiveNotes);
+export const useSetLiveNotesExplained = () => useSettingsStore((state) => state.setLiveNotesExplained);
 export const useSetSpeakerDisplayMode = () => useSettingsStore((state) => state.setSpeakerDisplayMode);
 export const useSetParticipantDisplayMode = () => useSettingsStore((state) => state.setParticipantDisplayMode);
 
