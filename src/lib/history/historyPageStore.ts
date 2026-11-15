@@ -6,6 +6,9 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
 import type { NotesLanguage, NotesRunner } from '../notes/runner';
+import type { ImportPhase, ImportResult } from './file/importFile';
+import type { FileRecognitionMissing, FileRecognitionService } from './file/service';
+import type { TranscribePhase } from './file/transcribe';
 import type { HistoryPort } from './port';
 import type {
   HistoryNotes, HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
@@ -20,14 +23,45 @@ export type HitTarget =
 
 export interface OpenRecord {
   record: HistoryRecord;
+  /** The transcript shown (the newest unless another was chosen); null when the record has none. */
+  transcriptId: number | null;
   sentences: readonly HistorySentence[];
   speakers: readonly HistorySpeaker[];
   legs: readonly Leg[];
   at: HitTarget | null;
-  /** The version of the notes shown: the newest complete one when the record opens, else the newest; null without notes. */
+  /** The version of the shown transcript's notes shown: the newest complete one, else the newest; null without notes. */
   notes: HistoryNotes | null;
   /** The newest attempt when it is newer than the version shown (it failed or was stopped). */
   latest?: HistoryNotes | null;
+}
+
+/** An import or a transcription running from this page: one at a time. */
+export interface FileJob {
+  kind: 'import' | 'transcribe';
+  /** The record transcribed; null for an import until it has made one. */
+  recordId: string | null;
+  /** The imported file's name. */
+  name: string | null;
+  phase: ImportPhase;
+}
+
+/** Why a file job cannot start now. */
+export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy';
+
+/** What the page needs to import and transcribe files (desktop); absent, it cannot. */
+export interface FileJobs {
+  service(): Promise<FileRecognitionService | FileRecognitionMissing>;
+  /** A session is running: importing waits (decoding is heavy). */
+  sessionRunning(): boolean;
+  importFile(o: {
+    file: File; language: string; myLanguage: string; service: FileRecognitionService;
+    onProgress(p: { phase: ImportPhase }): void; signal: AbortSignal;
+  }): Promise<ImportResult>;
+  transcribe(o: {
+    recordId: string; service: FileRecognitionService; onProgress(p: { phase: TranscribePhase }): void; signal: AbortSignal;
+  }): Promise<{ transcriptId: number; sentences: number }>;
+  /** An imported record is transcribed: its notes, as after a session. */
+  notesAfterImport(recordId: string): void;
 }
 
 export interface HistoryPageState {
@@ -44,6 +78,9 @@ export interface HistoryPageState {
   open: OpenRecord | null;
   /** The records whose notes are being written. */
   notesRunning: readonly string[];
+  job: FileJob | null;
+  /** How the last file job ended when it did not: its code (NO_KEY, TOO_LONG, CANCELLED, …). */
+  jobFailure: string | null;
   busy: boolean;
   error: string | null;
 }
@@ -81,7 +118,22 @@ export interface HistoryPageActions {
   dispose(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
   reassign(n: number, speaker: string | null): Promise<void>;
+  /** Shows another transcript of the open record, with its own notes. */
+  showTranscript(id: number): Promise<void>;
+  /** Why an import or a transcription cannot start now, or null. */
+  fileJobBlocked(kind: 'import' | 'transcribe'): Promise<FileJobBlock | null>;
+  /** Imports a file as a new record: one job at a time. */
+  importFile(file: File, o: { language: string; myLanguage: string }): Promise<void>;
+  /** Transcribes the open record (again): a new transcript, shown once made. */
+  transcribeOpen(): Promise<void>;
+  cancelJob(): void;
 }
+
+/** A failure's code, as the file jobs give them; SERVICE for anything else. */
+const codeOf = (error: unknown): string => {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? code : 'SERVICE';
+};
 
 /** Search runs this long after the last keystroke. */
 export const SEARCH_DELAY_MS = 250;
@@ -96,6 +148,8 @@ export function createHistoryPageStore(
   errorText: (e: unknown) => string,
   /** Who writes notes (desktop); absent: notes cannot be written from this page. */
   notes?: Pick<NotesRunner, 'start' | 'cancel' | 'running' | 'subscribe'> | null,
+  /** Import and transcription (desktop); absent: neither is offered. */
+  files?: FileJobs | null,
 ): StoreApi<HistoryPageState & HistoryPageActions> {
   let cancelSearch: (() => void) | null = null;
   /** Unsubscribes from the notes runner. */
@@ -107,6 +161,8 @@ export function createHistoryPageStore(
   let notesSeq = 0;
   /** A dismissal being written: the next waits for it rather than writing the names it read before. */
   let dismissing = false;
+  /** Stops the running file job. */
+  let jobController: AbortController | null = null;
 
   const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
     /** One action: busy while it runs, a rejection shown and nothing else changed. */
@@ -142,15 +198,24 @@ export function createHistoryPageStore(
 
     const newestTranscript = (record: HistoryRecord) => record.transcripts[record.transcripts.length - 1];
 
-    /** The record and everything its page shows; set only once all of it has arrived. */
-    const fetchRecord = async (id: string, at: HitTarget | null, seq = openSeq): Promise<void> => {
+    /**
+     * The record and everything its page shows; set only once all of it has arrived. The transcript shown is the one
+     * asked for, else the one a search hit was found in, else the newest; the notes shown are that transcript's.
+     */
+    const fetchRecord = async (id: string, at: HitTarget | null, transcriptId?: number | null, seq = openSeq): Promise<void> => {
       const record = await port.getRecord(id);
       if (!record) throw new Error(`Record ${id} is gone`);
       const legs = await port.getLegs(id);
       const newest = newestTranscript(record);
-      const sentences = newest ? await port.getSentences({ transcriptId: newest.id }) : [];
-      const speakers = newest ? await port.getSpeakers({ transcriptId: newest.id }) : [];
-      const byAge = [...record.notes].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id);
+      const hitIn = at?.kind === 'sentence' ? at.transcriptId : undefined;
+      const shownTranscript = record.transcripts.find((t) => t.id === transcriptId)
+        ?? record.transcripts.find((t) => t.id === hitIn) ?? newest;
+      const sentences = shownTranscript ? await port.getSentences({ transcriptId: shownTranscript.id }) : [];
+      const speakers = shownTranscript ? await port.getSpeakers({ transcriptId: shownTranscript.id }) : [];
+      // A version whose transcript was deleted goes with the newest transcript.
+      const own = (n: HistoryRecord['notes'][number]) => !shownTranscript || n.transcriptId === shownTranscript.id
+        || (n.transcriptId === null && shownTranscript === newest);
+      const byAge = record.notes.filter(own).sort((a, b) => a.createdAt - b.createdAt || a.id - b.id);
       const lastTry = byAge[byAge.length - 1];
       const chosen = [...byAge].reverse().find((n) => n.state === 'complete') ?? lastTry;
       const shown = chosen ? await port.getNotes({ id: chosen.id }) : null;
@@ -158,7 +223,7 @@ export function createHistoryPageStore(
       const latest = lastTry && chosen && lastTry.id !== chosen.id ? await port.getNotes({ id: lastTry.id }) : null;
       // The user closed this record, or opened another, while it was read.
       if (seq !== openSeq) return;
-      set({ open: { record, sentences, speakers, legs, at, notes: shown, latest } });
+      set({ open: { record, transcriptId: shownTranscript?.id ?? null, sentences, speakers, legs, at, notes: shown, latest } });
     };
 
     return {
@@ -172,6 +237,8 @@ export function createHistoryPageStore(
       usage: null,
       open: null,
       notesRunning: notes?.running() ?? [],
+      job: null,
+      jobFailure: null,
       busy: false,
       error: null,
 
@@ -255,14 +322,14 @@ export function createHistoryPageStore(
         await port.renameRecord({ id, title: title.trim() });
         await reload();
         const open = get().open;
-        if (open && open.record.id === id) await fetchRecord(id, open.at);
+        if (open && open.record.id === id) await fetchRecord(id, open.at, open.transcriptId);
       }),
 
-      openRecord: (id, at = null) => act(() => fetchRecord(id, at, ++openSeq)),
+      openRecord: (id, at = null) => act(() => fetchRecord(id, at, undefined, ++openSeq)),
 
       refreshRecord: () => act(async () => {
         const open = get().open;
-        if (open) await fetchRecord(open.record.id, open.at);
+        if (open) await fetchRecord(open.record.id, open.at, open.transcriptId);
       }),
 
       dropRecording: () => act(async () => {
@@ -271,7 +338,7 @@ export function createHistoryPageStore(
         for (const t of open.record.tracks) {
           if (t.goneAt === null) await port.dropTrack({ recordId: open.record.id, source: t.source });
         }
-        await fetchRecord(open.record.id, open.at);
+        await fetchRecord(open.record.id, open.at, open.transcriptId);
       }),
 
       closeRecord: () => {
@@ -289,7 +356,7 @@ export function createHistoryPageStore(
 
       generateNotes(language) {
         const open = get().open;
-        if (open && notes) notes.start(open.record.id, language);
+        if (open && notes) notes.start(open.record.id, language, open.transcriptId ?? undefined);
       },
 
       dismissName: (index) => act(async () => {
@@ -335,19 +402,86 @@ export function createHistoryPageStore(
 
       renameSpeaker: (side, speaker, name) => act(async () => {
         const open = get().open;
-        const newest = open && newestTranscript(open.record);
-        if (!open || !newest) return;
-        await port.renameSpeaker({ transcriptId: newest.id, side, speaker, name });
-        await fetchRecord(open.record.id, open.at);
+        if (!open || open.transcriptId === null) return;
+        await port.renameSpeaker({ transcriptId: open.transcriptId, side, speaker, name });
+        await fetchRecord(open.record.id, open.at, open.transcriptId);
       }),
 
       reassign: (n, speaker) => act(async () => {
         const open = get().open;
-        const newest = open && newestTranscript(open.record);
-        if (!open || !newest) return;
-        await port.reassignSentence({ transcriptId: newest.id, n, speaker });
-        await fetchRecord(open.record.id, open.at);
+        if (!open || open.transcriptId === null) return;
+        await port.reassignSentence({ transcriptId: open.transcriptId, n, speaker });
+        await fetchRecord(open.record.id, open.at, open.transcriptId);
       }),
+
+      showTranscript: (id) => act(async () => {
+        const open = get().open;
+        if (open) await fetchRecord(open.record.id, null, id);
+      }),
+
+      async fileJobBlocked(kind) {
+        if (!files) return 'not-soniox';
+        if (get().job) return 'busy';
+        const service = await files.service();
+        if ('missing' in service) return service.missing;
+        if (kind === 'import' && files.sessionRunning()) return 'session';
+        return null;
+      },
+
+      async importFile(file, o) {
+        if (!files || get().job) return;
+        const service = await files.service();
+        if ('missing' in service) { set({ jobFailure: service.missing }); return; }
+        const controller = new AbortController();
+        jobController = controller;
+        set({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading' }, jobFailure: null });
+        try {
+          const result = await files.importFile({
+            file, language: o.language, myLanguage: o.myLanguage, service, signal: controller.signal,
+            onProgress: (p) => { const job = get().job; if (job) set({ job: { ...job, phase: p.phase } }); },
+          });
+          if (result.transcribed) files.notesAfterImport(result.recordId);
+          else set({ jobFailure: result.failure });
+        } catch (error) {
+          set({ jobFailure: codeOf(error) });
+        } finally {
+          jobController = null;
+          set({ job: null });
+        }
+        await act(reload);
+      },
+
+      async transcribeOpen() {
+        const open = get().open;
+        if (!files || get().job || !open) return;
+        const service = await files.service();
+        if ('missing' in service) { set({ jobFailure: service.missing }); return; }
+        const recordId = open.record.id;
+        const controller = new AbortController();
+        jobController = controller;
+        set({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null });
+        let made: number | null = null;
+        try {
+          ({ transcriptId: made } = await files.transcribe({
+            recordId, service, signal: controller.signal,
+            onProgress: (p) => { const job = get().job; if (job) set({ job: { ...job, phase: p.phase } }); },
+          }));
+        } catch (error) {
+          set({ jobFailure: codeOf(error) });
+        } finally {
+          jobController = null;
+          set({ job: null });
+        }
+        if (made === null) return;
+        await act(async () => {
+          if (get().open?.record.id === recordId) await fetchRecord(recordId, null, made);
+          await reload();
+        });
+      },
+
+      cancelJob() {
+        jobController?.abort();
+      },
     };
   });
 

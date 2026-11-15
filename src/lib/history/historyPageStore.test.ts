@@ -231,7 +231,7 @@ describe("a record's notes", () => {
     await store.getState().load();
     await store.getState().openRecord(A);
     store.getState().generateNotes({ code: 'en', name: 'English' });
-    expect(runner.start).toHaveBeenCalledWith(A, { code: 'en', name: 'English' });
+    expect(runner.start).toHaveBeenCalledWith(A, { code: 'en', name: 'English' }, 2);
     expect(store.getState().notesRunning).toEqual([A]);
     withNotes([9]);
     runner.finish(A);
@@ -371,5 +371,130 @@ describe("a record's notes", () => {
     await flush();
     expect(store.getState().notesRunning).toEqual([]);
     expect(calls('getRecord')).toEqual([A, A]);
+  });
+});
+
+describe('transcripts and file jobs', () => {
+  const twoTranscripts = (): HistoryRecord => ({
+    ...recordOf(A, [1, 2]),
+    notes: [
+      { id: 10, transcriptId: 1, language: 'zh', createdAt: 1, state: 'complete' },
+      { id: 11, transcriptId: 2, language: 'zh', createdAt: 2, state: 'complete' },
+    ],
+  });
+
+  it('shows the newest transcript with its own notes, and another one when chosen', async () => {
+    port.getRecord = async () => twoTranscripts();
+    await store.getState().openRecord(A);
+    expect(store.getState().open).toMatchObject({ transcriptId: 2, notes: { id: 11 } });
+    expect(lastCall('getSentences')).toEqual({ transcriptId: 2 });
+    await store.getState().showTranscript(1);
+    expect(store.getState().open).toMatchObject({ transcriptId: 1, notes: { id: 10 } });
+    expect(lastCall('getSentences')).toEqual({ transcriptId: 1 });
+    expect(lastCall('getSpeakers')).toEqual({ transcriptId: 1 });
+  });
+
+  it('opens a search hit in the transcript it was found in, and names speakers in the one shown', async () => {
+    port.getRecord = async () => twoTranscripts();
+    await store.getState().openRecord(A, { kind: 'sentence', transcriptId: 1, n: 3 });
+    expect(store.getState().open).toMatchObject({ transcriptId: 1 });
+    await store.getState().renameSpeaker('other', '1', 'Kim');
+    expect(lastCall('renameSpeaker')).toEqual({ transcriptId: 1, side: 'other', speaker: '1', name: 'Kim' });
+  });
+
+  it('writes notes for the transcript shown', async () => {
+    const runner = fakeRunner();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, runner);
+    port.getRecord = async () => twoTranscripts();
+    await store.getState().openRecord(A);
+    await store.getState().showTranscript(1);
+    store.getState().generateNotes();
+    expect(runner.start).toHaveBeenCalledWith(A, undefined, 1);
+  });
+
+  function fakeJobs(o: { missing?: 'not-soniox' | 'no-key'; session?: boolean } = {}) {
+    let finishImport!: (r: unknown) => void;
+    let finishTranscribe!: (r: unknown) => void;
+    const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
+    const jobs = {
+      service: vi.fn(async () => (o.missing ? { missing: o.missing } : { service: 'soniox', apiKey: 'k', region: 'us' })),
+      sessionRunning: vi.fn(() => o.session ?? false),
+      importFile: vi.fn((a: { onProgress(p: { phase: string }): void; signal: AbortSignal }) => {
+        progress.cb = a.onProgress;
+        progress.signal = a.signal;
+        return new Promise((resolve) => { finishImport = resolve; });
+      }),
+      transcribe: vi.fn((a: { onProgress(p: { phase: string }): void; signal: AbortSignal }) => {
+        progress.cb = a.onProgress;
+        progress.signal = a.signal;
+        return new Promise((resolve, reject) => { finishTranscribe = (r) => (r instanceof Error ? reject(r) : resolve(r)); });
+      }),
+      notesAfterImport: vi.fn(),
+    };
+    return { jobs, progress, finishImport: (r: unknown) => finishImport(r), finishTranscribe: (r: unknown) => finishTranscribe(r) };
+  }
+  const file = { name: 'Team sync.mp4', size: 10 } as unknown as File;
+
+  it('imports one file at a time, shows its phase, then lists it and writes its notes', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    await store.getState().load();
+    const started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+    expect(store.getState().job).toMatchObject({ kind: 'import', name: 'Team sync.mp4', phase: 'reading' });
+    f.progress.cb!({ phase: 'processing' });
+    expect(store.getState().job).toMatchObject({ phase: 'processing' });
+    await store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    expect(f.jobs.importFile).toHaveBeenCalledTimes(1);
+    const listed = calls('listRecords').length;
+    f.finishImport({ recordId: B, transcribed: true });
+    await started;
+    expect(store.getState().job).toBeNull();
+    expect(calls('listRecords').length).toBeGreaterThan(listed);
+    expect(f.jobs.notesAfterImport).toHaveBeenCalledWith(B);
+  });
+
+  it('says why a file job cannot start: no Soniox for recognition, no key, a session running', async () => {
+    for (const [o, reason] of [[{ missing: 'not-soniox' }, 'not-soniox'], [{ missing: 'no-key' }, 'no-key'], [{ session: true }, 'session']] as const) {
+      const f = fakeJobs(o);
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+      expect(await store.getState().fileJobBlocked('import')).toBe(reason);
+    }
+    const f = fakeJobs({ session: true });
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    expect(await store.getState().fileJobBlocked('transcribe')).toBeNull();
+  });
+
+  it('a failed import keeps what it stored, says why, and writes no notes', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    const started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+    f.finishImport({ recordId: B, transcribed: false, failure: 'NO_KEY' });
+    await started;
+    expect(store.getState().jobFailure).toBe('NO_KEY');
+    expect(f.jobs.notesAfterImport).not.toHaveBeenCalled();
+  });
+
+  it('transcribes the open record again, shows the new transcript, and can be cancelled', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    port.getRecord = async () => recordOf(A, [1]);
+    await store.getState().openRecord(A);
+    const started = store.getState().transcribeOpen();
+    await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A })));
+    expect(store.getState().job).toMatchObject({ kind: 'transcribe', recordId: A });
+    port.getRecord = async () => recordOf(A, [1, 5]);
+    f.finishTranscribe({ transcriptId: 5, sentences: 4 });
+    await started;
+    expect(store.getState().open).toMatchObject({ transcriptId: 5 });
+
+    const again = store.getState().transcribeOpen();
+    await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalledTimes(2));
+    store.getState().cancelJob();
+    expect(f.progress.signal!.aborted).toBe(true);
+    f.finishTranscribe(Object.assign(new Error('cancelled'), { code: 'CANCELLED' }));
+    await again;
+    expect(store.getState()).toMatchObject({ job: null, jobFailure: 'CANCELLED', open: { transcriptId: 5 } });
   });
 });
