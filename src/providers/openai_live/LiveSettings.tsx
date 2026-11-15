@@ -5,6 +5,8 @@ import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewLiveVoice } from './preview';
 import { LIVE_VOICES, liveLanguageName, liveLanguages, liveParticipantVoice, liveSpeakerVoice, type LiveSettings as S } from './settings';
+import { SP, TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 /** Both legs speak the one voice; one the list no longer has falls to the default (`config.ts`). */
 export const LiveVoiceSummary = presetVoiceSummary<S>(LIVE_VOICES, ({ settings, leg }) =>
@@ -33,12 +35,16 @@ export function LiveSettingsView({ settings, update, disabled = false, pair, par
   const preview = resolveInstructions(settings, { participant: false, source: liveLanguageName(source), target: liveLanguageName(target) });
   return (
     <>
+      <StagePart stages={TL}>
       <InstructionsField value={settings} onChange={update} preview={preview} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={SP}>
       <PresetVoiceField
         voices={voices} value={settings.voice} onChange={(voice) => update({ voice })} onPreview={previewLiveVoice} preview={port} disabled={disabled}
         // The published samples are one clip per voice: the second row auditions the same way.
         participant={participantSpeaks ? { value: settings.participantVoice, effective: liveParticipantVoice(settings), onChange: (participantVoice) => update({ participantVoice }) } : undefined}
       />
+      </StagePart>
     </>
   );
 }

@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" baru muncul di daftar itu setelah mencoba menangkap satu kali, yang baru saja terjadi. Mulai sesi lagi setelah mengaktifkannya. Jika sumber memang hening, tidak ada yang perlu diubah.",
-    "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam."
+    "otherSideBesideNote": "Lawan bicara berbagi mikrofon Anda; audio sistem tidak direkam.",
+    "captionMine": "Yang saya ucapkan, sebagai suara",
+    "captionTheirs": "Yang diucapkan pihak lain, sebagai suara",
+    "defaultPlaybackAid": "Suara di sisi saya diputar di sini kecuali sebuah baris menyebut perangkatnya sendiri; suara yang perangkatnya dicabut juga diputar di sini.",
+    "captionReplay": "Putar ulang"
   },
   "auth": {
     "signIn": "Masuk",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Memberi nomor orang-orang di pihak lain — Pembicara 1, Pembicara 2… — begitu terdengar lebih dari satu suara.\n\nFitur ini bisa mengira satu orang sebagai beberapa orang. Dinonaktifkan: tidak ada nomor yang ditampilkan.\n\nBerlaku mulai sesi berikutnya."
     },
     "local_inference": {
-      "name": "Gratis",
-      "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)",
+      "name": "Perangkat ini",
+      "description": "Berfungsi setelah model diunduh ke komputer ini; pertama kali perlu mengunduh beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratis · offline"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -608,7 +613,15 @@
       "name": "Tidak Diketahui",
       "description": "Penyedia tidak diketahui"
     },
-    "poweredBy": "Didukung oleh <brand>{{name}}</brand>"
+    "poweredBy": "Didukung oleh <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratis · online, layanan Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratis · online, layanan Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Gulir otomatis aktif",
@@ -739,7 +752,9 @@
     "preparingVoice": "Menyiapkan suara Anda…",
     "waitingForPreviousSession": "Menunggu…",
     "waitingForPreviousSessionTitle": "Menunggu sesi sebelumnya berakhir. Klik untuk membatalkan.",
-    "clickToCancel": "Klik untuk membatalkan"
+    "clickToCancel": "Klik untuk membatalkan",
+    "whatIHear": "Yang saya dengar",
+    "audioSettings": "Pengaturan audio"
   },
   "modePicker": {
     "modeYou": "Saya",
@@ -962,6 +977,42 @@
       "cancel": "Batal",
       "accept": "Saya mengerti — hanya nonkomersial",
       "acceptRestricted": "Saya mengerti — saya menerima lisensinya"
+    },
+    "readingsDictionary": "Kamus cara baca (Jepang)",
+    "readingsDictionaryNotStored": "Diunduh saat cara baca Jepang diaktifkan di Tampilan.",
+    "page": {
+      "tag": {
+        "asr": "Pengenalan",
+        "translation": "Terjemahan",
+        "tts": "Suara",
+        "turn": "Akhir giliran",
+        "punctuation": "Kalimat dan tanda baca",
+        "readings": "Cara baca",
+        "voice": "Suara"
+      },
+      "manyLanguages": "Banyak bahasa",
+      "languages": "{{count}} bahasa",
+      "direct": "juga bisa langsung memberi terjemahan",
+      "downloading": "Mengunduh {{percent}}%",
+      "failed": "Unduhan gagal",
+      "cannotRun": "Komputer ini tidak bisa menjalankannya",
+      "notDownloaded": "Belum diunduh",
+      "download": "Unduh",
+      "listJoin": ", ",
+      "summary": "{{count}} diunduh, total {{size}}",
+      "import": "Impor model dari file",
+      "sessionTitle": "Model untuk sesi (layanan \"Perangkat ini\")",
+      "sessionHint": "Tahap yang diatur ke \"Perangkat ini\" di \"Bahasa dan susunan sesi\" memakai model yang diunduh di sini.",
+      "otherLanguages": "Model untuk bahasa lain ({{count}})",
+      "helpersTitle": "Model pembantu",
+      "helpersHint": "Model kecil yang tidak termasuk satu tahap mana pun.",
+      "turnMeta": "Mengenali kapan Anda selesai bicara; dinyalakan di opsi mode bicara",
+      "packMeta": "Membagi teks menjadi kalimat; ketiganya diunduh bersama",
+      "dictMeta": "Menampilkan cara baca Jepang; dinyalakan di \"Tampilan\"",
+      "voicesTitle": "Suara yang diimpor",
+      "voicesHint": "File suara Supertonic yang Anda impor.",
+      "importedOn": "Diimpor {{date}}",
+      "more": "{{count}} lagi"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Mengunduh kamus bahasa Jepang {{done}} / {{total}}",
       "readingsDownloadFailed": "Kamus bahasa Jepang tidak dapat diunduh.",
-      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi."
+      "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi.",
+      "defaultColour": "Bawaan"
     },
     "pttHint": "Tekan Spasi untuk berbicara"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Langsung mulai",
         "desc": "Kizuna AI menjalankan penerjemahan untuk Anda.",
-        "cost": "Daftar dengan alamat email Anda dan verifikasi — akun yang terverifikasi mendapat kredit uji coba. Setelah itu, Anda mengisi ulang saldo, dan biaya penerjemahan dihitung berdasarkan seberapa banyak Anda menggunakannya."
+        "cost": "Daftar dengan alamat email Anda dan verifikasi — akun yang terverifikasi mendapat kredit uji coba. Setelah itu, Anda mengisi ulang saldo, dan biaya penerjemahan dihitung berdasarkan seberapa banyak Anda menggunakannya.",
+        "options": {
+          "kizunaai_soniox": "Transkripsi waktu nyata, terjemahan cepat.",
+          "kizunaai_qwen": "Dapat melihat layar Anda; transkripsi dan terjemahan sangat akurat."
+        }
       },
       "own-key": {
         "title": "Saya punya kunci API sendiri",
@@ -1356,14 +1412,15 @@
         "cost": "Kunci Anda tetap berada di perangkat ini dan menjangkau penyedia langsung dari sini. Anda adalah pelanggan mereka: Anda membayar mereka sesuai penggunaan Anda, dan tidak ada yang melalui Kizuna AI."
       },
       "offline": {
-        "title": "Gratis, offline",
-        "desc": "Berjalan di perangkat Anda sendiri. Tidak ada yang keluar darinya.",
-        "cost": "Mengunduh model ke disk Anda (beberapa gigabyte). Berjalan baik dengan GPU dan VRAM yang cukup; hanya dengan CPU terasa jauh lebih lambat.",
+        "title": "Tanpa kunci",
+        "desc": "Gratis. Pengenalan berjalan di komputer ini; terjemahan memakai Bing dan ucapan memakai Edge, layanan daring Microsoft.",
+        "cost": "Pengenalan perlu mengunduh model ke disk terlebih dahulu. Lancar dengan GPU; terasa lebih lambat bila hanya CPU.",
         "native": "Mesin native — lebih cepat, menggunakan GPU Anda jika tersedia.",
         "wasm": "Mesin dalam aplikasi — berjalan di mana saja, lebih lambat."
       },
       "ownKeyNote": "Pilih penyedia tempat Anda memiliki akun. Masing-masing menerbitkan kuncinya sendiri:",
-      "ownKeyGuides": "panduan untuk setiap penyedia"
+      "ownKeyGuides": "panduan untuk setiap penyedia",
+      "managedPick": "Layanan hosting yang mana?"
     },
     "fit": {
       "cannotSpeak": "Penyedia ini tidak dapat menghasilkan terjemahan suara.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Buat akun",
       "signedIn": "Sudah masuk. Anda dapat melanjutkan.",
       "managedDesc": "Daftar dengan alamat email Anda dan verifikasi melalui kotak masuk Anda; akun yang terverifikasi mendapat kredit uji coba. Setelah itu, Anda mengisi ulang saldo dan hanya membayar sesuai penggunaan Anda.",
-      "offlineNotice": "Anda akan mengunduh model dari Pengaturan setelah menyelesaikan langkah-langkah ini. Ukurannya bisa mencapai beberapa gigabyte di disk. Sokuji berjalan baik dengan GPU dan VRAM yang cukup; jika hanya menggunakan CPU, kecepatannya terasa lebih lambat.",
-      "pendingKey": "Anda dapat menambahkan kunci ini nanti di Pengaturan → Penyedia. Mulai akan tetap terkunci hingga kunci divalidasi.",
+      "offlineNotice": "Model pengenalan diunduh setelah penyiapan, dari Pengaturan → Model dan penyimpanan. Terjemahan memakai Bing dan ucapan memakai Edge: tidak ada yang diunduh dan tanpa akun; teks yang diterjemahkan dan terjemahan yang dibacakan dikirim ke Microsoft.",
+      "pendingKey": "Anda dapat menambahkan kunci nanti di Pengaturan → Akun dan kunci. Mulai tetap terkunci sampai kunci tervalidasi.",
       "pendingSignIn": "Anda dapat masuk nanti melalui tombol Akun. Mulai akan tetap terkunci sampai saat itu.",
       "ownKeyDesc": "Kunci ini hanya disimpan di perangkat ini, dan aplikasi memanggil penyedia langsung dari sini — kunci ini tidak pernah sampai ke Kizuna AI. Anda membayar penyedia sesuai penggunaan Anda.",
       "guide": "Cara mendapatkan kunci ini",
       "verifyEmail": "Sudah masuk. Buka tautan yang kami kirim ke email Anda untuk memverifikasi alamat Anda — kredit uji coba akan diberikan setelah itu.",
-      "onFile": "Kunci sudah tersimpan — biarkan kosong untuk mempertahankannya."
+      "onFile": "Kunci sudah tersimpan — biarkan kosong untuk mempertahankannya.",
+      "offlineHardware": "Sokuji berjalan lancar dengan GPU dan VRAM yang cukup; hanya dengan CPU terasa jauh lebih lambat.",
+      "openaiOneKey": "Satu kunci ini dipakai untuk OpenAI Realtime, Translate, dan Live."
     },
     "summary": {
       "scenario": "Skenario",
       "mode": "Mode",
       "provider": "Penyedia",
       "languages": "Bahasa",
-      "pendingKey": "Belum ada kunci API — tambahkan di Pengaturan → Penyedia sebelum Anda memulai.",
+      "pendingKey": "Belum ada kunci API — tambahkan di Pengaturan → Akun dan kunci sebelum mulai.",
       "pendingSignIn": "Belum masuk — masuk melalui tombol Akun sebelum Anda memulai.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Susunan"
+    },
+    "lineup": {
+      "title": "Susunan yang disiapkan",
+      "later": "Setiap tahap dapat diubah nanti di Pengaturan → Bahasa dan susunan."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Pengaturan Penyedia",
-        "content": "Ubah kunci Anda atau ganti penyedia di sini.",
+        "content": "Ubah kunci Anda di sini.",
         "content_pending": "Tempel kunci API Anda di sini. Tombol Mulai aktif setelah kunci divalidasi."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Sekian",
-        "content": "Pengaturan lanjutan — deteksi ucapan, prompt, suara, log — ada di balik sakelar Lanjutan di pojok kanan atas Pengaturan. Putar ulang panduan ini kapan saja dari Bantuan."
+        "content": "Semua yang lain ada di Pengaturan, per kategori; pencarian menemukan pengaturan apa pun dari namanya. Putar ulang panduan ini kapan saja dari Bantuan."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Tidak dapat dijangkau",
     "switch": "Beralih",
     "keep": "Tetap di {{region}}"
+  },
+  "settingsPage": {
+    "title": "Pengaturan",
+    "search": "Cari pengaturan",
+    "back": "Kembali ke sesi",
+    "backToList": "Kembali ke daftar",
+    "changeable": "Dapat diubah selama sesi",
+    "lockedNote": "Terkunci selama sesi",
+    "partlyLocked": "Sebagian terkunci selama sesi",
+    "lockedLine": "Sesi sedang berjalan. Bahasa, susunan, daftar kata, dan kunci terkunci; audio, tampilan, dan lainnya dapat diubah.",
+    "categories": {
+      "lineup": "Bahasa dan susunan",
+      "words": "Daftar kata dan latar",
+      "accounts": "Akun dan kunci",
+      "models": "Model dan penyimpanan",
+      "audio": "Audio",
+      "display": "Tampilan",
+      "history": "Riwayat dan catatan",
+      "general": "Umum"
+    },
+    "groups": {
+      "session": "Sesi",
+      "providers": "Penyedia dan model",
+      "devices": "Perangkat dan tampilan",
+      "data": "Data",
+      "app": "Aplikasi"
+    },
+    "words": {
+      "lineup": "bahasa, mode bicara, tekan untuk bicara, transkripsi, terjemahan, ucapan, suara, penyedia, model, susunan",
+      "words": "daftar kata, istilah, glosarium, latar",
+      "accounts": "akun, masuk, kunci API, kunci, kredensial, saldo",
+      "models": "model, unduh, penyimpanan, hapus, disk",
+      "audio": "mikrofon, peredam bising, gema, speaker, headphone, monitor, passthrough, mikrofon virtual, audio sistem",
+      "display": "fon, ukuran, warna, ringkas, subtitel, takarir, pratinjau",
+      "history": "riwayat, catatan, folder, simpan otomatis",
+      "general": "bahasa antarmuka, tampilan, tema, pembaruan, log, penyiapan, bantuan, versi"
+    },
+    "accounts": {
+      "addKey": "Tambahkan kunci",
+      "keySaved": "Kunci tersimpan",
+      "local": "Berjalan di komputer ini",
+      "needsKey": "Perlu kunci",
+      "online": "Tidak perlu kunci; daring, layanan Microsoft",
+      "signedIn": "Sudah masuk",
+      "signedOut": "Belum masuk",
+      "together": "bersama",
+      "view": "Lihat",
+      "hide": "Sembunyikan",
+      "endToEnd": "Ujung ke ujung",
+      "transcribeTranslate": "Transkripsi dan terjemahan",
+      "signedInBalance": "Sudah masuk; saldo {{amount}}",
+      "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
+      "localNone": "Berjalan di komputer ini; belum ada model yang diunduh"
+    },
+    "lineup": {
+      "title": "Susunan",
+      "stages": {
+        "transcription": "Transkripsi",
+        "translation": "Terjemahan",
+        "speech": "Ucapan",
+        "summarisation": "Catatan"
+      },
+      "and": " dan ",
+      "joint": "Berjalan bersama {{stages}} lewat satu koneksi; keduanya berubah bersama.",
+      "granite": "Bersama terjemahan: Granite Speech mengubah ucapan langsung menjadi terjemahan.",
+      "moved": "{{stages}} juga pindah ke {{providers}}: saat ini tidak dapat digabung dengan pilihan ini. Pencampuran menyusul nanti.",
+      "needsKey": "perlu kunci",
+      "needsSignIn": "perlu masuk",
+      "options": "Opsi {{provider}}",
+      "state": {
+        "needsKey": "Perlu kunci",
+        "needsModel": "Perlu model",
+        "needsSignIn": "Perlu masuk",
+        "ready": "Siap"
+      },
+      "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
+      "hint": "Layanan mana yang mengerjakan tiap tahap",
+      "uses": {
+        "turn": "Akhir ucapan",
+        "key": "Tombol",
+        "space": "Spasi",
+        "released": "Setelah dilepas",
+        "releasedValue": "potongan itu dikirim untuk diterjemahkan",
+        "notHeld": "Saat tidak ditahan",
+        "notHeldValue": "suara Anda langsung ke pihak lain tanpa diterjemahkan"
+      },
+      "actsOn": "Berlaku untuk {{stages}}",
+      "pointer": "Opsi yang berlaku untuk {{stages}} ada di kartu \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Suara disimpan per bahasa: ini suara untuk pasangan bahasa ini.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Tampilan mana",
+      "main": "Jendela utama",
+      "captions": "Mode subtitle",
+      "compact": "Tampilan ringkas",
+      "fontSize": "Ukuran teks",
+      "smaller": "Teks lebih kecil",
+      "larger": "Teks lebih besar",
+      "modes": {
+        "both": "Asli dan terjemahan",
+        "source": "Hanya asli",
+        "translation": "Hanya terjemahan",
+        "none": "Tidak ada"
+      },
+      "mineSide": "Yang ditampilkan dari sisi saya",
+      "theirsSide": "Yang ditampilkan dari pihak lain",
+      "previewMain": "Pratinjau: percakapan di jendela utama",
+      "previewCaptions": "Pratinjau: mode subtitle, di atas jendela lain",
+      "empty": "Saat ini tidak ada yang tampil di sini: kedua sisi disetel ke \"Tidak ada\"."
+    },
+    "intro": {
+      "accounts": "Akun dan kunci: setiap layanan diisi sekali saja. Setelah itu, tugasnya dipilih di “Bahasa dan susunan”.",
+      "models": "Semua model yang diunduh ke komputer ini dikelola di sini: yang dipakai sesi, model pendukung, dan suara impor.",
+      "audio": "Mikrofon, ucapan, dan audio pihak lain. Semuanya bisa diubah selama sesi, kecuali “Terjemahan yang didengar pihak lain”.",
+      "display": "Nilai yang sama dengan tombol di atas percakapan dan di bilah subtitel: diubah di mana pun, langsung berlaku. Jendela utama dan mode subtitel punya nilainya sendiri."
+    },
+    "audio": {
+      "micHint": "Dari mana suara saya masuk",
+      "otherHint": "Dari mana suara pihak lain masuk",
+      "device": "Perangkat",
+      "source": "Sumber",
+      "flow": {
+        "myMic": "Mikrofon saya",
+        "toSpeech": "Jadi suara",
+        "toThem": "Mikrofon virtual → pihak lain",
+        "theirVoice": "Suara pihak lain",
+        "myDevice": "Perangkat pemutar saya",
+        "caption": "Ke mana suara pergi. Garis terang sedang aktif, garis putus-putus tidak; mengikuti sakelar di bawah.",
+        "aria": "Ke mana suara pergi: yang saya ucapkan, jadi suara, masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain, jadi suara, diputar di perangkat pemutar saya."
+      }
+    },
+    "general": {
+      "basics": "Pengaturan dasar",
+      "maintenance": "Pemeliharaan dan bantuan",
+      "update": "Pembaruan",
+      "updateLine": "Anda memakai {{version}}.",
+      "version": "Versi",
+      "storeUpdates": "Toko browser menjaga ekstensi tetap terbaru.",
+      "wizard": "Wizard penyiapan",
+      "wizardLine": "Jalani wizard sekali lagi; yang sudah tersimpan langsung terpilih.",
+      "rerun": "Jalankan lagi",
+      "guide": "Panduan",
+      "guideLine": "Tips langkah demi langkah di layar utama.",
+      "restart": "Mulai lagi",
+      "needHelp": "Butuh bantuan:"
+    }
   }
 }

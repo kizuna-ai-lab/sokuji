@@ -1,5 +1,3 @@
-export { default as ProviderSection } from './ProviderSection';
-export { default as LanguageSection } from './LanguageSection';
 export { default as SentenceSegmentationSection } from './SentenceSegmentationSection';
 export { default as AudioDeviceSection } from './AudioDeviceSection';
 export { default as SystemAudioSection } from './SystemAudioSection';

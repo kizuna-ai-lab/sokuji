@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" chỉ xuất hiện trong danh sách đó sau khi đã thử thu một lần, và điều đó vừa xảy ra. Sau khi bật, hãy bắt đầu lại phiên. Nếu nguồn chỉ đơn giản là im lặng thì không cần thay đổi gì.",
-    "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu."
+    "otherSideBesideNote": "Người kia dùng chung micro với bạn; âm thanh hệ thống không được thu.",
+    "captionMine": "Điều tôi nói, thành tiếng",
+    "captionTheirs": "Điều phía bên kia nói, thành tiếng",
+    "defaultPlaybackAid": "Âm thanh phía tôi phát ở đây, trừ khi một hàng chọn thiết bị riêng; âm thanh có thiết bị riêng bị rút ra cũng phát ở đây.",
+    "captionReplay": "Phát lại"
   },
   "auth": {
     "signIn": "Đăng nhập",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Đánh số những người ở phía bên kia — Người nói 1, Người nói 2… — khi nghe thấy nhiều hơn một giọng.\n\nCó thể nhầm một người thành nhiều người. Đã tắt: không hiển thị số.\n\nÁp dụng từ phiên tiếp theo."
     },
     "local_inference": {
-      "name": "Miễn phí",
-      "description": "Nhận dạng giọng nói miễn phí (ASR) + Dịch + Tổng hợp giọng nói (TTS)",
+      "name": "Thiết bị này",
+      "description": "Dùng được sau khi tải các mô hình về máy tính này; lần đầu cần tải vài GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Miễn phí · ngoại tuyến"
     },
     "local_native": {
       "name": "Miễn phí (Native)",
@@ -608,7 +613,15 @@
       "name": "Không rõ",
       "description": "Nhà cung cấp không rõ"
     },
-    "poweredBy": "Được hỗ trợ bởi <brand>{{name}}</brand>"
+    "poweredBy": "Được hỗ trợ bởi <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Miễn phí · trực tuyến, dịch vụ của Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Miễn phí · trực tuyến, dịch vụ của Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Tự động cuộn: Bật",
@@ -739,7 +752,9 @@
     "preparingVoice": "Đang chuẩn bị giọng nói của bạn…",
     "waitingForPreviousSession": "Đang chờ…",
     "waitingForPreviousSessionTitle": "Đang chờ phiên trước kết thúc. Nhấp để hủy.",
-    "clickToCancel": "Nhấp để hủy"
+    "clickToCancel": "Nhấp để hủy",
+    "whatIHear": "Những gì tôi nghe",
+    "audioSettings": "Cài đặt âm thanh"
   },
   "modePicker": {
     "modeYou": "Tôi",
@@ -962,6 +977,42 @@
       "cancel": "Hủy",
       "accept": "Tôi hiểu — chỉ dùng phi thương mại",
       "acceptRestricted": "Tôi hiểu — chấp nhận giấy phép"
+    },
+    "readingsDictionary": "Từ điển cách đọc (tiếng Nhật)",
+    "readingsDictionaryNotStored": "Được tải xuống khi bật cách đọc tiếng Nhật trong Hiển thị.",
+    "page": {
+      "tag": {
+        "asr": "Nhận dạng",
+        "translation": "Dịch",
+        "tts": "Giọng nói",
+        "turn": "Kết thúc lượt",
+        "punctuation": "Câu và dấu câu",
+        "readings": "Cách đọc",
+        "voice": "Giọng"
+      },
+      "manyLanguages": "Nhiều ngôn ngữ",
+      "languages": "{{count}} ngôn ngữ",
+      "direct": "cũng có thể cho bản dịch trực tiếp",
+      "downloading": "Đang tải {{percent}}%",
+      "failed": "Tải xuống thất bại",
+      "cannotRun": "Máy tính này không chạy được",
+      "notDownloaded": "Chưa tải",
+      "download": "Tải xuống",
+      "listJoin": ", ",
+      "summary": "Đã tải {{count}} mục, tổng {{size}}",
+      "import": "Nhập mô hình từ tệp",
+      "sessionTitle": "Mô hình cho phiên (dịch vụ \"Thiết bị này\")",
+      "sessionHint": "Các khâu đặt \"Thiết bị này\" trong \"Ngôn ngữ và thành phần phiên\" dùng các mô hình đã tải ở đây.",
+      "otherLanguages": "Mô hình cho ngôn ngữ khác ({{count}})",
+      "helpersTitle": "Mô hình phụ trợ",
+      "helpersHint": "Các mô hình nhỏ không thuộc khâu nào.",
+      "turnMeta": "Nhận biết khi bạn nói xong; bật trong tùy chọn chế độ giọng nói",
+      "packMeta": "Chia văn bản thành câu; cả ba được tải cùng lúc",
+      "dictMeta": "Hiển thị cách đọc tiếng Nhật; bật trong \"Hiển thị\"",
+      "voicesTitle": "Giọng đã nhập",
+      "voicesHint": "Các tệp giọng Supertonic bạn đã nhập.",
+      "importedOn": "Đã nhập ngày {{date}}",
+      "more": "Thêm {{count}}"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Đang tải từ điển tiếng Nhật {{done}} / {{total}}",
       "readingsDownloadFailed": "Không thể tải từ điển tiếng Nhật.",
-      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động."
+      "readingsFailed": "Cách đọc tiếng Nhật không hoạt động.",
+      "defaultColour": "Mặc định"
     },
     "pttHint": "Nhấn Phím cách để nói"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Bắt đầu ngay",
         "desc": "Kizuna AI thực hiện việc dịch giúp bạn.",
-        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng."
+        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng.",
+        "options": {
+          "kizunaai_soniox": "Chép lời theo thời gian thực, dịch nhanh.",
+          "kizunaai_qwen": "Có thể nhìn màn hình của bạn; chép lời và dịch rất chính xác."
+        }
       },
       "own-key": {
         "title": "Tôi có khóa API riêng",
@@ -1356,14 +1412,15 @@
         "cost": "Khóa của bạn ở lại trên thiết bị này và gửi thẳng đến nhà cung cấp từ đây. Bạn là khách hàng của họ: bạn trả tiền cho họ theo mức sử dụng, và không có gì đi qua Kizuna AI."
       },
       "offline": {
-        "title": "Miễn phí, ngoại tuyến",
-        "desc": "Chạy trên chính máy của bạn. Không có gì rời khỏi máy.",
-        "cost": "Tải mô hình xuống ổ đĩa của bạn (vài GB). Chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
+        "title": "Không cần khóa",
+        "desc": "Miễn phí. Nhận dạng chạy trên máy tính này; dịch dùng Bing và giọng nói dùng Edge, là các dịch vụ trực tuyến của Microsoft.",
+        "cost": "Nhận dạng cần tải mô hình xuống ổ đĩa trước. Chạy tốt khi có GPU; chậm rõ rệt nếu chỉ dùng CPU.",
         "native": "Công cụ Native — nhanh hơn, dùng GPU nếu có.",
         "wasm": "Công cụ trong ứng dụng — hoạt động mọi nơi, chậm hơn."
       },
       "ownKeyNote": "Chọn nhà cung cấp mà bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
-      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp"
+      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp",
+      "managedPick": "Dùng dịch vụ lưu trữ nào?"
     },
     "fit": {
       "cannotSpeak": "Nhà cung cấp này không thể tạo bản dịch bằng giọng nói.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Tạo tài khoản",
       "signedIn": "Đã đăng nhập. Bạn có thể tiếp tục.",
       "managedDesc": "Đăng ký bằng địa chỉ email và xác minh qua hộp thư của bạn; tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư và chỉ trả tiền theo mức sử dụng.",
-      "offlineNotice": "Các mô hình được tải xuống sau khi cài đặt, từ Cài đặt. Chúng chiếm vài GB dung lượng ổ đĩa. Sokuji chạy tốt với GPU và đủ VRAM; chỉ dùng CPU sẽ chậm hơn rõ rệt.",
-      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Nhà cung cấp. Bắt đầu vẫn bị khóa cho đến khi khóa được xác thực.",
+      "offlineNotice": "Mô hình nhận dạng được tải xuống sau khi thiết lập, trong Cài đặt → Mô hình và bộ nhớ. Dịch dùng Bing và giọng nói dùng Edge: không cần tải gì và không cần tài khoản; văn bản cần dịch và bản dịch cần đọc được gửi tới Microsoft.",
+      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Tài khoản và khóa. Nút bắt đầu bị khóa cho đến khi khóa được xác thực.",
       "pendingSignIn": "Bạn có thể đăng nhập sau từ nút tài khoản. Bắt đầu vẫn bị khóa cho đến khi đó.",
       "ownKeyDesc": "Khóa này chỉ được lưu trên thiết bị này, và ứng dụng gọi trực tiếp đến nhà cung cấp từ đây — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức sử dụng.",
       "guide": "Cách lấy khóa này",
       "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi đã gửi qua email để xác minh địa chỉ của bạn — tín dụng dùng thử sẽ được cấp ngay khi bạn hoàn tất.",
-      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên."
+      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên.",
+      "offlineHardware": "Sokuji chạy tốt khi có GPU và đủ VRAM; chỉ dùng CPU sẽ chậm rõ rệt.",
+      "openaiOneKey": "Một khóa này dùng chung cho OpenAI Realtime, Translate và Live."
     },
     "summary": {
       "scenario": "Kịch bản",
       "mode": "Chế độ",
       "provider": "Nhà cung cấp",
       "languages": "Ngôn ngữ",
-      "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Nhà cung cấp trước khi bắt đầu.",
+      "pendingKey": "Chưa có khóa API — hãy thêm trong Cài đặt → Tài khoản và khóa trước khi bắt đầu.",
       "pendingSignIn": "Chưa đăng nhập — hãy đăng nhập từ nút tài khoản trước khi bắt đầu.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Cách phối hợp"
+    },
+    "lineup": {
+      "title": "Cách phối hợp sẽ được thiết lập",
+      "later": "Bạn có thể đổi từng bước sau trong Cài đặt → Ngôn ngữ và cách phối hợp."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Cài đặt nhà cung cấp",
-        "content": "Thay đổi khóa hoặc chuyển nhà cung cấp ở đây.",
+        "content": "Đổi khóa của bạn tại đây.",
         "content_pending": "Dán khóa API của bạn vào đây. Bắt đầu sẽ mở khóa khi khóa được xác thực."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Vậy là xong",
-        "content": "Cài đặt nâng cao — phát hiện giọng nói, prompt, giọng nói, nhật ký — nằm sau công tắc Nâng cao ở góc trên bên phải của Cài đặt. Xem lại hướng dẫn này bất cứ lúc nào từ Trợ giúp."
+        "content": "Mọi thứ khác nằm trong Cài đặt, theo từng mục; tìm kiếm tìm được mọi cài đặt theo tên. Xem lại hướng dẫn này bất cứ lúc nào từ Trợ giúp."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Không kết nối được",
     "switch": "Chuyển",
     "keep": "Giữ {{region}}"
+  },
+  "settingsPage": {
+    "title": "Cài đặt",
+    "search": "Tìm trong cài đặt",
+    "back": "Quay lại phiên",
+    "backToList": "Quay lại danh sách",
+    "changeable": "Có thể thay đổi trong phiên",
+    "lockedNote": "Bị khóa trong phiên",
+    "partlyLocked": "Bị khóa một phần trong phiên",
+    "lockedLine": "Đang có một phiên. Ngôn ngữ, cách phối hợp, danh sách từ và khóa bị khóa; âm thanh, hiển thị và các mục khác vẫn đổi được.",
+    "categories": {
+      "lineup": "Ngôn ngữ và cách phối hợp",
+      "words": "Danh sách từ và bối cảnh",
+      "accounts": "Tài khoản và khóa",
+      "models": "Mô hình và bộ nhớ",
+      "audio": "Âm thanh",
+      "display": "Hiển thị",
+      "history": "Lịch sử và ghi chú",
+      "general": "Chung"
+    },
+    "groups": {
+      "session": "Phiên",
+      "providers": "Nhà cung cấp và mô hình",
+      "devices": "Thiết bị và hiển thị",
+      "data": "Dữ liệu",
+      "app": "Ứng dụng"
+    },
+    "words": {
+      "lineup": "ngôn ngữ, chế độ nói, nhấn để nói, chép lời, dịch, giọng nói, giọng, nhà cung cấp, mô hình, cách phối hợp",
+      "words": "danh sách từ, thuật ngữ, bảng thuật ngữ, bối cảnh",
+      "accounts": "tài khoản, đăng nhập, khóa API, khóa, thông tin xác thực, số dư",
+      "models": "mô hình, tải xuống, bộ nhớ, xóa, ổ đĩa",
+      "audio": "micrô, khử ồn, tiếng vang, loa, tai nghe, nghe lại, truyền thẳng, micrô ảo, âm thanh hệ thống",
+      "display": "phông chữ, cỡ chữ, màu, gọn, phụ đề, chú thích, xem trước",
+      "history": "lịch sử, ghi chú, thư mục, tự động lưu",
+      "general": "ngôn ngữ giao diện, giao diện, chủ đề, cập nhật, nhật ký, thiết lập, trợ giúp, phiên bản"
+    },
+    "accounts": {
+      "addKey": "Thêm khóa",
+      "keySaved": "Đã lưu khóa",
+      "local": "Chạy trên máy tính này",
+      "needsKey": "Cần khóa",
+      "online": "Không cần khóa; trực tuyến, dịch vụ của Microsoft",
+      "signedIn": "Đã đăng nhập",
+      "signedOut": "Chưa đăng nhập",
+      "together": "cùng nhau",
+      "view": "Xem",
+      "hide": "Ẩn",
+      "endToEnd": "Đầu cuối",
+      "transcribeTranslate": "Phiên âm và dịch",
+      "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
+      "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
+      "localNone": "Chạy trên máy này; chưa tải mô hình nào"
+    },
+    "lineup": {
+      "title": "Cách phối hợp",
+      "stages": {
+        "transcription": "Chép lời",
+        "translation": "Dịch",
+        "speech": "Giọng nói",
+        "summarisation": "Ghi chú"
+      },
+      "and": " và ",
+      "joint": "Đi cùng {{stages}} qua một kết nối; chúng đổi cùng nhau.",
+      "granite": "Cùng với dịch: Granite Speech chuyển thẳng lời nói thành bản dịch.",
+      "moved": "{{stages}} cũng chuyển sang {{providers}}: hiện chưa thể kết hợp với lựa chọn này. Việc phối trộn sẽ có sau.",
+      "needsKey": "cần khóa",
+      "needsSignIn": "cần đăng nhập",
+      "options": "Tùy chọn của {{provider}}",
+      "state": {
+        "needsKey": "Cần khóa",
+        "needsModel": "Cần mô hình",
+        "needsSignIn": "Cần đăng nhập",
+        "ready": "Sẵn sàng"
+      },
+      "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
+      "hint": "Dịch vụ nào làm từng khâu",
+      "uses": {
+        "turn": "Kết thúc câu",
+        "key": "Phím",
+        "space": "Phím cách",
+        "released": "Khi thả ra",
+        "releasedValue": "đoạn đó được gửi đi dịch",
+        "notHeld": "Khi không giữ",
+        "notHeldValue": "giọng của bạn đến thẳng phía bên kia, không dịch"
+      },
+      "actsOn": "Áp dụng cho {{stages}}",
+      "pointer": "Các tùy chọn áp dụng cho {{stages}} nằm trong thẻ \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Giọng được lưu theo từng ngôn ngữ: đây là giọng của cặp ngôn ngữ này.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Hiển thị nào",
+      "main": "Cửa sổ chính",
+      "captions": "Chế độ phụ đề",
+      "compact": "Chế độ thu gọn",
+      "fontSize": "Cỡ chữ",
+      "smaller": "Chữ nhỏ hơn",
+      "larger": "Chữ lớn hơn",
+      "modes": {
+        "both": "Bản gốc và bản dịch",
+        "source": "Chỉ bản gốc",
+        "translation": "Chỉ bản dịch",
+        "none": "Không hiển thị"
+      },
+      "mineSide": "Phía tôi hiển thị gì",
+      "theirsSide": "Phía bên kia hiển thị gì",
+      "previewMain": "Xem trước: cuộc trò chuyện trong cửa sổ chính",
+      "previewCaptions": "Xem trước: chế độ phụ đề, nằm trên một cửa sổ khác",
+      "empty": "Hiện không có gì hiển thị ở đây: cả hai phía đều đang đặt là \"Không hiển thị\"."
+    },
+    "intro": {
+      "accounts": "Tài khoản và khóa: mỗi dịch vụ chỉ cần điền một lần. Sau đó, việc nó làm được chọn trong “Ngôn ngữ và cách phối hợp”.",
+      "models": "Mọi mô hình đã tải về máy này đều được quản lý ở đây: mô hình cho phiên, mô hình phụ trợ và giọng đã nhập.",
+      "audio": "Micrô, giọng nói và âm thanh của phía bên kia. Mọi thứ đều đổi được trong phiên, trừ “Bản dịch phía bên kia nghe”.",
+      "display": "Cùng giá trị với các nút phía trên cuộc hội thoại và trên thanh phụ đề: đổi ở đâu cũng vậy, có hiệu lực ngay. Cửa sổ chính và chế độ phụ đề có giá trị riêng."
+    },
+    "audio": {
+      "micHint": "Giọng tôi đi vào từ đâu",
+      "otherHint": "Giọng phía bên kia đi vào từ đâu",
+      "device": "Thiết bị",
+      "source": "Nguồn",
+      "flow": {
+        "myMic": "Micrô của tôi",
+        "toSpeech": "Thành giọng nói",
+        "toThem": "Micrô ảo → phía bên kia",
+        "theirVoice": "Giọng phía bên kia",
+        "myDevice": "Thiết bị phát của tôi",
+        "caption": "Âm thanh đi đâu. Đường sáng là đang bật, đường nét đứt là tắt; thay đổi theo các công tắc bên dưới.",
+        "aria": "Âm thanh đi đâu: điều tôi nói được chuyển thành giọng nói, đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được chuyển thành giọng nói và phát trên thiết bị phát của tôi."
+      }
+    },
+    "general": {
+      "basics": "Cài đặt cơ bản",
+      "maintenance": "Bảo trì và trợ giúp",
+      "update": "Cập nhật",
+      "updateLine": "Bạn đang dùng {{version}}.",
+      "version": "Phiên bản",
+      "storeUpdates": "Cửa hàng của trình duyệt tự cập nhật tiện ích.",
+      "wizard": "Trình hướng dẫn thiết lập",
+      "wizardLine": "Đi lại trình hướng dẫn; những gì đã lưu được chọn sẵn.",
+      "rerun": "Chạy lại",
+      "guide": "Hướng dẫn",
+      "guideLine": "Gợi ý từng bước trên màn hình chính.",
+      "restart": "Bắt đầu lại",
+      "needHelp": "Cần trợ giúp:"
+    }
   }
 }

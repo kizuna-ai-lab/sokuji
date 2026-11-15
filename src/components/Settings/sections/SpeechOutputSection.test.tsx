@@ -43,19 +43,8 @@ vi.mock('../../../utils/environment', async (importOriginal) => ({
   isWindows: () => env.os === 'win',
   isLinux: () => env.os === 'linux',
 }));
-// Each row's help text, as the section hands it to the tooltip.
-const tooltips = vi.hoisted(() => [] as unknown[]);
-vi.mock('../../Tooltip/Tooltip', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../Tooltip/Tooltip')>();
-  const Real = actual.default;
-  return {
-    ...actual,
-    default: (props: React.ComponentProps<typeof Real>) => {
-      tooltips.push(props.content);
-      return Real(props);
-    },
-  };
-});
+// Each row's help text, as the page writes it under the row's label (mock v18).
+const tooltips = () => Array.from(document.querySelectorAll('.setting-row__desc')).map((el) => el.textContent);
 const preview = vi.hoisted(() => vi.fn(async (_outlet: string) => {}));
 vi.mock('../../../lib/audio/appAudio', () => ({ getAppAudio: async () => ({ earPreview: preview }) }));
 vi.mock('../../VbCable/VbCableNotice', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`vbcable-${variant}`} /> }));
@@ -84,7 +73,6 @@ const pick = (id: string) => useProviderStore.setState({
 beforeEach(() => {
   shapeOverride.provider = null;
   runSpeech.value = null;
-  tooltips.length = 0;
   env.platform = 'electron';
   env.os = 'mac';
   preview.mockClear();
@@ -102,7 +90,8 @@ beforeEach(() => {
 });
 
 const mount = (isSessionActive = false) => render(<SpeechOutputSection isSessionActive={isSessionActive} />);
-const row = (label: string) => screen.getByText(label).closest('.setting-row') as HTMLElement;
+// The row named so (the drawing above the rows repeats some names).
+const row = (label: string) => screen.getByText(label, { selector: '.setting-row__label' }).closest('.setting-row') as HTMLElement;
 const sw = (label: string) => screen.getByRole('switch', { name: label });
 const greyed = (label: string) => row(label).classList.contains('setting-row--greyed');
 
@@ -113,7 +102,8 @@ describe('SpeechOutputSection — the rows', () => {
     expect(screen.getByRole('heading', { name: /Speech/ })).toBeInTheDocument();
     const labels = Array.from(document.querySelectorAll('.setting-row__label')).map((el) => el.textContent);
     expect(labels).toEqual(['Default playback device', 'Translation the other side hears', 'I hear it too', 'Passthrough', 'Translation I hear', 'Keep spoken translations for replay']);
-    expect(document.querySelectorAll('.setting-row__head .tooltip-trigger')).toHaveLength(6);
+    expect(document.querySelectorAll('.setting-row--inline .setting-row__desc')).toHaveLength(6);
+    expect(document.querySelectorAll('.tooltip-trigger')).toHaveLength(0);
   });
 
   it('refreshes the device lists from the heading button, once per click', () => {
@@ -210,12 +200,14 @@ describe('SpeechOutputSection — the rows', () => {
     expect(greyed('Keep spoken translations for replay')).toBe(false);
   });
 
-  it('Passthrough: its switch, a slider labelled Volume N%, and the push-to-translate lock', () => {
+  it('Passthrough: its switch, a slider with its percent, and the push-to-translate lock', () => {
     mount();
     expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
     const slider = within(row('Passthrough')).getByRole('slider') as HTMLInputElement;
     expect(slider.max).toBe('0.6');
-    expect(within(row('Passthrough')).getByText('Volume 20%')).toBeInTheDocument();
+    // The slider as Display's background opacity draws it (owner 2026-11-15): the native track, the percent on its right.
+    expect(slider).not.toHaveClass('slider');
+    expect(within(row('Passthrough')).getByText('20%')).toHaveClass('setting-value');
     fireEvent.change(slider, { target: { value: '0.4' } });
     expect(useAudioStore.getState().realVoicePassthroughVolume).toBeCloseTo(0.4);
     fireEvent.click(sw('Passthrough'));
@@ -360,8 +352,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     expect(screen.getByText(/Use headphones, one side each/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Preview/ })).toHaveLength(2);
     // Each row's help says where that language's translation plays, not what the row is in a meeting.
-    expect(tooltips).toContain('The English translation plays here: choose the device and side (left or right) the English listener wears.');
-    expect(tooltips).toContain('The Japanese translation plays here: choose the device and side (left or right) the Japanese listener wears.');
+    expect(tooltips()).toContain('The English translation plays here: choose the device and side (left or right) the English listener wears.');
+    expect(tooltips()).toContain('The Japanese translation plays here: choose the device and side (left or right) the Japanese listener wears.');
   });
 
   it('Both · beside me: an auto source keeps the generic name and tooltip, since it names no language', () => {
@@ -370,7 +362,7 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     mount();
     expect(row('English translation plays on')).toBeInTheDocument();
     expect(row('Translation I hear')).toBeInTheDocument();
-    expect(tooltips).toContain('What the other side says, translated and read aloud to me.');
+    expect(tooltips()).toContain('What the other side says, translated and read aloud to me.');
   });
 
   it('the preview plays on the row\'s outlet whatever its switch (Review Focus 3)', async () => {
@@ -416,8 +408,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
     shapeOverride.provider = { id: 'x', speech: 'optional', participantSpeech: false };
     mount();
     expect(sw('Translation I hear')).toHaveAttribute('aria-disabled', 'true');
-    expect(tooltips).toContain("This service does not speak the other side's translation.");
-    expect(tooltips).not.toContain('What the other side says, translated and read aloud to me.');
+    expect(tooltips()).toContain("This service does not speak the other side's translation.");
+    expect(tooltips()).not.toContain('What the other side says, translated and read aloud to me.');
     expect(screen.getAllByText(/All system sound is being captured/)).toHaveLength(1);
   });
 });
@@ -457,11 +449,11 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(voiceLine('Translation I hear')).toBeNull();
   });
 
-  it('the name opens the voice settings, switching Quick to Advanced first; a run leaves it usable', () => {
+  it('the name opens the voice settings and no longer switches the settings layout; a run leaves it usable', () => {
     useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null });
     mount(true);
     fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Adrian' }));
-    expect(useSettingsStore.getState().uiMode).toBe('advanced');
+    expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('voice-settings');
   });
 
@@ -471,7 +463,7 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(document.querySelector('.setting-row__voice')).toBeNull();
   });
 
-  it("for a provider whose voices sit in its engine, the name opens that leg's TTS slot, without leaving Quick (#619)", () => {
+  it("for a provider whose voices sit in its engine, the name opens that leg's TTS slot in the provider's options (#619)", () => {
     useProviderStore.setState({
       selected: 'local_inference',
       entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { edge: 'en-US-AvaNeural' } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
@@ -482,7 +474,7 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Ava' }));
     expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');
   });
 });
 
@@ -543,5 +535,61 @@ describe('SpeechOutputSection — VB-CABLE on Windows (spec 2026-10-17 §4)', ()
     useAudioStore.setState({ devicesLoaded: true, audioMonitorDevices: [SPEAKERS], selectedMonitorDevice: SPEAKERS });
     mount();
     expect(screen.queryByTestId('vbcable-row')).toBeNull();
+  });
+});
+
+describe('SpeechOutputSection — the aids (providers and stages design, section 8)', () => {
+  it('names the two groups of speech rows and explains the default playback device', () => {
+    mount();
+    const mine = screen.getByText('What I say, as speech');
+    const theirs = screen.getByText('What the other side says, as speech');
+    const otherRow = row('Translation the other side hears');
+    const themRow = row('Translation I hear');
+    expect(mine.compareDocumentPosition(otherRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(theirs.compareDocumentPosition(themRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(otherRow.compareDocumentPosition(theirs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/Sounds on my side play here unless a row names its own device/)).toBeInTheDocument();
+  });
+});
+
+
+// The mock's audio page (v18): a plain heading with its hint; the rows in one card, under the mock's captions.
+describe('SpeechOutputSection — as the mock draws it', () => {
+  it('heads the section with its name and hint, no icon or help mark', () => {
+    mount();
+    const heading = screen.getByRole('heading', { name: /Speech/ });
+    expect(heading).toHaveTextContent('Which translations are spoken, to whom, and on which device.');
+    expect(heading.querySelector('svg:not(.lucide-refresh-cw)')).toBeNull();
+  });
+
+  it('puts the rows in one card, under the captions for my speech, the other side\'s and replay', () => {
+    mount();
+    const card = document.querySelector('.speech-card')!;
+    expect(card.querySelectorAll('.setting-row')).toHaveLength(6);
+    expect(Array.from(card.querySelectorAll('.speech-section__caption')).map((c) => c.textContent))
+      .toEqual(['What I say, as speech', 'What the other side says, as speech', 'Replay']);
+  });
+
+  it('says what the default playback device is for under its name', () => {
+    mount();
+    expect(within(row('Default playback device')).getByText(/Sounds on my side play here unless a row names its own device/)).toHaveClass('setting-row__desc');
+  });
+});
+
+// The owner chose the mock's "where the sound goes" drawing for wide windows (2026-11-15): above the rows, following them.
+describe('SpeechOutputSection — where the sound goes', () => {
+  it('draws it above the rows, its lines following the switches', () => {
+    mount();
+    const flow = document.querySelector('.sound-flow')!;
+    expect(flow).not.toBeNull();
+    expect(flow.compareDocumentPosition(document.querySelector('.speech-card')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(flow.querySelector('[data-leg="otherHears"]')).toHaveClass('is-on');
+    expect(flow.textContent).toContain('Passthrough 20%');
+  });
+
+  it('is not drawn face to face, where there is no virtual microphone', () => {
+    useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
+    mount();
+    expect(document.querySelector('.sound-flow')).toBeNull();
   });
 });

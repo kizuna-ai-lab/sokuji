@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",
     "audioCaptureUnprovenText3Named": "「{{app}}」は一度取得を試みた後にのみそのリストに表示されます（今その試行を行いました）。有効にしたら、セッションをもう一度開始してください。ソースが単に無音だっただけなら、何も変更する必要はありません。",
-    "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。"
+    "otherSideBesideNote": "相手はあなたのマイクを共有します。システム音声はキャプチャされません。",
+    "captionMine": "自分の発言を音声で",
+    "captionTheirs": "相手の発言を音声で",
+    "defaultPlaybackAid": "自分側の音は、行ごとに専用のデバイスを指定しない限りここで再生されます。専用のデバイスが外れた音もここで再生されます。",
+    "captionReplay": "再生し直し"
   },
   "auth": {
     "signIn": "サインイン",
@@ -582,7 +586,7 @@
       "vocabularyTranslations": "優先する訳語",
       "vocabularyTranslationsTooltip": "特定の用語の訳し方に影響を与えます——これは優先指定であり、置き換えを保証するものではありません。定着した訳語がある固有名詞には特に効果的ですが、一般的な単語ではモデル自身の訳し方がそのまま使われることもあります。エントリには方向があります。逆方向は「両方」モードにのみ存在し、そこで逆方向の行を追加できます。",
       "vocabularyTranslationsPlaceholder": "1 行に 1 つ、「原語=訳語」の形式で入力",
-      "screenContext": "画面\u200bコンテキスト",
+      "screenContext": "画面​コンテキスト",
       "screenContextTooltip": "選んだウィンドウ・タブ・画面のどれか一つを、モデルが見られるようにします。そこに表示されている名前や用語を、表記どおりに認識して翻訳できます。その領域内のすべての内容は、画像としてこのセッションのリージョンにある Alibaba Cloud の Qwen サービスに送信されます。Kizuna AI がそれらを受け取ることはありません。オンの間、発話の毎秒ぶんの料金が加算されます。ご自身のキーでは Alibaba Cloud の請求に、Kizuna AI アカウントではアカウントの料金ページのとおりに加算されます。「両方」モードでは方向ごとのセッションに課金されます。",
       "screenContextPicked": "モデルが見る範囲：{{name}}",
       "screenContextStill": "選んだ時点の画像",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "相手側の人に番号を付けます（話者 1、話者 2…）。2 人以上の声が聞こえたときに表示されます。\n\n1 人を複数人と誤認することがあります。無効：番号は表示されません。\n\n次回のセッションから適用されます。"
     },
     "local_inference": {
-      "name": "無料",
-      "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
+      "name": "このデバイス",
+      "description": "モデルをこのパソコンにダウンロードすれば使えます。初回は数 GB のダウンロードが必要です。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "無料 · オフライン"
     },
     "local_native": {
       "name": "無料 (Native)",
@@ -608,7 +613,15 @@
       "name": "不明",
       "description": "不明なプロバイダー"
     },
-    "poweredBy": "<brand>{{name}}</brand> 提供"
+    "poweredBy": "<brand>{{name}}</brand> 提供",
+    "bing": {
+      "name": "Bing",
+      "note": "無料 · オンライン、Microsoft のサービス"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "無料 · オンライン、Microsoft のサービス"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "自動スクロール オン",
@@ -739,7 +752,9 @@
     "preparingVoice": "音声を準備しています…",
     "waitingForPreviousSession": "待機中…",
     "waitingForPreviousSessionTitle": "前回のセッションの終了を待っています。キャンセルするにはクリック",
-    "clickToCancel": "キャンセルするにはクリック"
+    "clickToCancel": "キャンセルするにはクリック",
+    "whatIHear": "自分に聞こえる音",
+    "audioSettings": "音声の設定"
   },
   "modePicker": {
     "modeYou": "自分",
@@ -962,6 +977,42 @@
       "cancel": "キャンセル",
       "accept": "理解しました — 非商用のみ",
       "acceptRestricted": "理解しました — ライセンスに同意する"
+    },
+    "readingsDictionary": "読み辞書（日本語）",
+    "readingsDictionaryNotStored": "「表示」で日本語の読みをオンにするとダウンロードされます。",
+    "page": {
+      "tag": {
+        "asr": "認識",
+        "translation": "翻訳",
+        "tts": "音声",
+        "turn": "発話の区切り",
+        "punctuation": "文の区切りと句読点",
+        "readings": "読み",
+        "voice": "ボイス"
+      },
+      "manyLanguages": "多言語",
+      "languages": "{{count}} 言語",
+      "direct": "訳文も直接出せる",
+      "downloading": "ダウンロード中 {{percent}}%",
+      "failed": "ダウンロード失敗",
+      "cannotRun": "このパソコンでは動かせません",
+      "notDownloaded": "未ダウンロード",
+      "download": "ダウンロード",
+      "listJoin": "、",
+      "summary": "ダウンロード済み {{count}} 件、合計 {{size}}",
+      "import": "ファイルからモデルを取り込む",
+      "sessionTitle": "セッションで使うモデル（「このデバイス」サービス）",
+      "sessionHint": "「言語とセッション構成」で「このデバイス」を選んだ段階は、ここでダウンロードしたモデルを使います。",
+      "otherLanguages": "ほかの言語のモデル（{{count}}）",
+      "helpersTitle": "補助モデル",
+      "helpersHint": "どの段階にも属さない小さなモデルです。",
+      "turnMeta": "話し終えたかどうかを判断します。音声モードのオプションでオンにします",
+      "packMeta": "文章を文ごとに区切ります。3 つまとめてダウンロードします",
+      "dictMeta": "日本語の読みを表示します。「表示」でオンにします",
+      "voicesTitle": "取り込んだボイス",
+      "voicesHint": "自分で取り込んだ Supertonic のボイスファイルです。",
+      "importedOn": "{{date}} に取り込み",
+      "more": "ほか {{count}} 件"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "日本語辞書をダウンロード中 {{done}} / {{total}}",
       "readingsDownloadFailed": "日本語辞書をダウンロードできませんでした。",
-      "readingsFailed": "日本語の読みを表示できません。"
+      "readingsFailed": "日本語の読みを表示できません。",
+      "defaultColour": "デフォルト"
     },
     "pttHint": "スペースキーを押して話す"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "すぐに始める",
         "desc": "翻訳は Kizuna AI 側で実行します。",
-        "cost": "メールアドレスで登録し、届いたメールで認証してください。認証すると試用クレジットが付きます。以降は残高をチャージし、使った分だけの課金です。"
+        "cost": "メールアドレスで登録し、届いたメールで認証してください。認証すると試用クレジットが付きます。以降は残高をチャージし、使った分だけの課金です。",
+        "options": {
+          "kizunaai_soniox": "リアルタイムで文字起こし、翻訳も速い。",
+          "kizunaai_qwen": "画面を見ることができ、文字起こしと翻訳がとても正確。"
+        }
       },
       "own-key": {
         "title": "自分の API キーがある",
@@ -1356,14 +1412,15 @@
         "cost": "キーはこの端末にだけ保存され、提供元へはこの端末から直接つながります。お客様は提供元の利用者として、使った分を提供元に直接お支払いいただきます。Kizuna AI は経由しません。"
       },
       "offline": {
-        "title": "無料・オフライン",
-        "desc": "お使いのパソコン上で動作し、データは外に出ません。",
-        "cost": "モデルをディスクにダウンロードします（数 GB）。GPU と十分な VRAM があれば快適ですが、CPU のみでは明らかに遅くなります。",
+        "title": "キー不要",
+        "desc": "無料。認識はこのコンピューターで動き、翻訳は Bing、音声は Edge を使います（Microsoft のオンラインサービス）。",
+        "cost": "認識には先にモデルをディスクへダウンロードする必要があります。GPU があれば快適、CPU のみだとかなり遅くなります。",
         "native": "ネイティブエンジン——高速で、GPU があれば活用します。",
         "wasm": "内蔵エンジン——どこでも動きますが、遅めです。"
       },
       "ownKeyNote": "アカウントをお持ちの提供元を選んでください。キーは提供元ごとに発行します：",
-      "ownKeyGuides": "提供元ごとのガイド"
+      "ownKeyGuides": "提供元ごとのガイド",
+      "managedPick": "どのホスト型サービスにしますか？"
     },
     "fit": {
       "cannotSpeak": "このプロバイダーは音声翻訳を生成できません。",
@@ -1384,22 +1441,29 @@
       "createAccount": "アカウント作成",
       "signedIn": "サインイン済みです。続行できます。",
       "managedDesc": "メールアドレスでサインアップし、受信したメールで認証してください。認証すると試用クレジットが付きます。以降は残高をチャージし、使った分だけのお支払いです。",
-      "offlineNotice": "モデルはセットアップ後に「設定」からダウンロードします。数 GB のディスク容量が必要です。GPU と十分な VRAM があれば快適ですが、CPU のみでは明らかに遅くなります。",
-      "pendingKey": "キーは後で「設定 → プロバイダー」から追加できます。検証が通るまで開始できません。",
+      "offlineNotice": "認識モデルはセットアップ後に「設定 → モデルとストレージ」からダウンロードします。翻訳は Bing、音声は Edge を使うのでダウンロードもアカウントも不要です。翻訳する文章と読み上げる訳文は Microsoft に送られます。",
+      "pendingKey": "キーは後で「設定 → アカウントとキー」から追加できます。検証が通るまで開始できません。",
       "pendingSignIn": "後でアカウントボタンからサインインできます。それまで開始できません。",
       "verifyEmail": "サインイン済みです。お送りしたメールのリンクを開いて認証してください。認証すると試用クレジットが付きます。",
       "ownKeyDesc": "このキーはこの端末にだけ保存され、提供元へはこの端末から直接接続します。Kizuna AI に渡ることはありません。利用料は提供元にお支払いいただきます。",
       "guide": "キーの取得方法",
-      "onFile": "キーは保存済みです。空欄のままにすると、そのまま使われます。"
+      "onFile": "キーは保存済みです。空欄のままにすると、そのまま使われます。",
+      "offlineHardware": "GPU と十分な VRAM があれば Sokuji は快適に動きます。CPU のみでは明らかに遅くなります。",
+      "openaiOneKey": "このキー 1 つで OpenAI Realtime・Translate・Live のすべてに使えます。"
     },
     "summary": {
       "scenario": "シナリオ",
       "mode": "モード",
       "provider": "プロバイダー",
       "languages": "言語",
-      "pendingKey": "API キー未設定——開始前に「設定 → プロバイダー」で追加してください。",
+      "pendingKey": "API キー未設定——開始前に「設定 → アカウントとキー」で追加してください。",
       "pendingSignIn": "未サインイン——開始前にアカウントボタンからサインインしてください。",
-      "langSentence": "{{myLabel}}は{{myLanguage}} → {{theirLabel}}は{{theirLanguage}}"
+      "langSentence": "{{myLabel}}は{{myLanguage}} → {{theirLabel}}は{{theirLanguage}}",
+      "lineup": "構成"
+    },
+    "lineup": {
+      "title": "この選択で設定される構成",
+      "later": "各段階はあとで「設定 → 言語と構成」で変更できます。"
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "プロバイダー設定",
-        "content": "キーの変更やプロバイダーの切り替えはここです。",
+        "content": "キーの変更はここです。",
         "content_pending": "ここに API キーを貼り付けてください。検証が通ると開始できます。"
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "以上です",
-        "content": "高度な設定——発話検出、プロンプト、声、ログ——は「設定」右上の「アドバンス」切り替えの先にあります。このガイドは「ヘルプ」からいつでも見直せます。"
+        "content": "そのほかの設定は「設定」にカテゴリーごとにまとまっていて、検索で名前から探せます。このガイドは「ヘルプ」からいつでも見直せます。"
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "接続できませんでした",
     "switch": "切り替える",
     "keep": "{{region}}のままにする"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "search": "設定を検索",
+    "back": "セッションに戻る",
+    "backToList": "一覧に戻る",
+    "changeable": "セッション中も変更可",
+    "lockedNote": "セッション中はロック",
+    "partlyLocked": "セッション中は一部ロック",
+    "lockedLine": "セッション実行中です。言語・構成・単語リスト・キーはロックされています。音声・表示・その他は変更できます。",
+    "categories": {
+      "lineup": "言語と構成",
+      "words": "単語リストと背景",
+      "accounts": "アカウントとキー",
+      "models": "モデルとストレージ",
+      "audio": "音声",
+      "display": "表示",
+      "history": "履歴とメモ",
+      "general": "一般"
+    },
+    "groups": {
+      "session": "セッション",
+      "providers": "プロバイダーとモデル",
+      "devices": "デバイスと表示",
+      "data": "データ",
+      "app": "アプリ"
+    },
+    "words": {
+      "lineup": "言語, 話し方, プッシュトゥトーク, 文字起こし, 翻訳, 音声, 声, プロバイダー, モデル, 構成",
+      "words": "単語リスト, 用語, 用語集, 背景",
+      "accounts": "アカウント, サインイン, APIキー, キー, 認証情報, 残高",
+      "models": "モデル, ダウンロード, ストレージ, 削除, ディスク, 辞書",
+      "audio": "マイク, ノイズ抑制, エコー, スピーカー, ヘッドホン, モニター, パススルー, 仮想マイク, システム音声",
+      "display": "フォント, 文字サイズ, 色, コンパクト, 字幕, キャプション, プレビュー, ふりがな",
+      "history": "履歴, メモ, フォルダー, 自動保存",
+      "general": "表示言語, 外観, テーマ, アップデート, ログ, セットアップ, ヘルプ, バージョン"
+    },
+    "accounts": {
+      "addKey": "キーを追加",
+      "keySaved": "キー保存済み",
+      "local": "このコンピューターで動作",
+      "needsKey": "キーが必要",
+      "online": "キー不要・オンライン、Microsoft のサービス",
+      "signedIn": "サインイン済み",
+      "signedOut": "未サインイン",
+      "together": "一括",
+      "view": "表示",
+      "hide": "閉じる",
+      "endToEnd": "エンドツーエンド",
+      "transcribeTranslate": "文字起こしと翻訳",
+      "signedInBalance": "ログイン済み、残高 {{amount}}",
+      "localModels": "このパソコンで動作します。ダウンロード済みのモデル {{count}} 個、合計 {{size}}",
+      "localNone": "このパソコンで動作します。モデルはまだダウンロードしていません"
+    },
+    "lineup": {
+      "title": "構成",
+      "stages": {
+        "transcription": "文字起こし",
+        "translation": "翻訳",
+        "speech": "音声",
+        "summarisation": "メモ"
+      },
+      "and": "・",
+      "joint": "{{stages}}と1つの接続で動きます。一緒に切り替わります。",
+      "granite": "翻訳と一緒に：Granite Speech が音声をそのまま訳文にします。",
+      "moved": "{{stages}}も{{providers}}に切り替わりました。現在はこの選択と組み合わせられません。組み合わせは今後対応します。",
+      "needsKey": "キーが必要",
+      "needsSignIn": "サインインが必要",
+      "options": "{{provider}} のオプション",
+      "state": {
+        "needsKey": "キーが必要",
+        "needsModel": "モデルが必要",
+        "needsSignIn": "サインインが必要",
+        "ready": "準備完了"
+      },
+      "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
+      "hint": "各段階をどのサービスが担当するか",
+      "uses": {
+        "turn": "区切り",
+        "key": "キー",
+        "space": "スペース",
+        "released": "離したあと",
+        "releasedValue": "その区切りを翻訳に送る",
+        "notHeld": "押していないとき",
+        "notHeldValue": "自分の声がそのまま翻訳せずに相手へ届く"
+      },
+      "actsOn": "{{stages}}に作用します",
+      "pointer": "{{stages}}に作用するオプションは「{{card}}」カードにあります。",
+      "edgeVoices": {
+        "hint": "音声は言語ごとに保存されます。ここで変えるのは、いまの言語の組み合わせで使う音声です。",
+        "voiceFor": "{{who}}（{{language}}）"
+      }
+    },
+    "display": {
+      "surface": "どの表示",
+      "main": "メインウィンドウ",
+      "captions": "字幕モード",
+      "compact": "コンパクト表示",
+      "fontSize": "文字サイズ",
+      "smaller": "文字を小さく",
+      "larger": "文字を大きく",
+      "modes": {
+        "both": "原文と訳文",
+        "source": "原文のみ",
+        "translation": "訳文のみ",
+        "none": "表示しない"
+      },
+      "mineSide": "自分の側に表示するもの",
+      "theirsSide": "相手の側に表示するもの",
+      "previewMain": "プレビュー：メインウィンドウの会話",
+      "previewCaptions": "プレビュー：字幕モード（後ろは別のウィンドウ）",
+      "empty": "今ここには何も表示されません：両側とも「表示しない」になっています。"
+    },
+    "intro": {
+      "accounts": "アカウントとキーは、サービスごとに一度入力するだけです。何に使うかは「言語と構成」で選びます。",
+      "models": "このコンピューターにダウンロードしたモデルはすべてここで管理します。セッション用、補助用、取り込んだ声。",
+      "audio": "マイク、音声、相手の音声。「相手に聞こえる翻訳」以外は、セッション中も変更できます。",
+      "display": "会話の上のツールバーや字幕バーのボタンと同じ値です。どちらで変えても同じで、すぐに反映されます。メインウィンドウと字幕モードはそれぞれ別に持ちます。"
+    },
+    "audio": {
+      "micHint": "自分の声をどこから取り込むか",
+      "otherHint": "相手の声をどこから取り込むか",
+      "device": "デバイス",
+      "source": "取り込み元",
+      "flow": {
+        "myMic": "自分のマイク",
+        "toSpeech": "音声に",
+        "toThem": "仮想マイク → 相手",
+        "theirVoice": "相手の声",
+        "myDevice": "自分の再生デバイス",
+        "caption": "音の流れ。明るい線はいまオン、破線はオフです。下のスイッチに合わせて変わります。",
+        "aria": "音の流れ：自分の発言は音声になって仮想マイクから相手へ届き、自分も聞く場合はこちらでも鳴ります。相手の発言は音声になって自分の再生デバイスで鳴ります。"
+      }
+    },
+    "general": {
+      "basics": "基本設定",
+      "maintenance": "メンテナンスとヘルプ",
+      "update": "アップデート",
+      "updateLine": "現在は {{version}} です。",
+      "version": "バージョン",
+      "storeUpdates": "拡張機能はブラウザのストアが自動で更新します。",
+      "wizard": "セットアップウィザード",
+      "wizardLine": "ウィザードをもう一度たどります。保存済みの選択は最初から選ばれています。",
+      "rerun": "もう一度実行",
+      "guide": "操作ガイド",
+      "guideLine": "メイン画面で一歩ずつ表示されるヒントです。",
+      "restart": "もう一度始める",
+      "needHelp": "お困りのときは："
+    }
   }
 }

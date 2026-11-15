@@ -44,7 +44,8 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
       <section className="setup-step">
         <h2>{t('setup.steps.credentials.offlineTitle', 'Nothing to enter')}</h2>
         <StatusMessage variant="info">
-          {t('setup.credentials.offlineNotice', 'Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.')}
+          <span className="setup-notice-line">{t('setup.credentials.offlineNotice', 'The recognition model is downloaded after setup, from Settings → Models and storage. Translation uses Bing and speech uses Edge: nothing to download and no account; the text to translate and the translation to speak are sent to Microsoft.')}</span>
+          <span className="setup-notice-line">{t('setup.credentials.offlineHardware', 'Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.')}</span>
         </StatusMessage>
       </section>
     );
@@ -178,6 +179,10 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
           />
         </label>
       ))}
+      {/* One key for the three OpenAI providers (Plan 4): the user should know it before typing it. */}
+      {p.credentials.storedAt && (
+        <p className="setup-step__note">{t('setup.credentials.openaiOneKey', 'This one key serves OpenAI Realtime, Translate and Live.')}</p>
+      )}
       {keyOnFile && (
         <StatusMessage variant="info">
           {t('setup.credentials.onFile', 'A key is already saved — leave this blank to keep it.')}
@@ -200,7 +205,7 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
         {skipButton(keptOnSkip)}
       </div>
       {message && <StatusMessage variant={message.ok ? 'success' : 'error'}>{message.text}</StatusMessage>}
-      {draft.credentialsPending && <StatusMessage variant="warning">{t('setup.credentials.pendingKey', 'You can add the key later in Settings → Provider. Start stays locked until it validates.')}</StatusMessage>}
+      {draft.credentialsPending && <StatusMessage variant="warning">{t('setup.credentials.pendingKey', 'You can add the key later in Settings → Accounts and keys. Start stays locked until it validates.')}</StatusMessage>}
     </section>
   );
 };

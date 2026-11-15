@@ -6,6 +6,8 @@ import { PresetVoiceField, presetVoice, presetVoiceSummary } from '../../compone
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { SettingsProps } from '../../lib/provider/types';
 import { previewGeminiVoice } from './preview';
+import { ALL_STAGES, SP, TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 import {
   effectiveGeminiModel, geminiCredentials, geminiLanguageName, geminiLanguages, geminiParticipantVoice, geminiSpeakerVoice, GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_VOICES,
   isGeminiTranslateModel, type GeminiSettings as S,
@@ -39,7 +41,10 @@ export function GeminiSettingsView({ settings, update, disabled = false, pair, m
   const apiKey = key && 'apiKey' in key ? key.apiKey : '';
   return (
     <>
+      <StagePart stages={TL}>
       <InstructionsField value={settings} onChange={update} preview={preview} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={SP}>
       {dialogue && (
         <PresetVoiceField
           voices={VOICES}
@@ -59,7 +64,11 @@ export function GeminiSettingsView({ settings, update, disabled = false, pair, m
           } : undefined}
         />
       )}
+      </StagePart>
+      <StagePart stages={ALL_STAGES}>
       <ModelField value={model} models={models} onChange={(m) => update({ model: m })} disabled={disabled} />
+      </StagePart>
+      <StagePart stages={TL}>
       {dialogue && (
         <ModelConfigurationField
           temperature={settings.temperature}
@@ -70,6 +79,7 @@ export function GeminiSettingsView({ settings, update, disabled = false, pair, m
           disabled={disabled}
         />
       )}
+      </StagePart>
     </>
   );
 }

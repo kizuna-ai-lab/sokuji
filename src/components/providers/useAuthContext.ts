@@ -10,8 +10,7 @@
  * reports a session fetch that failed (offline, a backend stall) as loaded
  * and signed out, then refetches on `online` / focus — read as an answer,
  * an offline launch would tell a signed-in user to sign in. Not loaded, a
- * managed provider says "Checking..." until the refetch answers
- * (`useSignInProviderSwitch.ts` reads the same rule).
+ * managed provider says "Checking..." until the refetch answers.
  */
 import { createContext, useContext, useMemo } from 'react';
 import { useAuth } from '../../lib/auth/hooks';

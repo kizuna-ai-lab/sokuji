@@ -135,3 +135,27 @@
   dd { margin: 0; color: vars.$text-primary; font-size: vars.$font-body; }
   &__mirror { margin-top: 2px; font-size: vars.$font-caption; color: vars.$text-muted; }
 }
+
+// The line-up a path sets up: a dashed box under the chosen path, its rows alone on the finish step.
+.lineup-preview {
+  margin-top: vars.$space-3;
+  padding: vars.$space-3;
+  border: 1px dashed vars.$border-default;
+  border-radius: vars.$radius-md;
+  &__title { font-size: vars.$font-caption; color: vars.$text-muted; margin-bottom: vars.$space-2; }
+  &__later { margin: vars.$space-2 0 0; font-size: vars.$font-caption; color: vars.$text-muted; }
+}
+
+.lineup-preview__rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: vars.$space-1 vars.$space-3;
+  margin: 0;
+  dt { color: vars.$text-secondary; }
+  dd { margin: 0; display: flex; flex-wrap: wrap; gap: 0 vars.$space-2; }
+}
+.lineup-preview__name { color: vars.$text-primary; }
+.lineup-preview__about { font-size: vars.$font-caption; color: vars.$text-muted; }
+
+// A notice in two sentences, each on its own line.
+.setup-notice-line { display: block; & + & { margin-top: vars.$space-1; } }

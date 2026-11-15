@@ -12,6 +12,8 @@ import { requestRegionChange } from '../../lib/region/regionChange';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS } from '../../lib/soniox/regions';
 import { SonioxVoiceField, useByokVoiceSource, type VoiceSourceHook } from './SonioxVoiceField';
 import { sonioxSharedBoth, type SonioxSettings as S } from './settings';
+import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 const helpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />;
 
@@ -54,6 +56,8 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
     const labelsPeople = !faceToFace && legs?.includes('participant') === true;
     return (
       <VoicePreviewContext.Provider value={preview ?? null}>
+        {/* Each part names the stages it acts on, for the line-up page's stage cards (mock v19). */}
+        <StagePart stages={ALL_STAGES}>
         <div className="settings-section" id="soniox-region-section">
           <h2>
             {t('settings.sonioxRegion', 'Region')}
@@ -80,9 +84,15 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
           </div>
         </div>
 
+        </StagePart>
+
+        <StagePart stages={SP}>
         <SonioxVoiceField settings={settings} update={update} disabled={disabled} target={pair?.target ?? 'en'} pairSource={pair?.source} participantSpeaks={participantSpeaks} account={account} managed={managed} useVoiceSource={useVoiceSource} />
 
         <TtsSpeedControl value={settings.ttsSpeed} onChange={(ttsSpeed) => update({ ttsSpeed })} disabled={disabled} min={0.7} max={1.3} step={0.05} />
+        </StagePart>
+
+        <StagePart stages={TR_TL}>
 
         <div className="settings-section" id="soniox-vocabulary-section">
           <h2>
@@ -150,6 +160,9 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
         </div>
 
         {/* Agent text (spec 2026-11-05 §4.4), read at Start. Split Both sends none (§4.1): there it shows off and locked, the stored value kept. */}
+        </StagePart>
+
+        <StagePart stages={TR}>
         <div className="settings-section" id="soniox-agent-text-section">
           <h2>
             {t('settings.sonioxAgentText', 'Use the read-aloud text to improve recognition')}
@@ -185,6 +198,7 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
             </div>
           </div>
         )}
+        </StagePart>
       </VoicePreviewContext.Provider>
     );
   };

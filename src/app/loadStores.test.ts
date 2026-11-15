@@ -33,6 +33,9 @@ import { useSegmentationStore } from '../stores/segmentationStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { loadSelectedProvider, loadSessionStores } from './loadStores';
 
+/** The keys written, besides the line-up — the one migration a load makes (owner, 2026-11-15). */
+const writesBesidesLineUp = () => setSetting.mock.calls.map(([key]) => key).filter((key) => key !== 'settings.lineup');
+
 const providersBefore = useProviderStore.getState();
 const routingBefore = useRoutingStore.getState();
 const segmentationBefore = useSegmentationStore.getState();
@@ -53,7 +56,7 @@ afterEach(() => {
 });
 
 describe('loadSessionStores', () => {
-  it('loads the turn mode, the routing switches, the punctuation pack, and selects the first offered provider in memory — writing nothing', async () => {
+  it('loads the turn mode, the routing switches, the punctuation pack, and selects the first offered provider in memory — writing nothing but the line-up', async () => {
     stored.set('settings.common.turnMode', 'push-to-talk');
     stored.set('settings.routing.meeting', false);
     const refresh = vi.fn(async () => {});
@@ -67,7 +70,7 @@ describe('loadSessionStores', () => {
     // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6), loaded and selected.
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
     expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
-    expect(setSetting).not.toHaveBeenCalled();
+    expect(writesBesidesLineUp()).toEqual([]);
   });
 
   it('selects the stored provider in memory, loads its entry, and never writes it back', async () => {
@@ -144,7 +147,7 @@ describe('loadSessionStores', () => {
 
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
     expect(setSetting).toHaveBeenCalledWith('settings.common.turnMode', 'push-to-talk');
-    expect(setSetting).toHaveBeenCalledTimes(1);
+    expect(writesBesidesLineUp()).toEqual(['settings.common.turnMode']);
   });
 
   it('never migrates once the global turn mode is already stored', async () => {
@@ -156,7 +159,7 @@ describe('loadSessionStores', () => {
     await loadSessionStores();
 
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-translate');
-    expect(setSetting).not.toHaveBeenCalled();
+    expect(writesBesidesLineUp()).toEqual([]);
   });
 
   it('migrates to auto when the stored provider has no legacy slice', async () => {
@@ -167,7 +170,7 @@ describe('loadSessionStores', () => {
 
     expect(useTurnModeStore.getState().turnMode).toBe('auto');
     expect(setSetting).toHaveBeenCalledWith('settings.common.turnMode', 'auto');
-    expect(setSetting).toHaveBeenCalledTimes(1);
+    expect(writesBesidesLineUp()).toEqual(['settings.common.turnMode']);
   });
 
   it('reports a rejected turn-mode load once as a warning, and still loads the rest', async () => {

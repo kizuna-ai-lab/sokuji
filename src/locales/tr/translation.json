@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Seçilen kaynaktan henüz ses gelmedi",
     "audioCaptureUnprovenText1": "Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa macOS büyük olasılıkla sessizlik iletiyordur: bir uygulamayı yakalamak \"Yalnızca Sistem Sesi Kaydı\" iznini gerektirir ve bu izin olmadan hata oluşmaz, yalnızca sessizlik olur.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" bu listede yalnızca bir kez yakalama denendikten sonra görünür; bu deneme az önce yapıldı. Etkinleştirdikten sonra oturumu yeniden başlatın. Kaynak yalnızca sessizse hiçbir şeyi değiştirmeniz gerekmez.",
-    "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz."
+    "otherSideBesideNote": "Karşı taraf mikrofonunuzu paylaşıyor; sistem sesi yakalanmaz.",
+    "captionMine": "Söylediklerim, sesli",
+    "captionTheirs": "Karşı tarafın söyledikleri, sesli",
+    "defaultPlaybackAid": "Bir satır kendi cihazını belirtmedikçe benim tarafımdaki sesler burada çalar; kendi cihazı çıkarılmış bir ses de burada çalar.",
+    "captionReplay": "Tekrar dinleme"
   },
   "auth": {
     "signIn": "Giriş Yap",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Birden fazla ses duyulduğunda karşı taraftaki kişileri numaralandırır — Konuşmacı 1, Konuşmacı 2…\n\nTek bir kişiyi birkaç kişi sanabilir. Devre dışı: numara gösterilmez.\n\nBir sonraki oturumdan itibaren geçerli olur."
     },
     "local_inference": {
-      "name": "Ücretsiz",
-      "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
+      "name": "Bu cihaz",
+      "description": "Modeller bu bilgisayara indirildikten sonra çalışır; ilk seferde birkaç GB indirmek gerekir.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Ücretsiz · çevrimdışı"
     },
     "local_native": {
       "name": "Ücretsiz (Native)",
@@ -608,7 +613,15 @@
       "name": "Bilinmeyen",
       "description": "Bilinmeyen sağlayıcı"
     },
-    "poweredBy": "<brand>{{name}}</brand> tarafından desteklenir"
+    "poweredBy": "<brand>{{name}}</brand> tarafından desteklenir",
+    "bing": {
+      "name": "Bing",
+      "note": "Ücretsiz · çevrimiçi, bir Microsoft hizmeti"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Ücretsiz · çevrimiçi, bir Microsoft hizmeti"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Otomatik kaydırma açık",
@@ -739,7 +752,9 @@
     "preparingVoice": "Sesiniz hazırlanıyor…",
     "waitingForPreviousSession": "Bekleniyor…",
     "waitingForPreviousSessionTitle": "Önceki oturumun sona ermesi bekleniyor. İptal etmek için tıklayın.",
-    "clickToCancel": "İptal etmek için tıklayın"
+    "clickToCancel": "İptal etmek için tıklayın",
+    "whatIHear": "Duyduklarım",
+    "audioSettings": "Ses ayarları"
   },
   "modePicker": {
     "modeYou": "Ben",
@@ -962,6 +977,42 @@
       "cancel": "İptal",
       "accept": "Anladım — yalnızca ticari olmayan kullanım",
       "acceptRestricted": "Anladım — lisansı kabul ediyorum"
+    },
+    "readingsDictionary": "Okunuş sözlüğü (Japonca)",
+    "readingsDictionaryNotStored": "Görünüm’de Japonca okunuşlar açıldığında indirilir.",
+    "page": {
+      "tag": {
+        "asr": "Tanıma",
+        "translation": "Çeviri",
+        "tts": "Konuşma",
+        "turn": "Sıra sonu",
+        "punctuation": "Cümleler ve noktalama",
+        "readings": "Okunuş",
+        "voice": "Ses"
+      },
+      "manyLanguages": "Birçok dil",
+      "languages": "{{count}} dil",
+      "direct": "çeviriyi de doğrudan verebilir",
+      "downloading": "İndiriliyor %{{percent}}",
+      "failed": "İndirme başarısız",
+      "cannotRun": "Bu bilgisayar çalıştıramaz",
+      "notDownloaded": "İndirilmedi",
+      "download": "İndir",
+      "listJoin": ", ",
+      "summary": "{{count}} indirildi, toplam {{size}}",
+      "import": "Dosyalardan model içe aktar",
+      "sessionTitle": "Oturum modelleri (\"Bu cihaz\" hizmeti)",
+      "sessionHint": "\"Diller ve oturum düzeni\"nde \"Bu cihaz\" seçilen aşamalar burada indirilen modelleri kullanır.",
+      "otherLanguages": "Diğer diller için modeller ({{count}})",
+      "helpersTitle": "Yardımcı modeller",
+      "helpersHint": "Hiçbir aşamaya ait olmayan küçük modeller.",
+      "turnMeta": "Konuşmanızın bittiğini anlar; konuşma modu seçeneklerinden açılır",
+      "packMeta": "Metni cümlelere böler; üçü birlikte indirilir",
+      "dictMeta": "Japonca okunuşları gösterir; \"Görünüm\"den açılır",
+      "voicesTitle": "İçe aktarılan sesler",
+      "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
+      "importedOn": "{{date}} tarihinde içe aktarıldı",
+      "more": "{{count}} tane daha"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Japonca sözlük indiriliyor {{done}} / {{total}}",
       "readingsDownloadFailed": "Japonca sözlük indirilemedi.",
-      "readingsFailed": "Japonca okunuşlar çalışmıyor."
+      "readingsFailed": "Japonca okunuşlar çalışmıyor.",
+      "defaultColour": "Varsayılan"
     },
     "pttHint": "Konuşmak için Boşluk tuşuna basın"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Hemen başlayın",
         "desc": "Çeviriyi Kizuna AI sizin için çalıştırır.",
-        "cost": "E-posta adresinizle kayıt olun ve doğrulayın — doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve çeviri, kullandığınız miktara göre faturalandırılır."
+        "cost": "E-posta adresinizle kayıt olun ve doğrulayın — doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve çeviri, kullandığınız miktara göre faturalandırılır.",
+        "options": {
+          "kizunaai_soniox": "Gerçek zamanlı transkripsiyon, hızlı çeviri.",
+          "kizunaai_qwen": "Ekranınızı görebilir; çok doğru transkripsiyon ve çeviri."
+        }
       },
       "own-key": {
         "title": "Kendi API anahtarım var",
@@ -1356,14 +1412,15 @@
         "cost": "Anahtarınız bu cihazda kalır ve buradan doğrudan sağlayıcıya ulaşır. Onların müşterisi sizsiniz: kullandığınız kadar onlara ödersiniz ve hiçbir şey Kizuna AI üzerinden geçmez."
       },
       "offline": {
-        "title": "Ücretsiz, çevrimdışı",
-        "desc": "Kendi makinenizde çalışır. Hiçbir şey dışarı çıkmaz.",
-        "cost": "Modelleri diskinize indirir (gigabaytlarca). GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU'da belirgin şekilde daha yavaştır.",
+        "title": "Anahtar gerekmez",
+        "desc": "Ücretsiz. Tanıma bu bilgisayarda çalışır; çeviri Bing, konuşma Edge kullanır; bunlar Microsoft’un çevrimiçi hizmetleridir.",
+        "cost": "Tanıma için önce diske bir model indirilmesi gerekir. GPU ile iyi çalışır; yalnızca CPU ile belirgin şekilde yavaştır.",
         "native": "Yerel motor — daha hızlı, mümkün olduğunda GPU'nuzu kullanır.",
         "wasm": "Uygulama içi motor — her yerde çalışır, daha yavaş."
       },
       "ownKeyNote": "Hesabınızın olduğu sağlayıcıyı seçin. Her biri kendi anahtarını verir:",
-      "ownKeyGuides": "her sağlayıcı için kılavuzlar"
+      "ownKeyGuides": "her sağlayıcı için kılavuzlar",
+      "managedPick": "Hangi barındırılan hizmet?"
     },
     "fit": {
       "cannotSpeak": "Bu sağlayıcı sesli çeviri üretemez.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Kayıt Ol",
       "signedIn": "Giriş yapıldı. Devam edebilirsiniz.",
       "managedDesc": "E-posta adresinizle kayıt olun ve gelen kutunuzdan doğrulayın; doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve yalnızca kullandığınız kadar ödersiniz.",
-      "offlineNotice": "Modeller kurulumdan sonra Ayarlar'dan indirilir. Diskte gigabaytlarca yer kaplarlar. Sokuji, GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU'da belirgin şekilde daha yavaştır.",
-      "pendingKey": "Anahtarı daha sonra Ayarlar → Sağlayıcı bölümünden ekleyebilirsiniz. Doğrulanana kadar Başlat kilitli kalır.",
+      "offlineNotice": "Tanıma modeli kurulumdan sonra Ayarlar → Modeller ve depolama bölümünden indirilir. Çeviri Bing, konuşma Edge kullanır: indirilecek bir şey ve hesap yok; çevrilecek metin ve okunacak çeviri Microsoft’a gönderilir.",
+      "pendingKey": "Anahtarı daha sonra Ayarlar → Hesaplar ve anahtarlar bölümünden ekleyebilirsiniz. Doğrulanana kadar başlatma kilitli kalır.",
       "pendingSignIn": "Daha sonra hesap düğmesinden giriş yapabilirsiniz. O zamana kadar Başlat kilitli kalır.",
       "ownKeyDesc": "Bu anahtar yalnızca bu cihazda saklanır ve uygulama sağlayıcıyı doğrudan buradan çağırır — Kizuna AI'ye asla ulaşmaz. Kullandığınız için sağlayıcıya ödeme yaparsınız.",
       "guide": "Bu anahtarı nasıl alırım",
       "verifyEmail": "Giriş yapıldı. Adresinizi doğrulamak için size e-postayla gönderdiğimiz bağlantıyı açın — doğruladığınızda deneme kredisi hesabınıza geçer.",
-      "onFile": "Zaten kayıtlı bir anahtar var — onu korumak için bu alanı boş bırakın."
+      "onFile": "Zaten kayıtlı bir anahtar var — onu korumak için bu alanı boş bırakın.",
+      "offlineHardware": "Sokuji, GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU ile belirgin şekilde yavaştır.",
+      "openaiOneKey": "Bu tek anahtar OpenAI Realtime, Translate ve Live için geçerlidir."
     },
     "summary": {
       "scenario": "Senaryo",
       "mode": "Mod",
       "provider": "Sağlayıcı",
       "languages": "Diller",
-      "pendingKey": "Henüz API anahtarı yok — başlamadan önce Ayarlar → Sağlayıcı bölümünden ekleyin.",
+      "pendingKey": "Henüz API anahtarı yok — başlamadan önce Ayarlar → Hesaplar ve anahtarlar bölümünden ekleyin.",
       "pendingSignIn": "Giriş yapılmadı — başlamadan önce hesap düğmesinden giriş yapın.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Düzen"
+    },
+    "lineup": {
+      "title": "Bununla kurulacak düzen",
+      "later": "Her aşamayı daha sonra Ayarlar → Diller ve düzen bölümünden değiştirebilirsiniz."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Sağlayıcı ayarları",
-        "content": "Anahtarınızı buradan değiştirin veya sağlayıcı değiştirin.",
+        "content": "Anahtarınızı burada değiştirin.",
         "content_pending": "API anahtarınızı buraya yapıştırın. Doğrulandığında Başlat'ın kilidi açılır."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Hepsi bu",
-        "content": "Gelişmiş ayarlar — konuşma algılama, prompt'lar, sesler, günlükler — Ayarlar'ın sağ üstündeki Gelişmiş anahtarının arkasında bulunur. Bu rehberi istediğiniz zaman Yardım'dan tekrar oynatabilirsiniz."
+        "content": "Geri kalan her şey Ayarlar’da, kategori kategori; arama her ayarı adıyla bulur. Bu rehberi istediğiniz zaman Yardım’dan tekrar oynatabilirsiniz."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Ulaşılamadı",
     "switch": "Geç",
     "keep": "{{region}} bölgesinde kal"
+  },
+  "settingsPage": {
+    "title": "Ayarlar",
+    "search": "Ayarlarda ara",
+    "back": "Oturuma dön",
+    "backToList": "Listeye dön",
+    "changeable": "Oturum sırasında değiştirilebilir",
+    "lockedNote": "Oturum sırasında kilitli",
+    "partlyLocked": "Oturum sırasında kısmen kilitli",
+    "lockedLine": "Bir oturum sürüyor. Diller, düzen, kelime listesi ve anahtarlar kilitli; ses, görünüm ve diğerleri değiştirilebilir.",
+    "categories": {
+      "lineup": "Diller ve düzen",
+      "words": "Kelime listesi ve arka plan",
+      "accounts": "Hesaplar ve anahtarlar",
+      "models": "Modeller ve depolama",
+      "audio": "Ses",
+      "display": "Görünüm",
+      "history": "Geçmiş ve notlar",
+      "general": "Genel"
+    },
+    "groups": {
+      "session": "Oturum",
+      "providers": "Sağlayıcılar ve modeller",
+      "devices": "Cihazlar ve görünüm",
+      "data": "Veriler",
+      "app": "Uygulama"
+    },
+    "words": {
+      "lineup": "dil, diller, konuşma modu, bas konuş, transkripsiyon, çeviri, konuşma, ses, sağlayıcı, model, düzen",
+      "words": "kelime listesi, terimler, sözlük, arka plan",
+      "accounts": "hesap, oturum aç, API anahtarı, anahtarlar, kimlik bilgileri, bakiye",
+      "models": "modeller, indir, depolama, sil, disk",
+      "audio": "mikrofon, gürültü bastırma, yankı, hoparlör, kulaklık, izleme, doğrudan geçiş, sanal mikrofon, sistem sesi",
+      "display": "yazı tipi, boyut, renk, sıkışık, altyazı, başlıklar, önizleme",
+      "history": "geçmiş, notlar, klasör, otomatik kaydet",
+      "general": "arayüz dili, görünüm, tema, güncellemeler, günlükler, kurulum, yardım, sürüm"
+    },
+    "accounts": {
+      "addKey": "Anahtar ekle",
+      "keySaved": "Anahtar kaydedildi",
+      "local": "Bu bilgisayarda çalışır",
+      "needsKey": "Anahtar gerekli",
+      "online": "Anahtar gerekmez; çevrimiçi, bir Microsoft hizmeti",
+      "signedIn": "Oturum açık",
+      "signedOut": "Oturum açılmadı",
+      "together": "birlikte",
+      "view": "Görüntüle",
+      "hide": "Gizle",
+      "endToEnd": "Uçtan uca",
+      "transcribeTranslate": "Döküm ve çeviri",
+      "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
+      "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
+      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi"
+    },
+    "lineup": {
+      "title": "Düzen",
+      "stages": {
+        "transcription": "Transkripsiyon",
+        "translation": "Çeviri",
+        "speech": "Konuşma",
+        "summarisation": "Notlar"
+      },
+      "and": " ve ",
+      "joint": "{{stages}} ile tek bağlantı üzerinden çalışır; birlikte değişirler.",
+      "granite": "Çeviriyle: Granite Speech konuşmayı doğrudan çeviriye dönüştürür.",
+      "moved": "{{stages}} da {{providers}} sağlayıcısına geçti: şu an bu seçimle birlikte kullanılamaz. Karıştırma daha sonra gelecek.",
+      "needsKey": "anahtar gerekli",
+      "needsSignIn": "oturum açılmalı",
+      "options": "{{provider}} seçenekleri",
+      "state": {
+        "needsKey": "Anahtar gerekli",
+        "needsModel": "Model gerekli",
+        "needsSignIn": "Oturum açılmalı",
+        "ready": "Hazır"
+      },
+      "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
+      "hint": "Her aşamayı hangi hizmetin yaptığı",
+      "uses": {
+        "turn": "Konuşma sonu",
+        "key": "Tuş",
+        "space": "Boşluk",
+        "released": "Bırakınca",
+        "releasedValue": "o parça çeviriye gider",
+        "notHeld": "Basılı değilken",
+        "notHeldValue": "kendi sesiniz çevrilmeden doğrudan karşı tarafa gider"
+      },
+      "actsOn": "{{stages}} için geçerli",
+      "pointer": "{{stages}} için geçerli seçenekler \"{{card}}\" kartında.",
+      "edgeVoices": {
+        "hint": "Sesler dile göre saklanır: bunlar bu dil çiftinin sesleri.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Hangi görünüm",
+      "main": "Ana pencere",
+      "captions": "Altyazı modu",
+      "compact": "Kompakt görünüm",
+      "fontSize": "Metin boyutu",
+      "smaller": "Daha küçük metin",
+      "larger": "Daha büyük metin",
+      "modes": {
+        "both": "Orijinal ve çeviri",
+        "source": "Yalnızca orijinal",
+        "translation": "Yalnızca çeviri",
+        "none": "Hiçbiri"
+      },
+      "mineSide": "Benim tarafımda gösterilen",
+      "theirsSide": "Karşı tarafta gösterilen",
+      "previewMain": "Önizleme: ana penceredeki konuşma",
+      "previewCaptions": "Önizleme: başka bir pencerenin üzerinde altyazı modu",
+      "empty": "Şu anda burada hiçbir şey görünmüyor: iki taraf da \"Hiçbiri\" olarak ayarlı."
+    },
+    "intro": {
+      "accounts": "Hesaplar ve anahtarlar: her hizmet bir kez doldurulur. Ne yapacağı ardından “Diller ve düzen” bölümünde seçilir.",
+      "models": "Bu bilgisayara indirilen tüm modeller burada yönetilir: oturumların kullandıkları, yardımcı modeller ve içe aktarılan sesler.",
+      "audio": "Mikrofon, konuşma ve karşı tarafın sesi. “Karşı tarafın duyduğu çeviri” dışında her şey oturum sırasında değiştirilebilir.",
+      "display": "Konuşmanın üstündeki ve altyazı çubuğundaki düğmelerle aynı değerler: nerede değiştirirseniz değiştirin hemen uygulanır. Ana pencere ve altyazı modu ayrı değerler tutar."
+    },
+    "audio": {
+      "micHint": "Sesimin nereden geldiği",
+      "otherHint": "Karşı tarafın sesinin nereden geldiği",
+      "device": "Cihaz",
+      "source": "Kaynak",
+      "flow": {
+        "myMic": "Mikrofonum",
+        "toSpeech": "Konuşmaya",
+        "toThem": "Sanal mikrofon → karşı taraf",
+        "theirVoice": "Karşı tarafın sesi",
+        "myDevice": "Oynatma cihazım",
+        "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
+        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar."
+      }
+    },
+    "general": {
+      "basics": "Temel ayarlar",
+      "maintenance": "Bakım ve yardım",
+      "update": "Güncellemeler",
+      "updateLine": "Sizdeki sürüm {{version}}.",
+      "version": "Sürüm",
+      "storeUpdates": "Uzantıyı tarayıcının mağazası güncel tutar.",
+      "wizard": "Kurulum sihirbazı",
+      "wizardLine": "Sihirbazdan yeniden geçin; kaydettikleriniz önceden seçili gelir.",
+      "rerun": "Yeniden çalıştır",
+      "guide": "Rehber",
+      "guideLine": "Ana ekranda adım adım ipuçları.",
+      "restart": "Yeniden başlat",
+      "needHelp": "Yardım mı lazım:"
+    }
   }
 }

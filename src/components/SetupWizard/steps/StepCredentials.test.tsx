@@ -33,6 +33,8 @@ import { sonioxProvider } from '../../../providers/soniox/provider';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
 import { volcengineAst2Provider } from '../../../providers/volcengine_ast2/provider';
 import { AST2_DEFAULTS, type Ast2AuthMode } from '../../../providers/volcengine_ast2/settings';
+import { TRANSLATE_DEFAULTS } from '../../../providers/openai_translate/settings';
+import en from '../../../locales/en/translation.json';
 
 const ownKeyDraft = (patch: Partial<SetupDraft> = {}): SetupDraft => ({
   ...initialDraft(), step: 3, providerPath: 'own-key', provider: Provider.SONIOX, scenario: 'be-heard', ...patch,
@@ -315,5 +317,35 @@ describe('StepCredentials (managed)', () => {
     // file here to keep.
     expect(dispatch).toHaveBeenNthCalledWith(1, { type: 'skipCredentials', keepExisting: false });
     expect(dispatch).toHaveBeenNthCalledWith(2, { type: 'next' });
+  });
+});
+
+// Plan 6, Task 3: the step speaks of the line-up the path sets up.
+describe('StepCredentials — the line-up', () => {
+  it('says where translation and speech go on the no-key path, then the hardware sentence', () => {
+    render(<StepCredentials draft={{ ...initialDraft(), step: 3, providerPath: 'offline', provider: Provider.LOCAL_INFERENCE, scenario: 'be-heard' }} dispatch={vi.fn()} />);
+    expect(screen.getByText('setup.credentials.offlineNotice')).toBeInTheDocument();
+    expect(screen.getByText('setup.credentials.offlineHardware')).toBeInTheDocument();
+    expect(en.setup.credentials.offlineNotice).toMatch(/Bing.*Edge.*Microsoft/);
+    expect(en.setup.credentials.offlineNotice).toContain('Settings → Models and storage');
+  });
+
+  it('says that one OpenAI key serves the three OpenAI providers', () => {
+    useProviderStore.setState({
+      entries: { openai_translate: { settings: TRANSLATE_DEFAULTS, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } } },
+      readiness: {},
+    } as never);
+    render(<StepCredentials draft={ownKeyDraft({ provider: Provider.OPENAI_TRANSLATE })} dispatch={vi.fn()} />);
+    expect(screen.getByText('setup.credentials.openaiOneKey')).toBeInTheDocument();
+  });
+
+  it('says nothing of the kind for a provider with a key of its own', () => {
+    render(<StepCredentials draft={ownKeyDraft()} dispatch={vi.fn()} />);
+    expect(screen.queryByText('setup.credentials.openaiOneKey')).toBeNull();
+  });
+
+  it('sends a key left for later to Accounts and keys', () => {
+    expect(en.setup.credentials.pendingKey).toContain('Settings → Accounts and keys');
+    expect(en.setup.summary.pendingKey).toContain('Settings → Accounts and keys');
   });
 });

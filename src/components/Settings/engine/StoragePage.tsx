@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DICTIONARY_BYTES, deleteDictionary, isDictionaryStored } from '../../../lib/reading/ja/dictionary';
 import { HardDrive, Trash2, FolderInput, Cpu } from 'lucide-react';
 import {
   useModelStore, useModelStatuses, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures,
@@ -9,9 +10,10 @@ import { useLocalNativeSettings } from '../../../stores/settingsStore';
 import { MODEL_MANIFEST, getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { useSmartTurnStore } from '../../../stores/smartTurnStore';
-import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { nativeCandidates } from '../../../lib/local-inference/selection/candidates.native';
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
+import { resolveWasmDirection } from '../../../lib/local-inference/selection/resolveWithStages';
+import { useStoredLocalStages } from '../../../stores/lineUpStore';
 import { directionKey, type DirectionResult, type Selections, type Stage } from '../../../lib/local-inference/selection/types';
 import { ModelImportModal } from '../sections/ModelImportModal';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -40,7 +42,7 @@ interface Row {
 
 /** One row's delete-preview: which (direction, stage) resolutions the delete
  *  would change, already rendered to a sentence each. */
-function computeDeleteNotes(
+export function computeDeleteNotes(
   id: string,
   displayName: (id: string) => string,
   directions: Array<{ dir: string }>,
@@ -72,6 +74,50 @@ function computeDeleteNotes(
     }
   }
   return out;
+}
+
+/**
+ * The Japanese readings dictionary, kept with the other downloads so every downloaded model is in one place
+ * (providers and stages design, ruling 14). It is downloaded when Japanese readings are turned on in Display.
+ */
+/** `cleared` changes after Clear all, which empties the storage the dictionary lives in: the row looks again. */
+function ReadingsDictionaryRow({ isSessionActive, cleared }: { isSessionActive: boolean; cleared: number }) {
+  const { t } = useTranslation();
+  const [stored, setStored] = useState<boolean | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    let live = true;
+    // Storage that cannot be read (no IndexedDB) leaves the row's state unknown rather than failing.
+    isDictionaryStored().then((v) => { if (live) setStored(v); }, () => { if (live) setStored(null); });
+    return () => { live = false; };
+  }, [cleared]);
+  const name = t('models.readingsDictionary', 'Readings dictionary (Japanese)');
+  return (
+    <div className="engine-storage-row" data-testid="storage-row-readings-ja">
+      <div className="engine-storage-row__info">
+        <span className="engine-storage-row__name">{name}</span>
+        {stored === true && <span className="engine-storage-row__meta">{(DICTIONARY_BYTES / 1_048_576).toFixed(1)} MB</span>}
+        {stored === false && (
+          <span className="engine-storage-row__meta">{t('models.readingsDictionaryNotStored', 'Downloaded when Japanese readings are turned on in Display.')}</span>
+        )}
+      </div>
+      {stored === true && (
+        <button type="button" className="engine-storage-row__delete" data-testid="storage-delete-readings-ja"
+          aria-label={`${t('models.delete', 'Delete')}: ${name}`} onClick={() => setConfirming(true)} disabled={isSessionActive}>
+          <Trash2 size={12} />
+        </button>
+      )}
+      {confirming && (
+        <div className="engine-storage-confirm" data-testid="storage-confirm">
+          <p>{t('engineUi.deleteConfirm', 'Delete {{name}}?', { name })}</p>
+          <button type="button" className="model-management__clear-btn model-management__clear-btn--yes" disabled={isSessionActive}
+            onClick={() => { setConfirming(false); deleteDictionary().then(() => setStored(false), () => setStored(null)); }}>{t('models.confirmYes', 'Yes')}</button>
+          <button type="button" className="model-management__clear-btn model-management__clear-btn--no"
+            onClick={() => setConfirming(false)}>{t('models.confirmNo', 'No')}</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Storage: a flat list of everything downloaded (wasm) / ready (native),
@@ -123,6 +169,8 @@ export const StoragePage: React.FC<
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [clearAllPending, setClearAllPending] = useState(false);
+  /** Counts the Clear alls done here, so the readings dictionary row looks again after one. */
+  const [cleared, setCleared] = useState(0);
   const [importOpen, setImportOpen] = useState(false);
   const [importTarget, setImportTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -138,11 +186,15 @@ export const StoragePage: React.FC<
   const displayName = (id: string): string =>
     isWasm ? (getManifestEntry(id)?.name ?? id) : (nativeCatalog[id]?.name ?? id);
 
+  const stages = useStoredLocalStages();
+  /** A direction key's two languages. */
+  const splitDirection = (dir: string): [string, string] => { const [src, tgt] = dir.split('→'); return [src, tgt]; };
   const resolveWith = (statuses: Record<string, string>) => (dir: string): DirectionResult =>
     isWasm
-      ? resolveDirection(dir, selections, wasmCandidates({
+      // As the engine resolves it: a stored line-up's Bing and Edge stages included.
+      ? resolveWasmDirection(...splitDirection(dir), selections, {
           modelStatuses: statuses as Record<string, any>, webgpuAvailable, deviceFeatures,
-        }))
+        }, stages)
       : resolveDirection(dir, selections, nativeCandidates({
           catalog: nativeCatalog, statuses: statuses as Record<string, any>,
         }));
@@ -205,6 +257,7 @@ export const StoragePage: React.FC<
     setClearAllPending(false);
     if (isWasm) {
       await useModelStore.getState().deleteAllModels();
+      setCleared((n) => n + 1);
       // The clear wipes the whole IndexedDB, punctuation and Smart Turn models
       // included — their own stores must be told, or their settings keep
       // claiming the models are ready.
@@ -288,6 +341,8 @@ export const StoragePage: React.FC<
           )}
         </div>
       ))}
+
+      {isWasm && <ReadingsDictionaryRow isSessionActive={isSessionActive} cleared={cleared} />}
 
       <div className="engine-storage-page__actions">
         {canClearAll && (

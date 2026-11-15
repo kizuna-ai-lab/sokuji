@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
+// The stored line-up: none here, so local models resolve as today.
+vi.mock('../../stores/lineUpStore', () => ({ useStoredLocalStages: () => null, storedLocalStages: () => null }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, fb?: string) => fb ?? _k }),
 }));

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ModelManager } from '../lib/local-inference/ModelManager';
 import { ModelImportError } from '../lib/local-inference/modelImport';
 import { directionKey } from '../lib/local-inference/selection/types';
+import { isTranslationModelCompatible } from '../lib/local-inference/modelManifest';
 
 // Mock modelManifest functions
 const mockGetManifestEntry = vi.fn();
@@ -225,5 +226,56 @@ describe('modelStore.resolve', () => {
     const before = JSON.stringify(selections);
     useModelStore.getState().resolve('ja', 'en', selections);
     expect(JSON.stringify(selections)).toBe(before);
+  });
+});
+
+describe('modelStore.resolve with the line-up\'s local stages', () => {
+  const v = { variants: { q8: { files: [{ sizeBytes: 1_048_576 }] } } };
+  const entries: Record<string, any> = {
+    'bing-translator': { id: 'bing-translator', type: 'translation', isCloudModel: true, recommended: true, sortOrder: 2, languages: [], ...v },
+    'local-mt': { id: 'local-mt', type: 'translation', recommended: false, sortOrder: 5, languages: [], ...v },
+    'edge-tts': { id: 'edge-tts', type: 'tts', isCloudModel: true, multilingual: true, recommended: true, sortOrder: 0, languages: [], ...v },
+    'local-tts': { id: 'local-tts', type: 'tts', multilingual: true, recommended: false, sortOrder: 3, languages: [], ...v },
+  };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetManifestEntry.mockImplementation((id: string) => entries[id]);
+    mockGetManifestByType.mockImplementation((type: string) => Object.values(entries).filter((e) => e.type === type));
+    useModelStore.setState({ modelStatuses: { 'local-mt': 'downloaded', 'local-tts': 'downloaded' }, webgpuAvailable: false, deviceFeatures: [] });
+  });
+  const dir = directionKey('ja', 'en');
+  const stored = { [dir]: { asr: { modelId: '' }, translation: { modelId: 'local-mt' }, tts: { modelId: 'edge-tts' } } };
+
+  it('without stages it resolves as today, Bing and Edge among the choices', () => {
+    const r = useModelStore.getState().resolve('ja', 'en', { [dir]: { asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: '' } } });
+    expect(r.translation?.modelId).toBe('bing-translator');
+    expect(r.tts?.modelId).toBe('edge-tts');
+  });
+
+  it('a stage the line-up gives to Bing runs Bing whatever is stored, and the stored choice is untouched', () => {
+    const before = JSON.stringify(stored);
+    const r = useModelStore.getState().resolve('ja', 'en', stored, { translation: 'bing', speech: 'local' });
+    expect(r.translation).toEqual({ modelId: 'bing-translator', variant: undefined, source: 'explicit' });
+    expect(JSON.stringify(stored)).toBe(before);
+  });
+
+  // PR review: Bing has its own list of languages; a pair outside it must not be handed to Bing.
+  it('a stage the line-up gives to Bing stays on this machine for a pair Bing does not support', () => {
+    vi.mocked(isTranslationModelCompatible).mockImplementation((m: { id: string }, _s: string, t: string) => m.id !== 'bing-translator' || t !== 'gu');
+    try {
+      const gu = directionKey('ja', 'gu');
+      const r = useModelStore.getState().resolve('ja', 'gu', { [gu]: { asr: { modelId: '' }, translation: { modelId: 'local-mt' }, tts: { modelId: '' } } }, { translation: 'bing', speech: 'edge' });
+      expect(r.translation?.modelId).toBe('local-mt');
+      expect(r.tts?.modelId).toBe('edge-tts');
+    } finally {
+      vi.mocked(isTranslationModelCompatible).mockImplementation(() => true);
+    }
+  });
+
+  it('a local stage never runs Bing or Edge: a stored Edge choice is a deleted model', () => {
+    const r = useModelStore.getState().resolve('ja', 'en', stored, { translation: 'local', speech: 'local' });
+    expect(r.translation?.modelId).toBe('local-mt');
+    expect(r.tts?.modelId).toBe('local-tts');
+    expect(r.notes).toContainEqual(expect.objectContaining({ stage: 'tts', reason: 'not-in-catalog' }));
   });
 });

@@ -21,6 +21,7 @@ import { sentenceEnds } from '../lib/segmentation/sentenceEnd';
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { useLineUpStore } from '../stores/lineUpStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import {
   appStartInputs,
@@ -239,6 +240,23 @@ describe('sessionStartProperties', () => {
   });
 });
 
+describe('the line-up at the start of a session', () => {
+  const base = {
+    audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+    speak: { other: true, me: false, them: false },
+    channels: { other: 'both' as const, me: 'both' as const, them: 'both' as const },
+    segmentation: { mode: 'off' as const, size: 0 as const },
+    punctuationActive: false,
+  };
+  it('names the provider of each stage when a line-up is stored', () => {
+    expect(sessionStartProperties({ ...base, lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }))
+      .toMatchObject({ stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
+  });
+  it('adds nothing while no line-up is stored', () => {
+    expect(sessionStartProperties({ ...base, lineUp: null })).not.toHaveProperty('stages');
+  });
+});
+
 describe('sessionEndProperties', () => {
   const run: RunFacts = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] };
 
@@ -283,6 +301,21 @@ describe('sessionEndProperties', () => {
       text: { 'speaker|m': { leg: 'speaker', model: 'm', chars: 0, terminals: 0 } },
     };
     expect(sessionEndProperties(tally, run)).toEqual({});
+  });
+});
+
+describe('appStartInputs and the line-up', () => {
+  const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+  afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
+  it('carries the stored line-up when it runs on the selected provider', () => {
+    useProviderStore.setState({ selected: 'local_inference', entries: {} });
+    useLineUpStore.setState({ lineUp: local, stored: true });
+    expect(appStartInputs(false).lineUp).toEqual(local);
+  });
+  it('leaves it out when the selected provider was changed elsewhere and no longer runs it', () => {
+    useProviderStore.setState({ selected: 'openai', entries: {} });
+    useLineUpStore.setState({ lineUp: local, stored: true });
+    expect(appStartInputs(false).lineUp).toBeNull();
   });
 });
 

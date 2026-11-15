@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "所選來源尚未傳來任何音訊",
     "audioCaptureUnprovenText1": "如果來源正在播放卻沒有譯文，很可能是 macOS 只給出了靜音：擷取某個應用程式的音訊需要「僅系統錄音」權限，沒有該權限時不會報錯，只會是靜音。",
     "audioCaptureUnprovenText3Named": "「{{app}}」只有在嘗試過一次擷取之後才會出現在該清單中，剛才已經嘗試過了。啟用後請重新開始。如果來源本來就是靜音的，則無需任何更改。",
-    "otherSideBesideNote": "對方與您共用麥克風，不會擷取系統音訊。"
+    "otherSideBesideNote": "對方與您共用麥克風，不會擷取系統音訊。",
+    "captionMine": "我說的話，翻譯成語音",
+    "captionTheirs": "對方說的話，翻譯成語音",
+    "defaultPlaybackAid": "我這邊的聲音都從這裡播放，除非某一行單獨指定了裝置；單獨指定的裝置拔掉時，也回到這裡。",
+    "captionReplay": "回放"
   },
   "auth": {
     "signIn": "登入",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "為對方的人編號（說話者 1、說話者 2…），聽到不只一個聲音時顯示。\n\n可能會把一個人誤認成好幾個人。停用：不顯示編號。\n\n將於下次工作階段生效。"
     },
     "local_inference": {
-      "name": "免費",
-      "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",
+      "name": "本機",
+      "description": "模型下載到這台電腦後就能用，第一次要連網下載（數 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "翻譯",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "免費 · 不連網"
     },
     "local_native": {
       "name": "免費 (Native)",
@@ -608,7 +613,15 @@
       "name": "未知",
       "description": "未知的提供商"
     },
-    "poweredBy": "<brand>{{name}}</brand> 驅動"
+    "poweredBy": "<brand>{{name}}</brand> 驅動",
+    "bing": {
+      "name": "Bing",
+      "note": "免費 · 連網，微軟的服務"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "免費 · 連網，微軟的服務"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "自動捲動 開",
@@ -739,7 +752,9 @@
     "preparingVoice": "正在準備您的語音…",
     "waitingForPreviousSession": "正在等待…",
     "waitingForPreviousSessionTitle": "正在等待上一個工作階段結束。點擊取消",
-    "clickToCancel": "點擊取消"
+    "clickToCancel": "點擊取消",
+    "whatIHear": "我聽到的",
+    "audioSettings": "音訊設定"
   },
   "modePicker": {
     "modeYou": "我",
@@ -962,6 +977,42 @@
       "cancel": "取消",
       "accept": "我已瞭解——僅限非商業用途",
       "acceptRestricted": "我已瞭解——接受該授權"
+    },
+    "readingsDictionary": "讀音詞典（日語）",
+    "readingsDictionaryNotStored": "在「顯示」裡開啟日語讀音時下載。",
+    "page": {
+      "tag": {
+        "asr": "辨識",
+        "translation": "翻譯",
+        "tts": "語音",
+        "turn": "斷句",
+        "punctuation": "分句和標點",
+        "readings": "注音",
+        "voice": "音色"
+      },
+      "manyLanguages": "多語言",
+      "languages": "{{count}} 種語言",
+      "direct": "也能直接出譯文",
+      "downloading": "下載中 {{percent}}%",
+      "failed": "下載失敗",
+      "cannotRun": "這台電腦跑不了",
+      "notDownloaded": "未下載",
+      "download": "下載",
+      "listJoin": "、",
+      "summary": "已下載 {{count}} 項，共 {{size}}",
+      "import": "從檔案匯入模型",
+      "sessionTitle": "工作階段用的模型（「本機」服務商）",
+      "sessionHint": "在「語言與工作階段組成」裡選了「本機」的階段，用的就是這裡下載的模型。",
+      "otherLanguages": "其他語言的模型（{{count}} 個）",
+      "helpersTitle": "輔助模型",
+      "helpersHint": "不屬於哪個階段的小模型。",
+      "turnMeta": "判斷一段話說完了沒有；在語音模式的選項裡打開",
+      "packMeta": "按句子分段用；三個一起下載",
+      "dictMeta": "顯示日語讀音用；在「顯示」裡打開",
+      "voicesTitle": "匯入的音色",
+      "voicesHint": "自己匯入的 Supertonic 音色檔案。",
+      "importedOn": "匯入於 {{date}}",
+      "more": "還有 {{count}} 個"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "正在下載日語詞典 {{done}} / {{total}}",
       "readingsDownloadFailed": "日語詞典下載失敗。",
-      "readingsFailed": "日語讀音無法顯示。"
+      "readingsFailed": "日語讀音無法顯示。",
+      "defaultColour": "預設"
     },
     "pttHint": "按住空白鍵說話"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "立即開始",
         "desc": "由 Kizuna AI 為您執行翻譯。",
-        "cost": "使用電子郵件註冊並完成驗證 — 驗證後的帳戶會取得試用額度。之後您可以儲值餘額，翻譯依實際用量計費。"
+        "cost": "使用電子郵件註冊並完成驗證 — 驗證後的帳戶會取得試用額度。之後您可以儲值餘額，翻譯依實際用量計費。",
+        "options": {
+          "kizunaai_soniox": "即時出轉寫，翻譯很快。",
+          "kizunaai_qwen": "可以看螢幕，轉寫和翻譯十分準確。"
+        }
       },
       "own-key": {
         "title": "我有自己的 API 金鑰",
@@ -1356,14 +1412,15 @@
         "cost": "您的金鑰只會留在這台裝置上，並直接連線到該提供商。您是該提供商的客戶：依實際用量直接付費給對方，完全不經過 Kizuna AI。"
       },
       "offline": {
-        "title": "免費，離線",
-        "desc": "在您自己的電腦上執行，資料不會外流。",
-        "cost": "需要下載模型到磁碟（數 GB）。有 GPU 且顯示記憶體充足時執行順暢；僅用 CPU 會明顯較慢。",
+        "title": "不用金鑰",
+        "desc": "免費。辨識在這台電腦上執行；翻譯用必應、語音用 Edge，這兩樣需連網，是微軟的服務。",
+        "cost": "辨識要先下載模型到硬碟。有 GPU 時執行流暢；只用 CPU 會明顯變慢。",
         "native": "原生引擎 — 速度更快，若有 GPU 會自動使用。",
         "wasm": "內建引擎 — 到處都能執行，速度較慢。"
       },
       "ownKeyNote": "選擇您已有帳號的提供商，各家都會核發自己的金鑰：",
-      "ownKeyGuides": "各提供商的申請指南"
+      "ownKeyGuides": "各提供商的申請指南",
+      "managedPick": "用哪個託管服務？"
     },
     "fit": {
       "cannotSpeak": "此提供商無法產生語音翻譯。",
@@ -1384,22 +1441,29 @@
       "createAccount": "註冊",
       "signedIn": "已登入，可以繼續。",
       "managedDesc": "使用電子郵件註冊，並在收件匣完成驗證；驗證後的帳戶會取得試用額度。之後您可以儲值餘額，僅需為實際用量付費。",
-      "offlineNotice": "模型會在設定完成後於「設定」中下載，需要數 GB 的磁碟空間。有 GPU 且顯示記憶體充足時執行順暢；僅用 CPU 會明顯較慢。",
-      "pendingKey": "您可以稍後在「設定 → 提供商」新增金鑰。金鑰通過驗證前，「開始」會保持鎖定。",
+      "offlineNotice": "辨識模型在設定完成後從「設定 → 模型與儲存空間」下載。翻譯用必應、語音用 Edge，不用下載，也不用帳號；要翻譯的文字和要唸的譯文會傳給微軟。",
+      "pendingKey": "您可以稍後在「設定 → 帳號與金鑰」新增金鑰。金鑰通過驗證前，「開始」會保持鎖定。",
       "pendingSignIn": "您可以稍後從帳戶按鈕登入。在那之前，「開始」會保持鎖定。",
       "ownKeyDesc": "此金鑰只會儲存在這台裝置上，應用程式會直接從這裡呼叫該提供商 — 不會經過 Kizuna AI。您依實際用量直接付費給該提供商。",
       "guide": "如何取得此金鑰",
       "verifyEmail": "已登入。請開啟我們寄給您的驗證信連結以完成信箱驗證 — 完成後即可取得試用額度。",
-      "onFile": "已儲存金鑰 — 留空即可沿用。"
+      "onFile": "已儲存金鑰 — 留空即可沿用。",
+      "offlineHardware": "有 GPU 且顯示記憶體充足時執行順暢；僅用 CPU 會明顯較慢。",
+      "openaiOneKey": "這一把金鑰給 OpenAI Realtime、Translate、Live 三種服務共用。"
     },
     "summary": {
       "scenario": "場景",
       "mode": "模式",
       "provider": "提供商",
       "languages": "語言",
-      "pendingKey": "尚未設定 API 金鑰 — 開始前請先在「設定 → 提供商」中新增。",
+      "pendingKey": "尚未設定 API 金鑰 — 開始前請先在「設定 → 帳號與金鑰」中新增。",
       "pendingSignIn": "尚未登入 — 開始前請先從帳戶按鈕登入。",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "工作階段組成"
+    },
+    "lineup": {
+      "title": "會寫下的工作階段組成",
+      "later": "以後可以在「設定 → 語言與工作階段組成」裡一項一項換。"
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "提供商設定",
-        "content": "在這裡更換金鑰或切換提供商。",
+        "content": "在這裡換金鑰。",
         "content_pending": "在這裡貼上您的 API 金鑰。通過驗證後即可解鎖「開始」。"
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "就是這樣",
-        "content": "進階設定 — 語音偵測、提示詞、語音、日誌 — 都在「設定」右上角的「進階」開關後面。隨時可以在「說明」中重看本導覽。"
+        "content": "其餘設定都在「設定」裡，依分類排列；搜尋可依名稱找到任何一項。隨時可以在「說明」中重看本導覽。"
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "無法連線",
     "switch": "切換",
     "keep": "維持 {{region}}"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "search": "搜尋設定",
+    "back": "返回工作階段",
+    "backToList": "返回分類",
+    "changeable": "工作階段中可改",
+    "lockedNote": "工作階段中鎖定",
+    "partlyLocked": "工作階段中部分鎖定",
+    "lockedLine": "工作階段進行中：語言、工作階段組成、詞表和金鑰不能改；音訊、顯示和其餘設定可以改。",
+    "categories": {
+      "lineup": "語言與工作階段組成",
+      "words": "詞表與背景",
+      "accounts": "帳號與金鑰",
+      "models": "模型與儲存空間",
+      "audio": "音訊",
+      "display": "顯示",
+      "history": "歷史與紀要",
+      "general": "一般"
+    },
+    "groups": {
+      "session": "工作階段",
+      "providers": "服務商與模型",
+      "devices": "裝置與顯示",
+      "data": "資料",
+      "app": "應用程式"
+    },
+    "words": {
+      "lineup": "我說, 對方聽到, 語音模式, 按住說話, 按住翻譯, 斷句, 轉寫, 翻譯, 語音, 紀要, 服務, 模型, 音色, 區域, 工作階段組成",
+      "words": "詞表, 寫法, 譯法, 常被聽成, 熱詞, 術語, 指定譯法, 替換, 工作階段背景",
+      "accounts": "登入, 金鑰, key, 帳號, 餘額, 驗證, 本機, 必應, Bing, Edge",
+      "models": "模型, 下載, 刪除, 儲存, 空間, 辨識, 斷句, 標點, 注音, 詞典, 音色, 匯入, 引擎",
+      "audio": "麥克風, 噪音抑制, 回音消除, 預設播放裝置, 喇叭, 耳機, 對方聽到的翻譯, 我聽到的翻譯, 我也聽, 原聲直通, 虛擬麥克風, 保留譯音, 重播, 對方音訊",
+      "display": "字級, 顏色, 緊湊, 注音, 讀音, 字幕, 透明度, 預覽, 原文, 譯文",
+      "history": "歷史, 資料夾, 自動儲存, 錄音, 紀要",
+      "general": "介面語言, 外觀, 主題, 更新, 記錄, 設定精靈, 說明, 版本"
+    },
+    "accounts": {
+      "addKey": "新增金鑰",
+      "keySaved": "已儲存金鑰",
+      "local": "在這台電腦上執行",
+      "needsKey": "需要金鑰",
+      "online": "不用金鑰；需連網，微軟的服務",
+      "signedIn": "已登入",
+      "signedOut": "未登入",
+      "together": "一起",
+      "view": "檢視",
+      "hide": "收起",
+      "endToEnd": "端到端",
+      "transcribeTranslate": "轉寫並翻譯",
+      "signedInBalance": "已登入，餘額 {{amount}}",
+      "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
+      "localNone": "在這台電腦上執行；還沒有下載模型"
+    },
+    "lineup": {
+      "title": "工作階段組成",
+      "stages": {
+        "transcription": "轉寫",
+        "translation": "翻譯",
+        "speech": "語音",
+        "summarisation": "紀要"
+      },
+      "and": "和",
+      "joint": "和{{stages}}共用一條連線，會一起換。",
+      "granite": "與翻譯一起：Granite Speech 直接把語音變成譯文。",
+      "moved": "{{stages}}也換成了{{providers}}：目前不能和這個選擇混用。混用以後再做。",
+      "needsKey": "需要金鑰",
+      "needsSignIn": "需要登入",
+      "options": "{{provider}} 的選項",
+      "state": {
+        "needsKey": "需要金鑰",
+        "needsModel": "需要模型",
+        "needsSignIn": "需要登入",
+        "ready": "就緒"
+      },
+      "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
+      "hint": "每個階段由哪個服務來做",
+      "uses": {
+        "turn": "斷句",
+        "key": "按鍵",
+        "space": "空白鍵",
+        "released": "放開以後",
+        "releasedValue": "這一段送去翻譯",
+        "notHeld": "沒有按住的時候",
+        "notHeldValue": "原聲直接給對方，不翻譯"
+      },
+      "actsOn": "作用於{{stages}}",
+      "pointer": "作用於{{stages}}的選項在「{{card}}」卡片裡。",
+      "edgeVoices": {
+        "hint": "音色依語言分開存：這裡改的是現在這組語言用的音色。",
+        "voiceFor": "{{who}}（{{language}}）"
+      }
+    },
+    "display": {
+      "surface": "哪個介面",
+      "main": "主視窗",
+      "captions": "字幕模式",
+      "compact": "緊湊檢視",
+      "fontSize": "字級",
+      "smaller": "縮小字級",
+      "larger": "放大字級",
+      "modes": {
+        "both": "原文和譯文",
+        "source": "只原文",
+        "translation": "只譯文",
+        "none": "不顯示"
+      },
+      "mineSide": "「我」這一側顯示",
+      "theirsSide": "「對方」這一側顯示",
+      "previewMain": "預覽：主視窗裡的對話",
+      "previewCaptions": "預覽：字幕模式，後面是別的視窗",
+      "empty": "這裡現在什麼都不顯示：兩側都設成了「不顯示」。"
+    },
+    "intro": {
+      "accounts": "帳號和金鑰，每個服務只填一次。填好以後，它能做的事就可以在「語言與工作階段組成」裡選。",
+      "models": "所有下載到這台電腦上的模型都在這一處管理：工作階段用的、輔助的、匯入的音色。",
+      "audio": "麥克風、語音、對方音訊。除了「對方聽到的翻譯」，工作階段進行中都可以改。",
+      "display": "和對話上方的工具列、字幕條上的按鈕是同一組值：在哪邊改都一樣，改了馬上生效。主視窗和字幕模式各一套，互不影響。"
+    },
+    "audio": {
+      "micHint": "我的聲音從哪裡進來",
+      "otherHint": "對方的聲音從哪裡進來",
+      "device": "裝置",
+      "source": "來源",
+      "flow": {
+        "myMic": "我的麥克風",
+        "toSpeech": "翻譯成語音",
+        "toThem": "虛擬麥克風 → 對方",
+        "theirVoice": "對方的聲音",
+        "myDevice": "我的播放裝置",
+        "caption": "聲音走向。亮著的線是現在開著的，虛線是關著的；隨下面的開關變。",
+        "aria": "聲音走向：我說的話翻譯成語音，送進虛擬麥克風給對方，我也聽時在我這邊也放；對方說的話翻譯成語音，從我的播放裝置放出來。"
+      }
+    },
+    "general": {
+      "basics": "基本設定",
+      "maintenance": "維護與說明",
+      "update": "更新",
+      "updateLine": "現在是 {{version}}。",
+      "version": "版本",
+      "storeUpdates": "擴充功能由瀏覽器的商店自動更新。",
+      "wizard": "設定精靈",
+      "wizardLine": "從頭再走一遍精靈；已經存好的選擇會預先選上。",
+      "rerun": "重新執行",
+      "guide": "操作指南",
+      "guideLine": "主畫面上一步一步的提示。",
+      "restart": "重新開始",
+      "needHelp": "需要協助："
+    }
   }
 }

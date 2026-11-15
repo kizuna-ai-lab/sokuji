@@ -70,6 +70,12 @@ export interface DisplaySettingsPopoverProps {
   source: Source;
   /** The reading languages the switch names; absent or empty, no readings row (the subtitle passes them only in Electron while expanded; the overlay never). */
   readingTargets?: ReadonlySet<ReadingLanguage>;
+  /**
+   * `page`: the settings page's display rows — each control a row, label on
+   * the left, caption mode's opacity after the colours. Absent: the floating
+   * box the toolbar and the caption bar open.
+   */
+  layout?: 'popover' | 'page';
 }
 
 interface InnerBindings {
@@ -107,10 +113,12 @@ interface FollowChip {
   follow: () => Promise<void>;
 }
 
-const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source, readingTargets }) =>
+type BoundProps = Pick<DisplaySettingsPopoverProps, 'readingTargets' | 'layout'>;
+
+const DisplaySettingsPopover: React.FC<DisplaySettingsPopoverProps> = ({ source, readingTargets, layout }) =>
   source === 'subtitle'
-    ? <SubtitleBoundPopover readingTargets={readingTargets} />
-    : <ConversationBoundPopover readingTargets={readingTargets} />;
+    ? <SubtitleBoundPopover readingTargets={readingTargets} layout={layout} />
+    : <ConversationBoundPopover readingTargets={readingTargets} layout={layout} />;
 
 export default DisplaySettingsPopover;
 
@@ -119,7 +127,7 @@ export default DisplaySettingsPopover;
 // of hooks satisfied: hooks are always called in the same order within
 // a given wrapper component.
 
-const SubtitleBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingLanguage> }> = ({ readingTargets }) => {
+const SubtitleBoundPopover: React.FC<BoundProps> = ({ readingTargets, layout }) => {
   const bindings: InnerBindings = {
     bgOpacity: useSubtitleBgOpacity(),
     bgColor: useSubtitleBgColor(),
@@ -138,10 +146,10 @@ const SubtitleBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingLangu
     setShowReadings: useSetSubtitleShowReadings(),
     surface: 'subtitle',
   };
-  return <DisplaySettingsPopoverInner bindings={bindings} readingTargets={readingTargets} />;
+  return <DisplaySettingsPopoverInner bindings={bindings} readingTargets={readingTargets} layout={layout} />;
 };
 
-const ConversationBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingLanguage> }> = ({ readingTargets }) => {
+const ConversationBoundPopover: React.FC<BoundProps> = ({ readingTargets, layout }) => {
   // A colour the user never set is null in the store and follows the scheme
   // (spec 2026-10-22 §3): the rows show what is drawn, and their first chip
   // is that choice, in the scheme's own colour.
@@ -179,12 +187,12 @@ const ConversationBoundPopover: React.FC<{ readingTargets?: ReadonlySet<ReadingL
     setShowReadings: useSetConversationDisplayShowReadings(),
     surface: 'conversation',
   };
-  return <DisplaySettingsPopoverInner bindings={bindings} readingTargets={readingTargets} />;
+  return <DisplaySettingsPopoverInner bindings={bindings} readingTargets={readingTargets} layout={layout} />;
 };
 
 // ──────────── Pure presentational inner ────────────
 
-const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTargets?: ReadonlySet<ReadingLanguage> }> = ({ bindings, readingTargets }) => {
+const DisplaySettingsPopoverInner: React.FC<BoundProps & { bindings: InnerBindings }> = ({ bindings, readingTargets, layout = 'popover' }) => {
   const { t } = useTranslation();
   const includeOpacity =
     bindings.bgOpacity !== undefined && bindings.setBgOpacity !== undefined;
@@ -206,11 +214,24 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
   // @floating-ui/react's useRole, which also wires aria-haspopup / aria-
   // expanded / aria-controls on the trigger. Keeping the role on a single
   // level avoids duplicate dialog announcements.
+  // Esc with a picker open closes the picker and goes no further (the settings page would otherwise close).
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Escape' || openPicker === null) return;
+    e.preventDefault();
+    // The focus goes back to the chip that opened the picker, which is about to unmount the focused control.
+    const opener = e.currentTarget.querySelector<HTMLButtonElement>('button.swatch.custom[aria-expanded="true"]');
+    setOpenPicker(null);
+    opener?.focus();
+  };
+
+  const page = layout === 'page';
+  const opacity = includeOpacity && (
+    <OpacitySlider value={bindings.bgOpacity!} onCommit={bindings.setBgOpacity!} inline={page} />
+  );
+
   return (
-    <div className="display-settings-popover">
-      {includeOpacity && (
-        <OpacitySlider value={bindings.bgOpacity!} onCommit={bindings.setBgOpacity!} />
-      )}
+    <div className={`display-settings-popover${page ? ' display-settings-popover--page' : ''}`} onKeyDown={onKeyDown}>
+      {!page && opacity}
 
       <ColorRow
         labelKey="subtitle.settings.bgColor"
@@ -222,6 +243,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
         pickerOpen={openPicker === 'bg'}
         onTogglePicker={() => togglePicker('bg')}
         follow={bindings.follow?.bg}
+        worded={page}
       />
       <ColorRow
         labelKey="subtitle.settings.sourceColor"
@@ -233,6 +255,7 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
         pickerOpen={openPicker === 'source'}
         onTogglePicker={() => togglePicker('source')}
         follow={bindings.follow?.source}
+        worded={page}
       />
       <ColorRow
         labelKey="subtitle.settings.translationColor"
@@ -244,8 +267,10 @@ const DisplaySettingsPopoverInner: React.FC<{ bindings: InnerBindings; readingTa
         pickerOpen={openPicker === 'translation'}
         onTogglePicker={() => togglePicker('translation')}
         follow={bindings.follow?.translation}
+        worded={page}
       />
       {readingTargets && readingTargets.size > 0 && <ReadingsRow bindings={bindings} targets={readingTargets} />}
+      {page && opacity}
       {includeHighlightToggle && (
         <div className="field">
           <ToggleSwitch
@@ -335,7 +360,9 @@ const JapaneseDictionaryStatus: React.FC<{ state: JapaneseState }> = ({ state })
 const OpacitySlider: React.FC<{
   value: number;
   onCommit: (n: number) => Promise<void>;
-}> = ({ value, onCommit }) => {
+  /** A settings row: the label alone on the left, the slider and its value on the right. */
+  inline?: boolean;
+}> = ({ value, onCommit, inline }) => {
   const { t } = useTranslation();
   const id = useId();
   const [local, setLocal] = useState(value);
@@ -352,22 +379,33 @@ const OpacitySlider: React.FC<{
     }
   }, [local, value, onCommit]);
 
+  const slider = (
+    <input
+      id={id}
+      type="range"
+      min={0}
+      max={100}
+      step={1}
+      value={local}
+      onChange={(e) => setLocal(Number(e.target.value))}
+      onPointerUp={commit}
+      onKeyUp={commit}
+    />
+  );
+  if (inline) {
+    return (
+      <div className="field">
+        <label htmlFor={id}>{t('subtitle.settings.bgOpacity', 'Background opacity')}</label>
+        <span className="range">{slider}<output htmlFor={id}>{local}%</output></span>
+      </div>
+    );
+  }
   return (
     <div className="field">
       <label htmlFor={id}>
         {t('subtitle.settings.bgOpacity', 'Background opacity')} ({local}%)
       </label>
-      <input
-        id={id}
-        type="range"
-        min={0}
-        max={100}
-        step={1}
-        value={local}
-        onChange={(e) => setLocal(Number(e.target.value))}
-        onPointerUp={commit}
-        onKeyUp={commit}
-      />
+      {slider}
     </div>
   );
 };
@@ -391,6 +429,8 @@ interface ColorRowProps {
    * fixed default.
    */
   follow?: FollowChip;
+  /** The settings page: the first chip says what it is ("Follow theme", or "Default"), as the mock draws it. */
+  worded?: boolean;
 }
 
 const ColorRow: React.FC<ColorRowProps> = ({
@@ -403,6 +443,7 @@ const ColorRow: React.FC<ColorRowProps> = ({
   pickerOpen,
   onTogglePicker,
   follow,
+  worded = false,
 }) => {
   const { t } = useTranslation();
   const valueLower = value.toLowerCase();
@@ -466,23 +507,32 @@ const ColorRow: React.FC<ColorRowProps> = ({
         {follow && (
           <button
             type="button"
-            aria-label={followLabel}
+            aria-label={worded ? undefined : followLabel}
             title={followLabel}
-            className={`swatch follow ${following ? 'selected' : ''}`}
-            style={{ '--follow-dark': follow.dark, '--follow-light': follow.light } as React.CSSProperties}
+            className={`swatch follow${worded ? ' pill' : ''} ${following ? 'selected' : ''}`}
+            style={worded ? undefined : { '--follow-dark': follow.dark, '--follow-light': follow.light } as React.CSSProperties}
             onClick={onFollowClick}
-          />
+          >
+            {worded && followLabel}
+          </button>
         )}
-        {orderedPresets.map((c) => (
-          <button
-            key={c}
-            type="button"
-            aria-label={c}
-            className={`swatch ${!following && valueLower === c.toLowerCase() ? 'selected' : ''}`}
-            style={{ background: c }}
-            onClick={() => onPresetClick(c)}
-          />
-        ))}
+        {orderedPresets.map((c, i) => {
+          // Without a follow chip the first chip is the surface's fixed default: on the page, named so.
+          const named = worded && !follow && i === 0;
+          return (
+            <button
+              key={c}
+              type="button"
+              aria-label={named ? undefined : c}
+              title={named ? c : undefined}
+              className={`swatch${named ? ' pill' : ''} ${!following && valueLower === c.toLowerCase() ? 'selected' : ''}`}
+              style={named ? undefined : { background: c }}
+              onClick={() => onPresetClick(c)}
+            >
+              {named && t('subtitle.settings.defaultColour', 'Default')}
+            </button>
+          );
+        })}
         <button
           type="button"
           className={`swatch custom ${isCustom ? 'selected' : ''}`}

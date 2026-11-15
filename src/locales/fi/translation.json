@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" näkyy luettelossa vasta yhden kaappausyrityksen jälkeen, joka juuri tehtiin. Aloita istunto uudelleen, kun olet ottanut sen käyttöön. Jos lähde oli vain hiljainen, mitään ei tarvitse muuttaa.",
-    "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta."
+    "otherSideBesideNote": "Toinen henkilö käyttää mikrofoniasi; järjestelmän ääntä ei tallenneta.",
+    "captionMine": "Mitä sanon, puheena",
+    "captionTheirs": "Mitä toinen osapuoli sanoo, puheena",
+    "defaultPlaybackAid": "Oman puoleni äänet soivat täällä, ellei rivi nimeä omaa laitettaan; ääni, jonka oma laite on irrotettu, soi myös täällä.",
+    "captionReplay": "Uudelleentoisto"
   },
   "auth": {
     "signIn": "Kirjaudu sisään",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Numeroi toisen osapuolen ihmiset – Puhuja 1, Puhuja 2… – kun kuuluu useampi kuin yksi ääni.\n\nSe voi luulla yhtä ihmistä useaksi. Pois käytöstä: numeroita ei näytetä.\n\nOtetaan käyttöön vasta seuraavasta istunnosta alkaen."
     },
     "local_inference": {
-      "name": "Ilmainen",
-      "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
+      "name": "Tämä laite",
+      "description": "Toimii, kun mallit on ladattu tälle tietokoneelle; ensimmäisellä kerralla on ladattava useita gigatavuja.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Ilmainen · ilman verkkoa"
     },
     "local_native": {
       "name": "Ilmainen (Native)",
@@ -608,7 +613,15 @@
       "name": "Tuntematon",
       "description": "Tuntematon palveluntarjoaja"
     },
-    "poweredBy": "Moottorina <brand>{{name}}</brand>"
+    "poweredBy": "Moottorina <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Ilmainen · verkossa, Microsoftin palvelu"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Ilmainen · verkossa, Microsoftin palvelu"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Automaattivieritys päällä",
@@ -739,7 +752,9 @@
     "preparingVoice": "Valmistellaan ääntäsi…",
     "waitingForPreviousSession": "Odotetaan…",
     "waitingForPreviousSessionTitle": "Odotetaan edellisen istunnon päättymistä. Napsauta peruuttaaksesi.",
-    "clickToCancel": "Napsauta peruuttaaksesi"
+    "clickToCancel": "Napsauta peruuttaaksesi",
+    "whatIHear": "Mitä kuulen",
+    "audioSettings": "Ääniasetukset"
   },
   "modePicker": {
     "modeYou": "Minä",
@@ -962,6 +977,42 @@
       "cancel": "Peruuta",
       "accept": "Ymmärrän — vain ei-kaupallinen käyttö",
       "acceptRestricted": "Ymmärrän — hyväksyn lisenssin"
+    },
+    "readingsDictionary": "Lukutapasanakirja (japani)",
+    "readingsDictionaryNotStored": "Ladataan, kun japanin lukutavat otetaan käyttöön Näkymässä.",
+    "page": {
+      "tag": {
+        "asr": "Tunnistus",
+        "translation": "Käännös",
+        "tts": "Puhe",
+        "turn": "Vuoron loppu",
+        "punctuation": "Virkkeet ja välimerkit",
+        "readings": "Lukutavat",
+        "voice": "Ääni"
+      },
+      "manyLanguages": "Monta kieltä",
+      "languages": "{{count}} kieltä",
+      "direct": "voi antaa myös käännöksen suoraan",
+      "downloading": "Ladataan {{percent}} %",
+      "failed": "Lataus epäonnistui",
+      "cannotRun": "Tämä tietokone ei pysty ajamaan sitä",
+      "notDownloaded": "Ei ladattu",
+      "download": "Lataa",
+      "listJoin": ", ",
+      "summary": "{{count}} ladattu, yhteensä {{size}}",
+      "import": "Tuo malli tiedostoista",
+      "sessionTitle": "Istunnon mallit (”Tämä laite” -palvelu)",
+      "sessionHint": "Vaiheet, joille on valittu ”Tämä laite” kohdassa ”Kielet ja kokoonpano”, käyttävät tänne ladattuja malleja.",
+      "otherLanguages": "Muiden kielten mallit ({{count}})",
+      "helpersTitle": "Apumallit",
+      "helpersHint": "Pieniä malleja, jotka eivät kuulu mihinkään yksittäiseen vaiheeseen.",
+      "turnMeta": "Tunnistaa, milloin lopetat puhumisen; otetaan käyttöön puhetilan asetuksista",
+      "packMeta": "Jakaa tekstin virkkeisiin; kaikki kolme ladataan yhdessä",
+      "dictMeta": "Näyttää japanin lukutavat; otetaan käyttöön kohdassa ”Näyttö”",
+      "voicesTitle": "Tuodut äänet",
+      "voicesHint": "Tuomasi Supertonic-äänitiedostot.",
+      "importedOn": "Tuotu {{date}}",
+      "more": "{{count}} lisää"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Ladataan japanin sanakirjaa {{done}} / {{total}}",
       "readingsDownloadFailed": "Japanin sanakirjan lataaminen epäonnistui.",
-      "readingsFailed": "Japanin lukutavat eivät toimi."
+      "readingsFailed": "Japanin lukutavat eivät toimi.",
+      "defaultColour": "Oletus"
     },
     "pttHint": "Paina välilyöntiä puhuaksesi"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Aloita heti",
         "desc": "Kizuna AI hoitaa kääntämisen puolestasi.",
-        "cost": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se — vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa, ja kääntäminen laskutetaan käyttösi mukaan."
+        "cost": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se — vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa, ja kääntäminen laskutetaan käyttösi mukaan.",
+        "options": {
+          "kizunaai_soniox": "Reaaliaikainen litterointi, nopea käännös.",
+          "kizunaai_qwen": "Voi katsoa näyttöäsi; erittäin tarkka litterointi ja käännös."
+        }
       },
       "own-key": {
         "title": "Minulla on oma API-avain",
@@ -1356,14 +1412,15 @@
         "cost": "Avaimesi pysyy tällä laitteella ja välittyy tarjoajalle suoraan sieltä. Olet heidän asiakkaansa: maksat heille käytöstäsi, eikä mikään kulje Kizuna AI:n kautta."
       },
       "offline": {
-        "title": "Ilmainen, offline",
-        "desc": "Toimii omalla koneellasi. Mikään ei poistu siitä.",
-        "cost": "Lataa malleja levyllesi (gigatavuja). Toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
+        "title": "Ei avainta",
+        "desc": "Ilmainen. Tunnistus toimii tällä tietokoneella; käännös käyttää Bingiä ja puhe Edgeä, jotka ovat Microsoftin verkkopalveluja.",
+        "cost": "Tunnistusta varten malli on ensin ladattava levylle. Toimii hyvin näytönohjaimella; pelkällä suorittimella selvästi hitaampi.",
         "native": "Native-moottori — nopeampi, käyttää GPU:ta, jos saatavilla.",
         "wasm": "Sovelluksen sisäinen moottori — toimii kaikkialla, hitaampi."
       },
       "ownKeyNote": "Valitse tarjoaja, jonka luona sinulla on tili. Jokainen myöntää oman avaimensa:",
-      "ownKeyGuides": "ohjeet jokaiselle tarjoajalle"
+      "ownKeyGuides": "ohjeet jokaiselle tarjoajalle",
+      "managedPick": "Mikä isännöity palvelu?"
     },
     "fit": {
       "cannotSpeak": "Tämä tarjoaja ei pysty tuottamaan puhuttua käännöstä.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Luo tili",
       "signedIn": "Kirjauduttu sisään. Voit jatkaa.",
       "managedDesc": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se saapuneet-kansiostasi; vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa ja maksat vain käytöstäsi.",
-      "offlineNotice": "Mallit ladataan asennuksen jälkeen Asetuksista. Ne vievät gigatavuja levytilaa. Sokuji toimii hyvin GPU:lla ja riittävällä VRAM-määrällä; pelkällä CPU:lla huomattavasti hitaampi.",
-      "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tarjoaja. Aloita pysyy lukittuna, kunnes avain vahvistuu.",
+      "offlineNotice": "Tunnistusmalli ladataan käyttöönoton jälkeen kohdasta Asetukset → Mallit ja tallennustila. Käännös käyttää Bingiä ja puhe Edgeä: ei ladattavaa eikä tiliä; käännettävä teksti ja luettava käännös lähetetään Microsoftille.",
+      "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tilit ja avaimet. Aloitus pysyy lukittuna, kunnes avain on vahvistettu.",
       "pendingSignIn": "Voit kirjautua sisään myöhemmin tilipainikkeesta. Aloita pysyy lukittuna siihen asti.",
       "ownKeyDesc": "Tämä avain tallennetaan vain tälle laitteelle, ja sovellus ottaa yhteyttä tarjoajaan suoraan täältä — se ei koskaan kulje Kizuna AI:n kautta. Maksat tarjoajalle käytöstäsi.",
       "guide": "Näin hankit tämän avaimen",
       "verifyEmail": "Kirjauduttu sisään. Avaa sähköpostitse lähettämämme linkki vahvistaaksesi osoitteesi — kokeilusaldo tulee voimaan, kun teet niin.",
-      "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen."
+      "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen.",
+      "offlineHardware": "Sokuji toimii hyvin näytönohjaimella, jossa on riittävästi muistia; pelkällä suorittimella se on selvästi hitaampi.",
+      "openaiOneKey": "Tämä yksi avain käy OpenAI Realtimelle, Translatelle ja Livelle."
     },
     "summary": {
       "scenario": "Skenaario",
       "mode": "Tila",
       "provider": "Tarjoaja",
       "languages": "Kielet",
-      "pendingKey": "Ei vielä API-avainta — lisää se kohdassa Asetukset → Tarjoaja ennen aloittamista.",
+      "pendingKey": "API-avainta ei vielä ole — lisää se ennen aloitusta kohdassa Asetukset → Tilit ja avaimet.",
       "pendingSignIn": "Et ole kirjautunut sisään — kirjaudu sisään tilipainikkeesta ennen aloittamista.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Kokoonpano"
+    },
+    "lineup": {
+      "title": "Kokoonpano, joka otetaan käyttöön",
+      "later": "Voit vaihtaa jokaisen vaiheen myöhemmin kohdassa Asetukset → Kielet ja kokoonpano."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Tarjoajan asetukset",
-        "content": "Vaihda avaimesi tai tarjoajasi täältä.",
+        "content": "Vaihda avaimesi täällä.",
         "content_pending": "Liitä API-avaimesi tähän. Aloita vapautuu, kun avain vahvistuu."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Siinä kaikki",
-        "content": "Lisäasetukset — puheen käsittely, promptit, äänet, lokit — löytyvät Edistynyt-kytkimen takaa Asetusten oikeasta yläkulmasta. Voit toistaa tämän oppaan milloin tahansa Ohje-valikosta."
+        "content": "Kaikki muu on Asetuksissa luokittain; haku löytää minkä tahansa asetuksen nimellä. Voit toistaa tämän oppaan milloin tahansa Ohje-valikosta."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Ei tavoitettavissa",
     "switch": "Vaihda",
     "keep": "Pysy alueella {{region}}"
+  },
+  "settingsPage": {
+    "title": "Asetukset",
+    "search": "Hae asetuksista",
+    "back": "Takaisin istuntoon",
+    "backToList": "Takaisin luetteloon",
+    "changeable": "Muutettavissa istunnon aikana",
+    "lockedNote": "Lukittu istunnon ajaksi",
+    "partlyLocked": "Osittain lukittu istunnon ajaksi",
+    "lockedLine": "Istunto on käynnissä. Kielet, kokoonpano, sanalista ja avaimet ovat lukittuina; ääntä, näkymää ja muuta voi muuttaa.",
+    "categories": {
+      "lineup": "Kielet ja kokoonpano",
+      "words": "Sanalista ja tausta",
+      "accounts": "Tilit ja avaimet",
+      "models": "Mallit ja tallennustila",
+      "audio": "Ääni",
+      "display": "Näkymä",
+      "history": "Historia ja muistiinpanot",
+      "general": "Yleiset"
+    },
+    "groups": {
+      "session": "Istunto",
+      "providers": "Palveluntarjoajat ja mallit",
+      "devices": "Laitteet ja näkymä",
+      "data": "Tiedot",
+      "app": "Sovellus"
+    },
+    "words": {
+      "lineup": "kieli, kielet, puhetila, paina ja puhu, litterointi, käännös, puhe, ääni, palveluntarjoaja, malli, kokoonpano",
+      "words": "sanalista, termit, sanasto, tausta",
+      "accounts": "tili, kirjaudu, API-avain, avaimet, tunnistetiedot, saldo",
+      "models": "mallit, lataus, tallennustila, poista, levy",
+      "audio": "mikrofoni, kohinanvaimennus, kaiku, kaiutin, kuulokkeet, kuuntelu, läpivienti, virtuaalimikrofoni, järjestelmän ääni",
+      "display": "fontti, koko, väri, tiivis, tekstitys, kuvatekstit, esikatselu",
+      "history": "historia, muistiinpanot, kansio, automaattinen tallennus",
+      "general": "käyttöliittymän kieli, ulkoasu, teema, päivitykset, lokit, käyttöönotto, ohje, versio"
+    },
+    "accounts": {
+      "addKey": "Lisää avain",
+      "keySaved": "Avain tallennettu",
+      "local": "Toimii tällä tietokoneella",
+      "needsKey": "Tarvitsee avaimen",
+      "online": "Avainta ei tarvita; verkossa, Microsoftin palvelu",
+      "signedIn": "Kirjautunut",
+      "signedOut": "Ei kirjautunut",
+      "together": "yhdessä",
+      "view": "Näytä",
+      "hide": "Piilota",
+      "endToEnd": "Päästä päähän",
+      "transcribeTranslate": "Litterointi ja käännös",
+      "signedInBalance": "Kirjautunut; saldo {{amount}}",
+      "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
+      "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu"
+    },
+    "lineup": {
+      "title": "Kokoonpano",
+      "stages": {
+        "transcription": "Litterointi",
+        "translation": "Käännös",
+        "speech": "Puhe",
+        "summarisation": "Muistiinpanot"
+      },
+      "and": " ja ",
+      "joint": "Kulkee yhdessä vaiheen {{stages}} kanssa yhden yhteyden kautta; ne vaihtuvat yhdessä.",
+      "granite": "Käännöksen kanssa: Granite Speech muuttaa puheen suoraan käännökseksi.",
+      "moved": "{{stages}} siirtyi myös palveluun {{providers}}: tätä valintaa ei voi vielä yhdistellä muiden kanssa. Yhdistely tulee myöhemmin.",
+      "needsKey": "tarvitsee avaimen",
+      "needsSignIn": "vaatii kirjautumisen",
+      "options": "{{provider}}: asetukset",
+      "state": {
+        "needsKey": "Tarvitsee avaimen",
+        "needsModel": "Tarvitsee mallin",
+        "needsSignIn": "Vaatii kirjautumisen",
+        "ready": "Valmis"
+      },
+      "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
+      "hint": "Mikä palvelu hoitaa kunkin vaiheen",
+      "uses": {
+        "turn": "Puheen loppu",
+        "key": "Näppäin",
+        "space": "Välilyönti",
+        "released": "Kun päästät irti",
+        "releasedValue": "se pätkä lähtee käännettäväksi",
+        "notHeld": "Kun et pidä pohjassa",
+        "notHeldValue": "oma äänesi menee kääntämättä suoraan toiselle osapuolelle"
+      },
+      "actsOn": "Koskee: {{stages}}",
+      "pointer": "Asetukset, jotka koskevat näitä: {{stages}}, ovat kortilla ”{{card}}”.",
+      "edgeVoices": {
+        "hint": "Äänet tallennetaan kielittäin: nämä ovat tämän kieliparin äänet.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Mikä näkymä",
+      "main": "Pääikkuna",
+      "captions": "Tekstitystila",
+      "compact": "Kompakti näkymä",
+      "fontSize": "Tekstin koko",
+      "smaller": "Pienempi teksti",
+      "larger": "Suurempi teksti",
+      "modes": {
+        "both": "Alkuperäinen ja käännös",
+        "source": "Vain alkuperäinen",
+        "translation": "Vain käännös",
+        "none": "Ei mitään"
+      },
+      "mineSide": "Mitä minun puoleltani näytetään",
+      "theirsSide": "Mitä toisen osapuolen puolelta näytetään",
+      "previewMain": "Esikatselu: keskustelu pääikkunassa",
+      "previewCaptions": "Esikatselu: tekstitystila toisen ikkunan päällä",
+      "empty": "Täällä ei nyt näy mitään: molemmat puolet on asetettu tilaan ”Ei mitään”."
+    },
+    "intro": {
+      "accounts": "Tilit ja avaimet: kukin palvelu täytetään kerran. Sen jälkeen sen tehtävät valitaan kohdassa ”Kielet ja kokoonpano”.",
+      "models": "Kaikkia tälle tietokoneelle ladattuja malleja hallitaan täällä: istuntojen malleja, apumalleja ja tuotuja ääniä.",
+      "audio": "Mikrofoni, puhe ja toisen osapuolen ääni. Kaikkea paitsi ”Käännös, jonka toinen osapuoli kuulee” voi muuttaa istunnon aikana.",
+      "display": "Samat arvot kuin keskustelun yläpuolen ja tekstityspalkin painikkeissa: missä tahansa muutat, ne pätevät heti. Pääikkunalla ja tekstitystilalla on omansa."
+    },
+    "audio": {
+      "micHint": "Mistä ääneni tulee sisään",
+      "otherHint": "Mistä toisen osapuolen ääni tulee sisään",
+      "device": "Laite",
+      "source": "Lähde",
+      "flow": {
+        "myMic": "Mikrofonini",
+        "toSpeech": "Puheeksi",
+        "toThem": "Virtuaalimikki → toinen osapuoli",
+        "theirVoice": "Toisen osapuolen ääni",
+        "myDevice": "Toistolaitteeni",
+        "caption": "Mihin ääni kulkee. Kirkkaat viivat ovat nyt päällä, katkoviivat pois; ne seuraavat alla olevia kytkimiä.",
+        "aria": "Mihin ääni kulkee: sanomani muuttuu puheeksi ja menee virtuaalimikrofoniin toiselle osapuolelle, ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma muuttuu puheeksi ja soi toistolaitteestani."
+      }
+    },
+    "general": {
+      "basics": "Perusasetukset",
+      "maintenance": "Ylläpito ja ohje",
+      "update": "Päivitykset",
+      "updateLine": "Sinulla on {{version}}.",
+      "version": "Versio",
+      "storeUpdates": "Selaimen kauppa pitää laajennuksen ajan tasalla.",
+      "wizard": "Ohjattu määritys",
+      "wizardLine": "Käy ohjattu toiminto läpi uudelleen; tallentamasi on valmiiksi valittuna.",
+      "rerun": "Suorita uudelleen",
+      "guide": "Opas",
+      "guideLine": "Vaiheittaiset vinkit päänäkymässä.",
+      "restart": "Aloita alusta",
+      "needHelp": "Tarvitsetko apua:"
+    }
   }
 }

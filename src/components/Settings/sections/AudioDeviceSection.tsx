@@ -1,8 +1,7 @@
 import React, { useEffect, useId, useState } from 'react';
-import { Mic, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import Tooltip from '../../Tooltip/Tooltip';
-import DeviceList from '../shared/DeviceList';
+import DeviceSelect from '../shared/DeviceSelect';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice, isVirtualMic } from '../shared/hooks';
 import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode, useEchoCancellationMode, useSetEchoCancellationMode, EchoCancellationMode } from '../../../stores/audioStore';
@@ -92,7 +91,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
   };
 
   const handleInputVirtualDeviceClick = (device: AudioDevice) => {
-    // DeviceList routes two kinds of risky input picks here: Sokuji's own
+    // DeviceSelect routes two kinds of risky input picks here: Sokuji's own
     // virtual devices (selection blocked) and OS loopback-style inputs
     // (selection goes through, warned). Each gets its own explanation.
     setWarningType(isVirtualMic(device) ? 'virtual-mic' : 'loopback-mic');
@@ -110,22 +109,17 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
         type={warningType}
       />
 
-      {/* Microphone Section */}
+      {/* Microphone: the mock's audio page (v18) — a plain heading with its hint, then the device and two choices. */}
       <div className={`config-section microphone-section ${className}`} id="microphone-section" data-tour="microphone-section">
-        <h3>
-          <Mic size={18} />
+        <h3 className="settings-subhead">
           <span>{t('simpleConfig.microphone')}</span>
-          <Tooltip
-            content={t('simpleConfig.microphoneDesc')}
-            position="top"
-            icon="help"
-            maxWidth={300}
-          />
+          <small>{t('settingsPage.audio.micHint', 'Where my voice comes in')}</small>
           <button
             className="section-refresh-button"
             onClick={refreshDevices}
             disabled={isLoading}
             title={t('audioPanel.refreshDevices')}
+            aria-label={t('audioPanel.refreshDevices')}
           >
             <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
           </button>
@@ -133,44 +127,33 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 
         {renderReason()}
 
-        <DeviceList
-          devices={filteredInputDevices}
-          selectedDevice={selectedInputDevice}
-          isDeviceOn={!isMicMuted}
-          onSelect={handleInputDeviceSelect}
-          onToggleOff={() => setMicMuted(!isMicMuted)}
-          disabled={locked}
-          deviceType="input"
-          filterVirtual={false}
-          showVirtualIndicators={true}
-          onVirtualDeviceClick={handleInputVirtualDeviceClick}
-          toggleAriaLabel={isMicMuted
-            ? t('audioPanel.turnOnMicrophone', 'Turn on microphone')
-            : t('audioPanel.turnOffMicrophone', 'Turn off microphone')}
-          ariaDescribedBy={reasonId}
-        />
+        <label className="settings-field">
+          <span className="settings-field__label">{t('settingsPage.audio.device', 'Device')}</span>
+          <DeviceSelect
+            label={t('settingsPage.audio.device', 'Device')}
+            devices={filteredInputDevices}
+            selectedDevice={selectedInputDevice}
+            isDeviceOn={!isMicMuted}
+            onSelect={handleInputDeviceSelect}
+            onToggleOff={() => setMicMuted(!isMicMuted)}
+            disabled={locked}
+            showVirtualIndicators={true}
+            onVirtualDeviceClick={handleInputVirtualDeviceClick}
+            ariaDescribedBy={reasonId}
+          />
+        </label>
 
-        {/* Noise Suppression Mode */}
-        <div className="noise-suppression-control">
-          <div className="noise-suppression-header">
-            <span className="noise-suppression-label">{t('settings.noiseSuppression')}</span>
-            <Tooltip
-              content={
-                `${t('settings.noiseSuppressionTooltip.off')}\n\n` +
-                `${t('settings.noiseSuppressionTooltip.standard')}\n\n` +
-                `${t('settings.noiseSuppressionTooltip.enhanced')}`
-              }
-              position="top"
-              icon="help"
-              maxWidth={350}
-            />
-          </div>
-          <div className="segmented-control noise-suppression-modes">
+        {/* Noise suppression: each mode explained on hover, as the mock has no help marks. */}
+        <div className="settings-field noise-suppression-control">
+          <span className="settings-field__label noise-suppression-label">{t('settings.noiseSuppression')}</span>
+          <span className="settings-seg noise-suppression-modes" role="group" aria-label={t('settings.noiseSuppression')}>
             {(['off', 'standard', 'enhanced'] as NoiseSuppressionMode[]).map((mode) => (
               <button
                 key={mode}
-                className={`segmented-option ${noiseSuppressionMode === mode ? 'active' : ''}`}
+                type="button"
+                className={noiseSuppressionMode === mode ? 'active' : undefined}
                 aria-pressed={noiseSuppressionMode === mode}
+                title={t(`settings.noiseSuppressionTooltip.${mode}`)}
                 onClick={() => {
                   setNoiseSuppressionMode(mode);
                   trackEvent('noise_suppression_toggled', {
@@ -183,30 +166,21 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
                 {t(`settings.noiseSuppressionMode.${mode}`)}
               </button>
             ))}
-          </div>
+          </span>
         </div>
 
         {/* Echo Cancellation: Chromium on Linux has no 'all', so nothing to choose there */}
         {!isLinux() && (
-          <div className="noise-suppression-control">
-            <div className="noise-suppression-header">
-              <span className="noise-suppression-label">{t('settings.echoCancellation')}</span>
-              <Tooltip
-                content={
-                  `${t(`settings.echoCancellationTooltip.${ownPlayout}`)}\n\n` +
-                  `${t('settings.echoCancellationTooltip.all')}`
-                }
-                position="top"
-                icon="help"
-                maxWidth={350}
-              />
-            </div>
-            <div className="segmented-control noise-suppression-modes">
+          <div className="settings-field noise-suppression-control">
+            <span className="settings-field__label noise-suppression-label">{t('settings.echoCancellation')}</span>
+            <span className="settings-seg noise-suppression-modes" role="group" aria-label={t('settings.echoCancellation')}>
               {(['app', 'all'] as EchoCancellationMode[]).map((mode) => (
                 <button
                   key={mode}
-                  className={`segmented-option ${echoCancellationMode === mode ? 'active' : ''}`}
+                  type="button"
+                  className={echoCancellationMode === mode ? 'active' : undefined}
                   aria-pressed={echoCancellationMode === mode}
+                  title={t(`settings.echoCancellationTooltip.${mode === 'app' ? ownPlayout : 'all'}`)}
                   onClick={() => {
                     setEchoCancellationMode(mode);
                     trackEvent('echo_cancellation_changed', {
@@ -218,7 +192,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
                   {t(`settings.echoCancellationMode.${mode === 'app' ? ownPlayout : 'all'}`)}
                 </button>
               ))}
-            </div>
+            </span>
           </div>
         )}
       </div>

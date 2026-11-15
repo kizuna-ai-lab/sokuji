@@ -120,6 +120,24 @@ describe('DisplaySettingsPopover', () => {
     expect(container.querySelector('.color-picker')).toBeNull();
   });
 
+  // On the settings page Esc would otherwise close the whole page: an open picker takes it first.
+  it('Esc closes an open picker and goes no further', async () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" />);
+    const bgCustom = container.querySelectorAll('button.swatch.custom')[0] as HTMLButtonElement;
+    await act(async () => { fireEvent.click(bgCustom); });
+    const outer = vi.fn((e: KeyboardEvent) => e.defaultPrevented);
+    document.addEventListener('keydown', outer);
+    try {
+      await act(async () => { fireEvent.keyDown(container.querySelector('.color-picker')!, { key: 'Escape' }); });
+      expect(container.querySelector('.color-picker')).toBeNull();
+      expect(outer).toHaveReturnedWith(true);
+      // The keyboard user's place: back on the chip that opened the picker (PR review).
+      expect(document.activeElement).toBe(bgCustom);
+    } finally {
+      document.removeEventListener('keydown', outer);
+    }
+  });
+
   it('opens the picker seeded with that row\'s current color', async () => {
     useConversationDisplayStore.setState({ sourceTextColor: '#7f3ac1' } as never);
     const { container } = render(<DisplaySettingsPopover source="conversation" />);
@@ -344,5 +362,50 @@ describe('conversation colours follow the theme until set', () => {
   it('the subtitle rows keep a fixed default chip, named by its colour', () => {
     const { container } = render(<DisplaySettingsPopover source="subtitle" />);
     expect(firstChip(container, 1).getAttribute('aria-label')).toBe('#000000');
+  });
+});
+
+// The settings page draws these controls as its own rows (the mock's display page), not as a floating box.
+describe('DisplaySettingsPopover — as settings rows', () => {
+  afterEach(() => cleanup());
+
+  it('lays each control out as a row: the label on the left, the control on the right', () => {
+    const { container } = render(<DisplaySettingsPopover source="conversation" layout="page" />);
+    const root = container.firstElementChild!;
+    expect(root).toHaveClass('display-settings-popover--page');
+    const rows = root.querySelectorAll(':scope > .field');
+    expect(rows).toHaveLength(3);
+    rows.forEach((row) => expect(row.querySelector(':scope > .palette')).not.toBeNull());
+  });
+
+  it('puts caption mode\'s opacity after the colours, where the mock has it', () => {
+    const { container } = render(<DisplaySettingsPopover source="subtitle" layout="page" />);
+    const fields = [...container.firstElementChild!.querySelectorAll(':scope > .field')];
+    const opacity = fields.findIndex((f) => f.querySelector('input[type="range"]'));
+    const lastColour = fields.map((f) => !!f.querySelector('.palette')).lastIndexOf(true);
+    expect(opacity).toBeGreaterThan(lastColour);
+  });
+
+  it('names the first chip in words, as the mock does: "Follow theme", or caption mode\'s "Default"', () => {
+    const conv = render(<DisplaySettingsPopover source="conversation" layout="page" />);
+    const follow = conv.container.querySelectorAll('.swatch.follow');
+    expect(follow).toHaveLength(3);
+    follow.forEach((chip) => expect(chip).toHaveTextContent('Follow theme'));
+    conv.unmount();
+    const sub = render(<DisplaySettingsPopover source="subtitle" layout="page" />);
+    const firsts = [...sub.container.querySelectorAll('.palette')].map((p) => p.querySelector('.swatch')!);
+    firsts.forEach((chip) => {
+      expect(chip).toHaveTextContent('Default');
+      expect(chip).toHaveClass('pill');
+    });
+  });
+
+  it('keeps the floating box as it was elsewhere', () => {
+    const { container } = render(<DisplaySettingsPopover source="subtitle" />);
+    const root = container.firstElementChild!;
+    expect(root).not.toHaveClass('display-settings-popover--page');
+    expect(root.querySelector(':scope > .field input[type="range"]')).toBe(root.querySelector('input[type="range"]'));
+    expect(root.querySelector(':scope > .field')!.querySelector('input[type="range"]')).not.toBeNull();
+    expect(root.querySelector('.swatch.pill')).toBeNull();
   });
 });

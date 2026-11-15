@@ -123,7 +123,8 @@ export const EngineSurface: React.FC<{
     );
   }
   return (
-    <div className="config-section engine-surface">
+    // The tour's models step points here: the engine's slots, the way into each model.
+    <div className="config-section engine-surface" data-tour="engine-chips">
       <div key="engine" className={pageClass}>
         <h3>
           <Settings2 size={18} />

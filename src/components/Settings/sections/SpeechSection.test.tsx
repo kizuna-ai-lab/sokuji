@@ -55,13 +55,12 @@ import { SpeechSection } from './SpeechSection';
 const entry = () => ({ settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } });
 const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 const originalResolve = useModelStore.getState().resolve;
-const originalSetUIMode = useSettingsStore.getState().setUIMode;
 
 beforeEach(() => {
   trackEvent.mockClear();
   tooltipContents.length = 0;
   useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry() }, readiness: {} });
-  useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null, uiMode: 'basic', setUIMode: originalSetUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+  useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto' });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
   asr.entry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
@@ -75,7 +74,7 @@ afterEach(() => {
 
 describe('SpeechSection', () => {
   it('is one config-section with the three turn modes, the current one active, and no switch inside it', () => {
-    const { container } = render(<SpeechSection locked={false} layout="simple" />);
+    const { container } = render(<SpeechSection locked={false} />);
     const section = container.querySelector('#turn-detection-section');
     expect(section).toBeTruthy();
     expect(section?.className).toContain('config-section');
@@ -87,7 +86,7 @@ describe('SpeechSection', () => {
   });
 
   it('clicking a mode sets it, persists it and tracks speech_mode_changed with LocalInference selected (old spelling)', () => {
-    render(<SpeechSection locked={false} layout="simple" />);
+    render(<SpeechSection locked={false} />);
     fireEvent.click(screen.getByText('Push-to-Talk'));
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
     expect(trackEvent).toHaveBeenCalledWith('speech_mode_changed', { provider: 'local_inference', from_mode: 'Auto', to_mode: 'Push-to-Talk' });
@@ -101,9 +100,10 @@ describe('SpeechSection', () => {
   // detection now (LocalInference's VAD, Soniox's endpoint model), so the
   // heading's tooltip names none of them.
   it("the Speech mode's tooltip names no mechanism: the provider's detection, for your voice and the other side's", () => {
-    render(<SpeechSection locked={false} layout="simple" />);
-    const texts = tooltipContents.filter((c): c is string => typeof c === 'string');
-    // The heading's: the one that explains the three modes.
+    const { container } = render(<SpeechSection locked={false} />);
+    // The explanation of the three modes is the mode choice's own title now (the mock's heading has no help mark).
+    const modesTitle = container.querySelector('.turn-detection-options')!.getAttribute('title')!;
+    const texts = [modesTitle, ...tooltipContents.filter((c): c is string => typeof c === 'string')];
     const heading = texts.find((c) => c.includes('Push-to-Translate:'));
     expect(heading).toContain('Auto: the provider detects when you have finished speaking.');
     expect(heading).toContain("Other's audio always uses the provider's automatic detection.");
@@ -114,14 +114,14 @@ describe('SpeechSection', () => {
   });
 
   it('clicking the active mode does nothing', () => {
-    render(<SpeechSection locked={false} layout="simple" />);
+    render(<SpeechSection locked={false} />);
     fireEvent.click(screen.getByText('Auto'));
     expect(trackEvent).not.toHaveBeenCalled();
     expect(useTurnModeStore.getState().turnMode).toBe('auto');
   });
 
   it('locked disables the three turn-mode buttons', () => {
-    render(<SpeechSection locked={true} layout="simple" />);
+    render(<SpeechSection locked={true} />);
     // The three turn modes — the tuning summary's link below them only
     // navigates, and stays enabled (its own case below).
     const modes = ['Auto', 'Push-to-Talk', 'Push-to-Translate'].map((label) => screen.getByRole('button', { name: label }));
@@ -136,10 +136,9 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
   const link = (container: HTMLElement) => section(container).querySelector<HTMLButtonElement>('button.turn-detection-link');
   const target = () => useSettingsStore.getState().settingsNavigationTarget;
 
-  // The Controls live on Advanced's Provider tab: in both layouts the row
-  // links there instead of opening them in place.
-  it.each(['simple', 'advanced'] as const)("%s, Auto: the summary below the turn modes is a link to the Provider tab's block — no disclosure, no controls here", (layout) => {
-    const { container } = render(<SpeechSection locked={false} layout={layout} />);
+  // The Controls live among the provider's options: the row links there instead of opening them in place.
+  it("Auto: the summary below the turn modes is a link to the provider's tuning block — no disclosure, no controls here", () => {
+    const { container } = render(<SpeechSection locked={false} />);
     const button = link(container)!;
     expect(button).toBeTruthy();
     expect(button.textContent).toBe(SUMMARY);
@@ -151,46 +150,31 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     expect(sliders(container)).toHaveLength(0);
   });
 
-  it('Advanced: the link navigates and leaves the UI mode alone', () => {
-    const setUIMode = vi.fn();
-    useSettingsStore.setState({ uiMode: 'advanced', setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
-    const { container } = render(<SpeechSection locked={false} layout="advanced" />);
+  // One settings page (settings page plan, ruling 4): the link only navigates; no UI mode is written, no mode switch tracked.
+  it('the link navigates, and writes no UI mode', () => {
+    useSettingsStore.setState({ uiMode: 'basic' });
+    const { container } = render(<SpeechSection locked={false} />);
     fireEvent.click(link(container)!);
     expect(target()).toBe('turn-detection-tuning');
-    expect(setUIMode).not.toHaveBeenCalled();
+    expect(useSettingsStore.getState().uiMode).toBe('basic');
+    expect(localStorage.getItem('settings.common.uiMode')).toBeNull();
     expect(trackEvent).not.toHaveBeenCalled();
     expect(sliders(container)).toHaveLength(0);
   });
 
-  // The Provider tab is Advanced's: from Simple the link switches the UI mode
-  // first — the Settings panel's own mode toggle, analytics event included —
-  // then sets the target, which Settings.tsx follows once it is Advanced.
-  it('Simple: the link switches the UI mode to Advanced, tracked as the mode toggle is, then navigates', () => {
-    const calls: string[] = [];
-    const setUIMode = vi.fn(() => { calls.push(`mode:${useSettingsStore.getState().settingsNavigationTarget}`); });
-    useSettingsStore.setState({ uiMode: 'basic', setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
-    const { container } = render(<SpeechSection locked={false} layout="simple" />);
-    fireEvent.click(link(container)!);
-    expect(setUIMode).toHaveBeenCalledWith('advanced');
-    // The mode flips before the target is set.
-    expect(calls).toEqual(['mode:null']);
-    expect(target()).toBe('turn-detection-tuning');
-    expect(trackEvent).toHaveBeenCalledWith('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: false });
-  });
-
-  // The heading's tooltip sits on the row itself, in both layouts.
-  it.each(['simple', 'advanced'] as const)('the row carries the VAD settings tooltip (%s)', (layout) => {
-    render(<SpeechSection locked={false} layout={layout} />);
+  // The heading's tooltip sits on the row itself.
+  it('the row carries the VAD settings tooltip', () => {
+    render(<SpeechSection locked={false} />);
     expect(tooltipContents).toContain(
       'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.',
     );
   });
 
-  // The Provider tab's block and this row read the same entry.
-  it("a change on the Provider tab's block goes to the provider's settings, and the summary follows", () => {
+  // The provider's tuning block and this row read the same entry.
+  it("a change in the provider's tuning block goes to the provider's settings, and the summary follows", () => {
     const { container } = render(
       <>
-        <SpeechSection locked={false} layout="advanced" />
+        <SpeechSection locked={false} />
         <ProviderTurnDetectionControls providers={presentProviders()} />
       </>,
     );
@@ -201,22 +185,17 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     expect(link(container)!.textContent).toBe('VAD Settings · Min Silence Duration: 0.50s');
   });
 
-  it.each([
-    ['push-to-talk', 'simple'],
-    ['push-to-talk', 'advanced'],
-    ['push-to-translate', 'simple'],
-    ['push-to-translate', 'advanced'],
-  ] as const)('%s (%s): no summary and no link', (turnMode, layout) => {
+  it.each(['push-to-talk', 'push-to-translate'] as const)('%s: no summary and no link', (turnMode) => {
     useTurnModeStore.setState({ turnMode });
-    const { container } = render(<SpeechSection locked={false} layout={layout} />);
+    const { container } = render(<SpeechSection locked={false} />);
     expect(screen.queryByText(SUMMARY)).toBeNull();
     expect(link(container)).toBeNull();
     expect(sliders(container)).toHaveLength(0);
   });
 
-  it.each(['simple', 'advanced'] as const)('a provider without TurnDetection shows neither (%s)', (layout) => {
+  it('a provider without TurnDetection shows neither', () => {
     useProviderStore.setState({ selected: 'fake', entries: { fake: entry() } });
-    const { container } = render(<SpeechSection locked={false} layout={layout} />);
+    const { container } = render(<SpeechSection locked={false} />);
     expect(screen.queryByText(/VAD Settings/)).toBeNull();
     expect(link(container)).toBeNull();
     expect(sliders(container)).toHaveLength(0);
@@ -225,34 +204,22 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
   // The link only navigates; it changes nothing, so a run leaves it working —
   // the Controls it leads to are what the lock disables.
   it('locked leaves the link enabled, and it still navigates', () => {
-    const { container } = render(<SpeechSection locked={true} layout="advanced" />);
+    const { container } = render(<SpeechSection locked={true} />);
     const button = link(container)!;
     expect(button).not.toBeDisabled();
     fireEvent.click(button);
     expect(target()).toBe('turn-detection-tuning');
-  });
-
-  it('locked, Simple: the link still switches to Advanced and navigates, tracked as during the session', () => {
-    const setUIMode = vi.fn();
-    useSettingsStore.setState({ uiMode: 'basic', setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
-    const { container } = render(<SpeechSection locked={true} layout="simple" />);
-    const button = link(container)!;
-    expect(button).not.toBeDisabled();
-    fireEvent.click(button);
-    expect(setUIMode).toHaveBeenCalledWith('advanced');
-    expect(target()).toBe('turn-detection-tuning');
-    expect(trackEvent).toHaveBeenCalledWith('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: true });
   });
 
   // Endpoint detection replaces VAD on a streaming ASR with no worker type:
   // the provider's Summary renders nothing, and the row it would sit in must
-  // go with it — else Advanced shows an empty link.
+  // go with it — else the page shows an empty link.
   // The row is the section's; hiding it is the stylesheet's job, so this is
   // asserted in two halves: the summary element is empty in the real DOM,
   // and the compiled Settings.scss hides a row whose summary is empty.
-  it.each(['simple', 'advanced'] as const)('nothing to tune (a streaming ASR with no worker type, %s): the row is hidden', (layout) => {
+  it('nothing to tune (a streaming ASR with no worker type): the row is hidden', () => {
     asr.entry = { type: 'asr-stream', asrWorkerType: undefined };
-    const { container } = render(<SpeechSection locked={false} layout={layout} />);
+    const { container } = render(<SpeechSection locked={false} />);
     expect(screen.queryByText(/VAD Settings/)).toBeNull();
     const summary = section(container).querySelector('.turn-detection-summary')!;
     expect(summary).toBeTruthy();
@@ -272,5 +239,61 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     const { css } = compile(resolve(__dirname, '../Settings.scss'));
     expect(css).toMatch(/\.config-section \.setting-item\.turn-detection-tuning,\s*\.settings-section \.setting-item\.turn-detection-tuning\s*\{[^}]*margin-bottom:\s*0;/);
     expect(css).toMatch(/\.config-section \.setting-item\.turn-detection-tuning \.setting-label,\s*\.settings-section \.setting-item\.turn-detection-tuning \.setting-label\s*\{[^}]*margin-bottom:\s*0;/);
+  });
+});
+
+// The mock's line-up page (v18): a plain heading with its hint, the three modes as a compact segmented choice.
+describe('SpeechSection — as the mock draws it', () => {
+  it('heads the section with its name and a hint, no icon or help mark', () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    const h3 = container.querySelector('h3')!;
+    expect(h3).toHaveClass('settings-subhead');
+    expect(h3).toHaveTextContent('When a stretch of speech goes off to be translated; fixed during a session');
+    expect(h3.querySelector('svg')).toBeNull();
+    expect(tooltipContents.some((c) => typeof c === 'string' && c.includes('Push-to-Translate:'))).toBe(false);
+  });
+
+  it('draws the three modes as a compact segmented choice', () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(container.querySelector('.turn-detection-options')).toHaveClass('settings-seg');
+  });
+});
+
+// The mock's speech mode (owner 2026-11-15: lay it out as the mock does): a "Speech mode" label over the three
+// modes, then a box listing what the mode does — the turn end under Auto, the key and what it does otherwise.
+describe('SpeechSection — the box under the modes, as the mock lists it', () => {
+  const box = (container: HTMLElement) => container.querySelector<HTMLElement>('.turn-mode-box');
+  const rows = (container: HTMLElement) => [...box(container)!.querySelectorAll('.turn-mode-box__row')].map((r) => [...r.children].map((c) => c.textContent));
+
+  it('labels the three modes as the mock does', () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    const field = container.querySelector('.settings-field')!;
+    expect(field.querySelector('.settings-field__label')?.textContent).toBe('settings.speechMode');
+    expect(field.querySelector('.turn-detection-options')).not.toBeNull();
+  });
+
+  it("Auto: the turn end, with the provider's summary that opens its tuning", () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    const row = box(container)!.querySelector('.turn-mode-box__row')!;
+    expect(row.firstElementChild?.textContent).toBe('Turn end');
+    expect(within(row as HTMLElement).getByRole('button').textContent).toBe('VAD Settings · Min Silence Duration: 1.40s');
+  });
+
+  it('Push-to-Talk: the key, and what letting go does', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(rows(container)).toEqual([['Key', 'Space'], ['Once released', 'that stretch goes off to be translated']]);
+  });
+
+  it('Push-to-Translate: the key, and what happens while it is not held', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-translate' });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(rows(container)).toEqual([['Key', 'Space'], ['While not held', 'your own voice goes straight to the other side, untranslated']]);
+  });
+
+  it('a provider without TurnDetection draws no box under Auto', () => {
+    useProviderStore.setState({ selected: 'fake', entries: { fake: entry() } });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(box(container)).toBeNull();
   });
 });

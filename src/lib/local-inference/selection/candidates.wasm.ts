@@ -9,6 +9,10 @@ export interface WasmCandidateCtx {
   modelStatuses: Record<string, ModelStatus>;
   webgpuAvailable: boolean;
   deviceFeatures: string[];
+  /** Include the cloud models (Bing translation, Edge speech). Default true, today's list. With false they are
+   *  neither in the pool nor in the catalog, so a stored choice of one resolves as a deleted model: Bing and Edge
+   *  are providers of their own once a line-up is stored. */
+  withCloud?: boolean;
 }
 
 const asrEntries = (): ModelManifestEntry[] =>
@@ -19,6 +23,7 @@ const asrOk = (m: ModelManifestEntry, src: string) => Boolean(m.multilingual) ||
 const ttsOk = (m: ModelManifestEntry, tgt: string) => Boolean(m.multilingual) || m.languages.includes(tgt);
 
 export function wasmCandidates(ctx: WasmCandidateCtx): CandidateSource {
+  const listed = (m: ModelManifestEntry) => ctx.withCloud !== false || !m.isCloudModel;
   // modelUsable() is `downloaded && deviceReady`. The resolver needs the two
   // apart so a note can say WHICH one failed, and deviceReady is already
   // exported (modelManifest.ts:3285) — so call the halves directly rather than
@@ -40,11 +45,11 @@ export function wasmCandidates(ctx: WasmCandidateCtx): CandidateSource {
   });
 
   const pool = (stage: Stage, src: string, tgt: string): Candidate[] => {
-    if (stage === 'asr') return asrEntries().filter((m) => asrOk(m, src)).map((m) => toCandidate(m));
-    if (stage === 'tts') return getManifestByType('tts').filter((m) => ttsOk(m, tgt)).map((m) => toCandidate(m));
+    if (stage === 'asr') return asrEntries().filter((m) => listed(m) && asrOk(m, src)).map((m) => toCandidate(m));
+    if (stage === 'tts') return getManifestByType('tts').filter((m) => listed(m) && ttsOk(m, tgt)).map((m) => toCandidate(m));
     return [
       ...getManifestByType('translation')
-        .filter((m) => isTranslationModelCompatible(m, src, tgt))
+        .filter((m) => listed(m) && isTranslationModelCompatible(m, src, tgt))
         .map((m) => toCandidate(m)),
       // AST: an ASR model that translates directly. Reachable by explicit choice
       // only — today's short-circuit fires solely when translationModel === asrModel,
@@ -57,7 +62,7 @@ export function wasmCandidates(ctx: WasmCandidateCtx): CandidateSource {
 
   const has = (stage: Stage, id: string): boolean => {
     const entry = getManifestEntry(id);
-    if (!entry) return false;
+    if (!entry || !listed(entry)) return false;
     if (stage === 'asr') return entry.type === 'asr' || entry.type === 'asr-stream';
     if (stage === 'tts') return entry.type === 'tts';
     // An asr/asr-stream entry only counts as "in" the translation catalog

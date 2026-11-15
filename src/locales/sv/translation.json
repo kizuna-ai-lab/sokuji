@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
     "audioCaptureUnprovenText3Named": "\"{{app}}\" visas i den listan först efter ett försök att fånga ljud, vilket precis gjordes. Starta sessionen igen när du har aktiverat den. Om källan bara var tyst behöver inget ändras.",
-    "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas."
+    "otherSideBesideNote": "Den andra personen delar din mikrofon; ingen systemljud fångas.",
+    "captionMine": "Det jag säger, som tal",
+    "captionTheirs": "Det den andra sidan säger, som tal",
+    "defaultPlaybackAid": "Ljud på min sida spelas här om inte en rad anger en egen enhet; ett ljud vars egen enhet kopplats ur spelas också här.",
+    "captionReplay": "Uppspelning"
   },
   "auth": {
     "signIn": "Logga in",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Numrerar personerna på andra sidan – Talare 1, Talare 2 … – så snart mer än en röst hörs.\n\nDen kan ta en person för flera. Inaktiverad: inga nummer visas.\n\nGäller från nästa session."
     },
     "local_inference": {
-      "name": "Gratis",
-      "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",
+      "name": "Den här enheten",
+      "description": "Fungerar när modellerna har laddats ned till den här datorn; första gången krävs en nedladdning på flera GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratis · offline"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -608,7 +613,15 @@
       "name": "Okänd",
       "description": "Okänd leverantör"
     },
-    "poweredBy": "Drivs av <brand>{{name}}</brand>"
+    "poweredBy": "Drivs av <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratis · online, en tjänst från Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratis · online, en tjänst från Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Autoscroll på",
@@ -739,7 +752,9 @@
     "preparingVoice": "Förbereder din röst…",
     "waitingForPreviousSession": "Väntar…",
     "waitingForPreviousSessionTitle": "Väntar på att den föregående sessionen ska avslutas. Klicka för att avbryta.",
-    "clickToCancel": "Klicka för att avbryta"
+    "clickToCancel": "Klicka för att avbryta",
+    "whatIHear": "Det jag hör",
+    "audioSettings": "Ljudinställningar"
   },
   "modePicker": {
     "modeYou": "Jag",
@@ -962,6 +977,42 @@
       "cancel": "Avbryt",
       "accept": "Jag förstår — endast icke-kommersiellt",
       "acceptRestricted": "Jag förstår — jag accepterar licensen"
+    },
+    "readingsDictionary": "Läsningsordbok (japanska)",
+    "readingsDictionaryNotStored": "Laddas ner när japanska läsningar slås på under Visning.",
+    "page": {
+      "tag": {
+        "asr": "Igenkänning",
+        "translation": "Översättning",
+        "tts": "Tal",
+        "turn": "Turslut",
+        "punctuation": "Meningar och skiljetecken",
+        "readings": "Uttal",
+        "voice": "Röst"
+      },
+      "manyLanguages": "Många språk",
+      "languages": "{{count}} språk",
+      "direct": "kan också ge översättningen direkt",
+      "downloading": "Laddar ned {{percent}} %",
+      "failed": "Nedladdningen misslyckades",
+      "cannotRun": "Den här datorn kan inte köra den",
+      "notDownloaded": "Inte nedladdad",
+      "download": "Ladda ned",
+      "listJoin": ", ",
+      "summary": "{{count}} nedladdade, totalt {{size}}",
+      "import": "Importera en modell från filer",
+      "sessionTitle": "Modeller för sessionen (tjänsten ”Den här enheten”)",
+      "sessionHint": "Steg som har ”Den här enheten” under ”Språk och sammansättning” använder modellerna som laddats ned här.",
+      "otherLanguages": "Modeller för andra språk ({{count}})",
+      "helpersTitle": "Hjälpmodeller",
+      "helpersHint": "Små modeller som inte hör till något enskilt steg.",
+      "turnMeta": "Känner av när du har talat klart; slås på i talläget alternativ",
+      "packMeta": "Delar upp texten i meningar; alla tre laddas ned tillsammans",
+      "dictMeta": "Visar japanskt uttal; slås på under ”Visning”",
+      "voicesTitle": "Importerade röster",
+      "voicesHint": "Supertonic-röstfiler som du har importerat.",
+      "importedOn": "Importerad {{date}}",
+      "more": "{{count}} till"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Laddar ned den japanska ordboken {{done}} / {{total}}",
       "readingsDownloadFailed": "Det gick inte att ladda ned den japanska ordboken.",
-      "readingsFailed": "Det japanska uttalet fungerar inte."
+      "readingsFailed": "Det japanska uttalet fungerar inte.",
+      "defaultColour": "Standard"
     },
     "pttHint": "Tryck på mellanslag för att tala"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Kom igång direkt",
         "desc": "Kizuna AI sköter översättningen åt dig.",
-        "cost": "Registrera dig med din e-postadress och verifiera den — verifierade konton får en provkredit. Därefter fyller du på ditt saldo, och översättningen faktureras efter hur mycket du använder."
+        "cost": "Registrera dig med din e-postadress och verifiera den — verifierade konton får en provkredit. Därefter fyller du på ditt saldo, och översättningen faktureras efter hur mycket du använder.",
+        "options": {
+          "kizunaai_soniox": "Transkribering i realtid, snabb översättning.",
+          "kizunaai_qwen": "Kan se din skärm; mycket noggrann transkribering och översättning."
+        }
       },
       "own-key": {
         "title": "Jag har min egen API-nyckel",
@@ -1356,14 +1412,15 @@
         "cost": "Din nyckel stannar på den här enheten och når leverantören direkt härifrån. Du är deras kund: du betalar dem för det du använder, och inget går via Kizuna AI."
       },
       "offline": {
-        "title": "Gratis, offline",
-        "desc": "Körs på din egen dator. Inget lämnar den.",
-        "cost": "Laddar ner modeller till din disk (flera gigabyte). Går bra med GPU och tillräckligt VRAM; enbart CPU är märkbart långsammare.",
+        "title": "Ingen nyckel",
+        "desc": "Gratis. Igenkänningen körs på den här datorn; översättningen använder Bing och talet Edge, onlinetjänster från Microsoft.",
+        "cost": "Igenkänningen kräver att en modell först laddas ner till disken. Fungerar bra med GPU; märkbart långsammare med bara CPU.",
         "native": "Native-motor — snabbare, använder din GPU där det är möjligt.",
         "wasm": "Inbyggd motor — fungerar överallt, långsammare."
       },
       "ownKeyNote": "Välj den leverantör du har ett konto hos. Var och en utfärdar sin egen nyckel:",
-      "ownKeyGuides": "guider för varje leverantör"
+      "ownKeyGuides": "guider för varje leverantör",
+      "managedPick": "Vilken värdtjänst?"
     },
     "fit": {
       "cannotSpeak": "Den här leverantören kan inte producera talad översättning.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Skapa konto",
       "signedIn": "Inloggad. Du kan fortsätta.",
       "managedDesc": "Registrera dig med din e-postadress och verifiera den från din inkorg; verifierade konton får en provkredit. Därefter fyller du på ditt saldo och betalar bara för det du använder.",
-      "offlineNotice": "Modellerna laddas ner efter konfigurationen, från Inställningar. De tar flera gigabyte disk. Sokuji fungerar bra med en GPU och tillräckligt VRAM; med enbart CPU är det märkbart långsammare.",
-      "pendingKey": "Du kan lägga till nyckeln senare i Inställningar → Leverantör. Starta-knappen förblir låst tills den valideras.",
+      "offlineNotice": "Igenkänningsmodellen laddas ner efter konfigurationen, under Inställningar → Modeller och lagring. Översättningen använder Bing och talet Edge: inget att ladda ner och inget konto; texten som översätts och översättningen som läses upp skickas till Microsoft.",
+      "pendingKey": "Du kan lägga till nyckeln senare under Inställningar → Konton och nycklar. Start är låst tills den har validerats.",
       "pendingSignIn": "Du kan logga in senare via kontoknappen. Starta-knappen förblir låst tills dess.",
       "ownKeyDesc": "Den här nyckeln lagras bara på den här enheten, och appen anropar leverantören direkt härifrån — den når aldrig Kizuna AI. Du betalar leverantören för det du använder.",
       "guide": "Så här skaffar du den här nyckeln",
       "verifyEmail": "Inloggad. Öppna länken vi skickade via e-post för att verifiera din adress — provkrediten läggs till så snart du gör det.",
-      "onFile": "En nyckel är redan sparad — lämna detta tomt för att behålla den."
+      "onFile": "En nyckel är redan sparad — lämna detta tomt för att behålla den.",
+      "offlineHardware": "Sokuji fungerar bra med en GPU och tillräckligt med VRAM; med bara CPU är det märkbart långsammare.",
+      "openaiOneKey": "Den här enda nyckeln gäller för OpenAI Realtime, Translate och Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Läge",
       "provider": "Leverantör",
       "languages": "Språk",
-      "pendingKey": "Ingen API-nyckel än — lägg till den i Inställningar → Leverantör innan du börjar.",
+      "pendingKey": "Ingen API-nyckel ännu — lägg till den under Inställningar → Konton och nycklar innan du startar.",
       "pendingSignIn": "Inte inloggad — logga in via kontoknappen innan du börjar.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Uppsättning"
+    },
+    "lineup": {
+      "title": "Uppsättningen som ställs in",
+      "later": "Du kan ändra varje steg senare under Inställningar → Språk och uppsättning."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Leverantörsinställningar",
-        "content": "Ändra din nyckel eller byt leverantör här.",
+        "content": "Byt din nyckel här.",
         "content_pending": "Klistra in din API-nyckel här. Starta-knappen låses upp så snart den valideras."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Det var allt",
-        "content": "Avancerade inställningar — taldetektering, promptar, röster, loggar — finns bakom reglaget Avancerat uppe till höger i Inställningar. Spela upp den här guiden igen när som helst från Hjälp."
+        "content": "Allt annat finns i Inställningar, en kategori i taget; sökningen hittar vilken inställning som helst på namn. Spela upp den här guiden igen när som helst från Hjälp."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Kunde inte nås",
     "switch": "Byt",
     "keep": "Behåll {{region}}"
+  },
+  "settingsPage": {
+    "title": "Inställningar",
+    "search": "Sök i inställningar",
+    "back": "Tillbaka till sessionen",
+    "backToList": "Tillbaka till listan",
+    "changeable": "Kan ändras under en session",
+    "lockedNote": "Låst under en session",
+    "partlyLocked": "Delvis låst under en session",
+    "lockedLine": "En session pågår. Språk, uppsättning, ordlista och nycklar är låsta; ljud, visning och resten kan ändras.",
+    "categories": {
+      "lineup": "Språk och uppsättning",
+      "words": "Ordlista och bakgrund",
+      "accounts": "Konton och nycklar",
+      "models": "Modeller och lagring",
+      "audio": "Ljud",
+      "display": "Visning",
+      "history": "Historik och anteckningar",
+      "general": "Allmänt"
+    },
+    "groups": {
+      "session": "Session",
+      "providers": "Leverantörer och modeller",
+      "devices": "Enheter och visning",
+      "data": "Data",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "språk, talläge, tryck för att prata, transkribering, översättning, tal, röst, leverantör, modell, uppsättning",
+      "words": "ordlista, termer, glosslista, bakgrund",
+      "accounts": "konto, logga in, API-nyckel, nycklar, inloggningsuppgifter, saldo",
+      "models": "modeller, ladda ner, lagring, ta bort, disk",
+      "audio": "mikrofon, brusreducering, eko, högtalare, hörlurar, medhörning, genomkoppling, virtuell mikrofon, systemljud",
+      "display": "teckensnitt, storlek, färg, kompakt, undertexter, textning, förhandsvisning",
+      "history": "historik, anteckningar, mapp, spara automatiskt",
+      "general": "gränssnittsspråk, utseende, tema, uppdateringar, loggar, konfiguration, hjälp, version"
+    },
+    "accounts": {
+      "addKey": "Lägg till nyckel",
+      "keySaved": "Nyckel sparad",
+      "local": "Körs på den här datorn",
+      "needsKey": "Behöver en nyckel",
+      "online": "Ingen nyckel behövs; online, en tjänst från Microsoft",
+      "signedIn": "Inloggad",
+      "signedOut": "Inte inloggad",
+      "together": "tillsammans",
+      "view": "Visa",
+      "hide": "Dölj",
+      "endToEnd": "Hela vägen",
+      "transcribeTranslate": "Transkribering och översättning",
+      "signedInBalance": "Inloggad; saldo {{amount}}",
+      "localModels": "Körs på den här datorn; {{count}} modeller nedladdade, totalt {{size}}",
+      "localNone": "Körs på den här datorn; inga modeller nedladdade ännu"
+    },
+    "lineup": {
+      "title": "Uppsättning",
+      "stages": {
+        "transcription": "Transkribering",
+        "translation": "Översättning",
+        "speech": "Tal",
+        "summarisation": "Anteckningar"
+      },
+      "and": " och ",
+      "joint": "Går ihop med {{stages}} över en anslutning; de byts tillsammans.",
+      "granite": "Med översättning: Granite Speech gör tal direkt till översättningen.",
+      "moved": "{{stages}} flyttades också till {{providers}}: det går ännu inte att kombinera med det här valet. Blandning kommer senare.",
+      "needsKey": "behöver nyckel",
+      "needsSignIn": "kräver inloggning",
+      "options": "Alternativ för {{provider}}",
+      "state": {
+        "needsKey": "Behöver en nyckel",
+        "needsModel": "Behöver en modell",
+        "needsSignIn": "Kräver inloggning",
+        "ready": "Klar"
+      },
+      "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
+      "hint": "Vilken tjänst som gör varje steg",
+      "uses": {
+        "turn": "Turslut",
+        "key": "Tangent",
+        "space": "Mellanslag",
+        "released": "När den släpps",
+        "releasedValue": "skickas stycket för översättning",
+        "notHeld": "När den inte hålls ned",
+        "notHeldValue": "går din egen röst direkt till den andra sidan, oöversatt"
+      },
+      "actsOn": "Gäller {{stages}}",
+      "pointer": "Alternativen som gäller {{stages}} finns i kortet ”{{card}}”.",
+      "edgeVoices": {
+        "hint": "Röster sparas per språk: det här är rösterna för det här språkparet.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Vilken visning",
+      "main": "Huvudfönster",
+      "captions": "Undertextläge",
+      "compact": "Kompakt vy",
+      "fontSize": "Textstorlek",
+      "smaller": "Mindre text",
+      "larger": "Större text",
+      "modes": {
+        "both": "Original och översättning",
+        "source": "Bara original",
+        "translation": "Bara översättning",
+        "none": "Inget"
+      },
+      "mineSide": "Vad min sida visar",
+      "theirsSide": "Vad den andra sidan visar",
+      "previewMain": "Förhandsvisning: samtalet i huvudfönstret",
+      "previewCaptions": "Förhandsvisning: undertextläge ovanpå ett annat fönster",
+      "empty": "Inget visas här just nu: båda sidorna är inställda på ”Inget”."
+    },
+    "intro": {
+      "accounts": "Konton och nycklar: varje tjänst fylls i en gång. Vad den gör väljer du sedan under ”Språk och uppsättning”.",
+      "models": "Alla modeller som laddats ner till den här datorn hanteras här: sessionernas, hjälpmodellerna och importerade röster.",
+      "audio": "Mikrofon, tal och den andra sidans ljud. Allt utom ”Översättning som den andra sidan hör” kan ändras under en session.",
+      "display": "Samma värden som knapparna ovanför samtalet och i textningsfältet: var du än ändrar gäller det direkt. Huvudfönstret och textningsläget har var sina."
+    },
+    "audio": {
+      "micHint": "Var min röst kommer in",
+      "otherHint": "Var den andra sidans röst kommer in",
+      "device": "Enhet",
+      "source": "Källa",
+      "flow": {
+        "myMic": "Min mikrofon",
+        "toSpeech": "Till tal",
+        "toThem": "Virtuell mikrofon → andra sidan",
+        "theirVoice": "Andra sidans röst",
+        "myDevice": "Min uppspelningsenhet",
+        "caption": "Vart ljudet går. Ljusa linjer är på nu, streckade av; de följer reglagen nedanför.",
+        "aria": "Vart ljudet går: det jag säger blir tal och går till den virtuella mikrofonen för andra sidan, och spelas också hos mig när jag lyssnar; det andra sidan säger blir tal och spelas på min uppspelningsenhet."
+      }
+    },
+    "general": {
+      "basics": "Grundinställningar",
+      "maintenance": "Underhåll och hjälp",
+      "update": "Uppdateringar",
+      "updateLine": "Du har {{version}}.",
+      "version": "Version",
+      "storeUpdates": "Webbläsarens butik håller tillägget uppdaterat.",
+      "wizard": "Installationsguide",
+      "wizardLine": "Gå igenom guiden igen; det du har sparat är redan valt.",
+      "rerun": "Kör igen",
+      "guide": "Guide",
+      "guideLine": "Steg-för-steg-tips på huvudskärmen.",
+      "restart": "Börja om",
+      "needHelp": "Behöver du hjälp:"
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createRealtimeAdapter } from './adapter';
@@ -5,6 +6,7 @@ import { checkRealtime } from './check';
 import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
 import { RealtimeSettingsView, RealtimeVoiceSummary } from './RealtimeSettings';
 import { RealtimeTurnDetectionControls, RealtimeTurnDetectionHelp, RealtimeTurnDetectionSummary } from './RealtimeTurnDetection';
+import { ALL_STAGES, SP, TL, TR } from '../../lib/lineup/types';
 import {
   migrateRealtimeSettings,
   REALTIME_DEFAULTS,
@@ -41,11 +43,14 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
 
   settings: { key: 'openai', defaults: REALTIME_DEFAULTS, legacyKeys: REALTIME_LEGACY_KEYS, migrate: migrateRealtimeSettings },
   Settings: RealtimeSettingsView,
+  // The model on every stage, the transcript and noise reduction on transcription, the instructions, tokens and reasoning on translation, the voices on speech (mock v19).
+  optionStages: [ALL_STAGES, TR, TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: RealtimeVoiceSummary,
   TurnDetection: { Summary: RealtimeTurnDetectionSummary, Controls: RealtimeTurnDetectionControls, Help: RealtimeTurnDetectionHelp },
 
-  credentials: realtimeCredentials,
+  // One OpenAI key for the three OpenAI providers (owner, 2026-11-15).
+  credentials: { ...realtimeCredentials, storedAt: OPENAI_KEY_STORED_AT },
   check: (k, s, ctx) => checkRealtime(k, s, ctx),
   // The model list reads no setting (ruling 9): a slider or a prompt edit keeps Start on.
   checkReads: [],

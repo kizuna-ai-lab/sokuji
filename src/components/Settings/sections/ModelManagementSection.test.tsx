@@ -62,6 +62,10 @@ vi.mock('../../../lib/local-inference/voiceStorage', () => ({
 }));
 
 // modelStore surface used by the component — all no-ops/empty so it renders.
+// The stored line-up's local stages: null until a test stores one.
+let mockStages: { translation: 'bing' | 'local'; speech: 'edge' | 'local' } | null = null;
+vi.mock('../../../stores/lineUpStore', () => ({ useStoredLocalStages: () => mockStages, storedLocalStages: () => mockStages }));
+
 const mockStatuses: Record<string, ModelStatus> = {};
 const mockDownloads: Record<string, any> = {};
 // mockWebgpuAvailable starts with "mock" so vitest hoists it alongside the
@@ -474,5 +478,19 @@ describe('ModelManagementSection — voices per direction (#619)', () => {
     await waitFor(() => expect(mockGetEdgeTtsVoices).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 0));
     expect(voiceWrites()).toEqual([]);
+  });
+});
+
+describe('Bing and Edge once a line-up is stored', () => {
+  it('the local engine lists no Bing or Edge card; before a line-up is stored, today\'s list', () => {
+    mockStages = null;
+    const { unmount } = render(<ModelManagementSection isSessionActive={false} {...slice()} />);
+    expect(screen.queryByTestId('model-card-bing-translator')).not.toBeNull();
+    unmount();
+    mockStages = { translation: 'local', speech: 'local' };
+    render(<ModelManagementSection isSessionActive={false} {...slice()} />);
+    expect(screen.queryByTestId('model-card-bing-translator')).toBeNull();
+    expect(screen.queryByTestId('model-card-edge-tts')).toBeNull();
+    mockStages = null;
   });
 });

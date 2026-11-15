@@ -171,7 +171,8 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
   it('records setup complete only after every provider write has landed', async () => {
     const held: Array<() => void> = [];
     setSetting.mockImplementation((key: string, value: unknown) => {
-      if (key === 'settings.setup') return landNow(key, value);
+      // The record, and the line-up stored after the provider's writes (Plan 6), land at once: the provider's are held.
+      if (key === 'settings.setup' || key === 'settings.lineup') return landNow(key, value);
       return new Promise<{ success: boolean }>((resolve) => { held.push(() => { stored.set(key, value); resolve({ success: true }); }); });
     });
     const { result } = renderHook(() => useApplySetup());
@@ -229,5 +230,34 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
     expect(stored.get('settings.setup')).toEqual(expect.objectContaining({ provider: Provider.LOCAL_INFERENCE }));
     expect(stored.get('settings.common.sourceLanguage')).toBe('en');
+  });
+});
+
+// Plan 6, Task 4: Finish stores the line-up through the line-up store, before the record.
+describe("useApplySetup's applyLineUp", () => {
+  it('stores the line-up of the chosen path before the record', async () => {
+    const { result } = renderHook(() => useApplySetup());
+    await result.current(draft({}));
+    expect(stored.get('settings.lineup')).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+    const keys = setSetting.mock.calls.map(([key]) => key);
+    expect(keys.indexOf('settings.lineup')).toBeLessThan(keys.indexOf('settings.setup'));
+  });
+
+  it('fails Finish with the setup-persist error, recording nothing, when the line-up does not land', async () => {
+    setSetting.mockImplementation(async (key: string, value: unknown) => {
+      if (key === 'settings.lineup') return { success: false, error: 'QuotaExceededError' };
+      return landNow(key, value);
+    });
+    const { result } = renderHook(() => useApplySetup());
+    await expect(result.current(draft({}))).rejects.toBeInstanceOf(SetupPersistError);
+    expect(setSetting).not.toHaveBeenCalledWith('settings.setup', expect.anything());
+  });
+
+  // Review Focus 5: the key typed for an OpenAI provider is the one OpenAI key every OpenAI provider reads.
+  it('Finish on OpenAI Realtime stores the typed key as the one OpenAI key', async () => {
+    const { result } = renderHook(() => useApplySetup());
+    await result.current(draft({ providerPath: 'own-key', provider: Provider.OPENAI, credentials: { apiKey: 'sk-live' } }));
+    expect(stored.get('settings.openai.apiKey')).toBe('sk-live');
+    expect(stored.get('settings.lineup')).toMatchObject({ stages: { transcription: 'openai', translation: 'openai', speech: 'openai' } });
   });
 });

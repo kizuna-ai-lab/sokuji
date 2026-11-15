@@ -15,9 +15,9 @@ import {
 import * as modelStorage from '../lib/local-inference/modelStorage';
 import { filesToImportMap, type NamedBlob } from '../lib/local-inference/modelImport';
 import { checkWebGPU } from '../utils/webgpu';
-import { resolveDirection } from '../lib/local-inference/selection/resolveStage';
-import { wasmCandidates } from '../lib/local-inference/selection/candidates.wasm';
-import { directionKey, type DirectionResult, type Selections } from '../lib/local-inference/selection/types';
+import type { DirectionResult, Selections } from '../lib/local-inference/selection/types';
+import { resolveWasmDirection } from '../lib/local-inference/selection/resolveWithStages';
+import type { LocalStages } from '../lib/lineup/localStages';
 import { reportError } from '../lib/diagnostics/report';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ interface ModelStoreState {
    * written back — that distinction is what lets the system tell a user's
    * choice from a machine's guess.
    */
-  resolve: (src: string, tgt: string, selections: Selections) => DirectionResult;
+  resolve: (src: string, tgt: string, selections: Selections, stages?: LocalStages | null) => DirectionResult;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -359,13 +359,9 @@ export const useModelStore = create<ModelStoreState>()(
      * caller (the LocalInference provider, or the engine surface it renders)
      * owns them.
      */
-    resolve: (src, tgt, selections) => {
+    resolve: (src, tgt, selections, stages = null) => {
       const { modelStatuses, webgpuAvailable, deviceFeatures } = get();
-      return resolveDirection(
-        directionKey(src, tgt),
-        selections,
-        wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures }),
-      );
+      return resolveWasmDirection(src, tgt, selections, { modelStatuses, webgpuAvailable, deviceFeatures }, stages);
     },
 
   })),

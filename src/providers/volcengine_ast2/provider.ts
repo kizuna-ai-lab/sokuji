@@ -5,6 +5,7 @@ import { Ast2SettingsView, Ast2VoiceSummary } from './Ast2Settings';
 import { checkAst2 } from './check';
 import { buildAst2, describeAst2, type Ast2Config } from './config';
 import { AST2_DEFAULTS, ast2Credentials, ast2Languages, migrateAst2Settings, type Ast2Credentials, type Ast2Settings } from './settings';
+import { SP, TR, TR_TL } from '../../lib/lineup/types';
 
 const adapter = createAst2Adapter();
 
@@ -29,6 +30,8 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
 
   settings: { key: 'volcengineAST2', defaults: AST2_DEFAULTS, migrate: migrateAst2Settings },
   Settings: Ast2SettingsView,
+  // Its note with transcription, the vocabulary on transcription and translation, the voices on speech (mock v19).
+  optionStages: [TR, TR_TL, SP],
   // Each spoken leg's voice, under its Speech row: its own direction's slot.
   VoiceSummary: Ast2VoiceSummary,
 

@@ -440,7 +440,11 @@
     "audioCaptureUnprovenText3Named": "\"{{app}}\" only appears in that list after it has tried to capture once, which it just did. Start the session again after enabling it. If the source was simply silent, nothing needs to change.",
     "screenRecordingHasAlternative": "You can avoid this permission entirely: pick a specific application as Other's audio source instead. Applications only appear in that list while they are playing audio.",
     "participantSourceSwitchFailed": "Could not switch Other's audio source. Stop and start the session to change it.",
-    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back."
+    "participantFellBackToSystemAudio": "Capture of the selected application stopped, so all system audio is being translated instead. Pick the application again to narrow it back.",
+    "captionMine": "What I say, as speech",
+    "captionTheirs": "What the other side says, as speech",
+    "defaultPlaybackAid": "Sounds on my side play here unless a row names its own device; a sound whose own device is unplugged plays here too.",
+    "captionReplay": "Replay"
   },
   "auth": {
     "signIn": "Sign In",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Numbers the other side's people — Speaker 1, Speaker 2… — once more than one voice is heard.\n\nIt can mistake one person for several. Disabled: no numbers are shown.\n\nApplies from the next session."
     },
     "local_inference": {
-      "name": "Free",
-      "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
+      "name": "This device",
+      "description": "Works once its models are downloaded to this computer; the first time needs a download of several GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Free · offline"
     },
     "local_native": {
       "name": "Free (Native)",
@@ -608,7 +613,15 @@
       "name": "Unknown",
       "description": "Unknown provider"
     },
-    "poweredBy": "Powered by <brand>{{name}}</brand>"
+    "poweredBy": "Powered by <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Free · online, a Microsoft service"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Free · online, a Microsoft service"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Auto-scroll on",
@@ -739,7 +752,9 @@
     "preparingVoice": "Preparing your voice…",
     "waitingForPreviousSession": "Waiting…",
     "waitingForPreviousSessionTitle": "Waiting for the previous session to end. Click to cancel.",
-    "clickToCancel": "Click to cancel"
+    "clickToCancel": "Click to cancel",
+    "whatIHear": "What I hear",
+    "audioSettings": "Audio settings"
   },
   "modePicker": {
     "modeYou": "Me",
@@ -894,7 +909,11 @@
       "managed": {
         "title": "Start right away",
         "desc": "Kizuna AI runs the translation for you.",
-        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use."
+        "cost": "Sign up with your email address and verify it — verified accounts get a trial credit. After that you top up your balance, and translation is billed by how much you use.",
+        "options": {
+          "kizunaai_soniox": "Real-time transcription, fast translation.",
+          "kizunaai_qwen": "Can look at your screen; very accurate transcription and translation."
+        }
       },
       "own-key": {
         "title": "I have my own API key",
@@ -902,12 +921,13 @@
         "cost": "Your key stays on this device and reaches the provider straight from it. You are their customer: you pay them for what you use, and nothing goes through Kizuna AI."
       },
       "offline": {
-        "title": "Free, offline",
-        "desc": "Runs on your own machine. Nothing leaves it.",
-        "cost": "Downloads models onto your disk (gigabytes). Runs well with a GPU and enough VRAM; CPU-only is noticeably slower.",
+        "title": "No key needed",
+        "desc": "Free. Recognition runs on this computer; translation uses Bing and speech uses Edge, which go online as Microsoft services.",
+        "cost": "Recognition needs a model downloaded to disk first. Runs well with a GPU; noticeably slower on CPU only.",
         "native": "Native engine — faster, uses your GPU where available.",
         "wasm": "In-app engine — works everywhere, slower."
-      }
+      },
+      "managedPick": "Which hosted service?"
     },
     "fit": {
       "cannotSpeak": "This provider cannot produce spoken translation.",
@@ -932,9 +952,11 @@
       "signedIn": "Signed in. You can continue.",
       "managedDesc": "Sign up with your email address and verify it from your inbox; verified accounts get a trial credit. After that you top up your balance and pay only for what you use.",
       "verifyEmail": "Signed in. Open the link we emailed you to verify your address — the trial credit lands once you do.",
-      "offlineNotice": "Models are downloaded after setup, from Settings. They take gigabytes of disk. Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
-      "pendingKey": "You can add the key later in Settings → Provider. Start stays locked until it validates.",
-      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then."
+      "offlineNotice": "The recognition model is downloaded after setup, from Settings → Models and storage. Translation uses Bing and speech uses Edge: nothing to download and no account; the text to translate and the translation to speak are sent to Microsoft.",
+      "pendingKey": "You can add the key later in Settings → Accounts and keys. Start stays locked until it validates.",
+      "pendingSignIn": "You can sign in later from the account button. Start stays locked until then.",
+      "offlineHardware": "Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.",
+      "openaiOneKey": "This one key serves OpenAI Realtime, Translate and Live."
     },
     "summary": {
       "scenario": "Scenario",
@@ -942,8 +964,13 @@
       "provider": "Provider",
       "languages": "Languages",
       "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
-      "pendingKey": "No API key yet — add it in Settings → Provider before you start.",
-      "pendingSignIn": "Not signed in — sign in from the account button before you start."
+      "pendingKey": "No API key yet — add it in Settings → Accounts and keys before you start.",
+      "pendingSignIn": "Not signed in — sign in from the account button before you start.",
+      "lineup": "Line-up"
+    },
+    "lineup": {
+      "title": "The line-up this sets up",
+      "later": "You can change each stage later in Settings → Languages and line-up."
     }
   },
   "tour": {
@@ -997,7 +1024,7 @@
       },
       "provider-settings": {
         "title": "Provider settings",
-        "content": "Change your key or switch provider here.",
+        "content": "Change your key here.",
         "content_pending": "Paste your API key here. Start unlocks once it validates."
       },
       "models": {
@@ -1013,7 +1040,7 @@
       },
       "done": {
         "title": "That's it",
-        "content": "Advanced settings — speech detection, prompts, voices, logs — live behind the Advanced toggle at the top-right of Settings. Replay this guide any time from Help."
+        "content": "Everything else is in Settings, one category at a time; search finds any setting by name. Replay this guide any time from Help."
       }
     }
   },
@@ -1179,6 +1206,42 @@
       "cancel": "Cancel",
       "accept": "I understand — non-commercial only",
       "acceptRestricted": "I understand — accept the license"
+    },
+    "readingsDictionary": "Readings dictionary (Japanese)",
+    "readingsDictionaryNotStored": "Downloaded when Japanese readings are turned on in Display.",
+    "page": {
+      "tag": {
+        "asr": "Recognition",
+        "translation": "Translation",
+        "tts": "Speech",
+        "turn": "Turn end",
+        "punctuation": "Sentences and punctuation",
+        "readings": "Readings",
+        "voice": "Voice"
+      },
+      "manyLanguages": "Many languages",
+      "languages": "{{count}} languages",
+      "direct": "can also give the translation directly",
+      "downloading": "Downloading {{percent}}%",
+      "failed": "Download failed",
+      "cannotRun": "This computer can't run it",
+      "notDownloaded": "Not downloaded",
+      "download": "Download",
+      "listJoin": ", ",
+      "summary": "{{count}} downloaded, {{size}} in all",
+      "import": "Import a model from files",
+      "sessionTitle": "Models for the session (the “This device” service)",
+      "sessionHint": "Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "otherLanguages": "Models for other languages ({{count}})",
+      "helpersTitle": "Helper models",
+      "helpersHint": "Small models that belong to no one stage.",
+      "turnMeta": "Tells when you have finished speaking; turned on in the speech mode options",
+      "packMeta": "Splits the text into sentences; the three download together",
+      "dictMeta": "Shows Japanese readings; turned on in Display",
+      "voicesTitle": "Imported voices",
+      "voicesHint": "Supertonic voice files you imported.",
+      "importedOn": "Imported {{date}}",
+      "more": "{{count}} more"
     }
   },
   "notes": {
@@ -1308,7 +1371,8 @@
       },
       "readingsDownloading": "Downloading the Japanese dictionary {{done}} / {{total}}",
       "readingsDownloadFailed": "Couldn't download the Japanese dictionary.",
-      "readingsFailed": "Japanese readings aren't working."
+      "readingsFailed": "Japanese readings aren't working.",
+      "defaultColour": "Default"
     },
     "pttHint": "Press Space to speak"
   },
@@ -1711,6 +1775,155 @@
       "chooseAgain": "Choose again",
       "lostHint": "The source is gone; the last picture is kept until you choose again.",
       "lostExtension": "The meeting tab's picture is no longer available; translation continues on audio alone."
+    }
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "search": "Search settings",
+    "back": "Back to the session",
+    "backToList": "Back to the list",
+    "changeable": "Changeable during a session",
+    "lockedNote": "Locked during a session",
+    "partlyLocked": "Partly locked during a session",
+    "lockedLine": "A session is running. Languages, the line-up, the word list and keys are locked; audio, display and the rest can be changed.",
+    "categories": {
+      "lineup": "Languages and line-up",
+      "words": "Word list and background",
+      "accounts": "Accounts and keys",
+      "models": "Models and storage",
+      "audio": "Audio",
+      "display": "Display",
+      "history": "History and notes",
+      "general": "General"
+    },
+    "groups": {
+      "session": "Session",
+      "providers": "Providers and models",
+      "devices": "Devices and display",
+      "data": "Data",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "language, languages, speech mode, push to talk, transcription, translation, speech, voice, provider, model, line-up",
+      "words": "word list, terms, glossary, background",
+      "accounts": "account, sign in, api key, keys, credential, balance",
+      "models": "models, download, storage, delete, disk",
+      "audio": "microphone, noise suppression, echo, speaker, headphones, monitor, passthrough, virtual microphone, system audio",
+      "display": "font, size, colour, color, compact, subtitles, captions, preview",
+      "history": "history, notes, folder, auto-save",
+      "general": "interface language, appearance, theme, updates, logs, setup, help, version"
+    },
+    "accounts": {
+      "addKey": "Add key",
+      "keySaved": "Key saved",
+      "local": "Runs on this computer",
+      "needsKey": "Needs a key",
+      "online": "No key needed; online, a Microsoft service",
+      "signedIn": "Signed in",
+      "signedOut": "Not signed in",
+      "together": "together",
+      "view": "View",
+      "hide": "Hide",
+      "endToEnd": "End to end",
+      "transcribeTranslate": "Transcription and translation",
+      "signedInBalance": "Signed in; balance {{amount}}",
+      "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
+      "localNone": "Runs on this computer; no models downloaded yet"
+    },
+    "lineup": {
+      "title": "Line-up",
+      "stages": {
+        "transcription": "Transcription",
+        "translation": "Translation",
+        "speech": "Speech",
+        "summarisation": "Notes"
+      },
+      "and": " and ",
+      "joint": "Goes with {{stages}} over one connection; they change together.",
+      "granite": "With translation: Granite Speech turns speech straight into the translation.",
+      "moved": "{{stages}} moved to {{providers}} too: today they cannot be combined with this choice. Mixing comes later.",
+      "needsKey": "needs a key",
+      "needsSignIn": "needs a sign-in",
+      "options": "{{provider}} options",
+      "state": {
+        "needsKey": "Needs a key",
+        "needsModel": "Needs a model",
+        "needsSignIn": "Needs a sign-in",
+        "ready": "Ready"
+      },
+      "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
+      "hint": "Which service does each stage",
+      "uses": {
+        "turn": "Turn end",
+        "key": "Key",
+        "space": "Space",
+        "released": "Once released",
+        "releasedValue": "that stretch goes off to be translated",
+        "notHeld": "While not held",
+        "notHeldValue": "your own voice goes straight to the other side, untranslated"
+      },
+      "actsOn": "Acts on {{stages}}",
+      "pointer": "The options acting on {{stages}} are in the “{{card}}” card.",
+      "edgeVoices": {
+        "hint": "Voices are kept per language: these are the ones this language pair uses.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Which display",
+      "main": "Main window",
+      "captions": "Caption mode",
+      "compact": "Compact view",
+      "fontSize": "Text size",
+      "smaller": "Smaller text",
+      "larger": "Larger text",
+      "modes": {
+        "both": "Original and translation",
+        "source": "Original only",
+        "translation": "Translation only",
+        "none": "Nothing"
+      },
+      "mineSide": "What my side shows",
+      "theirsSide": "What the other side shows",
+      "previewMain": "Preview: the conversation in the main window",
+      "previewCaptions": "Preview: caption mode, over another window",
+      "empty": "Nothing shows here now: both sides are set to “Nothing”."
+    },
+    "intro": {
+      "accounts": "Accounts and keys: each service is filled in once. Once it is, what it can do is chosen in \"Languages and line-up\".",
+      "models": "Every model downloaded to this computer is managed here: the ones sessions use, the helpers, and imported voices.",
+      "audio": "Microphone, speech and the other side's audio. Everything except \"Translation the other side hears\" can be changed during a session.",
+      "display": "The same values as the buttons above the conversation and on the caption bar: change them on either side, and they apply at once. The main window and caption mode each keep their own."
+    },
+    "audio": {
+      "micHint": "Where my voice comes in",
+      "otherHint": "Where the other side's voice comes in",
+      "device": "Device",
+      "source": "Source",
+      "flow": {
+        "myMic": "My microphone",
+        "toSpeech": "Into speech",
+        "toThem": "Virtual mic → the other side",
+        "theirVoice": "The other side's voice",
+        "myDevice": "My playback device",
+        "caption": "Where the sound goes. Lit lines are on now, dashed ones off; they follow the switches below.",
+        "aria": "Where the sound goes: what I say, turned into speech, goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says, turned into speech, plays on my playback device."
+      }
+    },
+    "general": {
+      "basics": "Basics",
+      "maintenance": "Maintenance and help",
+      "update": "Updates",
+      "updateLine": "You have {{version}}.",
+      "version": "Version",
+      "storeUpdates": "The browser's store keeps the extension up to date.",
+      "wizard": "Setup wizard",
+      "wizardLine": "Go through the wizard again; what you have saved comes pre-selected.",
+      "rerun": "Run again",
+      "guide": "Guide",
+      "guideLine": "Step-by-step tips on the main screen.",
+      "restart": "Start again",
+      "needHelp": "Need help:"
     }
   }
 }

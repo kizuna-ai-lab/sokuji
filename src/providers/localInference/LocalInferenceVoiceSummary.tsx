@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useStoredLocalStages } from '../../stores/lineUpStore';
 import type { VoiceSummaryProps } from '../../lib/provider/types';
 import { voiceNameFromShortName } from '../../lib/edge-tts/voiceList';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
@@ -22,10 +23,11 @@ import { directionVoice, speakerIdFor } from './voices';
 export function LocalInferenceVoiceSummary({ settings, pair = FALLBACK_PAIR, leg }: VoiceSummaryProps<LocalInferenceSettings>) {
   const { t } = useTranslation();
   const modelStatuses = useModelStore((s) => s.modelStatuses);
+  const stages = useStoredLocalStages();
   const [src, tgt] = leg === 'speaker' ? [pair.source, pair.target] : [pair.target, pair.source];
   const ttsId = useMemo(
-    () => useModelStore.getState().resolve(src, tgt, settings.selections).tts?.modelId,
-    [src, tgt, settings.selections, modelStatuses],
+    () => useModelStore.getState().resolve(src, tgt, settings.selections, stages).tts?.modelId,
+    [src, tgt, settings.selections, modelStatuses, stages],
   );
   if (!ttsId) return null;
   const entry = getManifestEntry(ttsId);

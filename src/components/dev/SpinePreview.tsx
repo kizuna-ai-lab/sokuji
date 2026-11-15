@@ -10,7 +10,7 @@ import type { OpenSource } from '../../lib/session/source';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
 import type { Entry } from '../../lib/projection/types';
-import type { AuthContext, EngineSlot } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/provider/types';
 import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
 import type { KaraokeState } from '../../lib/view/karaoke';
@@ -35,8 +35,7 @@ import { ExportMenuButton } from '../MainPanel/ExportButton';
 import MainPanel from '../MainPanel/MainPanel';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import { AuthStandIn } from '../providers/useAuthContext';
-import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from '../Settings/ProviderArea';
-import { SpeechSection } from '../Settings/sections/SpeechSection';
+import { SettingsPage } from '../SettingsPage/SettingsPage';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import type { SubtitleControls } from '../Subtitle/SubtitleView';
 import { uiLanguage } from '../Subtitle/uiLanguage';
@@ -287,17 +286,8 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * 1e-3's own wiring. `&monitor=1` writes the stored monitor switch (the old
  * app reads the same key), so it outlives the page — as `&autosave=1`,
  * `&turn=` and `&mode=` (the audio mode, for the live start gate, F7) do.
- * `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
- * Settings blocks the app's two layouts show, in place of `ProviderPanel`:
- * `simple` is `SessionSettingsGeneral` in its Simple layout (a chip pushes
- * `SessionEnginePage`, with a back row, the way Simple mode's own list
- * does), `advanced` is `SessionSettingsProvider` (Advanced's Provider tab,
- * with the provider tuning's own block) under the General tab's Speech
- * section in its Advanced layout — the tuning's summary link, which sets the
- * store's navigation target that nothing consumes here (there is no
- * `Settings.tsx` on this page; on the `simple` page the same link also
- * flips the stored UI mode to Advanced, as in the app); drawing the General
- * tab's other blocks beside it would double `#provider-section`.
+ * `&settings=1` draws the app's settings page (settings page plan) in
+ * place of `ProviderPanel`.
  * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
  * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`
  * (plan 1e-4). `&signedin=1` (Stage 2 foundation Task 12) hands the session
@@ -335,9 +325,6 @@ export function SpinePreview() {
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const entry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
-  // `&settings=simple|advanced`: Simple mode's own slot state (a chip opens
-  // `SessionEnginePage` in place of the list, the app's own back row returns).
-  const [engineSlot, setEngineSlot] = useState<EngineSlot | null>(null);
   const autostarted = useRef(false);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);
   // `&panel=1`: the new main panel on the app's session (plan 1e-3b-1).
@@ -516,22 +503,9 @@ export function SpinePreview() {
     <AuthStandIn.Provider value={param('signedin') === '1' ? PREVIEW_SIGNED_IN : null}>
       <div className="settings-container spine-preview">
         <div className="settings-body">
-          {settingsMode === 'simple' ? (
-            engineSlot ? (
-              <>
-                <button type="button" className="engine-back-row" onClick={() => setEngineSlot(null)}>
-                  Back
-                </button>
-                <SessionEnginePage locked={locked} slot={engineSlot} />
-              </>
-            ) : (
-              <SessionSettingsGeneral locked={locked} layout="simple" onOpenSlot={setEngineSlot} />
-            )
-          ) : settingsMode === 'advanced' ? (
-            <>
-              <SpeechSection locked={locked} layout="advanced" />
-              <SessionSettingsProvider locked={locked} />
-            </>
+          {settingsMode ? (
+            // The app's one settings page; Close has nowhere to go on this page.
+            <SettingsPage onClose={() => {}} />
           ) : (
             <ProviderPanel providers={providers} auth={auth} disabled={locked} />
           )}

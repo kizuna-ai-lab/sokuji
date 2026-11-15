@@ -1,0 +1,74 @@
+@use '../Settings/shared/variables' as vars;
+
+// The toolbar's headphones entry: the same quiet icon button as its neighbours.
+.hearing-btn[data-hearing='off'] { color: vars.$text-muted; }
+
+// Its popover: one row per sound I can hear, each a switch and where it plays.
+.hearing-popover {
+  box-sizing: border-box;
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
+  padding: vars.$space-3;
+  background: vars.$bg-popover;
+  border: 1px solid vars.$border-default;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px vars.$shadow-strong;
+  color: vars.$text-secondary;
+  font-size: 12px;
+  z-index: 1000;
+
+  &__row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: vars.$space-1 vars.$space-2;
+    select { grid-column: 1 / -1; width: 100%; }
+  }
+
+  &__label { color: vars.$text-primary; }
+
+  &__switch {
+    position: relative;
+    width: vars.$toggle-width;
+    height: vars.$toggle-height;
+    padding: 0;
+    border: none;
+    border-radius: 20px;
+    background: vars.$toggle-bg-off;
+    cursor: pointer;
+    transition: vars.$transition-fast;
+    &.is-on { background: vars.$color-primary; }
+    &.is-on .hearing-popover__thumb { transform: translateX(20px); }
+    &:disabled { @include vars.disabled-state; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &__thumb {
+    position: absolute;
+    left: 2px;
+    bottom: 2px;
+    width: vars.$toggle-thumb;
+    height: vars.$toggle-thumb;
+    border-radius: 50%;
+    background: vars.$white;
+    transition: vars.$transition-fast;
+  }
+
+  &__link {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: vars.$color-primary;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hearing-popover__switch, .hearing-popover__thumb { transition: none; }
+}

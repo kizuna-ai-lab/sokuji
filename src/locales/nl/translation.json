@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
     "audioCaptureUnprovenText3Named": "'{{app}}' verschijnt pas in die lijst nadat er één keer is geprobeerd vast te leggen, wat zojuist is gebeurd. Start de sessie opnieuw nadat u die hebt ingeschakeld. Was de bron gewoon stil, dan hoeft er niets te veranderen.",
-    "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen."
+    "otherSideBesideNote": "De ander deelt jouw microfoon; er wordt geen systeemaudio opgenomen.",
+    "captionMine": "Wat ik zeg, als spraak",
+    "captionTheirs": "Wat de andere kant zegt, als spraak",
+    "defaultPlaybackAid": "Geluiden aan mijn kant spelen hier af, tenzij een rij een eigen apparaat noemt; een geluid waarvan het eigen apparaat is losgekoppeld, speelt ook hier.",
+    "captionReplay": "Opnieuw afspelen"
   },
   "auth": {
     "signIn": "Inloggen",
@@ -582,7 +586,7 @@
       "vocabularyTranslations": "Voorkeursvertalingen",
       "vocabularyTranslationsTooltip": "Beïnvloedt hoe specifieke termen worden vertaald — een voorkeur, geen gegarandeerde vervanging: namen met een gevestigde vertaling werken het best, terwijl gangbare woorden de eigen formulering van het model kunnen behouden. Items zijn eenrichtings; de omgekeerde richting bestaat alleen in de modus Beide, waar je een omgekeerde regel kunt toevoegen.",
       "vocabularyTranslationsPlaceholder": "Eén item bron=doel per regel",
-      "screenContext": "Scherm\u00adcontext",
+      "screenContext": "Scherm­context",
       "screenContextTooltip": "Laat het model één venster, tabblad of scherm zien dat je kiest, zodat de namen en termen erop worden herkend en vertaald zoals ze geschreven staan. Alles binnen dat gebied wordt als afbeeldingen verstuurd naar de Qwen-dienst van Alibaba Cloud, in de regio van deze sessie; Kizuna AI ontvangt ze nooit. Zolang het aan staat, komt er een bedrag bij op de kosten voor elke seconde spraak — op je Alibaba Cloud-rekening met je eigen sleutel, of volgens de prijspagina van je account met een Kizuna AI-account; in de modus Beide wordt de sessie van elke richting in rekening gebracht.",
       "screenContextPicked": "Het model ziet: {{name}}",
       "screenContextStill": "Beeld van het moment dat je het koos",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Nummert de mensen aan de andere kant — Spreker 1, Spreker 2… — zodra er meer dan één stem te horen is.\n\nHet kan één persoon voor meerdere aanzien. Uitgeschakeld: er worden geen nummers getoond.\n\nWordt toegepast vanaf de volgende sessie."
     },
     "local_inference": {
-      "name": "Gratis",
-      "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
+      "name": "Dit apparaat",
+      "description": "Werkt zodra de modellen op deze computer zijn gedownload; de eerste keer moet er enkele GB worden gedownload.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratis · offline"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -608,7 +613,15 @@
       "name": "Onbekend",
       "description": "Onbekende provider"
     },
-    "poweredBy": "Mogelijk gemaakt door <brand>{{name}}</brand>"
+    "poweredBy": "Mogelijk gemaakt door <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratis · online, een dienst van Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratis · online, een dienst van Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Auto-scroll aan",
@@ -739,7 +752,9 @@
     "preparingVoice": "Uw stem wordt voorbereid…",
     "waitingForPreviousSession": "Wachten…",
     "waitingForPreviousSessionTitle": "Wachten tot de vorige sessie is beëindigd. Klik om te annuleren.",
-    "clickToCancel": "Klik om te annuleren"
+    "clickToCancel": "Klik om te annuleren",
+    "whatIHear": "Wat ik hoor",
+    "audioSettings": "Audio-instellingen"
   },
   "modePicker": {
     "modeYou": "Ik",
@@ -962,6 +977,42 @@
       "cancel": "Annuleren",
       "accept": "Begrepen — alleen niet-commercieel",
       "acceptRestricted": "Begrepen — licentie accepteren"
+    },
+    "readingsDictionary": "Woordenboek met lezingen (Japans)",
+    "readingsDictionaryNotStored": "Wordt gedownload als je Japanse lezingen aanzet bij Weergave.",
+    "page": {
+      "tag": {
+        "asr": "Herkenning",
+        "translation": "Vertaling",
+        "tts": "Spraak",
+        "turn": "Einde beurt",
+        "punctuation": "Zinnen en leestekens",
+        "readings": "Uitspraak",
+        "voice": "Stem"
+      },
+      "manyLanguages": "Veel talen",
+      "languages": "{{count}} talen",
+      "direct": "kan ook direct de vertaling geven",
+      "downloading": "Downloaden {{percent}}%",
+      "failed": "Downloaden mislukt",
+      "cannotRun": "Deze computer kan het niet draaien",
+      "notDownloaded": "Niet gedownload",
+      "download": "Downloaden",
+      "listJoin": ", ",
+      "summary": "{{count}} gedownload, samen {{size}}",
+      "import": "Model uit bestanden importeren",
+      "sessionTitle": "Modellen voor de sessie (de dienst ‘Dit apparaat’)",
+      "sessionHint": "Stappen die in ‘Talen en samenstelling’ op ‘Dit apparaat’ staan, gebruiken de modellen die hier zijn gedownload.",
+      "otherLanguages": "Modellen voor andere talen ({{count}})",
+      "helpersTitle": "Hulpmodellen",
+      "helpersHint": "Kleine modellen die bij geen enkele stap horen.",
+      "turnMeta": "Herkent wanneer u klaar bent met praten; aan te zetten in de opties van de spraakmodus",
+      "packMeta": "Deelt de tekst op in zinnen; de drie worden samen gedownload",
+      "dictMeta": "Toont Japanse uitspraak; aan te zetten in ‘Weergave’",
+      "voicesTitle": "Geïmporteerde stemmen",
+      "voicesHint": "Supertonic-stembestanden die u hebt geïmporteerd.",
+      "importedOn": "Geïmporteerd op {{date}}",
+      "more": "Nog {{count}}"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Japans woordenboek downloaden {{done}} / {{total}}",
       "readingsDownloadFailed": "Het Japanse woordenboek kon niet worden gedownload.",
-      "readingsFailed": "De Japanse leesvormen werken niet."
+      "readingsFailed": "De Japanse leesvormen werken niet.",
+      "defaultColour": "Standaard"
     },
     "pttHint": "Druk op Spatie om te spreken"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Direct starten",
         "desc": "Kizuna AI verzorgt de vertaling voor u.",
-        "cost": "Registreer u met uw e-mailadres en verifieer dit — geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op, en wordt vertaling gefactureerd naar gebruik."
+        "cost": "Registreer u met uw e-mailadres en verifieer dit — geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op, en wordt vertaling gefactureerd naar gebruik.",
+        "options": {
+          "kizunaai_soniox": "Transcriptie in realtime, snelle vertaling.",
+          "kizunaai_qwen": "Kan je scherm zien; zeer nauwkeurige transcriptie en vertaling."
+        }
       },
       "own-key": {
         "title": "Ik heb mijn eigen API-sleutel",
@@ -1356,14 +1412,15 @@
         "cost": "Uw sleutel blijft op dit apparaat en bereikt de provider rechtstreeks vanaf hier. U bent hun klant: u betaalt hen voor wat u gebruikt, en niets loopt via Kizuna AI."
       },
       "offline": {
-        "title": "Gratis, offline",
-        "desc": "Draait op uw eigen machine. Niets verlaat deze machine.",
-        "cost": "Downloadt modellen naar uw schijf (gigabytes). Werkt goed met een GPU en voldoende VRAM; alleen CPU is merkbaar trager.",
+        "title": "Geen sleutel nodig",
+        "desc": "Gratis. De herkenning draait op deze computer; de vertaling gebruikt Bing en de spraak Edge, online diensten van Microsoft.",
+        "cost": "Voor de herkenning moet eerst een model naar de schijf worden gedownload. Werkt goed met een GPU; merkbaar trager met alleen een CPU.",
         "native": "Native engine — sneller, gebruikt uw GPU indien beschikbaar.",
         "wasm": "In-app engine — werkt overal, trager."
       },
       "ownKeyNote": "Kies de provider waar u een account bij heeft. Elke provider geeft zijn eigen sleutel uit:",
-      "ownKeyGuides": "handleidingen voor elke provider"
+      "ownKeyGuides": "handleidingen voor elke provider",
+      "managedPick": "Welke gehoste dienst?"
     },
     "fit": {
       "cannotSpeak": "Deze provider kan geen gesproken vertaling produceren.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Account aanmaken",
       "signedIn": "Ingelogd. U kunt doorgaan.",
       "managedDesc": "Registreer u met uw e-mailadres en verifieer dit vanuit uw inbox; geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op en betaalt u alleen voor wat u gebruikt.",
-      "offlineNotice": "Modellen worden na de setup gedownload, vanuit Instellingen. Ze nemen enkele gigabytes aan schijfruimte in beslag. Sokuji werkt goed met een GPU en voldoende VRAM; alleen op CPU is het merkbaar trager.",
-      "pendingKey": "U kunt de sleutel later toevoegen in Instellingen → Provider. Start blijft vergrendeld totdat deze is gevalideerd.",
+      "offlineNotice": "Het herkenningsmodel wordt na de installatie gedownload via Instellingen → Modellen en opslag. De vertaling gebruikt Bing en de spraak Edge: niets te downloaden en geen account; de te vertalen tekst en de voor te lezen vertaling gaan naar Microsoft.",
+      "pendingKey": "Je kunt de sleutel later toevoegen bij Instellingen → Accounts en sleutels. Starten blijft vergrendeld tot hij is gevalideerd.",
       "pendingSignIn": "U kunt later inloggen via de accountknop. Tot die tijd blijft Start vergrendeld.",
       "ownKeyDesc": "Deze sleutel wordt alleen op dit apparaat opgeslagen, en de app benadert de provider rechtstreeks vanaf hier — hij bereikt Kizuna AI nooit. U betaalt de provider voor wat u gebruikt.",
       "guide": "Hoe u deze sleutel verkrijgt",
       "verifyEmail": "Ingelogd. Open de link die we u per e-mail hebben gestuurd om uw adres te verifiëren — het proeftegoed wordt bijgeschreven zodra u dat doet.",
-      "onFile": "Er is al een sleutel opgeslagen — laat dit veld leeg om deze te behouden."
+      "onFile": "Er is al een sleutel opgeslagen — laat dit veld leeg om deze te behouden.",
+      "offlineHardware": "Sokuji werkt goed met een GPU en genoeg VRAM; met alleen een CPU is het merkbaar trager.",
+      "openaiOneKey": "Deze ene sleutel geldt voor OpenAI Realtime, Translate en Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Modus",
       "provider": "Provider",
       "languages": "Talen",
-      "pendingKey": "Nog geen API-sleutel — voeg deze toe in Instellingen → Provider voordat u begint.",
+      "pendingKey": "Nog geen API-sleutel — voeg die toe bij Instellingen → Accounts en sleutels voordat je begint.",
       "pendingSignIn": "Niet ingelogd — log in via de accountknop voordat u begint.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Opstelling"
+    },
+    "lineup": {
+      "title": "De opstelling die hiermee wordt ingesteld",
+      "later": "Elke stap kun je later wijzigen bij Instellingen → Talen en opstelling."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Providerinstellingen",
-        "content": "Wijzig hier uw sleutel of wissel van provider.",
+        "content": "Wijzig hier je sleutel.",
         "content_pending": "Plak hier uw API-sleutel. Start wordt ontgrendeld zodra deze is gevalideerd."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Dat is alles",
-        "content": "Geavanceerde instellingen — spraakdetectie, prompts, stemmen, logs — bevinden zich achter de schakelaar \"Geavanceerd\" rechtsboven in Instellingen. Bekijk deze rondleiding op elk moment opnieuw via Help."
+        "content": "Al het andere staat in Instellingen, per categorie; zoeken vindt elke instelling op naam. Bekijk deze rondleiding op elk moment opnieuw via Help."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Onbereikbaar",
     "switch": "Overschakelen",
     "keep": "{{region}} behouden"
+  },
+  "settingsPage": {
+    "title": "Instellingen",
+    "search": "Instellingen zoeken",
+    "back": "Terug naar de sessie",
+    "backToList": "Terug naar de lijst",
+    "changeable": "Te wijzigen tijdens een sessie",
+    "lockedNote": "Vergrendeld tijdens een sessie",
+    "partlyLocked": "Deels vergrendeld tijdens een sessie",
+    "lockedLine": "Er loopt een sessie. Talen, opstelling, woordenlijst en sleutels zijn vergrendeld; audio, weergave en de rest kun je wijzigen.",
+    "categories": {
+      "lineup": "Talen en opstelling",
+      "words": "Woordenlijst en achtergrond",
+      "accounts": "Accounts en sleutels",
+      "models": "Modellen en opslag",
+      "audio": "Audio",
+      "display": "Weergave",
+      "history": "Geschiedenis en notities",
+      "general": "Algemeen"
+    },
+    "groups": {
+      "session": "Sessie",
+      "providers": "Aanbieders en modellen",
+      "devices": "Apparaten en weergave",
+      "data": "Gegevens",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "taal, talen, spraakmodus, push-to-talk, transcriptie, vertaling, spraak, stem, aanbieder, model, opstelling",
+      "words": "woordenlijst, termen, glossarium, achtergrond",
+      "accounts": "account, inloggen, API-sleutel, sleutels, inloggegevens, saldo",
+      "models": "modellen, downloaden, opslag, verwijderen, schijf",
+      "audio": "microfoon, ruisonderdrukking, echo, luidspreker, koptelefoon, meeluisteren, doorgifte, virtuele microfoon, systeemaudio",
+      "display": "lettertype, grootte, kleur, compact, ondertitels, bijschriften, voorbeeld",
+      "history": "geschiedenis, notities, map, automatisch opslaan",
+      "general": "interfacetaal, uiterlijk, thema, updates, logboeken, installatie, help, versie"
+    },
+    "accounts": {
+      "addKey": "Sleutel toevoegen",
+      "keySaved": "Sleutel opgeslagen",
+      "local": "Draait op deze computer",
+      "needsKey": "Sleutel nodig",
+      "online": "Geen sleutel nodig; online, een dienst van Microsoft",
+      "signedIn": "Ingelogd",
+      "signedOut": "Niet ingelogd",
+      "together": "samen",
+      "view": "Bekijken",
+      "hide": "Verbergen",
+      "endToEnd": "End-to-end",
+      "transcribeTranslate": "Transcriptie en vertaling",
+      "signedInBalance": "Aangemeld; saldo {{amount}}",
+      "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
+      "localNone": "Draait op deze computer; nog geen modellen gedownload"
+    },
+    "lineup": {
+      "title": "Opstelling",
+      "stages": {
+        "transcription": "Transcriptie",
+        "translation": "Vertaling",
+        "speech": "Spraak",
+        "summarisation": "Notities"
+      },
+      "and": " en ",
+      "joint": "Gaat samen met {{stages}} over één verbinding; ze wisselen samen.",
+      "granite": "Met vertaling: Granite Speech zet spraak meteen om in de vertaling.",
+      "moved": "{{stages}} is ook naar {{providers}} gegaan: dit is nu niet te combineren met deze keuze. Mengen komt later.",
+      "needsKey": "sleutel nodig",
+      "needsSignIn": "inloggen nodig",
+      "options": "Opties van {{provider}}",
+      "state": {
+        "needsKey": "Sleutel nodig",
+        "needsModel": "Model nodig",
+        "needsSignIn": "Inloggen nodig",
+        "ready": "Klaar"
+      },
+      "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
+      "hint": "Welke dienst elke stap doet",
+      "uses": {
+        "turn": "Einde beurt",
+        "key": "Toets",
+        "space": "Spatie",
+        "released": "Na loslaten",
+        "releasedValue": "gaat dat stuk naar de vertaling",
+        "notHeld": "Zolang niet ingedrukt",
+        "notHeldValue": "gaat uw eigen stem onvertaald rechtstreeks naar de andere kant"
+      },
+      "actsOn": "Geldt voor {{stages}}",
+      "pointer": "De opties voor {{stages}} staan in de kaart ‘{{card}}’.",
+      "edgeVoices": {
+        "hint": "Stemmen worden per taal bewaard: dit zijn die van dit taalpaar.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Welke weergave",
+      "main": "Hoofdvenster",
+      "captions": "Ondertitelmodus",
+      "compact": "Compacte weergave",
+      "fontSize": "Tekstgrootte",
+      "smaller": "Kleinere tekst",
+      "larger": "Grotere tekst",
+      "modes": {
+        "both": "Origineel en vertaling",
+        "source": "Alleen origineel",
+        "translation": "Alleen vertaling",
+        "none": "Niets"
+      },
+      "mineSide": "Wat mijn kant toont",
+      "theirsSide": "Wat de andere kant toont",
+      "previewMain": "Voorbeeld: het gesprek in het hoofdvenster",
+      "previewCaptions": "Voorbeeld: ondertitelmodus, boven een ander venster",
+      "empty": "Hier wordt nu niets getoond: beide kanten staan op 'Niets'."
+    },
+    "intro": {
+      "accounts": "Accounts en sleutels: elke dienst vul je één keer in. Wat hij doet, kies je daarna bij ‘Talen en opstelling’.",
+      "models": "Alle modellen die op deze computer staan, beheer je hier: die van de sessies, de hulpmodellen en geïmporteerde stemmen.",
+      "audio": "Microfoon, spraak en het geluid van de andere kant. Alles behalve ‘Vertaling die de andere kant hoort’ kun je tijdens een sessie wijzigen.",
+      "display": "Dezelfde waarden als de knoppen boven het gesprek en op de ondertitelbalk: waar je ze ook wijzigt, ze gelden meteen. Het hoofdvenster en de ondertitelmodus hebben elk hun eigen."
+    },
+    "audio": {
+      "micHint": "Waar mijn stem binnenkomt",
+      "otherHint": "Waar de stem van de andere kant binnenkomt",
+      "device": "Apparaat",
+      "source": "Bron",
+      "flow": {
+        "myMic": "Mijn microfoon",
+        "toSpeech": "Naar spraak",
+        "toThem": "Virtuele mic → de andere kant",
+        "theirVoice": "Stem van de andere kant",
+        "myDevice": "Mijn afspeelapparaat",
+        "caption": "Waar het geluid heen gaat. Heldere lijnen staan nu aan, gestippelde uit; ze volgen de schakelaars hieronder.",
+        "aria": "Waar het geluid heen gaat: wat ik zeg wordt spraak en gaat naar de virtuele microfoon voor de andere kant, en speelt ook bij mij als ik meeluister; wat de andere kant zegt wordt spraak en speelt op mijn afspeelapparaat."
+      }
+    },
+    "general": {
+      "basics": "Basisinstellingen",
+      "maintenance": "Onderhoud en hulp",
+      "update": "Updates",
+      "updateLine": "U hebt {{version}}.",
+      "version": "Versie",
+      "storeUpdates": "De winkel van de browser houdt de extensie bij.",
+      "wizard": "Installatiewizard",
+      "wizardLine": "De wizard opnieuw doorlopen; wat u hebt opgeslagen is al gekozen.",
+      "rerun": "Opnieuw uitvoeren",
+      "guide": "Rondleiding",
+      "guideLine": "Stapsgewijze tips op het hoofdscherm.",
+      "restart": "Opnieuw beginnen",
+      "needHelp": "Hulp nodig:"
+    }
   }
 }

@@ -110,3 +110,36 @@ describe('SettingRow', () => {
     expect(screen.getByRole('switch').closest('.toggle-switch-component')?.getAttribute('title')).toBe('Fixed for this session');
   });
 });
+
+// The settings page's audio rows (mock v18): the help as a line under the label, the control and the switch beside them.
+describe('SettingRow — inline, as the settings page draws it', () => {
+  it('writes the help under the label instead of a help mark, the control and the switch after it', () => {
+    const { container } = render(
+      <SettingRow layout="inline" label="I hear it too" tooltip="Plays it to me as well" switch={{ checked: true, onChange: vi.fn() }}>
+        <select aria-label="device"><option>AirPods</option></select>
+      </SettingRow>,
+    );
+    const root = container.firstElementChild!;
+    expect(root).toHaveClass('setting-row--inline');
+    expect(root.querySelector('.tooltip-trigger')).toBeNull();
+    expect(root.querySelector('.setting-row__text .setting-row__desc')).toHaveTextContent('Plays it to me as well');
+    expect([...root.children].map((c) => c.className.split(' ')[0])).toEqual(['setting-row__text', 'setting-row__control', 'toggle-switch-component']);
+    expect(screen.getByRole('switch', { name: 'I hear it too' })).toBeInTheDocument();
+  });
+
+  it('keeps the switch column without a switch, so the controls line up', () => {
+    const { container } = render(<SettingRow layout="inline" label="Default playback device" tooltip="…"><select aria-label="d" /></SettingRow>);
+    expect(container.querySelector('.setting-row__switch-gap')).not.toBeNull();
+  });
+
+  it('greyed: the reason stays the row\'s title, the footer goes, the control is inert', () => {
+    const { container } = render(
+      <SettingRow layout="inline" label="X" tooltip="…" greyed="Not in Me mode." footer={<span>Voice</span>} switch={{ checked: true, onChange: vi.fn() }}>
+        <select aria-label="d" />
+      </SettingRow>,
+    );
+    expect(container.firstElementChild).toHaveAttribute('title', 'Not in Me mode.');
+    expect(screen.queryByText('Voice')).toBeNull();
+    expect(container.querySelector('fieldset[disabled]')).not.toBeNull();
+  });
+});

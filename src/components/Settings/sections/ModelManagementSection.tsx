@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { storedLocalStages, useStoredLocalStages } from '../../../stores/lineUpStore';
 import { Download, Trash2, X, AlertCircle, CheckCircle, ChevronDown, ChevronRight, AlertTriangle, Zap, Star, FolderInput } from 'lucide-react';
 import {
   useModelStore,
@@ -27,7 +28,7 @@ import {
 } from '../../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings, DirectionVoice } from '../../../providers/localInference/settings';
-import { directionVoice, speakerIdFor, withDirectionVoice } from '../../../providers/localInference/voices';
+import { directionVoice, speakerIdFor, voicesWithoutImported, withDirectionVoice } from '../../../providers/localInference/voices';
 import type { LanguagePair } from '../../../lib/provider/types';
 import { languageNameFor } from '../engine/languageName';
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
@@ -417,9 +418,10 @@ export function ModelManagementSection({
    * now lives once, inside resolve()/resolveStage(), and nothing here writes
    * settings just to display a value.
    */
+  const stages = useStoredLocalStages();
   const resolved = useMemo(
-    () => useModelStore.getState().resolve(sourceLanguage, targetLanguage, settings.selections),
-    [statuses, webgpuAvailable, deviceFeatures, sourceLanguage, targetLanguage, settings.selections],
+    () => useModelStore.getState().resolve(sourceLanguage, targetLanguage, settings.selections, stages),
+    [statuses, webgpuAvailable, deviceFeatures, sourceLanguage, targetLanguage, settings.selections, stages],
   );
   const selectedAsr = resolved.asr?.modelId ?? '';
   const selectedTranslation = resolved.translation?.modelId ?? '';
@@ -461,7 +463,8 @@ export function ModelManagementSection({
   }, []);
 
   const translationModels = useMemo(() => {
-    const all = [...getManifestByType('translation')];
+    // With a stored line-up Bing is a provider of its own, chosen in the line-up, not a local model card (owner, 2026-11-15).
+    const all = getManifestByType('translation').filter((m) => stages === null || !m.isCloudModel);
 
     // If the resolved ASR model supports AST, add it as a translation option
     const asrEntry = selectedAsr ? getManifestEntry(selectedAsr) : null;
@@ -475,7 +478,7 @@ export function ModelManagementSection({
     }
 
     return sortTranslationModels(all);
-  }, [selectedAsr]);
+  }, [selectedAsr, stages]);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
@@ -494,9 +497,10 @@ export function ModelManagementSection({
   );
 
   const ttsModels = useMemo(() => {
-    const all = getManifestByType('tts');
+    // Edge likewise.
+    const all = getManifestByType('tts').filter((m) => stages === null || !m.isCloudModel);
     return sortTtsModels(all);
-  }, []);
+  }, [stages]);
 
   const compatibleAsrModels = useMemo(
     () => asrModels.filter(m =>
@@ -661,21 +665,15 @@ export function ModelManagementSection({
     const dbKey = dbKeyFromImportedSid(sid);
     if (dbKey === null) return;
     await voiceStorage.deleteVoice(dbKey);
-    const defaultSid = supertonicTtsEntry?.ttsConfig?.defaultSid ?? 0;
-    // Every direction that spoke in the deleted voice, not only this one (#619): the other direction may have picked it too.
-    // Only where that direction's TTS is this Supertonic model: on another model the same number is one of its own speakers.
-    const stored: LocalInferenceSettings['voices'] = settings.voices && typeof settings.voices === 'object' && !Array.isArray(settings.voices) ? settings.voices : {};
-    const users = Object.keys(stored).filter((dir) => {
-      if (directionVoice(stored, dir).speaker !== sid) return false;
+    // Every direction that spoke in the deleted voice, not only this one (#619) — the rule the Models page uses too.
+    const voices = voicesWithoutImported(settings.voices, sid, (dir) => {
       const [src, tgt] = splitDirection(dir);
-      return useModelStore.getState().resolve(src, tgt, settings.selections).tts?.modelId === supertonicTtsEntry?.id;
+      return useModelStore.getState().resolve(src, tgt, settings.selections, storedLocalStages()).tts?.modelId;
     });
-    if (users.length > 0) {
-      updateLocalInference({ voices: Object.fromEntries(Object.entries(stored).map(([dir, v]) => [dir, users.includes(dir) ? { ...v, speaker: defaultSid } : v])) });
-    }
+    if (voices) updateLocalInference({ voices });
     await refreshImportedVoices();
     setHasPendingChanges(true);
-  }, [supertonicTtsEntry, settings.voices, settings.selections, updateLocalInference, refreshImportedVoices]);
+  }, [settings.voices, settings.selections, updateLocalInference, refreshImportedVoices]);
 
   // An Edge voice belongs to a language: keep this direction's valid for its
   // own target. SettingsInitializer keeps every speaking direction valid the

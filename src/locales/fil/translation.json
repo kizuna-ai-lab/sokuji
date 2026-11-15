@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Wala pang audio na dumarating mula sa napiling source",
     "audioCaptureUnprovenText1": "Kung tumutugtog ang source at walang naisasalin, malamang na katahimikan ang ibinibigay ng macOS: kailangan ng pahintulot na \"System Audio Recording Only\" para makuha ang audio ng isang app, at kung wala ito ay walang error, katahimikan lang.",
     "audioCaptureUnprovenText3Named": "Lumalabas lang ang \"{{app}}\" sa listahang iyon pagkatapos nitong subukang kumuha nang isang beses, na katatapos lang. Simulan muli ang session pagkatapos itong paganahin. Kung tahimik lang talaga ang source, walang kailangang baguhin.",
-    "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio."
+    "otherSideBesideNote": "Ibinabahagi ng kausap ang mikropono mo; hindi kinukuha ang system audio.",
+    "captionMine": "Ang sinasabi ko, bilang boses",
+    "captionTheirs": "Ang sinasabi ng kabilang panig, bilang boses",
+    "defaultPlaybackAid": "Dito tumutunog ang mga tunog sa panig ko maliban kung may sariling device ang isang row; dito rin tumutunog ang tunog na natanggal ang sariling device.",
+    "captionReplay": "Replay"
   },
   "auth": {
     "signIn": "Mag-sign In",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Binibigyang-numero ang mga tao sa kabilang panig — Tagapagsalita 1, Tagapagsalita 2… — kapag higit sa isang boses ang narinig.\n\nMaaari nitong mapagkamalang marami ang iisang tao. Hindi pinagana: walang numerong ipinapakita.\n\nMag-aapply mula sa susunod na session."
     },
     "local_inference": {
-      "name": "Libre",
-      "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
+      "name": "Ang device na ito",
+      "description": "Gumagana kapag na-download na ang mga model sa computer na ito; sa unang beses, kailangang mag-download ng ilang GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Libre · offline"
     },
     "local_native": {
       "name": "Libre (Native)",
@@ -608,7 +613,15 @@
       "name": "Hindi Kilala",
       "description": "Hindi kilalang provider"
     },
-    "poweredBy": "Pinapagana ng <brand>{{name}}</brand>"
+    "poweredBy": "Pinapagana ng <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Libre · online, serbisyo ng Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Libre · online, serbisyo ng Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Naka-on ang auto-scroll",
@@ -739,7 +752,9 @@
     "preparingVoice": "Inihahanda ang iyong boses…",
     "waitingForPreviousSession": "Naghihintay…",
     "waitingForPreviousSessionTitle": "Hinihintay na matapos ang nakaraang session. I-click upang kanselahin.",
-    "clickToCancel": "I-click upang kanselahin"
+    "clickToCancel": "I-click upang kanselahin",
+    "whatIHear": "Ang naririnig ko",
+    "audioSettings": "Mga setting ng audio"
   },
   "modePicker": {
     "modeYou": "Ako",
@@ -962,6 +977,42 @@
       "cancel": "Kanselahin",
       "accept": "Nauunawaan ko — hindi pangkomersyo lamang",
       "acceptRestricted": "Nauunawaan ko — tinatanggap ko ang lisensya"
+    },
+    "readingsDictionary": "Diksyunaryo ng pagbasa (Japanese)",
+    "readingsDictionaryNotStored": "Dina-download kapag in-on ang pagbasa sa Japanese sa Display.",
+    "page": {
+      "tag": {
+        "asr": "Pagkilala",
+        "translation": "Pagsasalin",
+        "tts": "Pananalita",
+        "turn": "Dulo ng sinasabi",
+        "punctuation": "Pangungusap at bantas",
+        "readings": "Pagbasa",
+        "voice": "Boses"
+      },
+      "manyLanguages": "Maraming wika",
+      "languages": "{{count}} wika",
+      "direct": "kaya ring direktang magbigay ng salin",
+      "downloading": "Dina-download {{percent}}%",
+      "failed": "Nabigo ang pag-download",
+      "cannotRun": "Hindi ito kayang patakbuhin ng computer na ito",
+      "notDownloaded": "Hindi pa na-download",
+      "download": "I-download",
+      "listJoin": ", ",
+      "summary": "{{count}} ang na-download, {{size}} lahat",
+      "import": "Mag-import ng model mula sa mga file",
+      "sessionTitle": "Mga model para sa session (ang serbisyong \"Ang device na ito\")",
+      "sessionHint": "Ang mga yugtong naka-\"Ang device na ito\" sa \"Mga wika at bumubuo ng session\" ay gumagamit ng mga model na na-download dito.",
+      "otherLanguages": "Mga model para sa ibang wika ({{count}})",
+      "helpersTitle": "Mga pantulong na model",
+      "helpersHint": "Maliliit na model na hindi kabilang sa iisang yugto.",
+      "turnMeta": "Nalalaman kung tapos ka nang magsalita; binubuksan sa mga opsyon ng speech mode",
+      "packMeta": "Hinahati ang teksto sa mga pangungusap; sabay na dina-download ang tatlo",
+      "dictMeta": "Ipinapakita ang pagbasa sa Hapon; binubuksan sa \"Display\"",
+      "voicesTitle": "Mga in-import na boses",
+      "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
+      "importedOn": "In-import noong {{date}}",
+      "more": "{{count}} pa"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Dina-download ang diksyunaryong Hapones {{done}} / {{total}}",
       "readingsDownloadFailed": "Hindi ma-download ang diksyunaryong Hapones.",
-      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones."
+      "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones.",
+      "defaultColour": "Default"
     },
     "pttHint": "Pindutin ang Space upang magsalita"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Magsimula agad",
         "desc": "Pinapatakbo ng Kizuna AI ang pagsasalin para sa inyo.",
-        "cost": "Mag-sign up gamit ang inyong email address at i-verify ito — makakakuha ng trial credit ang mga na-verify na account. Pagkatapos, mag-top up ng inyong balanse, at babayaran ang pagsasalin ayon sa dami ng ginamit ninyo."
+        "cost": "Mag-sign up gamit ang inyong email address at i-verify ito — makakakuha ng trial credit ang mga na-verify na account. Pagkatapos, mag-top up ng inyong balanse, at babayaran ang pagsasalin ayon sa dami ng ginamit ninyo.",
+        "options": {
+          "kizunaai_soniox": "Real-time na transkripsyon, mabilis na salin.",
+          "kizunaai_qwen": "Nakikita ang screen mo; napakatumpak na transkripsyon at salin."
+        }
       },
       "own-key": {
         "title": "May sarili akong API key",
@@ -1356,14 +1412,15 @@
         "cost": "Nananatili ang inyong key sa device na ito at direktang umaabot sa provider mula rito. Kayo ang kanilang customer: nagbabayad kayo sa kanila para sa ginamit ninyo, at walang dumadaan sa Kizuna AI."
       },
       "offline": {
-        "title": "Libre, offline",
-        "desc": "Tumatakbo ito sa sarili ninyong makina — walang lumalabas dito.",
-        "cost": "Nagda-download ng mga modelo sa inyong disk (gigabytes). Maayos tumatakbo gamit ang GPU at sapat na VRAM; sa CPU lang, mas mabagal ito nang halata.",
+        "title": "Walang key na kailangan",
+        "desc": "Libre. Tumatakbo ang pagkilala sa computer na ito; Bing ang gamit sa salin at Edge sa pagsasalita, mga online na serbisyo ng Microsoft.",
+        "cost": "Kailangan munang i-download sa disk ang isang model para sa pagkilala. Maayos ito kapag may GPU; kapansin-pansing mas mabagal kung CPU lang.",
         "native": "Native na engine — mas mabilis, ginagamit ang GPU ninyo kung available.",
         "wasm": "In-app na engine — gumagana kahit saan, mas mabagal."
       },
       "ownKeyNote": "Piliin ang provider na mayroon kayong account. Nag-iisyu ang bawat isa ng sarili nitong key:",
-      "ownKeyGuides": "mga gabay para sa bawat provider"
+      "ownKeyGuides": "mga gabay para sa bawat provider",
+      "managedPick": "Aling hosted na serbisyo?"
     },
     "fit": {
       "cannotSpeak": "Hindi kayang gumawa ng binibigkas na pagsasalin ang provider na ito.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Gumawa ng Account",
       "signedIn": "Naka-sign in na. Maaari na kayong magpatuloy.",
       "managedDesc": "Mag-sign up gamit ang inyong email address at i-verify ito mula sa inyong inbox; makakakuha ng trial credit ang mga na-verify na account. Pagkatapos, mag-top up ng inyong balanse at magbayad lamang para sa ginamit ninyo.",
-      "offlineNotice": "Dina-download ang mga modelo pagkatapos ng setup, mula sa Mga Setting. Umaabot ito ng ilang gigabytes sa disk. Maayos tumatakbo ang Sokuji gamit ang GPU at sapat na VRAM; sa CPU lang, mas mabagal ito nang halata.",
-      "pendingKey": "Maaari ninyong idagdag ang key mamaya sa Mga Setting → Provider. Mananatiling naka-lock ang Start hanggang ma-validate ito.",
+      "offlineNotice": "Dina-download ang model ng pagkilala pagkatapos ng setup, mula sa Mga Setting → Mga model at storage. Bing ang gamit sa salin at Edge sa pagsasalita: walang ida-download at walang account; ipinapadala sa Microsoft ang tekstong isasalin at ang salin na babasahin.",
+      "pendingKey": "Maidadagdag mo ang key sa ibang pagkakataon sa Mga Setting → Mga account at key. Naka-lock ang Simulan hanggang ma-validate ito.",
       "pendingSignIn": "Maaari kayong mag-sign in mamaya mula sa account button. Mananatiling naka-lock ang Start hanggang doon.",
       "ownKeyDesc": "Naka-imbak ang key na ito sa device na ito lamang, at direktang tumatawag ang app sa provider mula rito — hindi ito umaabot sa Kizuna AI. Nagbabayad kayo sa provider para sa ginamit ninyo.",
       "guide": "Paano makuha ang key na ito",
       "verifyEmail": "Naka-sign in na. Buksan ang link na ipinadala namin sa inyong email para i-verify ang inyong address — makukuha ang trial credit kapag nagawa na ninyo ito.",
-      "onFile": "Mayroon nang naka-save na key — iwanan itong blangko para mapanatili ito."
+      "onFile": "Mayroon nang naka-save na key — iwanan itong blangko para mapanatili ito.",
+      "offlineHardware": "Maayos ang Sokuji kapag may GPU at sapat na VRAM; kapansin-pansing mas mabagal kung CPU lang.",
+      "openaiOneKey": "Itong iisang key ang gamit ng OpenAI Realtime, Translate at Live."
     },
     "summary": {
       "scenario": "Scenario",
       "mode": "Mode",
       "provider": "Provider",
       "languages": "Mga Wika",
-      "pendingKey": "Wala pang API key — idagdag ito sa Mga Setting → Provider bago kayo magsimula.",
+      "pendingKey": "Wala pang API key — idagdag ito sa Mga Setting → Mga account at key bago magsimula.",
       "pendingSignIn": "Hindi naka-sign in — mag-sign in mula sa account button bago kayo magsimula.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Line-up"
+    },
+    "lineup": {
+      "title": "Ang line-up na ise-set up nito",
+      "later": "Mapapalitan mo ang bawat yugto sa ibang pagkakataon sa Mga Setting → Mga wika at line-up."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Mga setting ng provider",
-        "content": "Palitan ang inyong key o lumipat ng provider dito.",
+        "content": "Palitan dito ang iyong key.",
         "content_pending": "I-paste ang inyong API key dito. Mabubuksan ang Start kapag na-validate na ito."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Tapos na",
-        "content": "Ang mga advanced na setting — pagtukoy ng pagsasalita, prompt, boses, log — ay nasa likod ng Advanced toggle sa kanang itaas ng Mga Setting. I-replay ang gabay na ito anumang oras mula sa Tulong."
+        "content": "Nasa Mga Setting ang lahat ng iba pa, isa-isang kategorya; mahahanap ng paghahanap ang anumang setting ayon sa pangalan. I-replay ang gabay na ito anumang oras mula sa Tulong."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "Hindi maabot",
     "switch": "Lumipat",
     "keep": "Manatili sa {{region}}"
+  },
+  "settingsPage": {
+    "title": "Mga Setting",
+    "search": "Maghanap sa mga setting",
+    "back": "Bumalik sa session",
+    "backToList": "Bumalik sa listahan",
+    "changeable": "Mababago habang may session",
+    "lockedNote": "Naka-lock habang may session",
+    "partlyLocked": "Bahagyang naka-lock habang may session",
+    "lockedLine": "May tumatakbong session. Naka-lock ang mga wika, ang line-up, ang listahan ng salita at ang mga key; mababago ang audio, ang display at ang iba pa.",
+    "categories": {
+      "lineup": "Mga wika at line-up",
+      "words": "Listahan ng salita at background",
+      "accounts": "Mga account at key",
+      "models": "Mga model at storage",
+      "audio": "Audio",
+      "display": "Display",
+      "history": "Kasaysayan at mga tala",
+      "general": "Pangkalahatan"
+    },
+    "groups": {
+      "session": "Session",
+      "providers": "Mga provider at model",
+      "devices": "Mga device at display",
+      "data": "Data",
+      "app": "App"
+    },
+    "words": {
+      "lineup": "wika, mga wika, speech mode, pindutin para magsalita, transkripsyon, salin, pagsasalita, boses, provider, model, line-up",
+      "words": "listahan ng salita, mga termino, glosaryo, background",
+      "accounts": "account, mag-sign in, API key, mga key, kredensyal, balanse",
+      "models": "mga model, i-download, storage, burahin, disk",
+      "audio": "mikropono, pagpigil ng ingay, echo, speaker, headphones, monitor, passthrough, virtual na mikropono, audio ng system",
+      "display": "font, laki, kulay, compact, subtitle, caption, preview",
+      "history": "kasaysayan, mga tala, folder, awtomatikong pag-save",
+      "general": "wika ng interface, hitsura, tema, mga update, log, setup, tulong, bersyon"
+    },
+    "accounts": {
+      "addKey": "Magdagdag ng key",
+      "keySaved": "Naka-save ang key",
+      "local": "Tumatakbo sa computer na ito",
+      "needsKey": "Kailangan ng key",
+      "online": "Walang key na kailangan; online, serbisyo ng Microsoft",
+      "signedIn": "Naka-sign in",
+      "signedOut": "Hindi naka-sign in",
+      "together": "magkasama",
+      "view": "Tingnan",
+      "hide": "Itago",
+      "endToEnd": "Mula simula hanggang dulo",
+      "transcribeTranslate": "Transkripsyon at pagsasalin",
+      "signedInBalance": "Naka-sign in; balanse {{amount}}",
+      "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
+      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model"
+    },
+    "lineup": {
+      "title": "Line-up",
+      "stages": {
+        "transcription": "Transkripsyon",
+        "translation": "Salin",
+        "speech": "Pagsasalita",
+        "summarisation": "Mga tala"
+      },
+      "and": " at ",
+      "joint": "Kasama ng {{stages}} sa iisang koneksyon; sabay silang nagbabago.",
+      "granite": "Kasama ang salin: ginagawang salin agad ng Granite Speech ang pagsasalita.",
+      "moved": "Inilipat din ang {{stages}} sa {{providers}}: sa ngayon, hindi ito maisasama sa pinili mo. Darating ang paghahalo sa susunod.",
+      "needsKey": "kailangan ng key",
+      "needsSignIn": "kailangang mag-sign in",
+      "options": "Mga opsyon ng {{provider}}",
+      "state": {
+        "needsKey": "Kailangan ng key",
+        "needsModel": "Kailangan ng model",
+        "needsSignIn": "Kailangang mag-sign in",
+        "ready": "Handa"
+      },
+      "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
+      "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
+      "uses": {
+        "turn": "Dulo ng sinasabi",
+        "key": "Key",
+        "space": "Space",
+        "released": "Pagkabitaw",
+        "releasedValue": "ipinapadala sa pagsasalin ang bahaging iyon",
+        "notHeld": "Kapag hindi pinipindot",
+        "notHeldValue": "diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin"
+      },
+      "actsOn": "Para sa {{stages}}",
+      "pointer": "Ang mga opsyon para sa {{stages}} ay nasa card na \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Nakatabi ang mga boses ayon sa wika: ito ang mga ginagamit ng pares ng wikang ito.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Aling display",
+      "main": "Pangunahing window",
+      "captions": "Subtitle mode",
+      "compact": "Compact na view",
+      "fontSize": "Laki ng teksto",
+      "smaller": "Mas maliit na teksto",
+      "larger": "Mas malaking teksto",
+      "modes": {
+        "both": "Orihinal at salin",
+        "source": "Orihinal lang",
+        "translation": "Salin lang",
+        "none": "Wala"
+      },
+      "mineSide": "Ang ipinapakita sa panig ko",
+      "theirsSide": "Ang ipinapakita sa kabilang panig",
+      "previewMain": "Preview: ang usapan sa pangunahing window",
+      "previewCaptions": "Preview: subtitle mode, nakapatong sa ibang window",
+      "empty": "Walang lumalabas dito ngayon: parehong panig ay naka-set sa \"Wala\"."
+    },
+    "intro": {
+      "accounts": "Mga account at key: isang beses lang pinupunan ang bawat serbisyo. Pagkatapos, pinipili sa “Mga wika at line-up” ang gagawin nito.",
+      "models": "Dito pinamamahalaan ang lahat ng model na na-download sa computer na ito: ginagamit ng session, pantulong, at in-import na boses.",
+      "audio": "Mikropono, pagsasalita, at audio ng kabilang panig. Mababago ang lahat habang may session maliban sa “Salin na naririnig ng kabilang panig”.",
+      "display": "Pareho ng mga button sa itaas ng usapan at sa caption bar: saanman baguhin, agad itong gumagana. May kani-kaniyang setting ang pangunahing window at caption mode."
+    },
+    "audio": {
+      "micHint": "Saan pumapasok ang boses ko",
+      "otherHint": "Saan pumapasok ang boses ng kabilang panig",
+      "device": "Device",
+      "source": "Pinagmulan",
+      "flow": {
+        "myMic": "Mikropono ko",
+        "toSpeech": "Gawing boses",
+        "toThem": "Virtual mic → kabilang panig",
+        "theirVoice": "Boses ng kabilang panig",
+        "myDevice": "Device ko sa pag-play",
+        "caption": "Saan napupunta ang tunog. Naka-on ngayon ang maliliwanag na linya, naka-off ang putol-putol; sumusunod sila sa mga switch sa ibaba.",
+        "aria": "Saan napupunta ang tunog: ang sinasabi ko, ginawang boses, ay pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig, ginawang boses, ay tumutugtog sa device ko."
+      }
+    },
+    "general": {
+      "basics": "Mga pangunahing setting",
+      "maintenance": "Pagpapanatili at tulong",
+      "update": "Mga update",
+      "updateLine": "Nasa {{version}} ka.",
+      "version": "Bersyon",
+      "storeUpdates": "Ang store ng browser ang nag-a-update sa extension.",
+      "wizard": "Setup wizard",
+      "wizardLine": "Daanan muli ang wizard; nakapili na ang mga naka-save mo.",
+      "rerun": "Patakbuhin muli",
+      "guide": "Gabay",
+      "guideLine": "Sunud-sunod na tips sa pangunahing screen.",
+      "restart": "Simulan muli",
+      "needHelp": "Kailangan ng tulong:"
+    }
   }
 }

@@ -7,6 +7,7 @@ import { pairSentence } from '../languageSentence';
 import { scenarioSpeechInputs } from '../scenarioSpeech';
 import StatusMessage from '../../Settings/shared/StatusMessage';
 import { textOnlyCapabilityOf, wizardProvider } from '../providerPaths';
+import { LineUpPreview } from '../LineUpPreview';
 import type { SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; isSignedIn: boolean; error: string | null }
@@ -16,7 +17,6 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const label = useLanguageLabel();
   const preset = getScenario(draft.scenario!);
   const p = wizardProvider(draft.provider)!;
-  const providerName = t(`providers.${p.id}.name`, p.id);
   const sourceName = draft.sourceLanguage ? label(draft.sourceLanguage) : '';
   const targetName = draft.targetLanguage ? label(draft.targetLanguage) : '';
   // The pair reads as the sentence the pair step and Settings both print,
@@ -52,7 +52,7 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
       <dl className="setup-summary">
         <dt>{t('setup.summary.scenario', 'Scenario')}</dt><dd>{t(`setup.scenarios.${preset.id}.title`, preset.id)}</dd>
         <dt>{t('setup.summary.mode', 'Mode')}</dt><dd>{modeLabel} · {output}</dd>
-        <dt>{t('setup.summary.provider', 'Provider')}</dt><dd>{providerName}</dd>
+        <dt>{t('setup.summary.lineup', 'Line-up')}</dt><dd><LineUpPreview provider={p.id} bare /></dd>
         <dt>{t('setup.summary.languages', 'Languages')}</dt>
         <dd>
           {forwardLine}
@@ -70,7 +70,7 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
         <StatusMessage variant="warning">
           {draft.providerPath === 'managed'
             ? t('setup.summary.pendingSignIn', 'Not signed in — sign in from the account button before you start.')
-            : t('setup.summary.pendingKey', 'No API key yet — add it in Settings → Provider before you start.')}
+            : t('setup.summary.pendingKey', 'No API key yet — add it in Settings → Accounts and keys before you start.')}
         </StatusMessage>
       )}
       {error && <StatusMessage variant="error">{error}</StatusMessage>}

@@ -30,6 +30,8 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     source_language: string;
     target_language: string;
     session_id: string;
+    /** The provider of each stage, from the stored line-up (provider ids only). */
+    stages?: { transcription: string; translation: string; speech: string };
     provider: string;
     model?: string;
     vad_mode?: string;
@@ -149,6 +151,14 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     to_provider: string;
     during_session: boolean;
   };
+  /** A stage of the line-up changed on the settings page: provider ids, never content. */
+  'lineup_changed': {
+    stage: 'transcription' | 'translation' | 'speech' | 'summarisation';
+    from: string | null;
+    to: string | null;
+    moved: readonly ('transcription' | 'translation' | 'speech' | 'summarisation')[];
+    during_session: boolean;
+  };
   'api_key_validated': {
     provider: string;
     success: boolean;
@@ -184,6 +194,8 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     source_language: string;
     target_language: string;
     credentials_pending: boolean;
+    /** The line-up Finish wrote: a provider id per stage. */
+    stages: { transcription: string; translation: string; speech: string };
   };
   'push_to_talk_used': {
     session_id: string;

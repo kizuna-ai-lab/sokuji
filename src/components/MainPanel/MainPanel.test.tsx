@@ -175,15 +175,26 @@ async function renderPanel() {
   return result;
 }
 
-/** The advanced footer's strips draw one frame on mount; nothing schedules the next, and no canvas is real here. Returns the restore. */
+/**
+ * The footer's strips draw one frame on mount; nothing schedules the next, and no canvas is real here. Returns the restore.
+ * Every case stubs it (the full footer is everyone's now); a case may stub it again, and only the outermost restore undoes it.
+ */
+let canvasStubs = 0;
+let undoCanvas: (() => void) | null = null;
 function stubCanvas(): () => void {
-  vi.stubGlobal('requestAnimationFrame', () => 0);
-  const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+  if (canvasStubs++ === 0) {
+    vi.stubGlobal('requestAnimationFrame', () => 0);
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    undoCanvas = () => {
+      getContext.mockRestore();
+      vi.unstubAllGlobals();
+    };
+  }
   return () => {
-    getContext.mockRestore();
-    vi.unstubAllGlobals();
+    if (--canvasStubs === 0) undoCanvas?.();
   };
 }
+let restoreCaseCanvas: () => void = () => {};
 
 /** Clicks the main action and waits, inside act, until the run's state says `done`. */
 async function click(container: HTMLElement, done: () => void): Promise<void> {
@@ -218,7 +229,10 @@ beforeAll(async () => {
   getAppSession().setBridges({ track: trackEvent as unknown as AnalyticsPort['track'] });
 });
 
+afterEach(() => restoreCaseCanvas());
+
 beforeEach(async () => {
+  restoreCaseCanvas = stubCanvas();
   // The page's one session outlives each case: no run, no conversation, no last end.
   await runner().stop();
   await runner().settled();
@@ -271,7 +285,7 @@ describe('MainPanel', () => {
     expect(container.querySelector('.conversation-display .empty-state')?.textContent).toContain('simplePanel.startToBegin');
     expect(mainAction(container)).not.toBeNull();
     expect(mainAction(container).disabled).toBe(false);
-    expect(mainAction(container).textContent).toContain('simplePanel.start');
+    expect(mainAction(container).textContent).toContain('mainPanel.startSession');
   });
 
   // Roadmap 1e-3a: "or the page runs two punctuation runtimes". The old
@@ -348,16 +362,16 @@ describe('MainPanel', () => {
   it('holds a turn with the Space key under push-to-talk', async () => {
     useTurnModeStore.setState({ turnMode: 'push-to-talk' });
     const { container } = await renderPanel();
-    expect(container.querySelector('.push-to-talk-btn')).toBeNull();
+    expect(container.querySelector('.push-to-talk-button')).toBeNull();
     await start(container);
-    const hold = () => container.querySelector('.push-to-talk-btn .btn-text')?.textContent;
-    expect(hold()).toBe('simplePanel.holdToSpeak');
+    const hold = () => container.querySelector('.push-to-talk-button span')?.textContent;
+    expect(hold()).toBe('mainPanel.pushToTalk');
 
     fireEvent.keyDown(window, { code: 'Space' });
-    expect(hold()).toBe('simplePanel.release');
+    expect(hold()).toBe('mainPanel.release');
     act(() => { clock.advance(300); });
     fireEvent.keyUp(window, { code: 'Space' });
-    expect(hold()).toBe('simplePanel.holdToSpeak');
+    expect(hold()).toBe('mainPanel.pushToTalk');
     // The run counts a release only for a turn it had open: the press reached it.
     expect(trackEvent).toHaveBeenCalledWith('push_to_talk_used', expect.objectContaining({ mode: 'push-to-talk', hold_duration_ms: 300 }));
     await stop();
@@ -371,8 +385,8 @@ describe('MainPanel', () => {
     const { container } = await renderPanel();
     for (const legs of [{ participant: 'live' }, { speaker: 'reconnecting', participant: 'live' }] as const) {
       act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs }, true); });
-      expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('simplePanel.stop');
-      expect(container.querySelector('.push-to-talk-btn')).toBeNull();
+      expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('mainPanel.endSession');
+      expect(container.querySelector('.push-to-talk-button')).toBeNull();
       expect(container.querySelector('.text-input')).toBeNull();
     }
     act(() => { runner().state.setState({ phase: 'idle' }, true); });
@@ -384,7 +398,7 @@ describe('MainPanel', () => {
     try {
       const { container } = await renderPanel();
       act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true); });
-      expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('simplePanel.stop');
+      expect(container.querySelector('[data-tour="main-action"]')?.textContent).toContain('mainPanel.endSession');
       expect(container.querySelector('.text-input')).toBeNull();
       expect(textInput).toHaveBeenCalledWith(useProviderStore.getState().entries.fake!.settings);
     } finally {
@@ -494,7 +508,6 @@ describe('MainPanel', () => {
     const restoreCanvas = stubCanvas();
     const meter = vi.spyOn(playback, 'meter');
     try {
-      useSettingsStore.setState({ uiMode: 'advanced' });
       useAudioStore.setState({ mode: 'both' });
       const { container } = await renderPanel();
       expect(container.querySelector('.control-footer.advanced')).not.toBeNull();
@@ -507,6 +520,24 @@ describe('MainPanel', () => {
       expect(meter.mock.calls.every(([bus]) => bus === 'virtual')).toBe(true);
     } finally {
       meter.mockRestore();
+      restoreCanvas();
+    }
+  });
+
+  // One settings page, no Quick or Advanced layout (settings page plan, ruling 4): a stored 'basic' is read and ignored.
+  it("everyone gets today's full footer with the language pair at the right", async () => {
+    const restoreCanvas = stubCanvas();
+    const navigate = vi.fn();
+    const original = useSettingsStore.getState().navigateToSettings;
+    useSettingsStore.setState({ uiMode: 'basic', navigateToSettings: navigate });
+    try {
+      const { container } = await renderPanel();
+      expect(container.querySelector('.control-footer.advanced')).not.toBeNull();
+      expect(container.querySelector('.control-footer.basic')).toBeNull();
+      fireEvent.click(container.querySelector<HTMLElement>('.control-footer .language-pair')!);
+      expect(navigate).toHaveBeenCalledWith('languages');
+    } finally {
+      act(() => { useSettingsStore.setState({ navigateToSettings: original }); });
       restoreCanvas();
     }
   });
@@ -630,7 +661,6 @@ describe('MainPanel', () => {
   it('mounts the status line directly above the advanced footer', async () => {
     const restoreCanvas = stubCanvas();
     try {
-      useSettingsStore.setState({ uiMode: 'advanced' });
       useAudioStore.setState({ mode: 'participant' });
       const { container } = await renderPanel();
       const line = container.querySelector('.status-line');
@@ -699,7 +729,6 @@ describe('MainPanel', () => {
       await playback.preview(clip);
     });
     try {
-      useSettingsStore.setState({ uiMode: 'advanced' });
       const { container } = await renderPanel();
       const debug = () => container.querySelector('.debug-button') as HTMLButtonElement;
 
@@ -824,14 +853,13 @@ describe('the ears strip (face-to-face)', () => {
     });
   });
 
-  it.each(['basic', 'advanced'] as const)('%s: sits directly above the control footer beside me, and is gone in a meeting and under Text Only', async (site) => {
+  it('sits directly above the control footer beside me, and is gone in a meeting and under Text Only', async () => {
     const restoreCanvas = stubCanvas();
     try {
-      useSettingsStore.setState({ uiMode: site });
       const { container } = await renderPanel();
       const strip = container.querySelector('.ears-legend');
       expect(strip).not.toBeNull();
-      expect(strip!.nextElementSibling?.matches(`.control-footer.${site}`)).toBe(true);
+      expect(strip!.nextElementSibling?.matches('.control-footer.advanced')).toBe(true);
       expect(container.querySelector('.control-footer .ears-legend')).toBeNull();
 
       act(() => { useAudioStore.setState({ otherSide: 'meeting' }); });
@@ -987,19 +1015,12 @@ describe('MainPanel — screen context', () => {
     useScreenContextStore.setState({ sampler: null, state: null, preparing: false, picked: null, pickSource: null });
   });
 
-  it('draws the chip from the store, icon-only in the basic layout and named in the advanced one, and none while idle', async () => {
+  it('draws the chip from the store, named, and none while idle', async () => {
     const restoreCanvas = stubCanvas();
     try {
-      const { container, unmount } = await renderPanel();
-      expect(container.querySelector('.screen-context-chip')).toBeNull();
-      act(() => { useScreenContextStore.setState({ sampler: {} as Sampler, state: live }); });
-      const basic = container.querySelector('.control-footer.basic .screen-context-chip');
-      expect(basic?.classList.contains('screen-context-chip--icon-only')).toBe(true);
-      expect(basic?.textContent).not.toContain('Slides');
-      unmount();
-
-      useSettingsStore.setState({ uiMode: 'advanced' });
       const advanced = await renderPanel();
+      expect(advanced.container.querySelector('.screen-context-chip')).toBeNull();
+      act(() => { useScreenContextStore.setState({ sampler: {} as Sampler, state: live }); });
       const chip = advanced.container.querySelector('.control-footer.advanced .screen-context-chip');
       expect(chip?.classList.contains('screen-context-chip--icon-only')).toBe(false);
       expect(chip?.textContent).toContain('Slides');
@@ -1010,11 +1031,10 @@ describe('MainPanel — screen context', () => {
     }
   });
 
-  it('is icon-only in the extension side panel, whatever the layout', async () => {
+  it('is icon-only in the extension side panel', async () => {
     const restoreCanvas = stubCanvas();
     try {
       env.extension = true;
-      useSettingsStore.setState({ uiMode: 'advanced' });
       const { container } = await renderPanel();
       act(() => { useScreenContextStore.setState({ sampler: {} as Sampler, state: live }); });
       expect(container.querySelector('.screen-context-chip')?.classList.contains('screen-context-chip--icon-only')).toBe(true);
@@ -1046,7 +1066,7 @@ describe('MainPanel — screen context', () => {
       act(() => { useScreenContextStore.setState({ preparing: true }); });
       expect(document.querySelector('.source-picker')?.textContent).toContain('screenContext.picker.checking');
       expect(mainAction(container).disabled).toBe(true);
-      expect(mainAction(container).querySelector('.spinning')).not.toBeNull();
+      expect(mainAction(container).querySelector('.spinner')).not.toBeNull();
 
       act(() => { useScreenContextStore.setState({ preparing: false }); });
       expect(document.querySelector('.source-picker')).toBeNull();

@@ -37,9 +37,10 @@ function updateFor(provider: AnyProvider): (patch: Readonly<Record<string, unkno
 }
 
 /** The provider a piece shows (`providers.find(...) ?? providers[0]`), its loaded entry and readiness, loading the entry when missing. Null when `providers` is empty. */
-export function useSelectedProvider(providers: readonly AnyProvider[]): SelectedProvider | null {
+export function useSelectedProvider(providers: readonly AnyProvider[], providerId?: string): SelectedProvider | null {
   const selected = useProviderStore((st) => st.selected);
-  const provider = providers.find((p) => p.id === selected) ?? providers[0];
+  // A stage card of the line-up page names the provider it shows (mock v19); every other piece shows the selected one.
+  const provider = providers.find((p) => p.id === (providerId ?? selected)) ?? providers[0];
   const entry = useProviderStore((st) => (provider ? st.entries[provider.id] : undefined));
   const readiness = useProviderStore((st) => (provider ? st.readiness[provider.id] : undefined)) ?? UNKNOWN;
   const models = useProviderStore((st) => (provider ? st.models[provider.id] : undefined)) ?? NO_MODELS;

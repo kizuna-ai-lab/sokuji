@@ -104,6 +104,17 @@ function storageKey(p: AnyProvider, field: string): string {
   return `settings.${p.settings.key}.${field}`;
 }
 
+/** Where a credential is written: the shared place when the provider keeps it with others (`storedAt`), else under its own prefix. */
+function credentialKey(p: AnyProvider, key: string): string {
+  return p.credentials.storedAt ? `settings.${p.credentials.storedAt.key}.${key}` : storageKey(p, key);
+}
+
+/** Every place a credential may be read from, first non-empty wins. */
+function credentialReadKeys(p: AnyProvider, key: string): string[] {
+  const at = p.credentials.storedAt;
+  return at ? [credentialKey(p, key), ...at.fallbacks.map((f) => `settings.${f}.${key}`)] : [storageKey(p, key)];
+}
+
 /** A legacy key: a field under the provider's prefix, or — starting with `settings.` — a whole storage key, a global the provider now owns a copy of (Stage 2 Gemini, choice 1). */
 function legacyStorageKey(p: AnyProvider, key: string): string {
   return key.startsWith('settings.') ? key : storageKey(p, key);
@@ -237,7 +248,20 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // JSON-parses it otherwise — a key "123456" would come back a number.
       const [values, secrets, legacyValues, source, target] = await Promise.all([
         Promise.all(fields.map((f) => service.getSetting<unknown>(storageKey(p, f), defaults[f]))),
-        Promise.all(p.credentials.keys.map((k) => service.getSetting(storageKey(p, k), ''))),
+        Promise.all(p.credentials.keys.map(async (k) => {
+          if (!p.credentials.storedAt) return service.getSetting(storageKey(p, k), '');
+          // The shared key once stored, even cleared, is the answer; the old per-provider keys are read only
+          // while it was never stored (a user who filled only OpenAI Live's key before keeps it).
+          // Read without a string default (to tell "never stored" apart), so a key that parses as JSON comes back
+          // as a number or a boolean: turned back into the text that was stored.
+          const shared = await service.getSetting<unknown>(credentialKey(p, k), undefined);
+          if (shared !== undefined) return typeof shared === 'string' ? shared : String(shared);
+          for (const key of credentialReadKeys(p, k).slice(1)) {
+            const value = await service.getSetting(key, '');
+            if (value) return value;
+          }
+          return '';
+        })),
         // No default: `undefined` tells "never stored" from "stored as the default" (F5).
         Promise.all(legacyKeys.map((k) => service.getSetting<unknown>(legacyStorageKey(p, k), undefined))),
         service.getSetting(PAIR_KEYS.source, ''),
@@ -247,7 +271,18 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // edit made after the first one landed.
       if (get().entries[p.id]) return;
       const stored = Object.fromEntries(fields.map((f, i) => [f, values[i]]));
-      const credentials: CredentialValues = Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]]));
+      const credentials: Record<string, string> = Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]]));
+      // A key kept in one place with loaded providers may have been edited through one of them while this load read
+      // storage: theirs is the newer value (setCredential keeps them in step), so it is the one this entry takes.
+      const shared = p.credentials.storedAt?.key;
+      if (shared) {
+        for (const other of loadedProviders.values()) {
+          const otherEntry = get().entries[other.id];
+          if (other.id === p.id || other.credentials.storedAt?.key !== shared || !otherEntry) continue;
+          for (const k of p.credentials.keys) if (k in otherEntry.credentials) credentials[k] = otherEntry.credentials[k];
+          break;
+        }
+      }
       const legacy = Object.fromEntries(legacyKeys.map((k, i) => [k, legacyValues[i]]));
       const settings = p.settings.migrate ? p.settings.migrate(stored, { legacy, credentials }) : stored;
       // The first load to land reads the intent; a pick made meanwhile is newer and stays.
@@ -273,8 +308,18 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const entry = loaded(p);
       if (!p.credentials.keys.includes(key)) throw new Error(`Provider "${p.id}" has no credential "${key}"`);
       put(p, { ...entry, credentials: { ...entry.credentials, [key]: value } });
-      write(storageKey(p, key), value);
+      write(credentialKey(p, key), value);
       forgetReadiness(p);
+      // Providers that keep this key in the same place read the new value too.
+      const shared = p.credentials.storedAt?.key;
+      if (shared) {
+        for (const other of loadedProviders.values()) {
+          const otherEntry = get().entries[other.id];
+          if (other.id === p.id || other.credentials.storedAt?.key !== shared || !otherEntry) continue;
+          put(other, { ...otherEntry, credentials: { ...otherEntry.credentials, [key]: value } });
+          forgetReadiness(other);
+        }
+      }
     },
 
     setPair(p, pair) {
@@ -294,8 +339,10 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const pairKey = (field: string) => (field === SOURCE ? PAIR_KEYS.source : field === TARGET ? PAIR_KEYS.target : undefined);
       const covers = (key: string) => !p || key === 'settings.common.provider'
         || (fields
-          ? fields.some((field) => key === storageKey(p, field) || key === pairKey(field))
-          : key.startsWith(`settings.${p.settings.key}.`) || key === PAIR_KEYS.source || key === PAIR_KEYS.target);
+          ? fields.some((field) => key === storageKey(p, field) || key === credentialKey(p, field) || key === pairKey(field))
+          : key.startsWith(`settings.${p.settings.key}.`) || key === PAIR_KEYS.source || key === PAIR_KEYS.target
+            // Its credentials too, where they are kept elsewhere (the one OpenAI key).
+            || p.credentials.keys.some((k) => key === credentialKey(p, k)));
       for (const [key, value] of [...unsaved]) {
         if (covers(key)) write(key, value);
       }

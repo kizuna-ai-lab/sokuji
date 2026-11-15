@@ -30,6 +30,8 @@ import { regionOptionLabel, useRegionLatencies } from '../../components/Region/r
 import { requestRegionChange } from '../../lib/region/regionChange';
 import { QWEN_REGION_LABELS, QWEN_REGIONS } from './regions';
 import { QWEN_VOICES, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings as S } from './settings';
+import { ALL_STAGES, SP, TL, TR, TR_TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 /** The voice a spoken leg reads in, for the Speech rows, as its run resolves it: a preset's name, or whose own voice is cloned. */
 export function QwenVoiceSummary({ settings, leg }: VoiceSummaryProps<S>) {
@@ -65,6 +67,7 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
   const endpoint = models[0]?.id;
   return (
     <>
+      <StagePart stages={TR}>
       {isEndpointId(endpoint) && (
         <div className="settings-section">
           <div className="models-info">
@@ -72,13 +75,19 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
           </div>
         </div>
       )}
+      </StagePart>
+      <StagePart stages={SP}>
       <PresetVoiceField
         voices={voices} value={settings.voice} onChange={(voice) => update({ voice })} preview={preview} disabled={disabled}
         participant={participantSpeaks ? { value: settings.participantVoice, effective: qwenParticipantVoice(settings), onChange: (participantVoice) => update({ participantVoice }) } : undefined}
       />
+      </StagePart>
+      <StagePart stages={TR_TL}>
       <div className="settings-section" id="qwen-screen-context-section" data-testid="qwen-screen-context">
         <ScreenContextRow on={settings.screenContext} update={update} disabled={disabled} />
       </div>
+      </StagePart>
+      <StagePart stages={TL}>
       <div className="settings-section" id="qwen-vocabulary-section">
         {/* No heading tooltip: Soniox's speaks of recognition too, which Qwen's corpus does not touch; the field's own explains it. */}
         <h2>{t('providers.qwen_livetranslate.vocabulary', 'Custom Vocabulary')}</h2>
@@ -92,6 +101,8 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
           disabled={disabled}
         />
       </div>
+      </StagePart>
+      <StagePart stages={TR}>
       {legs?.includes('participant') === true && (
         <div className="settings-section" id="qwen-speaker-labels-section">
           <h2>
@@ -115,6 +126,7 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
           </div>
         </div>
       )}
+      </StagePart>
     </>
   );
 }
@@ -273,6 +285,7 @@ export function KizunaQwenSettingsView(props: SettingsProps<S>) {
   const latencies = useRegionLatencies('qwen', !disabled);
   return (
     <>
+      <StagePart stages={ALL_STAGES}>
       <div className="settings-section" id="qwen-region-section">
         <h2>
           {t('settings.qwenRegion', 'Region')}
@@ -301,6 +314,7 @@ export function KizunaQwenSettingsView(props: SettingsProps<S>) {
           )}
         </div>
       </div>
+      </StagePart>
       <QwenSettingsView {...props} />
     </>
   );

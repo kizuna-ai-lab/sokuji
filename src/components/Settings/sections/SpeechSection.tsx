@@ -1,13 +1,11 @@
-import { Mic } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import Tooltip from '../../Tooltip/Tooltip';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useAnalytics } from '../../../lib/analytics';
 import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
 import { useProviderStore } from '../../../stores/providerStore';
-import { useNavigateToSettings, useSetUIMode } from '../../../stores/settingsStore';
+import { useNavigateToSettings } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 
 const MODES: ReadonlyArray<[TurnMode, string, string]> = [
@@ -19,14 +17,14 @@ const MODES: ReadonlyArray<[TurnMode, string, string]> = [
 const LEGACY_NAME: Readonly<Record<TurnMode, string>> = { auto: 'Auto', 'push-to-talk': 'Push-to-Talk', 'push-to-translate': 'Push-to-Translate' };
 
 /** The global turn mode (D15, 1e-3 ruling 7): locked while a run is not idle — the run's subtitle session reads it live (roadmap 1d-2 → 1e). */
-export function TurnModeControl({ locked }: { locked: boolean }) {
+export function TurnModeControl({ locked, title }: { locked: boolean; title?: string }) {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const selected = useProviderStore((s) => s.selected);
   return (
     <div className="setting-item">
-      <div className="turn-detection-options">
+      <div className="turn-detection-options settings-seg" role="group" aria-label={t('settings.speechMode')} title={title}>
         {MODES.map(([mode, key, fallback]) => (
           <button
             key={mode}
@@ -51,17 +49,12 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
 /**
  * The selected provider's own tuning of automatic turn detection (its
  * `TurnDetection`, D18: settings belong to the provider), under Auto only —
- * push-to-talk and push-to-translate detect nothing. Both layouts show the
- * Summary, one line, as a link; the Controls are a block of their own on
- * Advanced's Provider tab (`ProviderTurnDetectionControls`), never drawn
- * here. The link is the existing settings deep link (`navigateToSettings`),
- * whose `'turn-detection-tuning'` target Settings.tsx maps to the Provider
- * tab, then scrolls to and highlights the block. The Provider tab is
- * Advanced's, so from Simple the link first switches the UI mode, as the
- * Settings panel's own mode toggle does (its `settings_mode_switched` event
- * included); Settings.tsx follows the target once the mode reads Advanced.
- * The link stays usable during a run — it only navigates; the lock disables
- * the Controls it leads to.
+ * push-to-talk and push-to-translate detect nothing. The Summary is one line,
+ * a link; the Controls are a block of their own among the provider's options
+ * (`ProviderTurnDetectionControls`), never drawn here. The link is the
+ * settings deep link (`navigateToSettings`, target `'turn-detection-tuning'`),
+ * which the settings page opens, scrolls to and highlights. It stays usable
+ * during a run — it only navigates; the lock disables the Controls it leads to.
  *
  * `Help`, when the provider defines one, renders right after — a sibling of
  * the link button, never a descendant: `Tooltip`'s trigger is its own
@@ -70,18 +63,14 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
  *
  * A Summary that renders nothing (nothing to tune now — LocalInference on a
  * streaming ASR, where endpoint detection replaces VAD) leaves its
- * `.turn-detection-summary` empty, and Settings.scss hides the row then:
- * the section cannot see what a provider's component rendered, and a row
- * left standing would be an empty link in Advanced. `Help` follows the same
- * rule on its own (renders nothing then too), so no stray icon is left
- * behind for `:has(.turn-detection-summary:empty)` to have missed.
+ * `.turn-detection-summary` empty, and Settings.scss hides the row then.
+ * `Help` follows the same rule on its own (renders nothing then too).
  */
-function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
-  const { trackEvent } = useAnalytics();
+function ProviderTurnDetection({ locked }: { locked: boolean }) {
+  const { t } = useTranslation();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const providers = useMemo(() => presentProviders(), []);
   const selection = useSelectedProvider(providers);
-  const setUIMode = useSetUIMode();
   const navigateToSettings = useNavigateToSettings();
 
   if (turnMode !== 'auto' || !selection?.entry) return null;
@@ -90,23 +79,39 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
   const { Summary, Help } = tuning;
   const props = ownProps(selection, selection.entry, locked);
 
-  const openControls = () => {
-    if (layout === 'simple') {
-      // The Settings panel's own mode toggle, analytics event included.
-      setUIMode('advanced');
-      trackEvent('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: locked });
-    }
-    navigateToSettings('turn-detection-tuning');
-  };
+  const openControls = () => navigateToSettings('turn-detection-tuning');
 
+  // The mock's box row: the turn end on the left, the provider's summary (the link to its tuning) on the right.
   return (
-    <div className="setting-item turn-detection-tuning">
-      <div className="setting-label">
-        <button type="button" className="turn-detection-summary turn-detection-link" onClick={openControls}>
-          <Summary {...props} />
-        </button>
-        {Help && <Help {...props} />}
+    <div className="turn-mode-box">
+      <div className="setting-item turn-detection-tuning turn-mode-box__row">
+        <span className="turn-mode-box__label">{t('settingsPage.lineup.uses.turn', 'Turn end')}</span>
+        <div className="setting-label">
+          <button type="button" className="turn-detection-summary turn-detection-link" onClick={openControls}>
+            <Summary {...props} />
+          </button>
+          {Help && <Help {...props} />}
+        </div>
       </div>
+    </div>
+  );
+}
+
+/** Push-to-Talk and Push-to-Translate in the mock's box: the key, and what it does. */
+function HeldKeyBox() {
+  const { t } = useTranslation();
+  const turnMode = useTurnModeStore((s) => s.turnMode);
+  if (turnMode === 'auto') return null;
+  const rows: Array<[string, string]> = turnMode === 'push-to-talk'
+    ? [[t('settingsPage.lineup.uses.key', 'Key'), t('settingsPage.lineup.uses.space', 'Space')],
+      [t('settingsPage.lineup.uses.released', 'Once released'), t('settingsPage.lineup.uses.releasedValue', 'that stretch goes off to be translated')]]
+    : [[t('settingsPage.lineup.uses.key', 'Key'), t('settingsPage.lineup.uses.space', 'Space')],
+      [t('settingsPage.lineup.uses.notHeld', 'While not held'), t('settingsPage.lineup.uses.notHeldValue', 'your own voice goes straight to the other side, untranslated')]];
+  return (
+    <div className="turn-mode-box">
+      {rows.map(([label, value]) => (
+        <div className="turn-mode-box__row" key={label}><span className="turn-mode-box__label">{label}</span><span className="turn-mode-box__value">{value}</span></div>
+      ))}
     </div>
   );
 }
@@ -115,20 +120,24 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
  * The global turn mode's own section (1e-3b-2 ruling 6). Its tooltip is
  * provider-neutral (Stage 2 Soniox, ruling 8): what ends an utterance under
  * Auto is each provider's own detection. The turn modes come first, then
- * that detection's tuning — the provider's own, drawn for `layout`.
+ * that detection's tuning — the provider's own.
  */
-export function SpeechSection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
+export function SpeechSection({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const tooltip = `${t('settings.speechModeTooltip', 'Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesToAuto', "Applies to your voice. Other's audio always uses the provider's automatic detection.")}`;
   return (
     <div className="config-section turn-detection-section" id="turn-detection-section">
-      <h3>
-        <Mic size={18} />
+      {/* The mock's line-up page (v18): a plain heading with its hint; the modes explained on hover over the choice. */}
+      <h3 className="settings-subhead">
         <span>{t('settings.speechMode')}</span>
-        <Tooltip content={tooltip} position="top" icon="help" />
+        <small>{t('settingsPage.lineup.speechModeHint', 'When a stretch of speech goes off to be translated; fixed during a session')}</small>
       </h3>
-      <TurnModeControl locked={locked} />
-      <ProviderTurnDetection locked={locked} layout={layout} />
+      <div className="settings-field">
+        <span className="settings-field__label">{t('settings.speechMode')}</span>
+        <TurnModeControl locked={locked} title={tooltip} />
+      </div>
+      <ProviderTurnDetection locked={locked} />
+      <HeldKeyBox />
     </div>
   );
 }

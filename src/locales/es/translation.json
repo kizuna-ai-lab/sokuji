@@ -440,7 +440,11 @@
     "audioCaptureUnprovenTitle": "Todavía no ha llegado audio de la fuente seleccionada",
     "audioCaptureUnprovenText1": "Si la fuente está reproduciendo y no se traduce nada, probablemente macOS esté entregando silencio: capturar una aplicación requiere el permiso «Solo grabación de audio del sistema», y sin él no hay error, solo silencio.",
     "audioCaptureUnprovenText3Named": "«{{app}}» solo aparece en esa lista después de haber intentado capturar una vez, cosa que acaba de ocurrir. Vuelve a iniciar la sesión después de habilitarlo. Si la fuente simplemente estaba en silencio, no hay que cambiar nada.",
-    "otherSideBesideNote": "La otra persona comparte tu micrófono; no se captura el audio del sistema."
+    "otherSideBesideNote": "La otra persona comparte tu micrófono; no se captura el audio del sistema.",
+    "captionMine": "Lo que digo, en voz",
+    "captionTheirs": "Lo que dice la otra parte, en voz",
+    "defaultPlaybackAid": "Los sonidos de mi lado suenan aquí salvo que una fila indique su propio dispositivo; un sonido cuyo dispositivo se desconectó también suena aquí.",
+    "captionReplay": "Repetición"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -594,11 +598,12 @@
       "speakerLabelsTooltip": "Numera a las personas del otro lado —Hablante 1, Hablante 2…— en cuanto se oye más de una voz.\n\nPuede confundir a una persona con varias. Deshabilitado: no se muestra ningún número.\n\nSe aplica a partir de la próxima sesión."
     },
     "local_inference": {
-      "name": "Gratis",
-      "description": "Reconocimiento de voz gratuito (ASR) + Traducción + Síntesis de voz (TTS)",
+      "name": "Este dispositivo",
+      "description": "Funciona una vez descargados los modelos en este ordenador; la primera vez hay que descargar varios GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
-      "modelTts": "TTS"
+      "modelTts": "TTS",
+      "note": "Gratis · sin conexión"
     },
     "local_native": {
       "name": "Gratis (Native)",
@@ -608,7 +613,15 @@
       "name": "Desconocido",
       "description": "Proveedor desconocido"
     },
-    "poweredBy": "Con tecnología de <brand>{{name}}</brand>"
+    "poweredBy": "Con tecnología de <brand>{{name}}</brand>",
+    "bing": {
+      "name": "Bing",
+      "note": "Gratis · en línea, un servicio de Microsoft"
+    },
+    "edge": {
+      "name": "Edge",
+      "note": "Gratis · en línea, un servicio de Microsoft"
+    }
   },
   "logsPanel": {
     "autoScrollOn": "Desplazamiento automático activado",
@@ -739,7 +752,9 @@
     "preparingVoice": "Preparando tu voz…",
     "waitingForPreviousSession": "Esperando…",
     "waitingForPreviousSessionTitle": "Esperando a que termine la sesión anterior. Haz clic para cancelar.",
-    "clickToCancel": "Haz clic para cancelar"
+    "clickToCancel": "Haz clic para cancelar",
+    "whatIHear": "Lo que oigo",
+    "audioSettings": "Configuración de audio"
   },
   "modePicker": {
     "modeYou": "Yo",
@@ -962,6 +977,42 @@
       "cancel": "Cancelar",
       "accept": "Entendido: solo uso no comercial",
       "acceptRestricted": "Entendido: acepto la licencia"
+    },
+    "readingsDictionary": "Diccionario de lecturas (japonés)",
+    "readingsDictionaryNotStored": "Se descarga al activar las lecturas en japonés en Visualización.",
+    "page": {
+      "tag": {
+        "asr": "Reconocimiento",
+        "translation": "Traducción",
+        "tts": "Voz",
+        "turn": "Fin de turno",
+        "punctuation": "Frases y puntuación",
+        "readings": "Lecturas",
+        "voice": "Voz"
+      },
+      "manyLanguages": "Muchos idiomas",
+      "languages": "{{count}} idiomas",
+      "direct": "también puede dar la traducción directamente",
+      "downloading": "Descargando {{percent}} %",
+      "failed": "La descarga falló",
+      "cannotRun": "Este ordenador no puede ejecutarlo",
+      "notDownloaded": "Sin descargar",
+      "download": "Descargar",
+      "listJoin": ", ",
+      "summary": "{{count}} descargados, {{size}} en total",
+      "import": "Importar un modelo desde archivos",
+      "sessionTitle": "Modelos para la sesión (el servicio «Este dispositivo»)",
+      "sessionHint": "Las etapas con «Este dispositivo» en «Idiomas y composición» usan los modelos descargados aquí.",
+      "otherLanguages": "Modelos para otros idiomas ({{count}})",
+      "helpersTitle": "Modelos auxiliares",
+      "helpersHint": "Modelos pequeños que no pertenecen a ninguna etapa.",
+      "turnMeta": "Detecta cuándo terminas de hablar; se activa en las opciones del modo de voz",
+      "packMeta": "Divide el texto en frases; los tres se descargan juntos",
+      "dictMeta": "Muestra la lectura del japonés; se activa en «Pantalla»",
+      "voicesTitle": "Voces importadas",
+      "voicesHint": "Archivos de voz de Supertonic que importaste.",
+      "importedOn": "Importada el {{date}}",
+      "more": "{{count}} más"
     }
   },
   "notes": {
@@ -1091,7 +1142,8 @@
       },
       "readingsDownloading": "Descargando el diccionario de japonés {{done}} / {{total}}",
       "readingsDownloadFailed": "No se pudo descargar el diccionario de japonés.",
-      "readingsFailed": "La lectura en japonés no funciona."
+      "readingsFailed": "La lectura en japonés no funciona.",
+      "defaultColour": "Predeterminado"
     },
     "pttHint": "Pulsa Espacio para hablar"
   },
@@ -1348,7 +1400,11 @@
       "managed": {
         "title": "Empieza enseguida",
         "desc": "Kizuna AI se encarga de la traducción por ti.",
-        "cost": "Regístrate con tu dirección de correo electrónico y verifícala — las cuentas verificadas reciben un crédito de prueba. Después, recargas tu saldo, y la traducción se cobra según lo que uses."
+        "cost": "Regístrate con tu dirección de correo electrónico y verifícala — las cuentas verificadas reciben un crédito de prueba. Después, recargas tu saldo, y la traducción se cobra según lo que uses.",
+        "options": {
+          "kizunaai_soniox": "Transcripción en tiempo real, traducción rápida.",
+          "kizunaai_qwen": "Puede ver tu pantalla; transcripción y traducción muy precisas."
+        }
       },
       "own-key": {
         "title": "Tengo mi propia clave API",
@@ -1356,14 +1412,15 @@
         "cost": "Tu clave se queda en este dispositivo y llega al proveedor directamente desde él. Eres su cliente: le pagas por lo que uses, y nada pasa por Kizuna AI."
       },
       "offline": {
-        "title": "Gratis, sin conexión",
-        "desc": "Se ejecuta en tu propio equipo. Nada sale de él.",
-        "cost": "Descarga modelos en tu disco (gigabytes). Funciona bien con una GPU y suficiente VRAM; solo con CPU es notablemente más lento.",
+        "title": "Sin clave",
+        "desc": "Gratis. El reconocimiento funciona en este ordenador; la traducción usa Bing y la voz usa Edge, servicios de Microsoft en línea.",
+        "cost": "El reconocimiento necesita antes descargar un modelo al disco. Va bien con GPU; solo con CPU es notablemente más lento.",
         "native": "Motor nativo — más rápido, usa tu GPU cuando está disponible.",
         "wasm": "Motor integrado en la app — funciona en todas partes, más lento."
       },
       "ownKeyNote": "Elige el proveedor con el que tengas cuenta. Cada uno emite su propia clave:",
-      "ownKeyGuides": "guías para cada proveedor"
+      "ownKeyGuides": "guías para cada proveedor",
+      "managedPick": "¿Qué servicio alojado?"
     },
     "fit": {
       "cannotSpeak": "Este proveedor no puede producir traducción hablada.",
@@ -1384,22 +1441,29 @@
       "createAccount": "Crear cuenta",
       "signedIn": "Sesión iniciada. Puedes continuar.",
       "managedDesc": "Regístrate con tu dirección de correo electrónico y verifícala desde tu bandeja de entrada; las cuentas verificadas reciben un crédito de prueba. Después, recargas tu saldo y pagas solo por lo que uses.",
-      "offlineNotice": "Los modelos se descargan más tarde, desde Configuración. Ocupan varios gigabytes de disco. Sokuji funciona bien con una GPU y suficiente VRAM; solo con CPU es notablemente más lento.",
-      "pendingKey": "Puedes añadir la clave más tarde en Configuración → Proveedor. Iniciar permanece bloqueado hasta que se valide.",
+      "offlineNotice": "El modelo de reconocimiento se descarga después de la configuración, en Configuración → Modelos y almacenamiento. La traducción usa Bing y la voz usa Edge: nada que descargar y sin cuenta; el texto que se traduce y la traducción que se lee se envían a Microsoft.",
+      "pendingKey": "Puedes añadir la clave más tarde en Configuración → Cuentas y claves. Iniciar seguirá bloqueado hasta que se valide.",
       "pendingSignIn": "Puedes iniciar sesión más tarde desde el botón de cuenta. Iniciar permanece bloqueado hasta entonces.",
       "ownKeyDesc": "Esta clave se guarda solo en este dispositivo, y la app se conecta con el proveedor directamente desde aquí — nunca llega a Kizuna AI. Le pagas al proveedor por lo que uses.",
       "guide": "Cómo obtener esta clave",
       "verifyEmail": "Sesión iniciada. Abre el enlace que te enviamos por correo para verificar tu dirección — el crédito de prueba llega en cuanto lo hagas.",
-      "onFile": "Ya hay una clave guardada — deja esto en blanco para conservarla."
+      "onFile": "Ya hay una clave guardada — deja esto en blanco para conservarla.",
+      "offlineHardware": "Sokuji va bien con una GPU y suficiente VRAM; solo con CPU es notablemente más lento.",
+      "openaiOneKey": "Esta única clave sirve para OpenAI Realtime, Translate y Live."
     },
     "summary": {
       "scenario": "Escenario",
       "mode": "Modo",
       "provider": "Proveedor",
       "languages": "Idiomas",
-      "pendingKey": "Aún no hay clave API — añádela en Configuración → Proveedor antes de empezar.",
+      "pendingKey": "Aún no hay clave de API: añádela en Configuración → Cuentas y claves antes de empezar.",
       "pendingSignIn": "Sesión no iniciada — inicia sesión desde el botón de cuenta antes de empezar.",
-      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}"
+      "langSentence": "{{myLabel}} {{myLanguage}} → {{theirLabel}} {{theirLanguage}}",
+      "lineup": "Combinación"
+    },
+    "lineup": {
+      "title": "La combinación que se configura",
+      "later": "Puedes cambiar cada etapa más tarde en Configuración → Idiomas y combinación."
     }
   },
   "tour": {
@@ -1453,7 +1517,7 @@
       },
       "provider-settings": {
         "title": "Configuración del proveedor",
-        "content": "Aquí puedes cambiar tu clave o cambiar de proveedor.",
+        "content": "Cambia tu clave aquí.",
         "content_pending": "Pega aquí tu clave API. Iniciar se desbloquea en cuanto se valide."
       },
       "models": {
@@ -1469,7 +1533,7 @@
       },
       "done": {
         "title": "Ya está",
-        "content": "Los ajustes avanzados — detección de voz, prompts, voces, registros — están detrás del interruptor Avanzado, arriba a la derecha de Configuración. Puedes repetir esta guía cuando quieras desde Ayuda."
+        "content": "Todo lo demás está en Configuración, categoría por categoría; la búsqueda encuentra cualquier ajuste por su nombre. Puedes repetir esta guía cuando quieras desde Ayuda."
       }
     }
   },
@@ -1712,5 +1776,154 @@
     "unreachable": "No se pudo conectar",
     "switch": "Cambiar",
     "keep": "Mantener {{region}}"
+  },
+  "settingsPage": {
+    "title": "Configuración",
+    "search": "Buscar en la configuración",
+    "back": "Volver a la sesión",
+    "backToList": "Volver a la lista",
+    "changeable": "Se puede cambiar durante una sesión",
+    "lockedNote": "Bloqueado durante una sesión",
+    "partlyLocked": "Bloqueado en parte durante una sesión",
+    "lockedLine": "Hay una sesión en curso. Los idiomas, la combinación, la lista de palabras y las claves están bloqueados; el audio, la visualización y lo demás se pueden cambiar.",
+    "categories": {
+      "lineup": "Idiomas y combinación",
+      "words": "Lista de palabras y contexto",
+      "accounts": "Cuentas y claves",
+      "models": "Modelos y almacenamiento",
+      "audio": "Audio",
+      "display": "Visualización",
+      "history": "Historial y notas",
+      "general": "General"
+    },
+    "groups": {
+      "session": "Sesión",
+      "providers": "Proveedores y modelos",
+      "devices": "Dispositivos y visualización",
+      "data": "Datos",
+      "app": "Aplicación"
+    },
+    "words": {
+      "lineup": "idioma, idiomas, modo de habla, pulsar para hablar, transcripción, traducción, voz, proveedor, modelo, combinación",
+      "words": "lista de palabras, términos, glosario, contexto",
+      "accounts": "cuenta, iniciar sesión, clave de API, claves, credencial, saldo",
+      "models": "modelos, descargar, almacenamiento, eliminar, disco",
+      "audio": "micrófono, supresión de ruido, eco, altavoz, auriculares, monitor, paso directo, micrófono virtual, audio del sistema",
+      "display": "fuente, tamaño, color, compacto, subtítulos, leyendas, vista previa",
+      "history": "historial, notas, carpeta, guardado automático",
+      "general": "idioma de la interfaz, apariencia, tema, actualizaciones, registros, configuración inicial, ayuda, versión"
+    },
+    "accounts": {
+      "addKey": "Añadir clave",
+      "keySaved": "Clave guardada",
+      "local": "Funciona en este ordenador",
+      "needsKey": "Necesita una clave",
+      "online": "No necesita clave; en línea, un servicio de Microsoft",
+      "signedIn": "Sesión iniciada",
+      "signedOut": "Sin iniciar sesión",
+      "together": "juntas",
+      "view": "Ver",
+      "hide": "Ocultar",
+      "endToEnd": "De extremo a extremo",
+      "transcribeTranslate": "Transcripción y traducción",
+      "signedInBalance": "Sesión iniciada; saldo {{amount}}",
+      "localModels": "Funciona en este ordenador; {{count}} modelos descargados, {{size}} en total",
+      "localNone": "Funciona en este ordenador; aún no hay modelos descargados"
+    },
+    "lineup": {
+      "title": "Combinación",
+      "stages": {
+        "transcription": "Transcripción",
+        "translation": "Traducción",
+        "speech": "Voz",
+        "summarisation": "Notas"
+      },
+      "and": " y ",
+      "joint": "Va con {{stages}} por una sola conexión; cambian juntas.",
+      "granite": "Con la traducción: Granite Speech convierte la voz directamente en la traducción.",
+      "moved": "{{stages}} también pasó a {{providers}}: por ahora no se puede combinar con esta elección. La mezcla llegará más adelante.",
+      "needsKey": "necesita una clave",
+      "needsSignIn": "requiere iniciar sesión",
+      "options": "Opciones de {{provider}}",
+      "state": {
+        "needsKey": "Necesita una clave",
+        "needsModel": "Necesita un modelo",
+        "needsSignIn": "Requiere iniciar sesión",
+        "ready": "Listo"
+      },
+      "speechModeHint": "Cuándo se envía un tramo de voz a traducir; fijo durante la sesión",
+      "hint": "Qué servicio hace cada etapa",
+      "uses": {
+        "turn": "Fin del turno",
+        "key": "Tecla",
+        "space": "Espacio",
+        "released": "Al soltarla",
+        "releasedValue": "ese tramo se envía a traducir",
+        "notHeld": "Mientras no se mantiene",
+        "notHeldValue": "tu propia voz va directa a la otra parte, sin traducir"
+      },
+      "actsOn": "Afecta a {{stages}}",
+      "pointer": "Las opciones que afectan a {{stages}} están en la tarjeta «{{card}}».",
+      "edgeVoices": {
+        "hint": "Las voces se guardan por idioma: estas son las que usa este par de idiomas.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
+    },
+    "display": {
+      "surface": "Qué visualización",
+      "main": "Ventana principal",
+      "captions": "Modo subtítulos",
+      "compact": "Vista compacta",
+      "fontSize": "Tamaño del texto",
+      "smaller": "Texto más pequeño",
+      "larger": "Texto más grande",
+      "modes": {
+        "both": "Original y traducción",
+        "source": "Solo original",
+        "translation": "Solo traducción",
+        "none": "Nada"
+      },
+      "mineSide": "Qué se muestra de mi lado",
+      "theirsSide": "Qué se muestra de la otra parte",
+      "previewMain": "Vista previa: la conversación en la ventana principal",
+      "previewCaptions": "Vista previa: modo subtítulos, sobre otra ventana",
+      "empty": "Ahora no se muestra nada aquí: las dos partes están en «Nada»."
+    },
+    "intro": {
+      "accounts": "Cuentas y claves: cada servicio se rellena una sola vez. Después, lo que hace se elige en «Idiomas y combinación».",
+      "models": "Aquí se gestionan todos los modelos descargados en este ordenador: los de las sesiones, los auxiliares y las voces importadas.",
+      "audio": "Micrófono, voz y el audio de la otra parte. Todo menos «Traducción que oye la otra parte» se puede cambiar durante una sesión.",
+      "display": "Los mismos valores que los botones de encima de la conversación y de la barra de subtítulos: se cambien donde se cambien, se aplican al instante. La ventana principal y el modo subtítulos tienen los suyos."
+    },
+    "audio": {
+      "micHint": "Por dónde entra mi voz",
+      "otherHint": "Por dónde entra la voz de la otra parte",
+      "device": "Dispositivo",
+      "source": "Fuente",
+      "flow": {
+        "myMic": "Mi micrófono",
+        "toSpeech": "A voz",
+        "toThem": "Micro virtual → la otra parte",
+        "theirVoice": "La voz de la otra parte",
+        "myDevice": "Mi dispositivo de reproducción",
+        "caption": "Adónde va el sonido. Las líneas iluminadas están activas, las discontinuas no; siguen los interruptores de abajo.",
+        "aria": "Adónde va el sonido: lo que digo, convertido en voz, va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte, convertido en voz, suena en mi dispositivo de reproducción."
+      }
+    },
+    "general": {
+      "basics": "Lo básico",
+      "maintenance": "Mantenimiento y ayuda",
+      "update": "Actualizaciones",
+      "updateLine": "Tienes la {{version}}.",
+      "version": "Versión",
+      "storeUpdates": "La tienda del navegador mantiene la extensión al día.",
+      "wizard": "Asistente de configuración",
+      "wizardLine": "Recorre el asistente otra vez; lo que tienes guardado viene seleccionado.",
+      "rerun": "Ejecutar de nuevo",
+      "guide": "Guía",
+      "guideLine": "Consejos paso a paso en la pantalla principal.",
+      "restart": "Empezar de nuevo",
+      "needHelp": "¿Necesitas ayuda?"
+    }
   }
 }

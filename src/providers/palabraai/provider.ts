@@ -7,6 +7,7 @@ import { PalabraSettingsView } from './PalabraSettings';
 import { PalabraVoiceSummary } from './PalabraVoiceSummary';
 import { PalabraTurnDetectionControls, PalabraTurnDetectionSummary } from './PalabraTurnDetection';
 import { migratePalabraSettings, PALABRA_DEFAULTS, palabraCredentials, palabraLanguages, type PalabraCredentials, type PalabraSettings } from './settings';
+import { SP, TR_TL } from '../../lib/lineup/types';
 
 const adapter = createPalabraAdapter();
 
@@ -33,6 +34,8 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
   // No `legacyKeys`: nothing stored is converted (ruling 2).
   settings: { key: 'palabraai', defaults: PALABRA_DEFAULTS, migrate: migratePalabraSettings },
   Settings: PalabraSettingsView,
+  // Sentence splitting and partials on transcription and translation, the voice, buffers and tempo on speech (mock v19).
+  optionStages: [TR_TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: PalabraVoiceSummary,
   TurnDetection: { Summary: PalabraTurnDetectionSummary, Controls: PalabraTurnDetectionControls },

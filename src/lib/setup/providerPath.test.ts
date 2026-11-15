@@ -43,3 +43,10 @@ describe('providerPathFor', () => {
     expect(OFFLINE_PROVIDERS).toEqual([Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE]);
   });
 });
+
+// Kizuna AI's hosted Qwen is registered by id, not in the enum: the tour must treat it as hosted too (Plan 6 review).
+describe('providerPathFor — hosted providers outside the enum', () => {
+  it('puts hosted Qwen on the managed path', () => {
+    expect(providerPathFor('kizunaai_qwen')).toBe('managed');
+  });
+});

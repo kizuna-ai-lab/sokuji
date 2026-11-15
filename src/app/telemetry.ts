@@ -4,6 +4,10 @@
  * tallies taken from the frames, and the start/end properties the app keeps.
  */
 import type { AnalyticsEvents } from '../lib/analytics';
+import { useLineUpStore } from '../stores/lineUpStore';
+import type { LineUp } from '../lib/lineup/types';
+import { runOf } from '../lib/lineup/catalog';
+import { useProviderStore } from '../stores/providerStore';
 import type { LegName } from '../lib/conversation/types';
 import { OUTLET_NAMES, resolveOutlet, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';
 import { faceToFaceFromStores, speechFromStores } from '../lib/session/appShape';
@@ -123,6 +127,8 @@ export interface StartInputs {
   channels: Record<OutletName, Channel>;
   segmentation: { mode: SegmentationMode; size: SegmentationSize };
   punctuationActive: boolean;
+  /** The stored line-up; null or absent while none is stored. */
+  lineUp?: LineUp | null;
 }
 
 /** The eight kept properties of `translation_session_start` (1e-3 ruling 13):
@@ -131,9 +137,15 @@ export function sessionStartProperties(i: StartInputs): Pick<
   AnalyticsEvents['translation_session_start'],
   | 'noise_suppression_enabled' | 'noise_suppression_mode' | 'real_voice_passthrough_enabled'
   | 'input_device_on' | 'monitor_device_on' | 'participant_speech' | 'outlet_channels'
-  | 'sentence_segmentation_enabled' | 'sentence_segmentation_active' | 'sentence_segmentation_chunk_sentences'
+  | 'sentence_segmentation_enabled' | 'sentence_segmentation_active' | 'sentence_segmentation_chunk_sentences' | 'stages'
 > {
+  const l = i.lineUp;
+  // Provider ids, not secrets: no redaction needed (see the decorator's redaction rule).
+  const stages = l && l.transcription && l.translation && l.speech
+    ? { stages: { transcription: l.transcription, translation: l.translation, speech: l.speech } }
+    : {};
   return {
+    ...stages,
     noise_suppression_enabled: i.audio.noiseSuppressionMode !== 'off',
     noise_suppression_mode: i.audio.noiseSuppressionMode,
     real_voice_passthrough_enabled: i.audio.isRealVoicePassthroughEnabled,
@@ -202,6 +214,14 @@ export function sessionEndProperties(tally: SessionTally, run: RunFacts): Pick<
 }
 
 /** The stores now — the run's shape froze the same values a moment ago. */
+/** The stored line-up, when it runs on the provider a session starts with; null when the provider was changed elsewhere. */
+function lineUpInUse(): LineUp | null {
+  const { lineUp, stored } = useLineUpStore.getState();
+  if (!stored || !lineUp) return null;
+  const run = runOf(lineUp);
+  return run.ok && run.provider === useProviderStore.getState().selected ? lineUp : null;
+}
+
 export function appStartInputs(punctuationActive: boolean): StartInputs {
   const audio = useAudioStore.getState();
   const s = useSettingsStore.getState();
@@ -223,6 +243,7 @@ export function appStartInputs(punctuationActive: boolean): StartInputs {
       size: resolveSegmentationSize(s.sentenceSegmentationChunkSentences, offer),
     },
     punctuationActive,
+    lineUp: lineUpInUse(),
   };
 }
 

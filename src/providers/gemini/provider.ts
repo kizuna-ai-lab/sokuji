@@ -5,6 +5,7 @@ import { checkGemini } from './check';
 import { buildGemini, describeGemini, type GeminiConfig } from './config';
 import { GeminiSettingsView, GeminiVoiceSummary } from './GeminiSettings';
 import { GeminiTurnDetectionControls, GeminiTurnDetectionHelp, GeminiTurnDetectionSummary } from './GeminiTurnDetection';
+import { ALL_STAGES, SP, TL } from '../../lib/lineup/types';
 import {
   GEMINI_DEFAULTS,
   GEMINI_LEGACY_KEYS,
@@ -37,6 +38,8 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
 
   settings: { key: 'gemini', defaults: GEMINI_DEFAULTS, legacyKeys: GEMINI_LEGACY_KEYS, migrate: migrateGeminiSettings },
   Settings: GeminiSettingsView,
+  // The model on every stage, the instructions and model configuration on translation, the voices on speech (mock v19).
+  optionStages: [ALL_STAGES, TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: GeminiVoiceSummary,
   // The server's activity-detection knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.

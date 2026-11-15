@@ -9,11 +9,13 @@ interface ProviderOwnSettingsProps {
   providers: readonly AnyProvider[];
   /** A run is not idle: the provider's own settings are locked. */
   disabled?: boolean;
+  /** The provider to show (a stage card of the line-up page); absent, the selected one. */
+  providerId?: string;
 }
 
 /** The selected provider's own `Settings` (D18), over its loaded entry, with its account (F3): the saved credentials and `auth`, the sign-in. Nothing before the entry loads. */
-export function ProviderOwnSettings({ providers, auth, disabled }: ProviderOwnSettingsProps & { auth: AuthContext }) {
-  const selection = useSelectedProvider(providers);
+export function ProviderOwnSettings({ providers, auth, disabled, providerId }: ProviderOwnSettingsProps & { auth: AuthContext }) {
+  const selection = useSelectedProvider(providers, providerId);
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const faceToFace = useFaceToFace().active;
@@ -49,8 +51,8 @@ export function ProviderOwnSettings({ providers, auth, disabled }: ProviderOwnSe
  * to and highlights for the `'turn-detection-tuning'` target. Nothing when
  * the provider has no `TurnDetection`, or before its entry loads.
  */
-export function ProviderTurnDetectionControls({ providers, disabled }: ProviderOwnSettingsProps) {
-  const selection = useSelectedProvider(providers);
+export function ProviderTurnDetectionControls({ providers, disabled, providerId }: ProviderOwnSettingsProps) {
+  const selection = useSelectedProvider(providers, providerId);
   if (!selection?.entry) return null;
   const Controls = selection.provider.TurnDetection?.Controls;
   if (!Controls) return null;
@@ -68,6 +70,8 @@ interface ProviderEngineProps {
   /** Open this slot on mount — a chip's deep link. */
   initialSlot?: EngineSlot | null;
   onInitialSlotConsumed?(): void;
+  /** The provider to show (a stage card of the line-up page); absent, the selected one. */
+  providerId?: string;
 }
 
 /**
@@ -75,10 +79,10 @@ interface ProviderEngineProps {
  * engines only, with the legs a start would open and the deep-link slot.
  * Nothing when the provider offers none, or before its entry loads.
  */
-export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlotConsumed }: ProviderEngineProps) {
+export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlotConsumed, providerId }: ProviderEngineProps) {
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
-  const selection = useSelectedProvider(providers);
+  const selection = useSelectedProvider(providers, providerId);
   if (!selection?.entry) return null;
   const Engine = selection.provider.Engine;
   if (!Engine) return null;

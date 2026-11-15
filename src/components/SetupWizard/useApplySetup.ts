@@ -10,6 +10,7 @@ import { useRoutingStore } from '../../stores/routingStore';
 import useAudioStore from '../../stores/audioStore';   // default export only — there is no named useAudioStore
 import { useSetupStore, SetupPersistError } from '../../stores/setupStore';
 import { PAIR_FIELDS, useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { presentProviders } from '../../providers/registry';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { applySetupDraft } from './applySetup';
@@ -54,6 +55,10 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
         // A value of the provider's this Finish did not write — a prompt
         // refused for its size, say — is not its to fail on.
         if (!await store.flush(p, written)) throw new SetupPersistError();
+      },
+      // The line-up of the chosen path, stored before the record: one that did not land fails Finish as a provider write does.
+      applyLineUp: async (lineUp) => {
+        if (!await useLineUpStore.getState().replace(lineUp)) throw new SetupPersistError();
       },
       completeSetup: useSetupStore.getState().completeSetup,
     });

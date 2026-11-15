@@ -11,6 +11,7 @@ import { presentProviders } from '../../providers/registry';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import { getScenario, providerFitForScenario } from '../../lib/setup/scenarios';
 import type { ProviderFit } from '../../lib/setup/scenarios';
+export { lineUpOf } from './lineUpOf';
 
 export interface ProviderOption {
   id: ProviderType;
@@ -57,12 +58,26 @@ export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {
     .map((p) => ({ id: p.id as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset, p.faceToFace === true) }));
 }
 
-/** The managed provider with its fit for the scenario, or null in a build that registers none; judged as the own-key list judges its options. */
+/** Every managed provider the build registers, in its order (Kizuna Soniox first, the recommended one), each with its fit for the scenario. */
+export function managedOptions(scenario: ScenarioId): ProviderOption[] {
+  const preset = getScenario(scenario);
+  return presentProviders()
+    .filter((p) => p.kind === 'managed')
+    .map((p) => ({ id: p.id as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset, p.faceToFace === true) }));
+}
+
+/** The first managed option, the recommended one, or null in a build that registers none. */
 export function managedOption(scenario: ScenarioId): ProviderOption | null {
-  const id = managedProvider();
-  const p = wizardProvider(id);
-  if (!id || !p) return null;
-  return { id, fit: providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true) };
+  return managedOptions(scenario)[0] ?? null;
+}
+
+/** The wizard path a provider sits on, or null when the wizard does not offer it. */
+export function pathOf(provider: string): ProviderPath | null {
+  const p = presentProviders().find((candidate) => candidate.id === provider);
+  if (!p) return null;
+  if (p.kind === 'managed') return 'managed';
+  if (p.kind === 'own-key') return 'own-key';
+  return offlineOptions().includes(p.id as ProviderType) ? 'offline' : null;
 }
 
 /** The in-app engine; LocalNative returns with Stage 2. */
@@ -86,7 +101,7 @@ export function offersRecord(record: { scenario: ScenarioId | null; providerPath
   if (!scenario || !providerPath || !availablePaths().includes(providerPath)) return false;
   switch (providerPath) {
     case 'offline': return offlineOptions().includes(provider as ProviderType);
-    case 'managed': return managedProvider() === provider;
+    case 'managed': return managedOptions(scenario).some((option) => option.id === provider);
     case 'own-key': return ownKeyOptions(scenario).some((option) => option.id === provider);
   }
 }

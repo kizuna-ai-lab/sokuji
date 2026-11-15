@@ -25,8 +25,8 @@ vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({
   default: () => <CounterStub label="logs" />,
 }));
-vi.mock('../Settings', () => ({
-  Settings: () => <CounterStub label="settings" />,
+vi.mock('../SettingsPage/SettingsPage', () => ({
+  SettingsPage: () => <CounterStub label="settings" />,
 }));
 
 // TitleBar: just the two toggle buttons MainLayout wires up.
@@ -43,7 +43,6 @@ vi.mock('../TitleBar/TitleBar', () => ({
 
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
-vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: () => {} }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../stores/layoutStore')>()),
@@ -59,9 +58,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isKizunaAIEnabled: () => false,
 }));
 // MainLayout itself no longer reads a provider or a UI mode setter — only
-// the three exports it still uses. The sign-in switch reads uiMode too, but
-// it lives in its own hook (useSignInProviderSwitch, mocked above), so this
-// file mocks settingsStore whole rather than growing this list to cover it.
+// the three exports it still uses; this file mocks settingsStore whole.
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => null,
   useSubtitleModeActive: () => false,

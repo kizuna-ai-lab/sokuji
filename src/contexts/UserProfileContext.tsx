@@ -86,6 +86,11 @@ export const WALLET_RETRY_DELAYS_MS: readonly number[] = [15_000, 30_000, 60_000
 
 const UserProfileContext = createContext<UserProfileContextValue | undefined>(undefined);
 
+/** The profile where a provider supplies it, else undefined: for a view that can also stand alone (the settings page in the dev preview). */
+export function useOptionalUserProfile(): UserProfileContextValue | undefined {
+  return useContext(UserProfileContext);
+}
+
 export function useUserProfile() {
   const context = useContext(UserProfileContext);
   if (!context) {
