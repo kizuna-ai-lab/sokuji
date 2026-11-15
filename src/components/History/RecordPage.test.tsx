@@ -281,6 +281,13 @@ describe('a record', () => {
     expect(within(other).queryByRole('button', { name: 'Play from here' })).toBeNull();
   });
 
+  it('in a face-to-face record the other person\'s sentences play from the microphone track', async () => {
+    record = { ...record, mode: 'face-to-face', tracks: [{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 100, offsetMs: 0, goneAt: null }] };
+    await renderRecord();
+    const other = document.querySelector('[data-segment="run-000a-aaaa:participant:1"]') as HTMLElement;
+    expect(within(other).getByRole('button', { name: 'Play from here' })).toBeInTheDocument();
+  });
+
   it('shows no player when the recording was deleted', async () => {
     record = { ...record, tracks: [{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 3000, bytes: 100, offsetMs: 0, goneAt: 5 }] };
     await renderRecord();

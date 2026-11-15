@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import type { HistoryTrack } from './types';
 import type { RecordRow } from './recordView';
-import { audible, EARLY_MS, playable, recordLength, rowAt, startFor, trackUrl } from './playback';
+import { audible, EARLY_MS, playable, recordLength, rowAt, startFor, trackOf, trackUrl } from './playback';
 
 const track = (source: string, offsetMs: number, durationMs: number, over: Partial<HistoryTrack> = {}): HistoryTrack =>
   ({ source, file: `${source}.opus`, format: 'ogg-opus', durationMs, bytes: 100, offsetMs, goneAt: null, ...over });
@@ -39,6 +39,14 @@ describe('playing a record', () => {
     expect(audible(row(9000), tracks)).toBe(true);
     expect(audible(row(10_000), tracks)).toBe(false);
     expect(audible(row(1000, 'other'), tracks)).toBe(false);
+  });
+
+  it('in face-to-face both people play from the one microphone track', () => {
+    const tracks = [track('speaker', 0, 10_000)];
+    expect(audible(row(1000, 'other'), tracks, 'face-to-face')).toBe(true);
+    expect(trackOf('other', 'face-to-face')).toBe('speaker');
+    expect(trackOf('other', 'both')).toBe('participant');
+    expect(trackOf('mine', 'both')).toBe('speaker');
   });
 
   it('names the address the player reads a track from', () => {

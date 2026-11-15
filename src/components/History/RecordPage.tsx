@@ -277,7 +277,7 @@ export const RecordPage: React.FC = () => {
           data-row={`${row.segmentId}:${row.sentences[0]?.n}`}
         >
           <div className="record-row__head">
-            {hasPlayer && audible(row, record.tracks) && (
+            {hasPlayer && audible(row, record.tracks, record.mode) && (
               <button type="button" className="record-row__play" aria-label={t('history.playFromHere', 'Play from here')} onClick={() => seekRef.current?.(startFor(row), true)}>
                 <Play size={12} aria-hidden="true" />
               </button>

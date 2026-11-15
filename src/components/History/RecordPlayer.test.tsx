@@ -10,14 +10,16 @@ const track = (source: string, offsetMs: number, durationMs: number): HistoryTra
   ({ source, file: `${source}.opus`, format: 'ogg-opus', durationMs, bytes: 100, offsetMs, goneAt: null });
 const times = new WeakMap<HTMLMediaElement, number>();
 let playing: Set<HTMLMediaElement>;
+let assigned: HTMLMediaElement[];
 
 beforeEach(() => {
   vi.useFakeTimers();
   playing = new Set();
+  assigned = [];
   Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', {
     configurable: true,
     get() { return times.get(this) ?? 0; },
-    set(v: number) { times.set(this, v); },
+    set(v: number) { assigned.push(this); times.set(this, v); },
   });
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function (this: HTMLMediaElement) { playing.add(this); return Promise.resolve(); });
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(function (this: HTMLMediaElement) { playing.delete(this); });
@@ -69,6 +71,26 @@ describe('the record player', () => {
     act(() => { vi.advanceTimersByTime(1500); });
     expect(playing.size).toBe(0);
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+  });
+
+  it('follows the playing track instead of seeking it, at 2× as at 1×', () => {
+    const original = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'readyState');
+    Object.defineProperty(HTMLMediaElement.prototype, 'readyState', { configurable: true, get: () => 4 });
+    const seekRef = createRef<SeekFn>();
+    const positions: number[] = [];
+    render(<RecordPlayer recordId="r" tracks={[track('speaker', 0, 60_000)]} onPosition={(ms) => positions.push(ms)} seekRef={seekRef} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Speed' }), { target: { value: '2' } });
+    act(() => seekRef.current!(0, true));
+    const [speaker] = audios();
+    assigned = [];
+    // The element starts late and runs 180 ms of audio behind a wall clock at 2×.
+    for (let i = 1; i <= 10; i++) {
+      times.set(speaker, Math.max(0, i * 0.2 - 0.18));
+      act(() => { vi.advanceTimersByTime(100); });
+    }
+    expect(assigned.filter((el) => el === speaker)).toEqual([]);
+    expect(positions[positions.length - 1]).toBeCloseTo(1820, -1);
+    if (original) Object.defineProperty(HTMLMediaElement.prototype, 'readyState', original);
   });
 
   it('seeks from the slider', () => {

@@ -1,8 +1,9 @@
 // src/components/History/RecordPlayer.tsx
 //
 // The record's player along the bottom of its page: play, pause, seek, speed. The tracks play together on the
-// record's clock: each starts once the position reaches its offset and is kept within 150 ms of it. The position
-// is told to the page, which highlights the row being played.
+// record's clock: each starts once the position reaches its offset. While a track is playing with data in hand, the
+// position is read from it (the first such track leads) and the others are kept within 150 ms of it; before that, a
+// wall clock at the chosen speed carries the position. The page is told the position and highlights the row.
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Play } from 'lucide-react';
@@ -24,6 +25,8 @@ export interface RecordPlayerProps {
 const TICK_MS = 100;
 /** A track further than this from the position is put back on it. */
 const DRIFT_S = 0.15;
+/** `HAVE_FUTURE_DATA`: an element playing with data in hand. */
+const READY = 3;
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
 
 export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, onPosition, seekRef }) => {
@@ -45,8 +48,20 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     return c.playing ? c.base + (Date.now() - c.at) * c.speed : c.base;
   };
 
-  /** Every track to `pos`: playing where it covers it (when `play`), paused elsewhere. */
-  const align = (pos: number, play: boolean) => {
+  /** The first track playing with data in hand: the position is read from it. */
+  const lead = (): { el: HTMLAudioElement; offsetMs: number } | null => {
+    for (const track of kept) {
+      const el = audio.current.get(track.source);
+      if (el && started.current.has(el) && !el.seeking && !el.ended && el.readyState >= READY) return { el, offsetMs: track.offsetMs };
+    }
+    return null;
+  };
+
+  /**
+   * Every track to `pos`: playing where it covers it (when `play`), paused elsewhere. `exact` (a seek, play or pause)
+   * puts each on the position; otherwise only a ready track that drifted, never the one leading.
+   */
+  const align = (pos: number, play: boolean, exact: boolean, leading: HTMLAudioElement | null = null) => {
     for (const track of kept) {
       const el = audio.current.get(track.source);
       if (!el) continue;
@@ -54,10 +69,15 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
       const local = Math.max(0, (pos - track.offsetMs) / 1000);
       if (!inside || !play) {
         if (started.current.has(el)) { el.pause(); started.current.delete(el); }
-        el.currentTime = inside ? local : 0;
+        if (exact || !inside) el.currentTime = inside ? local : 0;
         continue;
       }
-      if (Math.abs(el.currentTime - local) > DRIFT_S) el.currentTime = local;
+      const settled = !el.seeking && el.readyState >= READY;
+      if (exact || !started.current.has(el)) {
+        if (Math.abs(el.currentTime - local) > (exact ? 0 : DRIFT_S) || !started.current.has(el)) el.currentTime = local;
+      } else if (el !== leading && settled && Math.abs(el.currentTime - local) > DRIFT_S) {
+        el.currentTime = local;
+      }
       if (!started.current.has(el)) {
         started.current.add(el);
         void el.play()?.catch?.(() => started.current.delete(el));
@@ -71,7 +91,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     setPosition(at);
     setPlaying(clock.current.playing);
     report.current(at);
-    align(at, clock.current.playing);
+    align(at, clock.current.playing, true);
   };
 
   const seek: SeekFn = (ms, play) => move(ms, play);
@@ -83,14 +103,17 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
   useEffect(() => {
     if (!playing) return undefined;
     const timer = window.setInterval(() => {
-      const pos = now();
+      const leader = lead();
+      const pos = leader ? leader.offsetMs + leader.el.currentTime * 1000 : now();
+      // The wall clock picks up from the leader, so a track that stops leading (buffering) hands over smoothly.
+      if (leader) clock.current = { ...clock.current, base: pos, at: Date.now() };
       if (pos >= length) {
         move(length, false);
         return;
       }
       setPosition(pos);
       report.current(pos);
-      align(pos, true);
+      align(pos, true, false, leader?.el ?? null);
     }, TICK_MS);
     return () => window.clearInterval(timer);
     // `align` and `move` read refs and the current tracks.

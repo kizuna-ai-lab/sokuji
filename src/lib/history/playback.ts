@@ -28,11 +28,17 @@ export function recordLength(tracks: readonly HistoryTrack[]): number {
   return playable(tracks).reduce((max, t) => Math.max(max, t.offsetMs + t.durationMs), 0);
 }
 
-const legOf = (side: HistorySentenceSide) => (side === 'mine' ? 'speaker' : 'participant');
+/**
+ * The track a side's sentences play from: its own leg's, except face to face, where both people speak into the one
+ * microphone and the other side's leg captures nothing.
+ */
+export function trackOf(side: HistorySentenceSide, mode?: string): 'speaker' | 'participant' {
+  return side === 'mine' || mode === 'face-to-face' ? 'speaker' : 'participant';
+}
 
-/** The row has audio: its side has a kept track and the row starts before that track ends. */
-export function audible(row: Pick<RecordRow, 'side' | 'startMs'>, tracks: readonly HistoryTrack[]): boolean {
-  const t = playable(tracks).find((x) => x.source === legOf(row.side));
+/** The row has audio: its track is kept and the row starts before that track ends. */
+export function audible(row: Pick<RecordRow, 'side' | 'startMs'>, tracks: readonly HistoryTrack[], mode?: string): boolean {
+  const t = playable(tracks).find((x) => x.source === trackOf(row.side, mode));
   return !!t && row.startMs < t.offsetMs + t.durationMs;
 }
 

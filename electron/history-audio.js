@@ -13,11 +13,21 @@ const HISTORY_SCHEME = 'sokuji-history';
 /** Before the app is ready: the scheme may stream media and be fetched like https. */
 function registerHistoryScheme(protocol) {
   protocol.registerSchemesAsPrivileged([
-    { scheme: HISTORY_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
+    { scheme: HISTORY_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } },
   ]);
 }
 
 const notFound = () => new Response(null, { status: 404 });
+
+/**
+ * The app's own page: the packaged page loads from file:// (its requests say `null` or `file://`), the development
+ * one from the dev server. Saving a recording fetches it, which needs the answer to name the page; media loads do not.
+ */
+const APP_ORIGINS = new Set(['null', 'file://', 'http://localhost:5173']);
+const corsFor = (request) => {
+  const origin = request.headers.get('Origin');
+  return origin && APP_ORIGINS.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+};
 
 /** `bytes=a-b` or `bytes=a-` against a file of `size` bytes: the inclusive range, 'unsatisfiable', or null for none. */
 function rangeOf(header, size) {
@@ -48,7 +58,7 @@ async function trackResponse(store, request) {
   } catch {
     return notFound();
   }
-  const headers = { 'Accept-Ranges': 'bytes', 'Content-Type': 'audio/ogg' };
+  const headers = { 'Accept-Ranges': 'bytes', 'Content-Type': 'audio/ogg', ...corsFor(request) };
   const range = rangeOf(request.headers.get('Range'), size);
   if (range === 'unsatisfiable') return new Response(null, { status: 416, headers: { ...headers, 'Content-Range': `bytes */${size}` } });
   const { start, end } = range ?? { start: 0, end: size - 1 };

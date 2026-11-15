@@ -35,7 +35,7 @@ describe('the recordings scheme', () => {
     const calls = [];
     registerHistoryScheme({ registerSchemesAsPrivileged: (list) => calls.push(list) });
     expect(HISTORY_SCHEME).toBe('sokuji-history');
-    expect(calls).toEqual([[{ scheme: 'sokuji-history', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]]);
+    expect(calls).toEqual([[{ scheme: 'sokuji-history', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }]]);
   });
 
   it('answers the whole file with its length', async () => {
@@ -45,6 +45,15 @@ describe('the recordings scheme', () => {
     expect(r.headers.get('Accept-Ranges')).toBe('bytes');
     expect(r.headers.get('Content-Type')).toBe('audio/ogg');
     expect((await r.arrayBuffer()).byteLength).toBe(10_000);
+  });
+
+  it("lets the app's own page read a recording (saving it), and no other origin", async () => {
+    const from = (origin) => trackResponse(s, new Request(url(), { headers: { Origin: origin } }));
+    expect((await from('null')).headers.get('Access-Control-Allow-Origin')).toBe('null');
+    expect((await from('file://')).headers.get('Access-Control-Allow-Origin')).toBe('file://');
+    expect((await from('http://localhost:5173')).headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173');
+    expect((await from('https://example.com')).headers.get('Access-Control-Allow-Origin')).toBeNull();
+    expect((await get(url())).headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
   it('answers a byte range', async () => {

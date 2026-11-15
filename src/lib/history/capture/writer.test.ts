@@ -210,6 +210,18 @@ describe('the history writer', () => {
     expect(order).toEqual(['openRecord', 'begin:run-0001-aaaa:1000', 'end', 'closeRecord']);
   });
 
+  it('does not begin the recording when the record could not be opened', async () => {
+    writer.dispose();
+    const begun: string[] = [];
+    const recorder = { begin: (id: string) => { begun.push(id); }, end: async () => {} };
+    const tracked = recordingPort();
+    tracked.fail('openRecord', 1);
+    writer = createHistoryWriter({ state, conversation, port: tracked.port, clock, facts: () => facts, report, recorder });
+    start('run-0001-aaaa');
+    await writer.settled();
+    expect(begun).toEqual([]);
+  });
+
   it('closes the record when the run ends, after the last corrections', async () => {
     start('run-0001-aaaa');
     say('speaker', 1, 'hello');

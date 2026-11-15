@@ -57,7 +57,8 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
   };
 
   const send = (r: Recording, leg: LegName, track: Track, piece: TrackPiece | null) => {
-    if (!piece || r.failed) return;
+    // Nothing new (the last take had it all): the main process would refuse an empty piece.
+    if (!piece || piece.bytes.length === 0 || r.failed) return;
     const message: HistoryTrackPiece = { recordId: r.id, source: leg, offsetMs: track.offsetMs ?? 0, durationMs: piece.durationMs, data: piece.bytes };
     r.queued += piece.bytes.length;
     r.chain = r.chain.then(async () => {

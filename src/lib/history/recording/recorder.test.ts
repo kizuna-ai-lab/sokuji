@@ -95,6 +95,17 @@ describe('a record\'s recording', () => {
     expect(last.durationMs).toBeGreaterThanOrEqual(1400);
   });
 
+  it('sends no empty piece when everything was already written', async () => {
+    recorder.begin(ID, 0);
+    await run(900, () => ['speaker']);
+    clock.advance(100);
+    await settle();
+    const before = pieces.length;
+    await recorder.end();
+    expect(pieces.slice(before).every((p) => p.data.length > 0)).toBe(true);
+    expect(tell).not.toHaveBeenCalled();
+  });
+
   it('ignores audio with no record, and audio after end', async () => {
     recorder.pcm('speaker', chunk());
     recorder.begin(ID, 0);

@@ -553,6 +553,16 @@ describe('appending to a track file', () => {
     bad({ durationMs: -1 });
   });
 
+  it("refuses a piece when the track's file or folder is gone, and does not make a new one", () => {
+    s.openRecord(rec());
+    s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 0, durationMs: 997, data: piece(500) });
+    const folder = s.recordDir(ID);
+    rmSync(folder, { recursive: true, force: true });
+    expect(() => s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 0, durationMs: 1997, data: piece(500) }))
+      .toThrow(expect.objectContaining({ code: 'TRACK_GONE' }));
+    expect(existsSync(join(folder, 'speaker.opus'))).toBe(false);
+  });
+
   it('refuses a record that is closed', () => {
     s.openRecord(rec());
     s.putSegments({ recordId: ID, leg: 'speaker', segments: [{ id: `${ID}:speaker:1`, ref: 1, side: 'source', text: 'kept', final: true, openedAt: 10, marks: [] }] });

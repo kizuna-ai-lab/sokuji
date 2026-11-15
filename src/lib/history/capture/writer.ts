@@ -150,12 +150,12 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     };
     rec = r;
     known.add(session);
+    // The recording's pieces need the record to exist: it begins once the record is open, and not at all when the
+    // record could not be opened (every piece would be refused).
     send(r, () => port.openRecord({
       id: session, startedAt: r.startedAt, mode: facts.mode, myLanguage, targetLanguage,
       services: { provider: info?.provider ?? '', models }, appVersion: facts.appVersion,
-    }));
-    // The recording's pieces need the record to exist: it begins once the record is open.
-    send(r, () => { deps.recorder?.begin(session, r.startedAt); return null; });
+    }).then(() => { deps.recorder?.begin(session, r.startedAt); }));
     for (const leg of legs) {
       const c = facts.legs[leg.leg];
       send(r, () => port.putLeg({

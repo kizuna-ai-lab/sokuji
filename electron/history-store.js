@@ -647,10 +647,13 @@ function openHistory({ dir, now = () => Date.now() }) {
         fail('BAD_INPUT', 'A track piece needs a source (speaker or participant), offsetMs, durationMs and 1 byte to 1 MiB of data');
       }
       const file = `${source}.opus`;
-      const full = path.join(store.recordDir(recordId), file);
+      const known = one('select offset_ms from tracks where record_id = ? and source = ?', recordId, source);
+      // The first piece makes the folder and the file; a later one must find them: a file begun again would hold
+      // pages without their head and never play, so a vanished file stops the recording instead.
+      const full = path.join(known ? folderOf(recordId) : store.recordDir(recordId), file);
+      if (known && !fs.existsSync(full)) fail('TRACK_GONE', `The ${source} track of ${recordId} is gone`);
       fs.appendFileSync(full, data);
       const bytes = sizeOf(full);
-      const known = one('select offset_ms from tracks where record_id = ? and source = ?', recordId, source);
       run(
         `insert or replace into tracks (record_id, source, file, format, duration_ms, bytes, offset_ms, gone_at)
          values (?, ?, ?, 'ogg-opus', ?, ?, ?, null)`,

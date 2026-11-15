@@ -4,6 +4,12 @@
 // arrived, and keeps the file on the record's clock: a stretch that was held back (the microphone muted, the
 // push-to-talk key up) becomes encoded silence. Encoded packets go straight onto Ogg pages; only the pages not yet
 // taken are kept.
+//
+// Two things look like a pause and are not treated alike. After a real pause the audio comes back at its usual pace;
+// after a stall of the page, the audio it held back arrives all at once. So the first chunk after a gap waits for the
+// next: a burst is the held-back audio and fills the gap itself; a chunk at the usual pace means the gap was a pause.
+// Silence is written at each take, at most a minute of it, so a long pause never sits in memory at once; audio
+// that comes after it waits its turn.
 import { SAMPLE_RATE } from '../../contract/adapter';
 import { SENT_JOIN_MS } from '../../contract/sentClock';
 import { createOggOpusWriter, type OggOpusWriter } from './ogg';
@@ -35,6 +41,13 @@ export interface Track {
 }
 
 const SAMPLES_PER_MS = SAMPLE_RATE / 1000;
+/** Silence goes to the encoder in slices of this many samples (one second), from one buffer. */
+const SILENCE_SLICE = SAMPLE_RATE;
+/** At most this much silence is written per take (a minute); the rest at the next. */
+const SILENCE_PER_TAKE = 60 * SAMPLE_RATE;
+const ZEROS = new Int16Array(SILENCE_SLICE);
+
+type Work = { silence: number } | { pcm: Int16Array };
 const EMPTY: TrackPiece = { bytes: new Uint8Array(0), durationMs: 0 };
 
 export function createTrack(o: { startedAt: number; encoder: OpusEncoderFactory; serial: number }): Track {
@@ -47,6 +60,12 @@ export function createTrack(o: { startedAt: number; encoder: OpusEncoderFactory;
   let durationMs = 0;
   /** Packets the encoder gave before its head: put on pages once the head is known. */
   let early: Array<{ data: Uint8Array; samples48k: number }> = [];
+  /** Silence and audio waiting to be encoded, in order. */
+  const queue: Work[] = [];
+  /** The audio after a gap, waiting for the next chunk to tell a pause from a stall; with the gap it follows. */
+  let held: { chunks: Int16Array[]; at: number; gap: number } | null = null;
+  /** The chunk length last seen, in ms: what "the usual pace" is. */
+  let paceMs = 0;
 
   const fail = () => {
     failed = true;
@@ -80,6 +99,50 @@ export function createTrack(o: { startedAt: number; encoder: OpusEncoderFactory;
     );
   };
 
+  const enqueue = (w: Work) => {
+    if ('pcm' in w && queue.length === 0) encode(w.pcm);
+    else queue.push(w);
+  };
+
+  /** The held chunks, now that it is known what they were: a burst fills its gap; one chunk came after a pause. */
+  const resolve = () => {
+    if (!held) return;
+    const { chunks, gap } = held;
+    held = null;
+    if (chunks.length > 1) {
+      const backlog = chunks.reduce((n, c) => n + c.length, 0);
+      for (const c of chunks) enqueue({ pcm: c });
+      // The held chunks are already counted in `samplesIn`; only a pause longer than what they fill adds silence.
+      const rest = gap - backlog;
+      if (rest > SENT_JOIN_MS * SAMPLES_PER_MS) {
+        samplesIn += rest;
+        enqueue({ silence: rest });
+      }
+    } else {
+      samplesIn += gap;
+      enqueue({ silence: gap });
+      enqueue({ pcm: chunks[0] });
+    }
+  };
+
+  /** Encodes what waits, with at most `budget` samples of silence. */
+  const pump = (budget: number) => {
+    while (queue.length > 0 && !failed) {
+      const w = queue[0];
+      if ('pcm' in w) {
+        queue.shift();
+        encode(w.pcm);
+        continue;
+      }
+      if (budget <= 0) return;
+      const n = Math.min(w.silence, SILENCE_SLICE, budget);
+      encode(n === SILENCE_SLICE ? ZEROS : ZEROS.subarray(0, n));
+      budget -= n;
+      w.silence -= n;
+      if (w.silence <= 0) queue.shift();
+    }
+  };
+
   const piece = (end: boolean): TrackPiece | null => {
     if (failed || !writer) return null;
     const head = begun ? null : writer.begin();
@@ -97,27 +160,53 @@ export function createTrack(o: { startedAt: number; encoder: OpusEncoderFactory;
   return {
     pcm(pcm, at) {
       if (failed || pcm.length === 0) return;
-      const start = at - pcm.length / SAMPLES_PER_MS - o.startedAt;
+      const lengthMs = pcm.length / SAMPLES_PER_MS;
+      const start = at - lengthMs - o.startedAt;
+      if (held) {
+        // Arriving with the held chunk (well inside a chunk's time): the held-back audio of a stall.
+        if (at - held.at < Math.max(paceMs, lengthMs) / 2) {
+          held.chunks.push(pcm);
+          samplesIn += pcm.length;
+          held.at = at;
+          return;
+        }
+        resolve();
+      }
+      paceMs = lengthMs;
       if (offsetMs === null) {
         offsetMs = Math.max(0, Math.round(start));
         open();
       } else {
-        // Held back since the last chunk: silence for it, so a position in the file stays a time on the record.
+        // Silence since the last chunk is decided by the next one: see the head of this file.
         const gap = start - (offsetMs + samplesIn / SAMPLES_PER_MS);
         if (gap > SENT_JOIN_MS) {
-          const zeros = new Int16Array(Math.round(gap * SAMPLES_PER_MS));
-          samplesIn += zeros.length;
-          encode(zeros);
+          held = { chunks: [pcm], at, gap: Math.round(gap * SAMPLES_PER_MS) };
+          samplesIn += pcm.length;
+          return;
         }
       }
       samplesIn += pcm.length;
-      encode(pcm);
+      enqueue({ pcm });
     },
 
-    take: () => piece(false),
+    take() {
+      if (failed) return null;
+      resolve();
+      pump(SILENCE_PER_TAKE);
+      return piece(false);
+    },
 
     async end() {
       if (failed || !encoder) return EMPTY;
+      resolve();
+      // What waits is written a minute at a time, the encoder draining in between.
+      while (queue.length > 0 && !failed) {
+        pump(SILENCE_PER_TAKE);
+        if (queue.length > 0) {
+          try { await encoder.flush(); } catch { fail(); }
+        }
+      }
+      if (failed) return EMPTY;
       try {
         await encoder.flush();
       } catch {
