@@ -1,0 +1,61 @@
+// A record's transcript rows: sentences grouped by round, with their translation and speaker labels; and its cues.
+import { describe, it, expect } from 'vitest';
+import type { Leg, LegName, Segment } from '../conversation/types';
+import type { HistorySentence } from './types';
+import { recordCues, recordRows, type RecordRow, type SpeakerLabels } from './recordView';
+
+const labels: SpeakerLabels = { mine: 'Me', other: 'Other', person: (side, n) => `${side === 'mine' ? 'Me' : 'Other'} speaker ${n}` };
+
+const s = (n: number, segmentId: string | null, text: string, over: Partial<HistorySentence> = {}): HistorySentence => ({
+  n, segmentId, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', speakerByUser: null, speakerName: null,
+  startMs: n * 1000, endMs: n * 1000 + 800, text, language: null, timeKind: 'given', ...over,
+});
+const seg = (id: string, side: 'source' | 'translation', text: string, origin: string): Segment => ({
+  id, ref: Number(id.split(':').pop()), side, text, final: true, openedAt: 0, marks: [], origin, speech: [],
+});
+const leg = (name: LegName, segments: Segment[]): Leg => ({ leg: name, session: 'run', languages: { source: 'en', target: 'es' }, segments, notices: [] });
+const row = (over: Partial<RecordRow>): RecordRow => ({
+  segmentId: 'a', leg: 'speaker', side: 'mine', speaker: '1', speakerLabel: 'Me', startMs: 0, endMs: 0, timeKind: 'given',
+  sentences: [], translation: null, ...over,
+});
+
+describe('a record\'s transcript rows', () => {
+  it("groups a round's sentences into one row with its translation", () => {
+    const rows = recordRows({
+      sentences: [s(1, 'run:speaker:1', 'One.'), s(2, 'run:speaker:1', 'Two.')],
+      legs: [leg('speaker', [seg('run:speaker:1', 'source', 'One. Two.', 'u1'), seg('run:speaker:2', 'translation', 'Uno. Dos.', 'u1')])],
+      textKind: 'original', labels,
+    });
+    expect(rows).toEqual([expect.objectContaining({ segmentId: 'run:speaker:1', side: 'mine', speakerLabel: 'Me', sentences: [{ n: 1, text: 'One.' }, { n: 2, text: 'Two.' }], translation: 'Uno. Dos.', startMs: 1000, endMs: 2800 })]);
+  });
+
+  it('shows a transcript cut from the translation once, with no second translation line', () => {
+    const rows = recordRows({ sentences: [s(1, 'run:speaker:2', 'Uno.')], legs: [leg('speaker', [seg('run:speaker:2', 'translation', 'Uno.', 'u1')])], textKind: 'translation', labels });
+    expect(rows[0]).toEqual(expect.objectContaining({ sentences: [{ n: 1, text: 'Uno.' }], translation: null }));
+  });
+
+  it('labels speakers by name, by number when a side has several, else by side', () => {
+    const rows = recordRows({
+      sentences: [s(1, 'a', 'x', { side: 'other', speaker: '1.1' }), s(2, 'b', 'y', { side: 'other', speaker: '1.2' }), s(3, 'c', 'z', { side: 'other', speaker: '1.1', speakerName: 'Mina' }), s(4, 'd', 'w')],
+      legs: [], textKind: 'original', labels,
+    });
+    expect(rows.map((r) => r.speakerLabel)).toEqual(['Mina', 'Other speaker 2', 'Mina', 'Me']);
+  });
+
+  it('a sentence moved to another speaker starts its own row', () => {
+    const rows = recordRows({ sentences: [s(1, 'a', 'x'), s(2, 'a', 'y', { speakerByUser: 'u1' })], legs: [], textKind: 'original', labels });
+    expect(rows.map((r) => r.sentences.map((x) => x.n))).toEqual([[1], [2]]);
+  });
+
+  it('makes one cue per row with the lines the scope asks for', () => {
+    const rows = [row({ startMs: 1000, endMs: 3000, sentences: [{ n: 1, text: 'One.' }], translation: 'Uno.' })];
+    expect(recordCues(rows, { speaker: 'both', participant: 'both' })).toEqual([{ startMs: 1000, endMs: 3000, lines: ['One.', 'Uno.'] }]);
+    expect(recordCues(rows, { speaker: 'translation', participant: 'both' })[0].lines).toEqual(['Uno.']);
+    expect(recordCues(rows, { speaker: 'none', participant: 'both' })).toEqual([]);
+  });
+
+  it('joins Chinese and Japanese sentences without a space, Latin ones with one', () => {
+    const rows = [row({ sentences: [{ n: 1, text: '下周三。' }, { n: 2, text: '可以。' }] }), row({ segmentId: 'b', sentences: [{ n: 3, text: 'One.' }, { n: 4, text: 'Two.' }] })];
+    expect(recordCues(rows, { speaker: 'source', participant: 'source' }).map((c) => c.lines[0])).toEqual(['下周三。可以。', 'One. Two.']);
+  });
+});
