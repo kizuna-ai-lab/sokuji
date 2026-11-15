@@ -1779,7 +1779,9 @@
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
         "ready": "Sẵn sàng"
-      }
+      },
+      "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
+      "hint": "Dịch vụ nào làm từng khâu"
     },
     "display": {
       "surface": "Hiển thị nào",

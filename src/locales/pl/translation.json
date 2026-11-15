@@ -1779,7 +1779,9 @@
         "needsModel": "Wymaga modelu",
         "needsSignIn": "Wymaga zalogowania",
         "ready": "Gotowe"
-      }
+      },
+      "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
+      "hint": "Która usługa wykonuje każdy etap"
     },
     "display": {
       "surface": "Który widok",

@@ -1779,7 +1779,9 @@
         "needsModel": "모델 필요",
         "needsSignIn": "로그인 필요",
         "ready": "준비됨"
-      }
+      },
+      "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
+      "hint": "각 단계를 어떤 서비스가 맡는지"
     },
     "display": {
       "surface": "어느 화면",

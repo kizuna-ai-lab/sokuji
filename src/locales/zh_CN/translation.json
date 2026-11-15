@@ -1779,7 +1779,9 @@
         "needsModel": "需要模型",
         "needsSignIn": "需要登录",
         "ready": "就绪"
-      }
+      },
+      "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
+      "hint": "每个阶段由哪个服务来做"
     },
     "display": {
       "surface": "哪个界面",

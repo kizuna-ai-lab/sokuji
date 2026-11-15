@@ -1779,7 +1779,9 @@
         "needsModel": "Necesita un modelo",
         "needsSignIn": "Requiere iniciar sesión",
         "ready": "Listo"
-      }
+      },
+      "speechModeHint": "Cuándo se envía un tramo de voz a traducir; fijo durante la sesión",
+      "hint": "Qué servicio hace cada etapa"
     },
     "display": {
       "surface": "Qué visualización",

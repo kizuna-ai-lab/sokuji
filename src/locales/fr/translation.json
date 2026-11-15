@@ -1779,7 +1779,9 @@
         "needsModel": "Modèle requis",
         "needsSignIn": "Connexion requise",
         "ready": "Prêt"
-      }
+      },
+      "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
+      "hint": "Quel service assure chaque étape"
     },
     "display": {
       "surface": "Quel affichage",

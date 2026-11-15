@@ -1779,7 +1779,9 @@
         "needsModel": "Braucht ein Modell",
         "needsSignIn": "Anmeldung nötig",
         "ready": "Bereit"
-      }
+      },
+      "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
+      "hint": "Welcher Dienst jede Stufe übernimmt"
     },
     "display": {
       "surface": "Welche Anzeige",

@@ -100,9 +100,10 @@ describe('SpeechSection', () => {
   // detection now (LocalInference's VAD, Soniox's endpoint model), so the
   // heading's tooltip names none of them.
   it("the Speech mode's tooltip names no mechanism: the provider's detection, for your voice and the other side's", () => {
-    render(<SpeechSection locked={false} />);
-    const texts = tooltipContents.filter((c): c is string => typeof c === 'string');
-    // The heading's: the one that explains the three modes.
+    const { container } = render(<SpeechSection locked={false} />);
+    // The explanation of the three modes is the mode choice's own title now (the mock's heading has no help mark).
+    const modesTitle = container.querySelector('.turn-detection-options')!.getAttribute('title')!;
+    const texts = [modesTitle, ...tooltipContents.filter((c): c is string => typeof c === 'string')];
     const heading = texts.find((c) => c.includes('Push-to-Translate:'));
     expect(heading).toContain('Auto: the provider detects when you have finished speaking.');
     expect(heading).toContain("Other's audio always uses the provider's automatic detection.");
@@ -238,5 +239,22 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     const { css } = compile(resolve(__dirname, '../Settings.scss'));
     expect(css).toMatch(/\.config-section \.setting-item\.turn-detection-tuning,\s*\.settings-section \.setting-item\.turn-detection-tuning\s*\{[^}]*margin-bottom:\s*0;/);
     expect(css).toMatch(/\.config-section \.setting-item\.turn-detection-tuning \.setting-label,\s*\.settings-section \.setting-item\.turn-detection-tuning \.setting-label\s*\{[^}]*margin-bottom:\s*0;/);
+  });
+});
+
+// The mock's line-up page (v18): a plain heading with its hint, the three modes as a compact segmented choice.
+describe('SpeechSection — as the mock draws it', () => {
+  it('heads the section with its name and a hint, no icon or help mark', () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    const h3 = container.querySelector('h3')!;
+    expect(h3).toHaveClass('settings-subhead');
+    expect(h3).toHaveTextContent('When a stretch of speech goes off to be translated; fixed during a session');
+    expect(h3.querySelector('svg')).toBeNull();
+    expect(tooltipContents.some((c) => typeof c === 'string' && c.includes('Push-to-Translate:'))).toBe(false);
+  });
+
+  it('draws the three modes as a compact segmented choice', () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(container.querySelector('.turn-detection-options')).toHaveClass('settings-seg');
   });
 });

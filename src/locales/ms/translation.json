@@ -1779,7 +1779,9 @@
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu log masuk",
         "ready": "Sedia"
-      }
+      },
+      "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
+      "hint": "Perkhidmatan mana yang membuat setiap peringkat"
     },
     "display": {
       "surface": "Paparan mana",

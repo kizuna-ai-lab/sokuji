@@ -1779,7 +1779,9 @@
         "needsModel": "Precisa de um modelo",
         "needsSignIn": "Requer início de sessão",
         "ready": "Pronto"
-      }
+      },
+      "speechModeHint": "Quando um trecho de fala segue para tradução; fixo durante a sessão",
+      "hint": "Que serviço faz cada etapa"
     },
     "display": {
       "surface": "Qual apresentação",

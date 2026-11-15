@@ -155,25 +155,31 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
 
   return (
     <div className="lineup-category">
-      <ProviderLanguages providers={providers} disabled={locked} sentence={{ mode, textOnly }} />
+      <ProviderLanguages providers={providers} disabled={locked} sentence={{ mode, textOnly }} heading={false} />
       <SpeechSection locked={locked} />
       <div className="config-section lineup-section" id="lineup-section">
-        <h3>{t('settingsPage.lineup.title', 'Line-up')}</h3>
+        <h3 className="settings-subhead">
+          <span>{t('settingsPage.lineup.title', 'Line-up')}</span>
+          <small>{t('settingsPage.lineup.hint', 'Which service does each stage')}</small>
+        </h3>
         {RUN_STAGES.map((stage) => {
           const id = lineUp?.[stage] ?? '';
           const group = caps(id)?.binds.find((g) => g.includes(stage) && g.length > 1);
           const partners = group?.filter((s) => s !== stage) ?? [];
           const title = t(`settingsPage.lineup.stages.${stage}`, STAGE_TITLES[stage]);
           return (
-            <div className="lineup-stage" key={stage}>
-              <label className="lineup-stage__head">
-                <span>{title} <em className={`lineup-stage__state${stateOf(id).ok ? ' is-ready' : ''}`}>{stateOf(id).text}</em></span>
-                <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
-                  onChange={(e) => void choose(stage, e.target.value)}>
-                  {rich && <button type="button"><selectedcontent /></button>}
-                  {optionsFor(stage).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
-                </select>
-              </label>
+            // A card per stage (the mock's): its name and state on one line, the choice under them; the stages one
+            // provider serves over one connection are outlined together.
+            <div className={`lineup-stage${partners.length > 0 ? ' is-joint' : ''}`} key={stage}>
+              <div className="lineup-stage__head">
+                <span className="lineup-stage__name">{title}</span>
+                <em className={`lineup-stage__state${stateOf(id).ok ? ' is-ready' : ''}`}>{stateOf(id).text}</em>
+              </div>
+              <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
+                onChange={(e) => void choose(stage, e.target.value)}>
+                {rich && <button type="button"><selectedcontent /></button>}
+                {optionsFor(stage).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
+              </select>
               {partners.length > 0 && (
                 <p className="lineup-stage__joint">
                   <Link2 size={12} aria-hidden="true" />

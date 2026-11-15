@@ -26,7 +26,7 @@ describe('the settings page words', () => {
       'settingsPage.title', 'settingsPage.search', 'settingsPage.back', 'settingsPage.backToList', 'settingsPage.lockedLine',
       'settingsPage.accounts.signedIn', 'settingsPage.lineup.joint', 'settingsPage.display.previewMain', 'settingsPage.display.previewCaptions',
       'settingsPage.display.mineSide', 'settingsPage.display.theirsSide', 'settingsPage.display.empty', 'subtitle.settings.defaultColour',
-      'settingsPage.audio.micHint', 'settingsPage.audio.otherHint', 'settingsPage.audio.device', 'settingsPage.audio.source', 'audioPanel.captionReplay',
+      'settingsPage.audio.micHint', 'settingsPage.audio.otherHint', 'settingsPage.audio.device', 'settingsPage.audio.source', 'audioPanel.captionReplay', 'settingsPage.lineup.speechModeHint', 'settingsPage.lineup.hint',
       'mainPanel.whatIHear', 'mainPanel.audioSettings', 'audioPanel.captionMine', 'audioPanel.captionTheirs',
       'audioPanel.defaultPlaybackAid', 'models.readingsDictionary', 'models.readingsDictionaryNotStored',
     ];

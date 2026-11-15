@@ -1,7 +1,5 @@
-import { Mic } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import Tooltip from '../../Tooltip/Tooltip';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useAnalytics } from '../../../lib/analytics';
 import type { TurnMode } from '../../../lib/session/types';
@@ -19,14 +17,14 @@ const MODES: ReadonlyArray<[TurnMode, string, string]> = [
 const LEGACY_NAME: Readonly<Record<TurnMode, string>> = { auto: 'Auto', 'push-to-talk': 'Push-to-Talk', 'push-to-translate': 'Push-to-Translate' };
 
 /** The global turn mode (D15, 1e-3 ruling 7): locked while a run is not idle — the run's subtitle session reads it live (roadmap 1d-2 → 1e). */
-export function TurnModeControl({ locked }: { locked: boolean }) {
+export function TurnModeControl({ locked, title }: { locked: boolean; title?: string }) {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const selected = useProviderStore((s) => s.selected);
   return (
     <div className="setting-item">
-      <div className="turn-detection-options">
+      <div className="turn-detection-options settings-seg" role="group" aria-label={t('settings.speechMode')} title={title}>
         {MODES.map(([mode, key, fallback]) => (
           <button
             key={mode}
@@ -105,12 +103,12 @@ export function SpeechSection({ locked }: { locked: boolean }) {
   const tooltip = `${t('settings.speechModeTooltip', 'Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesToAuto', "Applies to your voice. Other's audio always uses the provider's automatic detection.")}`;
   return (
     <div className="config-section turn-detection-section" id="turn-detection-section">
-      <h3>
-        <Mic size={18} />
+      {/* The mock's line-up page (v18): a plain heading with its hint; the modes explained on hover over the choice. */}
+      <h3 className="settings-subhead">
         <span>{t('settings.speechMode')}</span>
-        <Tooltip content={tooltip} position="top" icon="help" />
+        <small>{t('settingsPage.lineup.speechModeHint', 'When a stretch of speech goes off to be translated; fixed during a session')}</small>
       </h3>
-      <TurnModeControl locked={locked} />
+      <TurnModeControl locked={locked} title={tooltip} />
       <ProviderTurnDetection locked={locked} />
     </div>
   );

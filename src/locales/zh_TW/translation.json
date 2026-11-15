@@ -1779,7 +1779,9 @@
         "needsModel": "需要模型",
         "needsSignIn": "需要登入",
         "ready": "就緒"
-      }
+      },
+      "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
+      "hint": "每個階段由哪個服務來做"
     },
     "display": {
       "surface": "哪個介面",

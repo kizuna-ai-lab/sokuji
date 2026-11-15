@@ -1779,7 +1779,9 @@
         "needsModel": "Model nodig",
         "needsSignIn": "Inloggen nodig",
         "ready": "Klaar"
-      }
+      },
+      "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
+      "hint": "Welke dienst elke stap doet"
     },
     "display": {
       "surface": "Welke weergave",

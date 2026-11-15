@@ -1779,7 +1779,9 @@
         "needsModel": "Tarvitsee mallin",
         "needsSignIn": "Vaatii kirjautumisen",
         "ready": "Valmis"
-      }
+      },
+      "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
+      "hint": "Mikä palvelu hoitaa kunkin vaiheen"
     },
     "display": {
       "surface": "Mikä näkymä",

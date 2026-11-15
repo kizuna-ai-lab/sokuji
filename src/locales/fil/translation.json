@@ -1779,7 +1779,9 @@
         "needsModel": "Kailangan ng model",
         "needsSignIn": "Kailangang mag-sign in",
         "ready": "Handa"
-      }
+      },
+      "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
+      "hint": "Aling serbisyo ang gumagawa ng bawat yugto"
     },
     "display": {
       "surface": "Aling display",

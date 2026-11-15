@@ -15,6 +15,8 @@ interface ProviderLanguagesProps {
   disabled?: boolean;
   /** The language pair's sentence (ruling 4); the app passes it, the preview does not. */
   sentence?: { mode: AudioMode; textOnly: boolean };
+  /** False: the pair without its own heading (the settings page, where the page names it). */
+  heading?: boolean;
 }
 
 /**
@@ -23,7 +25,7 @@ interface ProviderLanguagesProps {
  * AST2, choice 1). Tracks each side that changed with today's
  * `language_changed` (ruling 14) before persisting the new pair.
  */
-export function ProviderLanguages({ providers, disabled, sentence }: ProviderLanguagesProps) {
+export function ProviderLanguages({ providers, disabled, sentence, heading }: ProviderLanguagesProps) {
   const { trackEvent } = useAnalytics();
   const selection = useSelectedProvider(providers);
   const legs = useProviderStore((st) => st.legs);
@@ -46,6 +48,7 @@ export function ProviderLanguages({ providers, disabled, sentence }: ProviderLan
       settings={entry.settings}
       pair={entry.pair}
       disabled={disabled}
+      heading={heading}
       sentence={sentence && { ...sentence, participantSpeaks: runSpeech !== false && speechFromStores(provider).them }}
       context={languageContext(provider, legs, speech)}
       onChange={(pair) => {

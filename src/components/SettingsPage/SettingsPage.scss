@@ -143,39 +143,73 @@
   }
 }
 
-// Languages and line-up: one row per stage, the provider's own options folded under them.
+// Languages and line-up, as the mock draws them (v18): the pair, the speech mode and its summary box, then one
+// card per stage — its name and state on one line, the choice under it; the stages one provider serves over one
+// connection outlined together. The provider's own options stay folded under the cards.
 .lineup-category {
   display: flex;
   flex-direction: column;
-  gap: vars.$space-4;
+  gap: 4px;
+  .config-section { margin: 0; padding: 0; border: none; }
+  .language-pair-row {
+    gap: 8px;
+    .language-select-group label { margin-bottom: 4px; font-size: 12px; color: vars.$text-tertiary; }
+    .language-select { height: 30px; padding: 0 8px; font-size: 12.5px; border-radius: 6px; }
+    .language-swap-btn { padding: 6px; border: none; }
+  }
+  .language-mirror-line { font-size: 11.5px; color: vars.$text-muted; }
+  .turn-detection-section .setting-item { margin: 0; }
+  .turn-detection-options.settings-seg {
+    display: inline-flex;
+    width: auto;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    .option-button {
+      flex: none;
+      height: 24px;
+      padding: 0 12px;
+      background: transparent;
+      font-size: 12px;
+      & + .option-button { border-left: 1px solid vars.$border-subtle; }
+      &:not(:last-child) { border-right: none; }
+      &.active { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+    }
+  }
+  // The provider's detection, summed up: the mock's box under the modes; the line still opens its tuning.
+  .turn-detection-tuning {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+    font-size: 12.5px;
+  }
 }
 
 .lineup-stage {
   display: flex;
   flex-direction: column;
-  gap: vars.$space-1;
-  padding: vars.$space-2 0;
-  border-bottom: 1px solid vars.$border-subtle;
-  &:last-child { border-bottom: none; }
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 10px;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 8px;
+  background: vars.$bg-surface;
+  &.is-joint { border-color: vars.$color-primary; }
 
-  &__head {
-    display: grid;
-    grid-template-columns: 120px minmax(0, 1fr);
-    align-items: center;
-    gap: vars.$space-3;
-    > span { color: vars.$text-secondary; font-size: vars.$font-caption; }
-  }
+  &__head { display: flex; align-items: center; gap: 8px; }
+  &__name { font-size: 13px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
+  &__state { margin-left: auto; white-space: nowrap; font-style: normal; font-size: 11.5px; color: vars.$color-warning; &.is-ready { color: vars.$color-primary; } }
 
   &__joint, &__moved {
-    margin: 0 0 0 calc(120px + #{vars.$space-3});
+    margin: 0;
     display: flex;
     align-items: center;
-    gap: vars.$space-1;
-    font-size: vars.$font-caption;
-    color: vars.$text-muted;
+    gap: 4px;
+    font-size: 11.5px;
   }
+  &__joint { color: vars.$color-primary; }
   &__moved { color: vars.$color-warning; }
-  &__state { display: block; font-style: normal; font-size: 11px; color: vars.$color-warning; &.is-ready { color: vars.$text-muted; } }
 }
 
 .provider-blocked {
@@ -188,12 +222,14 @@
   display: flex;
   flex-direction: column;
   gap: vars.$space-3;
+  margin-top: 8px;
   &__fold {
     display: inline-flex;
     align-items: center;
     gap: vars.$space-1;
     align-self: flex-start;
     padding: vars.$space-1 0;
+    font-size: 12px;
     border: none;
     background: transparent;
     color: vars.$text-secondary;
@@ -203,10 +239,6 @@
   }
 }
 
-@container (max-width: 480px) {
-  .lineup-stage__head { grid-template-columns: minmax(0, 1fr); }
-  .lineup-stage__joint, .lineup-stage__moved { margin-left: 0; }
-}
 
 // Accounts and keys (the mock): one row per account, rows split by a thin line; the name, its state under it, one button.
 .accounts-category { display: flex; flex-direction: column; }

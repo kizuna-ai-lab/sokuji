@@ -27,6 +27,8 @@ interface LanguagePairSectionProps {
   sentence?: { mode: AudioMode; textOnly: boolean; participantSpeaks?: boolean };
   /** Whether a run would speak (Stage 2 Volcengine AST2, choice 1): the lists are the offer for it. Absent: the provider's widest offer. */
   context?: LanguageContext;
+  /** Absent or true: the section's own heading. False where the page names the languages already (the settings page). */
+  heading?: boolean;
 }
 
 /**
@@ -35,7 +37,7 @@ interface LanguagePairSectionProps {
  * allowed whenever the provider supports the reversed pair. Markup is
  * LanguageSection's translation-languages block.
  */
-export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context }: LanguagePairSectionProps) {
+export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, heading = true }: LanguagePairSectionProps) {
   const { t, i18n } = useTranslation();
   const id = useId();
   const label = useLanguageLabel();
@@ -82,15 +84,17 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
 
   return (
     <div className="config-section" id="languages-section">
-      <h3>
-        <Languages size={18} />
-        <span>{t('simpleConfig.translationLanguages')}</span>
-        <Tooltip
-          content={t('simpleConfig.translationLanguagesDesc')}
-          position="top"
-          icon="help"
-        />
-      </h3>
+      {heading && (
+        <h3>
+          <Languages size={18} />
+          <span>{t('simpleConfig.translationLanguages')}</span>
+          <Tooltip
+            content={t('simpleConfig.translationLanguagesDesc')}
+            position="top"
+            icon="help"
+          />
+        </h3>
+      )}
       <div className="language-pair-row">
         <div className="language-select-group">
           <label htmlFor={`${id}-source`}>{sourceLabel}</label>

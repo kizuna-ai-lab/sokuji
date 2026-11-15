@@ -1779,7 +1779,9 @@
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
         "ready": "Hazır"
-      }
+      },
+      "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
+      "hint": "Her aşamayı hangi hizmetin yaptığı"
     },
     "display": {
       "surface": "Hangi görünüm",

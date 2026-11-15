@@ -1779,7 +1779,9 @@
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu masuk",
         "ready": "Siap"
-      }
+      },
+      "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
+      "hint": "Layanan mana yang mengerjakan tiap tahap"
     },
     "display": {
       "surface": "Tampilan mana",

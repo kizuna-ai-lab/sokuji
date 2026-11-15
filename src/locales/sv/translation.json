@@ -1779,7 +1779,9 @@
         "needsModel": "Behöver en modell",
         "needsSignIn": "Kräver inloggning",
         "ready": "Klar"
-      }
+      },
+      "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
+      "hint": "Vilken tjänst som gör varje steg"
     },
     "display": {
       "surface": "Vilken visning",

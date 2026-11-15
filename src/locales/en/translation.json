@@ -1779,7 +1779,9 @@
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
         "ready": "Ready"
-      }
+      },
+      "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
+      "hint": "Which service does each stage"
     },
     "display": {
       "surface": "Which display",
