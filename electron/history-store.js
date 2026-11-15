@@ -11,6 +11,9 @@ const path = require('node:path');
 const { openDatabase, transaction } = require('./history-db.js');
 
 const ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+const LEGS = new Set(['speaker', 'participant']);
+const INPUTS = new Set(['microphone', 'system', 'app', 'tab']);
+const SEGMENT_SIDES = new Set(['source', 'translation']);
 
 class HistoryError extends Error {
   constructor(code, message) {
@@ -24,6 +27,7 @@ const fail = (code, message) => { throw new HistoryError(code, message); };
 const isString = (v) => typeof v === 'string';
 const isInt = (v) => Number.isSafeInteger(v);
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const isOptionalString = (v) => v === undefined || v === null || isString(v);
 
 /** A record has content when one of its transcripts has a sentence or one of its segments has text that is not blank. */
 const HAS_CONTENT = `(
@@ -71,6 +75,40 @@ function openHistory({ dir, now = () => Date.now() }) {
 
   const folderOf = (id) => path.join(dir, 'records', id);
   const removeFolder = (id) => fs.rmSync(folderOf(id), { recursive: true, force: true });
+
+  function openRecordOrFail(id) {
+    const r = recordOrFail(id);
+    if (r.state !== 'open') fail('RECORD_CLOSED', `Record ${id} is closed`);
+    return r;
+  }
+
+  function checkSegment(g) {
+    if (!isPlainObject(g) || !isString(g.id) || !isInt(g.ref) || !SEGMENT_SIDES.has(g.side) || !isString(g.text)
+      || typeof g.final !== 'boolean' || !isInt(g.openedAt) || !Array.isArray(g.marks)
+      || !isOptionalString(g.language) || !isOptionalString(g.person) || !isOptionalString(g.origin)) {
+      fail('BAD_INPUT', 'A segment needs id, ref, side, text, final, openedAt and marks');
+    }
+    if (g.timing !== undefined && g.timing !== null && (!isPlainObject(g.timing) || !isInt(g.timing.startMs) || !isInt(g.timing.endMs))) {
+      fail('BAD_INPUT', 'A segment timing needs startMs and endMs');
+    }
+  }
+
+  function segmentOf(g) {
+    return {
+      id: g.id,
+      ref: g.ref,
+      side: g.side,
+      text: g.text,
+      final: g.final === 1,
+      openedAt: g.opened_at,
+      marks: JSON.parse(g.marks),
+      ...(g.start_ms !== null && g.end_ms !== null ? { timing: { startMs: g.start_ms, endMs: g.end_ms } } : {}),
+      ...(g.language !== null ? { language: g.language } : {}),
+      ...(g.person !== null ? { person: g.person } : {}),
+      ...(g.origin !== null ? { origin: g.origin } : {}),
+      speech: [],
+    };
+  }
 
   function recordOrFail(id) {
     const r = one('select id, state, started_at, title_by_user from records where id = ?', id);
@@ -192,6 +230,65 @@ function openHistory({ dir, now = () => Date.now() }) {
       const trimmed = title.trim();
       if (trimmed) run('update records set title = ?, title_by_user = 1 where id = ?', trimmed, id);
       else run('update records set title = null, title_by_user = 0 where id = ?', id);
+    },
+
+    putLeg({ recordId, leg, languages, input = null, inputName = null, inputId = null, translated = true, spoken = false } = {}) {
+      openRecordOrFail(recordId);
+      if (!LEGS.has(leg)) fail('BAD_INPUT', 'leg must be speaker or participant');
+      if (!isPlainObject(languages) || !isString(languages.source) || !isString(languages.target)) fail('BAD_INPUT', 'languages needs source and target');
+      if (input !== null && !INPUTS.has(input)) fail('BAD_INPUT', 'input must be microphone, system, app or tab');
+      if (!isOptionalString(inputName) || !isOptionalString(inputId)) fail('BAD_INPUT', 'inputName and inputId are strings');
+      if (typeof translated !== 'boolean' || typeof spoken !== 'boolean') fail('BAD_INPUT', 'translated and spoken are booleans');
+      run(
+        `insert or replace into legs (record_id, leg, source_language, target_language, input, input_name, input_id, translated, spoken)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        recordId, leg, languages.source, languages.target, input, inputName ?? null, inputId ?? null, translated ? 1 : 0, spoken ? 1 : 0,
+      );
+    },
+
+    putSegments({ recordId, leg, segments } = {}) {
+      openRecordOrFail(recordId);
+      if (!LEGS.has(leg)) fail('BAD_INPUT', 'leg must be speaker or participant');
+      if (!Array.isArray(segments)) fail('BAD_INPUT', 'segments must be an array');
+      segments.forEach(checkSegment);
+      transaction(db, () => {
+        for (const g of segments) {
+          // A segment keeps the place it had when it first arrived; a later arrival replaces what it says.
+          const known = one('select position from segments where record_id = ? and id = ?', recordId, g.id);
+          const position = known ? known.position
+            : (one('select coalesce(max(position) + 1, 0) as next from segments where record_id = ? and leg = ?', recordId, leg).next);
+          run(
+            `insert or replace into segments (record_id, id, leg, position, ref, side, text, final, opened_at, start_ms, end_ms, language, person, origin, marks)
+             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            recordId, g.id, leg, position, g.ref, g.side, g.text, g.final ? 1 : 0, g.openedAt,
+            g.timing ? g.timing.startMs : null, g.timing ? g.timing.endMs : null,
+            g.language ?? null, g.person ?? null, g.origin ?? null, JSON.stringify(g.marks),
+          );
+        }
+      });
+    },
+
+    putNotices({ recordId, leg, notices } = {}) {
+      openRecordOrFail(recordId);
+      if (!LEGS.has(leg)) fail('BAD_INPUT', 'leg must be speaker or participant');
+      if (!Array.isArray(notices) || notices.some((n) => !isPlainObject(n) || !isString(n.id) || !isInt(n.at))) {
+        fail('BAD_INPUT', 'notices must be notices with id and at');
+      }
+      transaction(db, () => {
+        for (const n of notices) {
+          run('insert or replace into notices (record_id, leg, id, at, body) values (?, ?, ?, ?, ?)', recordId, leg, n.id, n.at, JSON.stringify(n));
+        }
+      });
+    },
+
+    getLegs(recordId) {
+      return all("select * from legs where record_id = ? order by leg = 'participant'", recordId).map((l) => ({
+        leg: l.leg,
+        session: recordId,
+        languages: { source: l.source_language, target: l.target_language },
+        segments: all('select * from segments where record_id = ? and leg = ? order by position', recordId, l.leg).map(segmentOf),
+        notices: all('select body from notices where record_id = ? and leg = ? order by at, id', recordId, l.leg).map((n) => JSON.parse(n.body)),
+      }));
     },
 
     recordDir(id) {

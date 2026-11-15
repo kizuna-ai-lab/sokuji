@@ -78,3 +78,77 @@ describe('records', () => {
     expect(s.listRecords({}).length).toBe(1);
   });
 });
+
+describe('the conversation as the app holds it', () => {
+  const seg = (n, over = {}) => ({ id: `${ID}:speaker:${n}`, ref: n, side: 'source', text: `s${n}`, final: true, openedAt: 10 + n, marks: [], ...over });
+
+  it('returns the conversation in the shape the exporter reads', () => {
+    s.openRecord(rec());
+    s.putLeg({ recordId: ID, leg: 'participant', languages: { source: 'en', target: 'zh' } });
+    s.putLeg({ recordId: ID, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [
+      { id: `${ID}:speaker:1`, ref: 1, side: 'source', text: '你好', final: true, openedAt: 10, marks: [{ at: 0, len: 2 }], timing: { startMs: 100, endMs: 900 }, language: 'zh', person: '1' },
+      { id: `${ID}:speaker:2`, ref: 1, side: 'translation', text: 'Hello', final: true, openedAt: 11, marks: [] },
+    ] });
+    const legs = s.getLegs(ID);
+    expect(legs.map((l) => l.leg)).toEqual(['speaker', 'participant']);
+    expect(legs[0]).toEqual({ leg: 'speaker', session: ID, languages: { source: 'zh', target: 'en' }, notices: [], segments: [
+      { id: `${ID}:speaker:1`, ref: 1, side: 'source', text: '你好', final: true, openedAt: 10, marks: [{ at: 0, len: 2 }], timing: { startMs: 100, endMs: 900 }, language: 'zh', person: '1', speech: [] },
+      { id: `${ID}:speaker:2`, ref: 1, side: 'translation', text: 'Hello', final: true, openedAt: 11, marks: [], speech: [] },
+    ] });
+  });
+
+  it('a segment sent again replaces its text and keeps its place', () => {
+    s.openRecord(rec());
+    s.putLeg({ recordId: ID, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [seg(1, { text: 'first' })] });
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [seg(2, { text: 'second' })] });
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [seg(1, { text: 'revised', final: false })] });
+    expect(s.getLegs(ID)[0].segments.map((x) => [x.id, x.text])).toEqual([[`${ID}:speaker:1`, 'revised'], [`${ID}:speaker:2`, 'second']]);
+    expect(s.getLegs(ID)[0].segments[0].final).toBe(false);
+  });
+
+  it('keeps notices whole and in order of their time', () => {
+    s.openRecord(rec());
+    s.putLeg({ recordId: ID, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    const late = { id: 'n-2', at: 30, severity: 'warning', message: 'Late', code: 'late_code', params: { n: 2 } };
+    const early = { id: 'n-1', at: 20, severity: 'info', message: 'Early', lifetime: 'transient' };
+    s.putNotices({ recordId: ID, leg: 'speaker', notices: [late, early] });
+    expect(s.getLegs(ID)[0].notices).toEqual([early, late]);
+  });
+
+  it('refuses segments for a closed record', () => {
+    s.openRecord(rec());
+    s.putLeg({ recordId: ID, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [seg(1)] });
+    expect(s.closeRecord({ id: ID, endedAt: 99 })).toEqual({ kept: true });
+    expect(() => s.putSegments({ recordId: ID, leg: 'speaker', segments: [] })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
+  });
+
+  it('keeps how each leg was put together, apart from the conversation', () => {
+    s.openRecord(rec({ mode: 'face-to-face' }));
+    s.putLeg({ recordId: ID, leg: 'speaker', languages: { source: 'zh', target: 'ja' }, input: 'microphone', inputName: 'MacBook Pro Microphone', inputId: 'default', spoken: true });
+    s.putLeg({ recordId: ID, leg: 'participant', languages: { source: 'ja', target: 'zh' }, input: 'microphone', inputName: 'MacBook Pro Microphone', inputId: 'default', spoken: true });
+    expect(s.getRecord(ID).legs).toEqual([
+      { leg: 'speaker', languages: { source: 'zh', target: 'ja' }, input: 'microphone', inputName: 'MacBook Pro Microphone', inputId: 'default', translated: true, spoken: true },
+      { leg: 'participant', languages: { source: 'ja', target: 'zh' }, input: 'microphone', inputName: 'MacBook Pro Microphone', inputId: 'default', translated: true, spoken: true },
+    ]);
+    expect(s.getLegs(ID)[0]).not.toHaveProperty('input');
+  });
+
+  it('closing keeps a record that has text but no sentence (a service that sends translations only)', () => {
+    s.openRecord(rec());
+    s.putLeg({ recordId: ID, leg: 'participant', languages: { source: 'ja', target: 'zh' } });
+    s.putSegments({ recordId: ID, leg: 'participant', segments: [{ id: `${ID}:participant:1`, ref: 1, side: 'translation', text: '好的。', final: true, openedAt: 9000, marks: [] }] });
+    expect(s.closeRecord({ id: ID, endedAt: 9500 })).toEqual({ kept: true });
+    expect(s.getRecord(ID)).toEqual(expect.objectContaining({ state: 'closed', endedAt: 9500, sentences: 0 }));
+  });
+
+  it('closing drops a record whose only segments are blank', () => {
+    s.openRecord(rec());
+    s.putLeg({ recordId: ID, leg: 'speaker', languages: { source: 'zh', target: 'en' } });
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [{ id: `${ID}:speaker:1`, ref: 1, side: 'source', text: '  ', final: true, openedAt: 10, marks: [] }] });
+    expect(s.closeRecord({ id: ID, endedAt: 20 })).toEqual({ kept: false });
+    expect(s.getRecord(ID)).toBeNull();
+  });
+});
