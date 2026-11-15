@@ -53,7 +53,7 @@ describe('the live notes loop', () => {
     expect(model.fresh(0)).toEqual([1]);
     model.calls[0].answer(topicWith(1));
     await flush();
-    expect(states.at(-1)?.topics[0].points.map((p) => p.n)).toEqual([1]);
+    expect(states[states.length - 1]?.topics[0].points.map((p) => p.n)).toEqual([1]);
     live.sentences([s(2), s(3)]);
     clock.advance(LIVE_INTERVAL_MS);
     expect(model.fresh(1)).toEqual([2, 3]);
@@ -85,7 +85,7 @@ describe('the live notes loop', () => {
     await flush();
     expect(hints).toEqual([true]);
     expect(states).toHaveLength(0);
-    model.calls.at(-1)!.answer(topicWith(1));
+    model.calls[model.calls.length - 1].answer(topicWith(1));
     await flush();
     expect(hints).toEqual([true, false]);
     expect(states).toHaveLength(1);
@@ -116,7 +116,7 @@ describe('the live notes loop', () => {
     expect(model.fresh(1)).toEqual([2]);
     model.calls[1].answer(addTo(2));
     await stopped;
-    expect(states.at(-1)?.topics[0].points.map((p) => p.n)).toEqual([1, 2]);
+    expect(states[states.length - 1]?.topics[0].points.map((p) => p.n)).toEqual([1, 2]);
     live.sentences([s(3)]);
     clock.advance(3 * LIVE_INTERVAL_MS);
     await flush();
