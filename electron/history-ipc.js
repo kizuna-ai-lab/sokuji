@@ -8,7 +8,7 @@
 // (electron/ipc-channels.test.js) finds handlers by that literal text.
 'use strict';
 
-const { HistoryError } = require('./history-store.js');
+const { HistoryError, openHistory } = require('./history-store.js');
 
 /** Channel → store method. `history:status` is answered here, without the store. */
 const HISTORY_CHANNELS = Object.freeze({
@@ -97,4 +97,39 @@ function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnav
   ipcMain.handle('history:usage', handle('usage'));
 }
 
-module.exports = { setupHistoryHandlers, HISTORY_CHANNELS };
+/**
+ * Opens the store in `dir` at launch and tidies it: a session the app died during is closed with what it has (or
+ * removed when it has nothing), stray folders are reconciled, the bin is emptied of what expired. Only opening can
+ * make History unavailable (`unavailable`: 'newer' for a file from a newer app, 'error' otherwise); a clean-up step
+ * that fails is logged and the next one still runs.
+ */
+function openHistoryAtLaunch({ dir, open = openHistory, logger = console }) {
+  let store;
+  try {
+    store = open({ dir });
+  } catch (error) {
+    logger.error('[Sokuji] [History] Not available:', error);
+    return { store: null, unavailable: error && error.code === 'HISTORY_NEWER' ? 'newer' : 'error' };
+  }
+  const step = (name, fn) => {
+    try {
+      return fn();
+    } catch (error) {
+      logger.error(`[Sokuji] [History] At launch, ${name} failed:`, error);
+      return null;
+    }
+  };
+  const recovered = step('recovery', () => store.recoverOpenRecords());
+  const reconciled = step('reconcile', () => store.reconcile());
+  const purged = step('the bin purge', () => store.purgeExpired());
+  const counts = [
+    recovered && `closed ${recovered.closed.length}, dropped ${recovered.dropped.length}`,
+    reconciled && `empty folders removed ${reconciled.removedEmpty.length}, tracks gone ${reconciled.tracksGone}`,
+    purged && `purged from the bin ${purged.purged.length}, left ${purged.failed.length}`,
+  ].filter(Boolean);
+  if (counts.length) logger.log('[Sokuji] [History] At launch:', counts.join('; '));
+  if (reconciled && reconciled.strays.length) logger.warn('[Sokuji] [History] Folders without a record, left in place:', reconciled.strays.join(', '));
+  return { store, unavailable: null };
+}
+
+module.exports = { setupHistoryHandlers, HISTORY_CHANNELS, openHistoryAtLaunch };

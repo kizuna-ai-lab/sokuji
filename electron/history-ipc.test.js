@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const nodeRequire = createRequire(import.meta.url);
-const { setupHistoryHandlers, HISTORY_CHANNELS } = nodeRequire('./history-ipc.js');
+const { setupHistoryHandlers, HISTORY_CHANNELS, openHistoryAtLaunch } = nodeRequire('./history-ipc.js');
 const { openHistory } = nodeRequire('./history-store.js');
 
 const MAIN = { id: 'main' };
@@ -88,5 +88,52 @@ describe('the history channels', () => {
 
   it('says the store is there when it is', async () => {
     expect(await call('history:status', {})).toEqual({ ok: true, value: { available: true, dir } });
+  });
+});
+
+// Review: a clean-up step that fails at launch must not make History unavailable for the whole session.
+describe('opening History at launch', () => {
+  const quiet = () => ({ log: [], warn: [], error: [] });
+  const logger = (out) => ({ log: (...a) => out.log.push(a), warn: (...a) => out.warn.push(a), error: (...a) => out.error.push(a) });
+
+  it('keeps History when a clean-up step fails, and says what failed', () => {
+    const out = quiet();
+    const fake = {
+      recoverOpenRecords: () => ({ closed: [], dropped: [] }),
+      reconcile: () => { throw new Error('EACCES: records'); },
+      purgeExpired: () => ({ purged: [], failed: [] }),
+      close: () => {},
+    };
+    const opened = openHistoryAtLaunch({ dir, open: () => fake, logger: logger(out) });
+    expect(opened).toEqual({ store: fake, unavailable: null });
+    expect(out.error.map((a) => String(a[0]))).toEqual([expect.stringContaining('reconcile')]);
+  });
+
+  it('runs every clean-up step even when an earlier one fails', () => {
+    const ran = [];
+    const fake = {
+      recoverOpenRecords: () => { ran.push('recover'); throw new Error('locked'); },
+      reconcile: () => { ran.push('reconcile'); return { removedEmpty: [], strays: ['run-0008-files'], tracksGone: 0 }; },
+      purgeExpired: () => { ran.push('purge'); return { purged: [], failed: [] }; },
+      close: () => {},
+    };
+    const out = quiet();
+    openHistoryAtLaunch({ dir, open: () => fake, logger: logger(out) });
+    expect(ran).toEqual(['recover', 'reconcile', 'purge']);
+    expect(out.warn.flat().join(' ')).toContain('run-0008-files');
+  });
+
+  it('says why when the store cannot be opened', () => {
+    const newer = Object.assign(new Error('newer'), { code: 'HISTORY_NEWER' });
+    expect(openHistoryAtLaunch({ dir, open: () => { throw newer; }, logger: logger(quiet()) })).toEqual({ store: null, unavailable: 'newer' });
+    expect(openHistoryAtLaunch({ dir, open: () => { throw new Error('disk'); }, logger: logger(quiet()) })).toEqual({ store: null, unavailable: 'error' });
+  });
+
+  it('opens a real store in the folder', () => {
+    const sub = join(dir, 'launch');
+    const opened = openHistoryAtLaunch({ dir: sub, logger: logger(quiet()) });
+    expect(opened.unavailable).toBeNull();
+    expect(opened.store.listRecords({})).toEqual([]);
+    opened.store.close();
   });
 });
