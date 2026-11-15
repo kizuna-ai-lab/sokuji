@@ -1424,6 +1424,11 @@
       .provider-recommended {
         display: none;
       }
+
+      // One line once chosen (owner, 2026-11-15): the description is for choosing, in the list.
+      .provider-select__description {
+        display: none;
+      }
     }
 
     &::picker(select) {

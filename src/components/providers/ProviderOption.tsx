@@ -37,10 +37,8 @@ export function useOptionModel(): (id: string, provider?: AnyProvider) => Provid
   return (id, provider) => {
     const extra = EXTRA[id];
     if (extra) {
-      return {
-        id, icon: extra.icon, name: t(`providers.${id}.name`, extra.name), note: t(`providers.${id}.note`, extra.note),
-        description: t(`providers.${id}.description`, '') || undefined,
-      };
+      // Their one line is their description (owner, 2026-11-15): it says what they are, it credits no engine.
+      return { id, icon: extra.icon, name: t(`providers.${id}.name`, extra.name), description: t(`providers.${id}.note`, extra.note) };
     }
     // Only the local provider has a note of its own (Bing and Edge above).
     const note = id === 'local_inference' ? t('providers.local_inference.note', 'Free · offline') : undefined;
