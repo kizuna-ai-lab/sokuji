@@ -1843,7 +1843,11 @@
         "notHeldValue": "suara Anda langsung ke pihak lain tanpa diterjemahkan"
       },
       "actsOn": "Berlaku untuk {{stages}}",
-      "pointer": "Opsi yang berlaku untuk {{stages}} ada di kartu \"{{card}}\"."
+      "pointer": "Opsi yang berlaku untuk {{stages}} ada di kartu \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Suara disimpan per bahasa: ini suara untuk pasangan bahasa ini.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Tampilan mana",

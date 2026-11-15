@@ -53,6 +53,8 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'model-asr': { category: 'lineup', anchor: 'model-asr' },
   'model-translation': { category: 'lineup', anchor: 'model-translation' },
   'model-tts': { category: 'lineup', anchor: 'model-tts' },
+  // Edge's voices, in the speech card when Edge speaks.
+  'edge-voices': { category: 'lineup', anchor: 'edge-voices' },
   // The stage rows: where a provider is chosen (a notice with no provider).
   lineup: { category: 'lineup', anchor: 'lineup' },
   // What a provider needs besides a key (models, memory, voices, an engine slot): its own options, unfolded.

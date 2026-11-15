@@ -1843,7 +1843,11 @@
         "notHeldValue": "原声直接给对方，不翻译"
       },
       "actsOn": "作用于{{stages}}",
-      "pointer": "作用于{{stages}}的选项在“{{card}}”卡片里。"
+      "pointer": "作用于{{stages}}的选项在“{{card}}”卡片里。",
+      "edgeVoices": {
+        "hint": "音色按语言分开存：这里改的是现在这对语言用的音色。",
+        "voiceFor": "{{who}}（{{language}}）"
+      }
     },
     "display": {
       "surface": "哪个界面",

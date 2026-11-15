@@ -1843,7 +1843,11 @@
         "notHeldValue": "sua própria voz vai direto para o outro lado, sem tradução"
       },
       "actsOn": "Vale para {{stages}}",
-      "pointer": "As opções que valem para {{stages}} estão no cartão “{{card}}”."
+      "pointer": "As opções que valem para {{stages}} estão no cartão “{{card}}”.",
+      "edgeVoices": {
+        "hint": "As vozes são guardadas por idioma: estas são as deste par de idiomas.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Qual exibição",

@@ -23,6 +23,7 @@ import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../pro
 import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
+import { EdgeVoices } from './EdgeVoices';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -36,7 +37,7 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
   'provider-options': 'first', 'model-management': 'first',
   'model-asr': 'transcription', 'turn-detection-tuning': 'transcription',
   'model-translation': 'translation', 'system-instructions': 'translation',
-  'model-tts': 'speech', 'voice-settings': 'speech',
+  'model-tts': 'speech', 'voice-settings': 'speech', 'edge-voices': 'speech',
 };
 /** An engine slot's stage, as the line-up names it. */
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
@@ -232,9 +233,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                       <div className="lineup-stage__options-body">
                         {o.provider.optionStages ? (
                           <SettingsStage stage={stage} served={o.served}>
-                            <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
-                              initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
-                              onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                            {/* Edge speaking: its voices, not the engine's speech slot, whose models do not run. */}
+                            {stage === 'speech' && id === 'edge' ? <EdgeVoices disabled={locked} /> : (
+                              <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                                initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
+                                onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                            )}
                             <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
                             {stage === 'transcription' && <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />}
                           </SettingsStage>

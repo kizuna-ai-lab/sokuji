@@ -1843,7 +1843,11 @@
         "notHeldValue": "geht Ihre eigene Stimme unübersetzt direkt zur Gegenseite"
       },
       "actsOn": "Gilt für {{stages}}",
-      "pointer": "Die Optionen für {{stages}} stehen in der Karte „{{card}}“."
+      "pointer": "Die Optionen für {{stages}} stehen in der Karte „{{card}}“.",
+      "edgeVoices": {
+        "hint": "Stimmen werden je Sprache gespeichert: Dies sind die für dieses Sprachpaar.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Welche Anzeige",
