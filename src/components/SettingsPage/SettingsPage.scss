@@ -204,6 +204,11 @@
   &__head { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; }
   &__name { font-weight: vars.$weight-medium; }
   &__state { font-size: vars.$font-caption; color: vars.$text-muted; }
+  &__guide {
+    display: inline-flex; align-items: center; gap: 3px; font-size: vars.$font-caption; color: vars.$color-primary; text-decoration: none;
+    &:hover { text-decoration: underline; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
   &__chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
   &__chip { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: vars.$bg-hover; color: vars.$text-secondary; }
   &__toggle {

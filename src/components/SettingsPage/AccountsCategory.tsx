@@ -6,6 +6,8 @@
 // providers with a key, and the ones that need none. Which provider serves a
 // stage is chosen in "Languages and line-up", never here.
 import { useEffect, useMemo, useState } from 'react';
+import { ExternalLink } from 'lucide-react';
+import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
@@ -29,6 +31,8 @@ interface Account {
   provider?: AnyProvider;
   /** The provider ids the account serves, for its chips. */
   serves: readonly string[];
+  /** The provider's setup guide on the website, when it has one. */
+  guide?: string;
 }
 
 export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps) {
@@ -57,7 +61,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   const accounts = useMemo<Account[]>(() => {
     const list: Account[] = [];
     const managed = providers.filter((p) => p.kind === 'managed');
-    if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id) });
+    if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id), guide: managed.find((p) => p.guideUrl)?.guideUrl });
     const openai = providers.filter((p) => OPENAI_IDS.includes(p.id));
     let openaiListed = false;
     for (const p of providers) {
@@ -66,13 +70,13 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         if (openaiListed) continue;
         openaiListed = true;
         // One key for the three (Plan 4): the row edits it through the first present OpenAI provider.
-        list.push({ key: 'openai', name: 'OpenAI', kind: 'key', provider: openai[0], serves: openai.map((x) => x.id) });
+        list.push({ key: 'openai', name: 'OpenAI', kind: 'key', provider: openai[0], serves: openai.map((x) => x.id), guide: openai.find((x) => x.guideUrl)?.guideUrl });
         continue;
       }
-      list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'key', provider: p, serves: [p.id] });
+      list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'key', provider: p, serves: [p.id], guide: p.guideUrl });
     }
     if (providers.some((p) => p.id === 'local_inference')) {
-      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'] });
+      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: providers.find((p) => p.id === 'local_inference')?.guideUrl });
       list.push({ key: 'bing', name: t('providers.bing.name', 'Bing'), kind: 'online', serves: ['bing'] });
       list.push({ key: 'edge', name: t('providers.edge.name', 'Edge'), kind: 'online', serves: ['edge'] });
     }
@@ -117,6 +121,12 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
             <div className="accounts-row__head">
               <span className="accounts-row__name">{a.name}</span>
               <span className="accounts-row__state">{stateOf(a)}</span>
+              {a.guide && (
+                <a className="accounts-row__guide" href={a.guide} onClick={(e) => { e.preventDefault(); openExternalUrl(a.guide!); }}>
+                  <ExternalLink size={12} aria-hidden="true" />
+                  {t('simpleSettings.setupGuide', 'Setup guide')}
+                </a>
+              )}
               {chips(a)}
               {editable && (
                 <button type="button" className="accounts-row__toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : a.key)}>
