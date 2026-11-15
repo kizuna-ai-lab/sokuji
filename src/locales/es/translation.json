@@ -1831,7 +1831,11 @@
         "notHeldValue": "tu propia voz va directa a la otra parte, sin traducir"
       },
       "actsOn": "Afecta a {{stages}}",
-      "pointer": "Las opciones que afectan a {{stages}} están en la tarjeta «{{card}}»."
+      "pointer": "Las opciones que afectan a {{stages}} están en la tarjeta «{{card}}».",
+      "edgeVoices": {
+        "hint": "Las voces se guardan por idioma: estas son las que usa este par de idiomas.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Qué visualización",

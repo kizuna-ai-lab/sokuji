@@ -1831,7 +1831,11 @@
         "notHeldValue": "내 목소리가 번역 없이 바로 상대방에게 감"
       },
       "actsOn": "{{stages}}에 적용됨",
-      "pointer": "{{stages}}에 적용되는 옵션은 \"{{card}}\" 카드에 있습니다."
+      "pointer": "{{stages}}에 적용되는 옵션은 \"{{card}}\" 카드에 있습니다.",
+      "edgeVoices": {
+        "hint": "음성은 언어별로 저장됩니다. 여기서 바꾸는 것은 지금 언어 조합에서 쓰는 음성입니다.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "어느 화면",

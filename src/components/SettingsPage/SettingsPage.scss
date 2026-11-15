@@ -775,6 +775,24 @@
   }
 }
 
+// Edge's voices in the speech card (mock v18 ②): a quiet line about them, then per speaking direction its name over
+// the voice and its preview key.
+.edge-voices {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 8px;
+  &__hint { margin: 0; font-size: 12px; line-height: 1.6; color: vars.$text-tertiary; }
+  &__row { display: grid; gap: 4px; }
+  &__row > label { font-size: 12px; color: vars.$text-tertiary; }
+  &__pick {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    align-items: center;
+    .setting-row__preview { width: 30px; height: 30px; }
+  }
+}
+
 // Switches on the page turn on in the same deep green as the chosen segment (the mock's `.tg`), not the brighter accent.
 .settings-page .toggle-switch-component .toggle-track-container input:checked + .toggle-track {
   background-color: vars.$color-primary-fill;

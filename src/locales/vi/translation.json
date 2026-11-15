@@ -1831,7 +1831,11 @@
         "notHeldValue": "giọng của bạn đến thẳng phía bên kia, không dịch"
       },
       "actsOn": "Áp dụng cho {{stages}}",
-      "pointer": "Các tùy chọn áp dụng cho {{stages}} nằm trong thẻ \"{{card}}\"."
+      "pointer": "Các tùy chọn áp dụng cho {{stages}} nằm trong thẻ \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Giọng được lưu theo từng ngôn ngữ: đây là giọng của cặp ngôn ngữ này.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Hiển thị nào",

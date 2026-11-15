@@ -1831,7 +1831,11 @@
         "notHeldValue": "går din egen röst direkt till den andra sidan, oöversatt"
       },
       "actsOn": "Gäller {{stages}}",
-      "pointer": "Alternativen som gäller {{stages}} finns i kortet ”{{card}}”."
+      "pointer": "Alternativen som gäller {{stages}} finns i kortet ”{{card}}”.",
+      "edgeVoices": {
+        "hint": "Röster sparas per språk: det här är rösterna för det här språkparet.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Vilken visning",

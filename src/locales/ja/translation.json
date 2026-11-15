@@ -1831,7 +1831,11 @@
         "notHeldValue": "自分の声がそのまま翻訳せずに相手へ届く"
       },
       "actsOn": "{{stages}}に作用します",
-      "pointer": "{{stages}}に作用するオプションは「{{card}}」カードにあります。"
+      "pointer": "{{stages}}に作用するオプションは「{{card}}」カードにあります。",
+      "edgeVoices": {
+        "hint": "音声は言語ごとに保存されます。ここで変えるのは、いまの言語の組み合わせで使う音声です。",
+        "voiceFor": "{{who}}（{{language}}）"
+      }
     },
     "display": {
       "surface": "どの表示",

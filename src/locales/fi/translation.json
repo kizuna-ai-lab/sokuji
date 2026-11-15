@@ -1831,7 +1831,11 @@
         "notHeldValue": "oma äänesi menee kääntämättä suoraan toiselle osapuolelle"
       },
       "actsOn": "Koskee: {{stages}}",
-      "pointer": "Asetukset, jotka koskevat näitä: {{stages}}, ovat kortilla ”{{card}}”."
+      "pointer": "Asetukset, jotka koskevat näitä: {{stages}}, ovat kortilla ”{{card}}”.",
+      "edgeVoices": {
+        "hint": "Äänet tallennetaan kielittäin: nämä ovat tämän kieliparin äänet.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Mikä näkymä",

@@ -8,6 +8,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading }: { heading?: boolean }) => <div id="languages-section" data-heading={String(heading)} /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
+vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
 const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
 vi.mock('../providers/ProviderOwnSettings', () => ({
   ProviderEngine: (props: { initialSlot?: unknown; onInitialSlotConsumed?: () => void }) => { engineProps.push(props); return <div id="model-management-section"><div id="model-tts-section" /></div>; },
@@ -75,12 +76,24 @@ describe('languages and line-up', () => {
   });
 
   it('a navigation target inside the provider options unfolds them', () => {
-    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'local_inference', summarisation: null }, stored: true });
     useProviderStore.setState({ selected: 'local_inference' });
     render(<LineUpCategory locked={false} />);
     expect(document.getElementById('model-tts-section')).toBeNull();
     act(() => { useSettingsStore.getState().navigateToSettings('model-tts'); });
     expect(document.getElementById('model-tts-section')).not.toBeNull();
+  });
+
+  it("with Edge speaking, the speech card holds Edge's voices in place of the engine's speech slot", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    render(<LineUpCategory locked={false} />);
+    expect(document.getElementById('edge-voices-section')).toBeNull();
+    act(() => { useSettingsStore.getState().navigateToSettings('edge-voices'); });
+    const card = document.getElementById('edge-voices-section')!.closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByRole('combobox', { name: 'Speech' })).toHaveValue('edge');
+    expect(card.querySelector('#model-management-section')).toBeNull();
+    expect(card.querySelector('#provider-own-settings')).not.toBeNull();
   });
 
   it('says so when Granite Speech turns speech straight into the translation', () => {

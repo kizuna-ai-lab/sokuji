@@ -1831,7 +1831,11 @@
         "notHeldValue": "a sua própria voz vai diretamente para o outro lado, sem tradução"
       },
       "actsOn": "Aplica-se a {{stages}}",
-      "pointer": "As opções que se aplicam a {{stages}} estão no cartão «{{card}}»."
+      "pointer": "As opções que se aplicam a {{stages}} estão no cartão «{{card}}».",
+      "edgeVoices": {
+        "hint": "As vozes são guardadas por idioma: estas são as deste par de idiomas.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Qual apresentação",

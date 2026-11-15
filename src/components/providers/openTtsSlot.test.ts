@@ -8,6 +8,7 @@ import { selectedFromStores } from '../../lib/session/appShape';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { openTtsSlot } from './openTtsSlot';
 
@@ -16,6 +17,7 @@ const select = (id: string, settings: object, pair = { source: 'ja', target: 'en
 
 beforeEach(() => {
   useSettingsStore.setState({ engineSlotTarget: null, settingsNavigationTarget: null });
+  useLineUpStore.setState({ lineUp: null, stored: false });
 });
 
 describe('openTtsSlot', () => {
@@ -26,6 +28,15 @@ describe('openTtsSlot', () => {
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');
     openTtsSlot('participant');
     expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'en→ja', stage: 'tts' });
+  });
+
+  it("with Edge speaking, opens Edge's voices in the speech card and leaves no slot target behind", () => {
+    useSettingsStore.setState({ engineSlotTarget: { dir: 'ja→en', stage: 'asr' } });
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    select('local_inference', LOCAL_INFERENCE_DEFAULTS);
+    openTtsSlot('speaker');
+    expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('edge-voices');
   });
 
   it('follows the pair as it is now, not as it was when the warning was filed', () => {

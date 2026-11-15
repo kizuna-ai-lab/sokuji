@@ -1831,7 +1831,11 @@
         "notHeldValue": "kendi sesiniz çevrilmeden doğrudan karşı tarafa gider"
       },
       "actsOn": "{{stages}} için geçerli",
-      "pointer": "{{stages}} için geçerli seçenekler \"{{card}}\" kartında."
+      "pointer": "{{stages}} için geçerli seçenekler \"{{card}}\" kartında.",
+      "edgeVoices": {
+        "hint": "Sesler dile göre saklanır: bunlar bu dil çiftinin sesleri.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Hangi görünüm",

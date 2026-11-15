@@ -1831,7 +1831,11 @@
         "notHeldValue": "your own voice goes straight to the other side, untranslated"
       },
       "actsOn": "Acts on {{stages}}",
-      "pointer": "The options acting on {{stages}} are in the “{{card}}” card."
+      "pointer": "The options acting on {{stages}} are in the “{{card}}” card.",
+      "edgeVoices": {
+        "hint": "Voices are kept per language: these are the ones this language pair uses.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Which display",

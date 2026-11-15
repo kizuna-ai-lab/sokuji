@@ -1831,7 +1831,11 @@
         "notHeldValue": "gaat uw eigen stem onvertaald rechtstreeks naar de andere kant"
       },
       "actsOn": "Geldt voor {{stages}}",
-      "pointer": "De opties voor {{stages}} staan in de kaart ‘{{card}}’."
+      "pointer": "De opties voor {{stages}} staan in de kaart ‘{{card}}’.",
+      "edgeVoices": {
+        "hint": "Stemmen worden per taal bewaard: dit zijn die van dit taalpaar.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Welke weergave",

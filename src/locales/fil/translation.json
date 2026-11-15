@@ -1831,7 +1831,11 @@
         "notHeldValue": "diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin"
       },
       "actsOn": "Para sa {{stages}}",
-      "pointer": "Ang mga opsyon para sa {{stages}} ay nasa card na \"{{card}}\"."
+      "pointer": "Ang mga opsyon para sa {{stages}} ay nasa card na \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Nakatabi ang mga boses ayon sa wika: ito ang mga ginagamit ng pares ng wikang ito.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Aling display",

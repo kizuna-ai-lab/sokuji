@@ -1831,7 +1831,11 @@
         "notHeldValue": "原聲直接給對方，不翻譯"
       },
       "actsOn": "作用於{{stages}}",
-      "pointer": "作用於{{stages}}的選項在「{{card}}」卡片裡。"
+      "pointer": "作用於{{stages}}的選項在「{{card}}」卡片裡。",
+      "edgeVoices": {
+        "hint": "音色依語言分開存：這裡改的是現在這組語言用的音色。",
+        "voiceFor": "{{who}}（{{language}}）"
+      }
     },
     "display": {
       "surface": "哪個介面",

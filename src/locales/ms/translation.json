@@ -1831,7 +1831,11 @@
         "notHeldValue": "suara anda terus kepada pihak lain tanpa terjemahan"
       },
       "actsOn": "Terpakai pada {{stages}}",
-      "pointer": "Pilihan yang terpakai pada {{stages}} ada dalam kad \"{{card}}\"."
+      "pointer": "Pilihan yang terpakai pada {{stages}} ada dalam kad \"{{card}}\".",
+      "edgeVoices": {
+        "hint": "Suara disimpan mengikut bahasa: ini suara untuk pasangan bahasa ini.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Paparan mana",

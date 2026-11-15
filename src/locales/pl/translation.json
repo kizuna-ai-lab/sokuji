@@ -1831,7 +1831,11 @@
         "notHeldValue": "Twój głos trafia prosto do drugiej strony, bez tłumaczenia"
       },
       "actsOn": "Dotyczy: {{stages}}",
-      "pointer": "Opcje dotyczące {{stages}} są na karcie „{{card}}”."
+      "pointer": "Opcje dotyczące {{stages}} są na karcie „{{card}}”.",
+      "edgeVoices": {
+        "hint": "Głosy są zapisywane dla każdego języka: to głosy tej pary języków.",
+        "voiceFor": "{{who}} ({{language}})"
+      }
     },
     "display": {
       "surface": "Który widok",
