@@ -35,6 +35,8 @@ export interface Track {
   take(): TrackPiece | null;
   /** The encoder's last packets and the end of the stream. */
   end(): Promise<TrackPiece>;
+  /** Stops the track without finishing it: its encoder is closed and what waits is dropped (the recording stopped). */
+  close(): void;
   /** Where the first sample lies on the record's clock; null before any audio. */
   readonly offsetMs: number | null;
   readonly failed: boolean;
@@ -215,6 +217,12 @@ export function createTrack(o: { startedAt: number; encoder: OpusEncoderFactory;
       }
       try { encoder.close(); } catch { /* closing is best effort */ }
       return piece(true) ?? { bytes: new Uint8Array(0), durationMs };
+    },
+
+    close() {
+      if (!failed) fail();
+      queue.length = 0;
+      held = null;
     },
 
     get offsetMs() { return offsetMs; },

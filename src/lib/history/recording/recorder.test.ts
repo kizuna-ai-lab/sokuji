@@ -115,4 +115,29 @@ describe('a record\'s recording', () => {
     await settle();
     expect(pieces).toEqual([]);
   });
+
+  // Review: a failed write must still close every track's encoder, the healthy one's too.
+  it('closes every track once its recording has stopped', async () => {
+    let closed = 0;
+    const counting: OpusEncoderFactory = (onPacket, onHead, onError) => ({ ...fakeEncoder(onPacket, onHead, onError), close() { closed += 1; } });
+    const port = { appendTrack: async () => { throw new Error('disk full'); } } as unknown as HistoryPort;
+    recorder = createHistoryRecorder({ port, clock, encoder: counting, report, tell });
+    recorder.begin(ID, 0);
+    await run(1500, () => ['speaker', 'participant']);
+    expect(tell).toHaveBeenCalledTimes(1);
+    expect(closed).toBe(2);
+    await recorder.end();
+    expect(closed).toBe(2);
+  });
+
+  // Review: a write that never answers must not let the pieces waiting behind it grow without end.
+  it('stops recording, and says so, when the pieces waiting to be written pass the limit', async () => {
+    const port = { appendTrack: () => new Promise(() => {}) } as unknown as HistoryPort;
+    recorder = createHistoryRecorder({ port, clock, encoder: fakeEncoder, report, tell, maxQueuedBytes: 2000 });
+    recorder.begin(ID, 0);
+    await run(30_000, () => ['speaker', 'participant']);
+    expect(tell).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledWith(expect.stringContaining('cannot keep up'), null);
+    expect(recorder.queuedBytes()).toBeLessThanOrEqual(2000);
+  });
 });
