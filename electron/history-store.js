@@ -507,46 +507,74 @@ function openHistory({ dir, now = () => Date.now() }) {
       if (!isInt(limit) || limit < 1) fail('BAD_INPUT', 'limit must be a positive integer');
       const text = query.trim();
       if (!text) return [];
-      const pattern = likeAnywhere(text);
-      const found = new Map();
-      const entry = (id) => {
-        if (!found.has(id)) found.set(id, { sentences: [], translations: [], notes: [], title: false });
-        return found.get(id);
-      };
-      for (const x of all(
-        `select t.record_id, t.id as transcript_id, t.text_kind, s.n, s.text, s.start_ms, s.segment_id
-         from sentences s join transcripts t on t.id = s.transcript_id join records r on r.id = t.record_id
-         where r.binned_at is null and s.text like ? escape '\\'`, pattern,
-      )) entry(x.record_id).sentences.push(x);
-      for (const g of all(
-        `select g.record_id, g.id, g.text, g.opened_at, g.position from segments g join records r on r.id = g.record_id
-         where r.binned_at is null and g.side = 'translation' and g.text like ? escape '\\'`, pattern,
-      )) entry(g.record_id).translations.push(g);
-      for (const n of all(
-        `select n.record_id, n.id from notes n join records r on r.id = n.record_id
-         where r.binned_at is null and n.search_text like ? escape '\\'`, pattern,
-      )) entry(n.record_id).notes.push(n);
-      for (const r of all("select id from records where binned_at is null and title like ? escape '\\'", pattern)) entry(r.id).title = true;
-
-      const results = [];
-      for (const [recordId, m] of found) {
-        // Sentences: those of the newest transcript that matches; a translation segment one of them was cut from is that sentence.
-        const newest = m.sentences.reduce((max, x) => Math.max(max, x.transcript_id), -1);
-        const sentences = m.sentences.filter((x) => x.transcript_id === newest)
-          .sort((a, b) => a.start_ms - b.start_ms || a.n - b.n);
-        const cutFrom = new Set(m.sentences.filter((x) => x.text_kind === 'translation' && x.segment_id).map((x) => x.segment_id));
-        const translations = m.translations.filter((g) => !cutFrom.has(g.id)).sort((a, b) => a.opened_at - b.opened_at || a.position - b.position);
-        const notes = [...m.notes].sort((a, b) => b.id - a.id);
-        const hits = sentences.length + translations.length + notes.length + (m.title ? 1 : 0);
-        if (hits === 0) continue;
-        const first = sentences.length > 0 ? { kind: 'sentence', transcriptId: sentences[0].transcript_id, n: sentences[0].n, text: sentences[0].text }
-          : translations.length > 0 ? { kind: 'translation', segmentId: translations[0].id, text: translations[0].text }
-          : notes.length > 0 ? { kind: 'notes', notesId: notes[0].id }
-          : { kind: 'title' };
-        const r = one('select title, started_at from records where id = ?', recordId);
-        results.push({ recordId, title: r.title, startedAt: r.started_at, hits, first });
-      }
-      return results.sort((a, b) => b.startedAt - a.startedAt || (a.recordId < b.recordId ? 1 : -1)).slice(0, limit);
+      const p = likeAnywhere(text);
+      // Counted in the database, one row per record, newest first; only the records shown are read further. A
+      // record's sentence hits are those of its newest transcript that matches; a translation segment a matching
+      // sentence of a translation transcript was cut from is that sentence, not a second hit.
+      const rows = db.prepare(
+        `with
+         s_match as materialized (
+           select t.record_id, t.id as tid from sentences s
+           join transcripts t on t.id = s.transcript_id join records r on r.id = t.record_id
+           where r.binned_at is null and s.text like :p escape '\\'
+         ),
+         s_newest as (select record_id, max(tid) as tid from s_match group by record_id),
+         s_count as (
+           select m.record_id, count(*) as c from s_match m join s_newest w on w.record_id = m.record_id and w.tid = m.tid
+           group by m.record_id
+         ),
+         g_count as (
+           select g.record_id, count(*) as c from segments g join records r on r.id = g.record_id
+           where r.binned_at is null and g.side = 'translation' and g.text like :p escape '\\'
+             and not exists (
+               select 1 from sentences s join transcripts t on t.id = s.transcript_id
+               where t.record_id = g.record_id and t.text_kind = 'translation' and s.segment_id = g.id and s.text like :p escape '\\'
+             )
+           group by g.record_id
+         ),
+         n_count as (
+           select n.record_id, count(*) as c, max(n.id) as newest from notes n join records r on r.id = n.record_id
+           where r.binned_at is null and n.search_text like :p escape '\\'
+           group by n.record_id
+         )
+         select r.id, r.title, r.started_at, w.tid as newest_tid, nc.newest as newest_notes,
+           coalesce(sc.c, 0) as sentence_hits, coalesce(gc.c, 0) as translation_hits, coalesce(nc.c, 0) as notes_hits,
+           (r.title is not null and r.title like :p escape '\\') as title_hit
+         from records r
+         left join s_newest w on w.record_id = r.id
+         left join s_count sc on sc.record_id = r.id
+         left join g_count gc on gc.record_id = r.id
+         left join n_count nc on nc.record_id = r.id
+         where r.binned_at is null
+           and (sc.c is not null or gc.c is not null or nc.c is not null or (r.title is not null and r.title like :p escape '\\'))
+         order by r.started_at desc, r.id desc
+         limit :limit`,
+      ).all({ p, limit });
+      return rows.map((r) => {
+        let first;
+        if (r.sentence_hits > 0) {
+          const x = one(`select n, text from sentences where transcript_id = ? and text like ? escape '\\' order by start_ms, n limit 1`, r.newest_tid, p);
+          first = { kind: 'sentence', transcriptId: r.newest_tid, n: x.n, text: x.text };
+        } else if (r.translation_hits > 0) {
+          const g = one(
+            `select g.id, g.text from segments g
+             where g.record_id = ?1 and g.side = 'translation' and g.text like ?2 escape '\\'
+               and not exists (
+                 select 1 from sentences s join transcripts t on t.id = s.transcript_id
+                 where t.record_id = g.record_id and t.text_kind = 'translation' and s.segment_id = g.id and s.text like ?2 escape '\\'
+               )
+             order by g.opened_at, g.position limit 1`,
+            r.id, p,
+          );
+          first = { kind: 'translation', segmentId: g.id, text: g.text };
+        } else if (r.notes_hits > 0) {
+          first = { kind: 'notes', notesId: r.newest_notes };
+        } else {
+          first = { kind: 'title' };
+        }
+        const hits = r.sentence_hits + r.translation_hits + r.notes_hits + (r.title_hit === 1 ? 1 : 0);
+        return { recordId: r.id, title: r.title, startedAt: r.started_at, hits, first };
+      });
     },
 
     binRecords({ ids } = {}) {
