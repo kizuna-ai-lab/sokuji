@@ -456,6 +456,7 @@ describe('a record transcribed again', () => {
       sessionRunning: () => false, importFile: vi.fn(), transcribe: vi.fn(() => new Promise<never>(() => {})), notesAfterImport: vi.fn(),
     };
     store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.', null, jobs as never);
+    store.getState().follow();
     await renderRecord();
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Transcribe again' }));

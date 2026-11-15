@@ -330,6 +330,7 @@ describe('importing from the list', () => {
 
   it('offers an import when files can be imported: the chosen file is asked about first', async () => {
     store = createHistoryPageStore(port, clock, () => 'That did not work.', null, jobs() as never);
+    store.getState().follow();
     await renderList();
     const input = screen.getByLabelText('Import a file', { selector: 'input' }) as HTMLInputElement;
     expect(input.accept).toBe('audio/*,video/*');

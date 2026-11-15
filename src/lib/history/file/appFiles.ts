@@ -8,7 +8,7 @@ import useSettingsStore from '../../../stores/settingsStore';
 import { getAppVersion } from '../../../utils/conversationExport';
 import { realClock } from '../../contract/clock';
 import { appNotesRunner } from '../../notes/appNotes';
-import type { FileJobs } from '../historyPageStore';
+import { createFileJobState, type FileJobs } from '../historyPageStore';
 import { historyPort } from '../port';
 import { webCodecsOpusEncoder } from '../recording/opusEncoder';
 import { decodeFile, readMediaDuration } from './decode';
@@ -18,9 +18,14 @@ import { transcribeRecord } from './transcribe';
 
 const newJobId = () => `job-${crypto.randomUUID()}`;
 
+let jobs: FileJobs | null = null;
+
+/** The app's one set of file jobs: a job and its state outlive the History page that began it. */
 export function appFileJobs(): FileJobs {
+  if (jobs) return jobs;
   const port = historyPort();
-  return {
+  jobs = {
+    state: createFileJobState(),
     service: fileRecognitionFromStores,
     sessionRunning: () => currentRunPhase() !== 'idle',
     importFile: (o) => importFile({
@@ -33,4 +38,5 @@ export function appFileJobs(): FileJobs {
       if (useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) appNotesRunner().start(recordId);
     },
   };
+  return jobs;
 }

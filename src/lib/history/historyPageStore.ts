@@ -48,8 +48,21 @@ export interface FileJob {
 /** Why a file job cannot start now. */
 export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy';
 
+/** The running file job and how the last one ended: kept outside any page, so a job outlives the page that began it. */
+export interface FileJobState {
+  job: FileJob | null;
+  jobFailure: string | null;
+  jobKept: boolean;
+  controller: AbortController | null;
+}
+
+export const createFileJobState = (): StoreApi<FileJobState> =>
+  createStore<FileJobState>(() => ({ job: null, jobFailure: null, jobKept: false, controller: null }));
+
 /** What the page needs to import and transcribe files (desktop); absent, it cannot. */
 export interface FileJobs {
+  /** Shared by every page (the app keeps one); a page makes its own when none is given. */
+  state?: StoreApi<FileJobState>;
   service(): Promise<FileRecognitionService | FileRecognitionMissing>;
   /** A session is running: importing waits (decoding is heavy). */
   sessionRunning(): boolean;
@@ -116,7 +129,7 @@ export interface HistoryPageActions {
   cancelNotes(): void;
   /** Dismisses name `index` of the shown version's names to check. */
   dismissName(index: number): Promise<void>;
-  /** Follows the notes runner while the page is shown: what it writes, and each version that ends. */
+  /** Follows the notes runner and the file job while the page is shown: what they do, and each version that ends. */
   follow(): void;
   /** Stops following the notes runner (the page is gone). */
   dispose(): void;
@@ -167,8 +180,14 @@ export function createHistoryPageStore(
   let notesSeq = 0;
   /** A dismissal being written: the next waits for it rather than writing the names it read before. */
   let dismissing = false;
-  /** Stops the running file job. */
-  let jobController: AbortController | null = null;
+  /** The file job, shared with every page over the same jobs. */
+  const jobs = files?.state ?? createFileJobState();
+  /** Unsubscribes from the file job. */
+  let offJobs: (() => void) | null = null;
+  const setJobPhase = (phase: ImportPhase) => {
+    const job = jobs.getState().job;
+    if (job) jobs.setState({ job: { ...job, phase } });
+  };
 
   const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
     /** One action: busy while it runs, a rejection shown and nothing else changed. */
@@ -243,9 +262,9 @@ export function createHistoryPageStore(
       usage: null,
       open: null,
       notesRunning: notes?.running() ?? [],
-      job: null,
-      jobFailure: null,
-      jobKept: false,
+      job: jobs.getState().job,
+      jobFailure: jobs.getState().jobFailure,
+      jobKept: jobs.getState().jobKept,
       filesOffered: !!files,
       busy: false,
       error: null,
@@ -382,6 +401,12 @@ export function createHistoryPageStore(
       }),
 
       follow() {
+        // The file job as this page shows it.
+        if (!offJobs) {
+          const shown = (j: ReturnType<typeof jobs.getState>) => set({ job: j.job, jobFailure: j.jobFailure, jobKept: j.jobKept });
+          offJobs = jobs.subscribe(shown);
+          shown(jobs.getState());
+        }
         if (!notes || offNotes) return;
         // A version that ends shows itself: the open record and the list are read again (the list's tags follow).
         const update = () => {
@@ -401,6 +426,9 @@ export function createHistoryPageStore(
       dispose() {
         offNotes?.();
         offNotes = null;
+        // The job goes on: the next page shows it.
+        offJobs?.();
+        offJobs = null;
       },
 
       cancelNotes() {
@@ -429,7 +457,7 @@ export function createHistoryPageStore(
 
       async fileJobBlocked(kind) {
         if (!files) return 'no-file-service';
-        if (get().job) return 'busy';
+        if (jobs.getState().job) return 'busy';
         const service = await files.service();
         if ('missing' in service) return service.missing;
         if (kind === 'import' && files.sessionRunning()) return 'session';
@@ -437,48 +465,43 @@ export function createHistoryPageStore(
       },
 
       async importFile(file, o) {
-        if (!files || get().job) return;
-        const service = await files.service();
-        if ('missing' in service) { set({ jobFailure: service.missing }); return; }
+        // The job is taken before anything is awaited: a second start finds it.
+        if (!files || jobs.getState().job) return;
         const controller = new AbortController();
-        jobController = controller;
-        set({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading' }, jobFailure: null, jobKept: false });
+        jobs.setState({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading' }, jobFailure: null, jobKept: false, controller });
         try {
+          const service = await files.service();
+          if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
           const result = await files.importFile({
-            file, language: o.language, myLanguage: o.myLanguage, service, signal: controller.signal,
-            onProgress: (p) => { const job = get().job; if (job) set({ job: { ...job, phase: p.phase } }); },
+            file, language: o.language, myLanguage: o.myLanguage, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           });
           if (result.transcribed) files.notesAfterImport(result.recordId);
-          else set({ jobFailure: result.failure, jobKept: true });
+          else jobs.setState({ jobFailure: result.failure, jobKept: true });
         } catch (error) {
-          set({ jobFailure: codeOf(error) });
+          jobs.setState({ jobFailure: codeOf(error) });
         } finally {
-          jobController = null;
-          set({ job: null });
+          jobs.setState({ job: null, controller: null });
         }
         await act(reload);
       },
 
       async transcribeOpen() {
         const open = get().open;
-        if (!files || get().job || !open) return;
-        const service = await files.service();
-        if ('missing' in service) { set({ jobFailure: service.missing }); return; }
+        if (!files || jobs.getState().job || !open) return;
         const recordId = open.record.id;
         const controller = new AbortController();
-        jobController = controller;
-        set({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null, jobKept: false });
+        jobs.setState({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null, jobKept: false, controller });
         let made: number | null = null;
         try {
+          const service = await files.service();
+          if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
           ({ transcriptId: made } = await files.transcribe({
-            recordId, service, signal: controller.signal,
-            onProgress: (p) => { const job = get().job; if (job) set({ job: { ...job, phase: p.phase } }); },
+            recordId, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           }));
         } catch (error) {
-          set({ jobFailure: codeOf(error) });
+          jobs.setState({ jobFailure: codeOf(error) });
         } finally {
-          jobController = null;
-          set({ job: null });
+          jobs.setState({ job: null, controller: null });
         }
         if (made === null) return;
         await act(async () => {
@@ -488,10 +511,10 @@ export function createHistoryPageStore(
       },
 
       cancelJob() {
-        jobController?.abort();
+        jobs.getState().controller?.abort();
       },
 
-      clearJobFailure: () => set({ jobFailure: null, jobKept: false }),
+      clearJobFailure: () => jobs.setState({ jobFailure: null, jobKept: false }),
     };
   });
 

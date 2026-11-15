@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVirtualClock, type VirtualClock } from '../contract/clock';
 import type { HistoryPort } from './port';
 import type { HistoryNotes, HistoryRecord, HistoryRecordRow } from './types';
-import { createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
+import { createFileJobState, createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
 
 const A = 'run-000a-aaaa';
 const B = 'run-000b-bbbb';
@@ -438,6 +438,7 @@ describe('transcripts and file jobs', () => {
   it('imports one file at a time, shows its phase, then lists it and writes its notes', async () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
     await store.getState().load();
     const started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
     await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
@@ -458,16 +459,50 @@ describe('transcripts and file jobs', () => {
     for (const [o, reason] of [[{ missing: 'no-file-service' }, 'no-file-service'], [{ missing: 'no-key' }, 'no-key'], [{ session: true }, 'session']] as const) {
       const f = fakeJobs(o);
       store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+      store.getState().follow();
       expect(await store.getState().fileJobBlocked('import')).toBe(reason);
     }
     const f = fakeJobs({ session: true });
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
     expect(await store.getState().fileJobBlocked('transcribe')).toBeNull();
+  });
+
+  it('a file job outlives the page: the next page shows it, can cancel it, and cannot start a second', async () => {
+    const f = fakeJobs();
+    const jobs = { ...f.jobs, state: createFileJobState() };
+    const first = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+    first.getState().follow();
+    const started = first.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+    first.getState().dispose();
+    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+    second.getState().follow();
+    expect(second.getState().job).toMatchObject({ kind: 'import', name: 'Team sync.mp4' });
+    await second.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    expect(f.jobs.importFile).toHaveBeenCalledTimes(1);
+    second.getState().cancelJob();
+    expect(f.progress.signal!.aborted).toBe(true);
+    f.finishImport({ recordId: B, transcribed: false, failure: 'CANCELLED' });
+    await started;
+    expect(second.getState()).toMatchObject({ job: null, jobFailure: 'CANCELLED' });
+  });
+
+  it('two quick starts make one job', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
+    void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+    await flush();
+    expect(f.jobs.importFile).toHaveBeenCalledTimes(1);
   });
 
   it('a failed import keeps what it stored, says why, and writes no notes', async () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
     const started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
     await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
     f.finishImport({ recordId: B, transcribed: false, failure: 'NO_KEY' });
@@ -482,6 +517,7 @@ describe('transcripts and file jobs', () => {
   it('transcribes the open record again, shows the new transcript, and can be cancelled', async () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
     port.getRecord = async () => recordOf(A, [1]);
     await store.getState().openRecord(A);
     const started = store.getState().transcribeOpen();

@@ -60,6 +60,7 @@ describe('importing a file', () => {
   it('names the service and its stage, asks the language, and starts the import', async () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
     const onClose = vi.fn();
     show(<ImportPanel file={file} myLanguage="zh" onClose={onClose} />);
     await settle();
@@ -82,6 +83,7 @@ describe('importing a file', () => {
     ] as const) {
       const { jobs } = fakeJobs(o);
       store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+      store.getState().follow();
       show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
       await settle();
       expect(screen.getByText(text)).toBeTruthy();
@@ -95,6 +97,7 @@ describe('a file job running, and how it ended', () => {
   it('shows the phase with a way to cancel, then the reason it did not finish', async () => {
     const { jobs, pending } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
     show(<FileJobLine />);
     let started!: Promise<void>;
     act(() => { started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
@@ -113,6 +116,7 @@ describe('transcribing a record again', () => {
   it('says a new version is made, and starts it', async () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
     await act(() => store.getState().openRecord(A));
     const onClose = vi.fn();
     show(<TranscribePanel onClose={onClose} />);
@@ -129,6 +133,7 @@ describe('transcribing a record again', () => {
   it('lets another transcript be chosen, newest first', async () => {
     record.transcripts.push({ id: 2, origin: { service: 'soniox', kind: 'file' }, textKind: 'original', createdAt: START + 3_600_000, sentences: 4 });
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, fakeJobs().jobs);
+    store.getState().follow();
     await act(() => store.getState().openRecord(A));
     show(<TranscriptChooser />);
     const select = screen.getByLabelText('Transcript version') as HTMLSelectElement;
@@ -142,6 +147,7 @@ describe('transcribing a record again', () => {
 
   it('shows no chooser for a single transcript', async () => {
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, fakeJobs().jobs);
+    store.getState().follow();
     await act(() => store.getState().openRecord(A));
     show(<TranscriptChooser />);
     expect(screen.queryByLabelText('Transcript version')).toBeNull();
