@@ -11,7 +11,6 @@ import {
   autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
-import { ExportMenuButton, type ExportMenuButtonProps } from '../MainPanel/ExportButton';
 import { HoldToTalk } from './HoldToTalk';
 import {
   useSubtitleFullscreen,
@@ -44,8 +43,6 @@ interface Props {
   onClearConversation: () => void;
   speakerActive: boolean;
   participantActive: boolean;
-  /** The new subtitle view's export (plan 1d-3): the menu over its conversation's exporter. */
-  exportMenu?: Omit<ExportMenuButtonProps, 'popoverHost'>;
   surface?: SubtitleSurfaceKind;
   /** The reading languages of the current target, from the Electron host; the display popover names its readings switch by them. */
   readingTargets?: ReadonlySet<ReadingLanguage>;
@@ -90,7 +87,6 @@ const SubtitleBar: React.FC<Props> = ({
   onClearConversation,
   speakerActive,
   participantActive,
-  exportMenu,
   surface = 'electron',
   readingTargets,
   sessionControl,
@@ -241,13 +237,8 @@ const SubtitleBar: React.FC<Props> = ({
         >
           {subtitle.compactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
         </button>
-        {/* In the extension overlay the wire caps entries to the newest
-            OVERLAY_ENTRIES (lib/subtitle/wire.ts), so an export here would
-            silently omit older messages. The side panel holds the full
-            conversation and is the export source of truth — only offer
-            export on the Electron surface, where SubtitleTakeover reads the
-            live entries directly, uncapped. */}
-        {surface === 'electron' && exportMenu && <ExportMenuButton {...exportMenu} popoverHost="child-window" />}
+        {/* No export here: on the desktop it lives in History, and the extension overlay's entries are only the
+            newest few (lib/subtitle/wire.ts); its side panel keeps the menu. */}
         <button
           type="button"
           className="subtitle-bar__btn"

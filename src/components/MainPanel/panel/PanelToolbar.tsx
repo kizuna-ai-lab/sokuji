@@ -173,11 +173,14 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
             list. Handing it one would narrow the file with no way for the
             user to widen it back — and would drag the unrelated
             basic/advanced uiMode filter into the export as well. */}
-        <ExportMenuButton
-          exporter={exporter}
-          speakerMode={speakerDisplayMode}
-          participantMode={participantDisplayMode}
-        />
+        {/* On the desktop export lives in History; the extension keeps the menu here. */}
+        {!isElectron() && (
+          <ExportMenuButton
+            exporter={exporter}
+            speakerMode={speakerDisplayMode}
+            participantMode={participantDisplayMode}
+          />
+        )}
         {/* What I hear, without opening the settings: hidden face to face and when nothing applies. */}
         <HearingButton />
         {/* LAN caption sharing (spec 2026-10-04 §7.1): the desktop app only. */}

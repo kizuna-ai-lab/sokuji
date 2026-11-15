@@ -35,8 +35,8 @@ export const CATEGORIES: readonly Category[] = [
   category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'open', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
   category({ id: 'display', group: 'devices', words: ['font', 'size', 'colour', 'color', 'compact', 'subtitles', 'captions', 'preview'], lockedInSession: 'open', shown: () => true }),
-  // Desktop only; listed once History is built (Plan 3).
-  category({ id: 'history', group: 'data', words: ['history', 'notes', 'folder', 'auto-save'], desktopOnly: true, lockedInSession: 'open', shown: () => false }),
+  // Desktop only: the extension has no History.
+  category({ id: 'history', group: 'data', words: ['history', 'notes', 'folder', 'auto-save'], desktopOnly: true, lockedInSession: 'open', shown: () => true }),
   category({ id: 'general', group: 'app', words: ['interface language', 'appearance', 'theme', 'updates', 'logs', 'setup', 'help', 'version'], lockedInSession: 'open', shown: () => true }),
 ];
 

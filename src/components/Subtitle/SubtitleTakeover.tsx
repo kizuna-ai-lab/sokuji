@@ -8,7 +8,6 @@ import { usePanelNotes } from '../../stores/panelNotesStore';
 import { useExitSubtitleMode, useNavigateToSettings } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import { openTtsSlot } from '../providers/openTtsSlot';
-import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import type { NoticeAction } from '../Conversation/SystemRow';
 import { useReadingTargets } from '../../lib/reading/useReadingTargets';
@@ -28,7 +27,6 @@ export function SubtitleTakeover() {
   const viewState = useReadable(session.view);
   const { lit } = useReadable(session.karaoke);
   const sessionState = useReadable(session.subtitle);
-  const exporter = useConversationExporter(viewState);
   const notes = usePanelNotes();
   const exitSubtitleMode = useExitSubtitleMode();
   const navigateToSettings = useNavigateToSettings();
@@ -70,7 +68,7 @@ export function SubtitleTakeover() {
     <SubtitleView
       surface="electron"
       model={{ entries: viewState.entries, lit, session: sessionState, notes: panelNoteEntries(notes) }}
-      controls={controls} exporter={exporter} statusLine={<TakeoverStatusLine />} noticeAction={noticeAction}
+      controls={controls} statusLine={<TakeoverStatusLine />} noticeAction={noticeAction}
       readingTargets={readingTargets}
     />
   );

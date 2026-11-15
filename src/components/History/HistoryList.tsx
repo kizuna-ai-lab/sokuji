@@ -181,7 +181,7 @@ export const HistoryList: React.FC = () => {
     else body = <ul className="history-list__rows">{results.map(resultRow)}</ul>;
   } else if (tab === 'records') {
     body = rows.length === 0
-      ? <p className="history-list__empty">{t('history.noRecords', 'Sessions you hold are kept here.')}</p>
+      ? <p className="history-list__empty">{t('history.noRecords', 'Your sessions are kept here.')}</p>
       : <ul className="history-list__rows">{rows.map(recordRow)}</ul>;
   } else {
     body = rows.length === 0

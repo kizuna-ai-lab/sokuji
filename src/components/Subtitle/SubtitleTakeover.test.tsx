@@ -134,11 +134,11 @@ function lastControls(): SubtitleControls {
 }
 
 describe('SubtitleTakeover', () => {
-  it("draws the electron surface with the root session's state and an exporter", () => {
+  it("draws the electron surface with the root session's state and no export (it lives in History)", () => {
     render(<SubtitleTakeover />);
     const last = captured[captured.length - 1];
     expect(last.surface).toBe('electron');
-    expect(last.exporter).toBeTruthy();
+    expect(last.exporter).toBeUndefined();
     expect((last.model as { session: unknown }).session).toBe(getAppSession().subtitle.get());
   });
 

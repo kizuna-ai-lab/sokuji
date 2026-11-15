@@ -16,6 +16,7 @@ import { AccountsCategory } from './AccountsCategory';
 import { AudioCategory, ModelsCategory } from './DeviceCategories';
 import { DisplayCategory } from './DisplayCategory';
 import { GeneralCategory } from './GeneralCategory';
+import { HistoryCategory } from './HistoryCategory';
 // Today's sections (rows, selects, key fields) are styled there; the old panel that loaded it is gone.
 import '../Settings/Settings.scss';
 import './SettingsPage.scss';
@@ -34,6 +35,7 @@ export const CATEGORY_BODIES: CategoryBodies = {
   models: ModelsCategory,
   audio: AudioCategory,
   display: DisplayCategory,
+  history: HistoryCategory,
   general: GeneralCategory,
 };
 
