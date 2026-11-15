@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Simpan nota (.md)",
     "saveNotesTxt": "Simpan nota (.txt)",
     "copyNotes": "Salin nota",
+    "notesFailure": {
+      "no-service": "Tiada perkhidmatan nota ditetapkan. Pilih satu dalam “Bahasa dan susunan” dan tambah kuncinya.",
+      "no-topics": "Model nota tidak menulis sebarang topik.",
+      "not-json": "Model nota tidak menjawab dalam bentuk yang dijangka.",
+      "no-answer": "Model nota tidak memberi jawapan.",
+      "network": "Perkhidmatan nota tidak dapat dihubungi.",
+      "refused": "Perkhidmatan menolak permintaan ({{status}})."
+    },
+    "notesLatestFailed": "Cubaan terakhir tidak dapat ditulis: {{reason}}",
+    "notesLatestStopped": "Cubaan terakhir dihentikan.",
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "length": "Tempoh {{length}}"
   },

@@ -20,6 +20,10 @@ import { formatBytes, formatDateTime, formatLength, isComposing } from './format
 import RecordExportMenu from './RecordExportMenu';
 import RecordPlayer, { type SeekFn } from './RecordPlayer';
 import RecordNotes from './RecordNotes';
+import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
+import { NOTES_SERVICE_NAMES } from '../SettingsPage/HistoryCategory';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import './History.scss';
 
@@ -175,12 +179,16 @@ export const RecordPage: React.FC = () => {
     const sentence = open.sentences.find((s) => s.n === jumpTo.n);
     if (sentence && playable(open.record.tracks).length > 0) seekRef.current?.(startFor(sentence), true);
   }, [jumpTo, open]);
+  // Any language the app knows (its interface languages), the record's own and the interface's first.
   const notesLanguages = useMemo((): NotesLanguage[] => {
     if (!open) return [];
-    const codes = [open.record.myLanguage, open.record.targetLanguage, uiLocale(language)]
+    const codes = [open.record.myLanguage, open.record.targetLanguage, uiLocale(language), ...INTERFACE_LANGUAGES.map((l) => uiLocale(l.value))]
       .filter((c) => c && c !== 'auto' && !c.includes('+'));
     return [...new Set(codes)].map((code) => ({ code, name: englishLanguageName(code) }));
   }, [open, language]);
+  const notesService = useLineUpStore((s) => s.lineUp?.summarisation ?? null);
+  const notesExplained = useNotesExplained();
+  const setNotesExplained = useSetNotesExplained();
 
   if (!open) return null;
   const { record } = open;
@@ -191,6 +199,8 @@ export const RecordPage: React.FC = () => {
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
       onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)}
+      latest={open.latest ?? null} explainWith={!notesExplained && notesService ? NOTES_SERVICE_NAMES[notesService] ?? notesService : null}
+      onExplained={() => void setNotesExplained(true)}
     />
   );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;

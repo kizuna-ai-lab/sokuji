@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Salva le note (.md)",
     "saveNotesTxt": "Salva le note (.txt)",
     "copyNotes": "Copia le note",
+    "notesFailure": {
+      "no-service": "Nessun servizio per le note impostato. Scegline uno in «Lingue e composizione» e aggiungi la sua chiave.",
+      "no-topics": "Il modello delle note non ha scritto alcun argomento.",
+      "not-json": "Il modello delle note non ha risposto nella forma prevista.",
+      "no-answer": "Il modello delle note non ha dato risposta.",
+      "network": "Impossibile raggiungere il servizio delle note.",
+      "refused": "Il servizio ha rifiutato la richiesta ({{status}})."
+    },
+    "notesLatestFailed": "L’ultimo tentativo non è stato scritto: {{reason}}",
+    "notesLatestStopped": "L’ultimo tentativo è stato interrotto.",
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "length": "Durata {{length}}"
   },

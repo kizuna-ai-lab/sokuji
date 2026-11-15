@@ -57,6 +57,7 @@ const ROW_COLUMNS = `
   exists (select 1 from tracks k where k.record_id = r.id and k.gone_at is null) as has_recording,
   (select count(*) from notes n where n.record_id = r.id) as notes_versions,
   (select n.state from notes n where n.record_id = r.id order by n.created_at desc, n.id desc limit 1) as notes_state,
+  exists (select 1 from notes n where n.record_id = r.id and n.state = 'complete') as notes_complete,
   (select coalesce(sum(k.bytes), 0) from tracks k where k.record_id = r.id and k.gone_at is null) as audio_bytes`;
 
 /** A notes body: { title, overview: { text, format }, topics, points, names }. */
@@ -97,6 +98,7 @@ function rowOf(r) {
     hasRecording: r.has_recording === 1,
     notesVersions: r.notes_versions,
     notesState: r.notes_state ?? null,
+    notesComplete: r.notes_complete === 1,
     audioBytes: r.audio_bytes,
   };
 }

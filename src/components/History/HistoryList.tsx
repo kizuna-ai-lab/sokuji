@@ -140,8 +140,8 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
     <span className="history-row__tags">
       {r.sentences > 0 && <span className="history-tag">{t('history.tagTranscript', 'Transcript')}</span>}
       {notesRunning.includes(r.id) ? <span className="history-tag">{t('history.tagWritingNotes', 'Writing notes')}</span>
-        : r.notesState === 'failed' ? <span className="history-tag history-tag--failed">{t('history.tagNotesFailed', 'Notes failed')}</span>
-          : r.notesState === 'complete' && <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>}
+        : r.notesComplete ? <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>
+          : r.notesState === 'failed' && <span className="history-tag history-tag--failed">{t('history.tagNotesFailed', 'Notes failed')}</span>}
       {r.hasRecording && <span className="history-tag">{`${t('history.tagRecording', 'Recording')} · ${formatBytes(r.audioBytes)}`}</span>}
     </span>
   );

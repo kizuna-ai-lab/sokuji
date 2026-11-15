@@ -24,8 +24,10 @@ export interface OpenRecord {
   speakers: readonly HistorySpeaker[];
   legs: readonly Leg[];
   at: HitTarget | null;
-  /** The version of the notes shown: the newest when the record opens; null without notes. */
+  /** The version of the notes shown: the newest complete one when the record opens, else the newest; null without notes. */
   notes: HistoryNotes | null;
+  /** The newest attempt when it is newer than the version shown (it failed or was stopped). */
+  latest?: HistoryNotes | null;
 }
 
 export interface HistoryPageState {
@@ -73,6 +75,8 @@ export interface HistoryPageActions {
   cancelNotes(): void;
   /** Dismisses name `index` of the shown version's names to check. */
   dismissName(index: number): Promise<void>;
+  /** Stops following the notes runner (the page is gone). */
+  dispose(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
   reassign(n: number, speaker: string | null): Promise<void>;
 }
@@ -92,6 +96,8 @@ export function createHistoryPageStore(
   notes?: Pick<NotesRunner, 'start' | 'cancel' | 'running' | 'subscribe'> | null,
 ): StoreApi<HistoryPageState & HistoryPageActions> {
   let cancelSearch: (() => void) | null = null;
+  /** Unsubscribes from the notes runner. */
+  let offNotes: (() => void) | null | undefined = null;
   let searchSeq = 0;
 
   const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
@@ -136,9 +142,13 @@ export function createHistoryPageStore(
       const newest = newestTranscript(record);
       const sentences = newest ? await port.getSentences({ transcriptId: newest.id }) : [];
       const speakers = newest ? await port.getSpeakers({ transcriptId: newest.id }) : [];
-      const latest = [...record.notes].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id).pop();
-      const shown = latest ? await port.getNotes({ id: latest.id }) : null;
-      set({ open: { record, sentences, speakers, legs, at, notes: shown } });
+      const byAge = [...record.notes].sort((a, b) => a.createdAt - b.createdAt || a.id - b.id);
+      const lastTry = byAge[byAge.length - 1];
+      const chosen = [...byAge].reverse().find((n) => n.state === 'complete') ?? lastTry;
+      const shown = chosen ? await port.getNotes({ id: chosen.id }) : null;
+      // When the newest attempt failed or was stopped after the version shown, what became of it is said too.
+      const latest = lastTry && chosen && lastTry.id !== chosen.id ? await port.getNotes({ id: lastTry.id }) : null;
+      set({ open: { record, sentences, speakers, legs, at, notes: shown, latest } });
     };
 
     return {
@@ -276,6 +286,11 @@ export function createHistoryPageStore(
         if (get().open?.notes?.id === shown.id) set({ open: { ...get().open!, notes: again } });
       }),
 
+      dispose() {
+        offNotes?.();
+        offNotes = null;
+      },
+
       cancelNotes() {
         const open = get().open;
         if (open && notes) notes.cancel(open.record.id);
@@ -300,7 +315,7 @@ export function createHistoryPageStore(
   });
 
   // A version that ends shows itself: the open record and the list are read again (the list's tags follow).
-  notes?.subscribe(() => {
+  offNotes = notes?.subscribe(() => {
     const before = store.getState().notesRunning;
     const now = notes.running();
     store.setState({ notesRunning: now });

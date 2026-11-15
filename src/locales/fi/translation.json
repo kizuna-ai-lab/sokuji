@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Tallenna muistiinpanot (.md)",
     "saveNotesTxt": "Tallenna muistiinpanot (.txt)",
     "copyNotes": "Kopioi muistiinpanot",
+    "notesFailure": {
+      "no-service": "Muistiinpanojen palvelua ei ole asetettu. Valitse se kohdassa ”Kielet ja kokoonpano” ja lisää sen avain.",
+      "no-topics": "Muistiinpanomalli ei kirjoittanut yhtään aihetta.",
+      "not-json": "Muistiinpanomalli ei vastannut odotetussa muodossa.",
+      "no-answer": "Muistiinpanomalli ei antanut vastausta.",
+      "network": "Muistiinpanojen palveluun ei saatu yhteyttä.",
+      "refused": "Palvelu hylkäsi pyynnön ({{status}})."
+    },
+    "notesLatestFailed": "Viimeisintä yritystä ei voitu kirjoittaa: {{reason}}",
+    "notesLatestStopped": "Viimeisin yritys keskeytettiin.",
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}"
   },

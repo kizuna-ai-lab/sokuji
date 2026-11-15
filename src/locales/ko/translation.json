@@ -2061,6 +2061,16 @@
     "saveNotesMd": "메모 저장(.md)",
     "saveNotesTxt": "메모 저장(.txt)",
     "copyNotes": "메모 복사",
+    "notesFailure": {
+      "no-service": "메모 서비스가 설정되지 않았습니다. ‘언어와 구성’에서 하나를 고르고 키를 추가하세요.",
+      "no-topics": "메모 모델이 주제를 하나도 쓰지 않았습니다.",
+      "not-json": "메모 모델이 예상한 형식으로 답하지 않았습니다.",
+      "no-answer": "메모 모델이 답하지 않았습니다.",
+      "network": "메모 서비스에 연결할 수 없습니다.",
+      "refused": "서비스가 요청을 거부했습니다({{status}})."
+    },
+    "notesLatestFailed": "가장 최근 시도는 작성하지 못했습니다: {{reason}}",
+    "notesLatestStopped": "가장 최근 시도는 중지되었습니다.",
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "length": "길이 {{length}}"
   },

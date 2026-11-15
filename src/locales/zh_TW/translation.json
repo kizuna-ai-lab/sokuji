@@ -2061,6 +2061,16 @@
     "saveNotesMd": "儲存紀要（.md）",
     "saveNotesTxt": "儲存紀要（.txt）",
     "copyNotes": "複製紀要",
+    "notesFailure": {
+      "no-service": "還沒有設定寫紀要的服務。請在「語言與工作階段組成」裡選擇，並新增它的金鑰。",
+      "no-topics": "紀要模型沒有寫出任何話題。",
+      "not-json": "紀要模型的回答格式不對。",
+      "no-answer": "紀要模型沒有回答。",
+      "network": "連不上寫紀要的服務。",
+      "refused": "服務拒絕了請求（{{status}}）。"
+    },
+    "notesLatestFailed": "最近一次沒能寫成：{{reason}}",
+    "notesLatestStopped": "最近一次已停止。",
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "length": "時長 {{length}}"
   },

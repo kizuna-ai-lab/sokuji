@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Spara anteckningar (.md)",
     "saveNotesTxt": "Spara anteckningar (.txt)",
     "copyNotes": "Kopiera anteckningar",
+    "notesFailure": {
+      "no-service": "Ingen tjänst för anteckningar är vald. Välj en under ”Språk och uppsättning” och lägg till dess nyckel.",
+      "no-topics": "Modellen skrev inga ämnen.",
+      "not-json": "Modellen svarade inte i den väntade formen.",
+      "no-answer": "Modellen gav inget svar.",
+      "network": "Det gick inte att nå tjänsten för anteckningar.",
+      "refused": "Tjänsten avvisade begäran ({{status}})."
+    },
+    "notesLatestFailed": "Det senaste försöket kunde inte skrivas: {{reason}}",
+    "notesLatestStopped": "Det senaste försöket avbröts.",
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}"
   },

@@ -2061,6 +2061,16 @@
     "saveNotesMd": "メモを保存 (.md)",
     "saveNotesTxt": "メモを保存 (.txt)",
     "copyNotes": "メモをコピー",
+    "notesFailure": {
+      "no-service": "メモのサービスが設定されていません。「言語と構成」で選び、そのキーを追加してください。",
+      "no-topics": "メモのモデルが話題を一つも書きませんでした。",
+      "not-json": "メモのモデルが想定した形式で答えませんでした。",
+      "no-answer": "メモのモデルから答えがありませんでした。",
+      "network": "メモのサービスに接続できませんでした。",
+      "refused": "サービスが要求を拒否しました（{{status}}）。"
+    },
+    "notesLatestFailed": "最新の試みは書けませんでした：{{reason}}",
+    "notesLatestStopped": "最新の試みは中止されました。",
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "length": "長さ {{length}}"
   },

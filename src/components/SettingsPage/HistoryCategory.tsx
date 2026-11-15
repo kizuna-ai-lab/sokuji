@@ -32,7 +32,7 @@ function Row({ name, line, children }: { name: string; line?: ReactNode; childre
 }
 
 /** The notes services the line-up offers, by name. */
-const NOTES_SERVICE_NAMES: Readonly<Record<string, string>> = { openai: 'OpenAI' };
+export const NOTES_SERVICE_NAMES: Readonly<Record<string, string>> = { openai: 'OpenAI' };
 
 // The category changes nothing a running session uses, so it stays usable during one.
 export function HistoryCategory(_props: CategoryBodyProps) {

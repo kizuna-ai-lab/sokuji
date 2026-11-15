@@ -10,11 +10,11 @@ const BODY: NotesBody = {
   points: [
     { topic: 0, text: 'Ships next Tuesday', sentences: [2], kinds: ['decision'] },
     { topic: 0, text: 'Send the tracking number', sentences: [3], kinds: ['todo'], owner: 'My side', due: 'Tuesday' },
-    { topic: 1, text: 'The boxes were redone', sentences: [6], kinds: [], was: ['todo'] },
+    { topic: 1, text: 'The boxes were redone', sentences: [6], kinds: [], was: ['todo'], owner: 'Other side', due: 'Monday' },
   ],
   names: [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }],
 };
-const WORDS = { decision: 'Decision', todo: 'To do', risk: 'Risk' };
+const WORDS = { decision: 'Decision', todo: 'To do', risk: 'Risk', mySide: 'My side', otherSide: 'The other side' };
 
 describe('the notes exported', () => {
   it('as Markdown: the title, the overview, each topic and its points with what they are', () => {
@@ -37,5 +37,11 @@ describe('the notes exported', () => {
       'Packaging',
       '  - The boxes were redone', '',
     ].join('\n'));
+  });
+
+  it("writes a side as the interface names it, and an owner only for a to-do", () => {
+    const body: NotesBody = { ...BODY, points: [{ topic: 0, text: 'Send it', sentences: [2], kinds: ['todo'], owner: 'Other side', due: null }] };
+    expect(notesText(body, WORDS)).toContain('  - Send it (To do · The other side)');
+    expect(notesText(BODY, WORDS)).toContain('  - The boxes were redone\n');
   });
 });

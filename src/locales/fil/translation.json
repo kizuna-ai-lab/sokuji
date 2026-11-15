@@ -2061,6 +2061,16 @@
     "saveNotesMd": "I-save ang mga tala (.md)",
     "saveNotesTxt": "I-save ang mga tala (.txt)",
     "copyNotes": "Kopyahin ang mga tala",
+    "notesFailure": {
+      "no-service": "Walang serbisyo para sa mga tala. Pumili ng isa sa “Mga wika at line-up” at idagdag ang key nito.",
+      "no-topics": "Walang paksang isinulat ang model ng mga tala.",
+      "not-json": "Hindi sumagot sa inaasahang anyo ang model ng mga tala.",
+      "no-answer": "Walang sagot ang model ng mga tala.",
+      "network": "Hindi maabot ang serbisyo ng mga tala.",
+      "refused": "Tinanggihan ng serbisyo ang kahilingan ({{status}})."
+    },
+    "notesLatestFailed": "Hindi naisulat ang huling pagtatangka: {{reason}}",
+    "notesLatestStopped": "Itinigil ang huling pagtatangka.",
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "length": "Haba {{length}}"
   },

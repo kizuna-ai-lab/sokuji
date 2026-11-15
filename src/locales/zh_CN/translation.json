@@ -2061,6 +2061,16 @@
     "saveNotesMd": "保存纪要（.md）",
     "saveNotesTxt": "保存纪要（.txt）",
     "copyNotes": "复制纪要",
+    "notesFailure": {
+      "no-service": "还没有设置写纪要的服务。请在“语言与会话组成”里选择，并添加它的 key。",
+      "no-topics": "纪要模型没有写出任何话题。",
+      "not-json": "纪要模型的回答格式不对。",
+      "no-answer": "纪要模型没有回答。",
+      "network": "连不上写纪要的服务。",
+      "refused": "服务拒绝了请求（{{status}}）。"
+    },
+    "notesLatestFailed": "最近一次没能写成：{{reason}}",
+    "notesLatestStopped": "最近一次已停止。",
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "length": "时长 {{length}}"
   },

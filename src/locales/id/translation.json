@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Simpan catatan (.md)",
     "saveNotesTxt": "Simpan catatan (.txt)",
     "copyNotes": "Salin catatan",
+    "notesFailure": {
+      "no-service": "Belum ada layanan catatan. Pilih satu di “Bahasa dan susunan” dan tambahkan kuncinya.",
+      "no-topics": "Model catatan tidak menulis topik apa pun.",
+      "not-json": "Model catatan tidak menjawab dalam bentuk yang diharapkan.",
+      "no-answer": "Model catatan tidak memberi jawaban.",
+      "network": "Layanan catatan tidak bisa dihubungi.",
+      "refused": "Layanan menolak permintaan ({{status}})."
+    },
+    "notesLatestFailed": "Percobaan terakhir tidak bisa ditulis: {{reason}}",
+    "notesLatestStopped": "Percobaan terakhir dihentikan.",
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}"
   },

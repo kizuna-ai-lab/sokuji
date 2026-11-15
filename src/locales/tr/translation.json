@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Notları kaydet (.md)",
     "saveNotesTxt": "Notları kaydet (.txt)",
     "copyNotes": "Notları kopyala",
+    "notesFailure": {
+      "no-service": "Not hizmeti ayarlanmadı. “Diller ve düzen” bölümünden birini seçip anahtarını ekleyin.",
+      "no-topics": "Not modeli hiç konu yazmadı.",
+      "not-json": "Not modeli beklenen biçimde yanıt vermedi.",
+      "no-answer": "Not modeli yanıt vermedi.",
+      "network": "Not hizmetine ulaşılamadı.",
+      "refused": "Hizmet isteği reddetti ({{status}})."
+    },
+    "notesLatestFailed": "Son deneme yazılamadı: {{reason}}",
+    "notesLatestStopped": "Son deneme durduruldu.",
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "length": "Süre {{length}}"
   },

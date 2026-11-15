@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Notities opslaan (.md)",
     "saveNotesTxt": "Notities opslaan (.txt)",
     "copyNotes": "Notities kopiëren",
+    "notesFailure": {
+      "no-service": "Er is geen dienst voor notities ingesteld. Kies er een bij ‘Talen en opstelling’ en voeg de sleutel toe.",
+      "no-topics": "Het model schreef geen onderwerpen.",
+      "not-json": "Het model antwoordde niet in de verwachte vorm.",
+      "no-answer": "Het model gaf geen antwoord.",
+      "network": "De dienst voor notities was niet bereikbaar.",
+      "refused": "De dienst weigerde het verzoek ({{status}})."
+    },
+    "notesLatestFailed": "De laatste poging kon niet worden geschreven: {{reason}}",
+    "notesLatestStopped": "De laatste poging is gestopt.",
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "length": "Duur {{length}}"
   },

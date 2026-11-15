@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Notizen speichern (.md)",
     "saveNotesTxt": "Notizen speichern (.txt)",
     "copyNotes": "Notizen kopieren",
+    "notesFailure": {
+      "no-service": "Kein Dienst für Notizen eingerichtet. Wählen Sie unter „Sprachen und Aufstellung“ einen aus und fügen Sie seinen Schlüssel hinzu.",
+      "no-topics": "Das Modell hat keine Themen geschrieben.",
+      "not-json": "Das Modell hat nicht in der erwarteten Form geantwortet.",
+      "no-answer": "Das Modell hat keine Antwort gegeben.",
+      "network": "Der Dienst für Notizen war nicht erreichbar.",
+      "refused": "Der Dienst hat die Anfrage abgelehnt ({{status}})."
+    },
+    "notesLatestFailed": "Der letzte Versuch konnte nicht geschrieben werden: {{reason}}",
+    "notesLatestStopped": "Der letzte Versuch wurde abgebrochen.",
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}"
   },

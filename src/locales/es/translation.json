@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Guardar notas (.md)",
     "saveNotesTxt": "Guardar notas (.txt)",
     "copyNotes": "Copiar notas",
+    "notesFailure": {
+      "no-service": "No hay un servicio de notas configurado. Elige uno en «Idiomas y combinación» y añade su clave.",
+      "no-topics": "El modelo de notas no escribió ningún tema.",
+      "not-json": "El modelo de notas no respondió en la forma esperada.",
+      "no-answer": "El modelo de notas no dio ninguna respuesta.",
+      "network": "No se pudo contactar con el servicio de notas.",
+      "refused": "El servicio rechazó la solicitud ({{status}})."
+    },
+    "notesLatestFailed": "No se pudo escribir el último intento: {{reason}}",
+    "notesLatestStopped": "Se detuvo el último intento.",
     "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco.",
     "length": "Duración {{length}}"
   },

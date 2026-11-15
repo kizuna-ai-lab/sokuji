@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Zapisz notatki (.md)",
     "saveNotesTxt": "Zapisz notatki (.txt)",
     "copyNotes": "Kopiuj notatki",
+    "notesFailure": {
+      "no-service": "Nie ustawiono usługi do notatek. Wybierz ją w „Języki i zestaw” i dodaj jej klucz.",
+      "no-topics": "Model notatek nie napisał żadnego tematu.",
+      "not-json": "Model notatek nie odpowiedział w oczekiwanej formie.",
+      "no-answer": "Model notatek nie udzielił odpowiedzi.",
+      "network": "Nie udało się połączyć z usługą notatek.",
+      "refused": "Usługa odrzuciła żądanie ({{status}})."
+    },
+    "notesLatestFailed": "Ostatniej próby nie udało się napisać: {{reason}}",
+    "notesLatestStopped": "Ostatnia próba została przerwana.",
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
     "length": "Czas trwania {{length}}"
   },

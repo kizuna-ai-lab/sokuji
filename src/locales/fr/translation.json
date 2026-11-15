@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Enregistrer les notes (.md)",
     "saveNotesTxt": "Enregistrer les notes (.txt)",
     "copyNotes": "Copier les notes",
+    "notesFailure": {
+      "no-service": "Aucun service de notes n’est configuré. Choisissez-en un dans « Langues et composition » et ajoutez sa clé.",
+      "no-topics": "Le modèle n’a rédigé aucun sujet.",
+      "not-json": "Le modèle n’a pas répondu sous la forme attendue.",
+      "no-answer": "Le modèle n’a donné aucune réponse.",
+      "network": "Le service de notes est injoignable.",
+      "refused": "Le service a refusé la requête ({{status}})."
+    },
+    "notesLatestFailed": "La dernière tentative n’a pas pu être rédigée : {{reason}}",
+    "notesLatestStopped": "La dernière tentative a été arrêtée.",
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
     "length": "Durée {{length}}"
   },

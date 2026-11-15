@@ -4,11 +4,19 @@
 // point with what it is and a to-do's owner and date. The names to check are for the record page, not the export.
 import type { NoteKind, NotesBody, NotesPoint } from './write';
 
-export type NotesWords = Record<NoteKind, string>;
+/** The kinds, and the sides as the interface names them (the notes write "My side" / "Other side"). */
+export type NotesWords = Record<NoteKind, string> & { mySide: string; otherSide: string };
 
-/** What a point is and who and when: "To do · My side · Tuesday"; empty for a plain point. */
+/** An owner as it is shown: a side in the interface's words, a name as written. */
+export function ownerWord(owner: string | null | undefined, words: Pick<NotesWords, 'mySide' | 'otherSide'>): string | null {
+  if (!owner) return null;
+  return owner === 'My side' ? words.mySide : owner === 'Other side' ? words.otherSide : owner;
+}
+
+/** What a point is and, for a to-do, who and when: "To do · My side · Tuesday"; empty for a plain point. */
 function marks(p: NotesPoint, words: NotesWords): string {
-  return [...p.kinds.map((k) => words[k]), p.owner, p.due].filter(Boolean).join(' · ');
+  const todo = p.kinds.includes('todo');
+  return [...p.kinds.map((k) => words[k]), todo ? ownerWord(p.owner, words) : null, todo ? p.due : null].filter(Boolean).join(' · ');
 }
 
 const pointsOf = (body: NotesBody, topic: number) => body.points.filter((p) => p.topic === topic);

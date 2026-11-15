@@ -298,10 +298,10 @@ describe('notes versions', () => {
   });
 
   it("a record's row says how its newest version ended", () => {
-    expect(s.listRecords({})[0].notesState).toBeNull();
+    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ notesState: null, notesComplete: false }));
     s.saveNotes(notes());
     s.saveNotes(notes({ state: 'failed', failure: 'Incorrect API key provided.', body: null }));
-    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ notesVersions: 2, notesState: 'failed' }));
+    expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ notesVersions: 2, notesState: 'failed', notesComplete: true }));
   });
 
   it("a version's names to check can be replaced (dismissed ones kept, marked), and nothing else changes", () => {

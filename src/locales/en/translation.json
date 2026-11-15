@@ -2061,6 +2061,16 @@
     "saveNotesMd": "Save notes (.md)",
     "saveNotesTxt": "Save notes (.txt)",
     "copyNotes": "Copy notes",
+    "notesFailure": {
+      "no-service": "No notes service is set up. Choose one in Languages and line-up and add its key.",
+      "no-topics": "The notes model wrote no topics.",
+      "not-json": "The notes model did not answer in the expected form.",
+      "no-answer": "The notes model gave no answer.",
+      "network": "The notes service could not be reached.",
+      "refused": "The service refused the request ({{status}})."
+    },
+    "notesLatestFailed": "The latest attempt could not be written: {{reason}}",
+    "notesLatestStopped": "The latest attempt was stopped.",
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "length": "Length {{length}}"
   },

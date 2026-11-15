@@ -11,6 +11,7 @@ import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { englishLanguageName, languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import type { NoteKind, NotesBody } from '../../lib/notes/write';
+import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 
 export interface RecordNotesProps {
@@ -30,7 +31,22 @@ export interface RecordNotesProps {
   onJump(n: number): void;
   /** Dismisses name `index` of the version's names to check. */
   onDismissName(index: number): void;
+  /** The newest attempt when it is newer than the version shown (it failed or was stopped). */
+  latest?: HistoryNotes | null;
+  /** The notes service to name in the once-only explanation, while it is still owed (ruling 37); null when not. */
+  explainWith: string | null;
+  /** The explanation was shown and accepted. */
+  onExplained(): void;
 }
+
+/** The program's own reasons, by code (`notes:<code>`); a service's words are shown as they are. */
+const FAILURE_WORDS: Record<string, string> = {
+  'no-service': 'No notes service is set up. Choose one in Languages and line-up and add its key.',
+  'no-topics': 'The notes model wrote no topics.',
+  'not-json': 'The notes model did not answer in the expected form.',
+  'no-answer': 'The notes model gave no answer.',
+  network: 'The notes service could not be reached.',
+};
 
 type Filter = 'all' | NoteKind;
 
@@ -40,6 +56,20 @@ export function RecordNotes(p: RecordNotesProps) {
   const [filter, setFilter] = useState<Filter>('all');
   const [choice, setChoice] = useState(p.languages[0]?.code ?? '');
   const chosen = p.languages.find((l) => l.code === choice) ?? p.languages[0];
+  /** A version asked for while the explanation is still owed: written once it is accepted. */
+  const [explaining, setExplaining] = useState<NotesLanguage | null>(null);
+  const write = (language: NotesLanguage) => {
+    if (p.explainWith) setExplaining(language);
+    else p.onWrite(language);
+  };
+  const failureText = (failure: string | null) => {
+    if (!failure?.startsWith('notes:')) return failure ?? '';
+    const code = failure.slice('notes:'.length);
+    if (code.startsWith('refused:')) return t('history.notesFailure.refused', 'The service refused the request ({{status}}).', { status: code.slice('refused:'.length) });
+    return t(`history.notesFailure.${code}`, FAILURE_WORDS[code] ?? failure);
+  };
+  const sides = { mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side') };
+  const again = (language: string) => () => write({ code: language, name: englishLanguageName(language) });
 
   const kindWord: Record<NoteKind, string> = {
     decision: t('history.notesKind.decision', 'Decision'),
@@ -72,12 +102,26 @@ export function RecordNotes(p: RecordNotesProps) {
         onChange={(e) => setChoice(e.target.value)}>
         {p.languages.map((l) => <option key={l.code} value={l.code}>{languageLabel(l.code, ui)}</option>)}
       </select>
-      <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && p.onWrite(chosen)}>{label}</button>
+      <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && write(chosen)}>{label}</button>
     </div>
   );
 
   let content: React.ReactNode;
-  if (p.writing) {
+  if (explaining && p.explainWith) {
+    const explainTitle = t('history.notesExplainTitle', 'Before notes are written');
+    content = (
+      <div className="history-category__explain" role="group" aria-label={explainTitle}>
+        <strong>{explainTitle}</strong>
+        <p>{t('history.notesExplain', 'For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: p.explainWith })}</p>
+        <div className="record-notes__write">
+          <button type="button" className="history-button" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
+          <button type="button" className="history-button" onClick={() => { p.onExplained(); p.onWrite(explaining); setExplaining(null); }}>
+            {t('history.notesWrite', 'Write notes')}
+          </button>
+        </div>
+      </div>
+    );
+  } else if (p.writing) {
     content = (
       <div className="record-notes__state">
         <p role="status">{t('history.notesWriting', 'Writing notes…')}</p>
@@ -89,11 +133,10 @@ export function RecordNotes(p: RecordNotesProps) {
       ? <p className="record-notes__state">{t('history.notesTooShort', 'There is too little in this record to write notes from.')}</p>
       : writeControls(t('history.notesWrite', 'Write notes'));
   } else if (p.notes.state === 'failed') {
-    const again = p.notes.language;
     content = (
       <div className="record-notes__state">
-        <p>{t('history.notesFailed', 'The notes could not be written: {{reason}}', { reason: p.notes.failure ?? '' })}</p>
-        <button type="button" className="history-button" onClick={() => p.onWrite({ code: again, name: englishLanguageName(again) })}>
+        <p>{t('history.notesFailed', 'The notes could not be written: {{reason}}', { reason: failureText(p.notes.failure) })}</p>
+        <button type="button" className="history-button" onClick={again(p.notes.language)}>
           {t('history.notesTryAgain', 'Try again')}
         </button>
       </div>
@@ -108,8 +151,17 @@ export function RecordNotes(p: RecordNotesProps) {
   } else {
     const body = p.notes.body as unknown as NotesBody;
     const shown = (kinds: readonly NoteKind[]) => filter === 'all' || kinds.includes(filter);
+    const latest = p.latest && p.latest.state !== 'complete' ? p.latest : null;
     content = (
       <>
+        {latest && (
+          <div className="record-notes__state record-notes__latest">
+            <p>{latest.state === 'failed'
+              ? t('history.notesLatestFailed', 'The latest attempt could not be written: {{reason}}', { reason: failureText(latest.failure) })
+              : t('history.notesLatestStopped', 'The latest attempt was stopped.')}</p>
+            <button type="button" className="history-button" onClick={again(latest.language)}>{t('history.notesTryAgain', 'Try again')}</button>
+          </div>
+        )}
         <h3 className="record-notes__title">{body.title}</h3>
         {body.overview.text && <p className="record-notes__overview">{body.overview.text}</p>}
         <div className="record-notes__filter" role="group" aria-label={t('history.notesFilterLabel', 'Show')}>
@@ -127,7 +179,9 @@ export function RecordNotes(p: RecordNotesProps) {
               {points.length > 0 && (
                 <ul className="record-notes__points">
                   {points.map((pt, i) => {
-                    const who = [pt.owner, pt.due].filter(Boolean).join(' · ');
+                    // Who and when belong to a to-do; a point that is no longer one shows neither.
+                    const todo = pt.kinds.includes('todo');
+                    const who = todo ? [ownerWord(pt.owner, sides), pt.due].filter(Boolean).join(' · ') : '';
                     return (
                       <li key={i} className="record-notes__point">
                         <button type="button" className="record-notes__jump" onClick={() => p.onJump(pt.sentences[0])}>{pt.text}</button>

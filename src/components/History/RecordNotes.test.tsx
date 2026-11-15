@@ -8,7 +8,7 @@ import RecordNotes, { type RecordNotesProps } from './RecordNotes';
 const A = 'run-000a-aaaa';
 const record = (notes: HistoryRecord['notes'] = []): HistoryRecord => ({
   id: A, startedAt: 0, endedAt: 60_000, state: 'closed', mode: 'both', myLanguage: 'zh', targetLanguage: 'ja', title: null, titleByUser: false,
-  binnedAt: null, sentences: 9, hasRecording: false, notesVersions: notes.length, notesState: null, audioBytes: 0,
+  binnedAt: null, sentences: 9, hasRecording: false, notesVersions: notes.length, notesState: null, notesComplete: false, audioBytes: 0,
   services: { provider: 'soniox', models: {} }, appVersion: '1', textBytes: 0, legs: [], tracks: [], transcripts: [], notes,
 });
 const complete: HistoryNotes = {
@@ -34,7 +34,8 @@ const complete: HistoryNotes = {
 const props = (over: Partial<RecordNotesProps> = {}): RecordNotesProps => ({
   record: record([{ id: 7, transcriptId: 1, language: 'en', createdAt: 0, state: 'complete' }]), notes: complete, writing: false, tooShort: false,
   languages: [{ code: 'zh', name: 'Chinese' }, { code: 'ja', name: 'Japanese' }],
-  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(), ...over,
+  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(),
+  explainWith: null, onExplained: vi.fn(), latest: null, ...over,
 });
 afterEach(() => cleanup());
 
@@ -45,7 +46,7 @@ describe("a record's notes", () => {
     expect(screen.getByText('Delivery and packaging.')).toBeInTheDocument();
     const todo = screen.getByRole('button', { name: /Send the tracking number/ }).closest('li') as HTMLElement;
     expect(within(todo).getByText('To do')).toBeInTheDocument();
-    expect(within(todo).getByText('My side · Tuesday')).toBeInTheDocument();
+    expect(within(todo).getByText('Your side · Tuesday')).toBeInTheDocument();
     expect(screen.getByText('Decision')).toBeInTheDocument();
     expect(screen.getByText('Risk')).toBeInTheDocument();
   });
@@ -119,5 +120,42 @@ describe("a record's notes", () => {
     expect(p.onJump).toHaveBeenCalledWith(4);
     fireEvent.click(within(names).getAllByRole('button', { name: 'Dismiss' })[1]);
     expect(p.onDismissName).toHaveBeenCalledWith(2);
+  });
+
+  it('keeps the complete notes in view when a newer attempt failed, and says so above them', () => {
+    const p = props({ record: record([
+      { id: 9, transcriptId: 1, language: 'ja', createdAt: 2000, state: 'failed' },
+      { id: 7, transcriptId: 1, language: 'en', createdAt: 1000, state: 'complete' },
+    ]), latest: { ...complete, id: 9, state: 'failed', failure: 'notes:no-service', body: null } });
+    render(<RecordNotes {...p} />);
+    expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeInTheDocument();
+    expect(screen.getByText('The latest attempt could not be written: No notes service is set up. Choose one in Languages and line-up and add its key.')).toBeInTheDocument();
+  });
+
+  it("words the program's own reasons in the interface's language, and shows a service's as it is", () => {
+    const failed = (failure: string): HistoryNotes => ({ ...complete, state: 'failed', failure, body: null });
+    render(<RecordNotes {...props({ notes: failed('notes:refused:503') })} />);
+    expect(screen.getByText('The notes could not be written: The service refused the request (503).')).toBeInTheDocument();
+    cleanup();
+    render(<RecordNotes {...props({ notes: failed('Incorrect API key provided.') })} />);
+    expect(screen.getByText('The notes could not be written: Incorrect API key provided.')).toBeInTheDocument();
+  });
+
+  it('shows an owner and a date only on a point that is still a to-do', () => {
+    const body = { ...complete.body!, points: [{ topic: 0, text: 'Book the room', sentences: [2], kinds: [], was: ['todo'], owner: 'Bob', due: 'Friday' }], names: [] };
+    render(<RecordNotes {...props({ notes: { ...complete, body } })} />);
+    expect(screen.queryByText('Bob · Friday')).toBeNull();
+  });
+
+  it('explains once what is sent where before the first notes written from a record', () => {
+    const p = props({ record: record(), notes: null, explainWith: 'OpenAI' });
+    render(<RecordNotes {...p} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Write notes' }));
+    const explained = screen.getByRole('group', { name: 'Before notes are written' });
+    expect(within(explained).getByText(/sent to OpenAI with your own key/)).toBeInTheDocument();
+    expect(p.onWrite).not.toHaveBeenCalled();
+    fireEvent.click(within(explained).getByRole('button', { name: 'Write notes' }));
+    expect(p.onExplained).toHaveBeenCalled();
+    expect(p.onWrite).toHaveBeenCalledWith({ code: 'zh', name: 'Chinese' });
   });
 });

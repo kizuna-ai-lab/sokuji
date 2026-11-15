@@ -102,7 +102,7 @@ async function renderRecord(at: HitTarget | null = null) {
 beforeEach(() => {
   record = {
     id: A, startedAt: START, endedAt: START + 65_000, state: 'closed', mode: 'both', myLanguage: 'en', targetLanguage: 'zh', title: null,
-    titleByUser: false, binnedAt: null, sentences: 3, hasRecording: false, notesVersions: 0, notesState: null, audioBytes: 0,
+    titleByUser: false, binnedAt: null, sentences: 3, hasRecording: false, notesVersions: 0, notesState: null, notesComplete: false, audioBytes: 0,
     services: { provider: 'soniox', models: {} }, appVersion: '1.2.3', textBytes: 2048, legs: [], tracks: [], notes: [],
     transcripts: [{ id: 1, origin: { service: 'soniox', kind: 'live' }, textKind: 'original', createdAt: START, sentences: 3 }],
   };
@@ -417,5 +417,20 @@ describe('a record', () => {
     await settle();
     expect(calls('binRecords')).toEqual([{ ids: [A] }]);
     expect(store.getState().open).toBeNull();
+  });
+
+  it('offers a new version of the notes in any language the app knows', async () => {
+    record = { ...record, notesVersions: 1, notesState: 'complete', notesComplete: true, notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: '', format: 'plain' }, topics: [], points: [], names: [] },
+    })) as never;
+    await renderRecord();
+    fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    const choices = within(screen.getByRole('combobox', { name: 'Language of the notes' })).getAllByRole('option').map((o) => o.textContent);
+    expect(choices.slice(0, 2)).toEqual(['English', 'Chinese']);
+    expect(choices).toEqual(expect.arrayContaining(['Japanese', 'German', 'Hindi', 'Vietnamese']));
+    expect(new Set(choices).size).toBe(choices.length);
   });
 });

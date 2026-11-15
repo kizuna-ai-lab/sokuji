@@ -98,6 +98,7 @@ export function RecordExportMenu({ record, legs, rows, notes = null, onResult }:
   const notesBody = notes?.state === 'complete' && notes.body ? (notes.body as unknown as NotesBody) : null;
   const notesWords: NotesWords = {
     decision: t('history.notesKind.decision', 'Decision'), todo: t('history.notesKind.todo', 'To do'), risk: t('history.notesKind.risk', 'Risk'),
+    mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side'),
   };
   const notesFile = (ext: 'md' | 'txt') => `sokuji-notes-${formatTimestampForFilename(record.startedAt)}.${ext}`;
 

@@ -9,7 +9,7 @@ const A = 'run-000a-aaaa';
 const B = 'run-000b-bbbb';
 const rowOf = (id: string, over: Partial<HistoryRecordRow> = {}): HistoryRecordRow => ({
   id, startedAt: 1000, endedAt: 2000, state: 'closed', mode: 'both', myLanguage: 'zh', targetLanguage: 'en', title: null, titleByUser: false,
-  binnedAt: null, sentences: 1, hasRecording: false, notesVersions: 0, notesState: null, audioBytes: 0, ...over,
+  binnedAt: null, sentences: 1, hasRecording: false, notesVersions: 0, notesState: null, notesComplete: false, audioBytes: 0, ...over,
 });
 const recordOf = (id: string, transcripts: number[]): HistoryRecord => ({
   ...rowOf(id), services: { provider: 'soniox', models: {} }, appVersion: '1', textBytes: 0, legs: [], tracks: [], notes: [],
@@ -254,5 +254,31 @@ describe("a record's notes", () => {
     await store.getState().dismissName(1);
     expect(calls('updateNotesNames')).toEqual([{ notesId: 7, names: [names[0], { ...names[1], dismissed: true }] }]);
     expect(calls('getNotes')).toEqual([{ id: 7 }, { id: 7 }]);
+  });
+
+  it('opens on the newest complete version when a newer attempt failed or was stopped', async () => {
+    port.getRecord = (async (arg: unknown) => {
+      port.calls.push(['getRecord', arg]);
+      return { ...recordOf(A, [1, 2]), notes: [
+        { id: 3, transcriptId: 2, language: 'zh', createdAt: 3000, state: 'complete' },
+        { id: 5, transcriptId: 2, language: 'en', createdAt: 5000, state: 'failed' },
+        { id: 6, transcriptId: 2, language: 'en', createdAt: 6000, state: 'cancelled' },
+      ] };
+    }) as never;
+    await store.getState().openRecord(A);
+    // The newest complete version is shown; the newest attempt is read too, for what became of it.
+    expect(calls('getNotes')).toEqual([{ id: 3 }, { id: 6 }]);
+    expect(store.getState().open).toMatchObject({ notes: { id: 3 }, latest: { id: 6 } });
+  });
+
+  it('stops following the runner once disposed', async () => {
+    const runner = fakeRunner();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, runner);
+    await store.getState().openRecord(A);
+    runner.start(A);
+    store.getState().dispose();
+    runner.finish(A);
+    await flush();
+    expect(calls('getRecord')).toEqual([A]);
   });
 });
