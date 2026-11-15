@@ -1791,7 +1791,12 @@
       "signedOut": "未登入",
       "together": "一起",
       "view": "檢視",
-      "hide": "收起"
+      "hide": "收起",
+      "endToEnd": "端到端",
+      "transcribeTranslate": "轉寫並翻譯",
+      "signedInBalance": "已登入，餘額 {{amount}}",
+      "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
+      "localNone": "在這台電腦上執行；還沒有下載模型"
     },
     "lineup": {
       "title": "工作階段組成",
@@ -1815,7 +1820,16 @@
         "ready": "就緒"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
-      "hint": "每個階段由哪個服務來做"
+      "hint": "每個階段由哪個服務來做",
+      "uses": {
+        "turn": "斷句",
+        "key": "按鍵",
+        "space": "空白鍵",
+        "released": "放開以後",
+        "releasedValue": "這一段送去翻譯",
+        "notHeld": "沒有按住的時候",
+        "notHeldValue": "原聲直接給對方，不翻譯"
+      }
     },
     "display": {
       "surface": "哪個介面",

@@ -1791,7 +1791,12 @@
       "signedOut": "Not signed in",
       "together": "together",
       "view": "View",
-      "hide": "Hide"
+      "hide": "Hide",
+      "endToEnd": "End to end",
+      "transcribeTranslate": "Transcription and translation",
+      "signedInBalance": "Signed in; balance {{amount}}",
+      "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
+      "localNone": "Runs on this computer; no models downloaded yet"
     },
     "lineup": {
       "title": "Line-up",
@@ -1815,7 +1820,16 @@
         "ready": "Ready"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
-      "hint": "Which service does each stage"
+      "hint": "Which service does each stage",
+      "uses": {
+        "turn": "Turn end",
+        "key": "Key",
+        "space": "Space",
+        "released": "Once released",
+        "releasedValue": "that stretch goes off to be translated",
+        "notHeld": "While not held",
+        "notHeldValue": "your own voice goes straight to the other side, untranslated"
+      }
     },
     "display": {
       "surface": "Which display",

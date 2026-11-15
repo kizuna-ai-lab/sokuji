@@ -1791,7 +1791,12 @@
       "signedOut": "Nicht angemeldet",
       "together": "gemeinsam",
       "view": "Anzeigen",
-      "hide": "Ausblenden"
+      "hide": "Ausblenden",
+      "endToEnd": "Durchgängig",
+      "transcribeTranslate": "Transkription und Übersetzung",
+      "signedInBalance": "Angemeldet; Guthaben {{amount}}",
+      "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
+      "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen"
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1815,7 +1820,16 @@
         "ready": "Bereit"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
-      "hint": "Welcher Dienst jede Stufe übernimmt"
+      "hint": "Welcher Dienst jede Stufe übernimmt",
+      "uses": {
+        "turn": "Redeende",
+        "key": "Taste",
+        "space": "Leertaste",
+        "released": "Nach dem Loslassen",
+        "releasedValue": "geht dieses Stück zur Übersetzung",
+        "notHeld": "Solange sie nicht gedrückt ist",
+        "notHeldValue": "geht Ihre eigene Stimme unübersetzt direkt zur Gegenseite"
+      }
     },
     "display": {
       "surface": "Welche Anzeige",

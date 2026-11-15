@@ -1791,7 +1791,12 @@
       "signedOut": "Non connecté",
       "together": "ensemble",
       "view": "Afficher",
-      "hide": "Masquer"
+      "hide": "Masquer",
+      "endToEnd": "De bout en bout",
+      "transcribeTranslate": "Transcription et traduction",
+      "signedInBalance": "Connecté ; solde {{amount}}",
+      "localModels": "Fonctionne sur cet ordinateur ; {{count}} modèles téléchargés, {{size}} au total",
+      "localNone": "Fonctionne sur cet ordinateur ; aucun modèle téléchargé pour l’instant"
     },
     "lineup": {
       "title": "Composition",
@@ -1815,7 +1820,16 @@
         "ready": "Prêt"
       },
       "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
-      "hint": "Quel service assure chaque étape"
+      "hint": "Quel service assure chaque étape",
+      "uses": {
+        "turn": "Fin de prise de parole",
+        "key": "Touche",
+        "space": "Espace",
+        "released": "Une fois relâchée",
+        "releasedValue": "ce passage part en traduction",
+        "notHeld": "Tant qu’elle n’est pas maintenue",
+        "notHeldValue": "votre propre voix va directement à l’autre partie, sans traduction"
+      }
     },
     "display": {
       "surface": "Quel affichage",

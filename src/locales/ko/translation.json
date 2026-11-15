@@ -1791,7 +1791,12 @@
       "signedOut": "로그인 안 됨",
       "together": "함께",
       "view": "보기",
-      "hide": "접기"
+      "hide": "접기",
+      "endToEnd": "엔드투엔드",
+      "transcribeTranslate": "받아쓰기와 번역",
+      "signedInBalance": "로그인됨, 잔액 {{amount}}",
+      "localModels": "이 컴퓨터에서 실행됩니다. 모델 {{count}}개 다운로드됨, 모두 {{size}}",
+      "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다"
     },
     "lineup": {
       "title": "구성",
@@ -1815,7 +1820,16 @@
         "ready": "준비됨"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
-      "hint": "각 단계를 어떤 서비스가 맡는지"
+      "hint": "각 단계를 어떤 서비스가 맡는지",
+      "uses": {
+        "turn": "말 끝 판단",
+        "key": "키",
+        "space": "스페이스",
+        "released": "떼고 나면",
+        "releasedValue": "그 토막을 번역으로 보냄",
+        "notHeld": "누르고 있지 않을 때",
+        "notHeldValue": "내 목소리가 번역 없이 바로 상대방에게 감"
+      }
     },
     "display": {
       "surface": "어느 화면",

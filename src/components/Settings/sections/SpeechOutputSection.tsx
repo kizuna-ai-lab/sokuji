@@ -256,9 +256,9 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
                 value={realVoicePassthroughVolume}
                 onChange={(e) => setRealVoicePassthroughVolume(parseFloat(e.target.value))}
                 onMouseUp={(e) => trackEvent('ui_interaction', { component: 'SpeechOutputSection', action: 'passthrough_volume_changed', element: 'volume_slider', value: parseFloat((e.target as HTMLInputElement).value) })}
-                className="slider"
               />
-              <span className="setting-value">{t('audioPanel.passthroughVolume', { percent: Math.round(realVoicePassthroughVolume * 100), defaultValue: 'Volume {{percent}}%' })}</span>
+              {/* As Display's background opacity draws it (owner 2026-11-15): the native track, the percent on its right. */}
+              <span className="setting-value">{Math.round(realVoicePassthroughVolume * 100)}%</span>
             </div>
           )}
         </SettingRow>

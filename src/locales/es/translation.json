@@ -1791,7 +1791,12 @@
       "signedOut": "Sin iniciar sesión",
       "together": "juntas",
       "view": "Ver",
-      "hide": "Ocultar"
+      "hide": "Ocultar",
+      "endToEnd": "De extremo a extremo",
+      "transcribeTranslate": "Transcripción y traducción",
+      "signedInBalance": "Sesión iniciada; saldo {{amount}}",
+      "localModels": "Funciona en este ordenador; {{count}} modelos descargados, {{size}} en total",
+      "localNone": "Funciona en este ordenador; aún no hay modelos descargados"
     },
     "lineup": {
       "title": "Combinación",
@@ -1815,7 +1820,16 @@
         "ready": "Listo"
       },
       "speechModeHint": "Cuándo se envía un tramo de voz a traducir; fijo durante la sesión",
-      "hint": "Qué servicio hace cada etapa"
+      "hint": "Qué servicio hace cada etapa",
+      "uses": {
+        "turn": "Fin del turno",
+        "key": "Tecla",
+        "space": "Espacio",
+        "released": "Al soltarla",
+        "releasedValue": "ese tramo se envía a traducir",
+        "notHeld": "Mientras no se mantiene",
+        "notHeldValue": "tu propia voz va directa a la otra parte, sin traducir"
+      }
     },
     "display": {
       "surface": "Qué visualización",

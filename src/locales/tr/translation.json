@@ -1791,7 +1791,12 @@
       "signedOut": "Oturum açılmadı",
       "together": "birlikte",
       "view": "Görüntüle",
-      "hide": "Gizle"
+      "hide": "Gizle",
+      "endToEnd": "Uçtan uca",
+      "transcribeTranslate": "Döküm ve çeviri",
+      "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
+      "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
+      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi"
     },
     "lineup": {
       "title": "Düzen",
@@ -1815,7 +1820,16 @@
         "ready": "Hazır"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
-      "hint": "Her aşamayı hangi hizmetin yaptığı"
+      "hint": "Her aşamayı hangi hizmetin yaptığı",
+      "uses": {
+        "turn": "Konuşma sonu",
+        "key": "Tuş",
+        "space": "Boşluk",
+        "released": "Bırakınca",
+        "releasedValue": "o parça çeviriye gider",
+        "notHeld": "Basılı değilken",
+        "notHeldValue": "kendi sesiniz çevrilmeden doğrudan karşı tarafa gider"
+      }
     },
     "display": {
       "surface": "Hangi görünüm",

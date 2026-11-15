@@ -1791,7 +1791,12 @@
       "signedOut": "未登录",
       "together": "一起",
       "view": "查看",
-      "hide": "收起"
+      "hide": "收起",
+      "endToEnd": "端到端",
+      "transcribeTranslate": "转写并翻译",
+      "signedInBalance": "已登录，余额 {{amount}}",
+      "localModels": "在这台电脑上运行；已下载 {{count}} 个模型，共 {{size}}",
+      "localNone": "在这台电脑上运行；还没有下载模型"
     },
     "lineup": {
       "title": "会话组成",
@@ -1815,7 +1820,16 @@
         "ready": "就绪"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
-      "hint": "每个阶段由哪个服务来做"
+      "hint": "每个阶段由哪个服务来做",
+      "uses": {
+        "turn": "断句",
+        "key": "按键",
+        "space": "空格",
+        "released": "松开以后",
+        "releasedValue": "这一段送去翻译",
+        "notHeld": "没有按住的时候",
+        "notHeldValue": "原声直接给对方，不翻译"
+      }
     },
     "display": {
       "surface": "哪个界面",

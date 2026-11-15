@@ -1791,7 +1791,12 @@
       "signedOut": "Ei kirjautunut",
       "together": "yhdessä",
       "view": "Näytä",
-      "hide": "Piilota"
+      "hide": "Piilota",
+      "endToEnd": "Päästä päähän",
+      "transcribeTranslate": "Litterointi ja käännös",
+      "signedInBalance": "Kirjautunut; saldo {{amount}}",
+      "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
+      "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu"
     },
     "lineup": {
       "title": "Kokoonpano",
@@ -1815,7 +1820,16 @@
         "ready": "Valmis"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
-      "hint": "Mikä palvelu hoitaa kunkin vaiheen"
+      "hint": "Mikä palvelu hoitaa kunkin vaiheen",
+      "uses": {
+        "turn": "Puheen loppu",
+        "key": "Näppäin",
+        "space": "Välilyönti",
+        "released": "Kun päästät irti",
+        "releasedValue": "se pätkä lähtee käännettäväksi",
+        "notHeld": "Kun et pidä pohjassa",
+        "notHeldValue": "oma äänesi menee kääntämättä suoraan toiselle osapuolelle"
+      }
     },
     "display": {
       "surface": "Mikä näkymä",

@@ -1791,7 +1791,12 @@
       "signedOut": "Belum log masuk",
       "together": "bersama",
       "view": "Lihat",
-      "hide": "Sembunyikan"
+      "hide": "Sembunyikan",
+      "endToEnd": "Hujung ke hujung",
+      "transcribeTranslate": "Transkripsi dan terjemahan",
+      "signedInBalance": "Telah log masuk; baki {{amount}}",
+      "localModels": "Berjalan pada komputer ini; {{count}} model dimuat turun, jumlah {{size}}",
+      "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun"
     },
     "lineup": {
       "title": "Susunan",
@@ -1815,7 +1820,16 @@
         "ready": "Sedia"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
-      "hint": "Perkhidmatan mana yang membuat setiap peringkat"
+      "hint": "Perkhidmatan mana yang membuat setiap peringkat",
+      "uses": {
+        "turn": "Akhir pertuturan",
+        "key": "Kekunci",
+        "space": "Ruang",
+        "released": "Selepas dilepaskan",
+        "releasedValue": "potongan itu dihantar untuk diterjemah",
+        "notHeld": "Semasa tidak ditekan",
+        "notHeldValue": "suara anda terus kepada pihak lain tanpa terjemahan"
+      }
     },
     "display": {
       "surface": "Paparan mana",

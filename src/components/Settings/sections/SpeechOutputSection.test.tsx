@@ -199,12 +199,14 @@ describe('SpeechOutputSection — the rows', () => {
     expect(greyed('Keep spoken translations for replay')).toBe(false);
   });
 
-  it('Passthrough: its switch, a slider labelled Volume N%, and the push-to-translate lock', () => {
+  it('Passthrough: its switch, a slider with its percent, and the push-to-translate lock', () => {
     mount();
     expect(sw('Passthrough')).toHaveAttribute('aria-checked', 'true');
     const slider = within(row('Passthrough')).getByRole('slider') as HTMLInputElement;
     expect(slider.max).toBe('0.6');
-    expect(within(row('Passthrough')).getByText('Volume 20%')).toBeInTheDocument();
+    // The slider as Display's background opacity draws it (owner 2026-11-15): the native track, the percent on its right.
+    expect(slider).not.toHaveClass('slider');
+    expect(within(row('Passthrough')).getByText('20%')).toHaveClass('setting-value');
     fireEvent.change(slider, { target: { value: '0.4' } });
     expect(useAudioStore.getState().realVoicePassthroughVolume).toBeCloseTo(0.4);
     fireEvent.click(sw('Passthrough'));

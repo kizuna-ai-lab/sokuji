@@ -1791,7 +1791,12 @@
       "signedOut": "Sessão não iniciada",
       "together": "juntas",
       "view": "Ver",
-      "hide": "Ocultar"
+      "hide": "Ocultar",
+      "endToEnd": "Ponta a ponta",
+      "transcribeTranslate": "Transcrição e tradução",
+      "signedInBalance": "Sessão iniciada; saldo {{amount}}",
+      "localModels": "Corre neste computador; {{count}} modelos transferidos, {{size}} no total",
+      "localNone": "Corre neste computador; ainda não há modelos transferidos"
     },
     "lineup": {
       "title": "Composição",
@@ -1815,7 +1820,16 @@
         "ready": "Pronto"
       },
       "speechModeHint": "Quando um trecho de fala segue para tradução; fixo durante a sessão",
-      "hint": "Que serviço faz cada etapa"
+      "hint": "Que serviço faz cada etapa",
+      "uses": {
+        "turn": "Fim da fala",
+        "key": "Tecla",
+        "space": "Espaço",
+        "released": "Ao soltar",
+        "releasedValue": "esse trecho segue para tradução",
+        "notHeld": "Enquanto não está premida",
+        "notHeldValue": "a sua própria voz vai diretamente para o outro lado, sem tradução"
+      }
     },
     "display": {
       "surface": "Qual apresentação",

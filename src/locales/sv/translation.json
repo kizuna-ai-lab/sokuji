@@ -1791,7 +1791,12 @@
       "signedOut": "Inte inloggad",
       "together": "tillsammans",
       "view": "Visa",
-      "hide": "Dölj"
+      "hide": "Dölj",
+      "endToEnd": "Hela vägen",
+      "transcribeTranslate": "Transkribering och översättning",
+      "signedInBalance": "Inloggad; saldo {{amount}}",
+      "localModels": "Körs på den här datorn; {{count}} modeller nedladdade, totalt {{size}}",
+      "localNone": "Körs på den här datorn; inga modeller nedladdade ännu"
     },
     "lineup": {
       "title": "Uppsättning",
@@ -1815,7 +1820,16 @@
         "ready": "Klar"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
-      "hint": "Vilken tjänst som gör varje steg"
+      "hint": "Vilken tjänst som gör varje steg",
+      "uses": {
+        "turn": "Turslut",
+        "key": "Tangent",
+        "space": "Mellanslag",
+        "released": "När den släpps",
+        "releasedValue": "skickas stycket för översättning",
+        "notHeld": "När den inte hålls ned",
+        "notHeldValue": "går din egen röst direkt till den andra sidan, oöversatt"
+      }
     },
     "display": {
       "surface": "Vilken visning",

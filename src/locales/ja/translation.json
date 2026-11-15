@@ -1791,7 +1791,12 @@
       "signedOut": "未サインイン",
       "together": "一括",
       "view": "表示",
-      "hide": "閉じる"
+      "hide": "閉じる",
+      "endToEnd": "エンドツーエンド",
+      "transcribeTranslate": "文字起こしと翻訳",
+      "signedInBalance": "ログイン済み、残高 {{amount}}",
+      "localModels": "このパソコンで動作します。ダウンロード済みのモデル {{count}} 個、合計 {{size}}",
+      "localNone": "このパソコンで動作します。モデルはまだダウンロードしていません"
     },
     "lineup": {
       "title": "構成",
@@ -1815,7 +1820,16 @@
         "ready": "準備完了"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
-      "hint": "各段階をどのサービスが担当するか"
+      "hint": "各段階をどのサービスが担当するか",
+      "uses": {
+        "turn": "区切り",
+        "key": "キー",
+        "space": "スペース",
+        "released": "離したあと",
+        "releasedValue": "その区切りを翻訳に送る",
+        "notHeld": "押していないとき",
+        "notHeldValue": "自分の声がそのまま翻訳せずに相手へ届く"
+      }
     },
     "display": {
       "surface": "どの表示",

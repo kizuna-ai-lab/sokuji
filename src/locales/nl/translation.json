@@ -1791,7 +1791,12 @@
       "signedOut": "Niet ingelogd",
       "together": "samen",
       "view": "Bekijken",
-      "hide": "Verbergen"
+      "hide": "Verbergen",
+      "endToEnd": "End-to-end",
+      "transcribeTranslate": "Transcriptie en vertaling",
+      "signedInBalance": "Aangemeld; saldo {{amount}}",
+      "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
+      "localNone": "Draait op deze computer; nog geen modellen gedownload"
     },
     "lineup": {
       "title": "Opstelling",
@@ -1815,7 +1820,16 @@
         "ready": "Klaar"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
-      "hint": "Welke dienst elke stap doet"
+      "hint": "Welke dienst elke stap doet",
+      "uses": {
+        "turn": "Einde beurt",
+        "key": "Toets",
+        "space": "Spatie",
+        "released": "Na loslaten",
+        "releasedValue": "gaat dat stuk naar de vertaling",
+        "notHeld": "Zolang niet ingedrukt",
+        "notHeldValue": "gaat uw eigen stem onvertaald rechtstreeks naar de andere kant"
+      }
     },
     "display": {
       "surface": "Welke weergave",

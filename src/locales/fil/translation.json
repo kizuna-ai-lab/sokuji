@@ -1791,7 +1791,12 @@
       "signedOut": "Hindi naka-sign in",
       "together": "magkasama",
       "view": "Tingnan",
-      "hide": "Itago"
+      "hide": "Itago",
+      "endToEnd": "Mula simula hanggang dulo",
+      "transcribeTranslate": "Transkripsyon at pagsasalin",
+      "signedInBalance": "Naka-sign in; balanse {{amount}}",
+      "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
+      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model"
     },
     "lineup": {
       "title": "Line-up",
@@ -1815,7 +1820,16 @@
         "ready": "Handa"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
-      "hint": "Aling serbisyo ang gumagawa ng bawat yugto"
+      "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
+      "uses": {
+        "turn": "Dulo ng sinasabi",
+        "key": "Key",
+        "space": "Space",
+        "released": "Pagkabitaw",
+        "releasedValue": "ipinapadala sa pagsasalin ang bahaging iyon",
+        "notHeld": "Kapag hindi pinipindot",
+        "notHeldValue": "diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin"
+      }
     },
     "display": {
       "surface": "Aling display",

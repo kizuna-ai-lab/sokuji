@@ -15,6 +15,15 @@ import { RUN_STAGES, type RunStage } from '../../lib/lineup/types';
 import type { AnyProvider } from '../../lib/provider/types';
 import { presentProviders } from '../../providers/registry';
 import { useProviderStore } from '../../stores/providerStore';
+import { useModelStore, useModelStatuses, useStorageUsedMb } from '../../stores/modelStore';
+import { useAccountStore } from '../../stores/accountStore';
+import { useAccountPayer } from '../../lib/session/payerChoice';
+import { payerDisplayBalance } from '../../lib/session/orgNotice';
+import { useOptionalUserProfile } from '../../contexts/UserProfileContext';
+import { MODEL_MANIFEST } from '../../lib/local-inference/modelManifest';
+import { formatBytes } from '../../lib/local-inference/formatBytes';
+import { formatUsdFloor } from '../../utils/formatters';
+import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { CredentialForm } from '../providers/CredentialForm';
 import { ManagedAccountRow } from '../providers/ManagedAccountRow';
 import { useAuthContext } from '../providers/useAuthContext';
@@ -43,6 +52,20 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   const entries = useProviderStore((s) => s.entries);
   const readiness = useProviderStore((s) => s.readiness);
   const [open, setOpen] = useState<string | null>(null);
+  // The balance the title bar shows: a member's wallet the next Start spends, else the account's own.
+  const quota = useOptionalUserProfile()?.quota;
+  const account = useAccountStore((s) => s.account);
+  const payer = useAccountPayer(account);
+  const balance = account?.status === 'known' && account.organization ? payerDisplayBalance(account, payer) : quota?.balance ?? quota?.remaining;
+  // This device's models: how many are on disk, known once the store has looked.
+  const statuses = useModelStatuses();
+  const storageMb = useStorageUsedMb();
+  useEffect(() => {
+    if (useModelStore.getState().initialized) return;
+    useModelStore.getState().initialize().catch((error: unknown) =>
+      reportWarning('AccountsCategory', `Scanning the downloaded models failed: ${describeCause(error)}`, { cause: error }));
+  }, []);
+  const localModels = MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation' && m.type !== 'turn' && statuses[m.id] === 'downloaded').length;
 
   // Opened by a notice or the tour about a key or a sign-in: the selected provider's account is shown open.
   useEffect(() => {
@@ -92,9 +115,16 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
 
   const stateOf = (a: Account): string => {
     switch (a.kind) {
-      case 'kizuna': return auth.signedIn ? t('settingsPage.accounts.signedIn', 'Signed in') : t('settingsPage.accounts.signedOut', 'Not signed in');
+      case 'kizuna':
+        if (!auth.signedIn) return t('settingsPage.accounts.signedOut', 'Not signed in');
+        return typeof balance === 'number'
+          ? t('settingsPage.accounts.signedInBalance', 'Signed in; balance {{amount}}', { amount: formatUsdFloor(balance) })
+          : t('settingsPage.accounts.signedIn', 'Signed in');
       case 'key': return keySaved(a.provider) ? t('settingsPage.accounts.keySaved', 'Key saved') : t('settingsPage.accounts.needsKey', 'Needs a key');
-      case 'local': return t('settingsPage.accounts.local', 'Runs on this computer');
+      case 'local':
+        return localModels > 0
+          ? t('settingsPage.accounts.localModels', 'Runs on this computer; {{count}} models downloaded, {{size}} in all', { count: localModels, size: formatBytes(storageMb * 1_048_576) })
+          : t('settingsPage.accounts.localNone', 'Runs on this computer; no models downloaded yet');
       case 'online': return t('settingsPage.accounts.online', 'No key needed; online, a Microsoft service');
     }
   };
@@ -102,13 +132,26 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   /** An account in working order: signed in, its key saved, or one that needs neither. */
   const ready = (a: Account): boolean => (a.kind === 'kizuna' ? auth.signedIn : a.kind === 'key' ? keySaved(a.provider) : true);
 
+  // The mock's tags: one per way the account works — what it does over one connection ("End to end",
+  // "Transcription and translation"), else each stage on its own; each tag once across the account's providers.
   const chips = (a: Account) => {
-    const stages = RUN_STAGES.filter((s) => a.serves.some((id) => caps(id)?.stages.includes(s)));
-    const together = a.serves.some((id) => (caps(id)?.binds ?? []).some((g) => g.length > 1));
+    const labels: string[] = [];
+    const add = (label: string) => { if (!labels.includes(label)) labels.push(label); };
+    const stageName = (s: RunStage) => t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s]);
+    for (const id of a.serves) {
+      const c = caps(id);
+      if (!c) continue;
+      const groups = c.binds.filter((g) => g.length > 1);
+      for (const g of groups) {
+        add(g.length >= RUN_STAGES.length ? t('settingsPage.accounts.endToEnd', 'End to end')
+          : g.includes('transcription') && g.includes('translation') && g.length === 2 ? t('settingsPage.accounts.transcribeTranslate', 'Transcription and translation')
+            : (g as RunStage[]).map(stageName).join(t('settingsPage.lineup.and', ' and ')));
+      }
+      for (const s of RUN_STAGES) if (c.stages.includes(s) && !groups.some((g) => g.includes(s))) add(stageName(s));
+    }
     return (
       <span className="accounts-row__chips">
-        {stages.map((s) => <span className="accounts-row__chip" key={s}>{t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s])}</span>)}
-        {together && <span className="accounts-row__chip">{t('settingsPage.accounts.together', 'together')}</span>}
+        {labels.map((label) => <span className="accounts-row__chip" key={label}>{label}</span>)}
       </span>
     );
   };

@@ -1791,7 +1791,12 @@
       "signedOut": "Nie zalogowano",
       "together": "razem",
       "view": "Pokaż",
-      "hide": "Ukryj"
+      "hide": "Ukryj",
+      "endToEnd": "Od początku do końca",
+      "transcribeTranslate": "Transkrypcja i tłumaczenie",
+      "signedInBalance": "Zalogowano; saldo {{amount}}",
+      "localModels": "Działa na tym komputerze; pobrano modeli: {{count}}, razem {{size}}",
+      "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli"
     },
     "lineup": {
       "title": "Zestaw",
@@ -1815,7 +1820,16 @@
         "ready": "Gotowe"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
-      "hint": "Która usługa wykonuje każdy etap"
+      "hint": "Która usługa wykonuje każdy etap",
+      "uses": {
+        "turn": "Koniec wypowiedzi",
+        "key": "Klawisz",
+        "space": "Spacja",
+        "released": "Po puszczeniu",
+        "releasedValue": "ten fragment idzie do tłumaczenia",
+        "notHeld": "Gdy nie jest wciśnięty",
+        "notHeldValue": "Twój głos trafia prosto do drugiej strony, bez tłumaczenia"
+      }
     },
     "display": {
       "surface": "Który widok",

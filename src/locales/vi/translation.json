@@ -1791,7 +1791,12 @@
       "signedOut": "Chưa đăng nhập",
       "together": "cùng nhau",
       "view": "Xem",
-      "hide": "Ẩn"
+      "hide": "Ẩn",
+      "endToEnd": "Đầu cuối",
+      "transcribeTranslate": "Phiên âm và dịch",
+      "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
+      "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
+      "localNone": "Chạy trên máy này; chưa tải mô hình nào"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1815,7 +1820,16 @@
         "ready": "Sẵn sàng"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
-      "hint": "Dịch vụ nào làm từng khâu"
+      "hint": "Dịch vụ nào làm từng khâu",
+      "uses": {
+        "turn": "Kết thúc câu",
+        "key": "Phím",
+        "space": "Phím cách",
+        "released": "Khi thả ra",
+        "releasedValue": "đoạn đó được gửi đi dịch",
+        "notHeld": "Khi không giữ",
+        "notHeldValue": "giọng của bạn đến thẳng phía bên kia, không dịch"
+      }
     },
     "display": {
       "surface": "Hiển thị nào",
