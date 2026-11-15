@@ -2103,8 +2103,8 @@
       "importing": "“{{name}}” 가져오는 중: {{phase}}",
       "transcribing": "받아 적는 중: {{phase}}",
       "failure": {
-        "TOO_LONG": "파일이 3시간보다 깁니다.",
-        "TOO_BIG": "파일이 2GB보다 큽니다.",
+        "TOO_LONG": "파일이 5시간보다 깁니다.",
+        "TOO_BIG": "파일이 16GB보다 큽니다.",
         "UNSUPPORTED": "이 파일의 오디오를 읽을 수 없습니다.",
         "NO_AUDIO": "파일에 소리가 없습니다.",
         "NO_SPEECH": "Soniox가 녹음에서 말소리를 듣지 못했습니다.",

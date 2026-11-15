@@ -2103,8 +2103,8 @@
       "importing": "Đang nhập “{{name}}”: {{phase}}",
       "transcribing": "Đang chép lời: {{phase}}",
       "failure": {
-        "TOO_LONG": "Tệp dài hơn ba giờ.",
-        "TOO_BIG": "Tệp lớn hơn 2 GB.",
+        "TOO_LONG": "Tệp dài hơn năm giờ.",
+        "TOO_BIG": "Tệp lớn hơn 16 GB.",
         "UNSUPPORTED": "Không đọc được âm thanh của tệp này.",
         "NO_AUDIO": "Tệp không có âm thanh.",
         "NO_SPEECH": "Soniox không nghe thấy lời nói nào trong bản ghi âm.",

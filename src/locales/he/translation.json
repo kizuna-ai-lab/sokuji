@@ -2103,8 +2103,8 @@
       "importing": "מייבא את „{{name}}”: {{phase}}",
       "transcribing": "תמלול: {{phase}}",
       "failure": {
-        "TOO_LONG": "הקובץ ארוך משלוש שעות.",
-        "TOO_BIG": "הקובץ גדול מ־2 GB.",
+        "TOO_LONG": "הקובץ ארוך מחמש שעות.",
+        "TOO_BIG": "הקובץ גדול מ־16 GB.",
         "UNSUPPORTED": "אי אפשר לקרוא את השמע של הקובץ.",
         "NO_AUDIO": "אין בקובץ צליל.",
         "NO_SPEECH": "Soniox לא שמע דיבור בהקלטה.",

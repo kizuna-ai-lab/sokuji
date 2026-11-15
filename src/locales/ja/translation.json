@@ -2103,8 +2103,8 @@
       "importing": "「{{name}}」を取り込み中：{{phase}}",
       "transcribing": "文字起こし中：{{phase}}",
       "failure": {
-        "TOO_LONG": "ファイルが 3 時間を超えています。",
-        "TOO_BIG": "ファイルが 2 GB を超えています。",
+        "TOO_LONG": "ファイルが 5 時間を超えています。",
+        "TOO_BIG": "ファイルが 16 GB を超えています。",
         "UNSUPPORTED": "このファイルの音声を読み込めません。",
         "NO_AUDIO": "ファイルに音が入っていません。",
         "NO_SPEECH": "Soniox は録音から発話を聞き取れませんでした。",

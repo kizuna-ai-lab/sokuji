@@ -2103,8 +2103,8 @@
       "importing": "Importowanie „{{name}}”: {{phase}}",
       "transcribing": "Transkrypcja: {{phase}}",
       "failure": {
-        "TOO_LONG": "Plik jest dłuższy niż trzy godziny.",
-        "TOO_BIG": "Plik jest większy niż 2 GB.",
+        "TOO_LONG": "Plik jest dłuższy niż pięć godzin.",
+        "TOO_BIG": "Plik jest większy niż 16 GB.",
         "UNSUPPORTED": "Nie można odczytać dźwięku z tego pliku.",
         "NO_AUDIO": "Plik nie zawiera dźwięku.",
         "NO_SPEECH": "Soniox nie usłyszał w nagraniu mowy.",

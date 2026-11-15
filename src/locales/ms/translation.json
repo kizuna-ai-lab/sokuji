@@ -2103,8 +2103,8 @@
       "importing": "Mengimport “{{name}}”: {{phase}}",
       "transcribing": "Mentranskrip: {{phase}}",
       "failure": {
-        "TOO_LONG": "Fail ini lebih daripada tiga jam.",
-        "TOO_BIG": "Fail ini lebih besar daripada 2 GB.",
+        "TOO_LONG": "Fail ini lebih daripada lima jam.",
+        "TOO_BIG": "Fail ini lebih besar daripada 16 GB.",
         "UNSUPPORTED": "Audio fail ini tidak boleh dibaca.",
         "NO_AUDIO": "Fail ini tiada bunyi.",
         "NO_SPEECH": "Soniox tidak mendengar sebarang pertuturan dalam rakaman.",

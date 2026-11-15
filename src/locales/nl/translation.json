@@ -2103,8 +2103,8 @@
       "importing": "“{{name}}” importeren: {{phase}}",
       "transcribing": "Transcriberen: {{phase}}",
       "failure": {
-        "TOO_LONG": "Het bestand duurt langer dan drie uur.",
-        "TOO_BIG": "Het bestand is groter dan 2 GB.",
+        "TOO_LONG": "Het bestand duurt langer dan vijf uur.",
+        "TOO_BIG": "Het bestand is groter dan 16 GB.",
         "UNSUPPORTED": "Het geluid van dit bestand kan niet worden gelezen.",
         "NO_AUDIO": "Het bestand bevat geen geluid.",
         "NO_SPEECH": "Soniox hoorde geen spraak in de opname.",

@@ -2103,8 +2103,8 @@
       "importing": "正在导入“{{name}}”：{{phase}}",
       "transcribing": "正在转写：{{phase}}",
       "failure": {
-        "TOO_LONG": "文件超过三小时。",
-        "TOO_BIG": "文件大于 2 GB。",
+        "TOO_LONG": "文件超过五小时。",
+        "TOO_BIG": "文件大于 16 GB。",
         "UNSUPPORTED": "读不出这个文件的声音。",
         "NO_AUDIO": "文件里没有声音。",
         "NO_SPEECH": "Soniox 在录音里没有听到说话。",

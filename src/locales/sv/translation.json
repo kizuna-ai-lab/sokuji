@@ -2103,8 +2103,8 @@
       "importing": "Importerar ”{{name}}”: {{phase}}",
       "transcribing": "Transkriberar: {{phase}}",
       "failure": {
-        "TOO_LONG": "Filen är längre än tre timmar.",
-        "TOO_BIG": "Filen är större än 2 GB.",
+        "TOO_LONG": "Filen är längre än fem timmar.",
+        "TOO_BIG": "Filen är större än 16 GB.",
         "UNSUPPORTED": "Ljudet i filen kan inte läsas.",
         "NO_AUDIO": "Filen innehåller inget ljud.",
         "NO_SPEECH": "Soniox hörde inget tal i inspelningen.",

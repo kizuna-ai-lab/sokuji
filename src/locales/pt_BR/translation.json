@@ -2103,8 +2103,8 @@
       "importing": "Importando “{{name}}”: {{phase}}",
       "transcribing": "Transcrevendo: {{phase}}",
       "failure": {
-        "TOO_LONG": "O arquivo tem mais de três horas.",
-        "TOO_BIG": "O arquivo tem mais de 2 GB.",
+        "TOO_LONG": "O arquivo tem mais de cinco horas.",
+        "TOO_BIG": "O arquivo tem mais de 16 GB.",
         "UNSUPPORTED": "Não é possível ler o áudio deste arquivo.",
         "NO_AUDIO": "O arquivo não tem som.",
         "NO_SPEECH": "O Soniox não ouviu fala na gravação.",

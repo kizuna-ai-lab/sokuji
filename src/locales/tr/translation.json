@@ -2103,8 +2103,8 @@
       "importing": "“{{name}}” içe aktarılıyor: {{phase}}",
       "transcribing": "Yazıya dökülüyor: {{phase}}",
       "failure": {
-        "TOO_LONG": "Dosya üç saatten uzun.",
-        "TOO_BIG": "Dosya 2 GB’tan büyük.",
+        "TOO_LONG": "Dosya beş saatten uzun.",
+        "TOO_BIG": "Dosya 16 GB’tan büyük.",
         "UNSUPPORTED": "Bu dosyanın sesi okunamıyor.",
         "NO_AUDIO": "Dosyada ses yok.",
         "NO_SPEECH": "Soniox kayıtta konuşma duymadı.",

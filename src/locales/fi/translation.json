@@ -2103,8 +2103,8 @@
       "importing": "Tuodaan ”{{name}}”: {{phase}}",
       "transcribing": "Litterointi: {{phase}}",
       "failure": {
-        "TOO_LONG": "Tiedosto on yli kolme tuntia pitkä.",
-        "TOO_BIG": "Tiedosto on yli 2 Gt.",
+        "TOO_LONG": "Tiedosto on yli viisi tuntia pitkä.",
+        "TOO_BIG": "Tiedosto on yli 16 Gt.",
         "UNSUPPORTED": "Tämän tiedoston ääntä ei voi lukea.",
         "NO_AUDIO": "Tiedostossa ei ole ääntä.",
         "NO_SPEECH": "Soniox ei kuullut äänitteessä puhetta.",

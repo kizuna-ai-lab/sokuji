@@ -2103,8 +2103,8 @@
       "importing": "Importing “{{name}}”: {{phase}}",
       "transcribing": "Transcribing: {{phase}}",
       "failure": {
-        "TOO_LONG": "The file is longer than three hours.",
-        "TOO_BIG": "The file is larger than 2 GB.",
+        "TOO_LONG": "The file is longer than five hours.",
+        "TOO_BIG": "The file is larger than 16 GB.",
         "UNSUPPORTED": "The audio of this file cannot be read.",
         "NO_AUDIO": "The file holds no sound.",
         "NO_SPEECH": "Soniox heard no speech in the recording.",

@@ -1,7 +1,7 @@
 // src/lib/history/file/importFile.ts
 //
 // An audio or video file made into a History record: its length is read first (too long, too large or unreadable
-// files are refused before anything is decoded or stored), the audio is decoded and compressed into the record's
+// files are refused before anything is decoded or stored), the audio is decoded a block at a time and compressed into the record's
 // recording like any other, the record is named after the file, then the recording is transcribed by the
 // recognition stage's service and the record is closed. A failure or a cancel before the recording is stored leaves
 // nothing behind; after it, the record keeps its recording without a transcript, to be transcribed later.
@@ -12,9 +12,10 @@ import { createTrack, type OpusEncoderFactory, type TrackPiece } from '../record
 import type { FileRecognitionService } from './service';
 import { transcribeRecord, type TranscribePhase } from './transcribe';
 
-/** Decoding holds the whole audio in memory: longer files are refused (checked on a real 3-hour file). */
-export const MAX_IMPORT_MS = 180 * 60_000;
-export const MAX_IMPORT_BYTES = 2 * 1024 ** 3;
+/** Soniox takes a file of up to 300 minutes; decoding a block at a time, length no longer weighs on memory. */
+export const MAX_IMPORT_MS = 300 * 60_000;
+/** A bound for sanity only: the file is read a range at a time. */
+export const MAX_IMPORT_BYTES = 16 * 1000 ** 3;
 /** The store takes a track piece of at most 1 MiB. */
 const PIECE_BYTES = 1024 * 1024;
 /** A sample beyond this is sound (about −54 dBFS); a file with none is silence. */

@@ -71,6 +71,12 @@ const base = (port: HistoryPort, over: Partial<Parameters<typeof importFile>[0]>
   newId: () => 'import-0001', newJobId: () => 'job-1', pause: async () => {}, ...over,
 });
 
+// Decoding a piece at a time, length no longer weighs on memory: the limits are Soniox's five hours and 16 GB.
+it('takes files up to five hours and 16 GB', () => {
+  expect(MAX_IMPORT_MS).toBe(300 * 60_000);
+  expect(MAX_IMPORT_BYTES).toBe(16 * 1000 ** 3);
+});
+
 describe('importing a file', () => {
   it('stores the recording as a new record, transcribes it, names it after the file, and closes it', async () => {
     const { port, calls, names } = fakePort();
@@ -101,7 +107,7 @@ describe('importing a file', () => {
 
   it('refuses a file too long or too large before decoding it, and one whose length cannot be read', async () => {
     const cases: Array<[Partial<Parameters<typeof importFile>[0]>, string]> = [
-      [{ readDuration: async () => MAX_IMPORT_MS + 1 }, 'TOO_LONG'],
+      [{ readDuration: async () => 301 * 60_000 }, 'TOO_LONG'],
       [{ file: file('big.mov', MAX_IMPORT_BYTES + 1) }, 'TOO_BIG'],
       [{ readDuration: async () => Number.NaN }, 'UNSUPPORTED'],
       [{ readDuration: async () => Number.POSITIVE_INFINITY }, 'UNSUPPORTED'],

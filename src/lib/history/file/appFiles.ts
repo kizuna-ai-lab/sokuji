@@ -11,7 +11,7 @@ import { appNotesRunner } from '../../notes/appNotes';
 import { createFileJobState, type FileJobs } from '../historyPageStore';
 import { historyPort } from '../port';
 import { webCodecsOpusEncoder } from '../recording/opusEncoder';
-import { decodeFile, readMediaDuration } from './decode';
+import { decodeFile, readDuration } from './decode';
 import { importFile } from './importFile';
 import { fileRecognitionFromStores } from './service';
 import { transcribeRecord } from './transcribe';
@@ -30,7 +30,7 @@ export function appFileJobs(): FileJobs {
     sessionRunning: () => currentRunPhase() !== 'idle',
     importFile: (o) => importFile({
       port, file: o.file, myLanguage: o.myLanguage, language: o.language, service: o.service, appVersion: getAppVersion() ?? '',
-      readDuration: readMediaDuration, decode: decodeFile, encoder: webCodecsOpusEncoder, clock: realClock,
+      readDuration, decode: decodeFile, encoder: webCodecsOpusEncoder, clock: realClock,
       newId: () => crypto.randomUUID(), newJobId, onProgress: o.onProgress, signal: o.signal,
     }),
     transcribe: (o) => transcribeRecord({ port, recordId: o.recordId, service: o.service, clock: realClock, newJobId, onProgress: o.onProgress, signal: o.signal }),

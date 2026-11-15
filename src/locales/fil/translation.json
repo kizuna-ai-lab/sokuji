@@ -2103,8 +2103,8 @@
       "importing": "Ini-import ang “{{name}}”: {{phase}}",
       "transcribing": "Pag-transcribe: {{phase}}",
       "failure": {
-        "TOO_LONG": "Mas mahaba sa tatlong oras ang file.",
-        "TOO_BIG": "Mas malaki sa 2 GB ang file.",
+        "TOO_LONG": "Mas mahaba sa limang oras ang file.",
+        "TOO_BIG": "Mas malaki sa 16 GB ang file.",
         "UNSUPPORTED": "Hindi mabasa ang audio ng file na ito.",
         "NO_AUDIO": "Walang tunog ang file.",
         "NO_SPEECH": "Walang narinig na pananalita ang Soniox sa recording.",
