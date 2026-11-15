@@ -6,6 +6,8 @@ const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { setupTranscriptSaveHandler } = require('./transcript-save.js');
+const { openHistory } = require('./history-store.js');
+const { setupHistoryHandlers } = require('./history-ipc.js');
 const { setupCaptionShare } = require('./caption-share.js');
 const { createCloseHandshake } = require('./close-handshake.js');
 const { registerOutputFormFactor } = require('./output-form-factor.js');
@@ -534,6 +536,38 @@ function createWindow() {
 }
 
 // Create window when Electron is ready
+// History: the sessions kept on this computer (electron/history-store.js). Null while it could not be opened;
+// `historyUnavailable` then says why ('newer': written by a newer version of the app; 'error': anything else).
+let historyStore = null;
+let historyUnavailable = null;
+const HISTORY_PURGE_EVERY_MS = 24 * 60 * 60 * 1000;
+
+function openHistoryStore(dir) {
+  try {
+    historyStore = openHistory({ dir });
+    // A session the app died during is closed with what it has; one without content is removed.
+    const { closed, dropped } = historyStore.recoverOpenRecords();
+    const { removedEmpty, strays, tracksGone } = historyStore.reconcile();
+    const { purged } = historyStore.purgeExpired();
+    if (closed.length || dropped.length || removedEmpty.length || tracksGone || purged.length) {
+      console.log('[Sokuji] [History] At launch: closed', closed.length, 'dropped', dropped.length, 'empty folders removed', removedEmpty.length,
+        'tracks gone', tracksGone, 'purged from the bin', purged.length);
+    }
+    if (strays.length) console.warn('[Sokuji] [History] Folders without a record, left in place:', strays.join(', '));
+  } catch (error) {
+    historyUnavailable = error && error.code === 'HISTORY_NEWER' ? 'newer' : 'error';
+    console.error('[Sokuji] [History] Not available:', error);
+    try { historyStore?.close(); } catch { /* it never opened */ }
+    historyStore = null;
+  }
+}
+
+function closeHistoryStore() {
+  if (!historyStore) return;
+  try { historyStore.close(); } catch (error) { console.error('[Sokuji] [History] Closing failed:', error); }
+  historyStore = null;
+}
+
 app.whenReady().then(async () => {
   if (isDuplicateInstance) return;
   // Windows sandbox recovery (issue #352): if a prior run left a crash marker,
@@ -643,6 +677,20 @@ app.whenReady().then(async () => {
     isTrustedSender: (sender) => sender === mainWindow?.webContents,
   });
 
+  // History opens before the window, so the page finds it; the bin is emptied of what expired once a day.
+  const historyDir = path.join(app.getPath('userData'), 'history');
+  openHistoryStore(historyDir);
+  setupHistoryHandlers({
+    ipcMain,
+    getStore: () => historyStore,
+    isTrustedSender: (sender) => sender === mainWindow?.webContents,
+    dir: historyDir,
+    getUnavailableReason: () => historyUnavailable,
+  });
+  setInterval(() => {
+    try { historyStore?.purgeExpired(); } catch (error) { console.error('[Sokuji] [History] Purging the bin failed:', error); }
+  }, HISTORY_PURGE_EVERY_MS).unref();
+
   createWindow();
 
   // Initialize auto-update manager. An install ends a running session first:
@@ -662,6 +710,7 @@ const cleanupAndExit = () => {
   console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
   nativeHost.stop();
+  closeHistoryStore();
   console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
 

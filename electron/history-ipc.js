@@ -1,0 +1,100 @@
+// electron/history-ipc.js
+//
+// History's channels for the main window: one `history:*` channel per store method, plus `history:status`.
+// Each answers `{ ok: true, value }` or `{ ok: false, error, code? }` and never throws to the page. A caller that
+// is not the main window is refused; a store that could not be opened answers UNAVAILABLE.
+//
+// Every channel is registered by its own line with its name written out: the IPC registry guard
+// (electron/ipc-channels.test.js) finds handlers by that literal text.
+'use strict';
+
+const { HistoryError } = require('./history-store.js');
+
+/** Channel → store method. `history:status` is answered here, without the store. */
+const HISTORY_CHANNELS = Object.freeze({
+  'history:open-record': 'openRecord',
+  'history:close-record': 'closeRecord',
+  'history:get-record': 'getRecord',
+  'history:list-records': 'listRecords',
+  'history:rename-record': 'renameRecord',
+  'history:put-leg': 'putLeg',
+  'history:put-segments': 'putSegments',
+  'history:put-notices': 'putNotices',
+  'history:get-legs': 'getLegs',
+  'history:create-transcript': 'createTranscript',
+  'history:append-sentences': 'appendSentences',
+  'history:revise-sentences': 'reviseSentences',
+  'history:get-sentences': 'getSentences',
+  'history:rename-speaker': 'renameSpeaker',
+  'history:reassign-sentence': 'reassignSentence',
+  'history:get-speakers': 'getSpeakers',
+  'history:save-notes': 'saveNotes',
+  'history:list-notes': 'listNotes',
+  'history:get-notes': 'getNotes',
+  'history:search': 'search',
+  'history:bin-records': 'binRecords',
+  'history:restore-records': 'restoreRecords',
+  'history:purge-records': 'purgeRecords',
+  'history:drop-track': 'dropTrack',
+  'history:usage': 'usage',
+});
+
+/** The methods that take a record id rather than an object: the page sends `{ id }`. */
+const BY_ID = new Set(['getRecord', 'getLegs']);
+
+const REFUSED = Object.freeze({ ok: false, error: 'History refused: not the main window' });
+const UNAVAILABLE = Object.freeze({ ok: false, error: 'History is not available', code: 'UNAVAILABLE' });
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * Registers the channels. `getStore()` returns the store or null; `getUnavailableReason()` says why it is null
+ * ('newer' for a file from a newer app, 'error' otherwise).
+ */
+function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnavailableReason = () => null }) {
+  const handle = (method) => async (event, payload) => {
+    if (!isTrustedSender(event.sender)) return REFUSED;
+    const store = getStore();
+    if (!store) return UNAVAILABLE;
+    if (!isPlainObject(payload)) return { ok: false, error: 'History expects an object', code: 'BAD_PAYLOAD' };
+    try {
+      const value = BY_ID.has(method) ? store[method](payload.id) : store[method](payload);
+      return { ok: true, value };
+    } catch (error) {
+      if (error instanceof HistoryError) return { ok: false, error: error.message, code: error.code };
+      return { ok: false, error: error && error.message ? String(error.message) : String(error) };
+    }
+  };
+
+  ipcMain.handle('history:status', async (event) => {
+    if (!isTrustedSender(event.sender)) return REFUSED;
+    if (getStore()) return { ok: true, value: { available: true, dir } };
+    return { ok: true, value: { available: false, reason: getUnavailableReason() || 'error', dir } };
+  });
+  ipcMain.handle('history:open-record', handle('openRecord'));
+  ipcMain.handle('history:close-record', handle('closeRecord'));
+  ipcMain.handle('history:get-record', handle('getRecord'));
+  ipcMain.handle('history:list-records', handle('listRecords'));
+  ipcMain.handle('history:rename-record', handle('renameRecord'));
+  ipcMain.handle('history:put-leg', handle('putLeg'));
+  ipcMain.handle('history:put-segments', handle('putSegments'));
+  ipcMain.handle('history:put-notices', handle('putNotices'));
+  ipcMain.handle('history:get-legs', handle('getLegs'));
+  ipcMain.handle('history:create-transcript', handle('createTranscript'));
+  ipcMain.handle('history:append-sentences', handle('appendSentences'));
+  ipcMain.handle('history:revise-sentences', handle('reviseSentences'));
+  ipcMain.handle('history:get-sentences', handle('getSentences'));
+  ipcMain.handle('history:rename-speaker', handle('renameSpeaker'));
+  ipcMain.handle('history:reassign-sentence', handle('reassignSentence'));
+  ipcMain.handle('history:get-speakers', handle('getSpeakers'));
+  ipcMain.handle('history:save-notes', handle('saveNotes'));
+  ipcMain.handle('history:list-notes', handle('listNotes'));
+  ipcMain.handle('history:get-notes', handle('getNotes'));
+  ipcMain.handle('history:search', handle('search'));
+  ipcMain.handle('history:bin-records', handle('binRecords'));
+  ipcMain.handle('history:restore-records', handle('restoreRecords'));
+  ipcMain.handle('history:purge-records', handle('purgeRecords'));
+  ipcMain.handle('history:drop-track', handle('dropTrack'));
+  ipcMain.handle('history:usage', handle('usage'));
+}
+
+module.exports = { setupHistoryHandlers, HISTORY_CHANNELS };
