@@ -461,7 +461,10 @@ describe('a record transcribed again', () => {
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Transcribe again' }));
     await settle();
-    expect(screen.getByRole('dialog', { name: 'Transcribe again' })).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Transcribe again' });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Transcribe again' })).toBeNull();
   });
 
   it('opens a search hit in the older transcript it was found in, and marks it there', async () => {

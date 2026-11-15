@@ -332,17 +332,27 @@ describe('importing from the list', () => {
     store = createHistoryPageStore(port, clock, () => 'That did not work.', null, jobs() as never);
     store.getState().follow();
     await renderList();
-    const input = screen.getByLabelText('Import a file', { selector: 'input' }) as HTMLInputElement;
+    // A real button a keyboard reaches; it opens the hidden file chooser.
+    const button = screen.getByRole('button', { name: 'Import a file' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const chooser = vi.spyOn(input, 'click');
+    fireEvent.click(button);
+    expect(chooser).toHaveBeenCalled();
     expect(input.accept).toBe('audio/*,video/*');
     const file = new File([new Uint8Array(1)], 'Interview.m4a', { type: 'audio/mp4' });
     fireEvent.change(input, { target: { files: [file] } });
     await settle();
-    expect(screen.getByRole('dialog', { name: 'Import “Interview.m4a”' })).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Import “Interview.m4a”' });
+    // The panel takes the focus, and Escape closes the panel, not History.
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Import “Interview.m4a”' })).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('offers no import where files cannot be imported', async () => {
     await renderList();
-    expect(screen.queryByLabelText('Import a file', { selector: 'input' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Import a file' })).toBeNull();
   });
 
   it('tags a record that keeps a recording but has no transcript', async () => {

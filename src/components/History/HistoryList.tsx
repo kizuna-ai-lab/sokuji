@@ -74,6 +74,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   const filesOffered = useStore(store, (s) => s.filesOffered);
   /** A file chosen to import, asked about before anything starts. */
   const [importing, setImporting] = useState<File | null>(null);
+  const chooserRef = useRef<HTMLInputElement>(null);
   const [spaceDismissed, setSpaceDismissed] = useState(readSpaceDismissed);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -311,13 +312,16 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
         </div>
       )}
       {status && filesOffered && (
-        <label className="history-button history-nav__import">
-          <FileUp size={14} aria-hidden="true" />
-          {t('history.file.import', 'Import a file')}
+        <>
+          <button type="button" className="history-button history-nav__import" onClick={() => chooserRef.current?.click()}>
+            <FileUp size={14} aria-hidden="true" />
+            {t('history.file.import', 'Import a file')}
+          </button>
           <input
+            ref={chooserRef}
             type="file"
             accept="audio/*,video/*"
-            aria-label={t('history.file.import', 'Import a file')}
+            tabIndex={-1}
             hidden
             onChange={(e) => {
               const chosen = e.target.files?.[0];
@@ -325,7 +329,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
               if (chosen) setImporting(chosen);
             }}
           />
-        </label>
+        </>
       )}
       {status && (
         <div className="history-nav__space">

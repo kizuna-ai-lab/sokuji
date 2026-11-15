@@ -4,7 +4,7 @@
 // import, the one that asks before a transcription again, the line that follows the running job and says how it
 // ended, and the choice between a record's transcripts. Each names the service and the stage of the line-up it
 // belongs to (recognition). With the user's own key no price is shown (owner, 2026-11-16).
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import type { FileJobBlock } from '../../lib/history/historyPageStore';
@@ -65,6 +65,19 @@ function useFileTexts() {
   }, [t]);
 }
 
+/** A panel that asks first: it takes the focus when it shows, and Escape closes it (not the page behind it). */
+function usePanel(onClose: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { ref.current?.focus(); }, []);
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+  };
+  return { ref, tabIndex: -1, onKeyDown };
+}
+
 /** Why the job cannot start, asked once the panel shows. */
 function useBlocked(kind: 'import' | 'transcribe'): { known: boolean; blocked: FileJobBlock | null } {
   const { store } = useHistoryPageContext();
@@ -89,6 +102,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
   const { store } = useHistoryPageContext();
   const texts = useFileTexts();
   const { known, blocked } = useBlocked('import');
+  const panel = usePanel(onClose);
   const [language, setLanguage] = useState(myLanguage);
   const codes = useMemo(() => [...new Set([myLanguage, ...INTERFACE_LANGUAGES.map((l) => baseOf(l.value))])], [myLanguage]);
   const title = t('history.file.importTitle', 'Import “{{name}}”', { name: file.name });
@@ -97,7 +111,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
     onClose();
   };
   return (
-    <div className="history-confirm history-file" role="dialog" aria-label={title}>
+    <div className="history-confirm history-file" role="dialog" aria-label={title} {...panel}>
       <p className="history-file__title">{title}</p>
       <label className="history-file__field">
         <span>{t('history.file.language', 'Language spoken in it')}</span>
@@ -121,6 +135,7 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
   const open = useStore(store, (s) => s.open);
   const texts = useFileTexts();
   const { known, blocked } = useBlocked('transcribe');
+  const panel = usePanel(onClose);
   if (!open) return null;
   const kept = open.record.tracks.filter((tr) => tr.goneAt === null);
   const title = open.record.transcripts.length > 0 ? t('history.file.transcribeAgain', 'Transcribe again') : t('history.file.transcribe', 'Transcribe');
@@ -130,7 +145,7 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
     onClose();
   };
   return (
-    <div className="history-confirm history-file record-page__confirm" role="dialog" aria-label={title}>
+    <div className="history-confirm history-file record-page__confirm" role="dialog" aria-label={title} {...panel}>
       <p className="history-file__title">{title}</p>
       <p>{t('history.file.transcribeNote', 'The saved recording is transcribed again. A new version is made; the transcripts already here stay.')}</p>
       <p>{texts.service}</p>
