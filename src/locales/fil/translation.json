@@ -722,7 +722,6 @@
       "headerNarrowed": "Tandaan: pinaliit ang saklaw ng export na ito noong nag-export — may ilang linyang hindi kasama.",
       "autoSave": {
         "label": "I-export ang TXT pagkatapos ng session",
-        "tooltipDesktop": "Kapag natapos ang isang session, ise-save ang buong usapan — parehong panig, mga orihinal at salin — bilang .txt file sa iyong Downloads folder.",
         "tooltipBrowser": "Kapag natapos ang isang session, ida-download ang buong usapan — parehong panig, mga orihinal at salin — bilang .txt file. Hindi ito nase-save kapag isinara ang side panel habang may session; tapusin muna ang session.",
         "saved": "Na-save ang usapan: {{filename}}",
         "showInFolder": "Ipakita sa folder",
@@ -1810,8 +1809,8 @@
       "models": "mga model, i-download, storage, burahin, disk",
       "audio": "mikropono, pagpigil ng ingay, echo, speaker, headphones, monitor, passthrough, virtual na mikropono, audio ng system",
       "display": "font, laki, kulay, compact, subtitle, caption, preview",
-      "history": "kasaysayan, mga tala, folder, awtomatikong pag-save",
-      "general": "wika ng interface, hitsura, tema, mga update, log, setup, tulong, bersyon"
+      "history": "kasaysayan, mga tala, folder",
+      "general": "wika ng interface, hitsura, tema, awtomatikong pag-save, mga update, log, setup, tulong, bersyon"
     },
     "accounts": {
       "addKey": "Magdagdag ng key",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Recording",
     "more": "Higit pa",
     "binWhenEnded": "Maililipat lang sa basurahan ang record kapag tapos na ang session nito.",
-    "autoExportLine": "Nagse-save ng dagdag na .txt na kopya ng buong usapan sa Downloads folder. Itinatago pa rin ng Kasaysayan ang record sa computer na ito.",
     "sessionAt": "Session nang {{time}}",
     "recordingStopped": "Huminto ang recording ng session na ito: hindi ito maisulat sa disk. Nase-save pa rin ang transcript.",
     "player": "Recording",

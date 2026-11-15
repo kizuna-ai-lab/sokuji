@@ -722,7 +722,6 @@
       "headerNarrowed": "Catatan: ekspor ini dipersempit saat mengekspor — beberapa baris tidak disertakan.",
       "autoSave": {
         "label": "Ekspor TXT saat sesi berakhir",
-        "tooltipDesktop": "Saat sesi berakhir, seluruh percakapan — kedua pihak, teks asli dan terjemahan — disimpan sebagai file .txt di folder Unduhan Anda.",
         "tooltipBrowser": "Saat sesi berakhir, seluruh percakapan — kedua pihak, teks asli dan terjemahan — diunduh sebagai file .txt. Menutup panel samping selama sesi tidak menyimpannya; akhiri sesi terlebih dahulu.",
         "saved": "Percakapan disimpan: {{filename}}",
         "showInFolder": "Tampilkan di folder",
@@ -1810,8 +1809,8 @@
       "models": "model, unduh, penyimpanan, hapus, disk",
       "audio": "mikrofon, peredam bising, gema, speaker, headphone, monitor, passthrough, mikrofon virtual, audio sistem",
       "display": "fon, ukuran, warna, ringkas, subtitel, takarir, pratinjau",
-      "history": "riwayat, catatan, folder, simpan otomatis",
-      "general": "bahasa antarmuka, tampilan, tema, pembaruan, log, penyiapan, bantuan, versi"
+      "history": "riwayat, catatan, folder",
+      "general": "bahasa antarmuka, tampilan, tema, simpan otomatis, pembaruan, log, penyiapan, bantuan, versi"
     },
     "accounts": {
       "addKey": "Tambahkan kunci",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Rekaman suara",
     "more": "Lainnya",
     "binWhenEnded": "Rekaman bisa dipindahkan ke sampah setelah sesinya selesai.",
-    "autoExportLine": "Menyimpan salinan .txt tambahan dari seluruh percakapan ke folder Unduhan. Riwayat tetap menyimpan rekamannya di komputer ini.",
     "sessionAt": "Sesi pukul {{time}}",
     "recordingStopped": "Rekaman sesi ini berhenti: tidak bisa ditulis ke disk. Transkrip tetap disimpan.",
     "player": "Rekaman suara",

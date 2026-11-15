@@ -1,17 +1,14 @@
 // src/components/SettingsPage/HistoryCategory.tsx
 //
 // "History and notes" (desktop only), as the settings mock draws it: the History folder with the space it takes and
-// a button that opens it, a line saying records stay on this computer, and the switch that exports the conversation as
-// a text file when a session ends (today's auto-save, renamed so it is not taken for History itself; it left the export
-// menu when export moved into History).
+// a button that opens it, and a line saying records stay on this computer. The desktop has no session-end auto-save:
+// History keeps every session (owner 2026-11-16).
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderOpen } from 'lucide-react';
 import { historyPort } from '../../lib/history/port';
 import type { HistoryStatus, HistoryUsage } from '../../lib/history/types';
-import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
-import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import { formatBytes } from '../History/format';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -27,14 +24,11 @@ function Row({ name, line, children }: { name: string; line?: ReactNode; childre
   );
 }
 
-// The category changes nothing a running session uses: the switch is read when a session ends, so it stays usable.
+// The category changes nothing a running session uses, so it stays usable during one.
 export function HistoryCategory(_props: CategoryBodyProps) {
   const { t } = useTranslation();
-  const autoSave = useAutoSaveOnStop();
-  const setAutoSave = useSetAutoSaveOnStop();
   const [status, setStatus] = useState<HistoryStatus | null>(null);
   const [usage, setUsage] = useState<HistoryUsage | null>(null);
-  const autoSaveName = t('mainPanel.export.autoSave.label', 'Export TXT when a session ends');
 
   useEffect(() => {
     let live = true;
@@ -82,9 +76,6 @@ export function HistoryCategory(_props: CategoryBodyProps) {
           </button>
         </Row>
         <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript and recording are kept on this computer. Nothing is uploaded.')}</p>
-        <Row name={autoSaveName} line={t('history.autoExportLine', 'Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.')}>
-          <ToggleSwitch checked={autoSave} onChange={() => void setAutoSave(!autoSave)} label="" ariaLabel={autoSaveName} />
-        </Row>
       </div>
     </div>
   );

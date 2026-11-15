@@ -31,6 +31,8 @@ describe('the settings categories', () => {
   it('filters categories by title and search words', () => {
     expect(filterCategories('key', t).map((c) => c.id)).toEqual(['accounts']);
     expect(filterCategories('麦克风', zh).map((c) => c.id)).toEqual(['audio']);
+    // The session-end auto-save is the extension's, set in General (owner 2026-11-16).
+    expect(filterCategories('auto-save', t).map((c) => c.id)).toEqual(['general']);
   });
 
   it('lists the categories in the agreed order', () => {

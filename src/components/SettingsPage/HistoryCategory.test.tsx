@@ -1,5 +1,4 @@
-// "History and notes" (desktop): where History keeps its records and how much space they take, and the switch that
-// saves the conversation as a text file when a session ends (it left the export menu, which left the main screen).
+// "History and notes" (desktop): where History keeps its records and how much space they take.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react';
 
@@ -19,15 +18,14 @@ vi.mock('../../lib/history/port', async (importOriginal) => ({
   historyPort: () => ({ status: async () => history.status, usage: async () => history.usage }),
 }));
 
+import '../../locales';
 import { HistoryCategory } from './HistoryCategory';
-import useSettingsStore from '../../stores/settingsStore';
 
 const settle = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
 const row = (name: string) => screen.getByText(name, { selector: '.general-row__name' }).closest('.general-row') as HTMLElement;
 
 beforeEach(() => {
   history.status = { available: true, dir: '/home/u/History' };
-  useSettingsStore.setState({ autoSaveOnStop: false } as never);
 });
 afterEach(() => cleanup());
 
@@ -45,30 +43,16 @@ describe('history and notes', () => {
     delete (window as unknown as { electron?: unknown }).electron;
   });
 
-  it('saves the conversation as a text file when a session ends, from its switch', async () => {
+  it('has no auto-save switch: History keeps every session on the desktop', async () => {
     render(<HistoryCategory locked={false} />);
     await settle();
-    expect(within(row('Export TXT when a session ends')).getByText('Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.')).toBeInTheDocument();
-    fireEvent.click(within(row('Export TXT when a session ends')).getByRole('switch'));
-    await settle();
-    expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
+    expect(screen.queryByText('Export TXT when a session ends')).not.toBeInTheDocument();
   });
 
-  it('keeps the auto-save switch usable during a session, as the export menu did', async () => {
-    render(<HistoryCategory locked />);
-    await settle();
-    const toggle = within(row('Export TXT when a session ends')).getByRole('switch');
-    expect(toggle).not.toBeDisabled();
-    fireEvent.click(toggle);
-    await settle();
-    expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
-  });
-
-  it('says so when History cannot be opened, and keeps the switch', async () => {
+  it('says so when History cannot be opened', async () => {
     history.status = { available: false, reason: 'newer', dir: '' };
     render(<HistoryCategory locked={false} />);
     await settle();
     expect(screen.getByText('This History was written by a newer version of Sokuji. Update Sokuji to open it.')).toBeInTheDocument();
-    expect(within(row('Export TXT when a session ends')).getByRole('switch')).toBeInTheDocument();
   });
 });

@@ -722,7 +722,6 @@
       "headerNarrowed": "Nota: esta exportación se limitó al exportar: se omitieron algunas líneas.",
       "autoSave": {
         "label": "Exportar TXT al terminar la sesión",
-        "tooltipDesktop": "Al terminar una sesión, se guarda la conversación completa —ambas partes, originales y traducciones— como archivo .txt en tu carpeta de Descargas.",
         "tooltipBrowser": "Al terminar una sesión, se descarga la conversación completa —ambas partes, originales y traducciones— como archivo .txt. Cerrar el panel lateral durante una sesión no la guarda; termina la sesión primero.",
         "saved": "Conversación guardada: {{filename}}",
         "showInFolder": "Mostrar en la carpeta",
@@ -1810,8 +1809,8 @@
       "models": "modelos, descargar, almacenamiento, eliminar, disco",
       "audio": "micrófono, supresión de ruido, eco, altavoz, auriculares, monitor, paso directo, micrófono virtual, audio del sistema",
       "display": "fuente, tamaño, color, compacto, subtítulos, leyendas, vista previa",
-      "history": "historial, notas, carpeta, guardado automático",
-      "general": "idioma de la interfaz, apariencia, tema, actualizaciones, registros, configuración inicial, ayuda, versión"
+      "history": "historial, notas, carpeta",
+      "general": "idioma de la interfaz, apariencia, tema, guardado automático, actualizaciones, registros, configuración inicial, ayuda, versión"
     },
     "accounts": {
       "addKey": "Añadir clave",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Grabación",
     "more": "Más",
     "binWhenEnded": "Un registro puede ir a la papelera cuando su sesión haya terminado.",
-    "autoExportLine": "Guarda una copia .txt adicional de toda la conversación en la carpeta Descargas. El historial conserva el registro en este ordenador en cualquier caso.",
     "sessionAt": "Sesión de las {{time}}",
     "recordingStopped": "La grabación de esta sesión se ha detenido: no se pudo escribir en el disco. La transcripción se sigue guardando.",
     "player": "Grabación",

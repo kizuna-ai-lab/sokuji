@@ -91,17 +91,3 @@ describe('menu keyboard focus is visible', () => {
     });
   }
 });
-
-describe('auto-save switch shows its state', () => {
-  it('fills the track when on', () => {
-    expect(css).toMatch(
-      /\.export-auto-save\[aria-checked=["']?true["']?\]\s+\.export-auto-save__switch\s*\{[^}]*\bbackground:\s*var\(--sk-success\)/,
-    );
-  });
-
-  it('moves the knob when on', () => {
-    expect(css).toMatch(
-      /\.export-auto-save\[aria-checked=["']?true["']?\]\s+\.export-auto-save__switch::before\s*\{[^}]*\btransform:\s*translateX\(9px\)/,
-    );
-  });
-});

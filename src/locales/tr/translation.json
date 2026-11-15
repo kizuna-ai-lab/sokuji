@@ -722,7 +722,6 @@
       "headerNarrowed": "Not: bu dışa aktarmanın kapsamı aktarma sırasında daraltıldı — bazı satırlar dahil edilmedi.",
       "autoSave": {
         "label": "Oturum bitince TXT dışa aktar",
-        "tooltipDesktop": "Bir oturum bittiğinde sohbetin tamamı — iki taraf, orijinaller ve çeviriler — .txt dosyası olarak İndirilenler klasörüne kaydedilir.",
         "tooltipBrowser": "Bir oturum bittiğinde sohbetin tamamı — iki taraf, orijinaller ve çeviriler — .txt dosyası olarak indirilir. Oturum sırasında yan paneli kapatmak sohbeti kaydetmez; önce oturumu sonlandırın.",
         "saved": "Sohbet kaydedildi: {{filename}}",
         "showInFolder": "Klasörde göster",
@@ -1810,8 +1809,8 @@
       "models": "modeller, indir, depolama, sil, disk",
       "audio": "mikrofon, gürültü bastırma, yankı, hoparlör, kulaklık, izleme, doğrudan geçiş, sanal mikrofon, sistem sesi",
       "display": "yazı tipi, boyut, renk, sıkışık, altyazı, başlıklar, önizleme",
-      "history": "geçmiş, notlar, klasör, otomatik kaydet",
-      "general": "arayüz dili, görünüm, tema, güncellemeler, günlükler, kurulum, yardım, sürüm"
+      "history": "geçmiş, notlar, klasör",
+      "general": "arayüz dili, görünüm, tema, otomatik kaydet, güncellemeler, günlükler, kurulum, yardım, sürüm"
     },
     "accounts": {
       "addKey": "Anahtar ekle",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Ses kaydı",
     "more": "Diğer",
     "binWhenEnded": "Kayıt, oturumu bittikten sonra çöp kutusuna taşınabilir.",
-    "autoExportLine": "Konuşmanın tamamının ek bir .txt kopyasını İndirilenler klasörüne kaydeder. Geçmiş kaydı her durumda bu bilgisayarda tutar.",
     "sessionAt": "{{time}} oturumu",
     "recordingStopped": "Bu oturumun ses kaydı durdu: diske yazılamadı. Döküm hâlâ kaydediliyor.",
     "player": "Ses kaydı",

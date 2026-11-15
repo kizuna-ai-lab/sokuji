@@ -5,7 +5,6 @@ const { setupSubtitleHandlers } = require('./subtitle-window.js');
 const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
-const { setupTranscriptSaveHandler } = require('./transcript-save.js');
 const { setupHistoryHandlers, openHistoryAtLaunch } = require('./history-ipc.js');
 const { HISTORY_SCHEME, registerHistoryScheme, trackResponse } = require('./history-audio.js');
 
@@ -655,16 +654,8 @@ app.whenReady().then(async () => {
     }
   }
 
-  // Session-end auto-save writes straight into Downloads (no Save As dialog).
-  // The sender check reads mainWindow at call time: it does not exist yet,
-  // and it can be recreated.
-  setupTranscriptSaveHandler({
-    ipcMain,
-    getDownloadsDir: () => app.getPath('downloads'),
-    isTrustedSender: (sender) => sender === mainWindow?.webContents,
-  });
-
   // History opens before the window, so the page finds it; the bin is emptied of what expired once a day.
+  // The sender check reads mainWindow at call time: it does not exist yet, and it can be recreated.
   const historyDir = path.join(app.getPath('userData'), 'history');
   openHistoryStore(historyDir);
   setupHistoryHandlers({

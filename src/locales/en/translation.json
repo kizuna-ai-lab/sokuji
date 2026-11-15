@@ -722,7 +722,6 @@
       "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out.",
       "autoSave": {
         "label": "Export TXT when a session ends",
-        "tooltipDesktop": "When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.",
         "tooltipBrowser": "When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.",
         "saved": "Conversation saved: {{filename}}",
         "showInFolder": "Show in folder",
@@ -1810,8 +1809,8 @@
       "models": "models, download, storage, delete, disk",
       "audio": "microphone, noise suppression, echo, speaker, headphones, monitor, passthrough, virtual microphone, system audio",
       "display": "font, size, colour, color, compact, subtitles, captions, preview",
-      "history": "history, notes, folder, auto-save",
-      "general": "interface language, appearance, theme, updates, logs, setup, help, version"
+      "history": "history, notes, folder",
+      "general": "interface language, appearance, theme, auto-save, updates, logs, setup, help, version"
     },
     "accounts": {
       "addKey": "Add key",
@@ -1989,7 +1988,6 @@
     "sentenceCount_one": "{{count}} sentence",
     "space_one": "{{size}} in {{count}} record",
     "showOlder": "Show older records",
-    "autoExportLine": "Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.",
     "backToSession": "Back to the session",
     "backToList": "Back to the list",
     "allRecords": "All records",

@@ -4,13 +4,16 @@
 // the basics (interface language, appearance), then maintenance and help (diagnostic logs, updates, the setup
 // wizard, the guide) — each with its name and a line about it on the left and a real control on the right; the
 // support address and the discussion board last, as two quiet links. What each control does is today's help
-// section's, through the same helpers.
+// section's, through the same helpers. In the browser the basics also carry the session-end auto-save, which left the
+// export menu (owner 2026-11-16); the desktop has none, History keeping every session.
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isElectron, isExtension } from '../../utils/environment';
 import { useStartBasicsTour } from '../Tour/useStartBasicsTour';
 import { useSetSetupWizardOpen } from '../../stores/layoutStore';
-import { useDiagnosticLogs, useSetDiagnosticLogs, useThemeSetting, useSetThemeSetting } from '../../stores/settingsStore';
+import {
+  useAutoSaveOnStop, useDiagnosticLogs, useSetAutoSaveOnStop, useSetDiagnosticLogs, useSetThemeSetting, useThemeSetting,
+} from '../../stores/settingsStore';
 import { useAnalytics } from '../../lib/analytics';
 import type { ThemeSetting } from '../../lib/theme/theme';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
@@ -46,6 +49,9 @@ export function GeneralCategory({ locked }: CategoryBodyProps) {
   const startTour = useStartBasicsTour();
   const version = `v${__APP_VERSION__}`;
   const logsName = t('settings.diagnosticLogs', 'Diagnostic logs');
+  const autoSave = useAutoSaveOnStop();
+  const setAutoSave = useSetAutoSaveOnStop();
+  const autoSaveName = t('mainPanel.export.autoSave.label', 'Export TXT when a session ends');
 
   return (
     <div className="general-category" id="help-section">
@@ -70,6 +76,12 @@ export function GeneralCategory({ locked }: CategoryBodyProps) {
             ))}
           </span>
         </Row>
+        {!isElectron() && (
+          // Read when a session ends, so it stays usable during one.
+          <Row name={autoSaveName} line={t('mainPanel.export.autoSave.tooltipBrowser', 'When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.')}>
+            <ToggleSwitch checked={autoSave} onChange={() => void setAutoSave(!autoSave)} label="" ariaLabel={autoSaveName} />
+          </Row>
+        )}
       </div>
 
       <h3 className="settings-subhead">{t('settingsPage.general.maintenance', 'Maintenance and help')}</h3>

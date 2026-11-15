@@ -108,8 +108,6 @@ describe('colour roles', () => {
   });
 
   it('dividers and seams are lines, not surfaces', () => {
-    // dark #444 either way
-    expect(rule(css('components/MainPanel/ExportButton.scss'), '.export-menu-divider')).toMatch(/background:\s*var\(--sk-line\)/);
     // dark #555 either way
     expect(rule(css('components/MainLayout/PanelResizer.scss'), '.panel-resizer:hover')).toMatch(/background:\s*var\(--sk-line-strong\)/);
     // was bg-hover, 1.06:1 on the light bar; dark moves #3a3a3a → #444

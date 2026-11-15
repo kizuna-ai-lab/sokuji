@@ -10,9 +10,6 @@ vi.mock('../../locales', () => ({
   },
 }));
 
-let electron = true;
-vi.mock('../../utils/environment', () => ({ isElectron: () => electron }));
-
 const reportError = vi.fn();
 vi.mock('../diagnostics/report', () => ({
   reportError: (...args: unknown[]) => reportError(...args),
@@ -26,7 +23,6 @@ vi.mock('../../utils/conversationExport', () => ({
 
 import { saveTranscriptText } from './autoSave';
 
-const invoke = vi.fn();
 const note = vi.fn();
 const notify = { note };
 
@@ -40,50 +36,27 @@ const CONTENT = [
 const FILENAME = 'sokuji-conversation-20260918-153000.txt';
 
 beforeEach(() => {
-  electron = true;
-  invoke.mockReset();
   note.mockReset();
   reportError.mockReset();
   downloadFile.mockReset();
-  (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
 });
 
+// Only the browser extension saves a conversation at the end of a session: on the desktop History keeps every one.
 describe('saveTranscriptText', () => {
-  it('desktop: hands main the text and filename only, then offers the folder', async () => {
-    invoke.mockResolvedValueOnce({ ok: true, path: '/home/u/Downloads/sokuji-conversation-20260918-153000.txt', dir: '/home/u/Downloads' });
-
-    expect(await saveTranscriptText(CONTENT, FILENAME, notify)).toBe('saved');
-
-    expect(invoke).toHaveBeenCalledTimes(1);
-    const [channel, payload] = invoke.mock.calls[0];
-    expect(channel).toBe('transcript:save');
-    expect(payload).toEqual({ content: CONTENT });
-
-    const [input] = note.mock.calls[0];
-    expect(input).toMatchObject({
-      severity: 'info',
-      code: 'autosave_saved',
-      params: { filename: 'sokuji-conversation-20260918-153000.txt' },
-      action: { kind: 'show-in-folder', dir: '/home/u/Downloads' },
-    });
-    expect(input.lifetime).toBeUndefined();
-  });
-
-  it('browser: downloads the file and leaves the confirmation to the browser', async () => {
-    electron = false;
+  it('downloads the file and leaves the confirmation to the browser', async () => {
     expect(await saveTranscriptText(CONTENT, FILENAME, notify)).toBe('saved');
     expect(downloadFile).toHaveBeenCalledWith(CONTENT, FILENAME, 'text/plain;charset=utf-8');
     expect(note).not.toHaveBeenCalled();
   });
 
-  it('reports and tells the user when main could not write the file', async () => {
-    invoke.mockResolvedValueOnce({ ok: false, error: 'EACCES: permission denied' });
+  it('reports and tells the user how to save by hand when the download cannot start', async () => {
+    downloadFile.mockImplementationOnce(() => { throw new Error('Blocked'); });
 
-    expect(await saveTranscriptText(CONTENT, FILENAME, notify)).toBe('failed');
+    await expect(saveTranscriptText(CONTENT, FILENAME, notify)).resolves.toBe('failed');
 
     expect(reportError).toHaveBeenCalledWith(
       'AutoSave',
-      'Failed to auto-save the conversation: EACCES: permission denied',
+      'Failed to auto-save the conversation: Blocked',
       expect.objectContaining({ cause: expect.any(Error) }),
     );
     const [input] = note.mock.calls[0];
@@ -91,9 +64,11 @@ describe('saveTranscriptText', () => {
     expect(input.action).toBeUndefined();
   });
 
-  it('resolves, never rejects, when the IPC itself throws', async () => {
-    invoke.mockRejectedValueOnce(new Error('No handler registered'));
-    await expect(saveTranscriptText(CONTENT, FILENAME, notify)).resolves.toBe('failed');
-    expect(reportError).toHaveBeenCalledTimes(1);
+  it('never asks the main process to write anything', async () => {
+    const invoke = vi.fn();
+    (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
+    await saveTranscriptText(CONTENT, FILENAME, notify);
+    expect(invoke).not.toHaveBeenCalled();
+    delete (window as unknown as { electron?: unknown }).electron;
   });
 });

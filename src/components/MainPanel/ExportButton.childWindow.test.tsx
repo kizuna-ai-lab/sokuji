@@ -1,16 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ReactNode } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { Exporter } from '../../lib/export/exporter';
 import { ExportMenuButton } from './ExportButton';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, def?: string) => (typeof def === 'string' ? def : key) }),
-}));
-const setAutoSaveOnStop = vi.fn(async () => {});
-vi.mock('../../stores/settingsStore', () => ({
-  useAutoSaveOnStop: () => false,
-  useSetAutoSaveOnStop: () => setAutoSaveOnStop,
 }));
 // The real host opens an OS child window; render its children inline instead.
 vi.mock('../Subtitle/ChildWindowPopover', () => ({
@@ -27,7 +22,7 @@ const fakeExporter: Exporter = {
 };
 
 describe('ExportMenuButton in the subtitle bar child window', () => {
-  it('carries the auto-save row, without the roving ring', () => {
+  it('carries the actions without the roving ring, and no auto-save row', () => {
     render(
       <ExportMenuButton
         exporter={fakeExporter}
@@ -36,10 +31,7 @@ describe('ExportMenuButton in the subtitle bar child window', () => {
         popoverHost="child-window"
       />,
     );
-    const row = screen.getByRole('menuitemcheckbox', { name: 'Export TXT when a session ends' });
-    expect(row).not.toHaveAttribute('tabindex');
-
-    fireEvent.click(row);
-    expect(setAutoSaveOnStop).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('menuitem', { name: 'Download as .txt' })).not.toHaveAttribute('tabindex');
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Export TXT when a session ends' })).not.toBeInTheDocument();
   });
 });

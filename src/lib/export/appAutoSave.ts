@@ -1,10 +1,12 @@
 /**
  * The session-end auto-save over the new conversation (plan 1d-3): the
  * runner's `onRunEnded` hands over the legs, and the whole conversation —
- * both sides, every leg, header first — goes through today's saving branch.
- * The Export menu's scope never applies here, as today.
+ * both sides, every leg, header first — is downloaded as text. The Export
+ * menu's scope never applies here, as today. The browser extension only: on
+ * the desktop History keeps every session, so nothing is saved besides.
  */
 import useSettingsStore from '../../stores/settingsStore';
+import { isElectron } from '../../utils/environment';
 import i18n from '../../locales';
 import { exportFilename, getAppVersion } from '../../utils/conversationExport';
 import type { Leg } from '../conversation/types';
@@ -22,7 +24,7 @@ export async function autoSaveConversation(
 ): Promise<AutoSaveOutcome> {
   let content: string;
   try {
-    if (!useSettingsStore.getState().autoSaveOnStop) return 'disabled';
+    if (isElectron() || !useSettingsStore.getState().autoSaveOnStop) return 'disabled';
     const exporter = conversationExporter({
       // The export writes each segment whole, so the stored cut never reaches
       // it: the default projection groups exactly as the app's does.

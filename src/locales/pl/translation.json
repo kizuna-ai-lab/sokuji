@@ -722,7 +722,6 @@
       "headerNarrowed": "Uwaga: ten eksport został zawężony podczas eksportowania — pominięto niektóre wiersze.",
       "autoSave": {
         "label": "Eksportuj TXT po zakończeniu sesji",
-        "tooltipDesktop": "Po zakończeniu sesji cała rozmowa — obie strony, oryginały i tłumaczenia — zostaje zapisana jako plik .txt w folderze Pobrane.",
         "tooltipBrowser": "Po zakończeniu sesji cała rozmowa — obie strony, oryginały i tłumaczenia — zostaje pobrana jako plik .txt. Zamknięcie panelu bocznego w trakcie sesji jej nie zapisuje; najpierw zakończ sesję.",
         "saved": "Rozmowa zapisana: {{filename}}",
         "showInFolder": "Pokaż w folderze",
@@ -1810,8 +1809,8 @@
       "models": "modele, pobierz, miejsce, usuń, dysk",
       "audio": "mikrofon, tłumienie szumów, echo, głośnik, słuchawki, odsłuch, przekazywanie, wirtualny mikrofon, dźwięk systemowy",
       "display": "czcionka, rozmiar, kolor, kompaktowy, napisy, podpisy, podgląd",
-      "history": "historia, notatki, folder, autozapis",
-      "general": "język interfejsu, wygląd, motyw, aktualizacje, logi, konfiguracja, pomoc, wersja"
+      "history": "historia, notatki, folder",
+      "general": "język interfejsu, wygląd, motyw, autozapis, aktualizacje, logi, konfiguracja, pomoc, wersja"
     },
     "accounts": {
       "addKey": "Dodaj klucz",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Nagranie",
     "more": "Więcej",
     "binWhenEnded": "Zapis można przenieść do kosza dopiero po zakończeniu sesji.",
-    "autoExportLine": "Zapisuje dodatkową kopię .txt całej rozmowy w folderze Pobrane. Historia i tak przechowuje zapis na tym komputerze.",
     "sessionAt": "Sesja o {{time}}",
     "recordingStopped": "Nagrywanie tej sesji zostało zatrzymane: nie udało się zapisać go na dysku. Transkrypcja nadal jest zapisywana.",
     "player": "Nagranie",

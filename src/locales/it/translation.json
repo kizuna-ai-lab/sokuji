@@ -722,7 +722,6 @@
       "headerNarrowed": "Nota: questa esportazione è stata ristretta al momento dell'esportazione: alcune righe sono state omesse.",
       "autoSave": {
         "label": "Esporta TXT alla fine della sessione",
-        "tooltipDesktop": "Al termine di una sessione, l'intera conversazione — entrambe le parti, originali e traduzioni — viene salvata come file .txt nella cartella Download.",
         "tooltipBrowser": "Al termine di una sessione, l'intera conversazione — entrambe le parti, originali e traduzioni — viene scaricata come file .txt. Chiudere il pannello laterale durante una sessione non la salva; termina prima la sessione.",
         "saved": "Conversazione salvata: {{filename}}",
         "showInFolder": "Mostra nella cartella",
@@ -1810,8 +1809,8 @@
       "models": "modelli, scarica, spazio, elimina, disco",
       "audio": "microfono, soppressione del rumore, eco, altoparlante, cuffie, monitor, passthrough, microfono virtuale, audio di sistema",
       "display": "carattere, dimensione, colore, compatto, sottotitoli, didascalie, anteprima",
-      "history": "cronologia, note, cartella, salvataggio automatico",
-      "general": "lingua dell’interfaccia, aspetto, tema, aggiornamenti, log, configurazione, aiuto, versione"
+      "history": "cronologia, note, cartella",
+      "general": "lingua dell’interfaccia, aspetto, tema, salvataggio automatico, aggiornamenti, log, configurazione, aiuto, versione"
     },
     "accounts": {
       "addKey": "Aggiungi chiave",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Audio",
     "more": "Altro",
     "binWhenEnded": "Una registrazione può andare nel cestino quando la sua sessione è finita.",
-    "autoExportLine": "Salva una copia .txt in più dell’intera conversazione nella cartella Download. La cronologia conserva comunque la registrazione su questo computer.",
     "sessionAt": "Sessione delle {{time}}",
     "recordingStopped": "La registrazione audio di questa sessione si è fermata: non è stato possibile scriverla sul disco. La trascrizione viene comunque salvata.",
     "player": "Audio",

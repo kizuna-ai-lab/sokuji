@@ -722,7 +722,6 @@
       "headerNarrowed": "Huomio: tätä vientiä rajattiin vietäessä – osa riveistä jätettiin pois.",
       "autoSave": {
         "label": "Vie TXT, kun istunto päättyy",
-        "tooltipDesktop": "Kun istunto päättyy, koko keskustelu – molemmat osapuolet, alkuperäiset ja käännökset – tallennetaan .txt-tiedostona Lataukset-kansioon.",
         "tooltipBrowser": "Kun istunto päättyy, koko keskustelu – molemmat osapuolet, alkuperäiset ja käännökset – ladataan .txt-tiedostona. Sivupaneelin sulkeminen istunnon aikana ei tallenna sitä; lopeta istunto ensin.",
         "saved": "Keskustelu tallennettu: {{filename}}",
         "showInFolder": "Näytä kansiossa",
@@ -1810,8 +1809,8 @@
       "models": "mallit, lataus, tallennustila, poista, levy",
       "audio": "mikrofoni, kohinanvaimennus, kaiku, kaiutin, kuulokkeet, kuuntelu, läpivienti, virtuaalimikrofoni, järjestelmän ääni",
       "display": "fontti, koko, väri, tiivis, tekstitys, kuvatekstit, esikatselu",
-      "history": "historia, muistiinpanot, kansio, automaattinen tallennus",
-      "general": "käyttöliittymän kieli, ulkoasu, teema, päivitykset, lokit, käyttöönotto, ohje, versio"
+      "history": "historia, muistiinpanot, kansio",
+      "general": "käyttöliittymän kieli, ulkoasu, teema, automaattinen tallennus, päivitykset, lokit, käyttöönotto, ohje, versio"
     },
     "accounts": {
       "addKey": "Lisää avain",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Äänite",
     "more": "Lisää",
     "binWhenEnded": "Tallenteen voi siirtää roskakoriin, kun sen istunto on päättynyt.",
-    "autoExportLine": "Tallentaa koko keskustelusta ylimääräisen .txt-kopion Lataukset-kansioon. Historia säilyttää tallenteen tällä tietokoneella joka tapauksessa.",
     "sessionAt": "Istunto klo {{time}}",
     "recordingStopped": "Tämän istunnon äänitys pysähtyi: sitä ei voitu kirjoittaa levylle. Litterointi tallentuu edelleen.",
     "player": "Äänite",

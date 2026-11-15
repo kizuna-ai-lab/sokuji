@@ -722,7 +722,6 @@
       "headerNarrowed": "Obs: den här exporten begränsades vid exporten – vissa rader utelämnades.",
       "autoSave": {
         "label": "Exportera TXT när en session slutar",
-        "tooltipDesktop": "När en session avslutas sparas hela konversationen – båda sidor, original och översättningar – som en .txt-fil i mappen Hämtade filer.",
         "tooltipBrowser": "När en session avslutas laddas hela konversationen – båda sidor, original och översättningar – ned som en .txt-fil. Om sidopanelen stängs under en session sparas den inte; avsluta sessionen först.",
         "saved": "Konversationen sparad: {{filename}}",
         "showInFolder": "Visa i mapp",
@@ -1810,8 +1809,8 @@
       "models": "modeller, ladda ner, lagring, ta bort, disk",
       "audio": "mikrofon, brusreducering, eko, högtalare, hörlurar, medhörning, genomkoppling, virtuell mikrofon, systemljud",
       "display": "teckensnitt, storlek, färg, kompakt, undertexter, textning, förhandsvisning",
-      "history": "historik, anteckningar, mapp, spara automatiskt",
-      "general": "gränssnittsspråk, utseende, tema, uppdateringar, loggar, konfiguration, hjälp, version"
+      "history": "historik, anteckningar, mapp",
+      "general": "gränssnittsspråk, utseende, tema, spara automatiskt, uppdateringar, loggar, konfiguration, hjälp, version"
     },
     "accounts": {
       "addKey": "Lägg till nyckel",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Inspelning",
     "more": "Mer",
     "binWhenEnded": "En post kan flyttas till papperskorgen när sessionen har avslutats.",
-    "autoExportLine": "Sparar en extra .txt-kopia av hela samtalet i mappen Hämtade filer. Historiken behåller posten på den här datorn i vilket fall.",
     "sessionAt": "Session kl. {{time}}",
     "recordingStopped": "Inspelningen av den här sessionen stoppades: den kunde inte skrivas till disken. Transkriptionen sparas fortfarande.",
     "player": "Inspelning",

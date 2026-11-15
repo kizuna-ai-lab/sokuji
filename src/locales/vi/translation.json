@@ -722,7 +722,6 @@
       "headerNarrowed": "Lưu ý: bản xuất này đã được thu hẹp khi xuất — một số dòng không được đưa vào.",
       "autoSave": {
         "label": "Xuất TXT khi phiên kết thúc",
-        "tooltipDesktop": "Khi một phiên kết thúc, toàn bộ hội thoại — cả hai bên, bản gốc và bản dịch — được lưu thành tệp .txt trong thư mục Tải xuống của bạn.",
         "tooltipBrowser": "Khi một phiên kết thúc, toàn bộ hội thoại — cả hai bên, bản gốc và bản dịch — được tải xuống dưới dạng tệp .txt. Đóng bảng bên khi đang có phiên sẽ không lưu; hãy kết thúc phiên trước.",
         "saved": "Đã lưu hội thoại: {{filename}}",
         "showInFolder": "Hiện trong thư mục",
@@ -1810,8 +1809,8 @@
       "models": "mô hình, tải xuống, bộ nhớ, xóa, ổ đĩa",
       "audio": "micrô, khử ồn, tiếng vang, loa, tai nghe, nghe lại, truyền thẳng, micrô ảo, âm thanh hệ thống",
       "display": "phông chữ, cỡ chữ, màu, gọn, phụ đề, chú thích, xem trước",
-      "history": "lịch sử, ghi chú, thư mục, tự động lưu",
-      "general": "ngôn ngữ giao diện, giao diện, chủ đề, cập nhật, nhật ký, thiết lập, trợ giúp, phiên bản"
+      "history": "lịch sử, ghi chú, thư mục",
+      "general": "ngôn ngữ giao diện, giao diện, chủ đề, tự động lưu, cập nhật, nhật ký, thiết lập, trợ giúp, phiên bản"
     },
     "accounts": {
       "addKey": "Thêm khóa",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Bản ghi âm",
     "more": "Thêm",
     "binWhenEnded": "Bản ghi chỉ chuyển vào thùng rác được sau khi phiên kết thúc.",
-    "autoExportLine": "Lưu thêm một bản .txt của toàn bộ cuộc trò chuyện vào thư mục Tải xuống. Lịch sử vẫn giữ bản ghi trên máy tính này.",
     "sessionAt": "Phiên lúc {{time}}",
     "recordingStopped": "Bản ghi âm của phiên này đã dừng: không ghi được vào ổ đĩa. Bản ghi lời vẫn được lưu.",
     "player": "Bản ghi âm",

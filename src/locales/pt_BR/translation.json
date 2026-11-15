@@ -722,7 +722,6 @@
       "headerNarrowed": "Observação: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas.",
       "autoSave": {
         "label": "Exportar TXT ao terminar a sessão",
-        "tooltipDesktop": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é salva como arquivo .txt na sua pasta Downloads.",
         "tooltipBrowser": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é baixada como arquivo .txt. Fechar o painel lateral durante uma sessão não a salva; encerre a sessão primeiro.",
         "saved": "Conversa salva: {{filename}}",
         "showInFolder": "Mostrar na pasta",
@@ -1810,8 +1809,8 @@
       "models": "modelos, baixar, armazenamento, excluir, disco",
       "audio": "microfone, supressão de ruído, eco, alto-falante, fones de ouvido, monitor, passagem direta, microfone virtual, áudio do sistema",
       "display": "fonte, tamanho, cor, compacto, legendas, legendas ao vivo, pré-visualização",
-      "history": "histórico, notas, pasta, salvamento automático",
-      "general": "idioma da interface, aparência, tema, atualizações, registros, configuração, ajuda, versão"
+      "history": "histórico, notas, pasta",
+      "general": "idioma da interface, aparência, tema, salvamento automático, atualizações, registros, configuração, ajuda, versão"
     },
     "accounts": {
       "addKey": "Adicionar chave",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Gravação",
     "more": "Mais",
     "binWhenEnded": "Um registro pode ir para a lixeira quando a sessão terminar.",
-    "autoExportLine": "Salva uma cópia .txt extra da conversa inteira na pasta Downloads. O histórico mantém o registro neste computador de qualquer forma.",
     "sessionAt": "Sessão das {{time}}",
     "recordingStopped": "A gravação desta sessão parou: não foi possível gravá-la no disco. A transcrição continua sendo salva.",
     "player": "Gravação",

@@ -1,7 +1,7 @@
 // "General" as mock v19 draws it (the owner approved it, 2026-11-15): two groups of plain rows — the name and a line
 // about it on the left, a real control on the right — and the support address and the discussion board last.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react';
 
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
@@ -34,11 +34,32 @@ beforeEach(() => {
   help.result = null;
   for (const f of [tour.start, help.change, help.check, help.open]) f.mockClear();
   useLayoutStore.setState({ setupWizardOpen: false });
-  useSettingsStore.setState({ theme: 'system', diagnosticLogs: false } as never);
+  useSettingsStore.setState({ theme: 'system', diagnosticLogs: false, autoSaveOnStop: false } as never);
 });
 afterEach(() => cleanup());
 
 const row = (name: string) => screen.getByText(name, { selector: '.general-row__name' }).closest('.general-row') as HTMLElement;
+
+describe('the session-end auto-save', () => {
+  const NAME = 'Export TXT when a session ends';
+
+  it('is the extension\'s: a switch with what it does and how the side panel affects it', async () => {
+    env.electron = false;
+    env.extension = true;
+    render(<GeneralCategory locked />);
+    expect(within(row(NAME)).getByText(/download the whole conversation .* stop the session first\./)).toBeInTheDocument();
+    const toggle = within(row(NAME)).getByRole('switch');
+    expect(toggle).not.toBeDisabled();
+    fireEvent.click(toggle);
+    await act(async () => {});
+    expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
+  });
+
+  it('is not on the desktop, where History keeps every session', () => {
+    render(<GeneralCategory locked={false} />);
+    expect(screen.queryByText(NAME)).not.toBeInTheDocument();
+  });
+});
 
 describe('general', () => {
   it('has two groups: the basics, then maintenance and help', () => {

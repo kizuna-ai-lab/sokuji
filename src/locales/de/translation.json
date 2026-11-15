@@ -722,7 +722,6 @@
       "headerNarrowed": "Hinweis: Dieser Export wurde beim Exportieren eingeschränkt – einige Zeilen fehlen.",
       "autoSave": {
         "label": "TXT exportieren, wenn eine Sitzung endet",
-        "tooltipDesktop": "Wenn eine Sitzung endet, wird die gesamte Unterhaltung – beide Seiten, Originale und Übersetzungen – als .txt-Datei im Downloads-Ordner gespeichert.",
         "tooltipBrowser": "Wenn eine Sitzung endet, wird die gesamte Unterhaltung – beide Seiten, Originale und Übersetzungen – als .txt-Datei heruntergeladen. Wird die Seitenleiste während einer Sitzung geschlossen, wird nichts gespeichert; zuerst die Sitzung beenden.",
         "saved": "Unterhaltung gespeichert: {{filename}}",
         "showInFolder": "Im Ordner anzeigen",
@@ -1810,8 +1809,8 @@
       "models": "Modelle, Download, Speicher, Löschen, Festplatte",
       "audio": "Mikrofon, Rauschunterdrückung, Echo, Lautsprecher, Kopfhörer, Mithören, Durchleitung, virtuelles Mikrofon, Systemaudio",
       "display": "Schrift, Größe, Farbe, kompakt, Untertitel, Captions, Vorschau",
-      "history": "Verlauf, Notizen, Ordner, automatisch speichern",
-      "general": "Oberflächensprache, Erscheinungsbild, Design, Updates, Protokolle, Einrichtung, Hilfe, Version"
+      "history": "Verlauf, Notizen, Ordner",
+      "general": "Oberflächensprache, Erscheinungsbild, Design, automatisch speichern, Updates, Protokolle, Einrichtung, Hilfe, Version"
     },
     "accounts": {
       "addKey": "Schlüssel hinzufügen",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Aufnahme",
     "more": "Mehr",
     "binWhenEnded": "Eine Aufzeichnung kann erst nach dem Ende ihrer Sitzung in den Papierkorb.",
-    "autoExportLine": "Speichert zusätzlich eine .txt-Kopie des ganzen Gesprächs im Download-Ordner. Der Verlauf behält die Aufzeichnung in jedem Fall auf diesem Computer.",
     "sessionAt": "Sitzung um {{time}}",
     "recordingStopped": "Die Aufnahme dieser Sitzung wurde beendet: Sie konnte nicht auf die Festplatte geschrieben werden. Das Transkript wird weiter gespeichert.",
     "player": "Aufnahme",

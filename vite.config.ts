@@ -167,7 +167,6 @@ export default defineConfig(({ command, mode }) => {
             'topmost-level': 'electron/topmost-level.js',
             'subtitle-window': 'electron/subtitle-window.js',
             'popover-windows': 'electron/popover-windows.js',
-            'transcript-save': 'electron/transcript-save.js',
             'history-db': 'electron/history-db.js',
             'history-schema': 'electron/history-schema.js',
             'history-store': 'electron/history-store.js',

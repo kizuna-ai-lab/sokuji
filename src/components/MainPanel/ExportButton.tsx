@@ -21,8 +21,6 @@ import { modeToToggles, togglesToMode, type ScopeToggles } from './conversationF
 import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conversationExport';
 import { PANEL_NOTE_CODES, panelNoteWriter } from '../../stores/panelNotesStore';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
-import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
-import { isElectron } from '../../utils/environment';
 import type { Exporter } from '../../lib/export/exporter';
 import type { TranscriptScope } from '../../lib/export/transcript';
 import './ExportButton.scss';
@@ -42,7 +40,10 @@ export interface ExportMenuButtonProps {
   popoverHost?: 'floating' | 'child-window';
 }
 
-/** The export menu: scope checkboxes, the three actions and the auto-save switch, over an `Exporter` (plan 1d-3). */
+/**
+ * The export menu: scope checkboxes and the three actions, over an `Exporter` (plan 1d-3). The session-end auto-save
+ * is not set here: the desktop has none (History keeps every session), the extension sets it in the settings page.
+ */
 export function ExportMenuButton({ exporter, speakerMode, participantMode, popoverHost = 'floating' }: ExportMenuButtonProps) {
   const { t } = useTranslation();
   const childHosted = popoverHost === 'child-window';
@@ -53,9 +54,6 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
   const listRef = React.useRef<Array<HTMLElement | null>>([]);
 
   // The session-end auto-save lives here, next to the export it automates.
-  const autoSaveOnStop = useAutoSaveOnStop();
-  const setAutoSaveOnStop = useSetAutoSaveOnStop();
-  const toggleAutoSave = () => { void setAutoSaveOnStop(!autoSaveOnStop); };
 
   // Roving tabindex: when the menu opens, make the first item tabbable so
   // keyboard focus (managed by FloatingFocusManager) lands on something.
@@ -228,40 +226,6 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
     { key: 'json', label: t('mainPanel.export.downloadJson',    'Download as .json'),   Icon: FileJson, onClick: handleDownloadJson },
   ]), [t, handleCopy, handleDownloadTxt, handleDownloadJson]);
 
-  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Export TXT when a session ends');
-  // A native title, like the toolbar buttons: the Tooltip component clones its
-  // child and would fight the roving-tabindex ref, and the child-window host's
-  // 240px OS window would clip a floating tooltip anyway.
-  const autoSaveTooltip = isElectron()
-    ? t('mainPanel.export.autoSave.tooltipDesktop', 'When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.')
-    : t('mainPanel.export.autoSave.tooltipBrowser', 'When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.');
-  /** Last stop in the keyboard ring, after the three actions. */
-  const autoSaveRingIndex = scopeRingSize + items.length;
-
-  /** The persisted auto-save switch, shared by both menu hosts. */
-  const renderAutoSave = (roving: boolean) => (
-    <>
-      <div className="export-menu-divider" role="separator" />
-      <button
-        type="button"
-        role="menuitemcheckbox"
-        aria-checked={autoSaveOnStop}
-        className="export-menu-item export-auto-save"
-        title={autoSaveTooltip}
-        {...(roving
-          ? {
-              ref: (node: HTMLButtonElement | null) => { listRef.current[autoSaveRingIndex] = node; },
-              tabIndex: activeIndex === autoSaveRingIndex ? 0 : -1,
-              ...getItemProps({ onClick: toggleAutoSave }),
-            }
-          : { onClick: toggleAutoSave })}
-      >
-        <span className="export-auto-save__switch" aria-hidden="true" />
-        <span>{autoSaveLabel}</span>
-      </button>
-    </>
-  );
-
   if (childHosted) {
     return (
       <>
@@ -287,7 +251,9 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
           onClose={childMenu.onClose}
           anchorEl={childBtnRef.current}
           width={240}
-          height={311}
+          // 311px was measured (ar/fa, the tallest) with the auto-save row; without that row and its divider this is an
+          // estimate. The window fits its content after it opens either way.
+          height={257}
         >
           {/* Plain buttons: the child window's native focus handles keyboard
               use; floating-ui's roving tabindex belongs to the inline host. */}
@@ -313,7 +279,6 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
                 </button>
               );
             })}
-            {renderAutoSave(false)}
           </div>
         </ChildWindowPopover>
       </>
@@ -366,7 +331,6 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
                   </button>
                 );
               })}
-              {renderAutoSave(true)}
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

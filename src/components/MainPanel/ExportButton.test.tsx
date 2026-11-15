@@ -27,13 +27,6 @@ vi.mock('../../utils/conversationExport', async (orig) => ({
   copyToClipboard,
 }));
 
-let autoSaveOn = false;
-const setAutoSaveOnStop = vi.fn(async (v: boolean) => { autoSaveOn = v; });
-vi.mock('../../stores/settingsStore', () => ({
-  useAutoSaveOnStop: () => autoSaveOn,
-  useSetAutoSaveOnStop: () => setAutoSaveOnStop,
-}));
-
 let electronEnv = true;
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -82,13 +75,10 @@ const closeMenu = async () => {
 };
 
 const box = (name: string) => screen.getByRole('menuitemcheckbox', { name });
-const autoSaveRow = () => screen.getByRole('menuitemcheckbox', { name: 'Export TXT when a session ends' });
 
 beforeEach(() => {
   cleanup();
-  autoSaveOn = false;
   electronEnv = true;
-  setAutoSaveOnStop.mockClear();
 });
 
 describe('ExportMenuButton scope checkboxes', () => {
@@ -162,7 +152,6 @@ describe('ExportMenuButton scope checkboxes', () => {
       box('Me — Src'), box('Me — Trans'), box('Other — Src'), box('Other — Trans'),
       ...['Copy to clipboard', 'Download as .txt', 'Download as .json']
         .map((name) => screen.getByRole('menuitem', { name })),
-      autoSaveRow(),
     ];
 
     // Arrow-key navigation is roving-tabindex driven: every stop carries one,
@@ -171,7 +160,7 @@ describe('ExportMenuButton scope checkboxes', () => {
     expect(ring.filter((el) => el.getAttribute('tabindex') === '0')).toHaveLength(1);
   });
 
-  it('keeps the button usable with an empty conversation, so auto-save can be set before anyone speaks', () => {
+  it('keeps the button usable with an empty conversation', () => {
     render(tree({ exporter: fake({ hasContent: false }) }));
     fireEvent.click(button());
 
@@ -181,36 +170,20 @@ describe('ExportMenuButton scope checkboxes', () => {
     }
     // "Nothing selected" means the scope left out a conversation that exists.
     expect(screen.queryByText('Nothing selected')).not.toBeInTheDocument();
-    expect(autoSaveRow()).not.toBeDisabled();
   });
 });
 
-describe('ExportMenuButton auto-save row', () => {
-  it('shows the stored state', () => {
-    autoSaveOn = true;
-    renderMenu();
-    expect(autoSaveRow()).toHaveAttribute('aria-checked', 'true');
-  });
-
-  it('writes the store on click and leaves the menu open', () => {
-    renderMenu();
-    expect(autoSaveRow()).toHaveAttribute('aria-checked', 'false');
-
-    fireEvent.click(autoSaveRow());
-
-    expect(setAutoSaveOnStop).toHaveBeenCalledWith(true);
-    expect(screen.getByRole('menuitem', { name: 'Download as .txt' })).toBeInTheDocument();
-  });
-
-  it('explains where the file goes on desktop', () => {
-    renderMenu();
-    expect(autoSaveRow().getAttribute('title')).toContain('Downloads folder');
-  });
-
-  it('warns about the side panel in the browser', () => {
-    electronEnv = false;
-    renderMenu();
-    expect(autoSaveRow().getAttribute('title')).toContain('side panel');
+// The session-end auto-save is not set here (owner 2026-11-16): the desktop has none, and the extension's switch is in
+// the settings page.
+describe('ExportMenuButton without the auto-save switch', () => {
+  it('has no auto-save row on the desktop or in the browser', () => {
+    for (const desktop of [true, false]) {
+      electronEnv = desktop;
+      renderMenu();
+      expect(screen.queryByRole('menuitemcheckbox', { name: 'Export TXT when a session ends' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+      cleanup();
+    }
   });
 });
 

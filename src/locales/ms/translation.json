@@ -722,7 +722,6 @@
       "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan.",
       "autoSave": {
         "label": "Eksport TXT apabila sesi tamat",
-        "tooltipDesktop": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — disimpan sebagai fail .txt dalam folder Muat Turun anda.",
         "tooltipBrowser": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — dimuat turun sebagai fail .txt. Menutup panel sisi semasa sesi tidak menyimpannya; tamatkan sesi dahulu.",
         "saved": "Perbualan disimpan: {{filename}}",
         "showInFolder": "Tunjukkan dalam folder",
@@ -1810,8 +1809,8 @@
       "models": "model, muat turun, storan, padam, cakera",
       "audio": "mikrofon, penindasan hingar, gema, pembesar suara, fon kepala, pantau, passthrough, mikrofon maya, audio sistem",
       "display": "fon, saiz, warna, padat, sari kata, kapsyen, pratonton",
-      "history": "sejarah, nota, folder, simpan automatik",
-      "general": "bahasa antara muka, rupa, tema, kemas kini, log, persediaan, bantuan, versi"
+      "history": "sejarah, nota, folder",
+      "general": "bahasa antara muka, rupa, tema, simpan automatik, kemas kini, log, persediaan, bantuan, versi"
     },
     "accounts": {
       "addKey": "Tambah kunci",
@@ -2001,7 +2000,6 @@
     "tagRecording": "Rakaman",
     "more": "Lagi",
     "binWhenEnded": "Rekod boleh dialih ke tong sampah selepas sesinya tamat.",
-    "autoExportLine": "Menyimpan salinan .txt tambahan bagi seluruh perbualan dalam folder Muat Turun. Sejarah tetap menyimpan rekod pada komputer ini.",
     "sessionAt": "Sesi pukul {{time}}",
     "recordingStopped": "Rakaman sesi ini berhenti: ia tidak dapat ditulis ke cakera. Transkrip masih disimpan.",
     "player": "Rakaman",
