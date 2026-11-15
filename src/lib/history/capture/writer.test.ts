@@ -276,6 +276,8 @@ describe('the history writer', () => {
     say('speaker', 3, 'Three.');
     say('speaker', 4, 'Four.');
     await writer.settled();
+    expect(report).not.toHaveBeenCalled();
+    for (let i = 0; i < 3; i++) { clock.advance(TICK_MS); await writer.settled(); }
     expect(report).toHaveBeenCalledTimes(1);
     expect(tell).toHaveBeenCalledTimes(1);
     expect(count('putSegments')).toBe(3);
@@ -405,6 +407,25 @@ describe('the history writer', () => {
       expect(lastArg('appendSentences').sentences.map((x: { n: number }) => x.n)).toEqual([2]);
       expect(tell).not.toHaveBeenCalled();
       expect(report).not.toHaveBeenCalled();
+    });
+
+    // Review: a short hiccup while the conversation streams must not spend the three tries at once.
+    it('tries again at most once a pass, so a short failure costs nothing', async () => {
+      start();
+      port.fail('appendSentences', Infinity);
+      for (let i = 1; i <= 6; i++) {
+        say('speaker', i, `Sentence ${i}.`);
+        clock.advance(50);
+        await writer.settled();
+      }
+      expect(count('appendSentences')).toBe(1);
+      port.fail('appendSentences', 0);
+      // The pass after the wait has run out: within two passes of the failure.
+      await pass();
+      await pass();
+      expect(report).not.toHaveBeenCalled();
+      expect(tell).not.toHaveBeenCalled();
+      expect(lastArg('appendSentences').sentences.map((x: { n: number }) => x.n)).toEqual([1, 2, 3, 4, 5, 6]);
     });
 
     it('tells the user when what failed at the close can no longer be written', async () => {

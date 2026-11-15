@@ -100,6 +100,8 @@ interface Rec {
   revisedTo: Map<number, string>;
   /** Failures in a row, by kind of write: a kind that keeps failing gives the record up even while others succeed. */
   failures: Map<WriteKind, number>;
+  /** A kind of write that failed waits until then: one try a pass, whatever the conversation does meanwhile. */
+  holdUntil: Map<WriteKind, number>;
   givenUp: boolean;
   told: boolean;
 }
@@ -107,6 +109,8 @@ interface Rec {
 const OPEN_PHASES = new Set<RunState['phase']>(['starting', 'running']);
 
 type WriteKind = 'record' | 'segments' | 'notices' | 'sentences' | 'corrections';
+/** The kinds whose failed writes are kept and made again; the record's own calls are not. */
+type RetriedKind = Exclude<WriteKind, 'record'>;
 
 const withoutSpeech = ({ speech: _speech, heard: _heard, ...rest }: Segment): HistorySegment => rest;
 
@@ -142,15 +146,25 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
    * Queues one call for `r`; calls run one at a time, in the order produced. `failed` puts back what the call carried,
    * so the next pass writes it again.
    */
+  function held(r: Rec, kind: RetriedKind): boolean {
+    return (r.holdUntil.get(kind) ?? Number.NEGATIVE_INFINITY) > clock.now();
+  }
+
   function send(r: Rec, kind: WriteKind, call: () => Promise<unknown> | null, failed?: () => void): void {
     chain = chain.then(async () => {
       if (r.givenUp) return;
+      // Queued before its kind failed: it waits with what failed, uncounted.
+      if (kind !== 'record' && held(r, kind)) {
+        try { failed?.(); } catch { /* the next pass starts from what is known */ }
+        return;
+      }
       try {
         const pending = call();
         if (pending) await pending;
         r.failures.set(kind, 0);
       } catch (error) {
         try { failed?.(); } catch { /* the next pass starts from what is known */ }
+        if (kind !== 'record') r.holdUntil.set(kind, clock.now() + TICK_MS);
         const failures = (r.failures.get(kind) ?? 0) + 1;
         r.failures.set(kind, failures);
         if (failures >= FAILURES_TO_GIVE_UP) {
@@ -183,7 +197,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const r: Rec = {
       id: session, startedAt: clock.now(), facts, transcriptId: null, nextNumber: 1,
       segments: new Map(), noticesWritten: new Set(), unsent: [], unrevised: new Map(), revisedTo: new Map(),
-      failures: new Map(), givenUp: false, told: false,
+      failures: new Map(), holdUntil: new Map(), givenUp: false, told: false,
     };
     rec = r;
     known.add(session);
@@ -244,7 +258,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
         // the record keeps what it had, and the cuts already made stand when the text comes back.
         if (seg.text === '') continue;
         // Final segments go at once; open ones at most once a second each.
-        if (t.dirty && (seg.final || last || now - t.writtenAt >= SEGMENT_WRITE_MS)) {
+        if (t.dirty && !held(r, 'segments') && (seg.final || last || now - t.writtenAt >= SEGMENT_WRITE_MS)) {
           toWrite.push(withoutSpeech(seg));
           t.dirty = false;
           t.writtenAt = now;
@@ -279,7 +293,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
         });
       }
       const notices = leg.notices.filter((n) => n.lifetime !== 'transient' && !r.noticesWritten.has(n.id));
-      if (notices.length > 0) {
+      if (notices.length > 0 && !held(r, 'notices')) {
         for (const n of notices) r.noticesWritten.add(n.id);
         send(r, 'notices', () => port.putNotices({ recordId: r.id, leg: leg.leg, notices }), () => {
           for (const n of notices) r.noticesWritten.delete(n.id);
@@ -302,7 +316,9 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       const waiting = byNumber.get(n);
       if (waiting) { waiting.text = text; corrections.delete(n); }
     }
-    if (batch.length > 0) {
+    if (batch.length > 0 && held(r, 'sentences')) {
+      r.unsent = batch;
+    } else if (batch.length > 0) {
       send(
         r,
         'sentences',
@@ -311,7 +327,9 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       );
     }
     const toRevise = [...corrections].map(([n, text]) => ({ n, text }));
-    if (toRevise.length > 0) {
+    if (toRevise.length > 0 && held(r, 'corrections')) {
+      for (const v of toRevise) r.unrevised.set(v.n, v.text);
+    } else if (toRevise.length > 0) {
       send(
         r,
         'corrections',
