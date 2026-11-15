@@ -30,14 +30,8 @@ const STAGE_TITLES: Record<RunStage, string> = { transcription: 'Transcription',
 /** The navigation targets that live in the folded provider options: they unfold them first. */
 const FOLDED_TARGETS = new Set(['provider-options', 'model-management', 'model-asr', 'model-translation', 'model-tts', 'system-instructions', 'voice-settings', 'turn-detection-tuning']);
 
-/**
- * A stage's name inside a sentence ("Goes with translation…"): lower-cased in the reader's language, except where
- * that language writes it capitalised (German nouns).
- */
-export function stageInSentence(name: string, language: string): string {
-  const tag = language.replace('_', '-');
-  return tag.toLowerCase().startsWith('de') ? name : name.toLocaleLowerCase(tag);
-}
+import { stageInSentence } from '../../lib/lineup/stageWords';
+export { stageInSentence };
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
 function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key' | 'sign-in' | null {

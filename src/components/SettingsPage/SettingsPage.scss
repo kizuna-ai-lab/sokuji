@@ -459,8 +459,10 @@
   .settings-field .select-dropdown,
   .setting-row--inline .setting-row__control .select-dropdown {
     width: 100%;
-    height: 30px;
-    padding: 0 8px;
+    height: auto;
+    min-height: 30px;
+    padding: 5px 8px;
+    line-height: 18px;
     border-radius: 6px;
     border: 1px solid vars.$border-subtle;
     background-color: vars.$bg-control;
@@ -703,4 +705,27 @@
   margin: 18px 0 0;
   font-size: 12.5px;
   color: vars.$text-muted;
+}
+
+// The page's dropdowns as the design review set them from the mock (2026-11-15): closed, a compact 30px box with a 6px corner,
+// a thin border and 12.5px text in the middle; open, the same scale — 30px rows of 12.5px text lined up with the
+// box's, the app's pale selected background and small green check kept. The rich provider select is its own kind.
+.settings-page {
+  .select-dropdown:not(.provider-select),
+  .language-select {
+    min-height: 30px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    line-height: 18px;
+    border-radius: 6px;
+    border-color: vars.$border-subtle;
+    font-size: 12.5px;
+  }
+  @supports (appearance: base-select) {
+    .select-dropdown:not(.provider-select),
+    .language-select {
+      &::picker(select) { padding: 4px; }
+      option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
+    }
+  }
 }
