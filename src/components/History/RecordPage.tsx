@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ChevronLeft, Ellipsis, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { ChevronLeft, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
 import { languageLabel } from '../../lib/language/label';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
 import { recordRows, type RecordRow, type SpeakerLabels } from '../../lib/history/recordView';
@@ -69,6 +69,8 @@ export const RecordPage: React.FC = () => {
   const [hit, setHit] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [confirmDrop, setConfirmDrop] = useState(false);
+  const cancelDropRef = useRef<HTMLButtonElement>(null);
   /** The player's position, once it has been played or sought. */
   const [position, setPosition] = useState<number | null>(null);
   const seekRef = useRef<SeekFn | null>(null);
@@ -105,6 +107,8 @@ export const RecordPage: React.FC = () => {
     const timer = window.setTimeout(() => setHit(null), HIT_MARK_MS);
     return () => window.clearTimeout(timer);
   }, [hit]);
+
+  useEffect(() => { if (confirmDrop) cancelDropRef.current?.focus(); }, [confirmDrop]);
 
   // "More" closes on a press anywhere outside it.
   useEffect(() => {
@@ -367,11 +371,38 @@ export const RecordPage: React.FC = () => {
                   <Trash2 size={14} aria-hidden="true" />
                   {t('history.moveOneToBin', 'Move to bin')}
                 </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy || live || !hasPlayer}
+                  onClick={() => { setMoreOpen(false); setConfirmDrop(true); }}
+                >
+                  <MicOff size={14} aria-hidden="true" />
+                  {t('history.dropRecording', 'Delete the recording')}
+                </button>
               </span>
             )}
           </span>
         </div>
       </header>
+      {confirmDrop && (
+        <div
+          className="history-confirm record-page__confirm"
+          role="alertdialog"
+          aria-label={t('history.dropRecording', 'Delete the recording')}
+          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setConfirmDrop(false); } }}
+        >
+          <p>{t('history.confirmDropRecording', 'Delete this record’s recording? Its transcript and notes stay. The recording cannot be brought back.')}</p>
+          <div className="history-confirm__actions">
+            <button type="button" className="history-button history-button--danger" disabled={busy} onClick={() => { setConfirmDrop(false); void actions.dropRecording(); }}>
+              {t('history.delete', 'Delete')}
+            </button>
+            <button type="button" ref={cancelDropRef} className="history-button" onClick={() => setConfirmDrop(false)}>
+              {t('history.cancel', 'Cancel')}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="record-page__columns">
         <div className="record-page__transcript" ref={transcriptRef}>{transcript}</div>
         <aside className="record-page__side">{speakersPanel}</aside>

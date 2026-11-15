@@ -1983,7 +1983,7 @@
     "saveSrt": "Salva sottotitoli (.srt)",
     "saveVtt": "Salva sottotitoli (.vtt)",
     "folder": "Cartella della cronologia",
-    "keptHere": "La trascrizione di ogni sessione resta su questo computer. Non viene caricato nulla.",
+    "keptHere": "Trascrizione e audio di ogni sessione restano su questo computer. Non viene caricato nulla.",
     "confirmPurge_one": "Eliminare definitivamente {{count}} registrazione? La trascrizione e l’audio non si potranno recuperare.",
     "hits_one": "{{count}} corrispondenza",
     "sentenceCount_one": "{{count}} frase",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Una registrazione può andare nel cestino quando la sua sessione è finita.",
     "autoExportLine": "Salva una copia .txt in più dell’intera conversazione nella cartella Download. La cronologia conserva comunque la registrazione su questo computer.",
     "sessionAt": "Sessione delle {{time}}",
-    "recordingStopped": "La registrazione audio di questa sessione si è fermata: non è stato possibile scriverla sul disco. La trascrizione viene comunque salvata."
+    "recordingStopped": "La registrazione audio di questa sessione si è fermata: non è stato possibile scriverla sul disco. La trascrizione viene comunque salvata.",
+    "player": "Audio",
+    "play": "Riproduci",
+    "pause": "Pausa",
+    "position": "Posizione",
+    "speed": "Velocità",
+    "playFromHere": "Riproduci da qui",
+    "saveRecording": "Salva la registrazione audio (.opus)",
+    "saveRecordingFailed": "Impossibile leggere la registrazione audio.",
+    "dropRecording": "Elimina la registrazione audio",
+    "confirmDropRecording": "Eliminare la registrazione audio di questa registrazione? Trascrizione e note restano. L’audio non si potrà recuperare.",
+    "spaceNotice": "La cronologia occupa ora {{size}}. Puoi eliminare definitivamente le registrazioni nel cestino, o solo l’audio di una da «Altro».",
+    "gotIt": "Ho capito"
   }
 }

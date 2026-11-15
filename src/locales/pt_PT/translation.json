@@ -1983,7 +1983,7 @@
     "saveSrt": "Guardar legendas (.srt)",
     "saveVtt": "Guardar legendas (.vtt)",
     "folder": "Pasta do histórico",
-    "keptHere": "A transcrição de cada sessão fica neste computador. Nada é carregado.",
+    "keptHere": "A transcrição e a gravação de cada sessão ficam neste computador. Nada é carregado.",
     "confirmPurge_one": "Eliminar definitivamente {{count}} registo? A transcrição e a gravação não poderão ser recuperadas.",
     "hits_one": "{{count}} correspondência",
     "sentenceCount_one": "{{count}} frase",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Um registo pode ir para a reciclagem quando a sessão terminar.",
     "autoExportLine": "Guarda uma cópia .txt adicional da conversa completa na pasta Transferências. O histórico mantém o registo neste computador de qualquer forma.",
     "sessionAt": "Sessão das {{time}}",
-    "recordingStopped": "A gravação desta sessão parou: não foi possível escrevê-la no disco. A transcrição continua a ser guardada."
+    "recordingStopped": "A gravação desta sessão parou: não foi possível escrevê-la no disco. A transcrição continua a ser guardada.",
+    "player": "Gravação",
+    "play": "Reproduzir",
+    "pause": "Pausa",
+    "position": "Posição",
+    "speed": "Velocidade",
+    "playFromHere": "Reproduzir a partir daqui",
+    "saveRecording": "Guardar a gravação (.opus)",
+    "saveRecordingFailed": "Não foi possível ler a gravação.",
+    "dropRecording": "Eliminar a gravação",
+    "confirmDropRecording": "Eliminar a gravação deste registo? A transcrição e as notas mantêm-se. A gravação não poderá ser recuperada.",
+    "spaceNotice": "O histórico ocupa agora {{size}}. Pode eliminar registos definitivamente na reciclagem, ou apenas a gravação de um em «Mais».",
+    "gotIt": "Entendido"
   }
 }

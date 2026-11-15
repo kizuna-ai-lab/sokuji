@@ -1983,7 +1983,7 @@
     "saveSrt": "Salvar legendas (.srt)",
     "saveVtt": "Salvar legendas (.vtt)",
     "folder": "Pasta do histórico",
-    "keptHere": "A transcrição de cada sessão fica neste computador. Nada é enviado.",
+    "keptHere": "A transcrição e a gravação de cada sessão ficam neste computador. Nada é enviado.",
     "confirmPurge_one": "Excluir definitivamente {{count}} registro? A transcrição e a gravação não poderão ser recuperadas.",
     "hits_one": "{{count}} correspondência",
     "sentenceCount_one": "{{count}} frase",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Um registro pode ir para a lixeira quando a sessão terminar.",
     "autoExportLine": "Salva uma cópia .txt extra da conversa inteira na pasta Downloads. O histórico mantém o registro neste computador de qualquer forma.",
     "sessionAt": "Sessão das {{time}}",
-    "recordingStopped": "A gravação desta sessão parou: não foi possível gravá-la no disco. A transcrição continua sendo salva."
+    "recordingStopped": "A gravação desta sessão parou: não foi possível gravá-la no disco. A transcrição continua sendo salva.",
+    "player": "Gravação",
+    "play": "Reproduzir",
+    "pause": "Pausar",
+    "position": "Posição",
+    "speed": "Velocidade",
+    "playFromHere": "Reproduzir daqui",
+    "saveRecording": "Salvar a gravação (.opus)",
+    "saveRecordingFailed": "Não foi possível ler a gravação.",
+    "dropRecording": "Excluir a gravação",
+    "confirmDropRecording": "Excluir a gravação deste registro? A transcrição e as notas continuam. A gravação não poderá ser recuperada.",
+    "spaceNotice": "O histórico agora ocupa {{size}}. Dá para excluir registros definitivamente na lixeira, ou só a gravação de um em “Mais”.",
+    "gotIt": "Entendi"
   }
 }

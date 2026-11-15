@@ -40,6 +40,12 @@ const targetOf = (hit: HistorySearchHit): HitTarget => {
   }
 };
 
+/** History tells once, when it passes this size, how to make room (plan ruling 6). */
+const SPACE_NOTICE_BYTES = 1024 * 1024 * 1024;
+const SPACE_NOTICE_KEY = 'history.spaceNoticeDismissed';
+const readSpaceDismissed = (): boolean => { try { return localStorage.getItem(SPACE_NOTICE_KEY) === '1'; } catch { return false; } };
+const writeSpaceDismissed = (): void => { try { localStorage.setItem(SPACE_NOTICE_KEY, '1'); } catch { /* shown again next time */ } };
+
 /** What waits for an answer before records are deleted for good: these records, or the whole bin. */
 type Confirm = { ids: string[] } | { all: true; count: number };
 
@@ -63,6 +69,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   const actions = store.getState();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [selecting, setSelecting] = useState(false);
+  const [spaceDismissed, setSpaceDismissed] = useState(readSpaceDismissed);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
@@ -132,7 +139,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
     <span className="history-row__tags">
       {r.sentences > 0 && <span className="history-tag">{t('history.tagTranscript', 'Transcript')}</span>}
       {r.notesVersions > 0 && <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>}
-      {r.hasRecording && <span className="history-tag">{t('history.tagRecording', 'Recording')}</span>}
+      {r.hasRecording && <span className="history-tag">{`${t('history.tagRecording', 'Recording')} · ${formatBytes(r.audioBytes)}`}</span>}
     </span>
   );
 
@@ -314,6 +321,14 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
         {!searching && tab === 'bin' && <p className="settings-page__intro">{t('history.binNote', 'Records in the bin are deleted for good after 30 days.')}</p>}
       </header>
       <div className="settings-page__body">
+        {usage && !spaceDismissed && usage.dbBytes + usage.audioBytes >= SPACE_NOTICE_BYTES && (
+          <div className="history-notice" role="status">
+            <p>{t('history.spaceNotice', 'History now takes {{size}}. Records can be deleted for good in the bin, or a record’s recording alone under “More”.', { size: formatBytes(usage.dbBytes + usage.audioBytes) })}</p>
+            <button type="button" className="history-button" onClick={() => { writeSpaceDismissed(); setSpaceDismissed(true); }}>
+              {t('history.gotIt', 'Got it')}
+            </button>
+          </div>
+        )}
         {confirm && (
           <div
             className="history-confirm"

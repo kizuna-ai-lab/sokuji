@@ -1983,7 +1983,7 @@
     "saveSrt": "Untertitel speichern (.srt)",
     "saveVtt": "Untertitel speichern (.vtt)",
     "folder": "Verlaufsordner",
-    "keptHere": "Das Transkript jeder Sitzung bleibt auf diesem Computer. Es wird nichts hochgeladen.",
+    "keptHere": "Transkript und Aufnahme jeder Sitzung bleiben auf diesem Computer. Es wird nichts hochgeladen.",
     "confirmPurge_one": "{{count}} Aufzeichnung endgültig löschen? Ihr Transkript und ihre Aufnahme lassen sich nicht wiederherstellen.",
     "hits_one": "{{count}} Treffer",
     "sentenceCount_one": "{{count}} Satz",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Eine Aufzeichnung kann erst nach dem Ende ihrer Sitzung in den Papierkorb.",
     "autoExportLine": "Speichert zusätzlich eine .txt-Kopie des ganzen Gesprächs im Download-Ordner. Der Verlauf behält die Aufzeichnung in jedem Fall auf diesem Computer.",
     "sessionAt": "Sitzung um {{time}}",
-    "recordingStopped": "Die Aufnahme dieser Sitzung wurde beendet: Sie konnte nicht auf die Festplatte geschrieben werden. Das Transkript wird weiter gespeichert."
+    "recordingStopped": "Die Aufnahme dieser Sitzung wurde beendet: Sie konnte nicht auf die Festplatte geschrieben werden. Das Transkript wird weiter gespeichert.",
+    "player": "Aufnahme",
+    "play": "Abspielen",
+    "pause": "Pause",
+    "position": "Position",
+    "speed": "Geschwindigkeit",
+    "playFromHere": "Ab hier abspielen",
+    "saveRecording": "Aufnahme speichern (.opus)",
+    "saveRecordingFailed": "Die Aufnahme konnte nicht gelesen werden.",
+    "dropRecording": "Aufnahme löschen",
+    "confirmDropRecording": "Die Aufnahme dieser Aufzeichnung löschen? Transkript und Notizen bleiben. Die Aufnahme lässt sich nicht wiederherstellen.",
+    "spaceNotice": "Der Verlauf belegt jetzt {{size}}. Aufzeichnungen lassen sich im Papierkorb endgültig löschen, oder unter „Mehr“ nur ihre Aufnahme.",
+    "gotIt": "Verstanden"
   }
 }

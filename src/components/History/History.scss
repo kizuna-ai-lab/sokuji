@@ -651,3 +651,19 @@
 
   &.is-playing { background: color-mix(in srgb, #{tk.$color-primary} 10%, transparent); }
 }
+
+// A line the list says once (the space History takes), above the records.
+.history-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$space-3;
+  margin: 0 0 vars.$space-3;
+  padding: vars.$space-3;
+  border: 1px solid vars.$color-info-border;
+  border-radius: vars.$radius-md;
+  background: vars.$color-info-bg;
+  p { margin: 0; flex: 1 1 260px; }
+}
+
+.record-page__confirm { margin: vars.$space-2 vars.$space-4 0; }

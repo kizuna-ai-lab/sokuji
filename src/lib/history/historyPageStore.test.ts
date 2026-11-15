@@ -31,6 +31,7 @@ function fakePort(): Fake {
     restoreRecords: answer('restoreRecords', { changed: 1 }),
     purgeRecords: answer('purgeRecords', { purged: [], failed: [] }),
     renameRecord: answer('renameRecord', undefined),
+    dropTrack: answer('dropTrack', undefined),
     getRecord: answer('getRecord', recordOf(A, [1, 2])),
     getLegs: answer('getLegs', []),
     getSentences: answer('getSentences', []),
@@ -159,6 +160,20 @@ describe('the History page state', () => {
     await store.getState().openRecord(A);
     await store.getState().binRecord(A);
     expect(calls('search')).toEqual([{ query: 'sync' }, { query: 'sync' }]);
+  });
+
+  it('deletes only the recording of the open record, track by track, and shows the record again', async () => {
+    const withTracks = { ...recordOf(A, [1]), tracks: [
+      { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 10, bytes: 1, offsetMs: 0, goneAt: null },
+      { source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 10, bytes: 1, offsetMs: 0, goneAt: null },
+      { source: 'old', file: 'old.opus', format: 'ogg-opus', durationMs: 10, bytes: 1, offsetMs: 0, goneAt: 5 },
+    ] };
+    port.getRecord = async (id: string) => { port.calls.push(['getRecord', id]); return withTracks; };
+    await store.getState().openRecord(A);
+    port.calls.length = 0;
+    await store.getState().dropRecording();
+    expect(calls('dropTrack')).toEqual([{ recordId: A, source: 'speaker' }, { recordId: A, source: 'participant' }]);
+    expect(calls('getRecord')).toEqual([A]);
   });
 
   it('renames a record with its text trimmed', async () => {

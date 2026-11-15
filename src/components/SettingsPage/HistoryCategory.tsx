@@ -81,7 +81,7 @@ export function HistoryCategory(_props: CategoryBodyProps) {
             {t('history.openFolder', 'Open folder')}
           </button>
         </Row>
-        <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript is kept on this computer. Nothing is uploaded.')}</p>
+        <p className="history-category__hint">{t('history.keptHere', 'Each session’s transcript and recording are kept on this computer. Nothing is uploaded.')}</p>
         <Row name={autoSaveName} line={t('history.autoExportLine', 'Saves an extra .txt copy of the whole conversation to your Downloads folder. History keeps the record on this computer either way.')}>
           <ToggleSwitch checked={autoSave} onChange={() => void setAutoSave(!autoSave)} label="" ariaLabel={autoSaveName} />
         </Row>

@@ -5,7 +5,7 @@
 // named after the record's start.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Captions, ChevronDown, Copy, Download, FileJson, FileText } from 'lucide-react';
+import { AudioLines, Captions, ChevronDown, Copy, Download, FileJson, FileText } from 'lucide-react';
 import {
   autoUpdate, flip, FloatingFocusManager, FloatingPortal, offset, shift, size, useClick, useDismiss, useFloating, useInteractions,
   useListNavigation, useRole,
@@ -17,7 +17,8 @@ import { recordCues, type RecordRow } from '../../lib/history/recordView';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
 import type { HistoryRecord } from '../../lib/history/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
-import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conversationExport';
+import { copyToClipboard, downloadBlob, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
+import { playable, trackUrl } from '../../lib/history/playback';
 import { modeToToggles, togglesToMode, type ScopeToggles } from '../MainPanel/conversationFilter';
 import '../MainPanel/ExportButton.scss';
 
@@ -87,6 +88,7 @@ export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportM
   const scopeRing = scopeRows.length * lines.length;
   const hasScoped = exporter.hasScopedContent(scope);
   const file = (ext: 'txt' | 'json' | 'srt' | 'vtt') => exportFilename(ext, record.startedAt);
+  const recorded = playable(record.tracks);
 
   const items = [
     {
@@ -105,6 +107,22 @@ export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportM
     {
       key: 'vtt', label: t('history.saveVtt', 'Save subtitles (.vtt)'), Icon: Captions,
       run: () => downloadFile(renderVtt(recordCues(rows, cueScope(scope, textKind))), file('vtt'), 'text/vtt;charset=utf-8'),
+    },
+    {
+      // The stored files as they are, one per track (spec §7); not narrowed by the choice above.
+      key: 'audio', label: t('history.saveRecording', 'Save the recording (.opus)'), Icon: AudioLines, own: true, enabled: recorded.length > 0,
+      run: async () => {
+        for (const track of recorded) {
+          try {
+            const answer = await fetch(trackUrl(record.id, track.source));
+            if (!answer.ok) throw new Error(`HTTP ${answer.status}`);
+            downloadBlob(await answer.blob(), `sokuji-recording-${formatTimestampForFilename(record.startedAt)}-${track.source === 'speaker' ? 'me' : 'other'}.opus`);
+          } catch {
+            onResult?.(t('history.saveRecordingFailed', 'The recording could not be read.'));
+            return;
+          }
+        }
+      },
     },
   ];
 
@@ -160,7 +178,7 @@ export function RecordExportMenu({ record, legs, rows, onResult }: RecordExportM
                   role="menuitem"
                   type="button"
                   className="export-menu-item"
-                  disabled={!hasScoped}
+                  disabled={'own' in it ? !it.enabled : !hasScoped}
                   tabIndex={activeIndex === scopeRing + idx ? 0 : -1}
                   {...getItemProps({ onClick: () => { setIsOpen(false); void it.run(); } })}
                 >

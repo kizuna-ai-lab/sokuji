@@ -1983,7 +1983,7 @@
     "saveSrt": "Ondertitels opslaan (.srt)",
     "saveVtt": "Ondertitels opslaan (.vtt)",
     "folder": "Geschiedenismap",
-    "keptHere": "De transcriptie van elke sessie blijft op deze computer. Er wordt niets geüpload.",
+    "keptHere": "De transcriptie en geluidsopname van elke sessie blijven op deze computer. Er wordt niets geüpload.",
     "confirmPurge_one": "{{count}} opname definitief verwijderen? De transcriptie en geluidsopname kunnen niet worden teruggehaald.",
     "hits_one": "{{count}} treffer",
     "sentenceCount_one": "{{count}} zin",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Een opname kan naar de prullenbak zodra de sessie is afgelopen.",
     "autoExportLine": "Slaat een extra .txt-kopie van het hele gesprek op in de map Downloads. De geschiedenis bewaart de opname hoe dan ook op deze computer.",
     "sessionAt": "Sessie van {{time}}",
-    "recordingStopped": "De geluidsopname van deze sessie is gestopt: die kon niet naar de schijf worden geschreven. De transcriptie wordt nog wel bewaard."
+    "recordingStopped": "De geluidsopname van deze sessie is gestopt: die kon niet naar de schijf worden geschreven. De transcriptie wordt nog wel bewaard.",
+    "player": "Geluidsopname",
+    "play": "Afspelen",
+    "pause": "Pauzeren",
+    "position": "Positie",
+    "speed": "Snelheid",
+    "playFromHere": "Vanaf hier afspelen",
+    "saveRecording": "Geluidsopname opslaan (.opus)",
+    "saveRecordingFailed": "De geluidsopname kon niet worden gelezen.",
+    "dropRecording": "Geluidsopname verwijderen",
+    "confirmDropRecording": "De geluidsopname van deze opname verwijderen? De transcriptie en notities blijven. De geluidsopname kan niet worden teruggehaald.",
+    "spaceNotice": "De geschiedenis neemt nu {{size}} in beslag. Opnames kun je definitief verwijderen in de prullenbak, of alleen de geluidsopname via ‘Meer’.",
+    "gotIt": "Begrepen"
   }
 }

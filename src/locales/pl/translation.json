@@ -1983,7 +1983,7 @@
     "saveSrt": "Zapisz napisy (.srt)",
     "saveVtt": "Zapisz napisy (.vtt)",
     "folder": "Folder historii",
-    "keptHere": "Transkrypcja każdej sesji jest przechowywana na tym komputerze. Nic nie jest wysyłane.",
+    "keptHere": "Transkrypcja i nagranie każdej sesji są przechowywane na tym komputerze. Nic nie jest wysyłane.",
     "confirmPurge_one": "Usunąć na zawsze {{count}} zapis? Jego transkrypcji i nagrania nie da się przywrócić.",
     "hits_one": "Dopasowania: {{count}}",
     "sentenceCount_one": "Zdania: {{count}}",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Zapis można przenieść do kosza dopiero po zakończeniu sesji.",
     "autoExportLine": "Zapisuje dodatkową kopię .txt całej rozmowy w folderze Pobrane. Historia i tak przechowuje zapis na tym komputerze.",
     "sessionAt": "Sesja o {{time}}",
-    "recordingStopped": "Nagrywanie tej sesji zostało zatrzymane: nie udało się zapisać go na dysku. Transkrypcja nadal jest zapisywana."
+    "recordingStopped": "Nagrywanie tej sesji zostało zatrzymane: nie udało się zapisać go na dysku. Transkrypcja nadal jest zapisywana.",
+    "player": "Nagranie",
+    "play": "Odtwórz",
+    "pause": "Wstrzymaj",
+    "position": "Pozycja",
+    "speed": "Prędkość",
+    "playFromHere": "Odtwórz od tego miejsca",
+    "saveRecording": "Zapisz nagranie (.opus)",
+    "saveRecordingFailed": "Nie udało się odczytać nagrania.",
+    "dropRecording": "Usuń nagranie",
+    "confirmDropRecording": "Usunąć nagranie z tego zapisu? Transkrypcja i notatki zostaną. Nagrania nie da się przywrócić.",
+    "spaceNotice": "Historia zajmuje teraz {{size}}. Zapisy można usunąć na zawsze w koszu albo samo nagranie zapisu w menu „Więcej”.",
+    "gotIt": "Rozumiem"
   }
 }

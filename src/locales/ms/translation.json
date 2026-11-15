@@ -1983,7 +1983,7 @@
     "saveSrt": "Simpan sari kata (.srt)",
     "saveVtt": "Simpan sari kata (.vtt)",
     "folder": "Folder sejarah",
-    "keptHere": "Transkrip setiap sesi disimpan pada komputer ini. Tiada apa-apa yang dimuat naik.",
+    "keptHere": "Transkrip dan rakaman setiap sesi disimpan pada komputer ini. Tiada apa-apa yang dimuat naik.",
     "confirmPurge_one": "Padam {{count}} rekod terus? Transkrip dan rakamannya tidak boleh dipulihkan.",
     "hits_one": "{{count}} padanan",
     "sentenceCount_one": "{{count}} ayat",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Rekod boleh dialih ke tong sampah selepas sesinya tamat.",
     "autoExportLine": "Menyimpan salinan .txt tambahan bagi seluruh perbualan dalam folder Muat Turun. Sejarah tetap menyimpan rekod pada komputer ini.",
     "sessionAt": "Sesi pukul {{time}}",
-    "recordingStopped": "Rakaman sesi ini berhenti: ia tidak dapat ditulis ke cakera. Transkrip masih disimpan."
+    "recordingStopped": "Rakaman sesi ini berhenti: ia tidak dapat ditulis ke cakera. Transkrip masih disimpan.",
+    "player": "Rakaman",
+    "play": "Main",
+    "pause": "Jeda",
+    "position": "Kedudukan",
+    "speed": "Kelajuan",
+    "playFromHere": "Main dari sini",
+    "saveRecording": "Simpan rakaman (.opus)",
+    "saveRecordingFailed": "Rakaman tidak dapat dibaca.",
+    "dropRecording": "Padam rakaman",
+    "confirmDropRecording": "Padam rakaman rekod ini? Transkrip dan nota kekal. Rakaman tidak boleh dipulihkan.",
+    "spaceNotice": "Sejarah kini menggunakan {{size}}. Rekod boleh dipadam terus dalam tong sampah, atau rakamannya sahaja melalui “Lagi”.",
+    "gotIt": "Faham"
   }
 }

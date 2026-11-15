@@ -1983,7 +1983,7 @@
     "saveSrt": "Tallenna tekstitys (.srt)",
     "saveVtt": "Tallenna tekstitys (.vtt)",
     "folder": "Historiakansio",
-    "keptHere": "Jokaisen istunnon litterointi säilytetään tällä tietokoneella. Mitään ei ladata verkkoon.",
+    "keptHere": "Jokaisen istunnon litterointi ja äänite säilytetään tällä tietokoneella. Mitään ei ladata verkkoon.",
     "confirmPurge_one": "Poistetaanko {{count}} tallenne pysyvästi? Sen litterointia ja äänitettä ei voi palauttaa.",
     "hits_one": "{{count}} osuma",
     "sentenceCount_one": "{{count}} lause",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Tallenteen voi siirtää roskakoriin, kun sen istunto on päättynyt.",
     "autoExportLine": "Tallentaa koko keskustelusta ylimääräisen .txt-kopion Lataukset-kansioon. Historia säilyttää tallenteen tällä tietokoneella joka tapauksessa.",
     "sessionAt": "Istunto klo {{time}}",
-    "recordingStopped": "Tämän istunnon äänitys pysähtyi: sitä ei voitu kirjoittaa levylle. Litterointi tallentuu edelleen."
+    "recordingStopped": "Tämän istunnon äänitys pysähtyi: sitä ei voitu kirjoittaa levylle. Litterointi tallentuu edelleen.",
+    "player": "Äänite",
+    "play": "Toista",
+    "pause": "Tauko",
+    "position": "Kohta",
+    "speed": "Nopeus",
+    "playFromHere": "Toista tästä",
+    "saveRecording": "Tallenna äänite (.opus)",
+    "saveRecordingFailed": "Äänitettä ei voitu lukea.",
+    "dropRecording": "Poista äänite",
+    "confirmDropRecording": "Poistetaanko tämän tallenteen äänite? Litterointi ja muistiinpanot jäävät. Äänitettä ei voi palauttaa.",
+    "spaceNotice": "Historia vie nyt {{size}}. Tallenteita voi poistaa pysyvästi roskakorista, tai pelkän äänitteen kohdasta ”Lisää”.",
+    "gotIt": "Selvä"
   }
 }

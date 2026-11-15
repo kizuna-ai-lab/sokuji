@@ -1983,7 +1983,7 @@
     "saveSrt": "Guardar subtítulos (.srt)",
     "saveVtt": "Guardar subtítulos (.vtt)",
     "folder": "Carpeta del historial",
-    "keptHere": "La transcripción de cada sesión se guarda en este ordenador. No se sube nada.",
+    "keptHere": "La transcripción y la grabación de cada sesión se guardan en este ordenador. No se sube nada.",
     "confirmPurge_one": "¿Eliminar definitivamente {{count}} registro? Su transcripción y su grabación no se podrán recuperar.",
     "hits_one": "{{count}} coincidencia",
     "sentenceCount_one": "{{count}} frase",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Un registro puede ir a la papelera cuando su sesión haya terminado.",
     "autoExportLine": "Guarda una copia .txt adicional de toda la conversación en la carpeta Descargas. El historial conserva el registro en este ordenador en cualquier caso.",
     "sessionAt": "Sesión de las {{time}}",
-    "recordingStopped": "La grabación de esta sesión se ha detenido: no se pudo escribir en el disco. La transcripción se sigue guardando."
+    "recordingStopped": "La grabación de esta sesión se ha detenido: no se pudo escribir en el disco. La transcripción se sigue guardando.",
+    "player": "Grabación",
+    "play": "Reproducir",
+    "pause": "Pausa",
+    "position": "Posición",
+    "speed": "Velocidad",
+    "playFromHere": "Reproducir desde aquí",
+    "saveRecording": "Guardar la grabación (.opus)",
+    "saveRecordingFailed": "No se pudo leer la grabación.",
+    "dropRecording": "Eliminar la grabación",
+    "confirmDropRecording": "¿Eliminar la grabación de este registro? La transcripción y las notas se mantienen. La grabación no se podrá recuperar.",
+    "spaceNotice": "El historial ocupa ahora {{size}}. Puedes eliminar registros definitivamente en la papelera, o solo la grabación de uno en «Más».",
+    "gotIt": "Entendido"
   }
 }

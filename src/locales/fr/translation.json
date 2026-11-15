@@ -1983,7 +1983,7 @@
     "saveSrt": "Enregistrer les sous-titres (.srt)",
     "saveVtt": "Enregistrer les sous-titres (.vtt)",
     "folder": "Dossier de l’historique",
-    "keptHere": "La transcription de chaque session est conservée sur cet ordinateur. Rien n’est envoyé en ligne.",
+    "keptHere": "La transcription et l’audio de chaque session sont conservés sur cet ordinateur. Rien n’est envoyé en ligne.",
     "confirmPurge_one": "Supprimer définitivement {{count}} enregistrement ? Sa transcription et son enregistrement audio ne pourront pas être récupérés.",
     "hits_one": "{{count}} correspondance",
     "sentenceCount_one": "{{count}} phrase",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Un enregistrement peut aller à la corbeille une fois sa session terminée.",
     "autoExportLine": "Enregistre une copie .txt supplémentaire de toute la conversation dans le dossier Téléchargements. L’historique garde l’enregistrement sur cet ordinateur dans tous les cas.",
     "sessionAt": "Session de {{time}}",
-    "recordingStopped": "L’enregistrement audio de cette session s’est arrêté : impossible de l’écrire sur le disque. La transcription est toujours enregistrée."
+    "recordingStopped": "L’enregistrement audio de cette session s’est arrêté : impossible de l’écrire sur le disque. La transcription est toujours enregistrée.",
+    "player": "Audio",
+    "play": "Lire",
+    "pause": "Pause",
+    "position": "Position",
+    "speed": "Vitesse",
+    "playFromHere": "Lire à partir d’ici",
+    "saveRecording": "Enregistrer l’audio (.opus)",
+    "saveRecordingFailed": "Impossible de lire l’enregistrement audio.",
+    "dropRecording": "Supprimer l’audio",
+    "confirmDropRecording": "Supprimer l’audio de cet enregistrement ? La transcription et les notes restent. L’audio ne pourra pas être récupéré.",
+    "spaceNotice": "L’historique occupe maintenant {{size}}. Vous pouvez supprimer définitivement des enregistrements dans la corbeille, ou seulement l’audio d’un enregistrement via « Plus ».",
+    "gotIt": "Compris"
   }
 }

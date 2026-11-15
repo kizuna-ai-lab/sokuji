@@ -18,11 +18,12 @@ vi.mock('../../lib/history/port', async (importOriginal) => ({
 vi.mock('../../utils/conversationExport', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/conversationExport')>()),
   downloadFile: vi.fn(),
+  downloadBlob: vi.fn(),
   copyToClipboard: vi.fn(async () => true),
 }));
 
 import i18n from '../../locales';
-import { copyToClipboard, downloadFile } from '../../utils/conversationExport';
+import { copyToClipboard, downloadBlob, downloadFile } from '../../utils/conversationExport';
 import { HistoryPageContext } from './historyContext';
 import RecordPage from './RecordPage';
 import HistoryPage from './HistoryPage';
@@ -79,6 +80,7 @@ function fakePort(): Fake {
     getSpeakers: answer('getSpeakers', () => speakers),
     renameSpeaker: answer('renameSpeaker', () => undefined),
     reassignSentence: answer('reassignSentence', () => undefined),
+    dropTrack: answer('dropTrack', () => undefined),
   } as unknown as Fake;
 }
 
@@ -112,6 +114,7 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.mocked(downloadFile).mockClear();
+  vi.mocked(downloadBlob).mockClear();
   vi.mocked(copyToClipboard).mockClear();
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -283,6 +286,47 @@ describe('a record', () => {
     await renderRecord();
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Play from here' })).toBeNull();
+  });
+
+  it('deletes only the recording after asking, and nothing on Cancel', async () => {
+    record = { ...record, tracks: [
+      { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 1000, offsetMs: 0, goneAt: null },
+      { source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 1000, offsetMs: 0, goneAt: null },
+    ] };
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete the recording' }));
+    expect(screen.getByText('Delete this record’s recording? Its transcript and notes stay. The recording cannot be brought back.')).toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(calls('dropTrack')).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete the recording' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await settle();
+    expect(calls('dropTrack')).toEqual([{ recordId: A, source: 'speaker' }, { recordId: A, source: 'participant' }]);
+  });
+
+  it('cannot delete a recording that is not there', async () => {
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('menuitem', { name: 'Delete the recording' })).toBeDisabled();
+  });
+
+  it('saves the recording as its stored files, one per track', async () => {
+    record = { ...record, tracks: [
+      { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
+      { source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
+    ] };
+    const fetched: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => { fetched.push(url); return new Response(new Uint8Array([1, 2, 3])); }));
+    await renderRecord();
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save the recording (.opus)' }));
+    await settle();
+    expect(fetched).toEqual([`sokuji-history://track/${A}/speaker`, `sokuji-history://track/${A}/participant`]);
+    expect(vi.mocked(downloadBlob).mock.calls.map((c) => c[1])).toEqual(['sokuji-recording-20260115-090000-me.opus', 'sokuji-recording-20260115-090000-other.opus']);
+    vi.unstubAllGlobals();
   });
 
   it('a record still being written can be refreshed and not binned', async () => {

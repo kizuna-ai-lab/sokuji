@@ -1983,7 +1983,7 @@
     "saveSrt": "Lưu phụ đề (.srt)",
     "saveVtt": "Lưu phụ đề (.vtt)",
     "folder": "Thư mục lịch sử",
-    "keptHere": "Bản ghi lời của mỗi phiên được lưu trên máy tính này. Không có gì được tải lên.",
+    "keptHere": "Bản ghi lời và bản ghi âm của mỗi phiên được lưu trên máy tính này. Không có gì được tải lên.",
     "confirmPurge_one": "Xóa vĩnh viễn {{count}} bản ghi? Bản ghi lời và bản ghi âm của chúng sẽ không khôi phục được.",
     "hits_one": "{{count}} kết quả khớp",
     "sentenceCount_one": "{{count}} câu",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Bản ghi chỉ chuyển vào thùng rác được sau khi phiên kết thúc.",
     "autoExportLine": "Lưu thêm một bản .txt của toàn bộ cuộc trò chuyện vào thư mục Tải xuống. Lịch sử vẫn giữ bản ghi trên máy tính này.",
     "sessionAt": "Phiên lúc {{time}}",
-    "recordingStopped": "Bản ghi âm của phiên này đã dừng: không ghi được vào ổ đĩa. Bản ghi lời vẫn được lưu."
+    "recordingStopped": "Bản ghi âm của phiên này đã dừng: không ghi được vào ổ đĩa. Bản ghi lời vẫn được lưu.",
+    "player": "Bản ghi âm",
+    "play": "Phát",
+    "pause": "Tạm dừng",
+    "position": "Vị trí",
+    "speed": "Tốc độ",
+    "playFromHere": "Phát từ đây",
+    "saveRecording": "Lưu bản ghi âm (.opus)",
+    "saveRecordingFailed": "Không đọc được bản ghi âm.",
+    "dropRecording": "Xóa bản ghi âm",
+    "confirmDropRecording": "Xóa bản ghi âm của bản ghi này? Bản ghi lời và ghi chú vẫn còn. Bản ghi âm sẽ không khôi phục được.",
+    "spaceNotice": "Lịch sử hiện chiếm {{size}}. Có thể xóa vĩnh viễn bản ghi trong thùng rác, hoặc chỉ xóa bản ghi âm của một bản ghi trong “Thêm”.",
+    "gotIt": "Đã hiểu"
   }
 }

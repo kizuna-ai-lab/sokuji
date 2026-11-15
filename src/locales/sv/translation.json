@@ -1983,7 +1983,7 @@
     "saveSrt": "Spara undertexter (.srt)",
     "saveVtt": "Spara undertexter (.vtt)",
     "folder": "Historikmapp",
-    "keptHere": "Transkriptionen av varje session sparas på den här datorn. Inget laddas upp.",
+    "keptHere": "Transkriptionen och inspelningen av varje session sparas på den här datorn. Inget laddas upp.",
     "confirmPurge_one": "Radera {{count}} post permanent? Dess transkription och inspelning går inte att få tillbaka.",
     "hits_one": "{{count}} träff",
     "sentenceCount_one": "{{count}} mening",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "En post kan flyttas till papperskorgen när sessionen har avslutats.",
     "autoExportLine": "Sparar en extra .txt-kopia av hela samtalet i mappen Hämtade filer. Historiken behåller posten på den här datorn i vilket fall.",
     "sessionAt": "Session kl. {{time}}",
-    "recordingStopped": "Inspelningen av den här sessionen stoppades: den kunde inte skrivas till disken. Transkriptionen sparas fortfarande."
+    "recordingStopped": "Inspelningen av den här sessionen stoppades: den kunde inte skrivas till disken. Transkriptionen sparas fortfarande.",
+    "player": "Inspelning",
+    "play": "Spela upp",
+    "pause": "Pausa",
+    "position": "Position",
+    "speed": "Hastighet",
+    "playFromHere": "Spela upp härifrån",
+    "saveRecording": "Spara inspelningen (.opus)",
+    "saveRecordingFailed": "Inspelningen kunde inte läsas.",
+    "dropRecording": "Radera inspelningen",
+    "confirmDropRecording": "Radera inspelningen i den här posten? Transkriptionen och anteckningarna finns kvar. Inspelningen går inte att få tillbaka.",
+    "spaceNotice": "Historiken tar nu {{size}}. Poster kan raderas permanent i papperskorgen, eller bara en posts inspelning under ”Mer”.",
+    "gotIt": "Uppfattat"
   }
 }

@@ -1983,7 +1983,7 @@
     "saveSrt": "保存字幕（.srt）",
     "saveVtt": "保存字幕（.vtt）",
     "folder": "历史文件夹",
-    "keptHere": "每次会话的转写都保存在这台电脑上，不会上传。",
+    "keptHere": "每次会话的转写和录音都保存在这台电脑上，不会上传。",
     "confirmPurge_one": "彻底删除 {{count}} 条记录？它们的转写和录音将无法找回。",
     "hits_one": "{{count}} 处匹配",
     "sentenceCount_one": "{{count}} 句",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "会话结束后才能移到回收站。",
     "autoExportLine": "额外把整段对话另存一份 .txt 到“下载”文件夹。历史记录照常保存在这台电脑上。",
     "sessionAt": "{{time}} 的会话",
-    "recordingStopped": "这次会话的录音已停止：无法写入磁盘。转写仍在保存。"
+    "recordingStopped": "这次会话的录音已停止：无法写入磁盘。转写仍在保存。",
+    "player": "录音",
+    "play": "播放",
+    "pause": "暂停",
+    "position": "播放位置",
+    "speed": "倍速",
+    "playFromHere": "从这里播放",
+    "saveRecording": "保存录音（.opus）",
+    "saveRecordingFailed": "无法读取录音。",
+    "dropRecording": "删除录音",
+    "confirmDropRecording": "删除这条记录的录音？转写和纪要都会保留。录音删除后无法找回。",
+    "spaceNotice": "历史已占用 {{size}}。可以在回收站彻底删除记录，或在记录的“更多”里只删除录音。",
+    "gotIt": "知道了"
   }
 }

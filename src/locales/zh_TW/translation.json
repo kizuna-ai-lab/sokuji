@@ -1983,7 +1983,7 @@
     "saveSrt": "儲存字幕（.srt）",
     "saveVtt": "儲存字幕（.vtt）",
     "folder": "歷史資料夾",
-    "keptHere": "每次工作階段的轉寫都保存在這台電腦上，不會上傳。",
+    "keptHere": "每次工作階段的轉寫和錄音都保存在這台電腦上，不會上傳。",
     "confirmPurge_one": "永久刪除 {{count}} 筆記錄？它們的轉寫和錄音將無法復原。",
     "hits_one": "{{count}} 處相符",
     "sentenceCount_one": "{{count}} 句",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "工作階段結束後才能移到回收站。",
     "autoExportLine": "額外把整段對話另存一份 .txt 到「下載」資料夾。歷史記錄照常保存在這台電腦上。",
     "sessionAt": "{{time}} 的工作階段",
-    "recordingStopped": "這次工作階段的錄音已停止：無法寫入磁碟。轉寫仍在保存。"
+    "recordingStopped": "這次工作階段的錄音已停止：無法寫入磁碟。轉寫仍在保存。",
+    "player": "錄音",
+    "play": "播放",
+    "pause": "暫停",
+    "position": "播放位置",
+    "speed": "倍速",
+    "playFromHere": "從這裡播放",
+    "saveRecording": "儲存錄音（.opus）",
+    "saveRecordingFailed": "無法讀取錄音。",
+    "dropRecording": "刪除錄音",
+    "confirmDropRecording": "刪除這筆記錄的錄音？轉寫和紀要都會保留。錄音刪除後無法復原。",
+    "spaceNotice": "歷史已佔用 {{size}}。可以在回收站永久刪除記錄，或在記錄的「更多」裡只刪除錄音。",
+    "gotIt": "知道了"
   }
 }

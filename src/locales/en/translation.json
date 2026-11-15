@@ -1983,7 +1983,7 @@
     "saveSrt": "Save subtitles (.srt)",
     "saveVtt": "Save subtitles (.vtt)",
     "folder": "History folder",
-    "keptHere": "Each session’s transcript is kept on this computer. Nothing is uploaded.",
+    "keptHere": "Each session’s transcript and recording are kept on this computer. Nothing is uploaded.",
     "confirmPurge_one": "Delete {{count}} record for good? Its transcript and recording cannot be brought back.",
     "hits_one": "{{count}} match",
     "sentenceCount_one": "{{count}} sentence",
@@ -2003,6 +2003,18 @@
     "more": "More",
     "binWhenEnded": "A record can move to the bin once its session has ended.",
     "sessionAt": "Session at {{time}}",
-    "recordingStopped": "The recording of this session stopped: it could not be written to disk. The transcript is still saved."
+    "recordingStopped": "The recording of this session stopped: it could not be written to disk. The transcript is still saved.",
+    "player": "Recording",
+    "play": "Play",
+    "pause": "Pause",
+    "position": "Position",
+    "speed": "Speed",
+    "playFromHere": "Play from here",
+    "saveRecording": "Save the recording (.opus)",
+    "saveRecordingFailed": "The recording could not be read.",
+    "dropRecording": "Delete the recording",
+    "confirmDropRecording": "Delete this record’s recording? Its transcript and notes stay. The recording cannot be brought back.",
+    "spaceNotice": "History now takes {{size}}. Records can be deleted for good in the bin, or a record’s recording alone under “More”.",
+    "gotIt": "Got it"
   }
 }

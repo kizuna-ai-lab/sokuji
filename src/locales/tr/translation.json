@@ -1983,7 +1983,7 @@
     "saveSrt": "Altyazıyı kaydet (.srt)",
     "saveVtt": "Altyazıyı kaydet (.vtt)",
     "folder": "Geçmiş klasörü",
-    "keptHere": "Her oturumun dökümü bu bilgisayarda saklanır. Hiçbir şey yüklenmez.",
+    "keptHere": "Her oturumun dökümü ve ses kaydı bu bilgisayarda saklanır. Hiçbir şey yüklenmez.",
     "confirmPurge_one": "{{count}} kayıt kalıcı olarak silinsin mi? Dökümü ve ses kaydı geri getirilemez.",
     "hits_one": "{{count}} eşleşme",
     "sentenceCount_one": "{{count}} cümle",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Kayıt, oturumu bittikten sonra çöp kutusuna taşınabilir.",
     "autoExportLine": "Konuşmanın tamamının ek bir .txt kopyasını İndirilenler klasörüne kaydeder. Geçmiş kaydı her durumda bu bilgisayarda tutar.",
     "sessionAt": "{{time}} oturumu",
-    "recordingStopped": "Bu oturumun ses kaydı durdu: diske yazılamadı. Döküm hâlâ kaydediliyor."
+    "recordingStopped": "Bu oturumun ses kaydı durdu: diske yazılamadı. Döküm hâlâ kaydediliyor.",
+    "player": "Ses kaydı",
+    "play": "Oynat",
+    "pause": "Duraklat",
+    "position": "Konum",
+    "speed": "Hız",
+    "playFromHere": "Buradan oynat",
+    "saveRecording": "Ses kaydını kaydet (.opus)",
+    "saveRecordingFailed": "Ses kaydı okunamadı.",
+    "dropRecording": "Ses kaydını sil",
+    "confirmDropRecording": "Bu kaydın ses kaydı silinsin mi? Döküm ve notlar kalır. Ses kaydı geri getirilemez.",
+    "spaceNotice": "Geçmiş artık {{size}} yer kaplıyor. Kayıtları çöp kutusunda kalıcı olarak silebilir ya da “Diğer” menüsünden yalnızca bir kaydın sesini silebilirsiniz.",
+    "gotIt": "Anladım"
   }
 }

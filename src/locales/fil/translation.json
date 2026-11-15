@@ -1983,7 +1983,7 @@
     "saveSrt": "I-save ang subtitle (.srt)",
     "saveVtt": "I-save ang subtitle (.vtt)",
     "folder": "Folder ng Kasaysayan",
-    "keptHere": "Itinatago sa computer na ito ang transcript ng bawat session. Walang ina-upload.",
+    "keptHere": "Itinatago sa computer na ito ang transcript at recording ng bawat session. Walang ina-upload.",
     "confirmPurge_one": "Burahin nang tuluyan ang {{count}} na record? Hindi na maibabalik ang mga transcript at recording nila.",
     "hits_one": "{{count}} na tugma",
     "sentenceCount_one": "{{count}} pangungusap",
@@ -2003,6 +2003,18 @@
     "binWhenEnded": "Maililipat lang sa basurahan ang record kapag tapos na ang session nito.",
     "autoExportLine": "Nagse-save ng dagdag na .txt na kopya ng buong usapan sa Downloads folder. Itinatago pa rin ng Kasaysayan ang record sa computer na ito.",
     "sessionAt": "Session nang {{time}}",
-    "recordingStopped": "Huminto ang recording ng session na ito: hindi ito maisulat sa disk. Nase-save pa rin ang transcript."
+    "recordingStopped": "Huminto ang recording ng session na ito: hindi ito maisulat sa disk. Nase-save pa rin ang transcript.",
+    "player": "Recording",
+    "play": "I-play",
+    "pause": "I-pause",
+    "position": "Posisyon",
+    "speed": "Bilis",
+    "playFromHere": "I-play mula rito",
+    "saveRecording": "I-save ang recording (.opus)",
+    "saveRecordingFailed": "Hindi mabasa ang recording.",
+    "dropRecording": "Burahin ang recording",
+    "confirmDropRecording": "Burahin ang recording ng record na ito? Mananatili ang transcript at mga tala. Hindi na maibabalik ang recording.",
+    "spaceNotice": "Gumagamit na ang Kasaysayan ng {{size}}. Puwedeng burahin nang tuluyan ang mga record sa basurahan, o ang recording lang ng isang record sa “Higit pa”.",
+    "gotIt": "Sige"
   }
 }

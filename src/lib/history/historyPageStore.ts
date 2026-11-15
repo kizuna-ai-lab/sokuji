@@ -58,6 +58,8 @@ export interface HistoryPageActions {
   rename(id: string, title: string): Promise<void>;
   openRecord(id: string, at?: HitTarget | null): Promise<void>;
   refreshRecord(): Promise<void>;
+  /** Deletes the open record's recording, track by track; its transcript and notes stay. */
+  dropRecording(): Promise<void>;
   closeRecord(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
   reassign(n: number, speaker: string | null): Promise<void>;
@@ -223,6 +225,15 @@ export function createHistoryPageStore(
       refreshRecord: () => act(async () => {
         const open = get().open;
         if (open) await fetchRecord(open.record.id, open.at);
+      }),
+
+      dropRecording: () => act(async () => {
+        const open = get().open;
+        if (!open) return;
+        for (const t of open.record.tracks) {
+          if (t.goneAt === null) await port.dropTrack({ recordId: open.record.id, source: t.source });
+        }
+        await fetchRecord(open.record.id, open.at);
       }),
 
       closeRecord: () => set({ open: null }),

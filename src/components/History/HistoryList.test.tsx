@@ -42,6 +42,7 @@ let status: HistoryStatus;
 let records: HistoryRecordRow[];
 let bin: HistoryRecordRow[];
 let found: HistorySearchResult[];
+let usageBytes: number;
 function fakePort(): Fake {
   const calls: [string, unknown][] = [];
   const answer = <T,>(name: string, value: () => T) => async (arg?: unknown) => { calls.push([name, arg]); return value(); };
@@ -49,7 +50,7 @@ function fakePort(): Fake {
     calls,
     status: answer('status', () => status),
     listRecords: answer('listRecords', () => records),
-    usage: answer('usage', () => ({ dbBytes: 1_572_864, audioBytes: 0, records: records.length, binned: bin.length })),
+    usage: answer('usage', () => ({ dbBytes: usageBytes, audioBytes: 0, records: records.length, binned: bin.length })),
     search: answer('search', () => found),
     binRecords: answer('binRecords', () => ({ changed: 1 })),
     restoreRecords: answer('restoreRecords', () => ({ changed: 1 })),
@@ -91,6 +92,7 @@ beforeEach(() => {
   ];
   bin = [];
   found = [];
+  usageBytes = 1_572_864;
   port = fakePort();
   binAware(port);
   env.port = port;
@@ -264,6 +266,31 @@ describe('the History list', () => {
     expect(box).toHaveValue('しん');
     fireEvent.keyDown(document, { key: 'Escape', isComposing: true });
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("shows the recording's size in its tag", async () => {
+    records = [rowOf(A, { title: 'Weekly sync', endedAt: START + 60_000, hasRecording: true, audioBytes: 1_572_864 })];
+    await renderList();
+    expect(within(rowWith('Weekly sync')).getByText('Recording · 1.5 MB')).toBeInTheDocument();
+  });
+
+  it('says once, when History passes 1 GiB, how to make room', async () => {
+    localStorage.removeItem('history.spaceNoticeDismissed');
+    usageBytes = 1_200 * 1024 * 1024;
+    await renderList();
+    expect(screen.getByText(/^History now takes 1\.2 GB\./)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+    expect(screen.queryByText(/^History now takes/)).toBeNull();
+    cleanup();
+    await renderList();
+    expect(screen.queryByText(/^History now takes/)).toBeNull();
+    localStorage.removeItem('history.spaceNoticeDismissed');
+  });
+
+  it('says nothing about space below 1 GiB', async () => {
+    localStorage.removeItem('history.spaceNoticeDismissed');
+    await renderList();
+    expect(screen.queryByText(/^History now takes/)).toBeNull();
   });
 
   it('opens the folder', async () => {
