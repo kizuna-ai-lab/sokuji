@@ -3,7 +3,7 @@
 // Importing a file and transcribing a record again, on the History screens (desktop): the panel that asks before an
 // import, the one that asks before a transcription again, the line that follows the running job and says how it
 // ended, and the choice between a record's transcripts. Each names the service and the stage of the line-up it
-// belongs to (recognition), and what it costs, paid with the user's own key.
+// belongs to (recognition). With the user's own key no price is shown (owner, 2026-11-16).
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
@@ -13,9 +13,6 @@ import { useProviderStore } from '../../stores/providerStore';
 import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useHistoryPageContext } from './historyContext';
 import { formatDateTime } from './format';
-
-/** Soniox's file recognition, about (stt-async; the bill is checked against it on the real service). */
-export const FILE_USD_PER_HOUR = 0.1;
 
 const baseOf = (code: string) => code.split(/[-_]/)[0].toLowerCase();
 
@@ -30,7 +27,7 @@ function useFileTexts() {
   const { t } = useTranslation();
   return useMemo(() => {
     const blocks: Record<FileJobBlock | 'no-recording', string> = {
-      'not-soniox': t('history.file.blockedNotSoniox', 'Needs Soniox as the recognition service in the line-up.'),
+      'no-file-service': t('history.file.blockedNotSoniox', 'Needs Soniox as the recognition service in the line-up.'),
       'no-key': t('history.file.blockedNoKey', 'Needs a Soniox key in Settings.'),
       session: t('history.file.blockedSession', 'Available when no session is running.'),
       busy: t('history.file.blockedBusy', 'Another import or transcription is running.'),
@@ -109,7 +106,6 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
         </select>
       </label>
       <p>{texts.service}</p>
-      <p>{t('history.file.costHour', 'About USD 0.10 an hour of audio, paid with your Soniox key.')}</p>
       {blocked && <p className="history-file__blocked" role="status">{texts.block(blocked)}</p>}
       <div className="history-confirm__actions">
         <button type="button" className="history-button" disabled={!known || blocked !== null} onClick={start}>{t('history.file.start', 'Start')}</button>
@@ -127,8 +123,6 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
   const { known, blocked } = useBlocked('transcribe');
   if (!open) return null;
   const kept = open.record.tracks.filter((tr) => tr.goneAt === null);
-  const hours = kept.reduce((sum, tr) => sum + tr.durationMs, 0) / 3_600_000;
-  const cost = hours * FILE_USD_PER_HOUR;
   const title = open.record.transcripts.length > 0 ? t('history.file.transcribeAgain', 'Transcribe again') : t('history.file.transcribe', 'Transcribe');
   const why = kept.length === 0 ? texts.block('no-recording') : blocked ? texts.block(blocked) : null;
   const start = () => {
@@ -140,9 +134,6 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
       <p className="history-file__title">{title}</p>
       <p>{t('history.file.transcribeNote', 'The saved recording is transcribed again. A new version is made; the transcripts already here stay.')}</p>
       <p>{texts.service}</p>
-      <p>{cost < 0.01
-        ? t('history.file.costTiny', 'Less than USD 0.01, paid with your Soniox key.')
-        : t('history.file.costFor', 'About USD {{cost}}, paid with your Soniox key.', { cost: cost.toFixed(2) })}</p>
       {why && <p className="history-file__blocked" role="status">{why}</p>}
       <div className="history-confirm__actions">
         <button type="button" className="history-button" disabled={!known || why !== null} onClick={start}>{t('history.file.start', 'Start')}</button>
