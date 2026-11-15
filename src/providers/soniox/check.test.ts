@@ -52,6 +52,13 @@ describe('createSonioxCheck', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it("checks an India key at India's host", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 201 }));
+    const check = createSonioxCheck({ fetch, clock: createVirtualClock(0) });
+    await check({ region: 'in', stt: 'k-in', tts: 'k-in' }, SONIOX_DEFAULTS, ctx());
+    expect(fetch.mock.calls[0][0]).toBe('https://api.in.soniox.com/v1/auth/temporary-api-key');
+  });
+
   it('200 and 201 answer ready, with no models', async () => {
     for (const status of [200, 201]) {
       const fetch = vi.fn().mockResolvedValue(new Response(null, { status }));

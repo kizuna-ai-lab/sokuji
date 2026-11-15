@@ -5,6 +5,7 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import { SettingsPage } from '../SettingsPage/SettingsPage';
 import TourOverlay from '../Tour/TourOverlay';
 import VbCableIntro from '../VbCable/VbCableIntro';
+import RegionRecommendation from '../Region/RegionRecommendation';
 import SetupWizard from '../SetupWizard/SetupWizard';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
@@ -234,6 +235,7 @@ const MainLayout: React.FC = () => {
         takeover the anchored UI is gone, so the tour does not render at all. */}
     {!electronSubtitleTakeover && <TourOverlay />}
     {!electronSubtitleTakeover && <VbCableIntro />}
+    {!electronSubtitleTakeover && <RegionRecommendation />}
     {electronSubtitleTakeover && <SubtitleTakeover />}
     </>
   );

@@ -10,11 +10,13 @@ import {
   useUpdateNewVersion, useUpdateProgressPercent,
   useUpdateProgressIndeterminate, useUpdateStatus, useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
+import { useRegionHint } from '../Region/useRegionHint';
 import { Banner, type BannerProps } from './Banner';
 
 /**
  * The app-level banners to draw, in order (spec 2026-10-05 §4): the audio
- * system (attention) above the update (brand). An update's failure is never a
+ * system (attention) above the update (brand), then the region hint (brand,
+ * spec 2026-11-14 §B5) pushed last. An update's failure is never a
  * banner of its own: a failed check is the Help link's, a failed download
  * draws `available` again (Download Now is the retry) and a failed install
  * keeps `downloaded` (Ruling 9).
@@ -93,6 +95,8 @@ export function useBanners(): BannerProps[] {
       action: { label: t('update.restartNow'), onClick: installUpdate }, onDismiss: dismissBanner, dismissLabel,
     });
   }
+  const regionHint = useRegionHint();
+  if (regionHint) banners.push(regionHint);
   return banners;
 }
 
