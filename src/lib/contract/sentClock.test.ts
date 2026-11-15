@@ -44,4 +44,43 @@ describe('the table from stream time to clock time', () => {
     clock.advance(200); second.sent(chunk(200), rate);
     expect(second.at(100)).toBe(5100);
   });
+
+  it('keeps the times of earlier audio when a chunk comes after a short pause', () => {
+    const clock = createVirtualClock(0);
+    const t = createSentClock(clock);
+    clock.advance(100); t.sent(chunk(100), rate);
+    clock.advance(300); t.sent(chunk(100), rate);
+    expect(t.at(50)).toBe(50);
+    expect(t.at(150)).toBe(350);
+    // Pause after pause: the first audio stays where it was heard.
+    clock.advance(250); t.sent(chunk(100), rate);
+    expect(t.at(50)).toBe(50);
+    expect(t.at(150)).toBe(350);
+    expect(t.at(250)).toBe(600);
+  });
+
+  it('puts audio sent late in a burst back where it was heard once the sending catches up', () => {
+    const clock = createVirtualClock(0);
+    const t = createSentClock(clock);
+    for (let i = 0; i < 5; i++) { clock.advance(100); t.sent(chunk(100), rate); }
+    // The page stalls for 400 ms: the four chunks it held go out together, then the pace is normal again.
+    clock.advance(400); t.sent(chunk(100), rate);
+    clock.advance(1); t.sent(chunk(100), rate);
+    clock.advance(1); t.sent(chunk(100), rate);
+    clock.advance(1); t.sent(chunk(100), rate);
+    clock.advance(97); t.sent(chunk(100), rate);
+    expect(t.at(550)).toBe(550);
+    expect(t.at(750)).toBe(750);
+    expect(t.at(850)).toBe(850);
+  });
+
+  it('follows the latest send through timer jitter without drifting', () => {
+    const clock = createVirtualClock(0);
+    const t = createSentClock(clock);
+    const late = [0, 30, 0, 40, 10, 0, 20, 0];
+    let prev = 0;
+    late.forEach((l, i) => { const at = (i + 1) * 100 + l; clock.advance(at - prev); prev = at; t.sent(chunk(100), rate); });
+    expect(t.at(750)).toBe(750);
+    expect(Math.abs(t.at(50)! - 50)).toBeLessThanOrEqual(40);
+  });
 });
