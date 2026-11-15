@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 
 const state = vi.hoisted(() => ({
   value: {} as Record<string, unknown>,
@@ -68,5 +68,31 @@ describe('the headphones entry — keyboard', () => {
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(document.activeElement).toBe(button);
+  });
+
+  // Tab and Shift+Tab land on the focus guards Floating UI puts around the portalled popover (what a browser's
+  // Tab does next); the guards pass the focus on as the tab order would run if the popover sat after the button.
+  it('keeps the tab order: in from the button, through its controls, out to what follows the button', async () => {
+    render(<div><button type="button">Before</button><HearingButton /><button type="button">Next</button></div>);
+    const button = screen.getByRole('button', { name: 'What I hear' });
+    // Enter and Space click a native button: the keyboard opens it as the pointer does.
+    expect(button.tagName).toBe('BUTTON');
+    button.focus();
+    fireEvent.click(button);
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    const guards = () => [...document.querySelectorAll<HTMLElement>('[data-floating-ui-focus-guard]')];
+    const inside = () => guards().filter((g) => dialog.parentElement?.contains(g) && !g.contains(dialog));
+    const controls = [...dialog.querySelectorAll<HTMLElement>('button, select')];
+    expect(controls.map((c) => c.getAttribute('aria-label') ?? c.textContent)).toEqual(['Translation I hear', 'Translation I hear', 'I hear it too', 'I hear it too', 'Audio settings']);
+    // Shift+Tab from the first control: back to the button.
+    act(() => { inside()[0].focus(); });
+    await waitFor(() => expect(document.activeElement).toBe(button));
+    // Tab from the button: into the popover's first control.
+    act(() => { guards().find((g) => g.getAttribute('data-type') === 'outside')!.focus(); });
+    await waitFor(() => expect(document.activeElement).toBe(controls[0]));
+    // Tab from the last control: out to what follows the button.
+    act(() => { inside().at(-1)!.focus(); });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' })));
   });
 });
