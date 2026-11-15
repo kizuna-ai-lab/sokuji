@@ -108,6 +108,17 @@ describe('languages and line-up', () => {
     expect(screen.getByText(/Granite Speech turns speech straight into the translation/)).toBeInTheDocument();
   });
 
+  it('says on the desktop that Soniox recognition also transcribes imported files and records again', () => {
+    env.electron = true;
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Also transcribes imported files and records again.')).toBeInTheDocument();
+    unmount();
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Also transcribes imported files and records again.')).toBeNull();
+  });
+
   it('says on each row whether the stage is ready or what it lacks', () => {
     useProviderStore.setState({ entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
     render(<LineUpCategory locked={false} />);

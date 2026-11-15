@@ -81,6 +81,10 @@ export interface HistoryPageState {
   job: FileJob | null;
   /** How the last file job ended when it did not: its code (NO_KEY, TOO_LONG, CANCELLED, …). */
   jobFailure: string | null;
+  /** The failed import kept its record (recording stored, no transcript). */
+  jobKept: boolean;
+  /** Files can be imported and records transcribed from this page. */
+  filesOffered: boolean;
   busy: boolean;
   error: string | null;
 }
@@ -127,6 +131,8 @@ export interface HistoryPageActions {
   /** Transcribes the open record (again): a new transcript, shown once made. */
   transcribeOpen(): Promise<void>;
   cancelJob(): void;
+  /** The failure line goes. */
+  clearJobFailure(): void;
 }
 
 /** A failure's code, as the file jobs give them; SERVICE for anything else. */
@@ -239,6 +245,8 @@ export function createHistoryPageStore(
       notesRunning: notes?.running() ?? [],
       job: null,
       jobFailure: null,
+      jobKept: false,
+      filesOffered: !!files,
       busy: false,
       error: null,
 
@@ -434,14 +442,14 @@ export function createHistoryPageStore(
         if ('missing' in service) { set({ jobFailure: service.missing }); return; }
         const controller = new AbortController();
         jobController = controller;
-        set({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading' }, jobFailure: null });
+        set({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading' }, jobFailure: null, jobKept: false });
         try {
           const result = await files.importFile({
             file, language: o.language, myLanguage: o.myLanguage, service, signal: controller.signal,
             onProgress: (p) => { const job = get().job; if (job) set({ job: { ...job, phase: p.phase } }); },
           });
           if (result.transcribed) files.notesAfterImport(result.recordId);
-          else set({ jobFailure: result.failure });
+          else set({ jobFailure: result.failure, jobKept: true });
         } catch (error) {
           set({ jobFailure: codeOf(error) });
         } finally {
@@ -459,7 +467,7 @@ export function createHistoryPageStore(
         const recordId = open.record.id;
         const controller = new AbortController();
         jobController = controller;
-        set({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null });
+        set({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null, jobKept: false });
         let made: number | null = null;
         try {
           ({ transcriptId: made } = await files.transcribe({
@@ -482,6 +490,8 @@ export function createHistoryPageStore(
       cancelJob() {
         jobController?.abort();
       },
+
+      clearJobFailure: () => set({ jobFailure: null, jobKept: false }),
     };
   });
 

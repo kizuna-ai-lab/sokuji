@@ -7,12 +7,13 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ChevronLeft, FolderOpen, Search } from 'lucide-react';
+import { ChevronLeft, FileUp, FolderOpen, Search } from 'lucide-react';
 import { languageLabel } from '../../lib/language/label';
 import type { HitTarget } from '../../lib/history/historyPageStore';
 import type { HistoryRecordRow, HistorySearchHit, HistorySearchResult } from '../../lib/history/types';
 import { isElectron } from '../../utils/environment';
 import { useHistoryPageContext } from './historyContext';
+import { ImportPanel, myLanguageNow } from './FileJobs';
 import { dayLabel, formatBytes, formatDateTime, formatLength, formatTime, isComposing } from './format';
 import { useWideForm } from '../SettingsPage/useWideForm';
 import '../SettingsPage/SettingsPage.scss';
@@ -70,6 +71,9 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   const actions = store.getState();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [selecting, setSelecting] = useState(false);
+  const filesOffered = useStore(store, (s) => s.filesOffered);
+  /** A file chosen to import, asked about before anything starts. */
+  const [importing, setImporting] = useState<File | null>(null);
   const [spaceDismissed, setSpaceDismissed] = useState(readSpaceDismissed);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -143,6 +147,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
         : r.notesComplete ? <span className="history-tag">{t('history.tagNotes', 'Notes')}</span>
           : r.notesState === 'failed' && <span className="history-tag history-tag--failed">{t('history.tagNotesFailed', 'Notes failed')}</span>}
       {r.hasRecording && <span className="history-tag">{`${t('history.tagRecording', 'Recording')} · ${formatBytes(r.audioBytes)}`}</span>}
+      {r.state === 'closed' && r.sentences === 0 && r.hasRecording && <span className="history-tag">{t('history.file.notTranscribed', 'Not transcribed')}</span>}
     </span>
   );
 
@@ -305,6 +310,23 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
           {navItem('bin', t('history.binTitle', 'Bin'), usage?.binned)}
         </div>
       )}
+      {status && filesOffered && (
+        <label className="history-button history-nav__import">
+          <FileUp size={14} aria-hidden="true" />
+          {t('history.file.import', 'Import a file')}
+          <input
+            type="file"
+            accept="audio/*,video/*"
+            aria-label={t('history.file.import', 'Import a file')}
+            hidden
+            onChange={(e) => {
+              const chosen = e.target.files?.[0];
+              e.target.value = '';
+              if (chosen) setImporting(chosen);
+            }}
+          />
+        </label>
+      )}
       {status && (
         <div className="history-nav__space">
           {usage && <span>{t('history.space', '{{size}} in {{count}} records', { size: formatBytes(usage.dbBytes + usage.audioBytes), count: usage.records })}</span>}
@@ -324,6 +346,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
         {!searching && tab === 'bin' && <p className="settings-page__intro">{t('history.binNote', 'Records in the bin are deleted for good after 30 days.')}</p>}
       </header>
       <div className="settings-page__body">
+        {importing && <ImportPanel file={importing} myLanguage={myLanguageNow(language)} onClose={() => setImporting(null)} />}
         {usage && !spaceDismissed && usage.dbBytes + usage.audioBytes >= SPACE_NOTICE_BYTES && (
           <div className="history-notice" role="status">
             <p>{t('history.spaceNotice', 'History now takes {{size}}. Records can be deleted for good in the bin, or a record’s recording alone under “More”.', { size: formatBytes(usage.dbBytes + usage.audioBytes) })}</p>

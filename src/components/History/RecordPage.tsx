@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ChevronLeft, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { AudioLines, ChevronLeft, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
 import { englishLanguageName, languageLabel, uiLocale } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import { NOTES_MIN_MS } from '../../lib/notes/write';
@@ -20,6 +20,7 @@ import { formatBytes, formatDateTime, formatLength, isComposing } from './format
 import RecordExportMenu from './RecordExportMenu';
 import RecordPlayer, { type SeekFn } from './RecordPlayer';
 import RecordNotes from './RecordNotes';
+import { TranscribePanel, TranscriptChooser } from './FileJobs';
 import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
@@ -52,8 +53,7 @@ const speakerKey = (side: HistorySentenceSide, speaker: string) => `${side}\u000
 
 /** Where a hit lands: a sentence by its number, or the row of the round a translation belongs to. */
 function hitSelector(at: HitTarget, open: OpenRecord, rows: readonly RecordRow[]): string | null {
-  const newest = open.record.transcripts[open.record.transcripts.length - 1];
-  if (at.kind === 'sentence') return newest && at.transcriptId === newest.id ? `[data-n="${at.n}"]` : null;
+  if (at.kind === 'sentence') return at.transcriptId === open.transcriptId ? `[data-n="${at.n}"]` : null;
   if (at.kind !== 'translation') return null;
   for (const e of createProjector().project(open.legs, DEFAULT_PROJECTION)) {
     if (e.kind !== 'exchange' || !e.translation.some((r) => r.segmentId === at.segmentId)) continue;
@@ -80,6 +80,8 @@ export const RecordPage: React.FC = () => {
   const [result, setResult] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const filesOffered = useStore(store, (s) => s.filesOffered);
   /** The recording is being deleted: the player is taken down first so the files are not held open. */
   const [releasing, setReleasing] = useState(false);
   const cancelDropRef = useRef<HTMLButtonElement>(null);
@@ -440,6 +442,18 @@ export const RecordPage: React.FC = () => {
                   <MicOff size={14} aria-hidden="true" />
                   {t('history.dropRecording', 'Delete the recording')}
                 </button>
+                {filesOffered && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy || live || !hasPlayer}
+                    title={!hasPlayer ? t('history.file.blockedNoRecording', 'This record keeps no recording.') : undefined}
+                    onClick={() => { setMoreOpen(false); setTranscribing(true); }}
+                  >
+                    <AudioLines size={14} aria-hidden="true" />
+                    {record.transcripts.length > 0 ? t('history.file.transcribeAgain', 'Transcribe again') : t('history.file.transcribe', 'Transcribe')}
+                  </button>
+                )}
               </span>
             )}
           </span>
@@ -463,6 +477,8 @@ export const RecordPage: React.FC = () => {
           </div>
         </div>
       )}
+      {transcribing && <TranscribePanel onClose={() => setTranscribing(false)} />}
+      <TranscriptChooser />
       {!wide && (
         <div className="record-page__panes" role="tablist">
           <button type="button" role="tab" aria-selected={pane === 'notes'} onClick={() => setPane('notes')}>{t('history.notes', 'Notes')}</button>

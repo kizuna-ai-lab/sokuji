@@ -318,3 +318,35 @@ describe('the History list', () => {
     delete (window as unknown as { electron?: unknown }).electron;
   });
 });
+
+describe('importing from the list', () => {
+  const jobs = () => ({
+    service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const }),
+    sessionRunning: () => false,
+    importFile: vi.fn(() => new Promise<never>(() => {})),
+    transcribe: vi.fn(() => new Promise<never>(() => {})),
+    notesAfterImport: vi.fn(),
+  });
+
+  it('offers an import when files can be imported: the chosen file is asked about first', async () => {
+    store = createHistoryPageStore(port, clock, () => 'That did not work.', null, jobs() as never);
+    await renderList();
+    const input = screen.getByLabelText('Import a file', { selector: 'input' }) as HTMLInputElement;
+    expect(input.accept).toBe('audio/*,video/*');
+    const file = new File([new Uint8Array(1)], 'Interview.m4a', { type: 'audio/mp4' });
+    fireEvent.change(input, { target: { files: [file] } });
+    await settle();
+    expect(screen.getByRole('dialog', { name: 'Import “Interview.m4a”' })).toBeTruthy();
+  });
+
+  it('offers no import where files cannot be imported', async () => {
+    await renderList();
+    expect(screen.queryByLabelText('Import a file', { selector: 'input' })).toBeNull();
+  });
+
+  it('tags a record that keeps a recording but has no transcript', async () => {
+    records = [rowOf(A, { title: 'Imported talk', sentences: 0, hasRecording: true, audioBytes: 2048 })];
+    await renderList();
+    expect(within(rowWith('Imported talk')).getByText('Not transcribed')).toBeTruthy();
+  });
+});

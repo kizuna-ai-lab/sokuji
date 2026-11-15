@@ -7,7 +7,7 @@
 // the user's own key (client side only for now, owner 2026-11-16).
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
+import { AudioLines, ChevronDown, ChevronRight, Link2 } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
@@ -231,6 +231,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 <p className="lineup-stage__joint">
                   <Link2 size={12} aria-hidden="true" />
                   {t('settingsPage.lineup.granite', 'With translation: Granite Speech turns speech straight into the translation.')}
+                </p>
+              )}
+              {stage === 'transcription' && isElectron() && lineUp?.transcription === 'soniox' && (
+                <p className="lineup-stage__joint">
+                  <AudioLines size={12} aria-hidden="true" />
+                  {t('settingsPage.lineup.alsoFiles', 'Also transcribes imported files and records again.')}
                 </p>
               )}
               {moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>}

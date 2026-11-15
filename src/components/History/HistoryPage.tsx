@@ -10,9 +10,11 @@ import { realClock } from '../../lib/contract/clock';
 import { historyPort } from '../../lib/history/port';
 import { createHistoryPageStore } from '../../lib/history/historyPageStore';
 import { appNotesRunner } from '../../lib/notes/appNotes';
+import { appFileJobs } from '../../lib/history/file/appFiles';
 import { isElectron } from '../../utils/environment';
 import { HistoryPageContext } from './historyContext';
 import HistoryList from './HistoryList';
+import { FileJobLine } from './FileJobs';
 import RecordPage from './RecordPage';
 import { isComposing } from './format';
 import './History.scss';
@@ -27,6 +29,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose, recordId = nu
   const { t } = useTranslation();
   const [store] = useState(() => createHistoryPageStore(
     historyPort(), realClock, () => t('history.failed', 'That did not work. Try again.'), isElectron() ? appNotesRunner() : null,
+    isElectron() ? appFileJobs() : null,
   ));
   const open = useStore(store, (s) => s.open);
   const error = useStore(store, (s) => s.error);
@@ -56,6 +59,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose, recordId = nu
     <HistoryPageContext.Provider value={context}>
       <section className="history-page" data-testid="history-page" aria-label={t('history.title', 'History')}>
         {error && <p className="history-page__error" role="alert">{error}</p>}
+        <FileJobLine />
         {/* The list stays mounted under an open record: going back finds its search, selection and scroll. */}
         <div className="history-page__list" hidden={!!open}><HistoryList hidden={!!open} /></div>
         {open && <RecordPage />}

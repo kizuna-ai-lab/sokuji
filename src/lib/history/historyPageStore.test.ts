@@ -474,6 +474,9 @@ describe('transcripts and file jobs', () => {
     await started;
     expect(store.getState().jobFailure).toBe('NO_KEY');
     expect(f.jobs.notesAfterImport).not.toHaveBeenCalled();
+    expect(store.getState().jobKept).toBe(true);
+    store.getState().clearJobFailure();
+    expect(store.getState()).toMatchObject({ jobFailure: null, jobKept: false });
   });
 
   it('transcribes the open record again, shows the new transcript, and can be cancelled', async () => {

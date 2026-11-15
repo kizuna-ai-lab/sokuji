@@ -776,3 +776,44 @@
 }
 
 .history-tag--failed { color: vars.$color-error; border-color: vars.$color-error-border; }
+
+// Importing a file and transcribing a record again (stage 6): the panels that ask first are not warnings, so they
+// take the info colours; the running job's line and how it ended sit above the list or the record.
+.history-confirm.history-file {
+  flex-direction: column;
+  align-items: stretch;
+  border-color: vars.$color-info-border;
+  background: vars.$color-info-bg;
+
+  p { flex: none; }
+}
+
+.history-file {
+  &__title { font-weight: 600; }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-1;
+    max-width: 320px;
+  }
+
+  &__blocked { color: vars.$color-error; }
+
+  &__line { margin: vars.$space-2 vars.$space-4; }
+
+  &__versions {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-2;
+    margin: vars.$space-2 vars.$space-4 0;
+  }
+}
+
+.history-nav__import {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$space-1;
+  margin: vars.$space-2 0;
+  cursor: pointer;
+}

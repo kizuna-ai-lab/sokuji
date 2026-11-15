@@ -446,3 +446,28 @@ describe('a record', () => {
     expect(new Set(choices).size).toBe(choices.length);
   });
 });
+
+describe('a record transcribed again', () => {
+  it('offers to transcribe it again from More when it keeps a recording, asking first', async () => {
+    record.hasRecording = true;
+    record.tracks = [{ source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 10, offsetMs: 0, goneAt: null }];
+    const jobs = {
+      service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const }),
+      sessionRunning: () => false, importFile: vi.fn(), transcribe: vi.fn(() => new Promise<never>(() => {})), notesAfterImport: vi.fn(),
+    };
+    store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.', null, jobs as never);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Transcribe again' }));
+    await settle();
+    expect(screen.getByRole('dialog', { name: 'Transcribe again' })).toBeTruthy();
+  });
+
+  it('opens a search hit in the older transcript it was found in, and marks it there', async () => {
+    record.transcripts.push({ id: 2, origin: { service: 'soniox', kind: 'file' }, textKind: 'original', createdAt: START + 1000, sentences: 3 });
+    await renderRecord({ kind: 'sentence', transcriptId: 1, n: 2 });
+    expect(store.getState().open?.transcriptId).toBe(1);
+    expect(screen.getByLabelText('Transcript version')).toBeTruthy();
+    expect(document.querySelector('[data-n="2"]')?.className ?? '').toMatch(/is-hit|hit/);
+  });
+});
