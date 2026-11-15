@@ -53,6 +53,20 @@ export interface HistoryTrack {
   goneAt: number | null;
 }
 
+/** A track of a recording: one per leg. */
+export type HistoryTrackSource = 'speaker' | 'participant';
+
+/** One piece of a track being recorded. */
+export interface HistoryTrackPiece {
+  recordId: string;
+  source: HistoryTrackSource;
+  /** Where the track's first sample lies on the record's clock; the first piece's is kept. */
+  offsetMs: number;
+  /** The track's length so far, including this piece. */
+  durationMs: number;
+  data: Uint8Array;
+}
+
 export type HistoryInput = 'microphone' | 'system' | 'app' | 'tab';
 
 /** How a leg was put together. */

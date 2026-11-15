@@ -28,6 +28,14 @@ describe('the history port', () => {
     ]);
   });
 
+  it('appendTrack sends its piece on its own channel', async () => {
+    const invoke = vi.fn(async () => ({ ok: true, value: { bytes: 3 } }));
+    const data = new Uint8Array([1, 2, 3]);
+    const a = { recordId: 'run-0001-aaaa', source: 'speaker' as const, offsetMs: 0, durationMs: 20, data };
+    await expect(electronHistoryPort(invoke).appendTrack(a)).resolves.toEqual({ bytes: 3 });
+    expect(invoke).toHaveBeenCalledWith('history:append-track', a);
+  });
+
   it('rejects with the code when main refuses', async () => {
     const port = electronHistoryPort(async () => ({ ok: false, error: 'no', code: 'RECORD_CLOSED' }));
     const refused = port.putSegments({ recordId: 'run-0001-aaaa', leg: 'speaker', segments: [] });

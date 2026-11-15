@@ -517,3 +517,46 @@ describe('bin, purge and space', () => {
     expect(s.listRecords({})[0]).toEqual(expect.objectContaining({ hasRecording: false, sentences: 1 }));
   });
 });
+
+describe('appending to a track file', () => {
+  const piece = (n, fill = 1) => new Uint8Array(n).fill(fill);
+  const statSize = (file) => nodeRequire('node:fs').statSync(file).size;
+
+  it('creates the file and its row on the first piece, at the given offset', () => {
+    s.openRecord(rec());
+    expect(s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 120, durationMs: 997, data: piece(500) })).toEqual({ bytes: 500 });
+    const file = join(s.recordDir(ID), 'speaker.opus');
+    expect(statSize(file)).toBe(500);
+    expect(s.getRecord(ID).tracks).toEqual([{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 997, bytes: 500, offsetMs: 120, goneAt: null }]);
+    expect(s.listRecords()[0]).toMatchObject({ hasRecording: true, audioBytes: 500 });
+  });
+
+  it('grows the file and the row with each piece, keeping the first offset', () => {
+    s.openRecord(rec());
+    s.appendTrack({ recordId: ID, source: 'participant', offsetMs: 2000, durationMs: 997, data: piece(300) });
+    s.appendTrack({ recordId: ID, source: 'participant', offsetMs: 2000, durationMs: 1997, data: piece(200, 2) });
+    const [t] = s.getRecord(ID).tracks;
+    expect(t).toMatchObject({ bytes: 500, durationMs: 1997, offsetMs: 2000 });
+    expect(statSize(join(s.recordDir(ID), 'participant.opus'))).toBe(500);
+    expect(s.usage().audioBytes).toBe(500);
+  });
+
+  it('refuses another source, an empty or over-1 MiB piece, and negative times', () => {
+    s.openRecord(rec());
+    const bad = (a) => expect(() => s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 0, durationMs: 0, data: piece(1), ...a })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+    bad({ source: 'microphone' });
+    bad({ source: '../x' });
+    bad({ data: piece(0) });
+    bad({ data: piece(1024 * 1024 + 1) });
+    bad({ data: 'abc' });
+    bad({ offsetMs: -1 });
+    bad({ durationMs: -1 });
+  });
+
+  it('refuses a record that is closed', () => {
+    s.openRecord(rec());
+    s.putSegments({ recordId: ID, leg: 'speaker', segments: [{ id: `${ID}:speaker:1`, ref: 1, side: 'source', text: 'kept', final: true, openedAt: 10, marks: [] }] });
+    s.closeRecord({ id: ID, endedAt: 1_800_000_060_000 });
+    expect(() => s.appendTrack({ recordId: ID, source: 'speaker', offsetMs: 0, durationMs: 0, data: piece(1) })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
+  });
+});

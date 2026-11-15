@@ -37,6 +37,7 @@ const HISTORY_CHANNELS = Object.freeze({
   'history:purge-records': 'purgeRecords',
   'history:drop-track': 'dropTrack',
   'history:usage': 'usage',
+  'history:append-track': 'appendTrack',
 });
 
 /** The methods that take a record id rather than an object: the page sends `{ id }`. */
@@ -95,6 +96,7 @@ function setupHistoryHandlers({ ipcMain, getStore, isTrustedSender, dir, getUnav
   ipcMain.handle('history:purge-records', handle('purgeRecords'));
   ipcMain.handle('history:drop-track', handle('dropTrack'));
   ipcMain.handle('history:usage', handle('usage'));
+  ipcMain.handle('history:append-track', handle('appendTrack'));
 }
 
 /**

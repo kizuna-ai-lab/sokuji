@@ -7,7 +7,7 @@ import { isElectron } from '../../utils/environment';
 import type {
   HistoryLegInput, HistoryNotes, HistoryNotesInput, HistoryNotesRow, HistoryRecord, HistoryRecordInput, HistoryRecordRow,
   HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker,
-  HistoryStatus, HistoryTranscriptOrigin, HistoryUsage,
+  HistoryStatus, HistoryTrackPiece, HistoryTranscriptOrigin, HistoryUsage,
 } from './types';
 
 export interface HistoryPort {
@@ -37,6 +37,8 @@ export interface HistoryPort {
   purgeRecords(args: { ids: string[] }): Promise<{ purged: string[]; failed: string[] }>;
   dropTrack(args: { recordId: string; source: string }): Promise<void>;
   usage(): Promise<HistoryUsage>;
+  /** One piece of a track being recorded (complete Ogg pages) and the length written so far. */
+  appendTrack(args: HistoryTrackPiece): Promise<{ bytes: number }>;
   status(): Promise<HistoryStatus>;
 }
 
@@ -77,6 +79,7 @@ export const HISTORY_PORT_CHANNELS = [
   ['purgeRecords', 'history:purge-records'],
   ['dropTrack', 'history:drop-track'],
   ['usage', 'history:usage'],
+  ['appendTrack', 'history:append-track'],
   ['status', 'history:status'],
 ] as const satisfies ReadonlyArray<readonly [keyof HistoryPort, `history:${string}`]>;
 
@@ -123,6 +126,7 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     purgeRecords: (a) => call('history:purge-records', a),
     dropTrack: (a) => call('history:drop-track', a),
     usage: () => call('history:usage', {}),
+    appendTrack: (a) => call('history:append-track', a),
     status: () => call('history:status', {}),
   };
 }
@@ -156,6 +160,7 @@ export const nullHistoryPort: HistoryPort = {
   purgeRecords: async () => ({ purged: [], failed: [] }),
   dropTrack: nothing,
   usage: async () => ({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 }),
+  appendTrack: async () => ({ bytes: 0 }),
   status: async () => ({ available: false, dir: '' }),
 };
 

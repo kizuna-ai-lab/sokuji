@@ -40,6 +40,9 @@ const isOptionalString = (v) => v === undefined || v === null || isString(v);
 const isIdList = (v) => Array.isArray(v) && v.every(isString);
 /** A file name inside a record's folder: no separator, not `.` or `..`. */
 const isFileName = (v) => isString(v) && v !== '' && v !== '.' && v !== '..' && !/[\\/]/.test(v);
+/** A recording has a track per leg (spec §5.4); a piece is at most this many bytes (about three minutes of Opus). */
+const TRACK_SOURCES = new Set(['speaker', 'participant']);
+const MAX_TRACK_PIECE = 1024 * 1024;
 const sizeOf = (file) => { try { return fs.statSync(file).size; } catch { return 0; } };
 
 /** A record has content when one of its transcripts has a sentence or one of its segments has text that is not blank. */
@@ -631,6 +634,29 @@ function openHistory({ dir, now = () => Date.now() }) {
          values (?, ?, ?, ?, ?, ?, ?, null)`,
         recordId, source, file, format, durationMs, bytes, offsetMs,
       );
+    },
+
+    /**
+     * One piece of a track being recorded: the bytes go to the end of `<source>.opus` first, then the row takes the
+     * file's size and the length the page has written so far, so after a crash the row is never ahead of the file.
+     */
+    appendTrack({ recordId, source, offsetMs, durationMs, data } = {}) {
+      openRecordOrFail(recordId);
+      if (!TRACK_SOURCES.has(source) || !isInt(offsetMs) || offsetMs < 0 || !isInt(durationMs) || durationMs < 0
+        || !(data instanceof Uint8Array) || data.length === 0 || data.length > MAX_TRACK_PIECE) {
+        fail('BAD_INPUT', 'A track piece needs a source (speaker or participant), offsetMs, durationMs and 1 byte to 1 MiB of data');
+      }
+      const file = `${source}.opus`;
+      const full = path.join(store.recordDir(recordId), file);
+      fs.appendFileSync(full, data);
+      const bytes = sizeOf(full);
+      const known = one('select offset_ms from tracks where record_id = ? and source = ?', recordId, source);
+      run(
+        `insert or replace into tracks (record_id, source, file, format, duration_ms, bytes, offset_ms, gone_at)
+         values (?, ?, ?, 'ogg-opus', ?, ?, ?, null)`,
+        recordId, source, file, durationMs, bytes, known ? known.offset_ms : offsetMs,
+      );
+      return { bytes };
     },
 
     dropTrack({ recordId, source } = {}) {
