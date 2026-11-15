@@ -222,3 +222,44 @@ describe('launch', () => {
     expect(s.getRecord('run-0001-aaaa').transcripts.map((x) => [x.id, x.textKind])).toEqual([[a, 'original'], [b, 'translation']]);
   });
 });
+
+describe('speakers', () => {
+  const sent = (n, over = {}) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text: `s${n}`, timeKind: 'given', ...over });
+  let t;
+  beforeEach(() => {
+    s.openRecord(rec());
+    t = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'live' } });
+  });
+
+  it('a rename shows on every sentence of that speaker and on none of another', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1), sent(2, { speaker: '2' }), sent(3)] });
+    s.renameSpeaker({ transcriptId: t, side: 'mine', speaker: '1', name: 'Mina' });
+    expect(s.getSentences({ transcriptId: t }).map((x) => x.speakerName)).toEqual(['Mina', null, 'Mina']);
+  });
+
+  it("one sentence can be given to another speaker; the recognizer's label stays", () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1), sent(2)] });
+    s.renameSpeaker({ transcriptId: t, side: 'mine', speaker: '2', name: 'Ren' });
+    s.reassignSentence({ transcriptId: t, n: 2, speaker: '2' });
+    expect(s.getSentences({ transcriptId: t })[1]).toEqual(expect.objectContaining({ speaker: '1', speakerByUser: '2', speakerName: 'Ren' }));
+    s.reassignSentence({ transcriptId: t, n: 2, speaker: null });
+    expect(s.getSentences({ transcriptId: t })[1]).toEqual(expect.objectContaining({ speakerByUser: null, speakerName: null }));
+  });
+
+  it('the same speaker number on the other side is a different speaker', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1), sent(2, { side: 'other', track: 'other' })] });
+    s.renameSpeaker({ transcriptId: t, side: 'other', speaker: '1', name: 'Guest' });
+    expect(s.getSpeakers({ transcriptId: t })).toEqual([{ side: 'mine', speaker: '1', name: null, sentences: 1 }, { side: 'other', speaker: '1', name: 'Guest', sentences: 1 }]);
+  });
+
+  it('works after the record is closed, and an empty name takes the name away', () => {
+    s.appendSentences({ transcriptId: t, sentences: [sent(1), sent(2)] });
+    s.closeRecord({ id: ID, endedAt: 99 });
+    s.renameSpeaker({ transcriptId: t, side: 'mine', speaker: '1', name: 'Mina' });
+    s.reassignSentence({ transcriptId: t, n: 2, speaker: '3' });
+    expect(s.getSpeakers({ transcriptId: t })).toEqual([{ side: 'mine', speaker: '1', name: 'Mina', sentences: 1 }, { side: 'mine', speaker: '3', name: null, sentences: 1 }]);
+    s.renameSpeaker({ transcriptId: t, side: 'mine', speaker: '1', name: ' ' });
+    expect(s.getSentences({ transcriptId: t })[0].speakerName).toBeNull();
+    expect(() => s.reassignSentence({ transcriptId: t, n: 9, speaker: '1' })).toThrow(expect.objectContaining({ code: 'NO_SENTENCE' }));
+  });
+});

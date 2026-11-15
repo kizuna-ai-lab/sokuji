@@ -388,6 +388,33 @@ function openHistory({ dir, now = () => Date.now() }) {
       }));
     },
 
+    renameSpeaker({ transcriptId, side, speaker, name } = {}) {
+      transcriptOrFail(transcriptId);
+      if (!SENTENCE_SIDES.has(side) || !isString(speaker) || !isString(name)) fail('BAD_INPUT', 'A rename needs side, speaker and name');
+      const trimmed = name.trim();
+      if (trimmed) run('insert or replace into speakers (transcript_id, side, speaker, name) values (?, ?, ?, ?)', transcriptId, side, speaker, trimmed);
+      else run('delete from speakers where transcript_id = ? and side = ? and speaker = ?', transcriptId, side, speaker);
+    },
+
+    reassignSentence({ transcriptId, n, speaker } = {}) {
+      transcriptOrFail(transcriptId);
+      if (!isInt(n) || !(speaker === null || isString(speaker))) fail('BAD_INPUT', 'A reassignment needs n and a speaker or null');
+      const { changes } = run('update sentences set speaker_by_user = ? where transcript_id = ? and n = ?', speaker, transcriptId, n);
+      if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${n}`);
+    },
+
+    getSpeakers({ transcriptId } = {}) {
+      transcriptOrFail(transcriptId);
+      return all(
+        `with effective as (select side, coalesce(speaker_by_user, speaker) as speaker from sentences where transcript_id = ?1),
+         known as (select side, speaker from effective union select side, speaker from speakers where transcript_id = ?1)
+         select k.side, k.speaker, p.name, (select count(*) from effective e where e.side = k.side and e.speaker = k.speaker) as sentence_count
+         from known k left join speakers p on p.transcript_id = ?1 and p.side = k.side and p.speaker = k.speaker
+         order by k.side = 'other', k.speaker`,
+        transcriptId,
+      ).map((x) => ({ side: x.side, speaker: x.speaker, name: x.name, sentences: x.sentence_count }));
+    },
+
     recordDir(id) {
       if (!isString(id) || !ID_PATTERN.test(id)) fail('BAD_ID', 'A record id is 8 to 64 letters, digits or hyphens');
       const folder = folderOf(id);
