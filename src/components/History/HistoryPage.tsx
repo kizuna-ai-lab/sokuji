@@ -11,6 +11,7 @@ import { historyPort } from '../../lib/history/port';
 import { createHistoryPageStore } from '../../lib/history/historyPageStore';
 import { HistoryPageContext } from './historyContext';
 import HistoryList from './HistoryList';
+import RecordPage from './RecordPage';
 import './History.scss';
 
 export interface HistoryPageProps {
@@ -41,7 +42,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
     <HistoryPageContext.Provider value={context}>
       <section className="history-page" data-testid="history-page" aria-label={t('history.title', 'History')}>
         {error && <p className="history-page__error" role="alert">{error}</p>}
-        {open ? <div className="history-page__record" /> : <HistoryList />}
+        {open ? <RecordPage /> : <HistoryList />}
       </section>
     </HistoryPageContext.Provider>
   );

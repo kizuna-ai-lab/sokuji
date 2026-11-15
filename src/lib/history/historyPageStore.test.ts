@@ -118,6 +118,20 @@ describe('the History page state', () => {
     expect(store.getState()).toMatchObject({ error: 'failed: locked', busy: false });
   });
 
+  it('bins the open record from its page and goes back to the list, but not one still being written', async () => {
+    await store.getState().openRecord(A);
+    await store.getState().binRecord(A);
+    expect(calls('binRecords')).toEqual([{ ids: [A] }]);
+    expect(store.getState().open).toBeNull();
+    expect(calls('listRecords')).toHaveLength(1);
+
+    port.getRecord = async () => ({ ...recordOf(B, [1]), state: 'open', endedAt: null });
+    await store.getState().openRecord(B);
+    await store.getState().binRecord(B);
+    expect(calls('binRecords')).toEqual([{ ids: [A] }]);
+    expect(store.getState().open?.record.id).toBe(B);
+  });
+
   it('renames a record with its text trimmed', async () => {
     await store.getState().rename(A, '  Weekly  ');
     expect(calls('renameRecord')).toEqual([{ id: A, title: 'Weekly' }]);

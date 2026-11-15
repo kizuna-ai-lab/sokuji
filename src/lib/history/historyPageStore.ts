@@ -46,6 +46,8 @@ export interface HistoryPageActions {
   toggle(id: string): void;
   clearSelection(): void;
   binSelected(): Promise<void>;
+  /** Bins one record (the open one, from its page) and goes back to the list; a record still being written stays. */
+  binRecord(id: string): Promise<void>;
   restore(ids: readonly string[]): Promise<void>;
   purge(ids: readonly string[]): Promise<void>;
   emptyBin(): Promise<void>;
@@ -159,6 +161,15 @@ export function createHistoryPageStore(
         const ids = [...get().selected].filter((id) => !open.has(id));
         if (ids.length > 0) await port.binRecords({ ids });
         set({ selected: new Set() });
+        await reload();
+      }),
+
+      binRecord: (id) => act(async () => {
+        const open = get().open;
+        const record = open?.record.id === id ? open.record : get().rows.find((r) => r.id === id);
+        if (!record || record.state === 'open') return;
+        await port.binRecords({ ids: [id] });
+        if (get().open?.record.id === id) set({ open: null });
         await reload();
       }),
 

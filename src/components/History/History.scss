@@ -266,3 +266,276 @@
 
   &__actions { display: flex; gap: vars.$space-2; }
 }
+
+// One record: the transcript, and beside it the speakers (the notes join them later); a strip along the bottom is kept
+// for the player. One column below 768px.
+.record-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  flex: 1;
+  min-height: 0;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: vars.$space-3;
+    padding: vars.$space-3 vars.$space-4;
+    border-bottom: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  &__title {
+    max-width: 100%;
+    padding: 0 vars.$space-1;
+    margin-left: calc(-1 * #{vars.$space-1});
+    border: 1px solid transparent;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    color: vars.$text-primary;
+    font-size: vars.$font-title;
+    font-weight: vars.$weight-semibold;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: text;
+    &:hover { border-color: vars.$border-default; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: vars.$focus-ring-offset; }
+  }
+
+  &__title-field {
+    max-width: 480px;
+    padding: 0 vars.$space-1;
+    border: 1px solid vars.$color-primary;
+    border-radius: vars.$radius-sm;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font-size: vars.$font-title;
+    font-weight: vars.$weight-semibold;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: vars.$space-2;
+  }
+
+  &__result {
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+  }
+
+  &__columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    min-height: 0;
+  }
+
+  &__transcript {
+    min-height: 0;
+    overflow-y: auto;
+    padding: vars.$space-3 vars.$space-4;
+  }
+
+  &__side {
+    min-height: 0;
+    overflow-y: auto;
+    padding: vars.$space-3;
+    border-left: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  &__speakers {
+    h3 {
+      margin: 0 0 vars.$space-2;
+      font-size: 13px;
+      font-weight: vars.$weight-semibold;
+    }
+  }
+
+  // Kept for the player; empty in this phase.
+  &__player:empty { display: none; }
+
+  @media (max-width: 767px) {
+    &__columns {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow-y: auto;
+    }
+    &__side {
+      order: -1;
+      border-left: none;
+      border-bottom: 1px solid vars.$border-subtle;
+    }
+    &__transcript { overflow-y: visible; }
+  }
+}
+
+.record-speakers {
+  & + & { margin-top: vars.$space-3; }
+
+  h4 {
+    margin: 0 0 vars.$space-1;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-medium;
+    color: vars.$text-tertiary;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: vars.$space-2;
+  }
+
+  &--mine &__name { color: tk.$color-speaker; }
+  &--other &__name { color: tk.$color-participant; }
+
+  &__name {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-1;
+    min-width: 0;
+    padding: 2px vars.$space-1;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    font-weight: vars.$weight-medium;
+    cursor: pointer;
+    > svg { color: vars.$text-tertiary; opacity: 0; }
+    &:hover, &:focus-visible { background: vars.$bg-hover; > svg { opacity: 1; } }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
+  }
+
+  &__field {
+    flex: 1;
+    min-width: 0;
+    padding: 2px vars.$space-1;
+    border: 1px solid vars.$color-primary;
+    border-radius: vars.$radius-sm;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+  }
+
+  &__count {
+    flex: none;
+    font-size: vars.$font-caption;
+    color: vars.$text-tertiary;
+  }
+}
+
+.record-row {
+  padding: vars.$space-2 vars.$space-2;
+  border-radius: vars.$radius-sm;
+  transition: background vars.$transition-normal;
+
+  & + & { margin-top: vars.$space-1; }
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    gap: vars.$space-2;
+    font-size: vars.$font-caption;
+  }
+
+  &--mine &__speaker { color: tk.$color-speaker; }
+  &--other &__speaker { color: tk.$color-participant; }
+
+  &__speaker { font-weight: vars.$weight-semibold; }
+
+  &__time {
+    color: vars.$text-tertiary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__text {
+    margin: 2px 0 0;
+    color: vars.$text-source;
+    overflow-wrap: anywhere;
+  }
+
+  // The translation, in the conversation's translation style.
+  &__translation {
+    margin: 2px 0 0;
+    color: vars.$text-primary;
+    overflow-wrap: anywhere;
+  }
+
+  &.is-hit { background: color-mix(in srgb, #{tk.$color-primary} 14%, transparent); }
+}
+
+.record-sentence {
+  position: relative;
+  border-radius: 2px;
+  transition: background vars.$transition-normal;
+
+  &.is-hit { background: color-mix(in srgb, #{tk.$color-primary} 22%, transparent); }
+
+  &__more { position: relative; }
+
+  &__menu-button {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 2px;
+    padding: 0 2px;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    color: tk.$color-toolbar-icon;
+    vertical-align: middle;
+    cursor: pointer;
+    opacity: 0;
+    &:hover { color: vars.$text-primary; background: vars.$bg-hover; }
+    &:focus-visible { opacity: 1; outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
+    &[aria-expanded='true'] { opacity: 1; }
+  }
+
+  &:hover &__menu-button { opacity: 1; }
+
+  &__menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+    padding: vars.$space-1;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-md;
+    background: vars.$bg-popover;
+    box-shadow: 0 4px 16px vars.$shadow;
+
+    > button {
+      padding: vars.$space-1 vars.$space-2;
+      border: none;
+      border-radius: vars.$radius-sm;
+      background: transparent;
+      color: vars.$text-primary;
+      text-align: left;
+      white-space: nowrap;
+      cursor: pointer;
+      &:hover:not(:disabled) { background: vars.$bg-hover; }
+      &:disabled { opacity: vars.$disabled-opacity; }
+    }
+  }
+}

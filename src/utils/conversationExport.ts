@@ -32,7 +32,7 @@ export function getAppVersion(): string | null {
 }
 
 /** The name every export uses: the time, never the content. */
-export function exportFilename(extension: 'txt' | 'json', now: number = Date.now()): string {
+export function exportFilename(extension: 'txt' | 'json' | 'srt' | 'vtt', now: number = Date.now()): string {
   return `sokuji-conversation-${formatTimestampForFilename(now)}.${extension}`;
 }
 
