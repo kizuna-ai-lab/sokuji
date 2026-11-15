@@ -79,5 +79,34 @@ describe('the sentence cutter', () => {
     expect(c.update({ text: 'We need to ship.', final: false, openedAt: 0, marks: marks([44_000, 16]), now: 45_000 }).added).toEqual([]);
     expect(c.update({ text: 'Done. We need to ship.', final: false, openedAt: 0, marks: marks([44_000, 22]), now: 45_000 }).added.map((s) => s.text)).toEqual(['Done.']);
   });
+
+  // Owner's decision: a final segment without a sentence end is cut at a pause of 5 s and into stretches of at most 45 s.
+  it('cuts a final segment without sentence ends where the speaker paused for 5 s', () => {
+    const text = 'we talked about the budget and then we moved on to hiring';
+    const r = createSegmentCut().update({ text, final: true, openedAt: 0, marks: marks([1000, 9], [2000, 26], [8000, 35], [9000, 57]), now: 9000 });
+    expect(r.added.map((s) => [s.text, s.startAt, s.endAt])).toEqual([
+      ['we talked about the budget', 1000, 2000],
+      ['and then we moved on to hiring', 8000, 9000],
+    ]);
+  });
+
+  it('cuts a long final segment without sentence ends into stretches of at most 45 s, never inside a word', () => {
+    const words = Array.from({ length: 50 }, (_, i) => `word${i}`);
+    const text = words.join(' ');
+    // One word every 2 s, no pause: 100 s of speech.
+    const growth = words.map((_, i) => [2000 * (i + 1), words.slice(0, i + 1).join(' ').length] as [number, number]);
+    const r = createSegmentCut().update({ text, final: true, openedAt: 0, marks: marks(...growth), now: 100_000 });
+    expect(r.added.length).toBe(3);
+    expect(r.added.map((s) => s.text).join(' ')).toBe(text);
+    for (const s of r.added) {
+      expect(s.endAt - s.startAt).toBeLessThanOrEqual(45_000);
+      expect(s.text).toMatch(/^word\d+( word\d+)*$/);
+    }
+  });
+
+  it('does not cut a final segment that has its own sentence ends at its pauses', () => {
+    const r = createSegmentCut().update({ text: 'One thing. Another thing.', final: true, openedAt: 0, marks: marks([1000, 10], [9000, 25]), now: 9000 });
+    expect(r.added.map((s) => s.text)).toEqual(['One thing.', 'Another thing.']);
+  });
 });
 

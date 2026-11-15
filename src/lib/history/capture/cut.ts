@@ -54,6 +54,35 @@ function endOf(text: string, count: number): number {
 
 interface Stored { endCount: number; lastText: string }
 
+/** A letter or digit of a script that puts spaces between words: a cut between two of them would split a word. */
+const IN_SPACED_WORD = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{N}]/u;
+
+/**
+ * Where the rest of a final segment (from `from` on, no sentence end in it) is cut, from its growth marks: after the
+ * text a 5 s pause followed, and before the growth that would make a stretch longer than LONG_CUT_MS. A cut never
+ * falls inside a word of a spaced script: it moves on to the word's end.
+ */
+function restCuts(text: string, from: number, marks: readonly Mark[]): number[] {
+  const out: number[] = [];
+  const grown = marks.filter((m) => m.len > from && m.len <= text.length);
+  if (grown.length === 0) return out;
+  let began = grown[0].at;
+  let last = from;
+  for (let i = 1; i < grown.length; i++) {
+    const before = grown[i - 1];
+    const m = grown[i];
+    if (m.at - before.at < PAUSE_CUT_MS && m.at - began < LONG_CUT_MS) continue;
+    let at = before.len;
+    while (at < text.length && IN_SPACED_WORD.test(text[at]) && IN_SPACED_WORD.test(text[at - 1])) at += 1;
+    if (at > last && at < text.length && text.slice(last, at).trim() && text.slice(at).trim()) {
+      out.push(at);
+      last = at;
+    }
+    began = m.at;
+  }
+  return out;
+}
+
 export function createSegmentCut(): SegmentCut {
   const stored: Stored[] = [];
   // Once a final segment has been cut to its end, its last sentence always runs to the end of the text.
@@ -128,6 +157,8 @@ export function createSegmentCut(): SegmentCut {
       const rest = text.slice(from, limit);
       if (rest.trim()) {
         if (input.final && limit === text.length) {
+          // A rest with no sentence end is cut where the speaker paused, and into stretches of at most LONG_CUT_MS.
+          for (const at of restCuts(text, from, input.marks)) cut(at, false);
           cut(text.length, true);
         } else if (!input.final) {
           const lastGrowth = input.marks.length > 0 ? input.marks[input.marks.length - 1].at : input.openedAt;
