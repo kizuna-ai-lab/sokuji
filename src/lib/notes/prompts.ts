@@ -2,8 +2,8 @@
 //
 // The prompts of the notes written after a session. They are not retyped: `prompts.json` holds the texts the tested
 // scripts build in the decided configuration (sentence numbers as anchors, kinds on points, a todo's owner cut to the
-// side; parts of 20 minutes; the finishing call; the names step), extracted with
-// `work/history/implementation/notes/extract_prompts.py` outside this repository. Only the language name is filled in.
+// side; parts of 20 minutes; the finishing call; the names step), extracted from
+// the measured notes scripts (kept outside this repository). Only the language name is filled in.
 // A change to any text is a new NOTES_PROMPT_VERSION, which every notes version stores.
 import texts from './prompts.json';
 

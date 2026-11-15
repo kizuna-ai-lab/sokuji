@@ -1,7 +1,7 @@
 // src/lib/notes/write.ts
 //
-// One version of a record's notes, written the way the tested post-meeting script writes them (run_full.py in its
-// decided configuration, with the names step of q4/suggest.py): the transcript in parts of about twenty minutes, one
+// One version of a record's notes, written the way the tested post-meeting scripts write them (in their decided
+// configuration, with their names step): the transcript in parts of about twenty minutes, one
 // call per part, all at once; a finishing call that reconciles the marks across the whole recording; the names step
 // beside it. The model points at sentences by their numbers; the program's own rules then hold whatever it answers:
 // a point needs text, a number that is no sentence is moved to the nearest one and marked, only the three kinds are
@@ -15,7 +15,7 @@ import { finishPrompt, namesPrompt, partPrompt } from './prompts';
 export const NOTES_MIN_MS = 60_000;
 /** A part's length: up to about one and a half of these is one part (the script's SEG_CHUNK_MIN=20). */
 const PART_MS = 20 * 60_000;
-/** The names step reads the transcript in parts of this length (q4/suggest.py). */
+/** The names step reads the transcript in parts of this length (as measured). */
 const NAMES_PART_MS = 20 * 60_000;
 /** A call is tried this many times in all (the script's RETRIES = 2). */
 const TRIES = 3;
@@ -104,7 +104,7 @@ export function cutParts(sentences: readonly HistorySentence[]): HistorySentence
   return bounds.slice(1).map((end, i) => sentences.slice(bounds[i], end));
 }
 
-/** The names step's parts: a new part at each twenty-minute edge (q4/suggest.py). */
+/** The names step's parts: a new part at each twenty-minute edge (as measured). */
 function namesParts(sentences: readonly HistorySentence[]): HistorySentence[][] {
   const parts: HistorySentence[][] = [];
   let current: HistorySentence[] = [];
