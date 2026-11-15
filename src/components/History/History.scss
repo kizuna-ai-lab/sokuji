@@ -425,8 +425,12 @@
     }
   }
 
-  // Kept for the player; empty in this phase.
+  // The player's strip along the bottom; nothing when the record has no recording.
   &__player:empty { display: none; }
+  &__player {
+    border-top: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
 
   @media (max-width: 767px) {
     &__columns {
@@ -600,4 +604,50 @@
       &:disabled { opacity: vars.$disabled-opacity; }
     }
   }
+}
+
+.record-player {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+  padding: vars.$space-2 vars.$space-4;
+
+  audio { display: none; }
+
+  &__time {
+    flex: none;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__seek { flex: 1; min-width: 0; }
+
+  &__speed {
+    flex: none;
+    width: auto;
+    min-height: 28px;
+    padding: 2px 6px;
+    font-size: vars.$font-caption;
+  }
+}
+
+.record-row {
+  &__play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: tk.$color-toolbar-icon;
+    cursor: pointer;
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
+
+  &.is-playing { background: color-mix(in srgb, #{tk.$color-primary} 10%, transparent); }
 }

@@ -1,0 +1,150 @@
+// src/components/History/RecordPlayer.tsx
+//
+// The record's player along the bottom of its page: play, pause, seek, speed. The tracks play together on the
+// record's clock: each starts once the position reaches its offset and is kept within 150 ms of it. The position
+// is told to the page, which highlights the row being played.
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Pause, Play } from 'lucide-react';
+import { playable, recordLength, trackUrl } from '../../lib/history/playback';
+import type { HistoryTrack } from '../../lib/history/types';
+import { formatLength } from './format';
+
+export type SeekFn = (ms: number, play: boolean) => void;
+
+export interface RecordPlayerProps {
+  recordId: string;
+  tracks: readonly HistoryTrack[];
+  onPosition(ms: number): void;
+  /** The page's way to play from a sentence. */
+  seekRef: RefObject<SeekFn | null>;
+}
+
+/** The position moves this often while playing. */
+const TICK_MS = 100;
+/** A track further than this from the position is put back on it. */
+const DRIFT_S = 0.15;
+const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
+
+export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, onPosition, seekRef }) => {
+  const { t } = useTranslation();
+  const kept = useMemo(() => playable(tracks), [tracks]);
+  const length = useMemo(() => recordLength(tracks), [tracks]);
+  const [playing, setPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const audio = useRef(new Map<string, HTMLAudioElement>());
+  const started = useRef(new Set<HTMLAudioElement>());
+  /** The position at `at` (Date.now()); it moves at `speed` while playing. */
+  const clock = useRef({ base: 0, at: 0, playing: false, speed: 1 });
+  const report = useRef(onPosition);
+  report.current = onPosition;
+
+  const now = () => {
+    const c = clock.current;
+    return c.playing ? c.base + (Date.now() - c.at) * c.speed : c.base;
+  };
+
+  /** Every track to `pos`: playing where it covers it (when `play`), paused elsewhere. */
+  const align = (pos: number, play: boolean) => {
+    for (const track of kept) {
+      const el = audio.current.get(track.source);
+      if (!el) continue;
+      const inside = pos >= track.offsetMs && pos < track.offsetMs + track.durationMs;
+      const local = Math.max(0, (pos - track.offsetMs) / 1000);
+      if (!inside || !play) {
+        if (started.current.has(el)) { el.pause(); started.current.delete(el); }
+        el.currentTime = inside ? local : 0;
+        continue;
+      }
+      if (Math.abs(el.currentTime - local) > DRIFT_S) el.currentTime = local;
+      if (!started.current.has(el)) {
+        started.current.add(el);
+        void el.play()?.catch?.(() => started.current.delete(el));
+      }
+    }
+  };
+
+  const move = (pos: number, play: boolean) => {
+    const at = Math.min(Math.max(0, pos), length);
+    clock.current = { ...clock.current, base: at, at: Date.now(), playing: play && at < length };
+    setPosition(at);
+    setPlaying(clock.current.playing);
+    report.current(at);
+    align(at, clock.current.playing);
+  };
+
+  const seek: SeekFn = (ms, play) => move(ms, play);
+  useLayoutEffect(() => {
+    (seekRef as { current: SeekFn | null }).current = seek;
+    return () => { (seekRef as { current: SeekFn | null }).current = null; };
+  });
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    const timer = window.setInterval(() => {
+      const pos = now();
+      if (pos >= length) {
+        move(length, false);
+        return;
+      }
+      setPosition(pos);
+      report.current(pos);
+      align(pos, true);
+    }, TICK_MS);
+    return () => window.clearInterval(timer);
+    // `align` and `move` read refs and the current tracks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, length, kept]);
+
+  useEffect(() => () => { for (const el of audio.current.values()) el.pause(); }, []);
+
+  const changeSpeed = (next: number) => {
+    const pos = now();
+    clock.current = { ...clock.current, base: pos, at: Date.now(), speed: next };
+    setSpeed(next);
+    for (const el of audio.current.values()) el.playbackRate = next;
+  };
+
+  return (
+    <div className="record-player" role="group" aria-label={t('history.player', 'Recording')}>
+      {kept.map((track) => (
+        <audio
+          key={track.source}
+          ref={(el) => { if (el) audio.current.set(track.source, el); else audio.current.delete(track.source); }}
+          src={trackUrl(recordId, track.source)}
+          preload="metadata"
+        />
+      ))}
+      <button
+        type="button"
+        className="history-button history-button--icon record-player__play"
+        aria-label={playing ? t('history.pause', 'Pause') : t('history.play', 'Play')}
+        onClick={() => move(playing ? now() : position >= length ? 0 : position, !playing)}
+      >
+        {playing ? <Pause size={16} /> : <Play size={16} />}
+      </button>
+      <span className="record-player__time">{`${formatLength(position)} / ${formatLength(length)}`}</span>
+      <input
+        type="range"
+        className="slider record-player__seek"
+        aria-label={t('history.position', 'Position')}
+        min={0}
+        max={length}
+        step={100}
+        value={Math.round(position)}
+        onChange={(e) => move(Number(e.target.value), playing)}
+      />
+      <select
+        className="select-dropdown record-player__speed"
+        aria-label={t('history.speed', 'Speed')}
+        value={String(speed)}
+        onChange={(e) => changeSpeed(Number(e.target.value))}
+      >
+        {SPEEDS.map((s) => <option key={s} value={String(s)}>{`${s}×`}</option>)}
+      </select>
+    </div>
+  );
+};
+
+export default RecordPlayer;

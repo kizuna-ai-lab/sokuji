@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ChevronLeft, Ellipsis, Pencil, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { ChevronLeft, Ellipsis, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
 import { languageLabel } from '../../lib/language/label';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
 import { recordRows, type RecordRow, type SpeakerLabels } from '../../lib/history/recordView';
@@ -16,6 +16,8 @@ import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/projec
 import { useHistoryPageContext } from './historyContext';
 import { formatBytes, formatDateTime, formatLength, isComposing } from './format';
 import RecordExportMenu from './RecordExportMenu';
+import RecordPlayer, { type SeekFn } from './RecordPlayer';
+import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -67,6 +69,10 @@ export const RecordPage: React.FC = () => {
   const [hit, setHit] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  /** The player's position, once it has been played or sought. */
+  const [position, setPosition] = useState<number | null>(null);
+  const seekRef = useRef<SeekFn | null>(null);
+  const followed = useRef<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const markedAt = useRef<HitTarget | null>(null);
 
@@ -125,8 +131,18 @@ export const RecordPage: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [result]);
 
+  const playingRow = position === null ? null : rowAt(rows, position);
+  const playingKey = playingRow ? `${playingRow.segmentId}:${playingRow.sentences[0]?.n}` : null;
+  // The row being played is kept in view as it changes; seeking moves the transcript.
+  useEffect(() => {
+    if (!playingKey || followed.current === playingKey) return;
+    followed.current = playingKey;
+    transcriptRef.current?.querySelector<HTMLElement>(`[data-row="${quoted(playingKey)}"]`)?.scrollIntoView?.({ block: 'nearest' });
+  }, [playingKey]);
+
   if (!open) return null;
   const { record } = open;
+  const hasPlayer = playable(record.tracks).length > 0;
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
@@ -252,10 +268,16 @@ export const RecordPage: React.FC = () => {
       return (
         <div
           key={`${row.segmentId}:${row.sentences[0]?.n}`}
-          className={`record-row record-row--${row.side}${hit === segmentSelector ? ' is-hit' : ''}`}
+          className={`record-row record-row--${row.side}${hit === segmentSelector ? ' is-hit' : ''}${playingRow === row ? ' is-playing' : ''}`}
           data-segment={row.segmentId}
+          data-row={`${row.segmentId}:${row.sentences[0]?.n}`}
         >
           <div className="record-row__head">
+            {hasPlayer && audible(row, record.tracks) && (
+              <button type="button" className="record-row__play" aria-label={t('history.playFromHere', 'Play from here')} onClick={() => seekRef.current?.(startFor(row), true)}>
+                <Play size={12} aria-hidden="true" />
+              </button>
+            )}
             <span className="record-row__speaker">{row.speakerLabel}</span>
             <span className="record-row__time">{`${row.timeKind === 'estimated' ? '~' : ''}${formatLength(row.startMs)}`}</span>
           </div>
@@ -354,7 +376,9 @@ export const RecordPage: React.FC = () => {
         <div className="record-page__transcript" ref={transcriptRef}>{transcript}</div>
         <aside className="record-page__side">{speakersPanel}</aside>
       </div>
-      <div className="record-page__player" />
+      <div className="record-page__player">
+        {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}
+      </div>
     </div>
   );
 };

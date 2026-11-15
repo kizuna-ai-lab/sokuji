@@ -109,10 +109,12 @@ beforeEach(() => {
   store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.');
   Element.prototype.scrollIntoView = scrollIntoView;
   scrollIntoView.mockClear();
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.mocked(downloadFile).mockClear();
   vi.mocked(copyToClipboard).mockClear();
 });
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const openExport = () => fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
@@ -251,6 +253,36 @@ describe('a record', () => {
     expect(hit).toHaveClass('is-hit');
     expect(scrollIntoView).toHaveBeenCalled();
     expect(scrollIntoView.mock.contexts[0]).toBe(hit);
+  });
+
+  it('plays from a sentence and highlights the row being played', async () => {
+    record = { ...record, tracks: [
+      { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 1000, offsetMs: 0, goneAt: null },
+      { source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 1000, offsetMs: 0, goneAt: null },
+    ] };
+    await renderRecord();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    const second = document.querySelector('[data-segment="run-000a-aaaa:participant:3"]') as HTMLElement;
+    fireEvent.click(within(second).getByRole('button', { name: 'Play from here' }));
+    expect(second).toHaveClass('is-playing');
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+    expect(screen.getByText('0:02 / 1:00')).toBeInTheDocument();
+  });
+
+  it('a sentence beyond the end of its track has no play button', async () => {
+    record = { ...record, tracks: [{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 3000, bytes: 100, offsetMs: 0, goneAt: null }] };
+    await renderRecord();
+    const mine = document.querySelector('[data-segment="run-000a-aaaa:speaker:1"]') as HTMLElement;
+    expect(within(mine).queryByRole('button', { name: 'Play from here' })).toBeNull();
+    const other = document.querySelector('[data-segment="run-000a-aaaa:participant:1"]') as HTMLElement;
+    expect(within(other).queryByRole('button', { name: 'Play from here' })).toBeNull();
+  });
+
+  it('shows no player when the recording was deleted', async () => {
+    record = { ...record, tracks: [{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 3000, bytes: 100, offsetMs: 0, goneAt: 5 }] };
+    await renderRecord();
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Play from here' })).toBeNull();
   });
 
   it('a record still being written can be refreshed and not binned', async () => {
