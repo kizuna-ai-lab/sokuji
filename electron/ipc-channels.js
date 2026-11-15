@@ -106,6 +106,9 @@ export const INVOKE_CHANNELS = [
   'popover-window:set-visible',
   // Window-close handshake: the renderer has ended its session.
   'app:close-ready',
+  // Window-close handshake: the page asks the user first (notes being written), or the user chose to stay.
+  'app:close-asking',
+  'app:close-cancelled',
   // Window-close handshake: whether a session is running or tearing down.
   'app:session-busy',
   // LAN caption sharing (electron/caption-share.js)

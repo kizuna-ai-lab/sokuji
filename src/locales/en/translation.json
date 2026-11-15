@@ -2063,5 +2063,11 @@
     "copyNotes": "Copy notes",
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "length": "Length {{length}}"
+  },
+  "notesQuit": {
+    "named": "Notes are being written for “{{title}}”. Quit anyway? They will be marked cancelled.",
+    "unnamed": "Notes are being written. Quit anyway? They will be marked cancelled.",
+    "quit": "Quit",
+    "stay": "Stay"
   }
 }

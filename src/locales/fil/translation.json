@@ -2063,5 +2063,11 @@
     "copyNotes": "Kopyahin ang mga tala",
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "length": "Haba {{length}}"
+  },
+  "notesQuit": {
+    "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",
+    "unnamed": "May isinusulat na mga tala. Isara pa rin? Mamarkahan itong kinansela.",
+    "quit": "Isara",
+    "stay": "Manatili"
   }
 }

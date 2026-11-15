@@ -2063,5 +2063,11 @@
     "copyNotes": "复制纪要",
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "length": "时长 {{length}}"
+  },
+  "notesQuit": {
+    "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",
+    "unnamed": "正在写纪要。仍然退出吗？这份纪要会记为已取消。",
+    "quit": "退出",
+    "stay": "留下"
   }
 }

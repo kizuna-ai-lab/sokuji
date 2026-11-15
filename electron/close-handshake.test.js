@@ -43,6 +43,31 @@ describe('close handshake', () => {
   // Every case here runs mid-session; see 'only while a session is busy' below.
   beforeEach(() => hs.setSessionBusy(true));
 
+  // Notes being written when the app is closed (stage 3, ruling 7): the page asks the user, who may take their time.
+  it('waits as long as the page asks the user, then closes when told to', () => {
+    hs.onWindowClose(event());
+    hs.asking();
+    expect(timer).toBeNull();
+    hs.ready();
+    expect(win.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays open when the user chooses to stay, and asks again at the next close', () => {
+    const quit = event();
+    expect(hs.onBeforeQuit(quit)).toBe(false);
+    hs.asking();
+    hs.cancelled();
+    expect(win.close).not.toHaveBeenCalled();
+    expect(quitApp).not.toHaveBeenCalled();
+    const again = event();
+    hs.onWindowClose(again);
+    expect(again.preventDefault).toHaveBeenCalled();
+    expect(win.sent).toEqual(['app:close-requested', 'app:close-requested']);
+    hs.ready();
+    expect(win.close).toHaveBeenCalledTimes(1);
+    expect(quitApp).not.toHaveBeenCalled();
+  });
+
   it('holds a close, asks the renderer, and closes once it answers', () => {
     const e = event();
     hs.onWindowClose(e);

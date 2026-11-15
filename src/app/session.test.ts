@@ -947,6 +947,72 @@ describe('attach', () => {
     detach();
   });
 
+  describe('closing while notes are being written', () => {
+    /** A notes runner with one version running for `ids`; cancel ends it. */
+    function writingNotes(ids: string[]) {
+      const running = new Set(ids);
+      const listeners = new Set<() => void>();
+      return {
+        start: vi.fn(),
+        cancel: vi.fn((id: string) => { running.delete(id); queueMicrotask(() => { for (const l of listeners) l(); }); }),
+        running: () => [...running],
+        subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
+        notify: () => { for (const l of listeners) l(); },
+      };
+    }
+
+    it('keeps the app busy while notes are written, so a close asks first', async () => {
+      const { ipc } = electronIpc();
+      const notes = writingNotes([]);
+      const { session } = await setup({ ipc, notes, history: null });
+      const detach = session.attach();
+      (notes.running as unknown as () => string[]) = () => ['run-0001-aaaa'];
+      notes.notify();
+      expect(ipc.invoke).toHaveBeenLastCalledWith('app:session-busy', true);
+      (notes.running as unknown as () => string[]) = () => [];
+      notes.notify();
+      expect(ipc.invoke).toHaveBeenLastCalledWith('app:session-busy', false);
+      detach();
+    });
+
+    it('asks, and on Quit marks the notes cancelled and closes', async () => {
+      const { ipc, order, closeRequested } = electronIpc();
+      const notes = writingNotes(['run-0001-aaaa']);
+      const askQuit = vi.fn(async () => 'quit' as const);
+      const { session } = await setup({ ipc, notes, askQuit, history: null });
+      const detach = session.attach();
+      await closeRequested();
+      expect(askQuit).toHaveBeenCalledTimes(1);
+      expect(order.indexOf('app:close-asking')).toBeLessThan(order.indexOf('app:close-ready'));
+      expect(notes.cancel).toHaveBeenCalledWith('run-0001-aaaa');
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+      detach();
+    });
+
+    it('asks, and on Stay keeps the app and the notes', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const notes = writingNotes(['run-0001-aaaa']);
+      const { session } = await setup({ ipc, notes, askQuit: async () => 'stay', history: null });
+      const detach = session.attach();
+      await closeRequested();
+      expect(notes.cancel).not.toHaveBeenCalled();
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-cancelled');
+      expect(ipc.invoke).not.toHaveBeenCalledWith('app:close-ready');
+      detach();
+    });
+
+    it('closes at once when no notes are being written', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const askQuit = vi.fn(async () => 'stay' as const);
+      const { session } = await setup({ ipc, notes: writingNotes([]), askQuit, history: null });
+      const detach = session.attach();
+      await closeRequested();
+      expect(askQuit).not.toHaveBeenCalled();
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+      detach();
+    });
+  });
+
   it('counts a close as the window ending the run, not a Stop button press', async () => {
     const { ipc, closeRequested } = electronIpc();
     const { session, track } = await setup({ ipc });
@@ -1176,7 +1242,7 @@ describe('history', () => {
 
   it('starts the notes of a closed record when notes after the session are on and a notes service is chosen', async () => {
     const port = recordingPort();
-    const notes = { start: vi.fn() };
+    const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [] as string[], subscribe: () => () => {} };
     const lineUpBefore = useLineUpStore.getState().lineUp;
     useSettingsStore.setState({ notesAfterSession: true } as never);
     useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
@@ -1198,7 +1264,7 @@ describe('history', () => {
   it('starts no notes when notes after the session are off, or no notes service is chosen', async () => {
     for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
       const port = recordingPort();
-      const notes = { start: vi.fn() };
+      const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [] as string[], subscribe: () => () => {} };
       const lineUpBefore = useLineUpStore.getState().lineUp;
       useSettingsStore.setState({ notesAfterSession: on } as never);
       useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: service } } as never);

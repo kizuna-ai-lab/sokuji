@@ -2063,5 +2063,11 @@
     "copyNotes": "Kopiera anteckningar",
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}"
+  },
+  "notesQuit": {
+    "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",
+    "unnamed": "Anteckningar skrivs. Avsluta ändå? De markeras som avbrutna.",
+    "quit": "Avsluta",
+    "stay": "Stanna"
   }
 }

@@ -2063,5 +2063,11 @@
     "copyNotes": "Copia le note",
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "length": "Durata {{length}}"
+  },
+  "notesQuit": {
+    "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",
+    "unnamed": "Ci sono note in scrittura. Uscire comunque? Verranno segnate come annullate.",
+    "quit": "Esci",
+    "stay": "Resta"
   }
 }

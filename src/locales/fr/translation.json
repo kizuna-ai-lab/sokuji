@@ -2063,5 +2063,11 @@
     "copyNotes": "Copier les notes",
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
     "length": "Durée {{length}}"
+  },
+  "notesQuit": {
+    "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",
+    "unnamed": "Des notes sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",
+    "quit": "Quitter",
+    "stay": "Rester"
   }
 }

@@ -2063,5 +2063,11 @@
     "copyNotes": "Sao chép ghi chú",
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "length": "Thời lượng {{length}}"
+  },
+  "notesQuit": {
+    "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",
+    "unnamed": "Đang viết ghi chú. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",
+    "quit": "Thoát",
+    "stay": "Ở lại"
   }
 }

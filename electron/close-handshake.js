@@ -116,6 +116,26 @@ function createCloseHandshake({
     ready() {
       finish();
     },
+    /**
+     * The renderer is asking the user first ('app:close-asking': notes are being written). The user may take their
+     * time, so the close waits for the answer with no timeout.
+     */
+    asking() {
+      if (state !== 'waiting' || !timer) return;
+      clearTimer(timer);
+      timer = null;
+    },
+    /** The user chose to stay ('app:close-cancelled'): nothing closes, quits or installs; the next close asks again. */
+    cancelled() {
+      if (state !== 'waiting') return;
+      if (timer) {
+        clearTimer(timer);
+        timer = null;
+      }
+      state = 'idle';
+      quitPending = false;
+      pendingAction = null;
+    },
     /** The renderer's session is running or tearing down ('app:session-busy'). */
     setSessionBusy(busy) {
       sessionBusy = !!busy;

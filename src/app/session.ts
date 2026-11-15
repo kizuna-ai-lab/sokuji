@@ -19,6 +19,8 @@ import { opusRecordingSupported, webCodecsOpusEncoder } from '../lib/history/rec
 import type { OpusEncoderFactory } from '../lib/history/recording/track';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { appNotesRunner } from '../lib/notes/appNotes';
+import { askQuitWhileNotes, type QuitAnswer } from '../lib/notes/quitQuestion';
+import type { NotesRunner } from '../lib/notes/runner';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
@@ -83,8 +85,10 @@ export interface AppSessionOptions {
   history?: HistoryPort | null;
   /** Tests: the recording's Opus encoder. Absent: the browser's, when the page can encode Opus; `null`: no recording. */
   historyEncoder?: OpusEncoderFactory | null;
-  /** Who writes a closed record's notes; default the app's notes runner; `null` for none. */
-  notes?: { start(recordId: string): void } | null;
+  /** Who writes a closed record's notes; default the app's notes runner on the desktop; `null` for none. */
+  notes?: Pick<NotesRunner, 'start' | 'cancel' | 'running' | 'subscribe'> | null;
+  /** Asks whether to quit while notes are written (the titles of their records); default the page's dialog. */
+  askQuit?(titles: readonly string[]): Promise<QuitAnswer>;
   /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
   ipc?: {
     invoke(channel: string, data?: unknown): Promise<unknown>;
@@ -127,6 +131,8 @@ export interface AppSession {
 const IDLE: KaraokeState = { lit: new Map(), replaying: null };
 /** At a window close, History's last writes are waited for at most this long. */
 const HISTORY_CLOSE_WAIT_MS = 2000;
+/** At a quit, how long the cancelled notes versions may take to be saved. */
+const NOTES_CANCEL_WAIT_MS = 5000;
 
 export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const clock = options.clock ?? realClock;
@@ -229,6 +235,24 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       });
     }
   }
+  /** The notes runner: the app's on the desktop unless one is given. */
+  const notesRunner = () => (options.notes === undefined ? (isElectron() ? appNotesRunner() : null) : options.notes);
+  /** The titles of the records whose notes are being written, as far as History can tell. */
+  const titlesOf = async (ids: readonly string[]): Promise<string[]> => {
+    if (!historyPortOrNull) return [];
+    const titles = await Promise.all(ids.map((id) => historyPortOrNull.getRecord(id).then((r) => r?.title ?? null, () => null)));
+    return titles.filter((t): t is string => Boolean(t));
+  };
+  /** The versions cancelled at a quit have been saved, or 5 s have passed. */
+  const notesCancelled = (notes: NonNullable<ReturnType<typeof notesRunner>>, ids: readonly string[]): Promise<void> =>
+    new Promise<void>((resolve) => {
+      const done = () => { off(); cancel(); resolve(); };
+      const check = () => { if (!notes.running().some((id) => ids.includes(id))) done(); };
+      const off = notes.subscribe(check);
+      const cancel = clock.setTimeout(done, NOTES_CANCEL_WAIT_MS);
+      check();
+    });
+
   const historyWriter = historyPortOrNull
     ? createHistoryWriter({
       state: runner.state,
@@ -247,7 +271,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
       // Notes after the session: when the switch is on and the line-up names a notes service.
       onClosed: (recordId) => {
-        const notes = options.notes === undefined ? appNotesRunner() : options.notes;
+        const notes = notesRunner();
         if (notes && useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) notes.start(recordId);
       },
     })
@@ -462,23 +486,45 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       offs.push(() => window.removeEventListener('pagehide', onPageHide));
       const ipc = options.ipc === undefined ? (isElectron() ? window.electron : null) : options.ipc;
       if (ipc) {
-        offs.push(trackBusy(runner, (busy) => {
+        // Busy while a run is live or notes are being written: either holds a close for the page to answer.
+        const notes = notesRunner();
+        let runBusy = false;
+        const sendBusy = () => {
+          const busy = runBusy || (notes?.running().length ?? 0) > 0;
           void ipc.invoke('app:session-busy', busy).catch((error: unknown) =>
             reportWarning('AppSession', `Telling the app the session is ${busy ? 'busy' : 'idle'} failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:busy' }));
-        }));
+        };
+        offs.push(trackBusy(runner, (busy) => { runBusy = busy; sendBusy(); }));
+        if (notes) offs.push(notes.subscribe(sendBusy));
         if (ipc.receive) {
           // Electron's window close and update install (one channel): end the run,
           // wait out what outlives its bound, then let the close through. Never
           // `abandon()` here — `settled()` no longer waits for an abandoned unwind
           // (roadmap 1e-1). The main process waits the runner's bound + 1 s.
+          // Notes being written then: the user is asked (ruling 7). Quit stores them as cancelled; Stay keeps the app.
           const onCloseRequested = async () => {
+            let close = true;
             try {
               await runner.stop('window');
               await runner.settled();
               await historySettled();
+              const writing = notes?.running() ?? [];
+              if (notes && writing.length > 0) {
+                await ipc.invoke('app:close-asking');
+                const answer = await (options.askQuit ?? askQuitWhileNotes)(await titlesOf(writing));
+                if (answer === 'stay') {
+                  close = false;
+                  await ipc.invoke('app:close-cancelled');
+                  return;
+                }
+                for (const id of writing) notes.cancel(id);
+                await notesCancelled(notes, writing);
+              }
             } finally {
-              void ipc.invoke('app:close-ready').catch((error: unknown) =>
-                reportWarning('AppSession', `Answering the close request failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:close-ready' }));
+              if (close) {
+                void ipc.invoke('app:close-ready').catch((error: unknown) =>
+                  reportWarning('AppSession', `Answering the close request failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:close-ready' }));
+              }
             }
           };
           ipc.receive('app:close-requested', onCloseRequested);

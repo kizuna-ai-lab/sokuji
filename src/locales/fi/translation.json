@@ -2063,5 +2063,11 @@
     "copyNotes": "Kopioi muistiinpanot",
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}"
+  },
+  "notesQuit": {
+    "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",
+    "unnamed": "Muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",
+    "quit": "Lopeta",
+    "stay": "Jää"
   }
 }

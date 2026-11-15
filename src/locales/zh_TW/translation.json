@@ -2063,5 +2063,11 @@
     "copyNotes": "複製紀要",
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "length": "時長 {{length}}"
+  },
+  "notesQuit": {
+    "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",
+    "unnamed": "正在寫紀要。仍然結束嗎？這份紀要會記為已取消。",
+    "quit": "結束",
+    "stay": "留下"
   }
 }

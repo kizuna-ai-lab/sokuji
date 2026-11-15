@@ -176,6 +176,15 @@ ipcMain.handle('app:close-ready', (event) => {
   if (event.sender !== mainWindow?.webContents) return;
   closeHandshake.ready();
 });
+// Notes being written when the app is closed: the page asks the user first, without a timeout, and may be told to stay.
+ipcMain.handle('app:close-asking', (event) => {
+  if (event.sender !== mainWindow?.webContents) return;
+  closeHandshake.asking();
+});
+ipcMain.handle('app:close-cancelled', (event) => {
+  if (event.sender !== mainWindow?.webContents) return;
+  closeHandshake.cancelled();
+});
 // Only a running or tearing-down session holds a close: anything else (the
 // setup wizard, a loading page) has nothing to save and may never answer.
 ipcMain.handle('app:session-busy', (event, busy) => {

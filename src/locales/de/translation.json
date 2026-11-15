@@ -2063,5 +2063,11 @@
     "copyNotes": "Notizen kopieren",
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}"
+  },
+  "notesQuit": {
+    "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",
+    "unnamed": "Es werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",
+    "quit": "Beenden",
+    "stay": "Bleiben"
   }
 }

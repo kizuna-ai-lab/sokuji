@@ -16,6 +16,7 @@ import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
 import { isElectron, isExtension } from '../../utils/environment';
+import NotesQuitDialog from '../Notes/NotesQuitDialog';
 import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen, useHistoryOpen, useSetHistoryOpen } from '../../stores/layoutStore';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
@@ -245,6 +246,8 @@ const MainLayout: React.FC = () => {
       </div>
     </div>
     {setupWizardOpen && <SetupWizard variant="rerun" onClose={() => setSetupWizardOpen(false)} />}
+    {/* Closing the app while notes are being written asks first (desktop). */}
+    {isElectron() && <NotesQuitDialog />}
     {/* The gate, not the placement, is what matters: TourOverlay portals to
         document.body, so it would escape the main-layout subtree (and its
         takeover display:none) wherever it sat. During an Electron subtitle

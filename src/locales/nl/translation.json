@@ -2063,5 +2063,11 @@
     "copyNotes": "Notities kopiëren",
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "length": "Duur {{length}}"
+  },
+  "notesQuit": {
+    "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",
+    "unnamed": "Er worden notities geschreven. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",
+    "quit": "Afsluiten",
+    "stay": "Blijven"
   }
 }

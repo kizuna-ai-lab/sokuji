@@ -2063,5 +2063,11 @@
     "copyNotes": "Copiar notas",
     "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco.",
     "length": "Duración {{length}}"
+  },
+  "notesQuit": {
+    "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",
+    "unnamed": "Se están escribiendo notas. ¿Salir de todos modos? Se marcarán como canceladas.",
+    "quit": "Salir",
+    "stay": "Quedarse"
   }
 }

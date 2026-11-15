@@ -2063,5 +2063,11 @@
     "copyNotes": "Notları kopyala",
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "length": "Süre {{length}}"
+  },
+  "notesQuit": {
+    "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",
+    "unnamed": "Notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",
+    "quit": "Çık",
+    "stay": "Kal"
   }
 }

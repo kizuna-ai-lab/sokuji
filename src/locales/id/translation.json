@@ -2063,5 +2063,11 @@
     "copyNotes": "Salin catatan",
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}"
+  },
+  "notesQuit": {
+    "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",
+    "unnamed": "Catatan sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",
+    "quit": "Keluar",
+    "stay": "Tetap di sini"
   }
 }
