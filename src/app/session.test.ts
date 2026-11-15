@@ -151,6 +151,11 @@ import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
 import { currentSubtitleFeed } from './subtitleFeed';
+import { createRequire } from 'node:module';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { HistoryPort } from '../lib/history/port';
 
 const autoSave = vi.mocked(autoSaveConversation);
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -1109,3 +1114,185 @@ describe('getAppSession', () => {
     expect(currentRunPhase()).toBe('idle');
   });
 });
+
+// History: every desktop run is written into its record (session capture).
+describe('history', () => {
+  type Call = [string, any];
+  /** A port that records each call; `slow(method)` holds that method's answers until `release()`. */
+  function recordingPort() {
+    const calls: Call[] = [];
+    const slow = new Set<string>();
+    let held: Array<() => void> = [];
+    let transcripts = 0;
+    const answer = (method: string, arg: unknown, value: unknown) => {
+      calls.push([method, arg]);
+      if (slow.has(method)) return new Promise((resolve) => { held.push(() => resolve(value)); });
+      return Promise.resolve(value);
+    };
+    const port = {
+      openRecord: (a: unknown) => answer('openRecord', a, undefined),
+      putLeg: (a: unknown) => answer('putLeg', a, undefined),
+      createTranscript: (a: unknown) => answer('createTranscript', a, ++transcripts),
+      putSegments: (a: unknown) => answer('putSegments', a, undefined),
+      putNotices: (a: unknown) => answer('putNotices', a, undefined),
+      appendSentences: (a: { sentences: unknown[] }) => answer('appendSentences', a, { added: a.sentences.length }),
+      reviseSentences: (a: unknown) => answer('reviseSentences', a, undefined),
+      closeRecord: (a: unknown) => answer('closeRecord', a, { kept: true }),
+    } as unknown as HistoryPort;
+    return { port, calls, slow: (m: string) => slow.add(m), release: () => { slow.clear(); const h = held; held = []; for (const f of h) f(); } };
+  }
+
+  /** A port over the real store in a temporary folder, called directly as the IPC layer would. */
+  function storePort() {
+    const nodeRequire = createRequire(import.meta.url);
+    const { openHistory } = nodeRequire('../../electron/history-store.js');
+    const dir = mkdtempSync(join(tmpdir(), 'sokuji-capture-'));
+    const store = openHistory({ dir });
+    const call = (method: string) => async (a: unknown) => store[method](a);
+    const port = Object.fromEntries(['openRecord', 'putLeg', 'createTranscript', 'putSegments', 'putNotices', 'appendSentences', 'reviseSentences', 'closeRecord']
+      .map((m) => [m, call(m)])) as unknown as HistoryPort;
+    const h = { port, store, dir, cleanup: () => { h.store.close(); rmSync(dir, { recursive: true, force: true }); } };
+    return h;
+  }
+
+  /** A run id as the app makes them (a UUID's shape): the store refuses an id that could leave its folder. */
+  const RUN = 'run-0001-aaaa';
+
+  it('writes a run into the port it was given and closes the record', async () => {
+    const port = recordingPort();
+    const { session, clock } = await setup({ history: port.port, ipc: null });
+    await session.runner.start();
+    clock.advance(8000);
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    const names = port.calls.map((c) => c[0]);
+    expect(names[0]).toBe('openRecord');
+    expect(port.calls[0][1]).toEqual(expect.objectContaining({ id: 'run1', mode: 'speaker' }));
+    expect(names).toContain('appendSentences');
+    expect(names[names.length - 1]).toBe('closeRecord');
+  });
+
+  it('creates no writer without a port', async () => {
+    const { session, clock } = await setup({ history: null, ipc: null });
+    await session.runner.start();
+    clock.advance(2000);
+    await session.runner.stop();
+    await session.runner.settled();
+  });
+
+  it('answers the close request only after the last writes', async () => {
+    const port = recordingPort();
+    port.slow('closeRecord');
+    const { ipc, order, closeRequested } = electronIpc();
+    const { session, clock } = await setup({ history: port.port, ipc });
+    const detach = session.attach();
+    await session.runner.start();
+    clock.advance(1000);
+    const closing = closeRequested();
+    await flush();
+    await flush();
+    expect(order).not.toContain('app:close-ready');
+    port.release();
+    await closing;
+    expect(order).toContain('app:close-ready');
+    detach();
+  });
+
+  it('stores a run so that the record gives back the same conversation', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      await session.runner.start();
+      clock.advance(8000);
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      await flush();
+      const ended = session.runner.conversation.snapshot();
+      const legs = ended.map((l) => ({
+        ...l,
+        notices: l.notices.filter((n) => n.lifetime !== 'transient'),
+        segments: l.segments.map(({ speech: _speech, heard: _heard, ...rest }) => ({ ...rest, speech: [] })),
+      }));
+      expect(h.store.getLegs(RUN)).toEqual(legs);
+      const rec = h.store.getRecord(RUN);
+      expect(rec.state).toBe('closed');
+      const sentences = h.store.getSentences({ transcriptId: rec.transcripts[0].id });
+      expect(sentences.length).toBeGreaterThan(0);
+      expect(sentences.map((s: { n: number }) => s.n)).toEqual(sentences.map((_: unknown, i: number) => i + 1));
+      expect(sentences.every((s: { startMs: number; endMs: number }) => s.endMs >= s.startMs && s.startMs >= 0)).toBe(true);
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it('follows the rewrite script without changing a number or a time', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      useProviderStore.getState().updateSettings(fakeProvider, { script: 'rewrite' });
+      await session.runner.start();
+      clock.advance(8000);
+      await flush();
+      const transcriptId = h.store.getRecord(RUN).transcripts[0].id;
+      const before = h.store.getSentences({ transcriptId });
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      await flush();
+      const after = h.store.getSentences({ transcriptId });
+      expect(after.length).toBeGreaterThan(0);
+      expect(after.slice(0, before.length).map((s: { n: number; startMs: number; endMs: number }) => [s.n, s.startMs, s.endMs]))
+        .toEqual(before.map((s: { n: number; startMs: number; endMs: number }) => [s.n, s.startMs, s.endMs]));
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it('keeps writing into the same record across a dropped connection', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      useProviderStore.getState().updateSettings(fakeProvider, { script: 'reconnect' });
+      await session.runner.start();
+      for (let i = 0; i < 30; i++) { clock.advance(1000); await flush(); }
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      await flush();
+      expect(h.store.listRecords({}).map((r: { id: string; state: string }) => [r.id, r.state])).toEqual([[RUN, 'closed']]);
+      const sentences = h.store.getSentences({ transcriptId: h.store.getRecord(RUN).transcripts[0].id });
+      expect(sentences.length).toBeGreaterThan(1);
+      expect(sentences.map((s: { n: number }) => s.n).sort((a: number, b: number) => a - b)).toEqual(sentences.map((_: unknown, i: number) => i + 1));
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it('leaves a record that launch recovery closes when the page goes away mid-run', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      const detach = session.attach();
+      await session.runner.start();
+      clock.advance(8000);
+      await flush();
+      await flush();
+      const written = h.store.getSentences({ transcriptId: h.store.getRecord(RUN).transcripts[0].id }).length;
+      expect(written).toBeGreaterThan(0);
+      window.dispatchEvent(new Event('pagehide'));
+      detach();
+      const nodeRequire = createRequire(import.meta.url);
+      const { openHistory } = nodeRequire('../../electron/history-store.js');
+      h.store.close();
+      const reopened = openHistory({ dir: h.dir });
+      h.store = reopened;
+      expect(reopened.recoverOpenRecords()).toEqual({ closed: [RUN], dropped: [] });
+      expect(reopened.getSentences({ transcriptId: reopened.getRecord(RUN).transcripts[0].id }).length).toBe(written);
+    } finally {
+      h.cleanup();
+    }
+  });
+});
+

@@ -75,6 +75,14 @@ function localInstructions(context: SessionContext, s: LocalInferenceSettings, s
  * direction `context.direction` names — the reversed (participant) direction
  * is just a different `context.direction`, not a separate code path.
  */
+/**
+ * Whether the local provider turns speech straight into the translation: a Granite Speech recognition model also
+ * chosen, explicitly, as the translation model. Such a session gives no original text.
+ */
+export function translatesSpeechDirectly(asrModelId: string | undefined, translationModelId: string | undefined): boolean {
+  return !!asrModelId && translationModelId === asrModelId && getManifestEntry(asrModelId)?.asrEngine === 'granite-speech';
+}
+
 export function buildLocalInference(
   context: SessionContext,
   s: LocalInferenceSettings,
@@ -113,7 +121,7 @@ export function buildLocalInference(
   // Today's inference (LocalInferenceClient.ts ~406-408): the ASR model
   // handles translation itself (Granite Speech) when it was also picked,
   // explicitly, as the translation stage.
-  const isAst = asrEntry?.asrEngine === 'granite-speech' && resolved.translation?.modelId === resolved.asr.modelId;
+  const isAst = translatesSpeechDirectly(resolved.asr.modelId, resolved.translation?.modelId);
 
   let translation: LocalInferenceConfig['translation'];
   if (isAst) {

@@ -10,7 +10,10 @@ import { createAppCapture, type AppCapture } from '../lib/audio/appCapture';
 import type { Playback } from '../lib/audio/playback';
 import { realClock, type Clock } from '../lib/contract/clock';
 import { redact } from '../lib/diagnostics/redact';
-import { describeCause, reportWarning } from '../lib/diagnostics/report';
+import { describeCause, reportError, reportWarning } from '../lib/diagnostics/report';
+import { historyPort, type HistoryPort } from '../lib/history/port';
+import { createHistoryWriter } from '../lib/history/capture/writer';
+import { captureFactsFromStores } from '../lib/history/capture/facts';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
@@ -69,6 +72,8 @@ export interface AppSessionOptions {
   clock?: Clock;
   /** Tests: each run's session id. Absent: a random UUID. */
   newSessionId?(): string;
+  /** Where each run is written as a History record; default the desktop's port in Electron, none elsewhere; `null` for none. */
+  history?: HistoryPort | null;
   /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
   ipc?: {
     invoke(channel: string, data?: unknown): Promise<unknown>;
@@ -109,6 +114,8 @@ export interface AppSession {
 
 // Hoisted so `get()` returns the same object every call — `useSyncExternalStore` requires it.
 const IDLE: KaraokeState = { lit: new Map(), replaying: null };
+/** At a window close, History's last writes are waited for at most this long. */
+const HISTORY_CLOSE_WAIT_MS = 2000;
 
 export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const clock = options.clock ?? realClock;
@@ -180,6 +187,30 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       }
     },
   });
+
+  // History (desktop): every run becomes a record while it runs, written by an observer of the runner.
+  const historyPortOrNull = options.history === undefined ? (isElectron() ? historyPort() : null) : options.history;
+  const historyWriter = historyPortOrNull
+    ? createHistoryWriter({
+      state: runner.state,
+      conversation: runner.conversation,
+      port: historyPortOrNull,
+      clock,
+      facts: () => {
+        const phase = runner.state.getState();
+        return captureFactsFromStores({ info: runner.conversation.info, participantSpeech: 'participantSpeech' in phase ? phase.participantSpeech : false });
+      },
+      report: (message, cause) => reportError('History', message, { cause }),
+    })
+    : null;
+  /** The writer's last writes, or 2 s, whichever is first: the close waits for History, never longer than that. */
+  const historySettled = (): Promise<void> => {
+    if (!historyWriter) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      const cancel = clock.setTimeout(resolve, HISTORY_CLOSE_WAIT_MS);
+      void historyWriter.settled().then(() => { cancel(); resolve(); });
+    });
+  };
 
   // The screen context lives as long as its run (spec 2026-10-22 §3.1): every way back to idle lets it go — a stop, a
   // leg's end, a start refused or failed, `abandon()` — not only the runs that went live, which alone reach `onRunEnded`.
@@ -395,6 +426,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
             try {
               await runner.stop('window');
               await runner.settled();
+              await historySettled();
             } finally {
               void ipc.invoke('app:close-ready').catch((error: unknown) =>
                 reportWarning('AppSession', `Answering the close request failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:close-ready' }));
