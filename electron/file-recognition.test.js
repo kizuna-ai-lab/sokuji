@@ -71,7 +71,7 @@ function fakeSoniox(o = {}) {
 }
 
 const instant = async () => {};
-const request = (over = {}) => ({ store, recordId: ID, source: 'participant', apiKey: KEY, region: 'us', languageHints: ['en'], jobId: 'job-1', ...over });
+const request = (over = {}) => ({ store, recordId: ID, service: 'soniox', source: 'participant', apiKey: KEY, region: 'us', languageHints: ['en'], jobId: 'job-1', ...over });
 
 describe('Soniox file recognition', () => {
   it('names the REST host of the key’s region', () => {
@@ -194,5 +194,18 @@ describe('Soniox file recognition', () => {
     await expect(recognizer.recognize(request({ apiKey: '' }))).rejects.toMatchObject({ code: 'BAD_INPUT' });
     await expect(recognizer.recognize(request({ region: 'mars' }))).rejects.toMatchObject({ code: 'BAD_INPUT' });
     await expect(recognizer.recognize(request({ jobId: '' }))).rejects.toMatchObject({ code: 'BAD_INPUT' });
+  });
+
+  it('refuses a service it has no recognizer for', async () => {
+    const soniox = fakeSoniox();
+    const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant });
+    await expect(recognizer.recognize(request({ service: 'qwen' }))).rejects.toMatchObject({ code: 'BAD_INPUT' });
+    expect(soniox.calls).toEqual([]);
+  });
+
+  it("reads an upload Soniox could not decode as the audio's fault", async () => {
+    const soniox = fakeSoniox({ refusals: { 'POST /v1/files': { status: 400, body: { error_type: 'invalid_audio_file', message: 'Cannot decode audio' } } } });
+    const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant });
+    await expect(recognizer.recognize(request())).rejects.toMatchObject({ code: 'BAD_AUDIO' });
   });
 });

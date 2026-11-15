@@ -3,12 +3,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
 import { HistoryUnavailable } from '../port';
-import type { HistoryRecord, HistoryRecognizeRequest, SonioxFileToken } from '../types';
+import type { HistoryRecord, HistoryRecognizeRequest, FileToken } from '../types';
 import { transcribeRecord, TranscribeError } from './transcribe';
 
 const ID = 'run-0001-aaaa';
 const SERVICE = { service: 'soniox' as const, apiKey: 'sk-test', region: 'eu' as const };
-const said = (text: string, at: number): SonioxFileToken[] => [{ text, start_ms: at, end_ms: at + 500, speaker: '1', language: 'en' }];
+const said = (text: string, at: number): FileToken[] => [{ text, start_ms: at, end_ms: at + 500, speaker: '1', language: 'en' }];
 
 function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?: number | null }>; sameInput?: boolean } = {}): HistoryRecord {
   const mic = { input: 'microphone', inputName: 'Mic', inputId: 'mic-1' };
@@ -24,7 +24,7 @@ function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?:
   } as unknown as HistoryRecord;
 }
 
-function fakePort(o: { record?: HistoryRecord; words?: Record<string, SonioxFileToken[]>; fail?: string } = {}) {
+function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string } = {}) {
   const asked: HistoryRecognizeRequest[] = [];
   const written: unknown[] = [];
   const port = {

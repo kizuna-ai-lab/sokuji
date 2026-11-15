@@ -76,7 +76,7 @@ describe('the history port', () => {
     expect(await nullHistoryPort.usage()).toEqual({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 });
     expect(await nullHistoryPort.status()).toEqual({ available: false, dir: '' });
     expect(await nullHistoryPort.saveTrack({ recordId: 'run-0001-aaaa', source: 'speaker', title: '', defaultName: '' })).toEqual({ saved: false });
-    expect(await nullHistoryPort.recognize({ recordId: 'run-0001-aaaa', source: 'speaker', apiKey: 'k', region: 'us', languageHints: [], jobId: 'j' })).toEqual({ tokens: [], audioMs: 0 });
+    expect(await nullHistoryPort.recognize({ recordId: 'run-0001-aaaa', service: 'soniox', source: 'speaker', apiKey: 'k', region: 'us', languageHints: [], jobId: 'j' })).toEqual({ tokens: [], audioMs: 0 });
     expect(await nullHistoryPort.cancelRecognition({ jobId: 'j' })).toBe(false);
     expect(await nullHistoryPort.recognitionStatus({ jobId: 'j' })).toBeNull();
     expect(Object.keys(nullHistoryPort).sort()).toEqual(HISTORY_PORT_CHANNELS.map(([method]) => method).sort());

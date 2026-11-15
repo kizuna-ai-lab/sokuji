@@ -20,11 +20,11 @@ describe('the file recognition service', () => {
     expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-eu', region: 'eu' });
   });
 
-  it('is missing when recognition is another service, or the region has no key', async () => {
+  it('is missing when the recognition service cannot transcribe files, or the region has no key', async () => {
     useLineUpStore.setState({ lineUp: lineUp('openai') } as never);
-    expect(await fileRecognitionFromStores()).toEqual({ missing: 'not-soniox' });
+    expect(await fileRecognitionFromStores()).toEqual({ missing: 'no-file-service' });
     useLineUpStore.setState({ lineUp: null } as never);
-    expect(await fileRecognitionFromStores()).toEqual({ missing: 'not-soniox' });
+    expect(await fileRecognitionFromStores()).toEqual({ missing: 'no-file-service' });
     useLineUpStore.setState({ lineUp: lineUp('soniox') } as never);
     soniox({ region: 'jp' }, { apiKey: 'sk-us' });
     expect(await fileRecognitionFromStores()).toEqual({ missing: 'no-key' });

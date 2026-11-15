@@ -211,6 +211,13 @@ export interface ProviderRefusal {
  * is the sign-in (`managed.ts`), its `K` the lease's per-leg keys (Stage 2
  * Kizuna Soniox, choice 1).
  */
+/** What a provider's file recognition needs: which service runs it, with which key, in which of its regions. */
+export interface FileRecognitionSpec {
+  service: string;
+  apiKey: string;
+  region?: string;
+}
+
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object, R extends { missing?: never } & object = K> {
   // identity and presence
   /** Persisted as the selected provider; never renamed. */
@@ -398,6 +405,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * when its switch is on.
    */
   participantSpeech?: boolean;
+  /**
+   * File recognition: History's import and "transcribe again" ask the line-up's recognition provider what a recognition
+   * of a saved recording needs, from its own settings and credentials. Absent when it cannot transcribe files. The
+   * main process runs the job by `service` (electron/file-recognition.js); every service answers in one word shape.
+   */
+  fileRecognition?: (settings: S, credentials: K) => FileRecognitionSpec | { missing: 'no-key' };
   /**
    * Whether Both may run face-to-face (spec 2026-10-08, slice 3): two people
    * at one microphone, attributed by speaker label and language on one

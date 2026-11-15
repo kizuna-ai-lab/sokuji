@@ -87,7 +87,8 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     let tokens;
     try {
       ({ tokens } = await o.port.recognize({
-        recordId: o.recordId, source: track.source, apiKey: o.service.apiKey, region: o.service.region, languageHints, jobId,
+        recordId: o.recordId, service: o.service.service, source: track.source, apiKey: o.service.apiKey,
+        ...(o.service.region ? { region: o.service.region } : {}), languageHints, jobId,
       }));
     } catch (error) {
       if (o.signal?.aborted) {

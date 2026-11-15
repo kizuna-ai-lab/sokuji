@@ -1,10 +1,10 @@
 // A file transcript's words become the record's numbered sentences, cut as live sentences are.
 import { describe, it, expect } from 'vitest';
-import type { SonioxFileToken } from '../types';
+import type { FileToken } from '../types';
 import { fileSentences, numberSentences, TURN_GAP_MS } from './sentences';
 
 /** Words of one speaker, each `step` ms long, starting at `at`. */
-function words(text: string, o: { at: number; step?: number; speaker?: string; language?: string; spaced?: boolean }): SonioxFileToken[] {
+function words(text: string, o: { at: number; step?: number; speaker?: string; language?: string; spaced?: boolean }): FileToken[] {
   const step = o.step ?? 300;
   const parts = o.spaced === false ? [...text] : text.split(' ').map((w, i) => (i === 0 ? w : ` ${w}`));
   return parts.map((t, i) => ({ text: t, start_ms: o.at + i * step, end_ms: o.at + (i + 1) * step, speaker: o.speaker ?? '1', language: o.language ?? 'en' }));

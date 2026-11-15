@@ -121,6 +121,7 @@ function setupHistoryHandlers({
   ipcMain.handle('history:recognize', answer((store, payload) => recognizer.recognize({
     store,
     recordId: payload.recordId,
+    service: payload.service,
     source: payload.source,
     apiKey: payload.apiKey,
     region: payload.region,

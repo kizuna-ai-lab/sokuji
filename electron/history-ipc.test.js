@@ -112,7 +112,7 @@ describe('the history channels', () => {
       status: (jobId) => (jobId === 'job-1' ? { phase: 'queued' } : null),
     };
     register({ recognizer });
-    const payload = { recordId: 'run-0001-aaaa', source: 'speaker', apiKey: 'k', region: 'us', languageHints: ['zh'], jobId: 'job-1' };
+    const payload = { recordId: 'run-0001-aaaa', service: 'soniox', source: 'speaker', apiKey: 'k', region: 'us', languageHints: ['zh'], jobId: 'job-1' };
     expect(await handlers.get('history:recognize')({ sender: POPOVER }, payload)).toEqual({ ok: false, error: 'History refused: not the main window' });
     expect(asked).toEqual([]);
     expect(await call('history:recognize', payload)).toEqual({ ok: true, value: { tokens: [], audioMs: 5 } });

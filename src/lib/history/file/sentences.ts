@@ -4,7 +4,7 @@
 // a new speaker, or a silence of TURN_GAP_MS, begins one — and each turn is cut by the same cutter as live text, as a
 // finished segment whose words are its heard pieces: sentence ends, the cut after a pause and the 45 s cap apply alike,
 // and every time is given. A turn's sentences share one segment id, so the record page shows a turn as one row.
-import type { HistorySentenceInput, HistorySentenceSide, HistorySentenceTrack, SonioxFileToken } from '../types';
+import type { HistorySentenceInput, HistorySentenceSide, HistorySentenceTrack, FileToken } from '../types';
 import { createSegmentCut } from '../capture/cut';
 
 /** A silence this long between two words begins a new turn. */
@@ -37,9 +37,9 @@ function mostOf(values: readonly (string | undefined)[]): string | undefined {
   return best;
 }
 
-export function fileSentences(tokens: readonly SonioxFileToken[], o: FileSentenceOptions): FileSentence[] {
+export function fileSentences(tokens: readonly FileToken[], o: FileSentenceOptions): FileSentence[] {
   const words = tokens.filter((t) => typeof t.text === 'string' && t.text.length > 0);
-  const turns: SonioxFileToken[][] = [];
+  const turns: FileToken[][] = [];
   for (const w of words) {
     const turn = turns[turns.length - 1];
     const last = turn?.[turn.length - 1];

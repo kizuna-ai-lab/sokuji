@@ -111,8 +111,8 @@ export interface HistoryTranscriptRow {
   sentences: number;
 }
 
-/** A word of a file transcript, as Soniox's file recognition gives it. */
-export interface SonioxFileToken {
+/** A word of a file transcript: every file recognition service answers in this shape (Soniox's own). */
+export interface FileToken {
   text: string;
   start_ms: number;
   end_ms: number;
@@ -121,12 +121,13 @@ export interface SonioxFileToken {
   confidence?: number;
 }
 
-/** A kept track sent to file recognition: the key and its region, the languages to expect, and the job's id. */
+/** A kept track sent to file recognition: the service, its key and region, the languages to expect, the job's id. */
 export interface HistoryRecognizeRequest {
   recordId: string;
+  service: string;
   source: HistoryTrackSource;
   apiKey: string;
-  region: 'us' | 'eu' | 'jp' | 'in';
+  region?: string;
   languageHints: string[];
   jobId: string;
 }

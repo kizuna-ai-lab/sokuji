@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../contract/clock';
 import { HistoryUnavailable, type HistoryPort } from '../port';
 import type { OpusEncoderFactory } from '../recording/track';
-import type { HistoryRecognizeRequest, SonioxFileToken } from '../types';
+import type { HistoryRecognizeRequest, FileToken } from '../types';
 import { importFile, ImportError, MAX_IMPORT_BYTES, MAX_IMPORT_MS, type DecodedAudio } from './importFile';
 
 const HEAD = new Uint8Array([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 1, 1, 0x38, 0x01, 0xc0, 0x5d, 0, 0, 0, 0, 0]);
@@ -22,7 +22,7 @@ const encoder: OpusEncoderFactory = (onPacket, onHead) => {
 };
 
 const SERVICE = { service: 'soniox' as const, apiKey: 'sk-test', region: 'us' as const };
-const SAID: SonioxFileToken[] = [{ text: 'Welcome to the meeting.', start_ms: 100, end_ms: 2000, speaker: '1', language: 'en' }];
+const SAID: FileToken[] = [{ text: 'Welcome to the meeting.', start_ms: 100, end_ms: 2000, speaker: '1', language: 'en' }];
 const SECOND = 24_000;
 
 /** A decoded file: `seconds` of 24 kHz audio in one-second chunks, loud unless `silent`. */
@@ -36,7 +36,7 @@ function decoded(seconds: number, o: { silent?: boolean } = {}): DecodedAudio {
 }
 const file = (name = 'Team sync.mp4', size = 1000) => ({ name, size, lastModified: 1_800_000_100_000 }) as unknown as File;
 
-function fakePort(o: { recognize?: (r: HistoryRecognizeRequest) => Promise<{ tokens: SonioxFileToken[]; audioMs: number }> } = {}) {
+function fakePort(o: { recognize?: (r: HistoryRecognizeRequest) => Promise<{ tokens: FileToken[]; audioMs: number }> } = {}) {
   const calls: Array<[string, any]> = [];
   const note = (name: string, value: unknown = undefined) => vi.fn(async (a: unknown) => { calls.push([name, a]); return value; });
   const tracks: Array<{ source: string; offsetMs: number; goneAt: null }> = [];

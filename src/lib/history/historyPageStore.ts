@@ -428,7 +428,7 @@ export function createHistoryPageStore(
       }),
 
       async fileJobBlocked(kind) {
-        if (!files) return 'not-soniox';
+        if (!files) return 'no-file-service';
         if (get().job) return 'busy';
         const service = await files.service();
         if ('missing' in service) return service.missing;

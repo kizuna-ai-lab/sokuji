@@ -1,6 +1,8 @@
 // electron/file-recognition.js
 //
-// A kept track of a History record sent to Soniox's file recognition (`stt-async-v6`): the track is uploaded from
+// A kept track of a History record sent to a file recognition service, named by the request (the line-up's
+// recognition provider declares it: `Provider.fileRecognition`). One service today, Soniox (`stt-async-v6`); each
+// answers in the same word shape: text, start_ms, end_ms, speaker, language. With Soniox the track is uploaded from
 // disk, a transcription is made of it, its words come back, and whatever was uploaded is deleted at Soniox in every
 // outcome. The host follows the key's region: each region is its own Soniox project with its own keys (see
 // src/lib/soniox/regions.ts). The key is used for the calls only; no message, error or log line repeats it.
@@ -41,8 +43,10 @@ function spoken(text, apiKey) {
 }
 
 /** A refused call as a HistoryError with the app's code. */
-function refusal(status, message) {
+function refusal(status, message, errorType = '') {
   const said = message ? `: ${message}` : '';
+  // Soniox decodes an upload as it arrives: one it cannot read is refused there (400 invalid_audio_file).
+  if (status === 400 && /invalid_audio/i.test(errorType)) return new HistoryError('BAD_AUDIO', `Soniox could not read the recording (${status})${said}`);
   if (status === 401 || status === 403) return new HistoryError('NO_KEY', `Soniox refused the key (${status})${said}`);
   if (status === 402) return new HistoryError('NO_CREDIT', `Soniox: no credit left (${status})${said}`);
   if (status === 429 && /quota|balance|credit|limit exceeded/i.test(message)) return new HistoryError('NO_CREDIT', `Soniox: no credit left (${status})${said}`);
@@ -68,7 +72,8 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
   /** Clean-ups still running after their recognition ended. */
   const cleanups = new Set();
 
-  async function recognize({ store, recordId, source, apiKey, region, languageHints = [], jobId } = {}) {
+  async function recognize({ store, recordId, service, source, apiKey, region, languageHints = [], jobId } = {}) {
+    if (service !== 'soniox') throw new HistoryError('BAD_INPUT', `No file recognition for ${String(service)}`);
     if (!isString(apiKey) || !REGIONS.has(region) || !isString(jobId) || !Array.isArray(languageHints) || !languageHints.every(isString)) {
       throw new HistoryError('BAD_INPUT', 'A recognition needs a key, a Soniox region, language hints and a job id');
     }
@@ -103,11 +108,13 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
       }
       if (!response.ok) {
         let message = '';
+        let errorType = '';
         try {
           const answer = await response.json();
           message = spoken(answer && (answer.message || answer.error_message || answer.error), apiKey);
+          errorType = String((answer && answer.error_type) || '');
         } catch { /* no body */ }
-        throw refusal(response.status, message);
+        throw refusal(response.status, message, errorType);
       }
       if (response.status === 204) return null;
       return response.json();

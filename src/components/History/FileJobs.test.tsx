@@ -28,7 +28,7 @@ function fakePort() {
   return { port: port as unknown as HistoryPort, calls };
 }
 
-function fakeJobs(o: { missing?: 'not-soniox' | 'no-key'; session?: boolean } = {}) {
+function fakeJobs(o: { missing?: 'no-file-service' | 'no-key'; session?: boolean } = {}) {
   const pending: { resolve?: (v: unknown) => void } = {};
   const jobs: FileJobs = {
     service: vi.fn(async () => (o.missing ? { missing: o.missing } : { service: 'soniox' as const, apiKey: 'k', region: 'us' as const })),
@@ -65,7 +65,8 @@ describe('importing a file', () => {
     await settle();
     expect(screen.getByRole('dialog', { name: 'Import “Team sync.mp4”' })).toBeTruthy();
     expect(screen.getByText('Transcribed by Soniox, the recognition service in your line-up.')).toBeTruthy();
-    expect(screen.getByText('About USD 0.10 an hour of audio, paid with your Soniox key.')).toBeTruthy();
+    // With the user's own key there is no price to show (owner, 2026-11-16).
+    expect(screen.queryByText(/USD/)).toBeNull();
     fireEvent.change(screen.getByLabelText('Language spoken in it'), { target: { value: 'ja' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();
@@ -75,7 +76,7 @@ describe('importing a file', () => {
 
   it('says why it cannot start, and cannot be started', async () => {
     for (const [o, text] of [
-      [{ missing: 'not-soniox' }, 'Needs Soniox as the recognition service in the line-up.'],
+      [{ missing: 'no-file-service' }, 'Needs Soniox as the recognition service in the line-up.'],
       [{ missing: 'no-key' }, 'Needs a Soniox key in Settings.'],
       [{ session: true }, 'Available when no session is running.'],
     ] as const) {
@@ -109,7 +110,7 @@ describe('a file job running, and how it ended', () => {
 });
 
 describe('transcribing a record again', () => {
-  it('says a new version is made and what it costs, and starts it', async () => {
+  it('says a new version is made, and starts it', async () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     await act(() => store.getState().openRecord(A));
@@ -118,7 +119,7 @@ describe('transcribing a record again', () => {
     await settle();
     expect(screen.getByRole('dialog', { name: 'Transcribe again' })).toBeTruthy();
     expect(screen.getByText('The saved recording is transcribed again. A new version is made; the transcripts already here stay.')).toBeTruthy();
-    expect(screen.getByText('About USD 0.05, paid with your Soniox key.')).toBeTruthy();
+    expect(screen.queryByText(/USD/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();
     expect(jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A }));

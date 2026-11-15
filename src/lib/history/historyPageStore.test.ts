@@ -412,7 +412,7 @@ describe('transcripts and file jobs', () => {
     expect(runner.start).toHaveBeenCalledWith(A, undefined, 1);
   });
 
-  function fakeJobs(o: { missing?: 'not-soniox' | 'no-key'; session?: boolean } = {}) {
+  function fakeJobs(o: { missing?: 'no-file-service' | 'no-key'; session?: boolean } = {}) {
     let finishImport!: (r: unknown) => void;
     let finishTranscribe!: (r: unknown) => void;
     const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
@@ -455,7 +455,7 @@ describe('transcripts and file jobs', () => {
   });
 
   it('says why a file job cannot start: no Soniox for recognition, no key, a session running', async () => {
-    for (const [o, reason] of [[{ missing: 'not-soniox' }, 'not-soniox'], [{ missing: 'no-key' }, 'no-key'], [{ session: true }, 'session']] as const) {
+    for (const [o, reason] of [[{ missing: 'no-file-service' }, 'no-file-service'], [{ missing: 'no-key' }, 'no-key'], [{ session: true }, 'session']] as const) {
       const f = fakeJobs(o);
       store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
       expect(await store.getState().fileJobBlocked('import')).toBe(reason);

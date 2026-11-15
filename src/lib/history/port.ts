@@ -8,7 +8,7 @@ import type {
   HistoryLegInput, HistoryNotes, HistoryNotesInput, HistoryNotesRow, HistoryRecord, HistoryRecordInput, HistoryRecordRow,
   HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker,
   HistoryRecognizePhase, HistoryRecognizeRequest, HistoryStatus, HistoryTrackPiece, HistoryTranscriptOrigin, HistoryUsage,
-  SonioxFileToken,
+  FileToken,
 } from './types';
 
 export interface HistoryPort {
@@ -46,7 +46,7 @@ export interface HistoryPort {
   saveTrack(args: { recordId: string; source: string; title: string; defaultName: string }): Promise<{ saved: boolean }>;
   status(): Promise<HistoryStatus>;
   /** A kept track through Soniox's file recognition: its words, and the audio's length Soniox heard. */
-  recognize(args: HistoryRecognizeRequest): Promise<{ tokens: SonioxFileToken[]; audioMs: number }>;
+  recognize(args: HistoryRecognizeRequest): Promise<{ tokens: FileToken[]; audioMs: number }>;
   /** Stops a running recognition; false when none runs by that id. */
   cancelRecognition(args: { jobId: string }): Promise<boolean>;
   /** The phase of a running recognition, or null. */
