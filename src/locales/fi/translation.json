@@ -1012,7 +1012,8 @@
       "dictMeta": "Näyttää japanin lukutavat; otetaan käyttöön kohdassa ”Näyttö”",
       "voicesTitle": "Tuodut äänet",
       "voicesHint": "Tuomasi Supertonic-äänitiedostot.",
-      "importedOn": "Tuotu {{date}}"
+      "importedOn": "Tuotu {{date}}",
+      "more": "{{count}} lisää"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Ei kirjautunut",
       "together": "yhdessä",
       "view": "Näytä",
-      "hide": "Piilota"
+      "hide": "Piilota",
+      "endToEnd": "Päästä päähän",
+      "transcribeTranslate": "Litterointi ja käännös",
+      "signedInBalance": "Kirjautunut; saldo {{amount}}",
+      "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
+      "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu"
     },
     "lineup": {
       "title": "Kokoonpano",
@@ -1826,7 +1832,18 @@
         "ready": "Valmis"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
-      "hint": "Mikä palvelu hoitaa kunkin vaiheen"
+      "hint": "Mikä palvelu hoitaa kunkin vaiheen",
+      "uses": {
+        "turn": "Puheen loppu",
+        "key": "Näppäin",
+        "space": "Välilyönti",
+        "released": "Kun päästät irti",
+        "releasedValue": "se pätkä lähtee käännettäväksi",
+        "notHeld": "Kun et pidä pohjassa",
+        "notHeldValue": "oma äänesi menee kääntämättä suoraan toiselle osapuolelle"
+      },
+      "actsOn": "Koskee: {{stages}}",
+      "pointer": "Asetukset, jotka koskevat näitä: {{stages}}, ovat kortilla ”{{card}}”."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -1858,7 +1875,31 @@
       "micHint": "Mistä ääneni tulee sisään",
       "otherHint": "Mistä toisen osapuolen ääni tulee sisään",
       "device": "Laite",
-      "source": "Lähde"
+      "source": "Lähde",
+      "flow": {
+        "myMic": "Mikrofonini",
+        "toSpeech": "Puheeksi",
+        "toThem": "Virtuaalimikki → toinen osapuoli",
+        "theirVoice": "Toisen osapuolen ääni",
+        "myDevice": "Toistolaitteeni",
+        "caption": "Mihin ääni kulkee. Kirkkaat viivat ovat nyt päällä, katkoviivat pois; ne seuraavat alla olevia kytkimiä.",
+        "aria": "Mihin ääni kulkee: sanomani muuttuu puheeksi ja menee virtuaalimikrofoniin toiselle osapuolelle, ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma muuttuu puheeksi ja soi toistolaitteestani."
+      }
+    },
+    "general": {
+      "basics": "Perusasetukset",
+      "maintenance": "Ylläpito ja ohje",
+      "update": "Päivitykset",
+      "updateLine": "Sinulla on {{version}}.",
+      "version": "Versio",
+      "storeUpdates": "Selaimen kauppa pitää laajennuksen ajan tasalla.",
+      "wizard": "Ohjattu määritys",
+      "wizardLine": "Käy ohjattu toiminto läpi uudelleen; tallentamasi on valmiiksi valittuna.",
+      "rerun": "Suorita uudelleen",
+      "guide": "Opas",
+      "guideLine": "Vaiheittaiset vinkit päänäkymässä.",
+      "restart": "Aloita alusta",
+      "needHelp": "Tarvitsetko apua:"
     }
   }
 }

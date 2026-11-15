@@ -1012,7 +1012,8 @@
       "dictMeta": "Zeigt japanische Lesungen; wird unter „Anzeige“ eingeschaltet",
       "voicesTitle": "Importierte Stimmen",
       "voicesHint": "Supertonic-Stimmdateien, die Sie importiert haben.",
-      "importedOn": "Importiert am {{date}}"
+      "importedOn": "Importiert am {{date}}",
+      "more": "{{count}} weitere"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Nicht angemeldet",
       "together": "gemeinsam",
       "view": "Anzeigen",
-      "hide": "Ausblenden"
+      "hide": "Ausblenden",
+      "endToEnd": "Durchgängig",
+      "transcribeTranslate": "Transkription und Übersetzung",
+      "signedInBalance": "Angemeldet; Guthaben {{amount}}",
+      "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
+      "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen"
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1826,7 +1832,18 @@
         "ready": "Bereit"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
-      "hint": "Welcher Dienst jede Stufe übernimmt"
+      "hint": "Welcher Dienst jede Stufe übernimmt",
+      "uses": {
+        "turn": "Redeende",
+        "key": "Taste",
+        "space": "Leertaste",
+        "released": "Nach dem Loslassen",
+        "releasedValue": "geht dieses Stück zur Übersetzung",
+        "notHeld": "Solange sie nicht gedrückt ist",
+        "notHeldValue": "geht Ihre eigene Stimme unübersetzt direkt zur Gegenseite"
+      },
+      "actsOn": "Gilt für {{stages}}",
+      "pointer": "Die Optionen für {{stages}} stehen in der Karte „{{card}}“."
     },
     "display": {
       "surface": "Welche Anzeige",
@@ -1858,7 +1875,31 @@
       "micHint": "Wo meine Stimme hereinkommt",
       "otherHint": "Wo die Stimme der Gegenseite hereinkommt",
       "device": "Gerät",
-      "source": "Quelle"
+      "source": "Quelle",
+      "flow": {
+        "myMic": "Mein Mikrofon",
+        "toSpeech": "Zu Sprache",
+        "toThem": "Virtuelles Mikro → Gegenseite",
+        "theirVoice": "Stimme der Gegenseite",
+        "myDevice": "Mein Wiedergabegerät",
+        "caption": "Wohin der Ton geht. Helle Linien sind gerade an, gestrichelte aus; sie folgen den Schaltern darunter.",
+        "aria": "Wohin der Ton geht: Was ich sage, wird zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird zu Sprache und spielt auf meinem Wiedergabegerät."
+      }
+    },
+    "general": {
+      "basics": "Grundeinstellungen",
+      "maintenance": "Wartung und Hilfe",
+      "update": "Updates",
+      "updateLine": "Sie haben {{version}}.",
+      "version": "Version",
+      "storeUpdates": "Der Store des Browsers hält die Erweiterung aktuell.",
+      "wizard": "Einrichtungsassistent",
+      "wizardLine": "Den Assistenten noch einmal durchgehen; Gespeichertes ist vorausgewählt.",
+      "rerun": "Erneut ausführen",
+      "guide": "Anleitung",
+      "guideLine": "Schritt-für-Schritt-Hinweise auf dem Hauptbildschirm.",
+      "restart": "Neu starten",
+      "needHelp": "Hilfe nötig:"
     }
   }
 }

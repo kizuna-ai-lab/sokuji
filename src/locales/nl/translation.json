@@ -1012,7 +1012,8 @@
       "dictMeta": "Toont Japanse uitspraak; aan te zetten in ‘Weergave’",
       "voicesTitle": "Geïmporteerde stemmen",
       "voicesHint": "Supertonic-stembestanden die u hebt geïmporteerd.",
-      "importedOn": "Geïmporteerd op {{date}}"
+      "importedOn": "Geïmporteerd op {{date}}",
+      "more": "Nog {{count}}"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Niet ingelogd",
       "together": "samen",
       "view": "Bekijken",
-      "hide": "Verbergen"
+      "hide": "Verbergen",
+      "endToEnd": "End-to-end",
+      "transcribeTranslate": "Transcriptie en vertaling",
+      "signedInBalance": "Aangemeld; saldo {{amount}}",
+      "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
+      "localNone": "Draait op deze computer; nog geen modellen gedownload"
     },
     "lineup": {
       "title": "Opstelling",
@@ -1826,7 +1832,18 @@
         "ready": "Klaar"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
-      "hint": "Welke dienst elke stap doet"
+      "hint": "Welke dienst elke stap doet",
+      "uses": {
+        "turn": "Einde beurt",
+        "key": "Toets",
+        "space": "Spatie",
+        "released": "Na loslaten",
+        "releasedValue": "gaat dat stuk naar de vertaling",
+        "notHeld": "Zolang niet ingedrukt",
+        "notHeldValue": "gaat uw eigen stem onvertaald rechtstreeks naar de andere kant"
+      },
+      "actsOn": "Geldt voor {{stages}}",
+      "pointer": "De opties voor {{stages}} staan in de kaart ‘{{card}}’."
     },
     "display": {
       "surface": "Welke weergave",
@@ -1858,7 +1875,31 @@
       "micHint": "Waar mijn stem binnenkomt",
       "otherHint": "Waar de stem van de andere kant binnenkomt",
       "device": "Apparaat",
-      "source": "Bron"
+      "source": "Bron",
+      "flow": {
+        "myMic": "Mijn microfoon",
+        "toSpeech": "Naar spraak",
+        "toThem": "Virtuele mic → de andere kant",
+        "theirVoice": "Stem van de andere kant",
+        "myDevice": "Mijn afspeelapparaat",
+        "caption": "Waar het geluid heen gaat. Heldere lijnen staan nu aan, gestippelde uit; ze volgen de schakelaars hieronder.",
+        "aria": "Waar het geluid heen gaat: wat ik zeg wordt spraak en gaat naar de virtuele microfoon voor de andere kant, en speelt ook bij mij als ik meeluister; wat de andere kant zegt wordt spraak en speelt op mijn afspeelapparaat."
+      }
+    },
+    "general": {
+      "basics": "Basisinstellingen",
+      "maintenance": "Onderhoud en hulp",
+      "update": "Updates",
+      "updateLine": "U hebt {{version}}.",
+      "version": "Versie",
+      "storeUpdates": "De winkel van de browser houdt de extensie bij.",
+      "wizard": "Installatiewizard",
+      "wizardLine": "De wizard opnieuw doorlopen; wat u hebt opgeslagen is al gekozen.",
+      "rerun": "Opnieuw uitvoeren",
+      "guide": "Rondleiding",
+      "guideLine": "Stapsgewijze tips op het hoofdscherm.",
+      "restart": "Opnieuw beginnen",
+      "needHelp": "Hulp nodig:"
     }
   }
 }

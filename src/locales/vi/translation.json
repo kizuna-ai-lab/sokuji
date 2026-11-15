@@ -1012,7 +1012,8 @@
       "dictMeta": "Hiển thị cách đọc tiếng Nhật; bật trong \"Hiển thị\"",
       "voicesTitle": "Giọng đã nhập",
       "voicesHint": "Các tệp giọng Supertonic bạn đã nhập.",
-      "importedOn": "Đã nhập ngày {{date}}"
+      "importedOn": "Đã nhập ngày {{date}}",
+      "more": "Thêm {{count}}"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Chưa đăng nhập",
       "together": "cùng nhau",
       "view": "Xem",
-      "hide": "Ẩn"
+      "hide": "Ẩn",
+      "endToEnd": "Đầu cuối",
+      "transcribeTranslate": "Phiên âm và dịch",
+      "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
+      "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
+      "localNone": "Chạy trên máy này; chưa tải mô hình nào"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1826,7 +1832,18 @@
         "ready": "Sẵn sàng"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
-      "hint": "Dịch vụ nào làm từng khâu"
+      "hint": "Dịch vụ nào làm từng khâu",
+      "uses": {
+        "turn": "Kết thúc câu",
+        "key": "Phím",
+        "space": "Phím cách",
+        "released": "Khi thả ra",
+        "releasedValue": "đoạn đó được gửi đi dịch",
+        "notHeld": "Khi không giữ",
+        "notHeldValue": "giọng của bạn đến thẳng phía bên kia, không dịch"
+      },
+      "actsOn": "Áp dụng cho {{stages}}",
+      "pointer": "Các tùy chọn áp dụng cho {{stages}} nằm trong thẻ \"{{card}}\"."
     },
     "display": {
       "surface": "Hiển thị nào",
@@ -1858,7 +1875,31 @@
       "micHint": "Giọng tôi đi vào từ đâu",
       "otherHint": "Giọng phía bên kia đi vào từ đâu",
       "device": "Thiết bị",
-      "source": "Nguồn"
+      "source": "Nguồn",
+      "flow": {
+        "myMic": "Micrô của tôi",
+        "toSpeech": "Thành giọng nói",
+        "toThem": "Micrô ảo → phía bên kia",
+        "theirVoice": "Giọng phía bên kia",
+        "myDevice": "Thiết bị phát của tôi",
+        "caption": "Âm thanh đi đâu. Đường sáng là đang bật, đường nét đứt là tắt; thay đổi theo các công tắc bên dưới.",
+        "aria": "Âm thanh đi đâu: điều tôi nói được chuyển thành giọng nói, đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được chuyển thành giọng nói và phát trên thiết bị phát của tôi."
+      }
+    },
+    "general": {
+      "basics": "Cài đặt cơ bản",
+      "maintenance": "Bảo trì và trợ giúp",
+      "update": "Cập nhật",
+      "updateLine": "Bạn đang dùng {{version}}.",
+      "version": "Phiên bản",
+      "storeUpdates": "Cửa hàng của trình duyệt tự cập nhật tiện ích.",
+      "wizard": "Trình hướng dẫn thiết lập",
+      "wizardLine": "Đi lại trình hướng dẫn; những gì đã lưu được chọn sẵn.",
+      "rerun": "Chạy lại",
+      "guide": "Hướng dẫn",
+      "guideLine": "Gợi ý từng bước trên màn hình chính.",
+      "restart": "Bắt đầu lại",
+      "needHelp": "Cần trợ giúp:"
     }
   }
 }

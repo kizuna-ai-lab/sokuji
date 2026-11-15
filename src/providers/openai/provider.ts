@@ -6,6 +6,7 @@ import { checkRealtime } from './check';
 import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
 import { RealtimeSettingsView, RealtimeVoiceSummary } from './RealtimeSettings';
 import { RealtimeTurnDetectionControls, RealtimeTurnDetectionHelp, RealtimeTurnDetectionSummary } from './RealtimeTurnDetection';
+import { ALL_STAGES, SP, TL, TR } from '../../lib/lineup/types';
 import {
   migrateRealtimeSettings,
   REALTIME_DEFAULTS,
@@ -42,6 +43,8 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
 
   settings: { key: 'openai', defaults: REALTIME_DEFAULTS, legacyKeys: REALTIME_LEGACY_KEYS, migrate: migrateRealtimeSettings },
   Settings: RealtimeSettingsView,
+  // The model on every stage, the transcript and noise reduction on transcription, the instructions, tokens and reasoning on translation, the voices on speech (mock v19).
+  optionStages: [ALL_STAGES, TR, TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: RealtimeVoiceSummary,
   TurnDetection: { Summary: RealtimeTurnDetectionSummary, Controls: RealtimeTurnDetectionControls, Help: RealtimeTurnDetectionHelp },

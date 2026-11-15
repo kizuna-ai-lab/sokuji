@@ -9,6 +9,7 @@
 import type { ComponentType } from 'react';
 import type { SessionHooks } from '../session/types';
 import type { AuthContext, CredentialsMissing, Provider, SettingsProps, VoiceSummaryProps } from './types';
+import type { RunStage } from '../lineup/types';
 
 /** What a managed `read` answers (the read type `R`, choice 1): the sign-in, never a key — the lease mints those. */
 export interface ManagedSignIn {
@@ -29,6 +30,8 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   settingsKey: string;
   /** The base's settings component in its managed flavour. */
   Settings: ComponentType<SettingsProps<S>>;
+  /** The stages its options act on (mock v19), when its view differs from the base provider's. */
+  optionStages?: readonly (readonly RunStage[])[];
   /** The twin's own setup guide; never the base's, which is about getting the vendor's key. */
   guideUrl?: string;
   /** The base's voice summary in its managed flavour; absent, the base's own, if it has one. */
@@ -61,6 +64,8 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     settings: { key: o.settingsKey, defaults: base.settings.defaults, ...(base.settings.migrate ? { migrate: base.settings.migrate } : {}) },
     Settings: o.Settings,
     ...(base.TurnDetection ? { TurnDetection: base.TurnDetection } : {}),
+    // The stages its options act on (mock v19): the same view, so the same parts.
+    ...((o.optionStages ?? base.optionStages) ? { optionStages: o.optionStages ?? base.optionStages } : {}),
     ...((o.VoiceSummary ?? base.VoiceSummary) ? { VoiceSummary: o.VoiceSummary ?? base.VoiceSummary } : {}),
     credentials: { keys: [], fields: () => [], read: (_values, auth) => readSignIn(auth, o.signedOut) },
     // Static: the sign-in is `read`'s to see, the balance the start gate's (spec: "Readiness is one check").

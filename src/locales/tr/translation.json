@@ -1012,7 +1012,8 @@
       "dictMeta": "Japonca okunuşları gösterir; \"Görünüm\"den açılır",
       "voicesTitle": "İçe aktarılan sesler",
       "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
-      "importedOn": "{{date}} tarihinde içe aktarıldı"
+      "importedOn": "{{date}} tarihinde içe aktarıldı",
+      "more": "{{count}} tane daha"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Oturum açılmadı",
       "together": "birlikte",
       "view": "Görüntüle",
-      "hide": "Gizle"
+      "hide": "Gizle",
+      "endToEnd": "Uçtan uca",
+      "transcribeTranslate": "Döküm ve çeviri",
+      "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
+      "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
+      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi"
     },
     "lineup": {
       "title": "Düzen",
@@ -1826,7 +1832,18 @@
         "ready": "Hazır"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
-      "hint": "Her aşamayı hangi hizmetin yaptığı"
+      "hint": "Her aşamayı hangi hizmetin yaptığı",
+      "uses": {
+        "turn": "Konuşma sonu",
+        "key": "Tuş",
+        "space": "Boşluk",
+        "released": "Bırakınca",
+        "releasedValue": "o parça çeviriye gider",
+        "notHeld": "Basılı değilken",
+        "notHeldValue": "kendi sesiniz çevrilmeden doğrudan karşı tarafa gider"
+      },
+      "actsOn": "{{stages}} için geçerli",
+      "pointer": "{{stages}} için geçerli seçenekler \"{{card}}\" kartında."
     },
     "display": {
       "surface": "Hangi görünüm",
@@ -1858,7 +1875,31 @@
       "micHint": "Sesimin nereden geldiği",
       "otherHint": "Karşı tarafın sesinin nereden geldiği",
       "device": "Cihaz",
-      "source": "Kaynak"
+      "source": "Kaynak",
+      "flow": {
+        "myMic": "Mikrofonum",
+        "toSpeech": "Konuşmaya",
+        "toThem": "Sanal mikrofon → karşı taraf",
+        "theirVoice": "Karşı tarafın sesi",
+        "myDevice": "Oynatma cihazım",
+        "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
+        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar."
+      }
+    },
+    "general": {
+      "basics": "Temel ayarlar",
+      "maintenance": "Bakım ve yardım",
+      "update": "Güncellemeler",
+      "updateLine": "Sizdeki sürüm {{version}}.",
+      "version": "Sürüm",
+      "storeUpdates": "Uzantıyı tarayıcının mağazası güncel tutar.",
+      "wizard": "Kurulum sihirbazı",
+      "wizardLine": "Sihirbazdan yeniden geçin; kaydettikleriniz önceden seçili gelir.",
+      "rerun": "Yeniden çalıştır",
+      "guide": "Rehber",
+      "guideLine": "Ana ekranda adım adım ipuçları.",
+      "restart": "Yeniden başlat",
+      "needHelp": "Yardım mı lazım:"
     }
   }
 }

@@ -1,14 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { HelpCircle, RefreshCw, Check, CircleAlert, Mail, MessageSquare, Globe, Wand2, SunMoon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import { isElectron } from '../../../utils/environment';
+import { openExternalUrl, useInterfaceLanguageChange, useUpdateCheck } from './helpActions';
 import { useStartBasicsTour } from '../../Tour/useStartBasicsTour';
 import { useSetSetupWizardOpen } from '../../../stores/layoutStore';
-import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../../stores/updateStore';
-import { useSetUILanguage, useDiagnosticLogs, useSetDiagnosticLogs, useThemeSetting, useSetThemeSetting } from '../../../stores/settingsStore';
+import { useDiagnosticLogs, useSetDiagnosticLogs, useThemeSetting, useSetThemeSetting } from '../../../stores/settingsStore';
 import { useAnalytics } from '../../../lib/analytics';
-import { changeLanguageWithLoad } from '../../../locales';
 import { INTERFACE_LANGUAGES } from './interfaceLanguages';
 import { THEME_SETTINGS, isThemeSetting, type ThemeSetting } from '../../../lib/theme/theme';
 
@@ -27,10 +26,8 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   const [appearanceFocused, setAppearanceFocused] = useState(false);
   const startTour = useStartBasicsTour();
   const setSetupWizardOpen = useSetSetupWizardOpen();
-  const updateStatus = useUpdateStatus();
-  const checkForUpdates = useCheckForUpdates();
-  const openUpdateDialog = useOpenUpdateDialog();
-  const setUILanguage = useSetUILanguage();
+  const { status: updateStatus, result: checkResult, check: checkForUpdates } = useUpdateCheck();
+  const changeLanguage = useInterfaceLanguageChange('HelpSection');
   const diagnosticLogs = useDiagnosticLogs();
   const setDiagnosticLogs = useSetDiagnosticLogs();
   const themeSetting = useThemeSetting();
@@ -42,42 +39,6 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   // reports no open/close, but it always takes focus to open — and suppressing
   // on focus also keeps the tooltip out of the way of keyboard users.
   const [pickerFocused, setPickerFocused] = useState(false);
-
-  // The language the user last asked for, and the chain the requests run on.
-  // See the change handler for why serialising is what this needs.
-  const wantedLanguageRef = useRef<string | null>(null);
-  const languageChainRef = useRef<Promise<void>>(Promise.resolve());
-
-  // The check's result, on the link that asked for it (spec 2026-10-05 §5):
-  // "Up to date" or "Failed to check" for five seconds, then the link again.
-  // A new check passes through 'checking' first, so a second failure re-runs this.
-  const [checkResult, setCheckResult] = useState<'not-available' | 'error' | null>(null);
-  // Only a check the user started shows a result: a stale status held by the
-  // store (or the one present at mount) must not flash on every reopen.
-  const previousStatusRef = useRef(updateStatus);
-  useEffect(() => {
-    const previous = previousStatusRef.current;
-    previousStatusRef.current = updateStatus;
-    if (previous !== 'checking' || (updateStatus !== 'not-available' && updateStatus !== 'error')) {
-      setCheckResult(null);
-      return;
-    }
-    setCheckResult(updateStatus);
-    const timer = setTimeout(() => setCheckResult(null), 5000);
-    return () => clearTimeout(timer);
-  }, [updateStatus]);
-
-  const openExternalUrl = (url: string) => {
-    if (isElectron() && (window as any).electron?.invoke) {
-      (window as any).electron.invoke('open-external', url);
-    } else {
-      window.open(url, '_blank');
-    }
-  };
-
-  useEffect(() => {
-    if (updateStatus === 'available') openUpdateDialog();
-  }, [updateStatus, openUpdateDialog]);
 
   return (
     <div className="config-section" id="help-section">
@@ -110,7 +71,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
               checkResult === 'not-available' ? 'help-link--ok' : '',
               checkResult === 'error' ? 'help-link--error' : '',
             ].filter(Boolean).join(' ')}
-            onClick={() => { if (updateStatus !== 'checking') checkForUpdates(); }}
+            onClick={checkForUpdates}
           >
             {updateStatus === 'checking' ? <RefreshCw size={13} className="spinning" />
               : checkResult === 'not-available' ? <Check size={13} />
@@ -165,72 +126,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
             disabled={isSessionActive}
             onFocus={() => setPickerFocused(true)}
             onBlur={() => setPickerFocused(false)}
-            onChange={(e) => {
-              const oldLanguage = i18n.language;
-              const newLanguage = e.target.value;
-              wantedLanguageRef.current = newLanguage;
-
-              // A <select> fires change on every arrow-key step, so holding a
-              // direction walks the list and starts one request per language
-              // passed. Checking only before the WRITES would be too late:
-              // changeLanguageWithLoad calls i18n.changeLanguage() itself, so
-              // a stale request allowed to run changes the visible language on
-              // its way to being discarded — leaving the app showing one
-              // language and having saved another.
-              //
-              // So the requests are serialised on a chain, and each asks
-              // whether it is still wanted before doing anything at all. A
-              // language the user scrolled past is never loaded.
-              languageChainRef.current = languageChainRef.current.then(async () => {
-                if (wantedLanguageRef.current !== newLanguage) return;
-
-                // Split deliberately: these two failures need opposite
-                // treatment, and one catch around both would have to guess.
-                // TODO(#441): both console lines belong in logStore once the
-                // repo-wide logging convention lands.
-                try {
-                  await changeLanguageWithLoad(newLanguage);
-                } catch (err) {
-                  // The catalogue never loaded, so i18n never switched. There
-                  // is nothing to undo, and trying to "restore" would kick off
-                  // another load for a language that was never left.
-                  console.error('[HelpSection] Could not load the interface language:', err);
-                  return;
-                }
-
-                try {
-                  // Awaited: this writes through the settings service, and
-                  // unawaited a failure became an unhandled rejection while
-                  // the event below reported a change that was never saved.
-                  await setUILanguage(newLanguage);
-                } catch (err) {
-                  // Here the visible language HAS changed, and the store
-                  // applied its value before awaiting the service — so the app
-                  // is wearing a language it could not save. Put it back,
-                  // unless the user has since asked for something else and a
-                  // later link in the chain is about to set it anyway.
-                  console.error('[HelpSection] Could not save the interface language:', err);
-                  if (wantedLanguageRef.current === newLanguage) {
-                    wantedLanguageRef.current = oldLanguage;
-                    try {
-                      await changeLanguageWithLoad(oldLanguage);
-                      await setUILanguage(oldLanguage);
-                    } catch {
-                      // Best effort: the service is evidently unwell. The
-                      // store's value is restored regardless, since it is
-                      // applied before the write that rejects.
-                    }
-                  }
-                  return;
-                }
-
-                trackEvent('language_changed', {
-                  from_language: oldLanguage,
-                  to_language: newLanguage,
-                  language_type: 'ui',
-                });
-              });
-            }}
+            onChange={(e) => changeLanguage(e.target.value)}
           >
             {INTERFACE_LANGUAGES.map((lang) => (
               <option key={lang.value} value={lang.value}>{lang.label}</option>

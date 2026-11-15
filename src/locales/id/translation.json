@@ -1012,7 +1012,8 @@
       "dictMeta": "Menampilkan cara baca Jepang; dinyalakan di \"Tampilan\"",
       "voicesTitle": "Suara yang diimpor",
       "voicesHint": "File suara Supertonic yang Anda impor.",
-      "importedOn": "Diimpor {{date}}"
+      "importedOn": "Diimpor {{date}}",
+      "more": "{{count}} lagi"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Belum masuk",
       "together": "bersama",
       "view": "Lihat",
-      "hide": "Sembunyikan"
+      "hide": "Sembunyikan",
+      "endToEnd": "Ujung ke ujung",
+      "transcribeTranslate": "Transkripsi dan terjemahan",
+      "signedInBalance": "Sudah masuk; saldo {{amount}}",
+      "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
+      "localNone": "Berjalan di komputer ini; belum ada model yang diunduh"
     },
     "lineup": {
       "title": "Susunan",
@@ -1826,7 +1832,18 @@
         "ready": "Siap"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
-      "hint": "Layanan mana yang mengerjakan tiap tahap"
+      "hint": "Layanan mana yang mengerjakan tiap tahap",
+      "uses": {
+        "turn": "Akhir ucapan",
+        "key": "Tombol",
+        "space": "Spasi",
+        "released": "Setelah dilepas",
+        "releasedValue": "potongan itu dikirim untuk diterjemahkan",
+        "notHeld": "Saat tidak ditahan",
+        "notHeldValue": "suara Anda langsung ke pihak lain tanpa diterjemahkan"
+      },
+      "actsOn": "Berlaku untuk {{stages}}",
+      "pointer": "Opsi yang berlaku untuk {{stages}} ada di kartu \"{{card}}\"."
     },
     "display": {
       "surface": "Tampilan mana",
@@ -1858,7 +1875,31 @@
       "micHint": "Dari mana suara saya masuk",
       "otherHint": "Dari mana suara pihak lain masuk",
       "device": "Perangkat",
-      "source": "Sumber"
+      "source": "Sumber",
+      "flow": {
+        "myMic": "Mikrofon saya",
+        "toSpeech": "Jadi suara",
+        "toThem": "Mikrofon virtual → pihak lain",
+        "theirVoice": "Suara pihak lain",
+        "myDevice": "Perangkat pemutar saya",
+        "caption": "Ke mana suara pergi. Garis terang sedang aktif, garis putus-putus tidak; mengikuti sakelar di bawah.",
+        "aria": "Ke mana suara pergi: yang saya ucapkan, jadi suara, masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain, jadi suara, diputar di perangkat pemutar saya."
+      }
+    },
+    "general": {
+      "basics": "Pengaturan dasar",
+      "maintenance": "Pemeliharaan dan bantuan",
+      "update": "Pembaruan",
+      "updateLine": "Anda memakai {{version}}.",
+      "version": "Versi",
+      "storeUpdates": "Toko browser menjaga ekstensi tetap terbaru.",
+      "wizard": "Wizard penyiapan",
+      "wizardLine": "Jalani wizard sekali lagi; yang sudah tersimpan langsung terpilih.",
+      "rerun": "Jalankan lagi",
+      "guide": "Panduan",
+      "guideLine": "Tips langkah demi langkah di layar utama.",
+      "restart": "Mulai lagi",
+      "needHelp": "Butuh bantuan:"
     }
   }
 }

@@ -1295,6 +1295,19 @@
 // in-window top layer. @supports guards it: the extension's floor is Chrome
 // 116, and anything older keeps today's classic popup untouched (rich option
 // markup is likewise gated in TSX — see supportsBaseSelect()).
+// The line between the pinned languages and the rest of the list: a thin rule in the open list, not a whole row.
+.language-select option[value='__pin-separator__'] {
+  height: 1px;
+  min-height: 0;
+  margin: 4px 6px;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
+  background: vars.$border-subtle;
+  pointer-events: none;
+}
+
 @supports (appearance: base-select) {
   .language-select,
   .select-dropdown,

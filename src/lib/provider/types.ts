@@ -6,6 +6,7 @@ import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
+import type { RunStage } from '../lineup/types';
 import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
@@ -252,6 +253,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     migrate?(stored: Readonly<Record<string, unknown>>, inputs: MigrationInputs): S;
   };
   Settings: ComponentType<SettingsProps<S>>;
+  /**
+   * The stage sets its options act on (mock v19): one per kind of `StagePart` in `Settings` (and the `Engine`'s
+   * slots), from `src/lib/lineup/types.ts`. The line-up page reads it to know which stage cards have options and
+   * where a setting acting on several stages is shown. Absent: every option shows in the provider's first card.
+   */
+  optionStages?: readonly (readonly RunStage[])[];
   /** Model management, the local engines only: pushed from the summary in Simple mode, inline on Advanced's Provider tab. */
   Engine?: ComponentType<EngineProps<S>>;
   /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */

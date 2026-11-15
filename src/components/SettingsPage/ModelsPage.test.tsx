@@ -59,43 +59,67 @@ const mount = (locked = false) =>
   render(<ModelsPage locked={locked} settings={LOCAL_INFERENCE_DEFAULTS} pair={{ source: 'ja', target: 'en' }} />);
 const row = (name: string) => screen.getByText(name).closest('.model-row') as HTMLElement;
 
+// The session models in three small groups, one per stage (owner 2026-11-15): each shows what is on disk and the
+// recommended ones this computer can run; the rest, other languages' last, in "N more" at the group's end.
+const stageGroup = (name: string) => screen.getByRole('group', { name });
+const more = (name: string) => fireEvent.click(within(stageGroup(name)).getByRole('button', { name: /more/ }));
+
 describe('Models and storage — the session models', () => {
-  it('lists what this pair can use, downloaded or not, under the "This device" group', () => {
+  it('splits the models this pair can use into recognition, translation and speech', () => {
     mount();
-    const group = screen.getByRole('region', { name: /Models for the session/ });
-    expect(within(group).getByText('SenseVoice (int8)')).toBeInTheDocument();
-    expect(within(group).getByText('Opus-MT (en → ja)')).toBeInTheDocument();
-    expect(within(group).getByText('Moonshine Tiny EN (quantized)')).toBeInTheDocument();
-    // Korean only, German only: not for ja ⇄ en, so folded away.
-    expect(within(group).queryByText('Moonshine Tiny KO (quantized)')).toBeNull();
-    expect(within(group).queryByText('Opus-MT (en → de)')).toBeNull();
+    const session = screen.getByRole('region', { name: /Models for the session/ });
+    expect([...session.querySelectorAll('.models-stage__title')].map((t) => t.textContent)).toEqual(['Recognition', 'Translation', 'Speech']);
   });
 
-  it('keeps the other languages\' models in a fold at the end', () => {
+  it('shows what is on disk and the recommended ones it can run; the rest wait under "N more"', () => {
     mount();
-    const fold = screen.getByRole('button', { name: /Models for other languages/ });
-    expect(fold).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(fold);
-    expect(screen.getByText('Opus-MT (en → de)')).toBeInTheDocument();
+    const asr = stageGroup('Recognition');
+    expect(within(asr).getByText('SenseVoice (int8)')).toBeInTheDocument();
+    expect(within(asr).getByText('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).toBeInTheDocument();
+    expect(within(asr).queryByText('Moonshine Tiny EN (quantized)')).toBeNull();
+    expect(within(asr).queryByText('Cohere Transcribe (WebGPU)')).toBeNull();
+    more('Recognition');
+    expect(within(asr).getByText('Moonshine Tiny EN (quantized)')).toBeInTheDocument();
+    expect(within(asr).getByText('Cohere Transcribe (WebGPU)')).toBeInTheDocument();
+  });
+
+  it("puts the other languages' models last in the fold, under their own caption", () => {
+    mount();
+    expect(screen.queryByText('Opus-MT (en → de)')).toBeNull();
+    more('Translation');
+    const caption = within(stageGroup('Translation')).getByText(/Models for other languages/);
+    const rows = [...stageGroup('Translation').querySelectorAll('.model-row__name')].map((n) => n.textContent);
+    expect(rows).toContain('Opus-MT (en → de)');
+    expect(caption.compareDocumentPosition(row('Opus-MT (en → de)')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows the best one it can run when nothing on disk or recommended would be shown', () => {
+    useModelStore.setState({ modelStatuses: {} } as never);
+    mount();
+    // Every recommended translation model needs WebGPU, which this computer lacks: one it can run stands in.
+    expect(stageGroup('Translation').querySelectorAll('.models-stage__shown .model-row')).toHaveLength(1);
   });
 
   it('tags each row with its stage and says whether it is downloaded', () => {
     mount();
-    expect(within(row('SenseVoice (int8)')).getByText('Recognition')).toHaveClass('model-row__tag');
+    expect(within(row('SenseVoice (int8)')).getByText('Recognition', { selector: '.model-row__tag' })).toBeInTheDocument();
     expect(within(row('SenseVoice (int8)')).getByText('Downloaded')).toBeInTheDocument();
-    expect(within(row('Opus-MT (en → ja)')).getByText('Translation')).toBeInTheDocument();
+    expect(within(row('Opus-MT (en → ja)')).getByText('Translation', { selector: '.model-row__tag' })).toBeInTheDocument();
+    more('Recognition');
     expect(within(row('Moonshine Tiny EN (quantized)')).getByText('Not downloaded')).toBeInTheDocument();
   });
 
   it('downloads a model from its row, and cancels a download in progress', () => {
     useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
     mount();
-    fireEvent.click(within(row('Moonshine Tiny EN (quantized)')).getByRole('button', { name: 'Download' }));
-    expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-en-quant');
+    // A download in progress is shown without opening anything.
     const busy = row('Moonshine Tiny JA (quantized)');
     expect(within(busy).getByText('Downloading 25%')).toBeInTheDocument();
     fireEvent.click(within(busy).getByRole('button', { name: 'Cancel' }));
     expect(store.cancelDownload).toHaveBeenCalledWith('moonshine-tiny-ja-quant');
+    more('Recognition');
+    fireEvent.click(within(row('Moonshine Tiny EN (quantized)')).getByRole('button', { name: 'Download' }));
+    expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-en-quant');
   });
 
   it('deletes a downloaded model after asking', async () => {
@@ -107,6 +131,7 @@ describe('Models and storage — the session models', () => {
 
   it('says a model this computer cannot run, and offers no download for it', () => {
     mount();
+    more('Recognition');
     const gpu = row('Cohere Transcribe (WebGPU)');
     expect(within(gpu).getByText("This computer can't run it")).toBeInTheDocument();
     expect(within(gpu).queryByRole('button', { name: 'Download' })).toBeNull();
@@ -114,7 +139,7 @@ describe('Models and storage — the session models', () => {
 
   it('takes no download or delete during a session', () => {
     mount(true);
-    expect(within(row('Moonshine Tiny EN (quantized)')).getByRole('button', { name: 'Download' })).toBeDisabled();
+    expect(within(row('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: 'Download' })).toBeDisabled();
     expect(within(row('SenseVoice (int8)')).getByRole('button', { name: 'Delete' })).toBeDisabled();
   });
 });
@@ -188,13 +213,15 @@ describe('Models and storage — imported voices and the summary', () => {
   it('lists what is on disk first, then what this computer can run, then what it cannot', () => {
     useModelStore.setState({ modelStatuses: { 'moonshine-tiny-ja-quant': 'downloaded' } } as never);
     mount();
-    const names = [...screen.getByRole('region', { name: /Models for the session/ }).querySelectorAll('.model-row__name')].map((n) => n.textContent);
+    more('Recognition');
+    const names = [...stageGroup('Recognition').querySelectorAll('.model-row__name')].map((n) => n.textContent);
     expect(names[0]).toBe('Moonshine Tiny JA (quantized)');
     expect(names.indexOf('SenseVoice (int8)')).toBeLessThan(names.indexOf('Cohere Transcribe (WebGPU)'));
   });
 
   it('writes a size in the unit that reads best', () => {
     mount();
+    more('Recognition');
     expect(within(row('Cohere Transcribe (WebGPU)')).getByText(/\d\.\d GB/)).toBeInTheDocument();
   });
 

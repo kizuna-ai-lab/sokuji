@@ -1012,7 +1012,8 @@
       "dictMeta": "Pokazuje czytanie japońskiego; włączany w „Wyświetlanie”",
       "voicesTitle": "Zaimportowane głosy",
       "voicesHint": "Zaimportowane przez Ciebie pliki głosów Supertonic.",
-      "importedOn": "Zaimportowano {{date}}"
+      "importedOn": "Zaimportowano {{date}}",
+      "more": "Jeszcze {{count}}"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Nie zalogowano",
       "together": "razem",
       "view": "Pokaż",
-      "hide": "Ukryj"
+      "hide": "Ukryj",
+      "endToEnd": "Od początku do końca",
+      "transcribeTranslate": "Transkrypcja i tłumaczenie",
+      "signedInBalance": "Zalogowano; saldo {{amount}}",
+      "localModels": "Działa na tym komputerze; pobrano modeli: {{count}}, razem {{size}}",
+      "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli"
     },
     "lineup": {
       "title": "Zestaw",
@@ -1826,7 +1832,18 @@
         "ready": "Gotowe"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
-      "hint": "Która usługa wykonuje każdy etap"
+      "hint": "Która usługa wykonuje każdy etap",
+      "uses": {
+        "turn": "Koniec wypowiedzi",
+        "key": "Klawisz",
+        "space": "Spacja",
+        "released": "Po puszczeniu",
+        "releasedValue": "ten fragment idzie do tłumaczenia",
+        "notHeld": "Gdy nie jest wciśnięty",
+        "notHeldValue": "Twój głos trafia prosto do drugiej strony, bez tłumaczenia"
+      },
+      "actsOn": "Dotyczy: {{stages}}",
+      "pointer": "Opcje dotyczące {{stages}} są na karcie „{{card}}”."
     },
     "display": {
       "surface": "Który widok",
@@ -1858,7 +1875,31 @@
       "micHint": "Skąd wchodzi mój głos",
       "otherHint": "Skąd wchodzi głos drugiej strony",
       "device": "Urządzenie",
-      "source": "Źródło"
+      "source": "Źródło",
+      "flow": {
+        "myMic": "Mój mikrofon",
+        "toSpeech": "Na mowę",
+        "toThem": "Wirtualny mikrofon → druga strona",
+        "theirVoice": "Głos drugiej strony",
+        "myDevice": "Moje urządzenie odtwarzające",
+        "caption": "Dokąd idzie dźwięk. Jasne linie są teraz włączone, przerywane wyłączone; zmieniają się z przełącznikami poniżej.",
+        "aria": "Dokąd idzie dźwięk: to, co mówię, zamienione na mowę, trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, zamienione na mowę, gra na moim urządzeniu odtwarzającym."
+      }
+    },
+    "general": {
+      "basics": "Podstawowe",
+      "maintenance": "Konserwacja i pomoc",
+      "update": "Aktualizacje",
+      "updateLine": "Masz wersję {{version}}.",
+      "version": "Wersja",
+      "storeUpdates": "Sklep przeglądarki aktualizuje rozszerzenie.",
+      "wizard": "Kreator konfiguracji",
+      "wizardLine": "Przejdź kreator jeszcze raz; zapisane wybory będą zaznaczone.",
+      "rerun": "Uruchom ponownie",
+      "guide": "Przewodnik",
+      "guideLine": "Wskazówki krok po kroku na ekranie głównym.",
+      "restart": "Zacznij od nowa",
+      "needHelp": "Potrzebujesz pomocy:"
     }
   }
 }

@@ -1012,7 +1012,8 @@
       "dictMeta": "顯示日語讀音用；在「顯示」裡打開",
       "voicesTitle": "匯入的音色",
       "voicesHint": "自己匯入的 Supertonic 音色檔案。",
-      "importedOn": "匯入於 {{date}}"
+      "importedOn": "匯入於 {{date}}",
+      "more": "還有 {{count}} 個"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "未登入",
       "together": "一起",
       "view": "檢視",
-      "hide": "收起"
+      "hide": "收起",
+      "endToEnd": "端到端",
+      "transcribeTranslate": "轉寫並翻譯",
+      "signedInBalance": "已登入，餘額 {{amount}}",
+      "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
+      "localNone": "在這台電腦上執行；還沒有下載模型"
     },
     "lineup": {
       "title": "工作階段組成",
@@ -1826,7 +1832,18 @@
         "ready": "就緒"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
-      "hint": "每個階段由哪個服務來做"
+      "hint": "每個階段由哪個服務來做",
+      "uses": {
+        "turn": "斷句",
+        "key": "按鍵",
+        "space": "空白鍵",
+        "released": "放開以後",
+        "releasedValue": "這一段送去翻譯",
+        "notHeld": "沒有按住的時候",
+        "notHeldValue": "原聲直接給對方，不翻譯"
+      },
+      "actsOn": "作用於{{stages}}",
+      "pointer": "作用於{{stages}}的選項在「{{card}}」卡片裡。"
     },
     "display": {
       "surface": "哪個介面",
@@ -1858,7 +1875,31 @@
       "micHint": "我的聲音從哪裡進來",
       "otherHint": "對方的聲音從哪裡進來",
       "device": "裝置",
-      "source": "來源"
+      "source": "來源",
+      "flow": {
+        "myMic": "我的麥克風",
+        "toSpeech": "翻譯成語音",
+        "toThem": "虛擬麥克風 → 對方",
+        "theirVoice": "對方的聲音",
+        "myDevice": "我的播放裝置",
+        "caption": "聲音走向。亮著的線是現在開著的，虛線是關著的；隨下面的開關變。",
+        "aria": "聲音走向：我說的話翻譯成語音，送進虛擬麥克風給對方，我也聽時在我這邊也放；對方說的話翻譯成語音，從我的播放裝置放出來。"
+      }
+    },
+    "general": {
+      "basics": "基本設定",
+      "maintenance": "維護與說明",
+      "update": "更新",
+      "updateLine": "現在是 {{version}}。",
+      "version": "版本",
+      "storeUpdates": "擴充功能由瀏覽器的商店自動更新。",
+      "wizard": "設定精靈",
+      "wizardLine": "從頭再走一遍精靈；已經存好的選擇會預先選上。",
+      "rerun": "重新執行",
+      "guide": "操作指南",
+      "guideLine": "主畫面上一步一步的提示。",
+      "restart": "重新開始",
+      "needHelp": "需要協助："
     }
   }
 }

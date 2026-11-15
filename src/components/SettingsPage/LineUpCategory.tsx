@@ -20,6 +20,7 @@ import { directionKey, type Selections } from '../../lib/local-inference/selecti
 import { ProviderLanguages } from '../providers/ProviderLanguages';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
+import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
 import type { AnyProvider } from '../../lib/provider/types';
@@ -27,17 +28,21 @@ import type { CategoryBodyProps } from './SettingsPage';
 
 const STAGE_TITLES: Record<RunStage, string> = { transcription: 'Transcription', translation: 'Translation', speech: 'Speech' };
 
-/** The navigation targets that live in the folded provider options: they unfold them first. */
-const FOLDED_TARGETS = new Set(['provider-options', 'model-management', 'model-asr', 'model-translation', 'model-tts', 'system-instructions', 'voice-settings', 'turn-detection-tuning']);
-
 /**
- * A stage's name inside a sentence ("Goes with translation…"): lower-cased in the reader's language, except where
- * that language writes it capitalised (German nouns).
+ * The navigation targets that live in a stage card's folded options (mock v19): the card each one unfolds first.
+ * 'first' is the first card that has options.
  */
-export function stageInSentence(name: string, language: string): string {
-  const tag = language.replace('_', '-');
-  return tag.toLowerCase().startsWith('de') ? name : name.toLocaleLowerCase(tag);
-}
+const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
+  'provider-options': 'first', 'model-management': 'first',
+  'model-asr': 'transcription', 'turn-detection-tuning': 'transcription',
+  'model-translation': 'translation', 'system-instructions': 'translation',
+  'model-tts': 'speech', 'voice-settings': 'speech',
+};
+/** An engine slot's stage, as the line-up names it. */
+const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
+
+import { stageInSentence } from '../../lib/lineup/stageWords';
+export { stageInSentence };
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
 function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key' | 'sign-in' | null {
@@ -64,7 +69,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const navigateToSettings = useNavigateToSettings();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
-  const [folded, setFolded] = useState(true);
+  // Which stage cards have their provider's options open (mock v19: each card its own).
+  const [openCards, setOpenCards] = useState<Partial<Record<RunStage, boolean>>>({});
   // A slot a notice asked for (a voice to fix, #619): the engine opens it, then it is spent.
   const engineSlotTarget = useEngineSlotTarget();
   const setEngineSlotTarget = useSetEngineSlotTarget();
@@ -75,13 +81,6 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     for (const p of providers) if (p.kind === 'own-key' && !useProviderStore.getState().entries[p.id]) void useProviderStore.getState().load(p);
   }, [providers]);
 
-  // A target inside the provider's own options unfolds them before the page scrolls to it.
-  useEffect(() => {
-    if (target && FOLDED_TARGETS.has(target)) setFolded(false);
-  }, [target]);
-  useEffect(() => {
-    if (engineSlotTarget) setFolded(false);
-  }, [engineSlotTarget]);
 
   const offered = useMemo(() => {
     const ids = new Set(providers.map((p) => p.id));
@@ -125,8 +124,33 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (target) navigateToSettings(null);
   };
 
-  const selectedId = useProviderStore((s) => s.selected);
-  const selectedProvider = providers.find((p) => p.id === selectedId);
+  // Each card's options (mock v19): the provider family serving the card's stage (Bing and Edge belong to this
+  // device's), and the stages that family serves; Bing has no options.
+  const familyOf = (id: string) => caps(id)?.family ?? id;
+  const ownerOf = (stage: RunStage): string | null => {
+    const id = lineUp?.[stage];
+    return !id || id === 'bing' ? null : familyOf(id);
+  };
+  const servedBy = (owner: string) => RUN_STAGES.filter((s) => ownerOf(s) === owner);
+  const optionsOf = (stage: RunStage) => {
+    const owner = ownerOf(stage);
+    const provider = owner ? providers.find((p) => p.id === owner) : undefined;
+    if (!owner || !provider) return null;
+    const served = servedBy(owner);
+    return { owner, provider, served, ...cardOptions(provider.optionStages, served, stage, Boolean(provider.TurnDetection)) };
+  };
+  const firstWithOptions = RUN_STAGES.find((s) => optionsOf(s)?.has);
+  const openCard = (stage: RunStage | undefined) => { if (stage) setOpenCards((o) => (o[stage] ? o : { ...o, [stage]: true })); };
+
+  // A target inside a card's options unfolds that card before the page scrolls to it; so does an engine slot asked for.
+  useEffect(() => {
+    const card = target ? TARGET_CARD[target] : undefined;
+    if (card) openCard(card === 'first' ? firstWithOptions : card);
+  }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (engineSlotTarget) openCard(SLOT_CARD[engineSlotTarget.stage]);
+  }, [engineSlotTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stageList = useStageList();
 
   /** A row's state: what the chosen provider lacks, or Ready. */
   const stateOf = (id: string): { ok: boolean; text: string } => {
@@ -193,26 +217,51 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 </p>
               )}
               {moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>}
+              {(() => {
+                const o = optionsOf(stage);
+                if (!o?.has) return null;
+                const open = Boolean(openCards[stage]);
+                const name = model(id, providers.find((p) => p.id === id)).name;
+                return (
+                  <div className="lineup-stage__options" id={stage === firstWithOptions ? 'provider-options-section' : `lineup-options-${stage}`}>
+                    <button type="button" className="lineup-options__fold" aria-expanded={open} onClick={() => setOpenCards((c) => ({ ...c, [stage]: !open }))}>
+                      {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      {t('settingsPage.lineup.options', '{{provider}} options', { provider: name })}
+                    </button>
+                    {open && (
+                      <div className="lineup-stage__options-body">
+                        {o.provider.optionStages ? (
+                          <SettingsStage stage={stage} served={o.served}>
+                            <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                              initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
+                              onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                            <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
+                            {stage === 'transcription' && <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />}
+                          </SettingsStage>
+                        ) : (
+                          <>
+                            <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                              initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                            <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
+                            <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />
+                          </>
+                        )}
+                        {o.pointerTo && (
+                          <p className="lineup-stage__pointer">
+                            {t('settingsPage.lineup.pointer', 'The options acting on {{stages}} are in the “{{card}}” card.', {
+                              stages: stageList(o.pointerStages), card: t(`settingsPage.lineup.stages.${o.pointerTo}`, STAGE_TITLES[o.pointerTo]),
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
       </div>
-      {selectedProvider && (
-        <div className="lineup-options" id="provider-options-section">
-          <button type="button" className="lineup-options__fold" aria-expanded={!folded} onClick={() => setFolded((f) => !f)}>
-            {folded ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-            {t('settingsPage.lineup.options', '{{provider}} options', { provider: model(selectedProvider.id, selectedProvider).name })}
-          </button>
-          {!folded && (
-            <>
-              <ProviderEngine providers={providers} disabled={locked}
-                initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
-              <ProviderOwnSettings providers={providers} auth={auth} disabled={locked} />
-              <ProviderTurnDetectionControls providers={providers} disabled={locked} />
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

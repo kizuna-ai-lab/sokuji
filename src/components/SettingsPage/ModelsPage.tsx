@@ -95,7 +95,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const stages = useStoredLocalStages();
 
   const [asking, setAsking] = useState<string | null>(null);
-  const [othersOpen, setOthersOpen] = useState(false);
+  const [open, setOpen] = useState<Partial<Record<Stage, boolean>>>({});
   const [importing, setImporting] = useState(false);
   const [importTarget, setImportTarget] = useState<ModelManifestEntry | null>(null);
   const [dictStored, setDictStored] = useState<boolean | null>(null);
@@ -113,7 +113,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
   // The models this pair can use, both ways, on every stage — and every one already on disk.
   const directions = useMemo(() => [directionKey(pair.source, pair.target), directionKey(pair.target, pair.source)], [pair.source, pair.target]);
-  const { mine, others } = useMemo(() => {
+  const stageGroups = useMemo(() => {
     const source = wasmCandidates({ modelStatuses: statuses as never, webgpuAvailable: webgpu, deviceFeatures: features, withCloud: false });
     const usable = new Set<string>();
     for (const dir of directions) {
@@ -128,8 +128,21 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
       || Number(Boolean(b.recommended)) - Number(Boolean(a.recommended))
       || (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
     const all = MODEL_MANIFEST.filter((m) => !m.isCloudModel && SESSION_TYPES.has(m.type)).sort(order);
-    const isMine = (m: ModelManifestEntry) => usable.has(m.id) || statuses[m.id] === 'downloaded' || Boolean(downloads[m.id]);
-    return { mine: all.filter(isMine), others: all.filter((m) => !isMine(m)) };
+    const onDisk = (m: ModelManifestEntry) => statuses[m.id] === 'downloaded' || Boolean(downloads[m.id]);
+    const isMine = (m: ModelManifestEntry) => usable.has(m.id) || onDisk(m);
+    // One small group per stage (owner, 2026-11-15): what is on disk and the recommended ones this computer can
+    // run; when that is nothing, the best one it can run stands in. The rest, other languages' last, wait in a fold.
+    return STAGES.map((stage) => {
+      const mine = all.filter((m) => STAGE_OF[m.type] === stage && isMine(m));
+      let shown = mine.filter((m) => onDisk(m) || (m.recommended && deviceReady(m, webgpu)));
+      if (shown.length === 0) shown = mine.filter((m) => deviceReady(m, webgpu)).slice(0, 1);
+      return {
+        stage,
+        shown,
+        rest: mine.filter((m) => !shown.includes(m)),
+        others: all.filter((m) => STAGE_OF[m.type] === stage && !isMine(m)),
+      };
+    });
   }, [statuses, downloads, webgpu, features, directions]);
 
   const resolveWith = useCallback((st: Record<string, string>) => (dir: string): DirectionResult =>
@@ -243,16 +256,34 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
       <Group title={t('models.page.sessionTitle', 'Models for the session (the “This device” service)')}
         hint={t('models.page.sessionHint', 'Stages set to “This device” in “Languages and line-up” use the models downloaded here.')}>
-        {mine.map(sessionRow)}
-        {others.length > 0 && (
-          <div className="models-group__fold">
-            <button type="button" className="models-group__fold-btn" aria-expanded={othersOpen} onClick={() => setOthersOpen((o) => !o)}>
-              {othersOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              {t('models.page.otherLanguages', 'Models for other languages ({{count}})', { count: others.length })}
-            </button>
-            {othersOpen && others.map(sessionRow)}
-          </div>
-        )}
+        {stageGroups.map(({ stage, shown, rest, others }) => {
+          const title = t(TAGS[stage][0], TAGS[stage][1]);
+          const hidden = rest.length + others.length;
+          return (
+            <div key={stage} className="models-stage" role="group" aria-label={title}>
+              <h4 className="models-stage__title">{title}</h4>
+              <div className="models-stage__shown">{shown.map(sessionRow)}</div>
+              {hidden > 0 && (
+                <div className="models-group__fold">
+                  <button type="button" className="models-group__fold-btn" aria-expanded={Boolean(open[stage])}
+                    onClick={() => setOpen((o) => ({ ...o, [stage]: !o[stage] }))}>
+                    {open[stage] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    {t('models.page.more', '{{count}} more', { count: hidden })}
+                  </button>
+                  {open[stage] && (
+                    <>
+                      {rest.map(sessionRow)}
+                      {others.length > 0 && (
+                        <p className="models-stage__caption">{t('models.page.otherLanguages', 'Models for other languages ({{count}})', { count: others.length })}</p>
+                      )}
+                      {others.map(sessionRow)}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </Group>
 
       <Group title={t('models.page.helpersTitle', 'Helper models')} hint={t('models.page.helpersHint', 'Small models that belong to no one stage.')}>

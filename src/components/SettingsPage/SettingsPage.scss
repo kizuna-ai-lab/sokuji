@@ -6,7 +6,8 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: vars.$bg-base;
+  // The mock's page colour (the colour review, 2026-11-15): the content on the page layer, the list beside it on the surface.
+  background: vars.$bg-page;
   color: vars.$text-primary;
   // One body size for the whole page (the mock's 13px); controls take the page's type rather than the browser's.
   font-size: 13px;
@@ -65,6 +66,8 @@
     align-items: center;
     gap: vars.$space-2;
     @include vars.control-base;
+    // A thin line at rest (the colour review); the focus ring stays clear.
+    border-color: vars.$border-subtle;
     padding: 6px 8px;
     input { flex: 1; min-width: 0; border: none; background: transparent; color: inherit; font: inherit; outline: none; }
   }
@@ -116,7 +119,8 @@
   }
 
   // The line under a category's title: what the category is for.
-  &__intro { margin: 0; max-width: 560px; color: vars.$text-secondary; line-height: 1.6; }
+  // One level below the title (the colour review: the mock's text-tertiary).
+  &__intro { margin: 0; max-width: 560px; color: vars.$text-tertiary; line-height: 1.6; }
 
   &__body {
     flex: none;
@@ -154,7 +158,8 @@
   .language-pair-row {
     gap: 8px;
     .language-select-group label { margin-bottom: 4px; font-size: 12px; color: vars.$text-tertiary; }
-    .language-select { height: 30px; padding: 0 8px; font-size: 12.5px; border-radius: 6px; }
+    // The chosen language sits in the middle of the box: padding gives the height, not a fixed one.
+    .language-select { height: auto; min-height: 30px; padding: 5px 26px 5px 8px; line-height: 18px; font-size: 12.5px; border-radius: 6px; }
     .language-swap-btn { padding: 6px; border: none; }
   }
   .language-mirror-line { font-size: 11.5px; color: vars.$text-muted; }
@@ -175,15 +180,28 @@
       &.active { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
     }
   }
-  // The provider's detection, summed up: the mock's box under the modes; the line still opens its tuning.
-  .turn-detection-tuning {
+  // The mock's box under the modes (`.uses`): what the mode does, one row each — the label on the left, the value on
+  // the right. Under Auto the value is the provider's summary, which opens its tuning.
+  .turn-mode-box {
     margin-top: 8px;
-    padding: 6px 10px;
+    padding: 4px 10px;
     border: 1px solid vars.$border-subtle;
     border-radius: 8px;
     background: vars.$bg-surface;
-    font-size: 12.5px;
+    &:has(.turn-detection-summary:empty) { display: none; }
   }
+  .turn-mode-box__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    margin: 0;
+    font-size: 12.5px;
+    color: vars.$text-secondary;
+    .setting-label { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+  }
+  .turn-mode-box__value { margin-left: auto; color: vars.$text-tertiary; text-align: right; }
+  .turn-detection-link { font-size: 12.5px; }
 }
 
 .lineup-stage {
@@ -194,7 +212,8 @@
   padding: 10px;
   border: 1px solid vars.$border-subtle;
   border-radius: 8px;
-  background: vars.$bg-surface;
+  // On the page's own colour, as the mock's `.stg`: the border marks the card, not another layer of grey.
+  background: vars.$bg-page;
   &.is-joint { border-color: vars.$color-primary; }
 
   &__head { display: flex; align-items: center; gap: 8px; }
@@ -232,7 +251,7 @@
     font-size: 12px;
     border: none;
     background: transparent;
-    color: vars.$text-secondary;
+    color: vars.$text-tertiary;
     cursor: pointer;
     &:hover { color: vars.$text-primary; }
     &:focus-visible { @include vars.focus-ring; }
@@ -261,17 +280,19 @@
     &:hover { color: vars.$color-primary; text-decoration: underline; }
     &:focus-visible { @include vars.focus-ring; }
   }
-  &__chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
-  &__chip { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: vars.$bg-hover; color: vars.$text-secondary; }
+  // The mock's `.caps`: small square-cornered tags on the control colour.
+  &__chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  &__chip { font-size: 11px; line-height: 1; padding: 4px 7px; border-radius: 4px; background: vars.$bg-control; color: vars.$text-secondary; }
+  // At rest the control colour with a thin line; the hover colour is for hovering (the colour review).
   &__toggle {
     flex: none;
     padding: 5px 12px;
-    border: none;
+    border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-md;
-    background: vars.$bg-hover;
+    background: vars.$bg-control;
     color: vars.$text-primary;
     cursor: pointer;
-    &:hover { background: vars.$bg-elevated-hover; }
+    &:hover { background: vars.$bg-hover; }
     &:focus-visible { @include vars.focus-ring; }
   }
 }
@@ -444,8 +465,10 @@
   .settings-field .select-dropdown,
   .setting-row--inline .setting-row__control .select-dropdown {
     width: 100%;
-    height: 30px;
-    padding: 0 8px;
+    height: auto;
+    min-height: 30px;
+    padding: 5px 8px;
+    line-height: 18px;
     border-radius: 6px;
     border: 1px solid vars.$border-subtle;
     background-color: vars.$bg-control;
@@ -511,11 +534,16 @@
     }
     // The virtual microphone, named rather than chosen: plain text at the right.
     .setting-row__field { flex: 0 1 auto; padding: 0; border: none; background: none; font-size: 12px; color: vars.$text-tertiary; text-align: right; }
+    // The slider as Display's background opacity draws it: the native track in the primary colour, the percent right.
     .setting-row__slider {
       flex: 0 1 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       font-size: 12px;
+      color: vars.$text-muted;
       input[type='range'] { flex: none; width: 110px; accent-color: vars.$color-primary; }
-      .setting-value { font-size: 12px; }
+      .setting-value { min-width: 3em; text-align: right; font-size: 12px; color: vars.$text-muted; font-variant-numeric: tabular-nums; }
     }
     .setting-row__switch { margin: 0; }
     .setting-row__switch-gap { width: vars.$toggle-width; }
@@ -645,3 +673,122 @@
   }
   &__note { color: vars.$text-muted; font-size: 11.5px; }
 }
+
+// The session models' three small groups (owner 2026-11-15): a caption per stage, what is on disk and the
+// recommended ones, then "N more" holding the rest.
+.models-stage {
+  padding: 4px 0 2px;
+  & + & { border-top: 1px solid vars.$border-subtle; }
+  &__title { margin: 8px 0 0; font-size: 12px; font-weight: vars.$weight-semibold; color: vars.$text-tertiary; }
+  &__caption { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed vars.$border-subtle; font-size: 11.5px; color: vars.$text-muted; }
+  .models-group__fold { border-top: none; }
+  .models-stage__shown + .models-group__fold { border-top: 1px solid vars.$border-subtle; }
+}
+
+// General, as mock v19 draws it: two groups of plain rows, thin lines between, no cards; two quiet links last.
+.general-category {
+  .settings-subhead:first-child { margin-top: 4px; }
+}
+.general-list { border-top: 1px solid vars.$border-subtle; }
+.general-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid vars.$border-subtle;
+  &__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  &__name { font-size: 13px; color: vars.$text-primary; }
+  &__line { margin-top: 2px; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
+  &__control { flex: none; display: inline-flex; align-items: center; gap: 8px; .toggle-switch-component { margin: 0; } }
+  &__select { width: 200px; height: 30px; padding: 0 8px; font-size: 12.5px; border-radius: 6px; }
+  &__value { font-size: 12.5px; color: vars.$text-tertiary; font-variant-numeric: tabular-nums; }
+}
+.general-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 18px 0 0;
+  font-size: 12.5px;
+  color: vars.$text-muted;
+}
+
+// The page's dropdowns as the design review set them from the mock (2026-11-15): closed, a compact 30px box with a 6px corner,
+// a thin border and 12.5px text in the middle; open, the same scale — 30px rows of 12.5px text lined up with the
+// box's, the app's pale selected background and small green check kept. The rich provider select is its own kind.
+.settings-page {
+  .select-dropdown:not(.provider-select),
+  .language-select {
+    min-height: 30px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    line-height: 18px;
+    border-radius: 6px;
+    border-color: vars.$border-subtle;
+    font-size: 12.5px;
+  }
+  @supports (appearance: base-select) {
+    .select-dropdown:not(.provider-select),
+    .language-select {
+      &::picker(select) { padding: 4px; }
+      option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
+    }
+  }
+}
+
+// Each stage card's options (mock v19): the fold under the choice, the options under a hairline when open; a setting
+// acting on several stages says which under it; a later card points back to the first.
+.lineup-stage__options { margin-top: 2px; }
+.lineup-stage__options-body {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid vars.$border-subtle;
+  .config-section, .settings-section { margin: 0 0 8px; padding: 0; border: none; }
+}
+.lineup-stage__pointer { margin: 4px 0 0; font-size: 11.5px; color: vars.$text-muted; }
+.stage-part { display: flex; flex-direction: column; }
+.stage-part__acts { margin: -4px 0 8px; font-size: 11px; color: vars.$text-muted; }
+
+// The providers' own settings inside a stage card, at the page's compact scale: small headings, compact choices.
+.lineup-stage__options-body {
+  font-size: 12.5px;
+  h2, h3 { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; font-size: 13px; font-weight: vars.$weight-semibold; }
+  .setting-item { margin: 0 0 8px; }
+  .setting-label { font-size: 12.5px; }
+  textarea { font-size: 12.5px; }
+  .turn-detection-options {
+    display: inline-flex;
+    width: auto;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    overflow: hidden;
+    .option-button {
+      flex: none;
+      height: 24px;
+      padding: 0 12px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      & + .option-button { border-left: 1px solid vars.$border-subtle; }
+      &.active { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+    }
+  }
+}
+
+// Switches on the page turn on in the same deep green as the chosen segment (the mock's `.tg`), not the brighter accent.
+.settings-page .toggle-switch-component .toggle-track-container input:checked + .toggle-track {
+  background-color: vars.$color-primary-fill;
+}
+
+// Where the sound goes (mock v18, wide windows only): boxes in the secondary text colour, lit lines in the primary
+// colour, dashed and dim while off; a side the mode does not use greyed. Hidden in a narrow window.
+.sound-flow {
+  margin: 6px 0 12px;
+  svg { display: block; width: 100%; height: auto; max-width: 660px; font-size: 11.5px; color: vars.$text-tertiary; }
+  &__box { color: vars.$text-secondary; }
+  &__leg.is-on { color: vars.$color-primary; }
+  &__leg.is-off { color: vars.$text-disabled; path { stroke-dasharray: 3 4; } }
+  &__side.is-unused { opacity: 0.3; }
+  figcaption { margin-top: 4px; font-size: 11.5px; color: vars.$text-muted; }
+}
+.settings-page--narrow .sound-flow { display: none; }

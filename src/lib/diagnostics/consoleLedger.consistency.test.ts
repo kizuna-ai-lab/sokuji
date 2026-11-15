@@ -171,7 +171,6 @@ const LEDGER: Record<string, number> = {
   // report.ts.
   'src/components/Tour/TourProvider.tsx': 3,
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
-  'src/components/Settings/sections/HelpSection.tsx': 2,
   'src/components/Settings/sections/ModelManagementSection.tsx': 2,
   // ProviderSpecificSettings.tsx's row (2) is gone, not lowered to 0: both of
   // its calls sat in the other providers' branches, which the Stage 2

@@ -1012,7 +1012,8 @@
       "dictMeta": "Memaparkan sebutan bahasa Jepun; dihidupkan dalam \"Paparan\"",
       "voicesTitle": "Suara yang diimport",
       "voicesHint": "Fail suara Supertonic yang anda import.",
-      "importedOn": "Diimport pada {{date}}"
+      "importedOn": "Diimport pada {{date}}",
+      "more": "{{count}} lagi"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Belum log masuk",
       "together": "bersama",
       "view": "Lihat",
-      "hide": "Sembunyikan"
+      "hide": "Sembunyikan",
+      "endToEnd": "Hujung ke hujung",
+      "transcribeTranslate": "Transkripsi dan terjemahan",
+      "signedInBalance": "Telah log masuk; baki {{amount}}",
+      "localModels": "Berjalan pada komputer ini; {{count}} model dimuat turun, jumlah {{size}}",
+      "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun"
     },
     "lineup": {
       "title": "Susunan",
@@ -1826,7 +1832,18 @@
         "ready": "Sedia"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
-      "hint": "Perkhidmatan mana yang membuat setiap peringkat"
+      "hint": "Perkhidmatan mana yang membuat setiap peringkat",
+      "uses": {
+        "turn": "Akhir pertuturan",
+        "key": "Kekunci",
+        "space": "Ruang",
+        "released": "Selepas dilepaskan",
+        "releasedValue": "potongan itu dihantar untuk diterjemah",
+        "notHeld": "Semasa tidak ditekan",
+        "notHeldValue": "suara anda terus kepada pihak lain tanpa terjemahan"
+      },
+      "actsOn": "Terpakai pada {{stages}}",
+      "pointer": "Pilihan yang terpakai pada {{stages}} ada dalam kad \"{{card}}\"."
     },
     "display": {
       "surface": "Paparan mana",
@@ -1858,7 +1875,31 @@
       "micHint": "Dari mana suara saya masuk",
       "otherHint": "Dari mana suara pihak lain masuk",
       "device": "Peranti",
-      "source": "Sumber"
+      "source": "Sumber",
+      "flow": {
+        "myMic": "Mikrofon saya",
+        "toSpeech": "Jadi suara",
+        "toThem": "Mikrofon maya → pihak lain",
+        "theirVoice": "Suara pihak lain",
+        "myDevice": "Peranti main balik saya",
+        "caption": "Ke mana bunyi pergi. Garisan terang kini aktif, garisan putus-putus tidak; ia mengikut suis di bawah.",
+        "aria": "Ke mana bunyi pergi: apa yang saya cakap, menjadi suara, masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap, menjadi suara, dimainkan pada peranti main balik saya."
+      }
+    },
+    "general": {
+      "basics": "Tetapan asas",
+      "maintenance": "Penyelenggaraan dan bantuan",
+      "update": "Kemas kini",
+      "updateLine": "Anda menggunakan {{version}}.",
+      "version": "Versi",
+      "storeUpdates": "Kedai pelayar mengemas kini sambungan secara automatik.",
+      "wizard": "Wizard persediaan",
+      "wizardLine": "Lalui wizard sekali lagi; apa yang disimpan sudah dipilih terlebih dahulu.",
+      "rerun": "Jalankan semula",
+      "guide": "Panduan",
+      "guideLine": "Petua langkah demi langkah pada skrin utama.",
+      "restart": "Mula semula",
+      "needHelp": "Perlukan bantuan:"
     }
   }
 }

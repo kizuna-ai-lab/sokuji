@@ -1012,7 +1012,8 @@
       "dictMeta": "显示日语读音用；在“显示”里打开",
       "voicesTitle": "导入的音色",
       "voicesHint": "自己导入的 Supertonic 音色文件。",
-      "importedOn": "导入于 {{date}}"
+      "importedOn": "导入于 {{date}}",
+      "more": "还有 {{count}} 个"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "未登录",
       "together": "一起",
       "view": "查看",
-      "hide": "收起"
+      "hide": "收起",
+      "endToEnd": "端到端",
+      "transcribeTranslate": "转写并翻译",
+      "signedInBalance": "已登录，余额 {{amount}}",
+      "localModels": "在这台电脑上运行；已下载 {{count}} 个模型，共 {{size}}",
+      "localNone": "在这台电脑上运行；还没有下载模型"
     },
     "lineup": {
       "title": "会话组成",
@@ -1826,7 +1832,18 @@
         "ready": "就绪"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
-      "hint": "每个阶段由哪个服务来做"
+      "hint": "每个阶段由哪个服务来做",
+      "uses": {
+        "turn": "断句",
+        "key": "按键",
+        "space": "空格",
+        "released": "松开以后",
+        "releasedValue": "这一段送去翻译",
+        "notHeld": "没有按住的时候",
+        "notHeldValue": "原声直接给对方，不翻译"
+      },
+      "actsOn": "作用于{{stages}}",
+      "pointer": "作用于{{stages}}的选项在“{{card}}”卡片里。"
     },
     "display": {
       "surface": "哪个界面",
@@ -1858,7 +1875,31 @@
       "micHint": "我的声音从哪里进来",
       "otherHint": "对方的声音从哪里进来",
       "device": "设备",
-      "source": "来源"
+      "source": "来源",
+      "flow": {
+        "myMic": "我的麦克风",
+        "toSpeech": "翻译成语音",
+        "toThem": "虚拟麦克风 → 对方",
+        "theirVoice": "对方的声音",
+        "myDevice": "我的播放设备",
+        "caption": "声音走向。亮着的线是现在开着的，虚线是关着的；随下面的开关变。",
+        "aria": "声音走向：我说的话翻译成语音，送进虚拟麦克风给对方，我也听时在我这边也放；对方说的话翻译成语音，从我的播放设备放出来。"
+      }
+    },
+    "general": {
+      "basics": "基本设置",
+      "maintenance": "维护与帮助",
+      "update": "更新",
+      "updateLine": "现在是 {{version}}。",
+      "version": "版本",
+      "storeUpdates": "扩展由浏览器的商店自动更新。",
+      "wizard": "设置向导",
+      "wizardLine": "从头再走一遍向导；已经存好的选择会预先选上。",
+      "rerun": "重新运行",
+      "guide": "操作指南",
+      "guideLine": "主界面上一步一步的提示。",
+      "restart": "重新开始",
+      "needHelp": "需要帮助："
     }
   }
 }

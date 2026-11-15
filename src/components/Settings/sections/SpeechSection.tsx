@@ -67,6 +67,7 @@ export function TurnModeControl({ locked, title }: { locked: boolean; title?: st
  * `Help` follows the same rule on its own (renders nothing then too).
  */
 function ProviderTurnDetection({ locked }: { locked: boolean }) {
+  const { t } = useTranslation();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const providers = useMemo(() => presentProviders(), []);
   const selection = useSelectedProvider(providers);
@@ -80,14 +81,37 @@ function ProviderTurnDetection({ locked }: { locked: boolean }) {
 
   const openControls = () => navigateToSettings('turn-detection-tuning');
 
+  // The mock's box row: the turn end on the left, the provider's summary (the link to its tuning) on the right.
   return (
-    <div className="setting-item turn-detection-tuning">
-      <div className="setting-label">
-        <button type="button" className="turn-detection-summary turn-detection-link" onClick={openControls}>
-          <Summary {...props} />
-        </button>
-        {Help && <Help {...props} />}
+    <div className="turn-mode-box">
+      <div className="setting-item turn-detection-tuning turn-mode-box__row">
+        <span className="turn-mode-box__label">{t('settingsPage.lineup.uses.turn', 'Turn end')}</span>
+        <div className="setting-label">
+          <button type="button" className="turn-detection-summary turn-detection-link" onClick={openControls}>
+            <Summary {...props} />
+          </button>
+          {Help && <Help {...props} />}
+        </div>
       </div>
+    </div>
+  );
+}
+
+/** Push-to-Talk and Push-to-Translate in the mock's box: the key, and what it does. */
+function HeldKeyBox() {
+  const { t } = useTranslation();
+  const turnMode = useTurnModeStore((s) => s.turnMode);
+  if (turnMode === 'auto') return null;
+  const rows: Array<[string, string]> = turnMode === 'push-to-talk'
+    ? [[t('settingsPage.lineup.uses.key', 'Key'), t('settingsPage.lineup.uses.space', 'Space')],
+      [t('settingsPage.lineup.uses.released', 'Once released'), t('settingsPage.lineup.uses.releasedValue', 'that stretch goes off to be translated')]]
+    : [[t('settingsPage.lineup.uses.key', 'Key'), t('settingsPage.lineup.uses.space', 'Space')],
+      [t('settingsPage.lineup.uses.notHeld', 'While not held'), t('settingsPage.lineup.uses.notHeldValue', 'your own voice goes straight to the other side, untranslated')]];
+  return (
+    <div className="turn-mode-box">
+      {rows.map(([label, value]) => (
+        <div className="turn-mode-box__row" key={label}><span className="turn-mode-box__label">{label}</span><span className="turn-mode-box__value">{value}</span></div>
+      ))}
     </div>
   );
 }
@@ -108,8 +132,12 @@ export function SpeechSection({ locked }: { locked: boolean }) {
         <span>{t('settings.speechMode')}</span>
         <small>{t('settingsPage.lineup.speechModeHint', 'When a stretch of speech goes off to be translated; fixed during a session')}</small>
       </h3>
-      <TurnModeControl locked={locked} title={tooltip} />
+      <div className="settings-field">
+        <span className="settings-field__label">{t('settings.speechMode')}</span>
+        <TurnModeControl locked={locked} title={tooltip} />
+      </div>
       <ProviderTurnDetection locked={locked} />
+      <HeldKeyBox />
     </div>
   );
 }

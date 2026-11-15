@@ -1012,7 +1012,8 @@
       "dictMeta": "日本語の読みを表示します。「表示」でオンにします",
       "voicesTitle": "取り込んだボイス",
       "voicesHint": "自分で取り込んだ Supertonic のボイスファイルです。",
-      "importedOn": "{{date}} に取り込み"
+      "importedOn": "{{date}} に取り込み",
+      "more": "ほか {{count}} 件"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "未サインイン",
       "together": "一括",
       "view": "表示",
-      "hide": "閉じる"
+      "hide": "閉じる",
+      "endToEnd": "エンドツーエンド",
+      "transcribeTranslate": "文字起こしと翻訳",
+      "signedInBalance": "ログイン済み、残高 {{amount}}",
+      "localModels": "このパソコンで動作します。ダウンロード済みのモデル {{count}} 個、合計 {{size}}",
+      "localNone": "このパソコンで動作します。モデルはまだダウンロードしていません"
     },
     "lineup": {
       "title": "構成",
@@ -1826,7 +1832,18 @@
         "ready": "準備完了"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
-      "hint": "各段階をどのサービスが担当するか"
+      "hint": "各段階をどのサービスが担当するか",
+      "uses": {
+        "turn": "区切り",
+        "key": "キー",
+        "space": "スペース",
+        "released": "離したあと",
+        "releasedValue": "その区切りを翻訳に送る",
+        "notHeld": "押していないとき",
+        "notHeldValue": "自分の声がそのまま翻訳せずに相手へ届く"
+      },
+      "actsOn": "{{stages}}に作用します",
+      "pointer": "{{stages}}に作用するオプションは「{{card}}」カードにあります。"
     },
     "display": {
       "surface": "どの表示",
@@ -1858,7 +1875,31 @@
       "micHint": "自分の声をどこから取り込むか",
       "otherHint": "相手の声をどこから取り込むか",
       "device": "デバイス",
-      "source": "取り込み元"
+      "source": "取り込み元",
+      "flow": {
+        "myMic": "自分のマイク",
+        "toSpeech": "音声に",
+        "toThem": "仮想マイク → 相手",
+        "theirVoice": "相手の声",
+        "myDevice": "自分の再生デバイス",
+        "caption": "音の流れ。明るい線はいまオン、破線はオフです。下のスイッチに合わせて変わります。",
+        "aria": "音の流れ：自分の発言は音声になって仮想マイクから相手へ届き、自分も聞く場合はこちらでも鳴ります。相手の発言は音声になって自分の再生デバイスで鳴ります。"
+      }
+    },
+    "general": {
+      "basics": "基本設定",
+      "maintenance": "メンテナンスとヘルプ",
+      "update": "アップデート",
+      "updateLine": "現在は {{version}} です。",
+      "version": "バージョン",
+      "storeUpdates": "拡張機能はブラウザのストアが自動で更新します。",
+      "wizard": "セットアップウィザード",
+      "wizardLine": "ウィザードをもう一度たどります。保存済みの選択は最初から選ばれています。",
+      "rerun": "もう一度実行",
+      "guide": "操作ガイド",
+      "guideLine": "メイン画面で一歩ずつ表示されるヒントです。",
+      "restart": "もう一度始める",
+      "needHelp": "お困りのときは："
     }
   }
 }

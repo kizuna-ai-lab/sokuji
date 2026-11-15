@@ -1012,7 +1012,8 @@
       "dictMeta": "Mostra as leituras do japonês; ativado em “Exibição”",
       "voicesTitle": "Vozes importadas",
       "voicesHint": "Arquivos de voz Supertonic que você importou.",
-      "importedOn": "Importada em {{date}}"
+      "importedOn": "Importada em {{date}}",
+      "more": "Mais {{count}}"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Não conectado",
       "together": "juntas",
       "view": "Ver",
-      "hide": "Ocultar"
+      "hide": "Ocultar",
+      "endToEnd": "Ponta a ponta",
+      "transcribeTranslate": "Transcrição e tradução",
+      "signedInBalance": "Conectado; saldo {{amount}}",
+      "localModels": "Roda neste computador; {{count}} modelos baixados, {{size}} no total",
+      "localNone": "Roda neste computador; nenhum modelo baixado ainda"
     },
     "lineup": {
       "title": "Composição",
@@ -1826,7 +1832,18 @@
         "ready": "Pronto"
       },
       "speechModeHint": "Quando um trecho de fala vai para a tradução; fixo durante a sessão",
-      "hint": "Qual serviço faz cada etapa"
+      "hint": "Qual serviço faz cada etapa",
+      "uses": {
+        "turn": "Fim da fala",
+        "key": "Tecla",
+        "space": "Espaço",
+        "released": "Ao soltar",
+        "releasedValue": "esse trecho vai para a tradução",
+        "notHeld": "Enquanto não está pressionada",
+        "notHeldValue": "sua própria voz vai direto para o outro lado, sem tradução"
+      },
+      "actsOn": "Vale para {{stages}}",
+      "pointer": "As opções que valem para {{stages}} estão no cartão “{{card}}”."
     },
     "display": {
       "surface": "Qual exibição",
@@ -1858,7 +1875,31 @@
       "micHint": "Por onde entra a minha voz",
       "otherHint": "Por onde entra a voz do outro lado",
       "device": "Dispositivo",
-      "source": "Origem"
+      "source": "Origem",
+      "flow": {
+        "myMic": "Meu microfone",
+        "toSpeech": "Em fala",
+        "toThem": "Microfone virtual → o outro lado",
+        "theirVoice": "A voz do outro lado",
+        "myDevice": "Meu dispositivo de reprodução",
+        "caption": "Para onde vai o som. Linhas acesas estão ligadas agora, tracejadas desligadas; seguem os interruptores abaixo.",
+        "aria": "Para onde vai o som: o que eu digo, virando fala, vai para o microfone virtual do outro lado e toca também do meu lado quando eu escuto; o que o outro lado diz, virando fala, toca no meu dispositivo de reprodução."
+      }
+    },
+    "general": {
+      "basics": "Básico",
+      "maintenance": "Manutenção e ajuda",
+      "update": "Atualizações",
+      "updateLine": "Você tem a {{version}}.",
+      "version": "Versão",
+      "storeUpdates": "A loja do navegador mantém a extensão atualizada.",
+      "wizard": "Assistente de configuração",
+      "wizardLine": "Percorra o assistente de novo; o que já está salvo vem pré-selecionado.",
+      "rerun": "Executar de novo",
+      "guide": "Guia",
+      "guideLine": "Dicas passo a passo na tela principal.",
+      "restart": "Recomeçar",
+      "needHelp": "Precisa de ajuda:"
     }
   }
 }

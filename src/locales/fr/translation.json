@@ -1012,7 +1012,8 @@
       "dictMeta": "Affiche les lectures du japonais ; s’active dans « Affichage »",
       "voicesTitle": "Voix importées",
       "voicesHint": "Les fichiers de voix Supertonic que vous avez importés.",
-      "importedOn": "Importée le {{date}}"
+      "importedOn": "Importée le {{date}}",
+      "more": "{{count}} de plus"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Non connecté",
       "together": "ensemble",
       "view": "Afficher",
-      "hide": "Masquer"
+      "hide": "Masquer",
+      "endToEnd": "De bout en bout",
+      "transcribeTranslate": "Transcription et traduction",
+      "signedInBalance": "Connecté ; solde {{amount}}",
+      "localModels": "Fonctionne sur cet ordinateur ; {{count}} modèles téléchargés, {{size}} au total",
+      "localNone": "Fonctionne sur cet ordinateur ; aucun modèle téléchargé pour l’instant"
     },
     "lineup": {
       "title": "Composition",
@@ -1826,7 +1832,18 @@
         "ready": "Prêt"
       },
       "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
-      "hint": "Quel service assure chaque étape"
+      "hint": "Quel service assure chaque étape",
+      "uses": {
+        "turn": "Fin de prise de parole",
+        "key": "Touche",
+        "space": "Espace",
+        "released": "Une fois relâchée",
+        "releasedValue": "ce passage part en traduction",
+        "notHeld": "Tant qu’elle n’est pas maintenue",
+        "notHeldValue": "votre propre voix va directement à l’autre partie, sans traduction"
+      },
+      "actsOn": "S’applique à : {{stages}}",
+      "pointer": "Les options qui s’appliquent à {{stages}} sont dans la carte « {{card}} »."
     },
     "display": {
       "surface": "Quel affichage",
@@ -1858,7 +1875,31 @@
       "micHint": "Par où arrive ma voix",
       "otherHint": "Par où arrive la voix de l’autre partie",
       "device": "Appareil",
-      "source": "Source"
+      "source": "Source",
+      "flow": {
+        "myMic": "Mon micro",
+        "toSpeech": "En parole",
+        "toThem": "Micro virtuel → l’autre partie",
+        "theirVoice": "La voix de l’autre partie",
+        "myDevice": "Mon appareil de lecture",
+        "caption": "Où va le son. Les lignes allumées sont actives, les pointillées non ; elles suivent les interrupteurs ci-dessous.",
+        "aria": "Où va le son : ce que je dis, transformé en parole, va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie, transformé en parole, joue sur mon appareil de lecture."
+      }
+    },
+    "general": {
+      "basics": "Paramètres de base",
+      "maintenance": "Maintenance et aide",
+      "update": "Mises à jour",
+      "updateLine": "Vous avez la {{version}}.",
+      "version": "Version",
+      "storeUpdates": "La boutique du navigateur tient l’extension à jour.",
+      "wizard": "Assistant de configuration",
+      "wizardLine": "Refaire l’assistant ; ce que vous avez enregistré est présélectionné.",
+      "rerun": "Relancer",
+      "guide": "Guide",
+      "guideLine": "Des conseils pas à pas sur l’écran principal.",
+      "restart": "Recommencer",
+      "needHelp": "Besoin d’aide :"
     }
   }
 }

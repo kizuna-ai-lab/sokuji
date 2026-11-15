@@ -1012,7 +1012,8 @@
       "dictMeta": "일본어 읽는 법을 보여 줍니다. \"표시\"에서 켭니다",
       "voicesTitle": "가져온 목소리",
       "voicesHint": "직접 가져온 Supertonic 목소리 파일입니다.",
-      "importedOn": "{{date}}에 가져옴"
+      "importedOn": "{{date}}에 가져옴",
+      "more": "{{count}}개 더"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "로그인 안 됨",
       "together": "함께",
       "view": "보기",
-      "hide": "접기"
+      "hide": "접기",
+      "endToEnd": "엔드투엔드",
+      "transcribeTranslate": "받아쓰기와 번역",
+      "signedInBalance": "로그인됨, 잔액 {{amount}}",
+      "localModels": "이 컴퓨터에서 실행됩니다. 모델 {{count}}개 다운로드됨, 모두 {{size}}",
+      "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다"
     },
     "lineup": {
       "title": "구성",
@@ -1826,7 +1832,18 @@
         "ready": "준비됨"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
-      "hint": "각 단계를 어떤 서비스가 맡는지"
+      "hint": "각 단계를 어떤 서비스가 맡는지",
+      "uses": {
+        "turn": "말 끝 판단",
+        "key": "키",
+        "space": "스페이스",
+        "released": "떼고 나면",
+        "releasedValue": "그 토막을 번역으로 보냄",
+        "notHeld": "누르고 있지 않을 때",
+        "notHeldValue": "내 목소리가 번역 없이 바로 상대방에게 감"
+      },
+      "actsOn": "{{stages}}에 적용됨",
+      "pointer": "{{stages}}에 적용되는 옵션은 \"{{card}}\" 카드에 있습니다."
     },
     "display": {
       "surface": "어느 화면",
@@ -1858,7 +1875,31 @@
       "micHint": "내 목소리가 들어오는 곳",
       "otherHint": "상대방 목소리가 들어오는 곳",
       "device": "장치",
-      "source": "소스"
+      "source": "소스",
+      "flow": {
+        "myMic": "내 마이크",
+        "toSpeech": "음성으로",
+        "toThem": "가상 마이크 → 상대방",
+        "theirVoice": "상대방 목소리",
+        "myDevice": "내 재생 장치",
+        "caption": "소리가 가는 길. 밝은 선은 지금 켜져 있고 점선은 꺼져 있습니다. 아래 스위치를 따라 바뀝니다.",
+        "aria": "소리가 가는 길: 내가 한 말은 음성으로 바뀌어 상대방을 위한 가상 마이크로 가고, 내가 같이 들으면 내 쪽에서도 재생됩니다. 상대방이 한 말은 음성으로 바뀌어 내 재생 장치에서 재생됩니다."
+      }
+    },
+    "general": {
+      "basics": "기본 설정",
+      "maintenance": "유지 관리와 도움말",
+      "update": "업데이트",
+      "updateLine": "지금은 {{version}}입니다.",
+      "version": "버전",
+      "storeUpdates": "확장 프로그램은 브라우저 스토어가 최신으로 유지합니다.",
+      "wizard": "설정 마법사",
+      "wizardLine": "마법사를 다시 진행합니다. 저장해 둔 선택은 미리 골라져 있습니다.",
+      "rerun": "다시 실행",
+      "guide": "사용 안내",
+      "guideLine": "메인 화면에서 단계별로 보여 주는 안내입니다.",
+      "restart": "다시 시작",
+      "needHelp": "도움이 필요하면:"
     }
   }
 }

@@ -1012,7 +1012,8 @@
       "dictMeta": "Ipinapakita ang pagbasa sa Hapon; binubuksan sa \"Display\"",
       "voicesTitle": "Mga in-import na boses",
       "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
-      "importedOn": "In-import noong {{date}}"
+      "importedOn": "In-import noong {{date}}",
+      "more": "{{count}} pa"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Hindi naka-sign in",
       "together": "magkasama",
       "view": "Tingnan",
-      "hide": "Itago"
+      "hide": "Itago",
+      "endToEnd": "Mula simula hanggang dulo",
+      "transcribeTranslate": "Transkripsyon at pagsasalin",
+      "signedInBalance": "Naka-sign in; balanse {{amount}}",
+      "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
+      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model"
     },
     "lineup": {
       "title": "Line-up",
@@ -1826,7 +1832,18 @@
         "ready": "Handa"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
-      "hint": "Aling serbisyo ang gumagawa ng bawat yugto"
+      "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
+      "uses": {
+        "turn": "Dulo ng sinasabi",
+        "key": "Key",
+        "space": "Space",
+        "released": "Pagkabitaw",
+        "releasedValue": "ipinapadala sa pagsasalin ang bahaging iyon",
+        "notHeld": "Kapag hindi pinipindot",
+        "notHeldValue": "diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin"
+      },
+      "actsOn": "Para sa {{stages}}",
+      "pointer": "Ang mga opsyon para sa {{stages}} ay nasa card na \"{{card}}\"."
     },
     "display": {
       "surface": "Aling display",
@@ -1858,7 +1875,31 @@
       "micHint": "Saan pumapasok ang boses ko",
       "otherHint": "Saan pumapasok ang boses ng kabilang panig",
       "device": "Device",
-      "source": "Pinagmulan"
+      "source": "Pinagmulan",
+      "flow": {
+        "myMic": "Mikropono ko",
+        "toSpeech": "Gawing boses",
+        "toThem": "Virtual mic → kabilang panig",
+        "theirVoice": "Boses ng kabilang panig",
+        "myDevice": "Device ko sa pag-play",
+        "caption": "Saan napupunta ang tunog. Naka-on ngayon ang maliliwanag na linya, naka-off ang putol-putol; sumusunod sila sa mga switch sa ibaba.",
+        "aria": "Saan napupunta ang tunog: ang sinasabi ko, ginawang boses, ay pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig, ginawang boses, ay tumutugtog sa device ko."
+      }
+    },
+    "general": {
+      "basics": "Mga pangunahing setting",
+      "maintenance": "Pagpapanatili at tulong",
+      "update": "Mga update",
+      "updateLine": "Nasa {{version}} ka.",
+      "version": "Bersyon",
+      "storeUpdates": "Ang store ng browser ang nag-a-update sa extension.",
+      "wizard": "Setup wizard",
+      "wizardLine": "Daanan muli ang wizard; nakapili na ang mga naka-save mo.",
+      "rerun": "Patakbuhin muli",
+      "guide": "Gabay",
+      "guideLine": "Sunud-sunod na tips sa pangunahing screen.",
+      "restart": "Simulan muli",
+      "needHelp": "Kailangan ng tulong:"
     }
   }
 }

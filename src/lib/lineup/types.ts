@@ -8,6 +8,17 @@ export type StageName = 'transcription' | 'translation' | 'speech' | 'summarisat
 export type RunStage = Exclude<StageName, 'summarisation'>;
 export const RUN_STAGES: readonly RunStage[] = ['transcription', 'translation', 'speech'];
 
+/**
+ * The stage sets a provider's options act on (mock v19): each `StagePart` in its `Settings` names one of these, and
+ * the provider's `optionStages` lists the ones it uses, so the line-up page knows which cards have options without
+ * drawing them.
+ */
+export const TR: readonly RunStage[] = ['transcription'];
+export const TL: readonly RunStage[] = ['translation'];
+export const SP: readonly RunStage[] = ['speech'];
+export const TR_TL: readonly RunStage[] = ['transcription', 'translation'];
+export const ALL_STAGES: readonly RunStage[] = RUN_STAGES;
+
 export interface LineUp {
   transcription: string | null;
   translation: string | null;

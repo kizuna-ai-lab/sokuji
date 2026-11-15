@@ -9,6 +9,8 @@ import { voicesFor } from './catalog';
 import { previewVoice } from './preview';
 import type { Ast2Settings as S } from './settings';
 import { CLONE, clonable, effectiveVoice } from './voice';
+import { SP, TR, TR_TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 /** The console's library pages (`ProviderSpecificSettings.tsx:1606-1694`). */
 const CONSOLE = 'https://console.volcengine.com/speech';
@@ -82,6 +84,7 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, par
   return (
     <>
       {/* A text-only target no voice speaks and cloning cannot run (zh → ru) has nothing to pick: no row, and no section without one. */}
+      <StagePart stages={SP}>
       {(mine.length > 0 || theirVoices.length > 0) && <VoicePreviewContext.Provider value={preview ?? null}>
         {/* `#voice-settings-section` is Settings' `voice-settings` target (`Settings.tsx:51`), the Speech rows' voice links. */}
         <div className="settings-section" id="voice-settings-section">
@@ -109,6 +112,8 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, par
           />}
         </div>
       </VoicePreviewContext.Provider>}
+      </StagePart>
+      <StagePart stages={TR_TL}>
       <div className="settings-section">
         <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
         <TextField
@@ -142,6 +147,8 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, par
           {t('settings.volcengineAST2CustomVocabularyFooter', "Invalid or empty library IDs are silently ignored — the session runs as if the field weren't set. Library changes made in the Volcengine console can take a few minutes to take effect.")}
         </div>
       </div>
+      </StagePart>
+      <StagePart stages={TR}>
       <div className="settings-section">
         <h2>{t('settings.volcengineAST2Info', 'Doubao AST 2.0 Info')}</h2>
         <div className="setting-item">
@@ -154,6 +161,7 @@ export function Ast2SettingsView({ settings, update, disabled = false, pair, par
           </div>
         </div>
       </div>
+      </StagePart>
     </>
   );
 }

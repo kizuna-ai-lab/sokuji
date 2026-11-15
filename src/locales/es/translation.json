@@ -1012,7 +1012,8 @@
       "dictMeta": "Muestra la lectura del japonés; se activa en «Pantalla»",
       "voicesTitle": "Voces importadas",
       "voicesHint": "Archivos de voz de Supertonic que importaste.",
-      "importedOn": "Importada el {{date}}"
+      "importedOn": "Importada el {{date}}",
+      "more": "{{count}} más"
     }
   },
   "notes": {
@@ -1802,7 +1803,12 @@
       "signedOut": "Sin iniciar sesión",
       "together": "juntas",
       "view": "Ver",
-      "hide": "Ocultar"
+      "hide": "Ocultar",
+      "endToEnd": "De extremo a extremo",
+      "transcribeTranslate": "Transcripción y traducción",
+      "signedInBalance": "Sesión iniciada; saldo {{amount}}",
+      "localModels": "Funciona en este ordenador; {{count}} modelos descargados, {{size}} en total",
+      "localNone": "Funciona en este ordenador; aún no hay modelos descargados"
     },
     "lineup": {
       "title": "Combinación",
@@ -1826,7 +1832,18 @@
         "ready": "Listo"
       },
       "speechModeHint": "Cuándo se envía un tramo de voz a traducir; fijo durante la sesión",
-      "hint": "Qué servicio hace cada etapa"
+      "hint": "Qué servicio hace cada etapa",
+      "uses": {
+        "turn": "Fin del turno",
+        "key": "Tecla",
+        "space": "Espacio",
+        "released": "Al soltarla",
+        "releasedValue": "ese tramo se envía a traducir",
+        "notHeld": "Mientras no se mantiene",
+        "notHeldValue": "tu propia voz va directa a la otra parte, sin traducir"
+      },
+      "actsOn": "Afecta a {{stages}}",
+      "pointer": "Las opciones que afectan a {{stages}} están en la tarjeta «{{card}}»."
     },
     "display": {
       "surface": "Qué visualización",
@@ -1858,7 +1875,31 @@
       "micHint": "Por dónde entra mi voz",
       "otherHint": "Por dónde entra la voz de la otra parte",
       "device": "Dispositivo",
-      "source": "Fuente"
+      "source": "Fuente",
+      "flow": {
+        "myMic": "Mi micrófono",
+        "toSpeech": "A voz",
+        "toThem": "Micro virtual → la otra parte",
+        "theirVoice": "La voz de la otra parte",
+        "myDevice": "Mi dispositivo de reproducción",
+        "caption": "Adónde va el sonido. Las líneas iluminadas están activas, las discontinuas no; siguen los interruptores de abajo.",
+        "aria": "Adónde va el sonido: lo que digo, convertido en voz, va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte, convertido en voz, suena en mi dispositivo de reproducción."
+      }
+    },
+    "general": {
+      "basics": "Lo básico",
+      "maintenance": "Mantenimiento y ayuda",
+      "update": "Actualizaciones",
+      "updateLine": "Tienes la {{version}}.",
+      "version": "Versión",
+      "storeUpdates": "La tienda del navegador mantiene la extensión al día.",
+      "wizard": "Asistente de configuración",
+      "wizardLine": "Recorre el asistente otra vez; lo que tienes guardado viene seleccionado.",
+      "rerun": "Ejecutar de nuevo",
+      "guide": "Guía",
+      "guideLine": "Consejos paso a paso en la pantalla principal.",
+      "restart": "Empezar de nuevo",
+      "needHelp": "¿Necesitas ayuda?"
     }
   }
 }

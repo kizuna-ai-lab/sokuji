@@ -3,6 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { ChevronRight, HardDrive } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
 import { SlotRow } from './SlotRow';
+import { StagePart } from '../../providers/stageParts';
+import { SP, TL, TR, type RunStage } from '../../../lib/lineup/types';
+
+/** An engine slot's stage, as the line-up names it. */
+const SLOT_STAGES: Readonly<Record<string, readonly RunStage[]>> = { asr: TR, translation: TL, tts: SP };
 import type { AudioMode } from '../../../stores/audioStore';
 import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
 import './Engine.scss';
@@ -102,7 +107,9 @@ export const EnginePage: React.FC<{
             const badgeId = `${pageId}-${blockIndex}-${stage}`;
             const badge = adapter.slotBadge?.(slot, badgeId) ?? null;
             return (
-              <SlotRow key={stage} slot={slot} label={label} shortLabel={shortLabel} flashSlot={flashSlot}>
+              // In a stage card of the line-up page, only that stage's slot (mock v19).
+              <StagePart key={stage} stages={SLOT_STAGES[stage]}>
+              <SlotRow slot={slot} label={label} shortLabel={shortLabel} flashSlot={flashSlot}>
                 <select
                   className={`select-dropdown engine-slot__select${resolved ? '' : ' engine-slot__select--missing'}${badge ? ' engine-slot__select--badged' : ''}`}
                   value={value}
@@ -176,6 +183,7 @@ export const EnginePage: React.FC<{
                 </select>
                 {badge}
               </SlotRow>
+              </StagePart>
             );
           })}
         </div>

@@ -5,6 +5,8 @@ import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { TtsSpeedControl, TranslationPromptControl } from '../../components/Settings/sections/LocalSettingsControls';
 import type { SettingsProps } from '../../lib/provider/types';
+import { SP, TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 import type { LocalInferenceSettings as S } from './settings';
 
 /** 'qwen'/'qwen35' translation workers accept a custom prompt; opus-mt and everything else don't. */
@@ -66,12 +68,15 @@ export function LocalInferenceSettingsView({ settings, update, disabled = false,
 
   return (
     <>
-      <TtsSpeedControl
-        value={settings.ttsSpeed}
-        onChange={(ttsSpeed) => update({ ttsSpeed })}
-        disabled={disabled}
-      />
+      <StagePart stages={SP}>
+        <TtsSpeedControl
+          value={settings.ttsSpeed}
+          onChange={(ttsSpeed) => update({ ttsSpeed })}
+          disabled={disabled}
+        />
+      </StagePart>
 
+      <StagePart stages={TL}>
       <TranslationPromptControl
         useTemplateMode={settings.useTemplateMode}
         systemPrompt={settings.systemPrompt}
@@ -81,6 +86,7 @@ export function LocalInferenceSettingsView({ settings, update, disabled = false,
         disabled={disabled}
         onChange={(patch) => update(patch)}
       />
+      </StagePart>
     </>
   );
 }

@@ -258,3 +258,42 @@ describe('SpeechSection — as the mock draws it', () => {
     expect(container.querySelector('.turn-detection-options')).toHaveClass('settings-seg');
   });
 });
+
+// The mock's speech mode (owner 2026-11-15: lay it out as the mock does): a "Speech mode" label over the three
+// modes, then a box listing what the mode does — the turn end under Auto, the key and what it does otherwise.
+describe('SpeechSection — the box under the modes, as the mock lists it', () => {
+  const box = (container: HTMLElement) => container.querySelector<HTMLElement>('.turn-mode-box');
+  const rows = (container: HTMLElement) => [...box(container)!.querySelectorAll('.turn-mode-box__row')].map((r) => [...r.children].map((c) => c.textContent));
+
+  it('labels the three modes as the mock does', () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    const field = container.querySelector('.settings-field')!;
+    expect(field.querySelector('.settings-field__label')?.textContent).toBe('settings.speechMode');
+    expect(field.querySelector('.turn-detection-options')).not.toBeNull();
+  });
+
+  it("Auto: the turn end, with the provider's summary that opens its tuning", () => {
+    const { container } = render(<SpeechSection locked={false} />);
+    const row = box(container)!.querySelector('.turn-mode-box__row')!;
+    expect(row.firstElementChild?.textContent).toBe('Turn end');
+    expect(within(row as HTMLElement).getByRole('button').textContent).toBe('VAD Settings · Min Silence Duration: 1.40s');
+  });
+
+  it('Push-to-Talk: the key, and what letting go does', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(rows(container)).toEqual([['Key', 'Space'], ['Once released', 'that stretch goes off to be translated']]);
+  });
+
+  it('Push-to-Translate: the key, and what happens while it is not held', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-translate' });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(rows(container)).toEqual([['Key', 'Space'], ['While not held', 'your own voice goes straight to the other side, untranslated']]);
+  });
+
+  it('a provider without TurnDetection draws no box under Auto', () => {
+    useProviderStore.setState({ selected: 'fake', entries: { fake: entry() } });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(box(container)).toBeNull();
+  });
+});

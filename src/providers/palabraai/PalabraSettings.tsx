@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import type { SettingsProps } from '../../lib/provider/types';
 import { PalabraVoiceField } from './PalabraVoiceField';
 import { DESIRED_QUEUE_RANGE, effectiveQueue, MAX_QUEUE_RANGE, maxQueueFloor, type PalabraSettings as S } from './settings';
+import { SP, TR_TL } from '../../lib/lineup/types';
+import { StagePart } from '../../components/providers/stageParts';
 
 /** Each leg's voice as its run speaks it (`config.ts`): moved beside the voice library. */
 export { PalabraVoiceSummary } from './PalabraVoiceSummary';
@@ -41,10 +43,13 @@ export function PalabraSettingsView({ settings, update, disabled = false, partic
   const tempo = t('settings.autoTempo', 'Adaptive Speech Speed');
   return (
     <>
+      <StagePart stages={SP}>
       <PalabraVoiceField
         settings={settings} update={update} disabled={disabled}
         pair={pair} account={account} participantSpeaks={participantSpeaks} preview={preview}
       />
+      </StagePart>
+      <StagePart stages={TR_TL}>
       <div className="settings-section">
         <h2>{t('settings.speechProcessing', 'Speech Processing')}</h2>
         <div className="setting-item">
@@ -60,6 +65,8 @@ export function PalabraSettingsView({ settings, update, disabled = false, partic
           <OnOff label={partials} value={settings.translatePartialTranscriptions} onChange={(translatePartialTranscriptions) => update({ translatePartialTranscriptions })} disabled={disabled} />
         </div>
       </div>
+      </StagePart>
+      <StagePart stages={SP}>
       <div className="settings-section">
         <h2>{t('settings.queueConfiguration', 'Audio Buffer Configuration')}</h2>
         <div className="setting-item">
@@ -95,6 +102,7 @@ export function PalabraSettingsView({ settings, update, disabled = false, partic
           <OnOff label={tempo} value={settings.autoTempo} onChange={(autoTempo) => update({ autoTempo })} disabled={disabled} />
         </div>
       </div>
+      </StagePart>
     </>
   );
 }
