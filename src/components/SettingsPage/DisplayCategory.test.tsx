@@ -163,6 +163,9 @@ describe('display — the rows as the mock draws them', () => {
     expect(preview().querySelectorAll('.subtitle-stream__line').length).toBe(4);
     // The newest exchange is mine: lit in my source band and my translation band.
     expect(preview().querySelectorAll('.subtitle-stream__item--lit').length).toBe(2);
+    // Each band one short sentence, the side's latest, so it reads whole on one line at the default size.
+    const lines = [...preview().querySelectorAll('.subtitle-stream__line')].map((l) => l.textContent?.trim());
+    expect(lines).toEqual(['结果什么时候出来？', '結果はいつ出ますか？', '認証試験の結果次第です。', '要看认证测试的结果。']);
     useSubtitleStore.setState({ newItemHighlightEnabled: false } as never);
     cleanup();
     render(<DisplayCategory locked={false} />);

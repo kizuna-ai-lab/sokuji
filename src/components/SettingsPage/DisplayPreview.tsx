@@ -99,9 +99,13 @@ function Rows({ v, ruby }: { v: PreviewValues; ruby: boolean }) {
   );
 }
 
-/** Caption mode, compact: up to four bands, each leg's source and translation flowing on one line. */
+/**
+ * Caption mode, compact: up to four bands, each leg's source and translation. A band shows its leg's latest
+ * sentence alone, so it reads whole on one line at the default size (the real bands flow and keep the newest).
+ */
 function Bands({ v }: { v: PreviewValues }) {
   const newest = SAMPLES.length - 1;
+  const latest = (leg: Leg) => SAMPLES.reduce((at, row, i) => (row.leg === leg ? i : at), -1);
   const bands = (['speaker', 'participant'] as const).flatMap((leg) => {
     const mode = leg === 'speaker' ? v.mine : v.theirs;
     return (['source', 'translation'] as const).filter((side) => shows(mode, side)).map((side) => ({ leg, side }));
@@ -111,9 +115,9 @@ function Bands({ v }: { v: PreviewValues }) {
       {bands.map(({ leg, side }) => (
         <div key={`${leg}-${side}`} className={`subtitle-stream__line subtitle-stream__line--${side} subtitle-stream__line--${leg}`}>
           <p>
-            {SAMPLES.map((row, i) => row.leg !== leg ? null : (
+            {SAMPLES.map((row, i) => i !== latest(leg) ? null : (
               <span key={i} className={`subtitle-stream__item${v.highlight && i === newest ? ' subtitle-stream__item--lit' : ''}`}>
-                <Text pieces={row[side].text} ruby={false} />{' '}
+                <Text pieces={row[side].text} ruby={false} />
               </span>
             ))}
           </p>
