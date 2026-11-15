@@ -60,6 +60,17 @@ describe('the sentence cutter', () => {
     expect(c.update({ text: 'One.', final: true, openedAt: 0, marks: [], now: 1 }).revised).toEqual([{ index: 0, text: 'One.' }, { index: 1, text: '' }]);
   });
 
+  it('keeps a sentence end that has a space before it, as French writes ? and !', () => {
+    const c = createSegmentCut();
+    const input = { text: 'Ça va ? Encore', final: false, openedAt: 0, marks: [], heard: { pieces: [], stableLen: 7 }, now: 1000 };
+    expect(c.update(input).added.map((s) => s.text)).toEqual(['Ça va ?']);
+    expect(c.update(input)).toEqual({ added: [], revised: [] });
+    expect(c.update(input)).toEqual({ added: [], revised: [] });
+    const r = c.update({ text: 'Ça va ? Encore une fois !', final: true, openedAt: 0, marks: [], now: 2000 });
+    expect(r.revised).toEqual([]);
+    expect(r.added.map((s) => s.text)).toEqual(['Encore une fois !']);
+  });
+
   it('reports nothing when nothing changed', () => {
     const c = createSegmentCut();
     const input = { text: 'Same. Text.', final: true, openedAt: 0, marks: [], now: 0 };

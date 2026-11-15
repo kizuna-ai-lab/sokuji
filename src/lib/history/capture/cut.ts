@@ -5,7 +5,7 @@
 // and times never change, its text follows the segment's. No timers: `now` comes in.
 import type { Heard } from '../../contract/adapter';
 import type { Mark } from '../../conversation/types';
-import { sentenceEnds } from '../../segmentation/sentenceEnd';
+import { SENTENCE_TERMINALS, sentenceEnds } from '../../segmentation/sentenceEnd';
 import { countSkeleton } from '../../segmentation/sealCursor';
 
 /** Text after the last sentence end is cut when nothing has grown for this long (inside what may be cut). */
@@ -41,12 +41,21 @@ function afterCount(text: string, count: number): number {
   return text.length;
 }
 
-/** A stored end in today's text: after the same letter, with the closing punctuation that follows it. */
+/**
+ * A stored end in today's text: after the same letter, with the closing punctuation that follows it — and a sentence
+ * end after a space, as French writes « Ça va ? », with that space.
+ */
 function endOf(text: string, count: number): number {
   let end = afterCount(text, count);
   while (end < text.length) {
     const ch = String.fromCodePoint(text.codePointAt(end)!);
-    if (LETTER_OR_DIGIT.test(ch) || WHITESPACE.test(ch)) break;
+    if (LETTER_OR_DIGIT.test(ch)) break;
+    if (WHITESPACE.test(ch)) {
+      let next = end;
+      while (next < text.length && WHITESPACE.test(text[next])) next += 1;
+      if (next < text.length && SENTENCE_TERMINALS.includes(text[next])) { end = next; continue; }
+      break;
+    }
     end += ch.length;
   }
   return end;
