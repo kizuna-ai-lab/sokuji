@@ -1,7 +1,7 @@
 // The prompts of the post-meeting notes: the texts the tested scripts build, in the decided configuration.
 import { describe, it, expect } from 'vitest';
 import texts from './prompts.json';
-import { finishPrompt, namesPrompt, NOTES_PROMPT_VERSION, partPrompt } from './prompts';
+import { finishPrompt, LIVE_PROMPT_VERSION, livePrompt, namesPrompt, NOTES_PROMPT_VERSION, partPrompt } from './prompts';
 
 /** A short fingerprint of a text: an edit to a prompt is a deliberate change of NOTES_PROMPT_VERSION. */
 const fingerprint = (s: string) => {
@@ -35,10 +35,19 @@ describe('the notes prompts', () => {
     expect(Object.fromEntries(Object.entries(texts).map(([k, v]) => [k, fingerprint(v)]))).toMatchInlineSnapshot(`
       {
         "finish": "9e6a4177",
+        "live": "4e240150",
         "names": "7d863b8c",
         "part_multi": "cc29de31",
         "part_single": "c200fa53",
       }
     `);
+  });
+
+  it('include the live notes prompt, in its own version (stage 4)', () => {
+    expect(livePrompt('__LANGUAGE__')).toBe((texts as Record<string, string>).live);
+    expect(livePrompt('Japanese')).toContain('Write every free-text value in Japanese.');
+    expect(livePrompt('Japanese')).not.toContain('start_ms');
+    expect(livePrompt('Japanese')).toContain('`withdraw`');
+    expect(LIVE_PROMPT_VERSION).toBe(1);
   });
 });

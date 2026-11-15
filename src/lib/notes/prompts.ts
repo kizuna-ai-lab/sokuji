@@ -20,3 +20,7 @@ export const finishPrompt = (languageName: string): string => withLanguage(texts
 
 /** The names and terms the recognizer may have written wrongly. The same for every language. */
 export const namesPrompt = (): string => texts.names;
+
+/** The live notes' prompt (stage 4): `run_append.py` with SEG_KINDS=2 SEG_WITHDRAW=1 SEG_ANCHOR=id SEG_OWNER=side. */
+export const LIVE_PROMPT_VERSION = 1;
+export const livePrompt = (languageName: string): string => withLanguage(texts.live, languageName);
