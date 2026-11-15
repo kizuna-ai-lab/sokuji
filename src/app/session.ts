@@ -34,8 +34,10 @@ import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
 import { createBrowserNetwork } from './network';
 import { driveReadiness } from './readiness';
+import { registerAuth } from './currentAuth';
 import { registerRunPhase } from './runPhase';
 import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
+import { watchSonioxVoiceAccount } from './sonioxVoiceAccount';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
 import { ORG_REFUSAL_CODES } from '../lib/session/orgNotice';
@@ -99,6 +101,8 @@ export interface AppSession {
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;
+  /** The live sign-in the surfaces last handed `setBridges`. */
+  auth(): AuthContext;
   /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips (loading finished included), the provider held during a run, a source's end as an `audio_error`, a start the service refused on the wallet as a balance refetch, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
@@ -284,6 +288,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       choosing = starting;
       return starting;
     },
+    auth: () => bridges.auth,
     setBridges(next) {
       // Never `Object.assign`: a caller that omits a key (rather than naming
       // it `undefined`) must not erase what an earlier caller set — a
@@ -318,6 +323,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         watchSpeechFromStores(),
         driveReadiness({
           runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
+          watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
+        }),
+        // A custom voice filed under the previous account is checked against the new one (voice reconcile).
+        watchSonioxVoiceAccount({
+          auth: () => bridges.auth, providers: () => presentProviders(),
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
         }),
       ];
@@ -420,6 +430,7 @@ export function getAppSession(): AppSession {
     session = createAppSession(configured);
     // The building call only: code outside React reads this session's phase from now on (ruling 5).
     registerRunPhase(() => session!.runner.state.getState().phase);
+    registerAuth(() => session!.auth());
   }
   return session;
 }

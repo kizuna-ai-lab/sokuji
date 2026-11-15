@@ -336,6 +336,10 @@ describe('voicePrepCode and resolveVoicePrepOutcome', () => {
     expect(resolveVoicePrepOutcome({ ok: true, voiceId: 'v1' }, 'v1', 'Adrian')).toEqual({ sessionVoice: 'v1', settingsPatch: null, notice: null });
   });
 
+  it('clip_required with no clip here persists the default; the other fallbacks stay per run', () => {
+    expect(resolveVoicePrepOutcome({ ok: false, reason: 'clip_required' }, 'v1', 'Adrian')).toMatchObject({ sessionVoice: 'Adrian', settingsPatch: { voice: 'Adrian' }, notice: { code: 'voice_clip_missing' } });
+  });
+
   it('falls back to the built-in voice for this session only, with the notice code', () => {
     expect(resolveVoicePrepOutcome({ ok: false, reason: 'pool_exhausted' }, 'v1', 'Adrian')).toEqual({
       sessionVoice: 'Adrian', settingsPatch: null,

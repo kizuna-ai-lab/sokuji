@@ -4,6 +4,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => null }));
 vi.mock('../VbCable/VbCableIntro', () => ({ default: () => null }));
+vi.mock('../Region/RegionRecommendation', () => ({ default: () => null }));
 vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => <div data-testid="panel-resizer" /> }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));

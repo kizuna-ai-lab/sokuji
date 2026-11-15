@@ -233,6 +233,14 @@ describe('Kizuna Soniox lease: the session-key request', () => {
     await expect(a.pending).resolves.toBeDefined();
   });
 
+  it("asks for India's region in the body", async () => {
+    const a = acquiring(['speaker'], { settings: { region: 'in' } });
+    await flush();
+    expect(JSON.parse(a.last().init.body as string).region).toBe('in');
+    a.last().respond(200, grant(['spk_stt', 'spk_tts'], { region: 'in' }));
+    await expect(a.pending).resolves.toBeDefined();
+  });
+
   it("puts each session-key request's body in the Logs before it goes out, never the token — the participant field only while the flag is on", async () => {
     const off = acquiring(['speaker', 'participant'], { participantSpeech: true, settings: { bothModeSharedSession: false } });
     await flush();
@@ -276,6 +284,9 @@ describe("Kizuna Soniox lease: each leg's keys", () => {
     const speaking = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { region: 'jp' });
     expect(speaking.resources.credentials('speaker')).toEqual({ region: 'jp', stt: 'k-spk_stt', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_stt', lease: PORT });
     expect(() => speaking.resources.credentials('participant')).toThrow(/not requested/);
+
+    const india = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { region: 'in' });
+    expect(india.resources.credentials('speaker').region).toBe('in');
 
     const textOnly = await granted(['speaker'], ['spk_stt'], { textOnly: true });
     expect(textOnly.resources.credentials('speaker')).not.toHaveProperty('tts');

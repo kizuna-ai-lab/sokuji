@@ -160,6 +160,7 @@ describe('buildSoniox — tts', () => {
     expect(build({}, { ...AUTO_CTX, speech: false }).tts).toBeUndefined();
     expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }, speaker).tts).toEqual({ voice: 'Clone-UUID', speed: 1 });
     expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }).tts).toEqual({ voice: 'Grace', speed: 1 });
+    expect(build({ region: 'in', voiceIn: 'Clone-IN' }, speaker).tts).toEqual({ voice: 'Clone-IN', speed: 1 });
     expect(build({ region: 'eu', voiceEu: '' }, speaker).tts?.voice).toBe('Adrian');
     // The participant's choice is the speaker's own: the other default.
     expect(build({ voice: 'Grace' }).tts?.voice).toBe('Adrian');

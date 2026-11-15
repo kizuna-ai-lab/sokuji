@@ -15,8 +15,20 @@ const args = process.argv.slice(2);
 const deletions = [];
 for (let i = 0; i < args.length; i++) if (args[i] === '--delete') deletions.push(args[++i]);
 
+// Invisible format characters (soft hyphen, zero-width and bidi marks, word joiner, BOM) cannot
+// be seen, so a catalogue that keeps one as a \uXXXX escape must not have it rewritten raw.
+// JSON.stringify emits them raw; put back the escape for each such character the catalogue's
+// previous text held only as an escape (a catalogue that writes it raw keeps writing it raw).
+const INVISIBLE = /[\u00AD\u200B-\u200F\u2060\uFEFF]/g;
+const escapeOf = (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0');
+function escapeInvisible(json, previous) {
+  return json.replace(INVISIBLE, (c) => (previous.includes(c) ? c : escapeOf(c)));
+}
 const read = (lang) => JSON.parse(readFileSync(join(ROOT, lang, 'translation.json'), 'utf8'));
-const write = (lang, obj) => writeFileSync(join(ROOT, lang, 'translation.json'), JSON.stringify(obj, null, 2) + '\n');
+const write = (lang, obj) => {
+  const file = join(ROOT, lang, 'translation.json');
+  writeFileSync(file, escapeInvisible(JSON.stringify(obj, null, 2), readFileSync(file, 'utf8')) + '\n');
+};
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
 

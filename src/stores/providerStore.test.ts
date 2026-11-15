@@ -634,3 +634,12 @@ describe('flush', () => {
     await expect(useProviderStore.getState().flush(probe)).resolves.toBe(false);
   });
 });
+
+describe('loadedProvider', () => {
+  it('answers the definition an entry was loaded from', async () => {
+    const { loadedProvider } = await import('./providerStore');
+    await useProviderStore.getState().load(probe);
+    expect(loadedProvider('probe')).toBe(probe);
+    expect(loadedProvider('never-loaded')).toBeUndefined();
+  });
+});

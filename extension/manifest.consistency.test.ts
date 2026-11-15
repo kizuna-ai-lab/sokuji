@@ -68,6 +68,7 @@ describe('manifest stays consistent with the platform registry', () => {
       // the session stream is WSS, and a wss:// entry does not cover https://.
       // The US host already carries the pair for exactly this reason.
       'https://tts-rt.eu.soniox.com', 'https://tts-rt.jp.soniox.com',
+      'https://api.in.soniox.com', 'wss://stt-rt.in.soniox.com', 'wss://tts-rt.in.soniox.com', 'https://tts-rt.in.soniox.com',
     ]) {
       expect(csp).toContain(origin);
     }

@@ -1,0 +1,175 @@
+@use '../Settings/shared/variables' as vars;
+
+// Both region dialogs sit in the shared Modal, whose body sets no font size:
+// text here is the app's body size (13px), buttons 14px, tags 12px. The shared
+// title (18px) is left as every Modal has it.
+
+// Buttons: a solid accent only for the one primary action; every other choice
+// is a bordered secondary button, so it reads as clickable rather than as a
+// disabled bar.
+@mixin region-button {
+  font: inherit;
+  font-size: vars.$font-title;
+  padding: 7px 14px;
+  border-radius: vars.$radius-sm;
+  cursor: pointer;
+  transition: background-color vars.$transition-fast, border-color vars.$transition-fast;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+@mixin region-button-primary {
+  border: 1px solid transparent;
+  background-color: vars.$color-primary-fill;
+  color: vars.$color-on-primary;
+
+  &:hover:not(:disabled) {
+    background-color: vars.$color-primary-fill-hover;
+  }
+}
+
+@mixin region-button-secondary {
+  border: 1px solid vars.$border-default;
+  background-color: vars.$bg-control;
+  color: vars.$text-primary;
+
+  &:hover:not(:disabled) {
+    border-color: vars.$color-primary;
+    background-color: vars.$bg-hover;
+  }
+}
+
+// The voice-warning dialog. Its actions row follows .license-consent-modal in Settings.scss.
+.region-change {
+  text-align: left;
+  font-size: vars.$font-body;
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      @include region-button;
+      flex: 1;
+      padding: 10px 20px;
+    }
+  }
+
+  &__cancel {
+    @include region-button-secondary;
+  }
+
+  &__confirm {
+    @include region-button-primary;
+  }
+}
+
+// The region list: one row per region, in three columns shared by every row —
+// the name with its status tag, the latency, the action — so the latencies line
+// up right-aligned beside their buttons and read top to bottom.
+.region-list {
+  text-align: left;
+  font-size: vars.$font-body;
+
+  &__intro {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__rows {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content max-content;
+    column-gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    min-height: 36px;
+    padding: 4px 0;
+    color: vars.$text-primary;
+
+    & + & {
+      border-top: 1px solid vars.$border-subtle;
+    }
+  }
+
+  &__label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    min-width: 0;
+  }
+
+  &__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__ms {
+    text-align: right;
+    color: vars.$text-secondary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Status tags, not buttons: a light tint with a thin border, never the solid accent.
+  &__tag {
+    padding: 1px 8px;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-sm;
+    background-color: transparent;
+    color: vars.$text-secondary;
+    font-size: vars.$font-caption;
+    line-height: 18px;
+    white-space: nowrap;
+
+    &--recommended {
+      border-color: color-mix(in srgb, vars.$color-primary 45%, transparent);
+      background-color: color-mix(in srgb, vars.$color-primary 10%, transparent);
+      color: vars.$color-primary;
+    }
+  }
+
+  &__action {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__switch {
+    @include region-button;
+    @include region-button-secondary;
+
+    &--primary {
+      @include region-button-primary;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    margin-top: 15px;
+  }
+
+  &__keep {
+    @include region-button;
+    @include region-button-secondary;
+    flex: 1;
+    padding: 10px 20px;
+  }
+}
