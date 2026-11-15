@@ -62,4 +62,32 @@ describe('the history database file', () => {
     expect(db.prepare('select count(*) c from a').get().c).toBe(0);
     db.close();
   });
+
+  // Review: a later migration that rebuilds a table (SQLite's way to change a constraint) must not cascade.
+  it('a migration that rebuilds a parent table keeps the rows that refer to it', () => {
+    const v1 = 'create table p(id text primary key) strict; create table c(p_id text not null references p(id) on delete cascade, x integer) strict';
+    const v2 = `create table p_new(id text primary key, note text) strict;
+      insert into p_new (id) select id from p;
+      drop table p;
+      alter table p_new rename to p;`;
+    const first = openDatabase({ file, migrations: [v1] }).db;
+    first.exec("insert into p values ('a'); insert into c values ('a', 1)");
+    first.close();
+    const { db } = openDatabase({ file, migrations: [v1, v2] });
+    expect(db.prepare('select count(*) n from c').get().n).toBe(1);
+    expect(db.prepare('pragma foreign_keys').get().foreign_keys).toBe(1);
+    db.close();
+  });
+
+  it('a migration that leaves a broken reference changes nothing', () => {
+    const v1 = 'create table p(id text primary key) strict; create table c(p_id text not null references p(id) on delete cascade) strict';
+    const first = openDatabase({ file, migrations: [v1] }).db;
+    first.exec("insert into p values ('a'); insert into c values ('a')");
+    first.close();
+    expect(() => openDatabase({ file, migrations: [v1, 'delete from p'] })).toThrow(expect.objectContaining({ code: 'HISTORY_MIGRATION' }));
+    const { db, version } = openDatabase({ file, migrations: [v1] });
+    expect(version).toBe(1);
+    expect(db.prepare('select count(*) n from p').get().n).toBe(1);
+    db.close();
+  });
 });

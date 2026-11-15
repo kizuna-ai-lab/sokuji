@@ -19,6 +19,14 @@ class HistoryNewerError extends Error {
   }
 }
 
+class HistoryMigrationError extends Error {
+  constructor(version, broken) {
+    super(`History's migration to version ${version} left ${broken} broken reference(s); nothing was changed`);
+    this.name = 'HistoryMigrationError';
+    this.code = 'HISTORY_MIGRATION';
+  }
+}
+
 /** Runs `fn` between BEGIN IMMEDIATE and COMMIT; rolls back and rethrows when it throws. */
 function transaction(db, fn) {
   db.exec('BEGIN IMMEDIATE');
@@ -44,18 +52,23 @@ function openDatabase({ file, migrations = MIGRATIONS }) {
     if (found > migrations.length) throw new HistoryNewerError(found, migrations.length);
     db.exec('pragma journal_mode = WAL');
     db.exec('pragma synchronous = NORMAL');
-    db.exec('pragma foreign_keys = ON');
     if (found > 0 && found < migrations.length) {
       // The copy is whole only once the write-ahead log is folded into the file.
       db.exec('pragma wal_checkpoint(TRUNCATE)');
       fs.copyFileSync(file, `${file}.before-v${migrations.length}`);
     }
+    // Foreign keys are off while migrating (the pragma is ignored inside a transaction): rebuilding a table, the
+    // way SQLite changes a constraint, drops the old one, which would cascade. Each step is checked instead.
+    db.exec('pragma foreign_keys = OFF');
     for (let version = found; version < migrations.length; version += 1) {
       transaction(db, () => {
         db.exec(migrations[version]);
+        const broken = db.prepare('pragma foreign_key_check').all().length;
+        if (broken > 0) throw new HistoryMigrationError(version + 1, broken);
         db.exec(`pragma user_version = ${version + 1}`);
       });
     }
+    db.exec('pragma foreign_keys = ON');
     return { db, version: migrations.length, migratedFrom: found };
   } catch (error) {
     db.close();
@@ -63,4 +76,4 @@ function openDatabase({ file, migrations = MIGRATIONS }) {
   }
 }
 
-module.exports = { openDatabase, transaction, HistoryNewerError };
+module.exports = { openDatabase, transaction, HistoryNewerError, HistoryMigrationError };
