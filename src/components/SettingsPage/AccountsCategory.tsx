@@ -125,7 +125,14 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         return typeof balance === 'number'
           ? t('settingsPage.accounts.signedInBalance', 'Signed in; balance {{amount}}', { amount: formatUsdFloor(balance) })
           : t('settingsPage.accounts.signedIn', 'Signed in');
-      case 'key': return keySaved(a.provider) ? t('settingsPage.accounts.keySaved', 'Key saved') : t('settingsPage.accounts.needsKey', 'Needs a key');
+      case 'key': {
+        if (!keySaved(a.provider)) return t('settingsPage.accounts.needsKey', 'Needs a key');
+        // Saved is not working (Rudolf's review of B-11): the row says what the key's check found.
+        const r = a.provider ? readiness[a.provider.id] : undefined;
+        if (r?.state === 'ready') return t('settingsPage.accounts.keySaved', 'Key saved');
+        if (r?.state === 'not-ready' && r.code === 'auth') return t('settingsPage.lineup.state.keyRefused', 'Key not accepted');
+        return t('settingsPage.lineup.state.keyNotVerified', 'Key not verified');
+      }
       case 'local':
         return localModels > 0
           ? t('settingsPage.accounts.localModels', 'Runs on this computer; {{count}} models downloaded, {{size}} in all', { count: localModels, size: formatBytes(storageMb * 1_048_576) })
@@ -135,7 +142,8 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   };
 
   /** An account in working order: signed in, its key saved, or one that needs neither. */
-  const ready = (a: Account): boolean => (a.kind === 'kizuna' ? auth.signedIn : a.kind === 'key' ? keySaved(a.provider) : true);
+  const ready = (a: Account): boolean => (a.kind === 'kizuna' ? auth.signedIn
+    : a.kind === 'key' ? keySaved(a.provider) && readiness[a.provider?.id ?? '']?.state === 'ready' : true);
 
   // The mock's tags: one per way the account works — what it does over one connection ("End to end",
   // "Transcription and translation"), else each stage on its own; each tag once across the account's providers.

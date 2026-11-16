@@ -41,6 +41,25 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('accounts and keys', () => {
+  // Rudolf's review of B-11: a saved key is not a working one. The row says so until its check passes.
+  it("says whether a saved key works: saved and checked, refused, or not verified yet", () => {
+    const soniox = () => row('Soniox').querySelector('.accounts-row__state')!;
+    useProviderStore.setState({ readiness: { soniox: { state: 'ready', models: [] } } as never });
+    const first = render(<AccountsCategory locked={false} />);
+    expect(soniox()).toHaveTextContent('Key saved');
+    expect(soniox()).toHaveClass('is-ok');
+    first.unmount();
+    useProviderStore.setState({ readiness: { soniox: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    const second = render(<AccountsCategory locked={false} />);
+    expect(soniox()).toHaveTextContent('Key not accepted');
+    expect(soniox()).not.toHaveClass('is-ok');
+    second.unmount();
+    useProviderStore.setState({ readiness: {} });
+    render(<AccountsCategory locked={false} />);
+    expect(soniox()).toHaveTextContent('Key not verified');
+    expect(soniox()).not.toHaveClass('is-ok');
+  });
+
   // B-11: Soniox's key is kept by region, found by asking every region.
   it("opens Soniox's key by region, not a single field", () => {
     render(<AccountsCategory locked={false} />);
@@ -50,6 +69,7 @@ describe('accounts and keys', () => {
   });
 
   it('lists the accounts with their state and what they can do', () => {
+    useProviderStore.setState({ readiness: { soniox: { state: 'ready', models: [] } } as never });
     render(<AccountsCategory locked={false} />);
     expect(row('Kizuna AI')).toHaveTextContent('Signed in');
     expect(row('Soniox')).toHaveTextContent('Key saved');
