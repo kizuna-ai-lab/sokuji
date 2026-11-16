@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (teraz)",
     "fullInHistory": "Pełne notatki znajdą się w historii.",
     "notKept": "Notatki na żywo nie są zapisywane. Sesja jest w historii.",
-    "openHistory": "Otwórz historię"
+    "openHistory": "Otwórz historię",
+    "notInHistory": "Notatki na żywo nie są zapisywane, a tej sesji nie ma w historii."
   }
 }

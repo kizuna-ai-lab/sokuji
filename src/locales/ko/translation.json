@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (진행 중)",
     "fullInHistory": "전체 메모는 기록에 저장됩니다.",
     "notKept": "실시간 메모는 저장되지 않습니다. 세션은 기록에 있습니다.",
-    "openHistory": "기록 열기"
+    "openHistory": "기록 열기",
+    "notInHistory": "실시간 메모는 저장되지 않으며, 이 세션은 기록에 없습니다."
   }
 }

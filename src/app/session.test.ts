@@ -1101,7 +1101,7 @@ describe('attach', () => {
         await session.runner.stop();
         await session.runner.settled();
         await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
-        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true }));
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true, kept: false }));
       });
     });
 

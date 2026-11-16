@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (đang diễn ra)",
     "fullInHistory": "Ghi chú đầy đủ sẽ có trong Lịch sử.",
     "notKept": "Ghi chú trực tiếp không được lưu. Phiên có trong Lịch sử.",
-    "openHistory": "Mở Lịch sử"
+    "openHistory": "Mở Lịch sử",
+    "notInHistory": "Ghi chú trực tiếp không được lưu, và phiên này không có trong Lịch sử."
   }
 }

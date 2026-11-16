@@ -421,6 +421,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       onSentences: onLiveSentences,
       // The live notes end with the run, whether or not History keeps the record.
       onEnded: (recordId) => endLive(recordId, closedByApp.has(recordId)),
+      onNotKept: (recordId) => useLiveNotes.getState().notKept(recordId),
       onClosed: (recordId) => {
         if (closedByApp.has(recordId)) return;
         const notes = notesRunner();

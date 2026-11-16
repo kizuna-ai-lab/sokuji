@@ -63,6 +63,8 @@ export interface HistoryWriterDeps {
   tell?: (recordId: string) => void;
   /** A record the store kept has closed (its notes may be written now). */
   onClosed?(recordId: string): void;
+  /** The store did not keep a record (nothing in it was saved): it is not in History. */
+  onNotKept?(recordId: string): void;
   /**
    * A record's run has ended: called once, right after its last sentences were handed on and before the record is
    * closed, whether or not the store keeps it (the live notes end with the run, not with the record's writes).
@@ -461,6 +463,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
         return;
       }
       if (answer?.kept) deps.onClosed?.(r.id);
+      else if (answer) deps.onNotKept?.(r.id);
     });
     rec = null;
     cancelTick?.();

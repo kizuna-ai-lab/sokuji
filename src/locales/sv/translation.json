@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (nu)",
     "fullInHistory": "De fullständiga anteckningarna hamnar i historiken.",
     "notKept": "Liveanteckningar sparas inte. Sessionen finns i historiken.",
-    "openHistory": "Öppna historiken"
+    "openHistory": "Öppna historiken",
+    "notInHistory": "Liveanteckningar sparas inte, och den här sessionen finns inte i historiken."
   }
 }

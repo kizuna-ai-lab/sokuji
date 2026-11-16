@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}}（進行中）",
     "fullInHistory": "完全なメモは履歴に入ります。",
     "notKept": "ライブメモは保存されません。セッションは履歴にあります。",
-    "openHistory": "履歴を開く"
+    "openHistory": "履歴を開く",
+    "notInHistory": "ライブメモは保存されません。このセッションは履歴にもありません。"
   }
 }

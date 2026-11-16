@@ -333,6 +333,22 @@ describe('the history writer', () => {
     expect(closed).toEqual(['run-0001-aaaa']);
   });
 
+  it('says when the store did not keep a record', async () => {
+    writer.dispose();
+    const dropped: string[] = [];
+    writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => facts, report, onNotKept: (id) => dropped.push(id) });
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Hello.');
+    end();
+    await writer.settled();
+    expect(dropped).toEqual([]);
+    (port.port as unknown as { closeRecord: () => Promise<unknown> }).closeRecord = async () => ({ kept: false });
+    start('run-0002-bbbb');
+    end();
+    await writer.settled();
+    expect(dropped).toEqual(['run-0002-bbbb']);
+  });
+
   it('says when a run has ended, after its last sentences and before the record is closed, kept or not', async () => {
     writer.dispose();
     const events: string[] = [];

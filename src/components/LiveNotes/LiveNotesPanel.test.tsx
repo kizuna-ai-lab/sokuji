@@ -9,6 +9,7 @@ import '../../locales';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
 import type { LiveState } from '../../lib/notes/live/state';
 import useSettingsStore from '../../stores/settingsStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import LiveNotesPanel from './LiveNotesPanel';
 
 const notes: LiveState = {
@@ -21,6 +22,7 @@ const notes: LiveState = {
 
 beforeEach(() => {
   useSettingsStore.setState({ liveNotes: true, notesAfterSession: false } as never);
+  useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
   useLiveNotes.getState().begin('run-0001-aaaa');
 });
 afterEach(() => cleanup());
@@ -57,6 +59,30 @@ describe('the live notes panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open History' }));
     expect(open).toHaveBeenCalledWith('run-0001-aaaa');
     expect(screen.queryByText(/\(now\)/)).toBeNull();
+  });
+
+  // Review: the full notes are written only with the switch on and a notes service in the line-up.
+  it('after Stop, promises full notes only when they will be written', () => {
+    act(() => { useLiveNotes.getState().update('run-0001-aaaa', notes); useLiveNotes.getState().end('run-0001-aaaa'); });
+    useSettingsStore.setState({ notesAfterSession: true } as never);
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null } } as never);
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    expect(screen.queryByText('The full notes will be in History.')).toBeNull();
+    expect(screen.getByText('Live notes are not kept. The session is in History.')).toBeInTheDocument();
+  });
+
+  // Review: History drops a session with nothing in it; the panel must not lead to it.
+  it('after Stop, offers no way to History when History did not keep the session', () => {
+    act(() => {
+      useLiveNotes.getState().update('run-0001-aaaa', notes);
+      useLiveNotes.getState().notKept('run-0001-aaaa');
+      useLiveNotes.getState().end('run-0001-aaaa');
+    });
+    useSettingsStore.setState({ notesAfterSession: true } as never);
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    expect(screen.getByText('Live notes are not kept, and this session is not in History.')).toBeInTheDocument();
+    expect(screen.queryByText('The full notes will be in History.')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open History' })).toBeNull();
   });
 
   it('is not there when live notes are off and nothing was written', () => {

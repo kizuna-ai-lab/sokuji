@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (ngayon)",
     "fullInHistory": "Nasa History ang buong tala.",
     "notKept": "Hindi iniimbak ang live na tala. Nasa History ang session.",
-    "openHistory": "Buksan ang History"
+    "openHistory": "Buksan ang History",
+    "notInHistory": "Hindi iniimbak ang live na tala, at wala sa History ang session na ito."
   }
 }

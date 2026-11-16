@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (now)",
     "fullInHistory": "The full notes will be in History.",
     "notKept": "Live notes are not kept. The session is in History.",
-    "openHistory": "Open History"
+    "openHistory": "Open History",
+    "notInHistory": "Live notes are not kept, and this session is not in History."
   }
 }

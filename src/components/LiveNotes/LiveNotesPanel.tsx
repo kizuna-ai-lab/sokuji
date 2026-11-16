@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
 import { LIVE_FULL } from '../../lib/notes/live/state';
 import type { NoteKind } from '../../lib/notes/write';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { useLiveNotesSetting, useNotesAfterSession } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import './LiveNotesPanel.scss';
@@ -20,9 +21,10 @@ export interface LiveNotesPanelProps {
 
 export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const { t } = useTranslation();
-  const { recordId, state, hint, running, off, ended } = useLiveNotes();
+  const { recordId, state, hint, running, off, ended, kept } = useLiveNotes();
   const liveOn = useLiveNotesSetting();
   const afterSession = useNotesAfterSession();
+  const notesService = useLineUpStore((s) => s.lineUp?.summarisation ?? null);
   if (!isElectron() || (!liveOn && !state && !running && !off)) return null;
   if (!recordId && !state) return null;
 
@@ -58,9 +60,14 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
       {ended && recordId && (
         <div className="live-notes__end">
           <p className="live-notes__line">
-            {afterSession ? t('liveNotes.fullInHistory', 'The full notes will be in History.') : t('liveNotes.notKept', 'Live notes are not kept. The session is in History.')}
+            {/* Full notes are promised only when they will be written: the switch on and a notes service chosen. */}
+            {!kept
+              ? t('liveNotes.notInHistory', 'Live notes are not kept, and this session is not in History.')
+              : afterSession && notesService
+                ? t('liveNotes.fullInHistory', 'The full notes will be in History.')
+                : t('liveNotes.notKept', 'Live notes are not kept. The session is in History.')}
           </p>
-          <button type="button" className="live-notes__button" onClick={() => onOpenHistory(recordId)}>{t('liveNotes.openHistory', 'Open History')}</button>
+          {kept && <button type="button" className="live-notes__button" onClick={() => onOpenHistory(recordId)}>{t('liveNotes.openHistory', 'Open History')}</button>}
         </div>
       )}
     </aside>

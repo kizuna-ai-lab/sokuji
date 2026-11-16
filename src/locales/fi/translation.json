@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (nyt)",
     "fullInHistory": "Täydelliset muistiinpanot ovat historiassa.",
     "notKept": "Reaaliaikaisia muistiinpanoja ei tallenneta. Istunto on historiassa.",
-    "openHistory": "Avaa historia"
+    "openHistory": "Avaa historia",
+    "notInHistory": "Reaaliaikaisia muistiinpanoja ei tallenneta, eikä tämä istunto ole historiassa."
   }
 }

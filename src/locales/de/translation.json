@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (jetzt)",
     "fullInHistory": "Die vollständigen Notizen stehen dann im Verlauf.",
     "notKept": "Live-Notizen werden nicht gespeichert. Die Sitzung steht im Verlauf.",
-    "openHistory": "Verlauf öffnen"
+    "openHistory": "Verlauf öffnen",
+    "notInHistory": "Live-Notizen werden nicht gespeichert, und diese Sitzung steht nicht im Verlauf."
   }
 }

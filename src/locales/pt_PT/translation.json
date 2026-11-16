@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (agora)",
     "fullInHistory": "As notas completas estarão no histórico.",
     "notKept": "As notas em direto não são guardadas. A sessão está no histórico.",
-    "openHistory": "Abrir o histórico"
+    "openHistory": "Abrir o histórico",
+    "notInHistory": "As notas em direto não são guardadas, e esta sessão não está no histórico."
   }
 }

@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (şimdi)",
     "fullInHistory": "Notların tamamı Geçmiş’te olacak.",
     "notKept": "Canlı notlar saklanmaz. Oturum Geçmiş’te.",
-    "openHistory": "Geçmişi aç"
+    "openHistory": "Geçmişi aç",
+    "notInHistory": "Canlı notlar saklanmaz ve bu oturum Geçmiş’te yok."
   }
 }

@@ -2097,6 +2097,7 @@
     "openTopic": "{{title}} (sekarang)",
     "fullInHistory": "Catatan lengkap akan ada di Riwayat.",
     "notKept": "Catatan langsung tidak disimpan. Sesinya ada di Riwayat.",
-    "openHistory": "Buka Riwayat"
+    "openHistory": "Buka Riwayat",
+    "notInHistory": "Catatan langsung tidak disimpan, dan sesi ini tidak ada di Riwayat."
   }
 }
