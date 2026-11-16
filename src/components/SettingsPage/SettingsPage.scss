@@ -697,6 +697,9 @@
   &__caption { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed vars.$border-subtle; font-size: 11.5px; color: vars.$text-muted; }
   .models-group__fold { border-top: none; }
   .models-stage__shown + .models-group__fold { border-top: 1px solid vars.$border-subtle; }
+  // The model library's cards (B-20), a little apart; a card's "Delete …?" right under it.
+  .models-card { margin-top: 6px; }
+  .models-card > .model-row__confirm { margin-top: 6px; }
 }
 
 // General, as mock v19 draws it: two groups of plain rows, thin lines between, no cards; two quiet links last.

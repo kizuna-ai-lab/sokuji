@@ -1,0 +1,539 @@
+// One model as a card (shared/ModelCard.tsx): Models and storage's session models, out of the old in-panel library.
+@use './variables' as vars;
+@use '../../../styles/tokens' as tk;
+
+.model-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: vars.$bg-surface;
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-md;
+  transition: border-color 0.2s, opacity 0.2s, background 0.2s;
+  cursor: pointer;
+
+  // Exclude --selected: selected cards have their own hover (below). Without this
+  // the base hover's higher specificity would wipe the selected tint back to the
+  // plain surface on hover.
+  &:hover:not(&--incompatible):not(&--disabled):not(&--selected) {
+    border-color: vars.$border-strong;
+    background: vars.$bg-surface;
+  }
+
+  // Selected = the in-use model. A subtle filled tint + a full 1px accent ring
+  // (all four corners live) — the app's "segmented → fill" selection form. No
+  // left accent bar, no radio: state is carried by the fill and the Active pill.
+  &--selected {
+    background: color-mix(in srgb, vars.$color-primary 8%, transparent);
+    border-color: color-mix(in srgb, vars.$color-primary 45%, transparent);
+
+    &:hover:not(&--disabled) {
+      border-color: color-mix(in srgb, vars.$color-primary 60%, transparent);
+    }
+  }
+
+  // Downloaded-but-idle cards stay neutral — green is reserved for the active one.
+
+  &--error {
+    border-color: color-mix(in srgb, vars.$color-error 30%, transparent);
+  }
+
+  &--incompatible {
+    @include vars.disabled-state;
+    cursor: default;
+
+    .model-card__name {
+      color: vars.$text-muted;
+    }
+  }
+
+  &--disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &--none {
+    background: vars.$bg-surface;
+    border-style: dashed;
+
+    &.model-card--selected {
+      border-style: solid;
+    }
+  }
+
+  &__top-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  // Embedded body slot (e.g. the TTS voice picker on the selected MOSS card). Block
+  // layout, full width, left-aligned; small top separation without a divider line.
+  &__body {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding-top: 8px;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+
+    // Info on the left, status + action buttons on the right of the SAME row,
+    // aligned to the model-name line. Downloading/error revert to a stacked
+    // column (below) so the progress bar and error message keep full width.
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  // Full-width states stay stacked: progress bar, multi-button + error message.
+  &--downloading &__content,
+  &--error &__content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    // The variant dropdown's row height, so a card with the dropdown and a
+    // card with plain size text stand the same height (59px), the name
+    // centred on the dropdown either way.
+    min-height: 18px;
+  }
+
+  &__name {
+    font-size: vars.$font-body;
+    font-weight: vars.$weight-medium;
+    color: vars.$text-primary;
+  }
+
+  &__size {
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  &__languages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  &__lang-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: vars.$chip-padding-y 6px;
+    background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
+    border-radius: 3px;
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
+    color: vars.$text-muted;
+  }
+
+  // Chip icons (the tier glyph, the Recommended star, the Auto bolt): block
+  // flex items centred on the chip - inline, they rode the baseline 1.5px
+  // above the text. Measured as ink on 8x captures against the text's ink:
+  // the star and the bolt land within 0.06px of the text's centre as is; the
+  // tier glyph sat 0.31px low and gets a quarter-pixel lift (SVGs render at
+  // sub-pixel offsets, text baselines do not).
+  &__lang-tag svg,
+  &__recommended-badge svg,
+  &__auto-badge svg {
+    display: block;
+  }
+
+  &__lang-tag svg {
+    transform: translateY(-0.25px);
+  }
+
+  // Two or more languages collapse into this one chip; the tooltip (LanguageTags)
+  // carries the list.
+  &__lang-tag--multi {
+    cursor: help;
+  }
+
+  &__lang-tag--live { border: 1px solid currentColor; font-weight: 600; }  // highlighted (neutral): chosen-CPU
+  &__lang-tag--accel { border-color: tk.$color-success; color: tk.$color-success; }  // GPU live
+  &__lang-tag--warn  { border-color: tk.$color-error; color: tk.$color-error; }  // degraded CPU
+
+  &__recommended-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: vars.$chip-padding-y 6px;
+    background: color-mix(in srgb, vars.$color-recommended 15%, transparent);
+    border-radius: 3px;
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
+    color: vars.$color-recommended;
+    font-weight: vars.$weight-medium;
+  }
+
+  &__auto-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: vars.$chip-padding-y 6px;
+    background: color-mix(in srgb, vars.$color-primary 15%, transparent);
+    border-radius: 3px;
+    font-size: vars.$chip-font-size;
+    line-height: vars.$chip-line-height;
+    color: vars.$color-primary;
+    font-weight: vars.$weight-medium;
+  }
+
+  &__compatibility-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: vars.$font-caption;
+    color: vars.$color-warning;
+  }
+
+  &__no-model-warning {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: vars.$color-warning-bg;
+    border: 1px solid color-mix(in srgb, vars.$color-warning 20%, transparent);
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-caption;
+    color: vars.$color-warning;
+  }
+
+  &__available-when-lang {
+    padding: 2px 10px 8px;
+    font-size: vars.$font-caption;
+    color: vars.$text-source;
+  }
+
+  &__actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-caption;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    &--download {
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
+
+      &:hover:not(:disabled) {
+        background: vars.$color-primary-fill-hover;
+      }
+    }
+
+    &--import {
+      background: transparent;
+      color: vars.$text-secondary;
+      border: 1px solid vars.$border-strong;
+
+      &:hover:not(:disabled) {
+        border-color: vars.$color-primary;
+        color: vars.$text-primary;
+      }
+    }
+
+    &--cancel {
+      background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+      color: vars.$text-muted;
+      padding: 3px 6px;
+
+      &:hover {
+        background: color-mix(in srgb, vars.$overlay-fg 15%, transparent);
+        color: vars.$text-primary;
+      }
+    }
+
+    &--delete {
+      background: transparent;
+      color: vars.$text-muted;
+      padding: 3px 6px;
+      margin-left: 8px;
+
+      &:hover:not(:disabled) {
+        color: vars.$color-error;
+      }
+    }
+  }
+
+  &__progress {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__progress-bar {
+    height: 4px;
+    background: color-mix(in srgb, vars.$overlay-fg 10%, transparent);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: vars.$color-primary;
+    border-radius: 2px;
+    transition: width vars.$transition-normal;
+  }
+
+  &__progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__progress-percent {
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+  }
+
+  &__downloaded {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: vars.$font-caption;
+  }
+
+  // Status label sits where the old green "Downloaded" text did. Idle = quiet muted
+  // text; --active = a filled tint pill (the one model currently in use).
+  &__status-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: vars.$text-muted;
+
+    &--active {
+      color: vars.$color-primary;
+      background: color-mix(in srgb, vars.$color-primary 15%, transparent);
+      border: 1px solid color-mix(in srgb, vars.$color-primary 32%, transparent);
+      border-radius: vars.$radius-sm;
+      padding: 3px 8px;
+      font-weight: vars.$weight-semibold;
+    }
+  }
+
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
+    flex-wrap: wrap;
+  }
+
+  &__error-message {
+    width: 100%;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
+    opacity: 0.85;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  &__status-icon {
+    display: flex;
+    align-items: center;
+  }
+
+  // --- Variant chooser (pre-download quant selection for multi-variant models) ---
+  //
+  // A customizable <select> (appearance: base-select). This section is
+  // Electron-only (Chromium 144), so there is no classic-select fallback to
+  // style. The picker floats on the top layer, so opening it never grows the
+  // card — which is what the old absolutely-positioned menu existed to ensure,
+  // minus its clipping inside the settings panel's scroll container.
+
+  &__variant-dd {
+    display: inline-flex;
+  }
+
+  &__variant-select {
+    &,
+    &::picker(select) {
+      appearance: base-select;
+    }
+
+    // Closed control: the compact chip the old trigger button was.
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font: inherit;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    background: color-mix(in srgb, vars.$overlay-fg 5%, transparent);
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+
+    // 18px closed control (14px line + 1px padding + 1px border each side),
+    // level with the 14px model name beside it. base-select's UA stylesheet
+    // pins the control to `min-height: calc-size(auto, max(size, 24px, 13px))`
+    // - a 24px floor - so the floor has to go too.
+    min-height: 0;
+    padding: 1px 6px;
+    line-height: 14px;
+    cursor: pointer;
+    transition: border-color vars.$transition-fast, background vars.$transition-fast;
+
+    &:hover:not(:disabled) {
+      border-color: vars.$border-default;
+      background: color-mix(in srgb, vars.$overlay-fg 8%, transparent);
+    }
+
+    &:disabled { cursor: not-allowed; opacity: 0.6; }
+
+    &::picker-icon { color: vars.$text-muted; }
+
+    // The closed control mirrors the chosen option; keep only its name + size
+    // there (calm, matches the muted "size" slot on sibling cards — green is
+    // reserved for the picker rows).
+    selectedcontent {
+      .model-card__variant-recommended,
+      .model-card__variant-reason { display: none; }
+      .model-card__variant-name { color: vars.$text-secondary; }
+    }
+
+    &::picker(select) {
+      min-width: 230px;
+      padding: 4px;
+      background: vars.$bg-page;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-sm;
+      box-shadow: 0 6px 16px vars.$shadow;
+      margin-top: 4px;
+      // The selectable .model-card sets cursor:pointer, which `cursor`
+      // inheritance leaks onto the picker's plain text (the CPU note).
+      cursor: default;
+    }
+
+    option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 5px 8px;
+      background: transparent;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      transition: background vars.$transition-fast;
+
+      &:hover:not(:disabled),
+      &:focus:not(:disabled) { background: color-mix(in srgb, vars.$overlay-fg 6%, transparent); }
+
+      // Selected variant: filled tint only (no accent-bar shadow, by
+      // preference) — still unmistakable via the green name + checkmark.
+      &:checked {
+        background: color-mix(in srgb, vars.$color-primary 12%, transparent);
+
+        .model-card__variant-name { color: vars.$color-primary; }
+      }
+
+      // order:1 + auto margin park the checkmark at the row end; without the
+      // order it sits first in flex order and the auto margin would shove the
+      // row content right instead (see the shared layer in Settings.scss).
+      &::checkmark {
+        color: vars.$color-primary;
+        font-weight: vars.$weight-semibold;
+        order: 1;
+        margin-left: auto;
+      }
+
+      // Unsupported: greyed, not selectable (still listed with size + reason).
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+  }
+
+  // Compute type is the primary label of the row → bright + tracked.
+  // Precision + size never wraps; the secondary reason on the right wraps
+  // instead. flex-shrink:0 protects it from the reason column.
+  &__variant-name {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: vars.$font-caption;
+    color: vars.$text-primary;
+    font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
+  }
+
+  // Secondary metadata: the size trails the compute type, muted and lighter so the
+  // eye lands on the precision first.
+  &__variant-size {
+    color: vars.$text-muted;
+    font-weight: vars.$weight-normal;
+    letter-spacing: normal;
+  }
+
+  // Plain green text (not a filled pill) keeps the accent meaningful and the menu calm.
+  &__variant-recommended {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: vars.$color-primary;
+    font-weight: vars.$weight-medium;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  // Why an unsupported variant can't be picked, inline in the row — the old
+  // hover tooltip can't render above the top-layer picker, and inline beats
+  // hover-only anyway.
+  &__variant-reason {
+    font-size: 10px;
+    color: vars.$text-muted;
+    text-align: right;
+  }
+
+  // Rendered as a disabled <option> (the select content model admits no
+  // other child shape), but it is a note, not a rejected choice — undo the
+  // option:disabled treatment that reading would be wrong for.
+  &__variant-select option.model-card__variant-cpu-note {
+    font-size: 10px;
+    color: vars.$text-muted;
+    padding: 2px 8px;
+    opacity: 1;
+    cursor: default;
+  }
+}

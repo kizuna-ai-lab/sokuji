@@ -1,10 +1,11 @@
 // src/components/SettingsPage/ModelsPage.tsx
 //
 // "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
-// "This device" service can use for the current languages, downloaded or not, each with its own Download or
-// Delete (the rest folded under "other languages"); the helper models (Smart Turn, the punctuation models, the
+// "This device" service can use for the current languages, downloaded or not, as the model library's cards — Download
+// and Import side by side, In use, the progress, Delete (B-20; the rest folded under "other languages"); the helper
+// models (Smart Turn, the punctuation models, the
 // Japanese readings dictionary); the imported voices; on the desktop, the on-device engine earlier versions
-// downloaded (B-19), with what it takes and Remove; and a summary line with Import and Clear all.
+// downloaded (B-19), with what it takes and Remove; and a summary line with Clear all.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -17,7 +18,7 @@ import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { storedLocalStages, useStoredLocalStages } from '../../stores/lineUpStore';
-import { MODEL_MANIFEST, deviceReady, getManifestEntry, getModelSizeMb, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
+import { MODEL_MANIFEST, deviceReady, getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../lib/local-inference/selection/candidates.wasm';
 import { resolveWasmDirection } from '../../lib/local-inference/selection/resolveWithStages';
 import { directionKey, splitDirection, type DirectionResult, type Stage } from '../../lib/local-inference/selection/types';
@@ -28,9 +29,9 @@ import { importedSidFromDbKey } from '../../lib/local-inference/sidMapping';
 import { voicesWithoutImported } from '../../providers/localInference/voices';
 import { presentProviders } from '../../providers/registry';
 import { SMART_TURN_MODEL_ID } from '../../lib/turn/smartTurn';
-import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
+import { ModelCard } from '../Settings/shared/ModelCard';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import type { LanguagePair } from '../../lib/provider/types';
 
@@ -85,7 +86,6 @@ function Group({ title, hint, children }: { title: string; hint: string; childre
 
 export function ModelsPage({ locked, settings, pair }: { locked: boolean; settings: LocalInferenceSettings; pair: LanguagePair }) {
   const { t } = useTranslation();
-  const languageName = useLanguageLabel();
   const statuses = useModelStatuses();
   const downloads = useModelDownloads();
   const errors = useDownloadErrors();
@@ -99,7 +99,6 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
   const [asking, setAsking] = useState<string | null>(null);
   const [open, setOpen] = useState<Partial<Record<Stage, boolean>>>({});
-  const [importing, setImporting] = useState(false);
   const [importTarget, setImportTarget] = useState<ModelManifestEntry | null>(null);
   const [dictStored, setDictStored] = useState<boolean | null>(null);
   const [imported, setImported] = useState<voiceStorage.StoredVoice[]>([]);
@@ -166,39 +165,36 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
       modelStatuses: st as never, webgpuAvailable: webgpu, deviceFeatures: features,
     }, stages), [settings.selections, webgpu, features, stages]);
 
-  const meta = (m: ModelManifestEntry): string => {
-    const langs = m.multilingual
-      ? t('models.page.manyLanguages', 'Many languages')
-      : m.languages.length > 3 ? t('models.page.languages', '{{count}} languages', { count: m.languages.length }) : m.languages.map(languageName).join(' · ');
-    return m.astLanguages ? `${langs} · ${t('models.page.direct', 'can also give the translation directly')}` : langs;
-  };
+  // What a session runs now, both ways: In use on its card.
+  const inUse = useMemo(() => {
+    const used = new Set<string>();
+    for (const dir of directions) {
+      const r = resolveWith(statuses)(dir);
+      for (const stage of STAGES) if (r[stage]) used.add(r[stage]!.modelId);
+    }
+    return used;
+  }, [directions, resolveWith, statuses]);
 
+  // One session model as the library's card (B-20). Deleting asks first, under the card, with what it changes.
   const sessionRow = (m: ModelManifestEntry) => {
-    const stage = STAGE_OF[m.type];
-    const dl = downloads[m.id];
     const runnable = deviceReady(m, webgpu);
-    const size = formatBytes(getModelSizeMb(m, features) * MB);
-    const state = dl ? t('models.page.downloading', 'Downloading {{percent}}%', { percent: Math.round(dl.percent ?? 0) })
-      : statuses[m.id] === 'downloaded' ? t('models.downloaded', 'Downloaded')
-        : errors[m.id] ? t('models.page.failed', 'Download failed')
-          : !runnable ? t('models.page.cannotRun', "This computer can't run it")
-            : t('models.page.notDownloaded', 'Not downloaded');
     const notes = () => computeDeleteNotes(m.id, (id) => getManifestEntry(id)?.name ?? id, directions.map((dir) => ({ dir })),
       resolveWith(statuses), resolveWith({ ...statuses, [m.id]: 'not_downloaded' }), t);
     return (
-      <ModelRow key={m.id} tag={t(TAGS[stage][0], TAGS[stage][1])} name={m.name} meta={<><span>{meta(m)}</span><span>{size}</span></>} state={state}
-        confirm={asking === m.id && (
+      <div key={m.id} className="models-card">
+        <ModelCard entry={m} status={downloads[m.id] ? 'downloading' : (statuses[m.id] ?? 'not_downloaded')} download={downloads[m.id]}
+          errorMessage={errors[m.id]} isSessionActive={locked} isSelected={inUse.has(m.id) && statuses[m.id] === 'downloaded'}
+          isCompatible={runnable} compatibilityHint={runnable ? undefined : t('models.page.cannotRun', "This computer can't run it")}
+          canDownload={runnable} deviceFeatures={features}
+          onDownload={() => void useModelStore.getState().downloadModel(m.id)}
+          onCancel={() => useModelStore.getState().cancelDownload(m.id)}
+          onDelete={() => setAsking(m.id)}
+          onImport={() => setImportTarget(m)} />
+        {asking === m.id && (
           <Confirm question={t('engineUi.deleteConfirm', 'Delete {{name}}?', { name: m.name })} notes={notes()} locked={locked}
             onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useModelStore.getState().deleteModel(m.id); }} />
-        )}>
-        {dl ? (
-          <button type="button" className="model-row__btn" aria-label={`${t('models.cancel', 'Cancel')}: ${m.name}`} onClick={() => useModelStore.getState().cancelDownload(m.id)}>{t('models.cancel', 'Cancel')}</button>
-        ) : statuses[m.id] === 'downloaded' ? (
-          <button type="button" className="model-row__btn" disabled={locked} aria-label={`${t('models.delete', 'Delete')}: ${m.name}`} onClick={() => setAsking(m.id)}>{t('models.delete', 'Delete')}</button>
-        ) : runnable && (
-          <button type="button" className="model-row__btn model-row__btn--primary" disabled={locked} aria-label={`${t('models.page.download', 'Download')}: ${m.name}`} onClick={() => void useModelStore.getState().downloadModel(m.id)}>{t('models.page.download', 'Download')}</button>
         )}
-      </ModelRow>
+      </div>
     );
   };
 
@@ -247,9 +243,6 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
           ? t('models.page.summary', '{{count}} downloaded, {{size}} in all', { count, size: formatBytes(storageMb * MB) })
           : t('models.storageEmpty', 'No models downloaded yet.')}</span>
         <span className="models-page__links">
-          <button type="button" className="models-page__link" disabled={locked} onClick={() => setImporting((v) => !v)}>
-            {t('models.page.import', 'Import a model from files')}
-          </button>
           {anything && (
             <button type="button" className="models-page__link" disabled={locked} onClick={() => setAsking('clear-all')}>{t('models.clearAll', 'Clear all')}</button>
           )}
@@ -262,14 +255,6 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
             onNo={() => setAsking(null)} onYes={() => void clearAll()} />
         </div>
       )}
-      {importing && (
-        <select className="select-dropdown models-page__import" defaultValue="" aria-label={t('engineUi.importChooseModel', 'Choose a model to import')}
-          onChange={(e) => setImportTarget(getManifestEntry(e.target.value) ?? null)}>
-          <option value="" disabled>{t('engineUi.importChooseModel', 'Choose a model to import')}</option>
-          {MODEL_MANIFEST.filter((m) => !m.isCloudModel && SESSION_TYPES.has(m.type)).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-        </select>
-      )}
-
       <Group title={t('models.page.sessionTitle', 'Models for the session (the “This device” service)')}
         hint={t('models.page.sessionHint', 'Stages set to “This device” in “Languages and line-up” use the models downloaded here.')}>
         {stageGroups.map(({ stage, shown, rest, others }) => {
@@ -379,7 +364,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
       {importTarget && (
         <ModelImportModal isOpen modelId={importTarget.id} modelName={importTarget.name}
-          onClose={() => { setImportTarget(null); setImporting(false); }} />
+          onClose={() => setImportTarget(null)} />
       )}
     </div>
   );

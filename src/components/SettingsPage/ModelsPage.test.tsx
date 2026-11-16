@@ -1,6 +1,6 @@
 // "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
-// "This device" service can use, downloaded or not, each with its own Download or Delete; the helper models;
-// the imported voices; a summary line with Import and Clear all.
+// "This device" service can use, downloaded or not, as the model library's cards (B-20: Download and Import side by
+// side, In use, the progress, Delete); the helper models; the imported voices; a summary line with Clear all.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, cleanup, waitFor } from '@testing-library/react';
 
@@ -38,6 +38,7 @@ import { useSmartTurnStore } from '../../stores/smartTurnStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 
 const store = {
   downloadModel: vi.fn(async (_id: string) => {}),
@@ -52,6 +53,7 @@ const engine = { refreshBundle: vi.fn(async () => {}), refreshBundleUsage: vi.fn
 beforeEach(() => {
   for (const f of [...Object.values(store), ...Object.values(turn), ...Object.values(punct), ...Object.values(engine), dict.deleteDictionary, voices.deleteVoice]) f.mockClear();
   env.electron = false;
+  useLineUpStore.setState({ lineUp: null, stored: false } as never);
   useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.31.2', bundleUsage: 3_435_973_837, ...engine } as never);
   dict.stored = true;
   voices.list = [];
@@ -69,6 +71,8 @@ afterEach(() => cleanup());
 const mount = (locked = false) =>
   render(<ModelsPage locked={locked} settings={LOCAL_INFERENCE_DEFAULTS} pair={{ source: 'ja', target: 'en' }} />);
 const row = (name: string) => screen.getByText(name).closest('.model-row') as HTMLElement;
+// A session model, as a library card (B-20).
+const card = (name: string) => screen.getByText(name, { selector: '.model-card__name' }).closest('.model-card') as HTMLElement;
 
 // The session models in three small groups, one per stage (owner 2026-11-15): each shows what is on disk and the
 // recommended ones this computer can run; the rest, other languages' last, in "N more" at the group's end.
@@ -99,59 +103,99 @@ describe('Models and storage — the session models', () => {
     expect(screen.queryByText('Opus-MT (en → de)')).toBeNull();
     more('Translation');
     const caption = within(stageGroup('Translation')).getByText(/Models for other languages/);
-    const rows = [...stageGroup('Translation').querySelectorAll('.model-row__name')].map((n) => n.textContent);
+    const rows = [...stageGroup('Translation').querySelectorAll('.model-card__name')].map((n) => n.textContent);
     expect(rows).toContain('Opus-MT (en → de)');
-    expect(caption.compareDocumentPosition(row('Opus-MT (en → de)')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(caption.compareDocumentPosition(card('Opus-MT (en → de)')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('shows the best one it can run when nothing on disk or recommended would be shown', () => {
     useModelStore.setState({ modelStatuses: {} } as never);
     mount();
     // Every recommended translation model needs WebGPU, which this computer lacks: one it can run stands in.
-    expect(stageGroup('Translation').querySelectorAll('.models-stage__shown .model-row')).toHaveLength(1);
+    expect(stageGroup('Translation').querySelectorAll('.models-stage__shown .model-card')).toHaveLength(1);
   });
 
-  it('tags each row with its stage and says whether it is downloaded', () => {
+  // B-20: the model library's card — its size, its languages, Recommended, and In use for what a session runs now.
+  it('draws each model as a library card: size, languages, Recommended, and In use for what a session runs', () => {
+    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
+    // Every stage on "This device", as the line-up stores it.
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true } as never);
     mount();
-    expect(within(row('SenseVoice (int8)')).getByText('Recognition', { selector: '.model-row__tag' })).toBeInTheDocument();
-    expect(within(row('SenseVoice (int8)')).getByText('Downloaded')).toBeInTheDocument();
-    expect(within(row('Opus-MT (en → ja)')).getByText('Translation', { selector: '.model-row__tag' })).toBeInTheDocument();
-    more('Recognition');
-    expect(within(row('Moonshine Tiny EN (quantized)')).getByText('Not downloaded')).toBeInTheDocument();
+    const sense = card('SenseVoice (int8)');
+    expect(sense.querySelector('.model-card__size')?.textContent).toMatch(/^\d+\.\d (MB|GB)$/);
+    expect(sense.querySelector('.model-card__languages')).not.toBeNull();
+    // The models the session would run for this pair, both ways: In use.
+    expect(within(sense).getByText('Active')).toBeInTheDocument();
+    expect(within(card('Opus-MT (en → ja)')).getByText('Active')).toBeInTheDocument();
+    expect(card('SenseVoice (int8)')).toHaveClass('model-card--selected');
+    expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByText('Recommended')).toBeInTheDocument();
+    // The stage is the group's title; the cards carry no tag of their own.
+    expect(stageGroup('Recognition').querySelector('.model-row__tag')).toBeNull();
+  });
+
+  it('says Downloaded for a model on disk the session does not use', () => {
+    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-de': 'downloaded' } } as never);
+    mount();
+    expect(within(card('Opus-MT (en → de)')).getByText('Downloaded')).toBeInTheDocument();
+    expect(card('Opus-MT (en → de)')).not.toHaveClass('model-card--selected');
+  });
+
+  it('offers Download and Import side by side for a model not on disk', () => {
+    mount();
+    const parakeet = card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)');
+    const download = within(parakeet).getByRole('button', { name: 'Download: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' });
+    const importer = within(parakeet).getByRole('button', { name: 'Import: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' });
+    expect(download.parentElement).toBe(importer.parentElement);
+    fireEvent.click(importer);
+    expect(screen.getByTestId('import-modal')).toHaveTextContent('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)');
   });
 
   it('downloads a model from its row, and cancels a download in progress', () => {
     useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
     mount();
     // A download in progress is shown without opening anything.
-    const busy = row('Moonshine Tiny JA (quantized)');
-    expect(within(busy).getByText('Downloading 25%')).toBeInTheDocument();
-    fireEvent.click(within(busy).getByRole('button', { name: /^Cancel/ }));
+    const busy = card('Moonshine Tiny JA (quantized)');
+    expect(busy.querySelector('.model-card__progress-percent')).toHaveTextContent('25%');
+    fireEvent.click(within(busy).getByRole('button', { name: 'Cancel: Moonshine Tiny JA (quantized)' }));
     expect(store.cancelDownload).toHaveBeenCalledWith('moonshine-tiny-ja-quant');
     more('Recognition');
-    fireEvent.click(within(row('Moonshine Tiny EN (quantized)')).getByRole('button', { name: /^Download/ }));
+    fireEvent.click(within(card('Moonshine Tiny EN (quantized)')).getByRole('button', { name: /^Download/ }));
     expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-en-quant');
   });
 
   it('deletes a downloaded model after asking', async () => {
     mount();
-    fireEvent.click(within(row('Opus-MT (en → ja)')).getByRole('button', { name: /^Delete/ }));
-    fireEvent.click(within(row('Opus-MT (en → ja)')).getByRole('button', { name: 'Yes' }));
+    fireEvent.click(within(card('Opus-MT (en → ja)')).getByRole('button', { name: 'Delete: Opus-MT (en → ja)' }));
+    expect(store.deleteModel).not.toHaveBeenCalled();
+    const ask = screen.getByRole('group', { name: 'Delete Opus-MT (en → ja)?' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'Yes' }));
     await waitFor(() => expect(store.deleteModel).toHaveBeenCalledWith('opus-mt-en-jap'));
+  });
+
+  it('says a download failed, and offers it again', () => {
+    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'moonshine-tiny-ja-quant': 'error' }, downloadErrors: { 'moonshine-tiny-ja-quant': 'network down' } } as never);
+    mount();
+    more('Recognition');
+    const failed = card('Moonshine Tiny JA (quantized)');
+    expect(within(failed).getByText('network down')).toBeInTheDocument();
+    fireEvent.click(within(failed).getByRole('button', { name: 'Retry: Moonshine Tiny JA (quantized)' }));
+    expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-ja-quant');
   });
 
   it('says a model this computer cannot run, and offers no download for it', () => {
     mount();
     more('Recognition');
-    const gpu = row('Cohere Transcribe (WebGPU)');
+    const gpu = card('Cohere Transcribe (WebGPU)');
     expect(within(gpu).getByText("This computer can't run it")).toBeInTheDocument();
     expect(within(gpu).queryByRole('button', { name: /^Download/ })).toBeNull();
+    expect(within(gpu).queryByRole('button', { name: /^Import/ })).toBeNull();
   });
 
   it('takes no download or delete during a session', () => {
     mount(true);
-    expect(within(row('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: /^Download/ })).toBeDisabled();
-    expect(within(row('SenseVoice (int8)')).getByRole('button', { name: /^Delete/ })).toBeDisabled();
+    expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: /^Download/ })).toBeDisabled();
+    expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: /^Import/ })).toBeDisabled();
+    expect(within(card('SenseVoice (int8)')).getByRole('button', { name: /^Delete/ })).toBeDisabled();
   });
 });
 
@@ -225,7 +269,7 @@ describe('Models and storage — imported voices and the summary', () => {
     useModelStore.setState({ modelStatuses: { 'moonshine-tiny-ja-quant': 'downloaded' } } as never);
     mount();
     more('Recognition');
-    const names = [...stageGroup('Recognition').querySelectorAll('.model-row__name')].map((n) => n.textContent);
+    const names = [...stageGroup('Recognition').querySelectorAll('.model-card__name')].map((n) => n.textContent);
     expect(names[0]).toBe('Moonshine Tiny JA (quantized)');
     expect(names.indexOf('SenseVoice (int8)')).toBeLessThan(names.indexOf('Cohere Transcribe (WebGPU)'));
   });
@@ -233,7 +277,7 @@ describe('Models and storage — imported voices and the summary', () => {
   it('writes a size in the unit that reads best', () => {
     mount();
     more('Recognition');
-    expect(within(row('Cohere Transcribe (WebGPU)')).getByText(/\d\.\d GB/)).toBeInTheDocument();
+    expect(within(card('Cohere Transcribe (WebGPU)')).getByText(/\d\.\d GB/)).toBeInTheDocument();
   });
 
   it('clears everything after asking, and tells the helper models\' own stores', async () => {
@@ -245,22 +289,26 @@ describe('Models and storage — imported voices and the summary', () => {
     expect(turn.refresh).toHaveBeenCalled();
   });
 
-  it('imports a model from files: pick the model, then its files', () => {
+  // B-20: Import is on each card, beside its Download; no separate "import a model" link and list above.
+  it('imports from the model\'s own card, with no separate import link', () => {
     mount();
-    fireEvent.click(screen.getByRole('button', { name: 'Import a model from files' }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose a model to import' }), { target: { value: 'opus-mt-en-de' } });
+    expect(screen.queryByRole('button', { name: 'Import a model from files' })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Choose a model to import' })).toBeNull();
+    more('Translation');
+    fireEvent.click(within(card('Opus-MT (en → de)')).getByRole('button', { name: 'Import: Opus-MT (en → de)' }));
     expect(screen.getByTestId('import-modal')).toHaveTextContent('Opus-MT (en → de)');
   });
 });
 
 // PR review (#711): a row's buttons say which model they act on, so a screen reader's list of buttons is not a column of "Delete".
 describe('Models and storage — buttons named by their model', () => {
-  it('names the model in each Download, Delete and Cancel', () => {
+  it('names the model in each Download, Import, Delete and Cancel', () => {
     useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
     mount();
-    expect(screen.getByRole('button', { name: 'Delete: SenseVoice (int8)' })).toHaveTextContent('Delete');
+    expect(screen.getByRole('button', { name: 'Delete: SenseVoice (int8)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' })).toHaveTextContent('Download');
-    expect(screen.getByRole('button', { name: 'Cancel: Moonshine Tiny JA (quantized)' })).toHaveTextContent('Cancel');
+    expect(screen.getByRole('button', { name: 'Import: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' })).toHaveTextContent('Import');
+    expect(screen.getByRole('button', { name: 'Cancel: Moonshine Tiny JA (quantized)' })).toBeInTheDocument();
   });
 });
 
