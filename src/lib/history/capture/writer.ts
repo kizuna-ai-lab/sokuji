@@ -404,6 +404,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
   function closeCurrent(): void {
     const r = rec;
     if (!r) return;
+    // The session's end: read now, not after the recording's end and the writes queued before the close.
+    const endedAt = clock.now();
     // One last pass: the run has finished its late corrections by now.
     const final = conversation.snapshot();
     sync(r, final, true);
@@ -416,7 +418,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const recorder = deps.recorder;
     if (recorder) chain = chain.then(() => recorder.end(r.id).catch((error) => report('History could not finish the recording', error)));
     // A record that cannot be closed stays open until the next launch closes it: said, not left silent.
-    send(r, 'record', () => port.closeRecord({ id: r.id, endedAt: clock.now() }).catch((error: unknown) => {
+    send(r, 'record', () => port.closeRecord({ id: r.id, endedAt }).catch((error: unknown) => {
       report(`History could not close record ${r.id}; the next launch closes it`, error);
       tellOnce(r);
     }));

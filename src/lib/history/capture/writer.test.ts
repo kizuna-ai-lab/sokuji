@@ -219,6 +219,25 @@ describe('the history writer', () => {
     expect(order).toEqual(['prepare:run-0001-aaaa:1000', 'openRecord', 'begin:run-0001-aaaa:1000', 'end:run-0001-aaaa', 'closeRecord']);
   });
 
+  // Review: the end time was read after the recording's end, which can wait up to ten seconds.
+  it('closes the record at the time the run ended, however long the recording takes to end', async () => {
+    writer.dispose();
+    const recorder = {
+      prepare: () => {}, begin: () => {}, drop: () => {},
+      end: async () => { clock.advance(8000); },
+    };
+    const tracked = recordingPort();
+    writer = createHistoryWriter({ state, conversation, port: tracked.port, clock, facts: () => facts, report, recorder });
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Hello.');
+    await writer.settled();
+    clock.advance(4000);
+    end();
+    await writer.settled();
+    const close = tracked.calls.filter((c) => c[0] === 'closeRecord').pop()!;
+    expect(close[1]).toEqual({ id: 'run-0001-aaaa', endedAt: 5000 });
+  });
+
   it('does not begin the recording when the record could not be opened', async () => {
     writer.dispose();
     const begun: string[] = [];
