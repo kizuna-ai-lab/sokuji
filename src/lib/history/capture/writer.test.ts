@@ -15,7 +15,7 @@ function recordingPort() {
   const calls: Call[] = [];
   const failing = new Map<string, number>();
   const slow = new Set<string>();
-  let releaseAll: Array<() => void> = [];
+  let releaseAll: Array<(failing?: boolean) => void> = [];
   let nextTranscript = 0;
   const answer = (method: string, arg: unknown, value: unknown) => {
     calls.push([method, arg]);
@@ -24,7 +24,11 @@ function recordingPort() {
       failing.set(method, left - 1);
       return Promise.reject(new Error(`${method} failed`));
     }
-    if (slow.has(method)) return new Promise((resolve) => { releaseAll.push(() => resolve(value)); });
+    if (slow.has(method)) {
+      return new Promise((resolve, reject) => {
+        releaseAll.push((failing) => (failing ? reject(new Error(`${method} failed`)) : resolve(value)));
+      });
+    }
     return Promise.resolve(value);
   };
   const port = {
@@ -41,7 +45,8 @@ function recordingPort() {
     port, calls,
     fail: (method: string, times: number) => failing.set(method, times),
     slow: (method: string) => slow.add(method),
-    release: () => { slow.clear(); const r = releaseAll; releaseAll = []; for (const f of r) f(); },
+    /** The held calls answer; `failing`: they fail. */
+    release: (failing = false) => { slow.clear(); const r = releaseAll; releaseAll = []; for (const f of r) f(failing); },
   };
 }
 
@@ -385,6 +390,28 @@ describe('the history writer', () => {
       const texts = port.calls.filter((c) => c[0] === 'putSegments').flatMap((c) => c[1].segments.map((g: { text: string }) => g.text));
       expect(texts[texts.length - 1]).toBe('Hello there');
       expect(texts.filter((x: string) => x === 'Hello').length).toBe(1);
+    });
+
+    // Review: a held retry put back its older text over the newer write's failure.
+    it('keeps the newer text when the newer write fails too while a retry of the older waits behind it', async () => {
+      start();
+      port.fail('putSegments', 1);
+      open('speaker', 1, 'source');
+      text('speaker', 1, 'Hello');
+      await writer.settled();
+      port.slow('putSegments');
+      text('speaker', 1, 'Hello there');
+      clock.advance(TICK_MS);
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+      conversation.clear();
+      clock.advance(TICK_MS);
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+      port.release(true);
+      await writer.settled();
+      clock.advance(TICK_MS);
+      await writer.settled();
+      const texts = port.calls.filter((c) => c[0] === 'putSegments').flatMap((c) => c[1].segments.map((g: { text: string }) => g.text));
+      expect(texts[texts.length - 1]).toBe('Hello there');
     });
 
     it('says so at the close when a segment Clear took off the screen could still not be written', async () => {

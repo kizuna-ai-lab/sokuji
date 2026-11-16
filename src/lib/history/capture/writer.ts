@@ -244,6 +244,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       });
     }, () => {
       for (const g of sent) {
+        // A retry held before it ran still carries everything: a newer write of the segment, gone or failed, stands.
+        if (retained && r.failedSegments.get(g.id)?.segment !== g) continue;
         r.failedSegments.set(g.id, { leg, segment: g });
         const t = r.segments.get(g.id);
         if (t) t.dirty = true;
