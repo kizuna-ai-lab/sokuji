@@ -57,6 +57,17 @@ describe('describeElement', () => {
     expect(describeElement(select, [])).toBe('<select>中文 (简体)</select>');
   });
 
+  it("never copies a field's value: a password field holds an API key, and React mirrors it into the attribute", () => {
+    const key = document.createElement('input');
+    key.type = 'password';
+    key.setAttribute('aria-label', 'API key');
+    key.setAttribute('value', 'sk-secret-123');
+    key.value = 'sk-secret-123';
+    const copy = describeElement(key, [{ functionName: 'CredentialForm', fileName: 'CredentialForm.tsx', lineNumber: 48 }]);
+    expect(copy).not.toContain('sk-secret-123');
+    expect(copy).toBe('<input type="password" aria-label="API key">\n  in CredentialForm (at CredentialForm.tsx:48)');
+  });
+
   it('shortens long text and a long opening tag', () => {
     const el = button('a'.repeat(100), 'c'.repeat(300));
     const [first] = describeElement(el, []).split('\n');

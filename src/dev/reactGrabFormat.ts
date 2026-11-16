@@ -43,16 +43,31 @@ export function describeElement(element: Element, frames: readonly GrabFrame[]):
   return lines.join('\n');
 }
 
+/** Elements with no content and no closing tag. */
+const VOID = new Set(['area', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+
 /**
  * `<button class="…" type="button">下一步</button>`: the opening tag (shortened when long), up to 40 characters of
  * text. A drop-down shows its selected option, not every option run together.
  */
 function snippet(element: Element): string {
   const tag = element.tagName.toLowerCase();
-  let open = element.outerHTML.slice(0, element.outerHTML.indexOf('>') + 1);
+  let open = openingTag(element);
   if (open.length > MAX_TAG) open = `${open.slice(0, MAX_TAG - 2)}…>`;
+  if (VOID.has(tag)) return open;
   const raw = element instanceof HTMLSelectElement ? (element.selectedOptions[0]?.textContent ?? '') : (element.textContent ?? '');
   const text = raw.replace(/\s+/g, ' ').trim();
   const shown = text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 1)}…` : text;
   return `${open}${shown}</${tag}>`;
+}
+
+/**
+ * The element's opening tag without a field's `value`. React mirrors a controlled input's value into the
+ * attribute, and a password field holds an API key (`CredentialForm`): a bug report must never carry it.
+ */
+function openingTag(element: Element): string {
+  const copy = element.cloneNode(false) as Element;
+  if (copy instanceof HTMLInputElement) copy.removeAttribute('value');
+  const html = copy.outerHTML;
+  return html.slice(0, html.indexOf('>') + 1);
 }
