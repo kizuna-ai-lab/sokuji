@@ -18,7 +18,8 @@ describe('measureRegionFamily', () => {
     const medians = await run;
     expect(medians).not.toBeNull();
     expect(Object.keys(medians!).sort()).toEqual(['eu', 'in', 'jp', 'us']);
-    expect(fetchMock).toHaveBeenCalledTimes(4 * 6);
+    // 1 warm-up + 3 rounds for each of the 4 regions.
+    expect(fetchMock).toHaveBeenCalledTimes(4 * 4);
     expect(fetchMock.mock.calls.every((c) => (c as unknown as [string, RequestInit])[1].method === 'HEAD')).toBe(true);
     const urls = new Set(fetchMock.mock.calls.map((c) => (c as unknown as [string])[0]));
     expect(urls.has('https://tts-rt.in.soniox.com/')).toBe(true);

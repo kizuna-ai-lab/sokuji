@@ -34,7 +34,7 @@ describe('probeRegions', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('sends HEAD, no-cors, no-store, no credentials — 1 warm-up + 5 rounds per region', async () => {
+  it('sends HEAD, no-cors, no-store, no credentials — 1 warm-up + 3 rounds per region', async () => {
     const { deps, fetch } = makeDeps({});
     const run = probeRegions([US, JP], deps);
     await vi.advanceTimersByTimeAsync(60_000);
@@ -47,13 +47,13 @@ describe('probeRegions', () => {
       signal: expect.any(AbortSignal),
     });
     for (const call of fetch.mock.calls) expect(call[1]).toMatchObject({ method: 'HEAD' });
-    expect(fetch).toHaveBeenCalledTimes(12);
+    expect(fetch).toHaveBeenCalledTimes(8);
   });
 
   it('discards the warm-up: a 900 ms first request does not reach the median', async () => {
     const { deps } = makeDeps({
-      [US.url]: [900, 170, 180, 175, 160, 190],
-      [JP.url]: [800, 12, 14, 13, 11, 15],
+      [US.url]: [900, 170, 180, 175],
+      [JP.url]: [800, 12, 14, 13],
     });
     const run = probeRegions([US, JP], deps);
     await vi.advanceTimersByTimeAsync(60_000);
@@ -69,7 +69,7 @@ describe('probeRegions', () => {
   });
 
   it('spaces rounds 200 ms apart and does not wait after the last', async () => {
-    const { deps, fetch } = makeDeps({ [US.url]: [0, 0, 0, 0, 0, 0] });
+    const { deps, fetch } = makeDeps({ [US.url]: [0, 0, 0, 0] });
     const run = probeRegions([US], deps);
     await vi.advanceTimersByTimeAsync(0);
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -77,21 +77,21 @@ describe('probeRegions', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
     expect(fetch).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(805);
-    expect(fetch).toHaveBeenCalledTimes(6);
+    await vi.advanceTimersByTimeAsync(405);
+    expect(fetch).toHaveBeenCalledTimes(4);
     // answered at once: the result lands without waiting a trailing gap
     await expect(run).resolves.toEqual({ us: expect.any(Number) });
   });
 
-  it('a request still pending at 3000 ms fails and is aborted; fewer than 3 successes is unmeasured', async () => {
+  it('a request still pending at 3000 ms fails and is aborted; fewer than 2 successes is unmeasured', async () => {
     const { deps, signals } = makeDeps({
-      [EU.url]: [10, null, null, null, 20, 30],
+      [EU.url]: [10, null, null, 20],
     });
     const run = probeRegions([EU], deps);
     await vi.advanceTimersByTimeAsync(60_000);
     await expect(run).resolves.toEqual({ eu: null });
-    const hung = signals.slice(1, 4);
-    expect(hung).toHaveLength(3);
+    const hung = signals.slice(1, 3);
+    expect(hung).toHaveLength(2);
     for (const s of hung) expect(s.signal.aborted).toBe(true);
   });
 
@@ -114,11 +114,11 @@ describe('probeRegions', () => {
     await expect(run).resolves.toEqual({ us: 10, jp: null });
   });
 
-  it('takes the median of 4 successes as the mean of the middle two, rounded', async () => {
-    const { deps } = makeDeps({ [US.url]: [5, 10, 20, 31, 40, null] });
+  it('measures a region one of whose 3 rounds was lost: the median of 2 is their mean, rounded', async () => {
+    const { deps } = makeDeps({ [US.url]: [5, 10, null, 21] });
     const run = probeRegions([US], deps);
     await vi.advanceTimersByTimeAsync(60_000);
-    await expect(run).resolves.toEqual({ us: 26 });
+    await expect(run).resolves.toEqual({ us: 16 });
   });
 
   it('answers null when its signal aborts mid-measurement, aborting in-flight requests', async () => {
