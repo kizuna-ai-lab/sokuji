@@ -45,7 +45,7 @@ import { closeCodeAction, createReconnector, refusalResult, reissueFailed, type 
 import { isVoiced } from '../../lib/session/turn';
 import type { DetectEndpoint, Detection } from './check';
 import type { QwenConfig } from './config';
-import type { EndpointId } from './endpoints';
+import { ENDPOINTS, type EndpointId } from './endpoints';
 import { QwenSegments } from './segments';
 import type { QwenCredentials } from './settings';
 import {
@@ -203,8 +203,10 @@ function seamRefusal(error: unknown, managed: boolean): unknown {
 }
 
 class QwenLeg implements AdapterSession {
-  /** Each leg is its own connection (split legs): never `shared`. */
-  readonly info = { transport: 'websocket' };
+  /** Each leg is its own connection (split legs): never `shared`. The region is the endpoint's, once the start has chosen it. */
+  get info(): AdapterSession['info'] {
+    return { transport: 'websocket', ...(this.endpoint ? { region: ENDPOINTS[this.endpoint].region } : {}) };
+  }
   private phase: Phase = 'opening';
   /** The connection in use once live. */
   private socket: WebSocket | null = null;

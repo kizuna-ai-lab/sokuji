@@ -101,8 +101,10 @@ export interface AdapterSession {
   /**
    * What the started session actually used, for telemetry. `shared`: true when this session's legs share one
    * provider connection (shared Both, face-to-face), so a reconnect event arrives once per leg for one connection.
+   * `region`: the region it dialled, from a provider that runs in more than one (Soniox, Qwen); the reconnect
+   * events carry it.
    */
-  readonly info: { transport?: string; shared?: boolean };
+  readonly info: { transport?: string; shared?: boolean; region?: string };
 }
 
 /** One protocol frame an adapter reported (spec D8): what the Logs panel lists. Never audio, never a credential. */

@@ -27,6 +27,8 @@ export interface ReconnectAnalyticsEvents {
     since_last_reconnect_ms?: number;
     online?: boolean;
     client: ReconnectClient;
+    /** The region the session dialled (`AdapterSession.info.region`): Soniox and Qwen only. */
+    region?: string;
     network?: NetworkType;
   };
   'connection_reconnected': {
@@ -41,6 +43,8 @@ export interface ReconnectAnalyticsEvents {
     drop_index: number;
     budget_shared: boolean;
     client: ReconnectClient;
+    /** The region the session dialled (`AdapterSession.info.region`): Soniox and Qwen only. */
+    region?: string;
     network?: NetworkType;
   };
   'connection_reconnect_failed': {
@@ -56,6 +60,8 @@ export interface ReconnectAnalyticsEvents {
     refusal_code?: string;
     drop_index: number;
     client: ReconnectClient;
+    /** The region the session dialled (`AdapterSession.info.region`): Soniox and Qwen only. */
+    region?: string;
   };
 }
 

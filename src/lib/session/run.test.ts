@@ -30,6 +30,8 @@ function setup(o: {
   shared?: boolean;
   lease?: boolean;
   network?: { online: boolean | undefined; type: NetworkType };
+  /** The region every session says it dialled (`info.region`); absent: none. */
+  region?: string;
   /** Before `startBoth` resolves: what a leg says while the other still opens. */
   early?: (events: Record<LegName, AdapterEvents>) => void;
 } = {}) {
@@ -38,7 +40,7 @@ function setup(o: {
   const restored: LegName[] = [];
   const throwing = new Set<LegName>();
   const session = (leg: LegName, shared = false): AdapterSession => ({
-    info: { transport: 'fake', ...(shared ? { shared: true } : {}) },
+    info: { transport: 'fake', ...(shared ? { shared: true } : {}), ...(o.region ? { region: o.region } : {}) },
     appendAudio: () => {},
     appendText: () => {},
     beginTurn: () => {},
@@ -216,6 +218,35 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
         session_elapsed_ms: 4000, drop_index: 2, since_last_reconnect_ms: 2500, online: true, client: 'desktop', network: 'wifi',
       },
     ]);
+  });
+
+  it("every reconnect event carries the region the leg's session dialled", async () => {
+    const names = ['connection_dropped', 'connection_reconnected', 'connection_reconnect_failed'];
+    // A drop and its reconnect, then a drop that gives up.
+    const given = setup({ both: true, region: 'in' });
+    await given.runner.start();
+    given.events('speaker').reconnecting({ attempt: 1, drop: DROP });
+    given.clock.advance(500);
+    given.events('speaker').reconnected(RESTORED);
+    given.events('participant').reconnecting({ attempt: 1, drop: DROP });
+    given.events('participant').failed({ message: 'gone', code: 'connection_lost', drop: DROP, giveUp: { attempts: 3, reason: 'timeout' } });
+    expect(names.map((n) => given.tracks(n).length)).toEqual([2, 1, 1]);
+    // A reconnect the stop cuts.
+    const cut = setup({ region: 'in' });
+    await cut.runner.start();
+    cut.events().reconnecting({ attempt: 1, drop: DROP });
+    await cut.runner.stop();
+    expect(cut.tracks('connection_reconnect_failed')).toEqual([expect.objectContaining({ reason: 'stopped' })]);
+    for (const n of names) {
+      for (const p of [...given.tracks(n), ...cut.tracks(n)]) expect(p).toMatchObject({ region: 'in' });
+    }
+  });
+
+  it('a session that names no region sends none', async () => {
+    const { runner, events, tracks } = setup();
+    await runner.start();
+    events().reconnecting({ attempt: 1, drop: DROP });
+    expect(tracks('connection_dropped')[0]).not.toHaveProperty('region');
   });
 
   it('a port that cannot tell online sends no online and network unknown; with no port, neither', async () => {
