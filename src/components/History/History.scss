@@ -414,11 +414,12 @@
 
   &__columns {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-columns: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
-    // Wide (the page is 1000 px or more): the notes stand left of the transcript.
-    &.is-wide { grid-template-columns: minmax(280px, 380px) minmax(0, 1fr) 280px; }
+    // Wide (the page is 1000 px or more): the notes stand left of the transcript. The speakers have no column of their
+    // own: a button over the transcript opens them (owner, 2026-11-17).
+    &.is-wide { grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); }
   }
 
   // Narrow: the notes and the transcript each have a tab; the notes take the whole width.
@@ -454,20 +455,17 @@
     padding: vars.$space-3 vars.$space-4;
   }
 
-  &__side {
-    min-height: 0;
-    overflow-y: auto;
-    padding: vars.$space-3;
-    border-left: 1px solid vars.$border-subtle;
-    background: vars.$bg-surface;
-  }
-
-  &__speakers {
-    h3 {
-      margin: 0 0 vars.$space-2;
-      font-size: 13px;
-      font-weight: vars.$weight-semibold;
-    }
+  // Over the transcript, staying in view as it scrolls: the button that opens the speakers.
+  &__transcript-head {
+    position: sticky;
+    top: calc(-1 * #{vars.$space-3});
+    z-index: 1;
+    display: flex;
+    justify-content: flex-end;
+    margin: calc(-1 * #{vars.$space-3}) calc(-1 * #{vars.$space-4}) vars.$space-1;
+    padding: vars.$space-2 vars.$space-4;
+    // The page's own colour: the transcript scrolls under it unseen, and it reads as part of the column.
+    background: vars.$bg-page;
   }
 
   // The player's strip along the bottom; nothing when the record has no recording.
@@ -482,11 +480,6 @@
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto minmax(0, 1fr);
       overflow-y: auto;
-    }
-    &__side {
-      order: -1;
-      border-left: none;
-      border-bottom: 1px solid vars.$border-subtle;
     }
     &__transcript { overflow-y: visible; }
   }
@@ -861,4 +854,25 @@
     font-size: vars.$font-caption;
     line-height: 18px;
   }
+}
+
+// The speakers' panel, opened from the button over the transcript.
+.record-speakers-button__count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: vars.$bg-hover;
+  font-size: vars.$font-caption;
+  text-align: center;
+}
+
+.record-speakers-popover {
+  width: 280px;
+  max-width: calc(100vw - 16px);
+  overflow-y: auto;
+  padding: vars.$space-3;
+  background: vars.$bg-popover;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  box-shadow: 0 6px 16px vars.$shadow;
 }

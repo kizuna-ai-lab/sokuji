@@ -26,6 +26,7 @@ import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
+import { RecordSpeakersButton } from './RecordSpeakersButton';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -247,9 +248,9 @@ export const RecordPage: React.FC = () => {
     void actions.reassign(n, speaker);
   };
 
+  const speakerCount = speakersOf('mine').length + speakersOf('other').length;
   const speakersPanel = (
-    <section className="record-page__speakers" aria-label={t('history.speakers', 'Speakers')}>
-      <h3>{t('history.speakers', 'Speakers')}</h3>
+    <div className="record-page__speakers">
       {(['mine', 'other'] as const).map((side) => {
         const list = speakersOf(side);
         if (list.length === 0) return null;
@@ -294,7 +295,7 @@ export const RecordPage: React.FC = () => {
           </div>
         );
       })}
-    </section>
+    </div>
   );
 
   const sentenceMenu = (row: RecordRow, n: number) => (
@@ -487,8 +488,15 @@ export const RecordPage: React.FC = () => {
       )}
       <div className={`record-page__columns${wide ? ' is-wide' : ''}`}>
         <div className="record-page__notes" hidden={!wide && pane !== 'notes'}>{notesView}</div>
-        <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>{transcript}</div>
-        <aside className="record-page__side" hidden={!wide && pane !== 'transcript'}>{speakersPanel}</aside>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
+          {/* The speakers, over the transcript they name (owner, 2026-11-17): no column of their own. */}
+          {speakerCount > 0 && (
+            <div className="record-page__transcript-head">
+              <RecordSpeakersButton count={speakerCount} editing={nameDraft !== null}>{speakersPanel}</RecordSpeakersButton>
+            </div>
+          )}
+          {transcript}
+        </div>
       </div>
       <div className="record-page__player">
         {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}

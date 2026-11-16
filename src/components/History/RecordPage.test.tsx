@@ -192,9 +192,27 @@ describe('a record', () => {
     expect(calls('renameRecord')).toEqual([]);
   });
 
+  // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
+  it('keeps the speakers behind a button over the transcript, and gives their column to the transcript', async () => {
+    await renderRecord();
+    expect(document.querySelector('.record-page__side')).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Speakers' })).toBeNull();
+    const button = screen.getByRole('button', { name: 'Speakers 2' });
+    expect(button.closest('.record-page__transcript')).not.toBeNull();
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('dialog', { name: 'Speakers' })).toBeInTheDocument();
+    // Escape closes it.
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await settle();
+    expect(screen.queryByRole('dialog', { name: 'Speakers' })).toBeNull();
+  });
+
   it('renames a speaker and moves one sentence to a new speaker', async () => {
     await renderRecord();
-    const panel = screen.getByRole('region', { name: 'Speakers' });
+    fireEvent.click(screen.getByRole('button', { name: 'Speakers 2' }));
+    const panel = screen.getByRole('dialog', { name: 'Speakers' });
     expect(within(panel).getByText('2 sentences')).toBeInTheDocument();
     expect(within(panel).getByText('1 sentence')).toBeInTheDocument();
     fireEvent.click(within(panel).getByRole('button', { name: 'Rename Other' }));
