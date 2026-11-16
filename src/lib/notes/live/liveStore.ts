@@ -22,6 +22,8 @@ export interface LiveNotesView {
   history: 'pending' | 'kept' | 'notKept' | 'unknown';
   /** Full notes are being written for the session (decided when History closed it). */
   fullNotes: boolean;
+  /** Kizuna AI stopped the live notes for the account (`relayChat`'s code: no-balance, daily-limit…), or null. */
+  stopped: string | null;
 }
 
 /** Each action that comes from a loop names its record: an answer of a session that has ended changes nothing once the
@@ -35,6 +37,8 @@ export interface LiveNotesActions {
   /** History closed the session: whether it kept it (null: not known), and whether full notes are being written for it. */
   closed(recordId: string, o: { kept: boolean | null; fullNotes: boolean }): void;
   turnedOff(recordId: string): void;
+  /** Kizuna AI refused for the account: the loop stopped for good. */
+  stoppedFor(recordId: string, why: string): void;
   /** Turned on again in the same session: the notes on screen stay, and go on. */
   resume(recordId: string): void;
   /** Clear: the notes on screen go; a running loop goes on. After the session, nothing is left. */
@@ -43,7 +47,7 @@ export interface LiveNotesActions {
   reset(): void;
 }
 
-const EMPTY: LiveNotesView = { recordId: null, state: null, hint: false, running: false, off: false, ended: false, history: 'pending', fullNotes: false };
+const EMPTY: LiveNotesView = { recordId: null, state: null, hint: false, running: false, off: false, ended: false, history: 'pending', fullNotes: false, stopped: null };
 
 export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
   /** Applies `change` only while the screen shows `recordId`'s notes. */
@@ -60,6 +64,7 @@ export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
       fullNotes: o.kept === true && o.fullNotes,
     }),
     turnedOff: (recordId) => forRecord(recordId, { running: false, off: true, hint: false }),
+    stoppedFor: (recordId, why) => forRecord(recordId, { running: false, stopped: why, hint: false }),
     resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false }),
     clear: () => set((s) => (s.running ? { state: null } : EMPTY)),
     reset: () => set(EMPTY),

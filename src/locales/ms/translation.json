@@ -2157,6 +2157,8 @@
     "notKept": "Nota langsung tidak disimpan. Sesi ada dalam Sejarah.",
     "openHistory": "Buka Sejarah",
     "notInHistory": "Nota langsung tidak disimpan, dan sesi ini tiada dalam Sejarah.",
-    "notKeptOnly": "Nota langsung tidak disimpan."
+    "notKeptOnly": "Nota langsung tidak disimpan.",
+    "noBalance": "Baki anda telah habis; nota langsung berhenti.",
+    "stoppedByService": "Kizuna AI tidak dapat menulis nota langsung sekarang; nota berhenti."
   }
 }

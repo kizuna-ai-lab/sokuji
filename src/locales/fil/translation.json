@@ -2157,6 +2157,8 @@
     "notKept": "Hindi iniimbak ang live na tala. Nasa History ang session.",
     "openHistory": "Buksan ang History",
     "notInHistory": "Hindi iniimbak ang live na tala, at wala sa History ang session na ito.",
-    "notKeptOnly": "Hindi iniimbak ang live na tala."
+    "notKeptOnly": "Hindi iniimbak ang live na tala.",
+    "noBalance": "Naubos ang iyong balanse; huminto ang live na tala.",
+    "stoppedByService": "Hindi makapagsulat ngayon ang Kizuna AI ng live na tala; huminto ang mga ito."
   }
 }

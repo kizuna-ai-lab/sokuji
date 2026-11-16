@@ -2157,6 +2157,8 @@
     "notKept": "Le note in diretta non vengono conservate. La sessione è nella cronologia.",
     "openHistory": "Apri la cronologia",
     "notInHistory": "Le note in diretta non vengono conservate, e questa sessione non è nella cronologia.",
-    "notKeptOnly": "Le note in diretta non vengono conservate."
+    "notKeptOnly": "Le note in diretta non vengono conservate.",
+    "noBalance": "Il saldo è esaurito; le note in diretta si sono fermate.",
+    "stoppedByService": "Kizuna AI non può scrivere note in diretta ora; si sono fermate."
   }
 }

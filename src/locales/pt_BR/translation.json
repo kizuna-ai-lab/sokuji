@@ -2157,6 +2157,8 @@
     "notKept": "As notas ao vivo não são guardadas. A sessão está no histórico.",
     "openHistory": "Abrir o histórico",
     "notInHistory": "As notas ao vivo não são guardadas, e esta sessão não está no histórico.",
-    "notKeptOnly": "As notas ao vivo não são guardadas."
+    "notKeptOnly": "As notas ao vivo não são guardadas.",
+    "noBalance": "Seu saldo acabou; as notas ao vivo pararam.",
+    "stoppedByService": "A Kizuna AI não pode escrever notas ao vivo agora; elas pararam."
   }
 }

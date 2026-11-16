@@ -2157,6 +2157,8 @@
     "notKept": "Live notities worden niet bewaard. De sessie staat in de geschiedenis.",
     "openHistory": "Geschiedenis openen",
     "notInHistory": "Live notities worden niet bewaard, en deze sessie staat niet in de geschiedenis.",
-    "notKeptOnly": "Live notities worden niet bewaard."
+    "notKeptOnly": "Live notities worden niet bewaard.",
+    "noBalance": "Je saldo is op; de live notities zijn gestopt.",
+    "stoppedByService": "Kizuna AI kan nu geen live notities schrijven; ze zijn gestopt."
   }
 }

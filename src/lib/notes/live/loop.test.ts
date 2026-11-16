@@ -1,8 +1,9 @@
 // The live notes' loop on the app clock: one update at a time, at most every 20 s, a slow one given up, the last at Stop.
 import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../contract/clock';
-import type { ChatPort, ChatRequest } from '../chat';
+import { ChatError, type ChatPort, type ChatRequest } from '../chat';
 import { createLiveNotes, LIVE_INTERVAL_MS } from './loop';
+import { LIVE_PROMPT_VERSION } from '../prompts';
 import type { LiveSentence, LiveState } from './state';
 
 const s = (n: number, o: Partial<LiveSentence> = {}): LiveSentence => ({
@@ -23,7 +24,7 @@ function handModel() {
 const topicWith = (sid: number, text = `point ${sid}`) => ({ title: 'T', new_topic: { title: 'A', summary: 'a', points: [{ text, sid, kinds: [] }] } });
 const addTo = (sid: number, text = `point ${sid}`) => ({ current_topic: { add: [{ text, sid, kinds: [] }] } });
 
-function setup(from?: { state: LiveState; seen: LiveSentence[] }) {
+function setup(from?: { state: LiveState; seen: LiveSentence[] }, extra: Partial<Parameters<typeof createLiveNotes>[0]> = {}) {
   const clock = createVirtualClock(0);
   const model = handModel();
   const states: LiveState[] = [];
@@ -33,6 +34,7 @@ function setup(from?: { state: LiveState; seen: LiveSentence[] }) {
     chat: model.chat, clock, language: { code: 'en', name: 'English' }, speakerLabel: () => 'Other side',
     onState: (st) => states.push(st), onHint: (h) => hints.push(h), log: (l) => lines.push(l),
     ...(from ? { from } : {}),
+    ...extra,
   });
   return { clock, model, states, hints, lines, live };
 }
@@ -190,5 +192,28 @@ describe('the live notes loop', () => {
     model.calls[0].answer(addTo(3));
     await flush();
     expect(states[states.length - 1].topics[0].points.map((p) => p.n)).toEqual([1, 3]);
+  });
+
+  it('names its prompt and version, and gives the language code', async () => {
+    const { clock, model, live } = setup();
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    expect(model.calls[0].r).toMatchObject({ prompt: 'live-update', promptVersion: LIVE_PROMPT_VERSION });
+    expect((model.calls[0].r.user as { output_language: string }).output_language).toBe('en');
+  });
+
+  // Review focus: after a 402 the loop stops for good and says why; a meeting does not keep calling every 20 seconds.
+  it('stops for good when Kizuna AI refuses for the account (no balance), says why, and sends nothing more', async () => {
+    const stopped: string[] = [];
+    const { clock, model, live } = setup(undefined, { onStopped: (why) => { stopped.push(why); } });
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    model.calls[0].fail(new ChatError('no balance', { status: 402, code: 'no-balance', retryable: false }));
+    await flush();
+    expect(stopped).toEqual(['no-balance']);
+    live.sentences([s(2), s(3)]);
+    clock.advance(5 * LIVE_INTERVAL_MS);
+    await live.stop();
+    expect(model.calls).toHaveLength(1);
   });
 });

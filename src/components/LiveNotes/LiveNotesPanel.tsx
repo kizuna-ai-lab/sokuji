@@ -20,7 +20,7 @@ export interface LiveNotesPanelProps {
 
 export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const { t } = useTranslation();
-  const { recordId, state, hint, running, off, ended, history, fullNotes } = useLiveNotes();
+  const { recordId, state, hint, running, off, ended, history, fullNotes, stopped } = useLiveNotes();
   const liveOn = useLiveNotesSetting();
   if (!isElectron() || (!liveOn && !state && !running && !off)) return null;
   if (!recordId && !state) return null;
@@ -39,6 +39,13 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
       <div className="live-notes__head">{t('liveNotes.title', 'Live notes')}</div>
       {hint && <p className="live-notes__line" role="status">{t('liveNotes.hint', 'Live notes could not be updated. They will try again.')}</p>}
       {off && <p className="live-notes__line">{t('liveNotes.off', 'Live notes are off.')}</p>}
+      {stopped && (
+        <p className="live-notes__line" role="status">
+          {stopped === 'no-balance'
+            ? t('liveNotes.noBalance', 'Your balance ran out; live notes stopped.')
+            : t('liveNotes.stoppedByService', 'Kizuna AI cannot write live notes right now; they stopped.')}
+        </p>
+      )}
       {state?.title && <h3 className="live-notes__title">{state.title}</h3>}
       {topics.length === 0 && running && <p className="live-notes__line">{t('liveNotes.waiting', 'Notes appear here as the conversation goes on.')}</p>}
       {topics.map((topic) => (

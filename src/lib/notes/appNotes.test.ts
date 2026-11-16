@@ -20,7 +20,7 @@ describe('the notes service from the stores', () => {
     vi.stubGlobal('fetch', fetch);
     const service = await notesChatFromStores();
     expect(service?.model).toBe('gpt-6-luna');
-    await service!.chat({ system: 'S', user: {}, effort: 'none', maxTokens: 10, signal: new AbortController().signal });
+    await service!.chat({ system: 'S', prompt: 'whole-meeting', promptVersion: 2, user: {}, effort: 'none', maxTokens: 10, signal: new AbortController().signal });
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://api.openai.com/v1/chat/completions');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sk-test');

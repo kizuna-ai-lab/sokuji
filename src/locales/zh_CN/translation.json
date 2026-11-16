@@ -2157,6 +2157,8 @@
     "notKept": "实时纪要不保存。这次会话在历史记录里。",
     "openHistory": "打开历史记录",
     "notInHistory": "实时纪要不保存，这次会话也不在历史记录里。",
-    "notKeptOnly": "实时纪要不保存。"
+    "notKeptOnly": "实时纪要不保存。",
+    "noBalance": "余额已用完，实时纪要已停止。",
+    "stoppedByService": "Kizuna AI 现在无法写实时纪要，已停止。"
   }
 }

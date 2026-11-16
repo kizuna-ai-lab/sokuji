@@ -10,7 +10,7 @@ import type { WordEntry } from '../words/list';
 import type { HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort, ChatRequest } from './chat';
 import { ChatError } from './chat';
-import { finishPrompt, namesPrompt, partPrompt, notesNames } from './prompts';
+import { finishPrompt, namesPrompt, NOTES_PROMPT_VERSION, partPrompt, notesNames } from './prompts';
 
 /** Less transcript than this has nothing to write notes from: no call is made. */
 export const NOTES_MIN_MS = 60_000;
@@ -253,6 +253,8 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
   const multiPart = parts.length > 1;
   const written = await Promise.all(parts.map((part, k) => ask(chat, {
     system: partPrompt(language.name, multiPart),
+    prompt: multiPart ? 'meeting-part' : 'whole-meeting',
+    promptVersion: NOTES_PROMPT_VERSION,
     user: {
       output_language: language.code,
       sentences: part.map(view),
@@ -319,6 +321,8 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
   // The finishing call reconciles the marks; the names step runs beside it. Either may fail without failing the version.
   const finishing = ask(chat, {
     system: finishPrompt(language.name),
+    prompt: 'combine-parts',
+    promptVersion: NOTES_PROMPT_VERSION,
     user: {
       output_language: language.code,
       topics: topics.map((t) => ({ n: t.n, ...(multiPart ? { part: t.part } : {}), title: t.title, summary: t.summary })),
@@ -335,6 +339,8 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
   });
   const naming = Promise.all(namesParts(ordered).map((part) => ask(chat, {
     system: namesPrompt(),
+    prompt: 'check-names',
+    promptVersion: NOTES_PROMPT_VERSION,
     user: { sentences: part.map(view), ...withNames },
     effort: 'medium',
     maxTokens: NAMES_TOKENS,

@@ -104,6 +104,15 @@ describe('the live notes panel', () => {
     expect(screen.queryByRole('button', { name: 'Open History' })).toBeNull();
   });
 
+  it('says the balance ran out when Kizuna AI stopped the live notes for it, and another reason in general words', () => {
+    act(() => useLiveNotes.getState().stoppedFor('run-0001-aaaa', 'no-balance'));
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    expect(screen.getByText('Your balance ran out; live notes stopped.')).toBeInTheDocument();
+    act(() => { useLiveNotes.getState().begin('run-0001-aaaa'); useLiveNotes.getState().stoppedFor('run-0001-aaaa', 'daily-limit'); });
+    expect(screen.getByText('Kizuna AI cannot write live notes right now; they stopped.')).toBeInTheDocument();
+    expect(useLiveNotes.getState().running).toBe(false);
+  });
+
   it('is not there when live notes are off and nothing was written', () => {
     useSettingsStore.setState({ liveNotes: false } as never);
     act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));

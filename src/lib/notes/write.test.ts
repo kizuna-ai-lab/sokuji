@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { HistorySentence } from '../history/types';
 import { ChatError, type ChatPort, type ChatRequest } from './chat';
-import { finishPrompt, namesPrompt, partPrompt } from './prompts';
+import { finishPrompt, namesPrompt, NOTES_PROMPT_VERSION, partPrompt } from './prompts';
 import { cutParts, NOTES_MIN_MS, writeNotes } from './write';
 
 const LANGUAGE = { code: 'ja', name: 'Japanese' };
@@ -349,5 +349,19 @@ describe('writing the notes', () => {
     const chat: ChatPort = async (r) => { r.onAnswered?.({ requestId: `req_${++n}` }); return answer; };
     const result = await write(everyMinute(26), chat);
     expect(result).toMatchObject({ ok: true, requestIds: ['req_1', 'req_2', 'req_3', 'req_4'] });
+  });
+
+  // Hosted notes: the relay puts in its own copy of each prompt by name and version, and names the language from the data.
+  it('names each call\'s prompt and its version, and gives the parts and the finish the language code', async () => {
+    const model = fakeChat();
+    await write(withPauses(), model.chat);
+    expect(new Set(model.of('part').map((c) => c.prompt))).toEqual(new Set(['meeting-part']));
+    expect(model.of('finish').map((c) => c.prompt)).toEqual(['combine-parts']);
+    expect(new Set(model.of('names').map((c) => c.prompt))).toEqual(new Set(['check-names']));
+    expect(new Set(model.calls.map((c) => c.promptVersion))).toEqual(new Set([NOTES_PROMPT_VERSION]));
+    for (const c of [...model.of('part'), ...model.of('finish')]) expect(c.user.output_language).toBe('ja');
+    const single = fakeChat();
+    await write(everyMinute(5), single.chat);
+    expect(single.of('part').map((c) => c.prompt)).toEqual(['whole-meeting']);
   });
 });

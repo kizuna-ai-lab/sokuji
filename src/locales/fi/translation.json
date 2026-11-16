@@ -2157,6 +2157,8 @@
     "notKept": "Reaaliaikaisia muistiinpanoja ei tallenneta. Istunto on historiassa.",
     "openHistory": "Avaa historia",
     "notInHistory": "Reaaliaikaisia muistiinpanoja ei tallenneta, eikä tämä istunto ole historiassa.",
-    "notKeptOnly": "Reaaliaikaisia muistiinpanoja ei tallenneta."
+    "notKeptOnly": "Reaaliaikaisia muistiinpanoja ei tallenneta.",
+    "noBalance": "Saldosi loppui; reaaliaikaiset muistiinpanot pysähtyivät.",
+    "stoppedByService": "Kizuna AI ei voi nyt kirjoittaa reaaliaikaisia muistiinpanoja; ne pysähtyivät."
   }
 }

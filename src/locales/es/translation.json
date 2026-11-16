@@ -2157,6 +2157,8 @@
     "notKept": "Las notas en directo no se guardan. La sesión está en el historial.",
     "openHistory": "Abrir el historial",
     "notInHistory": "Las notas en directo no se guardan, y esta sesión no está en el historial.",
-    "notKeptOnly": "Las notas en directo no se guardan."
+    "notKeptOnly": "Las notas en directo no se guardan.",
+    "noBalance": "Se agotó tu saldo; las notas en directo se detuvieron.",
+    "stoppedByService": "Kizuna AI no puede escribir notas en directo ahora; se detuvieron."
   }
 }

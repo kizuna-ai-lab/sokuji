@@ -345,6 +345,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           // Keyed by the record: the last update after Stop still lands, and nothing lands once another session shows.
           onState: (state) => useLiveNotes.getState().update(recordId, state),
           onHint: (shown) => useLiveNotes.getState().setHint(recordId, shown),
+          // Kizuna AI refused for the account (the balance ran out…): the loop has stopped; the panel says why.
+          onStopped: (why) => useLiveNotes.getState().stoppedFor(recordId, why),
           log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
         });
         begun.loop.sentences(begun.pending);

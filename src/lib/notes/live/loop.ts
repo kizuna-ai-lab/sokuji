@@ -7,7 +7,8 @@
 import type { WordEntry } from '../../words/list';
 import type { Clock } from '../../contract/clock';
 import type { ChatPort } from '../chat';
-import { livePrompt } from '../prompts';
+import { ChatError } from '../chat';
+import { LIVE_PROMPT_VERSION, livePrompt } from '../prompts';
 import type { NotesLanguage } from '../runner';
 import { applyLive, emptyLive, livePayload, type LiveSentence, type LiveState } from './state';
 
@@ -27,6 +28,8 @@ export interface LiveNotesDeps {
   onHint(shown: boolean): void;
   /** One line per update, for the measurement on live recognition (§12). */
   log?(line: Record<string, unknown>): void;
+  /** Kizuna AI refused for the account (no balance, a daily limit, signed out…): the loop has stopped for good. */
+  onStopped?(why: string): void;
   /** Notes to go on from (live notes turned on again in the same session): their sentences are context, not new. */
   from?: { state: LiveState; seen: readonly LiveSentence[] };
 }
@@ -53,6 +56,9 @@ interface Update {
   cancelTimeout(): void;
   promise: Promise<void>;
 }
+
+/** Kizuna AI's refusals that the next update would get as well (relayChat's codes). */
+const STOPPING_CODES: ReadonlySet<string> = new Set(['no-balance', 'daily-limit', 'wallet-frozen', 'sign-in', 'not-member', 'update-required', 'unavailable']);
 
 const unstableCount = (s: LiveState) => s.topics.reduce((sum, t) => sum + t.points.filter((p) => p.unstable).length, 0);
 
@@ -109,8 +115,20 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     };
     const payload = livePayload({ state, fresh, seen: seen.slice(0, upTo), language: d.language, speakerLabel: d.speakerLabel, names: d.names });
     u.cancelTimeout = d.clock.setTimeout(() => { if (!u.done) { u.givenUp = true; controller.abort(); } }, LIVE_TIMEOUT_MS);
-    u.promise = d.chat({ system: livePrompt(d.language.name), user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal })
-      .then((answer) => finish(u, answer), () => finish(u, undefined));
+    u.promise = d.chat({
+      system: livePrompt(d.language.name), prompt: 'live-update', promptVersion: LIVE_PROMPT_VERSION,
+      user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal,
+    })
+      .then((answer) => finish(u, answer), (error: unknown) => {
+        // A refusal for the account would come again every 20 seconds: the loop stops instead, and says why.
+        if (error instanceof ChatError && error.code && STOPPING_CODES.has(error.code) && !stopped && !disposed) {
+          stopped = true;
+          cancelTick?.();
+          cancelTick = null;
+          d.onStopped?.(error.code);
+        }
+        finish(u, undefined);
+      });
     open = u;
     return u;
   };

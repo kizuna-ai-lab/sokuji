@@ -2157,6 +2157,8 @@
     "notKept": "Live notes are not kept. The session is in History.",
     "openHistory": "Open History",
     "notInHistory": "Live notes are not kept, and this session is not in History.",
-    "notKeptOnly": "Live notes are not kept."
+    "notKeptOnly": "Live notes are not kept.",
+    "noBalance": "Your balance ran out; live notes stopped.",
+    "stoppedByService": "Kizuna AI cannot write live notes right now; they stopped."
   }
 }

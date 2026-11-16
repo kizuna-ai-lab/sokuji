@@ -7,8 +7,13 @@
 
 export type ChatEffort = 'none' | 'medium';
 
+/** Which prompt a call is: the relay puts in its own copy of it by this name and version. */
+export type NotesPromptName = 'live-update' | 'whole-meeting' | 'meeting-part' | 'combine-parts' | 'check-names';
+
 export interface ChatRequest {
   system: string;
+  prompt: NotesPromptName;
+  promptVersion: number;
   user: unknown;
   effort: ChatEffort;
   maxTokens: number;
@@ -43,11 +48,11 @@ export class ChatError extends Error {
 
 /** A rate limit is waited out this long times the attempt, at most this many times. */
 const RATE_LIMIT_WAIT_MS = 15_000;
-const RATE_LIMIT_WAITS = 4;
+export const RATE_LIMIT_WAITS = 4;
 
-const abortError = () => new DOMException('The notes request was cancelled', 'AbortError');
+export const abortError = () => new DOMException('The notes request was cancelled', 'AbortError');
 
-const wait = (ms: number, signal: AbortSignal) =>
+export const wait = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     if (signal.aborted) {
       reject(abortError());
@@ -65,7 +70,7 @@ const wait = (ms: number, signal: AbortSignal) =>
   });
 
 /** The service's own words about a refusal, and its error code or type. */
-const refusalOf = async (response: Response): Promise<{ message?: string; code?: string }> => {
+export const refusalOf = async (response: Response): Promise<{ message?: string; code?: string }> => {
   try {
     const error = ((await response.json()) as { error?: { message?: unknown; code?: unknown; type?: unknown } })?.error;
     const code = typeof error?.code === 'string' ? error.code : typeof error?.type === 'string' ? error.type : undefined;
@@ -96,22 +101,49 @@ function effortFor(model: string, effort: ChatEffort): ChatEffort | 'low' | null
   return effort === 'none' && refusesNone ? 'low' : effort;
 }
 
+/** The request body for `model`: the same bytes with an own key and through Kizuna AI. */
+export function chatBody(model: string, r: Pick<ChatRequest, 'system' | 'user' | 'effort' | 'maxTokens'>): string {
+  const reasoning = effortFor(model, r.effort);
+  return JSON.stringify({
+    model,
+    messages: [
+      { role: 'system', content: r.system },
+      { role: 'user', content: JSON.stringify(r.user) },
+    ],
+    response_format: { type: 'json_object' },
+    max_completion_tokens: r.maxTokens,
+    ...(reasoning ? { reasoning_effort: reasoning } : {}),
+  });
+}
+
+/** The model's answer from a chat completion response: always a JSON object, or a ChatError. */
+export async function answerOf(response: Response): Promise<object> {
+  let content: unknown;
+  try {
+    content = ((await response.json()) as { choices?: Array<{ message?: { content?: unknown } }> })?.choices?.[0]?.message?.content;
+  } catch {
+    content = undefined;
+  }
+  if (typeof content !== 'string') throw new ChatError('The notes model gave no answer', { code: 'no-answer' });
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new ChatError('The notes model answered with something other than JSON', { code: 'not-json' });
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new ChatError('The notes model answered with something other than a JSON object', { code: 'not-json' });
+  }
+  return parsed;
+}
+
 export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; fetch?: typeof fetch }): ChatPort {
   const send = o.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
   const url = `${o.baseUrl.replace(/\/+$/, '')}/chat/completions`;
 
-  return async ({ system, user, effort, maxTokens, signal, onAnswered }) => {
-    const reasoning = effortFor(o.model, effort);
-    const body = JSON.stringify({
-      model: o.model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: JSON.stringify(user) },
-      ],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: maxTokens,
-      ...(reasoning ? { reasoning_effort: reasoning } : {}),
-    });
+  return async (r) => {
+    const { signal, onAnswered } = r;
+    const body = chatBody(o.model, r);
     for (let waited = 0; ; ) {
       const response = await send(url, {
         method: 'POST',
@@ -134,23 +166,7 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
           status: response.status, serviceMessage: refusal.message, ...(noCredit ? { retryable: false } : {}),
         });
       }
-      let content: unknown;
-      try {
-        content = ((await response.json()) as { choices?: Array<{ message?: { content?: unknown } }> })?.choices?.[0]?.message?.content;
-      } catch {
-        content = undefined;
-      }
-      if (typeof content !== 'string') throw new ChatError('The notes model gave no answer', { code: 'no-answer' });
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(content);
-      } catch {
-        throw new ChatError('The notes model answered with something other than JSON', { code: 'not-json' });
-      }
-      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new ChatError('The notes model answered with something other than a JSON object', { code: 'not-json' });
-      }
-      return parsed;
+      return answerOf(response);
     }
   };
 }

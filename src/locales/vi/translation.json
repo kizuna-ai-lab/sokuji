@@ -2157,6 +2157,8 @@
     "notKept": "Ghi chú trực tiếp không được lưu. Phiên có trong Lịch sử.",
     "openHistory": "Mở Lịch sử",
     "notInHistory": "Ghi chú trực tiếp không được lưu, và phiên này không có trong Lịch sử.",
-    "notKeptOnly": "Ghi chú trực tiếp không được lưu."
+    "notKeptOnly": "Ghi chú trực tiếp không được lưu.",
+    "noBalance": "Số dư của bạn đã hết; ghi chú trực tiếp đã dừng.",
+    "stoppedByService": "Kizuna AI hiện không thể viết ghi chú trực tiếp; ghi chú đã dừng."
   }
 }

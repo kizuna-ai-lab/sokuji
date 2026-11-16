@@ -2157,6 +2157,8 @@
     "notKept": "即時紀要不儲存。這次工作階段在歷史記錄裡。",
     "openHistory": "開啟歷史記錄",
     "notInHistory": "即時紀要不儲存，這次工作階段也不在歷史記錄裡。",
-    "notKeptOnly": "即時紀要不儲存。"
+    "notKeptOnly": "即時紀要不儲存。",
+    "noBalance": "餘額已用完，即時紀要已停止。",
+    "stoppedByService": "Kizuna AI 現在無法寫即時紀要，已停止。"
   }
 }
