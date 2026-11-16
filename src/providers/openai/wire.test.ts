@@ -5,9 +5,9 @@ import ts from 'typescript';
 import { base64ToPcm } from '../../lib/contract/pcm64';
 import { redact } from '../../lib/diagnostics/redact';
 import type { SharedSettings } from '../../lib/provider/types';
-import { buildRealtime } from './config';
+import { buildRealtime, type RealtimeConfig } from './config';
 import { migrateRealtimeSettings, REALTIME_DEFAULTS } from './settings';
-import { AUTO_CTX, configFor, KEY, MANUAL_CTX, SERVER } from './testing';
+import { AUTO_CTX, configFor, KEY, MANUAL_CTX, SERVER, SHARED } from './testing';
 import {
   anchorResponse, appendFrame, CLEAR, COMMIT, decodeServerEvent, errorCode, errorWords, isOutOfBand, REALTIME_WS_URL, realtimeProtocols,
   realtimeUrl, requestOf, responseCreate, sessionUpdate, textItem, unwrapTranslationText,
@@ -123,7 +123,7 @@ describe("OpenAI Realtime's wire: session.update", () => {
   });
 
   it('sends a chosen noise reduction as its type, the context hints to the models that take them, and reasoning to gpt-realtime-2* alone', () => {
-    const update = sessionUpdate(configFor(AUTO_CTX, { noiseReduction: 'Far field', transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji, Kizuna AI' }));
+    const update = sessionUpdate(buildRealtime(AUTO_CTX, { ...REALTIME_DEFAULTS, noiseReduction: 'Far field', transcriptModel: 'gpt-live-transcribe' }, { ...SHARED, words: { entries: [{ written: 'Sokuji' }, { written: 'Kizuna AI' }], background: '' } }) as RealtimeConfig);
     expect(update.session.audio.input.noise_reduction).toEqual({ type: 'far_field' });
     expect(update.session.audio.input.transcription).toEqual({ model: 'gpt-live-transcribe', languages: ['ja'], keywords: ['Sokuji', 'Kizuna AI'] });
     // Through `takesReasoning` itself (`settings.ts`), not a hand-built config: a plain mini and

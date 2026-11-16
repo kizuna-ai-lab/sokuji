@@ -27,7 +27,6 @@ describe("OpenAI Realtime's settings", () => {
       semanticEagerness: 'Auto',
       maxTokens: 'inf',
       transcriptModel: 'gpt-4o-mini-transcribe',
-      transcriptKeywords: '',
       noiseReduction: 'None',
       reasoningEffort: 'low',
     });
@@ -40,12 +39,12 @@ describe("OpenAI Realtime's settings", () => {
   it('loads an old profile field by field, converting nothing: a stored temperature is not read, nor a stored WebRTC choice', () => {
     const s = migrate({
       model: 'gpt-realtime-2.1', voice: 'marin', turnDetectionMode: 'Semantic', threshold: 0.7, prefixPadding: 0.3, silenceDuration: 1.2,
-      semanticEagerness: 'High', maxTokens: 2048, transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji', noiseReduction: 'Far field',
+      semanticEagerness: 'High', maxTokens: 2048, transcriptModel: 'gpt-live-transcribe', noiseReduction: 'Far field',
       transportType: 'webrtc', reasoningEffort: 'medium', temperature: 1.1,
     });
     expect(s).toMatchObject({
       model: 'gpt-realtime-2.1', voice: 'marin', turnDetectionMode: 'Semantic', threshold: 0.7, prefixPadding: 0.3, silenceDuration: 1.2,
-      semanticEagerness: 'High', maxTokens: 2048, transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji', noiseReduction: 'Far field',
+      semanticEagerness: 'High', maxTokens: 2048, transcriptModel: 'gpt-live-transcribe', noiseReduction: 'Far field',
       reasoningEffort: 'medium',
     });
     expect(s).not.toHaveProperty('temperature');

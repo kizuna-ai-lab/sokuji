@@ -44,6 +44,8 @@ export interface TranscriptionHint {
   language?: string;
   languages?: string[];
   keywords?: string[];
+  /** The legacy models' guiding text: the session background. */
+  prompt?: string;
 }
 
 /** True when `model` accepts the `languages` / `keywords` hints. */
@@ -65,31 +67,22 @@ export function normalizeTranscriptionLanguage(value: string | undefined | null)
   return SUPPORTED_LANGUAGE_CODES.has(base) ? base : null;
 }
 
-/** A typed glossary as the array the API wants: split on commas, full-width commas and newlines; trimmed; each term once. */
-export function parseTranscriptionKeywords(raw: string | undefined | null): string[] {
-  if (!raw) return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const part of raw.split(/[,、，\r\n]+/)) {
-    const term = part.trim();
-    if (!term || seen.has(term)) continue;
-    seen.add(term);
-    out.push(term);
-  }
-  return out;
-}
-
-/** The hint for `model` hearing `sourceLanguage`, with only the fields that model accepts. */
-export function buildTranscriptionHint(model: string, sourceLanguage: string | undefined, rawKeywords: string | undefined): TranscriptionHint {
+/**
+ * The hint for `model` hearing `sourceLanguage`, with only the fields that model accepts: the word list's written forms
+ * as `keywords` to the models that take them; the session background as the `prompt` of the legacy models, which have
+ * a prompt and no keywords (the newer ones' prompt is not verified, and a refused field refuses the whole update).
+ */
+export function buildTranscriptionHint(model: string, sourceLanguage: string | undefined, words: { terms?: readonly string[]; background?: string } = {}): TranscriptionHint {
   const hint: TranscriptionHint = { model };
   const language = normalizeTranscriptionLanguage(sourceLanguage);
-  const keywords = parseTranscriptionKeywords(rawKeywords);
+  const keywords = [...new Set(words.terms ?? [])];
   if (supportsTranscriptionContext(model)) {
     // `languages` refuses an empty array: omitted when the language has no code.
     if (language) hint.languages = [language];
     if (keywords.length > 0) hint.keywords = keywords;
-  } else if (language) {
-    hint.language = language;
+  } else {
+    if (language) hint.language = language;
+    if (words.background) hint.prompt = words.background;
   }
   return hint;
 }

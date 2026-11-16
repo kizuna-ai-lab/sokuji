@@ -83,7 +83,7 @@ describe('RealtimeSettingsView (choice 17)', () => {
     expect(update).toHaveBeenCalledWith({ maxTokens: 4096 });
   });
 
-  it('shows the transcription keywords only for a model that takes them, and writes both', () => {
+  it('writes the transcription model, and has no keywords of its own: they are the app\'s word list now', () => {
     const update = vi.fn();
     const { rerender } = render(<RealtimeSettingsView {...props({ update })} />);
     expect(screen.queryByLabelText('Transcription keywords')).toBeNull();
@@ -91,11 +91,8 @@ describe('RealtimeSettingsView (choice 17)', () => {
     expect(Array.from(transcript.options).map((o) => o.value)).toEqual(['gpt-live-transcribe', 'gpt-transcribe', 'gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-1']);
     fireEvent.change(transcript, { target: { value: 'gpt-live-transcribe' } });
     expect(update).toHaveBeenCalledWith({ transcriptModel: 'gpt-live-transcribe' });
-    rerender(<RealtimeSettingsView {...props({ update, settings: { ...REALTIME_DEFAULTS, transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji' } })} />);
-    const keywords = screen.getByLabelText('Transcription keywords') as HTMLInputElement;
-    expect(keywords.value).toBe('Sokuji');
-    fireEvent.change(keywords, { target: { value: 'Sokuji, Kizuna AI' } });
-    expect(update).toHaveBeenCalledWith({ transcriptKeywords: 'Sokuji, Kizuna AI' });
+    rerender(<RealtimeSettingsView {...props({ update, settings: { ...REALTIME_DEFAULTS, transcriptModel: 'gpt-live-transcribe' } })} />);
+    expect(screen.queryByLabelText('Transcription keywords')).toBeNull();
   });
 
   it('draws the reasoning effort for a gpt-realtime-2* model alone, with its option words', () => {
@@ -127,7 +124,7 @@ describe('RealtimeSettingsView (choice 17)', () => {
   it('disabled locks every control', () => {
     render(<RealtimeSettingsView {...props({ disabled: true, settings: { ...REALTIME_DEFAULTS, transcriptModel: 'gpt-transcribe' } })} />);
     expect(libraryProps().isSessionActive).toBe(true);
-    for (const label of ['settings.model', 'settings.userTranscriptModel', 'Transcription keywords', 'settings.noiseReduction', 'Unlimited', 'settings.reasoningEffort']) {
+    for (const label of ['settings.model', 'settings.userTranscriptModel', 'settings.noiseReduction', 'Unlimited', 'settings.reasoningEffort']) {
       expect(screen.getByLabelText(label), label).toBeDisabled();
     }
     expect(screen.getByRole('button', { name: 'settings.advanced' })).toBeDisabled();

@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { AUTO } from '../../lib/provider/languages';
 import { REALTIME_LANGUAGES, TRANSCRIPT_MODELS } from './settings';
-import { buildTranscriptionHint, normalizeTranscriptionLanguage, parseTranscriptionKeywords, supportsTranscriptionContext } from './transcription';
+import { buildTranscriptionHint, normalizeTranscriptionLanguage, supportsTranscriptionContext } from './transcription';
 
 describe('supportsTranscriptionContext', () => {
   it('accepts the two context-capable models', () => {
@@ -57,36 +57,26 @@ describe('normalizeTranscriptionLanguage', () => {
   });
 });
 
-describe('parseTranscriptionKeywords', () => {
-  it('splits on commas, full-width commas and newlines, trims, and drops empties and repeats', () => {
-    expect(parseTranscriptionKeywords('Sokuji, Kizuna AI\nPulseAudio')).toEqual(['Sokuji', 'Kizuna AI', 'PulseAudio']);
-    expect(parseTranscriptionKeywords('東京、大阪，京都')).toEqual(['東京', '大阪', '京都']);
-    expect(parseTranscriptionKeywords('a,,  ,a, b ')).toEqual(['a', 'b']);
-    expect(parseTranscriptionKeywords(undefined)).toEqual([]);
-    expect(parseTranscriptionKeywords('  ,  ,')).toEqual([]);
-  });
-});
-
 describe('buildTranscriptionHint', () => {
   it('sends languages and keywords to the context-capable models', () => {
-    expect(buildTranscriptionHint('gpt-live-transcribe', 'en-US', 'Sokuji, Kizuna AI')).toEqual({ model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji', 'Kizuna AI'] });
+    expect(buildTranscriptionHint('gpt-live-transcribe', 'en-US', { terms: ['Sokuji', 'Kizuna AI'], background: 'Weekly sync.' })).toEqual({ model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji', 'Kizuna AI'] });
   });
 
-  it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update', () => {
-    const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', 'Sokuji');
-    expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh' });
+  it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update; the background goes as its prompt', () => {
+    const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { terms: ['Sokuji'], background: 'Weekly sync.' });
+    expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh', prompt: 'Weekly sync.' });
   });
 
   it('omits the language rather than sending an empty array or an unknown code — Auto-detect included — and keywords that parse to nothing', () => {
-    expect(buildTranscriptionHint('gpt-live-transcribe', 'bn', '')).toEqual({ model: 'gpt-live-transcribe' });
-    expect(buildTranscriptionHint('gpt-live-transcribe', AUTO, 'Sokuji')).toEqual({ model: 'gpt-live-transcribe', keywords: ['Sokuji'] });
-    expect(buildTranscriptionHint('whisper-1', 'te', undefined)).toEqual({ model: 'whisper-1' });
-    expect(buildTranscriptionHint('gpt-transcribe', 'ja', '  ,  ')).toEqual({ model: 'gpt-transcribe', languages: ['ja'] });
+    expect(buildTranscriptionHint('gpt-live-transcribe', 'bn', {})).toEqual({ model: 'gpt-live-transcribe' });
+    expect(buildTranscriptionHint('gpt-live-transcribe', AUTO, { terms: ['Sokuji'] })).toEqual({ model: 'gpt-live-transcribe', keywords: ['Sokuji'] });
+    expect(buildTranscriptionHint('whisper-1', 'te')).toEqual({ model: 'whisper-1' });
+    expect(buildTranscriptionHint('gpt-transcribe', 'ja', { terms: [] })).toEqual({ model: 'gpt-transcribe', languages: ['ja'] });
   });
 
   it('keeps every model the settings offer to a payload the API accepts', () => {
     for (const model of TRANSCRIPT_MODELS) {
-      const hint = buildTranscriptionHint(model, 'en-AU', 'Sokuji');
+      const hint = buildTranscriptionHint(model, 'en-AU', { terms: ['Sokuji'] });
       expect(hint, model).toEqual(supportsTranscriptionContext(model) ? { model, languages: ['en'], keywords: ['Sokuji'] } : { model, language: 'en' });
     }
   });
