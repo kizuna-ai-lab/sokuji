@@ -391,6 +391,10 @@
     align-items: center;
     flex-wrap: wrap;
     gap: vars.$space-2;
+    // One height for the buttons side by side (owner, 2026-11-17): "More" is an icon alone and stood 4px shorter
+    // than "Export"; square, centred, at the text buttons' height.
+    .history-button { min-height: 30px; }
+    .history-button--icon { min-width: 30px; justify-content: center; }
   }
 
   &__result {
