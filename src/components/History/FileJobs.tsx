@@ -119,7 +119,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
       <p className="history-file__title">{title}</p>
       <label className="history-file__field">
         <span>{t('history.file.language', 'Language spoken in it')}</span>
-        <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+        <select className="select-dropdown" value={language} onChange={(e) => setLanguage(e.target.value)}>
           {codes.map((c) => <option key={c} value={c}>{languageLabel(c, i18n.language)}</option>)}
         </select>
       </label>
@@ -204,7 +204,7 @@ export const TranscriptChooser: React.FC = () => {
   return (
     <label className="history-file__versions">
       <span>{t('history.file.versions', 'Transcript version')}</span>
-      <select value={open.transcriptId ?? ''} onChange={(e) => void store.getState().showTranscript(Number(e.target.value))}>
+      <select className="select-dropdown" value={open.transcriptId ?? ''} onChange={(e) => void store.getState().showTranscript(Number(e.target.value))}>
         {byAge.map((tr) => {
           const time = formatDateTime(tr.createdAt, i18n.language);
           return (

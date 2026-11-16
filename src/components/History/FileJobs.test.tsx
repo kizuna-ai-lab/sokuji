@@ -71,6 +71,8 @@ describe('importing a file', () => {
     expect(screen.getByText('Transcribed by Soniox, the recognition service in your line-up.')).toBeTruthy();
     // With the user's own key there is no price to show (owner, 2026-11-16).
     expect(screen.queryByText(/USD/)).toBeNull();
+    // The app's own dropdown, as every other one.
+    expect(screen.getByLabelText('Language spoken in it')).toHaveClass('select-dropdown');
     fireEvent.change(screen.getByLabelText('Language spoken in it'), { target: { value: 'ja' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();
@@ -185,6 +187,7 @@ describe('transcribing a record again', () => {
     await act(() => store.getState().openRecord(A));
     show(<TranscriptChooser />);
     const select = screen.getByLabelText('Transcript version') as HTMLSelectElement;
+    expect(select).toHaveClass('select-dropdown');
     expect([...select.options].map((o) => o.value)).toEqual(['2', '1']);
     expect(select.options[0].text).toMatch(/^Soniox file · /);
     expect(select.options[1].text).toMatch(/^Live · /);
