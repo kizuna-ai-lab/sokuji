@@ -195,13 +195,15 @@ export function applyLive(given: LiveState, answer: unknown, o: LiveApplyInput):
     nextTitle = '';
   }
 
-  // A title an earlier topic already has: kept apart by a number, (2), then (3).
+  // A title an earlier topic already has: kept apart by a number, (2), then (3), counted from the title without its own
+  // number, so "Delivery (2)" goes on as "Delivery (3)", never "Delivery (2) (2)".
   const numbered = (title: string) => {
     const used = new Set(topics.map((t) => t.title));
     if (!used.has(title)) return title;
+    const base = title.replace(/ \(\d+\)$/, '');
     let k = 2;
-    while (used.has(`${title} (${k})`)) k += 1;
-    return `${title} (${k})`;
+    while (used.has(`${base} (${k})`)) k += 1;
+    return `${base} (${k})`;
   };
   let opened: LiveTopic | null = null;
   if (nextTitle) {

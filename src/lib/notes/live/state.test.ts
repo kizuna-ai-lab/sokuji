@@ -64,6 +64,17 @@ describe('the live notes rules', () => {
     expect(texts(st)?.slice(1)).toEqual([['Delivery (2)', ['p14', 'p15']]]);
   });
 
+  it('numbers from the title without its number: a full "Delivery (2)" goes on as "Delivery (3)"', () => {
+    const add = (st: LiveState, n: number) => apply(st, { current_topic: { add: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;
+    let st = opened();
+    for (let n = 2; n <= 13; n++) st = add(st, n);
+    expect(texts(st)?.map((t) => t[0])).toEqual(['Delivery', 'Delivery (2)']);
+    for (let n = 14; n <= 25; n++) st = add(st, n);
+    expect(texts(st)?.map((t) => t[0])).toEqual(['Delivery', 'Delivery (2)', 'Delivery (3)']);
+    st = apply(st, { new_topic: { title: 'Delivery (2)', summary: '', points: [{ text: 'p26', sid: 26, kinds: [] }] } }, [s(26)])!;
+    expect(texts(st)?.map((t) => t[0])).toEqual(['Delivery', 'Delivery (2)', 'Delivery (3)', 'Delivery (4)']);
+  });
+
   it('numbers a new topic whose title an earlier topic already has: (2), then (3)', () => {
     const topic = (st: LiveState, title: string, n: number) =>
       apply(st, { new_topic: { title, summary: '', points: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;
