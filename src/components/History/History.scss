@@ -414,6 +414,16 @@
     color: vars.$text-secondary;
   }
 
+  // The columns' frame: the speakers' drawer is placed against it, not against the columns (which scroll when narrow).
+  &__body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   &__columns {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -457,18 +467,8 @@
     padding: vars.$space-3 vars.$space-4;
   }
 
-  // Over the transcript, staying in view as it scrolls: the button that opens the speakers.
-  &__transcript-head {
-    position: sticky;
-    top: calc(-1 * #{vars.$space-3});
-    z-index: 1;
-    display: flex;
-    justify-content: flex-end;
-    margin: calc(-1 * #{vars.$space-3}) calc(-1 * #{vars.$space-4}) vars.$space-1;
-    padding: vars.$space-2 vars.$space-4;
-    // The page's own colour: the transcript scrolls under it unseen, and it reads as part of the column.
-    background: vars.$bg-page;
-  }
+  // Room at the top of the transcript for the speakers' button over its top right.
+  &__transcript-head { height: 32px; }
 
   // The player's strip along the bottom; nothing when the record has no recording.
   &__player:empty { display: none; }
@@ -858,25 +858,49 @@
   }
 }
 
-// The speakers' panel, opened from the button over the transcript.
-.record-speakers-button__count {
-  min-width: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: vars.$bg-hover;
-  font-size: vars.$font-caption;
-  text-align: center;
-}
+// The speakers' drawer (RecordSpeakersDrawer): at the right of the record's columns, over the transcript. Closed, it
+// waits past the right edge and only its button shows, at the transcript's top right; open, it slides in and the
+// button rides on its left edge.
+.record-speakers-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: min(320px, 100%);
+  transform: translateX(100%);
+  transition: transform vars.$transition-normal;
+  pointer-events: none;
+  &.is-open { transform: none; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
 
-.record-speakers-popover {
-  width: 280px;
-  max-width: calc(100vw - 16px);
-  overflow-y: auto;
-  padding: vars.$space-3;
-  background: vars.$bg-popover;
-  border: 1px solid vars.$border-default;
-  border-radius: vars.$radius-md;
-  box-shadow: 0 6px 16px vars.$shadow;
+  &__toggle {
+    position: absolute;
+    top: vars.$space-2;
+    right: calc(100% + #{vars.$space-3});
+    white-space: nowrap;
+    background: vars.$bg-surface;
+    pointer-events: auto;
+  }
+  // Open: against the drawer's edge, its inner corners square.
+  &.is-open &__toggle {
+    right: 100%;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  &__panel {
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: vars.$space-3 vars.$space-4;
+    background: vars.$bg-surface;
+    border-left: 1px solid vars.$border-default;
+    box-shadow: -6px 0 16px vars.$shadow;
+    pointer-events: auto;
+    h3 { margin: 0 0 vars.$space-1; font-size: 14px; font-weight: vars.$weight-semibold; }
+  }
+  &__hint { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-tertiary; }
 }
 
 // A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.

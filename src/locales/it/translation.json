@@ -2156,7 +2156,9 @@
     "saveConversationJson": "Salva la conversazione (.json)",
     "editSave": "Salva",
     "editSaveHint": "Salva (Invio)",
-    "editCancelHint": "Annulla (Esc)"
+    "editCancelHint": "Annulla (Esc)",
+    "editSpeakers": "Modifica interlocutori",
+    "speakersHint": "Fai clic su un nome per rinominare l’interlocutore. Per assegnare una frase a qualcun altro, usa il pulsante «Cambia interlocutore» accanto a essa nella trascrizione."
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

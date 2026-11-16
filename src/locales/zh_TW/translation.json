@@ -2156,7 +2156,9 @@
     "saveConversationJson": "儲存對話（.json）",
     "editSave": "儲存",
     "editSaveHint": "儲存（Enter）",
-    "editCancelHint": "取消（Esc）"
+    "editCancelHint": "取消（Esc）",
+    "editSpeakers": "編輯說話者",
+    "speakersHint": "點名字改名。要把某一句換給別人，用轉寫裡那一句旁邊的「變更說話者」按鈕。"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",

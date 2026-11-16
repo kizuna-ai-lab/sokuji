@@ -2156,7 +2156,9 @@
     "saveConversationJson": "Tallenna keskustelu (.json)",
     "editSave": "Tallenna",
     "editSaveHint": "Tallenna (Enter)",
-    "editCancelHint": "Peruuta (Esc)"
+    "editCancelHint": "Peruuta (Esc)",
+    "editSpeakers": "Muokkaa puhujia",
+    "speakersHint": "Nimeä puhuja uudelleen napsauttamalla nimeä. Jos haluat antaa yhden lauseen jollekulle toiselle, käytä litteroinnissa sen vieressä olevaa Vaihda puhuja -painiketta."
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

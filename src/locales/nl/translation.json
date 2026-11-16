@@ -2156,7 +2156,9 @@
     "saveConversationJson": "Gesprek opslaan (.json)",
     "editSave": "Opslaan",
     "editSaveHint": "Opslaan (Enter)",
-    "editCancelHint": "Annuleren (Esc)"
+    "editCancelHint": "Annuleren (Esc)",
+    "editSpeakers": "Sprekers bewerken",
+    "speakersHint": "Klik op een naam om de spreker te hernoemen. Wil je één zin aan iemand anders geven, gebruik dan in de transcriptie de knop ‘Spreker wijzigen’ ernaast."
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

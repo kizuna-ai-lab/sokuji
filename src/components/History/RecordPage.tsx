@@ -26,7 +26,7 @@ import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
-import { RecordSpeakersButton } from './RecordSpeakersButton';
+import { RecordSpeakersDrawer } from './RecordSpeakersDrawer';
 import { InlineEdit } from './InlineEdit';
 import './History.scss';
 
@@ -76,6 +76,10 @@ export const RecordPage: React.FC = () => {
   const language = i18n.language;
 
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  // The speakers' drawer at the side of the transcript (owner, 2026-11-17).
+  const [speakersOpen, setSpeakersOpen] = useState(false);
+  // One save of a name at a time: the click that closes the drawer also takes the focus from the name being typed.
+  const savingName = useRef(false);
   const [nameDraft, setNameDraft] = useState<{ side: HistorySentenceSide; speaker: string; value: string } | null>(null);
   const [menuFor, setMenuFor] = useState<number | null>(null);
   const [hit, setHit] = useState<string | null>(null);
@@ -230,11 +234,16 @@ export const RecordPage: React.FC = () => {
     .filter((s) => s.side === side && labelOf.has(speakerKey(s.side, s.speaker)))
     .map((s) => ({ ...s, label: labelOf.get(speakerKey(s.side, s.speaker))! }));
   const saveName = async (): Promise<boolean> => {
-    if (!nameDraft) return true;
-    await actions.renameSpeaker(nameDraft.side, nameDraft.speaker, nameDraft.value);
-    if (store.getState().error) return false;
-    setNameDraft((d) => (d === nameDraft ? null : d));
-    return true;
+    if (!nameDraft || savingName.current) return true;
+    savingName.current = true;
+    try {
+      await actions.renameSpeaker(nameDraft.side, nameDraft.speaker, nameDraft.value);
+      if (store.getState().error) return false;
+      setNameDraft((d) => (d === nameDraft ? null : d));
+      return true;
+    } finally {
+      savingName.current = false;
+    }
   };
   const newSpeaker = (side: HistorySentenceSide) => {
     const used = open.speakers.filter((s) => s.side === side).map((s) => Number(USER_SPEAKER.exec(s.speaker)?.[1] ?? 0));
@@ -479,20 +488,27 @@ export const RecordPage: React.FC = () => {
           <button type="button" role="tab" aria-selected={pane === 'transcript'} onClick={() => setPane('transcript')}>{t('history.transcript', 'Transcript')}</button>
         </div>
       )}
+      {/* The columns, in a frame that does not scroll: the speakers' drawer stays put over them. */}
+      <div className="record-page__body">
       <div className={`record-page__columns${wide ? ' is-wide' : ''}`}>
         <div className="record-page__notes" hidden={!wide && pane !== 'notes'}>{notesView}</div>
         <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
-          {/* The speakers, over the transcript they name (owner, 2026-11-17): no column of their own. */}
-          {speakerCount > 0 && (
-            <div className="record-page__transcript-head">
-              {/* Closing the panel while a name is typed saves it, as a click elsewhere does. */}
-              <RecordSpeakersButton count={speakerCount} editing={nameDraft !== null} onClose={() => { if (nameDraft) void saveName(); }}>
-                {speakersPanel}
-              </RecordSpeakersButton>
-            </div>
-          )}
+          {/* Room at the top for the speakers' button, which sits over the transcript's top right. */}
+          {speakerCount > 0 && <div className="record-page__transcript-head" />}
           {transcript}
         </div>
+      </div>
+        {/* The speakers, in a drawer over the transcript they name (owner, 2026-11-17): no column of their own. Closing
+            it while a name is typed saves the name, as a click elsewhere does. */}
+        {speakerCount > 0 && (wide || pane === 'transcript') && (
+          <RecordSpeakersDrawer
+            open={speakersOpen}
+            editing={nameDraft !== null}
+            onToggle={() => { if (speakersOpen && nameDraft) void saveName(); setSpeakersOpen((o) => !o); }}
+          >
+            {speakersPanel}
+          </RecordSpeakersDrawer>
+        )}
       </div>
       <div className="record-page__player">
         {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}

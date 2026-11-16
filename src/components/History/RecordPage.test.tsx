@@ -232,32 +232,59 @@ describe('a record', () => {
   });
 
   // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
-  it('keeps the speakers behind a button over the transcript, and gives their column to the transcript', async () => {
+  // Owner, 2026-11-17: the speakers are in a drawer at the side of the transcript, opened and closed by one button
+  // whose chevrons say which way it goes (no ✕); the transcript keeps its width under it.
+  const drawer = () => screen.queryByRole('complementary', { name: 'Speakers' });
+  const toggle = () => screen.getByRole('button', { name: 'Edit speakers' });
+
+  it('keeps the speakers in a drawer opened and closed by one button, and gives their column to the transcript', async () => {
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
-    expect(screen.queryByRole('dialog', { name: 'Speakers' })).toBeNull();
-    const button = screen.getByRole('button', { name: 'Speakers 2' });
-    expect(button.closest('.record-page__transcript')).not.toBeNull();
-    expect(button).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(button);
-    expect(button).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('dialog', { name: 'Speakers' })).toBeInTheDocument();
-    // Escape while a name is typed drops the name, not the panel.
-    fireEvent.click(screen.getByRole('button', { name: 'Rename Other' }));
+    expect(drawer()).toBeNull();
+    expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle().querySelector('.lucide-chevrons-left')).not.toBeNull();
+    fireEvent.click(toggle());
+    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle().querySelector('.lucide-chevrons-right')).not.toBeNull();
+    expect(within(drawer()!).getByText('2 sentences')).toBeInTheDocument();
+    // One button opens and closes it: no close button of its own.
+    expect(within(drawer()!).queryByRole('button', { name: /close/i })).toBeNull();
+    fireEvent.click(toggle());
+    expect(drawer()).toBeNull();
+  });
+
+  it('closes the drawer on Escape, but drops only the name while one is typed, and stays on the record', async () => {
+    render(<HistoryPage onClose={() => {}} />);
+    await settle();
+    fireEvent.click(screen.getByText(/^Session at /));
+    expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
+    fireEvent.click(toggle());
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Escape' });
     await settle();
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
-    expect(screen.getByRole('dialog', { name: 'Speakers' })).toBeInTheDocument();
-    // Escape then closes it.
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    expect(drawer()).not.toBeNull();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
     await settle();
-    expect(screen.queryByRole('dialog', { name: 'Speakers' })).toBeNull();
+    expect(drawer()).toBeNull();
+    // The record is still open.
+    expect(screen.getByText('Can you ship by Wednesday?')).toBeInTheDocument();
+  });
+
+  it('saves a name being typed when the drawer is closed', async () => {
+    await renderRecord();
+    fireEvent.click(toggle());
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(toggle());
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
   });
 
   it('renames a speaker and moves one sentence to a new speaker', async () => {
     await renderRecord();
-    fireEvent.click(screen.getByRole('button', { name: 'Speakers 2' }));
-    const panel = screen.getByRole('dialog', { name: 'Speakers' });
+    fireEvent.click(toggle());
+    const panel = drawer()!;
     expect(within(panel).getByText('2 sentences')).toBeInTheDocument();
     expect(within(panel).getByText('1 sentence')).toBeInTheDocument();
     fireEvent.click(within(panel).getByRole('button', { name: 'Rename Other' }));

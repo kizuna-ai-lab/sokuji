@@ -2156,7 +2156,9 @@
     "saveConversationJson": "保存对话（.json）",
     "editSave": "保存",
     "editSaveHint": "保存（Enter）",
-    "editCancelHint": "取消（Esc）"
+    "editCancelHint": "取消（Esc）",
+    "editSpeakers": "编辑说话人",
+    "speakersHint": "点名字改名。要把某一句换给别人，用转写里那一句旁边的「更改说话人」按钮。"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

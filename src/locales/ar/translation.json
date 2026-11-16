@@ -2156,7 +2156,9 @@
     "saveConversationJson": "حفظ المحادثة (‎.json)",
     "editSave": "حفظ",
     "editSaveHint": "حفظ (Enter)",
-    "editCancelHint": "إلغاء (Esc)"
+    "editCancelHint": "إلغاء (Esc)",
+    "editSpeakers": "تعديل المتحدثين",
+    "speakersHint": "انقر اسمًا لإعادة تسمية المتحدث. لنقل جملة واحدة إلى شخص آخر، استخدم زر «تغيير المتحدث» بجانبها في النص المفرغ."
   },
   "notesQuit": {
     "named": "تُكتب الآن ملاحظات «{{title}}». هل تريد الخروج على أي حال؟ ستُعلَّم بأنها أُلغيت.",

@@ -2156,7 +2156,9 @@
     "saveConversationJson": "Simpan perbualan (.json)",
     "editSave": "Simpan",
     "editSaveHint": "Simpan (Enter)",
-    "editCancelHint": "Batal (Esc)"
+    "editCancelHint": "Batal (Esc)",
+    "editSpeakers": "Sunting penutur",
+    "speakersHint": "Klik nama untuk menamakan semula penutur. Untuk memberi satu ayat kepada orang lain, gunakan butang “Tukar penutur” di sebelahnya dalam transkrip."
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

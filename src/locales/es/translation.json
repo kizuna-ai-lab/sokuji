@@ -2156,7 +2156,9 @@
     "saveConversationJson": "Guardar la conversación (.json)",
     "editSave": "Guardar",
     "editSaveHint": "Guardar (Intro)",
-    "editCancelHint": "Cancelar (Esc)"
+    "editCancelHint": "Cancelar (Esc)",
+    "editSpeakers": "Editar hablantes",
+    "speakersHint": "Haz clic en un nombre para cambiar el nombre del hablante. Para asignar una frase a otra persona, usa el botón «Cambiar de hablante» junto a ella en la transcripción."
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

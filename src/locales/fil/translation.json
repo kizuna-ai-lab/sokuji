@@ -2156,7 +2156,9 @@
     "saveConversationJson": "I-save ang usapan (.json)",
     "editSave": "I-save",
     "editSaveHint": "I-save (Enter)",
-    "editCancelHint": "Kanselahin (Esc)"
+    "editCancelHint": "Kanselahin (Esc)",
+    "editSpeakers": "I-edit ang mga nagsasalita",
+    "speakersHint": "I-click ang pangalan para palitan ang pangalan ng nagsasalita. Para ibigay ang isang pangungusap sa iba, gamitin ang button na “Palitan ang nagsasalita” sa tabi nito sa transcript."
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",
