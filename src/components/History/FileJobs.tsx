@@ -31,6 +31,7 @@ function useFileTexts() {
       'no-key': t('history.file.blockedNoKey', 'Needs a Soniox key in Settings.'),
       session: t('history.file.blockedSession', 'Available when no session is running.'),
       busy: t('history.file.blockedBusy', 'Another import or transcription is running.'),
+      unchecked: t('history.file.blockedUnchecked', 'The recognition service could not be checked. Close this and try again.'),
       'no-recording': t('history.file.blockedNoRecording', 'This record keeps no recording.'),
     };
     const phases: Record<string, string> = {
@@ -44,8 +45,9 @@ function useFileTexts() {
       writing: t('history.file.phase.writing', 'Writing the transcript'),
     };
     const failures: Record<string, string> = {
-      TOO_LONG: t('history.file.failure.TOO_LONG', 'The file is longer than three hours.'),
-      TOO_BIG: t('history.file.failure.TOO_BIG', 'The file is larger than 2 GB.'),
+      TOO_LONG: t('history.file.failure.TOO_LONG', 'The file is longer than five hours.'),
+      RECORD_TOO_LONG: t('history.file.failure.RECORD_TOO_LONG', 'The recording is longer than five hours, more than Soniox transcribes at once.'),
+      TOO_BIG: t('history.file.failure.TOO_BIG', 'The file is larger than 16 GB.'),
       UNSUPPORTED: t('history.file.failure.UNSUPPORTED', 'The audio of this file cannot be read.'),
       NO_AUDIO: t('history.file.failure.NO_AUDIO', 'The file holds no sound.'),
       NO_SPEECH: t('history.file.failure.NO_SPEECH', 'Soniox heard no speech in the recording.'),
@@ -55,11 +57,13 @@ function useFileTexts() {
       NETWORK: t('history.file.failure.NETWORK', 'Soniox could not be reached. Check the connection and try again.'),
       CANCELLED: t('history.file.failure.CANCELLED', 'Cancelled.'),
       SERVICE: t('history.file.failure.SERVICE', 'Soniox could not transcribe the recording. Try again later.'),
+      // Anything else went wrong here (saving, encoding, the store), not at the service.
+      LOCAL: t('history.file.failure.LOCAL', 'It could not be saved on this computer. Try again.'),
     };
     return {
       block: (b: FileJobBlock | 'no-recording') => blocks[b],
       phase: (p: string) => phases[p] ?? p,
-      failure: (code: string) => failures[code] ?? blocks[code as FileJobBlock] ?? failures.SERVICE,
+      failure: (code: string) => failures[code] ?? blocks[(code === 'NO_TRACK' ? 'no-recording' : code) as FileJobBlock] ?? failures.LOCAL,
       service: t('history.file.service', 'Transcribed by Soniox, the recognition service in your line-up.'),
     };
   }, [t]);
@@ -173,7 +177,10 @@ export const FileJobLine: React.FC = () => {
         <p>{job.kind === 'import'
           ? t('history.file.importing', 'Importing “{{name}}”: {{phase}}', { name: job.name ?? '', phase })
           : t('history.file.transcribing', 'Transcribing: {{phase}}', { phase })}</p>
-        <button type="button" className="history-button" onClick={() => store.getState().cancelJob()}>{t('history.cancel', 'Cancel')}</button>
+        {/* Writing the transcript is the last, short step, and cannot be stopped half way. */}
+        {job.phase !== 'writing' && (
+          <button type="button" className="history-button" onClick={() => store.getState().cancelJob()}>{t('history.cancel', 'Cancel')}</button>
+        )}
       </div>
     );
   }

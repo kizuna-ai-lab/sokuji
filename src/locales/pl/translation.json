@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox nie mógł odczytać nagrania.",
         "NETWORK": "Nie udało się połączyć z Soniox. Sprawdź połączenie i spróbuj ponownie.",
         "CANCELLED": "Anulowano.",
-        "SERVICE": "Soniox nie mógł transkrybować nagrania. Spróbuj później."
+        "SERVICE": "Soniox nie mógł transkrybować nagrania. Spróbuj później.",
+        "RECORD_TOO_LONG": "Nagranie trwa dłużej niż pięć godzin – więcej, niż Soniox transkrybuje naraz.",
+        "LOCAL": "Nie udało się zapisać na tym komputerze. Spróbuj ponownie."
       },
       "kept": "Nagranie zostało zachowane. Otwórz zapis, aby je transkrybować.",
       "notTranscribed": "Nietranskrybowane",
       "versions": "Wersja transkrypcji",
       "versionLive": "Na żywo · {{time}}",
-      "versionFile": "Plik Soniox · {{time}}"
+      "versionFile": "Plik Soniox · {{time}}",
+      "blockedUnchecked": "Nie udało się sprawdzić usługi rozpoznawania. Zamknij to okno i spróbuj ponownie."
     },
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
     "length": "Czas trwania {{length}}",

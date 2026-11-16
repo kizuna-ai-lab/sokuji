@@ -46,7 +46,8 @@ export interface FileJob {
 }
 
 /** Why a file job cannot start now. */
-export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy';
+/** `unchecked`: the line-up's recognition service could not be looked up. */
+export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy' | 'unchecked';
 
 /** The running file job and how the last one ended: kept outside any page, so a job outlives the page that began it. */
 export interface FileJobState {
@@ -148,10 +149,10 @@ export interface HistoryPageActions {
   clearJobFailure(): void;
 }
 
-/** A failure's code, as the file jobs give them; SERVICE for anything else. */
+/** A failure's code, as the file jobs give them; LOCAL for an error with none (the service's errors always have one). */
 const codeOf = (error: unknown): string => {
   const code = (error as { code?: unknown } | null)?.code;
-  return typeof code === 'string' ? code : 'SERVICE';
+  return typeof code === 'string' ? code : 'LOCAL';
 };
 
 /** Search runs this long after the last keystroke. */
@@ -458,7 +459,12 @@ export function createHistoryPageStore(
       async fileJobBlocked(kind) {
         if (!files) return 'no-file-service';
         if (jobs.getState().job) return 'busy';
-        const service = await files.service();
+        let service: Awaited<ReturnType<FileJobs['service']>>;
+        try {
+          service = await files.service();
+        } catch {
+          return 'unchecked';
+        }
         if ('missing' in service) return service.missing;
         if (kind === 'import' && files.sessionRunning()) return 'session';
         return null;
@@ -499,7 +505,9 @@ export function createHistoryPageStore(
             recordId, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           }));
         } catch (error) {
-          jobs.setState({ jobFailure: codeOf(error) });
+          // Too long for the service: the record's recording, not a file, is what is too long.
+          const code = codeOf(error);
+          jobs.setState({ jobFailure: code === 'TOO_LONG' ? 'RECORD_TOO_LONG' : code });
         } finally {
           jobs.setState({ job: null, controller: null });
         }

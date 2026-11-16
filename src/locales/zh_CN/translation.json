@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox 读不了这段录音。",
         "NETWORK": "连不上 Soniox，请检查网络后再试。",
         "CANCELLED": "已取消。",
-        "SERVICE": "Soniox 没能转写这段录音，请稍后再试。"
+        "SERVICE": "Soniox 没能转写这段录音，请稍后再试。",
+        "RECORD_TOO_LONG": "录音超过五小时，超出了 Soniox 一次能转写的长度。",
+        "LOCAL": "没能保存到这台电脑上，请再试一次。"
       },
       "kept": "录音已经保存，打开这条记录就可以转写。",
       "notTranscribed": "未转写",
       "versions": "转写版本",
       "versionLive": "实时 · {{time}}",
-      "versionFile": "Soniox 文件 · {{time}}"
+      "versionFile": "Soniox 文件 · {{time}}",
+      "blockedUnchecked": "没能检查识别服务。请关掉这里再试一次。"
     },
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "length": "时长 {{length}}",

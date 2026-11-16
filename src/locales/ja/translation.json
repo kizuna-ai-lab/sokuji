@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox が録音を読み込めませんでした。",
         "NETWORK": "Soniox に接続できませんでした。接続を確認してもう一度お試しください。",
         "CANCELLED": "キャンセルしました。",
-        "SERVICE": "Soniox が録音を文字起こしできませんでした。後でもう一度お試しください。"
+        "SERVICE": "Soniox が録音を文字起こしできませんでした。後でもう一度お試しください。",
+        "RECORD_TOO_LONG": "録音が 5 時間を超えていて、Soniox が一度に文字起こしできる長さを超えています。",
+        "LOCAL": "このコンピューターに保存できませんでした。もう一度お試しください。"
       },
       "kept": "録音は残っています。記録を開いて文字起こしできます。",
       "notTranscribed": "未文字起こし",
       "versions": "文字起こしの版",
       "versionLive": "ライブ · {{time}}",
-      "versionFile": "Soniox ファイル · {{time}}"
+      "versionFile": "Soniox ファイル · {{time}}",
+      "blockedUnchecked": "認識サービスを確認できませんでした。閉じてからもう一度お試しください。"
     },
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "length": "長さ {{length}}",

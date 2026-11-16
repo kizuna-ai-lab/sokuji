@@ -27,6 +27,14 @@ export function mixToInt16(channels: readonly Float32Array[], from: number, to: 
   return out;
 }
 
+/** The file holds no audio track at all (a video without sound): it holds no audio, rather than one that cannot be read. */
+export class NoAudioTrack extends Error {
+  constructor() {
+    super('The file has no audio track');
+    this.name = 'NoAudioTrack';
+  }
+}
+
 /** An opened media file: its length, whether its audio can be streamed, its decoded blocks. */
 export interface MediaFile {
   /** From the earliest start of its tracks (`startS`) to the end of its audio. */
@@ -45,7 +53,7 @@ export async function openMedia(file: File): Promise<MediaFile> {
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   try {
     const track = await input.getPrimaryAudioTrack();
-    if (!track) throw new Error('The file has no audio track');
+    if (!track) throw new NoAudioTrack();
     const canStream = await track.canDecode();
     // Where players start: the earliest track. A negative start (an encoder's priming) is cut, not kept.
     const startS = Math.max(0, await input.getFirstTimestamp(await input.getTracks()));
@@ -77,14 +85,14 @@ export async function openMedia(file: File): Promise<MediaFile> {
   }
 }
 
-/** The file's length in ms; NaN when it has no audio or cannot be read. */
-export async function readDuration(file: File): Promise<number> {
+/** The file's length in ms: 0 when it has no audio track, NaN when it cannot be read. */
+export async function readDuration(file: File, deps: { openMedia(file: File): Promise<MediaFile> } = { openMedia }): Promise<number> {
   try {
-    const media = await openMedia(file);
+    const media = await deps.openMedia(file);
     media.close();
     return Number.isFinite(media.durationMs) ? media.durationMs : Number.NaN;
-  } catch {
-    return Number.NaN;
+  } catch (error) {
+    return error instanceof NoAudioTrack ? 0 : Number.NaN;
   }
 }
 

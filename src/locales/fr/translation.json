@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox n’a pas pu lire l’enregistrement.",
         "NETWORK": "Soniox est injoignable. Vérifiez la connexion et réessayez.",
         "CANCELLED": "Annulé.",
-        "SERVICE": "Soniox n’a pas pu transcrire l’enregistrement. Réessayez plus tard."
+        "SERVICE": "Soniox n’a pas pu transcrire l’enregistrement. Réessayez plus tard.",
+        "RECORD_TOO_LONG": "L’enregistrement dure plus de cinq heures, plus que ce que Soniox transcrit en une fois.",
+        "LOCAL": "L’enregistrement sur cet ordinateur a échoué. Réessayez."
       },
       "kept": "L’enregistrement a été conservé. Ouvrez la fiche pour le transcrire.",
       "notTranscribed": "Non transcrit",
       "versions": "Version de la transcription",
       "versionLive": "En direct · {{time}}",
-      "versionFile": "Fichier Soniox · {{time}}"
+      "versionFile": "Fichier Soniox · {{time}}",
+      "blockedUnchecked": "Le service de reconnaissance n’a pas pu être vérifié. Fermez ceci et réessayez."
     },
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
     "length": "Durée {{length}}",

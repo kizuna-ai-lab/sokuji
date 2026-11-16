@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Hindi mabasa ng Soniox ang recording.",
         "NETWORK": "Hindi maabot ang Soniox. Tingnan ang koneksyon at subukang muli.",
         "CANCELLED": "Kinansela.",
-        "SERVICE": "Hindi ma-transcribe ng Soniox ang recording. Subukang muli mamaya."
+        "SERVICE": "Hindi ma-transcribe ng Soniox ang recording. Subukang muli mamaya.",
+        "RECORD_TOO_LONG": "Mas mahaba sa limang oras ang recording, higit sa kayang i-transcribe ng Soniox nang isahan.",
+        "LOCAL": "Hindi ito ma-save sa computer na ito. Subukang muli."
       },
       "kept": "Na-save ang recording. Buksan ang rekord para i-transcribe ito.",
       "notTranscribed": "Hindi pa na-transcribe",
       "versions": "Bersyon ng transcript",
       "versionLive": "Live · {{time}}",
-      "versionFile": "Soniox file · {{time}}"
+      "versionFile": "Soniox file · {{time}}",
+      "blockedUnchecked": "Hindi masuri ang serbisyo ng pagkilala. Isara ito at subukang muli."
     },
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "length": "Haba {{length}}",

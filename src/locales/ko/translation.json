@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox가 녹음을 읽지 못했습니다.",
         "NETWORK": "Soniox에 연결할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
         "CANCELLED": "취소했습니다.",
-        "SERVICE": "Soniox가 녹음을 받아 적지 못했습니다. 나중에 다시 시도하세요."
+        "SERVICE": "Soniox가 녹음을 받아 적지 못했습니다. 나중에 다시 시도하세요.",
+        "RECORD_TOO_LONG": "녹음이 5시간보다 길어 Soniox가 한 번에 전사할 수 있는 길이를 넘습니다.",
+        "LOCAL": "이 컴퓨터에 저장하지 못했습니다. 다시 시도하세요."
       },
       "kept": "녹음은 남아 있습니다. 기록을 열어 받아 적을 수 있습니다.",
       "notTranscribed": "받아 적지 않음",
       "versions": "받아 적은 글 버전",
       "versionLive": "실시간 · {{time}}",
-      "versionFile": "Soniox 파일 · {{time}}"
+      "versionFile": "Soniox 파일 · {{time}}",
+      "blockedUnchecked": "인식 서비스를 확인하지 못했습니다. 닫고 다시 시도하세요."
     },
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "length": "길이 {{length}}",

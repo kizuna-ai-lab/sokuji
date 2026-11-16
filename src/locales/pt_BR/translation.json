@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "O Soniox não conseguiu ler a gravação.",
         "NETWORK": "Não foi possível acessar o Soniox. Verifique a conexão e tente de novo.",
         "CANCELLED": "Cancelado.",
-        "SERVICE": "O Soniox não conseguiu transcrever a gravação. Tente mais tarde."
+        "SERVICE": "O Soniox não conseguiu transcrever a gravação. Tente mais tarde.",
+        "RECORD_TOO_LONG": "A gravação tem mais de cinco horas, mais do que o Soniox transcreve de uma vez.",
+        "LOCAL": "Não foi possível salvar neste computador. Tente novamente."
       },
       "kept": "A gravação foi mantida. Abra o registro para transcrevê-la.",
       "notTranscribed": "Não transcrito",
       "versions": "Versão da transcrição",
       "versionLive": "Ao vivo · {{time}}",
-      "versionFile": "Arquivo Soniox · {{time}}"
+      "versionFile": "Arquivo Soniox · {{time}}",
+      "blockedUnchecked": "Não foi possível verificar o serviço de reconhecimento. Feche e tente novamente."
     },
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser salva: não foi possível gravá-la no disco.",
     "length": "Duração {{length}}",

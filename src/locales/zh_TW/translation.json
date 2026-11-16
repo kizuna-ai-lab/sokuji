@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox 讀不了這段錄音。",
         "NETWORK": "連不上 Soniox，請檢查網路後再試。",
         "CANCELLED": "已取消。",
-        "SERVICE": "Soniox 沒能轉寫這段錄音，請稍後再試。"
+        "SERVICE": "Soniox 沒能轉寫這段錄音，請稍後再試。",
+        "RECORD_TOO_LONG": "錄音超過五小時，超出了 Soniox 一次能轉寫的長度。",
+        "LOCAL": "沒能儲存到這台電腦上，請再試一次。"
       },
       "kept": "錄音已經保存，打開這筆紀錄就可以轉寫。",
       "notTranscribed": "未轉寫",
       "versions": "轉寫版本",
       "versionLive": "即時 · {{time}}",
-      "versionFile": "Soniox 檔案 · {{time}}"
+      "versionFile": "Soniox 檔案 · {{time}}",
+      "blockedUnchecked": "沒能檢查辨識服務。請關閉這裡再試一次。"
     },
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "length": "時長 {{length}}",

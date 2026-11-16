@@ -1,6 +1,6 @@
 // The import's decoder: a piece at a time when the codec can be streamed, the whole file for a short one it cannot.
 import { describe, it, expect, vi } from 'vitest';
-import { decodeFile, type MediaFile } from './decode';
+import { decodeFile, readDuration, NoAudioTrack, type MediaFile } from './decode';
 import type { DecodedAudio } from './importFile';
 import type { DecodedPiece } from './toPcm24k';
 
@@ -86,5 +86,15 @@ describe("the import's decoder", () => {
     const audio = await decodeFile(file, controller.signal, { openMedia: async () => long, decodeWholeFile: async () => whole });
     for await (const _ of audio.pcm24k()) controller.abort();
     expect(long.close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the file's length", () => {
+  it('is 0 for a file without an audio track (a silent video), and not a number for one that cannot be read', async () => {
+    expect(await readDuration(file, { openMedia: async () => { throw new NoAudioTrack(); } })).toBe(0);
+    expect(await readDuration(file, { openMedia: async () => { throw new Error('not a media file'); } })).toBeNaN();
+    const m = media({ canStream: true, durationMs: 1234 });
+    expect(await readDuration(file, { openMedia: async () => m })).toBe(1234);
+    expect(m.close).toHaveBeenCalledTimes(1);
   });
 });

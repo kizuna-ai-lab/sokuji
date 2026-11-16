@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox kunde inte läsa inspelningen.",
         "NETWORK": "Soniox gick inte att nå. Kontrollera anslutningen och försök igen.",
         "CANCELLED": "Avbrutet.",
-        "SERVICE": "Soniox kunde inte transkribera inspelningen. Försök igen senare."
+        "SERVICE": "Soniox kunde inte transkribera inspelningen. Försök igen senare.",
+        "RECORD_TOO_LONG": "Inspelningen är längre än fem timmar, mer än Soniox transkriberar på en gång.",
+        "LOCAL": "Det gick inte att spara på den här datorn. Försök igen."
       },
       "kept": "Inspelningen sparades. Öppna posten för att transkribera den.",
       "notTranscribed": "Inte transkriberad",
       "versions": "Transkriptversion",
       "versionLive": "Live · {{time}}",
-      "versionFile": "Soniox-fil · {{time}}"
+      "versionFile": "Soniox-fil · {{time}}",
+      "blockedUnchecked": "Igenkänningstjänsten kunde inte kontrolleras. Stäng detta och försök igen."
     },
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}",

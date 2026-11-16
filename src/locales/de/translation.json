@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox konnte die Aufnahme nicht lesen.",
         "NETWORK": "Soniox war nicht erreichbar. Prüfe die Verbindung und versuche es erneut.",
         "CANCELLED": "Abgebrochen.",
-        "SERVICE": "Soniox konnte die Aufnahme nicht transkribieren. Versuche es später erneut."
+        "SERVICE": "Soniox konnte die Aufnahme nicht transkribieren. Versuche es später erneut.",
+        "RECORD_TOO_LONG": "Die Aufnahme ist länger als fünf Stunden – mehr, als Soniox auf einmal transkribiert.",
+        "LOCAL": "Es konnte auf diesem Computer nicht gespeichert werden. Versuche es erneut."
       },
       "kept": "Die Aufnahme wurde behalten. Öffne den Eintrag, um sie zu transkribieren.",
       "notTranscribed": "Nicht transkribiert",
       "versions": "Transkript-Version",
       "versionLive": "Live · {{time}}",
-      "versionFile": "Soniox-Datei · {{time}}"
+      "versionFile": "Soniox-Datei · {{time}}",
+      "blockedUnchecked": "Der Erkennungsdienst konnte nicht geprüft werden. Schließe dies und versuche es erneut."
     },
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}",

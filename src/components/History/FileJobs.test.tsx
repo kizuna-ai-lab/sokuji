@@ -28,13 +28,16 @@ function fakePort() {
   return { port: port as unknown as HistoryPort, calls };
 }
 
-function fakeJobs(o: { missing?: 'no-file-service' | 'no-key'; session?: boolean } = {}) {
-  const pending: { resolve?: (v: unknown) => void } = {};
+function fakeJobs(o: { missing?: 'no-file-service' | 'no-key'; session?: boolean; serviceFails?: boolean } = {}) {
+  const pending: { resolve?: (v: unknown) => void; reject?: (e: unknown) => void } = {};
   const jobs: FileJobs = {
-    service: vi.fn(async () => (o.missing ? { missing: o.missing } : { service: 'soniox' as const, apiKey: 'k', region: 'us' as const })),
+    service: vi.fn(async () => {
+      if (o.serviceFails) throw new Error('The key store could not be read');
+      return o.missing ? { missing: o.missing } : { service: 'soniox' as const, apiKey: 'k', region: 'us' as const };
+    }),
     sessionRunning: () => o.session ?? false,
-    importFile: vi.fn(() => new Promise((resolve) => { pending.resolve = resolve; })) as FileJobs['importFile'],
-    transcribe: vi.fn(() => new Promise((resolve) => { pending.resolve = resolve; })) as FileJobs['transcribe'],
+    importFile: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['importFile'],
+    transcribe: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['transcribe'],
     notesAfterImport: vi.fn(),
   };
   return { jobs, pending };
@@ -80,6 +83,7 @@ describe('importing a file', () => {
       [{ missing: 'no-file-service' }, 'Needs Soniox as the recognition service in the line-up.'],
       [{ missing: 'no-key' }, 'Needs a Soniox key in Settings.'],
       [{ session: true }, 'Available when no session is running.'],
+      [{ serviceFails: true }, 'The recognition service could not be checked. Close this and try again.'],
     ] as const) {
       const { jobs } = fakeJobs(o);
       store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
@@ -109,6 +113,50 @@ describe('a file job running, and how it ended', () => {
     expect(screen.getByText('The recording was kept. Open the record to transcribe it.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
     expect(store.getState().jobFailure).toBeNull();
+  });
+});
+
+describe('the line of a file job, in each case', () => {
+  const running = async () => {
+    const { jobs, pending } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    show(<FileJobLine />);
+    let started!: Promise<void>;
+    act(() => { started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    await settle();
+    return { jobs, pending, started: () => started };
+  };
+
+  it('offers no Cancel while the transcript is written: that step cannot be stopped', async () => {
+    const { jobs, pending, started } = await running();
+    act(() => { vi.mocked(jobs.importFile).mock.calls[0][0].onProgress?.({ phase: 'writing' }); });
+    expect(screen.getByText('Importing “Team sync.mp4”: Writing the transcript')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    await act(async () => { pending.resolve!({ recordId: A, transcribed: true }); await started(); });
+  });
+
+  it('says a failure on this computer as such, not as the service’s', async () => {
+    for (const error of [new Error('SQLITE_FULL'), Object.assign(new Error('closed'), { code: 'RECORD_CLOSED' })]) {
+      const { pending, started } = await running();
+      await act(async () => { pending.reject!(error); await started(); });
+      expect(screen.getByText('It could not be saved on this computer. Try again.')).toBeTruthy();
+      expect(screen.queryByText(/Soniox could not transcribe/)).toBeNull();
+      cleanup();
+    }
+  });
+
+  it('says a recording too long for the service as the recording’s, not a file’s', async () => {
+    const { jobs, pending } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(async () => { await store.getState().openRecord(A); });
+    show(<FileJobLine />);
+    let started!: Promise<void>;
+    act(() => { started = store.getState().transcribeOpen(); });
+    await settle();
+    await act(async () => { pending.reject!(Object.assign(new Error('too long'), { code: 'TOO_LONG' })); await started; });
+    expect(screen.getByText('The recording is longer than five hours, more than Soniox transcribes at once.')).toBeTruthy();
   });
 });
 

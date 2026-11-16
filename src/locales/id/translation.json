@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox tidak dapat membaca rekaman.",
         "NETWORK": "Soniox tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
         "CANCELLED": "Dibatalkan.",
-        "SERVICE": "Soniox tidak dapat mentranskripsi rekaman. Coba lagi nanti."
+        "SERVICE": "Soniox tidak dapat mentranskripsi rekaman. Coba lagi nanti.",
+        "RECORD_TOO_LONG": "Rekaman lebih dari lima jam, lebih panjang dari yang ditranskripsikan Soniox sekaligus.",
+        "LOCAL": "Tidak dapat disimpan di komputer ini. Coba lagi."
       },
       "kept": "Rekaman disimpan. Buka catatan untuk mentranskripsinya.",
       "notTranscribed": "Belum ditranskripsi",
       "versions": "Versi transkrip",
       "versionLive": "Langsung · {{time}}",
-      "versionFile": "File Soniox · {{time}}"
+      "versionFile": "File Soniox · {{time}}",
+      "blockedUnchecked": "Layanan pengenalan tidak dapat diperiksa. Tutup ini dan coba lagi."
     },
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}",

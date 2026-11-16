@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox could not read the recording.",
         "NETWORK": "Soniox could not be reached. Check the connection and try again.",
         "CANCELLED": "Cancelled.",
-        "SERVICE": "Soniox could not transcribe the recording. Try again later."
+        "SERVICE": "Soniox could not transcribe the recording. Try again later.",
+        "RECORD_TOO_LONG": "The recording is longer than five hours, more than Soniox transcribes at once.",
+        "LOCAL": "It could not be saved on this computer. Try again."
       },
       "kept": "The recording was kept. Open the record to transcribe it.",
       "notTranscribed": "Not transcribed",
       "versions": "Transcript version",
       "versionLive": "Live · {{time}}",
-      "versionFile": "Soniox file · {{time}}"
+      "versionFile": "Soniox file · {{time}}",
+      "blockedUnchecked": "The recognition service could not be checked. Close this and try again."
     },
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "length": "Length {{length}}",

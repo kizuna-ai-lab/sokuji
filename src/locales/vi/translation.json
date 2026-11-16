@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox không đọc được bản ghi âm.",
         "NETWORK": "Không kết nối được Soniox. Hãy kiểm tra kết nối rồi thử lại.",
         "CANCELLED": "Đã hủy.",
-        "SERVICE": "Soniox không chép lời được bản ghi âm. Hãy thử lại sau."
+        "SERVICE": "Soniox không chép lời được bản ghi âm. Hãy thử lại sau.",
+        "RECORD_TOO_LONG": "Bản ghi dài hơn năm giờ, vượt quá lượng Soniox chép lời được trong một lần.",
+        "LOCAL": "Không lưu được trên máy tính này. Hãy thử lại."
       },
       "kept": "Bản ghi âm đã được giữ lại. Mở bản ghi để chép lời.",
       "notTranscribed": "Chưa chép lời",
       "versions": "Phiên bản bản chép lời",
       "versionLive": "Trực tiếp · {{time}}",
-      "versionFile": "Tệp Soniox · {{time}}"
+      "versionFile": "Tệp Soniox · {{time}}",
+      "blockedUnchecked": "Không kiểm tra được dịch vụ nhận dạng. Hãy đóng mục này và thử lại."
     },
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "length": "Thời lượng {{length}}",

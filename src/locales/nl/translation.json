@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox kon de opname niet lezen.",
         "NETWORK": "Soniox was niet bereikbaar. Controleer de verbinding en probeer het opnieuw.",
         "CANCELLED": "Geannuleerd.",
-        "SERVICE": "Soniox kon de opname niet transcriberen. Probeer het later opnieuw."
+        "SERVICE": "Soniox kon de opname niet transcriberen. Probeer het later opnieuw.",
+        "RECORD_TOO_LONG": "De opname duurt langer dan vijf uur, meer dan Soniox in één keer transcribeert.",
+        "LOCAL": "Het kon niet op deze computer worden opgeslagen. Probeer het opnieuw."
       },
       "kept": "De opname is bewaard. Open het verslag om haar te transcriberen.",
       "notTranscribed": "Niet getranscribeerd",
       "versions": "Versie van de transcriptie",
       "versionLive": "Live · {{time}}",
-      "versionFile": "Soniox-bestand · {{time}}"
+      "versionFile": "Soniox-bestand · {{time}}",
+      "blockedUnchecked": "De herkenningsdienst kon niet worden gecontroleerd. Sluit dit en probeer het opnieuw."
     },
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "length": "Duur {{length}}",

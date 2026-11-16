@@ -2113,13 +2113,16 @@
         "BAD_AUDIO": "Soniox ei pystynyt lukemaan äänitettä.",
         "NETWORK": "Sonioxiin ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
         "CANCELLED": "Peruttu.",
-        "SERVICE": "Soniox ei pystynyt litteroimaan äänitettä. Yritä myöhemmin uudelleen."
+        "SERVICE": "Soniox ei pystynyt litteroimaan äänitettä. Yritä myöhemmin uudelleen.",
+        "RECORD_TOO_LONG": "Tallenne on yli viisi tuntia pitkä, enemmän kuin Soniox litteroi kerralla.",
+        "LOCAL": "Tallentaminen tälle tietokoneelle epäonnistui. Yritä uudelleen."
       },
       "kept": "Äänite säilytettiin. Avaa tallenne litteroidaksesi sen.",
       "notTranscribed": "Litteroimatta",
       "versions": "Litteroinnin versio",
       "versionLive": "Reaaliaikainen · {{time}}",
-      "versionFile": "Soniox-tiedosto · {{time}}"
+      "versionFile": "Soniox-tiedosto · {{time}}",
+      "blockedUnchecked": "Tunnistuspalvelua ei voitu tarkistaa. Sulje tämä ja yritä uudelleen."
     },
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}",
