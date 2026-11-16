@@ -1,6 +1,6 @@
 // The notes model, called with the user's own key on an OpenAI-compatible chat interface.
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { ChatError, openAiChat } from './chat';
+import { ChatError, NOTES_MODELS, openAiChat } from './chat';
 
 const answer = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const content = (obj: unknown) => ({ choices: [{ message: { content: JSON.stringify(obj) } }] });
@@ -34,6 +34,22 @@ describe('the notes chat', () => {
       const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
       expect('reasoning_effort' in body, model).toBe(sent);
     }
+  });
+
+  // Measured on the service: these two refuse 'none' and take 'low' at the least.
+  it("sends 'low' for 'none' to the listed models that refuse 'none', and 'medium' as it is", async () => {
+    for (const [model, none] of [['gpt-6-astra', 'low'], ['gpt-6.1-sol', 'low'], ['gpt-6-luna', 'none'], ['gpt-6-sol', 'none'], ['gpt-6.1-terra', 'none']] as const) {
+      for (const [effort, sent] of [['none', none], ['medium', 'medium']] as const) {
+        const fetch = vi.fn(async () => answer(200, content({ title: 'T' })));
+        await openAiChat({ ...base, model, fetch })({ system: 'S', user: {}, effort, maxTokens: 10, signal: new AbortController().signal });
+        const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+        expect(body.reasoning_effort, `${model} ${effort}`).toBe(sent);
+      }
+    }
+  });
+
+  it('offers the newest series, Luna first', () => {
+    expect(NOTES_MODELS).toEqual(['gpt-6-luna', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.1-terra']);
   });
 
   it('keeps the service\'s own message when it refuses', async () => {

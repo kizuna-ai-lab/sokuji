@@ -75,13 +75,25 @@ const refusalOf = async (response: Response): Promise<{ message?: string; code?:
   }
 };
 
+/** The notes models the settings offer: the newest OpenAI series, Luna (the one the passes were measured with) first. */
+export const NOTES_MODELS = ['gpt-6-luna', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.1-terra'] as const;
+/** Listed models that refuse `reasoning_effort: 'none'` (as tried on the service): they get their lowest, 'low'. */
+const REFUSE_NONE: readonly string[] = ['gpt-6-astra', 'gpt-6.1-sol'];
+
 /**
- * Models that take every `reasoning_effort` the notes send ('none' and 'medium'): GPT-5.1 and later. Any other model is
- * sent none, and uses its own default: an older reasoning model refuses 'none', a model without reasoning refuses the
- * field at all, and a refused request is not retried.
+ * Models that take a `reasoning_effort`: GPT-5.1 and later. Any other model is sent none, and uses its own default: an
+ * older reasoning model refuses 'none', a model without reasoning refuses the field at all, and a refused request is
+ * not retried.
  */
 export function takesReasoningEffort(model: string): boolean {
   return /^gpt-(?:5\.[1-9]\d*|[6-9]|\d{2,})(?:[.-]|$)/.test(model);
+}
+
+/** The `reasoning_effort` sent to `model` for `effort`, or null for none. */
+function effortFor(model: string, effort: ChatEffort): ChatEffort | 'low' | null {
+  if (!takesReasoningEffort(model)) return null;
+  const refusesNone = REFUSE_NONE.some((m) => model === m || model.startsWith(`${m}-`));
+  return effort === 'none' && refusesNone ? 'low' : effort;
 }
 
 export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; fetch?: typeof fetch }): ChatPort {
@@ -89,6 +101,7 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
   const url = `${o.baseUrl.replace(/\/+$/, '')}/chat/completions`;
 
   return async ({ system, user, effort, maxTokens, signal, onAnswered }) => {
+    const reasoning = effortFor(o.model, effort);
     const body = JSON.stringify({
       model: o.model,
       messages: [
@@ -97,7 +110,7 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
       ],
       response_format: { type: 'json_object' },
       max_completion_tokens: maxTokens,
-      ...(takesReasoningEffort(o.model) ? { reasoning_effort: effort } : {}),
+      ...(reasoning ? { reasoning_effort: reasoning } : {}),
     });
     for (let waited = 0; ; ) {
       const response = await send(url, {
