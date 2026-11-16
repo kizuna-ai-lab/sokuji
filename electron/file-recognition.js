@@ -17,9 +17,13 @@ const POLL_MS = 5000;
 /** A transcription Soniox is still processing cannot be deleted: asked again this often, this many times. */
 const DELETE_RETRY_MS = 5000;
 const DELETE_TRIES = 12;
-const REGIONS = new Set(['us', 'eu', 'jp', 'in']);
+/** A clean-up call (a delete at Soniox) that has not answered by then is given up and logged. */
+const CLEANUP_TIMEOUT_MS = 15_000;
+/** The regions of src/lib/soniox/regions.ts (a test keeps the two the same). */
+const SONIOX_REGIONS = Object.freeze(['us', 'eu', 'jp', 'in']);
+const REGIONS = new Set(SONIOX_REGIONS);
 
-/** The REST host of a Soniox region (the US project has no region in its name). */
+/** The REST host of a Soniox region (the US project has no region in its name), as `sonioxHosts(region).api`. */
 function sonioxApiHost(region) {
   return region === 'us' ? 'api.soniox.com' : `api.${region}.soniox.com`;
 }
@@ -66,7 +70,10 @@ function failedTranscription(errorType, message) {
  * `fetch`, `wait(ms, signal)` and `later(ms)` (the clean-up's pause) are the outside world; `openBlob(path, options)`
  * reads a file from disk as a Blob without loading it all.
  */
-function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later = (ms) => waitFor(ms), openBlob = fs.openAsBlob, logger = console } = {}) {
+function createFileRecognizer({
+  fetch = globalThis.fetch, wait = waitFor, later = (ms) => waitFor(ms), openBlob = fs.openAsBlob, logger = console,
+  cleanupTimeoutMs = CLEANUP_TIMEOUT_MS,
+} = {}) {
   /** jobId → { phase, controller } while a recognition runs. */
   const jobs = new Map();
   /** Clean-ups still running after their recognition ended. */
@@ -89,11 +96,12 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
     let transcriptionId = null;
 
     /**
-     * One call; a refusal becomes its HistoryError, a cancel CANCELLED, anything else NETWORK. The clean-up's calls
-     * pass `cancellable: false`: they must still run after a cancel.
+     * One call; a refusal becomes its HistoryError (with the HTTP status), a cancel CANCELLED, anything else NETWORK.
+     * The clean-up's calls pass `cancellable: false`: they must still run after a cancel, and are given up after
+     * `cleanupTimeoutMs`.
      */
     async function call(method, path, { json, body, cancellable = true } = {}) {
-      const signal = cancellable ? controller.signal : undefined;
+      const signal = cancellable ? controller.signal : AbortSignal.timeout(cleanupTimeoutMs);
       let response;
       try {
         response = await fetch(`${base}${path}`, {
@@ -114,7 +122,7 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
           message = spoken(answer && (answer.message || answer.error_message || answer.error), apiKey);
           errorType = String((answer && answer.error_type) || '');
         } catch { /* no body */ }
-        throw refusal(response.status, message, errorType);
+        throw Object.assign(refusal(response.status, message, errorType), { status: response.status });
       }
       if (response.status === 204) return null;
       return response.json();
@@ -123,13 +131,14 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
       if (controller.signal.aborted) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
     };
 
-    /** Deletes the transcription, asking again while Soniox is still processing it. */
+    /** Deletes the transcription, asking again while Soniox is still processing it; one it no longer has is gone. */
     async function deleteTranscription(id) {
       for (let tries = 1; ; tries++) {
         try {
           await call('DELETE', `/v1/transcriptions/${id}`, { cancellable: false });
           return;
         } catch (error) {
+          if (error.status === 404) return;
           if (tries >= DELETE_TRIES || error.code !== 'SERVICE') {
             logger.warn(`[Sokuji] [History] Soniox transcription ${id} was not deleted: ${error.message}`);
             return;
@@ -172,18 +181,21 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
       return { tokens: Array.isArray(transcript && transcript.tokens) ? transcript.tokens : [], audioMs: Number(state.audio_duration_ms) || 0 };
     } finally {
       jobs.delete(jobId);
-      // The file first: a transcription still processing fails once its file is gone, and can then be deleted.
-      if (fileId) {
-        try {
-          await call('DELETE', `/v1/files/${fileId}`, { cancellable: false });
-        } catch (error) {
-          logger.warn(`[Sokuji] [History] Soniox file ${fileId} was not deleted: ${error.message}`);
-        }
-      }
-      if (transcriptionId) {
-        const cleanup = deleteTranscription(transcriptionId);
+      if (fileId || transcriptionId) {
+        const cleanup = (async () => {
+          // The file first: a transcription still processing fails once its file is gone, and can then be deleted.
+          if (fileId) {
+            try {
+              await call('DELETE', `/v1/files/${fileId}`, { cancellable: false });
+            } catch (error) {
+              logger.warn(`[Sokuji] [History] Soniox file ${fileId} was not deleted: ${error.message}`);
+            }
+          }
+          if (transcriptionId) await deleteTranscription(transcriptionId);
+        })();
         cleanups.add(cleanup);
         void cleanup.finally(() => cleanups.delete(cleanup));
+        // A cancel answers at once; the clean-up goes on by itself.
         if (!controller.signal.aborted) await cleanup;
       }
     }
@@ -208,4 +220,4 @@ function createFileRecognizer({ fetch = globalThis.fetch, wait = waitFor, later 
   };
 }
 
-module.exports = { createFileRecognizer, sonioxApiHost };
+module.exports = { createFileRecognizer, sonioxApiHost, SONIOX_REGIONS };

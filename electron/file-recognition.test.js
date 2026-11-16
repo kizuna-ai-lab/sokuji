@@ -10,7 +10,8 @@ import { join } from 'node:path';
 
 const nodeRequire = createRequire(import.meta.url);
 const { openHistory } = nodeRequire('./history-store.js');
-const { createFileRecognizer, sonioxApiHost } = nodeRequire('./file-recognition.js');
+const { createFileRecognizer, sonioxApiHost, SONIOX_REGIONS: MAIN_REGIONS } = nodeRequire('./file-recognition.js');
+import { SONIOX_REGIONS, sonioxHosts } from '../src/lib/soniox/regions';
 
 const ID = 'run-0001-aaaa';
 const KEY = 'sk-test-0123456789';
@@ -43,6 +44,7 @@ function fakeSoniox(o = {}) {
   const statuses = [...(o.statuses ?? ['queued', 'processing', 'completed'])];
   const refusals = o.refusals ?? {};
   let deleteTranscriptionRefusals = o.deleteTranscriptionRefusals ?? 0;
+  const hangs = new Set(o.hangs ?? []);
   const fetch = async (url, init = {}) => {
     const method = init.method ?? 'GET';
     const u = new URL(url);
@@ -51,6 +53,12 @@ function fakeSoniox(o = {}) {
     calls.push(entry);
     if (init.signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
     const key = `${method} ${u.pathname}`;
+    // A call that never answers: only its signal ends it.
+    if (hangs.has(key)) {
+      return new Promise((_, reject) => {
+        init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('timed out'), { name: init.signal.reason?.name ?? 'AbortError' })), { once: true });
+      });
+    }
     if (refusals[key]) return json(refusals[key].status, refusals[key].body ?? { message: 'refused' });
     if (key === 'POST /v1/files') return json(201, { id: 'file-1' });
     if (key === 'POST /v1/transcriptions') return json(201, { id: 'tr-1', status: 'queued' });
@@ -61,6 +69,7 @@ function fakeSoniox(o = {}) {
     }
     if (key === 'GET /v1/transcriptions/tr-1/transcript') return json(200, { id: 'tr-1', text: 'Hello.', tokens: TOKENS });
     if (key === 'DELETE /v1/transcriptions/tr-1') {
+      if (o.transcriptionGone) return json(404, { message: 'not found' });
       if (deleteTranscriptionRefusals > 0) { deleteTranscriptionRefusals -= 1; return json(409, { message: 'still processing' }); }
       return new Response(null, { status: 204 });
     }
@@ -207,5 +216,42 @@ describe('Soniox file recognition', () => {
     const soniox = fakeSoniox({ refusals: { 'POST /v1/files': { status: 400, body: { error_type: 'invalid_audio_file', message: 'Cannot decode audio' } } } });
     const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant });
     await expect(recognizer.recognize(request())).rejects.toMatchObject({ code: 'BAD_AUDIO' });
+  });
+  it('knows the regions, and their REST hosts, that the app knows', () => {
+    expect([...MAIN_REGIONS].sort()).toEqual([...SONIOX_REGIONS].sort());
+    for (const region of SONIOX_REGIONS) expect(sonioxApiHost(region)).toBe(sonioxHosts(region).api);
+  });
+
+  it('takes a transcription Soniox no longer has as deleted: no asking again', async () => {
+    const soniox = fakeSoniox({ statuses: ['error'], error: { error_type: 'internal' }, transcriptionGone: true });
+    const retries = [];
+    const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant, later: async (ms) => { retries.push(ms); }, logger: { warn: () => {} } });
+    await expect(recognizer.recognize(request())).rejects.toMatchObject({ code: 'SERVICE' });
+    expect(soniox.paths().filter((p) => p === 'DELETE /v1/transcriptions/tr-1')).toHaveLength(1);
+    expect(retries).toEqual([]);
+  });
+
+  it('a cancel answers at once; what was uploaded is deleted after', async () => {
+    let recognizer;
+    const soniox = fakeSoniox({ statuses: ['processing', 'processing', 'completed'], onPoll: () => recognizer.cancel('job-1'), hangs: ['DELETE /v1/files/file-1'] });
+    recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant, cleanupTimeoutMs: 50, logger: { warn: () => {} } });
+    const outcome = await Promise.race([
+      recognizer.recognize(request()).then(() => 'done', (e) => e.code),
+      new Promise((resolve) => { setTimeout(() => resolve('still waiting'), 30); }),
+    ]);
+    expect(outcome).toBe('CANCELLED');
+    await recognizer.settled();
+    expect(soniox.paths()).toContain('DELETE /v1/files/file-1');
+    expect(soniox.paths()).toContain('DELETE /v1/transcriptions/tr-1');
+  });
+
+  it('gives up a clean-up call that does not answer, so the result is not held', async () => {
+    const warned = [];
+    const soniox = fakeSoniox({ hangs: ['DELETE /v1/files/file-1'] });
+    const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant, cleanupTimeoutMs: 20, logger: { warn: (m) => warned.push(m) } });
+    const result = await recognizer.recognize(request());
+    expect(result.tokens).toHaveLength(2);
+    expect(warned.some((m) => m.includes('file-1'))).toBe(true);
+    expect(warned.join(' ')).not.toContain(KEY);
   });
 });
