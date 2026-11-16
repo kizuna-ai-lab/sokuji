@@ -77,6 +77,8 @@ jobs:
           src/stores/routingStore.test.ts
           src/components/providers
           src/components/dev
+          src/dev
+          vite.react-grab.test.ts
           src/utils/featureGateForwarding.consistency.test.ts
           electron/squirrel-nuspec.consistency.test.js
           electron/distribution-channel.test.js

@@ -678,6 +678,17 @@ corrected on 2026-09-05.
 - Watch for infinite loops in device switching - use deviceId in React dependencies, not device objects
 - Verify audio context state (suspended/running)
 
+### Reporting UI Bugs (React Grab, development builds only)
+- `npm run dev`, `npm run electron:dev` and the extension's dev build load React Grab before React
+  (`vite.react-grab.ts` → `src/dev/reactGrab.ts`); release builds contain none of it.
+- Press Ctrl+Shift+G (⌘⇧G) to start picking, point at an element, click it; the same keys stop picking. The
+  clipboard gets the element and the components that rendered it, e.g. `in SetupWizard (at SetupWizard.tsx:226:10)`: the line where
+  that component placed the next one. Every `.tsx` base name is unique, so `git ls-files '*/SetupWizard.tsx'` finds it.
+- In the extension's dev build the components come without lines: React Grab maps positions through source maps it
+  fetches over http(s) only, and extension pages are `chrome-extension://`.
+- No version check is sent to react-grab.com (`telemetry: false`), and its open-file action stays local. The only
+  outside request it makes is its UI font from fonts.googleapis.com.
+
 ### Dynamic Audio Device Switching
 1. Recording devices can be switched during active sessions without interrupting the session
 2. The microphone source (`openMic`, `src/lib/audio/capture/mic.ts`) reads its device and

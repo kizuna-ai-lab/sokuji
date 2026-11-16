@@ -6,6 +6,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import pkg from './package.json' with { type: 'json' }
 import { dropDuplicateOrtWasm } from './vite.drop-duplicate-ort-wasm'
+import { reactGrabDev } from './vite.react-grab'
 import { workerManualChunks } from './vite.worker-chunks'
 
 /**
@@ -130,6 +131,8 @@ export default defineConfig(({ command, mode }) => {
       isServe && serveModelPacks(),
       isServe && serveOrtWasm(),
       react(),
+      // Development builds only: React Grab on each React page, for UI bug reports (task #83).
+      reactGrabDev('/src/dev/reactGrab.ts'),
       dropDuplicateOrtWasm(),
       electron({
         main: {

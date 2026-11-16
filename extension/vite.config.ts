@@ -5,6 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import pkg from '../package.json' with { type: 'json' }
 import { dropDuplicateOrtWasm } from '../vite.drop-duplicate-ort-wasm'
+import { reactGrabDev } from '../vite.react-grab'
 import { workerManualChunks } from '../vite.worker-chunks'
 import { serializePlatformsForVanilla } from './platforms'
 
@@ -55,6 +56,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      // Development builds only: React Grab on each React page, for UI bug reports (task #83).
+      reactGrabDev('../src/dev/reactGrab.ts'),
       dropDuplicateOrtWasm(),
       emitGeneratedPlatforms(),
       viteStaticCopy({
