@@ -135,13 +135,23 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, length, kept]);
 
-  /** One ref callback per track, kept across renders: it is called with null only when the element really goes. */
+  /**
+   * One ref callback per track, kept across renders: it is called with null when the element goes, and in development
+   * also once on mount, StrictMode detaching and re-attaching the same element.
+   */
   const refs = useRef(new Map<string, (el: HTMLAudioElement | null) => void>());
+  /** The address each released element had, for when the same element is given back. */
+  const released = useRef(new WeakMap<HTMLAudioElement, string>());
   const refFor = (source: string) => {
     let ref = refs.current.get(source);
     if (!ref) {
       ref = (el) => {
         if (el) {
+          // Given back after a release (StrictMode's rehearsal in development): React does not set an unchanged
+          // `src` again, so the element gets its file back here, or it would play nothing.
+          const address = released.current.get(el);
+          if (address && !el.getAttribute('src')) el.setAttribute('src', address);
+          released.current.delete(el);
           audio.current.set(source, el);
           return;
         }
@@ -158,6 +168,8 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
   const release = (el: HTMLAudioElement) => {
     el.pause();
     started.current.delete(el);
+    const address = el.getAttribute('src');
+    if (address) released.current.set(el, address);
     el.removeAttribute('src');
     try { el.load(); } catch { /* nothing to unload */ }
   };
