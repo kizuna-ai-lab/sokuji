@@ -101,4 +101,13 @@ describe('the live notes rules', () => {
       max_points: 1,
     });
   });
+  it('measures the pause before a sentence in the order the sentences were spoken, across both sides', () => {
+    // The two sides arrive out of turn: the other side's 5.5–8.5 s comes in after my 9–10 s.
+    const seen = [s(1, { startMs: 0, endMs: 5_000 }), s(2, { side: 'mine', startMs: 9_000, endMs: 10_000 }), s(3, { startMs: 5_500, endMs: 8_500 })];
+    const payload = livePayload({ state: emptyLive(), fresh: seen.slice(1), seen, language: { code: 'en' }, speakerLabel: label }) as { new: Array<Record<string, unknown>> };
+    expect(payload.new.map((x) => x.pause_before_s)).toEqual([undefined, undefined]);
+    const later = [...seen, s(4, { side: 'mine', startMs: 14_000, endMs: 15_000 })];
+    const after = livePayload({ state: emptyLive(), fresh: later.slice(3), seen: later, language: { code: 'en' }, speakerLabel: label }) as { new: Array<Record<string, unknown>> };
+    expect(after.new[0].pause_before_s).toBe(4);
+  });
 });

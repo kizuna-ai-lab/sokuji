@@ -79,7 +79,14 @@ export function livePayload(o: LivePayloadInput): unknown {
   const closed = sealed ? state.topics : state.topics.slice(0, -1);
   const firstFresh = o.fresh.length > 0 ? o.seen.findIndex((s) => s.n === o.fresh[0].n) : o.seen.length;
   const before = o.seen.slice(Math.max(0, firstFresh - CONTEXT), Math.max(0, firstFresh));
-  const previousEnd = new Map(o.seen.map((s, i) => [s.n, i > 0 ? o.seen[i - 1].endMs : null]));
+  // The silence before a sentence, in the order things were said: the two sides' sentences arrive out of turn.
+  const pauseBefore = (x: LiveSentence): number => {
+    let end: number | null = null;
+    for (const y of o.seen) {
+      if (y.startMs < x.startMs || (y.startMs === x.startMs && y.n < x.n)) end = end === null ? y.endMs : Math.max(end, y.endMs);
+    }
+    return end === null ? 0 : x.startMs - end;
+  };
   const spokenMs = o.seen.reduce((sum, s) => sum + (s.endMs - s.startMs), 0);
   const written = state.topics.reduce((sum, t) => sum + t.points.length, 0);
   return {
@@ -96,8 +103,7 @@ export function livePayload(o: LivePayloadInput): unknown {
     },
     context: before.map((s) => ({ speaker: o.speakerLabel(s), text: s.text })),
     new: o.fresh.map((s) => {
-      const prev = previousEnd.get(s.n);
-      const pause = prev === null || prev === undefined ? 0 : s.startMs - prev;
+      const pause = pauseBefore(s);
       return { sid: s.n, speaker: o.speakerLabel(s), text: s.text, ...(pause >= PAUSE_MS ? { pause_before_s: Math.round(pause / 100) / 10 } : {}) };
     }),
     todos: [...todoIds(state)].map(([id, p]) => ({ id, text: p.text })),
