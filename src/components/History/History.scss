@@ -809,8 +809,18 @@
     margin: vars.$space-2 vars.$space-4 0;
 
     span { white-space: nowrap; }
-    // The shared dropdown fills its row; here it is as wide as its versions need.
-    .select-dropdown { width: auto; max-width: 320px; padding-right: 30px; }
+    // The shared dropdown, compact: as wide as its versions need and as tall as its label (a line over the record,
+    // not a form field); the caption size the player's speed uses.
+    .select-dropdown {
+      width: auto;
+      max-width: 320px;
+      min-height: 0;
+      padding: 0 24px 0 8px;
+      font-size: vars.$font-caption;
+      line-height: 18px;
+      background-position: right 8px center;
+      background-size: 10px;
+    }
   }
 }
 
