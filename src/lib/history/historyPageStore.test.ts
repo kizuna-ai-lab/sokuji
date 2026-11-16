@@ -256,6 +256,64 @@ describe("a record's notes", () => {
     expect(calls('getNotes')).toEqual([{ id: 7 }, { id: 7 }]);
   });
 
+  // Review: answers that arrive after the user moved on must not undo it.
+  it('does not open the record again when a refresh answers after it was closed', async () => {
+    await store.getState().openRecord(A);
+    let answer!: () => void;
+    const getRecord = port.getRecord;
+    port.getRecord = (async (arg: unknown) => { await new Promise<void>((r) => { answer = r; }); return (getRecord as (a: unknown) => Promise<unknown>)(arg); }) as never;
+    const refreshing = store.getState().refreshRecord();
+    await flush();
+    store.getState().closeRecord();
+    answer();
+    await refreshing;
+    expect(store.getState().open).toBeNull();
+  });
+
+  it('shows the version chosen last, whichever answers first', async () => {
+    withNotes([3, 7, 5]);
+    await store.getState().openRecord(A);
+    const waiting = new Map<number, () => void>();
+    const getNotes = port.getNotes;
+    port.getNotes = (async (arg: { id: number }) => {
+      await new Promise<void>((r) => { waiting.set(arg.id, r); });
+      return (getNotes as (a: { id: number }) => Promise<HistoryNotes>)(arg);
+    }) as never;
+    const first = store.getState().showNotes(3);
+    const second = store.getState().showNotes(5);
+    await flush();
+    waiting.get(5)!();
+    await second;
+    waiting.get(3)!();
+    await first;
+    expect(store.getState().open?.notes?.id).toBe(5);
+  });
+
+  it('takes one dismissal at a time, so a second click does not undo the first', async () => {
+    withNotes([7]);
+    let names = [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }, { written: 'Ozaka', likely: 'Osaka', sentences: [9] }];
+    const getNotes = port.getNotes;
+    port.getNotes = (async (arg: { id: number }) => {
+      const n = await (getNotes as (a: { id: number }) => Promise<HistoryNotes>)(arg);
+      return { ...n, body: { ...n.body!, names } };
+    }) as never;
+    let release!: () => void;
+    port.updateNotesNames = (async (arg: { names: typeof names }) => {
+      port.calls.push(['updateNotesNames', arg]);
+      await new Promise<void>((r) => { release = r; });
+      names = arg.names;
+    }) as never;
+    await store.getState().openRecord(A);
+    const first = store.getState().dismissName(0);
+    await flush();
+    const second = store.getState().dismissName(1);
+    release();
+    await first;
+    await second;
+    expect(calls('updateNotesNames')).toHaveLength(1);
+    expect(names[0]).toMatchObject({ dismissed: true });
+  });
+
   it('opens on the newest complete version when a newer attempt failed or was stopped', async () => {
     port.getRecord = (async (arg: unknown) => {
       port.calls.push(['getRecord', arg]);

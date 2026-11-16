@@ -99,6 +99,12 @@ export function createHistoryPageStore(
   /** Unsubscribes from the notes runner. */
   let offNotes: (() => void) | null | undefined = null;
   let searchSeq = 0;
+  /** Each opening or closing of a record: a read that answers after the user moved on is not shown. */
+  let openSeq = 0;
+  /** Each choice of a version of the notes: only the last chosen is shown. */
+  let notesSeq = 0;
+  /** A dismissal being written: the next waits for it rather than writing the names it read before. */
+  let dismissing = false;
 
   const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
     /** One action: busy while it runs, a rejection shown and nothing else changed. */
@@ -135,7 +141,7 @@ export function createHistoryPageStore(
     const newestTranscript = (record: HistoryRecord) => record.transcripts[record.transcripts.length - 1];
 
     /** The record and everything its page shows; set only once all of it has arrived. */
-    const fetchRecord = async (id: string, at: HitTarget | null): Promise<void> => {
+    const fetchRecord = async (id: string, at: HitTarget | null, seq = openSeq): Promise<void> => {
       const record = await port.getRecord(id);
       if (!record) throw new Error(`Record ${id} is gone`);
       const legs = await port.getLegs(id);
@@ -148,6 +154,8 @@ export function createHistoryPageStore(
       const shown = chosen ? await port.getNotes({ id: chosen.id }) : null;
       // When the newest attempt failed or was stopped after the version shown, what became of it is said too.
       const latest = lastTry && chosen && lastTry.id !== chosen.id ? await port.getNotes({ id: lastTry.id }) : null;
+      // The user closed this record, or opened another, while it was read.
+      if (seq !== openSeq) return;
       set({ open: { record, sentences, speakers, legs, at, notes: shown, latest } });
     };
 
@@ -247,7 +255,7 @@ export function createHistoryPageStore(
         if (open && open.record.id === id) await fetchRecord(id, open.at);
       }),
 
-      openRecord: (id, at = null) => act(() => fetchRecord(id, at)),
+      openRecord: (id, at = null) => act(() => fetchRecord(id, at, ++openSeq)),
 
       refreshRecord: () => act(async () => {
         const open = get().open;
@@ -263,13 +271,17 @@ export function createHistoryPageStore(
         await fetchRecord(open.record.id, open.at);
       }),
 
-      closeRecord: () => set({ open: null }),
+      closeRecord: () => {
+        openSeq += 1;
+        set({ open: null });
+      },
 
       showNotes: (id) => act(async () => {
         const open = get().open;
         if (!open) return;
+        const seq = ++notesSeq;
         const shown = await port.getNotes({ id });
-        if (get().open?.record.id === open.record.id) set({ open: { ...get().open!, notes: shown } });
+        if (seq === notesSeq && get().open?.record.id === open.record.id) set({ open: { ...get().open!, notes: shown } });
       }),
 
       generateNotes(language) {
@@ -280,10 +292,15 @@ export function createHistoryPageStore(
       dismissName: (index) => act(async () => {
         const shown = get().open?.notes;
         const names = shown?.body?.names;
-        if (!shown || !names?.[index]) return;
-        await port.updateNotesNames({ notesId: shown.id, names: names.map((n, i) => (i === index ? { ...n, dismissed: true } : n)) });
-        const again = await port.getNotes({ id: shown.id });
-        if (get().open?.notes?.id === shown.id) set({ open: { ...get().open!, notes: again } });
+        if (!shown || !names?.[index] || dismissing) return;
+        dismissing = true;
+        try {
+          await port.updateNotesNames({ notesId: shown.id, names: names.map((n, i) => (i === index ? { ...n, dismissed: true } : n)) });
+          const again = await port.getNotes({ id: shown.id });
+          if (get().open?.notes?.id === shown.id) set({ open: { ...get().open!, notes: again } });
+        } finally {
+          dismissing = false;
+        }
       }),
 
       dispose() {
