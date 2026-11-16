@@ -91,6 +91,19 @@ describe('the live notes panel', () => {
     expect(screen.queryByRole('button', { name: 'Open History' })).toBeNull();
   });
 
+  // Review: History gave up on the session and never closed it; the panel does not guess either way.
+  it('after Stop, says only that live notes are not kept when History could not close the session', () => {
+    act(() => {
+      useLiveNotes.getState().update('run-0001-aaaa', notes);
+      useLiveNotes.getState().end('run-0001-aaaa');
+      useLiveNotes.getState().closed('run-0001-aaaa', { kept: null, fullNotes: false });
+    });
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    expect(screen.getByText('Live notes are not kept.')).toBeInTheDocument();
+    expect(screen.queryByText(/History/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open History' })).toBeNull();
+  });
+
   it('is not there when live notes are off and nothing was written', () => {
     useSettingsStore.setState({ liveNotes: false } as never);
     act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));

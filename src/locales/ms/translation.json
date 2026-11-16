@@ -2098,6 +2098,7 @@
     "fullInHistory": "Nota penuh akan berada dalam Sejarah.",
     "notKept": "Nota langsung tidak disimpan. Sesi ada dalam Sejarah.",
     "openHistory": "Buka Sejarah",
-    "notInHistory": "Nota langsung tidak disimpan, dan sesi ini tiada dalam Sejarah."
+    "notInHistory": "Nota langsung tidak disimpan, dan sesi ini tiada dalam Sejarah.",
+    "notKeptOnly": "Nota langsung tidak disimpan."
   }
 }

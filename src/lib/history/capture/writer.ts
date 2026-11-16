@@ -67,6 +67,8 @@ export interface HistoryWriterDeps {
   onNotKept?(recordId: string): void;
   /** A record could not be closed: it stays in History, open until the next launch closes it. */
   onCloseFailed?(recordId: string): void;
+  /** A record's writes were given up, so it was not closed: whether History keeps it is not known now. */
+  onCloseSkipped?(recordId: string): void;
   /**
    * A record's run has ended: called once, right after its last sentences were handed on and before the record is
    * closed, whether or not the store keeps it (the live notes end with the run, not with the record's writes).
@@ -468,6 +470,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
       if (answer?.kept) deps.onClosed?.(r.id);
       else if (answer) deps.onNotKept?.(r.id);
     });
+    // Its writes given up, the close above did not run: said all the same, so nothing waits for it.
+    chain = chain.then(() => { if (r.givenUp) deps.onCloseSkipped?.(r.id); });
     rec = null;
     cancelTick?.();
     cancelTick = null;

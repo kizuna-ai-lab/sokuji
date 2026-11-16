@@ -60,9 +60,11 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
           <p className="live-notes__line">
             {history === 'notKept'
               ? t('liveNotes.notInHistory', 'Live notes are not kept, and this session is not in History.')
-              : fullNotes
-                ? t('liveNotes.fullInHistory', 'The full notes will be in History.')
-                : t('liveNotes.notKept', 'Live notes are not kept. The session is in History.')}
+              : history === 'unknown'
+                ? t('liveNotes.notKeptOnly', 'Live notes are not kept.')
+                : fullNotes
+                  ? t('liveNotes.fullInHistory', 'The full notes will be in History.')
+                  : t('liveNotes.notKept', 'Live notes are not kept. The session is in History.')}
           </p>
           {history === 'kept' && <button type="button" className="live-notes__button" onClick={() => onOpenHistory(recordId)}>{t('liveNotes.openHistory', 'Open History')}</button>}
         </div>

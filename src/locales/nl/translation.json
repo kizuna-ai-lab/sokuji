@@ -2098,6 +2098,7 @@
     "fullInHistory": "De volledige notities komen in de geschiedenis.",
     "notKept": "Live notities worden niet bewaard. De sessie staat in de geschiedenis.",
     "openHistory": "Geschiedenis openen",
-    "notInHistory": "Live notities worden niet bewaard, en deze sessie staat niet in de geschiedenis."
+    "notInHistory": "Live notities worden niet bewaard, en deze sessie staat niet in de geschiedenis.",
+    "notKeptOnly": "Live notities worden niet bewaard."
   }
 }

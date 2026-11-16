@@ -2098,6 +2098,7 @@
     "fullInHistory": "Les notes complètes seront dans l’historique.",
     "notKept": "Les notes en direct ne sont pas conservées. La session est dans l’historique.",
     "openHistory": "Ouvrir l’historique",
-    "notInHistory": "Les notes en direct ne sont pas conservées, et cette session n’est pas dans l’historique."
+    "notInHistory": "Les notes en direct ne sont pas conservées, et cette session n’est pas dans l’historique.",
+    "notKeptOnly": "Les notes en direct ne sont pas conservées."
   }
 }

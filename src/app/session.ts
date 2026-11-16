@@ -424,6 +424,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // The live notes panel is told what became of the record, and whether its full notes are being written.
       onNotKept: (recordId) => useLiveNotes.getState().closed(recordId, { kept: false, fullNotes: false }),
       onCloseFailed: (recordId) => useLiveNotes.getState().closed(recordId, { kept: true, fullNotes: false }),
+      onCloseSkipped: (recordId) => useLiveNotes.getState().closed(recordId, { kept: null, fullNotes: false }),
       onClosed: (recordId) => {
         const notes = notesRunner();
         const writing = !closedByApp.has(recordId) && Boolean(notes)

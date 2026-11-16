@@ -2098,6 +2098,7 @@
     "fullInHistory": "Le note complete saranno nella cronologia.",
     "notKept": "Le note in diretta non vengono conservate. La sessione è nella cronologia.",
     "openHistory": "Apri la cronologia",
-    "notInHistory": "Le note in diretta non vengono conservate, e questa sessione non è nella cronologia."
+    "notInHistory": "Le note in diretta non vengono conservate, e questa sessione non è nella cronologia.",
+    "notKeptOnly": "Le note in diretta non vengono conservate."
   }
 }

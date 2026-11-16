@@ -361,6 +361,26 @@ describe('the history writer', () => {
     expect(failed).toEqual(['run-0001-aaaa']);
   });
 
+  // Review: once its writes are given up, a record is never closed, and nothing said what became of it.
+  it('says when a record whose writes were given up is not closed', async () => {
+    writer.dispose();
+    const skipped: string[] = [];
+    const closed: string[] = [];
+    writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => facts, report, onCloseSkipped: (id) => skipped.push(id), onClosed: (id) => closed.push(id) });
+    port.fail('putSegments', Infinity);
+    start('run-0001-aaaa');
+    for (let i = 1; i <= 4; i++) {
+      say('speaker', i, `Line ${i}.`);
+      clock.advance(TICK_MS);
+      await writer.settled();
+    }
+    end();
+    await writer.settled();
+    expect(port.calls.some((c) => c[0] === 'closeRecord')).toBe(false);
+    expect(skipped).toEqual(['run-0001-aaaa']);
+    expect(closed).toEqual([]);
+  });
+
   it('says when a run has ended, after its last sentences and before the record is closed, kept or not', async () => {
     writer.dispose();
     const events: string[] = [];

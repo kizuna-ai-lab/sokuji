@@ -2098,6 +2098,7 @@
     "fullInHistory": "Notların tamamı Geçmiş’te olacak.",
     "notKept": "Canlı notlar saklanmaz. Oturum Geçmiş’te.",
     "openHistory": "Geçmişi aç",
-    "notInHistory": "Canlı notlar saklanmaz ve bu oturum Geçmiş’te yok."
+    "notInHistory": "Canlı notlar saklanmaz ve bu oturum Geçmiş’te yok.",
+    "notKeptOnly": "Canlı notlar saklanmaz."
   }
 }
