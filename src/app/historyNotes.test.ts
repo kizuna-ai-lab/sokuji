@@ -47,4 +47,16 @@ describe('the record whose conversation is on screen', () => {
     conversation.replace(legsOf('run-b'));
     expect(shown()).toBe('run-b');
   });
+
+  // Review: a start clears the panel's notes before it replaces the conversation; refused, the old record stayed "shown".
+  it('is none once a start begins, refused or not, until that run replaces the conversation', () => {
+    const conversation = new ConversationSet();
+    const shown = shownRecordOf(conversation, () => false);
+    conversation.replace(legsOf('run-a'));
+    expect(shown()).toBe('run-a');
+    shown.forget();
+    expect(shown()).toBeUndefined();
+    conversation.replace(legsOf('run-b'));
+    expect(shown()).toBe('run-b');
+  });
 });

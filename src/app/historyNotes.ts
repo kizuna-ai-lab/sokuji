@@ -17,16 +17,21 @@ export function historyNote(note: { code: string; message: string }, shownRecord
 /**
  * The record whose conversation is on screen: the run's. Clear keeps the legs (their snapshots still name the run), so a
  * Clear once the run has ended is remembered: no record is on screen until the next run replaces the conversation. A
- * Clear while the run goes on keeps it, as its conversation goes on.
+ * Clear while the run goes on keeps it, as its conversation goes on. `forget()` is a start beginning: the panel's notes
+ * are cleared then, before the start replaces the conversation, and a refused start never replaces it.
  */
-export function shownRecordOf(conversation: Pick<ConversationSet, 'snapshot' | 'onReset'>, running: () => boolean): () => string | undefined {
+export function shownRecordOf(
+  conversation: Pick<ConversationSet, 'snapshot' | 'onReset'>,
+  running: () => boolean,
+): (() => string | undefined) & { forget(): void } {
   const session = () => conversation.snapshot()[0]?.session;
   let cleared: string | undefined;
   conversation.onReset((reason) => {
     cleared = reason === 'clear' && !running() ? session() : undefined;
   });
-  return () => {
+  const shown = () => {
     const now = session();
     return now !== undefined && now === cleared ? undefined : now;
   };
+  return Object.assign(shown, { forget: () => { cleared = session(); } });
 }

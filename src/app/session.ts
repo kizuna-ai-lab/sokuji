@@ -201,6 +201,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   // History (desktop): every run becomes a record while it runs, written by an observer of the runner.
   /** The record whose conversation is on screen: the run's session, until Clear after the run. */
   const shownRecord = shownRecordOf(runner.conversation, () => runner.state.getState().phase !== 'idle');
+  // A start clears the panel's notes first: the last record's warnings no longer belong there, even if the start is refused.
+  runner.state.subscribe((now, before) => { if (now.phase === 'starting' && before.phase !== 'starting') shownRecord.forget(); });
   const historyPortOrNull = options.history === undefined ? (isElectron() ? historyPort() : null) : options.history;
   const historyRecorder = historyPortOrNull && options.historyEncoder !== null
     ? createHistoryRecorder({
