@@ -40,8 +40,10 @@ const MainLayout: React.FC = () => {
   const showSettings = useShowSettings();
   const historyOpen = useHistoryOpen();
   const setHistoryOpen = useSetHistoryOpen();
-  /** The record History opens at, when the live notes led there. */
+  /** The record History opens at, when the live notes led there: for that opening only. */
   const [historyRecord, setHistoryRecord] = useState<string | null>(null);
+  // History left any way (its own close, the title bar, the logs, the settings) opens at its list next time.
+  useEffect(() => { if (!historyOpen) setHistoryRecord(null); }, [historyOpen]);
   const setShowSettings = useSetShowSettings();
   const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(readPanelWidth(), window.innerWidth));
 
@@ -219,7 +221,7 @@ const MainLayout: React.FC = () => {
       )}
       {historyInPlace && (
         <div className="history-page-container">
-          <HistoryPage onClose={() => { setHistoryRecord(null); setHistoryOpen(false); }} recordId={historyRecord} />
+          <HistoryPage onClose={() => setHistoryOpen(false)} recordId={historyRecord} />
         </div>
       )}
       {sidePanelOpen && !pageInPlace && (
