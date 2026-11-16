@@ -132,4 +132,25 @@ describe('usePushToTalk', () => {
     expect(press).toHaveBeenCalledTimes(2);
     document.body.removeChild(button);
   });
+  it('holds nothing while the desktop settings page covers the panel, and releases a hold when it opens', () => {
+    const press = vi.fn();
+    const release = vi.fn();
+    const { result } = renderHook(() => usePushToTalk({ enabled: true, press, release }));
+
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(1);
+    act(() => { useLayoutStore.getState().setShowSettings(true); });
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(result.current.held).toBe(false);
+
+    // Space on a focused settings switch flips the switch, not the microphone.
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    act(() => { fireEvent.keyUp(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(1);
+
+    act(() => { useLayoutStore.getState().setShowSettings(false); });
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(2);
+    act(() => { fireEvent.keyUp(window, { code: 'Space' }); });
+  });
 });
