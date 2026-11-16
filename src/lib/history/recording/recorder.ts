@@ -184,7 +184,12 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
       if (r.held) {
         const ms = pcm.length / (SAMPLE_RATE / 1000);
         const sum = (r.heldMs.get(leg) ?? 0) + ms;
-        if (sum > MAX_HELD_MS) return;
+        if (sum > MAX_HELD_MS) {
+          // The record is still not open: the recording would miss its start without a word. It stops, and says so.
+          r.held.length = 0;
+          stop(r, `History stopped recording ${r.id}: its record was not opened within ${MAX_HELD_MS / 1000} s`, null);
+          return;
+        }
         r.heldMs.set(leg, sum);
         r.held.push({ leg, pcm, at });
         return;

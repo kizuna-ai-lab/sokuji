@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVirtualClock, type VirtualClock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
 import type { HistoryTrackPiece } from '../types';
-import { createHistoryRecorder, END_WAIT_MS, FLUSH_MS, type HistoryRecorder } from './recorder';
+import { createHistoryRecorder, END_WAIT_MS, FLUSH_MS, MAX_HELD_MS, type HistoryRecorder } from './recorder';
 import type { OpusEncoderFactory } from './track';
 
 const HEAD = new Uint8Array([79, 112, 117, 115, 72, 101, 97, 100, 1, 1, 156, 0, 192, 93, 0, 0, 0, 0, 0]);
@@ -165,6 +165,18 @@ describe('a record\'s recording', () => {
   describe('audio before its record exists', () => {
     // A piece carries the track's length so far.
     const msOf = (source: 'speaker' | 'participant', id = ID) => Math.max(0, ...pieces.filter((p) => p.recordId === id && p.source === source).map((p) => p.durationMs));
+
+    // Review: past the hold, the audio was dropped without a word; the recording would silently miss its start.
+    it('stops the recording, and says so, when its record is not open after MAX_HELD_MS', async () => {
+      recorder.prepare(ID, 0);
+      await run(MAX_HELD_MS + 1000, () => ['speaker']);
+      expect(tell).toHaveBeenCalledTimes(1);
+      expect(report).toHaveBeenCalledWith(expect.stringContaining('not opened'), null);
+      recorder.begin(ID, 0);
+      await run(MAX_HELD_MS + 3000, () => ['speaker']);
+      await recorder.end(ID);
+      expect(pieces).toEqual([]);
+    });
 
     it('is held from where it arrived and written once the record exists', async () => {
       recorder.prepare(ID, 0);
