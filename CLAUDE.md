@@ -681,8 +681,8 @@ corrected on 2026-09-05.
 ### Reporting UI Bugs (React Grab, development builds only)
 - `npm run dev`, `npm run electron:dev` and the extension's dev build load React Grab before React
   (`vite.react-grab.ts` → `src/dev/reactGrab.ts`); release builds contain none of it.
-- Press Ctrl+C (⌘C) with nothing selected to start picking, point at an element, click it. The clipboard gets the
-  element and the components that rendered it, e.g. `in SetupWizard (at SetupWizard.tsx:226:10)`: the line where
+- Press Ctrl+Shift+G (⌘⇧G) to start picking, point at an element, click it; the same keys stop picking. The
+  clipboard gets the element and the components that rendered it, e.g. `in SetupWizard (at SetupWizard.tsx:226:10)`: the line where
   that component placed the next one. Every `.tsx` base name is unique, so `git ls-files '*/SetupWizard.tsx'` finds it.
 - In the extension's dev build the components come without lines: React Grab maps positions through source maps it
   fetches over http(s) only, and extension pages are `chrome-extension://`.
