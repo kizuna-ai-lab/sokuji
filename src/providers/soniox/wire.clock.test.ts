@@ -63,20 +63,20 @@ describe('SonioxSttStream on the injected clock and socket', () => {
     expect(sockets.last().closedByClient).not.toBeNull();
   });
 
-  it('sends the STT keepalive after 15 s without audio, checked every 5 s, on the clock', async () => {
+  it('sends the STT keepalive after 5 s without audio, checked every second, on the clock', async () => {
     const sockets = fakeSockets();
     const clock = createVirtualClock(0);
     const s = new SonioxSttStream({ clock, openSocket: sockets.create });
     const p = s.connect(CONFIG);
     sockets.last().open();
     await p;
-    clock.advance(10_000);
+    clock.advance(4_000);
     expect(sockets.last().sentJson()).not.toContainEqual({ type: 'keepalive' });
-    clock.advance(5_000);
+    clock.advance(1_000);
     const afterKeepalive = sockets.last().sentJson();
     expect(afterKeepalive[afterKeepalive.length - 1]).toEqual({ type: 'keepalive' });
     s.sendAudio(new Int16Array(240));
-    clock.advance(10_000);
+    clock.advance(4_000);
     const keepalives = sockets.last().sentJson()
       .filter((m) => typeof m === 'object' && m !== null && (m as { type?: string }).type === 'keepalive');
     expect(keepalives).toHaveLength(1);
