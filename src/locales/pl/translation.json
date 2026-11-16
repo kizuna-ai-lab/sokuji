@@ -1898,7 +1898,10 @@
         "theirVoice": "Głos drugiej strony",
         "myDevice": "Moje urządzenie odtwarzające",
         "caption": "Dokąd idzie dźwięk. Jasne linie są teraz włączone, przerywane wyłączone; zmieniają się z przełącznikami poniżej.",
-        "aria": "Dokąd idzie dźwięk: to, co mówię, zamienione na mowę, trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, zamienione na mowę, gra na moim urządzeniu odtwarzającym."
+        "aria": "Dokąd idzie dźwięk: to, co mówię, zamienione na mowę, trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, zamienione na mowę, gra na moim urządzeniu odtwarzającym.",
+        "translate": "Tłumaczenie",
+        "speech": "Synteza mowy",
+        "ariaSteps": "Dokąd idzie dźwięk: to, co mówię, jest tłumaczone, a potem zamieniane na mowę, która trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, jest tłumaczone, a potem zamieniane na mowę, która gra na moim urządzeniu odtwarzania. Gdy przełącznik mowy jest wyłączony, tłumaczenie powstaje, ale nie jest wypowiadane."
       }
     },
     "general": {

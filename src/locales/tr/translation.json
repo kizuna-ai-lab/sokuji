@@ -1898,7 +1898,10 @@
         "theirVoice": "Karşı tarafın sesi",
         "myDevice": "Oynatma cihazım",
         "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
-        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar."
+        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar.",
+        "translate": "Çeviri",
+        "speech": "Seslendirme",
+        "ariaSteps": "Sesin gittiği yer: söylediğim çevrilir, sonra konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği çevrilir, sonra konuşmaya dönüşüp oynatma cihazımda çalar. Bir konuşma anahtarı kapalıyken çeviri yapılır ama seslendirilmez."
       }
     },
     "general": {

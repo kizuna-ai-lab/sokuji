@@ -1898,7 +1898,10 @@
         "theirVoice": "La voz de la otra parte",
         "myDevice": "Mi dispositivo de reproducción",
         "caption": "Adónde va el sonido. Las líneas iluminadas están activas, las discontinuas no; siguen los interruptores de abajo.",
-        "aria": "Adónde va el sonido: lo que digo, convertido en voz, va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte, convertido en voz, suena en mi dispositivo de reproducción."
+        "aria": "Adónde va el sonido: lo que digo, convertido en voz, va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte, convertido en voz, suena en mi dispositivo de reproducción.",
+        "translate": "Traducir",
+        "speech": "Generar voz",
+        "ariaSteps": "Adónde va el sonido: lo que digo se traduce y luego se convierte en voz, que va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte se traduce y luego se convierte en voz, que suena en mi dispositivo de reproducción. Con un interruptor de voz apagado, se traduce pero no se habla."
       }
     },
     "general": {

@@ -1898,7 +1898,10 @@
         "theirVoice": "A voz do outro lado",
         "myDevice": "O meu dispositivo de reprodução",
         "caption": "Para onde vai o som. Linhas acesas estão ligadas agora, tracejadas desligadas; seguem os interruptores abaixo.",
-        "aria": "Para onde vai o som: o que eu digo, transformado em fala, vai para o microfone virtual do outro lado e toca também do meu lado quando ouço; o que o outro lado diz, transformado em fala, toca no meu dispositivo de reprodução."
+        "aria": "Para onde vai o som: o que eu digo, transformado em fala, vai para o microfone virtual do outro lado e toca também do meu lado quando ouço; o que o outro lado diz, transformado em fala, toca no meu dispositivo de reprodução.",
+        "translate": "Traduzir",
+        "speech": "Gerar fala",
+        "ariaSteps": "Para onde vai o som: o que eu digo é traduzido e depois transformado em fala, que vai para o microfone virtual do outro lado e toca também do meu lado quando ouço; o que o outro lado diz é traduzido e depois transformado em fala, que toca no meu dispositivo de reprodução. Com um interruptor de fala desligado, a tradução é feita, mas não é dita."
       }
     },
     "general": {

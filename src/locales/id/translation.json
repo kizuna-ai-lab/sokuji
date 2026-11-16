@@ -1898,7 +1898,10 @@
         "theirVoice": "Suara pihak lain",
         "myDevice": "Perangkat pemutar saya",
         "caption": "Ke mana suara pergi. Garis terang sedang aktif, garis putus-putus tidak; mengikuti sakelar di bawah.",
-        "aria": "Ke mana suara pergi: yang saya ucapkan, jadi suara, masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain, jadi suara, diputar di perangkat pemutar saya."
+        "aria": "Ke mana suara pergi: yang saya ucapkan, jadi suara, masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain, jadi suara, diputar di perangkat pemutar saya.",
+        "translate": "Terjemahkan",
+        "speech": "Jadi suara",
+        "ariaSteps": "Ke mana suara pergi: yang saya ucapkan diterjemahkan, lalu dijadikan suara yang masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain diterjemahkan, lalu dijadikan suara yang diputar di perangkat pemutar saya. Jika sakelar suara mati, terjemahan tetap dibuat tetapi tidak diucapkan."
       }
     },
     "general": {

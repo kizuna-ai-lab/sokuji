@@ -29,6 +29,21 @@ describe('SoundFlow', () => {
     expect(leg(container, 'otherHears')).toHaveClass('is-on');
   });
 
+  // Owner, 2026-11-15: translating and turning the translation into speech are two steps; with a side's speech switch
+  // off the translation is still made, only no speech, so the line from one to the other is dashed.
+  it('draws translating and making speech as two steps on each side, the line between them following the speech switch', () => {
+    const { container } = render(<SoundFlow {...ALL_ON} otherHears={false} />);
+    for (const side of ['mine', 'theirs']) {
+      const boxes = [...container.querySelectorAll(`[data-side="${side}"] .sound-flow__box`)].map((b) => b.textContent);
+      expect(boxes, side).toEqual(expect.arrayContaining(['Translate', 'Speech']));
+    }
+    expect(leg(container, 'mineSpeech')).toHaveClass('is-off');
+    expect(leg(container, 'theirSpeech')).toHaveClass('is-on');
+    const { container: off } = render(<SoundFlow {...ALL_ON} iHear={false} />);
+    expect(leg(off, 'mineSpeech')).toHaveClass('is-on');
+    expect(leg(off, 'theirSpeech')).toHaveClass('is-off');
+  });
+
   it("greys the side the mode does not use", () => {
     const { container } = render(<SoundFlow {...ALL_ON} theirs={false} />);
     expect(container.querySelector('[data-side="theirs"]')).toHaveClass('is-unused');

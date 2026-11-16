@@ -1898,7 +1898,10 @@
         "theirVoice": "Stem van de andere kant",
         "myDevice": "Mijn afspeelapparaat",
         "caption": "Waar het geluid heen gaat. Heldere lijnen staan nu aan, gestippelde uit; ze volgen de schakelaars hieronder.",
-        "aria": "Waar het geluid heen gaat: wat ik zeg wordt spraak en gaat naar de virtuele microfoon voor de andere kant, en speelt ook bij mij als ik meeluister; wat de andere kant zegt wordt spraak en speelt op mijn afspeelapparaat."
+        "aria": "Waar het geluid heen gaat: wat ik zeg wordt spraak en gaat naar de virtuele microfoon voor de andere kant, en speelt ook bij mij als ik meeluister; wat de andere kant zegt wordt spraak en speelt op mijn afspeelapparaat.",
+        "translate": "Vertalen",
+        "speech": "Spraak",
+        "ariaSteps": "Waar het geluid heen gaat: wat ik zeg wordt vertaald en dan spraak, die naar de virtuele microfoon voor de andere kant gaat en ook bij mij speelt als ik meeluister; wat de andere kant zegt wordt vertaald en dan spraak, die op mijn afspeelapparaat speelt. Staat een spraakschakelaar uit, dan wordt er vertaald maar niet gesproken."
       }
     },
     "general": {

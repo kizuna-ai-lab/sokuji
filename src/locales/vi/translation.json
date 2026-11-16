@@ -1898,7 +1898,10 @@
         "theirVoice": "Giọng phía bên kia",
         "myDevice": "Thiết bị phát của tôi",
         "caption": "Âm thanh đi đâu. Đường sáng là đang bật, đường nét đứt là tắt; thay đổi theo các công tắc bên dưới.",
-        "aria": "Âm thanh đi đâu: điều tôi nói được chuyển thành giọng nói, đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được chuyển thành giọng nói và phát trên thiết bị phát của tôi."
+        "aria": "Âm thanh đi đâu: điều tôi nói được chuyển thành giọng nói, đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được chuyển thành giọng nói và phát trên thiết bị phát của tôi.",
+        "translate": "Dịch",
+        "speech": "Tạo giọng nói",
+        "ariaSteps": "Âm thanh đi đâu: điều tôi nói được dịch, rồi chuyển thành giọng nói đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được dịch, rồi chuyển thành giọng nói phát trên thiết bị phát của tôi. Khi tắt công tắc giọng nói, bản dịch vẫn được tạo nhưng không được đọc."
       }
     },
     "general": {

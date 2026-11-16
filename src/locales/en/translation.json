@@ -1898,7 +1898,10 @@
         "theirVoice": "The other side's voice",
         "myDevice": "My playback device",
         "caption": "Where the sound goes. Lit lines are on now, dashed ones off; they follow the switches below.",
-        "aria": "Where the sound goes: what I say, turned into speech, goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says, turned into speech, plays on my playback device."
+        "aria": "Where the sound goes: what I say, turned into speech, goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says, turned into speech, plays on my playback device.",
+        "translate": "Translate",
+        "speech": "Speech",
+        "ariaSteps": "Where the sound goes: what I say is translated, then made into speech that goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says is translated, then made into speech that plays on my playback device. With a speech switch off, the translation is made but not spoken."
       }
     },
     "general": {

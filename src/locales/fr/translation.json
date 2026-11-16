@@ -1898,7 +1898,10 @@
         "theirVoice": "La voix de l’autre partie",
         "myDevice": "Mon appareil de lecture",
         "caption": "Où va le son. Les lignes allumées sont actives, les pointillées non ; elles suivent les interrupteurs ci-dessous.",
-        "aria": "Où va le son : ce que je dis, transformé en parole, va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie, transformé en parole, joue sur mon appareil de lecture."
+        "aria": "Où va le son : ce que je dis, transformé en parole, va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie, transformé en parole, joue sur mon appareil de lecture.",
+        "translate": "Traduire",
+        "speech": "Synthèse vocale",
+        "ariaSteps": "Où va le son : ce que je dis est traduit, puis transformé en parole qui va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie est traduit, puis transformé en parole qui joue sur mon appareil de lecture. Quand un interrupteur de parole est coupé, la traduction est faite mais pas prononcée."
       }
     },
     "general": {
