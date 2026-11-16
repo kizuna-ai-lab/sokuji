@@ -161,6 +161,26 @@ describe('a record\'s recording', () => {
     expect(report).toHaveBeenCalledWith(expect.stringContaining('did not answer'), null);
   });
 
+  // Review: the encoder's last flush can hang too; the one wait covers the whole end, the flush included.
+  it('ends after END_WAIT_MS when the encoder never finishes its last audio, and says the recording stopped', async () => {
+    const hanging: OpusEncoderFactory = (...args) => {
+      const inner = fakeEncoder(...args);
+      return { encode: (p) => inner.encode(p), flush: () => new Promise(() => {}), close() {} };
+    };
+    const port = { appendTrack: async (a: HistoryTrackPiece) => { pieces.push(a); return { bytes: a.data.length }; } } as unknown as HistoryPort;
+    recorder = createHistoryRecorder({ port, clock, encoder: hanging, report, tell });
+    recorder.begin(ID, 0);
+    await run(1500, () => ['speaker']);
+    let ended = false;
+    void recorder.end(ID).then(() => { ended = true; });
+    await settle();
+    expect(ended).toBe(false);
+    clock.advance(END_WAIT_MS);
+    await settle();
+    expect(ended).toBe(true);
+    expect(tell).toHaveBeenCalledTimes(1);
+  });
+
   // Review: a session's first audio arrives before its record exists, and while the previous record is still closing.
   describe('audio before its record exists', () => {
     // A piece carries the track's length so far.

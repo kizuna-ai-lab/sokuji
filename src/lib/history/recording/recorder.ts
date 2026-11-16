@@ -205,7 +205,9 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
       r.cancelFlush?.();
       r.cancelFlush = null;
       if (!begun) return;
-      if (!r.failed) {
+      // A stopped recording writes nothing more: its end never waits on a write that may not answer.
+      if (r.failed) return;
+      const finish = async () => {
         // Each track's last take carries the end of the stream on its last page.
         for (const [leg, track] of r.tracks) {
           if (r.failed) break;
@@ -215,16 +217,16 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
             stop(r, `History stopped recording ${r.id}: the ${leg} track could not be finished`, error);
           }
         }
-      }
-      // A stopped recording writes nothing more: its end never waits on a write that may not answer.
-      if (r.failed) return;
-      // Nor waits without end on one below the limit: the writer closes the record, and opens the next, after this.
+        if (!r.failed) await r.chain;
+      };
+      // One wait for the whole end, the encoder's last flush and the last pages' writes: the writer closes the record,
+      // and opens the next, after this.
       await new Promise<void>((resolve) => {
         const cancel = d.clock.setTimeout(() => {
-          stop(r, `History stopped recording ${r.id}: storage did not answer its last pages within ${END_WAIT_MS / 1000} s`, null);
+          stop(r, `History stopped recording ${r.id}: its last pages were not written; the encoder or storage did not answer within ${END_WAIT_MS / 1000} s`, null);
           resolve();
         }, END_WAIT_MS);
-        void r.chain.then(() => { cancel(); resolve(); });
+        void finish().then(() => { cancel(); resolve(); });
       });
     },
 
