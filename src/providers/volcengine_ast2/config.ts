@@ -3,17 +3,24 @@
  * both legs: the participant is the same call on the reversed direction,
  * and it speaks when its switch is on (ruling 4) — `context.speech` says so.
  */
+import { wordsFor, type ServiceWords } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { resourceOf } from './catalog';
 import { ast2Languages, ast2Offers, type Ast2Settings } from './settings';
 import { CLONE, effectiveVoice } from './voice';
 
-/** The console libraries a session names (`ReqParams.corpus`), the protobuf's camelCase names. */
+/** The console libraries a session names and the word list it sends (`ReqParams.corpus`), the protobuf's camelCase names. */
 export interface Ast2Corpus {
   boostingTableId?: string;
   regexCorrectTableId?: string;
   glossaryTableId?: string;
+  /** `hot_words_list`: the word list's written forms. */
+  hotWordsList?: string[];
+  /** `glossary_list`: written form → its translation. */
+  glossaryList?: Record<string, string>;
+  /** `correct_words`: a JSON object, what it is often heard as → its written form. */
+  correctWords?: string;
 }
 
 export interface Ast2Config {
@@ -37,7 +44,7 @@ export interface Ast2VoiceConfig {
  * `buildCorpusFromConfig`, `VolcengineAST2Client.ts:74-85`). Invalid ids
  * are silently ignored by the server, as the settings' footer says.
  */
-export function buildCorpus(s: Pick<Ast2Settings, 'hotWordTableId' | 'replacementTableId' | 'glossaryTableId'>): Ast2Corpus | undefined {
+export function buildCorpus(s: Pick<Ast2Settings, 'hotWordTableId' | 'replacementTableId' | 'glossaryTableId'>, words: ServiceWords = { leftOut: 0 }): Ast2Corpus | undefined {
   const corpus: Ast2Corpus = {};
   const hot = s.hotWordTableId?.trim();
   const replacement = s.replacementTableId?.trim();
@@ -45,16 +52,20 @@ export function buildCorpus(s: Pick<Ast2Settings, 'hotWordTableId' | 'replacemen
   if (hot) corpus.boostingTableId = hot;
   if (replacement) corpus.regexCorrectTableId = replacement;
   if (glossary) corpus.glossaryTableId = glossary;
+  // The word list goes beside the libraries (ruling 5): Doubao reads the direct entries first.
+  if (words.terms) corpus.hotWordsList = words.terms;
+  if (words.translations) corpus.glossaryList = Object.fromEntries(words.translations);
+  if (words.heardAs) corpus.correctWords = JSON.stringify(Object.fromEntries(words.heardAs));
   return Object.keys(corpus).length > 0 ? corpus : undefined;
 }
 
-export function buildAst2(context: SessionContext, s: Ast2Settings, _shared: SharedSettings): Ast2Config | ProviderRefusal {
+export function buildAst2(context: SessionContext, s: Ast2Settings, shared: SharedSettings): Ast2Config | ProviderRefusal {
   const { source, target } = context.direction;
   // A guard: the provider store keeps the pair within what the run's context offers (choice 1), so no surface hands one it cannot run.
   if (!ast2Offers(context.direction, s, { speech: context.speech })) {
     return { refused: `Doubao AST 2.0 does not ${context.speech ? 'speak' : 'translate'} ${source} → ${target}.` };
   }
-  const corpus = buildCorpus(s);
+  const corpus = buildCorpus(s, wordsFor('volcengine_ast2', shared.words?.entries ?? [], ''));
   // The same libraries on both legs (parity): the build cannot tell the legs of a `zh+en` pair apart (choice 6).
   const wire = ast2Languages.wire;
   // A speaking leg's voice for its own direction (#577 catalog §2.5); a text-only leg has none, and cloning is no field at all.

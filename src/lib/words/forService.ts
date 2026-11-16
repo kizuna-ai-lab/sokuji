@@ -20,14 +20,14 @@ export interface ServiceWords {
 type Column = 'terms' | 'translations' | 'heardAs' | 'background';
 
 /** The columns each service has a field for, and how many entries it takes (from the services' documents). */
-export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: number }> = {
+export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: number; items?: number }> = {
   // Terms, translations and background share one context of about 8,000 tokens: kept under SONIOX_CONTEXT_CHARS.
   soniox: { columns: ['terms', 'translations', 'background'], entries: Number.POSITIVE_INFINITY },
   // Transcription keywords, and the background as the transcription prompt.
   openai: { columns: ['terms', 'background'], entries: 1000 },
   qwen_livetranslate: { columns: ['translations'], entries: 1000 },
-  // Hot words, glossary and corrections together: at most 1,000 entries.
-  volcengine_ast2: { columns: ['terms', 'translations', 'heardAs'], entries: 1000 },
+  // Hot words, glossary entries and corrections: at most 1,000 of them together.
+  volcengine_ast2: { columns: ['terms', 'translations', 'heardAs'], entries: Number.POSITIVE_INFINITY, items: 1000 },
   gemini: { columns: ['terms'], entries: 1000 },
   // This device's translation: the words and the background go into its prompt, which a small model reads.
   local_inference: { columns: ['terms', 'translations', 'background'], entries: 100 },
@@ -68,6 +68,19 @@ export function wordsFor(service: string, entries: readonly WordEntry[], backgro
   if (!limit) return { leftOut: 0 };
   const text = background.trim();
   let kept = entries.slice(0, limit.entries);
+  if (limit.items !== undefined) {
+    // Entries while what they make (a term, a translation, each "heard as") fits the service's count.
+    let items = 0;
+    let n = 0;
+    for (const e of kept) {
+      const one = mapped(limit.columns, [e], '');
+      const count = (one.terms?.length ?? 0) + (one.translations?.length ?? 0) + (one.heardAs?.length ?? 0);
+      if (items + count > limit.items) break;
+      items += count;
+      n += 1;
+    }
+    kept = kept.slice(0, n);
+  }
   let words = mapped(limit.columns, kept, text);
   if (service === 'soniox' && sonioxContextSize(words) > SONIOX_CONTEXT_CHARS) {
     // The background is the weakest hint: it is cut first, to the longest start whose escaped size fits (newlines and

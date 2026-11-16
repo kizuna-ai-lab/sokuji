@@ -46,6 +46,18 @@ describe("Doubao AST 2.0's builder", () => {
     expect(build(libraries, participant)).toEqual({ mode: 's2s', sourceLanguage: 'en', targetLanguage: 'zh', corpus: { boostingTableId: 'hot-1', glossaryTableId: 'glo-1' } });
   });
 
+  it('sends the word list as hot words, glossary and corrections, beside the console libraries (ruling 5)', () => {
+    const words = { entries: [{ written: 'Kizuna AI', translation: 'キズナAI', heardAs: 'kizuna eye, kids una' }, { written: 'Sokuji' }], background: 'Weekly.' };
+    const c = buildAst2(SPEAKER, { ...AST2_DEFAULTS, hotWordTableId: 'hot-1' }, { ...SHARED, words }) as Ast2Config;
+    expect(c.corpus).toEqual({
+      boostingTableId: 'hot-1',
+      hotWordsList: ['Kizuna AI', 'Sokuji'],
+      glossaryList: { 'Kizuna AI': 'キズナAI' },
+      correctWords: JSON.stringify({ 'kizuna eye': 'Kizuna AI', 'kids una': 'Kizuna AI' }),
+    });
+    expect((buildAst2(SPEAKER, AST2_DEFAULTS, { ...SHARED, words: { entries: [], background: 'x' } }) as Ast2Config).corpus).toBeUndefined();
+  });
+
   it('clones a pair cloning runs when no voice is chosen, naming no voice (#577 catalog §2.5)', () => {
     expect(build()).toEqual({ mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en' });
     expect(build({ voices: { en: 'clone' } })).toEqual({ mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en' });

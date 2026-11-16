@@ -34,10 +34,12 @@ describe('the word list for each service', () => {
 
   it('sends the first entries up to a limit and counts the rest', () => {
     const many = Array.from({ length: 1005 }, (_, i) => ({ written: `term${i}`, translation: `訳${i}` }));
+    // Doubao's 1,000 count hot words, glossary entries and corrections together: two each here.
     const doubao = wordsFor('volcengine_ast2', many, '');
-    expect(doubao.terms).toHaveLength(1000);
-    expect(doubao.terms![999]).toBe('term999');
-    expect(doubao.leftOut).toBe(5);
+    expect(doubao.terms).toHaveLength(500);
+    expect(doubao.translations).toHaveLength(500);
+    expect(doubao.terms![499]).toBe('term499');
+    expect(doubao.leftOut).toBe(505);
     expect(wordsFor('qwen_livetranslate', many, '').leftOut).toBe(5);
   });
 
