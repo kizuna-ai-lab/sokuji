@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI {{model}}తో గమనికలు రాస్తుంది.",
     "copyConversation": "సంభాషణను కాపీ చేయండి",
     "saveConversationTxt": "సంభాషణను సేవ్ చేయండి (.txt)",
-    "saveConversationJson": "సంభాషణను సేవ్ చేయండి (.json)"
+    "saveConversationJson": "సంభాషణను సేవ్ చేయండి (.json)",
+    "editSave": "సేవ్ చేయండి",
+    "editSaveHint": "సేవ్ చేయండి (Enter)",
+    "editCancelHint": "రద్దు చేయండి (Esc)"
   },
   "notesQuit": {
     "named": "“{{title}}” కోసం గమనికలు రాస్తోంది. అయినా నిష్క్రమించాలా? అవి రద్దయినవిగా గుర్తించబడతాయి.",

@@ -181,6 +181,45 @@ describe('a record', () => {
     expect(screen.queryByRole('menu', { name: 'Change speaker' })).toBeNull();
   });
 
+  // Owner, 2026-11-17: an edit says how it ends, without a keyboard: Save and Cancel on its row (the keys in their
+  // tooltips), and a click elsewhere saves.
+  it('saves the title with its Save button, drops it with its Cancel button, and saves it on a click elsewhere', async () => {
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveAttribute('title', 'Save (Enter)');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAttribute('title', 'Cancel (Esc)');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await settle();
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+    expect(calls('renameRecord')).toEqual([]);
+
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Weekly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+    expect(calls('renameRecord')).toEqual([{ id: A, title: 'Weekly' }]);
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('heading', { level: 2 }).querySelector('button')!);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Weekly sync' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Title' }), { relatedTarget: document.body });
+    await settle();
+    expect(calls('renameRecord')).toEqual([{ id: A, title: 'Weekly' }, { id: A, title: 'Weekly sync' }]);
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+  });
+
+  it('keeps the title field and what was typed when saving fails', async () => {
+    port.renameRecord = (async () => { throw new Error('disk full'); }) as never;
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Weekly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await settle();
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Weekly');
+    expect(store.getState().error).toBe('That did not work.');
+  });
+
   it('an Enter or Escape that ends an input method composition does not save or cancel the title', async () => {
     await renderRecord();
     fireEvent.click(screen.getByRole('button', { name: when() }));
@@ -203,7 +242,13 @@ describe('a record', () => {
     fireEvent.click(button);
     expect(button).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('dialog', { name: 'Speakers' })).toBeInTheDocument();
-    // Escape closes it.
+    // Escape while a name is typed drops the name, not the panel.
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Other' }));
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Escape' });
+    await settle();
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Speakers' })).toBeInTheDocument();
+    // Escape then closes it.
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
     await settle();
     expect(screen.queryByRole('dialog', { name: 'Speakers' })).toBeNull();
@@ -221,6 +266,19 @@ describe('a record', () => {
     fireEvent.keyDown(field, { key: 'Enter' });
     await settle();
     expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+
+    // A click elsewhere saves a name too; the Save button carries its shortcut in its tooltip. (The fake port keeps the
+    // stored name as it was, so the speaker is still "Other" here.)
+    fireEvent.click(within(panel).getByRole('button', { name: 'Rename Other' }));
+    const again = within(panel).getByRole('textbox', { name: 'Name' });
+    expect(within(panel).getByRole('button', { name: 'Save' })).toHaveAttribute('title', 'Save (Enter)');
+    fireEvent.change(again, { target: { value: 'Mina S' } });
+    fireEvent.blur(again, { relatedTarget: document.body });
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([
+      { transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' },
+      { transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina S' },
+    ]);
 
     const second = document.querySelector('[data-n="2"]') as HTMLElement;
     fireEvent.click(within(second).getByRole('button', { name: 'Change speaker' }));

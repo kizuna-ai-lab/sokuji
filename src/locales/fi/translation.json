@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}.",
     "copyConversation": "Kopioi keskustelu",
     "saveConversationTxt": "Tallenna keskustelu (.txt)",
-    "saveConversationJson": "Tallenna keskustelu (.json)"
+    "saveConversationJson": "Tallenna keskustelu (.json)",
+    "editSave": "Tallenna",
+    "editSaveHint": "Tallenna (Enter)",
+    "editCancelHint": "Peruuta (Esc)"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

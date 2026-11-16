@@ -352,7 +352,9 @@
   }
 
   &__title-field {
-    max-width: 480px;
+    min-width: 0;
+    width: 480px;
+    max-width: 100%;
     padding: 0 vars.$space-1;
     border: 1px solid vars.$color-primary;
     border-radius: vars.$radius-sm;
@@ -875,4 +877,31 @@
   border: 1px solid vars.$border-default;
   border-radius: vars.$radius-md;
   box-shadow: 0 6px 16px vars.$shadow;
+}
+
+// A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.
+.inline-edit {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+
+  &__button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
+    &:first-of-type { color: vars.$color-primary; }
+  }
 }

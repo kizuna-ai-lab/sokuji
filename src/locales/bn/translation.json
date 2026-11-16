@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI {{model}} দিয়ে নোট লেখে।",
     "copyConversation": "কথোপকথন কপি করুন",
     "saveConversationTxt": "কথোপকথন সংরক্ষণ (.txt)",
-    "saveConversationJson": "কথোপকথন সংরক্ষণ (.json)"
+    "saveConversationJson": "কথোপকথন সংরক্ষণ (.json)",
+    "editSave": "সংরক্ষণ",
+    "editSaveHint": "সংরক্ষণ (Enter)",
+    "editCancelHint": "বাতিল (Esc)"
   },
   "notesQuit": {
     "named": "“{{title}}”-এর নোট লেখা হচ্ছে। তবুও বন্ধ করবেন? এগুলো বাতিল হিসেবে চিহ্নিত হবে।",

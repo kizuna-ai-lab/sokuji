@@ -18,14 +18,16 @@ export interface RecordSpeakersButtonProps {
   editing: boolean;
   /** The panel's content: the speakers by side. */
   children: ReactNode;
+  /** The panel closed (a click elsewhere, Escape, the button again). */
+  onClose?(): void;
 }
 
-export function RecordSpeakersButton({ count, editing, children }: RecordSpeakersButtonProps) {
+export function RecordSpeakersButton({ count, editing, children, onClose }: RecordSpeakersButtonProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
     open,
-    onOpenChange: setOpen,
+    onOpenChange: (next) => { setOpen(next); if (!next) onClose?.(); },
     placement: 'bottom-end',
     middleware: [
       offset(4), flip(), shift({ padding: 8 }),

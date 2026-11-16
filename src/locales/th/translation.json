@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI เขียนบันทึกด้วย {{model}}",
     "copyConversation": "คัดลอกบทสนทนา",
     "saveConversationTxt": "บันทึกบทสนทนา (.txt)",
-    "saveConversationJson": "บันทึกบทสนทนา (.json)"
+    "saveConversationJson": "บันทึกบทสนทนา (.json)",
+    "editSave": "บันทึก",
+    "editSaveHint": "บันทึก (Enter)",
+    "editCancelHint": "ยกเลิก (Esc)"
   },
   "notesQuit": {
     "named": "กำลังเขียนบันทึกของ “{{title}}” จะออกเลยไหม บันทึกจะถูกระบุว่ายกเลิก",

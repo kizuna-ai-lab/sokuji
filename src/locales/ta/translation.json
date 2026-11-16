@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI {{model}} கொண்டு குறிப்புகளை எழுதுகிறது.",
     "copyConversation": "உரையாடலை நகலெடு",
     "saveConversationTxt": "உரையாடலைச் சேமி (.txt)",
-    "saveConversationJson": "உரையாடலைச் சேமி (.json)"
+    "saveConversationJson": "உரையாடலைச் சேமி (.json)",
+    "editSave": "சேமி",
+    "editSaveHint": "சேமி (Enter)",
+    "editCancelHint": "ரத்துசெய் (Esc)"
   },
   "notesQuit": {
     "named": "“{{title}}” க்கான குறிப்புகள் எழுதப்படுகின்றன. இருந்தாலும் வெளியேறவா? அவை ரத்தானவையாகக் குறிக்கப்படும்.",

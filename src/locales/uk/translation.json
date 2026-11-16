@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI пише нотатки за допомогою {{model}}.",
     "copyConversation": "Копіювати розмову",
     "saveConversationTxt": "Зберегти розмову (.txt)",
-    "saveConversationJson": "Зберегти розмову (.json)"
+    "saveConversationJson": "Зберегти розмову (.json)",
+    "editSave": "Зберегти",
+    "editSaveHint": "Зберегти (Enter)",
+    "editCancelHint": "Скасувати (Esc)"
   },
   "notesQuit": {
     "named": "Пишуться нотатки для «{{title}}». Усе одно вийти? Їх буде позначено як скасовані.",

@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI rédige les notes avec {{model}}.",
     "copyConversation": "Copier la conversation",
     "saveConversationTxt": "Enregistrer la conversation (.txt)",
-    "saveConversationJson": "Enregistrer la conversation (.json)"
+    "saveConversationJson": "Enregistrer la conversation (.json)",
+    "editSave": "Enregistrer",
+    "editSaveHint": "Enregistrer (Entrée)",
+    "editCancelHint": "Annuler (Échap)"
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

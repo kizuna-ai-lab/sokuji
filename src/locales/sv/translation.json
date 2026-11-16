@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}.",
     "copyConversation": "Kopiera samtalet",
     "saveConversationTxt": "Spara samtalet (.txt)",
-    "saveConversationJson": "Spara samtalet (.json)"
+    "saveConversationJson": "Spara samtalet (.json)",
+    "editSave": "Spara",
+    "editSaveHint": "Spara (Enter)",
+    "editCancelHint": "Avbryt (Esc)"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

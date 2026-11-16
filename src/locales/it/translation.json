@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI scrive le note con {{model}}.",
     "copyConversation": "Copia la conversazione",
     "saveConversationTxt": "Salva la conversazione (.txt)",
-    "saveConversationJson": "Salva la conversazione (.json)"
+    "saveConversationJson": "Salva la conversazione (.json)",
+    "editSave": "Salva",
+    "editSaveHint": "Salva (Invio)",
+    "editCancelHint": "Annulla (Esc)"
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

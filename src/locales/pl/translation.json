@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI pisze notatki modelem {{model}}.",
     "copyConversation": "Kopiuj rozmowę",
     "saveConversationTxt": "Zapisz rozmowę (.txt)",
-    "saveConversationJson": "Zapisz rozmowę (.json)"
+    "saveConversationJson": "Zapisz rozmowę (.json)",
+    "editSave": "Zapisz",
+    "editSaveHint": "Zapisz (Enter)",
+    "editCancelHint": "Anuluj (Esc)"
   },
   "notesQuit": {
     "named": "Trwa pisanie notatek do „{{title}}”. Zamknąć mimo to? Zostaną oznaczone jako anulowane.",

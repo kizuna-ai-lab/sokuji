@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI یادداشت‌ها را با {{model}} می‌نویسد.",
     "copyConversation": "کپی گفتگو",
     "saveConversationTxt": "ذخیرهٔ گفتگو (‎.txt)",
-    "saveConversationJson": "ذخیرهٔ گفتگو (‎.json)"
+    "saveConversationJson": "ذخیرهٔ گفتگو (‎.json)",
+    "editSave": "ذخیره",
+    "editSaveHint": "ذخیره (Enter)",
+    "editCancelHint": "لغو (Esc)"
   },
   "notesQuit": {
     "named": "یادداشت‌های «{{title}}» در حال نوشته شدن است. باز هم خارج می‌شوید؟ لغوشده علامت می‌خورند.",

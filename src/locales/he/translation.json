@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI כותבת את ההערות עם {{model}}.",
     "copyConversation": "העתקת השיחה",
     "saveConversationTxt": "שמירת השיחה (‎.txt)",
-    "saveConversationJson": "שמירת השיחה (‎.json)"
+    "saveConversationJson": "שמירת השיחה (‎.json)",
+    "editSave": "שמירה",
+    "editSaveHint": "שמירה (Enter)",
+    "editCancelHint": "ביטול (Esc)"
   },
   "notesQuit": {
     "named": "נכתבות הערות עבור „{{title}}”. לצאת בכל זאת? הן יסומנו כמבוטלות.",

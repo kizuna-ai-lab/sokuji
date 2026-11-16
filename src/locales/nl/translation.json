@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI schrijft de notities met {{model}}.",
     "copyConversation": "Gesprek kopiëren",
     "saveConversationTxt": "Gesprek opslaan (.txt)",
-    "saveConversationJson": "Gesprek opslaan (.json)"
+    "saveConversationJson": "Gesprek opslaan (.json)",
+    "editSave": "Opslaan",
+    "editSaveHint": "Opslaan (Enter)",
+    "editCancelHint": "Annuleren (Esc)"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI пишет заметки с помощью {{model}}.",
     "copyConversation": "Копировать разговор",
     "saveConversationTxt": "Сохранить разговор (.txt)",
-    "saveConversationJson": "Сохранить разговор (.json)"
+    "saveConversationJson": "Сохранить разговор (.json)",
+    "editSave": "Сохранить",
+    "editSaveHint": "Сохранить (Enter)",
+    "editCancelHint": "Отмена (Esc)"
   },
   "notesQuit": {
     "named": "Пишутся заметки для «{{title}}». Всё равно выйти? Они будут отмечены как отменённые.",

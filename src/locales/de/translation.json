@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI schreibt die Notizen mit {{model}}.",
     "copyConversation": "Gespräch kopieren",
     "saveConversationTxt": "Gespräch speichern (.txt)",
-    "saveConversationJson": "Gespräch speichern (.json)"
+    "saveConversationJson": "Gespräch speichern (.json)",
+    "editSave": "Speichern",
+    "editSaveHint": "Speichern (Eingabe)",
+    "editCancelHint": "Abbrechen (Esc)"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

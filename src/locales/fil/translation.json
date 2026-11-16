@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Isinusulat ng Kizuna AI ang mga tala gamit ang {{model}}.",
     "copyConversation": "Kopyahin ang usapan",
     "saveConversationTxt": "I-save ang usapan (.txt)",
-    "saveConversationJson": "I-save ang usapan (.json)"
+    "saveConversationJson": "I-save ang usapan (.json)",
+    "editSave": "I-save",
+    "editSaveHint": "I-save (Enter)",
+    "editCancelHint": "Kanselahin (Esc)"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

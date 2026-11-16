@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI {{model}} से नोट्स लिखता है।",
     "copyConversation": "बातचीत कॉपी करें",
     "saveConversationTxt": "बातचीत सहेजें (.txt)",
-    "saveConversationJson": "बातचीत सहेजें (.json)"
+    "saveConversationJson": "बातचीत सहेजें (.json)",
+    "editSave": "सहेजें",
+    "editSaveHint": "सहेजें (Enter)",
+    "editCancelHint": "रद्द करें (Esc)"
   },
   "notesQuit": {
     "named": "“{{title}}” के नोट्स लिखे जा रहे हैं। फिर भी बंद करें? उन्हें रद्द के रूप में चिह्नित किया जाएगा।",

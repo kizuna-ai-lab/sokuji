@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI 用 {{model}} 写纪要。",
     "copyConversation": "复制对话",
     "saveConversationTxt": "保存对话（.txt）",
-    "saveConversationJson": "保存对话（.json）"
+    "saveConversationJson": "保存对话（.json）",
+    "editSave": "保存",
+    "editSaveHint": "保存（Enter）",
+    "editCancelHint": "取消（Esc）"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

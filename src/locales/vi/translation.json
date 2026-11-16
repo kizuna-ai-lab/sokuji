@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI viết ghi chú bằng {{model}}.",
     "copyConversation": "Sao chép cuộc trò chuyện",
     "saveConversationTxt": "Lưu cuộc trò chuyện (.txt)",
-    "saveConversationJson": "Lưu cuộc trò chuyện (.json)"
+    "saveConversationJson": "Lưu cuộc trò chuyện (.json)",
+    "editSave": "Lưu",
+    "editSaveHint": "Lưu (Enter)",
+    "editCancelHint": "Hủy (Esc)"
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

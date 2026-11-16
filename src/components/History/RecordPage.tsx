@@ -27,6 +27,7 @@ import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsSt
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSpeakersButton } from './RecordSpeakersButton';
+import { InlineEdit } from './InlineEdit';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -213,19 +214,13 @@ export const RecordPage: React.FC = () => {
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
-  const saveTitle = () => {
-    if (titleDraft === null) return;
+  // A title or a name stays in its field until it is saved: a save that fails keeps what was typed (the page says why).
+  const saveTitle = async (): Promise<boolean> => {
+    if (titleDraft === null) return true;
+    await actions.rename(record.id, titleDraft);
+    if (store.getState().error) return false;
     setTitleDraft(null);
-    void actions.rename(record.id, titleDraft);
-  };
-  const onTitleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (isComposing(e.nativeEvent)) return;
-    if (e.key === 'Enter') saveTitle();
-    else if (e.key === 'Escape') {
-      // The edit is cancelled; the page does not take this Escape as a way back to the list.
-      e.preventDefault();
-      setTitleDraft(null);
-    }
+    return true;
   };
 
   // Speakers: the labels the transcript uses, by side, then by label.
@@ -234,10 +229,12 @@ export const RecordPage: React.FC = () => {
   const speakersOf = (side: HistorySentenceSide) => open.speakers
     .filter((s) => s.side === side && labelOf.has(speakerKey(s.side, s.speaker)))
     .map((s) => ({ ...s, label: labelOf.get(speakerKey(s.side, s.speaker))! }));
-  const saveName = () => {
-    if (!nameDraft) return;
-    setNameDraft(null);
-    void actions.renameSpeaker(nameDraft.side, nameDraft.speaker, nameDraft.value);
+  const saveName = async (): Promise<boolean> => {
+    if (!nameDraft) return true;
+    await actions.renameSpeaker(nameDraft.side, nameDraft.speaker, nameDraft.value);
+    if (store.getState().error) return false;
+    setNameDraft((d) => (d === nameDraft ? null : d));
+    return true;
   };
   const newSpeaker = (side: HistorySentenceSide) => {
     const used = open.speakers.filter((s) => s.side === side).map((s) => Number(USER_SPEAKER.exec(s.speaker)?.[1] ?? 0));
@@ -263,18 +260,14 @@ export const RecordPage: React.FC = () => {
                 return (
                   <li key={s.speaker}>
                     {editing ? (
-                      <input
-                        className="record-speakers__field"
-                        aria-label={t('history.nameField', 'Name')}
-                        autoFocus
+                      <InlineEdit
+                        fieldClassName="record-speakers__field"
+                        ariaLabel={t('history.nameField', 'Name')}
                         value={nameDraft.value}
                         placeholder={s.label}
-                        onChange={(e) => setNameDraft({ ...nameDraft, value: e.target.value })}
-                        onKeyDown={(e) => {
-                          if (isComposing(e.nativeEvent)) return;
-                          if (e.key === 'Enter') saveName();
-                          else if (e.key === 'Escape') { e.preventDefault(); setNameDraft(null); }
-                        }}
+                        onChange={(value) => setNameDraft({ ...nameDraft, value })}
+                        onSave={saveName}
+                        onCancel={() => setNameDraft(null)}
                       />
                     ) : (
                       <button
@@ -379,14 +372,14 @@ export const RecordPage: React.FC = () => {
               </button>
             </h2>
           ) : (
-            <input
-              className="record-page__title-field"
-              aria-label={t('history.titleField', 'Title')}
-              autoFocus
+            <InlineEdit
+              fieldClassName="record-page__title-field"
+              ariaLabel={t('history.titleField', 'Title')}
               value={titleDraft}
               placeholder={title}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onKeyDown={onTitleKey}
+              onChange={setTitleDraft}
+              onSave={saveTitle}
+              onCancel={() => setTitleDraft(null)}
             />
           )}
           <span className="history-row__meta">
@@ -492,7 +485,10 @@ export const RecordPage: React.FC = () => {
           {/* The speakers, over the transcript they name (owner, 2026-11-17): no column of their own. */}
           {speakerCount > 0 && (
             <div className="record-page__transcript-head">
-              <RecordSpeakersButton count={speakerCount} editing={nameDraft !== null}>{speakersPanel}</RecordSpeakersButton>
+              {/* Closing the panel while a name is typed saves it, as a click elsewhere does. */}
+              <RecordSpeakersButton count={speakerCount} editing={nameDraft !== null} onClose={() => { if (nameDraft) void saveName(); }}>
+                {speakersPanel}
+              </RecordSpeakersButton>
             </div>
           )}
           {transcript}

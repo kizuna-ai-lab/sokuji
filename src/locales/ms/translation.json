@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI menulis nota dengan {{model}}.",
     "copyConversation": "Salin perbualan",
     "saveConversationTxt": "Simpan perbualan (.txt)",
-    "saveConversationJson": "Simpan perbualan (.json)"
+    "saveConversationJson": "Simpan perbualan (.json)",
+    "editSave": "Simpan",
+    "editSaveHint": "Simpan (Enter)",
+    "editCancelHint": "Batal (Esc)"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

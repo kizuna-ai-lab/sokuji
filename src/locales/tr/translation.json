@@ -2153,7 +2153,10 @@
     "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar.",
     "copyConversation": "Konuşmayı kopyala",
     "saveConversationTxt": "Konuşmayı kaydet (.txt)",
-    "saveConversationJson": "Konuşmayı kaydet (.json)"
+    "saveConversationJson": "Konuşmayı kaydet (.json)",
+    "editSave": "Kaydet",
+    "editSaveHint": "Kaydet (Enter)",
+    "editCancelHint": "İptal (Esc)"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",
