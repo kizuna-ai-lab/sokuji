@@ -299,6 +299,9 @@
   }
 }
 
+// The audio page's mode switch, above the microphone: the same room under it as between the page's sections.
+.audio-mode-switch { margin-bottom: vars.$space-4; }
+
 // A compact segmented choice (the mock's `.seg`): a few options side by side, the chosen one filled.
 .settings-seg {
   display: inline-flex;
