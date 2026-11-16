@@ -4,8 +4,9 @@
 // they were tested before this port (two kinds of marks, to-dos that can be withdrawn, points anchored to sentence
 // numbers, owners as sides). The notes only grow: a written point is never rewritten; the open topic takes new points until it has
 // twelve, then it is closed (a backstop against a topic that never ends, not a cap: the update that takes it past twelve
-// stays in it); a closed topic is frozen except for an `earlier` point; a to-do may be withdrawn (the mark goes, the text
-// stays). Sentences are named by their record numbers (`n`), which grow as sentences arrive.
+// stays in it); a closed topic is frozen except for an `earlier` point and for points the model writes into it when it
+// opens no new topic; a to-do may be withdrawn (the mark goes, the text stays). Sentences are named by their record
+// numbers (`n`), which grow as sentences arrive.
 import type { HistorySentenceInput, HistorySentenceSide } from '../../history/types';
 import type { NoteKind } from '../write';
 
