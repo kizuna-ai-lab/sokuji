@@ -184,16 +184,27 @@
 // Inside the content column the confirmation lines up with the rows.
 .settings-page__body > .history-confirm { margin: 0 0 vars.$space-3; }
 
-// In "Select" a row is chosen, not opened: no hover block inside it.
-.history-row.is-selected .history-row__open:hover { background: transparent; }
-
 .history-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: vars.$space-2;
   border-bottom: 1px solid vars.$border-subtle;
 
+  // A row that opens a record is one target (owner, 2026-11-17): it lights up as a whole, its tags included, and a
+  // click anywhere on it opens the record (the button's ::after covers the row). In "Select" a chosen row keeps its tint.
+  &:has(> .history-row__open) {
+    &:not(.is-selected):hover { background: vars.$bg-hover; }
+    &:has(> .history-row__open:focus-visible) {
+      outline: vars.$focus-ring-width solid vars.$focus-ring-color;
+      outline-offset: -2px;
+    }
+  }
+
   &__check {
+    // Above the row's click cover: the select box keeps its own click.
+    position: relative;
+    z-index: 1;
     flex: none;
     width: 16px;
     margin: 0 vars.$space-1;
@@ -215,11 +226,10 @@
 
   &__open {
     border: none;
-    border-radius: vars.$radius-sm;
     background: transparent;
     cursor: pointer;
-    &:hover { background: vars.$bg-hover; }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
+    &:focus-visible { outline: none; }
+    &::after { content: ''; position: absolute; inset: 0; }
   }
 
   &__title {
