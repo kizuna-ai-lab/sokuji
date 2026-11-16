@@ -343,6 +343,41 @@ describe('the history writer', () => {
       expect(count('putSegments')).toBe(3);
       expect(lastArg('putSegments').segments).toEqual([expect.objectContaining({ text: 'One.', final: true })]);
       expect(report).not.toHaveBeenCalled();
+      // Written again, it is no longer counted as unwritten at the close.
+      end();
+      await writer.settled();
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    // Review: Clear takes a segment off the screen; a failed write of it must still go, not wait on the screen.
+    it('writes a failed segment again after Clear took it off the screen', async () => {
+      start();
+      port.fail('putSegments', 1);
+      say('speaker', 1, 'One.');
+      await writer.settled();
+      expect(count('putSegments')).toBe(1);
+      conversation.clear();
+      await pass();
+      await pass();
+      expect(count('putSegments')).toBe(2);
+      expect(lastArg('putSegments').segments).toEqual([expect.objectContaining({ text: 'One.', final: true })]);
+      end();
+      await writer.settled();
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    it('says so at the close when a segment Clear took off the screen could still not be written', async () => {
+      start();
+      say('speaker', 1, 'Zero.');
+      await writer.settled();
+      port.fail('putSegments', 2);
+      say('speaker', 2, 'One.');
+      await writer.settled();
+      conversation.clear();
+      end();
+      await writer.settled();
+      expect(report).toHaveBeenCalledWith(expect.stringContaining('could not be written'), null);
+      expect(tell).toHaveBeenCalledTimes(1);
     });
 
     it('appends the same sentences again, with their numbers', async () => {
@@ -389,6 +424,21 @@ describe('the history writer', () => {
       await writer.settled();
       await pass();
       expect(count('putNotices')).toBe(2);
+    });
+
+    it('writes a failed notice again after Clear took it off the screen', async () => {
+      port.fail('putNotices', 1);
+      start();
+      legs.get('speaker')!.apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'No speech' } });
+      await writer.settled();
+      conversation.clear();
+      await pass();
+      await pass();
+      expect(count('putNotices')).toBe(2);
+      expect(lastArg('putNotices').notices).toEqual([expect.objectContaining({ code: 'tts_degraded' })]);
+      end();
+      await writer.settled();
+      expect(report).not.toHaveBeenCalled();
     });
 
     it('gives up only after three failures in a row', async () => {

@@ -92,6 +92,12 @@ interface Rec {
   nextNumber: number;
   segments: Map<string, Tracked>;
   noticesWritten: Set<string>;
+  /**
+   * Writes that failed, kept with what they wrote until a write of the same segment or notice succeeds: Clear may take
+   * them off the screen before they go again, and they must not wait on the screen.
+   */
+  failedSegments: Map<string, { leg: LegName; segment: HistorySegment }>;
+  failedNotices: Map<string, { leg: LegName; notice: Leg['notices'][number] }>;
   /** Sentences whose append failed, to go again with the next ones. */
   unsent: HistorySentenceInput[];
   /** Corrections whose write failed, by sentence number. */
@@ -196,7 +202,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const models = Object.fromEntries(Object.entries(info?.models ?? {}).filter((e): e is [string, string] => typeof e[1] === 'string'));
     const r: Rec = {
       id: session, startedAt: clock.now(), facts, transcriptId: null, nextNumber: 1,
-      segments: new Map(), noticesWritten: new Set(), unsent: [], unrevised: new Map(), revisedTo: new Map(),
+      segments: new Map(), noticesWritten: new Set(), failedSegments: new Map(), failedNotices: new Map(), unsent: [], unrevised: new Map(), revisedTo: new Map(),
       failures: new Map(), holdUntil: new Map(), givenUp: false, told: false,
     };
     rec = r;
@@ -222,6 +228,35 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
   }
 
   /** Writes what changed since the last pass: segments, sentences and their corrections, notices. */
+  /** Segments of one leg written; a failure keeps what they wrote, a success forgets an earlier failure of them. */
+  function writeSegments(r: Rec, leg: LegName, segments: HistorySegment[]): void {
+    send(r, 'segments', async () => {
+      await port.putSegments({ recordId: r.id, leg, segments });
+      // Writes go one at a time, in order: a success is the latest of each segment it carries.
+      for (const g of segments) r.failedSegments.delete(g.id);
+    }, () => {
+      for (const g of segments) {
+        r.failedSegments.set(g.id, { leg, segment: g });
+        const t = r.segments.get(g.id);
+        if (t) t.dirty = true;
+      }
+    });
+  }
+
+  /** Notices of one leg written, as segments are. */
+  function writeNotices(r: Rec, leg: LegName, notices: Array<Leg['notices'][number]>): void {
+    for (const n of notices) r.noticesWritten.add(n.id);
+    send(r, 'notices', async () => {
+      await port.putNotices({ recordId: r.id, leg, notices });
+      for (const n of notices) r.failedNotices.delete(n.id);
+    }, () => {
+      for (const n of notices) {
+        r.noticesWritten.delete(n.id);
+        r.failedNotices.set(n.id, { leg, notice: n });
+      }
+    });
+  }
+
   function sync(r: Rec, legs: readonly Leg[], last = false): void {
     if (r.givenUp) return;
     const now = clock.now();
@@ -234,6 +269,8 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     const sentences: HistorySentenceInput[] = [];
     const revisions: Array<{ n: number; text: string }> = [];
     const present = new Set<string>();
+    /** Segments the screen shows with text, and notices it shows: a failed write of anything else goes from what it wrote. */
+    const shown = new Set<string>();
     for (const leg of legs) {
       const toWrite: HistorySegment[] = [];
       const composition = r.facts.legs[leg.leg];
@@ -257,6 +294,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
         // Empty text (a segment just opened, or one Clear emptied while it was still open) is neither written nor cut:
         // the record keeps what it had, and the cuts already made stand when the text comes back.
         if (seg.text === '') continue;
+        shown.add(seg.id);
         // Final segments go at once; open ones at most once a second each.
         if (t.dirty && !held(r, 'segments') && (seg.final || last || now - t.writtenAt >= SEGMENT_WRITE_MS)) {
           toWrite.push(withoutSpeech(seg));
@@ -284,20 +322,22 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
           if (n !== undefined) revisions.push({ n, text: v.text });
         }
       }
-      if (toWrite.length > 0) {
-        send(r, 'segments', () => port.putSegments({ recordId: r.id, leg: leg.leg, segments: toWrite }), () => {
-          for (const g of toWrite) {
-            const t = r.segments.get(g.id);
-            if (t) t.dirty = true;
-          }
-        });
-      }
+      if (toWrite.length > 0) writeSegments(r, leg.leg, toWrite);
       const notices = leg.notices.filter((n) => n.lifetime !== 'transient' && !r.noticesWritten.has(n.id));
-      if (notices.length > 0 && !held(r, 'notices')) {
-        for (const n of notices) r.noticesWritten.add(n.id);
-        send(r, 'notices', () => port.putNotices({ recordId: r.id, leg: leg.leg, notices }), () => {
-          for (const n of notices) r.noticesWritten.delete(n.id);
-        });
+      for (const n of leg.notices) shown.add(n.id);
+      if (notices.length > 0 && !held(r, 'notices')) writeNotices(r, leg.leg, notices);
+    }
+    // Failed writes the screen no longer shows (Clear): they go again from what they wrote.
+    if (!held(r, 'segments')) {
+      for (const name of ['speaker', 'participant'] as const) {
+        const orphans = [...r.failedSegments.entries()].filter(([id, f]) => f.leg === name && !shown.has(id)).map(([, f]) => f.segment);
+        if (orphans.length > 0) writeSegments(r, name, orphans);
+      }
+    }
+    if (!held(r, 'notices')) {
+      for (const name of ['speaker', 'participant'] as const) {
+        const orphans = [...r.failedNotices.entries()].filter(([id, f]) => f.leg === name && !shown.has(id)).map(([, f]) => f.notice);
+        if (orphans.length > 0) writeNotices(r, name, orphans);
       }
     }
     // A segment gone from the snapshot is forgotten, not deleted.
@@ -343,7 +383,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
 
   /** What the last pass left unwritten: nothing is written for the record after its close. */
   function unwritten(r: Rec, legs: readonly Leg[]): boolean {
-    if (r.unsent.length > 0 || r.unrevised.size > 0) return true;
+    if (r.unsent.length > 0 || r.unrevised.size > 0 || r.failedSegments.size > 0 || r.failedNotices.size > 0) return true;
     for (const leg of legs) {
       for (const seg of leg.segments) if (seg.text !== '' && r.segments.get(seg.id)?.dirty) return true;
       if (leg.notices.some((n) => n.lifetime !== 'transient' && !r.noticesWritten.has(n.id))) return true;
