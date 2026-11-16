@@ -2147,7 +2147,10 @@
     "notesModelName": "Modellnamn",
     "notesExplainKizuna": "För varje session går meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
     "liveExplainKizuna": "Under en session går var 20:e sekund de nya meningarna (deras text, nummer och vilken sida och talare som sa dem), anteckningarna hittills och stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
-    "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}."
+    "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}.",
+    "copyConversation": "Kopiera samtalet",
+    "saveConversationTxt": "Spara samtalet (.txt)",
+    "saveConversationJson": "Spara samtalet (.json)"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

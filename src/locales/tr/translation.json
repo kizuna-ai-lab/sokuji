@@ -2147,7 +2147,10 @@
     "notesModelName": "Model adı",
     "notesExplainKizuna": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
     "liveExplainKizuna": "Oturum sırasında her 20 saniyede yeni cümleler (metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği), şimdiye kadarki notlar ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
-    "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar."
+    "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar.",
+    "copyConversation": "Konuşmayı kopyala",
+    "saveConversationTxt": "Konuşmayı kaydet (.txt)",
+    "saveConversationJson": "Konuşmayı kaydet (.json)"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

@@ -2147,7 +2147,10 @@
     "notesModelName": "Modellname",
     "notesExplainKizuna": "Für jede Sitzung gehen der Text ihrer Sätze, deren Nummern, welche Seite und welcher Sprecher sie gesagt hat sowie die Schreibweisen aus Ihrer Wortliste über den Server von Kizuna AI an OpenAI, das die Notizen schreibt. Kizuna AI speichert nichts davon. Bezahlt wird aus dem Guthaben, das Ihre Sitzungen bezahlt. Niemals das Audio oder die Übersetzung.",
     "liveExplainKizuna": "Während einer Sitzung gehen alle 20 Sekunden die neuen Sätze (ihr Text, ihre Nummern und welche Seite und welcher Sprecher sie gesagt hat), die bisherigen Notizen und die Schreibweisen aus Ihrer Wortliste über den Server von Kizuna AI an OpenAI, das die Notizen schreibt. Kizuna AI speichert nichts davon. Bezahlt wird aus dem Guthaben, das Ihre Sitzungen bezahlt. Niemals das Audio oder die Übersetzung.",
-    "notesModelKizuna": "Kizuna AI schreibt die Notizen mit {{model}}."
+    "notesModelKizuna": "Kizuna AI schreibt die Notizen mit {{model}}.",
+    "copyConversation": "Gespräch kopieren",
+    "saveConversationTxt": "Gespräch speichern (.txt)",
+    "saveConversationJson": "Gespräch speichern (.json)"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

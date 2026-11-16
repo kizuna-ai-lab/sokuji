@@ -2147,7 +2147,10 @@
     "notesModelName": "Nama model",
     "notesExplainKizuna": "Untuk setiap sesi, teks kalimatnya, nomornya, pihak dan pembicara yang mengucapkannya, serta ejaan di daftar kata Anda melewati server Kizuna AI ke OpenAI, yang menulis catatan. Kizuna AI tidak menyimpan apa pun darinya. Biayanya dibayar dari saldo yang membayar sesi Anda. Tidak pernah audio atau terjemahan.",
     "liveExplainKizuna": "Selama sesi, setiap 20 detik kalimat baru (teks, nomor, serta pihak dan pembicara yang mengucapkannya), catatan sejauh ini, dan ejaan di daftar kata Anda melewati server Kizuna AI ke OpenAI, yang menulis catatan. Kizuna AI tidak menyimpan apa pun darinya. Biayanya dibayar dari saldo yang membayar sesi Anda. Tidak pernah audio atau terjemahan.",
-    "notesModelKizuna": "Kizuna AI menulis catatan dengan {{model}}."
+    "notesModelKizuna": "Kizuna AI menulis catatan dengan {{model}}.",
+    "copyConversation": "Salin percakapan",
+    "saveConversationTxt": "Simpan percakapan (.txt)",
+    "saveConversationJson": "Simpan percakapan (.json)"
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

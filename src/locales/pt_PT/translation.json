@@ -2147,7 +2147,10 @@
     "notesModelName": "Nome do modelo",
     "notesExplainKizuna": "De cada sessão, o texto das frases, os respetivos números, que lado e que orador as disse e as grafias da sua lista de palavras passam pelo servidor da Kizuna AI até à OpenAI, que escreve as notas. A Kizuna AI não guarda nada disso. É pago com o saldo que paga as suas sessões. Nunca o áudio nem a tradução.",
     "liveExplainKizuna": "Durante uma sessão, a cada 20 segundos as frases novas (texto, números e que lado e que orador as disse), as notas até agora e as grafias da sua lista de palavras passam pelo servidor da Kizuna AI até à OpenAI, que escreve as notas. A Kizuna AI não guarda nada disso. É pago com o saldo que paga as suas sessões. Nunca o áudio nem a tradução.",
-    "notesModelKizuna": "A Kizuna AI escreve as notas com {{model}}."
+    "notesModelKizuna": "A Kizuna AI escreve as notas com {{model}}.",
+    "copyConversation": "Copiar a conversa",
+    "saveConversationTxt": "Guardar a conversa (.txt)",
+    "saveConversationJson": "Guardar a conversa (.json)"
   },
   "notesQuit": {
     "named": "As notas de «{{title}}» estão a ser escritas. Sair mesmo assim? Serão marcadas como canceladas.",

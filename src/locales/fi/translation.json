@@ -2147,7 +2147,10 @@
     "notesModelName": "Mallin nimi",
     "notesExplainKizuna": "Jokaisesta istunnosta sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
     "liveExplainKizuna": "Istunnon aikana 20 sekunnin välein uudet lauseet (niiden teksti, numerot ja kumpi osapuoli ja kuka puhuja ne sanoi), tähänastiset muistiinpanot ja sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
-    "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}."
+    "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}.",
+    "copyConversation": "Kopioi keskustelu",
+    "saveConversationTxt": "Tallenna keskustelu (.txt)",
+    "saveConversationJson": "Tallenna keskustelu (.json)"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

@@ -2147,7 +2147,10 @@
     "notesModelName": "模型名稱",
     "notesExplainKizuna": "每次工作階段的這些內容會經過 Kizuna AI 的伺服器傳給 OpenAI，由 OpenAI 寫紀要：各句的文字、句子編號、是哪一方哪位說話者說的，以及詞表裡的寫法。Kizuna AI 不保存其中任何內容。費用從支付工作階段費用的餘額中扣除。不會傳送聲音或譯文。",
     "liveExplainKizuna": "工作階段中每 20 秒，新的句子（文字、編號、是哪一方哪位說話者說的）、目前為止的紀要和詞表裡的寫法會經過 Kizuna AI 的伺服器傳給 OpenAI，由 OpenAI 寫紀要。Kizuna AI 不保存其中任何內容。費用從支付工作階段費用的餘額中扣除。不會傳送聲音或譯文。",
-    "notesModelKizuna": "Kizuna AI 用 {{model}} 寫紀要。"
+    "notesModelKizuna": "Kizuna AI 用 {{model}} 寫紀要。",
+    "copyConversation": "複製對話",
+    "saveConversationTxt": "儲存對話（.txt）",
+    "saveConversationJson": "儲存對話（.json）"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",

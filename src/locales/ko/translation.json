@@ -2147,7 +2147,10 @@
     "notesModelName": "모델 이름",
     "notesExplainKizuna": "세션마다 문장의 텍스트, 문장 번호, 어느 쪽의 어느 화자가 말했는지, 단어 목록의 표기가 Kizuna AI 서버를 거쳐 OpenAI로 전송되고, OpenAI가 메모를 작성합니다. Kizuna AI는 아무것도 저장하지 않습니다. 비용은 세션 비용을 내는 잔액에서 지불됩니다. 음성과 번역은 절대 보내지 않습니다.",
     "liveExplainKizuna": "세션 중에는 20초마다 새 문장(텍스트, 번호, 어느 쪽의 어느 화자가 말했는지), 지금까지의 메모, 단어 목록의 표기가 Kizuna AI 서버를 거쳐 OpenAI로 전송되고, OpenAI가 메모를 작성합니다. Kizuna AI는 아무것도 저장하지 않습니다. 비용은 세션 비용을 내는 잔액에서 지불됩니다. 음성과 번역은 절대 보내지 않습니다.",
-    "notesModelKizuna": "Kizuna AI는 {{model}}(으)로 메모를 작성합니다."
+    "notesModelKizuna": "Kizuna AI는 {{model}}(으)로 메모를 작성합니다.",
+    "copyConversation": "대화 복사",
+    "saveConversationTxt": "대화 저장(.txt)",
+    "saveConversationJson": "대화 저장(.json)"
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",

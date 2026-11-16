@@ -2147,7 +2147,10 @@
     "notesModelName": "Pangalan ng model",
     "notesExplainKizuna": "Para sa bawat session, ang teksto ng mga pangungusap nito, ang mga numero nila, kung aling panig at aling tagapagsalita ang nagsabi, at ang mga baybay sa listahan ng salita mo ay dumadaan sa server ng Kizuna AI papunta sa OpenAI, na siyang sumusulat ng mga tala. Walang itinatago ang Kizuna AI rito. Binabayaran ito mula sa balanseng nagbabayad sa mga session mo. Hindi kailanman ang audio o ang salin.",
     "liveExplainKizuna": "Habang may session, bawat 20 segundo ang mga bagong pangungusap (ang teksto, numero, at kung aling panig at aling tagapagsalita ang nagsabi), ang mga tala sa ngayon at ang mga baybay sa listahan ng salita mo ay dumadaan sa server ng Kizuna AI papunta sa OpenAI, na siyang sumusulat ng mga tala. Walang itinatago ang Kizuna AI rito. Binabayaran ito mula sa balanseng nagbabayad sa mga session mo. Hindi kailanman ang audio o ang salin.",
-    "notesModelKizuna": "Isinusulat ng Kizuna AI ang mga tala gamit ang {{model}}."
+    "notesModelKizuna": "Isinusulat ng Kizuna AI ang mga tala gamit ang {{model}}.",
+    "copyConversation": "Kopyahin ang usapan",
+    "saveConversationTxt": "I-save ang usapan (.txt)",
+    "saveConversationJson": "I-save ang usapan (.json)"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

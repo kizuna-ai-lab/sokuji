@@ -2147,7 +2147,10 @@
     "notesModelName": "模型名",
     "notesExplainKizuna": "每次会话的这些内容会经过 Kizuna AI 的服务器发给 OpenAI，由 OpenAI 写纪要：各句的文字、句子编号、是哪一方哪位说话人说的，以及词表里的写法。Kizuna AI 不保存其中任何内容。费用从支付会话费用的余额中扣除。不会发送声音或译文。",
     "liveExplainKizuna": "会话中每 20 秒，新的句子（文字、编号、是哪一方哪位说话人说的）、目前为止的纪要和词表里的写法会经过 Kizuna AI 的服务器发给 OpenAI，由 OpenAI 写纪要。Kizuna AI 不保存其中任何内容。费用从支付会话费用的余额中扣除。不会发送声音或译文。",
-    "notesModelKizuna": "Kizuna AI 用 {{model}} 写纪要。"
+    "notesModelKizuna": "Kizuna AI 用 {{model}} 写纪要。",
+    "copyConversation": "复制对话",
+    "saveConversationTxt": "保存对话（.txt）",
+    "saveConversationJson": "保存对话（.json）"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

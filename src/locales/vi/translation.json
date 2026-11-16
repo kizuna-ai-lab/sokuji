@@ -2147,7 +2147,10 @@
     "notesModelName": "Tên mô hình",
     "notesExplainKizuna": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng, phía nào và người nói nào đã nói, cùng cách viết trong danh sách từ của bạn đi qua máy chủ của Kizuna AI đến OpenAI, nơi viết ghi chú. Kizuna AI không lưu lại gì trong số đó. Chi phí được trả từ số dư dùng để trả cho các phiên của bạn. Không bao giờ gửi âm thanh hay bản dịch.",
     "liveExplainKizuna": "Trong phiên, cứ mỗi 20 giây các câu mới (văn bản, số thứ tự, và phía nào, người nói nào đã nói), ghi chú đến lúc đó và cách viết trong danh sách từ của bạn đi qua máy chủ của Kizuna AI đến OpenAI, nơi viết ghi chú. Kizuna AI không lưu lại gì trong số đó. Chi phí được trả từ số dư dùng để trả cho các phiên của bạn. Không bao giờ gửi âm thanh hay bản dịch.",
-    "notesModelKizuna": "Kizuna AI viết ghi chú bằng {{model}}."
+    "notesModelKizuna": "Kizuna AI viết ghi chú bằng {{model}}.",
+    "copyConversation": "Sao chép cuộc trò chuyện",
+    "saveConversationTxt": "Lưu cuộc trò chuyện (.txt)",
+    "saveConversationJson": "Lưu cuộc trò chuyện (.json)"
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

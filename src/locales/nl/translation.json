@@ -2147,7 +2147,10 @@
     "notesModelName": "Modelnaam",
     "notesExplainKizuna": "Voor elke sessie gaan de tekst van de zinnen, hun nummers, welke kant en welke spreker ze zei en de schrijfwijzen uit je woordenlijst via de server van Kizuna AI naar OpenAI, dat de notities schrijft. Kizuna AI bewaart er niets van. Het wordt betaald uit het saldo dat je sessies betaalt. Nooit de audio of de vertaling.",
     "liveExplainKizuna": "Tijdens een sessie gaan elke 20 seconden de nieuwe zinnen (hun tekst, nummers en welke kant en welke spreker ze zei), de notities tot nu toe en de schrijfwijzen uit je woordenlijst via de server van Kizuna AI naar OpenAI, dat de notities schrijft. Kizuna AI bewaart er niets van. Het wordt betaald uit het saldo dat je sessies betaalt. Nooit de audio of de vertaling.",
-    "notesModelKizuna": "Kizuna AI schrijft de notities met {{model}}."
+    "notesModelKizuna": "Kizuna AI schrijft de notities met {{model}}.",
+    "copyConversation": "Gesprek kopiëren",
+    "saveConversationTxt": "Gesprek opslaan (.txt)",
+    "saveConversationJson": "Gesprek opslaan (.json)"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

@@ -218,11 +218,11 @@ describe('a record', () => {
       words: exportWords(i18n.t.bind(i18n) as never), appVersion: '1.2.3', now: () => START,
     }).text(FULL_SCOPE, true);
     openExport();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Save as .txt' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save the conversation (.txt)' }));
     expect(downloadFile).toHaveBeenCalledWith(expectedTxt, 'sokuji-conversation-20260115-090000.txt', 'text/plain;charset=utf-8');
 
     openExport();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy text' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy the conversation' }));
     await settle();
     expect(copyToClipboard).toHaveBeenCalledWith(expect.stringContaining('Can you ship by Wednesday?'));
   });

@@ -2147,7 +2147,10 @@
     "notesModelName": "モデル名",
     "notesExplainKizuna": "セッションごとに、文の本文、その番号、どちら側のどの話者が話したか、単語リストの表記が、Kizuna AI のサーバーを経由して OpenAI に送られ、OpenAI がメモを書きます。Kizuna AI はどれも保存しません。料金はセッションの料金を払う残高から支払われます。音声と翻訳は送られません。",
     "liveExplainKizuna": "セッション中、20 秒ごとに新しい文（本文、番号、どちら側のどの話者が話したか）、ここまでのメモ、単語リストの表記が、Kizuna AI のサーバーを経由して OpenAI に送られ、OpenAI がメモを書きます。Kizuna AI はどれも保存しません。料金はセッションの料金を払う残高から支払われます。音声と翻訳は送られません。",
-    "notesModelKizuna": "Kizuna AI は {{model}} でメモを書きます。"
+    "notesModelKizuna": "Kizuna AI は {{model}} でメモを書きます。",
+    "copyConversation": "会話をコピー",
+    "saveConversationTxt": "会話を保存 (.txt)",
+    "saveConversationJson": "会話を保存 (.json)"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",
