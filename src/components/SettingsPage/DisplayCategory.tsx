@@ -5,7 +5,7 @@
 // controls shows every change at once (ruling 20). The rows are the mock's
 // (v18): each side's four choices side by side, A− size A+, switches, and the
 // colour rows inline.
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CONVERSATION_FONT_SIZE_MAX, CONVERSATION_FONT_SIZE_MIN, useConversationColours, useConversationDisplayStore,
@@ -17,6 +17,8 @@ import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import { isElectron } from '../../utils/environment';
 import { DisplayPreview, type PreviewValues } from './DisplayPreview';
+import { previewLanguages } from './displaySamples';
+import { useProviderStore } from '../../stores/providerStore';
 import type { CategoryBodyProps } from './SettingsPage';
 
 type Surface = 'conversation' | 'subtitle';
@@ -72,12 +74,18 @@ function SideRow({ label, value, onChange }: { label: string; value: DisplayMode
 }
 
 export function DisplayCategory(_props: CategoryBodyProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [surface, setSurface] = useState<Surface>('conversation');
   const s = useSurface(surface);
   // Readings follow each surface's own rule: always in the main window; in caption mode on the desktop, not compact.
   const readingTargets = useReadingTargets();
   const readingsHere = surface === 'conversation' || (isElectron() && !s.compact) ? readingTargets : undefined;
+  // The sample speaks the selected provider's pair, as the surfaces do (B-22); a side without a sample takes the
+  // interface language.
+  const source = useProviderStore((st) => (st.selected ? st.entries[st.selected]?.pair?.source ?? null : null));
+  const target = useProviderStore((st) => (st.selected ? st.entries[st.selected]?.pair?.target ?? null : null));
+  const ui = i18n.resolvedLanguage ?? i18n.language;
+  const languages = useMemo(() => previewLanguages(source && target ? { source, target } : null, ui), [source, target, ui]);
   const compactLabel = t('settingsPage.display.compact', 'Compact view');
   return (
     <div className="display-category">
@@ -97,7 +105,7 @@ export function DisplayCategory(_props: CategoryBodyProps) {
           </button>
         ))}
       </div>
-      <DisplayPreview surface={surface} values={s} ruby={s.showReadings && !!readingsHere?.has('ja')} />
+      <DisplayPreview surface={surface} values={s} languages={languages} readings={s.showReadings ? readingsHere : undefined} />
       <div className="display-category__rows">
         <SideRow label={t('settingsPage.display.mineSide', 'What my side shows')} value={s.mine} onChange={s.setMine} />
         <SideRow label={t('settingsPage.display.theirsSide', 'What the other side shows')} value={s.theirs} onChange={s.setTheirs} />
