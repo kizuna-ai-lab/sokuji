@@ -86,6 +86,14 @@ describe('Models and storage — the session models', () => {
     expect([...session.querySelectorAll('.models-stage__title')].map((t) => t.textContent)).toEqual(['Recognition', 'Translation', 'Speech']);
   });
 
+  // B-20: an engine slot's "Browse library…" lands on its stage's group here.
+  it("anchors each stage's group, where an engine slot's library opens", () => {
+    mount();
+    expect(document.getElementById('models-asr-section')).toBe(stageGroup('Recognition'));
+    expect(document.getElementById('models-translation-section')).toBe(stageGroup('Translation'));
+    expect(document.getElementById('models-tts-section')).toBe(stageGroup('Speech'));
+  });
+
   it('shows what is on disk and the recommended ones it can run; the rest wait under "N more"', () => {
     mount();
     const asr = stageGroup('Recognition');

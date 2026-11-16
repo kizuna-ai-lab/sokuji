@@ -117,15 +117,16 @@ export const EnginePage: React.FC<{
                   onChange={(e) => {
                     const picked = e.target.value;
                     if (picked === BROWSE_OPTION_VALUE) {
-                      // An action, not an option: push the Library and keep
-                      // the selection where it was (the controlled value
-                      // snaps the control back on re-render). Deferred one
-                      // task, with an explicit blur first: pushing
-                      // synchronously from inside the change event unmounts
-                      // the select while its top-layer picker is still
-                      // committing its close, and on some Chromium builds
-                      // (Electron's 144) that strands the picker/backdrop
-                      // open, swallowing all input — the frozen-UI bug.
+                      // An action, not an option: open the slot's stage in
+                      // Models and storage (B-20) and keep the selection where
+                      // it was (the controlled value snaps the control back on
+                      // re-render). Deferred one task, with an explicit blur
+                      // first: leaving the page synchronously from inside the
+                      // change event unmounts the select while its top-layer
+                      // picker is still committing its close, and on some
+                      // Chromium builds (Electron's 144) that strands the
+                      // picker/backdrop open, swallowing all input — the
+                      // frozen-UI bug.
                       e.currentTarget.blur();
                       window.setTimeout(() => onBrowse(slot), 0);
                       return;

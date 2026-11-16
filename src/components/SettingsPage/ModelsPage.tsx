@@ -261,7 +261,8 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
           const title = t(TAGS[stage][0], TAGS[stage][1]);
           const hidden = rest.length + others.length;
           return (
-            <div key={stage} className="models-stage" role="group" aria-label={title}>
+            // Anchored for an engine slot's "Browse library…" (B-20): the page scrolls here and lights the group.
+            <div key={stage} className="models-stage" role="group" aria-label={title} id={`models-${stage}-section`}>
               <h4 className="models-stage__title">{title}</h4>
               <div className="models-stage__shown">{shown.map(sessionRow)}</div>
               {hidden > 0 && (

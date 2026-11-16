@@ -1,16 +1,16 @@
 import { useMemo } from 'react';
 import { EngineSurface } from '../../components/Settings/engine/EngineSurface';
-import { ModelManagementSection } from '../../components/Settings/sections/ModelManagementSection';
 import { useWasmEngineAdapter } from '../../components/Settings/engine/useWasmEngineAdapter';
 import type { EngineProps } from '../../lib/provider/types';
 import { FALLBACK_PAIR, modeOfLegs } from './engineLegs';
 import type { LocalInferenceSettings } from './settings';
 
 /**
- * LocalInference's `Engine` (ruling 9): today's model management —
- * `EngineSurface` over a settings-driven engine adapter and
- * `ModelManagementSection`, fed from `settings`/`update` instead of the store.
- * Storage (usage, deleting, importing) lives on the Models and storage page.
+ * LocalInference's `Engine` (ruling 9): `EngineSurface` over a settings-driven
+ * engine adapter, fed from `settings`/`update` instead of the store. The model
+ * library (downloading, importing, deleting) is the Models and storage page,
+ * where a slot's "Browse library…" goes; the voices are in the speech card
+ * (B-20).
  *
  * The legs are the audio mode's (`providerStore.legs`), so the page shows
  * the directions a start would run (roadmap 1e-2 → 1e-3).
@@ -34,16 +34,6 @@ export function LocalInferenceEngine({
       effectiveMode={modeOfLegs(legs)}
       initialSlot={initialSlot ?? null}
       onInitialSlotConsumed={onInitialSlotConsumed}
-      renderLibrary={(slot) => (
-        <ModelManagementSection
-          isSessionActive={disabled}
-          stageFilter={slot.stage}
-          direction={slot.dir}
-          settings={settings}
-          update={update}
-          pair={pair}
-        />
-      )}
     />
   );
 }

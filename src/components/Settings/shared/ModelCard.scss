@@ -537,3 +537,16 @@
     cursor: default;
   }
 }
+
+// The Multi chip's tooltip body (LanguageTags). Rendered through Tooltip's
+// portal, outside the card, hence top-level. A 99-language
+// ASR model lists every name: the count stays put, the names scroll.
+.model-card__lang-list {
+  max-height: 240px;
+  overflow-y: auto;
+
+  &-count {
+    color: vars.$text-muted;
+    margin-bottom: 4px;
+  }
+}

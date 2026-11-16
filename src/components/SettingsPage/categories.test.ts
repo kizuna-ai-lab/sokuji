@@ -29,6 +29,11 @@ describe('the settings categories', () => {
   });
 
   // B-20: the local engine's voices, in the speech card.
+  it("maps each stage's models to its group in Models and storage, where a slot's library opens", () => {
+    for (const stage of ['asr', 'translation', 'tts'])
+      expect(targetToCategory(`models-${stage}`)).toEqual({ category: 'models', anchor: `models-${stage}` });
+  });
+
   it("maps the local engine's voices to the line-up", () => {
     expect(targetToCategory('local-voices')).toEqual({ category: 'lineup', anchor: 'local-voices' });
   });
