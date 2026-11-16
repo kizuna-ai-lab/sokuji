@@ -51,6 +51,19 @@ describe('the live notes rules', () => {
     expect(texts(next)?.slice(1)).toEqual([['Packaging', ['p14']]]);
   });
 
+  // Owner's rule: points the model writes into a topic that is already full, with no new topic, start "<title> (2)".
+  it('puts what is written into a full topic, when no new topic opens, in a new topic of the same title, (2)', () => {
+    let st = opened();
+    for (let n = 2; n <= 11; n++) st = apply(st, { current_topic: { add: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;
+    st = apply(st, { current_topic: { add: [{ text: 'p12', sid: 12, kinds: [] }, { text: 'p13', sid: 13, kinds: [] }] } }, [s(12), s(13)])!;
+    expect(st.topics[0].points).toHaveLength(13);
+    st = apply(st, { current_topic: { add: [{ text: 'p14', sid: 14, kinds: [] }] } }, [s(14)])!;
+    expect(texts(st)?.slice(1)).toEqual([['Delivery (2)', ['p14']]]);
+    expect(st.topics[0].points).toHaveLength(13);
+    st = apply(st, { current_topic: { add: [{ text: 'p15', sid: 15, kinds: [] }] } }, [s(15)])!;
+    expect(texts(st)?.slice(1)).toEqual([['Delivery (2)', ['p14', 'p15']]]);
+  });
+
   it('numbers a new topic whose title an earlier topic already has: (2), then (3)', () => {
     const topic = (st: LiveState, title: string, n: number) =>
       apply(st, { new_topic: { title, summary: '', points: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;

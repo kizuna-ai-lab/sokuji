@@ -4,9 +4,9 @@
 // they were tested before this port (two kinds of marks, to-dos that can be withdrawn, points anchored to sentence
 // numbers, owners as sides). The notes only grow: a written point is never rewritten; the open topic takes new points until it has
 // twelve, then it is closed (a backstop against a topic that never ends, not a cap: the update that takes it past twelve
-// stays in it); a closed topic is frozen except for an `earlier` point and for points the model writes into it when it
-// opens no new topic; a to-do may be withdrawn (the mark goes, the text stays). Sentences are named by their record
-// numbers (`n`), which grow as sentences arrive.
+// stays in it); what the model still writes into a closed topic, opening no new one, starts a topic of the same title,
+// numbered; a closed topic is frozen except for an `earlier` point; a to-do may be withdrawn (the mark goes, the text
+// stays). Sentences are named by their record numbers (`n`), which grow as sentences arrive.
 import type { HistorySentenceInput, HistorySentenceSide } from '../../history/types';
 import type { NoteKind } from '../write';
 
@@ -195,25 +195,33 @@ export function applyLive(given: LiveState, answer: unknown, o: LiveApplyInput):
     nextTitle = '';
   }
 
+  // A title an earlier topic already has: kept apart by a number, (2), then (3).
+  const numbered = (title: string) => {
+    const used = new Set(topics.map((t) => t.title));
+    if (!used.has(title)) return title;
+    let k = 2;
+    while (used.has(`${title} (${k})`)) k += 1;
+    return `${title} (${k})`;
+  };
   let opened: LiveTopic | null = null;
   if (nextTitle) {
-    // A title an earlier topic already has: kept apart by a number, (2), then (3).
-    const used = new Set(topics.map((t) => t.title));
-    if (used.has(nextTitle)) {
-      let k = 2;
-      while (used.has(`${nextTitle} (${k})`)) k += 1;
-      nextTitle = `${nextTitle} (${k})`;
-    }
+    nextTitle = numbered(nextTitle);
     const raw = [...(sealed ? list(block.add) : []), ...list(next.points)];
     const points = anchored(raw, new Set());
     // A title with nothing under it is not a topic.
     if (points.length > 0) opened = { n: topics.length + 1, title: nextTitle, summary: text(next.summary), points };
   }
+  // Written into the topic that is already full, with no new topic opened: those points start a topic of the same
+  // title, numbered (nothing written is cut, and a full topic takes nothing more but an `earlier` point).
+  if (sealed && !opened) {
+    const points = anchored(list(block.add), new Set(last.points.map((p) => p.text)));
+    if (points.length > 0) opened = { n: topics.length + 1, title: numbered(last.title), summary: last.summary, points };
+  }
   if (!last && !opened) return null;
   if (text(answer.title)) state.title = text(answer.title);
 
-  // The open topic, or a full one the model still wrote into (kept all the same: nothing written is cut).
-  const target = current ?? (opened ? undefined : last);
+  // The open topic takes what is written into it; the update that takes it past twelve stays in it whole.
+  const target = current;
   if (target) {
     const known = new Set(target.points.map((p) => p.text));
     if (opened) for (const p of opened.points) known.add(p.text);
