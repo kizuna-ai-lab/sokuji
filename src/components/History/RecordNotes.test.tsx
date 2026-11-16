@@ -152,6 +152,8 @@ describe("a record's notes", () => {
     expect(p.onAddName).toHaveBeenCalledWith(0, 'Sokuji');
     fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[1]);
     const spelling = within(names).getByLabelText('How it is spelled');
+    // The settings' own text field, as every other field in the app.
+    expect(spelling).toHaveClass('settings-input');
     fireEvent.change(spelling, { target: { value: 'Mr Kawase' } });
     fireEvent.click(within(names).getByRole('button', { name: 'Add' }));
     expect(p.onAddName).toHaveBeenCalledWith(1, 'Mr Kawase');

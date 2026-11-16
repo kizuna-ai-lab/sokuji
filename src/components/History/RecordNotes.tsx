@@ -14,6 +14,7 @@ import { readNotesBody, type NoteKind } from '../../lib/notes/write';
 import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
+import FormInput from '../Settings/shared/FormInput';
 
 export interface RecordNotesProps {
   record: HistoryRecord;
@@ -228,7 +229,7 @@ export function RecordNotes(p: RecordNotesProps) {
                   <button type="button" className="record-notes__jump" onClick={() => p.onJump(n.sentences[0])}>{`${n.written} → ${n.likely ?? '?'}`}</button>
                   {p.onAddName && (asking === i ? (
                     <span className="record-notes__spell">
-                      <input aria-label={t('history.notesNameSpelling', 'How it is spelled')} value={spelling} spellCheck={false}
+                      <FormInput aria-label={t('history.notesNameSpelling', 'How it is spelled')} value={spelling} spellCheck={false}
                         onChange={(e) => setSpelling(e.target.value)} />
                       <button type="button" className="record-notes__dismiss" disabled={!spelling.trim()} onClick={() => void addName(i, spelling)}>
                         {t('history.notesNameAdd', 'Add')}
