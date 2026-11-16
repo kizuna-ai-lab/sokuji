@@ -256,6 +256,14 @@ describe('writing the notes', () => {
     expect(result.ok && result.body.names).toEqual([]);
   });
 
+  // Review: after a long silence the next part starts at the twenty-minute edge after the sentence, not one edge on.
+  it('asks for names once per twenty minutes that has sentences, across a long silence', async () => {
+    const model = fakeChat();
+    const sentences = [sentence(1, 0), sentence(2, MIN), ...Array.from({ length: 7 }, (_, i) => sentence(i + 3, (120 + i) * MIN))];
+    await write(sentences, model.chat);
+    expect(model.of('names').map((c) => c.user.sentences.map((x: { sid: number }) => x.sid))).toEqual([[1, 2], [3, 4, 5, 6, 7, 8, 9]]);
+  });
+
   it('writes nothing for less than a minute', async () => {
     const model = fakeChat();
     expect(NOTES_MIN_MS).toBe(60_000);

@@ -120,16 +120,19 @@ export function cutParts(sentences: readonly HistorySentence[]): HistorySentence
   return bounds.slice(1).map((end, i) => sentences.slice(bounds[i], end));
 }
 
-/** The names step's parts: a new part at each twenty-minute edge (as measured). */
+/**
+ * The names step's parts: a new part at each twenty-minute edge (as measured). After a silence the next edge is the
+ * one after the sentence that opens the part, so twenty minutes with no sentence make no part.
+ */
 function namesParts(sentences: readonly HistorySentence[]): HistorySentence[][] {
   const parts: HistorySentence[][] = [];
   let current: HistorySentence[] = [];
   let edge = NAMES_PART_MS;
   for (const s of sentences) {
-    if (s.startMs >= edge && current.length > 0) {
-      parts.push(current);
+    if (s.startMs >= edge) {
+      if (current.length > 0) parts.push(current);
       current = [];
-      edge += NAMES_PART_MS;
+      edge = (Math.floor(s.startMs / NAMES_PART_MS) + 1) * NAMES_PART_MS;
     }
     current.push(s);
   }
