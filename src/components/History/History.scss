@@ -711,22 +711,30 @@
   &__state { display: flex; flex-direction: column; align-items: flex-start; gap: vars.$space-2; color: vars.$text-secondary; p { margin: 0; } }
   &__write { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; margin-top: vars.$space-2; }
 
+  // The settings' segmented choice: the chosen one filled, so it does not read as a kind tag on a point.
   &__filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: vars.$space-1;
+    display: inline-flex;
+    align-self: flex-start;
+    max-width: 100%;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    overflow: hidden;
     button {
-      padding: 2px vars.$space-2;
-      border: 1px solid vars.$border-subtle;
-      border-radius: vars.$radius-sm;
-      background: none;
+      height: 24px;
+      padding: 0 12px;
+      border: none;
+      background: transparent;
       color: vars.$text-secondary;
       font-size: vars.$font-caption;
+      white-space: nowrap;
       cursor: pointer;
-      &[aria-pressed='true'] { color: vars.$text-primary; border-color: tk.$color-primary; }
-      &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+      & + button { border-left: 1px solid vars.$border-subtle; }
+      &:hover { background: vars.$bg-hover; }
+      &[aria-pressed='true'] { background: vars.$color-primary-fill; color: vars.$color-on-primary; }
+      &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
     }
   }
+  &__hint { margin: 0; color: vars.$text-tertiary; font-size: vars.$font-caption; }
 
   &__topic { display: flex; flex-direction: column; gap: vars.$space-1; padding-top: vars.$space-2; border-top: 1px solid vars.$border-subtle; h4 { margin: 0; } }
   &__summary { margin: 0; color: vars.$text-secondary; font-size: vars.$font-caption; line-height: 1.55; }

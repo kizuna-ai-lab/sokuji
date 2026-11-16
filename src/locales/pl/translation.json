@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Ostatniej próby nie udało się napisać: {{reason}}",
     "notesLatestStopped": "Ostatnia próba została przerwana.",
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
-    "length": "Czas trwania {{length}}"
+    "length": "Czas trwania {{length}}",
+    "notesJumpPlay": "Kliknij temat lub punkt, aby przejść do jego zdania i odtwarzać od tego miejsca.",
+    "notesJump": "Kliknij temat lub punkt, aby przejść do jego zdania."
   },
   "notesQuit": {
     "named": "Trwa pisanie notatek do „{{title}}”. Zamknąć mimo to? Zostaną oznaczone jako anulowane.",

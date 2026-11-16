@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "La dernière tentative n’a pas pu être rédigée : {{reason}}",
     "notesLatestStopped": "La dernière tentative a été arrêtée.",
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
-    "length": "Durée {{length}}"
+    "length": "Durée {{length}}",
+    "notesJumpPlay": "Cliquez sur un sujet ou un point pour aller à sa phrase et lire à partir de là.",
+    "notesJump": "Cliquez sur un sujet ou un point pour aller à sa phrase."
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

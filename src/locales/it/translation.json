@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "L’ultimo tentativo non è stato scritto: {{reason}}",
     "notesLatestStopped": "L’ultimo tentativo è stato interrotto.",
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
-    "length": "Durata {{length}}"
+    "length": "Durata {{length}}",
+    "notesJumpPlay": "Fai clic su un argomento o un punto per andare alla sua frase e riprodurre da lì.",
+    "notesJump": "Fai clic su un argomento o un punto per andare alla sua frase."
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

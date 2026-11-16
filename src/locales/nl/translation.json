@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "De laatste poging kon niet worden geschreven: {{reason}}",
     "notesLatestStopped": "De laatste poging is gestopt.",
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
-    "length": "Duur {{length}}"
+    "length": "Duur {{length}}",
+    "notesJumpPlay": "Klik op een onderwerp of punt om naar de zin te gaan en vanaf daar af te spelen.",
+    "notesJump": "Klik op een onderwerp of punt om naar de zin te gaan."
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

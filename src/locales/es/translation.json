@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "No se pudo escribir el último intento: {{reason}}",
     "notesLatestStopped": "Se detuvo el último intento.",
     "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco.",
-    "length": "Duración {{length}}"
+    "length": "Duración {{length}}",
+    "notesJumpPlay": "Haz clic en un tema o un punto para ir a su frase y reproducir desde ahí.",
+    "notesJump": "Haz clic en un tema o un punto para ir a su frase."
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

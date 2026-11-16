@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Det senaste försöket kunde inte skrivas: {{reason}}",
     "notesLatestStopped": "Det senaste försöket avbröts.",
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
-    "length": "Längd {{length}}"
+    "length": "Längd {{length}}",
+    "notesJumpPlay": "Klicka på ett ämne eller en punkt för att gå till dess mening och spela upp därifrån.",
+    "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening."
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

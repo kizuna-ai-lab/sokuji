@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Son deneme yazılamadı: {{reason}}",
     "notesLatestStopped": "Son deneme durduruldu.",
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
-    "length": "Süre {{length}}"
+    "length": "Süre {{length}}",
+    "notesJumpPlay": "Cümlesine gitmek ve oradan oynatmak için bir konuya veya maddeye tıklayın.",
+    "notesJump": "Cümlesine gitmek için bir konuya veya maddeye tıklayın."
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

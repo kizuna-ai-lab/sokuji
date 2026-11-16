@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Cubaan terakhir tidak dapat ditulis: {{reason}}",
     "notesLatestStopped": "Cubaan terakhir dihentikan.",
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
-    "length": "Tempoh {{length}}"
+    "length": "Tempoh {{length}}",
+    "notesJumpPlay": "Klik topik atau perkara untuk pergi ke ayatnya dan main dari situ.",
+    "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya."
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

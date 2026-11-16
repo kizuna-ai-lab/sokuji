@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "最新の試みは書けませんでした：{{reason}}",
     "notesLatestStopped": "最新の試みは中止されました。",
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
-    "length": "長さ {{length}}"
+    "length": "長さ {{length}}",
+    "notesJumpPlay": "トピックや要点をクリックすると、その文に移動してそこから再生します。",
+    "notesJump": "トピックや要点をクリックすると、その文に移動します。"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

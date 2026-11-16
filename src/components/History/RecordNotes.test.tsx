@@ -69,6 +69,17 @@ describe("a record's notes", () => {
     expect(vi.mocked(p.onJump).mock.calls).toEqual([[8], [5]]);
   });
 
+  // Review: a click on a topic or point also starts the recording there; it is said under the filter.
+  it('says what a click on a topic or point does: with a recording it plays from there too', () => {
+    const { unmount } = render(<RecordNotes {...props()} />);
+    expect(screen.getByText('Click a topic or point to go to its sentence.')).toBeInTheDocument();
+    unmount();
+    const track = { source: 'participant' as const, file: 'participant.opus', format: 'ogg-opus' as const, durationMs: 60_000, bytes: 10, offsetMs: 0, goneAt: null };
+    const recorded = { ...record([{ id: 7, transcriptId: 1, language: 'en', createdAt: 0, state: 'complete' }]), hasRecording: true, tracks: [track] };
+    render(<RecordNotes {...props({ record: recorded })} />);
+    expect(screen.getByText('Click a topic or point to go to its sentence and play from there.')).toBeInTheDocument();
+  });
+
   it('offers the other versions when there are several', () => {
     const p = props({ record: record([
       { id: 7, transcriptId: 1, language: 'en', createdAt: 2000, state: 'complete' },

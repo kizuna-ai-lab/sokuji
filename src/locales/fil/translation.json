@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Hindi naisulat ang huling pagtatangka: {{reason}}",
     "notesLatestStopped": "Itinigil ang huling pagtatangka.",
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
-    "length": "Haba {{length}}"
+    "length": "Haba {{length}}",
+    "notesJumpPlay": "I-click ang isang paksa o punto para pumunta sa pangungusap nito at mag-play mula roon.",
+    "notesJump": "I-click ang isang paksa o punto para pumunta sa pangungusap nito."
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

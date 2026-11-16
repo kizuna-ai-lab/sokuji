@@ -13,6 +13,7 @@ import type { NotesLanguage } from '../../lib/notes/runner';
 import type { NoteKind, NotesBody } from '../../lib/notes/write';
 import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
+import { playable } from '../../lib/history/playback';
 
 export interface RecordNotesProps {
   record: HistoryRecord;
@@ -169,6 +170,10 @@ export function RecordNotes(p: RecordNotesProps) {
             <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
           ))}
         </div>
+        {/* A click on a topic or point goes to its sentence, and with a recording plays from there: said once, here. */}
+        <p className="record-notes__hint">{playable(p.record.tracks).length > 0
+          ? t('history.notesJumpPlay', 'Click a topic or point to go to its sentence and play from there.')
+          : t('history.notesJump', 'Click a topic or point to go to its sentence.')}</p>
         {body.topics.map((topic, index) => {
           const points = body.points.filter((pt) => pt.topic === index && shown(pt.kinds));
           if (filter !== 'all' && points.length === 0) return null;

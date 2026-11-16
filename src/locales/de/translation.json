@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Der letzte Versuch konnte nicht geschrieben werden: {{reason}}",
     "notesLatestStopped": "Der letzte Versuch wurde abgebrochen.",
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
-    "length": "Dauer {{length}}"
+    "length": "Dauer {{length}}",
+    "notesJumpPlay": "Klicke auf ein Thema oder einen Punkt, um zu seinem Satz zu springen und von dort abzuspielen.",
+    "notesJump": "Klicke auf ein Thema oder einen Punkt, um zu seinem Satz zu springen."
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

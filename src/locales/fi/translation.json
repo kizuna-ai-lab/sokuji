@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "Viimeisintä yritystä ei voitu kirjoittaa: {{reason}}",
     "notesLatestStopped": "Viimeisin yritys keskeytettiin.",
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
-    "length": "Kesto {{length}}"
+    "length": "Kesto {{length}}",
+    "notesJumpPlay": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen ja toistaaksesi siitä.",
+    "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen."
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

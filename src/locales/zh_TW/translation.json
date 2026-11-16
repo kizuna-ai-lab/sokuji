@@ -2072,7 +2072,9 @@
     "notesLatestFailed": "最近一次沒能寫成：{{reason}}",
     "notesLatestStopped": "最近一次已停止。",
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
-    "length": "時長 {{length}}"
+    "length": "時長 {{length}}",
+    "notesJumpPlay": "點主題或要點，跳到原句並從那裡播放。",
+    "notesJump": "點主題或要點，跳到原句。"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",
