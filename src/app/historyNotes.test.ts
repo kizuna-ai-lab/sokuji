@@ -4,6 +4,7 @@ import { usePanelNotesStore } from '../stores/panelNotesStore';
 import { createVirtualClock } from '../lib/contract/clock';
 import { Conversation } from '../lib/conversation/Conversation';
 import { ConversationSet } from '../lib/session/conversationSet';
+import { createStore } from 'zustand/vanilla';
 import { historyNote, shownRecordOf } from './historyNotes';
 
 let shown: string | undefined;
@@ -30,20 +31,23 @@ describe("a record's History warning", () => {
 describe('the record whose conversation is on screen', () => {
   const clock = createVirtualClock(0);
   const legsOf = (session: string) => new Map([['speaker' as const, new Conversation({ leg: 'speaker', session, clock, languages: { source: 'zh', target: 'ja' } })]]);
+  const run = () => createStore<{ phase: string }>(() => ({ phase: 'idle' }));
 
   it("is the run's record; after a Clear once the run has ended, none, until the next run", () => {
     const conversation = new ConversationSet();
-    let running = true;
-    const shown = shownRecordOf(conversation, () => running);
+    const state = run();
+    const shown = shownRecordOf(conversation, state);
+    state.setState({ phase: 'starting' });
     conversation.replace(legsOf('run-a'));
+    state.setState({ phase: 'running' });
     expect(shown()).toBe('run-a');
     // Cleared while the run goes on: its conversation goes on on screen.
     conversation.clear();
     expect(shown()).toBe('run-a');
-    running = false;
+    state.setState({ phase: 'idle' });
     conversation.clear();
     expect(shown()).toBeUndefined();
-    running = true;
+    state.setState({ phase: 'starting' });
     conversation.replace(legsOf('run-b'));
     expect(shown()).toBe('run-b');
   });
@@ -51,11 +55,19 @@ describe('the record whose conversation is on screen', () => {
   // Review: a start clears the panel's notes before it replaces the conversation; refused, the old record stayed "shown".
   it('is none once a start begins, refused or not, until that run replaces the conversation', () => {
     const conversation = new ConversationSet();
-    const shown = shownRecordOf(conversation, () => false);
+    const state = run();
+    const shown = shownRecordOf(conversation, state);
     conversation.replace(legsOf('run-a'));
     expect(shown()).toBe('run-a');
-    shown.forget();
+    state.setState({ phase: 'starting' });
     expect(shown()).toBeUndefined();
+    // A Clear while the start goes on does not bring the last record back.
+    conversation.clear();
+    expect(shown()).toBeUndefined();
+    // Refused: the conversation was never replaced.
+    state.setState({ phase: 'idle' });
+    expect(shown()).toBeUndefined();
+    state.setState({ phase: 'starting' });
     conversation.replace(legsOf('run-b'));
     expect(shown()).toBe('run-b');
   });

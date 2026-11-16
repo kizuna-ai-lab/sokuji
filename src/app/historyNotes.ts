@@ -14,24 +14,25 @@ export function historyNote(note: { code: string; message: string }, shownRecord
   };
 }
 
+/** The run's phase, as the session's runner state has it. */
+type RunPhase = { getState(): { phase: string }; subscribe(listener: (now: { phase: string }, before: { phase: string }) => void): () => void };
+
 /**
- * The record whose conversation is on screen: the run's. Clear keeps the legs (their snapshots still name the run), so a
- * Clear once the run has ended is remembered: no record is on screen until the next run replaces the conversation. A
- * Clear while the run goes on keeps it, as its conversation goes on. `forget()` is a start beginning: the panel's notes
- * are cleared then, before the start replaces the conversation, and a refused start never replaces it.
+ * The record whose conversation is on screen: the run's. Clear keeps the legs (their snapshots still name the run), and
+ * a start clears the panel's notes before it replaces the conversation (a refused start never replaces it), so the last
+ * record is forgotten at a Clear once the run has ended and as a start begins: no record is on screen until the next
+ * run replaces the conversation. A Clear while a run goes on changes nothing: its conversation goes on.
  */
-export function shownRecordOf(
-  conversation: Pick<ConversationSet, 'snapshot' | 'onReset'>,
-  running: () => boolean,
-): (() => string | undefined) & { forget(): void } {
+export function shownRecordOf(conversation: Pick<ConversationSet, 'snapshot' | 'onReset'>, state: RunPhase): () => string | undefined {
   const session = () => conversation.snapshot()[0]?.session;
-  let cleared: string | undefined;
+  let forgotten: string | undefined;
   conversation.onReset((reason) => {
-    cleared = reason === 'clear' && !running() ? session() : undefined;
+    if (reason === 'restart') forgotten = undefined;
+    else if (state.getState().phase === 'idle') forgotten = session();
   });
-  const shown = () => {
+  state.subscribe((now, before) => { if (now.phase === 'starting' && before.phase !== 'starting') forgotten = session(); });
+  return () => {
     const now = session();
-    return now !== undefined && now === cleared ? undefined : now;
+    return now !== undefined && now === forgotten ? undefined : now;
   };
-  return Object.assign(shown, { forget: () => { cleared = session(); } });
 }
