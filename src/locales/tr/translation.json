@@ -1856,7 +1856,9 @@
       "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker.",
       "wordsLeftOut": "Kelime listesi: bu hizmetin sınırını aşan {{count}} giriş dışarıda kalır.",
       "wordsUnused": "Kelime listesi: bu model kullanamaz.",
-      "wordsLeftOut_one": "Kelime listesi: bu hizmetin sınırını aşan {{count}} kayıt gönderilmiyor."
+      "wordsLeftOut_one": "Kelime listesi: bu hizmetin sınırını aşan {{count}} kayıt gönderilmiyor.",
+      "notesKizunaPrice": "Kizuna AI tahmini: canlı notlar saatte yaklaşık {{live}}, oturum sonrası notlar saatte yaklaşık {{after}}; oturumlarınızı ödeyen bakiyeden ödenir.",
+      "notesNeedSignInOrKey": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin."
     },
     "display": {
       "surface": "Hangi görünüm",
@@ -2029,7 +2031,7 @@
     "notesLine": "Bir oturum bittiğinde {{service}}, dökümden notlarını yazar.",
     "notesNoService": "Önce “Diller ve düzen” bölümünde notlar için bir hizmet seçin.",
     "notesExplainTitle": "Notlar yazılmadan önce",
-    "notesExplain": "Her oturum için cümlelerinin metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
+    "notesExplain": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
     "notesTurnOn": "Aç",
     "notesModel": "Not modeli",
     "notesModelLine": "Notları yazan metin modeli, hizmetteki adıyla.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Oturum sırasında canlı notlar",
     "liveLine": "Oturum sırasında {{service}} her 20 saniyede bir konuşmanın yanına kısa notlar yazar. Saklanmazlar.",
     "liveExplainTitle": "Canlı notlar yazılmadan önce",
-    "liveExplain": "Oturum sırasında her 20 saniyede bir yeni cümleler (metin, numaralar ve hangi taraf ile konuşmacının söylediği) ve o ana kadarki notlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
+    "liveExplain": "Oturum sırasında her 20 saniyede bir yeni cümleler (metin, numaralar ve hangi taraf ile konuşmacının söylediği), o ana kadarki notlar ve kelime listenizdeki yazımlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
     "file": {
       "import": "Dosya içe aktar",
       "importTitle": "“{{name}}” içe aktar",
@@ -2139,7 +2141,10 @@
     "notesJump": "Cümlesine gitmek için bir konuya veya maddeye tıklayın.",
     "keptHereNotes": "Notlar açıkken her oturumun döküm metni, notları yazmak için {{service}} hizmetine de gönderilir.",
     "notesModelOther": "Diğer",
-    "notesModelName": "Model adı"
+    "notesModelName": "Model adı",
+    "notesExplainKizuna": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
+    "liveExplainKizuna": "Oturum sırasında her 20 saniyede yeni cümleler (metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği), şimdiye kadarki notlar ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
+    "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar."
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",
@@ -2157,6 +2162,10 @@
     "notKept": "Canlı notlar saklanmaz. Oturum Geçmiş’te.",
     "openHistory": "Geçmişi aç",
     "notInHistory": "Canlı notlar saklanmaz ve bu oturum Geçmiş’te yok.",
-    "notKeptOnly": "Canlı notlar saklanmaz."
+    "notKeptOnly": "Canlı notlar saklanmaz.",
+    "noBalance": "Bakiyeniz bitti; canlı notlar durdu.",
+    "stoppedByService": "Kizuna AI şu anda canlı not yazamıyor; notlar durdu.",
+    "costSoFar": "Şimdiye kadarki canlı notlar: yaklaşık {{cost}}",
+    "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı."
   }
 }

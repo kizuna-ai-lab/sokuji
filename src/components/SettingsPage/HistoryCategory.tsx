@@ -20,6 +20,9 @@ import FormInput from '../Settings/shared/FormInput';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import { formatBytes } from '../History/format';
 import type { CategoryBodyProps } from './SettingsPage';
+import { NOTES_SERVICE_NAMES, notesExplanation } from '../History/notesExplain';
+import { KIZUNA_NOTES } from '../../lib/notes/appNotes';
+import { RELAY_NOTES_MODEL } from '../../lib/notes/relayChat';
 
 function Row({ name, line, children }: { name: string; line?: ReactNode; children: ReactNode }) {
   return (
@@ -33,8 +36,7 @@ function Row({ name, line, children }: { name: string; line?: ReactNode; childre
   );
 }
 
-/** The notes services the line-up offers, by name. */
-export const NOTES_SERVICE_NAMES: Readonly<Record<string, string>> = { openai: 'OpenAI' };
+export { NOTES_SERVICE_NAMES };
 
 /** The value of the list's last entry, for a model name typed by hand. */
 const OTHER_MODEL = 'other model';
@@ -167,15 +169,17 @@ export function HistoryCategory(_props: CategoryBodyProps) {
         {explaining && serviceName && (
           <div className="history-category__explain" role="group" aria-label={explainTitle}>
             <strong>{explainTitle}</strong>
-            <p>{explaining === 'live'
-              ? t('history.liveExplain', 'During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them) and the notes so far are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: serviceName })
-              : t('history.notesExplain', 'For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: serviceName })}</p>
+            <p>{notesExplanation(t, service!, explaining)}</p>
             <div className="history-category__explain-actions">
               <button type="button" className="model-row__btn" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
               <button type="button" className="model-row__btn model-row__btn--primary" onClick={() => void turnOn()}>{t('history.notesTurnOn', 'Turn on')}</button>
             </div>
           </div>
         )}
+        {service === KIZUNA_NOTES ? (
+          // Kizuna AI writes with the one model its relay allows: nothing to choose.
+          <Row name={modelName} line={t('history.notesModelKizuna', 'Kizuna AI writes the notes with {{model}}.', { model: RELAY_NOTES_MODEL })}>{null}</Row>
+        ) : (
         <Row name={modelName} line={t('history.notesModelLine', 'The text model that writes the notes, by its name at the service.')}>
           <span className="history-category__model-pick">
             <select className="select-dropdown general-row__select" aria-label={modelName} value={typing ? OTHER_MODEL : model}
@@ -189,6 +193,7 @@ export function HistoryCategory(_props: CategoryBodyProps) {
             )}
           </span>
         </Row>
+        )}
       </div>
     </div>
   );

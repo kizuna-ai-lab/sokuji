@@ -1230,6 +1230,32 @@ describe('attach', () => {
       });
     });
 
+    it('shows that Kizuna AI stopped the live notes, for the session on screen', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(4000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        live.made[0].deps.onStopped!('no-balance');
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: false, stopped: 'no-balance' });
+        await session.runner.stop();
+      });
+    });
+
+    it('adds what each live update used to the session on screen', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(4000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        live.made[0].deps.onUsage!({ prompt_tokens: 900, completion_tokens: 30, prompt_tokens_details: { cached_tokens: 800 } });
+        expect(useLiveNotes.getState().used).toEqual({ input: 900, cached: 800, output: 30 });
+        await session.runner.stop();
+      });
+    });
+
     // Review: a Stop while the notes service is still loading kept nothing for the last update.
     it('makes the loop when the notes service answers after Stop, and gives it the sentences for its last update', async () => {
       await withLive(true, 'openai', async () => {

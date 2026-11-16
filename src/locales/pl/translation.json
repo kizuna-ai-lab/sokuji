@@ -1856,7 +1856,9 @@
       "alsoFiles": "Transkrybuje też zaimportowane pliki i ponownie zapisy.",
       "wordsLeftOut": "Lista słów: {{count}} wpisów ponad limit tej usługi zostaje pominiętych.",
       "wordsUnused": "Lista słów: ten model nie może z niej korzystać.",
-      "wordsLeftOut_one": "Lista słów: {{count}} wpis ponad limit tej usługi zostaje pominięty."
+      "wordsLeftOut_one": "Lista słów: {{count}} wpis ponad limit tej usługi zostaje pominięty.",
+      "notesKizunaPrice": "Szacunek Kizuna AI: notatki na żywo około {{live}} za godzinę, notatki po sesji około {{after}} za godzinę, płatne z salda, które płaci za Twoje sesje.",
+      "notesNeedSignInOrKey": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane."
     },
     "display": {
       "surface": "Który widok",
@@ -2029,7 +2031,7 @@
     "notesLine": "Po zakończeniu sesji {{service}} pisze notatki na podstawie transkrypcji.",
     "notesNoService": "Najpierw wybierz usługę do notatek w „Języki i zestaw”.",
     "notesExplainTitle": "Zanim zostaną napisane notatki",
-    "notesExplain": "Dla każdej sesji do {{service}} trafiają, z Twoim własnym kluczem, tekst jej zdań, ich numery oraz to, która strona i który mówca je wypowiedział. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
+    "notesExplain": "Dla każdej sesji do {{service}} trafiają, z Twoim własnym kluczem, tekst jej zdań, ich numery, to, która strona i który mówca je wypowiedział, oraz pisownia z Twojej listy słów. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
     "notesTurnOn": "Włącz",
     "notesModel": "Model notatek",
     "notesModelLine": "Model tekstowy, który pisze notatki, pod nazwą używaną przez usługę.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Notatki na żywo podczas sesji",
     "liveLine": "Podczas sesji {{service}} co 20 sekund pisze krótkie notatki obok rozmowy. Nie są zapisywane.",
     "liveExplainTitle": "Zanim zostaną napisane notatki na żywo",
-    "liveExplain": "Podczas sesji co 20 sekund do {{service}} trafiają, z Twoim własnym kluczem, nowe zdania (tekst, numery oraz to, która strona i który mówca je wypowiedział) i dotychczasowe notatki. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
+    "liveExplain": "Podczas sesji co 20 sekund do {{service}} trafiają, z Twoim własnym kluczem, nowe zdania (tekst, numery oraz to, która strona i który mówca je wypowiedział), dotychczasowe notatki i pisownia z Twojej listy słów. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
     "file": {
       "import": "Importuj plik",
       "importTitle": "Importuj „{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "Kliknij temat lub punkt, aby przejść do jego zdania.",
     "keptHereNotes": "Gdy notatki są włączone, tekst transkrypcji każdej sesji jest też wysyłany do {{service}}, aby je napisać.",
     "notesModelOther": "Inny",
-    "notesModelName": "Nazwa modelu"
+    "notesModelName": "Nazwa modelu",
+    "notesExplainKizuna": "Dla każdej sesji tekst jej zdań, ich numery, to, która strona i który mówca je wypowiedział, oraz pisownia z Twojej listy słów trafiają przez serwer Kizuna AI do OpenAI, które pisze notatki. Kizuna AI niczego z tego nie przechowuje. Płaci się z salda, które płaci za Twoje sesje. Nigdy dźwięk ani tłumaczenie.",
+    "liveExplainKizuna": "Podczas sesji co 20 sekund nowe zdania (ich tekst, numery oraz to, która strona i który mówca je wypowiedział), dotychczasowe notatki i pisownia z Twojej listy słów trafiają przez serwer Kizuna AI do OpenAI, które pisze notatki. Kizuna AI niczego z tego nie przechowuje. Płaci się z salda, które płaci za Twoje sesje. Nigdy dźwięk ani tłumaczenie.",
+    "notesModelKizuna": "Kizuna AI pisze notatki modelem {{model}}."
   },
   "notesQuit": {
     "named": "Trwa pisanie notatek do „{{title}}”. Zamknąć mimo to? Zostaną oznaczone jako anulowane.",
@@ -2157,6 +2162,10 @@
     "notKept": "Notatki na żywo nie są zapisywane. Sesja jest w historii.",
     "openHistory": "Otwórz historię",
     "notInHistory": "Notatki na żywo nie są zapisywane, a tej sesji nie ma w historii.",
-    "notKeptOnly": "Notatki na żywo nie są zapisywane."
+    "notKeptOnly": "Notatki na żywo nie są zapisywane.",
+    "noBalance": "Saldo się wyczerpało; notatki na żywo zostały zatrzymane.",
+    "stoppedByService": "Kizuna AI nie może teraz pisać notatek na żywo; zostały zatrzymane.",
+    "costSoFar": "Notatki na żywo do tej pory: około {{cost}}",
+    "lowBalance": "Saldo jest niskie: zostało {{balance}}."
   }
 }

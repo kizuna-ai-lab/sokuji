@@ -1856,7 +1856,9 @@
       "alsoFiles": "也用于导入文件和重新转写。",
       "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。",
       "wordsUnused": "词表：这个型号用不上。",
-      "wordsLeftOut_one": "词表：超出这个服务上限的 {{count}} 条没有发送。"
+      "wordsLeftOut_one": "词表：超出这个服务上限的 {{count}} 条没有发送。",
+      "notesKizunaPrice": "Kizuna AI 估价：实时纪要每小时约 {{live}}，会后纪要每小时约 {{after}}，从支付会话费用的余额中扣除。",
+      "notesNeedSignInOrKey": "登录，或在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。"
     },
     "display": {
       "surface": "哪个界面",
@@ -2029,7 +2031,7 @@
     "notesLine": "会话结束时，由 {{service}} 根据转写写出纪要。",
     "notesNoService": "请先在“语言与会话组成”里选择写纪要的服务。",
     "notesExplainTitle": "写纪要之前",
-    "notesExplain": "每次会话会用你自己的 key 把这些发给 {{service}}：各句的文字、句子编号、是哪一方哪位说话人说的。不会发送声音、译文或你的账号信息。",
+    "notesExplain": "每次会话会用你自己的 key 把这些发给 {{service}}：各句的文字、句子编号、是哪一方哪位说话人说的，以及词表里的写法。不会发送声音、译文或你的账号信息。",
     "notesTurnOn": "打开",
     "notesModel": "纪要模型",
     "notesModelLine": "写纪要用的文本模型，填它在服务那边的名字。",
@@ -2079,7 +2081,7 @@
     "liveNotes": "会话中写实时纪要",
     "liveLine": "会话进行中，{{service}} 每 20 秒在对话旁写一次简短纪要。不会保存。",
     "liveExplainTitle": "写实时纪要之前",
-    "liveExplain": "会话进行中，每 20 秒会用你自己的 key 把这些发给 {{service}}：新句子（文字、编号、哪一方哪位说话人说的）和到目前为止的纪要。不会发送声音、译文或你的账号信息。",
+    "liveExplain": "会话进行中，每 20 秒会用你自己的 key 把这些发给 {{service}}：新句子（文字、编号、哪一方哪位说话人说的）、到目前为止的纪要，以及词表里的写法。不会发送声音、译文或你的账号信息。",
     "file": {
       "import": "导入文件",
       "importTitle": "导入“{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "点主题或要点，跳到原句。",
     "keptHereNotes": "纪要开启时，每次会话的转写文字也会发给 {{service}}，用来写纪要。",
     "notesModelOther": "其他",
-    "notesModelName": "模型名"
+    "notesModelName": "模型名",
+    "notesExplainKizuna": "每次会话的这些内容会经过 Kizuna AI 的服务器发给 OpenAI，由 OpenAI 写纪要：各句的文字、句子编号、是哪一方哪位说话人说的，以及词表里的写法。Kizuna AI 不保存其中任何内容。费用从支付会话费用的余额中扣除。不会发送声音或译文。",
+    "liveExplainKizuna": "会话中每 20 秒，新的句子（文字、编号、是哪一方哪位说话人说的）、目前为止的纪要和词表里的写法会经过 Kizuna AI 的服务器发给 OpenAI，由 OpenAI 写纪要。Kizuna AI 不保存其中任何内容。费用从支付会话费用的余额中扣除。不会发送声音或译文。",
+    "notesModelKizuna": "Kizuna AI 用 {{model}} 写纪要。"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",
@@ -2157,6 +2162,10 @@
     "notKept": "实时纪要不保存。这次会话在历史记录里。",
     "openHistory": "打开历史记录",
     "notInHistory": "实时纪要不保存，这次会话也不在历史记录里。",
-    "notKeptOnly": "实时纪要不保存。"
+    "notKeptOnly": "实时纪要不保存。",
+    "noBalance": "余额已用完，实时纪要已停止。",
+    "stoppedByService": "Kizuna AI 现在无法写实时纪要，已停止。",
+    "costSoFar": "本次实时纪要已用：约 {{cost}}",
+    "lowBalance": "余额不多了：还剩 {{balance}}。"
   }
 }

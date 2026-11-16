@@ -1,8 +1,9 @@
 // src/lib/notes/appNotes.ts
 //
 // The app's one notes runner (desktop): the session starts a version when a record closes, the record page starts and
-// cancels them. The notes service is the line-up's notes stage; today that is OpenAI with the user's own key, called
-// from the page (client side only, owner 2026-11-16). The model is the one named in History and notes.
+// cancels them. The notes service is the line-up's notes stage: OpenAI with the user's own key, called from the page
+// with the model named in History and notes; or Kizuna AI, through our relay with the user's sign-in, paid by the
+// payer the app has chosen, with the one model the relay writes notes with.
 import { useWordList } from '../words/list';
 import i18n from '../../locales';
 import { reportError } from '../diagnostics/report';
@@ -13,14 +14,41 @@ import { openaiProvider } from '../../providers/openai/provider';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import useSettingsStore from '../../stores/settingsStore';
+import { currentAuth } from '../../app/currentAuth';
+import { useAccountStore } from '../../stores/accountStore';
+import { getBackendUrl } from '../../utils/environment';
+import { accountPayer } from '../session/payerChoice';
 import { openAiChat, type ChatPort } from './chat';
+import { relayChat, RELAY_NOTES_MODEL } from './relayChat';
 import { createNotesRunner, type NotesLanguage, type NotesRunner } from './runner';
 
 export const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
-/** The notes service with the user's key, or null when the line-up chose none or the key is missing. */
-export async function notesChatFromStores(): Promise<{ chat: ChatPort; model: string } | null> {
-  if (useLineUpStore.getState().lineUp?.summarisation !== 'openai') return null;
+/** The line-up's notes service: Kizuna AI's. */
+export const KIZUNA_NOTES = 'kizunaai';
+
+/**
+ * The notes service the line-up chose, for the meeting `sessionRef` (a record id); null when it chose none, the key is
+ * missing, or Kizuna AI was chosen while signed out.
+ */
+export async function notesChatFromStores(
+  sessionRef?: string,
+  o: { onBalance?(microUsd: number): void } = {},
+): Promise<{ chat: ChatPort; model: string } | null> {
+  const service = useLineUpStore.getState().lineUp?.summarisation;
+  if (service === KIZUNA_NOTES) {
+    if (currentAuth()?.signedIn !== true) return null;
+    const chat = relayChat({
+      baseUrl: getBackendUrl(),
+      // Read at each call: a sign-in that changed since is the one used.
+      token: async () => (await currentAuth()?.getToken()) ?? null,
+      ...(sessionRef ? { sessionRef } : {}),
+      payer: accountPayer(useAccountStore.getState().account),
+      ...(o.onBalance ? { onBalance: o.onBalance } : {}),
+    });
+    return { chat, model: RELAY_NOTES_MODEL };
+  }
+  if (service !== 'openai') return null;
   if (!useProviderStore.getState().entries.openai) await useProviderStore.getState().load(openaiProvider);
   const apiKey = String(useProviderStore.getState().entries.openai?.credentials.apiKey ?? '').trim();
   if (!apiKey) return null;

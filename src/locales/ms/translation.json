@@ -1856,7 +1856,9 @@
       "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula.",
       "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan.",
       "wordsUnused": "Senarai perkataan: model ini tidak dapat menggunakannya.",
-      "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar."
+      "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar.",
+      "notesKizunaPrice": "Anggaran Kizuna AI: nota langsung kira-kira {{live}} sejam, nota selepas sesi kira-kira {{after}} sejam, dibayar daripada baki yang membayar sesi anda.",
+      "notesNeedSignInOrKey": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci”, supaya nota ditulis."
     },
     "display": {
       "surface": "Paparan mana",
@@ -2029,7 +2031,7 @@
     "notesLine": "Apabila sesi tamat, {{service}} menulis notanya daripada transkrip.",
     "notesNoService": "Pilih dahulu perkhidmatan untuk nota dalam “Bahasa dan susunan”.",
     "notesExplainTitle": "Sebelum nota ditulis",
-    "notesExplain": "Bagi setiap sesi, teks ayatnya, nombornya, serta pihak dan penutur yang menyebutnya dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
+    "notesExplain": "Bagi setiap sesi, teks ayatnya, nombornya, pihak dan penutur yang menyebutnya, serta ejaan dalam senarai perkataan anda dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
     "notesTurnOn": "Hidupkan",
     "notesModel": "Model nota",
     "notesModelLine": "Model teks yang menulis nota, mengikut namanya di perkhidmatan.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Nota langsung semasa sesi",
     "liveLine": "Semasa sesi, {{service}} menulis nota ringkas setiap 20 saat di sebelah perbualan. Nota ini tidak disimpan.",
     "liveExplainTitle": "Sebelum nota langsung ditulis",
-    "liveExplain": "Semasa sesi, setiap 20 saat ayat baharu (teks, nombor, serta pihak dan penutur yang menyebutnya) dan nota setakat ini dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
+    "liveExplain": "Semasa sesi, setiap 20 saat ayat baharu (teks, nombor, serta pihak dan penutur yang menyebutnya), nota setakat ini dan ejaan dalam senarai perkataan anda dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
     "file": {
       "import": "Import fail",
       "importTitle": "Import “{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya.",
     "keptHereNotes": "Semasa nota dihidupkan, teks transkrip setiap sesi juga dihantar kepada {{service}} untuk menulisnya.",
     "notesModelOther": "Lain-lain",
-    "notesModelName": "Nama model"
+    "notesModelName": "Nama model",
+    "notesExplainKizuna": "Bagi setiap sesi, teks ayatnya, nombornya, pihak dan penutur yang menyebutnya, serta ejaan dalam senarai perkataan anda melalui pelayan Kizuna AI ke OpenAI, yang menulis nota. Kizuna AI tidak menyimpan apa-apa daripadanya. Kosnya dibayar daripada baki yang membayar sesi anda. Tidak sekali-kali audio atau terjemahan.",
+    "liveExplainKizuna": "Semasa sesi, setiap 20 saat ayat baharu (teks, nombor, serta pihak dan penutur yang menyebutnya), nota setakat ini dan ejaan dalam senarai perkataan anda melalui pelayan Kizuna AI ke OpenAI, yang menulis nota. Kizuna AI tidak menyimpan apa-apa daripadanya. Kosnya dibayar daripada baki yang membayar sesi anda. Tidak sekali-kali audio atau terjemahan.",
+    "notesModelKizuna": "Kizuna AI menulis nota dengan {{model}}."
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",
@@ -2157,6 +2162,10 @@
     "notKept": "Nota langsung tidak disimpan. Sesi ada dalam Sejarah.",
     "openHistory": "Buka Sejarah",
     "notInHistory": "Nota langsung tidak disimpan, dan sesi ini tiada dalam Sejarah.",
-    "notKeptOnly": "Nota langsung tidak disimpan."
+    "notKeptOnly": "Nota langsung tidak disimpan.",
+    "noBalance": "Baki anda telah habis; nota langsung berhenti.",
+    "stoppedByService": "Kizuna AI tidak dapat menulis nota langsung sekarang; nota berhenti.",
+    "costSoFar": "Nota langsung setakat ini: kira-kira {{cost}}",
+    "lowBalance": "Baki anda rendah: tinggal {{balance}}."
   }
 }

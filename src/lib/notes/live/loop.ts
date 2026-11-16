@@ -7,7 +7,9 @@
 import type { WordEntry } from '../../words/list';
 import type { Clock } from '../../contract/clock';
 import type { ChatPort } from '../chat';
+import { ChatError, type NotesUsage } from '../chat';
 import { livePrompt } from '../prompts';
+import { activePrompts } from '../promptSource';
 import type { NotesLanguage } from '../runner';
 import { applyLive, emptyLive, livePayload, type LiveSentence, type LiveState } from './state';
 
@@ -27,6 +29,10 @@ export interface LiveNotesDeps {
   onHint(shown: boolean): void;
   /** One line per update, for the measurement on live recognition (§12). */
   log?(line: Record<string, unknown>): void;
+  /** Kizuna AI refused for the account (no balance, a daily limit, signed out…): the loop has stopped for good. */
+  onStopped?(why: string): void;
+  /** What an update used, as the service reports it (Kizuna AI's relay does). */
+  onUsage?(usage: NotesUsage): void;
   /** Notes to go on from (live notes turned on again in the same session): their sentences are context, not new. */
   from?: { state: LiveState; seen: readonly LiveSentence[] };
 }
@@ -54,9 +60,14 @@ interface Update {
   promise: Promise<void>;
 }
 
+/** Kizuna AI's refusals that the next update would get as well (relayChat's codes). */
+const STOPPING_CODES: ReadonlySet<string> = new Set(['no-balance', 'daily-limit', 'wallet-frozen', 'sign-in', 'not-member', 'update-required', 'unavailable']);
+
 const unstableCount = (s: LiveState) => s.topics.reduce((sum, t) => sum + t.points.filter((p) => p.unstable).length, 0);
 
 export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
+  // The live prompt in use when the loop starts, for the whole session.
+  const prompts = activePrompts().live;
   let state = d.from?.state ?? emptyLive();
   const seen: LiveSentence[] = [...(d.from?.seen ?? [])];
   const known = new Set<number>(seen.map((x) => x.n));
@@ -65,6 +76,8 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
   let failures = 0;
   let hint = false;
   let stopped = false;
+  /** Kizuna AI refused for the account: nothing more is sent, Stop's last update included. */
+  let refused = false;
   let disposed = false;
   let open: Update | null = null;
   /** The session is stopping: only the last update at Stop is left. */
@@ -80,7 +93,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     if (hint) { hint = false; d.onHint(false); }
   };
 
-  const finish = (u: Update, answer: unknown) => {
+  const finish = (u: Update, answer: unknown, o: { counted?: boolean } = {}) => {
     if (u.done || disposed) return;
     u.done = true;
     u.cancelTimeout();
@@ -92,7 +105,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
       sentences: u.fresh.length, latencyMs: d.clock.now() - u.startedAt, accepted: next !== null, givenUp: u.givenUp,
       unstablePoints: next ? unstableCount(next) - unstableCount(state) : 0,
     });
-    if (!next) { failed(); return; }
+    if (!next) { if (o.counted !== false) failed(); return; }
     state = next;
     covered = u.upTo;
     succeeded();
@@ -109,8 +122,25 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     };
     const payload = livePayload({ state, fresh, seen: seen.slice(0, upTo), language: d.language, speakerLabel: d.speakerLabel, names: d.names });
     u.cancelTimeout = d.clock.setTimeout(() => { if (!u.done) { u.givenUp = true; controller.abort(); } }, LIVE_TIMEOUT_MS);
-    u.promise = d.chat({ system: livePrompt(d.language.name), user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal })
-      .then((answer) => finish(u, answer), () => finish(u, undefined));
+    u.promise = d.chat({
+      system: livePrompt(d.language.name, prompts), prompt: 'live-update', promptVersion: prompts.version,
+      user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal,
+      onAnswered: (info) => { if (info.usage) d.onUsage?.(info.usage); },
+    })
+      .then((answer) => finish(u, answer), (error: unknown) => {
+        // A refusal for the account would come again every 20 seconds: the loop stops instead, and says why, also
+        // when it comes during Stop's last update. It is not a failure to try again: no "will try again" hint.
+        if (error instanceof ChatError && error.code && STOPPING_CODES.has(error.code) && !refused && !disposed) {
+          refused = true;
+          stopped = true;
+          cancelTick?.();
+          cancelTick = null;
+          d.onStopped?.(error.code);
+          finish(u, undefined, { counted: false });
+          return;
+        }
+        finish(u, undefined);
+      });
     open = u;
     return u;
   };
@@ -148,8 +178,8 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
       cancelTick?.();
       cancelTick = null;
       if (open) await open.promise;
-      // Disposed while waiting: nothing more is said.
-      if (disposed) return;
+      // Disposed while waiting, or the open update was refused for the account: nothing more is said.
+      if (disposed || refused) return;
       const last = send();
       if (last) await last.promise;
     },

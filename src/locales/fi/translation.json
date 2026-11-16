@@ -1856,7 +1856,9 @@
       "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen.",
       "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois.",
       "wordsUnused": "Sanalista: tämä malli ei voi käyttää sitä.",
-      "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois."
+      "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois.",
+      "notesKizunaPrice": "Kizuna AI:n arvio: reaaliaikaiset muistiinpanot noin {{live}} tunnissa, istunnon jälkeiset muistiinpanot noin {{after}} tunnissa, maksetaan saldosta, josta istuntosi maksetaan.",
+      "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -2029,7 +2031,7 @@
     "notesLine": "Kun istunto päättyy, {{service}} kirjoittaa sen muistiinpanot litteroinnista.",
     "notesNoService": "Valitse ensin muistiinpanojen palvelu kohdassa ”Kielet ja kokoonpano”.",
     "notesExplainTitle": "Ennen kuin muistiinpanoja kirjoitetaan",
-    "notesExplain": "Jokaisesta istunnosta lähetetään {{service}}-palveluun omalla avaimellasi sen lauseiden teksti, niiden numerot sekä se, kumpi osapuoli ja kuka puhuja ne sanoi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
+    "notesExplain": "Jokaisesta istunnosta lähetetään {{service}}-palveluun omalla avaimellasi sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
     "notesTurnOn": "Ota käyttöön",
     "notesModel": "Muistiinpanojen malli",
     "notesModelLine": "Muistiinpanot kirjoittava tekstimalli palvelun käyttämällä nimellä.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Reaaliaikaiset muistiinpanot istunnon aikana",
     "liveLine": "Istunnon aikana {{service}} kirjoittaa 20 sekunnin välein lyhyitä muistiinpanoja keskustelun viereen. Niitä ei tallenneta.",
     "liveExplainTitle": "Ennen kuin reaaliaikaisia muistiinpanoja kirjoitetaan",
-    "liveExplain": "Istunnon aikana uudet lauseet (teksti, numerot sekä kumpi osapuoli ja kuka puhuja ne sanoi) ja tähänastiset muistiinpanot lähetetään 20 sekunnin välein {{service}}-palveluun omalla avaimellasi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
+    "liveExplain": "Istunnon aikana uudet lauseet (teksti, numerot sekä kumpi osapuoli ja kuka puhuja ne sanoi), tähänastiset muistiinpanot ja sanalistasi kirjoitusasut lähetetään 20 sekunnin välein {{service}}-palveluun omalla avaimellasi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
     "file": {
       "import": "Tuo tiedosto",
       "importTitle": "Tuo ”{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen.",
     "keptHereNotes": "Kun muistiinpanot ovat päällä, kunkin istunnon litteroinnin teksti lähetetään myös palveluun {{service}} niiden kirjoittamista varten.",
     "notesModelOther": "Muu",
-    "notesModelName": "Mallin nimi"
+    "notesModelName": "Mallin nimi",
+    "notesExplainKizuna": "Jokaisesta istunnosta sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
+    "liveExplainKizuna": "Istunnon aikana 20 sekunnin välein uudet lauseet (niiden teksti, numerot ja kumpi osapuoli ja kuka puhuja ne sanoi), tähänastiset muistiinpanot ja sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
+    "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}."
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",
@@ -2157,6 +2162,10 @@
     "notKept": "Reaaliaikaisia muistiinpanoja ei tallenneta. Istunto on historiassa.",
     "openHistory": "Avaa historia",
     "notInHistory": "Reaaliaikaisia muistiinpanoja ei tallenneta, eikä tämä istunto ole historiassa.",
-    "notKeptOnly": "Reaaliaikaisia muistiinpanoja ei tallenneta."
+    "notKeptOnly": "Reaaliaikaisia muistiinpanoja ei tallenneta.",
+    "noBalance": "Saldosi loppui; reaaliaikaiset muistiinpanot pysähtyivät.",
+    "stoppedByService": "Kizuna AI ei voi nyt kirjoittaa reaaliaikaisia muistiinpanoja; ne pysähtyivät.",
+    "costSoFar": "Reaaliaikaiset muistiinpanot tähän asti: noin {{cost}}",
+    "lowBalance": "Saldosi on vähissä: jäljellä {{balance}}."
   }
 }

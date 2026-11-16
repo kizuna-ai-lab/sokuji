@@ -24,7 +24,6 @@ import { TranscribePanel, TranscriptChooser } from './FileJobs';
 import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
-import { NOTES_SERVICE_NAMES } from '../SettingsPage/HistoryCategory';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import './History.scss';
 
@@ -204,7 +203,7 @@ export const RecordPage: React.FC = () => {
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
       onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onAddName={(i, spelling) => actions.addName(i, spelling)}
-      latest={open.latest ?? null} explainWith={!notesExplained && notesService ? NOTES_SERVICE_NAMES[notesService] ?? notesService : null}
+      latest={open.latest ?? null} explainWith={!notesExplained && notesService ? notesService : null}
       onExplained={() => void setNotesExplained(true)}
     />
   );

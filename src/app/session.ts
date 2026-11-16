@@ -324,7 +324,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       if (resumed) useLiveNotes.getState().resume(recordId);
       else useLiveNotes.getState().begin(recordId);
       // Read while the session runs; a Stop before it answers keeps the sentences for the last update.
-      void notesChatFromStores().then((service) => {
+      void notesChatFromStores(recordId, { onBalance: (microUsd) => useLiveNotes.getState().balanceAfter(recordId, microUsd) }).then((service) => {
         begun.loading = false;
         if (begun.gone) return;
         if (!service) {
@@ -345,6 +345,9 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           // Keyed by the record: the last update after Stop still lands, and nothing lands once another session shows.
           onState: (state) => useLiveNotes.getState().update(recordId, state),
           onHint: (shown) => useLiveNotes.getState().setHint(recordId, shown),
+          // Kizuna AI refused for the account (the balance ran out…): the loop has stopped; the panel says why.
+          onStopped: (why) => useLiveNotes.getState().stoppedFor(recordId, why),
+          onUsage: (usage) => useLiveNotes.getState().addUsage(recordId, usage),
           log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
         });
         begun.loop.sentences(begun.pending);

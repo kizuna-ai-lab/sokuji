@@ -8,15 +8,15 @@ import type { WordEntry } from '../words/list';
 import type { HistoryPort } from '../history/port';
 import type { HistoryNotesInput, HistoryRecord, HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort } from './chat';
-import { NOTES_PROMPT_VERSION } from './prompts';
+import { activePrompts } from './promptSource';
 import { NOTES_MIN_MS, writeNotes } from './write';
 
 export interface NotesLanguage { code: string; name: string }
 
 export interface NotesRunnerDeps {
   port: HistoryPort;
-  /** The notes service with the user's key, and the model it uses; null when none is set up. */
-  chatFor(): Promise<{ chat: ChatPort; model: string } | null>;
+  /** The notes service and the model it uses, for the record written (a hosted service bills that meeting); null when none is set up. */
+  chatFor(recordId: string): Promise<{ chat: ChatPort; model: string } | null>;
   /** The language notes are written in when none is asked for: the record's "my language", or the interface's. */
   language(record: HistoryRecord): NotesLanguage;
   /** The word list: spellings the notes are asked to prefer (stage 5); none when absent. */
@@ -77,11 +77,13 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     const span = sentences.length > 0
       ? Math.max(...sentences.map((s) => s.endMs)) - Math.min(...sentences.map((s) => s.startMs)) : 0;
     if (span < NOTES_MIN_MS) return;
-    const service = await d.chatFor();
+    const service = await d.chatFor(recordId);
     const requestIds: string[] = [];
+    // One set of prompts for the whole version; its number is what the version stores.
+    const prompts = activePrompts().notes;
     const base = {
       recordId, transcriptId: newest.id, language: language.code,
-      writtenBy: { kind: 'sokuji' as const, promptVersion: NOTES_PROMPT_VERSION, model: service?.model ?? '' },
+      writtenBy: { kind: 'sokuji' as const, promptVersion: prompts.version, model: service?.model ?? '' },
     };
     const save = (rest: Pick<HistoryNotesInput, 'state' | 'failure' | 'body'>) => d.port.saveNotes({ ...base, ...rest, requestIds: [...requestIds] });
     if (!service) {
@@ -92,7 +94,7 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     try {
       result = await writeNotes({
         sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal, requestIds,
-        names: d.names?.() ?? [],
+        names: d.names?.() ?? [], prompts,
       });
     } catch (error) {
       if (controller.signal.aborted || isAbort(error)) {

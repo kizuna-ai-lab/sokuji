@@ -1856,7 +1856,9 @@
       "alsoFiles": "Also transcribes imported files and records again.",
       "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out.",
       "wordsUnused": "Word list: this model cannot use it.",
-      "wordsLeftOut_one": "Word list: {{count}} entry over this service’s limit is left out."
+      "wordsLeftOut_one": "Word list: {{count}} entry over this service’s limit is left out.",
+      "notesKizunaPrice": "Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.",
+      "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written."
     },
     "display": {
       "surface": "Which display",
@@ -2029,7 +2031,7 @@
     "notesLine": "When a session ends, {{service}} writes its notes from the transcript.",
     "notesNoService": "Choose a notes service in Languages and line-up first.",
     "notesExplainTitle": "Before notes are written",
-    "notesExplain": "For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.",
+    "notesExplain": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "notesTurnOn": "Turn on",
     "notesModel": "Notes model",
     "notesModelLine": "The text model that writes the notes, by its name at the service.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Live notes during a session",
     "liveLine": "During a session, {{service}} keeps short notes every 20 seconds beside the conversation. They are not kept.",
     "liveExplainTitle": "Before live notes are written",
-    "liveExplain": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them) and the notes so far are sent to {{service}} with your own key. Never the audio, the translation or your account.",
+    "liveExplain": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them), the notes so far and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "file": {
       "import": "Import a file",
       "importTitle": "Import “{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "Click a topic or point to go to its sentence.",
     "keptHereNotes": "While notes are on, each session’s transcript text is also sent to {{service}} to write them.",
     "notesModelOther": "Other",
-    "notesModelName": "Model name"
+    "notesModelName": "Model name",
+    "notesExplainKizuna": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list go through Kizuna AI’s server to OpenAI, which writes the notes. Kizuna AI keeps none of it. It is paid from the balance that pays for your sessions. Never the audio or the translation.",
+    "liveExplainKizuna": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them), the notes so far and the spellings in your word list go through Kizuna AI’s server to OpenAI, which writes the notes. Kizuna AI keeps none of it. It is paid from the balance that pays for your sessions. Never the audio or the translation.",
+    "notesModelKizuna": "Kizuna AI writes the notes with {{model}}."
   },
   "notesQuit": {
     "named": "Notes are being written for “{{title}}”. Quit anyway? They will be marked cancelled.",
@@ -2157,6 +2162,10 @@
     "notKept": "Live notes are not kept. The session is in History.",
     "openHistory": "Open History",
     "notInHistory": "Live notes are not kept, and this session is not in History.",
-    "notKeptOnly": "Live notes are not kept."
+    "notKeptOnly": "Live notes are not kept.",
+    "noBalance": "Your balance ran out; live notes stopped.",
+    "stoppedByService": "Kizuna AI cannot write live notes right now; they stopped.",
+    "costSoFar": "Live notes so far: about {{cost}}",
+    "lowBalance": "Your balance is low: {{balance}} left."
   }
 }

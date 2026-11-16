@@ -17,11 +17,19 @@ vi.mock('../providers/ProviderOwnSettings', () => ({
   ProviderTurnDetectionControls: () => <div id="turn-detection-tuning-section" />,
 }));
 // Every released provider offered, and signed in: the list shows what a signed-in user of a release sees.
+const noHosted = vi.hoisted(() => ({ value: false }));
 vi.mock('../../providers/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../providers/registry')>();
-  return { ...actual, presentProviders: () => actual.RELEASED };
+  return { ...actual, presentProviders: () => (noHosted.value ? actual.RELEASED.filter((p) => p.kind !== 'managed') : actual.RELEASED) };
 });
-vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: true, getToken: async () => null }) }));
+const authState = vi.hoisted(() => ({ signedIn: true }));
+vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: authState.signedIn, getToken: async () => null }) }));
+// The notes' prices per hour, as the backend's pricing table would give them (null: not known).
+const notesPricing = vi.hoisted(() => ({ value: null as null | { liveUsdPerHour: number; afterSessionUsdPerHour: number } }));
+vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/notes/notesPricing')>()),
+  useNotesPricing: () => notesPricing.value,
+}));
 const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
@@ -36,6 +44,9 @@ const optionTexts = (name: string) => within(screen.getByRole('combobox', { name
 
 beforeEach(() => {
   env.electron = true;
+  authState.signedIn = true;
+  notesPricing.value = null;
+  noHosted.value = false;
   tracked.length = 0;
   useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
@@ -284,7 +295,37 @@ describe('languages and line-up — as the mock draws them', () => {
 describe('the notes card', () => {
   const openAiKey = () => useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-test' } } } as never });
 
-  it('offers only None until OpenAI has a key, and says where to add one', () => {
+  it('signed out with no OpenAI key: Kizuna AI waits for a sign-in, and the card says how to have notes written', () => {
+    authState.signedIn = false;
+    render(<LineUpCategory locked={false} />);
+    expect(optionTexts('Notes')).toEqual(['None', 'Kizuna AI (needs a sign-in)']);
+    expect(screen.getByRole('option', { name: 'Kizuna AI (needs a sign-in)' })).toBeDisabled();
+    expect(screen.getByText('Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')).toBeInTheDocument();
+  });
+
+  it('signed in: offers Kizuna AI with its estimated prices per hour, and a choice sets the notes stage', async () => {
+    notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
+    render(<LineUpCategory locked={false} />);
+    expect(optionTexts('Notes')).toEqual(['None', 'Kizuna AI']);
+    expect(screen.queryByText(/Add an OpenAI key/)).toBeNull();
+    expect(screen.getByText('Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'kizunaai' }));
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByText('Ready')).toBeInTheDocument();
+  });
+
+  it('keeps showing Kizuna AI while it is chosen, saying it needs a sign-in once signed out', () => {
+    authState.signedIn = false;
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(optionTexts('Notes')).toEqual(['None', 'Kizuna AI']);
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
+  });
+
+  it('without the hosted services, offers only None until OpenAI has a key, and says where to add one', () => {
+    noHosted.value = true;
     render(<LineUpCategory locked={false} />);
     expect(optionTexts('Notes')).toEqual(['None']);
     expect(screen.getByText('Add an OpenAI key in Accounts and keys to have notes written.')).toBeInTheDocument();
@@ -293,7 +334,7 @@ describe('the notes card', () => {
   it('offers OpenAI once it has a key, and a choice sets the notes stage alone', async () => {
     openAiKey();
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['None', 'OpenAI']);
+    expect(optionTexts('Notes')).toEqual(['None', 'Kizuna AI', 'OpenAI']);
     fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'openai' }));
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
@@ -304,7 +345,7 @@ describe('the notes card', () => {
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['None', 'OpenAI']);
+    expect(optionTexts('Notes')).toEqual(['None', 'Kizuna AI', 'OpenAI']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
   });

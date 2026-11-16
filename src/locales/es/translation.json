@@ -1856,7 +1856,9 @@
       "alsoFiles": "También transcribe los archivos importados y vuelve a transcribir registros.",
       "wordsLeftOut": "Lista de palabras: se omiten {{count}} entradas que superan el límite de este servicio.",
       "wordsUnused": "Lista de palabras: este modelo no puede usarla.",
-      "wordsLeftOut_one": "Lista de palabras: se omite {{count}} entrada que supera el límite de este servicio."
+      "wordsLeftOut_one": "Lista de palabras: se omite {{count}} entrada que supera el límite de este servicio.",
+      "notesKizunaPrice": "Estimación de Kizuna AI: notas en directo unos {{live}} por hora, notas después de una sesión unos {{after}} por hora, pagadas con el saldo que paga tus sesiones.",
+      "notesNeedSignInOrKey": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves», para que se escriban las notas."
     },
     "display": {
       "surface": "Qué visualización",
@@ -2029,7 +2031,7 @@
     "notesLine": "Cuando termina una sesión, {{service}} escribe sus notas a partir de la transcripción.",
     "notesNoService": "Primero elige un servicio para las notas en «Idiomas y combinación».",
     "notesExplainTitle": "Antes de escribir notas",
-    "notesExplain": "De cada sesión se envían a {{service}}, con tu propia clave, el texto de sus frases, sus números y qué lado y qué hablante las dijo. Nunca el audio, la traducción ni tu cuenta.",
+    "notesExplain": "De cada sesión se envían a {{service}}, con tu propia clave, el texto de sus frases, sus números, qué lado y qué hablante las dijo y las grafías de tu lista de palabras. Nunca el audio, la traducción ni tu cuenta.",
     "notesTurnOn": "Activar",
     "notesModel": "Modelo de las notas",
     "notesModelLine": "El modelo de texto que escribe las notas, con su nombre en el servicio.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Notas en directo durante la sesión",
     "liveLine": "Durante una sesión, {{service}} toma notas breves cada 20 segundos junto a la conversación. No se guardan.",
     "liveExplainTitle": "Antes de escribir notas en directo",
-    "liveExplain": "Durante una sesión, cada 20 segundos se envían a {{service}}, con tu propia clave, las frases nuevas (su texto, sus números y qué lado y qué hablante las dijo) y las notas hasta ese momento. Nunca el audio, la traducción ni tu cuenta.",
+    "liveExplain": "Durante una sesión, cada 20 segundos se envían a {{service}}, con tu propia clave, las frases nuevas (su texto, sus números y qué lado y qué hablante las dijo), las notas hasta ese momento y las grafías de tu lista de palabras. Nunca el audio, la traducción ni tu cuenta.",
     "file": {
       "import": "Importar un archivo",
       "importTitle": "Importar «{{name}}»",
@@ -2139,7 +2141,10 @@
     "notesJump": "Haz clic en un tema o un punto para ir a su frase.",
     "keptHereNotes": "Mientras las notas están activadas, el texto de la transcripción de cada sesión también se envía a {{service}} para escribirlas.",
     "notesModelOther": "Otro",
-    "notesModelName": "Nombre del modelo"
+    "notesModelName": "Nombre del modelo",
+    "notesExplainKizuna": "De cada sesión, el texto de sus frases, sus números, qué lado y qué hablante las dijo y las grafías de tu lista de palabras pasan por el servidor de Kizuna AI hasta OpenAI, que escribe las notas. Kizuna AI no guarda nada de ello. Se paga con el saldo que paga tus sesiones. Nunca el audio ni la traducción.",
+    "liveExplainKizuna": "Durante una sesión, cada 20 segundos las frases nuevas (su texto, sus números y qué lado y qué hablante las dijo), las notas hasta el momento y las grafías de tu lista de palabras pasan por el servidor de Kizuna AI hasta OpenAI, que escribe las notas. Kizuna AI no guarda nada de ello. Se paga con el saldo que paga tus sesiones. Nunca el audio ni la traducción.",
+    "notesModelKizuna": "Kizuna AI escribe las notas con {{model}}."
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",
@@ -2157,6 +2162,10 @@
     "notKept": "Las notas en directo no se guardan. La sesión está en el historial.",
     "openHistory": "Abrir el historial",
     "notInHistory": "Las notas en directo no se guardan, y esta sesión no está en el historial.",
-    "notKeptOnly": "Las notas en directo no se guardan."
+    "notKeptOnly": "Las notas en directo no se guardan.",
+    "noBalance": "Se agotó tu saldo; las notas en directo se detuvieron.",
+    "stoppedByService": "Kizuna AI no puede escribir notas en directo ahora; se detuvieron.",
+    "costSoFar": "Notas en directo hasta ahora: unos {{cost}}",
+    "lowBalance": "Tu saldo es bajo: quedan {{balance}}."
   }
 }

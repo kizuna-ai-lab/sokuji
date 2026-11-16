@@ -1856,7 +1856,9 @@
       "alsoFiles": "Transcribeert ook geïmporteerde bestanden en verslagen opnieuw.",
       "wordsLeftOut": "Woordenlijst: {{count}} items boven de grens van deze dienst worden weggelaten.",
       "wordsUnused": "Woordenlijst: dit model kan hem niet gebruiken.",
-      "wordsLeftOut_one": "Woordenlijst: {{count}} item boven de limiet van deze dienst wordt weggelaten."
+      "wordsLeftOut_one": "Woordenlijst: {{count}} item boven de limiet van deze dienst wordt weggelaten.",
+      "notesKizunaPrice": "Schatting van Kizuna AI: live notities ongeveer {{live}} per uur, notities na een sessie ongeveer {{after}} per uur, betaald uit het saldo dat je sessies betaalt.",
+      "notesNeedSignInOrKey": "Log in, of voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’, om notities te laten schrijven."
     },
     "display": {
       "surface": "Welke weergave",
@@ -2029,7 +2031,7 @@
     "notesLine": "Als een sessie eindigt, schrijft {{service}} de notities uit de transcriptie.",
     "notesNoService": "Kies eerst een dienst voor de notities bij ‘Talen en opstelling’.",
     "notesExplainTitle": "Voordat er notities worden geschreven",
-    "notesExplain": "Voor elke sessie worden de tekst van de zinnen, hun nummers en welke kant en welke spreker ze zei met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
+    "notesExplain": "Voor elke sessie worden de tekst van de zinnen, hun nummers, welke kant en welke spreker ze zei en de schrijfwijzen uit je woordenlijst met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
     "notesTurnOn": "Inschakelen",
     "notesModel": "Model voor notities",
     "notesModelLine": "Het tekstmodel dat de notities schrijft, met de naam die de dienst gebruikt.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Live notities tijdens de sessie",
     "liveLine": "Tijdens een sessie maakt {{service}} elke 20 seconden korte notities naast het gesprek. Ze worden niet bewaard.",
     "liveExplainTitle": "Voordat er live notities worden geschreven",
-    "liveExplain": "Tijdens een sessie worden elke 20 seconden de nieuwe zinnen (tekst, nummers en welke kant en welke spreker ze zei) en de notities tot dan toe met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
+    "liveExplain": "Tijdens een sessie worden elke 20 seconden de nieuwe zinnen (tekst, nummers en welke kant en welke spreker ze zei), de notities tot dan toe en de schrijfwijzen uit je woordenlijst met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
     "file": {
       "import": "Bestand importeren",
       "importTitle": "“{{name}}” importeren",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klik op een onderwerp of punt om naar de zin te gaan.",
     "keptHereNotes": "Zolang notities aan staan, wordt de tekst van het transcript van elke sessie ook naar {{service}} gestuurd om ze te schrijven.",
     "notesModelOther": "Anders",
-    "notesModelName": "Modelnaam"
+    "notesModelName": "Modelnaam",
+    "notesExplainKizuna": "Voor elke sessie gaan de tekst van de zinnen, hun nummers, welke kant en welke spreker ze zei en de schrijfwijzen uit je woordenlijst via de server van Kizuna AI naar OpenAI, dat de notities schrijft. Kizuna AI bewaart er niets van. Het wordt betaald uit het saldo dat je sessies betaalt. Nooit de audio of de vertaling.",
+    "liveExplainKizuna": "Tijdens een sessie gaan elke 20 seconden de nieuwe zinnen (hun tekst, nummers en welke kant en welke spreker ze zei), de notities tot nu toe en de schrijfwijzen uit je woordenlijst via de server van Kizuna AI naar OpenAI, dat de notities schrijft. Kizuna AI bewaart er niets van. Het wordt betaald uit het saldo dat je sessies betaalt. Nooit de audio of de vertaling.",
+    "notesModelKizuna": "Kizuna AI schrijft de notities met {{model}}."
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",
@@ -2157,6 +2162,10 @@
     "notKept": "Live notities worden niet bewaard. De sessie staat in de geschiedenis.",
     "openHistory": "Geschiedenis openen",
     "notInHistory": "Live notities worden niet bewaard, en deze sessie staat niet in de geschiedenis.",
-    "notKeptOnly": "Live notities worden niet bewaard."
+    "notKeptOnly": "Live notities worden niet bewaard.",
+    "noBalance": "Je saldo is op; de live notities zijn gestopt.",
+    "stoppedByService": "Kizuna AI kan nu geen live notities schrijven; ze zijn gestopt.",
+    "costSoFar": "Live notities tot nu toe: ongeveer {{cost}}",
+    "lowBalance": "Je saldo is laag: nog {{balance}}."
   }
 }

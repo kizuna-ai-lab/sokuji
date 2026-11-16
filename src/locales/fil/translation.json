@@ -1856,7 +1856,9 @@
       "alsoFiles": "Nagta-transcribe din ng mga na-import na file at muli ng mga rekord.",
       "wordsLeftOut": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi isinasama.",
       "wordsUnused": "Listahan ng salita: hindi ito magagamit ng model na ito.",
-      "wordsLeftOut_one": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi ipinadala."
+      "wordsLeftOut_one": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi ipinadala.",
+      "notesKizunaPrice": "Tantiya ng Kizuna AI: live na tala mga {{live}} kada oras, tala pagkatapos ng session mga {{after}} kada oras, binabayaran mula sa balanseng nagbabayad sa mga session mo.",
+      "notesNeedSignInOrKey": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key”, para maisulat ang mga tala."
     },
     "display": {
       "surface": "Aling display",
@@ -2029,7 +2031,7 @@
     "notesLine": "Kapag natapos ang session, isinusulat ng {{service}} ang mga tala nito mula sa transcript.",
     "notesNoService": "Pumili muna ng serbisyo para sa mga tala sa “Mga wika at line-up”.",
     "notesExplainTitle": "Bago isulat ang mga tala",
-    "notesExplain": "Para sa bawat session, ipinapadala sa {{service}} gamit ang sarili mong key ang teksto ng mga pangungusap nito, ang mga numero nila, at kung aling panig at aling tagapagsalita ang nagsabi. Hindi kailanman ang audio, ang salin o ang account mo.",
+    "notesExplain": "Para sa bawat session, ipinapadala sa {{service}} gamit ang sarili mong key ang teksto ng mga pangungusap nito, ang mga numero nila, kung aling panig at aling tagapagsalita ang nagsabi, at ang mga baybay sa listahan ng salita mo. Hindi kailanman ang audio, ang salin o ang account mo.",
     "notesTurnOn": "I-on",
     "notesModel": "Model ng mga tala",
     "notesModelLine": "Ang text model na sumusulat ng mga tala, ayon sa pangalan nito sa serbisyo.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Live na tala habang may session",
     "liveLine": "Habang may session, gumagawa ang {{service}} ng maiikling tala bawat 20 segundo sa tabi ng usapan. Hindi ito iniimbak.",
     "liveExplainTitle": "Bago isulat ang live na tala",
-    "liveExplain": "Habang may session, bawat 20 segundo ay ipinapadala sa {{service}} gamit ang sarili mong key ang mga bagong pangungusap (teksto, numero, at kung aling panig at tagapagsalita ang nagsabi) at ang mga tala sa ngayon. Hindi kailanman ang audio, ang salin o ang account mo.",
+    "liveExplain": "Habang may session, bawat 20 segundo ay ipinapadala sa {{service}} gamit ang sarili mong key ang mga bagong pangungusap (teksto, numero, at kung aling panig at tagapagsalita ang nagsabi), ang mga tala sa ngayon at ang mga baybay sa listahan ng salita mo. Hindi kailanman ang audio, ang salin o ang account mo.",
     "file": {
       "import": "Mag-import ng file",
       "importTitle": "I-import ang “{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "I-click ang isang paksa o punto para pumunta sa pangungusap nito.",
     "keptHereNotes": "Habang naka-on ang mga tala, ipinapadala rin sa {{service}} ang teksto ng transcript ng bawat session para isulat ang mga ito.",
     "notesModelOther": "Iba pa",
-    "notesModelName": "Pangalan ng model"
+    "notesModelName": "Pangalan ng model",
+    "notesExplainKizuna": "Para sa bawat session, ang teksto ng mga pangungusap nito, ang mga numero nila, kung aling panig at aling tagapagsalita ang nagsabi, at ang mga baybay sa listahan ng salita mo ay dumadaan sa server ng Kizuna AI papunta sa OpenAI, na siyang sumusulat ng mga tala. Walang itinatago ang Kizuna AI rito. Binabayaran ito mula sa balanseng nagbabayad sa mga session mo. Hindi kailanman ang audio o ang salin.",
+    "liveExplainKizuna": "Habang may session, bawat 20 segundo ang mga bagong pangungusap (ang teksto, numero, at kung aling panig at aling tagapagsalita ang nagsabi), ang mga tala sa ngayon at ang mga baybay sa listahan ng salita mo ay dumadaan sa server ng Kizuna AI papunta sa OpenAI, na siyang sumusulat ng mga tala. Walang itinatago ang Kizuna AI rito. Binabayaran ito mula sa balanseng nagbabayad sa mga session mo. Hindi kailanman ang audio o ang salin.",
+    "notesModelKizuna": "Isinusulat ng Kizuna AI ang mga tala gamit ang {{model}}."
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",
@@ -2157,6 +2162,10 @@
     "notKept": "Hindi iniimbak ang live na tala. Nasa History ang session.",
     "openHistory": "Buksan ang History",
     "notInHistory": "Hindi iniimbak ang live na tala, at wala sa History ang session na ito.",
-    "notKeptOnly": "Hindi iniimbak ang live na tala."
+    "notKeptOnly": "Hindi iniimbak ang live na tala.",
+    "noBalance": "Naubos ang iyong balanse; huminto ang live na tala.",
+    "stoppedByService": "Hindi makapagsulat ngayon ang Kizuna AI ng live na tala; huminto ang mga ito.",
+    "costSoFar": "Live na tala sa ngayon: mga {{cost}}",
+    "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira."
   }
 }

@@ -1856,7 +1856,9 @@
       "alsoFiles": "Transkribiert auch importierte Dateien und Einträge erneut.",
       "wordsLeftOut": "Wortliste: {{count}} Einträge über der Grenze dieses Dienstes werden ausgelassen.",
       "wordsUnused": "Wortliste: Dieses Modell kann sie nicht nutzen.",
-      "wordsLeftOut_one": "Wortliste: {{count}} Eintrag über der Grenze dieses Dienstes wird ausgelassen."
+      "wordsLeftOut_one": "Wortliste: {{count}} Eintrag über der Grenze dieses Dienstes wird ausgelassen.",
+      "notesKizunaPrice": "Schätzung von Kizuna AI: Live-Notizen etwa {{live}} pro Stunde, Notizen nach einer Sitzung etwa {{after}} pro Stunde, bezahlt aus dem Guthaben, das Ihre Sitzungen bezahlt.",
+      "notesNeedSignInOrKey": "Melden Sie sich an oder fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu, damit Notizen geschrieben werden."
     },
     "display": {
       "surface": "Welche Anzeige",
@@ -2029,7 +2031,7 @@
     "notesLine": "Wenn eine Sitzung endet, schreibt {{service}} ihre Notizen aus dem Transkript.",
     "notesNoService": "Wählen Sie zuerst unter „Sprachen und Aufstellung“ einen Dienst für die Notizen.",
     "notesExplainTitle": "Bevor Notizen geschrieben werden",
-    "notesExplain": "Für jede Sitzung werden der Text ihrer Sätze, deren Nummern und welche Seite und welcher Sprecher sie gesagt hat mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
+    "notesExplain": "Für jede Sitzung werden der Text ihrer Sätze, deren Nummern, welche Seite und welcher Sprecher sie gesagt hat sowie die Schreibweisen aus Ihrer Wortliste mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
     "notesTurnOn": "Einschalten",
     "notesModel": "Modell für Notizen",
     "notesModelLine": "Das Textmodell, das die Notizen schreibt, mit seinem Namen beim Dienst.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Live-Notizen während der Sitzung",
     "liveLine": "Während einer Sitzung schreibt {{service}} alle 20 Sekunden kurze Notizen neben das Gespräch. Sie werden nicht gespeichert.",
     "liveExplainTitle": "Bevor Live-Notizen geschrieben werden",
-    "liveExplain": "Während einer Sitzung werden alle 20 Sekunden die neuen Sätze (Text, Nummern und welche Seite und welcher Sprecher sie gesagt hat) und die bisherigen Notizen mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
+    "liveExplain": "Während einer Sitzung werden alle 20 Sekunden die neuen Sätze (Text, Nummern und welche Seite und welcher Sprecher sie gesagt hat), die bisherigen Notizen und die Schreibweisen aus Ihrer Wortliste mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
     "file": {
       "import": "Datei importieren",
       "importTitle": "„{{name}}“ importieren",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klicke auf ein Thema oder einen Punkt, um zu seinem Satz zu springen.",
     "keptHereNotes": "Solange Notizen eingeschaltet sind, wird der Text jedes Transkripts auch an {{service}} gesendet, um sie zu schreiben.",
     "notesModelOther": "Andere",
-    "notesModelName": "Modellname"
+    "notesModelName": "Modellname",
+    "notesExplainKizuna": "Für jede Sitzung gehen der Text ihrer Sätze, deren Nummern, welche Seite und welcher Sprecher sie gesagt hat sowie die Schreibweisen aus Ihrer Wortliste über den Server von Kizuna AI an OpenAI, das die Notizen schreibt. Kizuna AI speichert nichts davon. Bezahlt wird aus dem Guthaben, das Ihre Sitzungen bezahlt. Niemals das Audio oder die Übersetzung.",
+    "liveExplainKizuna": "Während einer Sitzung gehen alle 20 Sekunden die neuen Sätze (ihr Text, ihre Nummern und welche Seite und welcher Sprecher sie gesagt hat), die bisherigen Notizen und die Schreibweisen aus Ihrer Wortliste über den Server von Kizuna AI an OpenAI, das die Notizen schreibt. Kizuna AI speichert nichts davon. Bezahlt wird aus dem Guthaben, das Ihre Sitzungen bezahlt. Niemals das Audio oder die Übersetzung.",
+    "notesModelKizuna": "Kizuna AI schreibt die Notizen mit {{model}}."
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",
@@ -2157,6 +2162,10 @@
     "notKept": "Live-Notizen werden nicht gespeichert. Die Sitzung steht im Verlauf.",
     "openHistory": "Verlauf öffnen",
     "notInHistory": "Live-Notizen werden nicht gespeichert, und diese Sitzung steht nicht im Verlauf.",
-    "notKeptOnly": "Live-Notizen werden nicht gespeichert."
+    "notKeptOnly": "Live-Notizen werden nicht gespeichert.",
+    "noBalance": "Ihr Guthaben ist aufgebraucht; die Live-Notizen wurden beendet.",
+    "stoppedByService": "Kizuna AI kann gerade keine Live-Notizen schreiben; sie wurden beendet.",
+    "costSoFar": "Live-Notizen bisher: etwa {{cost}}",
+    "lowBalance": "Ihr Guthaben ist niedrig: noch {{balance}}."
   }
 }

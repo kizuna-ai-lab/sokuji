@@ -6,7 +6,7 @@ const answer = (status: number, body: unknown) => new Response(JSON.stringify(bo
 const content = (obj: unknown) => ({ choices: [{ message: { content: JSON.stringify(obj) } }] });
 const base = { baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-test', model: 'gpt-6-luna' };
 const ask = (chat: ReturnType<typeof openAiChat>, signal = new AbortController().signal) =>
-  chat({ system: 'S', user: { sentences: [{ sid: 1, speaker: 'Me', text: '你好' }] }, effort: 'none', maxTokens: 32000, signal });
+  chat({ system: 'S', prompt: 'whole-meeting', promptVersion: 2, user: { sentences: [{ sid: 1, speaker: 'Me', text: '你好' }] }, effort: 'none', maxTokens: 32000, signal });
 
 describe('the notes chat', () => {
   afterEach(() => { vi.useRealTimers(); });
@@ -41,7 +41,7 @@ describe('the notes chat', () => {
     for (const [model, none] of [['gpt-6-astra', 'low'], ['gpt-6.1-sol', 'low'], ['gpt-6-luna', 'none'], ['gpt-6-sol', 'none'], ['gpt-6.1-terra', 'none']] as const) {
       for (const [effort, sent] of [['none', none], ['medium', 'medium']] as const) {
         const fetch = vi.fn(async () => answer(200, content({ title: 'T' })));
-        await openAiChat({ ...base, model, fetch })({ system: 'S', user: {}, effort, maxTokens: 10, signal: new AbortController().signal });
+        await openAiChat({ ...base, model, fetch })({ system: 'S', prompt: 'whole-meeting', promptVersion: 2, user: {}, effort, maxTokens: 10, signal: new AbortController().signal });
         const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
         expect(body.reasoning_effort, `${model} ${effort}`).toBe(sent);
       }
@@ -125,7 +125,7 @@ describe('the notes chat', () => {
   it("passes on the service's request id", async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify(content({ ok: 1 })), { status: 200, headers: { 'x-request-id': 'req_123' } }));
     const seen: unknown[] = [];
-    await openAiChat({ ...base, fetch })({ system: 'S', user: {}, effort: 'none', maxTokens: 1, signal: new AbortController().signal, onAnswered: (info) => seen.push(info) });
+    await openAiChat({ ...base, fetch })({ system: 'S', prompt: 'whole-meeting', promptVersion: 2, user: {}, effort: 'none', maxTokens: 1, signal: new AbortController().signal, onAnswered: (info) => seen.push(info) });
     expect(seen).toEqual([{ requestId: 'req_123' }]);
   });
 });

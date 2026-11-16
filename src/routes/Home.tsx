@@ -15,6 +15,7 @@ import { watchDevices } from '../lib/audio/deviceWatch';
 import { requestForSync, startNativeOutputs } from '../lib/audio/nativeOutputs';
 import { bindReadings } from '../app/readings';
 import { isElectron } from '../utils/environment';
+import { startPromptSource } from '../lib/notes/promptSource';
 
 export function Home() {
   const loadSettings = useLoadSettings();
@@ -51,6 +52,9 @@ export function Home() {
     // turn mode migrated, the routing switches, the punctuation pack — read by
     // the session from the first Start.
     void loadSessionStores();
+
+    // The notes prompts (desktop): the last good copy from the backend, then the backend asked again.
+    if (isElectron()) void startPromptSource();
 
     // Japanese readings are wanted while a readings switch is on and the target includes Japanese (spec 2026-10-15 §3).
     const unbindReadings = bindReadings();

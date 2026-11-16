@@ -202,8 +202,15 @@ describe("a record's notes", () => {
     expect(screen.queryByText('Bob · Friday')).toBeNull();
   });
 
+  it('explains that the text goes through Kizuna AI to OpenAI when Kizuna AI writes the notes', () => {
+    render(<RecordNotes {...props({ record: record(), notes: null, explainWith: 'kizunaai' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Write notes' }));
+    const explained = screen.getByRole('group', { name: 'Before notes are written' });
+    expect(within(explained).getByText(/go through Kizuna AI’s server to OpenAI/)).toBeInTheDocument();
+  });
+
   it('explains once what is sent where before the first notes written from a record', () => {
-    const p = props({ record: record(), notes: null, explainWith: 'OpenAI' });
+    const p = props({ record: record(), notes: null, explainWith: 'openai' });
     render(<RecordNotes {...p} />);
     fireEvent.click(screen.getByRole('button', { name: 'Write notes' }));
     const explained = screen.getByRole('group', { name: 'Before notes are written' });

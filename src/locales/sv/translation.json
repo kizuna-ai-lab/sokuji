@@ -1856,7 +1856,9 @@
       "alsoFiles": "Transkriberar även importerade filer och poster igen.",
       "wordsLeftOut": "Ordlista: {{count}} poster över tjänstens gräns utelämnas.",
       "wordsUnused": "Ordlista: den här modellen kan inte använda den.",
-      "wordsLeftOut_one": "Ordlista: {{count}} post över den här tjänstens gräns utelämnas."
+      "wordsLeftOut_one": "Ordlista: {{count}} post över den här tjänstens gräns utelämnas.",
+      "notesKizunaPrice": "Kizuna AI:s uppskattning: liveanteckningar cirka {{live}} i timmen, anteckningar efter en session cirka {{after}} i timmen, betalas från saldot som betalar dina sessioner.",
+      "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar."
     },
     "display": {
       "surface": "Vilken visning",
@@ -2029,7 +2031,7 @@
     "notesLine": "När en session slutar skriver {{service}} anteckningarna utifrån transkriptionen.",
     "notesNoService": "Välj först en tjänst för anteckningarna under ”Språk och uppsättning”.",
     "notesExplainTitle": "Innan anteckningar skrivs",
-    "notesExplain": "För varje session skickas meningarnas text, deras nummer och vilken sida och talare som sa dem till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
+    "notesExplain": "För varje session skickas meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
     "notesTurnOn": "Slå på",
     "notesModel": "Modell för anteckningar",
     "notesModelLine": "Textmodellen som skriver anteckningarna, med det namn tjänsten använder.",
@@ -2079,7 +2081,7 @@
     "liveNotes": "Liveanteckningar under sessionen",
     "liveLine": "Under en session skriver {{service}} korta anteckningar var 20:e sekund bredvid samtalet. De sparas inte.",
     "liveExplainTitle": "Innan liveanteckningar skrivs",
-    "liveExplain": "Under en session skickas var 20:e sekund de nya meningarna (text, nummer och vilken sida och talare som sa dem) och anteckningarna hittills till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
+    "liveExplain": "Under en session skickas var 20:e sekund de nya meningarna (text, nummer och vilken sida och talare som sa dem), anteckningarna hittills och stavningarna i din ordlista till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
     "file": {
       "import": "Importera en fil",
       "importTitle": "Importera ”{{name}}”",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening.",
     "keptHereNotes": "Medan anteckningar är på skickas även texten i varje sessions transkription till {{service}} för att skriva dem.",
     "notesModelOther": "Annan",
-    "notesModelName": "Modellnamn"
+    "notesModelName": "Modellnamn",
+    "notesExplainKizuna": "För varje session går meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
+    "liveExplainKizuna": "Under en session går var 20:e sekund de nya meningarna (deras text, nummer och vilken sida och talare som sa dem), anteckningarna hittills och stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
+    "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}."
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",
@@ -2157,6 +2162,10 @@
     "notKept": "Liveanteckningar sparas inte. Sessionen finns i historiken.",
     "openHistory": "Öppna historiken",
     "notInHistory": "Liveanteckningar sparas inte, och den här sessionen finns inte i historiken.",
-    "notKeptOnly": "Liveanteckningar sparas inte."
+    "notKeptOnly": "Liveanteckningar sparas inte.",
+    "noBalance": "Ditt saldo är slut; liveanteckningarna har stoppats.",
+    "stoppedByService": "Kizuna AI kan inte skriva liveanteckningar just nu; de har stoppats.",
+    "costSoFar": "Liveanteckningar hittills: cirka {{cost}}",
+    "lowBalance": "Ditt saldo är lågt: {{balance}} kvar."
   }
 }
