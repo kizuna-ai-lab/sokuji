@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "length": "Durasi {{length}}",
     "notesJumpPlay": "Klik topik atau poin untuk menuju kalimatnya dan memutar dari sana.",
-    "notesJump": "Klik topik atau poin untuk menuju kalimatnya."
+    "notesJump": "Klik topik atau poin untuk menuju kalimatnya.",
+    "keptHereNotes": "Selama catatan aktif, teks transkrip setiap sesi juga dikirim ke {{service}} untuk menulisnya."
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

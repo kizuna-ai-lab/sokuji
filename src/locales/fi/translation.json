@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "length": "Kesto {{length}}",
     "notesJumpPlay": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen ja toistaaksesi siitä.",
-    "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen."
+    "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen.",
+    "keptHereNotes": "Kun muistiinpanot ovat päällä, kunkin istunnon litteroinnin teksti lähetetään myös palveluun {{service}} niiden kirjoittamista varten."
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

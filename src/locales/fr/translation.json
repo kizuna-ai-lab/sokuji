@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
     "length": "Durée {{length}}",
     "notesJumpPlay": "Cliquez sur un sujet ou un point pour aller à sa phrase et lire à partir de là.",
-    "notesJump": "Cliquez sur un sujet ou un point pour aller à sa phrase."
+    "notesJump": "Cliquez sur un sujet ou un point pour aller à sa phrase.",
+    "keptHereNotes": "Tant que les notes sont activées, le texte de la transcription de chaque session est aussi envoyé à {{service}} pour les rédiger."
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

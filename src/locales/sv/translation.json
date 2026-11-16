@@ -2074,7 +2074,8 @@
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "length": "Längd {{length}}",
     "notesJumpPlay": "Klicka på ett ämne eller en punkt för att gå till dess mening och spela upp därifrån.",
-    "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening."
+    "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening.",
+    "keptHereNotes": "Medan anteckningar är på skickas även texten i varje sessions transkription till {{service}} för att skriva dem."
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

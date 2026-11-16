@@ -56,6 +56,16 @@ describe('history and notes', () => {
     expect(screen.queryByText(/not uploaded/)).toBeNull();
   });
 
+  // Review: with notes on, the transcript text leaves the computer too; the line has to say so.
+  it('says the transcript text goes to the notes service while notes are on, and only then', async () => {
+    const SENT = 'While notes are on, each session’s transcript text is also sent to OpenAI to write them.';
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    expect(screen.queryByText(SENT, { exact: false })).toBeNull();
+    act(() => { useSettingsStore.setState({ notesAfterSession: true } as never); });
+    expect(screen.getByText(SENT, { exact: false })).toBeInTheDocument();
+  });
+
   it('has no auto-save switch: History keeps every session on the desktop', async () => {
     render(<HistoryCategory locked={false} />);
     await settle();

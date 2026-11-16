@@ -115,7 +115,10 @@ export function HistoryCategory(_props: CategoryBodyProps) {
             {t('history.openFolder', 'Open folder')}
           </button>
         </Row>
-        <p className="history-category__hint">{t('history.keptHere', 'History keeps each session’s transcript and recording on this computer only. During a session, your speech still goes to the services in your line-up.')}</p>
+        <p className="history-category__hint">
+          {t('history.keptHere', 'History keeps each session’s transcript and recording on this computer only. During a session, your speech still goes to the services in your line-up.')}
+          {notesOn && serviceName && <> {t('history.keptHereNotes', 'While notes are on, each session’s transcript text is also sent to {{service}} to write them.', { service: serviceName })}</>}
+        </p>
         <Row name={notesName} line={serviceName
           ? t('history.notesLine', 'When a session ends, {{service}} writes its notes from the transcript.', { service: serviceName })
           : t('history.notesNoService', 'Choose a notes service in Languages and line-up first.')}>

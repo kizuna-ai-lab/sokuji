@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "length": "Thời lượng {{length}}",
     "notesJumpPlay": "Nhấp vào một chủ đề hoặc ý để đến câu của nó và phát từ đó.",
-    "notesJump": "Nhấp vào một chủ đề hoặc ý để đến câu của nó."
+    "notesJump": "Nhấp vào một chủ đề hoặc ý để đến câu của nó.",
+    "keptHereNotes": "Khi bật ghi chú, văn bản bản ghi của mỗi phiên cũng được gửi tới {{service}} để viết ghi chú."
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

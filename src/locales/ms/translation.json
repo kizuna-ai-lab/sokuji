@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "length": "Tempoh {{length}}",
     "notesJumpPlay": "Klik topik atau perkara untuk pergi ke ayatnya dan main dari situ.",
-    "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya."
+    "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya.",
+    "keptHereNotes": "Semasa nota dihidupkan, teks transkrip setiap sesi juga dihantar kepada {{service}} untuk menulisnya."
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

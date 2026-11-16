@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "length": "Süre {{length}}",
     "notesJumpPlay": "Cümlesine gitmek ve oradan oynatmak için bir konuya veya maddeye tıklayın.",
-    "notesJump": "Cümlesine gitmek için bir konuya veya maddeye tıklayın."
+    "notesJump": "Cümlesine gitmek için bir konuya veya maddeye tıklayın.",
+    "keptHereNotes": "Notlar açıkken her oturumun döküm metni, notları yazmak için {{service}} hizmetine de gönderilir."
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

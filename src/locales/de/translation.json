@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "length": "Dauer {{length}}",
     "notesJumpPlay": "Klicke auf ein Thema oder einen Punkt, um zu seinem Satz zu springen und von dort abzuspielen.",
-    "notesJump": "Klicke auf ein Thema oder einen Punkt, um zu seinem Satz zu springen."
+    "notesJump": "Klicke auf ein Thema oder einen Punkt, um zu seinem Satz zu springen.",
+    "keptHereNotes": "Solange Notizen eingeschaltet sind, wird der Text jedes Transkripts auch an {{service}} gesendet, um sie zu schreiben."
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

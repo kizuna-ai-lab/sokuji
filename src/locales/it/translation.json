@@ -2074,7 +2074,8 @@
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "length": "Durata {{length}}",
     "notesJumpPlay": "Fai clic su un argomento o un punto per andare alla sua frase e riprodurre da lì.",
-    "notesJump": "Fai clic su un argomento o un punto per andare alla sua frase."
+    "notesJump": "Fai clic su un argomento o un punto per andare alla sua frase.",
+    "keptHereNotes": "Finché le note sono attive, il testo della trascrizione di ogni sessione viene inviato anche a {{service}} per scriverle."
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",
