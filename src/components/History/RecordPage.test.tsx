@@ -106,6 +106,7 @@ beforeEach(() => {
     services: { provider: 'soniox', models: {} }, appVersion: '1.2.3', textBytes: 2048, legs: [], tracks: [], notes: [],
     transcripts: [{ id: 1, origin: { service: 'soniox', kind: 'live' }, textKind: 'original', createdAt: START, sentences: 3 }],
   };
+  localStorage.clear();
   port = fakePort();
   env.port = port;
   store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.');
@@ -241,6 +242,8 @@ describe('a record', () => {
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
     expect(document.querySelector('.record-page__transcript-head')).toBeNull();
+    // Open the first time (owner, 2026-11-17: what it holds is seen at once); closed here to start from closed.
+    fireEvent.click(toggle());
     expect(drawer()).toBeNull();
     expect(toggle()).toHaveAccessibleName('Open the side panel');
     expect(toggle()).toHaveAttribute('title', 'Open the side panel');
@@ -262,12 +265,26 @@ describe('a record', () => {
     expect(drawer()).toBeNull();
   });
 
+  it('is open the first time, and remembers the last choice for the next record', async () => {
+    await renderRecord();
+    expect(drawer()).not.toBeNull();
+    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(toggle());
+    expect(drawer()).toBeNull();
+    cleanup();
+    await renderRecord();
+    expect(drawer()).toBeNull();
+    fireEvent.click(toggle());
+    cleanup();
+    await renderRecord();
+    expect(drawer()).not.toBeNull();
+  });
+
   it('closes the drawer on Escape, but drops only the name while one is typed, and stays on the record', async () => {
     render(<HistoryPage onClose={() => {}} />);
     await settle();
     fireEvent.click(screen.getByText(/^Session at /));
     expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
-    fireEvent.click(toggle());
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Escape' });
     await settle();
@@ -282,7 +299,6 @@ describe('a record', () => {
 
   it('saves a name being typed when the drawer is closed', async () => {
     await renderRecord();
-    fireEvent.click(toggle());
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
     fireEvent.click(toggle());
@@ -292,7 +308,6 @@ describe('a record', () => {
 
   it('renames a speaker and moves one sentence to a new speaker', async () => {
     await renderRecord();
-    fireEvent.click(toggle());
     const panel = drawer()!;
     expect(within(panel).getByText('2 sentences')).toBeInTheDocument();
     expect(within(panel).getByText('1 sentence')).toBeInTheDocument();

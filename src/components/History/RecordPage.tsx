@@ -67,6 +67,15 @@ function hitSelector(at: HitTarget, open: OpenRecord, rows: readonly RecordRow[]
   return own ? `[data-segment="${quoted(own.segmentId)}"]` : null;
 }
 
+/** The side panel's last state, kept on this computer: open unless it was closed. */
+const SIDE_PANEL_KEY = 'history.sidePanelClosed';
+const readSideOpen = (): boolean => { try { return localStorage.getItem(SIDE_PANEL_KEY) !== '1'; } catch { return true; } };
+const writeSideOpen = (open: boolean): void => {
+  try {
+    if (open) localStorage.removeItem(SIDE_PANEL_KEY); else localStorage.setItem(SIDE_PANEL_KEY, '1');
+  } catch { /* open again next time */ }
+};
+
 export const RecordPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { store } = useHistoryPageContext();
@@ -76,8 +85,9 @@ export const RecordPage: React.FC = () => {
   const language = i18n.language;
 
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  // The side panel at the right of the transcript: the speakers now, more later (owner, 2026-11-17).
-  const [sideOpen, setSideOpen] = useState(false);
+  // The side panel at the right of the transcript: the speakers now, more later (owner, 2026-11-17). Open the first time,
+  // so what it holds is seen at once; the last choice holds for the records after.
+  const [sideOpen, setSideOpen] = useState(readSideOpen);
   // One save of a name at a time: the click that closes the drawer also takes the focus from the name being typed.
   const savingName = useRef(false);
   const [nameDraft, setNameDraft] = useState<{ side: HistorySentenceSide; speaker: string; value: string } | null>(null);
@@ -502,7 +512,11 @@ export const RecordPage: React.FC = () => {
           <RecordSidePanel
             open={sideOpen}
             editing={nameDraft !== null}
-            onToggle={() => { if (sideOpen && nameDraft) void saveName(); setSideOpen((o) => !o); }}
+            onToggle={() => {
+              if (sideOpen && nameDraft) void saveName();
+              writeSideOpen(!sideOpen);
+              setSideOpen(!sideOpen);
+            }}
           >
             <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
               <h3>{t('history.speakers', 'Speakers')}</h3>
