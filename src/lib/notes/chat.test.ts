@@ -26,6 +26,16 @@ describe('the notes chat', () => {
     });
   });
 
+  // Review: a model that does not take `reasoning_effort: 'none'` refuses every request with it (400, not retried).
+  it('sends the reasoning effort only to the models known to take it, so any model the user names still answers', async () => {
+    for (const [model, sent] of [['gpt-6-luna', true], ['gpt-5.1', true], ['gpt-5.2-mini', true], ['o3', false], ['gpt-5', false], ['gpt-4.1', false], ['gpt-4o-mini', false]] as const) {
+      const fetch = vi.fn(async () => answer(200, content({ title: 'T' })));
+      await ask(openAiChat({ ...base, model, fetch }));
+      const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+      expect('reasoning_effort' in body, model).toBe(sent);
+    }
+  });
+
   it('keeps the service\'s own message when it refuses', async () => {
     const fetch = vi.fn(async () => answer(401, { error: { message: 'Incorrect API key provided.' } }));
     await expect(ask(openAiChat({ ...base, fetch }))).rejects.toMatchObject({ name: 'ChatError', status: 401, serviceMessage: 'Incorrect API key provided.' });

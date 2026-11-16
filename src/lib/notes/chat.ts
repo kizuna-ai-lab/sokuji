@@ -75,6 +75,15 @@ const refusalOf = async (response: Response): Promise<{ message?: string; code?:
   }
 };
 
+/**
+ * Models that take every `reasoning_effort` the notes send ('none' and 'medium'): GPT-5.1 and later. Any other model is
+ * sent none, and uses its own default: an older reasoning model refuses 'none', a model without reasoning refuses the
+ * field at all, and a refused request is not retried.
+ */
+export function takesReasoningEffort(model: string): boolean {
+  return /^gpt-(?:5\.[1-9]\d*|[6-9]|\d{2,})(?:[.-]|$)/.test(model);
+}
+
 export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; fetch?: typeof fetch }): ChatPort {
   const send = o.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
   const url = `${o.baseUrl.replace(/\/+$/, '')}/chat/completions`;
@@ -88,7 +97,7 @@ export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; 
       ],
       response_format: { type: 'json_object' },
       max_completion_tokens: maxTokens,
-      reasoning_effort: effort,
+      ...(takesReasoningEffort(o.model) ? { reasoning_effort: effort } : {}),
     });
     for (let waited = 0; ; ) {
       const response = await send(url, {
