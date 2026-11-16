@@ -2157,8 +2157,10 @@
     "editSave": "Spara",
     "editSaveHint": "Spara (Enter)",
     "editCancelHint": "Avbryt (Esc)",
-    "editSpeakers": "Redigera talare",
-    "speakersHint": "Klicka på ett namn för att byta namn på talaren. Om du vill ge en mening till någon annan använder du knappen ”Byt talare” bredvid den i transkriptionen."
+    "speakersHint": "Klicka på ett namn för att byta namn på talaren. Om du vill ge en mening till någon annan använder du knappen ”Byt talare” bredvid den i transkriptionen.",
+    "sidePanel": "Sidopanel",
+    "openSidePanel": "Öppna sidopanelen",
+    "closeSidePanel": "Stäng sidopanelen"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

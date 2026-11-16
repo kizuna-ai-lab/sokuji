@@ -2157,8 +2157,10 @@
     "editSave": "Enregistrer",
     "editSaveHint": "Enregistrer (Entrée)",
     "editCancelHint": "Annuler (Échap)",
-    "editSpeakers": "Modifier les intervenants",
-    "speakersHint": "Cliquez sur un nom pour renommer l’intervenant. Pour attribuer une phrase à quelqu’un d’autre, utilisez le bouton « Changer d’intervenant » à côté d’elle dans la transcription."
+    "speakersHint": "Cliquez sur un nom pour renommer l’intervenant. Pour attribuer une phrase à quelqu’un d’autre, utilisez le bouton « Changer d’intervenant » à côté d’elle dans la transcription.",
+    "sidePanel": "Panneau latéral",
+    "openSidePanel": "Ouvrir le panneau latéral",
+    "closeSidePanel": "Fermer le panneau latéral"
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

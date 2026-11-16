@@ -2157,8 +2157,10 @@
     "editSave": "Guardar",
     "editSaveHint": "Guardar (Enter)",
     "editCancelHint": "Cancelar (Esc)",
-    "editSpeakers": "Editar oradores",
-    "speakersHint": "Clique num nome para mudar o nome do orador. Para atribuir uma frase a outra pessoa, use o botão «Mudar de orador» ao lado dela na transcrição."
+    "speakersHint": "Clique num nome para mudar o nome do orador. Para atribuir uma frase a outra pessoa, use o botão «Mudar de orador» ao lado dela na transcrição.",
+    "sidePanel": "Painel lateral",
+    "openSidePanel": "Abrir o painel lateral",
+    "closeSidePanel": "Fechar o painel lateral"
   },
   "notesQuit": {
     "named": "As notas de «{{title}}» estão a ser escritas. Sair mesmo assim? Serão marcadas como canceladas.",

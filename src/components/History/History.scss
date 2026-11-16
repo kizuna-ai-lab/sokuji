@@ -467,8 +467,6 @@
     padding: vars.$space-3 vars.$space-4;
   }
 
-  // Room at the top of the transcript for the speakers' button over its top right.
-  &__transcript-head { height: 32px; }
 
   // The player's strip along the bottom; nothing when the record has no recording.
   &__player:empty { display: none; }
@@ -858,10 +856,10 @@
   }
 }
 
-// The speakers' drawer (RecordSpeakersDrawer): at the right of the record's columns, over the transcript. Closed, it
-// waits past the right edge and only its button shows, at the transcript's top right; open, it slides in and the
-// button rides on its left edge.
-.record-speakers-drawer {
+// The record's side panel (RecordSidePanel): at the right of the record's columns, over the transcript. Closed, it
+// waits past the right edge and only its handle shows, against the transcript's right edge; open, it slides in and the
+// handle rides on its left edge. The handle is a small tab: the chevrons alone, its name in its tooltip.
+.record-side {
   position: absolute;
   top: 0;
   right: 0;
@@ -874,19 +872,25 @@
   &.is-open { transform: none; }
   @media (prefers-reduced-motion: reduce) { transition: none; }
 
-  &__toggle {
+  &__handle {
     position: absolute;
     top: vars.$space-2;
-    right: calc(100% + #{vars.$space-3});
-    white-space: nowrap;
-    background: vars.$bg-surface;
-    pointer-events: auto;
-  }
-  // Open: against the drawer's edge, its inner corners square.
-  &.is-open &__toggle {
     right: 100%;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid vars.$border-default;
+    border-right: none;
+    border-radius: vars.$radius-sm 0 0 vars.$radius-sm;
+    background: vars.$bg-surface;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    pointer-events: auto;
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
   }
 
   &__panel {
@@ -898,10 +902,18 @@
     border-left: 1px solid vars.$border-default;
     box-shadow: -6px 0 16px vars.$shadow;
     pointer-events: auto;
+  }
+
+  // One part of the panel per tool: the speakers now, more later, one under another.
+  &__part {
+    & + & { margin-top: vars.$space-4; padding-top: vars.$space-3; border-top: 1px solid vars.$border-subtle; }
     h3 { margin: 0 0 vars.$space-1; font-size: 14px; font-weight: vars.$weight-semibold; }
   }
   &__hint { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-tertiary; }
 }
+
+// The transcript keeps clear of the handle at its right edge.
+.record-page__transcript { padding-right: calc(#{vars.$space-4} + 24px); }
 
 // A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.
 .inline-edit {

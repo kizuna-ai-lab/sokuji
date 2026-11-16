@@ -2157,8 +2157,10 @@
     "editSave": "Speichern",
     "editSaveHint": "Speichern (Eingabe)",
     "editCancelHint": "Abbrechen (Esc)",
-    "editSpeakers": "Sprecher bearbeiten",
-    "speakersHint": "Klicken Sie auf einen Namen, um den Sprecher umzubenennen. Um einen Satz jemand anderem zuzuordnen, nutzen Sie im Transkript die Schaltfläche „Sprecher ändern“ daneben."
+    "speakersHint": "Klicken Sie auf einen Namen, um den Sprecher umzubenennen. Um einen Satz jemand anderem zuzuordnen, nutzen Sie im Transkript die Schaltfläche „Sprecher ändern“ daneben.",
+    "sidePanel": "Seitenleiste",
+    "openSidePanel": "Seitenleiste öffnen",
+    "closeSidePanel": "Seitenleiste schließen"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

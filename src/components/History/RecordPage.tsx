@@ -26,7 +26,7 @@ import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
-import { RecordSpeakersDrawer } from './RecordSpeakersDrawer';
+import { RecordSidePanel } from './RecordSidePanel';
 import { InlineEdit } from './InlineEdit';
 import './History.scss';
 
@@ -76,8 +76,8 @@ export const RecordPage: React.FC = () => {
   const language = i18n.language;
 
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  // The speakers' drawer at the side of the transcript (owner, 2026-11-17).
-  const [speakersOpen, setSpeakersOpen] = useState(false);
+  // The side panel at the right of the transcript: the speakers now, more later (owner, 2026-11-17).
+  const [sideOpen, setSideOpen] = useState(false);
   // One save of a name at a time: the click that closes the drawer also takes the focus from the name being typed.
   const savingName = useRef(false);
   const [nameDraft, setNameDraft] = useState<{ side: HistorySentenceSide; speaker: string; value: string } | null>(null);
@@ -493,21 +493,25 @@ export const RecordPage: React.FC = () => {
       <div className={`record-page__columns${wide ? ' is-wide' : ''}`}>
         <div className="record-page__notes" hidden={!wide && pane !== 'notes'}>{notesView}</div>
         <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
-          {/* Room at the top for the speakers' button, which sits over the transcript's top right. */}
-          {speakerCount > 0 && <div className="record-page__transcript-head" />}
           {transcript}
         </div>
       </div>
-        {/* The speakers, in a drawer over the transcript they name (owner, 2026-11-17): no column of their own. Closing
-            it while a name is typed saves the name, as a click elsewhere does. */}
+        {/* The side panel over the transcript (owner, 2026-11-17): the speakers have no column of their own. Closing it
+            while a name is typed saves the name, as a click elsewhere does. */}
         {speakerCount > 0 && (wide || pane === 'transcript') && (
-          <RecordSpeakersDrawer
-            open={speakersOpen}
+          <RecordSidePanel
+            open={sideOpen}
             editing={nameDraft !== null}
-            onToggle={() => { if (speakersOpen && nameDraft) void saveName(); setSpeakersOpen((o) => !o); }}
+            onToggle={() => { if (sideOpen && nameDraft) void saveName(); setSideOpen((o) => !o); }}
           >
-            {speakersPanel}
-          </RecordSpeakersDrawer>
+            <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
+              <h3>{t('history.speakers', 'Speakers')}</h3>
+              <p className="record-side__hint">
+                {t('history.speakersHint', 'Click a name to rename the speaker. To give one sentence to someone else, use the “Change speaker” button beside it in the transcript.')}
+              </p>
+              {speakersPanel}
+            </section>
+          </RecordSidePanel>
         )}
       </div>
       <div className="record-page__player">

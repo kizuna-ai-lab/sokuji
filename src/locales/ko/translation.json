@@ -2157,8 +2157,10 @@
     "editSave": "저장",
     "editSaveHint": "저장(Enter)",
     "editCancelHint": "취소(Esc)",
-    "editSpeakers": "화자 편집",
-    "speakersHint": "이름을 클릭하면 화자 이름을 바꿀 수 있습니다. 한 문장을 다른 사람에게 옮기려면 전사에서 그 문장 옆의 ‘화자 변경’ 버튼을 사용하세요."
+    "speakersHint": "이름을 클릭하면 화자 이름을 바꿀 수 있습니다. 한 문장을 다른 사람에게 옮기려면 전사에서 그 문장 옆의 ‘화자 변경’ 버튼을 사용하세요.",
+    "sidePanel": "사이드 패널",
+    "openSidePanel": "사이드 패널 열기",
+    "closeSidePanel": "사이드 패널 닫기"
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",

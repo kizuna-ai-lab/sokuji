@@ -2157,8 +2157,10 @@
     "editSave": "Salvar",
     "editSaveHint": "Salvar (Enter)",
     "editCancelHint": "Cancelar (Esc)",
-    "editSpeakers": "Editar falantes",
-    "speakersHint": "Clique em um nome para renomear o falante. Para passar uma frase para outra pessoa, use o botão “Trocar falante” ao lado dela na transcrição."
+    "speakersHint": "Clique em um nome para renomear o falante. Para passar uma frase para outra pessoa, use o botão “Trocar falante” ao lado dela na transcrição.",
+    "sidePanel": "Painel lateral",
+    "openSidePanel": "Abrir o painel lateral",
+    "closeSidePanel": "Fechar o painel lateral"
   },
   "notesQuit": {
     "named": "As notas de “{{title}}” estão sendo escritas. Sair mesmo assim? Elas serão marcadas como canceladas.",

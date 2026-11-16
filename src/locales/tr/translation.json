@@ -2157,8 +2157,10 @@
     "editSave": "Kaydet",
     "editSaveHint": "Kaydet (Enter)",
     "editCancelHint": "İptal (Esc)",
-    "editSpeakers": "Konuşmacıları düzenle",
-    "speakersHint": "Konuşmacının adını değiştirmek için ada tıklayın. Bir cümleyi başkasına vermek için dökümde yanındaki “Konuşmacıyı değiştir” düğmesini kullanın."
+    "speakersHint": "Konuşmacının adını değiştirmek için ada tıklayın. Bir cümleyi başkasına vermek için dökümde yanındaki “Konuşmacıyı değiştir” düğmesini kullanın.",
+    "sidePanel": "Yan panel",
+    "openSidePanel": "Yan paneli aç",
+    "closeSidePanel": "Yan paneli kapat"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

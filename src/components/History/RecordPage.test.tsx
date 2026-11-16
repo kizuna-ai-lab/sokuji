@@ -232,22 +232,31 @@ describe('a record', () => {
   });
 
   // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
-  // Owner, 2026-11-17: the speakers are in a drawer at the side of the transcript, opened and closed by one button
-  // whose chevrons say which way it goes (no ✕); the transcript keeps its width under it.
-  const drawer = () => screen.queryByRole('complementary', { name: 'Speakers' });
-  const toggle = () => screen.getByRole('button', { name: 'Edit speakers' });
+  // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later, opened and closed by one
+  // small handle whose chevrons say which way it goes (no ✕, no row of its own); the transcript keeps its width under it.
+  const drawer = () => screen.queryByRole('complementary', { name: 'Side panel' });
+  const toggle = () => screen.getByRole('button', { name: /^(Open|Close) the side panel$/ });
 
-  it('keeps the speakers in a drawer opened and closed by one button, and gives their column to the transcript', async () => {
+  it('keeps the speakers in a side panel opened and closed by one handle, and gives their column to the transcript', async () => {
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
+    expect(document.querySelector('.record-page__transcript-head')).toBeNull();
     expect(drawer()).toBeNull();
+    expect(toggle()).toHaveAccessibleName('Open the side panel');
+    expect(toggle()).toHaveAttribute('title', 'Open the side panel');
     expect(toggle()).toHaveAttribute('aria-expanded', 'false');
     expect(toggle().querySelector('.lucide-chevrons-left')).not.toBeNull();
+    // The handle is the icon alone: no words of its own.
+    expect(toggle().textContent).toBe('');
     fireEvent.click(toggle());
+    expect(toggle()).toHaveAccessibleName('Close the side panel');
     expect(toggle()).toHaveAttribute('aria-expanded', 'true');
     expect(toggle().querySelector('.lucide-chevrons-right')).not.toBeNull();
-    expect(within(drawer()!).getByText('2 sentences')).toBeInTheDocument();
-    // One button opens and closes it: no close button of its own.
+    // The speakers are its first part, under their own heading.
+    const speakers = within(drawer()!).getByRole('region', { name: 'Speakers' });
+    expect(within(speakers).getByRole('heading', { name: 'Speakers' })).toBeInTheDocument();
+    expect(within(speakers).getByText('2 sentences')).toBeInTheDocument();
+    // One handle opens and closes it: no close button of its own.
     expect(within(drawer()!).queryByRole('button', { name: /close/i })).toBeNull();
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
