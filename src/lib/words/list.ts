@@ -87,21 +87,33 @@ export const useWordList = create<WordListStore>()((set) => ({
   },
 }));
 
-/** Appends an entry, or fills in the entry already written that way (a new "often heard as" is added to its own). */
-export function addWord(entry: WordEntry): Promise<boolean> {
-  const [added] = normaliseEntries([entry]);
-  const entries = useWordList.getState().entries;
-  if (!added) return Promise.resolve(false);
+/** Where several "often heard as" forms are told apart: any comma, the full-width and ideographic ones too. */
+export const HEARD_AS_SEPARATOR = /[,，、]/;
+
+/** One entry into a list: appended, or filling in the entry already written that way (its "often heard as" joined). */
+function merged(entries: readonly WordEntry[], added: WordEntry): WordEntry[] {
   const at = entries.findIndex((e) => e.written === added.written);
-  if (at < 0) return useWordList.getState().setEntries([...entries, added]);
+  if (at < 0) return [...entries, added];
   const known = entries[at];
   const heard = [known.heardAs, added.heardAs].filter((h): h is string => !!h)
-    .flatMap((h) => h.split(',').map((x) => x.trim())).filter(Boolean);
+    .flatMap((h) => h.split(HEARD_AS_SEPARATOR).map((x) => x.trim())).filter(Boolean);
   const heardAs = [...new Set(heard)].join(', ');
-  const merged: WordEntry = {
+  const one: WordEntry = {
     written: known.written,
     ...(known.translation || added.translation ? { translation: known.translation || added.translation } : {}),
     ...(heardAs ? { heardAs } : {}),
   };
-  return useWordList.getState().setEntries(entries.map((e, i) => (i === at ? merged : e)));
+  return entries.map((e, i) => (i === at ? one : e));
+}
+
+/** Adds entries, each appended or merged into the one already written that way, with one write. */
+export function addWords(entries: readonly WordEntry[]): Promise<boolean> {
+  const added = normaliseEntries(entries);
+  if (added.length === 0) return Promise.resolve(false);
+  return useWordList.getState().setEntries(added.reduce(merged, useWordList.getState().entries));
+}
+
+/** Adds one entry: appended, or merged into the entry already written that way. */
+export function addWord(entry: WordEntry): Promise<boolean> {
+  return addWords([entry]);
 }

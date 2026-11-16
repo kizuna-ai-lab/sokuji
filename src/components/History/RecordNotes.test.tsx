@@ -165,6 +165,16 @@ describe("a record's notes", () => {
     expect(screen.getByRole('status')).toHaveTextContent('“Sokuji” is already in the word list.');
   });
 
+  it('keeps saying what happened when the last name to check was added and its list is gone', async () => {
+    const one = { ...complete, body: { ...complete.body!, names: [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }] } };
+    const p = props({ notes: one, onAddName: vi.fn(async () => 'added' as const) });
+    const { rerender } = render(<RecordNotes {...p} />);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Add to word list' })); });
+    rerender(<RecordNotes {...p} notes={{ ...one, body: { ...one.body!, names: [{ ...one.body!.names[0], dismissed: true }] } }} />);
+    expect(screen.queryByRole('region', { name: 'Names to check' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('“Sokuji” was added to the word list.');
+  });
+
   it('keeps the complete notes in view when a newer attempt failed, and says so above them', () => {
     const p = props({ record: record([
       { id: 9, transcriptId: 1, language: 'ja', createdAt: 2000, state: 'failed' },

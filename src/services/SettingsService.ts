@@ -6,6 +6,16 @@ import { reportWarning, describeCause } from '../lib/diagnostics/report';
  * Unified Settings Service implementation
  * Uses Chrome Storage API for browser extensions and localStorage for Electron
  */
+/**
+ * Settings too large for `chrome.storage.sync` (8 KB an item, 120 writes a minute): the extension keeps them in
+ * `chrome.storage.local`, which takes megabytes. The word list and the session background (spec §9).
+ */
+const LOCAL_AREA_KEYS: ReadonlySet<string> = new Set(['settings.words', 'settings.sessionBackground']);
+
+/** The extension's storage area for `key`. */
+// @ts-ignore - Chrome API is defined in global scope for extensions
+const chromeArea = (key: string) => (LOCAL_AREA_KEYS.has(key) ? chrome.storage.local : chrome.storage.sync);
+
 export class SettingsService implements ISettingsService {
   private readonly usesChromeStorage: boolean;
   
@@ -32,7 +42,7 @@ export class SettingsService implements ISettingsService {
         // caller that reasonably assumed a getter with a default cannot fail.
         return await new Promise<T>((resolve) => {
           // @ts-ignore - Chrome API is defined in global scope for extensions
-          chrome.storage.sync.get(key, (result: Record<string, any>) => {
+          chromeArea(key).get(key, (result: Record<string, any>) => {
             // @ts-ignore - Chrome API is defined in global scope for extensions
             if (chrome.runtime.lastError) {
               // @ts-ignore - Chrome API is defined in global scope for extensions
@@ -86,7 +96,7 @@ export class SettingsService implements ISettingsService {
         // `result.success` AND catch; the contract has to be one of the two.
         return await new Promise<SettingsOperationResult>((resolve) => {
           // @ts-ignore - Chrome API is defined in global scope for extensions
-          chrome.storage.sync.set({ [key]: value }, () => {
+          chromeArea(key).set({ [key]: value }, () => {
             // @ts-ignore - Chrome API is defined in global scope for extensions
             if (chrome.runtime.lastError) {
               resolve({

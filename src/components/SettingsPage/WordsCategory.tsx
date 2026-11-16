@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
-import { addWord, normaliseEntries, useWordList, type WordEntry } from '../../lib/words/list';
+import { addWords, normaliseEntries, useWordList, type WordEntry } from '../../lib/words/list';
 import { WORD_LIMITS } from '../../lib/words/forService';
 import FormInput from '../Settings/shared/FormInput';
 import type { CategoryBodyProps } from './SettingsPage';
@@ -48,11 +48,13 @@ export function WordsCategory({ locked }: CategoryBodyProps) {
 
   const save = (next: Draft[]) => {
     setRows(next);
+    // Leaving a cell that changed nothing writes nothing.
+    if (JSON.stringify(normaliseEntries(next)) === JSON.stringify(useWordList.getState().entries)) return;
     void useWordList.getState().setEntries(next);
   };
   const edit = (i: number, field: keyof Draft, value: string) => setRows(rows.map((r, k) => (k === i ? { ...r, [field]: value } : r)));
   const addPasted = async () => {
-    for (const entry of parsePasted(pasted)) await addWord(entry);
+    await addWords(parsePasted(pasted));
     setPasted('');
   };
 

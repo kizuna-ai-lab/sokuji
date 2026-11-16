@@ -4,7 +4,7 @@
 // hot words, translations as its glossary, "often heard as" as its corrections, the session background as its
 // context — the first entries up to its limit, and how many were left out, for its stage to say so. A service with
 // no field gets nothing in this version.
-import type { WordEntry } from './list';
+import { HEARD_AS_SEPARATOR, type WordEntry } from './list';
 
 export interface ServiceWords {
   terms?: string[];
@@ -20,7 +20,7 @@ export interface ServiceWords {
 type Column = 'terms' | 'translations' | 'heardAs' | 'background';
 
 /** The columns each service has a field for, and how many entries it takes (from the services' documents). */
-export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: number; items?: number }> = {
+export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: number; items?: number; backgroundChars?: number }> = {
   // Terms, translations and background share one context of about 8,000 tokens: kept under SONIOX_CONTEXT_CHARS.
   soniox: { columns: ['terms', 'translations', 'background'], entries: Number.POSITIVE_INFINITY },
   // Transcription keywords, and the background as the transcription prompt.
@@ -29,8 +29,9 @@ export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: 
   // Hot words, glossary entries and corrections: at most 1,000 of them together.
   volcengine_ast2: { columns: ['terms', 'translations', 'heardAs'], entries: Number.POSITIVE_INFINITY, items: 1000 },
   gemini: { columns: ['terms'], entries: 1000 },
-  // This device's translation: the words and the background go into its prompt, which a small model reads.
-  local_inference: { columns: ['terms', 'translations', 'background'], entries: 100 },
+  // This device's translation: the words and the start of the background go into the prompt a small model reads for
+  // every sentence; each token there costs time on every one.
+  local_inference: { columns: ['terms', 'translations', 'background'], entries: 30, backgroundChars: 300 },
 };
 
 /** The service a provider in the line-up sends the word list to: Kizuna AI's twins use their base's. */
@@ -63,7 +64,7 @@ function mapped(columns: readonly Column[], entries: readonly WordEntry[], backg
     if (t.length > 0) out.translations = t;
   }
   if (columns.includes('heardAs')) {
-    const h = entries.flatMap((e) => (e.heardAs ? e.heardAs.split(',').map((x) => x.trim()).filter(Boolean).map((x): [string, string] => [x, e.written]) : []));
+    const h = entries.flatMap((e) => (e.heardAs ? e.heardAs.split(HEARD_AS_SEPARATOR).map((x) => x.trim()).filter(Boolean).map((x): [string, string] => [x, e.written]) : []));
     if (h.length > 0) out.heardAs = h;
   }
   if (columns.includes('background') && background) out.background = background;
@@ -73,8 +74,13 @@ function mapped(columns: readonly Column[], entries: readonly WordEntry[], backg
 export function wordsFor(service: string, entries: readonly WordEntry[], background: string): ServiceWords {
   const limit = WORD_LIMITS[service];
   if (!limit) return { leftOut: 0 };
-  const text = background.trim();
-  let kept = entries.slice(0, limit.entries);
+  const trimmed = background.trim();
+  const text = limit.backgroundChars !== undefined && trimmed.length > limit.backgroundChars
+    ? trimmed.slice(0, limit.backgroundChars).replace(/[\uD800-\uDBFF]$/, '') : trimmed;
+  // Only the entries the service would take count: an entry without a translation is nothing to a glossary alone.
+  const relevant = limit.columns.includes('terms') ? [...entries]
+    : entries.filter((e) => (limit.columns.includes('translations') && e.translation) || (limit.columns.includes('heardAs') && e.heardAs));
+  let kept = relevant.slice(0, limit.entries);
   if (limit.items !== undefined) {
     // Entries while what they make (a term, a translation, each "heard as") fits the service's count.
     let items = 0;
@@ -105,5 +111,5 @@ export function wordsFor(service: string, entries: readonly WordEntry[], backgro
       words = mapped(limit.columns, kept, '');
     }
   }
-  return { ...words, leftOut: entries.length - kept.length };
+  return { ...words, leftOut: relevant.length - kept.length };
 }

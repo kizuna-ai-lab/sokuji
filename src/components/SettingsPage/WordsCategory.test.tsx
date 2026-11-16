@@ -40,6 +40,14 @@ describe('the word list in the settings', () => {
     expect(storedEntries()).toEqual([{ written: 'Kizuna AI', translation: 'キズナAI' }]);
   });
 
+  it('writes nothing when a cell is left unchanged', async () => {
+    render(<WordsCategory locked={false} />);
+    setSetting.mockClear();
+    fireEvent.blur(screen.getByLabelText('Written as 1'));
+    await settle();
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
   it('keeps a row still being filled in when another one is saved', async () => {
     render(<WordsCategory locked={false} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add a row' }));

@@ -63,4 +63,23 @@ describe('the word list for each service', () => {
     expect(sonioxContextSize(emoji)).toBeGreaterThan(SONIOX_CONTEXT_CHARS - 10);
     expect(/[\uD800-\uDBFF]$/.test(emoji.background!)).toBe(false);
   });
+
+  it('counts as left out only the entries the service would have taken', () => {
+    const noTranslations = Array.from({ length: 1500 }, (_, i) => ({ written: `w${i}` }));
+    expect(wordsFor('qwen_livetranslate', noTranslations, '').leftOut).toBe(0);
+    const lastTranslated = [...Array.from({ length: 1000 }, (_, i) => ({ written: `w${i}` })), { written: 'x', translation: 'y' }];
+    expect(wordsFor('qwen_livetranslate', lastTranslated, '')).toEqual({ translations: [['x', 'y']], leftOut: 0 });
+  });
+
+  it('turns each "often heard as", split at any comma, into a correction', () => {
+    expect(wordsFor('volcengine_ast2', [{ written: '速记', heardAs: '速库季，苏库吉、素记' }], '').heardAs).toEqual([['速库季', '速记'], ['苏库吉', '速记'], ['素记', '速记']]);
+  });
+
+  it("keeps this device's note short: a few dozen entries and the start of the background", () => {
+    const many = Array.from({ length: 200 }, (_, i) => ({ written: `w${i}`, translation: `t${i}` }));
+    const local = wordsFor('local_inference', many, 'b'.repeat(5000));
+    expect(local.terms!.length).toBeLessThanOrEqual(30);
+    expect(local.background!.length).toBeLessThanOrEqual(300);
+  });
 });
+

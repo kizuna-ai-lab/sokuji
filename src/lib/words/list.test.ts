@@ -11,7 +11,7 @@ const { stored, getSetting, setSetting } = vi.hoisted(() => {
 });
 vi.mock('../../services/ServiceFactory', () => ({ ServiceFactory: { getSettingsService: () => ({ getSetting, setSetting }) } }));
 
-import { BACKGROUND_KEY, WORDS_KEY, addWord, loadWordList, normaliseEntries, saveWordList, useWordList } from './list';
+import { BACKGROUND_KEY, WORDS_KEY, addWord, addWords, loadWordList, normaliseEntries, saveWordList, useWordList } from './list';
 
 beforeEach(() => {
   stored.clear();
@@ -68,4 +68,19 @@ describe('the word list', () => {
       { written: 'Sokuji', heardAs: 'so cookie' },
     ]);
   });
+
+  it('adds many words with one write', async () => {
+    await useWordList.getState().setEntries([{ written: 'Soniox' }]);
+    setSetting.mockClear();
+    await addWords([{ written: 'A' }, { written: 'B', translation: 'b' }, { written: 'Soniox', heardAs: 'sonic ox' }]);
+    expect(setSetting).toHaveBeenCalledTimes(1);
+    expect(useWordList.getState().entries).toEqual([{ written: 'Soniox', heardAs: 'sonic ox' }, { written: 'A' }, { written: 'B', translation: 'b' }]);
+  });
+
+  it('splits "often heard as" at full-width and ideographic commas too', async () => {
+    await useWordList.getState().setEntries([{ written: '速记', heardAs: '速库季，苏库吉' }]);
+    await addWord({ written: '速记', heardAs: '素记、速记 ' });
+    expect(useWordList.getState().entries).toEqual([{ written: '速记', heardAs: '速库季, 苏库吉, 素记, 速记' }]);
+  });
 });
+

@@ -405,7 +405,8 @@ export function createHistoryPageStore(
         const written = spelling.trim();
         if (!name || typeof name.written !== 'string' || !written) return null;
         const known = useWordList.getState().entries.some((e) => e.written === written);
-        await addWord({ written, heardAs: name.written });
+        // Not saved (the warning says why): the name stays to check.
+        if (!(await addWord({ written, heardAs: name.written }))) return null;
         await get().dismissName(index);
         return known ? 'known' : 'added';
       },

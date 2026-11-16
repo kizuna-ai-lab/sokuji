@@ -357,6 +357,27 @@ describe("a record's notes", () => {
     expect(calls('updateNotesNames')).toHaveLength(2);
   });
 
+  it('keeps a name to check when the word list could not be saved', async () => {
+    withNotes([7]);
+    const names = [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }];
+    const getNotes = port.getNotes;
+    port.getNotes = (async (arg: { id: number }) => {
+      const n = await (getNotes as (a: { id: number }) => Promise<HistoryNotes>)(arg);
+      return { ...n, body: { ...n.body!, names } };
+    }) as never;
+    port.updateNotesNames = (async (arg: unknown) => { port.calls.push(['updateNotesNames', arg]); }) as never;
+    useWordList.setState({ entries: [], background: '', loaded: true });
+    await store.getState().openRecord(A);
+    const save = useWordList.getState().setEntries;
+    useWordList.setState({ setEntries: async () => false });
+    try {
+      expect(await store.getState().addName(0, 'Sokuji')).toBeNull();
+    } finally {
+      useWordList.setState({ setEntries: save });
+    }
+    expect(calls('updateNotesNames')).toEqual([]);
+  });
+
   it('opens on the newest complete version when a newer attempt failed or was stopped', async () => {
     port.getRecord = (async (arg: unknown) => {
       port.calls.push(['getRecord', arg]);

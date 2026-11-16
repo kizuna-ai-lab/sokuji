@@ -154,3 +154,27 @@ describe('SettingsService.setSetting', () => {
     expect(result.error).toContain('QuotaExceededError');
   });
 });
+
+// Review: chrome.storage.sync takes 8 KB an item and 120 writes a minute; the word list and the session background
+// outgrow that, so the extension keeps them in chrome.storage.local.
+describe('SettingsService in the extension, for the word list', () => {
+  afterEach(() => { delete (globalThis as Record<string, unknown>).chrome; });
+
+  it('writes and reads the word list and the session background in local storage, the rest in sync', async () => {
+    const areas: Record<'sync' | 'local', Record<string, unknown>> = { sync: {}, local: {} };
+    const area = (name: 'sync' | 'local') => ({
+      set: (items: Record<string, unknown>, cb: () => void) => { Object.assign(areas[name], items); cb(); },
+      get: (key: string, cb: (r: Record<string, unknown>) => void) => cb(key in areas[name] ? { [key]: areas[name][key] } : {}),
+    });
+    (globalThis as Record<string, unknown>).chrome = { storage: { sync: area('sync'), local: area('local') }, runtime: { lastError: undefined } };
+    const service = new SettingsService();
+    await service.setSetting('settings.words', { version: 1, entries: [{ written: 'Sokuji' }] });
+    await service.setSetting('settings.sessionBackground', 'x'.repeat(20_000));
+    await service.setSetting('settings.common.textOnly', true);
+    expect(Object.keys(areas.local).sort()).toEqual(['settings.sessionBackground', 'settings.words']);
+    expect(Object.keys(areas.sync)).toEqual(['settings.common.textOnly']);
+    expect(await service.getSetting('settings.words', null)).toEqual({ version: 1, entries: [{ written: 'Sokuji' }] });
+    expect(await service.getSetting('settings.sessionBackground', '')).toHaveLength(20_000);
+  });
+});
+

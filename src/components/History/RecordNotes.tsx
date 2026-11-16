@@ -244,9 +244,10 @@ export function RecordNotes(p: RecordNotesProps) {
                 </li>
               )))}
             </ul>
-            {nameNote && <p className="record-notes__summary" role="status">{nameNote}</p>}
           </section>
         )}
+        {/* Outside the list: adding its last name dismisses it, and the list goes. */}
+        {nameNote && <p className="record-notes__summary" role="status">{nameNote}</p>}
         {writeControls(t('history.notesWriteAgain', 'Write a new version'))}
       </>
     );
