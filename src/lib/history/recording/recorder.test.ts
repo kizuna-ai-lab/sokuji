@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVirtualClock, type VirtualClock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
 import type { HistoryTrackPiece } from '../types';
-import { createHistoryRecorder, FLUSH_MS, type HistoryRecorder } from './recorder';
+import { createHistoryRecorder, END_WAIT_MS, FLUSH_MS, type HistoryRecorder } from './recorder';
 import type { OpusEncoderFactory } from './track';
 
 const HEAD = new Uint8Array([79, 112, 117, 115, 72, 101, 97, 100, 1, 1, 156, 0, 192, 93, 0, 0, 0, 0, 0]);
@@ -142,6 +142,23 @@ describe('a record\'s recording', () => {
     // Stopped, it is ended at once: nothing waits on the write that never answers.
     const ended = await Promise.race([recorder.end(ID).then(() => 'ended'), new Promise((resolve) => { setTimeout(() => resolve('waiting'), 50); })]);
     expect(ended).toBe('ended');
+  });
+
+  // Review: below the limit, one write that never answers must not hold the record's end, and every record after it.
+  it('ends after END_WAIT_MS when a write never answers, and says the recording stopped', async () => {
+    const port = { appendTrack: () => new Promise(() => {}) } as unknown as HistoryPort;
+    recorder = createHistoryRecorder({ port, clock, encoder: fakeEncoder, report, tell });
+    recorder.begin(ID, 0);
+    await run(1500, () => ['speaker']);
+    let ended = false;
+    void recorder.end(ID).then(() => { ended = true; });
+    await settle();
+    expect(ended).toBe(false);
+    clock.advance(END_WAIT_MS);
+    await settle();
+    expect(ended).toBe(true);
+    expect(tell).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledWith(expect.stringContaining('did not answer'), null);
   });
 
   // Review: a session's first audio arrives before its record exists, and while the previous record is still closing.

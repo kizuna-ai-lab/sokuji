@@ -21,6 +21,8 @@ export const FLUSH_MS = 1000;
 export const MAX_QUEUED_BYTES = 8 * 1024 * 1024;
 /** Audio held for a record not yet opened, at most this much per leg; what comes later is not held. */
 export const MAX_HELD_MS = 30_000;
+/** A record's end waits this long for its last pages to be answered; after it, the recording is stopped. */
+export const END_WAIT_MS = 10_000;
 
 export interface HistoryRecorder {
   /** From now on audio is this record's: held until `begin`. */
@@ -211,7 +213,14 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
       }
       // A stopped recording writes nothing more: its end never waits on a write that may not answer.
       if (r.failed) return;
-      await r.chain;
+      // Nor waits without end on one below the limit: the writer closes the record, and opens the next, after this.
+      await new Promise<void>((resolve) => {
+        const cancel = d.clock.setTimeout(() => {
+          stop(r, `History stopped recording ${r.id}: storage did not answer its last pages within ${END_WAIT_MS / 1000} s`, null);
+          resolve();
+        }, END_WAIT_MS);
+        void r.chain.then(() => { cancel(); resolve(); });
+      });
     },
 
     queuedBytes: () => [...recordings.values()].reduce((n, r) => n + r.queued, 0),
