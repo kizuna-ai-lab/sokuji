@@ -69,10 +69,10 @@ describe('macOS signing entitlements (#458)', () => {
 });
 
 describe('macOS privacy usage strings', () => {
-  it('explains the Downloads prompt the session-end auto-save raises', () => {
-    // transcript-save.js writes into ~/Downloads without a Save dialog, so
-    // macOS asks for access on the first auto-save; without this key the
-    // prompt names the folder but gives the user no reason.
+  it('explains the Downloads prompt the session-end auto-save raised', () => {
+    // The desktop no longer writes into ~/Downloads by itself (History keeps
+    // every session; a recording is saved through the Save dialog). The key
+    // stays until the build config is next touched.
     const text = mac.extendInfo?.NSDownloadsFolderUsageDescription;
     expect(typeof text).toBe('string');
     expect(text).toMatch(/Downloads/);

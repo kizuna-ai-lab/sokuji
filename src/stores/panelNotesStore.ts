@@ -14,6 +14,8 @@ export const PANEL_NOTE_CODES = {
   exportCopyFailed: 'export_copy_failed',
   autoSaveSaved: 'autosave_saved',
   autoSaveFailed: 'autosave_failed',
+  historyRecordingStopped: 'history_recording_stopped',
+  historyTranscriptStopped: 'history_transcript_stopped',
 } as const;
 
 export interface PanelNote {

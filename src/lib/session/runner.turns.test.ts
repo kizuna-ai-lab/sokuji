@@ -31,7 +31,7 @@ function spyingProvider(log: string[], patch: Partial<AnyProvider> = {}): AnyPro
   } as AnyProvider;
 }
 
-function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: AnyProvider; log?: string[]; playback?: Partial<PlaybackPort> } = {}) {
+function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: AnyProvider; log?: string[]; playback?: Partial<PlaybackPort>; taps?: string[] } = {}) {
   const clock = createVirtualClock(0);
   const log = o.log ?? [];
   const sources: FakeSource[] = [];
@@ -66,6 +66,7 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
     analytics: { track: (event, properties) => { tracked.push([event, properties]); } },
     newSessionId: () => 'run1',
     timeoutMs: 1000,
+    ...(o.taps ? { audioTap: { pcm: (leg: string) => { o.taps!.push(leg); } } } : {}),
   });
   const events = (name: string) => tracked.filter(([e]) => e === name).map(([, p]) => p);
   const count = (entry: string) => log.filter((e) => e === entry).length;
@@ -280,5 +281,42 @@ describe('runner — typed text and clearing', () => {
     expect(runner.conversation.snapshot()[0].segments.every((s) => !s.final)).toBe(true);
     expect(playback.clear).toHaveBeenCalled();
     expect(runner.state.getState().phase).toBe('running');
+  });
+});
+
+describe('runner — the recording tap', () => {
+  it("taps each leg's audio where it goes to the adapter, after the push-to-talk gate", async () => {
+    const taps: string[] = [];
+    const { runner, clock, sources } = setup({ legs: ['speaker', 'participant'], taps });
+    await runner.start();
+    sources[0].setVoiced(true);
+    clock.advance(300);
+    expect(taps.filter((l) => l === 'speaker')).toHaveLength(0);
+    expect(taps.filter((l) => l === 'participant')).toHaveLength(3);
+    runner.press();
+    clock.advance(300);
+    runner.release();
+    expect(taps.filter((l) => l === 'speaker')).toHaveLength(3);
+  });
+
+  it('taps the two legs separately in a session that shares one connection', async () => {
+    const taps: string[] = [];
+    const log: string[] = [];
+    const inner = spyingProvider(log);
+    const shared = {
+      ...inner,
+      session: {
+        startBoth: async (requests: Record<string, StartRequest<FakeConfig, FakeCredentials>>, events: Record<string, AdapterEvents>) => {
+          const speaker = await inner.start(requests.speaker as never, events.speaker);
+          const participant = await inner.start(requests.participant as never, events.participant);
+          return { speaker: { ...speaker, info: { ...speaker.info, shared: true } }, participant: { ...participant, info: { ...participant.info, shared: true } } };
+        },
+      },
+    } as unknown as AnyProvider;
+    const { runner, clock } = setup({ legs: ['speaker', 'participant'], turnMode: 'auto', provider: shared, taps, log });
+    await runner.start();
+    clock.advance(300);
+    expect(taps.filter((l) => l === 'speaker')).toHaveLength(3);
+    expect(taps.filter((l) => l === 'participant')).toHaveLength(3);
   });
 });

@@ -1,0 +1,38 @@
+@use '../Settings/shared/variables' as vars;
+
+// The word list: one table, a paste box, the session background, and which services use what.
+.words-category {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-3;
+
+  &__hint, &__others { color: vars.$text-secondary; font-size: vars.$font-caption; }
+
+  &__table, &__usage {
+    width: 100%;
+    border-collapse: collapse;
+    th, td { padding: vars.$space-1 vars.$space-2; text-align: left; border-bottom: 1px solid vars.$border-subtle; }
+    th { color: vars.$text-secondary; font-weight: 500; }
+  }
+  &__table td:last-child { width: 1%; white-space: nowrap; }
+  &__usage {
+    // Lined up with the cells under it.
+    caption { text-align: left; color: vars.$text-secondary; padding: 0 vars.$space-2 vars.$space-1; }
+    // A column's heading over the middle of its column, as its marks are.
+    td, thead th:not(:first-child) { text-align: center; }
+  }
+
+  &__add { align-self: flex-start; display: inline-flex; align-items: center; gap: vars.$space-1; }
+
+  &__paste, &__background {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-1;
+    small { color: vars.$text-secondary; font-size: vars.$font-caption; }
+    // The border and padding inside the width: the boxes end where the table does.
+    textarea { box-sizing: border-box; width: 100%; resize: vertical; border: 1px solid vars.$border-default; border-radius: 4px; padding: vars.$space-2; background: vars.$bg-surface; color: vars.$text-primary; }
+    button { align-self: flex-start; }
+  }
+
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

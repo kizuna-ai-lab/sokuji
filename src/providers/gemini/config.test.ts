@@ -123,3 +123,17 @@ describe("Gemini's builder, the participant's voice", () => {
     expect(build({ voice: 'Kore', participantVoice: 'Kore' }, PARTICIPANT).voice).toBe('Puck');
   });
 });
+
+describe("buildGemini — the word list", () => {
+  const words = { entries: [{ written: 'Sokuji', translation: '速记' }, { written: 'Kizuna AI' }], background: 'Weekly.' };
+  it('sends gemini-3.8-live its written forms as custom vocabulary, nothing else of it', () => {
+    const live = (sh: SharedSettings) => build({ model: 'gemini-3.8-live' }, SPEAKER, { ...sh, models: [...sh.models ?? [], { id: 'gemini-3.8-live' }] } as SharedSettings);
+    expect(live(shared({ words })).vocabulary).toEqual(['Sokuji', 'Kizuna AI']);
+    expect(live(shared()).vocabulary).toBeUndefined();
+  });
+
+  it('sends no other model the field: one that does not know it would refuse the session', () => {
+    expect(build({}, SPEAKER, shared({ words })).vocabulary).toBeUndefined();
+    expect(build({ model: TRANSLATE }, SPEAKER, shared({ words })).vocabulary).toBeUndefined();
+  });
+});

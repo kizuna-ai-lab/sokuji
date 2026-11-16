@@ -76,6 +76,16 @@ function createCloseHandshake({
   /** True when the close/quit may proceed now; otherwise it is held. */
   function hold(event, quit) {
     if (state === 'approved') return true;
+    // The page that was to answer is gone (crashed, reloaded mid-question): nothing will answer, so let it close.
+    if (state === 'waiting' && !hasLivePage()) {
+      if (timer) {
+        clearTimer(timer);
+        timer = null;
+      }
+      pendingAction = null;
+      state = 'approved';
+      return true;
+    }
     if (state === 'waiting') {
       event.preventDefault();
       if (quit) quitPending = true;
@@ -88,21 +98,33 @@ function createCloseHandshake({
     return false;
   }
 
+  /** A fresh page: whatever the last one was asked is gone with it, and the new one is idle until it says otherwise. */
+  function freshPage() {
+    if (timer) {
+      clearTimer(timer);
+      timer = null;
+    }
+    const action = pendingAction;
+    state = 'idle';
+    quitPending = false;
+    pendingAction = null;
+    sessionBusy = false;
+    // The page that was ending its session is gone; do not strand the action.
+    if (action) action();
+  }
+
   return {
     /** A new main window starts a fresh handshake, and a fresh page is idle. */
     attachWindow(nextWin) {
-      if (timer) {
-        clearTimer(timer);
-        timer = null;
-      }
-      const action = pendingAction;
       win = nextWin;
-      state = 'idle';
-      quitPending = false;
-      pendingAction = null;
-      sessionBusy = false;
-      // The page that was ending its session is gone; do not strand the action.
-      if (action) action();
+      freshPage();
+    },
+    /**
+     * The main window's page was replaced (a reload): the window and its webContents stay, but the page that was asked
+     * is gone and will never answer. The handshake starts again, as for a new window.
+     */
+    pageReplaced() {
+      freshPage();
     },
     /** The main window's 'close' listener. */
     onWindowClose(event) {
@@ -115,6 +137,26 @@ function createCloseHandshake({
     /** The renderer has ended its session ('app:close-ready'). */
     ready() {
       finish();
+    },
+    /**
+     * The renderer is asking the user first ('app:close-asking': notes are being written). The user may take their
+     * time, so the close waits for the answer with no timeout.
+     */
+    asking() {
+      if (state !== 'waiting' || !timer) return;
+      clearTimer(timer);
+      timer = null;
+    },
+    /** The user chose to stay ('app:close-cancelled'): nothing closes, quits or installs; the next close asks again. */
+    cancelled() {
+      if (state !== 'waiting') return;
+      if (timer) {
+        clearTimer(timer);
+        timer = null;
+      }
+      state = 'idle';
+      quitPending = false;
+      pendingAction = null;
     },
     /** The renderer's session is running or tearing down ('app:session-busy'). */
     setSessionBusy(busy) {

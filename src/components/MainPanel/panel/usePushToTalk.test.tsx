@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, fireEvent } from '@testing-library/react';
 import { usePushToTalk } from './usePushToTalk';
+import { useLayoutStore } from '../../../stores/layoutStore';
 
 describe('usePushToTalk', () => {
   it('presses on Space down and releases on Space up, ignoring repeats', () => {
@@ -104,5 +105,52 @@ describe('usePushToTalk', () => {
     });
     expect(press).toHaveBeenCalledTimes(1);
     expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds nothing while the History page covers the panel, and releases a hold when it opens', () => {
+    const press = vi.fn();
+    const release = vi.fn();
+    const { result } = renderHook(() => usePushToTalk({ enabled: true, press, release }));
+
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(1);
+    act(() => { useLayoutStore.getState().setHistoryOpen(true); });
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(result.current.held).toBe(false);
+
+    // Space on a focused History button presses its button, not the microphone.
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    act(() => { fireEvent.keyUp(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
+
+    act(() => { useLayoutStore.getState().setHistoryOpen(false); });
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(2);
+    document.body.removeChild(button);
+  });
+  it('holds nothing while the desktop settings page covers the panel, and releases a hold when it opens', () => {
+    const press = vi.fn();
+    const release = vi.fn();
+    const { result } = renderHook(() => usePushToTalk({ enabled: true, press, release }));
+
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(1);
+    act(() => { useLayoutStore.getState().setShowSettings(true); });
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(result.current.held).toBe(false);
+
+    // Space on a focused settings switch flips the switch, not the microphone.
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    act(() => { fireEvent.keyUp(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(1);
+
+    act(() => { useLayoutStore.getState().setShowSettings(false); });
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(press).toHaveBeenCalledTimes(2);
+    act(() => { fireEvent.keyUp(window, { code: 'Space' }); });
   });
 });

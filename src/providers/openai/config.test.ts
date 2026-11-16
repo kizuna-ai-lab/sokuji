@@ -36,8 +36,8 @@ describe("OpenAI Realtime's builder", () => {
   });
 
   it("builds the participant as the reversed call: Other's prompt, the hint for the language it hears, text when it does not speak, and the user's own detection (ruling 4; D17)", () => {
-    const s: Partial<RealtimeSettings> = { useTemplateMode: false, systemInstructions: 'Mine.', participantSystemInstructions: "Other's.", transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji', turnDetectionMode: 'Semantic', semanticEagerness: 'Low' };
-    const participant = build(s, PARTICIPANT);
+    const s: Partial<RealtimeSettings> = { useTemplateMode: false, systemInstructions: 'Mine.', participantSystemInstructions: "Other's.", transcriptModel: 'gpt-live-transcribe', turnDetectionMode: 'Semantic', semanticEagerness: 'Low' };
+    const participant = build(s, PARTICIPANT, shared({ words: { entries: [{ written: 'Sokuji' }], background: '' } }));
     expect(participant).toMatchObject({
       instructions: "Other's.",
       modalities: ['text'],

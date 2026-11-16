@@ -42,7 +42,7 @@ export interface GeminiSetup {
       translationConfig?: { targetLanguageCode: string; echoTargetLanguage: boolean };
     };
     systemInstruction?: { parts: Array<{ text: string }> };
-    inputAudioTranscription: Record<string, never>;
+    inputAudioTranscription: { customVocabulary?: string[] };
     outputAudioTranscription: Record<string, never>;
     realtimeInputConfig: {
       activityHandling: GeminiConfig['activityHandling'];
@@ -71,7 +71,7 @@ export function setupFrame(c: GeminiConfig, handle: string | null): GeminiSetup 
         ...(c.translationTargetCode !== undefined ? { translationConfig: { targetLanguageCode: c.translationTargetCode, echoTargetLanguage: false } } : {}),
       },
       ...(c.instructions !== undefined ? { systemInstruction: { parts: [{ text: c.instructions }] } } : {}),
-      inputAudioTranscription: {},
+      inputAudioTranscription: c.vocabulary ? { customVocabulary: c.vocabulary } : {},
       outputAudioTranscription: {},
       realtimeInputConfig: {
         // Per model family (Gemini/AST2 follow-up, ruling 5), where the old client hard-coded `NO_INTERRUPTION` (`GeminiClient.ts:496`).

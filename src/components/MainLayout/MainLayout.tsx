@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import { SettingsPage } from '../SettingsPage/SettingsPage';
+import { HistoryPage } from '../History/HistoryPage';
 import TourOverlay from '../Tour/TourOverlay';
 import VbCableIntro from '../VbCable/VbCableIntro';
 import RegionRecommendation from '../Region/RegionRecommendation';
@@ -15,7 +16,9 @@ import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
 import { isElectron, isExtension } from '../../utils/environment';
-import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen } from '../../stores/layoutStore';
+import NotesQuitDialog from '../Notes/NotesQuitDialog';
+import LiveNotesPanel from '../LiveNotes/LiveNotesPanel';
+import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen, useHistoryOpen, useSetHistoryOpen } from '../../stores/layoutStore';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
 
@@ -35,6 +38,12 @@ const MainLayout: React.FC = () => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
   });
   const showSettings = useShowSettings();
+  const historyOpen = useHistoryOpen();
+  const setHistoryOpen = useSetHistoryOpen();
+  /** The record History opens at, when the live notes led there: for that opening only. */
+  const [historyRecord, setHistoryRecord] = useState<string | null>(null);
+  // History left any way (its own close, the title bar, the logs, the settings) opens at its list next time.
+  useEffect(() => { if (!historyOpen) setHistoryRecord(null); }, [historyOpen]);
   const setShowSettings = useSetShowSettings();
   const [panelWidth, setPanelWidth] = useState(() => clampPanelWidth(readPanelWidth(), window.innerWidth));
 
@@ -82,6 +91,8 @@ const MainLayout: React.FC = () => {
     } else {
       setShowLogs(true);
       setShowSettings(false);
+      // The logs are a side panel of the conversation: they leave History for it.
+      setHistoryOpen(false);
       sessionStorage.setItem('panelState.showLogs', 'true');
       trackPanelView('logs');
     }
@@ -115,6 +126,10 @@ const MainLayout: React.FC = () => {
   }, [trackPanelView]);
 
   useCloseLogsWhenDisabled(diagnosticLogs, showLogs, closeLogsPanel);
+  // Opening History closes the logs too (Settings closes in the store's setter).
+  useEffect(() => {
+    if (historyOpen && showLogs) closeLogsPanel();
+  }, [historyOpen, showLogs, closeLogsPanel]);
 
   // Visibility is derived, not just persisted. showLogs is restored from
   // sessionStorage during the first render, so a panel saved while diagnostic
@@ -165,7 +180,9 @@ const MainLayout: React.FC = () => {
   // On the desktop the settings page takes the place of the conversation (which stays mounted underneath); in the
   // extension it sits in the side panel next to the conversation, as the old settings did.
   const pageInPlace = showSettings && !isExtension();
-  const sidePanelOpen = logsVisible || (showSettings && !pageInPlace);
+  // History (desktop) takes the place of the conversation and of the side panels; the conversation stays mounted.
+  const historyInPlace = historyOpen && isElectron();
+  const sidePanelOpen = !historyInPlace && (logsVisible || (showSettings && !pageInPlace));
 
   return (
     <>
@@ -184,10 +201,14 @@ const MainLayout: React.FC = () => {
     >
       <div
         className={`main-content ${sidePanelOpen ? 'with-panel' : 'full-width'}`}
-        style={pageInPlace ? { display: 'none' } : undefined}
+        style={pageInPlace || historyInPlace ? { display: 'none' } : undefined}
       >
-        <div className="main-panel-container">
-          <MainPanel />
+        {/* The conversation, and the live notes beside it (on the right; above it when narrow). */}
+        <div className="main-panel-row">
+          <div className="main-panel-container">
+            <MainPanel />
+          </div>
+          <LiveNotesPanel onOpenHistory={(id) => { setHistoryRecord(id); setHistoryOpen(true); }} />
         </div>
       </div>
       {/* Kept mounted behind an <Activity> boundary, like the side panels, so its open category and scroll survive a close. */}
@@ -197,6 +218,11 @@ const MainLayout: React.FC = () => {
             <SettingsPage onClose={toggleSettings} />
           </div>
         </Activity>
+      )}
+      {historyInPlace && (
+        <div className="history-page-container">
+          <HistoryPage onClose={() => setHistoryOpen(false)} recordId={historyRecord} />
+        </div>
       )}
       {sidePanelOpen && !pageInPlace && (
         <PanelResizer
@@ -229,6 +255,8 @@ const MainLayout: React.FC = () => {
       </div>
     </div>
     {setupWizardOpen && <SetupWizard variant="rerun" onClose={() => setSetupWizardOpen(false)} />}
+    {/* Closing the app while notes are being written asks first (desktop). */}
+    {isElectron() && <NotesQuitDialog />}
     {/* The gate, not the placement, is what matters: TourOverlay portals to
         document.body, so it would escape the main-layout subtree (and its
         takeover display:none) wherever it sat. During an Electron subtitle

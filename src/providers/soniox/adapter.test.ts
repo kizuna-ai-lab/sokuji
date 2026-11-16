@@ -136,7 +136,7 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it("sends the leg's direction: one_way to the target, both languages as hints (the source first), the context and the knobs; no diarization, no client reference", async () => {
-    const { stt } = await live({ settings: { vocabularyTerms: 'Sokuji', endpointMaxDelayMs: 3000 } });
+    const { stt } = await live({ settings: { endpointMaxDelayMs: 3000 }, shared: { ...SHARED, words: { entries: [{ written: 'Sokuji' }], background: '' } } });
     const config = stt().sentJson<Json>()[0];
     expect(stt().protocols).toEqual(['soniox-api-key', 'test-key']);
     expect(config).not.toHaveProperty('api_key');

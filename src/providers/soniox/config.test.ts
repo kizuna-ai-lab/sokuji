@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/provider/types';
 import { buildSoniox, describeSoniox } from './config';
@@ -27,21 +27,18 @@ describe('buildSoniox — stt', () => {
     });
   });
 
-  it("parses the vocabulary into the wire's snake_case context", () => {
-    expect(build({
-      vocabularyTerms: 'Sokuji\n Sokuji \n\nKizuna',
-      vocabularyTranslations: 'a=b\nno equals\n=x\nk = v = w',
-    }).stt.context).toEqual({
-      terms: ['Sokuji', 'Kizuna'],
-      translation_terms: [{ source: 'a', target: 'b' }, { source: 'k', target: 'v = w' }],
+  it('sends the word list as terms and translations, and the session background as text', () => {
+    const words = { entries: [{ written: 'Sokuji' }, { written: 'Kizuna AI', translation: 'キズナAI', heardAs: 'kizuna eye' }], background: '  Quarterly review. ' };
+    expect(buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, { ...SHARED, words }).stt.context).toEqual({
+      terms: ['Sokuji', 'Kizuna AI'],
+      translation_terms: [{ source: 'Kizuna AI', target: 'キズナAI' }],
+      text: 'Quarterly review.',
     });
   });
 
-  it('passes trimmed background text as context.text, and omits whitespace-only text', () => {
-    expect(build({ contextText: '  Quarterly review of the Sokuji roadmap. ' }).stt.context).toEqual({
-      text: 'Quarterly review of the Sokuji roadmap.',
-    });
-    expect(build({ contextText: '   \n\t ' }).stt.context).toBeUndefined();
+  it('sends no context without a word list, whatever old vocabulary is still stored (no migration)', () => {
+    const old = { ...SONIOX_DEFAULTS, vocabularyTerms: 'Sokuji', vocabularyTranslations: 'a=b', contextText: 'Agenda' } as SonioxSettings;
+    expect(buildSoniox(AUTO_CTX, old, SHARED).stt.context).toBeUndefined();
   });
 
   it('clamps the knobs, rounds the integer ones, and falls back on non-finite input', () => {
@@ -63,95 +60,6 @@ describe('buildSoniox — stt', () => {
     expect(bad.tts?.speed).toBe(1);
   });
 
-  describe('the context wire budget (SonioxProviderConfig.test.ts:133-262, ported over build(...).stt.context)', () => {
-    it('trims the vocabulary to the serialized wire budget — translations first, earlier lines win', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      // 700 short unique "sNNN=tN" lines fit the 4000-char textarea but
-      // serialize to ~22 KB of {source, target} objects — over the wire limit.
-      const lines = Array.from({ length: 700 }, (_, i) => `s${String(i).padStart(3, '0')}=t${i}`);
-      const context = build({ vocabularyTerms: 'KeepMe', vocabularyTranslations: lines.join('\n') }).stt.context!;
-      const kept = context.translation_terms!;
-      expect(kept.length).toBeGreaterThan(0);
-      expect(kept.length).toBeLessThan(700);
-      expect(kept[0]).toEqual({ source: 's000', target: 't0' }); // head retained, tail dropped
-      expect(context.terms).toEqual(['KeepMe']); // cheap terms survive untouched
-      const serialized = JSON.stringify({ terms: context.terms, translation_terms: kept }).length;
-      expect(serialized).toBeLessThanOrEqual(9000);
-      expect(warn).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
-    });
-
-    it('leaves an under-budget vocabulary untouched by the budget guard', () => {
-      expect(build({ vocabularyTerms: 'Sokuji', vocabularyTranslations: 'a=b' }).stt.context).toEqual({
-        terms: ['Sokuji'],
-        translation_terms: [{ source: 'a', target: 'b' }],
-      });
-    });
-
-    it('truncates the background text first when the serialized context overflows, keeping vocabulary intact', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      // ~200 translation pairs (~6.4 KB serialized) + 4000-char text → overflow
-      // where text absorbs the whole cut and translations survive untouched.
-      const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
-      const context = build({ vocabularyTranslations: lines.join('\n'), contextText: 'x'.repeat(4000) }).stt.context!;
-      expect(context.translation_terms).toHaveLength(200);
-      const text = context.text!;
-      expect(text.length).toBeGreaterThan(0);
-      expect(text.length).toBeLessThan(4000);
-      const serialized = JSON.stringify({ translation_terms: context.translation_terms, text }).length;
-      expect(serialized).toBeLessThanOrEqual(9000);
-      expect(warn).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
-    });
-
-    it('sacrifices the text entirely before touching vocabulary on extreme overflow', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      // 700 pairs (~22 KB serialized) — text goes to zero, then translations trim.
-      const lines = Array.from({ length: 700 }, (_, i) => `s${String(i).padStart(3, '0')}=t${i}`);
-      const context = build({ vocabularyTranslations: lines.join('\n'), contextText: 'y'.repeat(4000) }).stt.context!;
-      expect(context.text).toBeUndefined(); // fully truncated → omitted
-      expect(context.translation_terms!.length).toBeGreaterThan(0);
-      expect(context.translation_terms!.length).toBeLessThan(700);
-      expect(warn).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
-    });
-
-    it('strips a trailing lone surrogate when the truncation cut lands mid-emoji', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      // 100 CJK chars + 1950 emoji (each a surrogate pair) = 4000 UTF-16 code
-      // units of background text, plus 200 translation pairs to force overflow.
-      const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
-      const context = build({
-        vocabularyTranslations: lines.join('\n'),
-        contextText: '好'.repeat(100) + '😀'.repeat(1950),
-      }).stt.context!;
-      expect(context.translation_terms).toHaveLength(200);
-      const text = context.text!;
-      expect(text.length).toBeGreaterThan(0);
-      expect(/[\uD800-\uDBFF]$/.test(text)).toBe(false);
-      const serialized = JSON.stringify({ translation_terms: context.translation_terms, text }).length;
-      expect(serialized).toBeLessThanOrEqual(9000);
-      expect(warn).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
-    });
-
-    it('cuts escape-heavy background text exactly instead of over-truncating', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      // Newline-rich agenda: every second character serializes as a 2-unit
-      // escape, so raw-length arithmetic would empty the text entirely; the
-      // exact (binary-search) cut keeps everything that actually fits.
-      const lines = Array.from({ length: 200 }, (_, i) => `src${String(i).padStart(3, '0')}=tgt${i}`);
-      const context = build({ vocabularyTranslations: lines.join('\n'), contextText: 'a\n'.repeat(2000) }).stt.context!;
-      expect(context.translation_terms).toHaveLength(200);
-      const text = context.text!;
-      expect(text.length).toBeGreaterThan(0); // the naive over-cut would have emptied it
-      const serialized = JSON.stringify({ translation_terms: context.translation_terms, text }).length;
-      expect(serialized).toBeLessThanOrEqual(9000);
-      expect(serialized).toBeGreaterThan(8990); // maximal: the cut wastes no meaningful capacity
-      expect(warn).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
-    });
-  });
 });
 
 describe('buildSoniox — tts', () => {

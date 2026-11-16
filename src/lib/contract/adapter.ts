@@ -21,6 +21,10 @@ export type Ref = number;
 /** UTF-16 code-unit offsets into a segment's text: [start, end). */
 export type TextRange = [number, number];
 export interface SegmentTiming { startMs: number; endMs: number }
+/** `text[at, at + len)` was heard from `startAt` to `endAt`, on the run's clock (the clock `openedAt` is on). */
+export interface HeardPiece { at: number; len: number; startAt: number; endAt: number }
+/** When a segment's words were heard. `stableLen`: the first `stableLen` characters of the text will not change any more. */
+export interface Heard { pieces: readonly HeardPiece[]; stableLen: number }
 
 export interface SessionContext {
   direction: { source: Lang; target: Lang };
@@ -118,7 +122,8 @@ export interface AdapterEvents {
   /** `person`: who said it, an adapter-scoped label (diarization), the same on a source and its translation. Absent: the adapter cannot tell. */
   segmentOpened(e: { ref: Ref; side: Side; origin?: string; person?: string }): void;
   /** Always the whole text; a snapshot, never a delta. A defined `person` replaces the segment's. */
-  segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string }): void;
+  /** `heard`: when its words were heard, if the adapter knows; a defined one replaces the segment's. */
+  segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard }): void;
   segmentClosed(e: { ref: Ref; origin?: string }): void;
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
    *  `range` absent: this segment's audio, which characters unknown.

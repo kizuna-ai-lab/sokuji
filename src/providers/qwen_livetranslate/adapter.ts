@@ -214,6 +214,8 @@ class QwenLeg implements AdapterSession {
   private letGoSession: () => void = () => {};
   /** Each connection's own: a reconnect's segments start afresh, their refs carrying on. */
   private segments: QwenSegments;
+  /** Which connection of the run this is, 1 for the first: speaker labels carry it (a reconnect numbers people from 1 again). */
+  private connection = 1;
   /** What the next connection dials with: the request's key or token, then each token the lease answers. */
   private apiKey: string;
   /** The endpoint the start dialled: every reconnect's too, never detected again. */
@@ -277,7 +279,7 @@ class QwenLeg implements AdapterSession {
     private readonly events: AdapterEvents,
     private readonly deps: QwenAdapterDeps,
   ) {
-    this.segments = new QwenSegments({ sink: events, person: request.config.person });
+    this.segments = new QwenSegments({ sink: events, person: request.config.person, connection: this.connection });
     this.apiKey = request.credentials.apiKey;
     // A dead connection that stays open is found by the probe or the commit's wait (`watchLiveness`, spec 2026-11-05 reconnect §4.2).
     this.reconnector = createReconnector({
@@ -990,7 +992,9 @@ class QwenLeg implements AdapterSession {
     this.latest = null;
     this.audioWent = false;
     this.segments.stop();
-    this.segments = new QwenSegments({ sink: this.events, person: this.request.config.person, firstRef: this.segments.nextRef });
+    // A new connection numbers people from 1 again: its labels carry its own number.
+    this.connection += 1;
+    this.segments = new QwenSegments({ sink: this.events, person: this.request.config.person, firstRef: this.segments.nextRef, connection: this.connection });
   }
 
   /**

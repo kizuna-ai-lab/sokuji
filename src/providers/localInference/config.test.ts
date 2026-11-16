@@ -72,12 +72,13 @@ function settings(overrides: Partial<LocalInferenceSettings> = {}): LocalInferen
   return { ...LOCAL_INFERENCE_DEFAULTS, ...overrides };
 }
 
-function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation'] } = {}): SharedSettings {
+function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation']; words?: SharedSettings['words'] } = {}): SharedSettings {
   return {
     pauses: { sourceSeconds: 0, translationSeconds: 0 },
     reversed: () => overrides.reversed ?? false,
     segmentation: overrides.segmentation ?? { mode: 'off', sentencesPerRow: 0 },
     models: [],
+    ...(overrides.words ? { words: overrides.words } : {}),
   };
 }
 
@@ -123,6 +124,20 @@ describe('buildLocalInference', () => {
       jobSentences: 0,
     });
     expect((c as LocalInferenceConfig).translation).toMatchObject({ instructions: buildDefaultLocalPrompt('ja', 'en') });
+  });
+
+  it("adds the word list and the session background to the translator's prompt, leaving how the transcript is wrapped as it was", () => {
+    resolved({ 'ja>en': { asr: 'sherpa-ja', translation: 'opus-ja-en', tts: 'piper-en' } });
+    const words = { entries: [{ written: 'キズナAI', translation: 'Kizuna AI' }, { written: 'Sokuji' }], background: 'A weekly sync.' };
+    const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ useTemplateMode: true }), shared({ words })) as LocalInferenceConfig;
+    const t = c.translation as { instructions: string; wrapTranscript: boolean };
+    expect(t.wrapTranscript).toBe(true);
+    expect(t.instructions.startsWith(buildDefaultLocalPrompt('ja', 'en'))).toBe(true);
+    expect(t.instructions).toContain('Keep these names and terms as written: キズナAI, Sokuji.');
+    expect(t.instructions).toContain('Translate these as given: キズナAI → Kizuna AI.');
+    expect(t.instructions).toContain('About this session: A weekly sync.');
+    const plain = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ useTemplateMode: true }), shared()) as LocalInferenceConfig;
+    expect(plain.translation).toMatchObject({ instructions: buildDefaultLocalPrompt('ja', 'en') });
   });
 
   it('carries the stored sentences-per-row count into jobSentences', () => {

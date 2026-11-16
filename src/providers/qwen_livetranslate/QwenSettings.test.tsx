@@ -68,20 +68,10 @@ describe('QwenSettingsView (spec §4, §7)', () => {
     expect(mine.selectedId).toBe('Tina');
   });
 
-  it('edits the preferred translations, one source=target per line, under Custom Vocabulary', () => {
-    const update = vi.fn();
-    const { container } = render(<QwenSettingsView {...props({ update, settings: { ...QWEN_DEFAULTS, hotwords: '实时翻译=LiveTranslate' } })} />);
-    expect(Array.from(container.querySelectorAll('.settings-section > h2')).map((h) => h.textContent)).toContain('Custom Vocabulary');
-    const field = screen.getByLabelText('Preferred Translations') as HTMLTextAreaElement;
-    expect(field.value).toBe('实时翻译=LiveTranslate');
-    expect(field.placeholder).toBe('One source=target per line');
-    fireEvent.change(field, { target: { value: '实时翻译=LiveTranslate\n交流=chat' } });
-    expect(update).toHaveBeenCalledWith({ hotwords: '实时翻译=LiveTranslate\n交流=chat' });
-  });
-
-  it('locks the vocabulary while a run is not idle', () => {
-    render(<QwenSettingsView {...props({ disabled: true })} />);
-    expect((screen.getByLabelText('Preferred Translations') as HTMLTextAreaElement).disabled).toBe(true);
+  it("has no vocabulary of its own: the preferred translations are the app's word list now", () => {
+    const { container } = render(<QwenSettingsView {...props()} />);
+    expect(Array.from(container.querySelectorAll('.settings-section > h2')).map((h) => h.textContent)).not.toContain('Custom Vocabulary');
+    expect(screen.queryByLabelText('Preferred Translations')).toBeNull();
   });
 
   it('writes my choice, the clone included', () => {

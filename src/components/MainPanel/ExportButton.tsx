@@ -22,7 +22,6 @@ import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conve
 import { PANEL_NOTE_CODES, panelNoteWriter } from '../../stores/panelNotesStore';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
-import { isElectron } from '../../utils/environment';
 import type { Exporter } from '../../lib/export/exporter';
 import type { TranscriptScope } from '../../lib/export/transcript';
 import './ExportButton.scss';
@@ -228,13 +227,12 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
     { key: 'json', label: t('mainPanel.export.downloadJson',    'Download as .json'),   Icon: FileJson, onClick: handleDownloadJson },
   ]), [t, handleCopy, handleDownloadTxt, handleDownloadJson]);
 
-  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Auto-save when session ends');
+  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Export TXT when a session ends');
   // A native title, like the toolbar buttons: the Tooltip component clones its
   // child and would fight the roving-tabindex ref, and the child-window host's
   // 240px OS window would clip a floating tooltip anyway.
-  const autoSaveTooltip = isElectron()
-    ? t('mainPanel.export.autoSave.tooltipDesktop', 'When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.')
-    : t('mainPanel.export.autoSave.tooltipBrowser', 'When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.');
+  // The menu is the browser extension's (the desktop exports from History and saves nothing on its own).
+  const autoSaveTooltip = t('mainPanel.export.autoSave.tooltipBrowser', 'When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.');
   /** Last stop in the keyboard ring, after the three actions. */
   const autoSaveRingIndex = scopeRingSize + items.length;
 

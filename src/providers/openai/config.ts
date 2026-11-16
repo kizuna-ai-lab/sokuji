@@ -15,6 +15,7 @@ import {
   REALTIME_SILENCE_RANGE, REALTIME_THRESHOLD_RANGE, takesReasoning, type NoiseReduction, type ReasoningEffort, type RealtimeSettings,
 } from './settings';
 import { buildTranscriptionHint, type TranscriptionHint } from './transcription';
+import { wordsFor } from '../../lib/words/forService';
 
 /** Automatic detection as the wire takes it (`openAIRealtimeSession.ts:13-41`); the adapter adds `create_response: true, interrupt_response: false`. */
 export type TurnDetection =
@@ -78,7 +79,7 @@ export function buildRealtime(context: SessionContext, s: RealtimeSettings, shar
     // Every knob falls back to its default on a value that is not a finite number; maxTokens' default is 'inf' (unlimited).
     maxTokens: s.maxTokens === 'inf' || !Number.isFinite(s.maxTokens) ? 'inf' : Math.round(clamp(s.maxTokens, REALTIME_MAX_TOKENS_RANGE, REALTIME_MAX_TOKENS_RANGE.max)),
     turnDetection,
-    transcription: buildTranscriptionHint(s.transcriptModel, source, s.transcriptKeywords),
+    transcription: buildTranscriptionHint(s.transcriptModel, source, wordsFor('openai', shared.words?.entries ?? [], shared.words?.background ?? '')),
     noiseReduction: NOISE[s.noiseReduction],
     ...(takesReasoning(model) ? { reasoningEffort: s.reasoningEffort } : {}),
     // Every session runs over WebSocket (ruling 12): a stored `transportType`, `webrtc` included, is not read into `S`.

@@ -35,12 +35,6 @@ export interface SonioxSettings {
    * Both, where the settings view shows it off, the stored value kept.
    */
   agentText: boolean;
-  /** Custom vocabulary, one term per line (→ context.terms). */
-  vocabularyTerms: string;
-  /** Preferred translations, one "source=target" per line (→ context.translation_terms). */
-  vocabularyTranslations: string;
-  /** Free-form session background (→ context.text). */
-  contextText: string;
   /** endpoint_sensitivity, -1..1; 0 = the server default. */
   endpointSensitivity: number;
   /** endpoint_latency_adjustment_level, 0..3; 0 = the server default. */
@@ -61,16 +55,13 @@ export const SONIOX_DEFAULTS: SonioxSettings = {
   bothModeSharedSession: false,
   speakerLabels: true,
   agentText: true,
-  vocabularyTerms: '',
-  vocabularyTranslations: '',
-  contextText: '',
   endpointSensitivity: 0,
   endpointLatencyAdjustmentLevel: 0,
   endpointMaxDelayMs: 2000,
   ttsSpeed: 1.0,
 };
 
-type StringField = 'voice' | 'voiceEu' | 'voiceJp' | 'voiceIn' | 'vocabularyTerms' | 'vocabularyTranslations' | 'contextText';
+type StringField = 'voice' | 'voiceEu' | 'voiceJp' | 'voiceIn';
 type NumberField = 'endpointSensitivity' | 'endpointLatencyAdjustmentLevel' | 'endpointMaxDelayMs' | 'ttsSpeed';
 
 /** What was stored, made valid field by field; clamping stays in `build`, as the old descriptor did. Nothing is written back. */
@@ -93,9 +84,6 @@ export function migrateSonioxSettings(stored: Readonly<Record<string, unknown>>)
     bothModeSharedSession: typeof stored.bothModeSharedSession === 'boolean' ? stored.bothModeSharedSession : SONIOX_DEFAULTS.bothModeSharedSession,
     speakerLabels: typeof stored.speakerLabels === 'boolean' ? stored.speakerLabels : SONIOX_DEFAULTS.speakerLabels,
     agentText: typeof stored.agentText === 'boolean' ? stored.agentText : SONIOX_DEFAULTS.agentText,
-    vocabularyTerms: str('vocabularyTerms'),
-    vocabularyTranslations: str('vocabularyTranslations'),
-    contextText: str('contextText'),
     endpointSensitivity: num('endpointSensitivity'),
     endpointLatencyAdjustmentLevel: num('endpointLatencyAdjustmentLevel'),
     endpointMaxDelayMs: num('endpointMaxDelayMs'),

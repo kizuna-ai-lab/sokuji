@@ -54,7 +54,7 @@ export function RealtimeSettingsView({ settings, update, disabled = false, pair,
       <ModelField value={model} models={models} onChange={(m) => update({ model: m })} disabled={disabled} />
       </StagePart>
       <StagePart stages={TR}>
-      <TranscriptionField model={settings.transcriptModel} keywords={settings.transcriptKeywords} onChange={update} disabled={disabled} />
+      <TranscriptionField model={settings.transcriptModel} onChange={update} disabled={disabled} />
       </StagePart>
       <StagePart stages={TR}>
       <NoiseReductionField value={settings.noiseReduction} options={NOISE_REDUCTIONS} onChange={(noiseReduction) => update({ noiseReduction })} disabled={disabled} />

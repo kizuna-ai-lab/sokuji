@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, cleanup, act, waitFor } from '@testing-library/react';
 
+const env = vi.hoisted(() => ({ electron: true }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
-  isKizunaAIEnabled: () => true, isElectron: () => true, isExtension: () => false,
+  isKizunaAIEnabled: () => true, isElectron: () => env.electron, isExtension: () => !env.electron,
 }));
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading }: { heading?: boolean }) => <div id="languages-section" data-heading={String(heading)} /> }));
@@ -25,6 +26,7 @@ const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
 import { LineUpCategory, stageInSentence } from './LineUpCategory';
+import { useWordList } from '../../lib/words/list';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import useSettingsStore from '../../stores/settingsStore';
@@ -33,6 +35,7 @@ const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox
 const optionTexts = (name: string) => within(screen.getByRole('combobox', { name })).getAllByRole('option').map((o) => o.textContent ?? '');
 
 beforeEach(() => {
+  env.electron = true;
   tracked.length = 0;
   useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
@@ -72,7 +75,7 @@ describe('languages and line-up', () => {
 
   it('locks everything during a session', () => {
     render(<LineUpCategory locked />);
-    for (const name of ['Transcription', 'Translation', 'Speech']) expect(screen.getByRole('combobox', { name })).toBeDisabled();
+    for (const name of ['Transcription', 'Translation', 'Speech', 'Notes']) expect(screen.getByRole('combobox', { name })).toBeDisabled();
   });
 
   it('a navigation target inside the provider options unfolds them', () => {
@@ -104,6 +107,55 @@ describe('languages and line-up', () => {
     });
     render(<LineUpCategory locked={false} />);
     expect(screen.getByText(/Granite Speech turns speech straight into the translation/)).toBeInTheDocument();
+  });
+
+  it('says on the desktop that Soniox recognition also transcribes imported files and records again', () => {
+    env.electron = true;
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Also transcribes imported files and records again.')).toBeInTheDocument();
+    unmount();
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Also transcribes imported files and records again.')).toBeNull();
+  });
+
+  it("says on a stage how many word list entries its service leaves out, once per service", () => {
+    useWordList.setState({ entries: Array.from({ length: 1005 }, (_, i) => ({ written: `w${i}`, translation: `t${i}` })), background: '', loaded: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'qwen_livetranslate', translation: 'qwen_livetranslate', speech: 'qwen_livetranslate', summarisation: null }, stored: true });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(screen.getAllByText('Word list: 5 entries over this service’s limit are left out.')).toHaveLength(1);
+    unmount();
+    useWordList.setState({ entries: [{ written: 'Sokuji' }], background: '', loaded: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText(/left out/)).toBeNull();
+  });
+
+  it('says one entry left out in the singular', () => {
+    useWordList.setState({ entries: Array.from({ length: 1001 }, (_, i) => ({ written: `w${i}`, translation: `t${i}` })), background: '', loaded: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'qwen_livetranslate', translation: 'qwen_livetranslate', speech: 'qwen_livetranslate', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Word list: 1 entry over this service’s limit is left out.')).toBeInTheDocument();
+  });
+
+  it('says when the chosen Gemini model cannot use the word list, and not when it can or the list is empty', () => {
+    useWordList.setState({ entries: [{ written: 'Sokuji' }], background: '', loaded: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'gemini', translation: 'gemini', speech: 'gemini', summarisation: null }, stored: true });
+    const gemini = (model: string) => useProviderStore.setState({
+      entries: { gemini: { settings: { model }, credentials: { apiKey: 'k' }, pair: { source: 'ja', target: 'en' } } } as never,
+    });
+    gemini('gemini-2.5-flash-native-audio-preview-12-2025');
+    const first = render(<LineUpCategory locked={false} />);
+    expect(screen.getAllByText('Word list: this model cannot use it.')).toHaveLength(1);
+    first.unmount();
+    gemini('gemini-3.8-live');
+    const second = render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Word list: this model cannot use it.')).toBeNull();
+    second.unmount();
+    gemini('gemini-2.5-flash-native-audio-preview-12-2025');
+    useWordList.setState({ entries: [], background: '', loaded: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Word list: this model cannot use it.')).toBeNull();
   });
 
   it('says on each row whether the stage is ready or what it lacks', () => {
@@ -212,7 +264,8 @@ describe('languages and line-up — as the mock draws them', () => {
   it('draws each stage as a card: its name and state on one line, the choice under them', () => {
     render(<LineUpCategory locked={false} />);
     const cards = document.querySelectorAll('.lineup-stage');
-    expect(cards).toHaveLength(3);
+    // The three a session runs, then the notes (desktop).
+    expect(cards).toHaveLength(4);
     const first = cards[0];
     const head = first.querySelector('.lineup-stage__head')!;
     expect(head.querySelector('.lineup-stage__name')).toHaveTextContent('Transcription');
@@ -223,6 +276,42 @@ describe('languages and line-up — as the mock draws them', () => {
   it('marks the cards one provider serves over one connection', () => {
     render(<LineUpCategory locked={false} />);
     const cards = [...document.querySelectorAll('.lineup-stage')];
-    expect(cards.map((c) => c.classList.contains('is-joint'))).toEqual([true, true, false]);
+    expect(cards.map((c) => c.classList.contains('is-joint'))).toEqual([true, true, false, false]);
+  });
+});
+
+// The fourth stage (stage 3, client side): the notes after a session, written with the user's own OpenAI key.
+describe('the notes card', () => {
+  const openAiKey = () => useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-test' } } } as never });
+
+  it('offers only None until OpenAI has a key, and says where to add one', () => {
+    render(<LineUpCategory locked={false} />);
+    expect(optionTexts('Notes')).toEqual(['None']);
+    expect(screen.getByText('Add an OpenAI key in Accounts and keys to have notes written.')).toBeInTheDocument();
+  });
+
+  it('offers OpenAI once it has a key, and a choice sets the notes stage alone', async () => {
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    expect(optionTexts('Notes')).toEqual(['None', 'OpenAI']);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'openai' }));
+    expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: '' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp?.summarisation).toBeNull());
+  });
+
+  it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(optionTexts('Notes')).toEqual(['None', 'OpenAI']);
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByText('Needs a key')).toBeInTheDocument();
+  });
+
+  it('is not in the extension', () => {
+    env.electron = false;
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByRole('combobox', { name: 'Notes' })).toBeNull();
   });
 });

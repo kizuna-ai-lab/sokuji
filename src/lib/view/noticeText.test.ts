@@ -159,6 +159,14 @@ describe('noticeText', () => {
     expect(noticeText(t, { code: 'autosave_failed', message: 'failed' })).toBe('mainPanel.export.autoSave.failed|failed');
   });
 
+  it('words what History could not save, and no longer vouches for the transcript when the recording stops', () => {
+    const t = ((key: string, opts?: { defaultValue?: string }) => `${key}|${opts?.defaultValue ?? ''}`) as unknown as import('i18next').TFunction;
+    expect(noticeText(t, { code: 'history_transcript_stopped', message: 'm' })).toBe('history.transcriptStopped|m');
+    const enCatalog = en as unknown as Record<string, unknown>;
+    expect(at(enCatalog, NOTICE_ALIASES.history_transcript_stopped)).toBe('Part of this session’s transcript could not be saved: it could not be written to disk.');
+    expect(at(enCatalog, NOTICE_ALIASES.history_recording_stopped)).toBe('The recording of this session stopped: it could not be written to disk.');
+  });
+
   it("puts the local engines' notices into words", () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();

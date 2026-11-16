@@ -30,4 +30,11 @@ describe('buildSharedSettings', () => {
   it("carries no instructions: they are each provider's own setting (Stage 2 Gemini, ruling 4)", () => {
     expect(buildSharedSettings(participant, pauses, segmentation)).not.toHaveProperty('instructions');
   });
+
+  it('carries the word list and the session background, read once at start, and nothing for an empty list', () => {
+    const words = { entries: [{ written: 'Soniox' }], background: 'Weekly sync.' };
+    expect(buildSharedSettings(participant, pauses, segmentation, false, words).words).toEqual(words);
+    expect(buildSharedSettings(participant, pauses, segmentation, false, { entries: [], background: ' ' })).not.toHaveProperty('words');
+    expect(buildSharedSettings(participant, pauses, segmentation)).not.toHaveProperty('words');
+  });
 });

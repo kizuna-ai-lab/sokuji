@@ -4,7 +4,7 @@
 // design, section 8). Two forms: on a desktop window at least 768 px wide the
 // navigation and the content side by side; in the extension and in narrower
 // windows the category list first, then one category at a time.
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import React, { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Lock, Search } from 'lucide-react';
 import { useSessionLocked } from '../../app/useRun';
@@ -16,6 +16,9 @@ import { AccountsCategory } from './AccountsCategory';
 import { AudioCategory, ModelsCategory } from './DeviceCategories';
 import { DisplayCategory } from './DisplayCategory';
 import { GeneralCategory } from './GeneralCategory';
+import { HistoryCategory } from './HistoryCategory';
+import { WordsCategory } from './WordsCategory';
+import { useWideForm } from './useWideForm';
 // Today's sections (rows, selects, key fields) are styled there; the old panel that loaded it is gone.
 import '../Settings/Settings.scss';
 import './SettingsPage.scss';
@@ -30,14 +33,15 @@ export type CategoryBodies = Partial<Record<CategoryId, ComponentType<CategoryBo
 /** Each category's body; a category without one shows its title only. */
 export const CATEGORY_BODIES: CategoryBodies = {
   lineup: LineUpCategory,
+  words: WordsCategory,
   accounts: AccountsCategory,
   models: ModelsCategory,
   audio: AudioCategory,
   display: DisplayCategory,
+  history: HistoryCategory,
   general: GeneralCategory,
 };
 
-const WIDE_MIN = 768;
 
 const TITLES: Record<CategoryId, string> = {
   lineup: 'Languages and line-up', words: 'Word list and background', accounts: 'Accounts and keys', models: 'Models and storage',
@@ -64,27 +68,6 @@ const isVisibleDialogOpen = (): boolean => {
   return false;
 };
 
-function useWideForm(root: React.RefObject<HTMLElement | null>): boolean {
-  const measure = () => {
-    if (isExtension()) return false;
-    const width = root.current?.getBoundingClientRect().width || window.innerWidth;
-    return width >= WIDE_MIN;
-  };
-  const [wide, setWide] = useState(() => !isExtension() && window.innerWidth >= WIDE_MIN);
-  useLayoutEffect(() => {
-    const update = () => setWide(measure());
-    update();
-    if (typeof ResizeObserver !== 'undefined' && root.current) {
-      const observer = new ResizeObserver(update);
-      observer.observe(root.current);
-      return () => observer.disconnect();
-    }
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return wide;
-}
 
 export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose(): void; bodies?: CategoryBodies }): React.JSX.Element {
   const { t } = useTranslation();

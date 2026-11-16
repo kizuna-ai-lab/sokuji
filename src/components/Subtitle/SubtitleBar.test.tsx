@@ -94,15 +94,13 @@ describe('SubtitleBar fullscreen button', () => {
 });
 
 describe('SubtitleBar export button', () => {
-  // In the extension overlay the forwarded items are windowed to the recent
-  // tail, so export there would silently omit older messages. Export is only
-  // offered on the Electron surface, where the overlay shares the full store.
-  it("renders the new view's export menu in its own window, on the electron surface only", () => {
-    const exportMenu = { exporter: {} as any, speakerMode: 'both' as const, participantMode: 'both' as const };
-    render(<SubtitleBar {...baseProps} exportMenu={exportMenu} surface="electron" />);
-    expect(screen.getByTestId('export-menu-button').dataset.host).toBe('child-window');
+  // Export lives in History on the desktop, and the overlay's tail is not the whole conversation: the caption bar has
+  // no export menu on any surface.
+  it('has no export menu on any surface', () => {
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    expect(screen.queryByTestId('export-menu-button')).not.toBeInTheDocument();
     cleanup();
-    render(<SubtitleBar {...baseProps} exportMenu={exportMenu} surface="extension-overlay" />);
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
     expect(screen.queryByTestId('export-menu-button')).not.toBeInTheDocument();
   });
 });

@@ -169,6 +169,7 @@
     "jsdom": "^24.0.0",
     "lindera-wasm": "6.2.0",
     "lucide-react": "^0.515.0",
+    "mediabunny": "1.64.0",
     "mpg123-decoder": "^1.0.3",
     "nosleep.js": "^0.12.0",
     "onnxruntime-web": "1.31.0-dev.20260914-8d85527a0",

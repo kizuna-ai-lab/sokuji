@@ -1,4 +1,4 @@
-import type { LanguagePair, SharedSettings } from '../provider/types';
+import type { LanguagePair, SessionWords, SharedSettings } from '../provider/types';
 
 /**
  * What every builder may read beyond its own settings, resolved once per
@@ -14,11 +14,14 @@ export function buildSharedSettings(
   pauses: SharedSettings['pauses'],
   segmentation: SharedSettings['segmentation'],
   faceToFace = false,
+  words?: SessionWords,
 ): Omit<SharedSettings, 'models'> {
+  const hasWords = !!words && (words.entries.length > 0 || words.background.trim() !== '');
   return {
     pauses,
     segmentation,
     reversed: (direction) => participant !== null && direction.source === participant.source && direction.target === participant.target,
     ...(faceToFace ? { faceToFace: true } : {}),
+    ...(hasWords ? { words } : {}),
   };
 }

@@ -245,10 +245,19 @@ from and not be held liable to the user for any such damages as noted
 above as far as the program is concerned.
 ```
 
+## Media Reading (History import)
+
+| Library | Used for | License | Source |
+|---------|----------|---------|--------|
+| mediabunny 1.64.0 | Reading imported audio and video files a range at a time | MPL-2.0 | [Vanilagy/mediabunny v1.64.0](https://github.com/Vanilagy/mediabunny/tree/v1.64.0) |
+
+mediabunny is bundled unmodified; its source is available at the repository above, as MPL-2.0 requires.
+
 ## License Notes
 
 - **CC-BY-NC 4.0** (MMS, Omnilingual 300M): Non-commercial use only.
 - **AGPL-3.0** (Mimic 3): Copyleft license; modifications must be shared under the same license.
 - **Gemma License** (TranslateGemma): Subject to Google's Gemma Terms of Use.
 - **IPADIC license** (the Japanese readings dictionary): any copy must include its copyright notice and the paragraphs above.
-- All other models are under permissive licenses (MIT, Apache 2.0, MPL 2.0, CC-BY 4.0).
+- **MPL-2.0** (Coqui TTS, mediabunny): file-level copyleft; changes to their own files would have to be shared, the rest of the app is unaffected.
+- All other models and libraries are under permissive licenses (MIT, Apache 2.0, CC-BY 4.0).

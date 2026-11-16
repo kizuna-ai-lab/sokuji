@@ -1,0 +1,49 @@
+@use '../Settings/shared/variables' as vars;
+@use '../../styles/tokens' as tk;
+
+// Docked beside the conversation; MainLayout puts it on the right, or above the conversation when narrow.
+.live-notes {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
+  min-height: 0;
+  overflow-y: auto;
+  padding: vars.$space-3;
+  border-left: 1px solid vars.$border-subtle;
+  background: vars.$bg-surface;
+  color: vars.$text-primary;
+  font-size: 12.5px;
+
+  &__head { font-size: vars.$font-caption; color: vars.$text-tertiary; }
+  &__title { margin: 0; font-size: 14px; font-weight: vars.$weight-semibold; }
+  &__line { margin: 0; color: vars.$text-secondary; line-height: 1.5; }
+  &__topic {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-1;
+    h4 { margin: 0; font-size: 13px; font-weight: vars.$weight-semibold; }
+    ul { margin: 0; padding-left: vars.$space-4; display: flex; flex-direction: column; gap: 2px; }
+    li { line-height: 1.5; }
+  }
+  &__kind {
+    margin-left: vars.$space-1;
+    padding: 0 5px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    font-size: 11px;
+    color: vars.$text-tertiary;
+  }
+  &__kind--decision { color: tk.$color-primary; border-color: tk.$color-primary; }
+  &__kind--risk { color: vars.$color-error; border-color: vars.$color-error-border; }
+  &__end { display: flex; flex-direction: column; align-items: flex-start; gap: vars.$space-1; margin-top: vars.$space-2; }
+  &__button {
+    padding: 2px vars.$space-2;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font-size: vars.$font-caption;
+    cursor: pointer;
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+  }
+}

@@ -60,6 +60,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 // MainLayout itself no longer reads a provider or a UI mode setter — only
 // the three exports it still uses; this file mocks settingsStore whole.
 vi.mock('../../stores/settingsStore', () => ({
+  useLiveNotesSetting: () => false, useNotesAfterSession: () => false,
   useSettingsNavigationTarget: () => null,
   useSubtitleModeActive: () => false,
   // The logs button exists only while diagnostic logs are on, and these tests

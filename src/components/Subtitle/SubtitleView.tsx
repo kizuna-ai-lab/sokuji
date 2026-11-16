@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { SegmentId } from '../../lib/conversation/types';
-import type { Exporter } from '../../lib/export/exporter';
 import type { Entry } from '../../lib/projection/types';
 import { baseLang } from '../../lib/segmentation/sentenceEnd';
 import type { SubtitleIdleModel, SubtitleSession } from '../../lib/subtitle/session';
@@ -75,12 +74,10 @@ const noop = () => {};
  * its own window, the extension overlay from its wire. The old subtitle
  * window's layout, class for class.
  */
-export function SubtitleView({ surface, model, controls, exporter, statusLine, noticeAction, readingTargets }: {
+export function SubtitleView({ surface, model, controls, statusLine, noticeAction, readingTargets }: {
   surface: SubtitleSurfaceKind;
   model: SubtitleModel;
   controls: SubtitleControls;
-  /** The conversation's export, Electron only: the overlay's tail is not the whole conversation. */
-  exporter?: Exporter;
   /** The Electron takeover's status line (spec 2026-10-05 §7), in the expanded view only; the overlay has none. */
   statusLine?: ReactNode;
   /** The action a system row in the expanded list offers, if any: the Electron takeover's. */
@@ -134,7 +131,6 @@ export function SubtitleView({ surface, model, controls, exporter, statusLine, n
         onClearConversation={controls.clear}
         speakerActive={speakerActive}
         participantActive={participantActive}
-        exportMenu={exporter ? { exporter, speakerMode: speaker, participantMode: participant } : undefined}
         surface={surface}
         readingTargets={readingTargets}
         onExit={controls.exit}

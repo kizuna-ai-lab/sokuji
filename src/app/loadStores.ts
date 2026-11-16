@@ -5,6 +5,7 @@
  * stored selection is applied in memory, and the turn mode migrated once —
  * its one write, a key the old path never reads (plan 1e-3b-1 ruling 9).
  */
+import { useWordList } from '../lib/words/list';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import type { AnyProvider } from '../lib/provider/types';
 import { legacyTurnModeKey, migrateTurnMode, selectionFromStored } from '../lib/session/storedSettings';
@@ -62,6 +63,11 @@ export async function loadSessionStores(): Promise<void> {
       reportWarning('AppSession', `Loading the ${what} failed: ${describeCause(error)}`, { cause: error, dedupeKey: `load:${what}` });
     }
   }));
+  try {
+    await useWordList.getState().load();
+  } catch (error) {
+    reportWarning('AppSession', `Loading the word list failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:words' });
+  }
   // The line-up after the selected provider: when none is stored it is worked out from that provider (the one migration).
   try {
     await useLineUpStore.getState().load();

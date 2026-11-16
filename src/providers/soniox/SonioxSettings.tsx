@@ -2,7 +2,6 @@ import type { ComponentType } from 'react';
 import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TtsSpeedControl } from '../../components/Settings/sections/LocalSettingsControls';
-import { LinesField } from '../../components/providers/fields/LinesField';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import { useAnalytics } from '../../lib/analytics';
@@ -93,46 +92,6 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
         </StagePart>
 
         <StagePart stages={TR_TL}>
-
-        <div className="settings-section" id="soniox-vocabulary-section">
-          <h2>
-            {t('settings.sonioxVocabulary', 'Custom Vocabulary')}
-            <Tooltip content={t('settings.sonioxVocabularyTooltip', 'Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.')} position="top">{helpIcon}</Tooltip>
-          </h2>
-          <LinesField
-            id="soniox-vocabulary-terms"
-            label={t('settings.sonioxVocabularyTerms', 'Terms')}
-            tooltip={t('settings.sonioxVocabularyTermsTooltip', 'Improves recognition of uncommon words — names, jargon, product names.')}
-            placeholder={t('settings.sonioxVocabularyTermsPlaceholder', 'One term per line')}
-            value={settings.vocabularyTerms}
-            onChange={(vocabularyTerms) => update({ vocabularyTerms })}
-            disabled={disabled}
-          />
-          <LinesField
-            id="soniox-vocabulary-translations"
-            label={t('settings.sonioxVocabularyTranslations', 'Preferred Translations')}
-            tooltip={t('settings.sonioxVocabularyTranslationsTooltip', "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.")}
-            placeholder={t('settings.sonioxVocabularyTranslationsPlaceholder', 'One source=target per line')}
-            value={settings.vocabularyTranslations}
-            onChange={(vocabularyTranslations) => update({ vocabularyTranslations })}
-            disabled={disabled}
-          />
-        </div>
-
-        <div className="settings-section" id="soniox-background-section">
-          <h2>
-            {t('settings.sonioxBackground', 'Session Background')}
-            <Tooltip content={t('settings.sonioxBackgroundTooltip', 'Free-form background for the next session — agenda, topic, or reference notes. Helps recognition and translation follow the domain. Trimmed first if the combined context exceeds the size limit.')} position="top">{helpIcon}</Tooltip>
-          </h2>
-          <LinesField
-            id="soniox-context-text"
-            ariaLabel={t('settings.sonioxBackground', 'Session Background')}
-            placeholder={t('settings.sonioxBackgroundPlaceholder', 'Paste an agenda, topic, or background notes (optional)')}
-            value={settings.contextText}
-            onChange={(contextText) => update({ contextText })}
-            disabled={disabled}
-          />
-        </div>
 
         <div className="settings-section" id="soniox-settings-section">
           <h2>

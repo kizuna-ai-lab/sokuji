@@ -79,13 +79,13 @@ async function replay(recording: readonly Recorded[]) {
 }
 
 describe("Qwen LiveTranslate's recorded timelines (spec §12)", () => {
-  it('four speakers in a row: four pairs, persons 1 to 4, every audio delta played on its translation', async () => {
+  it('four speakers in a row: four pairs, persons 1 to 4 of the first connection, every audio delta played on its translation', async () => {
     const { result, audio, failed, degraded } = await replay(TWO_SPEAKERS);
     expect(result.map(({ person, source, translation }) => [person, source, translation])).toEqual([
-      ['1', '欢迎使用实时翻译 希望这个声音能让交流变得轻松自然', 'Welcome to real-time translation. We hope this voice will make communication easier and more natural.'],
-      ['2', '明日の会議は午後三時に始まります 電車が十分遅れています', "Tomorrow's meeting will start at 3:00 p.m. The train is very late."],
-      ['3', 'リアルタイム翻訳へようこそ自然な会話をお手伝いします', 'Welcome to real-time translation. We are here to help you have natural conversations.'],
-      ['4', '駅の近くに新しいカフェができました', 'A new cafe has opened near the station.'],
+      ['1.1', '欢迎使用实时翻译 希望这个声音能让交流变得轻松自然', 'Welcome to real-time translation. We hope this voice will make communication easier and more natural.'],
+      ['1.2', '明日の会議は午後三時に始まります 電車が十分遅れています', "Tomorrow's meeting will start at 3:00 p.m. The train is very late."],
+      ['1.3', 'リアルタイム翻訳へようこそ自然な会話をお手伝いします', 'Welcome to real-time translation. We are here to help you have natural conversations.'],
+      ['1.4', '駅の近くに新しいカフェができました', 'A new cafe has opened near the station.'],
     ]);
     for (const pair of result) {
       expect(pair.translationPerson).toBe(pair.person);
@@ -97,13 +97,13 @@ describe("Qwen LiveTranslate's recorded timelines (spec §12)", () => {
     expect(degraded).toEqual([]);
   });
 
-  it('two speakers in turn: persons 1, 2, 1, 2', async () => {
+  it('two speakers in turn: persons 1, 2, 1, 2 of the first connection', async () => {
     const { result } = await replay(ABAB);
     expect(result.map(({ person, source, translation }) => [person, source, translation])).toEqual([
-      ['1', '欢迎使用实时翻译 希望这个声音能让交流变得轻松自然', 'Welcome to real-time translation. We hope this voice will make communication easier and more natural.'],
-      ['2', '明日の会議は午後三時に始まります', "Tomorrow's meeting will start at 3:00 p.m."],
-      ['1', '欢迎使用实时翻译希望这个声音能让交流变得轻松自然', 'Welcome to real-time translation. We hope this voice will make communication easier and more natural.'],
-      ['2', '明日の会議は午後三時に始まります', "Tomorrow's meeting will start at 3:00 p.m."],
+      ['1.1', '欢迎使用实时翻译 希望这个声音能让交流变得轻松自然', 'Welcome to real-time translation. We hope this voice will make communication easier and more natural.'],
+      ['1.2', '明日の会議は午後三時に始まります', "Tomorrow's meeting will start at 3:00 p.m."],
+      ['1.1', '欢迎使用实时翻译希望这个声音能让交流变得轻松自然', 'Welcome to real-time translation. We hope this voice will make communication easier and more natural.'],
+      ['1.2', '明日の会議は午後三時に始まります', "Tomorrow's meeting will start at 3:00 p.m."],
     ]);
     expect(result.every((pair) => pair.closed && pair.translationPerson === pair.person)).toBe(true);
   });

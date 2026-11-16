@@ -23,13 +23,14 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => false, isKizunaAIEnabled: () => true,
 }));
 vi.mock('../../stores/settingsStore', () => ({
+  useLiveNotesSetting: () => false, useNotesAfterSession: () => false,
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => false,
   useDiagnosticLogs: () => false,
 }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', () => ({
   useShowSettings: () => false, useSetShowSettings: () => vi.fn(),
-  useSetupWizardOpen: () => false, useSetSetupWizardOpen: () => vi.fn(),
+  useSetupWizardOpen: () => false, useHistoryOpen: () => false, useSetHistoryOpen: () => vi.fn(), useSetSetupWizardOpen: () => vi.fn(),
 }));
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };

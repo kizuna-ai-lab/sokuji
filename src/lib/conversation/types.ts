@@ -1,4 +1,4 @@
-import type { Side, SegmentTiming, TextRange } from '../contract/adapter';
+import type { Heard, Side, SegmentTiming, TextRange } from '../contract/adapter';
 
 export type LegName = 'speaker' | 'participant';
 /** `${session}:${leg}:${n}` */
@@ -28,6 +28,8 @@ export interface Segment {
   /** Growth trace, compacted. */
   marks: readonly Mark[];
   timing?: SegmentTiming;
+  /** When its words were heard on the run's clock, as the adapter stated it; re-anchored when the text is rewritten. */
+  heard?: Heard;
   language?: string;
   /** Who said it, as the adapter labels people (diarization): a scoped label, never a name. */
   person?: string;

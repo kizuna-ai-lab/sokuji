@@ -42,6 +42,11 @@ const devices = vi.hoisted(() => ({
   },
 }));
 vi.mock('../lib/audio/capture/mic', () => ({ openMic: () => devices.open() }));
+const labellerBuilds = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../lib/notes/runner', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/notes/runner')>();
+  return { ...actual, notesSpeakerLabel: (...args: Parameters<typeof actual.notesSpeakerLabel>) => { labellerBuilds.count += 1; return actual.notesSpeakerLabel(...args); } };
+});
 vi.mock('../lib/audio/capture/systemAudio', () => ({ openSystemAudio: () => devices.open() }));
 vi.mock('../lib/audio/capture/tab', () => ({ openTab: () => devices.open() }));
 vi.mock('../lib/audio/capture/echoWatch', () => ({
@@ -147,10 +152,17 @@ import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useLineUpStore } from '../stores/lineUpStore';
+import { useLiveNotes } from '../lib/notes/live/liveStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
 import { currentSubtitleFeed } from './subtitleFeed';
+import { createRequire } from 'node:module';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { HistoryPort } from '../lib/history/port';
 
 const autoSave = vi.mocked(autoSaveConversation);
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -941,6 +953,498 @@ describe('attach', () => {
     detach();
   });
 
+  describe('live notes during a session', () => {
+    /** A live notes loop the test watches: what it was given, and whether it stopped or was let go. */
+    function fakeLive() {
+      const made: Array<{ deps: unknown; sentences: number[]; stopped: boolean; disposed: boolean }> = [];
+      const factory = (deps: unknown) => {
+        const one = { deps, sentences: [] as number[], stopped: false, disposed: false };
+        made.push(one);
+        return {
+          sentences: (list: ReadonlyArray<{ n: number }>) => { one.sentences.push(...list.map((x) => x.n)); },
+          stop: async () => { one.stopped = true; },
+          dispose: () => { one.disposed = true; },
+        };
+      };
+      return { made, factory };
+    }
+    const historyPort = () => {
+      const answer = (value: unknown) => async () => value;
+      return {
+        openRecord: answer(undefined), putLeg: answer(undefined), createTranscript: answer(1), putSegments: answer(undefined),
+        putNotices: answer(undefined), appendSentences: answer({ added: 0 }), reviseSentences: answer(undefined), closeRecord: answer({ kept: true }),
+      } as unknown as HistoryPort;
+    };
+    async function withLive(on: boolean, service: string | null, run: () => Promise<void>) {
+      const lineUpBefore = useLineUpStore.getState().lineUp;
+      useSettingsStore.setState({ liveNotes: on } as never);
+      useLineUpStore.setState({ lineUp: { transcription: 'fake', translation: 'fake', speech: 'fake', summarisation: service } } as never);
+      useProviderStore.setState({ entries: { ...useProviderStore.getState().entries, openai: { settings: {}, credentials: { apiKey: 'sk-test' }, pair: { source: 'en', target: 'ja' } } } } as never);
+      try { await run(); } finally {
+        useSettingsStore.setState({ liveNotes: false } as never);
+        useLineUpStore.setState({ lineUp: lineUpBefore });
+      }
+    }
+
+    it('feeds a loop for the record while the session runs, and gives it its last update at Stop', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await vi.waitFor(() => expect(live.made[0].sentences.length).toBeGreaterThan(0));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true });
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true }));
+      });
+    });
+
+    it('starts no loop when live notes are off, or no notes service is chosen', async () => {
+      for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
+        await withLive(on, service, async () => {
+          const live = fakeLive();
+          const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+          await session.runner.start();
+          clock.advance(8000);
+          await flush();
+          await session.runner.stop();
+          await session.runner.settled();
+          expect(live.made).toHaveLength(0);
+        });
+      }
+    });
+
+    it('lets the loop go when live notes are turned off during the session, and says so', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useSettingsStore.setState({ liveNotes: false } as never);
+        expect(live.made[0].disposed).toBe(true);
+        expect(useLiveNotes.getState()).toMatchObject({ running: false, off: true });
+        await session.runner.stop();
+      });
+    });
+
+    type LiveDeps = import('../lib/notes/live/loop').LiveNotesDeps;
+    /** A loop whose Stop gives one last answer, and whose Stop can be held. */
+    function answeringLive(o: { hold?: boolean } = {}) {
+      const made: Array<{ deps: LiveDeps; stopped: boolean; disposed: boolean; release: () => void }> = [];
+      const factory = (deps: LiveDeps) => {
+        let release = () => {};
+        const held = new Promise<void>((resolve) => { release = resolve; });
+        const one = { deps, stopped: false, disposed: false, release };
+        made.push(one);
+        return {
+          sentences: () => {},
+          stop: async () => {
+            one.stopped = true;
+            if (o.hold) await held;
+            deps.onState({ title: 'Last word', topics: [] });
+          },
+          dispose: () => { one.disposed = true; },
+        };
+      };
+      return { made, factory };
+    }
+
+    it('shows the last update the loop gives at Stop', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', state: { title: 'Last word' }, ended: true }));
+      });
+    });
+
+    it("leaves a new session's notes alone when the last session's final update comes late", async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive({ hold: true });
+        let runs = 0;
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never, newSessionId: () => `run${++runs}` });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(2));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run2', running: true });
+        live.made[0].release();
+        await flush();
+        await flush();
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run2', state: null, running: true, ended: false });
+        await session.runner.stop();
+      });
+    });
+
+    it('ends the loop with the run even when History does not keep the record', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const port = historyPort();
+        (port as unknown as { closeRecord: () => Promise<unknown> }).closeRecord = async () => ({ kept: false });
+        const { session, clock } = await setup({ history: port, ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true, history: 'notKept' }));
+      });
+    });
+
+    // Review: the panel's promise of full notes follows what was decided when the record closed.
+    it('tells the panel whether full notes are being written for the record, as decided when it closed', async () => {
+      for (const after of [true, false]) {
+        await withLive(true, 'openai', async () => {
+          useSettingsStore.setState({ notesAfterSession: after } as never);
+          const live = fakeLive();
+          const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [], subscribe: () => () => {} };
+          const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory, notes: notes as never });
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(live.made).toHaveLength(1));
+          await session.runner.stop();
+          await session.runner.settled();
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ ended: true, history: 'kept', fullNotes: after }));
+          useSettingsStore.setState({ notesAfterSession: false } as never);
+        });
+      }
+    });
+
+    it('a new start takes the last session\'s notes off the screen, the line saying they were off included', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useSettingsStore.setState({ liveNotes: false } as never);
+        await session.runner.stop();
+        await session.runner.settled();
+        expect(useLiveNotes.getState()).toMatchObject({ off: true });
+        await session.runner.start();
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, off: false, ended: false, running: false });
+        await session.runner.stop();
+      });
+    });
+
+    it('builds the speaker labels once per update, not once per sentence', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(20_000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await vi.waitFor(() => expect(live.made[0].sentences.length).toBeGreaterThan(1));
+        const deps = live.made[0].deps as LiveDeps;
+        const sentence = { n: live.made[0].sentences[0], side: 'other', sideCertain: true, speaker: '1', startMs: 0, endMs: 1, text: 'x', fromOpen: false } as never;
+        labellerBuilds.count = 0;
+        for (let i = 0; i < 50; i++) deps.speakerLabel(sentence);
+        expect(labellerBuilds.count).toBeLessThanOrEqual(1);
+        await session.runner.stop();
+      });
+    });
+
+    it('Clear empties the notes on screen, not the loop', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        const detach = session.attach();
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useLiveNotes.getState().update('run1', { title: 'T', topics: [] });
+        session.runner.clear();
+        expect(useLiveNotes.getState().state).toBeNull();
+        expect(live.made[0].disposed).toBe(false);
+        await session.runner.stop();
+        detach();
+      });
+    });
+    /** A loop that records what happened to it, in order, and what it was told to go on from. */
+    function watchedLive() {
+      const events: string[] = [];
+      const made: Array<{ deps: LiveDeps; sentences: number[] }> = [];
+      const factory = (deps: LiveDeps) => {
+        const one = { deps, sentences: [] as number[] };
+        made.push(one);
+        const i = made.length;
+        return {
+          sentences: (list: ReadonlyArray<{ n: number }>) => { one.sentences.push(...list.map((x) => x.n)); },
+          quiet: () => { events.push(`quiet ${i}`); },
+          stop: async () => { events.push(`stop ${i}`); },
+          dispose: () => { events.push(`dispose ${i}`); },
+        };
+      };
+      return { made, events, factory };
+    }
+
+    it('keeps the loop from sending on its own once the session is stopping: only the last update is left', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.events).toContain('stop 1'));
+        expect(live.events).toEqual(['quiet 1', 'stop 1']);
+      });
+    });
+
+    it('turned off and on again in one session, goes on from the notes on screen with the sentences that follow', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        // The first exchange is said; the second starts at 5 s.
+        clock.advance(4000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await vi.waitFor(() => expect(live.made[0].sentences.length).toBeGreaterThan(0));
+        const earlier = [...live.made[0].sentences];
+        live.made[0].deps.onState({ title: 'Weekly', topics: [] });
+        useSettingsStore.setState({ liveNotes: false } as never);
+        useSettingsStore.setState({ liveNotes: true } as never);
+        expect(useLiveNotes.getState().state).toEqual({ title: 'Weekly', topics: [] });
+        clock.advance(20_000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(2));
+        const from = live.made[1].deps.from!;
+        expect(from.state).toEqual({ title: 'Weekly', topics: [] });
+        expect(from.seen.map((x) => x.n)).toEqual(earlier);
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true, off: false, state: { title: 'Weekly', topics: [] } });
+        await session.runner.stop();
+      });
+    });
+
+    // Review: a Stop while the notes service is still loading kept nothing for the last update.
+    it('makes the loop when the notes service answers after Stop, and gives it the sentences for its last update', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        // The notes service's key is still being read when the session stops.
+        const entries = useProviderStore.getState().entries;
+        const { openai: _openai, ...others } = entries as Record<string, unknown>;
+        const loadBefore = useProviderStore.getState().load;
+        let release!: () => void;
+        const loaded = new Promise<void>((r) => { release = r; });
+        useProviderStore.setState({ entries: others, load: async () => { await loaded; useProviderStore.setState({ entries }); } } as never);
+        try {
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true }));
+          await session.runner.stop();
+          await session.runner.settled();
+          expect(live.made).toHaveLength(0);
+          release();
+          await vi.waitFor(() => expect(live.events).toContain('stop 1'));
+          expect(live.made[0].sentences.length).toBeGreaterThan(0);
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: false, ended: true }));
+        } finally {
+          useProviderStore.setState({ load: loadBefore } as never);
+        }
+      });
+    });
+
+    // Review: turned off while the last update was still on its way, the loop went on and could still send.
+    it('lets a loop still giving its last update go when live notes are turned off', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive({ hold: true });
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        useSettingsStore.setState({ liveNotes: false } as never);
+        expect(live.made[0].disposed).toBe(true);
+        live.made[0].release();
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', ended: true }));
+      });
+    });
+
+    it('ends the panel at Stop when the notes service could not be read', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        const entries = useProviderStore.getState().entries;
+        const { openai: _openai, ...others } = entries as Record<string, unknown>;
+        const loadBefore = useProviderStore.getState().load;
+        useProviderStore.setState({ entries: others, load: async () => { throw new Error('unreadable'); } } as never);
+        try {
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true }));
+          await flush();
+          await session.runner.stop();
+          await session.runner.settled();
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: false, ended: true }));
+          expect(live.made).toHaveLength(0);
+        } finally {
+          useProviderStore.setState({ load: loadBefore } as never);
+          await settleReports();
+        }
+      });
+    });
+
+    it('watches the switch only while a loop runs', async () => {
+      await withLive(true, 'openai', async () => {
+        const offs: Array<ReturnType<typeof vi.fn>> = [];
+        const subscribe = useSettingsStore.subscribe;
+        const spy = vi.spyOn(useSettingsStore, 'subscribe').mockImplementation(((listener: never) => {
+          const off = vi.fn(subscribe(listener));
+          offs.push(off);
+          return off;
+        }) as never);
+        try {
+          const live = watchedLive();
+          const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+          // What the app session holds for its whole life is not this test's: only what a run adds.
+          offs.length = 0;
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(live.made).toHaveLength(1));
+          expect(offs.length).toBeGreaterThan(0);
+          await session.runner.stop();
+          await session.runner.settled();
+          await vi.waitFor(() => expect(live.events).toContain('stop 1'));
+          expect(offs.every((off) => off.mock.calls.length > 0)).toBe(true);
+        } finally {
+          spy.mockRestore();
+        }
+      });
+    });
+  });
+
+  describe('closing while notes are being written', () => {
+    /** A notes runner with one version running for `ids`; cancel ends it. */
+    function writingNotes(ids: string[]) {
+      const running = new Set(ids);
+      const listeners = new Set<() => void>();
+      return {
+        start: vi.fn(),
+        cancel: vi.fn((id: string) => { running.delete(id); queueMicrotask(() => { for (const l of listeners) l(); }); }),
+        running: () => [...running],
+        subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
+        notify: () => { for (const l of listeners) l(); },
+      };
+    }
+
+    it('keeps the app busy while notes are written, so a close asks first', async () => {
+      const { ipc } = electronIpc();
+      const notes = writingNotes([]);
+      const { session } = await setup({ ipc, notes, history: null });
+      const detach = session.attach();
+      (notes.running as unknown as () => string[]) = () => ['run-0001-aaaa'];
+      notes.notify();
+      expect(ipc.invoke).toHaveBeenLastCalledWith('app:session-busy', true);
+      (notes.running as unknown as () => string[]) = () => [];
+      notes.notify();
+      expect(ipc.invoke).toHaveBeenLastCalledWith('app:session-busy', false);
+      detach();
+    });
+
+    it('asks, and on Quit marks the notes cancelled and closes', async () => {
+      const { ipc, order, closeRequested } = electronIpc();
+      const notes = writingNotes(['run-0001-aaaa']);
+      const askQuit = vi.fn(async () => 'quit' as const);
+      const { session } = await setup({ ipc, notes, askQuit, history: null });
+      const detach = session.attach();
+      await closeRequested();
+      expect(askQuit).toHaveBeenCalledTimes(1);
+      expect(order.indexOf('app:close-asking')).toBeLessThan(order.indexOf('app:close-ready'));
+      expect(notes.cancel).toHaveBeenCalledWith('run-0001-aaaa');
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+      detach();
+    });
+
+    it('asks, and on Stay keeps the app and the notes', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const notes = writingNotes(['run-0001-aaaa']);
+      const { session } = await setup({ ipc, notes, askQuit: async () => 'stay', history: null });
+      const detach = session.attach();
+      await closeRequested();
+      expect(notes.cancel).not.toHaveBeenCalled();
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-cancelled');
+      expect(ipc.invoke).not.toHaveBeenCalledWith('app:close-ready');
+      detach();
+    });
+
+    it('writes no notes for a session the window closed, and asks nothing', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const notes = writingNotes([]);
+      const askQuit = vi.fn(async () => 'quit' as const);
+      const lineUpBefore = useLineUpStore.getState().lineUp;
+      useSettingsStore.setState({ notesAfterSession: true } as never);
+      useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
+      try {
+        const calls: string[] = [];
+        const answer = (name: string, value: unknown) => async () => { calls.push(name); return value; };
+        const port = { port: {
+          openRecord: answer('openRecord', undefined), putLeg: answer('putLeg', undefined), createTranscript: answer('createTranscript', 1),
+          putSegments: answer('putSegments', undefined), putNotices: answer('putNotices', undefined),
+          appendSentences: answer('appendSentences', { added: 0 }), reviseSentences: answer('reviseSentences', undefined),
+          closeRecord: answer('closeRecord', { kept: true }),
+        } as unknown as HistoryPort, calls: { map: <T>(f: (c: [string]) => T) => calls.map((c) => f([c])) } };
+        const { session, clock } = await setup({ ipc, notes, askQuit, history: port.port });
+        const detach = session.attach();
+        await session.runner.start();
+        clock.advance(8000);
+        await closeRequested();
+        await flush();
+        expect(port.calls.map((c) => c[0])).toContain('closeRecord');
+        expect(notes.start).not.toHaveBeenCalled();
+        expect(askQuit).not.toHaveBeenCalled();
+        expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+        detach();
+      } finally {
+        useSettingsStore.setState({ notesAfterSession: false } as never);
+        useLineUpStore.setState({ lineUp: lineUpBefore });
+      }
+    });
+
+    it('asks before ending a live session, and Stay leaves it running', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const notes = writingNotes(['run-0001-aaaa']);
+      let phaseWhenAsked = '';
+      const { session } = await setup({ ipc, notes, history: null, askQuit: async () => { phaseWhenAsked = session.runner.state.getState().phase; return 'stay'; } });
+      const detach = session.attach();
+      await session.runner.start();
+      await closeRequested();
+      expect(phaseWhenAsked).toBe('running');
+      expect(session.runner.state.getState().phase).toBe('running');
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-cancelled');
+      expect(ipc.invoke).not.toHaveBeenCalledWith('app:close-ready');
+      await session.runner.stop();
+      detach();
+    });
+
+    it('closes at once when no notes are being written', async () => {
+      const { ipc, closeRequested } = electronIpc();
+      const askQuit = vi.fn(async () => 'stay' as const);
+      const { session } = await setup({ ipc, notes: writingNotes([]), askQuit, history: null });
+      const detach = session.attach();
+      await closeRequested();
+      expect(askQuit).not.toHaveBeenCalled();
+      expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+      detach();
+    });
+  });
+
   it('counts a close as the window ending the run, not a Stop button press', async () => {
     const { ipc, closeRequested } = electronIpc();
     const { session, track } = await setup({ ipc });
@@ -1109,3 +1613,268 @@ describe('getAppSession', () => {
     expect(currentRunPhase()).toBe('idle');
   });
 });
+
+// History: every desktop run is written into its record (session capture).
+describe('history', () => {
+  type Call = [string, any];
+  /** A port that records each call; `slow(method)` holds that method's answers until `release()`. */
+  function recordingPort() {
+    const calls: Call[] = [];
+    const slow = new Set<string>();
+    let held: Array<() => void> = [];
+    let transcripts = 0;
+    const answer = (method: string, arg: unknown, value: unknown) => {
+      calls.push([method, arg]);
+      if (slow.has(method)) return new Promise((resolve) => { held.push(() => resolve(value)); });
+      return Promise.resolve(value);
+    };
+    const port = {
+      openRecord: (a: unknown) => answer('openRecord', a, undefined),
+      putLeg: (a: unknown) => answer('putLeg', a, undefined),
+      createTranscript: (a: unknown) => answer('createTranscript', a, ++transcripts),
+      putSegments: (a: unknown) => answer('putSegments', a, undefined),
+      putNotices: (a: unknown) => answer('putNotices', a, undefined),
+      appendSentences: (a: { sentences: unknown[] }) => answer('appendSentences', a, { added: a.sentences.length }),
+      reviseSentences: (a: unknown) => answer('reviseSentences', a, undefined),
+      closeRecord: (a: unknown) => answer('closeRecord', a, { kept: true }),
+    } as unknown as HistoryPort;
+    return { port, calls, slow: (m: string) => slow.add(m), release: () => { slow.clear(); const h = held; held = []; for (const f of h) f(); } };
+  }
+
+  /** A port over the real store in a temporary folder, called directly as the IPC layer would. */
+  function storePort() {
+    const nodeRequire = createRequire(import.meta.url);
+    const { openHistory } = nodeRequire('../../electron/history-store.js');
+    const dir = mkdtempSync(join(tmpdir(), 'sokuji-capture-'));
+    const store = openHistory({ dir });
+    const call = (method: string) => async (a: unknown) => store[method](a);
+    const port = Object.fromEntries(['openRecord', 'putLeg', 'createTranscript', 'putSegments', 'putNotices', 'appendSentences', 'reviseSentences', 'closeRecord']
+      .map((m) => [m, call(m)])) as unknown as HistoryPort;
+    const h = { port, store, dir, cleanup: () => { h.store.close(); rmSync(dir, { recursive: true, force: true }); } };
+    return h;
+  }
+
+  /** A run id as the app makes them (a UUID's shape): the store refuses an id that could leave its folder. */
+  const RUN = 'run-0001-aaaa';
+
+  it('writes a run into the port it was given and closes the record', async () => {
+    const port = recordingPort();
+    const { session, clock } = await setup({ history: port.port, ipc: null });
+    await session.runner.start();
+    clock.advance(8000);
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    const names = port.calls.map((c) => c[0]);
+    expect(names[0]).toBe('openRecord');
+    expect(port.calls[0][1]).toEqual(expect.objectContaining({ id: 'run1', mode: 'speaker' }));
+    expect(names).toContain('appendSentences');
+    expect(names[names.length - 1]).toBe('closeRecord');
+  });
+
+  it('starts the notes of a closed record when notes after the session are on and a notes service is chosen', async () => {
+    const port = recordingPort();
+    const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [] as string[], subscribe: () => () => {} };
+    const lineUpBefore = useLineUpStore.getState().lineUp;
+    useSettingsStore.setState({ notesAfterSession: true } as never);
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
+    try {
+      const { session, clock } = await setup({ history: port.port, ipc: null, notes });
+      await session.runner.start();
+      clock.advance(8000);
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      expect(notes.start).toHaveBeenCalledTimes(1);
+      expect(notes.start).toHaveBeenCalledWith('run1');
+    } finally {
+      useSettingsStore.setState({ notesAfterSession: false } as never);
+      useLineUpStore.setState({ lineUp: lineUpBefore });
+    }
+  });
+
+  it('starts no notes when notes after the session are off, or no notes service is chosen', async () => {
+    for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
+      const port = recordingPort();
+      const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [] as string[], subscribe: () => () => {} };
+      const lineUpBefore = useLineUpStore.getState().lineUp;
+      useSettingsStore.setState({ notesAfterSession: on } as never);
+      useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: service } } as never);
+      try {
+        const { session, clock } = await setup({ history: port.port, ipc: null, notes });
+        await session.runner.start();
+        clock.advance(8000);
+        await session.runner.stop();
+        await session.runner.settled();
+        await flush();
+        expect(port.calls.map((c) => c[0])).toContain('closeRecord');
+        expect(notes.start).not.toHaveBeenCalled();
+      } finally {
+        useSettingsStore.setState({ notesAfterSession: false } as never);
+        useLineUpStore.setState({ lineUp: lineUpBefore });
+      }
+    }
+  });
+
+  it("records each side's audio into the record while the run goes on", async () => {
+    const port = recordingPort();
+    const pieces: Array<{ recordId: string; source: string }> = [];
+    (port.port as unknown as Record<string, unknown>).appendTrack = async (a: { recordId: string; source: string; data: Uint8Array }) => {
+      pieces.push({ recordId: a.recordId, source: a.source });
+      return { bytes: a.data.length };
+    };
+    const head = new Uint8Array([79, 112, 117, 115, 72, 101, 97, 100, 1, 1, 156, 0, 192, 93, 0, 0, 0, 0, 0]);
+    const historyEncoder = (onPacket: (d: Uint8Array, s: number) => void, onHead: (h: Uint8Array) => void) => {
+      let sent = false;
+      return { encode: (pcm: Int16Array) => { if (!sent) { sent = true; onHead(head); } for (let i = 0; i < pcm.length; i += 480) onPacket(new Uint8Array(3), 960); }, flush: async () => {}, close: () => {} };
+    };
+    const { session, clock } = await setup({ history: port.port, ipc: null, historyEncoder });
+    await session.runner.start();
+    clock.advance(3000);
+    await flush();
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    expect(pieces.length).toBeGreaterThan(0);
+    expect(pieces.every((p) => p.recordId === 'run1' && p.source === 'speaker')).toBe(true);
+    const names = port.calls.map((c) => c[0]);
+    expect(names[names.length - 1]).toBe('closeRecord');
+  });
+
+  it('records no audio where the page cannot encode it, and still writes the record', async () => {
+    const port = recordingPort();
+    const appendTrack = vi.fn();
+    (port.port as unknown as Record<string, unknown>).appendTrack = appendTrack;
+    const { session, clock } = await setup({ history: port.port, ipc: null, historyEncoder: null });
+    await session.runner.start();
+    clock.advance(3000);
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    expect(appendTrack).not.toHaveBeenCalled();
+    expect(port.calls.map((c) => c[0])).toContain('closeRecord');
+  });
+
+  it('creates no writer without a port', async () => {
+    const { session, clock } = await setup({ history: null, ipc: null });
+    await session.runner.start();
+    clock.advance(2000);
+    await session.runner.stop();
+    await session.runner.settled();
+  });
+
+  it('answers the close request only after the last writes', async () => {
+    const port = recordingPort();
+    port.slow('closeRecord');
+    const { ipc, order, closeRequested } = electronIpc();
+    const { session, clock } = await setup({ history: port.port, ipc });
+    const detach = session.attach();
+    await session.runner.start();
+    clock.advance(1000);
+    const closing = closeRequested();
+    await flush();
+    await flush();
+    expect(order).not.toContain('app:close-ready');
+    port.release();
+    await closing;
+    expect(order).toContain('app:close-ready');
+    detach();
+  });
+
+  it('stores a run so that the record gives back the same conversation', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      await session.runner.start();
+      clock.advance(8000);
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      await flush();
+      const ended = session.runner.conversation.snapshot();
+      const legs = ended.map((l) => ({
+        ...l,
+        notices: l.notices.filter((n) => n.lifetime !== 'transient'),
+        segments: l.segments.map(({ speech: _speech, heard: _heard, ...rest }) => ({ ...rest, speech: [] })),
+      }));
+      expect(h.store.getLegs(RUN)).toEqual(legs);
+      const rec = h.store.getRecord(RUN);
+      expect(rec.state).toBe('closed');
+      const sentences = h.store.getSentences({ transcriptId: rec.transcripts[0].id });
+      expect(sentences.length).toBeGreaterThan(0);
+      expect(sentences.map((s: { n: number }) => s.n)).toEqual(sentences.map((_: unknown, i: number) => i + 1));
+      expect(sentences.every((s: { startMs: number; endMs: number }) => s.endMs >= s.startMs && s.startMs >= 0)).toBe(true);
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it('follows the rewrite script without changing a number or a time', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      useProviderStore.getState().updateSettings(fakeProvider, { script: 'rewrite' });
+      await session.runner.start();
+      clock.advance(8000);
+      await flush();
+      const transcriptId = h.store.getRecord(RUN).transcripts[0].id;
+      const before = h.store.getSentences({ transcriptId });
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      await flush();
+      const after = h.store.getSentences({ transcriptId });
+      expect(after.length).toBeGreaterThan(0);
+      expect(after.slice(0, before.length).map((s: { n: number; startMs: number; endMs: number }) => [s.n, s.startMs, s.endMs]))
+        .toEqual(before.map((s: { n: number; startMs: number; endMs: number }) => [s.n, s.startMs, s.endMs]));
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it('keeps writing into the same record across a dropped connection', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      useProviderStore.getState().updateSettings(fakeProvider, { script: 'reconnect' });
+      await session.runner.start();
+      for (let i = 0; i < 30; i++) { clock.advance(1000); await flush(); }
+      await session.runner.stop();
+      await session.runner.settled();
+      await flush();
+      await flush();
+      expect(h.store.listRecords({}).map((r: { id: string; state: string }) => [r.id, r.state])).toEqual([[RUN, 'closed']]);
+      const sentences = h.store.getSentences({ transcriptId: h.store.getRecord(RUN).transcripts[0].id });
+      expect(sentences.length).toBeGreaterThan(1);
+      expect(sentences.map((s: { n: number }) => s.n).sort((a: number, b: number) => a - b)).toEqual(sentences.map((_: unknown, i: number) => i + 1));
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it('leaves a record that launch recovery closes when the page goes away mid-run', async () => {
+    const h = storePort();
+    try {
+      const { session, clock } = await setup({ history: h.port, ipc: null, newSessionId: () => RUN });
+      const detach = session.attach();
+      await session.runner.start();
+      clock.advance(8000);
+      await flush();
+      await flush();
+      const written = h.store.getSentences({ transcriptId: h.store.getRecord(RUN).transcripts[0].id }).length;
+      expect(written).toBeGreaterThan(0);
+      window.dispatchEvent(new Event('pagehide'));
+      detach();
+      const nodeRequire = createRequire(import.meta.url);
+      const { openHistory } = nodeRequire('../../electron/history-store.js');
+      h.store.close();
+      const reopened = openHistory({ dir: h.dir });
+      h.store = reopened;
+      expect(reopened.recoverOpenRecords()).toEqual({ closed: [RUN], dropped: [] });
+      expect(reopened.getSentences({ transcriptId: reopened.getRecord(RUN).transcripts[0].id }).length).toBe(written);
+    } finally {
+      h.cleanup();
+    }
+  });
+});
+

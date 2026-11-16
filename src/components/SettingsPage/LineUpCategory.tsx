@@ -3,9 +3,14 @@
 // "Languages and line-up": the language pair, the speech mode, and one row per
 // stage choosing the provider that serves it (Plan 4's line-up). Which model or
 // setting a provider uses is that provider's own options, folded under the rows.
+// On the desktop a fourth card chooses who writes the notes: none, or OpenAI with
+// the user's own key (client side only for now, owner 2026-11-16).
+import { useWordList } from '../../lib/words/list';
+import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
+import { effectiveGeminiModel } from '../../providers/gemini/settings';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
+import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
@@ -15,6 +20,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useMode } from '../../stores/audioStore';
 import { useEngineSlotTarget, useNavigateToSettings, useSetEngineSlotTarget, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
+import { isElectron } from '../../utils/environment';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, type Selections } from '../../lib/local-inference/selection/types';
 import { ProviderLanguages } from '../providers/ProviderLanguages';
@@ -57,6 +63,13 @@ function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key
 }
 
 export function LineUpCategory({ locked }: CategoryBodyProps) {
+  const wordEntries = useWordList((s) => s.entries);
+  const wordBackground = useWordList((s) => s.background);
+  // The Gemini model a session would run: the list goes to some models only.
+  const geminiModel = useProviderStore((s) => {
+    const settings = s.entries.gemini?.settings as { model?: string } | undefined;
+    return settings ? effectiveGeminiModel({ model: settings.model ?? '' }, s.models.gemini ?? []) : null;
+  });
   const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
   const providers = useMemo(() => presentProviders(), []);
@@ -102,6 +115,19 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         if (missing && lineUp?.[stage] !== id) m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
         return m;
       });
+  };
+
+  // The notes card: OpenAI is offered once it has a key (or while it is chosen, to show what it lacks).
+  const notesService = lineUp?.summarisation ?? null;
+  const openAi = providers.find((p) => p.id === 'openai');
+  const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
+  const notesState = notesService === null
+    ? { ok: false, text: t('settingsPage.lineup.state.off', 'Off') }
+    : openAiKeyed ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') } : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
+  const chooseNotes = async (id: string) => {
+    const before: LineUp | null = useLineUpStore.getState().lineUp;
+    const choice = await useLineUpStore.getState().choose('summarisation', id || null);
+    if (choice && before) trackEvent('lineup_changed', lineUpChangedEvent('summarisation', before, choice));
   };
 
   const choose = async (stage: RunStage, id: string) => {
@@ -217,6 +243,37 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                   {t('settingsPage.lineup.granite', 'With translation: Granite Speech turns speech straight into the translation.')}
                 </p>
               )}
+              {stage === 'transcription' && isElectron() && lineUp?.transcription === 'soniox' && (
+                <p className="lineup-stage__joint">
+                  <AudioLines size={12} aria-hidden="true" />
+                  {t('settingsPage.lineup.alsoFiles', 'Also transcribes imported files and records again.')}
+                </p>
+              )}
+              {(() => {
+                // The word list goes to the services that hear and translate: over a service's limit, its first stage says so.
+                if (stage !== 'transcription' && stage !== 'translation') return null;
+                const id = lineUp?.[stage] ?? null;
+                if (stage === 'translation' && id === lineUp?.transcription) return null;
+                const service = wordServiceOf(id);
+                if (!service) return null;
+                // A model that takes no word list: said, not left silent (the list is not sent to it).
+                if (service === 'gemini' && wordEntries.length > 0 && !modelTakesWords('gemini', geminiModel)) {
+                  return (
+                    <p className="lineup-stage__joint">
+                      <ListX size={12} aria-hidden="true" />
+                      {t('settingsPage.lineup.wordsUnused', 'Word list: this model cannot use it.')}
+                    </p>
+                  );
+                }
+                const leftOut = wordsFor(service, wordEntries, wordBackground).leftOut;
+                if (leftOut === 0) return null;
+                return (
+                  <p className="lineup-stage__joint">
+                    <ListX size={12} aria-hidden="true" />
+                    {t('settingsPage.lineup.wordsLeftOut', 'Word list: {{count}} entries over this service’s limit are left out.', { count: leftOut })}
+                  </p>
+                );
+              })()}
               {moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>}
               {(() => {
                 const o = optionsOf(stage);
@@ -265,6 +322,20 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
             </div>
           );
         })}
+        {isElectron() && (
+          <div className="lineup-stage">
+            <div className="lineup-stage__head">
+              <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
+              <em className={`lineup-stage__state${notesState.ok ? ' is-ready' : ''}`}>{notesState.text}</em>
+            </div>
+            <select className="select-dropdown" value={notesService ?? ''} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
+              onChange={(e) => void chooseNotes(e.target.value)}>
+              <option value="">{t('settingsPage.lineup.notesNone', 'None')}</option>
+              {(openAiKeyed || notesService === 'openai') && <option value="openai">OpenAI</option>}
+            </select>
+            {!openAiKeyed && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

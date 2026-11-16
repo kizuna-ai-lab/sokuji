@@ -18,12 +18,13 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => false, isExtension: () => state.extension, isKizunaAIEnabled: () => false,
 }));
 vi.mock('../../stores/settingsStore', () => ({
+  useLiveNotesSetting: () => false, useNotesAfterSession: () => false,
   useSettingsNavigationTarget: () => state.target, useSubtitleModeActive: () => false, useDiagnosticLogs: () => false,
 }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', () => ({
   useShowSettings: () => state.showSettings, useSetShowSettings: () => state.setShowSettings,
-  useSetupWizardOpen: () => false, useSetSetupWizardOpen: () => vi.fn(),
+  useSetupWizardOpen: () => false, useHistoryOpen: () => false, useSetHistoryOpen: () => vi.fn(), useSetSetupWizardOpen: () => vi.fn(),
 }));
 
 import MainLayout from './MainLayout';

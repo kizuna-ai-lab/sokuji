@@ -72,6 +72,9 @@ describe("Doubao AST 2.0's wire", () => {
     expect(start.user).toMatchObject({ uid: 'sokuji-user', platform: 'web' });
     expect(start.sourceAudio).toMatchObject({ format: 'pcm', rate: 16000, bits: 16, channel: 1 });
     expect(start.request).toMatchObject({ mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en', speakerId: '', corpus: { boostingTableId: 'hot-1' } });
+    // The word list's own fields reach the wire beside the library id.
+    const words = decodeRequest(startSessionFrame({ ids, sequence: 0, mode: 's2t', source: 'zh', target: 'en', corpus: { boostingTableId: 'hot-1', hotWordsList: ['Sokuji'], glossaryList: { Sokuji: '速记' }, correctWords: '{"so cookie":"Sokuji"}' } }));
+    expect(words.request?.corpus).toMatchObject({ boostingTableId: 'hot-1', hotWordsList: ['Sokuji'], glossaryList: { Sokuji: '速记' }, correctWords: '{"so cookie":"Sokuji"}' });
     expect(start.targetAudio).toMatchObject({ format: 'ogg_opus', rate: 24000 });
   });
 

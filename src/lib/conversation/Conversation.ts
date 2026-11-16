@@ -3,7 +3,7 @@
  * segments: identity, time, the growth trace, audio attached by ref, notices.
  * Knows nothing about the other leg.
  */
-import type { SegmentTiming, TextRange } from '../contract/adapter';
+import type { Heard, SegmentTiming, TextRange } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
@@ -83,7 +83,7 @@ export class Conversation {
   private dispatch(event: AdapterEvent): void {
     switch (event.kind) {
       case 'segmentOpened': return this.open(event.payload.ref, event.payload.side, event.payload.origin, event.payload.person);
-      case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language, event.payload.person);
+      case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language, event.payload.person, event.payload.heard);
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm, event.payload.voice);
       case 'speechRanges': return this.ranges(event.payload.ref, event.payload.ranges);
@@ -159,7 +159,7 @@ export class Conversation {
       const dropped = (ref: number, n: number) => { if (n > 0) this.clearedEntries.set(ref, (this.clearedEntries.get(ref) ?? 0) + n); };
       for (const seg of this.segments) dropped(seg.ref, seg.speech.length);
       for (const [ref, list] of this.pending) dropped(ref, list.length);
-      const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined }));
+      const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined, heard: undefined }));
       this.segments = kept;
       this.notices = [];
       this.indexByRef.clear();
@@ -214,17 +214,17 @@ export class Conversation {
     this.touch();
   }
 
-  private text(ref: number, text: string, timing?: SegmentTiming, language?: string, person?: string): void {
+  private text(ref: number, text: string, timing?: SegmentTiming, language?: string, person?: string, heard?: Heard): void {
     this.unfilled.delete(ref);
     const i = this.indexByRef.get(ref);
     if (i === undefined) return this.violation(`text for ref ${ref} before it opened`);
     const seg = this.segments[i];
     if (seg.text === text && sameTiming(seg.timing, timing ?? seg.timing) && (language ?? seg.language) === seg.language
-      && (person ?? seg.person) === seg.person) return;
-    // A timing-, language- or person-only snapshot is not growth: a mark there
+      && (person ?? seg.person) === seg.person && sameHeard(seg.heard, heard ?? seg.heard)) return;
+    // A timing-, language-, person- or heard-only snapshot is not growth: a mark there
     // would read as the end of a pause to L2's cut.
     const revision = seg.final;
-    this.replaceText(i, text, { timing, language, person, mark: seg.text !== text });
+    this.replaceText(i, text, { timing, language, person, heard, mark: seg.text !== text });
     if (revision) this.clampRanges(i);
   }
 
@@ -331,7 +331,7 @@ export class Conversation {
   // ---- hooks ----
 
   /** Replaces a segment's text, re-anchoring its speech ranges and extending the growth trace. */
-  private replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; person?: string; mark: boolean }): void {
+  private replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; person?: string; heard?: Heard; mark: boolean }): void {
     const seg = this.segments[i];
     const ranges = reanchorRanges(seg.text, text, seg.speech.map((s) => s.range));
     const speech = seg.speech.map((s, k) => (ranges[k] === s.range ? s : { ...s, range: ranges[k] }));
@@ -340,7 +340,12 @@ export class Conversation {
       ? seg.marks
       : seg.marks.map((m) => ({ at: m.at, len: Math.min(text.length, offsetAfterSkeleton(text, countSkeleton(seg.text.slice(0, m.len)))) }));
     const marks = o.mark ? pushMark(remapped, this.opts.clock.now(), text.length) : remapped;
-    this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, person: o.person ?? seg.person, marks, speech });
+    // A stated `heard` is about the new text; the one kept is re-anchored as the marks are when the text was rewritten.
+    const heard = o.heard ?? (seg.heard && !grew ? reanchorHeard(seg.text, text, seg.heard) : seg.heard);
+    this.replace(i, {
+      ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, person: o.person ?? seg.person, marks, speech,
+      ...(heard ? { heard } : {}),
+    });
   }
 
   /** Marks a segment final, checks its ranges against the now-settled text, and starts punctuation fill-in for it. */
@@ -477,6 +482,47 @@ function pushMark(marks: readonly Mark[], at: number, len: number): Mark[] {
   const last = marks[marks.length - 1];
   if (last && at - last.at < MARK_COMPACT_MS) return [...marks.slice(0, -1), { at, len }];
   return [...marks, { at, len }];
+}
+
+function sameHeard(a?: Heard, b?: Heard): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.stableLen !== b.stableLen || a.pieces.length !== b.pieces.length) return false;
+  return a.pieces.every((p, k) => {
+    const q = b.pieces[k];
+    return p.at === q.at && p.len === q.len && p.startAt === q.startAt && p.endAt === q.endAt;
+  });
+}
+
+const LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
+
+/** The offset just after the `count`-th letter or digit of `text` (0 for 0; the text's length when it holds fewer). */
+function endAfterCount(text: string, count: number): number {
+  if (count <= 0) return 0;
+  let seen = 0;
+  let offset = 0;
+  for (const ch of text) {
+    offset += ch.length;
+    if (LETTER_OR_DIGIT.test(ch) && ++seen === count) return offset;
+  }
+  return text.length;
+}
+
+/**
+ * `heard` of `old` carried onto `text` by the count of letters and digits before each offset, as the marks are: an
+ * end (a piece's end, `stableLen`) stays just after the same letter, a piece's start moves to the first letter or
+ * digit at or after its place, so punctuation or a space added in front of a word is not counted into it.
+ */
+function reanchorHeard(old: string, text: string, heard: Heard): Heard {
+  const end = (offset: number) => Math.min(text.length, endAfterCount(text, countSkeleton(old.slice(0, offset))));
+  const start = (offset: number) => {
+    const from = endAfterCount(text, countSkeleton(old.slice(0, offset)));
+    const m = LETTER_OR_DIGIT.exec(text.slice(from));
+    return m ? from + m.index : text.length;
+  };
+  const pieces = heard.pieces
+    .map((p) => { const at = start(p.at); return { ...p, at, len: end(p.at + p.len) - at }; })
+    .filter((p) => p.len > 0);
+  return { pieces, stableLen: end(heard.stableLen) };
 }
 
 function sameTiming(a?: SegmentTiming, b?: SegmentTiming): boolean {

@@ -309,7 +309,7 @@ describe('the Qwen LiveTranslate adapter: the session (spec §6)', () => {
     const h = await qwenSession({ context: PARTICIPANT_CTX });
     for (const frame of turn(1, { source: 'Hello', translation: '你好', speaker: 2 })) h.socket().receive(frame);
     const persons = h.content().filter((e) => e.kind === 'segmentOpened').map((e) => (e.payload as { person?: string }).person);
-    expect(persons).toEqual(['2', '2']);
+    expect(persons).toEqual(['1.2', '1.2']);
   });
 
   it('a leg that does not speak takes the text events and plays nothing', async () => {

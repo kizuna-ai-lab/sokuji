@@ -703,6 +703,30 @@
   &__select { width: 200px; height: 30px; padding: 0 8px; font-size: 12.5px; border-radius: 6px; }
   &__value { font-size: 12.5px; color: vars.$text-tertiary; font-variant-numeric: tabular-nums; }
 }
+// History and notes: the folder's path may be long; the line under the folder row.
+.history-category {
+  .model-row__btn { gap: vars.$space-1; }
+  &__dir { overflow-wrap: anywhere; }
+  &__hint { margin: 0; padding: 9px 0; border-bottom: 1px solid vars.$border-subtle; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
+  // The once-only explanation before notes are first turned on (ruling 37): under the switch, in the list's rhythm.
+  &__explain {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 6px;
+    background: vars.$bg-control;
+    font-size: 12px;
+    color: vars.$text-primary;
+    p { margin: 0; line-height: 1.55; color: vars.$text-secondary; }
+  }
+  &__explain-actions { display: flex; justify-content: flex-end; gap: 6px; }
+  &__model { width: 200px; height: 30px; font-size: 12.5px; }
+  // The model list, and under it the name typed by hand when "Other" is chosen.
+  &__model-pick { display: flex; flex-direction: column; gap: 6px; }
+}
 .general-links {
   display: flex;
   flex-wrap: wrap;

@@ -6,6 +6,7 @@
  * `geminiTranslateModel.ts:85-105`) are gone. The participant speaks when
  * its switch is on (ruling 5): `context.speech` says so.
  */
+import { modelTakesWords, wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
@@ -41,6 +42,11 @@ export interface GeminiConfig {
   textInMarks: boolean;
   /** Live Translate only: each side's silence timer (the old continuous segmentation) and the mid-sentence deferral (choice 7). */
   silence?: { sourceMs: number; translationMs: number; deferMidSentence: boolean };
+  /**
+   * Dialogue only: the word list's written forms, for the input transcription to expect (`customVocabulary`). Live
+   * Translate's page names no such field, and a refused setup is a dead session: it gets none.
+   */
+  vocabulary?: string[];
 }
 
 const clamp = (v: number, min: number, max: number, fallback: number) => (Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback);
@@ -68,6 +74,7 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
         silenceMs: Math.round(clamp(s.vadSilenceDurationMs, GEMINI_VAD_SILENCE_RANGE.min, GEMINI_VAD_SILENCE_RANGE.max, GEMINI_DEFAULTS.vadSilenceDurationMs)),
         prefixMs: Math.round(clamp(s.vadPrefixPaddingMs, GEMINI_VAD_PREFIX_RANGE.min, GEMINI_VAD_PREFIX_RANGE.max, GEMINI_DEFAULTS.vadPrefixPaddingMs)),
       };
+  const vocabulary = wordsFor('gemini', shared.words?.entries ?? [], '').terms;
   return {
     model,
     kind,
@@ -93,6 +100,8 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     activity,
     activityHandling: geminiActivityHandling(model),
     textInMarks: geminiTextInMarks(model),
+    // Only a model that is known to take it: one that does not would refuse the whole session.
+    ...(dialogue && vocabulary && modelTakesWords('gemini', model) ? { vocabulary } : {}),
   };
 }
 

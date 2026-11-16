@@ -43,6 +43,61 @@ describe('close handshake', () => {
   // Every case here runs mid-session; see 'only while a session is busy' below.
   beforeEach(() => hs.setSessionBusy(true));
 
+  // Notes being written when the app is closed (stage 3, ruling 7): the page asks the user, who may take their time.
+  it('waits as long as the page asks the user, then closes when told to', () => {
+    hs.onWindowClose(event());
+    hs.asking();
+    expect(timer).toBeNull();
+    hs.ready();
+    expect(win.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a close through when the page that was asking is gone', () => {
+    hs.onWindowClose(event());
+    hs.asking();
+    win.webContents.crashed = true;
+    const again = event();
+    hs.onWindowClose(again);
+    expect(again.preventDefault).not.toHaveBeenCalled();
+    expect(hs.onBeforeQuit(event())).toBe(true);
+  });
+
+  // Review: a reload keeps the window and its webContents; the page that was asking is gone, and the new one never answers.
+  it('lets a close through after the page that was asking is reloaded', () => {
+    hs.onWindowClose(event());
+    hs.asking();
+    hs.pageReplaced();
+    const again = event();
+    hs.onWindowClose(again);
+    expect(again.preventDefault).not.toHaveBeenCalled();
+    const quit = event();
+    expect(hs.onBeforeQuit(quit)).toBe(true);
+  });
+
+  it('runs an install that was waiting when its page is reloaded, as when the window is replaced', () => {
+    const install = vi.fn();
+    hs.endSessionThen(install);
+    expect(install).not.toHaveBeenCalled();
+    hs.pageReplaced();
+    expect(install).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays open when the user chooses to stay, and asks again at the next close', () => {
+    const quit = event();
+    expect(hs.onBeforeQuit(quit)).toBe(false);
+    hs.asking();
+    hs.cancelled();
+    expect(win.close).not.toHaveBeenCalled();
+    expect(quitApp).not.toHaveBeenCalled();
+    const again = event();
+    hs.onWindowClose(again);
+    expect(again.preventDefault).toHaveBeenCalled();
+    expect(win.sent).toEqual(['app:close-requested', 'app:close-requested']);
+    hs.ready();
+    expect(win.close).toHaveBeenCalledTimes(1);
+    expect(quitApp).not.toHaveBeenCalled();
+  });
+
   it('holds a close, asks the renderer, and closes once it answers', () => {
     const e = event();
     hs.onWindowClose(e);

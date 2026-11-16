@@ -1,11 +1,11 @@
-import type { Side, SegmentTiming, TextRange } from '../../lib/contract/adapter';
+import type { Heard, Side, SegmentTiming, TextRange } from '../../lib/contract/adapter';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { msForText } from './synth';
 
 /** One scripted emission. `at` is relative to the block's start. */
 export type ScriptStep =
   | { at: number; open: { ref: number; side: Side; origin?: string } }
-  | { at: number; text: { ref: number; text: string; timing?: SegmentTiming; language?: string } }
+  | { at: number; text: { ref: number; text: string; timing?: SegmentTiming; language?: string; heard?: Heard } }
   | { at: number; close: { ref: number; origin?: string } }
   | { at: number; audio: { ref?: number; range?: TextRange; ms: number; /** The tone's phase: samples of this stream already played, so consecutive chunks join without a click (G3). */ from?: number } }
   | { at: number; ranges: { ref: number; ranges: Array<{ index: number; range: TextRange }> } }

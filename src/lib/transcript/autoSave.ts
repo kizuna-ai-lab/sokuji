@@ -1,5 +1,4 @@
 import i18n from '../../locales';
-import { isElectron } from '../../utils/environment';
 import { reportError, describeCause } from '../diagnostics/report';
 import { downloadFile } from '../../utils/conversationExport';
 import { PANEL_NOTE_CODES, type PanelNoteInput } from '../../stores/panelNotesStore';
@@ -26,33 +25,14 @@ export function saveFailed(error: unknown, notify: AutoSaveNotifier): 'failed' {
 }
 
 /**
- * Saves a finished conversation's text: on Electron through the main process
- * into Downloads, with a note that can show the folder; in a browser as a
- * download, whose own UI is the confirmation. Never rejects.
+ * Saves a finished conversation's text as a download (the browser extension's
+ * session-end auto-save), whose own UI is the confirmation. Never rejects.
  */
 export async function saveTranscriptText(content: string, filename: string, notify: AutoSaveNotifier): Promise<'saved' | 'failed'> {
   try {
-    if (!isElectron()) {
-      // The browser's own download UI is the confirmation. The page cannot
-      // tell whether Chrome's download limiter let the file through, so a
-      // "saved" note here could be false.
-      downloadFile(content, filename, 'text/plain;charset=utf-8');
-      return 'saved';
-    }
-
-    const result = await window.electron.invoke('transcript:save', { content });
-    if (!result?.ok) {
-      throw new Error(result?.error ?? 'The main process did not save the transcript');
-    }
-    const savedName: string = String(result.path).split(/[\\/]/).pop() ?? String(result.path);
-    // Not transient: the file's name is the one thing the user may want to find again.
-    notify.note({
-      severity: 'info',
-      code: PANEL_NOTE_CODES.autoSaveSaved,
-      message: `Conversation saved: ${savedName}`,
-      params: { filename: savedName },
-      action: { kind: 'show-in-folder', dir: String(result.dir) },
-    });
+    // The page cannot tell whether Chrome's download limiter let the file
+    // through, so a "saved" note here could be false.
+    downloadFile(content, filename, 'text/plain;charset=utf-8');
     return 'saved';
   } catch (error) {
     return saveFailed(error, notify);

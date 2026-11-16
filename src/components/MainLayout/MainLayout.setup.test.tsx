@@ -29,6 +29,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 // Only what MainLayout itself reads: no provider, no UI mode, no provider
 // setter; this file mocks settingsStore whole.
 vi.mock('../../stores/settingsStore', () => ({
+  useLiveNotesSetting: () => false, useNotesAfterSession: () => false,
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => flags.subtitleActive,
   useDiagnosticLogs: () => flags.diagnosticLogs,
 }));
@@ -36,7 +37,7 @@ let loaded = true; let complete = true; let wizardOpen = false;
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => loaded, useSetupComplete: () => complete }));
 vi.mock('../../stores/layoutStore', () => ({
   useShowSettings: () => false, useSetShowSettings: () => vi.fn(),
-  useSetupWizardOpen: () => wizardOpen, useSetSetupWizardOpen: () => vi.fn(),
+  useSetupWizardOpen: () => wizardOpen, useHistoryOpen: () => false, useSetHistoryOpen: () => vi.fn(), useSetSetupWizardOpen: () => vi.fn(),
 }));
 
 beforeEach(() => {

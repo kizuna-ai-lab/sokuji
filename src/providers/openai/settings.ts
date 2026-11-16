@@ -60,8 +60,6 @@ export interface RealtimeSettings extends InstructionsSettings {
   /** 1..4096, or unlimited. */
   maxTokens: number | 'inf';
   transcriptModel: TranscriptModel;
-  /** The raw glossary as typed: `transcription.ts` splits it, for the models that take keywords. */
-  transcriptKeywords: string;
   noiseReduction: NoiseReduction;
   /** Sent only for a `gpt-realtime-2*` model (`takesReasoning`). */
   reasoningEffort: ReasoningEffort;
@@ -86,7 +84,6 @@ export const REALTIME_DEFAULTS: RealtimeSettings = {
   maxTokens: 'inf',
   // The cheapest, the old default: upgrading is a per-user choice (`OpenAIProviderConfig.ts:63-66`).
   transcriptModel: 'gpt-4o-mini-transcribe',
-  transcriptKeywords: '',
   noiseReduction: 'None',
   reasoningEffort: 'low',
 };
@@ -125,7 +122,7 @@ function maxTokensOf(v: unknown): number | 'inf' {
  * `migrateInstructions`. Nothing is written back.
  */
 export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>>, inputs: MigrationInputs): RealtimeSettings {
-  const text = (k: 'model' | 'voice' | 'transcriptKeywords') => (typeof stored[k] === 'string' ? (stored[k] as string) : REALTIME_DEFAULTS[k]);
+  const text = (k: 'model' | 'voice') => (typeof stored[k] === 'string' ? (stored[k] as string) : REALTIME_DEFAULTS[k]);
   return {
     ...migrateInstructions(stored, inputs.legacy),
     model: text('model'),
@@ -139,7 +136,6 @@ export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>
     semanticEagerness: oneOf(SEMANTIC_EAGERNESSES, stored.semanticEagerness, REALTIME_DEFAULTS.semanticEagerness),
     maxTokens: maxTokensOf(stored.maxTokens),
     transcriptModel: oneOf(TRANSCRIPT_MODELS, stored.transcriptModel, REALTIME_DEFAULTS.transcriptModel),
-    transcriptKeywords: text('transcriptKeywords'),
     noiseReduction: oneOf(NOISE_REDUCTIONS, stored.noiseReduction, REALTIME_DEFAULTS.noiseReduction),
     reasoningEffort: oneOf(REASONING_EFFORTS, stored.reasoningEffort, REALTIME_DEFAULTS.reasoningEffort),
   };

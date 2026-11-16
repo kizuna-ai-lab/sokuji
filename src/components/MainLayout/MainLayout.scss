@@ -10,7 +10,8 @@
   overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
 
   /* The settings page in place of the conversation (desktop): it takes the whole area. */
-  .settings-page-container {
+  .settings-page-container,
+  .history-page-container {
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -76,10 +77,12 @@
       /* Hide the transcript while a panel is open. MainPanel stays mounted
          (display:none, NOT unmounted) so the active session survives. The
          .control-footer is intentionally left untouched — it renders exactly
-         as in the normal layout and adapts via its own @container styles. */
+         as in the normal layout and adapts via its own @container styles.
+         The live notes go with the transcript (their loop runs on). */
       .conversation-toolbar,
       .conversation-display,
-      .text-input-section {
+      .text-input-section,
+      .live-notes {
         display: none;
       }
     }
@@ -97,8 +100,22 @@
     }
   }
   
+  // The conversation and, beside it, the live notes: on the right in a wide window, above in a narrow one.
+  .main-panel-row {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    > .live-notes { flex: 0 0 300px; }
+    @media (max-width: 767px) {
+      flex-direction: column;
+      > .live-notes { order: -1; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
+    }
+  }
+
   .main-panel-container {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden; // Prevent content from overflowing

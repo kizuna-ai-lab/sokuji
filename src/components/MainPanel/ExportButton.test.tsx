@@ -82,7 +82,7 @@ const closeMenu = async () => {
 };
 
 const box = (name: string) => screen.getByRole('menuitemcheckbox', { name });
-const autoSaveRow = () => screen.getByRole('menuitemcheckbox', { name: 'Auto-save when session ends' });
+const autoSaveRow = () => screen.getByRole('menuitemcheckbox', { name: 'Export TXT when a session ends' });
 
 beforeEach(() => {
   cleanup();
@@ -200,11 +200,6 @@ describe('ExportMenuButton auto-save row', () => {
 
     expect(setAutoSaveOnStop).toHaveBeenCalledWith(true);
     expect(screen.getByRole('menuitem', { name: 'Download as .txt' })).toBeInTheDocument();
-  });
-
-  it('explains where the file goes on desktop', () => {
-    renderMenu();
-    expect(autoSaveRow().getAttribute('title')).toContain('Downloads folder');
   });
 
   it('warns about the side panel in the browser', () => {

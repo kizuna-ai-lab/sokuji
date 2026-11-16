@@ -156,6 +156,8 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   export_copy_failed: 'mainPanel.export.copyFailed',
   autosave_saved: 'mainPanel.export.autoSave.saved',
   autosave_failed: 'mainPanel.export.autoSave.failed',
+  history_recording_stopped: 'history.recordingStopped',
+  history_transcript_stopped: 'history.transcriptStopped',
 };
 
 /**

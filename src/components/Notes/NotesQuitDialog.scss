@@ -1,0 +1,37 @@
+@use '../Settings/shared/variables' as vars;
+@use '../../styles/tokens' as tk;
+
+// Over everything, as a close question should be.
+.notes-quit {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: vars.$space-4;
+  background: color-mix(in srgb, vars.$bg-page 60%, transparent);
+
+  &__box {
+    max-width: 420px;
+    padding: vars.$space-4;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-md;
+    background: vars.$bg-popover;
+    color: vars.$text-primary;
+    box-shadow: vars.$shadow;
+    p { margin: 0 0 vars.$space-3; line-height: 1.55; }
+  }
+  &__actions { display: flex; justify-content: flex-end; gap: vars.$space-2; }
+  &__button {
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    cursor: pointer;
+    &--primary { border-color: tk.$color-primary; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+  }
+}

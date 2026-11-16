@@ -6,7 +6,9 @@ import { buildSoniox, describeSoniox, type SonioxConfig } from './config';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxVoiceSummary } from './SonioxVoiceSummary';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
-import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, type SonioxCredentials, type SonioxSettings } from './settings';
+import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxKeyField, sonioxLanguages, type SonioxCredentials, type SonioxSettings } from './settings';
+import { asSonioxRegion } from '../../lib/soniox/regions';
+import { sonioxWire } from './languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 
 const adapter = createSonioxAdapter();
@@ -22,6 +24,20 @@ const adapter = createSonioxAdapter();
 export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxConfig> & { id: 'soniox' } = {
   id: 'soniox',
   kind: 'own-key',
+  // A saved recording through Soniox's file recognition, in the project of the region the settings name.
+  fileRecognition(settings, credentials) {
+    const region = asSonioxRegion(settings.region);
+    const apiKey = String((credentials as unknown as Record<string, unknown>)[sonioxKeyField(region)] ?? '').trim();
+    if (!apiKey) return { missing: 'no-key' };
+    const languageHint = (code: string): string | null => {
+      try {
+        return sonioxWire.toWire(code);
+      } catch {
+        return null;
+      }
+    };
+    return { service: 'soniox', apiKey, region, languageHint };
+  },
   platforms: ['electron', 'extension', 'web'],
   icon: SonioxIcon,
   // Today's TUTORIAL_URLS value, as a literal (LocalInference's rule: no import from src/services).

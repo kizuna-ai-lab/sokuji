@@ -1,3 +1,4 @@
+import { wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { storedLocalStages } from '../../stores/lineUpStore';
@@ -68,6 +69,24 @@ function localInstructions(context: SessionContext, s: LocalInferenceSettings, s
   return participant || speakerResolved;
 }
 
+/** The word list and the session background, as lines the translator's prompt ends with (spec §9); empty without them. */
+function wordsNote(shared: SharedSettings): string {
+  const w = wordsFor('local_inference', shared.words?.entries ?? [], shared.words?.background ?? '');
+  return [
+    w.terms ? `Keep these names and terms as written: ${w.terms.join(', ')}.` : '',
+    w.translations ? `Translate these as given: ${w.translations.map(([from, to]) => `${from} → ${to}`).join('; ')}.` : '',
+    w.background ? `About this session: ${w.background}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * Whether the local provider turns speech straight into the translation: a Granite Speech recognition model also
+ * chosen, explicitly, as the translation model. Such a session gives no original text.
+ */
+export function translatesSpeechDirectly(asrModelId: string | undefined, translationModelId: string | undefined): boolean {
+  return !!asrModelId && translationModelId === asrModelId && getManifestEntry(asrModelId)?.asrEngine === 'granite-speech';
+}
+
 /**
  * LocalInference's builder (spec: "`build`"). Ports `buildSessionConfig` /
  * `buildParticipantSessionConfig` (`LocalInferenceProviderConfig.ts`): model
@@ -113,7 +132,7 @@ export function buildLocalInference(
   // Today's inference (LocalInferenceClient.ts ~406-408): the ASR model
   // handles translation itself (Granite Speech) when it was also picked,
   // explicitly, as the translation stage.
-  const isAst = asrEntry?.asrEngine === 'granite-speech' && resolved.translation?.modelId === resolved.asr.modelId;
+  const isAst = translatesSpeechDirectly(resolved.asr.modelId, resolved.translation?.modelId);
 
   let translation: LocalInferenceConfig['translation'];
   if (isAst) {
@@ -121,11 +140,13 @@ export function buildLocalInference(
   } else if (!resolved.translation) {
     translation = { kind: 'none' };
   } else {
-    const instructions = localInstructions(context, s, shared);
+    const own = localInstructions(context, s, shared);
     const defaultForward = buildDefaultLocalPrompt(source, target);
     const defaultReverse = buildDefaultLocalPrompt(target, source);
-    const wrapTranscript = instructions === defaultForward || instructions === defaultReverse;
-    translation = { kind: 'engine', modelId: resolved.translation.modelId, instructions, wrapTranscript };
+    // Whether the transcript is wrapped follows the prompt chosen, before the word list is added to it.
+    const wrapTranscript = own === defaultForward || own === defaultReverse;
+    const note = wordsNote(shared);
+    translation = { kind: 'engine', modelId: resolved.translation.modelId, instructions: note ? `${own}\n\n${note}` : own, wrapTranscript };
   }
 
   const config: LocalInferenceConfig = { asr, vad, translation };

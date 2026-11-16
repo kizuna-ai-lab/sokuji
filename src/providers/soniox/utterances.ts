@@ -16,7 +16,7 @@
  * `begin()`, or neither set), and a boundary clears `current` before it
  * makes that utterance `previous`.
  */
-import type { AdapterEvents, AdapterFrame, Ref, TextRange } from '../../lib/contract/adapter';
+import type { AdapterEvents, AdapterFrame, HeardPiece, Ref, TextRange } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { SonioxToken } from './sttStream';
@@ -45,6 +45,11 @@ export interface UtteranceOptions {
   legFor(token: SonioxToken): LegName;
   /** The speech language when no final translation token names one: the leg's target. */
   targetFor(leg: LegName): string;
+  /**
+   * The run's clock time at which a stream time of the current socket was heard, if known (`createSentClock`).
+   * With it, final original words become `heard` pieces of their source segment; without it, none is stated.
+   */
+  heardAt?: (streamMs: number) => number | undefined;
 }
 
 interface Utterance {
@@ -59,6 +64,8 @@ interface Utterance {
   sourceRef?: Ref;
   sourceClosed: boolean;
   sourceFinal: string;
+  /** Final original words placed on the run's clock, offsets into `sourceFinal`. */
+  pieces: HeardPiece[];
   sourceLanguage?: string;
   startMs?: number;
   endMs?: number;
@@ -149,6 +156,12 @@ export class Utterances {
         if (token.end_ms !== undefined) u.endMs = token.end_ms;
         this.openSource(u);
         if (token.is_final) {
+          const heardAt = this.o.heardAt;
+          if (heardAt && text.length > 0 && token.start_ms !== undefined && token.end_ms !== undefined) {
+            const startAt = heardAt(token.start_ms);
+            const endAt = heardAt(token.end_ms);
+            if (startAt !== undefined && endAt !== undefined) u.pieces.push({ at: u.sourceFinal.length, len: text.length, startAt, endAt });
+          }
           u.sourceFinal += text;
           if (token.speaker) u.labels.set(token.speaker, (u.labels.get(token.speaker) ?? 0) + 1);
         } else {
@@ -194,7 +207,7 @@ export class Utterances {
     this.count += 1;
     const u: Utterance = {
       leg: this.o.legFor(token), origin: `u${this.count}`, epoch: this.epoch, firstLabel: token.speaker, labels: new Map(),
-      sourceClosed: false, sourceFinal: '', translation: 'none', translationFinal: '', spokenUpTo: 0,
+      sourceClosed: false, sourceFinal: '', pieces: [], translation: 'none', translationFinal: '', spokenUpTo: 0,
     };
     this.current = u;
     return u;
@@ -278,10 +291,14 @@ export class Utterances {
     if (u.sourceRef !== undefined && !u.sourceClosed) {
       const text = u.sourceFinal + sourcePartial;
       const timing = u.startMs !== undefined && u.endMs !== undefined ? { startMs: u.startMs, endMs: u.endMs } : undefined;
-      const key = JSON.stringify([text, timing, u.sourceLanguage, personOf(u)]);
+      // With a table, how much is final is part of what is stated (`heard.stableLen`); without one it is not sent.
+      const stable = this.o.heardAt ? [u.pieces.length, u.sourceFinal.length] : [];
+      const key = JSON.stringify([text, timing, u.sourceLanguage, personOf(u), ...stable]);
       if (key !== u.sourceShown) {
         u.sourceShown = key;
-        this.emit(u, { kind: 'segmentText', payload: { ref: u.sourceRef, text, ...(timing ? { timing } : {}), ...(u.sourceLanguage ? { language: u.sourceLanguage } : {}), ...personField(u) } });
+        // The pieces handed out are a copy: the utterance goes on adding to its own.
+        const heard = u.pieces.length > 0 ? { heard: { pieces: [...u.pieces], stableLen: u.sourceFinal.length } } : {};
+        this.emit(u, { kind: 'segmentText', payload: { ref: u.sourceRef, text, ...(timing ? { timing } : {}), ...(u.sourceLanguage ? { language: u.sourceLanguage } : {}), ...personField(u), ...heard } });
       }
     }
     this.showTranslation(u, translationPartial);

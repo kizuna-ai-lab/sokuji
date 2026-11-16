@@ -4,6 +4,7 @@
  * writes a `prepare` patch back without overwriting a change the user made
  * during the run.
  */
+import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
@@ -168,6 +169,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
       { sourceSeconds: st.segmentationSourcePause, translationSeconds: st.segmentationTranslationPause },
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
       faceToFace,
+      { entries: useWordList.getState().entries, background: useWordList.getState().background },
     ),
     auth,
     account,

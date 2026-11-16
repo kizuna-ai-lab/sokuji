@@ -156,28 +156,11 @@ describe('createSonioxSettingsView', () => {
     expect(update).toHaveBeenCalledWith({ ttsSpeed: 0.85 });
   });
 
-  it('the vocabulary and background are 4 000-character textareas that write what is typed', () => {
-    const update = vi.fn();
-    render(<BYOK {...props({ update })} />);
-    const cases: Array<[string, keyof SonioxSettings]> = [
-      ['Terms', 'vocabularyTerms'],
-      ['Preferred Translations', 'vocabularyTranslations'],
-      ['Session Background', 'contextText'],
-    ];
-    for (const [label, field] of cases) {
-      const el = screen.getByLabelText(label) as HTMLTextAreaElement;
-      expect(el.maxLength).toBe(4000);
-      fireEvent.change(el, { target: { value: 'x' } });
-      expect(update).toHaveBeenCalledWith({ [field]: 'x' });
-    }
-  });
-
-  it('Terms and Preferred Translations each draw their own tooltip', () => {
+  it('has no vocabulary or background of its own: they are the app\'s word list now', () => {
     render(<BYOK {...props()} />);
-    expect(tooltipContents).toContain('Improves recognition of uncommon words — names, jargon, product names.');
-    expect(tooltipContents).toContain(
-      "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line."
-    );
+    expect(screen.queryByLabelText('Terms')).toBeNull();
+    expect(screen.queryByLabelText('Preferred Translations')).toBeNull();
+    expect(screen.queryByLabelText('Session Background')).toBeNull();
   });
 
   it('the shared-session pills write the choice, and are locked outside Both mode or while a run is on', () => {
