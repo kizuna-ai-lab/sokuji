@@ -173,6 +173,7 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
     const code = (error as { code?: unknown } | null)?.code;
     result = { recordId, transcribed: false, failure: typeof code === 'string' ? code : 'SERVICE' };
   }
-  await o.port.closeRecord({ id: recordId, endedAt: startedAt + audio.durationMs });
+  // The store takes whole milliseconds; a decoder's length has fractions.
+  await o.port.closeRecord({ id: recordId, endedAt: startedAt + Math.round(audio.durationMs) });
   return result;
 }

@@ -131,6 +131,19 @@ describe('importing a file', () => {
     expect(phases[phases.length - 1]).toBe('writing');
   });
 
+  // Review: a decoder's length is in fractions of a millisecond; the store takes whole ones only.
+  it('closes the record at a whole millisecond when the file is not a whole number of them long', async () => {
+    const { port, calls } = fakePort();
+    const audio = { ...decoded(3), durationMs: 3045.333 };
+    const result = await importFile(base(port, { readDuration: async () => 3045.333, decode: async () => audio }));
+    expect(result.transcribed).toBe(true);
+    const open = calls.find((c) => c[0] === 'openRecord')![1];
+    const close = calls.find((c) => c[0] === 'closeRecord')![1];
+    expect(Number.isSafeInteger(open.startedAt)).toBe(true);
+    expect(Number.isSafeInteger(close.endedAt)).toBe(true);
+    expect(close.endedAt - open.startedAt).toBe(3045);
+  });
+
   it('refuses a file too long or too large before decoding it, and one whose length cannot be read', async () => {
     const cases: Array<[Partial<Parameters<typeof importFile>[0]>, string]> = [
       [{ readDuration: async () => 301 * 60_000 }, 'TOO_LONG'],
