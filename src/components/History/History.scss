@@ -667,6 +667,18 @@
     min-height: 28px;
     padding: 2px 6px;
     font-size: vars.$font-caption;
+    // A base-select box lays its value and chevron out as a flex row; left at `normal` they sit at the top of the
+    // 28px box instead of in its middle (B-05).
+    align-items: center;
+
+    // Open, the scale of the settings page's dropdowns (SettingsPage.scss, design review 2026-11-15): 30px rows of
+    // 12.5px text and the small check, not the shared layer's 14px rows and larger check (B-05).
+    @supports (appearance: base-select) {
+      &.select-dropdown {
+        &::picker(select) { padding: 4px; }
+        option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
+      }
+    }
   }
 }
 
