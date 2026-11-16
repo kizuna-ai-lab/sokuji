@@ -1930,7 +1930,7 @@
       "thisDevice": "Este dispositivo",
       "others": "OpenAI Translate, OpenAI Live e Palabra não têm campo para uma lista de palavras; não recebem nenhuma.",
       "byModel": "Depende do modelo",
-      "byModelNote": "Depende do modelo: o OpenAI usa os termos com gpt-transcribe e gpt-live-transcribe, e o contexto com seus modelos de transcrição mais antigos; o Gemini Live usa os termos só com gemini-3.8-live; este dispositivo lê a lista só com seus tradutores de modelos de linguagem grandes."
+      "byModelNote": "Depende do modelo: o OpenAI usa o contexto só com seus modelos de transcrição mais antigos; o Gemini Live usa os termos só com gemini-3.8-live; este dispositivo lê a lista só com seus tradutores de modelos de linguagem grandes."
     }
   },
   "history": {

@@ -1930,7 +1930,7 @@
       "thisDevice": "Thiết bị này",
       "others": "OpenAI Translate, OpenAI Live và Palabra không có chỗ cho danh sách từ; chúng không nhận được gì.",
       "byModel": "Tùy mô hình",
-      "byModelNote": "Tùy mô hình: OpenAI nhận thuật ngữ với gpt-transcribe và gpt-live-transcribe, và phần bối cảnh với các mô hình chép lời cũ hơn; Gemini Live chỉ nhận thuật ngữ với gemini-3.8-live; thiết bị này chỉ đọc danh sách với các trình dịch dùng mô hình ngôn ngữ lớn."
+      "byModelNote": "Tùy mô hình: OpenAI chỉ nhận phần bối cảnh với các mô hình chép lời cũ hơn; Gemini Live chỉ nhận thuật ngữ với gemini-3.8-live; thiết bị này chỉ đọc danh sách với các trình dịch dùng mô hình ngôn ngữ lớn."
     }
   },
   "history": {

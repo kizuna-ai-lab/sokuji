@@ -1930,7 +1930,7 @@
       "thisDevice": "Tämä laite",
       "others": "OpenAI Translatessa, OpenAI Livessa ja Palabrassa ei ole kenttää sanalistalle; ne eivät saa mitään.",
       "byModel": "Mallin mukaan",
-      "byModelNote": "Mallin mukaan: OpenAI ottaa termit malleilla gpt-transcribe ja gpt-live-transcribe ja taustan vanhemmilla litterointimalleillaan; Gemini Live ottaa termit vain mallilla gemini-3.8-live; tämä laite lukee luettelon vain suurten kielimallien kääntäjillään."
+      "byModelNote": "Mallin mukaan: OpenAI ottaa taustan vain vanhemmilla litterointimalleillaan; Gemini Live ottaa termit vain mallilla gemini-3.8-live; tämä laite lukee luettelon vain suurten kielimallien kääntäjillään."
     }
   },
   "history": {

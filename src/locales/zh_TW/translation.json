@@ -1930,7 +1930,7 @@
       "thisDevice": "本機",
       "others": "OpenAI Translate、OpenAI Live 和 Palabra 沒有放詞表的地方，不會收到。",
       "byModel": "看型號",
-      "byModelNote": "看型號：OpenAI 用 gpt-transcribe 和 gpt-live-transcribe 時收寫法，用較早的轉寫型號時收背景；Gemini Live 只有 gemini-3.8-live 收寫法；本機只有大型語言模型翻譯會讀詞表。"
+      "byModelNote": "看型號：OpenAI 只有較早的轉寫型號收背景；Gemini Live 只有 gemini-3.8-live 收寫法；本機只有大型語言模型翻譯會讀詞表。"
     }
   },
   "history": {

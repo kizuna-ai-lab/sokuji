@@ -140,7 +140,7 @@ export function WordsCategory({ locked }: CategoryBodyProps) {
         </tbody>
       </table>
       <small className="words-category__others">
-        {t('settingsPage.wordList.byModelNote', 'Depends on model: OpenAI takes the terms with gpt-transcribe and gpt-live-transcribe, and the background with its older transcription models; Gemini Live takes the terms with gemini-3.8-live only; this device reads the list with its large language model translators only.')}
+        {t('settingsPage.wordList.byModelNote', 'Depends on model: OpenAI takes the background with its older transcription models only; Gemini Live takes the terms with gemini-3.8-live only; this device reads the list with its large language model translators only.')}
       </small>
       <small className="words-category__others">
         {t('settingsPage.wordList.others', 'OpenAI Translate, OpenAI Live and Palabra have no place for a word list; they get none.')}

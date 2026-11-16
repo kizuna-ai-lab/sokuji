@@ -1930,7 +1930,7 @@
       "thisDevice": "이 기기",
       "others": "OpenAI Translate, OpenAI Live, Palabra에는 단어 목록을 받을 자리가 없어 보내지 않습니다.",
       "byModel": "모델에 따라 다름",
-      "byModelNote": "모델에 따라 다름: OpenAI는 gpt-transcribe와 gpt-live-transcribe에서 용어를, 이전 전사 모델에서 배경을 받습니다. Gemini Live는 gemini-3.8-live에서만 용어를 받습니다. 이 기기는 대규모 언어 모델 번역기에서만 목록을 읽습니다."
+      "byModelNote": "모델에 따라 다름: OpenAI는 이전 전사 모델에서만 배경을 받습니다. Gemini Live는 gemini-3.8-live에서만 용어를 받습니다. 이 기기는 대규모 언어 모델 번역기에서만 목록을 읽습니다."
     }
   },
   "history": {

@@ -1930,7 +1930,7 @@
       "thisDevice": "Perangkat ini",
       "others": "OpenAI Translate, OpenAI Live, dan Palabra tidak punya tempat untuk daftar kata; layanan ini tidak menerimanya.",
       "byModel": "Tergantung model",
-      "byModelNote": "Tergantung model: OpenAI memakai istilah dengan gpt-transcribe dan gpt-live-transcribe, dan latar belakang dengan model transkripsi lamanya; Gemini Live memakai istilah hanya dengan gemini-3.8-live; perangkat ini membaca daftar hanya dengan penerjemah model bahasa besarnya."
+      "byModelNote": "Tergantung model: OpenAI memakai latar belakang hanya dengan model transkripsi lamanya; Gemini Live memakai istilah hanya dengan gemini-3.8-live; perangkat ini membaca daftar hanya dengan penerjemah model bahasa besarnya."
     }
   },
   "history": {

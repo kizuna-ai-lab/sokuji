@@ -30,8 +30,9 @@ type Column = 'terms' | 'translations' | 'heardAs' | 'background';
 export const WORD_LIMITS: Record<string, { columns: readonly Column[]; byModel?: readonly Column[]; entries: number; items?: number; backgroundChars?: number }> = {
   // Terms, translations and background share one context of about 8,000 tokens: kept under SONIOX_CONTEXT_CHARS.
   soniox: { columns: ['terms', 'translations', 'background'], entries: Number.POSITIVE_INFINITY },
-  // Transcription keywords (gpt-transcribe, gpt-live-transcribe), and the background as the older models' prompt.
-  openai: { columns: ['terms', 'background'], byModel: ['terms', 'background'], entries: 1000 },
+  // The written forms to every model (keywords to gpt-transcribe and gpt-live-transcribe, the prompt to the older
+  // models); the background to the older models' prompt only.
+  openai: { columns: ['terms', 'background'], byModel: ['background'], entries: 1000 },
   qwen_livetranslate: { columns: ['translations'], entries: 1000 },
   // Hot words, glossary entries and corrections: at most 1,000 of them together.
   volcengine_ast2: { columns: ['terms', 'translations', 'heardAs'], entries: Number.POSITIVE_INFINITY, items: 1000 },

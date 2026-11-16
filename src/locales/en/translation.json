@@ -1930,7 +1930,7 @@
       "thisDevice": "This device",
       "others": "OpenAI Translate, OpenAI Live and Palabra have no place for a word list; they get none.",
       "byModel": "Depends on model",
-      "byModelNote": "Depends on model: OpenAI takes the terms with gpt-transcribe and gpt-live-transcribe, and the background with its older transcription models; Gemini Live takes the terms with gemini-3.8-live only; this device reads the list with its large language model translators only."
+      "byModelNote": "Depends on model: OpenAI takes the background with its older transcription models only; Gemini Live takes the terms with gemini-3.8-live only; this device reads the list with its large language model translators only."
     }
   },
   "history": {

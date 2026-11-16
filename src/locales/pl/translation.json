@@ -1930,7 +1930,7 @@
       "thisDevice": "To urządzenie",
       "others": "OpenAI Translate, OpenAI Live i Palabra nie mają miejsca na listę słów; nie dostają jej.",
       "byModel": "Zależy od modelu",
-      "byModelNote": "Zależy od modelu: OpenAI przyjmuje terminy w gpt-transcribe i gpt-live-transcribe, a tło w starszych modelach transkrypcji; Gemini Live przyjmuje terminy tylko w gemini-3.8-live; to urządzenie czyta listę tylko w tłumaczach opartych na dużych modelach językowych."
+      "byModelNote": "Zależy od modelu: OpenAI przyjmuje tło tylko w starszych modelach transkrypcji; Gemini Live przyjmuje terminy tylko w gemini-3.8-live; to urządzenie czyta listę tylko w tłumaczach opartych na dużych modelach językowych."
     }
   },
   "history": {

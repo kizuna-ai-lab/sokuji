@@ -1930,7 +1930,7 @@
       "thisDevice": "Dit apparaat",
       "others": "OpenAI Translate, OpenAI Live en Palabra hebben geen veld voor een woordenlijst; ze krijgen er geen.",
       "byModel": "Afhankelijk van model",
-      "byModelNote": "Afhankelijk van model: OpenAI neemt de termen bij gpt-transcribe en gpt-live-transcribe, en de achtergrond bij zijn oudere transcriptiemodellen; Gemini Live neemt de termen alleen bij gemini-3.8-live; dit apparaat leest de lijst alleen bij zijn vertalers met grote taalmodellen."
+      "byModelNote": "Afhankelijk van model: OpenAI neemt de achtergrond alleen bij zijn oudere transcriptiemodellen; Gemini Live neemt de termen alleen bij gemini-3.8-live; dit apparaat leest de lijst alleen bij zijn vertalers met grote taalmodellen."
     }
   },
   "history": {

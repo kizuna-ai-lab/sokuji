@@ -1930,7 +1930,7 @@
       "thisDevice": "המכשיר הזה",
       "others": "ל-OpenAI Translate, ל-OpenAI Live ול-Palabra אין מקום לרשימת מילים; הם לא מקבלים אותה.",
       "byModel": "תלוי בדגם",
-      "byModelNote": "תלוי בדגם: OpenAI מקבל את המונחים עם gpt-transcribe ו־gpt-live-transcribe, ואת הרקע עם דגמי התמלול הישנים שלו; Gemini Live מקבל את המונחים רק עם gemini-3.8-live; המכשיר הזה קורא את הרשימה רק במתרגמים מבוססי מודל שפה גדול."
+      "byModelNote": "תלוי בדגם: OpenAI מקבל את הרקע רק עם דגמי התמלול הישנים שלו; Gemini Live מקבל את המונחים רק עם gemini-3.8-live; המכשיר הזה קורא את הרשימה רק במתרגמים מבוססי מודל שפה גדול."
     }
   },
   "history": {

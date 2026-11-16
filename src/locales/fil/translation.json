@@ -1930,7 +1930,7 @@
       "thisDevice": "Ang device na ito",
       "others": "Walang lugar para sa listahan ng salita ang OpenAI Translate, OpenAI Live at Palabra; wala silang natatanggap.",
       "byModel": "Depende sa model",
-      "byModelNote": "Depende sa model: kinukuha ng OpenAI ang mga termino sa gpt-transcribe at gpt-live-transcribe, at ang background sa mas lumang transcription model nito; kinukuha ng Gemini Live ang mga termino sa gemini-3.8-live lang; binabasa ng device na ito ang listahan sa mga tagasaling large language model lang nito."
+      "byModelNote": "Depende sa model: kinukuha ng OpenAI ang background sa mas lumang transcription model nito lang; kinukuha ng Gemini Live ang mga termino sa gemini-3.8-live lang; binabasa ng device na ito ang listahan sa mga tagasaling large language model lang nito."
     }
   },
   "history": {

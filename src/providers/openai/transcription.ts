@@ -69,8 +69,9 @@ export function normalizeTranscriptionLanguage(value: string | undefined | null)
 
 /**
  * The hint for `model` hearing `sourceLanguage`, with only the fields that model accepts: the word list's written forms
- * as `keywords` to the models that take them; the session background as the `prompt` of the legacy models, which have
- * a prompt and no keywords (the newer ones' prompt is not verified, and a refused field refuses the whole update).
+ * as `keywords` to the models that take them; to the legacy models, which have a prompt and no keywords, the written
+ * forms and then the session background as the `prompt` (the newer ones' prompt is not verified, and a refused field
+ * refuses the whole update).
  */
 export function buildTranscriptionHint(model: string, sourceLanguage: string | undefined, words: { terms?: readonly string[]; background?: string } = {}): TranscriptionHint {
   const hint: TranscriptionHint = { model };
@@ -82,7 +83,9 @@ export function buildTranscriptionHint(model: string, sourceLanguage: string | u
     if (keywords.length > 0) hint.keywords = keywords;
   } else {
     if (language) hint.language = language;
-    if (words.background) hint.prompt = words.background;
+    // The spellings first, as the model reads a prompt as text that came before: "Sokuji, Kizuna AI." then the background.
+    const prompt = [keywords.length > 0 ? `${keywords.join(', ')}.` : '', words.background ?? ''].filter(Boolean).join('\n');
+    if (prompt) hint.prompt = prompt;
   }
   return hint;
 }

@@ -1930,7 +1930,7 @@
       "thisDevice": "Peranti ini",
       "others": "OpenAI Translate, OpenAI Live dan Palabra tiada tempat untuk senarai perkataan; ia tidak dihantar.",
       "byModel": "Bergantung pada model",
-      "byModelNote": "Bergantung pada model: OpenAI mengambil istilah dengan gpt-transcribe dan gpt-live-transcribe, dan latar belakang dengan model transkripsi lamanya; Gemini Live mengambil istilah dengan gemini-3.8-live sahaja; peranti ini membaca senarai dengan penterjemah model bahasa besarnya sahaja."
+      "byModelNote": "Bergantung pada model: OpenAI mengambil latar belakang dengan model transkripsi lamanya sahaja; Gemini Live mengambil istilah dengan gemini-3.8-live sahaja; peranti ini membaca senarai dengan penterjemah model bahasa besarnya sahaja."
     }
   },
   "history": {

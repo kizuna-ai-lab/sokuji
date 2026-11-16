@@ -1930,7 +1930,7 @@
       "thisDevice": "Den här enheten",
       "others": "OpenAI Translate, OpenAI Live och Palabra har inget fält för en ordlista; de får ingen.",
       "byModel": "Beror på modell",
-      "byModelNote": "Beror på modell: OpenAI tar termerna med gpt-transcribe och gpt-live-transcribe, och bakgrunden med sina äldre transkriberingsmodeller; Gemini Live tar termerna bara med gemini-3.8-live; den här enheten läser listan bara med sina översättare baserade på stora språkmodeller."
+      "byModelNote": "Beror på modell: OpenAI tar bakgrunden bara med sina äldre transkriberingsmodeller; Gemini Live tar termerna bara med gemini-3.8-live; den här enheten läser listan bara med sina översättare baserade på stora språkmodeller."
     }
   },
   "history": {

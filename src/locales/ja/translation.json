@@ -1930,7 +1930,7 @@
       "thisDevice": "このデバイス",
       "others": "OpenAI Translate、OpenAI Live、Palabra には単語リストを受け取る欄がないため、送られません。",
       "byModel": "モデルによる",
-      "byModelNote": "モデルによる：OpenAI は gpt-transcribe と gpt-live-transcribe で書き方を、以前の文字起こしモデルで背景を受け取ります。Gemini Live は gemini-3.8-live でのみ書き方を受け取ります。このデバイスは大規模言語モデルの翻訳でのみリストを読みます。"
+      "byModelNote": "モデルによる：OpenAI が背景を受け取るのは以前の文字起こしモデルだけです。Gemini Live は gemini-3.8-live でのみ書き方を受け取ります。このデバイスは大規模言語モデルの翻訳でのみリストを読みます。"
     }
   },
   "history": {

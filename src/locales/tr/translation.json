@@ -1930,7 +1930,7 @@
       "thisDevice": "Bu cihaz",
       "others": "OpenAI Translate, OpenAI Live ve Palabra’da kelime listesi için yer yok; bunlara gönderilmez.",
       "byModel": "Modele göre değişir",
-      "byModelNote": "Modele göre değişir: OpenAI terimleri gpt-transcribe ve gpt-live-transcribe ile, arka planı eski yazıya dökme modelleriyle alır; Gemini Live terimleri yalnızca gemini-3.8-live ile alır; bu cihaz listeyi yalnızca büyük dil modeli çevirmenleriyle okur."
+      "byModelNote": "Modele göre değişir: OpenAI arka planı yalnızca eski yazıya dökme modelleriyle alır; Gemini Live terimleri yalnızca gemini-3.8-live ile alır; bu cihaz listeyi yalnızca büyük dil modeli çevirmenleriyle okur."
     }
   },
   "history": {

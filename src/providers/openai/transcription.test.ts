@@ -62,9 +62,11 @@ describe('buildTranscriptionHint', () => {
     expect(buildTranscriptionHint('gpt-live-transcribe', 'en-US', { terms: ['Sokuji', 'Kizuna AI'], background: 'Weekly sync.' })).toEqual({ model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji', 'Kizuna AI'] });
   });
 
-  it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update; the background goes as its prompt', () => {
-    const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { terms: ['Sokuji'], background: 'Weekly sync.' });
-    expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh', prompt: 'Weekly sync.' });
+  it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update; the written forms, then the background, go as its prompt', () => {
+    const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { terms: ['Sokuji', 'Kizuna AI'], background: 'Weekly sync.' });
+    expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh', prompt: 'Sokuji, Kizuna AI.\nWeekly sync.' });
+    expect(buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { terms: ['Sokuji'] }).prompt).toBe('Sokuji.');
+    expect(buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { background: 'Weekly sync.' }).prompt).toBe('Weekly sync.');
   });
 
   it('omits the language rather than sending an empty array or an unknown code — Auto-detect included — and keywords that parse to nothing', () => {
@@ -77,7 +79,7 @@ describe('buildTranscriptionHint', () => {
   it('keeps every model the settings offer to a payload the API accepts', () => {
     for (const model of TRANSCRIPT_MODELS) {
       const hint = buildTranscriptionHint(model, 'en-AU', { terms: ['Sokuji'] });
-      expect(hint, model).toEqual(supportsTranscriptionContext(model) ? { model, languages: ['en'], keywords: ['Sokuji'] } : { model, language: 'en' });
+      expect(hint, model).toEqual(supportsTranscriptionContext(model) ? { model, languages: ['en'], keywords: ['Sokuji'] } : { model, language: 'en', prompt: 'Sokuji.' });
     }
   });
 });
