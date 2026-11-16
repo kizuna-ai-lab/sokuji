@@ -11,7 +11,7 @@ import { LIVE_FULL } from '../../lib/notes/live/state';
 import type { NoteKind } from '../../lib/notes/write';
 import { useLiveNotesSetting } from '../../stores/settingsStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
-import { KIZUNA_NOTES } from '../../lib/notes/appNotes';
+import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { liveCostUsd, LOW_BALANCE_MICRO_USD, usd, useNotesPricing } from '../../lib/notes/notesPricing';
 import { isElectron } from '../../utils/environment';
 import './LiveNotesPanel.scss';
@@ -26,7 +26,7 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const { recordId, state, hint, running, off, ended, history, fullNotes, stopped, used, balanceMicroUsd } = useLiveNotes();
   const liveOn = useLiveNotesSetting();
   // With Kizuna AI the panel's foot says what this session's live notes have used, at the published rates.
-  const hosted = useLineUpStore((s) => s.lineUp?.summarisation === KIZUNA_NOTES);
+  const hosted = useLineUpStore((s) => notesServiceOf(s.lineUp) === KIZUNA_NOTES);
   const pricing = useNotesPricing(hosted && isElectron());
   if (!isElectron() || (!liveOn && !state && !running && !off)) return null;
   if (!recordId && !state) return null;

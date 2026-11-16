@@ -45,7 +45,6 @@ import { createConversationView, type ConversationViewState, type Readable } fro
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import { useProviderStore } from '../stores/providerStore';
-import { useLineUpStore } from '../stores/lineUpStore';
 import useSettingsStore from '../stores/settingsStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -294,7 +293,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       unwatchIfIdle();
     });
   };
-  const liveWanted = () => useSettingsStore.getState().liveNotes && Boolean(useLineUpStore.getState().lineUp?.summarisation);
+  // The switch alone: the line-up always names a notes service (owner, 2026-11-17: no "None").
+  const liveWanted = () => useSettingsStore.getState().liveNotes;
   const asHistory = (s: LiveSentence): HistorySentence => ({
     ...s, segmentId: s.segmentId ?? null, speakerByUser: null, speakerName: null, language: s.language ?? null,
   });
@@ -434,7 +434,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       onClosed: (recordId) => {
         const notes = notesRunner();
         const writing = !closedByApp.has(recordId) && Boolean(notes)
-          && useSettingsStore.getState().notesAfterSession && Boolean(useLineUpStore.getState().lineUp?.summarisation);
+          && useSettingsStore.getState().notesAfterSession;
         if (writing) notes!.start(recordId);
         useLiveNotes.getState().closed(recordId, { kept: true, fullNotes: writing });
       },

@@ -61,9 +61,10 @@ describe('the notes service from the stores', () => {
     expect(await notesChatFromStores('rec-1')).toBeNull();
   });
 
-  it('is none when the line-up names no notes service, or OpenAI has no key', async () => {
+  it('with none named in the line-up, writes with the default service; none when OpenAI has no key', async () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: null }, stored: true });
-    expect(await notesChatFromStores()).toBeNull();
+    // Outside the desktop build no hosted service is offered: the default is OpenAI, with the key set up above.
+    expect((await notesChatFromStores())?.model).toBe('gpt-6-luna');
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: '' }, pair: { source: 'en', target: 'ja' } } } as never });
     expect(await notesChatFromStores()).toBeNull();

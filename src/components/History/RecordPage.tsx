@@ -25,6 +25,7 @@ import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
+import { notesServiceOf } from '../../lib/notes/notesService';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -190,7 +191,7 @@ export const RecordPage: React.FC = () => {
       .filter((c) => c && c !== 'auto' && !c.includes('+'));
     return [...new Set(codes)].map((code) => ({ code, name: englishLanguageName(code) }));
   }, [open, language]);
-  const notesService = useLineUpStore((s) => s.lineUp?.summarisation ?? null);
+  const notesService = useLineUpStore((s) => notesServiceOf(s.lineUp));
   const notesExplained = useNotesExplained();
   const setNotesExplained = useSetNotesExplained();
 

@@ -21,7 +21,7 @@ import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import { formatBytes } from '../History/format';
 import type { CategoryBodyProps } from './SettingsPage';
 import { NOTES_SERVICE_NAMES, notesExplanation } from '../History/notesExplain';
-import { KIZUNA_NOTES } from '../../lib/notes/appNotes';
+import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { RELAY_NOTES_MODEL } from '../../lib/notes/relayChat';
 
 function Row({ name, line, children }: { name: string; line?: ReactNode; children: ReactNode }) {
@@ -44,8 +44,9 @@ const OTHER_MODEL = 'other model';
 // The category changes nothing a running session uses, so it stays usable during one.
 export function HistoryCategory(_props: CategoryBodyProps) {
   const { t } = useTranslation();
-  const service = useLineUpStore((s) => s.lineUp?.summarisation ?? null);
-  const serviceName = service ? NOTES_SERVICE_NAMES[service] ?? service : null;
+  // Always a service (owner, 2026-11-17: no "None" in the line-up): the switches alone decide whether notes are written.
+  const service = useLineUpStore((s) => notesServiceOf(s.lineUp));
+  const serviceName = NOTES_SERVICE_NAMES[service] ?? service;
   const notesOn = useNotesAfterSession();
   const explained = useNotesExplained();
   const model = useNotesModel();
@@ -154,22 +155,18 @@ export function HistoryCategory(_props: CategoryBodyProps) {
         </Row>
         <p className="history-category__hint">
           {t('history.keptHere', 'History keeps each session’s transcript and recording on this computer only. During a session, your speech still goes to the services in your line-up.')}
-          {notesOn && serviceName && <> {t('history.keptHereNotes', 'While notes are on, each session’s transcript text is also sent to {{service}} to write them.', { service: serviceName })}</>}
+          {notesOn && <> {t('history.keptHereNotes', 'While notes are on, each session’s transcript text is also sent to {{service}} to write them.', { service: serviceName })}</>}
         </p>
-        <Row name={notesName} line={serviceName
-          ? t('history.notesLine', 'When a session ends, {{service}} writes its notes from the transcript.', { service: serviceName })
-          : t('history.notesNoService', 'Choose a notes service in Languages and line-up first.')}>
-          <ToggleSwitch checked={notesOn && Boolean(service)} onChange={flipNotes} disabled={!service} label="" ariaLabel={notesName} />
+        <Row name={notesName} line={t('history.notesLine', 'When a session ends, {{service}} writes its notes from the transcript.', { service: serviceName })}>
+          <ToggleSwitch checked={notesOn} onChange={flipNotes} label="" ariaLabel={notesName} />
         </Row>
-        <Row name={liveName} line={serviceName
-          ? t('history.liveLine', 'During a session, {{service}} keeps short notes every 20 seconds beside the conversation. They are not kept.', { service: serviceName })
-          : t('history.notesNoService', 'Choose a notes service in Languages and line-up first.')}>
-          <ToggleSwitch checked={liveOn && Boolean(service)} onChange={flipLive} disabled={!service} label="" ariaLabel={liveName} />
+        <Row name={liveName} line={t('history.liveLine', 'During a session, {{service}} keeps short notes every 20 seconds beside the conversation. They are not kept.', { service: serviceName })}>
+          <ToggleSwitch checked={liveOn} onChange={flipLive} label="" ariaLabel={liveName} />
         </Row>
-        {explaining && serviceName && (
+        {explaining && (
           <div className="history-category__explain" role="group" aria-label={explainTitle}>
             <strong>{explainTitle}</strong>
-            <p>{notesExplanation(t, service!, explaining)}</p>
+            <p>{notesExplanation(t, service, explaining)}</p>
             <div className="history-category__explain-actions">
               <button type="button" className="model-row__btn" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
               <button type="button" className="model-row__btn model-row__btn--primary" onClick={() => void turnOn()}>{t('history.notesTurnOn', 'Turn on')}</button>

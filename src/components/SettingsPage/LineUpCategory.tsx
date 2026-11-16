@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
-import { KIZUNA_NOTES } from '../../lib/notes/appNotes';
+import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
 import { presentProviders } from '../../providers/registry';
@@ -122,23 +122,21 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   };
 
   // The notes card: Kizuna AI wherever the hosted services are, usable signed in; OpenAI once it has a key. Either
-  // stays listed while it is chosen, to show what it lacks.
-  const notesService = lineUp?.summarisation ?? null;
+  // stays listed while it is chosen, to show what it lacks. It always names one (owner, 2026-11-17: no "None"): with
+  // none stored, the default; whether notes are written is the switches' call in History and notes.
   const openAi = providers.find((p) => p.id === 'openai');
   const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
   const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
+  const notesService = notesServiceOf(lineUp, kizunaOffered);
   const kizunaChosen = notesService === KIZUNA_NOTES;
   const notesPricing = useNotesPricing(kizunaOffered);
   const notesReady = kizunaChosen ? auth.signedIn : openAiKeyed;
-  const notesState = notesService === null
-    ? { ok: false, text: t('settingsPage.lineup.state.off', 'Off') }
-    : notesReady ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
+  const notesState = notesReady ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
       : kizunaChosen ? { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
         : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
   const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
   // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.
   const notesOptions: ProviderOptionModel[] = [
-    { id: '', name: t('settingsPage.lineup.notesNone', 'None') },
     ...(kizunaOffered || kizunaChosen ? [{
       id: KIZUNA_NOTES, name: 'Kizuna AI', icon: KizunaAIIcon,
       description: t('settingsPage.lineup.notesKizunaLine', 'OpenAI writes the notes through Kizuna AI, paid from your balance.'),
@@ -151,7 +149,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   ];
   const chooseNotes = async (id: string) => {
     const before: LineUp | null = useLineUpStore.getState().lineUp;
-    const choice = await useLineUpStore.getState().choose('summarisation', id || null);
+    const choice = await useLineUpStore.getState().choose('summarisation', id);
     if (choice && before) trackEvent('lineup_changed', lineUpChangedEvent('summarisation', before, choice));
   };
 
@@ -413,7 +411,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               <em className={`lineup-stage__state${notesState.ok ? ' is-ready' : ''}`}>{notesState.text}</em>
             </div>
             {/* Drawn like the other stages' choices (owner, 2026-11-17): an icon, the name, a line about writing notes. */}
-            <select className="select-dropdown provider-select" value={notesService ?? ''} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
+            <select className="select-dropdown provider-select" value={notesService} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
               onChange={(e) => void chooseNotes(e.target.value)}>
               {rich && <button type="button"><selectedcontent /></button>}
               {notesOptions.map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}

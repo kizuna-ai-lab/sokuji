@@ -1002,8 +1002,9 @@ describe('attach', () => {
       });
     });
 
-    it('starts no loop when live notes are off, or no notes service is chosen', async () => {
-      for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
+    // Owner, 2026-11-17: no "None" in the line-up; the switch alone decides, a line-up naming none uses the default.
+    it('starts no loop when live notes are off, and one when they are on with no notes service named', async () => {
+      for (const [on, service, loops] of [[false, 'openai', 0], [true, null, 1]] as const) {
         await withLive(on, service, async () => {
           const live = fakeLive();
           const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
@@ -1012,7 +1013,7 @@ describe('attach', () => {
           await flush();
           await session.runner.stop();
           await session.runner.settled();
-          expect(live.made).toHaveLength(0);
+          expect(live.made).toHaveLength(loops);
         });
       }
     });
@@ -1719,8 +1720,8 @@ describe('history', () => {
     }
   });
 
-  it('starts no notes when notes after the session are off, or no notes service is chosen', async () => {
-    for (const [on, service] of [[false, 'openai'], [true, null]] as const) {
+  it('starts no notes when notes after the session are off, and writes them when on with no notes service named', async () => {
+    for (const [on, service, writes] of [[false, 'openai', false], [true, null, true]] as const) {
       const port = recordingPort();
       const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [] as string[], subscribe: () => () => {} };
       const lineUpBefore = useLineUpStore.getState().lineUp;
@@ -1734,7 +1735,7 @@ describe('history', () => {
         await session.runner.settled();
         await flush();
         expect(port.calls.map((c) => c[0])).toContain('closeRecord');
-        expect(notes.start).not.toHaveBeenCalled();
+        expect(notes.start).toHaveBeenCalledTimes(writes ? 1 : 0);
       } finally {
         useSettingsStore.setState({ notesAfterSession: false } as never);
         useLineUpStore.setState({ lineUp: lineUpBefore });

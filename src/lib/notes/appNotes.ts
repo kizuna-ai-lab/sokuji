@@ -4,6 +4,7 @@
 // cancels them. The notes service is the line-up's notes stage: OpenAI with the user's own key, called from the page
 // with the model named in History and notes; or Kizuna AI, through our relay with the user's sign-in, paid by the
 // payer the app has chosen, with the one model the relay writes notes with.
+import { KIZUNA_NOTES, notesServiceOf } from './notesService';
 import { useWordList } from '../words/list';
 import i18n from '../../locales';
 import { reportError } from '../diagnostics/report';
@@ -24,8 +25,7 @@ import { createNotesRunner, type NotesLanguage, type NotesRunner } from './runne
 
 export const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
-/** The line-up's notes service: Kizuna AI's. */
-export const KIZUNA_NOTES = 'kizunaai';
+export { KIZUNA_NOTES } from './notesService';
 
 /**
  * The notes service the line-up chose, for the meeting `sessionRef` (a record id); null when it chose none, the key is
@@ -35,7 +35,7 @@ export async function notesChatFromStores(
   sessionRef?: string,
   o: { onBalance?(microUsd: number): void } = {},
 ): Promise<{ chat: ChatPort; model: string } | null> {
-  const service = useLineUpStore.getState().lineUp?.summarisation;
+  const service = notesServiceOf(useLineUpStore.getState().lineUp);
   if (service === KIZUNA_NOTES) {
     if (currentAuth()?.signedIn !== true) return null;
     const chat = relayChat({

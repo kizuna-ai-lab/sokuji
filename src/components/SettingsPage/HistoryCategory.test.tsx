@@ -84,14 +84,15 @@ describe('notes after the session', () => {
   const NAME = 'Write notes after each session';
   const toggle = () => within(row(NAME)).getByRole('switch');
 
-  it('cannot be turned on before a notes service is chosen, and says where to choose one', async () => {
+  // Owner, 2026-11-17: no "None" in the line-up; with none stored the default service writes the notes, the switch decides.
+  it('with no notes service stored, names the default one and can be turned on', async () => {
     useLineUpStore.setState({ lineUp: soniox, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
-    expect(toggle()).toHaveAttribute('aria-disabled', 'true');
+    expect(toggle()).not.toHaveAttribute('aria-disabled', 'true');
+    expect(within(row(NAME)).getByText(/^When a session ends, (Kizuna AI|OpenAI) writes its notes from the transcript\.$/)).toBeInTheDocument();
     fireEvent.click(toggle());
-    expect(screen.queryByRole('group', { name: 'Before notes are written' })).toBeNull();
-    expect(within(row(NAME)).getByText('Choose a notes service in Languages and line-up first.')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Before notes are written' })).toBeInTheDocument();
   });
 
   it('explains once, the first time, what is sent where; Cancel leaves it off', async () => {
@@ -193,12 +194,12 @@ describe('live notes during a session', () => {
   const NAME = 'Live notes during a session';
   const toggle = () => within(row(NAME)).getByRole('switch');
 
-  it('cannot be turned on before a notes service is chosen', async () => {
+  it('with no notes service stored, names the default one and can be turned on', async () => {
     useLineUpStore.setState({ lineUp: soniox, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
-    expect(toggle()).toHaveAttribute('aria-disabled', 'true');
-    expect(within(row(NAME)).getByText('Choose a notes service in Languages and line-up first.')).toBeInTheDocument();
+    expect(toggle()).not.toHaveAttribute('aria-disabled', 'true');
+    expect(within(row(NAME)).getByText(/^During a session, (Kizuna AI|OpenAI) keeps short notes/)).toBeInTheDocument();
   });
 
   it('with Kizuna AI, explains what goes through Kizuna AI to OpenAI every 20 seconds, and who pays', async () => {
