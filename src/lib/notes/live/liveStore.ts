@@ -84,7 +84,8 @@ export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
       },
     } : s)),
     balanceAfter: (recordId, balanceMicroUsd) => forRecord(recordId, { balanceMicroUsd }),
-    resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false }),
+    // A new loop: an earlier stop for the account is forgotten (a refusal stops this one too, and says so again).
+    resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false, stopped: null }),
     clear: () => set((s) => (s.running ? { state: null } : EMPTY)),
     reset: () => set(EMPTY),
   };

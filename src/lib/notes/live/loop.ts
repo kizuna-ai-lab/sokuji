@@ -76,6 +76,8 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
   let failures = 0;
   let hint = false;
   let stopped = false;
+  /** Kizuna AI refused for the account: nothing more is sent, Stop's last update included. */
+  let refused = false;
   let disposed = false;
   let open: Update | null = null;
   /** The session is stopping: only the last update at Stop is left. */
@@ -91,7 +93,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     if (hint) { hint = false; d.onHint(false); }
   };
 
-  const finish = (u: Update, answer: unknown) => {
+  const finish = (u: Update, answer: unknown, o: { counted?: boolean } = {}) => {
     if (u.done || disposed) return;
     u.done = true;
     u.cancelTimeout();
@@ -103,7 +105,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
       sentences: u.fresh.length, latencyMs: d.clock.now() - u.startedAt, accepted: next !== null, givenUp: u.givenUp,
       unstablePoints: next ? unstableCount(next) - unstableCount(state) : 0,
     });
-    if (!next) { failed(); return; }
+    if (!next) { if (o.counted !== false) failed(); return; }
     state = next;
     covered = u.upTo;
     succeeded();
@@ -126,12 +128,16 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
       onAnswered: (info) => { if (info.usage) d.onUsage?.(info.usage); },
     })
       .then((answer) => finish(u, answer), (error: unknown) => {
-        // A refusal for the account would come again every 20 seconds: the loop stops instead, and says why.
-        if (error instanceof ChatError && error.code && STOPPING_CODES.has(error.code) && !stopped && !disposed) {
+        // A refusal for the account would come again every 20 seconds: the loop stops instead, and says why, also
+        // when it comes during Stop's last update. It is not a failure to try again: no "will try again" hint.
+        if (error instanceof ChatError && error.code && STOPPING_CODES.has(error.code) && !refused && !disposed) {
+          refused = true;
           stopped = true;
           cancelTick?.();
           cancelTick = null;
           d.onStopped?.(error.code);
+          finish(u, undefined, { counted: false });
+          return;
         }
         finish(u, undefined);
       });
@@ -172,8 +178,8 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
       cancelTick?.();
       cancelTick = null;
       if (open) await open.promise;
-      // Disposed while waiting: nothing more is said.
-      if (disposed) return;
+      // Disposed while waiting, or the open update was refused for the account: nothing more is said.
+      if (disposed || refused) return;
       const last = send();
       if (last) await last.promise;
     },

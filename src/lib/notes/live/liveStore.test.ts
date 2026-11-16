@@ -5,6 +5,18 @@ import { useLiveNotes } from './liveStore';
 const RECORD = 'run-0001-aaaa';
 beforeEach(() => useLiveNotes.getState().begin(RECORD));
 
+describe('a stop for the account', () => {
+  it('is forgotten when live notes are turned on again in the same session', () => {
+    const store = useLiveNotes.getState();
+    store.begin('run-a');
+    store.stoppedFor('run-a', 'no-balance');
+    expect(useLiveNotes.getState()).toMatchObject({ running: false, stopped: 'no-balance' });
+    useLiveNotes.getState().turnedOff('run-a');
+    useLiveNotes.getState().resume('run-a');
+    expect(useLiveNotes.getState()).toMatchObject({ running: true, stopped: null });
+  });
+});
+
 describe('what the live notes used', () => {
   it('sums each update\'s usage for the session on screen, and starts again with the next session', () => {
     const store = useLiveNotes.getState();

@@ -93,7 +93,13 @@ export async function refreshPrompts(deps: PromptSourceDeps = {}): Promise<void>
     return;
   }
   if (!answer.notes && !answer.live) return;
-  stored = { ...stored, ...answer };
+  // Family by family, the newer: the server takes no version back (a fix is a new version), so an older answer is a
+  // cached one, and a newer version stored is kept.
+  stored = {
+    ...stored,
+    ...(answer.notes ? { notes: newest(stored.notes, answer.notes) } : {}),
+    ...(answer.live ? { live: newest(stored.live, answer.live) } : {}),
+  };
   await (deps.save ?? persistSetting)(PROMPTS_SETTING, stored);
 }
 

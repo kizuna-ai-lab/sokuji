@@ -21,7 +21,7 @@ const FINAL_CODES: Readonly<Record<string, string>> = {
   update_required: 'update-required',
 };
 /** Codes another try can help with, after the usual waits. */
-const RETRYABLE_CODES: ReadonlySet<string> = new Set(['upstream_unavailable', 'balance_unavailable']);
+const RETRYABLE_CODES: ReadonlySet<string> = new Set(['upstream_unavailable', 'balance_unavailable', 'rate_limited']);
 
 export interface RelayChatOptions {
   /** The backend's address, without `/api`. */

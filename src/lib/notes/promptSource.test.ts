@@ -66,6 +66,14 @@ describe('the notes prompts', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
+  it('keep a newer stored family when an older answer comes (a cached one): the server never takes a version back', async () => {
+    const save = vi.fn(async (_key: string, _value: unknown) => true);
+    await refreshPrompts({ fetch: vi.fn(async () => json({ notes: notesAt(4), live: liveAt(4) })), save });
+    await refreshPrompts({ fetch: vi.fn(async () => json({ notes: notesAt(3), live: liveAt(5) })), save });
+    expect(activePrompts()).toEqual({ notes: notesAt(4), live: liveAt(5) });
+    expect(save).toHaveBeenLastCalledWith(PROMPTS_SETTING, { notes: notesAt(4), live: liveAt(5) });
+  });
+
   it('are what the prompt builders write, in the language asked for', async () => {
     await refreshPrompts({ fetch: vi.fn(async () => json({ notes: notesAt(3), live: liveAt(3) })), save: async () => true });
     expect(partPrompt('Japanese', false)).toBe('v3 whole in Japanese');

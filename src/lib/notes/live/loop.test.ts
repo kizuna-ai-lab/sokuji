@@ -218,6 +218,47 @@ describe('the live notes loop', () => {
     }
   });
 
+  it("says why when Stop's last update is refused for the account", async () => {
+    const stopped: string[] = [];
+    const { model, live } = setup(undefined, { onStopped: (why) => { stopped.push(why); } });
+    live.sentences([s(1)]);
+    const stopping = live.stop();
+    await flush();
+    model.calls[0].fail(new ChatError('no balance', { status: 402, code: 'no-balance', retryable: false }));
+    await stopping;
+    expect(stopped).toEqual(['no-balance']);
+  });
+
+  it('sends no last update at Stop after the open one was refused for the account', async () => {
+    const stopped: string[] = [];
+    const { clock, model, live } = setup(undefined, { onStopped: (why) => { stopped.push(why); } });
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    live.sentences([s(2)]);
+    const stopping = live.stop();
+    model.calls[0].fail(new ChatError('no balance', { status: 402, code: 'no-balance', retryable: false }));
+    await stopping;
+    expect(stopped).toEqual(['no-balance']);
+    expect(model.calls).toHaveLength(1);
+  });
+
+  it('does not show the "will try again" hint once a refusal for the account has stopped it', async () => {
+    const stopped: string[] = [];
+    const { clock, model, live, hints } = setup(undefined, { onStopped: (why) => { stopped.push(why); } });
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    model.calls[0].fail(new Error('network'));
+    await flush();
+    clock.advance(LIVE_INTERVAL_MS);
+    model.calls[1].fail(new Error('network'));
+    await flush();
+    clock.advance(LIVE_INTERVAL_MS);
+    model.calls[2].fail(new ChatError('no balance', { status: 402, code: 'no-balance', retryable: false }));
+    await flush();
+    expect(stopped).toEqual(['no-balance']);
+    expect(hints).not.toContain(true);
+  });
+
   it('passes on what each update used, as the service reports it', async () => {
     const used: unknown[] = [];
     const { clock, model, live } = setup(undefined, { onUsage: (u) => { used.push(u); } });

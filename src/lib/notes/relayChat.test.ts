@@ -1,6 +1,6 @@
 // The notes through Kizuna AI: the request an own key would send, to our relay, with the sign-in instead of the key.
 import { describe, it, expect, vi } from 'vitest';
-import { openAiChat, type ChatRequest } from './chat';
+import { ChatError, openAiChat, type ChatRequest } from './chat';
 import { relayChat, RELAY_NOTES_MODEL } from './relayChat';
 
 const answer = (status: number, body: unknown, headers: Record<string, string> = {}) =>
@@ -72,6 +72,22 @@ describe('the notes through Kizuna AI', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
       await vi.advanceTimersByTimeAsync(1);
       await expect(pending).resolves.toEqual({ title: 'T' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaves a rate limit that outlasts its waits as one to try again later', async () => {
+    vi.useFakeTimers();
+    try {
+      const limited = () => answer(429, { error: { code: 'rate_limited', message: 'm' } }, { 'Retry-After': '1' });
+      const fetch = vi.fn(async () => limited());
+      const pending = port(fetch)(request()).catch((e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(60_000);
+      const error = await pending;
+      expect(error).toBeInstanceOf(ChatError);
+      expect((error as ChatError).retryable).toBe(true);
+      expect(fetch.mock.calls.length).toBeGreaterThan(1);
     } finally {
       vi.useRealTimers();
     }
