@@ -832,12 +832,19 @@
   cursor: pointer;
 }
 
-// A name's spelling, asked in the notes: the app's own field, a name's width, its buttons beside it (or under it when narrow).
+// A name's spelling, asked in the notes: the app's own field, compact — a name wide and as tall as the line it is on,
+// its buttons beside it (or under it when narrow).
 .record-notes__spell {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: vars.$space-1;
 
-  .settings-input { width: 200px; max-width: 100%; }
+  .settings-input {
+    width: 140px;
+    max-width: 100%;
+    padding: 0 6px;
+    font-size: vars.$font-caption;
+    line-height: 18px;
+  }
 }
