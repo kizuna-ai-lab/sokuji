@@ -2075,7 +2075,9 @@
     "length": "Durata {{length}}",
     "notesJumpPlay": "Fai clic su un argomento o un punto per andare alla sua frase e riprodurre da lì.",
     "notesJump": "Fai clic su un argomento o un punto per andare alla sua frase.",
-    "keptHereNotes": "Finché le note sono attive, il testo della trascrizione di ogni sessione viene inviato anche a {{service}} per scriverle."
+    "keptHereNotes": "Finché le note sono attive, il testo della trascrizione di ogni sessione viene inviato anche a {{service}} per scriverle.",
+    "notesModelOther": "Altro",
+    "notesModelName": "Nome del modello"
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

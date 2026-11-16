@@ -724,6 +724,8 @@
   }
   &__explain-actions { display: flex; justify-content: flex-end; gap: 6px; }
   &__model { width: 200px; height: 30px; font-size: 12.5px; }
+  // The model list, and under it the name typed by hand when "Other" is chosen.
+  &__model-pick { display: flex; flex-direction: column; gap: 6px; }
 }
 .general-links {
   display: flex;

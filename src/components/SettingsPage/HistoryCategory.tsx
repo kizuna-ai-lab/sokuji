@@ -8,6 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderOpen } from 'lucide-react';
 import { historyPort } from '../../lib/history/port';
+import { NOTES_MODELS } from '../../lib/notes/chat';
 import type { HistoryStatus, HistoryUsage } from '../../lib/history/types';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import useSettingsStore, {
@@ -34,6 +35,9 @@ function Row({ name, line, children }: { name: string; line?: ReactNode; childre
 /** The notes services the line-up offers, by name. */
 export const NOTES_SERVICE_NAMES: Readonly<Record<string, string>> = { openai: 'OpenAI' };
 
+/** The value of the list's last entry, for a model name typed by hand. */
+const OTHER_MODEL = 'other model';
+
 // The category changes nothing a running session uses, so it stays usable during one.
 export function HistoryCategory(_props: CategoryBodyProps) {
   const { t } = useTranslation();
@@ -46,8 +50,11 @@ export function HistoryCategory(_props: CategoryBodyProps) {
   const setExplained = useSetNotesExplained();
   const setModel = useSetNotesModel();
   const [explaining, setExplaining] = useState(false);
-  const [modelDraft, setModelDraft] = useState(model);
-  useEffect(() => { setModelDraft(model); }, [model]);
+  // The list, or "Other" with the name typed by hand (a stored model not on the list shows there).
+  const listed = (m: string) => (NOTES_MODELS as readonly string[]).includes(m);
+  const [typing, setTyping] = useState(!listed(model));
+  const [modelDraft, setModelDraft] = useState(listed(model) ? '' : model);
+  useEffect(() => { if (!listed(model)) { setTyping(true); setModelDraft(model); } }, [model]);
   const notesName = t('history.notesAfterSession', 'Write notes after each session');
   const modelName = t('history.notesModel', 'Notes model');
   const explainTitle = t('history.notesExplainTitle', 'Before notes are written');
@@ -62,9 +69,16 @@ export function HistoryCategory(_props: CategoryBodyProps) {
     await setExplained(true);
     await setNotesOn(true);
   };
+  const chooseModel = (value: string) => {
+    if (value === OTHER_MODEL) { setTyping(true); setModelDraft(listed(model) ? '' : model); return; }
+    setTyping(false);
+    void setModel(value);
+  };
   const saveModel = async () => {
     await setModel(modelDraft);
-    // An emptied field shows the default the store put back.
+    // An emptied field goes back to the default, which is on the list.
+    if (listed(useSettingsStore.getState().notesModel)) { setTyping(false); setModelDraft(''); return; }
+    // A typed name shows as it was stored (trimmed).
     setModelDraft(useSettingsStore.getState().notesModel);
   };
   const [status, setStatus] = useState<HistoryStatus | null>(null);
@@ -135,8 +149,17 @@ export function HistoryCategory(_props: CategoryBodyProps) {
           </div>
         )}
         <Row name={modelName} line={t('history.notesModelLine', 'The text model that writes the notes, by its name at the service.')}>
-          <FormInput className="history-category__model" aria-label={modelName} value={modelDraft}
-            onChange={(e) => setModelDraft(e.target.value)} onBlur={() => void saveModel()} spellCheck={false} />
+          <span className="history-category__model-pick">
+            <select className="select-dropdown general-row__select" aria-label={modelName} value={typing ? OTHER_MODEL : model}
+              onChange={(e) => chooseModel(e.target.value)}>
+              {NOTES_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
+              <option value={OTHER_MODEL}>{t('history.notesModelOther', 'Other')}</option>
+            </select>
+            {typing && (
+              <FormInput className="history-category__model" aria-label={t('history.notesModelName', 'Model name')} value={modelDraft}
+                onChange={(e) => setModelDraft(e.target.value)} onBlur={() => void saveModel()} spellCheck={false} />
+            )}
+          </span>
         </Row>
       </div>
     </div>

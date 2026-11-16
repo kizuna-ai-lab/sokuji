@@ -2075,7 +2075,9 @@
     "length": "長さ {{length}}",
     "notesJumpPlay": "トピックや要点をクリックすると、その文に移動してそこから再生します。",
     "notesJump": "トピックや要点をクリックすると、その文に移動します。",
-    "keptHereNotes": "メモがオンの間は、各セッションの文字起こしのテキストもメモを書くために {{service}} に送られます。"
+    "keptHereNotes": "メモがオンの間は、各セッションの文字起こしのテキストもメモを書くために {{service}} に送られます。",
+    "notesModelOther": "その他",
+    "notesModelName": "モデル名"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

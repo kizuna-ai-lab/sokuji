@@ -2075,7 +2075,9 @@
     "length": "Längd {{length}}",
     "notesJumpPlay": "Klicka på ett ämne eller en punkt för att gå till dess mening och spela upp därifrån.",
     "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening.",
-    "keptHereNotes": "Medan anteckningar är på skickas även texten i varje sessions transkription till {{service}} för att skriva dem."
+    "keptHereNotes": "Medan anteckningar är på skickas även texten i varje sessions transkription till {{service}} för att skriva dem.",
+    "notesModelOther": "Annan",
+    "notesModelName": "Modellnamn"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

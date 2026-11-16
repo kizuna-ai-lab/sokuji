@@ -126,19 +126,49 @@ describe('notes after the session', () => {
     expect(useSettingsStore.getState().notesAfterSession).toBe(false);
   });
 
-  it('names the model the notes use, and keeps the default when the field is emptied', async () => {
+  const modelSelect = () => within(row('Notes model')).getByRole('combobox', { name: 'Notes model' });
+  const choose = (label: string) => {
+    const option = within(modelSelect()).getByRole('option', { name: label }) as HTMLOptionElement;
+    fireEvent.change(modelSelect(), { target: { value: option.value } });
+  };
+
+  it('offers the newest series and Other, and keeps a listed model on choosing it', async () => {
     render(<HistoryCategory locked={false} />);
     await settle();
-    const field = within(row('Notes model')).getByRole('textbox', { name: 'Notes model' });
-    expect(field).toHaveValue('gpt-6-luna');
-    fireEvent.change(field, { target: { value: ' gpt-6.5 ' } });
+    expect(modelSelect()).toHaveValue('gpt-6-luna');
+    expect(within(modelSelect()).getAllByRole('option').map((o) => o.textContent))
+      .toEqual(['gpt-6-luna', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.1-terra', 'Other']);
+    expect(within(row('Notes model')).queryByRole('textbox')).toBeNull();
+    choose('gpt-6.1-terra');
+    await settle();
+    expect(useSettingsStore.getState().notesModel).toBe('gpt-6.1-terra');
+  });
+
+  it('takes a name typed by hand under Other, and goes back to the default when it is emptied', async () => {
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    choose('Other');
+    const field = within(row('Notes model')).getByRole('textbox', { name: 'Model name' });
+    expect(field).toHaveValue('');
+    expect(useSettingsStore.getState().notesModel).toBe('gpt-6-luna');
+    fireEvent.change(field, { target: { value: ' my-model ' } });
     fireEvent.blur(field);
     await settle();
-    expect(useSettingsStore.getState().notesModel).toBe('gpt-6.5');
+    expect(useSettingsStore.getState().notesModel).toBe('my-model');
+    expect(field).toHaveValue('my-model');
     fireEvent.change(field, { target: { value: '' } });
     fireEvent.blur(field);
     await settle();
     expect(useSettingsStore.getState().notesModel).toBe('gpt-6-luna');
-    expect(field).toHaveValue('gpt-6-luna');
+    expect(modelSelect()).toHaveValue('gpt-6-luna');
+    expect(within(row('Notes model')).queryByRole('textbox')).toBeNull();
+  });
+
+  it('shows a stored model that is not listed under Other, with its name', async () => {
+    useSettingsStore.setState({ notesModel: 'o3' } as never);
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    expect((within(modelSelect()).getByRole('option', { name: 'Other' }) as HTMLOptionElement).selected).toBe(true);
+    expect(within(row('Notes model')).getByRole('textbox', { name: 'Model name' })).toHaveValue('o3');
   });
 });

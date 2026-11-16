@@ -2075,7 +2075,9 @@
     "length": "Thời lượng {{length}}",
     "notesJumpPlay": "Nhấp vào một chủ đề hoặc ý để đến câu của nó và phát từ đó.",
     "notesJump": "Nhấp vào một chủ đề hoặc ý để đến câu của nó.",
-    "keptHereNotes": "Khi bật ghi chú, văn bản bản ghi của mỗi phiên cũng được gửi tới {{service}} để viết ghi chú."
+    "keptHereNotes": "Khi bật ghi chú, văn bản bản ghi của mỗi phiên cũng được gửi tới {{service}} để viết ghi chú.",
+    "notesModelOther": "Khác",
+    "notesModelName": "Tên mô hình"
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

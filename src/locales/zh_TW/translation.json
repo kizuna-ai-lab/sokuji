@@ -2075,7 +2075,9 @@
     "length": "時長 {{length}}",
     "notesJumpPlay": "點主題或要點，跳到原句並從那裡播放。",
     "notesJump": "點主題或要點，跳到原句。",
-    "keptHereNotes": "紀要開啟時，每次會話的轉寫文字也會傳送給 {{service}}，用來撰寫紀要。"
+    "keptHereNotes": "紀要開啟時，每次會話的轉寫文字也會傳送給 {{service}}，用來撰寫紀要。",
+    "notesModelOther": "其他",
+    "notesModelName": "模型名稱"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",

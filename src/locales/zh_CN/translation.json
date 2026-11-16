@@ -2075,7 +2075,9 @@
     "length": "时长 {{length}}",
     "notesJumpPlay": "点主题或要点，跳到原句并从那里播放。",
     "notesJump": "点主题或要点，跳到原句。",
-    "keptHereNotes": "纪要开启时，每次会话的转写文字也会发给 {{service}}，用来写纪要。"
+    "keptHereNotes": "纪要开启时，每次会话的转写文字也会发给 {{service}}，用来写纪要。",
+    "notesModelOther": "其他",
+    "notesModelName": "模型名"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

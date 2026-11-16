@@ -2075,7 +2075,9 @@
     "length": "Kesto {{length}}",
     "notesJumpPlay": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen ja toistaaksesi siitä.",
     "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen.",
-    "keptHereNotes": "Kun muistiinpanot ovat päällä, kunkin istunnon litteroinnin teksti lähetetään myös palveluun {{service}} niiden kirjoittamista varten."
+    "keptHereNotes": "Kun muistiinpanot ovat päällä, kunkin istunnon litteroinnin teksti lähetetään myös palveluun {{service}} niiden kirjoittamista varten.",
+    "notesModelOther": "Muu",
+    "notesModelName": "Mallin nimi"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

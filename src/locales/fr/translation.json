@@ -2075,7 +2075,9 @@
     "length": "Durée {{length}}",
     "notesJumpPlay": "Cliquez sur un sujet ou un point pour aller à sa phrase et lire à partir de là.",
     "notesJump": "Cliquez sur un sujet ou un point pour aller à sa phrase.",
-    "keptHereNotes": "Tant que les notes sont activées, le texte de la transcription de chaque session est aussi envoyé à {{service}} pour les rédiger."
+    "keptHereNotes": "Tant que les notes sont activées, le texte de la transcription de chaque session est aussi envoyé à {{service}} pour les rédiger.",
+    "notesModelOther": "Autre",
+    "notesModelName": "Nom du modèle"
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

@@ -2075,7 +2075,9 @@
     "length": "Haba {{length}}",
     "notesJumpPlay": "I-click ang isang paksa o punto para pumunta sa pangungusap nito at mag-play mula roon.",
     "notesJump": "I-click ang isang paksa o punto para pumunta sa pangungusap nito.",
-    "keptHereNotes": "Habang naka-on ang mga tala, ipinapadala rin sa {{service}} ang teksto ng transcript ng bawat session para isulat ang mga ito."
+    "keptHereNotes": "Habang naka-on ang mga tala, ipinapadala rin sa {{service}} ang teksto ng transcript ng bawat session para isulat ang mga ito.",
+    "notesModelOther": "Iba pa",
+    "notesModelName": "Pangalan ng model"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

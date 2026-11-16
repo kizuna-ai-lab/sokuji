@@ -2075,7 +2075,9 @@
     "length": "Tempoh {{length}}",
     "notesJumpPlay": "Klik topik atau perkara untuk pergi ke ayatnya dan main dari situ.",
     "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya.",
-    "keptHereNotes": "Semasa nota dihidupkan, teks transkrip setiap sesi juga dihantar kepada {{service}} untuk menulisnya."
+    "keptHereNotes": "Semasa nota dihidupkan, teks transkrip setiap sesi juga dihantar kepada {{service}} untuk menulisnya.",
+    "notesModelOther": "Lain-lain",
+    "notesModelName": "Nama model"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",
