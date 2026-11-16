@@ -30,7 +30,7 @@ import { appSubtitleSession } from '../lib/subtitle/appSession';
 import type { SubtitleSession } from '../lib/subtitle/session';
 import type { AutoSaveNotifier } from '../lib/transcript/autoSave';
 import { PANEL_NOTE_CODES, panelNoteWriter, usePanelNotesStore } from '../stores/panelNotesStore';
-import { historyNote } from './historyNotes';
+import { historyNote, shownRecordOf } from './historyNotes';
 import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
@@ -199,8 +199,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   });
 
   // History (desktop): every run becomes a record while it runs, written by an observer of the runner.
-  /** The record whose conversation is on screen: the run's session, until Clear. */
-  const shownRecord = () => runner.conversation.snapshot()[0]?.session;
+  /** The record whose conversation is on screen: the run's session, until Clear after the run. */
+  const shownRecord = shownRecordOf(runner.conversation, () => runner.state.getState().phase !== 'idle');
   const historyPortOrNull = options.history === undefined ? (isElectron() ? historyPort() : null) : options.history;
   const historyRecorder = historyPortOrNull && options.historyEncoder !== null
     ? createHistoryRecorder({

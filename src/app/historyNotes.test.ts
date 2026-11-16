@@ -1,7 +1,10 @@
 // A record's History warning goes to the panel only while that record's conversation is the one on screen.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { usePanelNotesStore } from '../stores/panelNotesStore';
-import { historyNote } from './historyNotes';
+import { createVirtualClock } from '../lib/contract/clock';
+import { Conversation } from '../lib/conversation/Conversation';
+import { ConversationSet } from '../lib/session/conversationSet';
+import { historyNote, shownRecordOf } from './historyNotes';
 
 let shown: string | undefined;
 beforeEach(() => { usePanelNotesStore.setState({ notes: [], epoch: 0 }); shown = 'run-a'; });
@@ -20,5 +23,28 @@ describe("a record's History warning", () => {
     shown = undefined;
     tell()('run-a');
     expect(usePanelNotesStore.getState().notes).toEqual([]);
+  });
+});
+
+// Review: Clear keeps the legs, and their snapshots still name the last run's record.
+describe('the record whose conversation is on screen', () => {
+  const clock = createVirtualClock(0);
+  const legsOf = (session: string) => new Map([['speaker' as const, new Conversation({ leg: 'speaker', session, clock, languages: { source: 'zh', target: 'ja' } })]]);
+
+  it("is the run's record; after a Clear once the run has ended, none, until the next run", () => {
+    const conversation = new ConversationSet();
+    let running = true;
+    const shown = shownRecordOf(conversation, () => running);
+    conversation.replace(legsOf('run-a'));
+    expect(shown()).toBe('run-a');
+    // Cleared while the run goes on: its conversation goes on on screen.
+    conversation.clear();
+    expect(shown()).toBe('run-a');
+    running = false;
+    conversation.clear();
+    expect(shown()).toBeUndefined();
+    running = true;
+    conversation.replace(legsOf('run-b'));
+    expect(shown()).toBe('run-b');
   });
 });
