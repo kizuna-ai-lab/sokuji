@@ -212,7 +212,13 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
         for (const [leg, track] of r.tracks) {
           if (r.failed) break;
           try {
-            send(r, leg, track, await track.end());
+            const last = await track.end();
+            // The encoder failed at the end: its last piece is lost, and that is said as any encoder failure is.
+            if (track.failed) {
+              stop(r, `History stopped recording ${r.id}: the ${leg} encoder failed`, null);
+              break;
+            }
+            send(r, leg, track, last);
           } catch (error) {
             stop(r, `History stopped recording ${r.id}: the ${leg} track could not be finished`, error);
           }

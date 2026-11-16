@@ -67,6 +67,23 @@ describe('a record\'s recording', () => {
     expect(pieces.every((p) => p.recordId === ID)).toBe(true);
   });
 
+  // Review: an encoder that fails at the very end left the recording short without a word.
+  it('says the recording stopped when an encoder fails while the recording ends', async () => {
+    let failAtEnd = false;
+    const failingAtEnd: OpusEncoderFactory = (onPacket, onHead, onError) => {
+      const inner = fakeEncoder(onPacket, onHead, onError);
+      return { ...inner, flush: async () => { if (failAtEnd) throw new Error('encoder closed'); return inner.flush(); } };
+    };
+    const port = { appendTrack: async (a: HistoryTrackPiece) => { pieces.push(a); return { bytes: a.data.length }; } } as unknown as HistoryPort;
+    recorder = createHistoryRecorder({ port, clock, encoder: failingAtEnd, report, tell });
+    recorder.begin(ID, 0);
+    await run(1500, () => ['speaker']);
+    failAtEnd = true;
+    await recorder.end(ID);
+    expect(report).toHaveBeenCalledWith(expect.stringContaining('encoder failed'), null);
+    expect(tell).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps nothing once a piece is sent', async () => {
     recorder.begin(ID, 0);
     await run(2000, () => ['speaker']);
