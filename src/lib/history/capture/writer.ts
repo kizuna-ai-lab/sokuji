@@ -405,7 +405,11 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     // The recording's last pages before the record closes; ended even when the record's writes were given up.
     const recorder = deps.recorder;
     if (recorder) chain = chain.then(() => recorder.end(r.id).catch((error) => report('History could not finish the recording', error)));
-    send(r, 'record', () => port.closeRecord({ id: r.id, endedAt: clock.now() }));
+    // A record that cannot be closed stays open until the next launch closes it: said, not left silent.
+    send(r, 'record', () => port.closeRecord({ id: r.id, endedAt: clock.now() }).catch((error: unknown) => {
+      report(`History could not close record ${r.id}; the next launch closes it`, error);
+      tellOnce(r);
+    }));
     rec = null;
     cancelTick?.();
     cancelTick = null;

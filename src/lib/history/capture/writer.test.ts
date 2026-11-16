@@ -441,6 +441,18 @@ describe('the history writer', () => {
       expect(report).not.toHaveBeenCalled();
     });
 
+    // Review: a record that could not be closed stayed open without a word until the next launch.
+    it('says so when the record cannot be closed', async () => {
+      start();
+      say('speaker', 1, 'One.');
+      await writer.settled();
+      port.fail('closeRecord', 1);
+      end();
+      await writer.settled();
+      expect(report).toHaveBeenCalledWith(expect.stringContaining('could not close record run-0001-aaaa'), expect.any(Error));
+      expect(tell).toHaveBeenCalledTimes(1);
+    });
+
     it('gives up only after three failures in a row', async () => {
       port.fail('appendSentences', 2);
       start();
