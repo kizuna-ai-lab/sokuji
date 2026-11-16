@@ -1139,7 +1139,6 @@
     "account": {
       "label": "Account",
       "personal": "Persoonlijk",
-      "payerUnknown": "Account",
       "lowBalance": "Account — saldo te laag om een sessie te starten",
       "unverified": "Account — e-mail niet geverifieerd"
     },
@@ -1854,7 +1853,6 @@
         "needsModel": "Model nodig",
         "needsSignIn": "Inloggen nodig",
         "ready": "Klaar",
-        "off": "Uit",
         "noKeyForRegion": "Geen werkende sleutel voor {{region}}",
         "keyRefused": "Sleutel geweigerd",
         "keyNotVerified": "Sleutel niet gecontroleerd",
@@ -1877,7 +1875,6 @@
         "hint": "Stemmen worden per taal bewaard: dit zijn die van dit taalpaar.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Geen",
       "notesNeedKey": "Voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’ om notities te laten schrijven.",
       "alsoFiles": "Transcribeert ook geïmporteerde bestanden en verslagen opnieuw.",
       "wordsLeftOut": "Woordenlijst: {{count}} items boven de grens van deze dienst worden weggelaten.",
@@ -1922,12 +1919,10 @@
       "source": "Bron",
       "flow": {
         "myMic": "Mijn microfoon",
-        "toSpeech": "Naar spraak",
         "toThem": "Virtuele mic → de andere kant",
         "theirVoice": "Stem van de andere kant",
         "myDevice": "Mijn afspeelapparaat",
         "caption": "Waar het geluid heen gaat. Heldere lijnen staan nu aan, gestippelde uit; ze volgen de schakelaars hieronder.",
-        "aria": "Waar het geluid heen gaat: wat ik zeg wordt spraak en gaat naar de virtuele microfoon voor de andere kant, en speelt ook bij mij als ik meeluister; wat de andere kant zegt wordt spraak en speelt op mijn afspeelapparaat.",
         "translate": "Vertalen",
         "speech": "Spraak",
         "ariaSteps": "Waar het geluid heen gaat: wat ik zeg wordt vertaald en dan spraak, die naar de virtuele microfoon voor de andere kant gaat en ook bij mij speelt als ik meeluister; wat de andere kant zegt wordt vertaald en dan spraak, die op mijn afspeelapparaat speelt. Staat een spraakschakelaar uit, dan wordt er vertaald maar niet gesproken.",
@@ -2017,11 +2012,8 @@
     "refresh": "Vernieuwen",
     "moveOneToBin": "Naar prullenbak",
     "export": "Exporteren",
-    "copyText": "Tekst kopiëren",
     "copied": "Gekopieerd.",
     "copyFailed": "Kopiëren is niet gelukt. Controleer de toestemming voor het klembord.",
-    "saveTxt": "Opslaan als .txt",
-    "saveJson": "Opslaan als .json",
     "saveSrt": "Ondertitels opslaan (.srt)",
     "saveVtt": "Ondertitels opslaan (.vtt)",
     "folder": "Geschiedenismap",
@@ -2063,7 +2055,6 @@
     "saveOtherRecording": "Geluidsopname van de andere kant opslaan",
     "notesAfterSession": "Na elke sessie notities schrijven",
     "notesLine": "Als een sessie eindigt, schrijft {{service}} de notities uit de transcriptie.",
-    "notesNoService": "Kies eerst een dienst voor de notities bij ‘Talen en opstelling’.",
     "notesExplainTitle": "Voordat er notities worden geschreven",
     "notesExplain": "Voor elke sessie worden de tekst van de zinnen, hun nummers, welke kant en welke spreker ze zei en de schrijfwijzen uit je woordenlijst met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
     "notesTurnOn": "Inschakelen",
@@ -2181,7 +2172,14 @@
     "notesModelKizuna": "Kizuna AI schrijft de notities met {{model}}.",
     "copyConversation": "Gesprek kopiëren",
     "saveConversationTxt": "Gesprek opslaan (.txt)",
-    "saveConversationJson": "Gesprek opslaan (.json)"
+    "saveConversationJson": "Gesprek opslaan (.json)",
+    "editSave": "Opslaan",
+    "editSaveHint": "Opslaan (Enter)",
+    "editCancelHint": "Annuleren (Esc)",
+    "speakersHint": "Klik op een naam om de spreker te hernoemen. Wil je één zin aan iemand anders geven, gebruik dan in de transcriptie de knop ‘Spreker wijzigen’ ernaast.",
+    "sidePanel": "Zijpaneel",
+    "openSidePanel": "Zijpaneel openen",
+    "closeSidePanel": "Zijpaneel sluiten"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

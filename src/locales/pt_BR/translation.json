@@ -1139,7 +1139,6 @@
     "account": {
       "label": "Conta",
       "personal": "Pessoal",
-      "payerUnknown": "Conta",
       "lowBalance": "Conta — saldo insuficiente para iniciar uma sessão",
       "unverified": "Conta — e-mail não verificado"
     },
@@ -1854,7 +1853,6 @@
         "needsModel": "Precisa de um modelo",
         "needsSignIn": "Precisa entrar",
         "ready": "Pronto",
-        "off": "Desativado",
         "noKeyForRegion": "Nenhuma chave válida para {{region}}",
         "keyRefused": "Chave recusada",
         "keyNotVerified": "Chave não verificada",
@@ -1877,7 +1875,6 @@
         "hint": "As vozes são guardadas por idioma: estas são as deste par de idiomas.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Nenhum",
       "notesNeedKey": "Adicione uma chave da OpenAI em “Contas e chaves” para que as notas sejam escritas.",
       "alsoFiles": "Também transcreve arquivos importados e registros de novo.",
       "wordsLeftOut": "Lista de palavras: {{count}} entradas acima do limite deste serviço ficam de fora.",
@@ -1922,12 +1919,10 @@
       "source": "Origem",
       "flow": {
         "myMic": "Meu microfone",
-        "toSpeech": "Em fala",
         "toThem": "Microfone virtual → o outro lado",
         "theirVoice": "A voz do outro lado",
         "myDevice": "Meu dispositivo de reprodução",
         "caption": "Para onde vai o som. Linhas acesas estão ligadas agora, tracejadas desligadas; seguem os interruptores abaixo.",
-        "aria": "Para onde vai o som: o que eu digo, virando fala, vai para o microfone virtual do outro lado e toca também do meu lado quando eu escuto; o que o outro lado diz, virando fala, toca no meu dispositivo de reprodução.",
         "translate": "Traduzir",
         "speech": "Gerar fala",
         "ariaSteps": "Para onde vai o som: o que eu digo é traduzido e depois vira fala, que vai para o microfone virtual do outro lado e toca também do meu lado quando eu escuto; o que o outro lado diz é traduzido e depois vira fala, que toca no meu dispositivo de reprodução. Com um interruptor de fala desligado, a tradução é feita, mas não falada.",
@@ -2017,11 +2012,8 @@
     "refresh": "Atualizar",
     "moveOneToBin": "Mover para a lixeira",
     "export": "Exportar",
-    "copyText": "Copiar texto",
     "copied": "Copiado.",
     "copyFailed": "Não foi possível copiar. Verifique a permissão da área de transferência.",
-    "saveTxt": "Salvar como .txt",
-    "saveJson": "Salvar como .json",
     "saveSrt": "Salvar legendas (.srt)",
     "saveVtt": "Salvar legendas (.vtt)",
     "folder": "Pasta do histórico",
@@ -2063,7 +2055,6 @@
     "saveOtherRecording": "Salvar a gravação do outro lado",
     "notesAfterSession": "Escrever notas após cada sessão",
     "notesLine": "Quando uma sessão termina, {{service}} escreve as notas a partir da transcrição.",
-    "notesNoService": "Primeiro escolha um serviço para as notas em “Idiomas e composição”.",
     "notesExplainTitle": "Antes de as notas serem escritas",
     "notesExplain": "De cada sessão, o texto das frases, os números delas, qual lado e qual falante as disse e as grafias da sua lista de palavras são enviados para {{service}} com a sua própria chave. Nunca o áudio, a tradução nem a sua conta.",
     "notesTurnOn": "Ativar",
@@ -2181,7 +2172,14 @@
     "notesModelKizuna": "A Kizuna AI escreve as notas com {{model}}.",
     "copyConversation": "Copiar a conversa",
     "saveConversationTxt": "Salvar a conversa (.txt)",
-    "saveConversationJson": "Salvar a conversa (.json)"
+    "saveConversationJson": "Salvar a conversa (.json)",
+    "editSave": "Salvar",
+    "editSaveHint": "Salvar (Enter)",
+    "editCancelHint": "Cancelar (Esc)",
+    "speakersHint": "Clique em um nome para renomear o falante. Para passar uma frase para outra pessoa, use o botão “Trocar falante” ao lado dela na transcrição.",
+    "sidePanel": "Painel lateral",
+    "openSidePanel": "Abrir o painel lateral",
+    "closeSidePanel": "Fechar o painel lateral"
   },
   "notesQuit": {
     "named": "As notas de “{{title}}” estão sendo escritas. Sair mesmo assim? Elas serão marcadas como canceladas.",

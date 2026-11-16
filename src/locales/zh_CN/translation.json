@@ -1139,7 +1139,6 @@
     "account": {
       "label": "账户",
       "personal": "个人",
-      "payerUnknown": "账户",
       "lowBalance": "账户 — 余额不足，无法开始会话",
       "unverified": "账户 — 邮箱未验证"
     },
@@ -1854,7 +1853,6 @@
         "needsModel": "需要模型",
         "needsSignIn": "需要登录",
         "ready": "就绪",
-        "off": "关闭",
         "noKeyForRegion": "{{region}} 没有可用的密钥",
         "keyRefused": "密钥不可用",
         "keyNotVerified": "密钥未验证",
@@ -1877,7 +1875,6 @@
         "hint": "音色按语言分开存：这里改的是现在这对语言用的音色。",
         "voiceFor": "{{who}}（{{language}}）"
       },
-      "notesNone": "无",
       "notesNeedKey": "在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。",
       "alsoFiles": "也用于导入文件和重新转写。",
       "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。",
@@ -1922,12 +1919,10 @@
       "source": "来源",
       "flow": {
         "myMic": "我的麦克风",
-        "toSpeech": "翻译成语音",
         "toThem": "虚拟麦克风 → 对方",
         "theirVoice": "对方的声音",
         "myDevice": "我的播放设备",
         "caption": "声音走向。亮着的线是现在开着的，虚线是关着的；随下面的开关变。",
-        "aria": "声音走向：我说的话翻译成语音，送进虚拟麦克风给对方，我也听时在我这边也放；对方说的话翻译成语音，从我的播放设备放出来。",
         "translate": "翻译",
         "speech": "生成语音",
         "ariaSteps": "声音走向：我说的话先翻译，再生成语音，送进虚拟麦克风给对方，我也听时在我这边也放；对方说的话先翻译，再生成语音，从我的播放设备放出来。语音开关关着时，只翻译，不生成语音。",
@@ -2017,11 +2012,8 @@
     "refresh": "刷新",
     "moveOneToBin": "移到回收站",
     "export": "导出",
-    "copyText": "复制文本",
     "copied": "已复制。",
     "copyFailed": "无法复制。请检查剪贴板权限。",
-    "saveTxt": "保存为 .txt",
-    "saveJson": "保存为 .json",
     "saveSrt": "保存字幕（.srt）",
     "saveVtt": "保存字幕（.vtt）",
     "folder": "历史文件夹",
@@ -2063,7 +2055,6 @@
     "saveOtherRecording": "保存对方的录音",
     "notesAfterSession": "每次会话结束后写纪要",
     "notesLine": "会话结束时，由 {{service}} 根据转写写出纪要。",
-    "notesNoService": "请先在“语言与会话组成”里选择写纪要的服务。",
     "notesExplainTitle": "写纪要之前",
     "notesExplain": "每次会话会用你自己的 key 把这些发给 {{service}}：各句的文字、句子编号、是哪一方哪位说话人说的，以及词表里的写法。不会发送声音、译文或你的账号信息。",
     "notesTurnOn": "打开",
@@ -2181,7 +2172,14 @@
     "notesModelKizuna": "Kizuna AI 用 {{model}} 写纪要。",
     "copyConversation": "复制对话",
     "saveConversationTxt": "保存对话（.txt）",
-    "saveConversationJson": "保存对话（.json）"
+    "saveConversationJson": "保存对话（.json）",
+    "editSave": "保存",
+    "editSaveHint": "保存（Enter）",
+    "editCancelHint": "取消（Esc）",
+    "speakersHint": "点名字改名。要把某一句换给别人，用转写里那一句旁边的「更改说话人」按钮。",
+    "sidePanel": "侧栏",
+    "openSidePanel": "打开侧栏",
+    "closeSidePanel": "收起侧栏"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

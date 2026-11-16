@@ -1139,7 +1139,6 @@
     "account": {
       "label": "Akun",
       "personal": "Pribadi",
-      "payerUnknown": "Akun",
       "lowBalance": "Akun — saldo tidak cukup untuk memulai sesi",
       "unverified": "Akun — email belum diverifikasi"
     },
@@ -1854,7 +1853,6 @@
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu masuk",
         "ready": "Siap",
-        "off": "Mati",
         "noKeyForRegion": "Tidak ada kunci yang berfungsi untuk {{region}}",
         "keyRefused": "Kunci ditolak",
         "keyNotVerified": "Kunci belum diverifikasi",
@@ -1877,7 +1875,6 @@
         "hint": "Suara disimpan per bahasa: ini suara untuk pasangan bahasa ini.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Tidak ada",
       "notesNeedKey": "Tambahkan kunci OpenAI di “Akun dan kunci” agar catatan ditulis.",
       "alsoFiles": "Juga mentranskripsi file yang diimpor dan mentranskripsi ulang catatan.",
       "wordsLeftOut": "Daftar kata: {{count}} entri yang melebihi batas layanan ini tidak disertakan.",
@@ -1922,12 +1919,10 @@
       "source": "Sumber",
       "flow": {
         "myMic": "Mikrofon saya",
-        "toSpeech": "Jadi suara",
         "toThem": "Mikrofon virtual → pihak lain",
         "theirVoice": "Suara pihak lain",
         "myDevice": "Perangkat pemutar saya",
         "caption": "Ke mana suara pergi. Garis terang sedang aktif, garis putus-putus tidak; mengikuti sakelar di bawah.",
-        "aria": "Ke mana suara pergi: yang saya ucapkan, jadi suara, masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain, jadi suara, diputar di perangkat pemutar saya.",
         "translate": "Terjemahkan",
         "speech": "Jadi suara",
         "ariaSteps": "Ke mana suara pergi: yang saya ucapkan diterjemahkan, lalu dijadikan suara yang masuk ke mikrofon virtual untuk pihak lain, dan diputar juga di sisi saya kalau saya ikut mendengar; yang diucapkan pihak lain diterjemahkan, lalu dijadikan suara yang diputar di perangkat pemutar saya. Jika sakelar suara mati, terjemahan tetap dibuat tetapi tidak diucapkan.",
@@ -2017,11 +2012,8 @@
     "refresh": "Segarkan",
     "moveOneToBin": "Pindahkan ke sampah",
     "export": "Ekspor",
-    "copyText": "Salin teks",
     "copied": "Disalin.",
     "copyFailed": "Tidak bisa menyalin. Periksa izin papan klip.",
-    "saveTxt": "Simpan sebagai .txt",
-    "saveJson": "Simpan sebagai .json",
     "saveSrt": "Simpan subtitel (.srt)",
     "saveVtt": "Simpan subtitel (.vtt)",
     "folder": "Folder riwayat",
@@ -2063,7 +2055,6 @@
     "saveOtherRecording": "Simpan rekaman suara pihak lain",
     "notesAfterSession": "Tulis catatan setelah setiap sesi",
     "notesLine": "Saat sesi berakhir, {{service}} menulis catatannya dari transkrip.",
-    "notesNoService": "Pilih dulu layanan untuk catatan di “Bahasa dan susunan”.",
     "notesExplainTitle": "Sebelum catatan ditulis",
     "notesExplain": "Untuk setiap sesi, teks kalimatnya, nomornya, pihak dan pembicara yang mengucapkannya, serta ejaan di daftar kata Anda dikirim ke {{service}} dengan kunci Anda sendiri. Tidak pernah audio, terjemahan, atau akun Anda.",
     "notesTurnOn": "Aktifkan",
@@ -2181,7 +2172,14 @@
     "notesModelKizuna": "Kizuna AI menulis catatan dengan {{model}}.",
     "copyConversation": "Salin percakapan",
     "saveConversationTxt": "Simpan percakapan (.txt)",
-    "saveConversationJson": "Simpan percakapan (.json)"
+    "saveConversationJson": "Simpan percakapan (.json)",
+    "editSave": "Simpan",
+    "editSaveHint": "Simpan (Enter)",
+    "editCancelHint": "Batal (Esc)",
+    "speakersHint": "Klik nama untuk mengganti nama pembicara. Untuk memberikan satu kalimat kepada orang lain, gunakan tombol “Ganti pembicara” di sebelahnya dalam transkrip.",
+    "sidePanel": "Panel samping",
+    "openSidePanel": "Buka panel samping",
+    "closeSidePanel": "Tutup panel samping"
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

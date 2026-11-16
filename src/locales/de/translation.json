@@ -1139,7 +1139,6 @@
     "account": {
       "label": "Konto",
       "personal": "Persönlich",
-      "payerUnknown": "Konto",
       "lowBalance": "Konto — Guthaben zu niedrig, um eine Sitzung zu starten",
       "unverified": "Konto — E-Mail nicht bestätigt"
     },
@@ -1854,7 +1853,6 @@
         "needsModel": "Braucht ein Modell",
         "needsSignIn": "Anmeldung nötig",
         "ready": "Bereit",
-        "off": "Aus",
         "noKeyForRegion": "Kein gültiger Schlüssel für {{region}}",
         "keyRefused": "Schlüssel abgelehnt",
         "keyNotVerified": "Schlüssel nicht geprüft",
@@ -1877,7 +1875,6 @@
         "hint": "Stimmen werden je Sprache gespeichert: Dies sind die für dieses Sprachpaar.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Keine",
       "notesNeedKey": "Fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu, damit Notizen geschrieben werden.",
       "alsoFiles": "Transkribiert auch importierte Dateien und Einträge erneut.",
       "wordsLeftOut": "Wortliste: {{count}} Einträge über der Grenze dieses Dienstes werden ausgelassen.",
@@ -1922,12 +1919,10 @@
       "source": "Quelle",
       "flow": {
         "myMic": "Mein Mikrofon",
-        "toSpeech": "Zu Sprache",
         "toThem": "Virtuelles Mikro → Gegenseite",
         "theirVoice": "Stimme der Gegenseite",
         "myDevice": "Mein Wiedergabegerät",
         "caption": "Wohin der Ton geht. Helle Linien sind gerade an, gestrichelte aus; sie folgen den Schaltern darunter.",
-        "aria": "Wohin der Ton geht: Was ich sage, wird zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird zu Sprache und spielt auf meinem Wiedergabegerät.",
         "translate": "Übersetzen",
         "speech": "Sprachausgabe",
         "ariaSteps": "Wohin der Ton geht: Was ich sage, wird übersetzt, dann zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird übersetzt, dann zu Sprache und spielt auf meinem Wiedergabegerät. Ist ein Sprachschalter aus, wird übersetzt, aber nicht gesprochen.",
@@ -2017,11 +2012,8 @@
     "refresh": "Aktualisieren",
     "moveOneToBin": "In den Papierkorb",
     "export": "Exportieren",
-    "copyText": "Text kopieren",
     "copied": "Kopiert.",
     "copyFailed": "Kopieren nicht möglich. Prüfen Sie die Berechtigung für die Zwischenablage.",
-    "saveTxt": "Als .txt speichern",
-    "saveJson": "Als .json speichern",
     "saveSrt": "Untertitel speichern (.srt)",
     "saveVtt": "Untertitel speichern (.vtt)",
     "folder": "Verlaufsordner",
@@ -2063,7 +2055,6 @@
     "saveOtherRecording": "Aufnahme der anderen Seite speichern",
     "notesAfterSession": "Nach jeder Sitzung Notizen schreiben",
     "notesLine": "Wenn eine Sitzung endet, schreibt {{service}} ihre Notizen aus dem Transkript.",
-    "notesNoService": "Wählen Sie zuerst unter „Sprachen und Aufstellung“ einen Dienst für die Notizen.",
     "notesExplainTitle": "Bevor Notizen geschrieben werden",
     "notesExplain": "Für jede Sitzung werden der Text ihrer Sätze, deren Nummern, welche Seite und welcher Sprecher sie gesagt hat sowie die Schreibweisen aus Ihrer Wortliste mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
     "notesTurnOn": "Einschalten",
@@ -2181,7 +2172,14 @@
     "notesModelKizuna": "Kizuna AI schreibt die Notizen mit {{model}}.",
     "copyConversation": "Gespräch kopieren",
     "saveConversationTxt": "Gespräch speichern (.txt)",
-    "saveConversationJson": "Gespräch speichern (.json)"
+    "saveConversationJson": "Gespräch speichern (.json)",
+    "editSave": "Speichern",
+    "editSaveHint": "Speichern (Eingabe)",
+    "editCancelHint": "Abbrechen (Esc)",
+    "speakersHint": "Klicken Sie auf einen Namen, um den Sprecher umzubenennen. Um einen Satz jemand anderem zuzuordnen, nutzen Sie im Transkript die Schaltfläche „Sprecher ändern“ daneben.",
+    "sidePanel": "Seitenleiste",
+    "openSidePanel": "Seitenleiste öffnen",
+    "closeSidePanel": "Seitenleiste schließen"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",
