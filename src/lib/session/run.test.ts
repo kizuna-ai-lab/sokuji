@@ -30,6 +30,8 @@ function setup(o: {
   shared?: boolean;
   lease?: boolean;
   network?: { online: boolean | undefined; type: NetworkType };
+  /** The provider's id and its settings at start, in place of the fake's. */
+  provider?: { id: string; settings: unknown };
   /** Before `startBoth` resolves: what a leg says while the other still opens. */
   early?: (events: Record<LegName, AdapterEvents>) => void;
 } = {}) {
@@ -83,8 +85,8 @@ function setup(o: {
   } : undefined;
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {
-    provider: { ...fakeProvider, start, session: hooks } as unknown as AnyProvider,
-    settings: FAKE_DEFAULTS,
+    provider: { ...fakeProvider, ...(o.provider ? { id: o.provider.id } : {}), start, session: hooks } as unknown as AnyProvider,
+    settings: o.provider ? o.provider.settings : FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
     legs: o.legs ?? (o.both ? ['speaker', 'participant'] : ['speaker']),
@@ -216,6 +218,37 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
         session_elapsed_ms: 4000, drop_index: 2, since_last_reconnect_ms: 2500, online: true, client: 'desktop', network: 'wifi',
       },
     ]);
+  });
+
+  it('every reconnect event carries the region the session connects to', async () => {
+    const provider = { id: 'kizunaai_soniox', settings: { ...FAKE_DEFAULTS, region: 'in' } };
+    const names = ['connection_dropped', 'connection_reconnected', 'connection_reconnect_failed'];
+    // A drop and its reconnect, then a drop that gives up.
+    const given = setup({ both: true, provider });
+    await given.runner.start();
+    given.events('speaker').reconnecting({ attempt: 1, drop: DROP });
+    given.clock.advance(500);
+    given.events('speaker').reconnected(RESTORED);
+    given.events('participant').reconnecting({ attempt: 1, drop: DROP });
+    given.events('participant').failed({ message: 'gone', code: 'connection_lost', drop: DROP, giveUp: { attempts: 3, reason: 'timeout' } });
+    expect(names.map((n) => given.tracks(n).length)).toEqual([2, 1, 1]);
+    // A reconnect the stop cuts.
+    const cut = setup({ provider });
+    await cut.runner.start();
+    cut.events().reconnecting({ attempt: 1, drop: DROP });
+    await cut.runner.stop();
+    expect(cut.tracks('connection_reconnect_failed')).toEqual([expect.objectContaining({ reason: 'stopped' })]);
+    for (const n of names) {
+      for (const p of [...given.tracks(n), ...cut.tracks(n)]) expect(p).toMatchObject({ provider: 'kizunaai_soniox', region: 'in' });
+    }
+  });
+
+  it('a provider that does not pick a region sends none: own-key Qwen dials the endpoint its key was made in', async () => {
+    const { runner, events, tracks } = setup({ provider: { id: 'qwen_livetranslate', settings: { ...FAKE_DEFAULTS, region: 'cn' } } });
+    await runner.start();
+    events().reconnecting({ attempt: 1, drop: DROP });
+    expect(tracks('connection_dropped')[0]).toMatchObject({ provider: 'qwen_livetranslate' });
+    expect(tracks('connection_dropped')[0]).not.toHaveProperty('region');
   });
 
   it('a port that cannot tell online sends no online and network unknown; with no port, neither', async () => {
