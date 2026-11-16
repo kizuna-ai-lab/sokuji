@@ -63,6 +63,18 @@ describe('cutting a transcript into parts', () => {
 });
 
 describe('writing the notes', () => {
+  it("hands every part, the finishing call and the names step the word list's spellings, and nothing without one", async () => {
+    const model = fakeChat();
+    const names = [{ written: 'Kizuna AI', heardAs: 'kizuna eye' }, { written: 'Sokuji', translation: '速记' }];
+    await writeNotes({ sentences: withPauses(), speakerLabel: (s) => s.speaker, language: LANGUAGE, chat: model.chat, signal: new AbortController().signal, names });
+    const wire = [{ written: 'Kizuna AI', heard_as: 'kizuna eye' }, { written: 'Sokuji' }];
+    expect(model.of('part').length).toBeGreaterThan(1);
+    for (const kind of ['part', 'finish', 'names'] as const) for (const c of model.of(kind)) expect(c.user.names, kind).toEqual(wire);
+    const plain = fakeChat();
+    await write(everyMinute(26), plain.chat);
+    for (const c of plain.calls) expect(c.user).not.toHaveProperty('names');
+  });
+
   it('writes a short recording in one part and keeps its title', async () => {
     const model = fakeChat();
     const result = await write(everyMinute(26), model.chat);

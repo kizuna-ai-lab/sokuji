@@ -29,6 +29,14 @@ describe('the live notes rules', () => {
     expect(apply(opened(), { new_topic: { title: 'Nothing', points: [] } }, [s(2)])).toEqual(opened());
   });
 
+  it("carries the word list's spellings in each update, and nothing without them", () => {
+    const st = opened();
+    const names = [{ written: 'Kizuna AI', heardAs: 'kizuna eye' }];
+    expect((livePayload({ state: st, fresh: [s(2)], seen: [s(2)], language: { code: 'en' }, speakerLabel: label, names }) as { names: unknown }).names)
+      .toEqual([{ written: 'Kizuna AI', heard_as: 'kizuna eye' }]);
+    expect(livePayload({ state: st, fresh: [s(2)], seen: [s(2)], language: { code: 'en' }, speakerLabel: label })).not.toHaveProperty('names');
+  });
+
   it('closes a topic at 12 points: the payload shows it just closed, and the next points open a new topic', () => {
     let st = opened();
     for (let n = 2; n <= 12; n++) st = apply(st, { current_topic: { add: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;

@@ -7,6 +7,8 @@
 // stays in it); what the model still writes into a closed topic, opening no new one, starts a topic of the same title,
 // numbered; a closed topic is frozen except for an `earlier` point; a to-do may be withdrawn (the mark goes, the text
 // stays). Sentences are named by their record numbers (`n`), which grow as sentences arrive.
+import type { WordEntry } from '../../words/list';
+import { notesNames } from '../prompts';
 import type { HistorySentenceInput, HistorySentenceSide } from '../../history/types';
 import type { NoteKind } from '../write';
 
@@ -70,6 +72,8 @@ export interface LivePayloadInput {
   seen: readonly LiveSentence[];
   language: { code: string };
   speakerLabel(s: LiveSentence): string;
+  /** The word list: spellings to prefer (stage 5). */
+  names?: readonly WordEntry[];
 }
 
 /** What one update sends: the notes so far in short form, the sentences before, the new sentences, and limits. */
@@ -91,8 +95,10 @@ export function livePayload(o: LivePayloadInput): unknown {
   };
   const spokenMs = o.seen.reduce((sum, s) => sum + (s.endMs - s.startMs), 0);
   const written = state.topics.reduce((sum, t) => sum + t.points.length, 0);
+  const names = notesNames(o.names);
   return {
     output_language: o.language.code,
+    ...(names.length > 0 ? { names } : {}),
     title: state.title,
     closed_topics: closed.map((t) => ({ n: t.n, title: t.title })),
     current_topic: current

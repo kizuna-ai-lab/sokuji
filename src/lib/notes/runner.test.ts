@@ -62,7 +62,7 @@ describe('the notes runner', () => {
     await vi.waitFor(() => expect(saved).toHaveLength(1));
     expect(raw.getSentences).toHaveBeenCalledWith({ transcriptId: 2 });
     expect(saved[0]).toEqual({
-      recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'ja', state: 'complete', requestIds: [],
+      recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 2, model: 'gpt-6-luna' }, language: 'ja', state: 'complete', requestIds: [],
       body: expect.objectContaining({ title: 'Weekly sync', topics: [{ title: 'Delivery', summary: 'The date.', first: 1 }] }),
     });
     await settle();
@@ -113,7 +113,7 @@ describe('the notes runner', () => {
     runner.start(ID);
     await vi.waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]).toEqual({
-      recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'ja', state: 'failed',
+      recordId: ID, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 2, model: 'gpt-6-luna' }, language: 'ja', state: 'failed',
       failure: 'Incorrect API key provided.', body: null, requestIds: [],
     });
   });

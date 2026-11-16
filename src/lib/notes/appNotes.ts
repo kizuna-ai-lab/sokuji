@@ -3,6 +3,7 @@
 // The app's one notes runner (desktop): the session starts a version when a record closes, the record page starts and
 // cancels them. The notes service is the line-up's notes stage; today that is OpenAI with the user's own key, called
 // from the page (client side only, owner 2026-11-16). The model is the one named in History and notes.
+import { useWordList } from '../words/list';
 import i18n from '../../locales';
 import { reportError } from '../diagnostics/report';
 import { historyPort } from '../history/port';
@@ -41,6 +42,7 @@ export function appNotesRunner(): NotesRunner {
     port: historyPort(),
     chatFor: notesChatFromStores,
     language: notesLanguageOf,
+    names: () => useWordList.getState().entries,
     report: (message, cause) => reportError('Notes', message, { cause }),
   });
   return runner;

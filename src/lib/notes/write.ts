@@ -6,10 +6,11 @@
 // beside it. The model points at sentences by their numbers; the program's own rules then hold whatever it answers:
 // a point needs text, a number that is no sentence is moved to the nearest one and marked, only the three kinds are
 // kept, and a todo's owner that is only a speaker label becomes that speaker's side.
+import type { WordEntry } from '../words/list';
 import type { HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort, ChatRequest } from './chat';
 import { ChatError } from './chat';
-import { finishPrompt, namesPrompt, partPrompt } from './prompts';
+import { finishPrompt, namesPrompt, partPrompt, notesNames } from './prompts';
 
 /** Less transcript than this has nothing to write notes from: no call is made. */
 export const NOTES_MIN_MS = 60_000;
@@ -81,6 +82,8 @@ export interface WriteNotesOptions {
   signal: AbortSignal;
   /** Filled with the request ids as answers come, so they are known even when the version is cancelled. */
   requestIds?: string[];
+  /** The word list: spellings every call is asked to prefer (stage 5). */
+  names?: readonly WordEntry[];
 }
 
 type Raw = Record<string, unknown>;
@@ -243,6 +246,8 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
     return who.certain ? SIDE_WORDS[who.side] : null;
   };
 
+  const preferred = notesNames(o.names);
+  const withNames = preferred.length > 0 ? { names: preferred } : {};
   // The parts, all at once. A part that still fails after its tries fails the version: nothing half-written is kept.
   const parts = cutParts(ordered);
   const multiPart = parts.length > 1;
@@ -254,6 +259,7 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
       ...(multiPart ? { part: { index: k + 1, of: parts.length } } : {}),
       // The script sends the live notes' marks here; the notes after the session are independent of them.
       candidates: [],
+      ...withNames,
     },
     effort: 'none',
     maxTokens: PART_TOKENS,
@@ -320,6 +326,7 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
         id: q.id, topic: t.n, text: q.text, kinds: q.kinds,
         ...(q.kinds.includes('todo') ? { owner: q.owner ?? null, due: q.due ?? null } : {}),
       }))),
+      ...withNames,
     },
     effort: 'medium',
     maxTokens: FINISH_TOKENS,
@@ -328,7 +335,7 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
   });
   const naming = Promise.all(namesParts(ordered).map((part) => ask(chat, {
     system: namesPrompt(),
-    user: { sentences: part.map(view) },
+    user: { sentences: part.map(view), ...withNames },
     effort: 'medium',
     maxTokens: NAMES_TOKENS,
     signal,

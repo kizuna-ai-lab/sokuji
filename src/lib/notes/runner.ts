@@ -4,6 +4,7 @@
 // record's newest transcript and saved when it ends: complete, failed with what went wrong, or cancelled. Nothing is
 // saved for a transcript too short to write notes from. The store names the record after complete notes unless the
 // user named it (History store, saveNotes), so the runner leaves the title alone.
+import type { WordEntry } from '../words/list';
 import type { HistoryPort } from '../history/port';
 import type { HistoryNotesInput, HistoryRecord, HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort } from './chat';
@@ -18,6 +19,8 @@ export interface NotesRunnerDeps {
   chatFor(): Promise<{ chat: ChatPort; model: string } | null>;
   /** The language notes are written in when none is asked for: the record's "my language", or the interface's. */
   language(record: HistoryRecord): NotesLanguage;
+  /** The word list: spellings the notes are asked to prefer (stage 5); none when absent. */
+  names?(): readonly WordEntry[];
   report?(message: string, cause: unknown): void;
 }
 
@@ -89,6 +92,7 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     try {
       result = await writeNotes({
         sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal, requestIds,
+        names: d.names?.() ?? [],
       });
     } catch (error) {
       if (controller.signal.aborted || isAbort(error)) {

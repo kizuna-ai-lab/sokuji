@@ -30,15 +30,21 @@ describe('the notes prompts', () => {
     expect(namesPrompt()).toContain('`heard`');
   });
 
+  it("tell every notes call what the word list's `names` are (version 2, stage 5)", () => {
+    for (const text of [partPrompt('English', false), partPrompt('English', true), finishPrompt('English'), namesPrompt(), livePrompt('English')]) {
+      expect(text).toContain('The data may carry `names`');
+    }
+  });
+
   it('change only with their version', () => {
-    expect(NOTES_PROMPT_VERSION).toBe(1);
+    expect(NOTES_PROMPT_VERSION).toBe(2);
     expect(Object.fromEntries(Object.entries(texts).map(([k, v]) => [k, fingerprint(v)]))).toMatchInlineSnapshot(`
       {
-        "finish": "9e6a4177",
-        "live": "4e240150",
-        "names": "7d863b8c",
-        "part_multi": "cc29de31",
-        "part_single": "c200fa53",
+        "finish": "bbb457a8",
+        "live": "5bc96211",
+        "names": "235b48b3",
+        "part_multi": "351105ba",
+        "part_single": "8c41754c",
       }
     `);
   });
@@ -48,6 +54,6 @@ describe('the notes prompts', () => {
     expect(livePrompt('Japanese')).toContain('Write every free-text value in Japanese.');
     expect(livePrompt('Japanese')).not.toContain('start_ms');
     expect(livePrompt('Japanese')).toContain('`withdraw`');
-    expect(LIVE_PROMPT_VERSION).toBe(1);
+    expect(LIVE_PROMPT_VERSION).toBe(2);
   });
 });

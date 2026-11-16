@@ -4,6 +4,7 @@
 // the new sentences. One at a time: when the next is due and the last has not answered, the last is given up and its
 // sentences go with the next. Timeout 20 s. A failed or given-up update changes nothing on screen; three failures in
 // a row show one hint, gone with the next success. At Stop one last update with what remains, then nothing.
+import type { WordEntry } from '../../words/list';
 import type { Clock } from '../../contract/clock';
 import type { ChatPort } from '../chat';
 import { livePrompt } from '../prompts';
@@ -20,6 +21,8 @@ export interface LiveNotesDeps {
   clock: Clock;
   language: NotesLanguage;
   speakerLabel(s: LiveSentence): string;
+  /** The word list at the session's start: spellings each update asks the notes to prefer (stage 5). */
+  names?: readonly WordEntry[];
   onState(state: LiveState): void;
   onHint(shown: boolean): void;
   /** One line per update, for the measurement on live recognition (§12). */
@@ -104,7 +107,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     const u: Update = {
       controller, fresh, upTo, startedAt: d.clock.now(), givenUp: false, done: false, cancelTimeout: () => {}, promise: Promise.resolve(),
     };
-    const payload = livePayload({ state, fresh, seen: seen.slice(0, upTo), language: d.language, speakerLabel: d.speakerLabel });
+    const payload = livePayload({ state, fresh, seen: seen.slice(0, upTo), language: d.language, speakerLabel: d.speakerLabel, names: d.names });
     u.cancelTimeout = d.clock.setTimeout(() => { if (!u.done) { u.givenUp = true; controller.abort(); } }, LIVE_TIMEOUT_MS);
     u.promise = d.chat({ system: livePrompt(d.language.name), user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal })
       .then((answer) => finish(u, answer), () => finish(u, undefined));

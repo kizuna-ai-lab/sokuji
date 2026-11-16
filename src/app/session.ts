@@ -5,6 +5,7 @@
  * `getAppSession()` builds on its first call, and the playback loads on the
  * first `audio()` or leg.
  */
+import { useWordList } from '../lib/words/list';
 import { getAppAudio, type AppAudio } from '../lib/audio/appAudio';
 import { createAppCapture, type AppCapture } from '../lib/audio/appCapture';
 import type { Playback } from '../lib/audio/playback';
@@ -339,6 +340,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           // The record's own "my language", as the notes after the session use (spec §6.5).
           chat: service.chat, clock, language: notesLanguageOf({ myLanguage: myLanguageOf(runner.conversation.snapshot()) }),
           speakerLabel: labelsFor(begun.seen),
+          // The word list as it stands at the session's start, like what the services were sent (stage 5).
+          names: useWordList.getState().entries,
           // Keyed by the record: the last update after Stop still lands, and nothing lands once another session shows.
           onState: (state) => useLiveNotes.getState().update(recordId, state),
           onHint: (shown) => useLiveNotes.getState().setHint(recordId, shown),
