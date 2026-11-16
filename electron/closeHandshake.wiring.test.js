@@ -30,6 +30,8 @@ describe('close handshake wiring', () => {
   it('holds the main window close', () => {
     expect(main).toMatch(/mainWindow\.on\('close',\s*\(event\)\s*=>\s*closeHandshake\.onWindowClose\(event\)\)/);
     expect(main).toMatch(/closeHandshake\.attachWindow\(mainWindow\)/);
+    // A reload keeps the window: the handshake starts again with the new page.
+    expect(main).toMatch(/mainWindow\.webContents\.on\('did-navigate',\s*\(\)\s*=>\s*closeHandshake\.pageReplaced\(\)\)/);
   });
 
   it('runs quit cleanup only once the handshake lets the quit through', () => {

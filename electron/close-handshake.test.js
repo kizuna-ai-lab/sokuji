@@ -62,6 +62,26 @@ describe('close handshake', () => {
     expect(hs.onBeforeQuit(event())).toBe(true);
   });
 
+  // Review: a reload keeps the window and its webContents; the page that was asking is gone, and the new one never answers.
+  it('lets a close through after the page that was asking is reloaded', () => {
+    hs.onWindowClose(event());
+    hs.asking();
+    hs.pageReplaced();
+    const again = event();
+    hs.onWindowClose(again);
+    expect(again.preventDefault).not.toHaveBeenCalled();
+    const quit = event();
+    expect(hs.onBeforeQuit(quit)).toBe(true);
+  });
+
+  it('runs an install that was waiting when its page is reloaded, as when the window is replaced', () => {
+    const install = vi.fn();
+    hs.endSessionThen(install);
+    expect(install).not.toHaveBeenCalled();
+    hs.pageReplaced();
+    expect(install).toHaveBeenCalledTimes(1);
+  });
+
   it('stays open when the user chooses to stay, and asks again at the next close', () => {
     const quit = event();
     expect(hs.onBeforeQuit(quit)).toBe(false);

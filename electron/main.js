@@ -490,6 +490,8 @@ function createWindow() {
   setupPopoverWindowHandlers(mainWindow);
   captionShare.attachWindow(mainWindow);
   closeHandshake.attachWindow(mainWindow);
+  // A reload keeps the window: a question the old page was asking will never be answered.
+  mainWindow.webContents.on('did-navigate', () => closeHandshake.pageReplaced());
   mainWindow.on('close', (event) => closeHandshake.onWindowClose(event));
 
   // Set custom User Agent for the window

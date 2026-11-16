@@ -98,21 +98,33 @@ function createCloseHandshake({
     return false;
   }
 
+  /** A fresh page: whatever the last one was asked is gone with it, and the new one is idle until it says otherwise. */
+  function freshPage() {
+    if (timer) {
+      clearTimer(timer);
+      timer = null;
+    }
+    const action = pendingAction;
+    state = 'idle';
+    quitPending = false;
+    pendingAction = null;
+    sessionBusy = false;
+    // The page that was ending its session is gone; do not strand the action.
+    if (action) action();
+  }
+
   return {
     /** A new main window starts a fresh handshake, and a fresh page is idle. */
     attachWindow(nextWin) {
-      if (timer) {
-        clearTimer(timer);
-        timer = null;
-      }
-      const action = pendingAction;
       win = nextWin;
-      state = 'idle';
-      quitPending = false;
-      pendingAction = null;
-      sessionBusy = false;
-      // The page that was ending its session is gone; do not strand the action.
-      if (action) action();
+      freshPage();
+    },
+    /**
+     * The main window's page was replaced (a reload): the window and its webContents stay, but the page that was asked
+     * is gone and will never answer. The handshake starts again, as for a new window.
+     */
+    pageReplaced() {
+      freshPage();
     },
     /** The main window's 'close' listener. */
     onWindowClose(event) {
