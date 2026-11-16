@@ -185,3 +185,58 @@ export function renderTranscriptTxt(entries: readonly Entry[], legs: readonly Le
   }
   return lines.join('\n');
 }
+
+/** A transcript's row as the record page shows it: a file transcript has no conversation behind it. */
+export interface TranscriptRowText {
+  leg: 'speaker' | 'participant';
+  /** From the record's start. */
+  startMs: number;
+  speakerLabel: string;
+  sentences: readonly { text: string }[];
+  translation: string | null;
+}
+
+/** A row's sentences as one line: spaced, except after a full-width stop (CJK text has no spaces between sentences). */
+export function rowText(row: TranscriptRowText): string {
+  return row.sentences.map((x) => x.text.trim()).filter(Boolean).join(' ').replace(/([。！？；])\s+/g, '$1');
+}
+
+/** The groups a scope keeps of a file transcript's rows. */
+export function rowGroups(rows: readonly TranscriptRowText[], scope: TranscriptScope, startedAt: number) {
+  const groups: Array<{ leg: TranscriptRowText['leg']; at: number; speaker: string; source?: string; translation?: string }> = [];
+  for (const r of rows) {
+    const filter = scope[r.leg];
+    const source = showsSide(filter, 'source') ? rowText(r) : '';
+    const translation = showsSide(filter, 'translation') && r.translation ? r.translation : '';
+    if (!source && !translation) continue;
+    groups.push({ leg: r.leg, at: startedAt + r.startMs, speaker: r.speakerLabel, ...(source ? { source } : {}), ...(translation ? { translation } : {}) });
+  }
+  return groups;
+}
+
+/** A file transcript as text, in the conversation export's shape. */
+export function renderRowsTxt(rows: readonly TranscriptRowText[], legs: readonly Leg[], o: Omit<TranscriptOptions, 'labels'> & { startedAt: number }): string {
+  const scope = o.scope ?? FULL_SCOPE;
+  const lines: string[] = o.header ? headerLines(o.header, legs, isNarrowed(scope)) : [];
+  for (const g of rowGroups(rows, scope, o.startedAt)) {
+    lines.push(`${o.formatTime(g.at)} ${g.speaker}`);
+    if (g.source) lines.push(`  ${g.source}`);
+    if (g.translation) lines.push(`  ${ARROW} ${g.translation}`);
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+/** A file transcript as JSON, its metadata first. */
+export function renderRowsJson(rows: readonly TranscriptRowText[], legs: readonly Leg[], o: { scope?: TranscriptScope; meta: TranscriptMeta; startedAt: number }) {
+  const scope = o.scope ?? FULL_SCOPE;
+  const groups = rowGroups(rows, scope, o.startedAt).map((g) => ({
+    leg: g.leg, t: new Date(g.at).toISOString(), speaker: g.speaker,
+    ...(g.source ? { source: { text: g.source } } : {}), ...(g.translation ? { translation: { text: g.translation } } : {}),
+  }));
+  return {
+    exportedAt: new Date(o.meta.exportedAt).toISOString(), appVersion: o.meta.appVersion, provider: o.meta.provider,
+    models: nonEmptyModels(o.meta.models), languages: pairOf(legs), ...(isNarrowed(scope) ? { scope } : {}), groups,
+  };
+}
+

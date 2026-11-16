@@ -1,8 +1,9 @@
 // src/components/History/RecordExportMenu.tsx
 //
 // A record's export: the per-side choice of today's export menu, then the text, the JSON and the subtitles. The text
-// and JSON are today's exporter run on the stored conversation; the subtitles come from the transcript rows. Files are
-// named after the record's start.
+// and JSON are today's exporter run on the stored conversation, or, for a file transcript (an imported file's, or a
+// record transcribed again), written from the rows the page shows; the subtitles come from the transcript rows. Files
+// are named after the record's start.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, Captions, ChevronDown, Copy, Download, FileJson, FileText } from 'lucide-react';
@@ -11,11 +12,11 @@ import {
   useListNavigation, useRole,
 } from '@floating-ui/react';
 import type { Leg } from '../../lib/conversation/types';
-import { conversationExporter, exportWords } from '../../lib/export/exporter';
+import { conversationExporter, exportWords, rowsExporter } from '../../lib/export/exporter';
 import { FULL_SCOPE, type TranscriptScope } from '../../lib/export/transcript';
 import { recordCues, type RecordRow } from '../../lib/history/recordView';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
-import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
+import type { HistoryNotes, HistoryRecord, HistoryTranscriptRow } from '../../lib/history/types';
 import { notesMarkdown, notesText, type NotesWords } from '../../lib/notes/exportNotes';
 import { readNotesBody } from '../../lib/notes/write';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
@@ -29,6 +30,8 @@ export interface RecordExportMenuProps {
   record: HistoryRecord;
   legs: readonly Leg[];
   rows: readonly RecordRow[];
+  /** The transcript the page shows (the rows'); the record's latest when not given. */
+  transcript?: HistoryTranscriptRow | null;
   /** The version of the notes shown on the page: exported as it is. */
   notes?: HistoryNotes | null;
   /** A line about what a copy did, for the page to show. */
@@ -45,7 +48,7 @@ function cueScope(scope: TranscriptScope, textKind: 'original' | 'translation'):
   return { speaker: one(scope.speaker), participant: one(scope.participant) };
 }
 
-export function RecordExportMenu({ record, legs, rows, notes = null, onResult }: RecordExportMenuProps) {
+export function RecordExportMenu({ record, legs, rows, transcript, notes = null, onResult }: RecordExportMenuProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -53,16 +56,26 @@ export function RecordExportMenu({ record, legs, rows, notes = null, onResult }:
   const [speaker, setSpeaker] = useState<ScopeToggles>(() => modeToToggles(FULL_SCOPE.speaker));
   const [participant, setParticipant] = useState<ScopeToggles>(() => modeToToggles(FULL_SCOPE.participant));
   const scope: TranscriptScope = useMemo(() => ({ speaker: togglesToMode(speaker), participant: togglesToMode(participant) }), [speaker, participant]);
-  const textKind = record.transcripts[record.transcripts.length - 1]?.textKind ?? 'original';
+  const shown = transcript ?? record.transcripts[record.transcripts.length - 1] ?? null;
+  const textKind = shown?.textKind ?? 'original';
+  // A file transcript has no conversation behind it: its text is the rows the page shows.
+  const fromFile = shown?.origin.kind === 'file';
 
-  const exporter = useMemo(() => conversationExporter({
-    entries: createProjector().project(legs, DEFAULT_PROJECTION),
-    legs,
-    info: { provider: record.services.provider, models: record.services.models },
-    words: exportWords(t as Parameters<typeof exportWords>[0]),
-    appVersion: record.appVersion,
-    now: () => record.startedAt,
-  }), [legs, record, t]);
+  const exporter = useMemo(() => {
+    const common = {
+      legs,
+      words: exportWords(t as Parameters<typeof exportWords>[0]),
+      appVersion: record.appVersion,
+      now: () => record.startedAt,
+    };
+    return fromFile && shown
+      ? rowsExporter({ ...common, rows, startedAt: record.startedAt, info: { provider: shown.origin.service, models: {} } })
+      : conversationExporter({
+        ...common,
+        entries: createProjector().project(legs, DEFAULT_PROJECTION),
+        info: { provider: record.services.provider, models: record.services.models },
+      });
+  }, [legs, record, rows, shown, fromFile, t]);
 
   useEffect(() => { if (isOpen) setActiveIndex(0); }, [isOpen]);
 

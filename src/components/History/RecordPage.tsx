@@ -405,7 +405,7 @@ export const RecordPage: React.FC = () => {
               {t('history.refresh', 'Refresh')}
             </button>
           )}
-          <RecordExportMenu record={record} legs={open.legs} rows={rows} notes={open.notes} onResult={setResult} />
+          <RecordExportMenu record={record} legs={open.legs} rows={rows} transcript={record.transcripts.find((x) => x.id === open.transcriptId) ?? null} notes={open.notes} onResult={setResult} />
           <span
             className="record-page__more"
             onKeyDown={(e) => { if (e.key === 'Escape' && moreOpen && !isComposing(e.nativeEvent)) { e.preventDefault(); setMoreOpen(false); } }}

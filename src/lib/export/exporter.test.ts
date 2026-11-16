@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Leg, Segment } from '../conversation/types';
 import type { Entry } from '../projection/types';
-import { conversationExporter, exportWords } from './exporter';
+import { conversationExporter, exportWords, rowsExporter } from './exporter';
 import { FULL_SCOPE } from './transcript';
 
 // Local times, so the formatted clock reads the same in every timezone.
@@ -87,5 +87,43 @@ describe('exportWords', () => {
     });
     expect(person(3)).toBe('mainPanel.displayMode.person|Speaker {{n}}|{"n":3}');
     expect(keyed.header.narrowed).toBe('mainPanel.export.headerNarrowed|Note: this export was narrowed at export time — some lines were left out.');
+  });
+});
+
+// Review: a file transcript (an imported file's, or a record transcribed again) has no conversation behind it: it is
+// exported from its own rows, as the page shows them.
+describe('rowsExporter', () => {
+  const start = new Date(2026, 8, 24, 10, 0, 0).getTime();
+  const rows = [
+    { leg: 'participant' as const, startMs: 5000, speakerLabel: 'Speaker 1', sentences: [{ n: 1, text: 'Welcome.' }, { n: 2, text: 'Let us start.' }], translation: null },
+    { leg: 'participant' as const, startMs: 65_000, speakerLabel: 'Speaker 2', sentences: [{ n: 3, text: '好的。' }, { n: 4, text: '开始吧。' }], translation: null },
+  ];
+  const rowsOut = (over: Partial<Parameters<typeof rowsExporter>[0]> = {}) => rowsExporter({
+    rows, startedAt: start, legs: [], info: { provider: 'soniox', models: {} }, words, appVersion: '9.9.9', now: () => exported, ...over,
+  });
+
+  it('writes each row at its clock time with its speaker, and its sentences as one line', () => {
+    expect(rowsOut().text(FULL_SCOPE, false)).toBe('[10:00:05] Speaker 1\n  Welcome. Let us start.\n\n[10:01:05] Speaker 2\n  好的。开始吧。\n');
+    expect(rowsOut().text(FULL_SCOPE, true).split('\n').slice(0, 5)).toEqual([
+      'Sokuji conversation export', 'Generated: 2026-09-24 10:01:00', 'Provider: soniox', '', '[10:00:05] Speaker 1',
+    ]);
+  });
+
+  it('answers the menu, and leaves out a side the scope drops', () => {
+    expect(rowsOut().hasContent).toBe(true);
+    expect(rowsOut().hasScopedContent(FULL_SCOPE)).toBe(true);
+    expect(rowsOut().hasScopedContent({ speaker: 'both', participant: 'none' })).toBe(false);
+    expect(rowsOut().hasScopedContent({ speaker: 'none', participant: 'translation' })).toBe(false);
+    expect(rowsOut({ rows: [] }).hasContent).toBe(false);
+  });
+
+  it('writes the JSON with the metadata and one group per row', () => {
+    const json = JSON.parse(rowsOut().json(FULL_SCOPE));
+    expect(json.format).toBe('sokuji-transcript/1');
+    expect(json.provider).toBe('soniox');
+    expect(json.groups).toEqual([
+      { leg: 'participant', t: new Date(start + 5000).toISOString(), speaker: 'Speaker 1', source: { text: 'Welcome. Let us start.' } },
+      { leg: 'participant', t: new Date(start + 65_000).toISOString(), speaker: 'Speaker 2', source: { text: '好的。开始吧。' } },
+    ]);
   });
 });
