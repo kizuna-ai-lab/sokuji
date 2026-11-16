@@ -30,6 +30,7 @@ import { appSubtitleSession } from '../lib/subtitle/appSession';
 import type { SubtitleSession } from '../lib/subtitle/session';
 import type { AutoSaveNotifier } from '../lib/transcript/autoSave';
 import { PANEL_NOTE_CODES, panelNoteWriter, usePanelNotesStore } from '../stores/panelNotesStore';
+import { historyNote } from './historyNotes';
 import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
@@ -198,6 +199,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   });
 
   // History (desktop): every run becomes a record while it runs, written by an observer of the runner.
+  /** The record whose conversation is on screen: the run's session, until Clear. */
+  const shownRecord = () => runner.conversation.snapshot()[0]?.session;
   const historyPortOrNull = options.history === undefined ? (isElectron() ? historyPort() : null) : options.history;
   const historyRecorder = historyPortOrNull && options.historyEncoder !== null
     ? createHistoryRecorder({
@@ -205,12 +208,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       clock,
       encoder: options.historyEncoder ?? webCodecsOpusEncoder,
       report: (message, cause) => reportError('History', message, { cause }),
-      tell: () => panelNoteWriter()({
-        severity: 'warning',
+      // Shown on the record's own conversation only: a record can fail after the next session started.
+      tell: historyNote({
         code: PANEL_NOTE_CODES.historyRecordingStopped,
         message: 'The recording of this session stopped: it could not be written to disk.',
-        lifetime: 'transient',
-      }),
+      }, shownRecord),
     })
     : null;
   if (historyRecorder) {
@@ -233,12 +235,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         return captureFactsFromStores({ info: runner.conversation.info, participantSpeech: 'participantSpeech' in phase ? phase.participantSpeech : false });
       },
       report: (message, cause) => reportError('History', message, { cause }),
-      tell: () => panelNoteWriter()({
-        severity: 'warning',
+      tell: historyNote({
         code: PANEL_NOTE_CODES.historyTranscriptStopped,
         message: 'Part of this session’s transcript could not be saved: it could not be written to disk.',
-        lifetime: 'transient',
-      }),
+      }, shownRecord),
       ...(historyRecorder ? { recorder: historyRecorder } : {}),
     })
     : null;

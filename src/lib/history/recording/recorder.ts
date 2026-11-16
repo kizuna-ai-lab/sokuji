@@ -45,7 +45,7 @@ export interface HistoryRecorderDeps {
   encoder: OpusEncoderFactory;
   report(message: string, cause: unknown): void;
   /** Tells the user, once per record, that its recording stopped. */
-  tell(): void;
+  tell(recordId: string): void;
   /** MAX_QUEUED_BYTES unless given. */
   maxQueuedBytes?: number;
 }
@@ -81,7 +81,7 @@ export function createHistoryRecorder(d: HistoryRecorderDeps): HistoryRecorder {
     // Nothing more is written: every track's encoder is closed now, the healthy ones' too.
     for (const track of r.tracks.values()) track.close();
     d.report(message, cause);
-    d.tell();
+    d.tell(r.id);
   };
 
   const send = (r: Recording, leg: LegName, track: Track, piece: TrackPiece | null) => {

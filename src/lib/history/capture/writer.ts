@@ -60,7 +60,7 @@ export interface HistoryWriterDeps {
     end(recordId: string): Promise<void>;
   };
   /** Tells the user, once per record, that some of its transcript could not be saved. */
-  tell?: () => void;
+  tell?: (recordId: string) => void;
 }
 
 export interface HistoryWriter {
@@ -139,7 +139,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
   function tellOnce(r: Rec): void {
     if (r.told) return;
     r.told = true;
-    try { deps.tell?.(); } catch { /* telling never reaches the run */ }
+    try { deps.tell?.(r.id); } catch { /* telling never reaches the run */ }
   }
 
   /**
