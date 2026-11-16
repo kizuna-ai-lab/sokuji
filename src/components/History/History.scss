@@ -831,3 +831,13 @@
   margin: vars.$space-2 0;
   cursor: pointer;
 }
+
+// A name's spelling, asked in the notes: the app's own field, a name's width, its buttons beside it (or under it when narrow).
+.record-notes__spell {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: vars.$space-1;
+
+  .settings-input { width: 200px; max-width: 100%; }
+}

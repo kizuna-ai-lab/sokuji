@@ -18,7 +18,8 @@
   &__usage {
     // Lined up with the cells under it.
     caption { text-align: left; color: vars.$text-secondary; padding: 0 vars.$space-2 vars.$space-1; }
-    td { text-align: center; }
+    // A column's heading over the middle of its column, as its marks are.
+    td, thead th:not(:first-child) { text-align: center; }
   }
 
   &__add { align-self: flex-start; display: inline-flex; align-items: center; gap: vars.$space-1; }
