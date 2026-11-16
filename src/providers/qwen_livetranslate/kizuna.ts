@@ -4,7 +4,7 @@ import { kizunaQwenMinimumBalance } from './kizunaBudget';
 import { createQwenLease } from './lease';
 import { qwenLiveTranslateProvider } from './provider';
 import { KizunaQwenSettingsView, QwenVoiceSummary } from './QwenSettings';
-import { ALL_STAGES, SP, TL, TR, TR_TL } from '../../lib/lineup/types';
+import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 
 /**
  * Kizuna AI's managed Qwen LiveTranslate (spec 2026-10-17-kizuna-managed-qwen):
@@ -24,7 +24,7 @@ export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   // The shared view under a Region dropdown: the region is the managed session's, an own key has none.
   Settings: KizunaQwenSettingsView,
   // The region on every stage, then the shared view's (mock v19).
-  optionStages: [ALL_STAGES, TR, SP, TR_TL, TL],
+  optionStages: [ALL_STAGES, TR, SP, TR_TL],
   VoiceSummary: QwenVoiceSummary,
   signedOut: 'Sign in to use Kizuna AI Qwen.',
   session: { acquire: createQwenLease(), minimumBalance: kizunaQwenMinimumBalance },

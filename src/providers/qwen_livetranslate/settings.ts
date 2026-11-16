@@ -92,8 +92,6 @@ export interface QwenSettings {
   voice: string;
   /** The voice that reads the other person's words to me: the same choices. */
   participantVoice: string;
-  /** Preferred translations, one `source=target` per line (→ `translation.corpus.phrases`), both legs. */
-  hotwords: string;
   /** The pause that ends a turn under automatic turns, in ms (`QWEN_PAUSE`). */
   pauseMs: number;
   /** The region a managed session is bought in (`regions.ts`); an own key detects its endpoint and ignores this. */
@@ -108,16 +106,16 @@ export const QWEN_DEFAULT_VOICE = 'Tina';
 /** A male preset beside Tina, so the two people never sound alike by default. */
 export const QWEN_PARTICIPANT_DEFAULT_VOICE = 'Ethan';
 export const QWEN_DEFAULTS: QwenSettings = {
-  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, hotwords: '', pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION, screenContext: false, speakerLabels: true,
+  voice: QWEN_DEFAULT_VOICE, participantVoice: QWEN_PARTICIPANT_DEFAULT_VOICE, pauseMs: QWEN_PAUSE.default, region: DEFAULT_QWEN_REGION, screenContext: false, speakerLabels: true,
 };
 
 /** What was stored, made valid field by field: the region narrowed, the rest as typed or defaulted. Nothing is written back. */
 export function migrateQwenSettings(stored: Readonly<Record<string, unknown>>): QwenSettings {
-  const str = (k: 'voice' | 'participantVoice' | 'hotwords') => (typeof stored[k] === 'string' ? (stored[k] as string) : QWEN_DEFAULTS[k]);
+  const str = (k: 'voice' | 'participantVoice') => (typeof stored[k] === 'string' ? (stored[k] as string) : QWEN_DEFAULTS[k]);
   const pauseMs = typeof stored.pauseMs === 'number' && Number.isFinite(stored.pauseMs) ? stored.pauseMs : QWEN_DEFAULTS.pauseMs;
   const screenContext = typeof stored.screenContext === 'boolean' ? stored.screenContext : false;
   const speakerLabels = typeof stored.speakerLabels === 'boolean' ? stored.speakerLabels : QWEN_DEFAULTS.speakerLabels;
-  return { voice: str('voice'), participantVoice: str('participantVoice'), hotwords: str('hotwords'), pauseMs, region: asQwenRegion(stored.region), screenContext, speakerLabels };
+  return { voice: str('voice'), participantVoice: str('participantVoice'), pauseMs, region: asQwenRegion(stored.region), screenContext, speakerLabels };
 }
 
 /** Either clone: each leg clones its own speaker, so neither is ever "my" voice to keep off the other leg. */

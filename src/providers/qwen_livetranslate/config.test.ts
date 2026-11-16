@@ -21,11 +21,13 @@ describe("Qwen LiveTranslate's builder (spec §5)", () => {
     });
   });
 
-  it('reads the hotwords as source=target lines for both legs: split at the first =, both sides trimmed and required, a later line winning', () => {
-    const s = { ...QWEN_DEFAULTS, hotwords: ' 实时翻译 = LiveTranslate \nno separator\n=orphan\nempty=\n交流=chat\nURL=a=b\n交流=chit-chat\n' };
-    const phrases = { '实时翻译': 'LiveTranslate', '交流': 'chit-chat', URL: 'a=b' };
-    expect(buildQwen(ctx('zh', 'en'), s, SHARED)).toMatchObject({ phrases });
-    expect(buildQwen(ctx('en', 'zh'), s, SHARED)).toMatchObject({ phrases });
+  it("sends the word list's translations as phrases for both legs, and none without a word list (no migration of the old hotwords)", () => {
+    const words = { entries: [{ written: '实时翻译', translation: 'LiveTranslate' }, { written: 'Sokuji' }, { written: 'URL', translation: 'a=b' }], background: 'Weekly.' };
+    const phrases = { '实时翻译': 'LiveTranslate', URL: 'a=b' };
+    expect(buildQwen(ctx('zh', 'en'), QWEN_DEFAULTS, { ...SHARED, words })).toMatchObject({ phrases });
+    expect(buildQwen(ctx('en', 'zh'), QWEN_DEFAULTS, { ...SHARED, words })).toMatchObject({ phrases });
+    const old = { ...QWEN_DEFAULTS, hotwords: '交流=chat' } as typeof QWEN_DEFAULTS;
+    expect(buildQwen(ctx('zh', 'en'), old, SHARED)).toMatchObject({ phrases: {} });
   });
 
   it('sends a pause only under automatic turns and only when it is not the server default, kept within its range', () => {

@@ -6,6 +6,7 @@
  * A text-only target on a leg that speaks is refused here, so the update the
  * server would refuse is never sent.
  */
+import { wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { isEndpointId, type EndpointId } from './endpoints';
@@ -37,19 +38,6 @@ export interface QwenConfig {
   transport: 'websocket';
 }
 
-/** One `source=target` per line, split at the first `=`, both sides trimmed and required; a later line for the same source wins. */
-function phrasesOf(raw: unknown): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const line of (typeof raw === 'string' ? raw : '').split('\n')) {
-    const eq = line.indexOf('=');
-    if (eq < 0) continue;
-    const source = line.slice(0, eq).trim();
-    const target = line.slice(eq + 1).trim();
-    if (source && target) out[source] = target;
-  }
-  return out;
-}
-
 export function buildQwen(context: SessionContext, s: QwenSettings, shared: SharedSettings): QwenConfig | ProviderRefusal {
   const { target } = context.direction;
   // A guard: the languages offer the 60 only (never `AUTO` as a target), so the runner never builds another.
@@ -72,7 +60,8 @@ export function buildQwen(context: SessionContext, s: QwenSettings, shared: Shar
         : { kind: 'preset', name: chosen },
     manual,
     person: participant && s.speakerLabels,
-    phrases: phrasesOf(s.hotwords),
+    // The word list's translations (spec §9): the provider's own old hotwords are no longer read.
+    phrases: Object.fromEntries(wordsFor('qwen_livetranslate', shared.words?.entries ?? [], '').translations ?? []),
     silenceMs: manual || pause === QWEN_PAUSE.default ? null : pause,
     transport: 'websocket',
   };

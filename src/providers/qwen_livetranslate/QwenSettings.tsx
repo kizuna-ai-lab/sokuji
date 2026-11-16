@@ -16,7 +16,6 @@ import {
 } from '@floating-ui/react';
 import { ScreenContextPicture } from '../../components/MainPanel/panel/ScreenContextChip';
 import { useAnalytics } from '../../lib/analytics';
-import { LinesField } from '../../components/providers/fields/LinesField';
 import { PresetVoiceField, presetVoice } from '../../components/providers/fields/PresetVoiceField';
 import type { VoiceEntry } from '../../components/Settings/sections/VoiceLibrarySection';
 import SettingRow from '../../components/Settings/shared/SettingRow';
@@ -30,7 +29,7 @@ import { regionOptionLabel, useRegionLatencies } from '../../components/Region/r
 import { requestRegionChange } from '../../lib/region/regionChange';
 import { QWEN_REGION_LABELS, QWEN_REGIONS } from './regions';
 import { QWEN_VOICES, qwenParticipantVoice, qwenSpeakerVoice, SPEAKER_CLONE, SPEAKER_CLONE_ONCE, type QwenSettings as S } from './settings';
-import { ALL_STAGES, SP, TL, TR, TR_TL } from '../../lib/lineup/types';
+import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 import { StagePart } from '../../components/providers/stageParts';
 
 /** The voice a spoken leg reads in, for the Speech rows, as its run resolves it: a preset's name, or whose own voice is cloned. */
@@ -85,21 +84,6 @@ export function QwenSettingsView({ settings, update, disabled = false, participa
       <StagePart stages={TR_TL}>
       <div className="settings-section" id="qwen-screen-context-section" data-testid="qwen-screen-context">
         <ScreenContextRow on={settings.screenContext} update={update} disabled={disabled} />
-      </div>
-      </StagePart>
-      <StagePart stages={TL}>
-      <div className="settings-section" id="qwen-vocabulary-section">
-        {/* No heading tooltip: Soniox's speaks of recognition too, which Qwen's corpus does not touch; the field's own explains it. */}
-        <h2>{t('providers.qwen_livetranslate.vocabulary', 'Custom Vocabulary')}</h2>
-        <LinesField
-          id="qwen-vocabulary-translations"
-          label={t('providers.qwen_livetranslate.vocabularyTranslations', 'Preferred Translations')}
-          tooltip={t('providers.qwen_livetranslate.vocabularyTranslationsTooltip', "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.")}
-          placeholder={t('providers.qwen_livetranslate.vocabularyTranslationsPlaceholder', 'One source=target per line')}
-          value={settings.hotwords}
-          onChange={(hotwords) => update({ hotwords })}
-          disabled={disabled}
-        />
       </div>
       </StagePart>
       <StagePart stages={TR}>

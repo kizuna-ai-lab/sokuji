@@ -12,9 +12,9 @@ const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 const codes = (list: readonly { value: string }[]) => list.map((o) => o.value);
 
 describe("Qwen LiveTranslate's settings", () => {
-  it('runs one model, and starts from two different presets, no hotwords and the server\'s own pause', () => {
+  it('runs one model, and starts from two different presets and the server\'s own pause', () => {
     expect(QWEN_MODEL).toBe('qwen3.8-livetranslate-flash-realtime');
-    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', hotwords: '', pauseMs: 2500, region: 'sg', screenContext: false, speakerLabels: true });
+    expect(QWEN_DEFAULTS).toEqual({ voice: 'Tina', participantVoice: 'Ethan', pauseMs: 2500, region: 'sg', screenContext: false, speakerLabels: true });
   });
 
   it('starts with speaker labels on, keeps a stored boolean and defaults anything else', () => {
@@ -28,7 +28,8 @@ describe("Qwen LiveTranslate's settings", () => {
     const stored = migrateQwenSettings({ region: 'bj', voice: 'Tina', hotwords: 'a=b' });
     expect(stored.region).toBe('sg');
     expect(stored.voice).toBe('Tina');
-    expect(stored.hotwords).toBe('a=b');
+    // The old hotwords stay in storage, no longer read: the word list replaced them.
+    expect(stored).not.toHaveProperty('hotwords');
     expect(stored.pauseMs).toBe(QWEN_PAUSE.default);
     expect(migrateQwenSettings({ region: 'cn' }).region).toBe('cn');
   });
