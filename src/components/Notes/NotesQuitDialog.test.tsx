@@ -26,4 +26,32 @@ describe('quitting while notes are written', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Quit' }));
     await expect(answer).resolves.toBe('quit');
   });
+
+  it('is named by its question', () => {
+    render(<NotesQuitDialog />);
+    act(() => { void askQuitWhileNotes([]); });
+    expect(screen.getByRole('alertdialog', { name: 'Notes are being written. Quit anyway? They will be marked cancelled.' })).toBeInTheDocument();
+  });
+
+  it('keeps Tab inside the question', () => {
+    render(<NotesQuitDialog />);
+    act(() => { void askQuitWhileNotes([]); });
+    const quit = screen.getByRole('button', { name: 'Quit' });
+    const stay = screen.getByRole('button', { name: 'Stay' });
+    expect(stay).toHaveFocus();
+    fireEvent.keyDown(stay, { key: 'Tab' });
+    expect(quit).toHaveFocus();
+    fireEvent.keyDown(quit, { key: 'Tab', shiftKey: true });
+    expect(stay).toHaveFocus();
+  });
+
+  it('gives focus back to where it was after Stay', () => {
+    render(<><button type="button">Before</button><NotesQuitDialog /></>);
+    const before = screen.getByRole('button', { name: 'Before' });
+    before.focus();
+    act(() => { void askQuitWhileNotes([]); });
+    expect(screen.getByRole('button', { name: 'Stay' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
+    expect(before).toHaveFocus();
+  });
 });
