@@ -197,6 +197,17 @@ describe('the History list', () => {
     expect(calls('purgeRecords')).toEqual([{ ids: [C] }]);
   });
 
+  // Owner, 2026-11-17: with the only record in the bin, "All records" said 1 and showed none. The store's `records`
+  // counts every stored record, the binned ones too; "All records" lists those not in the bin.
+  it('counts under "All records" only what it lists: the records not in the bin', async () => {
+    bin = [rowOf(A, { binnedAt: START })];
+    records = [];
+    port.usage = async () => ({ dbBytes: usageBytes, audioBytes: 0, records: 1, binned: 1 });
+    await renderList();
+    expect(screen.getByRole('button', { name: /^All records/ })).toHaveTextContent(/^All records0$/);
+    expect(screen.getByRole('button', { name: /^Bin/ })).toHaveTextContent(/^Bin1$/);
+  });
+
   it('keeps the navigation while searching, opens a result at its first hit, and the bin ends the search', async () => {
     found = [{ recordId: A, title: 'Weekly sync', startedAt: START, hits: 2, first: { kind: 'sentence', transcriptId: 1, n: 1, text: '我们先看一下这个视频的进度' } }];
     await renderList();

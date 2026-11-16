@@ -307,7 +307,8 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
       )}
       {status && (
         <div className="settings-page__group history-nav__items">
-          {navItem('records', t('history.allRecords', 'All records'), usage?.records)}
+          {/* The store counts every stored record, the binned ones too; "All records" lists those not in the bin. */}
+          {navItem('records', t('history.allRecords', 'All records'), usage ? Math.max(0, usage.records - usage.binned) : undefined)}
           {navItem('bin', t('history.binTitle', 'Bin'), usage?.binned)}
         </div>
       )}
