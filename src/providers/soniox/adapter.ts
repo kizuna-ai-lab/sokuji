@@ -341,7 +341,8 @@ class SonioxCore {
   /** A leg's view of the core. Shared Both's two facades say they share the one connection (`info.shared`): the run counts its reconnects once. */
   session(name: LegName): AdapterSession {
     return {
-      info: { transport: 'websocket', ...(this.o.shared ? { shared: true } : {}) },
+      // The key's region: a managed grant's, never the setting's.
+      info: { transport: 'websocket', region: this.o.primary.credentials.region, ...(this.o.shared ? { shared: true } : {}) },
       // Either facade wakes the core's one reconnector: a second wake for the same return only skips one backoff.
       networkRestored: () => this.reconnector.wake(),
       appendAudio: (pcm) => this.appendAudio(name, pcm),

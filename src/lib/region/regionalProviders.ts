@@ -62,14 +62,3 @@ export function currentRegion(providerId: RegionalProviderId, settings: unknown)
   const region = (settings as { region?: unknown } | null | undefined)?.region;
   return REGION_FAMILIES[REGION_FAMILY_OF[providerId]].narrow(region);
 }
-
-/**
- * The region a session of `providerId` connects to, for analytics: Soniox (managed or own key) and managed Qwen,
- * narrowed as their adapters narrow it. Undefined for every other provider, own-key Qwen included: its key's
- * own endpoint decides and the setting is ignored.
- */
-export function sessionRegion(providerId: string, settings: unknown): string | undefined {
-  return Object.prototype.hasOwnProperty.call(REGION_FAMILY_OF, providerId)
-    ? currentRegion(providerId as RegionalProviderId, settings)
-    : undefined;
-}

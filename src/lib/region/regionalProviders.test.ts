@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SONIOX_REGIONS } from '../soniox/regions';
-import { REGION_FAMILIES, RECOMMENDED_PROVIDER_IDS, isRecommendedProvider, currentRegion, REGION_FAMILY_OF, sessionRegion } from './regionalProviders';
+import { REGION_FAMILIES, RECOMMENDED_PROVIDER_IDS, isRecommendedProvider, currentRegion, REGION_FAMILY_OF } from './regionalProviders';
 
 describe('regionalProviders', () => {
   it('probes tts-rt for Soniox and the maas origin for Qwen; a new Soniox region joins automatically', () => {
@@ -21,16 +21,5 @@ describe('regionalProviders', () => {
   });
   it('own-key and managed Soniox share a family', () => {
     expect(REGION_FAMILY_OF.soniox).toBe(REGION_FAMILY_OF.kizunaai_soniox);
-  });
-  it('names the region a session connects to: Soniox and managed Qwen; none for own-key Qwen or a provider without regions', () => {
-    expect(sessionRegion('kizunaai_soniox', { region: 'in' })).toBe('in');
-    expect(sessionRegion('soniox', { region: 'eu' })).toBe('eu');
-    expect(sessionRegion('kizunaai_qwen', { region: 'cn' })).toBe('cn');
-    // Narrowed as the adapter narrows it: what the connection actually dials.
-    expect(sessionRegion('kizunaai_soniox', undefined)).toBe('us');
-    // An own key dials the endpoint it was made in and ignores the setting.
-    expect(sessionRegion('qwen_livetranslate', { region: 'cn' })).toBeUndefined();
-    expect(sessionRegion('gemini', { region: 'us' })).toBeUndefined();
-    expect(sessionRegion('toString', {})).toBeUndefined();
   });
 });

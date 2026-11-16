@@ -13,7 +13,6 @@ import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } f
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
-import { sessionRegion } from '../region/regionalProviders';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { SharedSettings } from '../provider/types';
 import { AgentTextFeed } from './agentText';
@@ -704,9 +703,12 @@ export class Run {
     return !this.sharedConnection || leg === 'speaker';
   }
 
-  /** What every reconnect event carries (spec 2026-11-05 reconnect §4.5), and the region of a provider that has one. */
+  /**
+   * What every reconnect event carries (spec 2026-11-05 reconnect §4.5), and the region the leg's session says it
+   * dialled (`info.region`). None from a provider without regions, or for a drop before its leg's start settled.
+   */
   private reconnectEvent(leg: LegName, managed: boolean) {
-    const region = sessionRegion(this.shape.provider.id, this.shape.settings);
+    const region = this.sessions.get(leg)?.info.region;
     return {
       session_id: this.id, provider: this.shape.provider.id, managed, channel: this.channel(leg), client: reconnectClient(this.deps.platform),
       ...(region !== undefined ? { region } : {}),

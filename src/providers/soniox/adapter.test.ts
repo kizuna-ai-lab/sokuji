@@ -169,6 +169,11 @@ describe('the Soniox adapter: one leg', () => {
     expect(tts().url).toBe('wss://tts-rt.jp.soniox.com/tts-websocket');
   });
 
+  it("tells the run the region it dialled: the key's, which for a managed session is the grant's", async () => {
+    const { session } = await live({ credentials: { region: 'jp', stt: 'k', tts: 'k' } });
+    expect(session.info.region).toBe('jp');
+  });
+
   it('opens no TTS socket for a leg that does not speak', async () => {
     const { sockets } = await live({ context: { ...AUTO_CTX, speech: false } });
     expect(sockets.all).toHaveLength(1);
