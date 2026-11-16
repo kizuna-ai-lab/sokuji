@@ -28,6 +28,13 @@ describe('the settings categories', () => {
     expect(targetToCategory('model-asr')).toEqual({ category: 'lineup', anchor: 'model-asr' });
   });
 
+  // B-27: the audio drawing goes to each speech row, not only to the speech section.
+  it('maps the speech rows the audio drawing goes to', () => {
+    for (const target of ['speech-other-hears', 'speech-me-too', 'speech-passthrough', 'speech-i-hear'])
+      expect(targetToCategory(target)).toEqual({ category: 'audio', anchor: target });
+    expect(targetToCategory('participant')).toEqual({ category: 'audio', anchor: 'participant' });
+  });
+
   it('filters categories by title and search words', () => {
     expect(filterCategories('key', t).map((c) => c.id)).toEqual(['accounts']);
     expect(filterCategories('麦克风', zh).map((c) => c.id)).toEqual(['audio']);

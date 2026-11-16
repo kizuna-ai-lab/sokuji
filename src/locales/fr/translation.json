@@ -1904,7 +1904,8 @@
         "aria": "Où va le son : ce que je dis, transformé en parole, va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie, transformé en parole, joue sur mon appareil de lecture.",
         "translate": "Traduire",
         "speech": "Synthèse vocale",
-        "ariaSteps": "Où va le son : ce que je dis est traduit, puis transformé en parole qui va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie est traduit, puis transformé en parole qui joue sur mon appareil de lecture. Quand un interrupteur de parole est coupé, la traduction est faite mais pas prononcée."
+        "ariaSteps": "Où va le son : ce que je dis est traduit, puis transformé en parole qui va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie est traduit, puis transformé en parole qui joue sur mon appareil de lecture. Quand un interrupteur de parole est coupé, la traduction est faite mais pas prononcée.",
+        "goTo": "Aller au réglage « {{name}} »"
       }
     },
     "general": {

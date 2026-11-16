@@ -1904,7 +1904,8 @@
         "aria": "Wohin der Ton geht: Was ich sage, wird zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird zu Sprache und spielt auf meinem Wiedergabegerät.",
         "translate": "Übersetzen",
         "speech": "Sprachausgabe",
-        "ariaSteps": "Wohin der Ton geht: Was ich sage, wird übersetzt, dann zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird übersetzt, dann zu Sprache und spielt auf meinem Wiedergabegerät. Ist ein Sprachschalter aus, wird übersetzt, aber nicht gesprochen."
+        "ariaSteps": "Wohin der Ton geht: Was ich sage, wird übersetzt, dann zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird übersetzt, dann zu Sprache und spielt auf meinem Wiedergabegerät. Ist ein Sprachschalter aus, wird übersetzt, aber nicht gesprochen.",
+        "goTo": "Zur Einstellung „{{name}}“"
       }
     },
     "general": {

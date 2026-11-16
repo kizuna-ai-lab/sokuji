@@ -1904,7 +1904,8 @@
         "aria": "Dove va il suono: quello che dico, trasformato in voce, va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte, trasformato in voce, suona sul mio dispositivo di riproduzione.",
         "translate": "Tradurre",
         "speech": "Sintesi vocale",
-        "ariaSteps": "Dove va il suono: quello che dico viene tradotto, poi trasformato in voce che va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte viene tradotto, poi trasformato in voce che suona sul mio dispositivo di riproduzione. Con un interruttore della voce spento, la traduzione viene fatta ma non pronunciata."
+        "ariaSteps": "Dove va il suono: quello che dico viene tradotto, poi trasformato in voce che va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte viene tradotto, poi trasformato in voce che suona sul mio dispositivo di riproduzione. Con un interruttore della voce spento, la traduzione viene fatta ma non pronunciata.",
+        "goTo": "Vai all'impostazione «{{name}}»"
       }
     },
     "general": {
