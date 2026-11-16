@@ -73,6 +73,11 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   participant: { category: 'audio', anchor: 'participant' },
   // Lands on the other side's audio, the section that holds the system audio choice.
   'system-audio': { category: 'audio', anchor: 'participant' },
+  // The speech rows, one by one: where the audio page's drawing takes you (B-27).
+  'speech-other-hears': { category: 'audio', anchor: 'speech-other-hears' },
+  'speech-me-too': { category: 'audio', anchor: 'speech-me-too' },
+  'speech-passthrough': { category: 'audio', anchor: 'speech-passthrough' },
+  'speech-i-hear': { category: 'audio', anchor: 'speech-i-hear' },
 };
 
 /**

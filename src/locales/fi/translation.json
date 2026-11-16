@@ -1930,7 +1930,8 @@
         "aria": "Mihin ääni kulkee: sanomani muuttuu puheeksi ja menee virtuaalimikrofoniin toiselle osapuolelle, ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma muuttuu puheeksi ja soi toistolaitteestani.",
         "translate": "Käännös",
         "speech": "Puhe",
-        "ariaSteps": "Mihin ääni kulkee: sanomani käännetään ja muutetaan sitten puheeksi, joka menee virtuaalimikrofoniin toiselle osapuolelle ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma käännetään ja muutetaan sitten puheeksi, joka soi toistolaitteessani. Kun puheen kytkin on pois päältä, käännös tehdään mutta sitä ei puhuta."
+        "ariaSteps": "Mihin ääni kulkee: sanomani käännetään ja muutetaan sitten puheeksi, joka menee virtuaalimikrofoniin toiselle osapuolelle ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma käännetään ja muutetaan sitten puheeksi, joka soi toistolaitteessani. Kun puheen kytkin on pois päältä, käännös tehdään mutta sitä ei puhuta.",
+        "goTo": "Siirry asetukseen ”{{name}}”"
       }
     },
     "general": {

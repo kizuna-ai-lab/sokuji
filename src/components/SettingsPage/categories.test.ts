@@ -28,7 +28,7 @@ describe('the settings categories', () => {
     expect(targetToCategory('model-asr')).toEqual({ category: 'lineup', anchor: 'model-asr' });
   });
 
-  // B-20: the local engine's voices, in the speech card.
+  // B-20: each stage's models open in Models and storage; the local engine's voices are in the speech card.
   it("maps each stage's models to its group in Models and storage, where a slot's library opens", () => {
     for (const stage of ['asr', 'translation', 'tts'])
       expect(targetToCategory(`models-${stage}`)).toEqual({ category: 'models', anchor: `models-${stage}` });
@@ -36,6 +36,13 @@ describe('the settings categories', () => {
 
   it("maps the local engine's voices to the line-up", () => {
     expect(targetToCategory('local-voices')).toEqual({ category: 'lineup', anchor: 'local-voices' });
+  });
+
+  // B-27: the audio drawing goes to each speech row, not only to the speech section.
+  it('maps the speech rows the audio drawing goes to', () => {
+    for (const target of ['speech-other-hears', 'speech-me-too', 'speech-passthrough', 'speech-i-hear'])
+      expect(targetToCategory(target)).toEqual({ category: 'audio', anchor: target });
+    expect(targetToCategory('participant')).toEqual({ category: 'audio', anchor: 'participant' });
   });
 
   it('filters categories by title and search words', () => {

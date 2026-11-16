@@ -1930,7 +1930,8 @@
         "aria": "Saan napupunta ang tunog: ang sinasabi ko, ginawang boses, ay pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig, ginawang boses, ay tumutugtog sa device ko.",
         "translate": "Isalin",
         "speech": "Gawing boses",
-        "ariaSteps": "Saan napupunta ang tunog: ang sinasabi ko ay isinasalin, saka ginagawang boses na pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig ay isinasalin, saka ginagawang boses na tumutugtog sa aking playback device. Kapag naka-off ang switch ng boses, may salin pero hindi ito binibigkas."
+        "ariaSteps": "Saan napupunta ang tunog: ang sinasabi ko ay isinasalin, saka ginagawang boses na pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig ay isinasalin, saka ginagawang boses na tumutugtog sa aking playback device. Kapag naka-off ang switch ng boses, may salin pero hindi ito binibigkas.",
+        "goTo": "Pumunta sa setting na “{{name}}”"
       }
     },
     "general": {

@@ -889,5 +889,20 @@
   &__leg.is-off { color: vars.$text-disabled; path { stroke-dasharray: 3 4; } }
   &__side.is-unused { opacity: 0.3; }
   figcaption { margin-top: 4px; font-size: 11.5px; color: vars.$text-muted; }
+  // A part that takes you to its setting (B-27): the pointer over its whole box, not only its strokes, and on hover or
+  // keyboard focus the primary colour with its name underlined.
+  &__go {
+    cursor: pointer;
+    pointer-events: bounding-box;
+    outline: none;
+    &:hover,
+    &:focus-visible {
+      color: vars.$color-primary;
+      .sound-flow__box { color: vars.$color-primary; }
+      text { text-decoration: underline; }
+    }
+  }
 }
 .settings-page--narrow .sound-flow { display: none; }
+// A row the page went to (B-27: from the drawing above): the sections' pulse, on that row alone.
+.settings-page .setting-row.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }

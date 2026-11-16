@@ -1930,7 +1930,8 @@
         "aria": "Vart ljudet går: det jag säger blir tal och går till den virtuella mikrofonen för andra sidan, och spelas också hos mig när jag lyssnar; det andra sidan säger blir tal och spelas på min uppspelningsenhet.",
         "translate": "Översätt",
         "speech": "Talsyntes",
-        "ariaSteps": "Vart ljudet går: det jag säger översätts och blir sedan tal som går till den virtuella mikrofonen för andra sidan och spelas också hos mig när jag lyssnar; det andra sidan säger översätts och blir sedan tal som spelas på min uppspelningsenhet. När en talströmbrytare är av översätts det men sägs inte."
+        "ariaSteps": "Vart ljudet går: det jag säger översätts och blir sedan tal som går till den virtuella mikrofonen för andra sidan och spelas också hos mig när jag lyssnar; det andra sidan säger översätts och blir sedan tal som spelas på min uppspelningsenhet. När en talströmbrytare är av översätts det men sägs inte.",
+        "goTo": "Gå till inställningen ”{{name}}”"
       }
     },
     "general": {
