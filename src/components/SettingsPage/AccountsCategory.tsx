@@ -164,10 +164,14 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         const isOpen = open === a.key;
         return (
           <div className="accounts-row" role="group" aria-label={a.name} key={a.key} id={a.kind === 'kizuna' ? 'user-account-section' : undefined}>
-            {/* The mock's row: the name, its state under it, one button; what the account can do once it is open. */}
+            {/* The mock's row: the name with what the account can do beside it (owner, 2026-11-15: no need to open
+                the row to see them), its state under it, one button. */}
             <div className="accounts-row__head">
               <div className="accounts-row__main">
-                <span className="accounts-row__name">{a.name}</span>
+                <span className="accounts-row__title">
+                  <span className="accounts-row__name">{a.name}</span>
+                  {chips(a)}
+                </span>
                 <span className={`accounts-row__state${ready(a) ? ' is-ok' : ''}`}>
                   {stateOf(a)}
                   {a.guide && (
@@ -183,7 +187,6 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
                   : a.kind === 'key' && !keySaved(p) ? t('settingsPage.accounts.addKey', 'Add key') : t('settingsPage.accounts.view', 'View')}
               </button>
             </div>
-            {isOpen && chips(a)}
             {isOpen && a.kind === 'kizuna' && <ManagedAccountRow auth={auth} />}
             {isOpen && a.kind === 'key' && p && entry && (
               <CredentialForm

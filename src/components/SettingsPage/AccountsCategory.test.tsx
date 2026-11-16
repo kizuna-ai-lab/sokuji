@@ -42,10 +42,12 @@ describe('accounts and keys', () => {
     expect(row('OpenAI')).toHaveTextContent('Needs a key');
     expect(row('Bing')).toHaveTextContent('No key needed; online, a Microsoft service');
     expect(row('This device')).toHaveTextContent('Runs on this computer');
-    // What an account can do is shown once its row is open (the mock's rows carry name and state only).
-    expect(within(row('Soniox')).queryByText('Transcription and translation')).toBeNull();
+    // What an account can do is shown beside its name, folded or open (owner, 2026-11-15: the page is wide, and many
+    // providers have only a key besides these tags).
+    const name = row('Soniox').querySelector('.accounts-row__name')!;
+    expect(name.parentElement!.querySelector('.accounts-row__chips')).toHaveTextContent('Transcription and translation');
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
-    expect(within(row('Soniox')).getByText('Transcription and translation')).toBeInTheDocument();
+    expect(within(row('Soniox')).getAllByText('Transcription and translation')).toHaveLength(1);
     expect(within(row('Soniox')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
   });
 
@@ -140,20 +142,17 @@ describe('accounts and keys — what each can do, as the mock tags it', () => {
 
   it('tags a provider that serves transcription and translation over one connection, and speech apart', () => {
     render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
     expect(tags('Soniox')).toEqual(['Transcription and translation', 'Speech']);
   });
 
   it('tags an end-to-end provider once', () => {
     render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(row('OpenAI')).getByRole('button', { name: 'Add key' }));
     expect(tags('OpenAI')).toContain('End to end');
     expect(tags('OpenAI')).not.toContain('Transcription');
   });
 
   it('tags each stage of a provider that binds none', () => {
     render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(row('This device')).getByRole('button', { name: 'View' }));
     expect(tags('This device')).toEqual(['Transcription', 'Translation', 'Speech']);
   });
 });

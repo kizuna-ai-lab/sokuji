@@ -270,6 +270,8 @@
   &:first-child { border-top: 1px solid vars.$border-subtle; }
   &__head { display: flex; align-items: center; gap: vars.$space-3; }
   &__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  // The name with the account's tags beside it; the tags wrap under the name in a narrow window.
+  &__title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
   &__name { font-size: 14px; font-weight: vars.$weight-medium; color: vars.$text-primary; }
   &__state {
     display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: vars.$text-muted;
