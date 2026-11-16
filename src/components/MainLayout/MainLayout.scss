@@ -77,10 +77,12 @@
       /* Hide the transcript while a panel is open. MainPanel stays mounted
          (display:none, NOT unmounted) so the active session survives. The
          .control-footer is intentionally left untouched — it renders exactly
-         as in the normal layout and adapts via its own @container styles. */
+         as in the normal layout and adapts via its own @container styles.
+         The live notes go with the transcript (their loop runs on). */
       .conversation-toolbar,
       .conversation-display,
-      .text-input-section {
+      .text-input-section,
+      .live-notes {
         display: none;
       }
     }
