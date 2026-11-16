@@ -2017,6 +2017,7 @@
     "pause": "一時停止",
     "position": "再生位置",
     "speed": "速度",
+    "cannotPlay": "この録音は再生できません",
     "playFromHere": "ここから再生",
     "saveRecording": "録音を保存 (.opus)",
     "saveRecordingFailed": "録音を保存できませんでした。",

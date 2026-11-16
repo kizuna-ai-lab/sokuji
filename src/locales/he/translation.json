@@ -2017,6 +2017,7 @@
     "pause": "השהיה",
     "position": "מיקום",
     "speed": "מהירות",
+    "cannotPlay": "לא ניתן להשמיע את ההקלטה הזו",
     "playFromHere": "הפעלה מכאן",
     "saveRecording": "שמירת ההקלטה (‎.opus)",
     "saveRecordingFailed": "לא ניתן היה לשמור את ההקלטה.",

@@ -2017,6 +2017,7 @@
     "pause": "暫停",
     "position": "播放位置",
     "speed": "倍速",
+    "cannotPlay": "這段錄音無法播放",
     "playFromHere": "從這裡播放",
     "saveRecording": "儲存錄音（.opus）",
     "saveRecordingFailed": "無法儲存錄音。",

@@ -2017,6 +2017,7 @@
     "pause": "مکث",
     "position": "موقعیت",
     "speed": "سرعت",
+    "cannotPlay": "این ضبط قابل پخش نیست",
     "playFromHere": "پخش از اینجا",
     "saveRecording": "ذخیرهٔ ضبط (‎.opus)",
     "saveRecordingFailed": "ضبط ذخیره نشد.",

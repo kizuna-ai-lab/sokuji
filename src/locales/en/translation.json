@@ -2017,6 +2017,7 @@
     "pause": "Pause",
     "position": "Position",
     "speed": "Speed",
+    "cannotPlay": "This recording cannot be played",
     "playFromHere": "Play from here",
     "saveRecording": "Save the recording (.opus)",
     "saveRecordingFailed": "The recording could not be saved.",

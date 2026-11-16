@@ -2017,6 +2017,7 @@
     "pause": "Duraklat",
     "position": "Konum",
     "speed": "Hız",
+    "cannotPlay": "Bu kayıt oynatılamıyor",
     "playFromHere": "Buradan oynat",
     "saveRecording": "Ses kaydını kaydet (.opus)",
     "saveRecordingFailed": "Ses kaydı kaydedilemedi.",

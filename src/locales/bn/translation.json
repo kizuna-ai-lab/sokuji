@@ -2017,6 +2017,7 @@
     "pause": "বিরতি",
     "position": "অবস্থান",
     "speed": "গতি",
+    "cannotPlay": "এই রেকর্ডিং চালানো যাচ্ছে না",
     "playFromHere": "এখান থেকে চালান",
     "saveRecording": "রেকর্ডিং সংরক্ষণ (.opus)",
     "saveRecordingFailed": "রেকর্ডিং সংরক্ষণ করা যায়নি।",

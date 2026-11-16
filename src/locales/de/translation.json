@@ -2017,6 +2017,7 @@
     "pause": "Pause",
     "position": "Position",
     "speed": "Geschwindigkeit",
+    "cannotPlay": "Diese Aufnahme kann nicht abgespielt werden",
     "playFromHere": "Ab hier abspielen",
     "saveRecording": "Aufnahme speichern (.opus)",
     "saveRecordingFailed": "Die Aufnahme konnte nicht gespeichert werden.",

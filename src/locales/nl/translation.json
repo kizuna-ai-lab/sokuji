@@ -2017,6 +2017,7 @@
     "pause": "Pauzeren",
     "position": "Positie",
     "speed": "Snelheid",
+    "cannotPlay": "Deze opname kan niet worden afgespeeld",
     "playFromHere": "Vanaf hier afspelen",
     "saveRecording": "Geluidsopname opslaan (.opus)",
     "saveRecordingFailed": "De geluidsopname kon niet worden opgeslagen.",

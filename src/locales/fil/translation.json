@@ -2017,6 +2017,7 @@
     "pause": "I-pause",
     "position": "Posisyon",
     "speed": "Bilis",
+    "cannotPlay": "Hindi ma-play ang recording na ito",
     "playFromHere": "I-play mula rito",
     "saveRecording": "I-save ang recording (.opus)",
     "saveRecordingFailed": "Hindi ma-save ang recording.",

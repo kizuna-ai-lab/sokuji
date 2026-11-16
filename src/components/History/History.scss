@@ -654,6 +654,13 @@
 
   &__seek { flex: 1; min-width: 0; }
 
+  // None of the record's tracks could be loaded: said once, beside the time, instead of a clock running on silence.
+  &__error {
+    flex: none;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
+  }
+
   &__speed {
     flex: none;
     width: auto;

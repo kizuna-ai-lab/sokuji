@@ -2017,6 +2017,7 @@
     "pause": "Pausa",
     "position": "Position",
     "speed": "Hastighet",
+    "cannotPlay": "Det går inte att spela upp den här inspelningen",
     "playFromHere": "Spela upp härifrån",
     "saveRecording": "Spara inspelningen (.opus)",
     "saveRecordingFailed": "Inspelningen kunde inte sparas.",

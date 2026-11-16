@@ -2017,6 +2017,7 @@
     "pause": "Tauko",
     "position": "Kohta",
     "speed": "Nopeus",
+    "cannotPlay": "Tätä tallennetta ei voi toistaa",
     "playFromHere": "Toista tästä",
     "saveRecording": "Tallenna äänite (.opus)",
     "saveRecordingFailed": "Äänitettä ei voitu tallentaa.",

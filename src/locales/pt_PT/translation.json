@@ -2017,6 +2017,7 @@
     "pause": "Pausa",
     "position": "Posição",
     "speed": "Velocidade",
+    "cannotPlay": "Não é possível reproduzir esta gravação",
     "playFromHere": "Reproduzir a partir daqui",
     "saveRecording": "Guardar a gravação (.opus)",
     "saveRecordingFailed": "Não foi possível guardar a gravação.",

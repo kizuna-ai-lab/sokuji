@@ -2017,6 +2017,7 @@
     "pause": "Tạm dừng",
     "position": "Vị trí",
     "speed": "Tốc độ",
+    "cannotPlay": "Không thể phát bản ghi này",
     "playFromHere": "Phát từ đây",
     "saveRecording": "Lưu bản ghi âm (.opus)",
     "saveRecordingFailed": "Không lưu được bản ghi âm.",

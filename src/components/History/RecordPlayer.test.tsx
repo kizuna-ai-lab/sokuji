@@ -93,6 +93,42 @@ describe('the record player', () => {
     if (original) Object.defineProperty(HTMLMediaElement.prototype, 'readyState', original);
   });
 
+  it('stops and says so when no track can be played, instead of running the clock on silence', () => {
+    const seekRef = createRef<SeekFn>();
+    const positions: number[] = [];
+    render(<RecordPlayer recordId="r" tracks={[track('speaker', 0, 60_000)]} onPosition={(ms) => positions.push(ms)} seekRef={seekRef} />);
+    act(() => seekRef.current!(0, true));
+    act(() => { audios()[0].dispatchEvent(new Event('error')); });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('This recording cannot be played');
+    const stoppedAt = positions[positions.length - 1];
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(positions[positions.length - 1]).toBe(stoppedAt);
+  });
+
+  it('does not start a recording none of whose tracks loaded', () => {
+    render(<RecordPlayer recordId="r" tracks={[track('speaker', 0, 60_000)]} onPosition={() => {}} seekRef={createRef<SeekFn>()} />);
+    act(() => { audios()[0].dispatchEvent(new Event('error')); });
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(playing.size).toBe(0);
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('This recording cannot be played');
+  });
+
+  it('keeps playing the tracks that load when another cannot', () => {
+    const seekRef = createRef<SeekFn>();
+    render(<RecordPlayer recordId="r" tracks={[track('speaker', 0, 10_000), track('participant', 0, 10_000)]} onPosition={() => {}} seekRef={seekRef} />);
+    act(() => seekRef.current!(0, true));
+    const [speaker, participant] = audios();
+    act(() => { participant.dispatchEvent(new Event('error')); });
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(playing.has(speaker)).toBe(true);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('seeks from the slider', () => {
     render(<RecordPlayer recordId="r" tracks={[track('speaker', 0, 10_000)]} onPosition={() => {}} seekRef={createRef<SeekFn>()} />);
     fireEvent.change(screen.getByRole('slider', { name: 'Position' }), { target: { value: '7000' } });

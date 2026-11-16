@@ -2017,6 +2017,7 @@
     "pause": "Pause",
     "position": "Position",
     "speed": "Vitesse",
+    "cannotPlay": "Impossible de lire cet enregistrement",
     "playFromHere": "Lire à partir d’ici",
     "saveRecording": "Enregistrer l’audio (.opus)",
     "saveRecordingFailed": "Impossible d’enregistrer l’audio.",

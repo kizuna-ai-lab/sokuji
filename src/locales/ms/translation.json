@@ -2017,6 +2017,7 @@
     "pause": "Jeda",
     "position": "Kedudukan",
     "speed": "Kelajuan",
+    "cannotPlay": "Rakaman ini tidak dapat dimainkan",
     "playFromHere": "Main dari sini",
     "saveRecording": "Simpan rakaman (.opus)",
     "saveRecordingFailed": "Rakaman tidak dapat disimpan.",

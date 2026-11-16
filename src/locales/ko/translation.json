@@ -2017,6 +2017,7 @@
     "pause": "일시정지",
     "position": "재생 위치",
     "speed": "속도",
+    "cannotPlay": "이 녹음은 재생할 수 없습니다",
     "playFromHere": "여기서부터 재생",
     "saveRecording": "녹음 저장(.opus)",
     "saveRecordingFailed": "녹음을 저장할 수 없습니다.",

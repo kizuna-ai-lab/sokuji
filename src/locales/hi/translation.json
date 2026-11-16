@@ -2017,6 +2017,7 @@
     "pause": "रोकें",
     "position": "स्थिति",
     "speed": "गति",
+    "cannotPlay": "यह रिकॉर्डिंग चलाई नहीं जा सकती",
     "playFromHere": "यहाँ से चलाएँ",
     "saveRecording": "रिकॉर्डिंग सहेजें (.opus)",
     "saveRecordingFailed": "रिकॉर्डिंग सहेजी नहीं जा सकी।",

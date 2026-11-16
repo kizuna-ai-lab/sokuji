@@ -2017,6 +2017,7 @@
     "pause": "Pausa",
     "position": "Posizione",
     "speed": "Velocità",
+    "cannotPlay": "Impossibile riprodurre questa registrazione",
     "playFromHere": "Riproduci da qui",
     "saveRecording": "Salva la registrazione audio (.opus)",
     "saveRecordingFailed": "Impossibile salvare la registrazione audio.",

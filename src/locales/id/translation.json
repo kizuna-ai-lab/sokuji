@@ -2017,6 +2017,7 @@
     "pause": "Jeda",
     "position": "Posisi",
     "speed": "Kecepatan",
+    "cannotPlay": "Rekaman ini tidak dapat diputar",
     "playFromHere": "Putar dari sini",
     "saveRecording": "Simpan rekaman suara (.opus)",
     "saveRecordingFailed": "Rekaman suara tidak bisa disimpan.",

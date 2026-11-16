@@ -2017,6 +2017,7 @@
     "pause": "إيقاف مؤقت",
     "position": "الموضع",
     "speed": "السرعة",
+    "cannotPlay": "لا يمكن تشغيل هذا التسجيل",
     "playFromHere": "تشغيل من هنا",
     "saveRecording": "حفظ التسجيل (‎.opus)",
     "saveRecordingFailed": "تعذّر حفظ التسجيل.",

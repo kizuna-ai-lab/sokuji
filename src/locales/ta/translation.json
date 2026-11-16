@@ -2017,6 +2017,7 @@
     "pause": "இடைநிறுத்து",
     "position": "நிலை",
     "speed": "வேகம்",
+    "cannotPlay": "இந்தப் பதிவை இயக்க முடியவில்லை",
     "playFromHere": "இங்கிருந்து இயக்கு",
     "saveRecording": "ஒலிப்பதிவைச் சேமி (.opus)",
     "saveRecordingFailed": "ஒலிப்பதிவைச் சேமிக்க முடியவில்லை.",

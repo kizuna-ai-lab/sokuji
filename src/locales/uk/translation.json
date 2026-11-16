@@ -2017,6 +2017,7 @@
     "pause": "Пауза",
     "position": "Позиція",
     "speed": "Швидкість",
+    "cannotPlay": "Не вдається відтворити цей запис",
     "playFromHere": "Відтворити звідси",
     "saveRecording": "Зберегти аудіозапис (.opus)",
     "saveRecordingFailed": "Не вдалося зберегти аудіозапис.",

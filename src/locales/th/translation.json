@@ -2017,6 +2017,7 @@
     "pause": "หยุดชั่วคราว",
     "position": "ตำแหน่ง",
     "speed": "ความเร็ว",
+    "cannotPlay": "ไม่สามารถเล่นการบันทึกนี้ได้",
     "playFromHere": "เล่นจากตรงนี้",
     "saveRecording": "บันทึกไฟล์เสียง (.opus)",
     "saveRecordingFailed": "บันทึกไฟล์เสียงไม่ได้",
