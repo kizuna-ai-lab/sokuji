@@ -27,6 +27,12 @@ describe('TitleBar', () => {
     expect(container.querySelector('.logs-button')).toBeTruthy();
   });
 
+  // Owner, 2026-11-17: everything spelled out while it fits (jsdom lays nothing out, so it always fits here).
+  it('starts with everything spelled out', () => {
+    const { container } = render(<TitleBar {...props} showLogsButton={false} />);
+    expect(container.querySelector('.title-bar')?.getAttribute('data-fit')).toBe('0');
+  });
+
   it('places the account slot before the subtitle button', () => {
     const { container } = render(<TitleBar {...props} showLogsButton={true} />);
     const actions = container.querySelector('.title-bar__actions')!;

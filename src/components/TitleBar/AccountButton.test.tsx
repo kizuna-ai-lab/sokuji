@@ -122,14 +122,18 @@ describe('AccountButton', () => {
     } });
     localStorage.clear();
     const { unmount } = render(<AccountButton />);
-    // The organization's name, because it is paying.
-    expect(screen.getByText('Acme').closest('[data-payer]')?.getAttribute('data-payer')).toBe('organization');
+    // The organization's name, because it is paying; its icon beside it for a title bar with no room for the name.
+    const org = screen.getByText('Acme').closest('[data-payer]')!;
+    expect(org.getAttribute('data-payer')).toBe('organization');
+    expect(org.querySelector('svg')).not.toBeNull();
     unmount();
 
     setUseOwnBalance(true);
     render(<AccountButton />);
     // Spelled out: a session with no payer shows no name, and the two must not look alike.
-    expect(screen.getByText('Personal').closest('[data-payer]')?.getAttribute('data-payer')).toBe('personal');
+    const own = screen.getByText('Personal').closest('[data-payer]')!;
+    expect(own.getAttribute('data-payer')).toBe('personal');
+    expect(own.querySelector('svg')).not.toBeNull();
     setUseOwnBalance(false);
   });
 
