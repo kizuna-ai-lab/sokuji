@@ -394,6 +394,20 @@ describe('transcripts and file jobs', () => {
     expect(lastCall('getSpeakers')).toEqual({ transcriptId: 1 });
   });
 
+  // Review: a version's sentence numbers are its own transcript's; shown beside another, its jumps went astray.
+  it('shows a version chosen from another transcript with that transcript', async () => {
+    port.getRecord = async () => twoTranscripts();
+    port.getNotes = (async (arg: { id: number }) => {
+      port.calls.push(['getNotes', arg]);
+      return { ...notesOf(arg.id), transcriptId: arg.id === 10 ? 1 : 2 };
+    }) as never;
+    await store.getState().openRecord(A);
+    expect(store.getState().open).toMatchObject({ transcriptId: 2, notes: { id: 11 } });
+    await store.getState().showNotes(10);
+    expect(store.getState().open).toMatchObject({ transcriptId: 1, notes: { id: 10, transcriptId: 1 } });
+    expect(lastCall('getSentences')).toEqual({ transcriptId: 1 });
+  });
+
   it('opens a search hit in the transcript it was found in, and names speakers in the one shown', async () => {
     port.getRecord = async () => twoTranscripts();
     await store.getState().openRecord(A, { kind: 'sentence', transcriptId: 1, n: 3 });

@@ -379,7 +379,14 @@ export function createHistoryPageStore(
         if (!open) return;
         const seq = ++notesSeq;
         const shown = await port.getNotes({ id });
-        if (seq === notesSeq && get().open?.record.id === open.record.id) set({ open: { ...get().open!, notes: shown } });
+        if (seq !== notesSeq || get().open?.record.id !== open.record.id) return;
+        // A version's sentence numbers are its own transcript's: written from another, it is shown with that one.
+        const from = shown?.transcriptId ?? null;
+        if (from !== null && from !== get().open!.transcriptId && open.record.transcripts.some((t) => t.id === from)) {
+          await fetchRecord(open.record.id, null, from);
+          if (seq !== notesSeq || get().open?.record.id !== open.record.id) return;
+        }
+        set({ open: { ...get().open!, notes: shown } });
       }),
 
       generateNotes(language) {
