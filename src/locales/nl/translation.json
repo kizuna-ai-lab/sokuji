@@ -1828,7 +1828,10 @@
         "unreachable": "Kon Soniox niet vragen bij welke regio deze sleutel hoort; opgeslagen voor {{region}}, de nu gekozen regio.",
         "refused": "Geen enkele Soniox-regio accepteert deze sleutel. Controleer of het een Soniox-API-sleutel is.",
         "elsewhere": "{{selected}} is gekozen, maar je sleutel hoort bij {{region}}.",
-        "switchTo": "Overschakelen naar {{region}}"
+        "switchTo": "Overschakelen naar {{region}}",
+        "keyWorks": "sleutel werkt",
+        "keyRefused": "sleutel geweigerd",
+        "keyUnverified": "sleutel opgeslagen, nog niet gecontroleerd"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Klaar",
         "off": "Uit",
         "noKeyForRegion": "Geen werkende sleutel voor {{region}}",
-        "keyRefused": "Sleutel geweigerd"
+        "keyRefused": "Sleutel geweigerd",
+        "keyNotVerified": "Sleutel niet gecontroleerd",
+        "checkingKey": "Sleutel controleren…"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
       "hint": "Welke dienst elke stap doet",

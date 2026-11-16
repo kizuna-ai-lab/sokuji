@@ -1828,7 +1828,10 @@
         "unreachable": "לא ניתן היה לשאול את Soniox לאיזה אזור המפתח שייך; נשמר עבור {{region}}, האזור שנבחר עכשיו.",
         "refused": "אף אזור של Soniox לא מקבל את המפתח הזה. בדקו שזה מפתח API של Soniox.",
         "elsewhere": "נבחר {{selected}}, אבל המפתח שלכם שייך ל{{region}}.",
-        "switchTo": "מעבר ל{{region}}"
+        "switchTo": "מעבר ל{{region}}",
+        "keyWorks": "המפתח עובד",
+        "keyRefused": "המפתח נדחה",
+        "keyUnverified": "המפתח נשמר, עוד לא אומת"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "מוכן",
         "off": "כבוי",
         "noKeyForRegion": "אין מפתח תקין עבור {{region}}",
-        "keyRefused": "המפתח לא התקבל"
+        "keyRefused": "המפתח לא התקבל",
+        "keyNotVerified": "המפתח לא אומת",
+        "checkingKey": "בודקים את המפתח…"
       },
       "speechModeHint": "מתי קטע דיבור נשלח לתרגום; קבוע במהלך הסשן",
       "hint": "איזה שירות מבצע כל שלב",

@@ -1828,7 +1828,10 @@
         "unreachable": "无法向 Soniox 确认这个密钥属于哪个区域；已存到当前选择的区域：{{region}}。",
         "refused": "Soniox 的所有区域都不接受这个密钥。请确认它是 Soniox 的 API 密钥。",
         "elsewhere": "当前选择的是 {{selected}}，但你的密钥属于 {{region}}。",
-        "switchTo": "切换到 {{region}}"
+        "switchTo": "切换到 {{region}}",
+        "keyWorks": "密钥可用",
+        "keyRefused": "密钥被拒绝",
+        "keyUnverified": "已保存，未验证"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "就绪",
         "off": "关闭",
         "noKeyForRegion": "{{region}} 没有可用的密钥",
-        "keyRefused": "密钥不可用"
+        "keyRefused": "密钥不可用",
+        "keyNotVerified": "密钥未验证",
+        "checkingKey": "正在验证密钥…"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
       "hint": "每个阶段由哪个服务来做",

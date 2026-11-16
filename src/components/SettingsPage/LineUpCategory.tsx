@@ -282,15 +282,22 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
     const r = p ? readiness[p.id] : undefined;
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
-    // A saved key the service refused (B-11): not Ready. A Soniox key works in one region's project only, so it names
-    // the region it was tried in. A check that could not reach the service says nothing about the key.
-    if (p?.kind === 'own-key' && r?.state === 'not-ready' && r.code === 'auth') {
-      const region = p.id === 'soniox' ? SONIOX_REGION_LABELS[asSonioxRegion((entries[p.id]?.settings as { region?: string } | undefined)?.region)] : null;
-      return {
-        ok: false, toKey: true,
-        text: region ? t('settingsPage.lineup.state.noKeyForRegion', 'No working key for {{region}}', { region })
-          : t('settingsPage.lineup.state.keyRefused', 'Key not accepted'),
-      };
+    // A saved key is Ready only once its check passed (B-11; Rudolf's review: saved is not working). The store keeps a
+    // passed check for the same key and region, so a key that worked before stays Ready when the service is out of reach.
+    if (p?.kind === 'own-key') {
+      if (r?.state === 'ready') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
+      if (r?.state === 'checking') return { ok: false, text: t('settingsPage.lineup.state.checkingKey', 'Checking the key…') };
+      // Refused: a Soniox key works in one region's project only, so it names the region it was tried in.
+      if (r?.state === 'not-ready' && r.code === 'auth') {
+        const region = p.id === 'soniox' ? SONIOX_REGION_LABELS[asSonioxRegion((entries[p.id]?.settings as { region?: string } | undefined)?.region)] : null;
+        return {
+          ok: false, toKey: true,
+          text: region ? t('settingsPage.lineup.state.noKeyForRegion', 'No working key for {{region}}', { region })
+            : t('settingsPage.lineup.state.keyRefused', 'Key not accepted'),
+        };
+      }
+      // Never checked, or the check could not reach the service.
+      return { ok: false, toKey: true, text: t('settingsPage.lineup.state.keyNotVerified', 'Key not verified') };
     }
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
   };

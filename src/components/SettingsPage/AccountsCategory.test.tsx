@@ -45,7 +45,7 @@ describe('accounts and keys', () => {
   it("opens Soniox's key by region, not a single field", () => {
     render(<AccountsCategory locked={false} />);
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
-    expect(within(row('Soniox')).getByRole('list', { name: 'Keys by region' })).toHaveTextContent('United States: key saved (selected)');
+    expect(within(row('Soniox')).getByRole('list', { name: 'Keys by region' })).toHaveTextContent('United States: key saved, not verified yet (selected)');
     expect(within(row('Soniox')).getByRole('button', { name: 'Save and find its region' })).toBeInTheDocument();
   });
 

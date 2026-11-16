@@ -1828,7 +1828,10 @@
         "unreachable": "Sonioxilta ei voitu kysyä, mille alueelle avain kuuluu; tallennettu alueelle {{region}}, joka on nyt valittuna.",
         "refused": "Mikään Sonioxin alue ei hyväksy tätä avainta. Tarkista, että se on Sonioxin API-avain.",
         "elsewhere": "Valittuna on {{selected}}, mutta avaimesi kuuluu alueelle {{region}}.",
-        "switchTo": "Vaihda alueelle {{region}}"
+        "switchTo": "Vaihda alueelle {{region}}",
+        "keyWorks": "avain toimii",
+        "keyRefused": "avain hylätty",
+        "keyUnverified": "avain tallennettu, ei vielä tarkistettu"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Valmis",
         "off": "Pois",
         "noKeyForRegion": "Ei toimivaa avainta alueelle {{region}}",
-        "keyRefused": "Avainta ei hyväksytty"
+        "keyRefused": "Avainta ei hyväksytty",
+        "keyNotVerified": "Avainta ei tarkistettu",
+        "checkingKey": "Tarkistetaan avainta…"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",

@@ -73,6 +73,15 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
     }
   };
 
+  // A key says what its check found, for the selected region (the one checked): saved is not working (Rudolf's review).
+  const keyState = (r: SonioxRegion) => {
+    if (!keyOf(r)) return t('settingsPage.accounts.soniox.noKey', 'no key');
+    if (r !== selected) return t('settingsPage.accounts.soniox.keySaved', 'key saved');
+    if (readiness?.state === 'ready') return t('settingsPage.accounts.soniox.keyWorks', 'key works');
+    if (readiness?.state === 'not-ready' && readiness.code === 'auth') return t('settingsPage.accounts.soniox.keyRefused', 'key refused');
+    return t('settingsPage.accounts.soniox.keyUnverified', 'key saved, not verified yet');
+  };
+
   // The selected region with no key while another has one: offer that one (the first in the usual order).
   const keyed = SONIOX_REGIONS.filter((r) => keyOf(r) !== '');
   const elsewhere = keyOf(selected) === '' ? keyed[0] : undefined;
@@ -83,7 +92,7 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
       <ul className="soniox-key__regions" aria-label={t('settingsPage.accounts.soniox.byRegion', 'Keys by region')}>
         {SONIOX_REGIONS.map((r) => (
           <li key={r} className={r === selected ? 'is-selected' : undefined}>
-            {label(r)}: {keyOf(r) ? t('settingsPage.accounts.soniox.keySaved', 'key saved') : t('settingsPage.accounts.soniox.noKey', 'no key')}
+            {label(r)}: {keyState(r)}
             {r === selected && ` ${t('settingsPage.accounts.soniox.selected', '(selected)')}`}
           </li>
         ))}

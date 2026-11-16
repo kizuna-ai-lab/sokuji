@@ -439,14 +439,31 @@ describe('the notes card', () => {
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
   });
 
-  it('stays Ready when the key check could not reach the service', () => {
-    useProviderStore.setState({
+  // Rudolf's review of B-11: a saved key is not a working key. Only a check that passed says Ready; a key never
+  // checked, or whose check could not reach the service, says it is not verified (a key that passed before for the
+  // same region is served from that answer by the store, so it stays Ready).
+  it('says Ready only for a key whose check passed', () => {
+    const sonioxKey = (readiness: unknown) => useProviderStore.setState({
       entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: 'sk-us' }, pair: { source: 'ja', target: 'en' } } } as never,
-      readiness: { soniox: { state: 'not-ready', code: 'network', reason: 'offline' } } as never,
+      readiness: (readiness === undefined ? {} : { soniox: readiness }) as never,
     });
+    const card = () => screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
+    sonioxKey({ state: 'ready', models: [] });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByText('Ready').length).toBeGreaterThan(0);
+    unmount();
+    sonioxKey({ state: 'not-ready', code: 'network', reason: 'offline' });
+    const second = render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByRole('button', { name: 'Key not verified' }).length).toBeGreaterThan(0);
+    expect(within(card()).queryByText('Ready')).toBeNull();
+    second.unmount();
+    sonioxKey(undefined);
+    const third = render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByRole('button', { name: 'Key not verified' }).length).toBeGreaterThan(0);
+    third.unmount();
+    sonioxKey({ state: 'checking' });
     render(<LineUpCategory locked={false} />);
-    const card = screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
-    expect(within(card).getAllByText('Ready').length).toBeGreaterThan(0);
+    expect(within(card()).getAllByText('Checking the key…').length).toBeGreaterThan(0);
   });
 
   it('takes you to the key from "Needs a key"', () => {

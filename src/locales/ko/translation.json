@@ -1828,7 +1828,10 @@
         "unreachable": "이 키가 어느 지역의 키인지 Soniox에 확인할 수 없었습니다. 현재 선택한 지역({{region}})에 저장했습니다.",
         "refused": "이 키를 받는 Soniox 지역이 없습니다. Soniox API 키인지 확인하세요.",
         "elsewhere": "{{selected}}이(가) 선택되어 있지만 키는 {{region}}의 키입니다.",
-        "switchTo": "{{region}}(으)로 전환"
+        "switchTo": "{{region}}(으)로 전환",
+        "keyWorks": "키 사용 가능",
+        "keyRefused": "키 거부됨",
+        "keyUnverified": "저장됨, 아직 확인 안 됨"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "준비됨",
         "off": "꺼짐",
         "noKeyForRegion": "{{region}}에서 쓸 수 있는 키가 없음",
-        "keyRefused": "키가 거부됨"
+        "keyRefused": "키가 거부됨",
+        "keyNotVerified": "키 확인 안 됨",
+        "checkingKey": "키 확인 중…"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",

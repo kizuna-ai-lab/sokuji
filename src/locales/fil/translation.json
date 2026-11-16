@@ -1828,7 +1828,10 @@
         "unreachable": "Hindi natanong ang Soniox kung saang rehiyon ang key na ito; na-save para sa {{region}}, ang rehiyong napili ngayon.",
         "refused": "Walang rehiyon ng Soniox na tumatanggap sa key na ito. Tingnan kung API key ito ng Soniox.",
         "elsewhere": "{{selected}} ang napili, pero ang key mo ay sa {{region}}.",
-        "switchTo": "Lumipat sa {{region}}"
+        "switchTo": "Lumipat sa {{region}}",
+        "keyWorks": "gumagana ang key",
+        "keyRefused": "tinanggihan ang key",
+        "keyUnverified": "naka-save ang key, hindi pa beripikado"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Handa",
         "off": "Naka-off",
         "noKeyForRegion": "Walang gumaganang key para sa {{region}}",
-        "keyRefused": "Hindi tinanggap ang key"
+        "keyRefused": "Hindi tinanggap ang key",
+        "keyNotVerified": "Hindi pa beripikado ang key",
+        "checkingKey": "Sinusuri ang key…"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",

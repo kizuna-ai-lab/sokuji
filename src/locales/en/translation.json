@@ -1828,7 +1828,10 @@
         "unreachable": "Could not ask Soniox which region this key belongs to; saved for {{region}}, the region selected now.",
         "refused": "No Soniox region accepts this key. Check that it is a Soniox API key.",
         "elsewhere": "{{selected}} is selected, but your key is for {{region}}.",
-        "switchTo": "Switch to {{region}}"
+        "switchTo": "Switch to {{region}}",
+        "keyWorks": "key works",
+        "keyRefused": "key refused",
+        "keyUnverified": "key saved, not verified yet"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Ready",
         "off": "Off",
         "noKeyForRegion": "No working key for {{region}}",
-        "keyRefused": "Key not accepted"
+        "keyRefused": "Key not accepted",
+        "keyNotVerified": "Key not verified",
+        "checkingKey": "Checking the key…"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",

@@ -1828,7 +1828,10 @@
         "unreachable": "Không hỏi được Soniox khóa này thuộc khu vực nào; đã lưu cho {{region}}, khu vực đang chọn.",
         "refused": "Không khu vực nào của Soniox chấp nhận khóa này. Hãy kiểm tra đó có phải là khóa API của Soniox không.",
         "elsewhere": "Đang chọn {{selected}}, nhưng khóa của bạn thuộc {{region}}.",
-        "switchTo": "Chuyển sang {{region}}"
+        "switchTo": "Chuyển sang {{region}}",
+        "keyWorks": "khóa dùng được",
+        "keyRefused": "khóa bị từ chối",
+        "keyUnverified": "đã lưu khóa, chưa xác minh"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Sẵn sàng",
         "off": "Tắt",
         "noKeyForRegion": "Không có khóa dùng được cho {{region}}",
-        "keyRefused": "Khóa không được chấp nhận"
+        "keyRefused": "Khóa không được chấp nhận",
+        "keyNotVerified": "Chưa xác minh khóa",
+        "checkingKey": "Đang kiểm tra khóa…"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",

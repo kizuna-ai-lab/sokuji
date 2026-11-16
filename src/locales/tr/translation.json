@@ -1828,7 +1828,10 @@
         "unreachable": "Bu anahtarın hangi bölgeye ait olduğu Soniox’a sorulamadı; şu an seçili bölge olan {{region}} için kaydedildi.",
         "refused": "Hiçbir Soniox bölgesi bu anahtarı kabul etmiyor. Bunun bir Soniox API anahtarı olduğunu kontrol edin.",
         "elsewhere": "{{selected}} seçili, ancak anahtarınız {{region}} bölgesine ait.",
-        "switchTo": "{{region}} bölgesine geç"
+        "switchTo": "{{region}} bölgesine geç",
+        "keyWorks": "anahtar çalışıyor",
+        "keyRefused": "anahtar reddedildi",
+        "keyUnverified": "anahtar kayıtlı, henüz doğrulanmadı"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Hazır",
         "off": "Kapalı",
         "noKeyForRegion": "{{region}} için çalışan anahtar yok",
-        "keyRefused": "Anahtar kabul edilmedi"
+        "keyRefused": "Anahtar kabul edilmedi",
+        "keyNotVerified": "Anahtar doğrulanmadı",
+        "checkingKey": "Anahtar kontrol ediliyor…"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",

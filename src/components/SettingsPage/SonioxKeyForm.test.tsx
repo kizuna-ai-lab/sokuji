@@ -45,10 +45,27 @@ describe("Soniox's key, by region", () => {
     given('us', { apiKey: 'sk-us', apiKeyJp: 'sk-jp' });
     mount(async () => ({ accepted: [], unreachable: [] }));
     const line = screen.getByRole('list', { name: 'Keys by region' });
-    expect(line).toHaveTextContent('United States: key saved (selected)');
+    expect(line).toHaveTextContent('United States: key saved, not verified yet (selected)');
     expect(line).toHaveTextContent('European Union: no key');
     expect(line).toHaveTextContent('日本 (Japan): key saved');
     expect(line).toHaveTextContent('India: no key');
+  });
+
+  // Rudolf's review: saved is not working. The selected region's key says what its check found.
+  it("says whether the selected region's key works, was refused, or is not verified yet", () => {
+    given('us', { apiKey: 'sk-us' });
+    const line = () => screen.getByRole('list', { name: 'Keys by region' });
+    useProviderStore.setState({ readiness: { soniox: { state: 'ready', models: [] } } as never });
+    const first = mount(async () => ({ accepted: [], unreachable: [] }));
+    expect(line()).toHaveTextContent('United States: key works (selected)');
+    first.unmount();
+    useProviderStore.setState({ readiness: { soniox: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    const second = mount(async () => ({ accepted: [], unreachable: [] }));
+    expect(line()).toHaveTextContent('United States: key refused (selected)');
+    second.unmount();
+    useProviderStore.setState({ readiness: { soniox: { state: 'not-ready', code: 'network', reason: 'offline' } } as never });
+    mount(async () => ({ accepted: [], unreachable: [] }));
+    expect(line()).toHaveTextContent('United States: key saved, not verified yet (selected)');
   });
 
   it('keeps a key the selected region accepts there, and checks it', async () => {

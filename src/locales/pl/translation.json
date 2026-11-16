@@ -1828,7 +1828,10 @@
         "unreachable": "Nie udało się zapytać Soniox, do którego regionu należy ten klucz; zapisano go dla {{region}}, regionu wybranego teraz.",
         "refused": "Żaden region Soniox nie akceptuje tego klucza. Sprawdź, czy to klucz API Soniox.",
         "elsewhere": "Wybrany jest region {{selected}}, ale twój klucz należy do {{region}}.",
-        "switchTo": "Przełącz na {{region}}"
+        "switchTo": "Przełącz na {{region}}",
+        "keyWorks": "klucz działa",
+        "keyRefused": "klucz odrzucony",
+        "keyUnverified": "klucz zapisany, jeszcze niesprawdzony"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Gotowe",
         "off": "Wyłączone",
         "noKeyForRegion": "Brak działającego klucza dla {{region}}",
-        "keyRefused": "Klucz odrzucony"
+        "keyRefused": "Klucz odrzucony",
+        "keyNotVerified": "Klucz niezweryfikowany",
+        "checkingKey": "Sprawdzanie klucza…"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",

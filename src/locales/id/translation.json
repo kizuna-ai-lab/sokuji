@@ -1828,7 +1828,10 @@
         "unreachable": "Tidak dapat menanyakan ke Soniox wilayah kunci ini; disimpan untuk {{region}}, wilayah yang dipilih sekarang.",
         "refused": "Tidak ada wilayah Soniox yang menerima kunci ini. Pastikan ini kunci API Soniox.",
         "elsewhere": "{{selected}} dipilih, tetapi kunci Anda milik {{region}}.",
-        "switchTo": "Beralih ke {{region}}"
+        "switchTo": "Beralih ke {{region}}",
+        "keyWorks": "kunci berfungsi",
+        "keyRefused": "kunci ditolak",
+        "keyUnverified": "kunci tersimpan, belum diverifikasi"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Siap",
         "off": "Mati",
         "noKeyForRegion": "Tidak ada kunci yang berfungsi untuk {{region}}",
-        "keyRefused": "Kunci ditolak"
+        "keyRefused": "Kunci ditolak",
+        "keyNotVerified": "Kunci belum diverifikasi",
+        "checkingKey": "Memeriksa kunci…"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
       "hint": "Layanan mana yang mengerjakan tiap tahap",

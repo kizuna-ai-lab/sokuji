@@ -1828,7 +1828,10 @@
         "unreachable": "このキーがどのリージョンのものか Soniox に確認できませんでした。選択中のリージョン（{{region}}）に保存しました。",
         "refused": "このキーを受け付ける Soniox のリージョンがありません。Soniox の API キーか確認してください。",
         "elsewhere": "{{selected}}が選択されていますが、キーは{{region}}のものです。",
-        "switchTo": "{{region}}に切り替える"
+        "switchTo": "{{region}}に切り替える",
+        "keyWorks": "キー使用可",
+        "keyRefused": "キーが拒否されました",
+        "keyUnverified": "保存済み・未確認"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "準備完了",
         "off": "オフ",
         "noKeyForRegion": "{{region}}で使えるキーがありません",
-        "keyRefused": "キーが受け付けられません"
+        "keyRefused": "キーが受け付けられません",
+        "keyNotVerified": "キー未確認",
+        "checkingKey": "キーを確認しています…"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
       "hint": "各段階をどのサービスが担当するか",

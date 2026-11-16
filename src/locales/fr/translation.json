@@ -1828,7 +1828,10 @@
         "unreachable": "Impossible de demander à Soniox à quelle région appartient cette clé ; enregistrée pour {{region}}, la région sélectionnée.",
         "refused": "Aucune région Soniox n’accepte cette clé. Vérifiez qu’il s’agit d’une clé d’API Soniox.",
         "elsewhere": "{{selected}} est sélectionnée, mais votre clé est pour {{region}}.",
-        "switchTo": "Passer à {{region}}"
+        "switchTo": "Passer à {{region}}",
+        "keyWorks": "la clé fonctionne",
+        "keyRefused": "clé refusée",
+        "keyUnverified": "clé enregistrée, pas encore vérifiée"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Prêt",
         "off": "Désactivé",
         "noKeyForRegion": "Aucune clé valide pour {{region}}",
-        "keyRefused": "Clé refusée"
+        "keyRefused": "Clé refusée",
+        "keyNotVerified": "Clé non vérifiée",
+        "checkingKey": "Vérification de la clé…"
       },
       "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
       "hint": "Quel service assure chaque étape",

@@ -1828,7 +1828,10 @@
         "unreachable": "Tidak dapat bertanya kepada Soniox rantau kunci ini; disimpan untuk {{region}}, rantau yang dipilih sekarang.",
         "refused": "Tiada rantau Soniox yang menerima kunci ini. Pastikan ia kunci API Soniox.",
         "elsewhere": "{{selected}} dipilih, tetapi kunci anda milik {{region}}.",
-        "switchTo": "Tukar ke {{region}}"
+        "switchTo": "Tukar ke {{region}}",
+        "keyWorks": "kunci berfungsi",
+        "keyRefused": "kunci ditolak",
+        "keyUnverified": "kunci disimpan, belum disahkan"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Sedia",
         "off": "Mati",
         "noKeyForRegion": "Tiada kunci yang berfungsi untuk {{region}}",
-        "keyRefused": "Kunci ditolak"
+        "keyRefused": "Kunci ditolak",
+        "keyNotVerified": "Kunci belum disahkan",
+        "checkingKey": "Menyemak kunci…"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
       "hint": "Perkhidmatan mana yang membuat setiap peringkat",

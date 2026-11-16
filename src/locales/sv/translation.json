@@ -1828,7 +1828,10 @@
         "unreachable": "Kunde inte fråga Soniox vilken region nyckeln hör till; sparad för {{region}}, den region som är vald nu.",
         "refused": "Ingen Soniox-region godtar nyckeln. Kontrollera att det är en API-nyckel från Soniox.",
         "elsewhere": "{{selected}} är vald, men din nyckel hör till {{region}}.",
-        "switchTo": "Byt till {{region}}"
+        "switchTo": "Byt till {{region}}",
+        "keyWorks": "nyckeln fungerar",
+        "keyRefused": "nyckeln avvisad",
+        "keyUnverified": "nyckel sparad, inte kontrollerad än"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Klar",
         "off": "Av",
         "noKeyForRegion": "Ingen fungerande nyckel för {{region}}",
-        "keyRefused": "Nyckeln godtogs inte"
+        "keyRefused": "Nyckeln godtogs inte",
+        "keyNotVerified": "Nyckeln inte kontrollerad",
+        "checkingKey": "Kontrollerar nyckeln…"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
       "hint": "Vilken tjänst som gör varje steg",

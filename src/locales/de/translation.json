@@ -1828,7 +1828,10 @@
         "unreachable": "Soniox konnte nicht gefragt werden, zu welcher Region dieser Schlüssel gehört; für {{region}} gespeichert, die gerade ausgewählte Region.",
         "refused": "Keine Soniox-Region akzeptiert diesen Schlüssel. Prüfen Sie, ob es ein Soniox-API-Schlüssel ist.",
         "elsewhere": "{{selected}} ist ausgewählt, aber Ihr Schlüssel gehört zu {{region}}.",
-        "switchTo": "Zu {{region}} wechseln"
+        "switchTo": "Zu {{region}} wechseln",
+        "keyWorks": "Schlüssel funktioniert",
+        "keyRefused": "Schlüssel abgelehnt",
+        "keyUnverified": "Schlüssel gespeichert, noch nicht geprüft"
       }
     },
     "lineup": {
@@ -1853,7 +1856,9 @@
         "ready": "Bereit",
         "off": "Aus",
         "noKeyForRegion": "Kein gültiger Schlüssel für {{region}}",
-        "keyRefused": "Schlüssel abgelehnt"
+        "keyRefused": "Schlüssel abgelehnt",
+        "keyNotVerified": "Schlüssel nicht geprüft",
+        "checkingKey": "Schlüssel wird geprüft …"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",
