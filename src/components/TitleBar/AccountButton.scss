@@ -34,6 +34,13 @@
     flex-shrink: 0;
   }
 
+  // Who pays, as an icon: centred on the bar's line like the other 14px icons.
+  &__payer {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
   &__dot {
     position: absolute;
     right: 6px;

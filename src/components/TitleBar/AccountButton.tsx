@@ -8,7 +8,7 @@
 // nothing to registration.
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User } from 'lucide-react';
+import { Building2, User } from 'lucide-react';
 import { useAuth, useUser } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isKizunaAIEnabled } from '../../utils/environment';
@@ -108,16 +108,17 @@ const AccountButton: React.FC = () => {
     );
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
-    // Who pays, spelled out rather than inferred from a missing prefix: a session
-    // started before the choice existed has no payer, and that must not look
-    // like the personal wallet.
-    const payerName: string | null = account?.status === 'known' && account.organization
+    // Who pays, marked by an icon rather than spelled out (owner, 2026-11-17): a building for the organization, a person
+    // for the member's own wallet, each named in its tooltip. A session that carries no payer gets no mark at all, which
+    // does not look like either wallet.
+    const payerMark: { kind: Payer; name: string } | null = account?.status === 'known' && account.organization
       ? payer === 'organization'
-        ? account.organization.name
+        ? { kind: 'organization', name: account.organization.name }
         : payer === 'personal'
-          ? t('titleBar.account.personal', 'Personal')
-          : t('titleBar.account.payerUnknown', 'Account')
+          ? { kind: 'personal', name: t('titleBar.account.personal', 'Personal') }
+          : null
       : null;
+    const PayerIcon = payerMark?.kind === 'organization' ? Building2 : User;
     // The balance of the wallet the next Start spends: the organization's, or the member's own with the switch on.
     const balance = shownBalance(account, payer, quota);
 
@@ -148,8 +149,10 @@ const AccountButton: React.FC = () => {
     content = (
       <>
         <span className="account-button__initial" aria-hidden="true">{initial}</span>
-        {payerName !== null && payerName !== '' && (
-          <span className="account-button__payer" title={payerName}>{payerName}</span>
+        {payerMark && (
+          <span className="account-button__payer" data-payer={payerMark.kind} title={payerMark.name}>
+            <PayerIcon size={14} aria-hidden="true" />
+          </span>
         )}
         {balanceLabel !== null && (
           <span className="title-bar__action-label">{balanceLabel}</span>

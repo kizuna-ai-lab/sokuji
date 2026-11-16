@@ -110,7 +110,7 @@ describe('AccountButton', () => {
     expect(screen.getByText('< $0.01')).toBeTruthy();
   });
 
-  it('names who pays beside the balance — never by leaving the prefix out', () => {
+  it('marks who pays beside the balance with an icon named for the payer — never by leaving the mark out', () => {
     signedIn = true;
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
     quota = { balance: 3_000_000 };
@@ -120,15 +120,20 @@ describe('AccountButton', () => {
     } });
     localStorage.clear();
     const { unmount } = render(<AccountButton />);
-    // The organization's name, because it is paying.
-    expect(screen.getByText('Acme')).toBeTruthy();
+    // The organization's icon, named for it, because it is paying (owner, 2026-11-17: icons, not the words).
+    const org = screen.getByTitle('Acme');
+    expect(org.getAttribute('data-payer')).toBe('organization');
+    expect(org.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByText('Acme')).toBeNull();
     unmount();
 
     setUseOwnBalance(true);
     render(<AccountButton />);
-    // Spelled out: a session with no payer also shows no name, and the two must
-    // not look alike.
-    expect(screen.getByText('Personal')).toBeTruthy();
+    // Marked too: a session with no payer shows no mark, and the two must not look alike.
+    const own = screen.getByTitle('Personal');
+    expect(own.getAttribute('data-payer')).toBe('personal');
+    expect(own.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByText('Personal')).toBeNull();
     setUseOwnBalance(false);
   });
 
@@ -145,7 +150,7 @@ describe('AccountButton', () => {
     setUseOwnBalance(true);
     run.value = { phase: 'running', payer: 'organization' };
     const { unmount } = render(<AccountButton />);
-    expect(screen.getByText('Acme')).toBeTruthy();
+    expect(screen.getByTitle('Acme').getAttribute('data-payer')).toBe('organization');
     unmount();
     run.value = { phase: 'idle' };
     setUseOwnBalance(false);
@@ -162,9 +167,10 @@ describe('AccountButton', () => {
     localStorage.clear();
     run.value = { phase: 'running' };
     render(<AccountButton />);
-    // Never "Personal" and never the organization's name: who pays is unknown.
-    expect(screen.queryByText('Acme')).toBeNull();
-    expect(screen.queryByText('Personal')).toBeNull();
+    // Neither the personal mark nor the organization's: who pays is unknown.
+    expect(screen.queryByTitle('Acme')).toBeNull();
+    expect(screen.queryByTitle('Personal')).toBeNull();
+    expect(document.querySelector('[data-payer]')).toBeNull();
     run.value = { phase: 'idle' };
   });
 
