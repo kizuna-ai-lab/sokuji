@@ -1858,7 +1858,8 @@
       "wordsUnused": "Listahan ng salita: hindi ito magagamit ng model na ito.",
       "wordsLeftOut_one": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi ipinadala.",
       "notesKizunaPrice": "Tantiya ng Kizuna AI: live na tala mga {{live}} kada oras, tala pagkatapos ng session mga {{after}} kada oras, binabayaran mula sa balanseng nagbabayad sa mga session mo.",
-      "notesNeedSignInOrKey": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key”, para maisulat ang mga tala."
+      "notesNeedSignInOrKey": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key”, para maisulat ang mga tala.",
+      "jointCard": "Magkasama sa iisang koneksyon ang {{stages}}; sabay silang nagbabago."
     },
     "display": {
       "surface": "Aling display",

@@ -1858,7 +1858,8 @@
       "wordsUnused": "Daftar kata: model ini tidak dapat memakainya.",
       "wordsLeftOut_one": "Daftar kata: {{count}} entri di atas batas layanan ini tidak dikirim.",
       "notesKizunaPrice": "Perkiraan Kizuna AI: catatan langsung sekitar {{live}} per jam, catatan setelah sesi sekitar {{after}} per jam, dibayar dari saldo yang membayar sesi Anda.",
-      "notesNeedSignInOrKey": "Masuk, atau tambahkan kunci OpenAI di “Akun dan kunci”, agar catatan ditulis."
+      "notesNeedSignInOrKey": "Masuk, atau tambahkan kunci OpenAI di “Akun dan kunci”, agar catatan ditulis.",
+      "jointCard": "{{stages}} berjalan lewat satu koneksi; keduanya berubah bersama."
     },
     "display": {
       "surface": "Tampilan mana",

@@ -1858,7 +1858,8 @@
       "wordsUnused": "Lista słów: ten model nie może z niej korzystać.",
       "wordsLeftOut_one": "Lista słów: {{count}} wpis ponad limit tej usługi zostaje pominięty.",
       "notesKizunaPrice": "Szacunek Kizuna AI: notatki na żywo około {{live}} za godzinę, notatki po sesji około {{after}} za godzinę, płatne z salda, które płaci za Twoje sesje.",
-      "notesNeedSignInOrKey": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane."
+      "notesNeedSignInOrKey": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane.",
+      "jointCard": "{{stages}} działają przez jedno połączenie; zmieniają się razem."
     },
     "display": {
       "surface": "Który widok",

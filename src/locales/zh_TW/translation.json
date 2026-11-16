@@ -1858,7 +1858,8 @@
       "wordsUnused": "詞表：這個型號用不上。",
       "wordsLeftOut_one": "詞表：超出這個服務上限的 {{count}} 條沒有傳送。",
       "notesKizunaPrice": "Kizuna AI 估價：即時紀要每小時約 {{live}}，會後紀要每小時約 {{after}}，從支付工作階段費用的餘額中扣除。",
-      "notesNeedSignInOrKey": "登入，或在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。"
+      "notesNeedSignInOrKey": "登入，或在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。",
+      "jointCard": "{{stages}}共用一條連線，會一起換。"
     },
     "display": {
       "surface": "哪個介面",

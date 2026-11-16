@@ -56,9 +56,11 @@ afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe('languages and line-up', () => {
   it('lists the providers that can serve each stage, each once, the hosted ones apart', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     render(<LineUpCategory locked={false} />);
     const translation = optionTexts('Translation');
-    expect(translation).toEqual(expect.arrayContaining(['KizunaAI (Soniox)', 'KizunaAI (Qwen)', 'Soniox', 'This device', 'Bing']));
+    // Soniox is not chosen here, so it shows what it lacks.
+    expect(translation).toEqual(expect.arrayContaining(['KizunaAI (Soniox)', 'KizunaAI (Qwen)', 'Soniox (needs a key)', 'This device', 'Bing']));
     expect(translation.filter((t) => t.startsWith('KizunaAI (Soniox)'))).toHaveLength(1);
     expect(translation.some((t) => t.startsWith('OpenAI Realtime') && t.includes('needs a key'))).toBe(true);
     const speech = optionTexts('Speech');
@@ -76,17 +78,18 @@ describe('languages and line-up', () => {
 
   it('a provider that binds two stages takes both: the joint line says so, the moved line names only the rest', async () => {
     render(<LineUpCategory locked={false} />);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Transcription' }), { target: { value: 'kizunaai_soniox' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'kizunaai_soniox' } });
     await waitFor(() => expect(tracked).toHaveLength(1));
     expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox' });
-    expect(screen.getAllByText(/Goes with translation over one connection/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/over one connection/).length).toBeGreaterThan(0);
     expect(await screen.findByText(/^Speech moved to KizunaAI/)).toBeInTheDocument();
     expect(screen.queryByText(/translation moved/i)).toBeNull();
   });
 
   it('locks everything during a session', () => {
     render(<LineUpCategory locked />);
-    for (const name of ['Transcription', 'Translation', 'Speech', 'Notes']) expect(screen.getByRole('combobox', { name })).toBeDisabled();
+    // Soniox binds transcription and translation: one choice for both.
+    for (const name of ['Transcription and translation', 'Speech', 'Notes']) expect(screen.getByRole('combobox', { name })).toBeDisabled();
   });
 
   it('a navigation target inside the provider options unfolds them', () => {
@@ -240,8 +243,9 @@ describe('languages and line-up — options inside each stage card', () => {
   it("a later card points back to the first for the options acting on several stages, naming them", () => {
     // Soniox's region acts on all three stages, its session background on transcription and translation.
     render(<LineUpCategory locked={false} />);
-    fireEvent.click(within(card('Translation')).getByRole('button', { name: /Soniox options/ }));
-    expect(within(card('Translation')).getByText('The options acting on transcription, translation and speech are in the “Transcription” card.')).toBeInTheDocument();
+    // Transcription and translation share one card (Soniox binds them): the speech card points back to it.
+    fireEvent.click(within(card('Speech')).getByRole('button', { name: /Soniox options/ }));
+    expect(within(card('Speech')).getByText('The options acting on transcription, translation and speech are in the “Transcription” card.')).toBeInTheDocument();
   });
 });
 
@@ -273,6 +277,7 @@ describe('languages and line-up — as the mock draws them', () => {
   });
 
   it('draws each stage as a card: its name and state on one line, the choice under them', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     render(<LineUpCategory locked={false} />);
     const cards = document.querySelectorAll('.lineup-stage');
     // The three a session runs, then the notes (desktop).
@@ -284,10 +289,26 @@ describe('languages and line-up — as the mock draws them', () => {
     expect(head.nextElementSibling?.tagName).toBe('SELECT');
   });
 
-  it('marks the cards one provider serves over one connection', () => {
+  // Owner, 2026-11-17: the stages one provider binds were each outlined apart; they share one frame, each stage named
+  // with its state, one choice for them all (Rudolf's details). Stages that merely use the same provider stay apart.
+  it('frames the stages one provider binds in one card: each named with its state, one choice for them', () => {
     render(<LineUpCategory locked={false} />);
     const cards = [...document.querySelectorAll('.lineup-stage')];
-    expect(cards.map((c) => c.classList.contains('is-joint'))).toEqual([true, true, false, false]);
+    expect(cards.map((c) => c.classList.contains('is-joint'))).toEqual([true, false, false]);
+    const joint = cards[0];
+    expect([...joint.querySelectorAll('.lineup-stage__head .lineup-stage__name')].map((n) => n.textContent)).toEqual(['Transcription', 'Translation']);
+    expect(joint.querySelectorAll('.lineup-stage__head .lineup-stage__state')).toHaveLength(2);
+    expect(within(joint as HTMLElement).getAllByRole('combobox')).toHaveLength(1);
+    expect(within(joint as HTMLElement).getByRole('combobox', { name: 'Transcription and translation' })).toBeInTheDocument();
+    expect(within(joint as HTMLElement).getByText('Transcription and translation go over one connection; they change together.')).toBeInTheDocument();
+  });
+
+  it('keeps apart the stages that merely use the same provider', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    const cards = [...document.querySelectorAll('.lineup-stage')];
+    expect(cards).toHaveLength(4);
+    expect(cards.some((c) => c.classList.contains('is-joint'))).toBe(false);
   });
 });
 

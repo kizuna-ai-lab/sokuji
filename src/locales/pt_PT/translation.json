@@ -1858,7 +1858,8 @@
       "wordsUnused": "Lista de palavras: este modelo não a consegue usar.",
       "wordsLeftOut_one": "Lista de palavras: {{count}} entrada acima do limite deste serviço fica de fora.",
       "notesKizunaPrice": "Estimativa da Kizuna AI: notas em direto cerca de {{live}} por hora, notas depois de uma sessão cerca de {{after}} por hora, pagas com o saldo que paga as suas sessões.",
-      "notesNeedSignInOrKey": "Inicie sessão, ou adicione uma chave da OpenAI em «Contas e chaves», para que as notas sejam escritas."
+      "notesNeedSignInOrKey": "Inicie sessão, ou adicione uma chave da OpenAI em «Contas e chaves», para que as notas sejam escritas.",
+      "jointCard": "{{stages}} funcionam numa única ligação; mudam em conjunto."
     },
     "display": {
       "surface": "Qual apresentação",

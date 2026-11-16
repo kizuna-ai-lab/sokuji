@@ -217,6 +217,8 @@
   &.is-joint { border-color: vars.$color-primary; }
 
   &__head { display: flex; align-items: center; gap: 8px; }
+  // A card holding several bound stages: each stage's name and state on its own line, split by a thin line.
+  &__head + &__head { padding-top: 6px; border-top: 1px solid vars.$border-subtle; }
   &__name { font-size: 13px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
   &__state { margin-left: auto; white-space: nowrap; font-style: normal; font-size: 11.5px; color: vars.$color-warning; &.is-ready { color: vars.$color-primary; } }
 

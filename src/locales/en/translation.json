@@ -1858,7 +1858,8 @@
       "wordsUnused": "Word list: this model cannot use it.",
       "wordsLeftOut_one": "Word list: {{count}} entry over this service’s limit is left out.",
       "notesKizunaPrice": "Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.",
-      "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written."
+      "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written.",
+      "jointCard": "{{stages}} go over one connection; they change together."
     },
     "display": {
       "surface": "Which display",

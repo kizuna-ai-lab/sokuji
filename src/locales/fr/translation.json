@@ -1858,7 +1858,8 @@
       "wordsUnused": "Liste de mots : ce modèle ne peut pas l’utiliser.",
       "wordsLeftOut_one": "Liste de mots : {{count}} entrée au-delà de la limite de ce service est laissée de côté.",
       "notesKizunaPrice": "Estimation de Kizuna AI : notes en direct environ {{live}} de l’heure, notes après une session environ {{after}} de l’heure, payées sur le solde qui paie vos sessions.",
-      "notesNeedSignInOrKey": "Connectez-vous, ou ajoutez une clé OpenAI dans « Comptes et clés », pour que les notes soient rédigées."
+      "notesNeedSignInOrKey": "Connectez-vous, ou ajoutez une clé OpenAI dans « Comptes et clés », pour que les notes soient rédigées.",
+      "jointCard": "{{stages}} passent par une seule connexion ; ils changent ensemble."
     },
     "display": {
       "surface": "Quel affichage",

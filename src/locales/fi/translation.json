@@ -1858,7 +1858,8 @@
       "wordsUnused": "Sanalista: tämä malli ei voi käyttää sitä.",
       "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois.",
       "notesKizunaPrice": "Kizuna AI:n arvio: reaaliaikaiset muistiinpanot noin {{live}} tunnissa, istunnon jälkeiset muistiinpanot noin {{after}} tunnissa, maksetaan saldosta, josta istuntosi maksetaan.",
-      "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan."
+      "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
+      "jointCard": "{{stages}} kulkevat yhden yhteyden kautta; ne vaihtuvat yhdessä."
     },
     "display": {
       "surface": "Mikä näkymä",

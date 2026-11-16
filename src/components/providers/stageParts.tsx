@@ -11,8 +11,10 @@ import { RUN_STAGES, type RunStage } from '../../lib/lineup/types';
 import { stageInSentence } from '../../lib/lineup/stageWords';
 
 interface StageScope {
-  /** The card being drawn. */
+  /** The card being drawn: its first stage. */
   stage: RunStage;
+  /** Every stage the card holds, when it holds several (the stages one provider binds); absent: `stage` alone. */
+  stages?: readonly RunStage[];
   /** Every stage this provider serves in the line-up. */
   served: readonly RunStage[];
 }
@@ -40,8 +42,10 @@ export function useStagePart(stages: readonly RunStage[]): { show: boolean; acts
   if (!scope) return { show: true, actsOn: null };
   const acts = actingOn(stages, scope.served);
   if (acts.length === 0) return { show: false, actsOn: null };
-  if (acts.length === 1) return { show: acts[0] === scope.stage, actsOn: null };
-  return { show: acts[0] === scope.stage, actsOn: acts };
+  // A row shows in the card holding the first stage it acts on.
+  const here = scope.stages ?? [scope.stage];
+  if (acts.length === 1) return { show: here.includes(acts[0]), actsOn: null };
+  return { show: here.includes(acts[0]), actsOn: acts };
 }
 
 /** "transcription, translation and speech", in the reader's language. */

@@ -1858,7 +1858,8 @@
       "wordsUnused": "Danh sách từ: mô hình này không dùng được.",
       "wordsLeftOut_one": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này không được gửi.",
       "notesKizunaPrice": "Ước tính của Kizuna AI: ghi chú trực tiếp khoảng {{live}} mỗi giờ, ghi chú sau phiên khoảng {{after}} mỗi giờ, trả từ số dư dùng để trả cho các phiên của bạn.",
-      "notesNeedSignInOrKey": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa”, để ghi chú được viết."
+      "notesNeedSignInOrKey": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa”, để ghi chú được viết.",
+      "jointCard": "{{stages}} đi qua một kết nối; chúng đổi cùng nhau."
     },
     "display": {
       "surface": "Hiển thị nào",

@@ -1858,7 +1858,8 @@
       "wordsUnused": "Ordlista: den här modellen kan inte använda den.",
       "wordsLeftOut_one": "Ordlista: {{count}} post över den här tjänstens gräns utelämnas.",
       "notesKizunaPrice": "Kizuna AI:s uppskattning: liveanteckningar cirka {{live}} i timmen, anteckningar efter en session cirka {{after}} i timmen, betalas från saldot som betalar dina sessioner.",
-      "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar."
+      "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar.",
+      "jointCard": "{{stages}} går över en anslutning; de byts tillsammans."
     },
     "display": {
       "surface": "Vilken visning",

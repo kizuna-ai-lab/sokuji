@@ -1858,7 +1858,8 @@
       "wordsUnused": "単語リスト：このモデルでは使えません。",
       "wordsLeftOut_one": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
       "notesKizunaPrice": "Kizuna AI の目安：ライブメモは 1 時間あたり約 {{live}}、会議後のメモは 1 時間あたり約 {{after}}。セッションの料金を払う残高から支払われます。",
-      "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。"
+      "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。",
+      "jointCard": "{{stages}}は1つの接続で動きます。一緒に切り替わります。"
     },
     "display": {
       "surface": "どの表示",
