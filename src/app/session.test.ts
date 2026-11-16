@@ -1211,6 +1211,77 @@ describe('attach', () => {
       });
     });
 
+    // Review: a Stop while the notes service is still loading kept nothing for the last update.
+    it('makes the loop when the notes service answers after Stop, and gives it the sentences for its last update', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        // The notes service's key is still being read when the session stops.
+        const entries = useProviderStore.getState().entries;
+        const { openai: _openai, ...others } = entries as Record<string, unknown>;
+        const loadBefore = useProviderStore.getState().load;
+        let release!: () => void;
+        const loaded = new Promise<void>((r) => { release = r; });
+        useProviderStore.setState({ entries: others, load: async () => { await loaded; useProviderStore.setState({ entries }); } } as never);
+        try {
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true }));
+          await session.runner.stop();
+          await session.runner.settled();
+          expect(live.made).toHaveLength(0);
+          release();
+          await vi.waitFor(() => expect(live.events).toContain('stop 1'));
+          expect(live.made[0].sentences.length).toBeGreaterThan(0);
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: false, ended: true }));
+        } finally {
+          useProviderStore.setState({ load: loadBefore } as never);
+        }
+      });
+    });
+
+    // Review: turned off while the last update was still on its way, the loop went on and could still send.
+    it('lets a loop still giving its last update go when live notes are turned off', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive({ hold: true });
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        useSettingsStore.setState({ liveNotes: false } as never);
+        expect(live.made[0].disposed).toBe(true);
+        live.made[0].release();
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', ended: true }));
+      });
+    });
+
+    it('ends the panel at Stop when the notes service could not be read', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        const entries = useProviderStore.getState().entries;
+        const { openai: _openai, ...others } = entries as Record<string, unknown>;
+        const loadBefore = useProviderStore.getState().load;
+        useProviderStore.setState({ entries: others, load: async () => { throw new Error('unreadable'); } } as never);
+        try {
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true }));
+          await flush();
+          await session.runner.stop();
+          await session.runner.settled();
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: false, ended: true }));
+          expect(live.made).toHaveLength(0);
+        } finally {
+          useProviderStore.setState({ load: loadBefore } as never);
+          await settleReports();
+        }
+      });
+    });
+
     it('watches the switch only while a loop runs', async () => {
       await withLive(true, 'openai', async () => {
         const offs: Array<ReturnType<typeof vi.fn>> = [];

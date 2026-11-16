@@ -248,23 +248,49 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   // Live notes (stage 4): a loop per record while its session runs, fed the sentences as the record numbers them.
   const liveFactory = options.liveNotes === undefined ? (isElectron() ? createLiveNotes : null) : options.liveNotes;
   type LiveLoop = Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> & Partial<Pick<LiveNotes, 'quiet'>>;
-  let live: { recordId: string; loop: LiveLoop | null; pending: LiveSentence[]; seen: LiveSentence[] } | null = null;
+  /**
+   * A record's live notes: its loop once the notes service is read (`loading` until then); `stopped` at Stop, `gone`
+   * once let go.
+   */
+  type LiveRun = {
+    recordId: string; loop: LiveLoop | null; pending: LiveSentence[]; seen: LiveSentence[]; loading: boolean; stopped: boolean; gone: boolean;
+  };
+  let live: LiveRun | null = null;
+  /** Runs stopped whose last update has not come yet (their service may still be loading). */
+  const finishing = new Set<LiveRun>();
   /** Live notes turned off during this record's session: what they go on from when turned on again in it. */
   let paused: { recordId: string; seen: LiveSentence[] } | null = null;
-  /** The switch is watched only while a loop runs. */
+  /** The switch is watched only while a loop runs or gives its last update. */
   let unwatchSwitch: (() => void) | null = null;
   const unwatch = () => { unwatchSwitch?.(); unwatchSwitch = null; };
+  const unwatchIfIdle = () => { if (!live && finishing.size === 0) unwatch(); };
+  /** A stopped run's last update is done (or will not come): the panel shows it ended. */
+  const finished = (run: LiveRun) => {
+    finishing.delete(run);
+    unwatchIfIdle();
+    useLiveNotes.getState().end(run.recordId);
+  };
   // Turned off during a session: the loop goes at once, and the panel says so. Turned on again in the same session,
-  // live notes start with the next sentence and go on from the notes on screen.
+  // live notes start with the next sentence and go on from the notes on screen. Turned off while a stopped session's
+  // last update is on its way, that loop goes at once too: nothing more is sent.
   const watchSwitch = () => {
     unwatch();
     unwatchSwitch = useSettingsStore.subscribe((now, before) => {
-      if (!before.liveNotes || now.liveNotes || !live) return;
-      live.loop?.dispose();
-      useLiveNotes.getState().turnedOff(live.recordId);
-      paused = { recordId: live.recordId, seen: live.seen };
-      live = null;
-      unwatch();
+      if (!before.liveNotes || now.liveNotes) return;
+      for (const run of [...finishing]) {
+        run.gone = true;
+        // A loop's Stop returns once it is let go (and `finished` follows it); one not made yet has nothing to wait for.
+        if (run.loop) run.loop.dispose();
+        else finished(run);
+      }
+      if (live) {
+        live.gone = true;
+        live.loop?.dispose();
+        useLiveNotes.getState().turnedOff(live.recordId);
+        paused = { recordId: live.recordId, seen: live.seen };
+        live = null;
+      }
+      unwatchIfIdle();
     });
   };
   const liveWanted = () => useSettingsStore.getState().liveNotes && Boolean(useLineUpStore.getState().lineUp?.summarisation);
@@ -291,14 +317,22 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       if (!liveWanted()) return;
       const resumed = paused?.recordId === recordId && useLiveNotes.getState().recordId === recordId ? paused : null;
       paused = null;
-      const begun = { recordId, loop: null as LiveLoop | null, pending: [] as LiveSentence[], seen: resumed ? [...resumed.seen] : [] as LiveSentence[] };
+      const begun: LiveRun = { recordId, loop: null, pending: [], seen: resumed ? [...resumed.seen] : [], loading: true, stopped: false, gone: false };
       live = begun;
       watchSwitch();
       if (resumed) useLiveNotes.getState().resume(recordId);
       else useLiveNotes.getState().begin(recordId);
+      // Read while the session runs; a Stop before it answers keeps the sentences for the last update.
       void notesChatFromStores().then((service) => {
-        if (live !== begun) return;
-        if (!service) { live = null; unwatch(); useLiveNotes.getState().turnedOff(recordId); return; }
+        begun.loading = false;
+        if (begun.gone) return;
+        if (!service) {
+          if (begun.stopped) { finished(begun); return; }
+          live = null;
+          unwatchIfIdle();
+          useLiveNotes.getState().turnedOff(recordId);
+          return;
+        }
         const shown = useLiveNotes.getState();
         begun.loop = liveFactory({
           ...(resumed ? { from: { state: (shown.recordId === recordId ? shown.state : null) ?? emptyLive(), seen: resumed.seen } } : {}),
@@ -312,8 +346,13 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         });
         begun.loop.sentences(begun.pending);
         begun.pending = [];
+        if (begun.stopped) { void begun.loop.stop().finally(() => finished(begun)); return; }
         if (runner.state.getState().phase === 'stopping') begun.loop.quiet?.();
-      }, (error: unknown) => reportError('LiveNotes', 'Live notes could not start', { cause: error }));
+      }, (error: unknown) => {
+        begun.loading = false;
+        reportError('LiveNotes', 'Live notes could not start', { cause: error });
+        if (begun.stopped && !begun.gone) finished(begun);
+      });
     }
     live.seen.push(...list);
     if (live.loop) live.loop.sentences(list);
@@ -325,9 +364,18 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     if (!live || live.recordId !== recordId) return;
     const ending = live;
     live = null;
-    unwatch();
-    if (closing) { ending.loop?.dispose(); useLiveNotes.getState().end(recordId); return; }
-    void (ending.loop?.stop() ?? Promise.resolve()).finally(() => useLiveNotes.getState().end(recordId));
+    if (closing) {
+      ending.gone = true;
+      ending.loop?.dispose();
+      unwatchIfIdle();
+      useLiveNotes.getState().end(recordId);
+      return;
+    }
+    ending.stopped = true;
+    finishing.add(ending);
+    // Its loop not made yet (the notes service still loading): it is made, and stops, when the service answers.
+    if (ending.loop) void ending.loop.stop().finally(() => finished(ending));
+    else if (!ending.loading) finished(ending);
   };
   // A new run: the last session's live notes leave the screen, and its late answers no longer land there.
   // Stopping: the loop sends nothing more on its own; its last update comes when the run has ended.
