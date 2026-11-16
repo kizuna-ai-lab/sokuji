@@ -34,6 +34,14 @@ describe('the notes through Kizuna AI', () => {
     expect(onBalance).toHaveBeenCalledWith(123);
   });
 
+  it('tells each answer\'s usage with its request id, for what the live notes have used', async () => {
+    const usage = { prompt_tokens: 9000, completion_tokens: 300, prompt_tokens_details: { cached_tokens: 8000 } };
+    const relay = vi.fn(async () => answer(200, { ...content({ title: 'T' }), usage }));
+    const answered: unknown[] = [];
+    await port(relay)(request({ onAnswered: (info) => { answered.push(info); } }));
+    expect(answered).toEqual([{ requestId: 'chatcmpl-9', usage }]);
+  });
+
   it('reads each refusal by its code: final ones end the call, the rest can be tried again', async () => {
     const cases: Array<[number, string, { code?: string; retryable: boolean }]> = [
       [402, 'no_balance', { code: 'no-balance', retryable: false }],

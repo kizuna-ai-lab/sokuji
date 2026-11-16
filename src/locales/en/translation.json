@@ -2164,6 +2164,8 @@
     "notInHistory": "Live notes are not kept, and this session is not in History.",
     "notKeptOnly": "Live notes are not kept.",
     "noBalance": "Your balance ran out; live notes stopped.",
-    "stoppedByService": "Kizuna AI cannot write live notes right now; they stopped."
+    "stoppedByService": "Kizuna AI cannot write live notes right now; they stopped.",
+    "costSoFar": "Live notes so far: about {{cost}}",
+    "lowBalance": "Your balance is low: {{balance}} left."
   }
 }

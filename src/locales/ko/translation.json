@@ -2164,6 +2164,8 @@
     "notInHistory": "실시간 메모는 저장되지 않으며, 이 세션은 기록에 없습니다.",
     "notKeptOnly": "실시간 메모는 저장되지 않습니다.",
     "noBalance": "잔액이 소진되어 실시간 메모가 중지되었습니다.",
-    "stoppedByService": "Kizuna AI가 지금은 실시간 메모를 작성할 수 없어 중지되었습니다."
+    "stoppedByService": "Kizuna AI가 지금은 실시간 메모를 작성할 수 없어 중지되었습니다.",
+    "costSoFar": "지금까지의 실시간 메모: 약 {{cost}}",
+    "lowBalance": "잔액이 얼마 남지 않았습니다: {{balance}} 남음."
   }
 }

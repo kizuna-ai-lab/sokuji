@@ -12,6 +12,12 @@ import useSettingsStore from '../../stores/settingsStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import LiveNotesPanel from './LiveNotesPanel';
 
+const notesPricing = vi.hoisted(() => ({ value: { inputPerMTok: 0.2, cachedInputPerMTok: 0.02, outputPerMTok: 1, liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 } as null | Record<string, number> }));
+vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/notes/notesPricing')>()),
+  useNotesPricing: () => notesPricing.value,
+}));
+
 const notes: LiveState = {
   title: 'Supplier sync',
   topics: [
@@ -28,6 +34,25 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('the live notes panel', () => {
+  it('with Kizuna AI, shows what the live notes have used so far, and says when the balance is low', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'kizunaai' } } as never);
+    act(() => {
+      // 1000 × 0.2 + 8000 × 0.02 + 3000 × 1 per million: $0.00336.
+      useLiveNotes.getState().addUsage('run-0001-aaaa', { prompt_tokens: 9000, completion_tokens: 3000, prompt_tokens_details: { cached_tokens: 8000 } });
+    });
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    expect(screen.getByText('Live notes so far: about $0.003')).toBeInTheDocument();
+    expect(screen.queryByText(/balance is low/)).toBeNull();
+    act(() => useLiveNotes.getState().balanceAfter('run-0001-aaaa', 80_000));
+    expect(screen.getByText('Your balance is low: $0.08 left.')).toBeInTheDocument();
+  });
+
+  it('shows no cost with an own key', () => {
+    act(() => useLiveNotes.getState().addUsage('run-0001-aaaa', { prompt_tokens: 9000, completion_tokens: 3000 }));
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    expect(screen.queryByText(/Live notes so far/)).toBeNull();
+  });
+
   it('shows the title, the topics in order with their points and kinds, the open one marked', () => {
     act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);

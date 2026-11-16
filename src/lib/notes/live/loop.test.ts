@@ -218,6 +218,18 @@ describe('the live notes loop', () => {
     }
   });
 
+  it('passes on what each update used, as the service reports it', async () => {
+    const used: unknown[] = [];
+    const { clock, model, live } = setup(undefined, { onUsage: (u) => { used.push(u); } });
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    const usage = { prompt_tokens: 9000, completion_tokens: 300, prompt_tokens_details: { cached_tokens: 8000 } };
+    model.calls[0].r.onAnswered?.({ requestId: 'chatcmpl-1', usage });
+    model.calls[0].answer(topicWith(1));
+    await flush();
+    expect(used).toEqual([usage]);
+  });
+
   // Review focus: after a 402 the loop stops for good and says why; a meeting does not keep calling every 20 seconds.
   it('stops for good when Kizuna AI refuses for the account (no balance), says why, and sends nothing more', async () => {
     const stopped: string[] = [];

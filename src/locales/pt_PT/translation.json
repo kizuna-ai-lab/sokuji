@@ -2164,6 +2164,8 @@
     "notInHistory": "As notas em direto não são guardadas, e esta sessão não está no histórico.",
     "notKeptOnly": "As notas em direto não são guardadas.",
     "noBalance": "O seu saldo esgotou-se; as notas em direto pararam.",
-    "stoppedByService": "A Kizuna AI não pode escrever notas em direto agora; pararam."
+    "stoppedByService": "A Kizuna AI não pode escrever notas em direto agora; pararam.",
+    "costSoFar": "Notas em direto até agora: cerca de {{cost}}",
+    "lowBalance": "O seu saldo está baixo: restam {{balance}}."
   }
 }

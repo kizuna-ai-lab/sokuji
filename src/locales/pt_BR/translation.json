@@ -2164,6 +2164,8 @@
     "notInHistory": "As notas ao vivo não são guardadas, e esta sessão não está no histórico.",
     "notKeptOnly": "As notas ao vivo não são guardadas.",
     "noBalance": "Seu saldo acabou; as notas ao vivo pararam.",
-    "stoppedByService": "A Kizuna AI não pode escrever notas ao vivo agora; elas pararam."
+    "stoppedByService": "A Kizuna AI não pode escrever notas ao vivo agora; elas pararam.",
+    "costSoFar": "Notas ao vivo até agora: cerca de {{cost}}",
+    "lowBalance": "Seu saldo está baixo: restam {{balance}}."
   }
 }

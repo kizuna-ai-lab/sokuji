@@ -2164,6 +2164,8 @@
     "notInHistory": "ライブメモは保存されません。このセッションは履歴にもありません。",
     "notKeptOnly": "ライブメモは保存されません。",
     "noBalance": "残高がなくなったため、ライブメモを停止しました。",
-    "stoppedByService": "Kizuna AI は今ライブメモを書けないため、停止しました。"
+    "stoppedByService": "Kizuna AI は今ライブメモを書けないため、停止しました。",
+    "costSoFar": "ここまでのライブメモ：約 {{cost}}",
+    "lowBalance": "残高が少なくなっています：残り {{balance}}。"
   }
 }

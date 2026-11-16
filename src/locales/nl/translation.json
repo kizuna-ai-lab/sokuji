@@ -2164,6 +2164,8 @@
     "notInHistory": "Live notities worden niet bewaard, en deze sessie staat niet in de geschiedenis.",
     "notKeptOnly": "Live notities worden niet bewaard.",
     "noBalance": "Je saldo is op; de live notities zijn gestopt.",
-    "stoppedByService": "Kizuna AI kan nu geen live notities schrijven; ze zijn gestopt."
+    "stoppedByService": "Kizuna AI kan nu geen live notities schrijven; ze zijn gestopt.",
+    "costSoFar": "Live notities tot nu toe: ongeveer {{cost}}",
+    "lowBalance": "Je saldo is laag: nog {{balance}}."
   }
 }

@@ -2164,6 +2164,8 @@
     "notInHistory": "Catatan langsung tidak disimpan, dan sesi ini tidak ada di Riwayat.",
     "notKeptOnly": "Catatan langsung tidak disimpan.",
     "noBalance": "Saldo Anda habis; catatan langsung berhenti.",
-    "stoppedByService": "Kizuna AI tidak dapat menulis catatan langsung saat ini; catatan berhenti."
+    "stoppedByService": "Kizuna AI tidak dapat menulis catatan langsung saat ini; catatan berhenti.",
+    "costSoFar": "Catatan langsung sejauh ini: sekitar {{cost}}",
+    "lowBalance": "Saldo Anda rendah: tersisa {{balance}}."
   }
 }

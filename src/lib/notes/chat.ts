@@ -8,6 +8,13 @@
 export type ChatEffort = 'none' | 'medium';
 
 /** Which prompt a call is: the relay puts in its own copy of it by this name and version. */
+/** What one answer used, as OpenAI reports it (`usage`). */
+export interface NotesUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+}
+
 export type NotesPromptName = 'live-update' | 'whole-meeting' | 'meeting-part' | 'combine-parts' | 'check-names';
 
 export interface ChatRequest {
@@ -19,7 +26,7 @@ export interface ChatRequest {
   maxTokens: number;
   signal: AbortSignal;
   /** Each answer the service gave, with its request id when it names one (a hosted relay bills by these). */
-  onAnswered?(info: { requestId?: string }): void;
+  onAnswered?(info: { requestId?: string; usage?: NotesUsage }): void;
 }
 
 /** Resolves to the model's answer, parsed: always a JSON object. */

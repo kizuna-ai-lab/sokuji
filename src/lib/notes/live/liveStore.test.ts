@@ -5,6 +5,20 @@ import { useLiveNotes } from './liveStore';
 const RECORD = 'run-0001-aaaa';
 beforeEach(() => useLiveNotes.getState().begin(RECORD));
 
+describe('what the live notes used', () => {
+  it('sums each update\'s usage for the session on screen, and starts again with the next session', () => {
+    const store = useLiveNotes.getState();
+    store.begin('run-a');
+    store.addUsage('run-a', { prompt_tokens: 9000, completion_tokens: 300, prompt_tokens_details: { cached_tokens: 8000 } });
+    store.addUsage('run-a', { prompt_tokens: 1000, completion_tokens: 100 });
+    store.addUsage('run-other', { prompt_tokens: 5, completion_tokens: 5 });
+    store.balanceAfter('run-a', 80_000);
+    expect(useLiveNotes.getState()).toMatchObject({ used: { input: 10_000, cached: 8000, output: 400 }, balanceMicroUsd: 80_000 });
+    useLiveNotes.getState().begin('run-b');
+    expect(useLiveNotes.getState()).toMatchObject({ used: { input: 0, cached: 0, output: 0 }, balanceMicroUsd: null });
+  });
+});
+
 describe('the live notes on screen', () => {
   it('begin with nothing, follow the loop, and end', () => {
     expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: null, running: true, ended: false });

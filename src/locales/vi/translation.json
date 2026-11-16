@@ -2164,6 +2164,8 @@
     "notInHistory": "Ghi chú trực tiếp không được lưu, và phiên này không có trong Lịch sử.",
     "notKeptOnly": "Ghi chú trực tiếp không được lưu.",
     "noBalance": "Số dư của bạn đã hết; ghi chú trực tiếp đã dừng.",
-    "stoppedByService": "Kizuna AI hiện không thể viết ghi chú trực tiếp; ghi chú đã dừng."
+    "stoppedByService": "Kizuna AI hiện không thể viết ghi chú trực tiếp; ghi chú đã dừng.",
+    "costSoFar": "Ghi chú trực tiếp đến giờ: khoảng {{cost}}",
+    "lowBalance": "Số dư của bạn sắp hết: còn {{balance}}."
   }
 }

@@ -5,7 +5,7 @@
 // prompt the headers name. Only the address and the credential differ otherwise, and four headers say which meeting it
 // is for, who pays, and which prompt and version it is. The relay's own refusals come in OpenAI's error shape and are
 // read by their code.
-import { abortError, answerOf, chatBody, ChatError, RATE_LIMIT_WAITS, refusalOf, wait, type ChatPort } from './chat';
+import { abortError, answerOf, chatBody, ChatError, RATE_LIMIT_WAITS, refusalOf, wait, type ChatPort, type NotesUsage } from './chat';
 
 /** The one model the relay writes notes with. */
 export const RELAY_NOTES_MODEL = 'gpt-6-luna';
@@ -62,12 +62,14 @@ export function relayChat(o: RelayChatOptions): ChatPort {
       if (response.ok) {
         // Read before the answer is: the body is consumed once.
         const copy = response.clone();
-        let requestId: string | undefined;
+        const info: { requestId?: string; usage?: NotesUsage } = {};
         try {
-          const id = ((await copy.json()) as { id?: unknown })?.id;
-          if (typeof id === 'string') requestId = id;
+          const read = (await copy.json()) as { id?: unknown; usage?: unknown };
+          if (typeof read?.id === 'string') info.requestId = read.id;
+          const usage = read?.usage as NotesUsage | undefined;
+          if (usage && typeof usage.prompt_tokens === 'number' && typeof usage.completion_tokens === 'number') info.usage = usage;
         } catch { /* answerOf says what is wrong with it */ }
-        r.onAnswered?.(requestId ? { requestId } : {});
+        r.onAnswered?.(info);
         return answerOf(response);
       }
       r.onAnswered?.({});

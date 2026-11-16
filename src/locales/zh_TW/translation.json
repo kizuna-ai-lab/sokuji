@@ -2164,6 +2164,8 @@
     "notInHistory": "即時紀要不儲存，這次工作階段也不在歷史記錄裡。",
     "notKeptOnly": "即時紀要不儲存。",
     "noBalance": "餘額已用完，即時紀要已停止。",
-    "stoppedByService": "Kizuna AI 現在無法寫即時紀要，已停止。"
+    "stoppedByService": "Kizuna AI 現在無法寫即時紀要，已停止。",
+    "costSoFar": "本次即時紀要已用：約 {{cost}}",
+    "lowBalance": "餘額不多了：還剩 {{balance}}。"
   }
 }

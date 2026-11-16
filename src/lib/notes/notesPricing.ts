@@ -6,9 +6,19 @@ import { useEffect, useState } from 'react';
 import { getApiUrl } from '../../utils/environment';
 
 export interface NotesPricing {
+  /** Dollars per million tokens, as charged (after K). */
+  inputPerMTok: number;
+  cachedInputPerMTok: number;
+  outputPerMTok: number;
   liveUsdPerHour: number;
   afterSessionUsdPerHour: number;
 }
+
+/** Tokens used, summed: all input, the cached part of it, and output. */
+export interface NotesUsed { input: number; cached: number; output: number }
+
+/** Below this balance (µUSD) the live notes say it is low: about two and a half hours of live notes. */
+export const LOW_BALANCE_MICRO_USD = 100_000;
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 
@@ -17,17 +27,28 @@ export async function fetchNotesPricing(send: typeof fetch = (input, init) => fe
   try {
     const response = await send(`${getApiUrl()}/pricing`, { method: 'GET' });
     if (!response.ok) return null;
-    const notes = ((await response.json()) as { notes?: { liveUsdPerHour?: unknown; afterSessionUsdPerHour?: unknown } })?.notes;
-    if (!notes || !finite(notes.liveUsdPerHour) || !finite(notes.afterSessionUsdPerHour)) return null;
-    return { liveUsdPerHour: notes.liveUsdPerHour, afterSessionUsdPerHour: notes.afterSessionUsdPerHour };
+    const notes = ((await response.json()) as { notes?: Record<keyof NotesPricing, unknown> })?.notes;
+    if (!notes) return null;
+    const { inputPerMTok, cachedInputPerMTok, outputPerMTok, liveUsdPerHour, afterSessionUsdPerHour } = notes;
+    if (![inputPerMTok, cachedInputPerMTok, outputPerMTok, liveUsdPerHour, afterSessionUsdPerHour].every(finite)) return null;
+    return { inputPerMTok, cachedInputPerMTok, outputPerMTok, liveUsdPerHour, afterSessionUsdPerHour } as NotesPricing;
   } catch {
     return null;
   }
 }
 
-/** Dollars an hour: to the cent, or to the tenth of a cent below ten cents (the notes cost a few cents). */
-export function perHour(usd: number): string {
-  return usd >= 0.1 ? `$${usd.toFixed(2)}` : `$${Number(usd.toFixed(3))}`;
+/** Dollars: to the cent, or to the tenth of a cent below ten cents (the notes cost a few cents). */
+export function usd(amount: number): string {
+  if (amount > 0 && amount < 0.001) return '<$0.001';
+  return amount >= 0.1 ? `$${amount.toFixed(2)}` : `$${Number(amount.toFixed(3))}`;
+}
+
+/** A price per hour, written as `usd` writes it. */
+export const perHour = usd;
+
+/** What `used` costs at the published rates: uncached input, cached input and output apart, as the backend charges. */
+export function liveCostUsd(used: NotesUsed, p: Pick<NotesPricing, 'inputPerMTok' | 'cachedInputPerMTok' | 'outputPerMTok'>): number {
+  return ((used.input - used.cached) * p.inputPerMTok + used.cached * p.cachedInputPerMTok + used.output * p.outputPerMTok) / 1e6;
 }
 
 let asked: Promise<NotesPricing | null> | null = null;

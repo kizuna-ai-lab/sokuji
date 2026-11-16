@@ -2164,6 +2164,8 @@
     "notInHistory": "Canlı notlar saklanmaz ve bu oturum Geçmiş’te yok.",
     "notKeptOnly": "Canlı notlar saklanmaz.",
     "noBalance": "Bakiyeniz bitti; canlı notlar durdu.",
-    "stoppedByService": "Kizuna AI şu anda canlı not yazamıyor; notlar durdu."
+    "stoppedByService": "Kizuna AI şu anda canlı not yazamıyor; notlar durdu.",
+    "costSoFar": "Şimdiye kadarki canlı notlar: yaklaşık {{cost}}",
+    "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı."
   }
 }

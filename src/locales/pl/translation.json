@@ -2164,6 +2164,8 @@
     "notInHistory": "Notatki na żywo nie są zapisywane, a tej sesji nie ma w historii.",
     "notKeptOnly": "Notatki na żywo nie są zapisywane.",
     "noBalance": "Saldo się wyczerpało; notatki na żywo zostały zatrzymane.",
-    "stoppedByService": "Kizuna AI nie może teraz pisać notatek na żywo; zostały zatrzymane."
+    "stoppedByService": "Kizuna AI nie może teraz pisać notatek na żywo; zostały zatrzymane.",
+    "costSoFar": "Notatki na żywo do tej pory: około {{cost}}",
+    "lowBalance": "Saldo jest niskie: zostało {{balance}}."
   }
 }

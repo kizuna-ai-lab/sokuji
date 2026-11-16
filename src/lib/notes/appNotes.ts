@@ -31,7 +31,10 @@ export const KIZUNA_NOTES = 'kizunaai';
  * The notes service the line-up chose, for the meeting `sessionRef` (a record id); null when it chose none, the key is
  * missing, or Kizuna AI was chosen while signed out.
  */
-export async function notesChatFromStores(sessionRef?: string): Promise<{ chat: ChatPort; model: string } | null> {
+export async function notesChatFromStores(
+  sessionRef?: string,
+  o: { onBalance?(microUsd: number): void } = {},
+): Promise<{ chat: ChatPort; model: string } | null> {
   const service = useLineUpStore.getState().lineUp?.summarisation;
   if (service === KIZUNA_NOTES) {
     if (currentAuth()?.signedIn !== true) return null;
@@ -41,6 +44,7 @@ export async function notesChatFromStores(sessionRef?: string): Promise<{ chat: 
       token: async () => (await currentAuth()?.getToken()) ?? null,
       ...(sessionRef ? { sessionRef } : {}),
       payer: accountPayer(useAccountStore.getState().account),
+      ...(o.onBalance ? { onBalance: o.onBalance } : {}),
     });
     return { chat, model: RELAY_NOTES_MODEL };
   }

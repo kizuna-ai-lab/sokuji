@@ -7,7 +7,7 @@
 import type { WordEntry } from '../../words/list';
 import type { Clock } from '../../contract/clock';
 import type { ChatPort } from '../chat';
-import { ChatError } from '../chat';
+import { ChatError, type NotesUsage } from '../chat';
 import { livePrompt } from '../prompts';
 import { activePrompts } from '../promptSource';
 import type { NotesLanguage } from '../runner';
@@ -31,6 +31,8 @@ export interface LiveNotesDeps {
   log?(line: Record<string, unknown>): void;
   /** Kizuna AI refused for the account (no balance, a daily limit, signed out…): the loop has stopped for good. */
   onStopped?(why: string): void;
+  /** What an update used, as the service reports it (Kizuna AI's relay does). */
+  onUsage?(usage: NotesUsage): void;
   /** Notes to go on from (live notes turned on again in the same session): their sentences are context, not new. */
   from?: { state: LiveState; seen: readonly LiveSentence[] };
 }
@@ -121,6 +123,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     u.promise = d.chat({
       system: livePrompt(d.language.name, prompts), prompt: 'live-update', promptVersion: prompts.version,
       user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal,
+      onAnswered: (info) => { if (info.usage) d.onUsage?.(info.usage); },
     })
       .then((answer) => finish(u, answer), (error: unknown) => {
         // A refusal for the account would come again every 20 seconds: the loop stops instead, and says why.

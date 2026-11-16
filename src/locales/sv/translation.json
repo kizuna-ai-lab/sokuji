@@ -2164,6 +2164,8 @@
     "notInHistory": "Liveanteckningar sparas inte, och den här sessionen finns inte i historiken.",
     "notKeptOnly": "Liveanteckningar sparas inte.",
     "noBalance": "Ditt saldo är slut; liveanteckningarna har stoppats.",
-    "stoppedByService": "Kizuna AI kan inte skriva liveanteckningar just nu; de har stoppats."
+    "stoppedByService": "Kizuna AI kan inte skriva liveanteckningar just nu; de har stoppats.",
+    "costSoFar": "Liveanteckningar hittills: cirka {{cost}}",
+    "lowBalance": "Ditt saldo är lågt: {{balance}} kvar."
   }
 }

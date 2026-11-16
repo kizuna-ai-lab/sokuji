@@ -2164,6 +2164,8 @@
     "notInHistory": "Les notes en direct ne sont pas conservées, et cette session n’est pas dans l’historique.",
     "notKeptOnly": "Les notes en direct ne sont pas conservées.",
     "noBalance": "Votre solde est épuisé ; les notes en direct se sont arrêtées.",
-    "stoppedByService": "Kizuna AI ne peut pas rédiger de notes en direct pour le moment ; elles se sont arrêtées."
+    "stoppedByService": "Kizuna AI ne peut pas rédiger de notes en direct pour le moment ; elles se sont arrêtées.",
+    "costSoFar": "Notes en direct jusqu’ici : environ {{cost}}",
+    "lowBalance": "Votre solde est bas : il reste {{balance}}."
   }
 }

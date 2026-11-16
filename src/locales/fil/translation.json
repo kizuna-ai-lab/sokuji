@@ -2164,6 +2164,8 @@
     "notInHistory": "Hindi iniimbak ang live na tala, at wala sa History ang session na ito.",
     "notKeptOnly": "Hindi iniimbak ang live na tala.",
     "noBalance": "Naubos ang iyong balanse; huminto ang live na tala.",
-    "stoppedByService": "Hindi makapagsulat ngayon ang Kizuna AI ng live na tala; huminto ang mga ito."
+    "stoppedByService": "Hindi makapagsulat ngayon ang Kizuna AI ng live na tala; huminto ang mga ito.",
+    "costSoFar": "Live na tala sa ngayon: mga {{cost}}",
+    "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira."
   }
 }

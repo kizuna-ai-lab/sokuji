@@ -10,6 +10,9 @@ import { useLiveNotes } from '../../lib/notes/live/liveStore';
 import { LIVE_FULL } from '../../lib/notes/live/state';
 import type { NoteKind } from '../../lib/notes/write';
 import { useLiveNotesSetting } from '../../stores/settingsStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { KIZUNA_NOTES } from '../../lib/notes/appNotes';
+import { liveCostUsd, LOW_BALANCE_MICRO_USD, usd, useNotesPricing } from '../../lib/notes/notesPricing';
 import { isElectron } from '../../utils/environment';
 import './LiveNotesPanel.scss';
 
@@ -20,8 +23,11 @@ export interface LiveNotesPanelProps {
 
 export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const { t } = useTranslation();
-  const { recordId, state, hint, running, off, ended, history, fullNotes, stopped } = useLiveNotes();
+  const { recordId, state, hint, running, off, ended, history, fullNotes, stopped, used, balanceMicroUsd } = useLiveNotes();
   const liveOn = useLiveNotesSetting();
+  // With Kizuna AI the panel's foot says what this session's live notes have used, at the published rates.
+  const hosted = useLineUpStore((s) => s.lineUp?.summarisation === KIZUNA_NOTES);
+  const pricing = useNotesPricing(hosted && isElectron());
   if (!isElectron() || (!liveOn && !state && !running && !off)) return null;
   if (!recordId && !state) return null;
 
@@ -75,6 +81,12 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
           </p>
           {history === 'kept' && <button type="button" className="live-notes__button" onClick={() => onOpenHistory(recordId)}>{t('liveNotes.openHistory', 'Open History')}</button>}
         </div>
+      )}
+      {hosted && pricing && used.input + used.output > 0 && (
+        <p className="live-notes__line live-notes__cost">{t('liveNotes.costSoFar', 'Live notes so far: about {{cost}}', { cost: usd(liveCostUsd(used, pricing)) })}</p>
+      )}
+      {hosted && balanceMicroUsd !== null && balanceMicroUsd < LOW_BALANCE_MICRO_USD && (
+        <p className="live-notes__line" role="status">{t('liveNotes.lowBalance', 'Your balance is low: {{balance}} left.', { balance: usd(Math.max(0, balanceMicroUsd) / 1e6) })}</p>
       )}
     </aside>
   );
