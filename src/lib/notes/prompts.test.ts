@@ -18,6 +18,12 @@ describe('the notes prompts', () => {
     expect(namesPrompt()).toBe(texts.names);
   });
 
+  it('tell the finish step the names for the notes it reads, not for a transcript it does not see', () => {
+    expect(finishPrompt('English')).toContain('Where the notes have one of these words');
+    expect(finishPrompt('English')).not.toContain('transcript has');
+    expect(partPrompt('English', false)).toContain('Where the transcript has one of these words');
+  });
+
   it('anchor every point to a sentence number, never a time', () => {
     for (const p of [partPrompt('English', false), partPrompt('English', true), finishPrompt('English'), namesPrompt()]) {
       expect(p).not.toContain('start_ms');
@@ -40,7 +46,7 @@ describe('the notes prompts', () => {
     expect(NOTES_PROMPT_VERSION).toBe(2);
     expect(Object.fromEntries(Object.entries(texts).map(([k, v]) => [k, fingerprint(v)]))).toMatchInlineSnapshot(`
       {
-        "finish": "bbb457a8",
+        "finish": "9a052caf",
         "live": "5bc96211",
         "names": "235b48b3",
         "part_multi": "351105ba",
