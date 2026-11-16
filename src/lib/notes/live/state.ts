@@ -197,8 +197,13 @@ export function applyLive(given: LiveState, answer: unknown, o: LiveApplyInput):
 
   let opened: LiveTopic | null = null;
   if (nextTitle) {
-    // The full topic's title again: keep them apart.
-    if (sealed && nextTitle === last.title) nextTitle = `${nextTitle} (2)`;
+    // A title an earlier topic already has: kept apart by a number, (2), then (3).
+    const used = new Set(topics.map((t) => t.title));
+    if (used.has(nextTitle)) {
+      let k = 2;
+      while (used.has(`${nextTitle} (${k})`)) k += 1;
+      nextTitle = `${nextTitle} (${k})`;
+    }
     const raw = [...(sealed ? list(block.add) : []), ...list(next.points)];
     const points = anchored(raw, new Set());
     // A title with nothing under it is not a topic.

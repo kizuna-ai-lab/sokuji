@@ -51,6 +51,17 @@ describe('the live notes rules', () => {
     expect(texts(next)?.slice(1)).toEqual([['Packaging', ['p14']]]);
   });
 
+  it('numbers a new topic whose title an earlier topic already has: (2), then (3)', () => {
+    const topic = (st: LiveState, title: string, n: number) =>
+      apply(st, { new_topic: { title, summary: '', points: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;
+    let st = opened();
+    st = topic(st, 'Budget', 2);
+    st = topic(st, 'Delivery', 3);
+    st = topic(st, 'Budget', 4);
+    st = topic(st, 'Delivery', 5);
+    expect(texts(st)?.map((t) => t[0])).toEqual(['Delivery', 'Budget', 'Delivery (2)', 'Budget (2)', 'Delivery (3)']);
+  });
+
   it('keeps the same text once, and moves a point whose sentence is not new to the nearest new one', () => {
     const st = apply(opened(), { current_topic: { add: [
       { text: 'Ships Tuesday', sid: 2, kinds: [] }, { text: 'Far', sid: 99, kinds: [] }, { text: 'No number', kinds: [] },
