@@ -12,11 +12,15 @@ vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
 vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
 const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
-vi.mock('../providers/ProviderOwnSettings', () => ({
-  ProviderEngine: (props: { initialSlot?: unknown; onInitialSlotConsumed?: () => void }) => { engineProps.push(props); return <div id="model-management-section"><div id="model-tts-section" /></div>; },
-  ProviderOwnSettings: () => <div id="provider-own-settings" />,
-  ProviderTurnDetectionControls: () => <div id="turn-detection-tuning-section" />,
-}));
+vi.mock('../providers/ProviderOwnSettings', async () => {
+  // The provider's settings say which stage they are drawn for, so a test can tell whose options a fold holds.
+  const { useSettingsStage } = await import('../providers/stageParts');
+  return {
+    ProviderEngine: (props: { initialSlot?: unknown; onInitialSlotConsumed?: () => void }) => { engineProps.push(props); return <div id="model-management-section"><div id="model-tts-section" /></div>; },
+    ProviderOwnSettings: () => <div id="provider-own-settings" data-stage={useSettingsStage()?.stage ?? ''} />,
+    ProviderTurnDetectionControls: () => <div id="turn-detection-tuning-section" />,
+  };
+});
 // Every released provider offered, and signed in: the list shows what a signed-in user of a release sees.
 const noHosted = vi.hoisted(() => ({ value: false }));
 vi.mock('../../providers/registry', async (importOriginal) => {
@@ -302,6 +306,37 @@ describe('languages and line-up — as the mock draws them', () => {
     expect(within(joint as HTMLElement).getAllByRole('combobox')).toHaveLength(1);
     expect(within(joint as HTMLElement).getByRole('combobox', { name: 'Transcription and translation' })).toBeInTheDocument();
     expect(within(joint as HTMLElement).getByText('Transcription and translation go over one connection; they change together.')).toBeInTheDocument();
+  });
+
+  // Owner, 2026-11-17: one frame and one choice do not merge the stages' options; each stage keeps its own, under its name.
+  it('in a joint card each stage keeps its own options, under its own name', () => {
+    // Gemini runs all three stages over one connection: one card, a part per stage.
+    useLineUpStore.setState({ lineUp: { transcription: 'gemini', translation: 'gemini', speech: 'gemini', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    const joint = document.querySelector('.lineup-stage.is-joint') as HTMLElement;
+    const parts = [...joint.querySelectorAll<HTMLElement>('.lineup-stage__part')];
+    expect(parts.map((p) => p.querySelector('.lineup-stage__name')?.textContent)).toEqual(['Transcription', 'Translation', 'Speech']);
+    // Each part: its name and state, then its own options fold.
+    for (const part of parts) expect(within(part).getByRole('button', { name: /Gemini options/ })).toHaveAttribute('aria-expanded', 'false');
+    // Opening one stage's options opens that stage's alone, drawn for that stage.
+    fireEvent.click(within(parts[1]).getByRole('button', { name: /Gemini options/ }));
+    expect(within(parts[0]).getByRole('button', { name: /Gemini options/ })).toHaveAttribute('aria-expanded', 'false');
+    expect(parts[1].querySelector('#provider-own-settings')).toHaveAttribute('data-stage', 'translation');
+    fireEvent.click(within(parts[2]).getByRole('button', { name: /Gemini options/ }));
+    expect(parts[2].querySelector('#provider-own-settings')).toHaveAttribute('data-stage', 'speech');
+    fireEvent.click(within(parts[0]).getByRole('button', { name: /Gemini options/ }));
+    expect(parts[0].querySelector('#provider-own-settings')).toHaveAttribute('data-stage', 'transcription');
+    // The options acting on several stages sit under the first of them, in the same frame: no pointer to it.
+    expect(joint.querySelector('.lineup-stage__pointer')).toBeNull();
+  });
+
+  it('in a joint card a stage with no options of its own has no fold', () => {
+    // Soniox binds transcription and translation; every option acting on translation also acts on transcription.
+    render(<LineUpCategory locked={false} />);
+    const parts = [...document.querySelectorAll<HTMLElement>('.lineup-stage.is-joint .lineup-stage__part')];
+    expect(parts.map((p) => p.querySelector('.lineup-stage__name')?.textContent)).toEqual(['Transcription', 'Translation']);
+    expect(within(parts[0]).getByRole('button', { name: /Soniox options/ })).toBeInTheDocument();
+    expect(within(parts[1]).queryByRole('button', { name: /options/ })).toBeNull();
   });
 
   it('keeps apart the stages that merely use the same provider', () => {

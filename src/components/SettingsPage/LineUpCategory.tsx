@@ -9,7 +9,7 @@
 import { useWordList } from '../../lib/words/list';
 import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { effectiveGeminiModel } from '../../providers/gemini/settings';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
@@ -204,6 +204,58 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   }, [engineSlotTarget]); // eslint-disable-line react-hooks/exhaustive-deps
   const stageList = useStageList();
 
+  /**
+   * One stage's options: the rows acting on it alone, and those acting on several stages when it is the first of them
+   * (owner, 2026-11-17: in a card of several stages each keeps its own). A stage whose options all sit under an earlier
+   * stage of the same card has no fold; one whose options sit in another card points there.
+   */
+  const stageOptions = (stage: RunStage, id: string, cardStages: readonly RunStage[]) => {
+    const o = optionsOf(stage);
+    if (!o) return null;
+    const pointerTo = o.pointerTo && !cardStages.includes(o.pointerTo) ? o.pointerTo : null;
+    if (!o.rows && !pointerTo) return null;
+    const open = Boolean(openCards[stage]);
+    const name = model(id, providers.find((p) => p.id === id)).name;
+    return (
+      <div className="lineup-stage__options" id={stage === firstWithOptions ? 'provider-options-section' : `lineup-options-${stage}`}>
+        <button type="button" className="lineup-options__fold" aria-expanded={open} onClick={() => setOpenCards((c) => ({ ...c, [stage]: !open }))}>
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          {t('settingsPage.lineup.options', '{{provider}} options', { provider: name })}
+        </button>
+        {open && (
+          <div className="lineup-stage__options-body">
+            {o.provider.optionStages ? (
+              <SettingsStage stage={stage} served={o.served}>
+                {/* Edge speaking: its voices, not the engine's speech slot, whose models do not run. */}
+                {stage === 'speech' && id === 'edge' ? <EdgeVoices disabled={locked} /> : (
+                  <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                    initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
+                    onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                )}
+                <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
+                {stage === 'transcription' && <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />}
+              </SettingsStage>
+            ) : (
+              <>
+                <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                  initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
+                <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />
+              </>
+            )}
+            {pointerTo && (
+              <p className="lineup-stage__pointer">
+                {t('settingsPage.lineup.pointer', 'The options acting on {{stages}} are in the “{{card}}” card.', {
+                  stages: stageList(o.pointerStages), card: t(`settingsPage.lineup.stages.${pointerTo}`, STAGE_TITLES[pointerTo]),
+                })}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   /** The line-up's cards: one per stage, but the stages one provider binds, next to each other, in one (owner, 2026-11-17). */
   const cards: RunStage[][] = [];
   for (let i = 0; i < RUN_STAGES.length; ) {
@@ -259,36 +311,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const joint = stages.length > 1;
           const titleOf = (stage: RunStage) => t(`settingsPage.lineup.stages.${stage}`, STAGE_TITLES[stage]);
           const title = joint ? [titleOf(first), ...stages.slice(1).map(stageName)].join(t('settingsPage.lineup.and', ' and ')) : titleOf(first);
-          return (
-            // A card per stage (the mock's): its name and state on one line, the choice under them. The stages one
-            // provider binds over one connection share one card (owner, 2026-11-17): each named with its state, one
-            // choice for them all; stages that merely use the same provider keep their own cards.
-            <div className={`lineup-stage${joint || partners.length > 0 ? ' is-joint' : ''}`} key={stages.join('+')}>
-              {stages.map((stage) => (
-                <div className="lineup-stage__head" key={stage}>
-                  <span className="lineup-stage__name">{titleOf(stage)}</span>
-                  <em className={`lineup-stage__state${stateOf(id).ok ? ' is-ready' : ''}`}>{stateOf(id).text}</em>
-                </div>
-              ))}
-              <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
-                onChange={(e) => void choose(first, e.target.value)}>
-                {rich && <button type="button"><selectedcontent /></button>}
-                {optionsFor(first).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
-              </select>
-              {joint && (
-                <p className="lineup-stage__joint">
-                  <Link2 size={12} aria-hidden="true" />
-                  {t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
-                </p>
-              )}
-              {partners.length > 0 && (
-                <p className="lineup-stage__joint">
-                  <Link2 size={12} aria-hidden="true" />
-                  {t('settingsPage.lineup.joint', 'Goes with {{stages}} over one connection; they change together.', { stages: partners.map(stageName).join(t('settingsPage.lineup.and', ' and ')) })}
-                </p>
-              )}
-              {stages.map((stage) => (
-                <Fragment key={stage}>
+          const head = (stage: RunStage) => (
+            <div className="lineup-stage__head">
+              <span className="lineup-stage__name">{titleOf(stage)}</span>
+              <em className={`lineup-stage__state${stateOf(id).ok ? ' is-ready' : ''}`}>{stateOf(id).text}</em>
+            </div>
+          );
+          // What one stage of the card says about itself, then its own options.
+          const stageBody = (stage: RunStage) => (
+            <>
               {stage === 'transcription' && graniteDirect && (
                 <p className="lineup-stage__joint">
                   <Link2 size={12} aria-hidden="true" />
@@ -327,55 +358,51 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 );
               })()}
               {moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>}
-                </Fragment>
-              ))}
-              {(() => {
-                // One options fold per card: a card of several stages shows the provider's options once, the rows of
-                // each of its stages in it, and points only to options in another card.
-                const o = optionsOf(first);
-                if (!o || !stages.some((stage) => optionsOf(stage)?.has)) return null;
-                const open = stages.some((stage) => openCards[stage]);
-                const name = model(id, providers.find((p) => p.id === id)).name;
-                const pointers = stages.map((stage) => optionsOf(stage)).filter((x) => x?.pointerTo && !stages.includes(x.pointerTo));
-                const slotHere = engineSlotTarget && stages.includes(SLOT_CARD[engineSlotTarget.stage]) ? engineSlotTarget : null;
-                return (
-                  <div className="lineup-stage__options" id={firstWithOptions && stages.includes(firstWithOptions) ? 'provider-options-section' : `lineup-options-${first}`}>
-                    <button type="button" className="lineup-options__fold" aria-expanded={open} onClick={() => setOpenCards((c) => ({ ...c, ...Object.fromEntries(stages.map((stage) => [stage, !open])) }))}>
-                      {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      {t('settingsPage.lineup.options', '{{provider}} options', { provider: name })}
-                    </button>
-                    {open && (
-                      <div className="lineup-stage__options-body">
-                        {o.provider.optionStages ? (
-                          <SettingsStage stage={first} stages={stages} served={o.served}>
-                            {/* Edge speaking: its voices, not the engine's speech slot, whose models do not run. */}
-                            {first === 'speech' && id === 'edge' ? <EdgeVoices disabled={locked} /> : (
-                              <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
-                                initialSlot={slotHere} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
-                            )}
-                            <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
-                            {stages.includes('transcription') && <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />}
-                          </SettingsStage>
-                        ) : (
-                          <>
-                            <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
-                              initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
-                            <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
-                            <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />
-                          </>
-                        )}
-                        {pointers.slice(0, 1).map((x) => (
-                          <p className="lineup-stage__pointer" key="pointer">
-                            {t('settingsPage.lineup.pointer', 'The options acting on {{stages}} are in the “{{card}}” card.', {
-                              stages: stageList(x!.pointerStages), card: t(`settingsPage.lineup.stages.${x!.pointerTo}`, STAGE_TITLES[x!.pointerTo!]),
-                            })}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {stageOptions(stage, id, stages)}
+            </>
+          );
+          const select = (
+            <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
+              onChange={(e) => void choose(first, e.target.value)}>
+              {rich && <button type="button"><selectedcontent /></button>}
+              {optionsFor(first).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
+            </select>
+          );
+          const partnersLine = partners.length > 0 && (
+            <p className="lineup-stage__joint">
+              <Link2 size={12} aria-hidden="true" />
+              {t('settingsPage.lineup.joint', 'Goes with {{stages}} over one connection; they change together.', { stages: partners.map(stageName).join(t('settingsPage.lineup.and', ' and ')) })}
+            </p>
+          );
+          return (
+            // A card per stage (the mock's): its name and state on one line, the choice under them. The stages one
+            // provider binds over one connection share one card (owner, 2026-11-17): the line saying so and the one
+            // choice on top, then a part per stage, each with its name and state and its own options under them (the
+            // options are not merged). Stages that merely use the same provider keep their own cards.
+            <div className={`lineup-stage${joint || partners.length > 0 ? ' is-joint' : ''}`} key={stages.join('+')}>
+              {joint ? (
+                <>
+                  <p className="lineup-stage__joint">
+                    <Link2 size={12} aria-hidden="true" />
+                    {t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
+                  </p>
+                  {select}
+                  {partnersLine}
+                  {stages.map((stage) => (
+                    <div className="lineup-stage__part" key={stage}>
+                      {head(stage)}
+                      {stageBody(stage)}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {head(first)}
+                  {select}
+                  {partnersLine}
+                  {stageBody(first)}
+                </>
+              )}
             </div>
           );
         })}

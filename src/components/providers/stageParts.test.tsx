@@ -67,17 +67,18 @@ describe('cardOptions', () => {
   const SONIOX = [ALL, ['speech'], ['transcription', 'translation'], ['transcription']] as RunStage[][];
 
   it('gives the first card its own options and the shared ones; a later card its own, pointing back for the rest', () => {
-    expect(cardOptions(SONIOX, ALL, 'transcription', false)).toEqual({ has: true, pointerTo: null, pointerStages: [] });
-    expect(cardOptions(SONIOX, ALL, 'translation', false)).toEqual({ has: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation', 'speech'] });
-    expect(cardOptions(SONIOX, ALL, 'speech', false)).toEqual({ has: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation', 'speech'] });
+    expect(cardOptions(SONIOX, ALL, 'transcription', false)).toEqual({ has: true, rows: true, pointerTo: null, pointerStages: [] });
+    // Translation has no option of its own: only the pointer.
+    expect(cardOptions(SONIOX, ALL, 'translation', false)).toEqual({ has: true, rows: false, pointerTo: 'transcription', pointerStages: ['transcription', 'translation', 'speech'] });
+    expect(cardOptions(SONIOX, ALL, 'speech', false)).toEqual({ has: true, rows: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation', 'speech'] });
   });
 
   it('counts only the stages served: with speech elsewhere, the region acts on transcription and translation', () => {
-    expect(cardOptions(SONIOX, ['transcription', 'translation'], 'translation', false)).toEqual({ has: true, pointerTo: 'transcription', pointerStages: ['transcription', 'translation'] });
+    expect(cardOptions(SONIOX, ['transcription', 'translation'], 'translation', false)).toEqual({ has: true, rows: false, pointerTo: 'transcription', pointerStages: ['transcription', 'translation'] });
   });
 
   it('has nothing for a card whose stage no option acts on', () => {
-    expect(cardOptions([['speech']], ['translation', 'speech'], 'translation', false)).toEqual({ has: false, pointerTo: null, pointerStages: [] });
+    expect(cardOptions([['speech']], ['translation', 'speech'], 'translation', false)).toEqual({ has: false, rows: false, pointerTo: null, pointerStages: [] });
   });
 
   it("puts the turn detection in the transcription card", () => {
