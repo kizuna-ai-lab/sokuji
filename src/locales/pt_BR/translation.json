@@ -1982,7 +1982,7 @@
     "saveSrt": "Salvar legendas (.srt)",
     "saveVtt": "Salvar legendas (.vtt)",
     "folder": "Pasta do histórico",
-    "keptHere": "A transcrição e a gravação de cada sessão ficam neste computador e não são enviadas.",
+    "keptHere": "O histórico guarda a transcrição e a gravação de cada sessão só neste computador. Durante a sessão, sua fala continua indo para os serviços escolhidos.",
     "confirmPurge_one": "Excluir definitivamente {{count}} registro? A transcrição e a gravação não poderão ser recuperadas.",
     "hits_one": "{{count}} correspondência",
     "sentenceCount_one": "{{count}} frase",

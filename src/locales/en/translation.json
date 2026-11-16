@@ -1982,7 +1982,7 @@
     "saveSrt": "Save subtitles (.srt)",
     "saveVtt": "Save subtitles (.vtt)",
     "folder": "History folder",
-    "keptHere": "Each session’s transcript and recording are kept on this computer and are not uploaded.",
+    "keptHere": "History keeps each session’s transcript and recording on this computer only. During a session, your speech still goes to the services in your line-up.",
     "confirmPurge_one": "Delete {{count}} record for good? Its transcript and recording cannot be brought back.",
     "hits_one": "{{count}} match",
     "sentenceCount_one": "{{count}} sentence",

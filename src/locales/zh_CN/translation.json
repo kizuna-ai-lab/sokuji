@@ -1982,7 +1982,7 @@
     "saveSrt": "保存字幕（.srt）",
     "saveVtt": "保存字幕（.vtt）",
     "folder": "历史文件夹",
-    "keptHere": "每次会话的转写和录音都保存在这台电脑上，不会上传。",
+    "keptHere": "历史记录里每次会话的转写和录音只保存在这台电脑上。会话进行时，你说的话仍会发给会话组成里选的服务。",
     "confirmPurge_one": "彻底删除 {{count}} 条记录？它们的转写和录音将无法找回。",
     "hits_one": "{{count}} 处匹配",
     "sentenceCount_one": "{{count}} 句",

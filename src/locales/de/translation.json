@@ -1982,7 +1982,7 @@
     "saveSrt": "Untertitel speichern (.srt)",
     "saveVtt": "Untertitel speichern (.vtt)",
     "folder": "Verlaufsordner",
-    "keptHere": "Transkript und Aufnahme jeder Sitzung bleiben auf diesem Computer und werden nicht hochgeladen.",
+    "keptHere": "Der Verlauf speichert Transkript und Aufnahme jeder Sitzung nur auf diesem Computer. Während einer Sitzung geht deine Sprache weiterhin an die Dienste deiner Aufstellung.",
     "confirmPurge_one": "{{count}} Aufzeichnung endgültig löschen? Ihr Transkript und ihre Aufnahme lassen sich nicht wiederherstellen.",
     "hits_one": "{{count}} Treffer",
     "sentenceCount_one": "{{count}} Satz",

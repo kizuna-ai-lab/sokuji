@@ -1982,7 +1982,7 @@
     "saveSrt": "Simpan subtitel (.srt)",
     "saveVtt": "Simpan subtitel (.vtt)",
     "folder": "Folder riwayat",
-    "keptHere": "Transkrip dan rekaman suara setiap sesi disimpan di komputer ini dan tidak diunggah.",
+    "keptHere": "Riwayat menyimpan transkrip dan rekaman setiap sesi hanya di komputer ini. Selama sesi, suara Anda tetap dikirim ke layanan yang Anda pilih.",
     "confirmPurge_one": "Hapus {{count}} rekaman secara permanen? Transkrip dan rekaman suaranya tidak bisa dikembalikan.",
     "hits_one": "{{count}} kecocokan",
     "sentenceCount_one": "{{count}} kalimat",

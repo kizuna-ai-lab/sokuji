@@ -1982,7 +1982,7 @@
     "saveSrt": "Zapisz napisy (.srt)",
     "saveVtt": "Zapisz napisy (.vtt)",
     "folder": "Folder historii",
-    "keptHere": "Transkrypcja i nagranie każdej sesji są przechowywane na tym komputerze i nie są nigdzie wysyłane.",
+    "keptHere": "Historia przechowuje transkrypcję i nagranie każdej sesji tylko na tym komputerze. Podczas sesji Twój głos nadal trafia do wybranych usług.",
     "confirmPurge_one": "Usunąć na zawsze {{count}} zapis? Jego transkrypcji i nagrania nie da się przywrócić.",
     "hits_one": "Dopasowania: {{count}}",
     "sentenceCount_one": "Zdania: {{count}}",

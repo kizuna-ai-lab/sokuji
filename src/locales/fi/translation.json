@@ -1982,7 +1982,7 @@
     "saveSrt": "Tallenna tekstitys (.srt)",
     "saveVtt": "Tallenna tekstitys (.vtt)",
     "folder": "Historiakansio",
-    "keptHere": "Jokaisen istunnon litterointi ja äänite säilytetään tällä tietokoneella, eikä niitä ladata verkkoon.",
+    "keptHere": "Historia säilyttää kunkin istunnon litteroinnin ja tallenteen vain tällä tietokoneella. Istunnon aikana puheesi menee silti valitsemillesi palveluille.",
     "confirmPurge_one": "Poistetaanko {{count}} tallenne pysyvästi? Sen litterointia ja äänitettä ei voi palauttaa.",
     "hits_one": "{{count}} osuma",
     "sentenceCount_one": "{{count}} lause",

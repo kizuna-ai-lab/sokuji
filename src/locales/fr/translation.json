@@ -1982,7 +1982,7 @@
     "saveSrt": "Enregistrer les sous-titres (.srt)",
     "saveVtt": "Enregistrer les sous-titres (.vtt)",
     "folder": "Dossier de l’historique",
-    "keptHere": "La transcription et l’audio de chaque session sont conservés sur cet ordinateur et ne sont pas envoyés en ligne.",
+    "keptHere": "L’historique conserve la transcription et l’enregistrement de chaque session sur cet ordinateur uniquement. Pendant une session, votre voix est toujours envoyée aux services choisis.",
     "confirmPurge_one": "Supprimer définitivement {{count}} enregistrement ? Sa transcription et son enregistrement audio ne pourront pas être récupérés.",
     "hits_one": "{{count}} correspondance",
     "sentenceCount_one": "{{count}} phrase",

@@ -1982,7 +1982,7 @@
     "saveSrt": "Lưu phụ đề (.srt)",
     "saveVtt": "Lưu phụ đề (.vtt)",
     "folder": "Thư mục lịch sử",
-    "keptHere": "Bản ghi lời và bản ghi âm của mỗi phiên được lưu trên máy tính này và không được tải lên.",
+    "keptHere": "Lịch sử chỉ lưu bản chép lời và bản ghi âm của mỗi phiên trên máy tính này. Trong phiên, giọng nói của bạn vẫn được gửi tới các dịch vụ đã chọn.",
     "confirmPurge_one": "Xóa vĩnh viễn {{count}} bản ghi? Bản ghi lời và bản ghi âm của chúng sẽ không khôi phục được.",
     "hits_one": "{{count}} kết quả khớp",
     "sentenceCount_one": "{{count}} câu",

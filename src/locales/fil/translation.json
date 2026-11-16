@@ -1982,7 +1982,7 @@
     "saveSrt": "I-save ang subtitle (.srt)",
     "saveVtt": "I-save ang subtitle (.vtt)",
     "folder": "Folder ng Kasaysayan",
-    "keptHere": "Itinatago sa computer na ito ang transcript at recording ng bawat session, at hindi ina-upload ang mga ito.",
+    "keptHere": "Itinatago ng History ang transcript at recording ng bawat session sa computer na ito lang. Habang may session, ipinapadala pa rin ang boses mo sa mga serbisyong pinili mo.",
     "confirmPurge_one": "Burahin nang tuluyan ang {{count}} na record? Hindi na maibabalik ang mga transcript at recording nila.",
     "hits_one": "{{count}} na tugma",
     "sentenceCount_one": "{{count}} pangungusap",

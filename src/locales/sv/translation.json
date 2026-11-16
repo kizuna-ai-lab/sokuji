@@ -1982,7 +1982,7 @@
     "saveSrt": "Spara undertexter (.srt)",
     "saveVtt": "Spara undertexter (.vtt)",
     "folder": "Historikmapp",
-    "keptHere": "Transkriptionen och inspelningen av varje session sparas på den här datorn och laddas inte upp.",
+    "keptHere": "Historiken sparar varje sessions transkription och inspelning bara på den här datorn. Under en session skickas ditt tal fortfarande till de tjänster du valt.",
     "confirmPurge_one": "Radera {{count}} post permanent? Dess transkription och inspelning går inte att få tillbaka.",
     "hits_one": "{{count}} träff",
     "sentenceCount_one": "{{count}} mening",

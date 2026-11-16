@@ -43,6 +43,13 @@ describe('history and notes', () => {
     delete (window as unknown as { electron?: unknown }).electron;
   });
 
+  // Review: "not uploaded" read as if nothing left the computer; during a session the speech goes to the services.
+  it('says the copy History keeps stays here, and that a session still sends speech to the line-up', async () => {
+    render(<HistoryCategory locked={false} />);
+    expect(await screen.findByText(/on this computer only.*still goes to the services in your line-up/)).toBeInTheDocument();
+    expect(screen.queryByText(/not uploaded/)).toBeNull();
+  });
+
   it('has no auto-save switch: History keeps every session on the desktop', async () => {
     render(<HistoryCategory locked={false} />);
     await settle();

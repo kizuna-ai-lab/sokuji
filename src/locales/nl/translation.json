@@ -1982,7 +1982,7 @@
     "saveSrt": "Ondertitels opslaan (.srt)",
     "saveVtt": "Ondertitels opslaan (.vtt)",
     "folder": "Geschiedenismap",
-    "keptHere": "De transcriptie en geluidsopname van elke sessie blijven op deze computer en worden niet geüpload.",
+    "keptHere": "De geschiedenis bewaart het transcript en de opname van elke sessie alleen op deze computer. Tijdens een sessie gaat je spraak nog steeds naar de gekozen diensten.",
     "confirmPurge_one": "{{count}} opname definitief verwijderen? De transcriptie en geluidsopname kunnen niet worden teruggehaald.",
     "hits_one": "{{count}} treffer",
     "sentenceCount_one": "{{count}} zin",
