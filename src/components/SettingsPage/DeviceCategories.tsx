@@ -14,6 +14,7 @@ import AudioDeviceSection from '../Settings/sections/AudioDeviceSection';
 import SpeechOutputSection from '../Settings/sections/SpeechOutputSection';
 import SystemAudioSection from '../Settings/sections/SystemAudioSection';
 import type { CategoryBodyProps } from './SettingsPage';
+import { AudioModeSwitch } from './AudioModeSwitch';
 
 /** Every downloaded model in one place: the local provider's storage page, the readings dictionary with it. */
 export function ModelsCategory({ locked }: CategoryBodyProps) {
@@ -33,13 +34,15 @@ export function ModelsCategory({ locked }: CategoryBodyProps) {
   return <ModelsPage locked={locked} settings={settings} pair={pair} />;
 }
 
-/** Microphone, speech, the other side's audio — today's hierarchy and locks. */
+/** The mode, then microphone, speech, the other side's audio — today's hierarchy and locks. The mode switch is here so
+ *  the drawing and the devices of each mode can be seen without the session's picker (owner, 2026-11-15). */
 export function AudioCategory({ locked }: CategoryBodyProps) {
   const mode = useMode();
   const lockMic = locked && mode === 'participant';
   const lockParticipant = mode === 'speaker';
   return (
     <>
+      <AudioModeSwitch locked={locked} />
       <AudioDeviceSection isSessionActive={locked} isLocked={lockMic} />
       <SpeechOutputSection isSessionActive={locked} />
       <SystemAudioSection isSessionActive={locked} isLocked={lockParticipant} />
