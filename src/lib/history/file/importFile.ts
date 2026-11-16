@@ -132,6 +132,8 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
       if (!loud && chunk.some((v) => v > LOUD || v < -LOUD)) loud = true;
       samples += chunk.length;
       track.pcm(chunk, startedAt + Math.round(samples / (SAMPLE_RATE / 1000)));
+      // Decoding outruns Opus: what the encoder has not yet encoded must not pile up (a 3-hour WAV reached 1 GB).
+      await track.drain();
       await send(track.take());
       await pause();
     }

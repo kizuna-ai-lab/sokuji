@@ -18,6 +18,8 @@ export interface OpusEncoderPort {
   encode(pcm: Int16Array): void;
   flush(): Promise<void>;
   close(): void;
+  /** Resolves once little is left waiting to be encoded (without ending anything, unlike a flush). */
+  settle?(): Promise<void>;
 }
 
 export type OpusEncoderFactory = (
@@ -33,6 +35,8 @@ export interface Track {
   pcm(pcm: Int16Array, at: number): void;
   /** The pages written since the last take (the head pages first), or null when there is nothing new. */
   take(): TrackPiece | null;
+  /** Waits until little is left for the encoder to encode: a caller faster than the encoder waits here. */
+  drain(): Promise<void>;
   /** The encoder's last packets and the end of the stream. */
   end(): Promise<TrackPiece>;
   /** Stops the track without finishing it: its encoder is closed and what waits is dropped (the recording stopped). */
@@ -196,6 +200,15 @@ export function createTrack(o: { startedAt: number; encoder: OpusEncoderFactory;
       resolve();
       pump(SILENCE_PER_TAKE);
       return piece(false);
+    },
+
+    async drain() {
+      if (failed || !encoder?.settle) return;
+      try {
+        await encoder.settle();
+      } catch {
+        fail();
+      }
     },
 
     async end() {

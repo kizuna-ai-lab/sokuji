@@ -18,9 +18,15 @@ class FakeAudioEncoder implements FakeEncoder {
   error: FakeEncoder['error'];
   constructor(init: { output: FakeEncoder['output']; error: FakeEncoder['error'] }) { this.output = init.output; this.error = init.error; encoders.push(this); }
   configure(c: unknown) { this.config = c; }
-  encode(d: FakeAudioData) { this.encoded.push({ data: d.init.data, timestamp: d.init.timestamp }); }
+  encode(d: FakeAudioData) { this.encoded.push({ data: d.init.data, timestamp: d.init.timestamp }); this.encodeQueueSize += 1; }
   async flush() {}
   close() { this.closed = true; }
+  encodeQueueSize = 0;
+  listeners = new Set<() => void>();
+  addEventListener(_type: 'dequeue', f: () => void) { this.listeners.add(f); }
+  removeEventListener(_type: 'dequeue', f: () => void) { this.listeners.delete(f); }
+  /** The encoder takes one piece off its queue. */
+  dequeue() { this.encodeQueueSize -= 1; for (const f of [...this.listeners]) f(); }
   static async isConfigSupported() { return { supported }; }
 }
 const chunk = (bytes: number[], durationUs: number) => ({ byteLength: bytes.length, duration: durationUs, copyTo: (dest: Uint8Array) => dest.set(bytes) });
@@ -34,6 +40,29 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('the Opus encoder', () => {
+  it('lets a caller go on once at most one piece waits to be encoded, and on an error', async () => {
+    const port = webCodecsOpusEncoder(() => {}, () => {}, () => {});
+    const e = encoders[0] as FakeAudioEncoder;
+    await port.settle!();
+    for (let i = 0; i < 3; i++) port.encode(new Int16Array(240000));
+    let settled = false;
+    const wait = port.settle!().then(() => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    e.dequeue();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    e.dequeue();
+    await wait;
+    expect(settled).toBe(true);
+    expect(e.listeners.size).toBe(0);
+
+    for (let i = 0; i < 3; i++) port.encode(new Int16Array(240000));
+    const onError = port.settle!();
+    e.error(new Error('encoder broke'));
+    await onError;
+  });
+
   it('asks for 24 kHz mono Opus at 48 kbit/s in 20 ms frames', () => {
     webCodecsOpusEncoder(() => {}, () => {}, () => {});
     expect(encoders[0].config).toEqual(OPUS_CONFIG);

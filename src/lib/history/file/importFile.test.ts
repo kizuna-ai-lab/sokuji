@@ -78,6 +78,24 @@ it('takes files up to five hours and 16 GB', () => {
 });
 
 describe('importing a file', () => {
+  // Measured: a 3-hour WAV decodes far faster than Opus encodes, and the waiting audio reached 1 GB.
+  it('lets the encoder catch up before decoding further, so its waiting audio never grows with the file', async () => {
+    const { port } = fakePort();
+    let waiting = 0;
+    let most = 0;
+    const slow: OpusEncoderFactory = (onPacket, onHead, onError) => {
+      const inner = encoder(onPacket, onHead, onError);
+      return {
+        encode(p) { waiting += p.length; most = Math.max(most, waiting); inner.encode(p); },
+        flush: () => inner.flush(),
+        close() { inner.close(); },
+        async settle() { await Promise.resolve(); waiting = 0; },
+      };
+    };
+    await importFile(base(port, { encoder: slow, readDuration: async () => 60_000, decode: async () => decoded(60) }));
+    expect(most).toBeLessThanOrEqual(2 * SECOND);
+  });
+
   it('stores the recording as a new record, transcribes it, names it after the file, and closes it', async () => {
     const { port, calls, names } = fakePort();
     const phases: string[] = [];

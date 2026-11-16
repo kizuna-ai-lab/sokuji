@@ -15,7 +15,14 @@ interface WebAudioEncoder {
   encode(data: unknown): void;
   flush(): Promise<void>;
   close(): void;
+  readonly encodeQueueSize: number;
+  addEventListener(type: 'dequeue', listener: () => void): void;
+  removeEventListener(type: 'dequeue', listener: () => void): void;
 }
+
+/** Pieces left waiting in the encoder at which a caller may go on: about twenty seconds of audio at most. */
+const SETTLED_QUEUE = 1;
+const SETTLE_LOOK_MS = 50;
 interface WebCodecsGlobals {
   AudioEncoder?: {
     new (init: { output(chunk: EncodedChunk, meta?: EncoderMeta): void; error(e: unknown): void }): WebAudioEncoder;
@@ -46,6 +53,9 @@ export const webCodecsOpusEncoder: OpusEncoderFactory = (onPacket, onHead, onErr
   let headGiven = false;
   /** Microseconds of audio given so far: each piece's timestamp. */
   let timestampUs = 0;
+  /** Callers waiting for the queue to shorten: let go on an error too, which no dequeue follows. */
+  let waiting: Array<() => void> = [];
+  const letGo = () => { const w = waiting; waiting = []; for (const f of w) f(); };
   const encoder = new AudioEncoder({
     output(chunk, meta) {
       const description = meta?.decoderConfig?.description;
@@ -57,7 +67,7 @@ export const webCodecsOpusEncoder: OpusEncoderFactory = (onPacket, onHead, onErr
       chunk.copyTo(data);
       onPacket(data, Math.round(((chunk.duration ?? 20_000) * 48) / 1000));
     },
-    error: onError,
+    error: (e) => { letGo(); onError(e); },
   });
   encoder.configure(OPUS_CONFIG);
   return {
@@ -73,6 +83,21 @@ export const webCodecsOpusEncoder: OpusEncoderFactory = (onPacket, onHead, onErr
       }
     },
     flush: () => encoder.flush(),
-    close: () => encoder.close(),
+    close: () => { letGo(); encoder.close(); },
+    settle: () => new Promise<void>((resolve) => {
+      if (encoder.encodeQueueSize <= SETTLED_QUEUE) { resolve(); return; }
+      // The dequeue event, and a look every 50 ms besides: the event is not raised in every runtime.
+      let timer: ReturnType<typeof setInterval> | null = null;
+      const done = () => {
+        encoder.removeEventListener('dequeue', check);
+        if (timer !== null) clearInterval(timer);
+        waiting = waiting.filter((f) => f !== done);
+        resolve();
+      };
+      const check = () => { if (encoder.encodeQueueSize <= SETTLED_QUEUE) done(); };
+      waiting.push(done);
+      encoder.addEventListener('dequeue', check);
+      timer = setInterval(check, SETTLE_LOOK_MS);
+    }),
   };
 };
