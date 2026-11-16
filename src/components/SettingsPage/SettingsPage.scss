@@ -785,7 +785,9 @@
   .setting-item { margin: 0 0 8px; }
   .setting-label { font-size: 12.5px; }
   textarea { font-size: 12.5px; }
-  .turn-detection-options {
+  // Also under `.settings-section .setting-item`, where Settings.scss's full-width rule is more specific: it padded a
+  // 24px button by 6px top and bottom, which pushed the label to its bottom (owner, 2026-11-17).
+  .turn-detection-options, .settings-section .setting-item .turn-detection-options {
     display: inline-flex;
     width: auto;
     border: 1px solid vars.$border-subtle;
