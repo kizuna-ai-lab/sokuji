@@ -11,6 +11,7 @@ vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => bas
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading }: { heading?: boolean }) => <div id="languages-section" data-heading={String(heading)} /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
 vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
+vi.mock('./LocalVoices', () => ({ LocalVoices: () => <div id="local-voices-section" /> }));
 const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
 vi.mock('../providers/ProviderOwnSettings', async () => {
   // The provider's settings say which stage they are drawn for, so a test can tell whose options a fold holds.
@@ -116,6 +117,26 @@ describe('languages and line-up', () => {
     expect(within(card).getByRole('combobox', { name: 'Speech' })).toHaveValue('edge');
     expect(card.querySelector('#model-management-section')).toBeNull();
     expect(card.querySelector('#provider-own-settings')).not.toBeNull();
+  });
+
+  // B-20: the local engine's voices moved out of its model library into the speech card's own options.
+  it("with this device speaking, the speech card holds the local engine's voices under its speech slot", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'local_inference', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    render(<LineUpCategory locked={false} />);
+    expect(document.getElementById('local-voices-section')).toBeNull();
+    act(() => { useSettingsStore.getState().navigateToSettings('local-voices'); });
+    const card = document.getElementById('local-voices-section')!.closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByRole('combobox', { name: 'Speech' })).toHaveValue('local_inference');
+    expect(document.querySelectorAll('#local-voices-section')).toHaveLength(1);
+  });
+
+  it("with Edge speaking, the speech card has no local voices", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    render(<LineUpCategory locked={false} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('edge-voices'); });
+    expect(document.getElementById('local-voices-section')).toBeNull();
   });
 
   it('says so when Granite Speech turns speech straight into the translation', () => {

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
-import { openTtsSlot } from '../../providers/openTtsSlot';
+import { openLocalVoices } from '../../providers/openTtsSlot';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import type { OutletName } from '../../../lib/audio/outlets';
 import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
@@ -40,8 +40,8 @@ export interface SpeechOutputSectionProps {
  * summary's pattern (`SpeechSection.tsx`), its `settings_mode_switched`
  * event included when it leaves Simple. Nothing for a provider without one;
  * a summary that renders nothing leaves the link empty, and Settings.scss
- * hides the line. A provider whose voices sit in its engine (`voicesInEngine`)
- * opens that leg's TTS slot instead, in either layout. Usable during a run:
+ * hides the line. A provider whose voices sit with its engine (`voicesInEngine`)
+ * opens them in the line-up's speech card instead (B-20). Usable during a run:
  * it only navigates.
  */
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
@@ -54,7 +54,8 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
 
   const openVoices = () => {
     if (selection.provider.voicesInEngine) {
-      openTtsSlot(leg);
+      // Its voices are in the line-up's speech card now (B-20), whichever leg asked.
+      openLocalVoices();
       return;
     }
     // One settings page now (no Quick or Advanced layout): the voice settings are reached directly.

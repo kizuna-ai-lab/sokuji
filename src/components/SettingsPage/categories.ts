@@ -55,6 +55,8 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'model-tts': { category: 'lineup', anchor: 'model-tts' },
   // Edge's voices, in the speech card when Edge speaks.
   'edge-voices': { category: 'lineup', anchor: 'edge-voices' },
+  // The local engine's voices, in the speech card when this device speaks (B-20).
+  'local-voices': { category: 'lineup', anchor: 'local-voices' },
   // The stage rows: where a provider is chosen (a notice with no provider).
   lineup: { category: 'lineup', anchor: 'lineup' },
   // What a provider needs besides a key (models, memory, voices, an engine slot): its own options, unfolded.

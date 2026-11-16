@@ -28,6 +28,11 @@ describe('the settings categories', () => {
     expect(targetToCategory('model-asr')).toEqual({ category: 'lineup', anchor: 'model-asr' });
   });
 
+  // B-20: the local engine's voices, in the speech card.
+  it("maps the local engine's voices to the line-up", () => {
+    expect(targetToCategory('local-voices')).toEqual({ category: 'lineup', anchor: 'local-voices' });
+  });
+
   it('filters categories by title and search words', () => {
     expect(filterCategories('key', t).map((c) => c.id)).toEqual(['accounts']);
     expect(filterCategories('麦克风', zh).map((c) => c.id)).toEqual(['audio']);
