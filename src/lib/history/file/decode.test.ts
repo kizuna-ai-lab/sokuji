@@ -40,6 +40,18 @@ describe("the import's decoder", () => {
     expect(await all(audio)).toBe(48000);
   });
 
+  // Review: an encoder's priming gives the first block a negative timestamp; what lies before the start is cut, so
+  // the recording starts with sound, not silence, and is as long as the file.
+  it('cuts what a negative first timestamp puts before the start', async () => {
+    const primed: DecodedPiece = { timestampS: -0.5, sampleRate: 24000, planes: [new Float32Array(24000).fill(0.5)] };
+    const m = media({ canStream: true, durationMs: 1500, pieces: [primed, second(0.5)] });
+    const audio = await decodeFile(file, undefined, { openMedia: async () => m, decodeWholeFile: async () => whole });
+    const out: number[] = [];
+    for await (const c of audio.pcm24k()) out.push(...c);
+    expect(out.length).toBe(36000);
+    expect(out[1000]).toBeGreaterThan(16000);
+  });
+
   // Review: a timestamp that jumps far ahead in the middle must not make hours of silence (uploaded and billed).
   it('never gives more than the file is long, whatever its timestamps say', async () => {
     const m = media({ canStream: true, durationMs: 3000, pieces: [second(0), second(1), second(36000), second(2)] });
