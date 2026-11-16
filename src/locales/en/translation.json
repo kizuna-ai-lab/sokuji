@@ -1870,7 +1870,8 @@
       },
       "notesNone": "None",
       "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written.",
-      "alsoFiles": "Also transcribes imported files and records again."
+      "alsoFiles": "Also transcribes imported files and records again.",
+      "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out."
     },
     "display": {
       "surface": "Which display",
@@ -1927,6 +1928,22 @@
       "guideLine": "Step-by-step tips on the main screen.",
       "restart": "Start again",
       "needHelp": "Need help:"
+    },
+    "wordList": {
+      "hint": "Names and terms for every service, sent at the start of each session. Each service gets the columns it has a place for.",
+      "written": "Written as",
+      "translation": "Translation",
+      "heardAs": "Often heard as",
+      "background": "Session background",
+      "backgroundHint": "What the session is about: an agenda, a topic, who takes part.",
+      "remove": "Remove",
+      "addRow": "Add a row",
+      "paste": "Paste several: one per line, \"written\" or \"written = translation\"",
+      "addPasted": "Add these",
+      "usage": "Which services use what",
+      "service": "Service",
+      "thisDevice": "This device",
+      "others": "OpenAI Translate, OpenAI Live and Palabra have no place for a word list; they get none."
     }
   },
   "history": {

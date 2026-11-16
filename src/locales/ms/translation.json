@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Tiada",
       "notesNeedKey": "Tambah kunci OpenAI dalam “Akaun dan kunci” supaya nota ditulis.",
-      "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula."
+      "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula.",
+      "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan."
     },
     "display": {
       "surface": "Paparan mana",
@@ -1927,6 +1928,22 @@
       "guideLine": "Petua langkah demi langkah pada skrin utama.",
       "restart": "Mula semula",
       "needHelp": "Perlukan bantuan:"
+    },
+    "wordList": {
+      "hint": "Nama dan istilah untuk semua perkhidmatan, dihantar pada permulaan setiap sesi. Setiap perkhidmatan menerima lajur yang ada tempatnya.",
+      "written": "Ditulis",
+      "translation": "Terjemahan",
+      "heardAs": "Sering didengar sebagai",
+      "background": "Latar sesi",
+      "backgroundHint": "Tentang apa sesi ini: agenda, topik, siapa yang menyertai.",
+      "remove": "Buang",
+      "addRow": "Tambah baris",
+      "paste": "Tampal beberapa: satu setiap baris, \"tulisan\" atau \"tulisan = terjemahan\"",
+      "addPasted": "Tambah ini",
+      "usage": "Apa yang digunakan setiap perkhidmatan",
+      "service": "Perkhidmatan",
+      "thisDevice": "Peranti ini",
+      "others": "OpenAI Translate, OpenAI Live dan Palabra tiada tempat untuk senarai perkataan; ia tidak dihantar."
     }
   },
   "history": {

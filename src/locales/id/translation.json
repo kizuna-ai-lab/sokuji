@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Tidak ada",
       "notesNeedKey": "Tambahkan kunci OpenAI di “Akun dan kunci” agar catatan ditulis.",
-      "alsoFiles": "Juga mentranskripsi file yang diimpor dan mentranskripsi ulang catatan."
+      "alsoFiles": "Juga mentranskripsi file yang diimpor dan mentranskripsi ulang catatan.",
+      "wordsLeftOut": "Daftar kata: {{count}} entri yang melebihi batas layanan ini tidak disertakan."
     },
     "display": {
       "surface": "Tampilan mana",
@@ -1927,6 +1928,22 @@
       "guideLine": "Tips langkah demi langkah di layar utama.",
       "restart": "Mulai lagi",
       "needHelp": "Butuh bantuan:"
+    },
+    "wordList": {
+      "hint": "Nama dan istilah untuk semua layanan, dikirim di awal setiap sesi. Setiap layanan menerima kolom yang punya tempat di layanan itu.",
+      "written": "Ditulis",
+      "translation": "Terjemahan",
+      "heardAs": "Sering terdengar",
+      "background": "Latar sesi",
+      "backgroundHint": "Tentang apa sesi ini: agenda, topik, siapa yang ikut.",
+      "remove": "Hapus",
+      "addRow": "Tambah baris",
+      "paste": "Tempel beberapa: satu per baris, \"tulisan\" atau \"tulisan = terjemahan\"",
+      "addPasted": "Tambahkan ini",
+      "usage": "Apa yang dipakai tiap layanan",
+      "service": "Layanan",
+      "thisDevice": "Perangkat ini",
+      "others": "OpenAI Translate, OpenAI Live, dan Palabra tidak punya tempat untuk daftar kata; layanan ini tidak menerimanya."
     }
   },
   "history": {

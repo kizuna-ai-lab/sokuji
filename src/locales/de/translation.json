@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Keine",
       "notesNeedKey": "Fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu, damit Notizen geschrieben werden.",
-      "alsoFiles": "Transkribiert auch importierte Dateien und Einträge erneut."
+      "alsoFiles": "Transkribiert auch importierte Dateien und Einträge erneut.",
+      "wordsLeftOut": "Wortliste: {{count}} Einträge über der Grenze dieses Dienstes werden ausgelassen."
     },
     "display": {
       "surface": "Welche Anzeige",
@@ -1927,6 +1928,22 @@
       "guideLine": "Schritt-für-Schritt-Hinweise auf dem Hauptbildschirm.",
       "restart": "Neu starten",
       "needHelp": "Hilfe nötig:"
+    },
+    "wordList": {
+      "hint": "Namen und Begriffe für alle Dienste, gesendet zu Beginn jeder Sitzung. Jeder Dienst erhält die Spalten, für die er ein Feld hat.",
+      "written": "Schreibweise",
+      "translation": "Übersetzung",
+      "heardAs": "Oft gehört als",
+      "background": "Hintergrund der Sitzung",
+      "backgroundHint": "Worum es in der Sitzung geht: eine Tagesordnung, ein Thema, wer teilnimmt.",
+      "remove": "Entfernen",
+      "addRow": "Zeile hinzufügen",
+      "paste": "Mehrere einfügen: eine pro Zeile, „Schreibweise“ oder „Schreibweise = Übersetzung“",
+      "addPasted": "Diese hinzufügen",
+      "usage": "Welcher Dienst was verwendet",
+      "service": "Dienst",
+      "thisDevice": "Dieses Gerät",
+      "others": "OpenAI Translate, OpenAI Live und Palabra haben kein Feld für eine Wortliste; sie erhalten keine."
     }
   },
   "history": {

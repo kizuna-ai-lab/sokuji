@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Wala",
       "notesNeedKey": "Magdagdag ng OpenAI key sa “Mga account at key” para maisulat ang mga tala.",
-      "alsoFiles": "Nagta-transcribe din ng mga na-import na file at muli ng mga rekord."
+      "alsoFiles": "Nagta-transcribe din ng mga na-import na file at muli ng mga rekord.",
+      "wordsLeftOut": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi isinasama."
     },
     "display": {
       "surface": "Aling display",
@@ -1927,6 +1928,22 @@
       "guideLine": "Sunud-sunod na tips sa pangunahing screen.",
       "restart": "Simulan muli",
       "needHelp": "Kailangan ng tulong:"
+    },
+    "wordList": {
+      "hint": "Mga pangalan at termino para sa bawat serbisyo, ipinapadala sa simula ng bawat session. Natatanggap ng bawat serbisyo ang mga column na may lugar ito.",
+      "written": "Isinusulat na",
+      "translation": "Salin",
+      "heardAs": "Madalas marinig bilang",
+      "background": "Background ng session",
+      "backgroundHint": "Tungkol saan ang session: isang agenda, isang paksa, sino ang kasali.",
+      "remove": "Alisin",
+      "addRow": "Magdagdag ng hilera",
+      "paste": "Mag-paste ng ilan: isa bawat linya, \"isinusulat\" o \"isinusulat = salin\"",
+      "addPasted": "Idagdag ang mga ito",
+      "usage": "Ano ang ginagamit ng bawat serbisyo",
+      "service": "Serbisyo",
+      "thisDevice": "Ang device na ito",
+      "others": "Walang lugar para sa listahan ng salita ang OpenAI Translate, OpenAI Live at Palabra; wala silang natatanggap."
     }
   },
   "history": {

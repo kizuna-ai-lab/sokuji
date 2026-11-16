@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Geen",
       "notesNeedKey": "Voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’ om notities te laten schrijven.",
-      "alsoFiles": "Transcribeert ook geïmporteerde bestanden en verslagen opnieuw."
+      "alsoFiles": "Transcribeert ook geïmporteerde bestanden en verslagen opnieuw.",
+      "wordsLeftOut": "Woordenlijst: {{count}} items boven de grens van deze dienst worden weggelaten."
     },
     "display": {
       "surface": "Welke weergave",
@@ -1927,6 +1928,22 @@
       "guideLine": "Stapsgewijze tips op het hoofdscherm.",
       "restart": "Opnieuw beginnen",
       "needHelp": "Hulp nodig:"
+    },
+    "wordList": {
+      "hint": "Namen en termen voor alle diensten, verstuurd aan het begin van elke sessie. Elke dienst krijgt de kolommen waarvoor hij een veld heeft.",
+      "written": "Schrijfwijze",
+      "translation": "Vertaling",
+      "heardAs": "Vaak gehoord als",
+      "background": "Achtergrond van de sessie",
+      "backgroundHint": "Waar de sessie over gaat: een agenda, een onderwerp, wie deelneemt.",
+      "remove": "Verwijderen",
+      "addRow": "Rij toevoegen",
+      "paste": "Meerdere plakken: één per regel, \"schrijfwijze\" of \"schrijfwijze = vertaling\"",
+      "addPasted": "Deze toevoegen",
+      "usage": "Wat elke dienst gebruikt",
+      "service": "Dienst",
+      "thisDevice": "Dit apparaat",
+      "others": "OpenAI Translate, OpenAI Live en Palabra hebben geen veld voor een woordenlijst; ze krijgen er geen."
     }
   },
   "history": {

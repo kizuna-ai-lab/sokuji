@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Không",
       "notesNeedKey": "Thêm khóa OpenAI trong “Tài khoản và khóa” để ghi chú được viết.",
-      "alsoFiles": "Cũng chép lời tệp đã nhập và chép lời lại bản ghi."
+      "alsoFiles": "Cũng chép lời tệp đã nhập và chép lời lại bản ghi.",
+      "wordsLeftOut": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này bị bỏ qua."
     },
     "display": {
       "surface": "Hiển thị nào",
@@ -1927,6 +1928,22 @@
       "guideLine": "Gợi ý từng bước trên màn hình chính.",
       "restart": "Bắt đầu lại",
       "needHelp": "Cần trợ giúp:"
+    },
+    "wordList": {
+      "hint": "Tên và thuật ngữ cho mọi dịch vụ, gửi khi bắt đầu mỗi phiên. Mỗi dịch vụ nhận những cột mà dịch vụ đó có chỗ để nhận.",
+      "written": "Cách viết",
+      "translation": "Bản dịch",
+      "heardAs": "Thường bị nghe thành",
+      "background": "Bối cảnh phiên",
+      "backgroundHint": "Phiên này nói về gì: chương trình, chủ đề, ai tham gia.",
+      "remove": "Xóa",
+      "addRow": "Thêm một dòng",
+      "paste": "Dán nhiều mục: mỗi dòng một mục, \"cách viết\" hoặc \"cách viết = bản dịch\"",
+      "addPasted": "Thêm các mục này",
+      "usage": "Mỗi dịch vụ dùng gì",
+      "service": "Dịch vụ",
+      "thisDevice": "Thiết bị này",
+      "others": "OpenAI Translate, OpenAI Live và Palabra không có chỗ cho danh sách từ; chúng không nhận được gì."
     }
   },
   "history": {

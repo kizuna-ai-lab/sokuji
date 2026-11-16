@@ -33,6 +33,13 @@ export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: 
   local_inference: { columns: ['terms', 'translations', 'background'], entries: 100 },
 };
 
+/** The service a provider in the line-up sends the word list to: Kizuna AI's twins use their base's. */
+export function wordServiceOf(providerId: string | null | undefined): string | null {
+  if (!providerId) return null;
+  const twin: Record<string, string> = { kizunaai_soniox: 'soniox', kizunaai_qwen: 'qwen_livetranslate' };
+  return twin[providerId] ?? providerId;
+}
+
 /**
  * Soniox refuses a session whose serialized context is over 10,000 characters ("Context is too long"); the context is
  * kept under this, with room for the JSON around it that Soniox counts.

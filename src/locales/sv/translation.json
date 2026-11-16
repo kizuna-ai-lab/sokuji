@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Ingen",
       "notesNeedKey": "Lägg till en OpenAI-nyckel under ”Konton och nycklar” så skrivs anteckningar.",
-      "alsoFiles": "Transkriberar även importerade filer och poster igen."
+      "alsoFiles": "Transkriberar även importerade filer och poster igen.",
+      "wordsLeftOut": "Ordlista: {{count}} poster över tjänstens gräns utelämnas."
     },
     "display": {
       "surface": "Vilken visning",
@@ -1927,6 +1928,22 @@
       "guideLine": "Steg-för-steg-tips på huvudskärmen.",
       "restart": "Börja om",
       "needHelp": "Behöver du hjälp:"
+    },
+    "wordList": {
+      "hint": "Namn och termer för alla tjänster, skickas i början av varje session. Varje tjänst får de kolumner den har ett fält för.",
+      "written": "Skrivs",
+      "translation": "Översättning",
+      "heardAs": "Hörs ofta som",
+      "background": "Bakgrund för sessionen",
+      "backgroundHint": "Vad sessionen handlar om: en dagordning, ett ämne, vilka som deltar.",
+      "remove": "Ta bort",
+      "addRow": "Lägg till en rad",
+      "paste": "Klistra in flera: en per rad, ”skrivs” eller ”skrivs = översättning”",
+      "addPasted": "Lägg till dessa",
+      "usage": "Vad varje tjänst använder",
+      "service": "Tjänst",
+      "thisDevice": "Den här enheten",
+      "others": "OpenAI Translate, OpenAI Live och Palabra har inget fält för en ordlista; de får ingen."
     }
   },
   "history": {

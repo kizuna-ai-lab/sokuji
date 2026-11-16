@@ -26,6 +26,7 @@ const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
 import { LineUpCategory, stageInSentence } from './LineUpCategory';
+import { useWordList } from '../../lib/words/list';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import useSettingsStore from '../../stores/settingsStore';
@@ -117,6 +118,17 @@ describe('languages and line-up', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     render(<LineUpCategory locked={false} />);
     expect(screen.queryByText('Also transcribes imported files and records again.')).toBeNull();
+  });
+
+  it("says on a stage how many word list entries its service leaves out, once per service", () => {
+    useWordList.setState({ entries: Array.from({ length: 1005 }, (_, i) => ({ written: `w${i}`, translation: `t${i}` })), background: '', loaded: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'qwen_livetranslate', translation: 'qwen_livetranslate', speech: 'qwen_livetranslate', summarisation: null }, stored: true });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(screen.getAllByText('Word list: 5 entries over this service’s limit are left out.')).toHaveLength(1);
+    unmount();
+    useWordList.setState({ entries: [{ written: 'Sokuji' }], background: '', loaded: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText(/left out/)).toBeNull();
   });
 
   it('says on each row whether the stage is ready or what it lacks', () => {

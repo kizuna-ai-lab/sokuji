@@ -5,9 +5,11 @@
 // setting a provider uses is that provider's own options, folded under the rows.
 // On the desktop a fourth card chooses who writes the notes: none, or OpenAI with
 // the user's own key (client side only for now, owner 2026-11-16).
+import { useWordList } from '../../lib/words/list';
+import { wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AudioLines, ChevronDown, ChevronRight, Link2 } from 'lucide-react';
+import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
@@ -60,6 +62,8 @@ function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key
 }
 
 export function LineUpCategory({ locked }: CategoryBodyProps) {
+  const wordEntries = useWordList((s) => s.entries);
+  const wordBackground = useWordList((s) => s.background);
   const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
   const providers = useMemo(() => presentProviders(), []);
@@ -239,6 +243,21 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                   {t('settingsPage.lineup.alsoFiles', 'Also transcribes imported files and records again.')}
                 </p>
               )}
+              {(() => {
+                // The word list goes to the services that hear and translate: over a service's limit, its first stage says so.
+                if (stage !== 'transcription' && stage !== 'translation') return null;
+                const id = lineUp?.[stage] ?? null;
+                if (stage === 'translation' && id === lineUp?.transcription) return null;
+                const service = wordServiceOf(id);
+                const leftOut = service ? wordsFor(service, wordEntries, wordBackground).leftOut : 0;
+                if (leftOut === 0) return null;
+                return (
+                  <p className="lineup-stage__joint">
+                    <ListX size={12} aria-hidden="true" />
+                    {t('settingsPage.lineup.wordsLeftOut', 'Word list: {{count}} entries over this service’s limit are left out.', { count: leftOut })}
+                  </p>
+                );
+              })()}
               {moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>}
               {(() => {
                 const o = optionsOf(stage);

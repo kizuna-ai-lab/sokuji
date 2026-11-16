@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Ei mitään",
       "notesNeedKey": "Lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
-      "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen."
+      "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen.",
+      "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -1927,6 +1928,22 @@
       "guideLine": "Vaiheittaiset vinkit päänäkymässä.",
       "restart": "Aloita alusta",
       "needHelp": "Tarvitsetko apua:"
+    },
+    "wordList": {
+      "hint": "Nimet ja termit kaikille palveluille, lähetetään jokaisen istunnon alussa. Kukin palvelu saa ne sarakkeet, joille sillä on kenttä.",
+      "written": "Kirjoitusasu",
+      "translation": "Käännös",
+      "heardAs": "Kuullaan usein",
+      "background": "Istunnon tausta",
+      "backgroundHint": "Mistä istunnossa on kyse: esityslista, aihe, osallistujat.",
+      "remove": "Poista",
+      "addRow": "Lisää rivi",
+      "paste": "Liitä useita: yksi riville, ”kirjoitusasu” tai ”kirjoitusasu = käännös”",
+      "addPasted": "Lisää nämä",
+      "usage": "Mitä kukin palvelu käyttää",
+      "service": "Palvelu",
+      "thisDevice": "Tämä laite",
+      "others": "OpenAI Translatessa, OpenAI Livessa ja Palabrassa ei ole kenttää sanalistalle; ne eivät saa mitään."
     }
   },
   "history": {

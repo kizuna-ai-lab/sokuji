@@ -29,7 +29,7 @@ describe('the settings page', () => {
     render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
     const nav = screen.getByRole('navigation');
     expect(within(nav).getAllByRole('button', { name: /^(Languages and line-up|Accounts and keys|Models and storage|Audio|Display|General)/ })).toHaveLength(6);
-    expect(within(nav).queryByRole('button', { name: /Word list/ })).toBeNull();
+    expect(within(nav).getByRole('button', { name: /Word list/ })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: 'Languages and line-up' })).toBeInTheDocument();
   });
 

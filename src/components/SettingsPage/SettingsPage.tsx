@@ -17,6 +17,7 @@ import { AudioCategory, ModelsCategory } from './DeviceCategories';
 import { DisplayCategory } from './DisplayCategory';
 import { GeneralCategory } from './GeneralCategory';
 import { HistoryCategory } from './HistoryCategory';
+import { WordsCategory } from './WordsCategory';
 import { useWideForm } from './useWideForm';
 // Today's sections (rows, selects, key fields) are styled there; the old panel that loaded it is gone.
 import '../Settings/Settings.scss';
@@ -32,6 +33,7 @@ export type CategoryBodies = Partial<Record<CategoryId, ComponentType<CategoryBo
 /** Each category's body; a category without one shows its title only. */
 export const CATEGORY_BODIES: CategoryBodies = {
   lineup: LineUpCategory,
+  words: WordsCategory,
   accounts: AccountsCategory,
   models: ModelsCategory,
   audio: AudioCategory,

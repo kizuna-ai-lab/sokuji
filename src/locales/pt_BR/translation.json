@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Nenhum",
       "notesNeedKey": "Adicione uma chave da OpenAI em “Contas e chaves” para que as notas sejam escritas.",
-      "alsoFiles": "Também transcreve arquivos importados e registros de novo."
+      "alsoFiles": "Também transcreve arquivos importados e registros de novo.",
+      "wordsLeftOut": "Lista de palavras: {{count}} entradas acima do limite deste serviço ficam de fora."
     },
     "display": {
       "surface": "Qual exibição",
@@ -1927,6 +1928,22 @@
       "guideLine": "Dicas passo a passo na tela principal.",
       "restart": "Recomeçar",
       "needHelp": "Precisa de ajuda:"
+    },
+    "wordList": {
+      "hint": "Nomes e termos para todos os serviços, enviados no início de cada sessão. Cada serviço recebe as colunas para as quais tem um campo.",
+      "written": "Escrita",
+      "translation": "Tradução",
+      "heardAs": "Muitas vezes ouvido como",
+      "background": "Contexto da sessão",
+      "backgroundHint": "Do que trata a sessão: uma pauta, um tema, quem participa.",
+      "remove": "Remover",
+      "addRow": "Adicionar uma linha",
+      "paste": "Colar várias: uma por linha, \"escrita\" ou \"escrita = tradução\"",
+      "addPasted": "Adicionar estas",
+      "usage": "O que cada serviço usa",
+      "service": "Serviço",
+      "thisDevice": "Este dispositivo",
+      "others": "OpenAI Translate, OpenAI Live e Palabra não têm campo para uma lista de palavras; não recebem nenhuma."
     }
   },
   "history": {

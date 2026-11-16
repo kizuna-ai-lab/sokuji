@@ -1870,7 +1870,8 @@
       },
       "notesNone": "없음",
       "notesNeedKey": "메모를 작성하려면 ‘계정과 키’에서 OpenAI 키를 추가하세요.",
-      "alsoFiles": "가져온 파일과 기록을 다시 받아 적을 때도 씁니다."
+      "alsoFiles": "가져온 파일과 기록을 다시 받아 적을 때도 씁니다.",
+      "wordsLeftOut": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 빠집니다."
     },
     "display": {
       "surface": "어느 화면",
@@ -1927,6 +1928,22 @@
       "guideLine": "메인 화면에서 단계별로 보여 주는 안내입니다.",
       "restart": "다시 시작",
       "needHelp": "도움이 필요하면:"
+    },
+    "wordList": {
+      "hint": "모든 서비스에 쓰는 이름과 용어로, 세션을 시작할 때마다 보냅니다. 각 서비스는 받을 자리가 있는 열만 받습니다.",
+      "written": "표기",
+      "translation": "번역",
+      "heardAs": "자주 잘못 들리는 말",
+      "background": "세션 배경",
+      "backgroundHint": "세션의 내용: 안건, 주제, 참석자 등.",
+      "remove": "삭제",
+      "addRow": "행 추가",
+      "paste": "여러 개 붙여넣기: 한 줄에 하나씩, \"표기\" 또는 \"표기 = 번역\"",
+      "addPasted": "이 항목 추가",
+      "usage": "서비스별로 쓰는 항목",
+      "service": "서비스",
+      "thisDevice": "이 기기",
+      "others": "OpenAI Translate, OpenAI Live, Palabra에는 단어 목록을 받을 자리가 없어 보내지 않습니다."
     }
   },
   "history": {

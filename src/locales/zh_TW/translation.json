@@ -1870,7 +1870,8 @@
       },
       "notesNone": "無",
       "notesNeedKey": "在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。",
-      "alsoFiles": "也用於匯入檔案和重新轉寫。"
+      "alsoFiles": "也用於匯入檔案和重新轉寫。",
+      "wordsLeftOut": "詞表：超出這個服務上限的 {{count}} 筆沒有傳送。"
     },
     "display": {
       "surface": "哪個介面",
@@ -1927,6 +1928,22 @@
       "guideLine": "主畫面上一步一步的提示。",
       "restart": "重新開始",
       "needHelp": "需要協助："
+    },
+    "wordList": {
+      "hint": "所有服務共用的名字和術語，每次工作階段開始時傳送。每個服務只收到它有地方放的那幾欄。",
+      "written": "寫法",
+      "translation": "譯法",
+      "heardAs": "常被聽成",
+      "background": "工作階段背景",
+      "backgroundHint": "這次工作階段講什麼：議程、主題、有誰參加。",
+      "remove": "刪除",
+      "addRow": "新增一列",
+      "paste": "一次貼上多筆：每行一筆，「寫法」或「寫法 = 譯法」",
+      "addPasted": "新增這些",
+      "usage": "各服務用哪些",
+      "service": "服務",
+      "thisDevice": "本機",
+      "others": "OpenAI Translate、OpenAI Live 和 Palabra 沒有放詞表的地方，不會收到。"
     }
   },
   "history": {

@@ -1870,7 +1870,8 @@
       },
       "notesNone": "无",
       "notesNeedKey": "在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。",
-      "alsoFiles": "也用于导入文件和重新转写。"
+      "alsoFiles": "也用于导入文件和重新转写。",
+      "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。"
     },
     "display": {
       "surface": "哪个界面",
@@ -1927,6 +1928,22 @@
       "guideLine": "主界面上一步一步的提示。",
       "restart": "重新开始",
       "needHelp": "需要帮助："
+    },
+    "wordList": {
+      "hint": "所有服务共用的名字和术语，每次会话开始时发送。每个服务只收到它有地方放的那几列。",
+      "written": "写法",
+      "translation": "译法",
+      "heardAs": "常被听成",
+      "background": "会话背景",
+      "backgroundHint": "这次会话讲什么：议程、主题、有谁参加。",
+      "remove": "删除",
+      "addRow": "添加一行",
+      "paste": "一次粘贴多条：每行一条，“写法”或“写法 = 译法”",
+      "addPasted": "添加这些",
+      "usage": "各服务用哪些",
+      "service": "服务",
+      "thisDevice": "本机",
+      "others": "OpenAI Translate、OpenAI Live 和 Palabra 没有放词表的地方，不会收到。"
     }
   },
   "history": {

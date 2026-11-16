@@ -29,8 +29,8 @@ const category = (c: Omit<Category, 'titleKey' | 'wordsKey'>): Category => ({
 
 export const CATEGORIES: readonly Category[] = [
   category({ id: 'lineup', group: 'session', words: ['language', 'languages', 'speech mode', 'push to talk', 'transcription', 'translation', 'speech', 'voice', 'provider', 'model', 'line-up'], lockedInSession: 'locked', shown: () => true }),
-  // Shown once the word list exists (design A, phase 5).
-  category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => false }),
+  // The app's one word list and the session background (spec §9); the extension has it too.
+  category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance'], lockedInSession: 'partly', shown: () => true }),
   category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'open', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),

@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Brak",
       "notesNeedKey": "Dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane.",
-      "alsoFiles": "Transkrybuje też zaimportowane pliki i ponownie zapisy."
+      "alsoFiles": "Transkrybuje też zaimportowane pliki i ponownie zapisy.",
+      "wordsLeftOut": "Lista słów: {{count}} wpisów ponad limit tej usługi zostaje pominiętych."
     },
     "display": {
       "surface": "Który widok",
@@ -1927,6 +1928,22 @@
       "guideLine": "Wskazówki krok po kroku na ekranie głównym.",
       "restart": "Zacznij od nowa",
       "needHelp": "Potrzebujesz pomocy:"
+    },
+    "wordList": {
+      "hint": "Nazwy i terminy dla wszystkich usług, wysyłane na początku każdej sesji. Każda usługa dostaje kolumny, dla których ma pole.",
+      "written": "Zapis",
+      "translation": "Tłumaczenie",
+      "heardAs": "Często słyszane jako",
+      "background": "Tło sesji",
+      "backgroundHint": "Czego dotyczy sesja: porządek obrad, temat, uczestnicy.",
+      "remove": "Usuń",
+      "addRow": "Dodaj wiersz",
+      "paste": "Wklej kilka: po jednym w wierszu, „zapis” albo „zapis = tłumaczenie”",
+      "addPasted": "Dodaj te",
+      "usage": "Co wykorzystuje każda usługa",
+      "service": "Usługa",
+      "thisDevice": "To urządzenie",
+      "others": "OpenAI Translate, OpenAI Live i Palabra nie mają miejsca na listę słów; nie dostają jej."
     }
   },
   "history": {

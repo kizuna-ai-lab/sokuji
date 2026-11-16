@@ -1870,7 +1870,8 @@
       },
       "notesNone": "なし",
       "notesNeedKey": "メモを書くには「アカウントとキー」で OpenAI のキーを追加してください。",
-      "alsoFiles": "取り込んだファイルの文字起こしと、記録の再文字起こしにも使います。"
+      "alsoFiles": "取り込んだファイルの文字起こしと、記録の再文字起こしにも使います。",
+      "wordsLeftOut": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。"
     },
     "display": {
       "surface": "どの表示",
@@ -1927,6 +1928,22 @@
       "guideLine": "メイン画面で一歩ずつ表示されるヒントです。",
       "restart": "もう一度始める",
       "needHelp": "お困りのときは："
+    },
+    "wordList": {
+      "hint": "すべてのサービスに使う名前や用語です。各セッションの開始時に送られます。各サービスには、受け取る欄のある列だけが送られます。",
+      "written": "表記",
+      "translation": "訳語",
+      "heardAs": "よく聞き取られる形",
+      "background": "セッションの背景",
+      "backgroundHint": "セッションの内容：議題、テーマ、参加者など。",
+      "remove": "削除",
+      "addRow": "行を追加",
+      "paste": "まとめて貼り付け：1 行に 1 つ、「表記」または「表記 = 訳語」",
+      "addPasted": "これらを追加",
+      "usage": "各サービスが使うもの",
+      "service": "サービス",
+      "thisDevice": "このデバイス",
+      "others": "OpenAI Translate、OpenAI Live、Palabra には単語リストを受け取る欄がないため、送られません。"
     }
   },
   "history": {

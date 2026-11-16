@@ -1870,7 +1870,8 @@
       },
       "notesNone": "Yok",
       "notesNeedKey": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
-      "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker."
+      "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker.",
+      "wordsLeftOut": "Kelime listesi: bu hizmetin sınırını aşan {{count}} giriş dışarıda kalır."
     },
     "display": {
       "surface": "Hangi görünüm",
@@ -1927,6 +1928,22 @@
       "guideLine": "Ana ekranda adım adım ipuçları.",
       "restart": "Yeniden başlat",
       "needHelp": "Yardım mı lazım:"
+    },
+    "wordList": {
+      "hint": "Tüm hizmetler için adlar ve terimler; her oturumun başında gönderilir. Her hizmet, alanı olan sütunları alır.",
+      "written": "Yazılışı",
+      "translation": "Çeviri",
+      "heardAs": "Sık duyulan biçim",
+      "background": "Oturumun arka planı",
+      "backgroundHint": "Oturumun konusu: gündem, başlık, katılanlar.",
+      "remove": "Kaldır",
+      "addRow": "Satır ekle",
+      "paste": "Birkaç tane yapıştırın: satır başına bir tane, \"yazılış\" ya da \"yazılış = çeviri\"",
+      "addPasted": "Bunları ekle",
+      "usage": "Hangi hizmet neyi kullanır",
+      "service": "Hizmet",
+      "thisDevice": "Bu cihaz",
+      "others": "OpenAI Translate, OpenAI Live ve Palabra’da kelime listesi için yer yok; bunlara gönderilmez."
     }
   },
   "history": {
