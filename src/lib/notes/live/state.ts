@@ -3,8 +3,9 @@
 // The live notes (stage 4): their state, what each update sends, and the program's rules that fold an answer in, as
 // they were tested before this port (two kinds of marks, to-dos that can be withdrawn, points anchored to sentence
 // numbers, owners as sides). The notes only grow: a written point is never rewritten; the open topic takes new points until it has
-// twelve, then it is closed; a closed topic is frozen except for an `earlier` point; a to-do may be withdrawn (the mark
-// goes, the text stays). Sentences are named by their record numbers (`n`), which grow as sentences arrive.
+// twelve, then it is closed (points that do not fit go on in a topic of the same title); a closed topic is frozen except
+// for an `earlier` point; a to-do may be withdrawn (the mark goes, the text stays). Sentences are named by their record
+// numbers (`n`), which grow as sentences arrive.
 import type { HistorySentenceInput, HistorySentenceSide } from '../../history/types';
 import type { NoteKind } from '../write';
 
@@ -52,6 +53,11 @@ const optional = (x: unknown): string | null => text(x) || null;
 const isNumber = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 
 const isFull = (t: LiveTopic | undefined) => t !== undefined && t.points.length >= LIVE_FULL;
+/** A topic's title for the topic that goes on after it: "Delivery (2)", then "Delivery (3)". */
+const sameAgain = (title: string) => {
+  const m = /^(.*) \((\d+)\)$/.exec(title);
+  return m ? `${m[1]} (${Number(m[2]) + 1})` : `${title} (2)`;
+};
 
 /** The to-dos still marked, by the ids the payload gives them (t1, t2, … in reading order). */
 function todoIds(state: LiveState): Map<string, LivePoint> {
@@ -196,27 +202,38 @@ export function applyLive(given: LiveState, answer: unknown, o: LiveApplyInput):
   let opened: LiveTopic | null = null;
   if (nextTitle) {
     // The full topic's title again: keep them apart.
-    if (sealed && nextTitle === last.title) nextTitle = `${nextTitle} (2)`;
+    if (sealed && nextTitle === last.title) nextTitle = sameAgain(nextTitle);
     const raw = [...(sealed ? list(block.add) : []), ...list(next.points)];
     const points = anchored(raw, new Set());
     // A title with nothing under it is not a topic.
-    if (points.length > 0) opened = { n: topics.length + 1, title: nextTitle, summary: text(next.summary), points };
+    if (points.length > 0) opened = { n: 0, title: nextTitle, summary: text(next.summary), points };
   }
   if (!last && !opened) return null;
   if (text(answer.title)) state.title = text(answer.title);
 
-  // The open topic, or a full one the model still wrote into (kept all the same: nothing written is cut).
-  const target = current ?? (opened ? undefined : last);
-  if (target) {
-    const known = new Set(target.points.map((p) => p.text));
+  // The open topic takes points up to twelve. What does not fit, and what is written into a closed topic when no new
+  // topic opens, goes on in a topic of the same title after it: a closed topic takes only an `earlier` point.
+  let over: LivePoint[] = [];
+  if (current) {
+    const known = new Set(current.points.map((p) => p.text));
     if (opened) for (const p of opened.points) known.add(p.text);
-    target.points.push(...anchored(list(block.add), known));
+    const added = anchored(list(block.add), known);
+    const room = LIVE_FULL - current.points.length;
+    current.points.push(...added.slice(0, room));
+    over = added.slice(room);
     // Not on a move: a summary written while the speakers move on describes the move.
-    if (!opened && !sealed && text(block.summary)) target.summary = text(block.summary);
+    if (!opened && text(block.summary)) current.summary = text(block.summary);
+  } else if (sealed && !opened) {
+    over = anchored(list(block.add), new Set(last.points.map((p) => p.text)));
   }
-  if (opened) topics.push(opened);
+  if (over.length > 0) {
+    const from = current ?? last;
+    topics.push({ n: topics.length + 1, title: sameAgain(from.title), summary: from.summary, points: over });
+  }
+  if (opened) topics.push({ ...opened, n: topics.length + 1 });
 
-  const closedTopics = new Map((opened || !sealed ? topics.slice(0, -1) : topics).map((t) => [t.n, t]));
+  const openTopic = topics[topics.length - 1];
+  const closedTopics = new Map(topics.filter((t) => t !== openTopic || isFull(t)).map((t) => [t.n, t]));
   for (const e of list(answer.earlier)) {
     const topic = isRaw(e) && isNumber(e.topic) ? closedTopics.get(e.topic) : undefined;
     if (topic) topic.points.push(...anchored([e], new Set(topic.points.map((p) => p.text))));

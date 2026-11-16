@@ -40,6 +40,26 @@ describe('the live notes rules', () => {
     expect(texts(next)?.map((t) => t[0])).toEqual(['Delivery', 'Delivery (2)']);
   });
 
+  // Review: a topic never goes past twelve points; what does not fit goes on in a topic of the same title.
+  it('fills the open topic to 12 and puts what does not fit in a topic of the same title after it', () => {
+    let st = opened();
+    for (let n = 2; n <= 11; n++) st = apply(st, { current_topic: { add: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;
+    const next = apply(st, { current_topic: { add: [{ text: 'p12', sid: 12, kinds: [] }, { text: 'p13', sid: 13, kinds: [] }] } }, [s(12), s(13)])!;
+    expect(next.topics[0].points.map((p) => p.text).slice(-2)).toEqual(['p11', 'p12']);
+    expect(next.topics[0].points).toHaveLength(12);
+    expect(texts(next)?.slice(1)).toEqual([['Delivery (2)', ['p13']]]);
+  });
+
+  it('writes nothing more into a closed topic: points written into it go on in a topic of the same title', () => {
+    let st = opened();
+    for (let n = 2; n <= 12; n++) st = apply(st, { current_topic: { add: [{ text: `p${n}`, sid: n, kinds: [] }] } }, [s(n)])!;
+    const next = apply(st, { current_topic: { add: [{ text: 'p13', sid: 13, kinds: [] }] } }, [s(13)])!;
+    expect(next.topics[0].points).toHaveLength(12);
+    expect(texts(next)?.slice(1)).toEqual([['Delivery (2)', ['p13']]]);
+    const again = apply(next, { new_topic: { title: 'Delivery (2)', points: [] }, current_topic: { add: [{ text: 'p14', sid: 14, kinds: [] }] } }, [s(14)])!;
+    expect(texts(again)?.slice(1)).toEqual([['Delivery (2)', ['p13', 'p14']]]);
+  });
+
   it('keeps the same text once, and moves a point whose sentence is not new to the nearest new one', () => {
     const st = apply(opened(), { current_topic: { add: [
       { text: 'Ships Tuesday', sid: 2, kinds: [] }, { text: 'Far', sid: 99, kinds: [] }, { text: 'No number', kinds: [] },
