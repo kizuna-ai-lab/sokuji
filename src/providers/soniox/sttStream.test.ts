@@ -118,15 +118,62 @@ describe('SonioxSttStream', () => {
     const { s, ws } = await openStream();
     s.finalize();
     expect(JSON.parse(ws.sent[1] as string)).toEqual({ type: 'finalize' });
-    // keepalive fires automatically after 15 s of no audio
-    vi.advanceTimersByTime(15_000);
+    // keepalive fires automatically after 5 s of no audio, not before
+    vi.advanceTimersByTime(4_000);
+    expect(ws.sent).toHaveLength(2);
+    vi.advanceTimersByTime(1_000);
+    expect(ws.sent).toHaveLength(3);
     expect(JSON.parse(ws.sent[2] as string)).toEqual({ type: 'keepalive' });
+  });
+
+  it('sends the first keepalive within 6 s of the last audio, wherever it lands between checks', async () => {
+    const { s, ws } = await openStream();
+    vi.advanceTimersByTime(4_300); // the audio lands between two checks
+    s.sendAudio(new Int16Array([0]));
+    const before = ws.sent.length;
+    vi.advanceTimersByTime(6_000);
+    const keepalives = ws.sent.slice(before).filter(
+      (m) => typeof m === 'string' && m.includes('keepalive'));
+    expect(keepalives.length).toBeGreaterThan(0);
+  });
+
+  it('keeps every gap without audio under 10 s when the clock jitters by a few ms (Soniox drops at ~20 s)', async () => {
+    // Real timers fire a few ms early or late; a now() that wobbles around the
+    // fake timers reproduces that. With a 15 s threshold checked every 5 s, a
+    // check that reads 14 999 ms is skipped and the keepalive slips to 20 s.
+    let calls = 0;
+    const jitter = [4, 0, 2, 0, 3, 1];
+    const clock = {
+      now: () => Date.now() + jitter[calls++ % jitter.length],
+      setTimeout: (fn: () => void, ms: number) => {
+        const id = setTimeout(fn, ms);
+        return () => clearTimeout(id);
+      },
+    };
+    const s = new SonioxSttStream({ clock });
+    const p = s.connect(CONFIG);
+    MockWebSocket.instances[0].open();
+    await p;
+    const ws = MockWebSocket.instances[0];
+    const sentAt: number[] = [];
+    const send = ws.send.bind(ws);
+    ws.send = (data) => {
+      if (typeof data === 'string' && data.includes('keepalive')) sentAt.push(Date.now());
+      send(data);
+    };
+    s.sendAudio(new Int16Array([0]));
+    const lastAudio = Date.now();
+    vi.advanceTimersByTime(180_000);
+    const gaps = [sentAt[0] - lastAudio, ...sentAt.slice(1).map((t, i) => t - sentAt[i])];
+    expect(sentAt.length).toBeGreaterThan(0);
+    expect(Math.max(...gaps)).toBeLessThan(10_000);
   });
 
   it('does not send keepalive while audio is flowing', async () => {
     const { s, ws } = await openStream();
-    for (let i = 0; i < 4; i++) {
-      vi.advanceTimersByTime(5_000);
+    // Audio arrives every 20-100 ms in a session; 1 s apart is still well inside the 5 s idle threshold.
+    for (let i = 0; i < 20; i++) {
+      vi.advanceTimersByTime(1_000);
       s.sendAudio(new Int16Array([0]));
     }
     const keepalives = ws.sent.filter(

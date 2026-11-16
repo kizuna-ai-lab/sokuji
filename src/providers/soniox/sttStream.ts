@@ -13,10 +13,12 @@
  * - {"type":"finalize"} only finalizes pending tokens (emits a <fin> token);
  *   it does NOT end the session.
  * - ~20 s without input triggers "408 Request timeout"; {"type":"keepalive"}
- *   prevents it. We send one after 15 s without audio, checked every 5 s so
- *   the worst-case gap between the idle threshold firing and the actual send
- *   stays well under the server's ~20 s timeout (checking on the same 15 s
- *   cadence as the threshold let the worst case approach 30 s).
+ *   prevents it. We send one after 5 s without audio, checked every second, so
+ *   the worst case is about 6 s and leaves ~14 s for timer jitter or a busy
+ *   thread (Soniox's own SDK sends one every 5 s while paused). The earlier
+ *   15 s threshold checked every 5 s had no margin at all: a check that read
+ *   14 999 ms was skipped, and the keepalive slipped to exactly 20 s — the
+ *   repeated 408s of push-to-talk sessions, which send no audio between turns.
  */
 
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
@@ -101,8 +103,8 @@ export class SonioxSttConnectTimeout extends Error {
   }
 }
 
-const KEEPALIVE_AFTER_IDLE_MS = 15000;
-const KEEPALIVE_CHECK_INTERVAL_MS = 5000;
+const KEEPALIVE_AFTER_IDLE_MS = 5000;
+const KEEPALIVE_CHECK_INTERVAL_MS = 1000;
 
 export class SonioxSttStream {
   private ws: WebSocket | null = null;
