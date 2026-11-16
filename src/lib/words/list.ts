@@ -5,6 +5,7 @@
 // the notes prefer its spellings. The session background, free text about the session, is kept beside it. Both are
 // stored as one value each; entries keep the user's order and are told apart by their place in it.
 import { create } from 'zustand';
+import { HEARD_AS_SEPARATOR } from './forService';
 import { persistSetting } from '../../services/persistSetting';
 import { ServiceFactory } from '../../services/ServiceFactory';
 
@@ -86,9 +87,6 @@ export const useWordList = create<WordListStore>()((set) => ({
     return persistSetting(BACKGROUND_KEY, background);
   },
 }));
-
-/** Where several "often heard as" forms are told apart: any comma, the full-width and ideographic ones too. */
-export const HEARD_AS_SEPARATOR = /[,，、]/;
 
 /** One entry into a list: appended, or filling in the entry already written that way (its "often heard as" joined). */
 function merged(entries: readonly WordEntry[], added: WordEntry): WordEntry[] {

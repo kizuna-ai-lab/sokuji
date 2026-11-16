@@ -4,7 +4,11 @@
 // hot words, translations as its glossary, "often heard as" as its corrections, the session background as its
 // context — the first entries up to its limit, and how many were left out, for its stage to say so. A service with
 // no field gets nothing in this version.
-import { HEARD_AS_SEPARATOR, type WordEntry } from './list';
+// Types only from the list: the services' builders import this module, and must not pull the settings storage in.
+import type { WordEntry } from './list';
+
+/** Where several "often heard as" forms are told apart: any comma, the full-width and ideographic ones too. */
+export const HEARD_AS_SEPARATOR = /[,，、]/;
 
 export interface ServiceWords {
   terms?: string[];
