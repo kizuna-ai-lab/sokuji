@@ -17,7 +17,7 @@ import { recordCues, type RecordRow } from '../../lib/history/recordView';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { notesMarkdown, notesText, type NotesWords } from '../../lib/notes/exportNotes';
-import type { NotesBody } from '../../lib/notes/write';
+import { readNotesBody } from '../../lib/notes/write';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { copyToClipboard, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
 import { playable } from '../../lib/history/playback';
@@ -95,7 +95,7 @@ export function RecordExportMenu({ record, legs, rows, notes = null, onResult }:
   const file = (ext: 'txt' | 'json' | 'srt' | 'vtt') => exportFilename(ext, record.startedAt);
   const recorded = playable(record.tracks);
   // The notes shown, when they are complete: their own items, not narrowed by the choice above.
-  const notesBody = notes?.state === 'complete' && notes.body ? (notes.body as unknown as NotesBody) : null;
+  const notesBody = notes?.state === 'complete' && notes.body ? readNotesBody(notes.body) : null;
   const notesWords: NotesWords = {
     decision: t('history.notesKind.decision', 'Decision'), todo: t('history.notesKind.todo', 'To do'), risk: t('history.notesKind.risk', 'Risk'),
     mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side'),

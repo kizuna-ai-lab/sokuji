@@ -1,7 +1,7 @@
 // A record's notes as Markdown and as plain text.
 import { describe, it, expect } from 'vitest';
 import { notesMarkdown, notesText } from './exportNotes';
-import type { NotesBody } from './write';
+import { readNotesBody, type NotesBody } from './write';
 
 const BODY: NotesBody = {
   title: 'Supplier sync',
@@ -43,5 +43,13 @@ describe('the notes exported', () => {
     const body: NotesBody = { ...BODY, points: [{ topic: 0, text: 'Send it', sentences: [2], kinds: ['todo'], owner: 'Other side', due: null }] };
     expect(notesText(body, WORDS)).toContain('  - Send it (To do · The other side)');
     expect(notesText(BODY, WORDS)).toContain('  - The boxes were redone\n');
+  });
+
+  // Review: a stored body from elsewhere can leave out a point's kinds; the export must not throw on it.
+  it('reads a stored point with no kinds or sentences as a plain point', () => {
+    const stored = { ...BODY, points: [{ topic: 0, text: 'Ships next Tuesday' }], topics: [BODY.topics[0]] } as unknown;
+    const body = readNotesBody(stored);
+    expect(body.points[0]).toMatchObject({ kinds: [], sentences: [] });
+    expect(notesText(body, WORDS)).toContain('Ships next Tuesday');
   });
 });

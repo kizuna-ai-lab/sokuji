@@ -51,6 +51,15 @@ describe("a record's notes", () => {
     expect(screen.getByText('Risk')).toBeInTheDocument();
   });
 
+  // Review: a stored body from elsewhere can leave out a point's kinds.
+  it('shows a stored point with no kinds as a plain point', () => {
+    const bare = { ...complete, body: { ...complete.body!, points: [{ topic: 0, text: 'Ships next Tuesday' }] } } as unknown as HistoryNotes;
+    render(<RecordNotes {...props({ notes: bare })} />);
+    expect(screen.getByRole('button', { name: 'Ships next Tuesday' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'To-dos' }));
+    expect(screen.queryByRole('button', { name: 'Ships next Tuesday' })).toBeNull();
+  });
+
   it('filters the points by kind, leaving out topics with nothing left', () => {
     render(<RecordNotes {...props()} />);
     fireEvent.click(screen.getByRole('button', { name: 'To-dos' }));

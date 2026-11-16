@@ -51,6 +51,22 @@ export type NotesBody = {
   names: NotesName[];
 };
 
+const listOr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+
+/**
+ * A stored body as the record page and the exports read it. A body from elsewhere may leave out a list: a point
+ * without its kinds reads as a plain point, without its sentences as one that names none.
+ */
+export function readNotesBody(stored: unknown): NotesBody {
+  const b = stored as NotesBody;
+  return {
+    ...b,
+    topics: listOr<NotesTopic>(b.topics),
+    points: listOr<NotesPoint>(b.points).map((p) => ({ ...p, kinds: listOr<NoteKind>(p.kinds), sentences: listOr<number>(p.sentences) })),
+    names: listOr<NotesName>(b.names),
+  };
+}
+
 /** `requestIds`: the service's ids of every answer the version got (a hosted relay bills by them). */
 export type WriteNotesResult =
   | { ok: true; body: NotesBody; requestIds: string[] }

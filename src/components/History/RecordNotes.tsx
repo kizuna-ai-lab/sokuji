@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { englishLanguageName, languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
-import type { NoteKind, NotesBody } from '../../lib/notes/write';
+import { readNotesBody, type NoteKind } from '../../lib/notes/write';
 import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
@@ -150,7 +150,7 @@ export function RecordNotes(p: RecordNotesProps) {
       </div>
     );
   } else {
-    const body = p.notes.body as unknown as NotesBody;
+    const body = readNotesBody(p.notes.body);
     const shown = (kinds: readonly NoteKind[]) => filter === 'all' || kinds.includes(filter);
     const latest = p.latest && p.latest.state !== 'complete' ? p.latest : null;
     content = (
