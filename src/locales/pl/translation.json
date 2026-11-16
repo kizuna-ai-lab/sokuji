@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transkrypcja i tłumaczenie",
       "signedInBalance": "Zalogowano; saldo {{amount}}",
       "localModels": "Działa na tym komputerze; pobrano modeli: {{count}}, razem {{size}}",
-      "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli"
+      "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli",
+      "soniox": {
+        "byRegion": "Klucze według regionu",
+        "keySaved": "klucz zapisany",
+        "noKey": "brak klucza",
+        "selected": "(wybrany)",
+        "save": "Zapisz i znajdź region",
+        "finding": "Szukanie regionu tego klucza…",
+        "savedFor": "Ten klucz należy do regionu {{region}}: zapisano go tam.",
+        "unreachable": "Nie udało się zapytać Soniox, do którego regionu należy ten klucz; zapisano go dla {{region}}, regionu wybranego teraz.",
+        "refused": "Żaden region Soniox nie akceptuje tego klucza. Sprawdź, czy to klucz API Soniox.",
+        "elsewhere": "Wybrany jest region {{selected}}, ale twój klucz należy do {{region}}.",
+        "switchTo": "Przełącz na {{region}}"
+      }
     },
     "lineup": {
       "title": "Zestaw",
@@ -1838,7 +1851,9 @@
         "needsModel": "Wymaga modelu",
         "needsSignIn": "Wymaga zalogowania",
         "ready": "Gotowe",
-        "off": "Wyłączone"
+        "off": "Wyłączone",
+        "noKeyForRegion": "Brak działającego klucza dla {{region}}",
+        "keyRefused": "Klucz odrzucony"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",

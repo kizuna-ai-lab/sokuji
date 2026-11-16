@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "받아쓰기와 번역",
       "signedInBalance": "로그인됨, 잔액 {{amount}}",
       "localModels": "이 컴퓨터에서 실행됩니다. 모델 {{count}}개 다운로드됨, 모두 {{size}}",
-      "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다"
+      "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다",
+      "soniox": {
+        "byRegion": "지역별 키",
+        "keySaved": "키 저장됨",
+        "noKey": "키 없음",
+        "selected": "(선택됨)",
+        "save": "저장하고 지역 찾기",
+        "finding": "이 키의 지역을 찾는 중…",
+        "savedFor": "이 키는 {{region}}의 키입니다. 그곳에 저장했습니다.",
+        "unreachable": "이 키가 어느 지역의 키인지 Soniox에 확인할 수 없었습니다. 현재 선택한 지역({{region}})에 저장했습니다.",
+        "refused": "이 키를 받는 Soniox 지역이 없습니다. Soniox API 키인지 확인하세요.",
+        "elsewhere": "{{selected}}이(가) 선택되어 있지만 키는 {{region}}의 키입니다.",
+        "switchTo": "{{region}}(으)로 전환"
+      }
     },
     "lineup": {
       "title": "구성",
@@ -1838,7 +1851,9 @@
         "needsModel": "모델 필요",
         "needsSignIn": "로그인 필요",
         "ready": "준비됨",
-        "off": "꺼짐"
+        "off": "꺼짐",
+        "noKeyForRegion": "{{region}}에서 쓸 수 있는 키가 없음",
+        "keyRefused": "키가 거부됨"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",

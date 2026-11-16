@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transkripsyon at pagsasalin",
       "signedInBalance": "Naka-sign in; balanse {{amount}}",
       "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
-      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model"
+      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model",
+      "soniox": {
+        "byRegion": "Mga key ayon sa rehiyon",
+        "keySaved": "naka-save ang key",
+        "noKey": "walang key",
+        "selected": "(napili)",
+        "save": "I-save at hanapin ang rehiyon",
+        "finding": "Hinahanap ang rehiyon ng key na ito…",
+        "savedFor": "Ang key na ito ay sa {{region}}: doon na-save.",
+        "unreachable": "Hindi natanong ang Soniox kung saang rehiyon ang key na ito; na-save para sa {{region}}, ang rehiyong napili ngayon.",
+        "refused": "Walang rehiyon ng Soniox na tumatanggap sa key na ito. Tingnan kung API key ito ng Soniox.",
+        "elsewhere": "{{selected}} ang napili, pero ang key mo ay sa {{region}}.",
+        "switchTo": "Lumipat sa {{region}}"
+      }
     },
     "lineup": {
       "title": "Line-up",
@@ -1838,7 +1851,9 @@
         "needsModel": "Kailangan ng model",
         "needsSignIn": "Kailangang mag-sign in",
         "ready": "Handa",
-        "off": "Naka-off"
+        "off": "Naka-off",
+        "noKeyForRegion": "Walang gumaganang key para sa {{region}}",
+        "keyRefused": "Hindi tinanggap ang key"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",

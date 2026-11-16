@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "תמלול ותרגום",
       "signedInBalance": "מחובר; יתרה {{amount}}",
       "localModels": "פועל במחשב הזה; הורדו {{count}} מודלים, {{size}} בסך הכול",
-      "localNone": "פועל במחשב הזה; עדיין לא הורדו מודלים"
+      "localNone": "פועל במחשב הזה; עדיין לא הורדו מודלים",
+      "soniox": {
+        "byRegion": "מפתחות לפי אזור",
+        "keySaved": "מפתח שמור",
+        "noKey": "אין מפתח",
+        "selected": "(נבחר)",
+        "save": "שמירה ומציאת האזור",
+        "finding": "מחפשים את האזור של המפתח…",
+        "savedFor": "המפתח שייך ל{{region}}: נשמר שם.",
+        "unreachable": "לא ניתן היה לשאול את Soniox לאיזה אזור המפתח שייך; נשמר עבור {{region}}, האזור שנבחר עכשיו.",
+        "refused": "אף אזור של Soniox לא מקבל את המפתח הזה. בדקו שזה מפתח API של Soniox.",
+        "elsewhere": "נבחר {{selected}}, אבל המפתח שלכם שייך ל{{region}}.",
+        "switchTo": "מעבר ל{{region}}"
+      }
     },
     "lineup": {
       "title": "הרכב",
@@ -1838,7 +1851,9 @@
         "needsModel": "נדרש מודל",
         "needsSignIn": "נדרשת התחברות",
         "ready": "מוכן",
-        "off": "כבוי"
+        "off": "כבוי",
+        "noKeyForRegion": "אין מפתח תקין עבור {{region}}",
+        "keyRefused": "המפתח לא התקבל"
       },
       "speechModeHint": "מתי קטע דיבור נשלח לתרגום; קבוע במהלך הסשן",
       "hint": "איזה שירות מבצע כל שלב",

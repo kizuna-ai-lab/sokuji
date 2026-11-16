@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transkripsi dan terjemahan",
       "signedInBalance": "Sudah masuk; saldo {{amount}}",
       "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
-      "localNone": "Berjalan di komputer ini; belum ada model yang diunduh"
+      "localNone": "Berjalan di komputer ini; belum ada model yang diunduh",
+      "soniox": {
+        "byRegion": "Kunci per wilayah",
+        "keySaved": "kunci tersimpan",
+        "noKey": "tidak ada kunci",
+        "selected": "(dipilih)",
+        "save": "Simpan dan cari wilayahnya",
+        "finding": "Mencari wilayah kunci ini…",
+        "savedFor": "Kunci ini milik {{region}}: disimpan di sana.",
+        "unreachable": "Tidak dapat menanyakan ke Soniox wilayah kunci ini; disimpan untuk {{region}}, wilayah yang dipilih sekarang.",
+        "refused": "Tidak ada wilayah Soniox yang menerima kunci ini. Pastikan ini kunci API Soniox.",
+        "elsewhere": "{{selected}} dipilih, tetapi kunci Anda milik {{region}}.",
+        "switchTo": "Beralih ke {{region}}"
+      }
     },
     "lineup": {
       "title": "Susunan",
@@ -1838,7 +1851,9 @@
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu masuk",
         "ready": "Siap",
-        "off": "Mati"
+        "off": "Mati",
+        "noKeyForRegion": "Tidak ada kunci yang berfungsi untuk {{region}}",
+        "keyRefused": "Kunci ditolak"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
       "hint": "Layanan mana yang mengerjakan tiap tahap",

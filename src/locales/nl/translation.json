@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transcriptie en vertaling",
       "signedInBalance": "Aangemeld; saldo {{amount}}",
       "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
-      "localNone": "Draait op deze computer; nog geen modellen gedownload"
+      "localNone": "Draait op deze computer; nog geen modellen gedownload",
+      "soniox": {
+        "byRegion": "Sleutels per regio",
+        "keySaved": "sleutel opgeslagen",
+        "noKey": "geen sleutel",
+        "selected": "(geselecteerd)",
+        "save": "Opslaan en regio zoeken",
+        "finding": "Regio van deze sleutel zoeken…",
+        "savedFor": "Deze sleutel hoort bij {{region}}: daar opgeslagen.",
+        "unreachable": "Kon Soniox niet vragen bij welke regio deze sleutel hoort; opgeslagen voor {{region}}, de nu gekozen regio.",
+        "refused": "Geen enkele Soniox-regio accepteert deze sleutel. Controleer of het een Soniox-API-sleutel is.",
+        "elsewhere": "{{selected}} is gekozen, maar je sleutel hoort bij {{region}}.",
+        "switchTo": "Overschakelen naar {{region}}"
+      }
     },
     "lineup": {
       "title": "Opstelling",
@@ -1838,7 +1851,9 @@
         "needsModel": "Model nodig",
         "needsSignIn": "Inloggen nodig",
         "ready": "Klaar",
-        "off": "Uit"
+        "off": "Uit",
+        "noKeyForRegion": "Geen werkende sleutel voor {{region}}",
+        "keyRefused": "Sleutel geweigerd"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
       "hint": "Welke dienst elke stap doet",

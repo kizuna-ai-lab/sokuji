@@ -41,6 +41,14 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('accounts and keys', () => {
+  // B-11: Soniox's key is kept by region, found by asking every region.
+  it("opens Soniox's key by region, not a single field", () => {
+    render(<AccountsCategory locked={false} />);
+    fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
+    expect(within(row('Soniox')).getByRole('list', { name: 'Keys by region' })).toHaveTextContent('United States: key saved (selected)');
+    expect(within(row('Soniox')).getByRole('button', { name: 'Save and find its region' })).toBeInTheDocument();
+  });
+
   it('lists the accounts with their state and what they can do', () => {
     render(<AccountsCategory locked={false} />);
     expect(row('Kizuna AI')).toHaveTextContent('Signed in');

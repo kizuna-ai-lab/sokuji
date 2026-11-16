@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Döküm ve çeviri",
       "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
       "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
-      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi"
+      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi",
+      "soniox": {
+        "byRegion": "Bölgeye göre anahtarlar",
+        "keySaved": "anahtar kayıtlı",
+        "noKey": "anahtar yok",
+        "selected": "(seçili)",
+        "save": "Kaydet ve bölgesini bul",
+        "finding": "Bu anahtarın bölgesi bulunuyor…",
+        "savedFor": "Bu anahtar {{region}} bölgesine ait: oraya kaydedildi.",
+        "unreachable": "Bu anahtarın hangi bölgeye ait olduğu Soniox’a sorulamadı; şu an seçili bölge olan {{region}} için kaydedildi.",
+        "refused": "Hiçbir Soniox bölgesi bu anahtarı kabul etmiyor. Bunun bir Soniox API anahtarı olduğunu kontrol edin.",
+        "elsewhere": "{{selected}} seçili, ancak anahtarınız {{region}} bölgesine ait.",
+        "switchTo": "{{region}} bölgesine geç"
+      }
     },
     "lineup": {
       "title": "Düzen",
@@ -1838,7 +1851,9 @@
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
         "ready": "Hazır",
-        "off": "Kapalı"
+        "off": "Kapalı",
+        "noKeyForRegion": "{{region}} için çalışan anahtar yok",
+        "keyRefused": "Anahtar kabul edilmedi"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",

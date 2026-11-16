@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transcrição e tradução",
       "signedInBalance": "Conectado; saldo {{amount}}",
       "localModels": "Roda neste computador; {{count}} modelos baixados, {{size}} no total",
-      "localNone": "Roda neste computador; nenhum modelo baixado ainda"
+      "localNone": "Roda neste computador; nenhum modelo baixado ainda",
+      "soniox": {
+        "byRegion": "Chaves por região",
+        "keySaved": "chave salva",
+        "noKey": "sem chave",
+        "selected": "(selecionada)",
+        "save": "Salvar e descobrir a região",
+        "finding": "Descobrindo a região desta chave…",
+        "savedFor": "Esta chave é de {{region}}: salva lá.",
+        "unreachable": "Não foi possível perguntar ao Soniox de qual região é esta chave; salva para {{region}}, a região selecionada agora.",
+        "refused": "Nenhuma região do Soniox aceita esta chave. Confira se é uma chave de API do Soniox.",
+        "elsewhere": "{{selected}} está selecionada, mas sua chave é de {{region}}.",
+        "switchTo": "Mudar para {{region}}"
+      }
     },
     "lineup": {
       "title": "Composição",
@@ -1838,7 +1851,9 @@
         "needsModel": "Precisa de um modelo",
         "needsSignIn": "Precisa entrar",
         "ready": "Pronto",
-        "off": "Desativado"
+        "off": "Desativado",
+        "noKeyForRegion": "Nenhuma chave válida para {{region}}",
+        "keyRefused": "Chave recusada"
       },
       "speechModeHint": "Quando um trecho de fala vai para a tradução; fixo durante a sessão",
       "hint": "Qual serviço faz cada etapa",

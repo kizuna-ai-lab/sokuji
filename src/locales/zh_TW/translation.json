@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "轉寫並翻譯",
       "signedInBalance": "已登入，餘額 {{amount}}",
       "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
-      "localNone": "在這台電腦上執行；還沒有下載模型"
+      "localNone": "在這台電腦上執行；還沒有下載模型",
+      "soniox": {
+        "byRegion": "各區域的金鑰",
+        "keySaved": "已儲存金鑰",
+        "noKey": "沒有金鑰",
+        "selected": "（目前）",
+        "save": "儲存並辨識區域",
+        "finding": "正在辨識這個金鑰屬於哪個區域…",
+        "savedFor": "這個金鑰屬於 {{region}}，已存到那裡。",
+        "unreachable": "無法向 Soniox 確認這個金鑰屬於哪個區域；已存到目前選擇的區域：{{region}}。",
+        "refused": "Soniox 的所有區域都不接受這個金鑰。請確認它是 Soniox 的 API 金鑰。",
+        "elsewhere": "目前選擇的是 {{selected}}，但你的金鑰屬於 {{region}}。",
+        "switchTo": "切換到 {{region}}"
+      }
     },
     "lineup": {
       "title": "工作階段組成",
@@ -1838,7 +1851,9 @@
         "needsModel": "需要模型",
         "needsSignIn": "需要登入",
         "ready": "就緒",
-        "off": "關閉"
+        "off": "關閉",
+        "noKeyForRegion": "{{region}} 沒有可用的金鑰",
+        "keyRefused": "金鑰無法使用"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
       "hint": "每個階段由哪個服務來做",

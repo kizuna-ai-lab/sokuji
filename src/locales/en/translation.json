@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transcription and translation",
       "signedInBalance": "Signed in; balance {{amount}}",
       "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
-      "localNone": "Runs on this computer; no models downloaded yet"
+      "localNone": "Runs on this computer; no models downloaded yet",
+      "soniox": {
+        "byRegion": "Keys by region",
+        "keySaved": "key saved",
+        "noKey": "no key",
+        "selected": "(selected)",
+        "save": "Save and find its region",
+        "finding": "Finding the region of this key…",
+        "savedFor": "This key belongs to {{region}}: saved there.",
+        "unreachable": "Could not ask Soniox which region this key belongs to; saved for {{region}}, the region selected now.",
+        "refused": "No Soniox region accepts this key. Check that it is a Soniox API key.",
+        "elsewhere": "{{selected}} is selected, but your key is for {{region}}.",
+        "switchTo": "Switch to {{region}}"
+      }
     },
     "lineup": {
       "title": "Line-up",
@@ -1838,7 +1851,9 @@
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
         "ready": "Ready",
-        "off": "Off"
+        "off": "Off",
+        "noKeyForRegion": "No working key for {{region}}",
+        "keyRefused": "Key not accepted"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",

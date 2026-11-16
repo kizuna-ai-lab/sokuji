@@ -221,6 +221,13 @@
   &__part { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px solid vars.$border-subtle; }
   &__name { font-size: 13px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
   &__state { margin-left: auto; white-space: nowrap; font-style: normal; font-size: 11.5px; color: vars.$color-warning; &.is-ready { color: vars.$color-primary; } }
+  // A key it lacks or that does not work (B-11): the state is the way to the key.
+  &__state--link {
+    padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
 
   &__joint, &__moved {
     margin: 0;
@@ -263,6 +270,22 @@
 
 // Accounts and keys (the mock): one row per account, rows split by a thin line; the name, its state under it, one button.
 .accounts-category { display: flex; flex-direction: column; }
+// Soniox's key by region (B-11): every region's key on one line, the selected one marked; the key field; what saving
+// found; switching to the region the key belongs to.
+.soniox-key {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  &__regions {
+    display: flex; flex-wrap: wrap; gap: 4px 14px;
+    margin: 0; padding: 0; list-style: none;
+    font-size: 12px; color: vars.$text-tertiary;
+    li.is-selected { color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  }
+  &__note { margin: 0; font-size: 12px; color: vars.$text-secondary; &.is-error { color: vars.$color-error; } }
+  &__switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 12px; color: vars.$color-warning; }
+}
+
 .accounts-row {
   display: flex;
   flex-direction: column;

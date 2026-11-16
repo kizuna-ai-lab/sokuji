@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Transkription und Übersetzung",
       "signedInBalance": "Angemeldet; Guthaben {{amount}}",
       "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
-      "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen"
+      "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen",
+      "soniox": {
+        "byRegion": "Schlüssel nach Region",
+        "keySaved": "Schlüssel gespeichert",
+        "noKey": "kein Schlüssel",
+        "selected": "(ausgewählt)",
+        "save": "Speichern und Region finden",
+        "finding": "Region dieses Schlüssels wird ermittelt …",
+        "savedFor": "Dieser Schlüssel gehört zu {{region}}: dort gespeichert.",
+        "unreachable": "Soniox konnte nicht gefragt werden, zu welcher Region dieser Schlüssel gehört; für {{region}} gespeichert, die gerade ausgewählte Region.",
+        "refused": "Keine Soniox-Region akzeptiert diesen Schlüssel. Prüfen Sie, ob es ein Soniox-API-Schlüssel ist.",
+        "elsewhere": "{{selected}} ist ausgewählt, aber Ihr Schlüssel gehört zu {{region}}.",
+        "switchTo": "Zu {{region}} wechseln"
+      }
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1838,7 +1851,9 @@
         "needsModel": "Braucht ein Modell",
         "needsSignIn": "Anmeldung nötig",
         "ready": "Bereit",
-        "off": "Aus"
+        "off": "Aus",
+        "noKeyForRegion": "Kein gültiger Schlüssel für {{region}}",
+        "keyRefused": "Schlüssel abgelehnt"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",

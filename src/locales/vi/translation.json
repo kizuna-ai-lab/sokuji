@@ -1816,7 +1816,20 @@
       "transcribeTranslate": "Phiên âm và dịch",
       "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
       "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
-      "localNone": "Chạy trên máy này; chưa tải mô hình nào"
+      "localNone": "Chạy trên máy này; chưa tải mô hình nào",
+      "soniox": {
+        "byRegion": "Khóa theo khu vực",
+        "keySaved": "đã lưu khóa",
+        "noKey": "chưa có khóa",
+        "selected": "(đang chọn)",
+        "save": "Lưu và tìm khu vực",
+        "finding": "Đang tìm khu vực của khóa này…",
+        "savedFor": "Khóa này thuộc {{region}}: đã lưu ở đó.",
+        "unreachable": "Không hỏi được Soniox khóa này thuộc khu vực nào; đã lưu cho {{region}}, khu vực đang chọn.",
+        "refused": "Không khu vực nào của Soniox chấp nhận khóa này. Hãy kiểm tra đó có phải là khóa API của Soniox không.",
+        "elsewhere": "Đang chọn {{selected}}, nhưng khóa của bạn thuộc {{region}}.",
+        "switchTo": "Chuyển sang {{region}}"
+      }
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1838,7 +1851,9 @@
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
         "ready": "Sẵn sàng",
-        "off": "Tắt"
+        "off": "Tắt",
+        "noKeyForRegion": "Không có khóa dùng được cho {{region}}",
+        "keyRefused": "Khóa không được chấp nhận"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",

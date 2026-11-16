@@ -34,6 +34,7 @@ import { SettingsStage, cardOptions, useStageList } from '../providers/stagePart
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { EdgeVoices } from './EdgeVoices';
+import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
 import { LocalVoices } from './LocalVoices';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
@@ -271,17 +272,35 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     i = j;
   }
 
-  /** A row's state: what the chosen provider lacks, or Ready. */
-  const stateOf = (id: string): { ok: boolean; text: string } => {
+  /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work takes you to the key. */
+  const stateOf = (id: string): { ok: boolean; text: string; toKey?: boolean } => {
     const p = providers.find((x) => x.id === id) ?? (caps(id)?.family === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
     // Bing and Edge are online services of the local family: no key and no model.
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
-    if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
+    if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toKey: true };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
     const r = p ? readiness[p.id] : undefined;
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
+    // A saved key the service refused (B-11): not Ready. A Soniox key works in one region's project only, so it names
+    // the region it was tried in. A check that could not reach the service says nothing about the key.
+    if (p?.kind === 'own-key' && r?.state === 'not-ready' && r.code === 'auth') {
+      const region = p.id === 'soniox' ? SONIOX_REGION_LABELS[asSonioxRegion((entries[p.id]?.settings as { region?: string } | undefined)?.region)] : null;
+      return {
+        ok: false, toKey: true,
+        text: region ? t('settingsPage.lineup.state.noKeyForRegion', 'No working key for {{region}}', { region })
+          : t('settingsPage.lineup.state.keyRefused', 'Key not accepted'),
+      };
+    }
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
+  };
+  /** A row's state as drawn: a key it lacks or that does not work is a way to the key. */
+  const stateTag = (id: string) => {
+    const s = stateOf(id);
+    const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
+    return s.toKey
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings('provider')}>{s.text}</button>
+      : <em className={className}>{s.text}</em>;
   };
 
   // Granite Speech is a local model: when the local transcription and translation choices are the same Granite
@@ -317,7 +336,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>
-              <em className={`lineup-stage__state${stateOf(id).ok ? ' is-ready' : ''}`}>{stateOf(id).text}</em>
+              {stateTag(id)}
             </div>
           );
           // What one stage of the card says about itself, then its own options.

@@ -25,6 +25,7 @@ import { formatBytes } from '../../lib/local-inference/formatBytes';
 import { formatUsdFloor } from '../../utils/formatters';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { CredentialForm } from '../providers/CredentialForm';
+import { SonioxKeyForm } from './SonioxKeyForm';
 import { ManagedAccountRow } from '../providers/ManagedAccountRow';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { useRunState } from '../../app/useRun';
@@ -196,7 +197,19 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
             {isOpen && a.kind === 'kizuna' && (auth.signedIn
               ? <div className="accounts-row__account"><UserAccountInfo idle={run.phase === 'idle'} runPayer={run.phase === 'idle' ? undefined : run.payer} /></div>
               : <ManagedAccountRow auth={auth} />)}
-            {isOpen && a.kind === 'key' && p && entry && (
+            {/* Soniox's key is kept by region, found by asking every region (B-11). */}
+            {isOpen && a.kind === 'key' && p && entry && p.id === 'soniox' && (
+              <SonioxKeyForm provider={p} auth={auth} disabled={locked}
+                onChecked={(answer) => {
+                  if (answer.state === 'unknown' || answer.state === 'checking') return;
+                  trackEvent('api_key_validated', {
+                    provider: p.id,
+                    success: answer.state === 'ready',
+                    ...(answer.state === 'not-ready' && answer.code ? { error_type: answer.code } : {}),
+                  });
+                }} />
+            )}
+            {isOpen && a.kind === 'key' && p && entry && p.id !== 'soniox' && (
               <CredentialForm
                 fields={p.credentials.fields(entry.settings as never)}
                 values={entry.credentials}

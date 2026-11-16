@@ -425,6 +425,36 @@ describe('the notes card', () => {
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
   });
 
+  // B-11 (the owner, 2026-11-17): Ready means the key works, not only that one is saved. A Soniox key the selected
+  // region refuses says so, by region, and takes you to the key.
+  it("says a Soniox key the selected region refuses is no working key there, and takes you to the key", () => {
+    useProviderStore.setState({
+      entries: { soniox: { settings: { region: 'jp' }, credentials: { apiKey: 'sk-us', apiKeyJp: 'sk-wrong' }, pair: { source: 'ja', target: 'en' } } } as never,
+      readiness: { soniox: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never,
+    });
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
+    const state = within(card).getAllByRole('button', { name: 'No working key for 日本 (Japan)' })[0];
+    fireEvent.click(state);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+
+  it('stays Ready when the key check could not reach the service', () => {
+    useProviderStore.setState({
+      entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: 'sk-us' }, pair: { source: 'ja', target: 'en' } } } as never,
+      readiness: { soniox: { state: 'not-ready', code: 'network', reason: 'offline' } } as never,
+    });
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getAllByText('Ready').length).toBeGreaterThan(0);
+  });
+
+  it('takes you to the key from "Needs a key"', () => {
+    render(<LineUpCategory locked={false} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Needs a key' })[0]);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
