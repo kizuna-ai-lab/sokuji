@@ -96,6 +96,14 @@ describe('importing a file', () => {
     expect(most).toBeLessThanOrEqual(2 * SECOND);
   });
 
+  // Review: decoding now happens a block at a time, inside the loop; a broken file must still read as unreadable.
+  it('calls a file whose audio breaks partway unreadable, and keeps nothing of it', async () => {
+    const { port, names } = fakePort();
+    const broken: DecodedAudio = { durationMs: 3000, async *pcm24k() { yield new Int16Array(SECOND).fill(3000); throw new Error('EncodingError: decoding failed'); } };
+    await expect(importFile(base(port, { decode: async () => broken }))).rejects.toMatchObject({ code: 'UNSUPPORTED' });
+    expect(names()).toContain('purgeRecords');
+  });
+
   it('stores the recording as a new record, transcribes it, names it after the file, and closes it', async () => {
     const { port, calls, names } = fakePort();
     const phases: string[] = [];

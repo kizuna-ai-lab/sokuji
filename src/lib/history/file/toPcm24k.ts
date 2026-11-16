@@ -38,9 +38,12 @@ function toInt16(x: Float32Array): Int16Array {
 
 export async function* toPcm24k(
   pieces: AsyncIterable<DecodedPiece>,
-  o: { chunkSamples?: number; signal?: AbortSignal } = {},
+  o: { chunkSamples?: number; signal?: AbortSignal; maxSamples?: number } = {},
 ): AsyncIterable<Int16Array> {
   const chunkSamples = o.chunkSamples ?? CHUNK_SAMPLES;
+  // At most this many: a timestamp far ahead must not make hours of silence.
+  const maxSamples = o.maxSamples ?? Number.POSITIVE_INFINITY;
+  const full = () => written >= maxSamples;
   let chunk = new Int16Array(chunkSamples);
   let filled = 0;
   /** Output samples so far. */
@@ -54,8 +57,8 @@ export async function* toPcm24k(
 
   const ready: Int16Array[] = [];
   const put = (x: Float32Array) => {
-    if (x.length === 0) return;
-    const s = toInt16(x);
+    if (x.length === 0 || full()) return;
+    const s = toInt16(x.length > maxSamples - written ? x.subarray(0, maxSamples - written) : x);
     written += s.length;
     let at = 0;
     while (at < s.length) {
@@ -73,9 +76,12 @@ export async function* toPcm24k(
 
   for await (const piece of pieces) {
     if (o.signal?.aborted) return;
-    if (!resampler || piece.sampleRate !== rate) {
+    // A container may state its rate as a fraction (Matroska floats, MOV fixed point).
+    const pieceRate = Math.round(piece.sampleRate);
+    if (!(pieceRate > 0)) throw new Error(`A sample rate of ${piece.sampleRate} Hz cannot be read`);
+    if (!resampler || pieceRate !== rate) {
       if (resampler) put(resampler.flush());
-      rate = piece.sampleRate;
+      rate = pieceRate;
       resampler = createResampler(rate, SAMPLE_RATE);
       stretchStart = written;
       fed = 0;
@@ -90,6 +96,7 @@ export async function* toPcm24k(
         const n = Math.min(slice.length, target - fed);
         put(resampler.push(n === slice.length ? slice : slice.subarray(0, n)));
         fed += n;
+        if (full()) break;
         while (ready.length > 0) {
           yield ready.shift()!;
           if (o.signal?.aborted) return;
@@ -104,6 +111,7 @@ export async function* toPcm24k(
       yield ready.shift()!;
       if (o.signal?.aborted) return;
     }
+    if (full()) break;
   }
   if (resampler) put(resampler.flush());
   while (ready.length > 0) yield ready.shift()!;

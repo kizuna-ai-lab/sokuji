@@ -53,6 +53,12 @@ describe('decoded blocks to the record samples', () => {
     expect(Math.abs(out.length - 4 * 24000)).toBeLessThanOrEqual(2);
   });
 
+  // Review: a container may state its rate as a fraction (Matroska floats, MOV fixed point).
+  it('takes a sample rate that is not a whole number as the nearest whole one', async () => {
+    const out = await collect(toPcm24k(from([piece(0, 1, 47999.9, [0.5])])));
+    expect(Math.abs(out.length - 24000)).toBeLessThanOrEqual(1);
+  });
+
   it('stops when cancelled', async () => {
     const controller = new AbortController();
     const read: number[] = [];

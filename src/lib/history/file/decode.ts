@@ -4,7 +4,6 @@
 // its audio decoded by the browser's own WebCodecs decoder, a block at a time: memory does not grow with the file.
 // A codec WebCodecs cannot decode (AC-3, E-AC-3, ALAC) is decoded whole by `decodeAudioData` instead, for files of up
 // to an hour (an hour of 48 kHz stereo takes about 2.1 GB that way); longer ones are refused.
-import { ALL_FORMATS, AudioSampleSink, BlobSource, Input } from 'mediabunny';
 import { SAMPLE_RATE } from '../../contract/adapter';
 import type { DecodedAudio } from './importFile';
 import { toPcm24k, type DecodedPiece } from './toPcm24k';
@@ -30,7 +29,10 @@ export function mixToInt16(channels: readonly Float32Array[], from: number, to: 
 
 /** An opened media file: its length, whether its audio can be streamed, its decoded blocks. */
 export interface MediaFile {
+  /** From the earliest start of its tracks (`startS`) to the end of its audio. */
   durationMs: number;
+  /** Where the file starts, in its own timestamps: an MPEG-TS capture may start hours in. Never below 0. */
+  startS: number;
   canStream: boolean;
   pieces(signal?: AbortSignal): AsyncIterable<DecodedPiece>;
   close(): void;
@@ -38,14 +40,19 @@ export interface MediaFile {
 
 /** The file's main audio track, opened; throws when there is none or the container cannot be read. */
 export async function openMedia(file: File): Promise<MediaFile> {
+  // Loaded when a file is imported, not with the page.
+  const { ALL_FORMATS, AudioSampleSink, BlobSource, Input } = await import('mediabunny');
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   try {
     const track = await input.getPrimaryAudioTrack();
     if (!track) throw new Error('The file has no audio track');
     const canStream = await track.canDecode();
-    const durationMs = (await input.computeDuration([track])) * 1000;
+    // Where players start: the earliest track. A negative start (an encoder's priming) is cut, not kept.
+    const startS = Math.max(0, await input.getFirstTimestamp(await input.getTracks()));
+    const durationMs = ((await input.computeDuration([track])) - startS) * 1000;
     return {
       durationMs,
+      startS,
       canStream,
       async *pieces(signal) {
         for await (const sample of new AudioSampleSink(track).samples()) {
@@ -93,11 +100,15 @@ export async function decodeFile(
     if (media.durationMs > MAX_WHOLE_FILE_MS) throw new Error('The codec cannot be decoded a block at a time and the file is too long to decode whole');
     return deps.decodeWholeFile(file);
   }
+  const fromStart = async function* () {
+    for await (const piece of media.pieces(signal)) yield { ...piece, timestampS: piece.timestampS - media.startS };
+  };
   return {
     durationMs: media.durationMs,
     async *pcm24k() {
       try {
-        yield* toPcm24k(media.pieces(signal), { signal });
+        // A second more than the file's length at most: a timestamp far ahead is not hours of silence.
+        yield* toPcm24k(fromStart(), { signal, maxSamples: Math.ceil(((media.durationMs + 1000) / 1000) * SAMPLE_RATE) });
       } finally {
         media.close();
       }

@@ -127,15 +127,30 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
     };
     let samples = 0;
     let loud = false;
-    for await (const chunk of audio.pcm24k()) {
-      if (o.signal?.aborted) throw cancelled();
-      if (!loud && chunk.some((v) => v > LOUD || v < -LOUD)) loud = true;
-      samples += chunk.length;
-      track.pcm(chunk, startedAt + Math.round(samples / (SAMPLE_RATE / 1000)));
-      // Decoding outruns Opus: what the encoder has not yet encoded must not pile up (a 3-hour WAV reached 1 GB).
-      await track.drain();
-      await send(track.take());
-      await pause();
+    // Decoding happens a block at a time while the chunks are taken: a file that breaks partway is unreadable.
+    const chunks = audio.pcm24k()[Symbol.asyncIterator]();
+    try {
+      for (;;) {
+        let next: IteratorResult<Int16Array>;
+        try {
+          next = await chunks.next();
+        } catch {
+          if (o.signal?.aborted) throw cancelled();
+          throw new ImportError('UNSUPPORTED', 'The audio of the file could not be decoded');
+        }
+        if (next.done) break;
+        const chunk = next.value;
+        if (o.signal?.aborted) throw cancelled();
+        if (!loud && chunk.some((v) => v > LOUD || v < -LOUD)) loud = true;
+        samples += chunk.length;
+        track.pcm(chunk, startedAt + Math.round(samples / (SAMPLE_RATE / 1000)));
+        // Decoding outruns Opus: what the encoder has not yet encoded must not pile up (a 3-hour WAV reached 1 GB).
+        await track.drain();
+        await send(track.take());
+        await pause();
+      }
+    } finally {
+      await chunks.return?.();
     }
     if (o.signal?.aborted) throw cancelled();
     await send(await track.end());

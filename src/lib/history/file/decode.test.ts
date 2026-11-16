@@ -8,6 +8,7 @@ const file = new File([new Uint8Array(4)], 'a.m4a');
 function media(o: { canStream: boolean; durationMs: number; pieces?: DecodedPiece[] }): MediaFile & { close: ReturnType<typeof vi.fn<() => void>> } {
   return {
     durationMs: o.durationMs,
+    startS: 0,
     canStream: o.canStream,
     async *pieces(signal?: AbortSignal) { for (const p of o.pieces ?? []) { if (signal?.aborted) return; yield p; } },
     close: vi.fn<() => void>(),
@@ -29,6 +30,21 @@ describe("the import's decoder", () => {
     expect(audio.durationMs).toBe(2000);
     expect(await all(audio)).toBe(48000);
     expect(decodeWholeFile).not.toHaveBeenCalled();
+  });
+
+  // Review: an MPEG-TS capture starts at an arbitrary time; its first timestamp is the file's start, not leading silence.
+  it("measures the file from where its first track starts", async () => {
+    const m = { ...media({ canStream: true, durationMs: 2000, pieces: [second(18000), second(18001)] }), startS: 18000 };
+    const audio = await decodeFile(file, undefined, { openMedia: async () => m, decodeWholeFile: async () => whole });
+    expect(audio.durationMs).toBe(2000);
+    expect(await all(audio)).toBe(48000);
+  });
+
+  // Review: a timestamp that jumps far ahead in the middle must not make hours of silence (uploaded and billed).
+  it('never gives more than the file is long, whatever its timestamps say', async () => {
+    const m = media({ canStream: true, durationMs: 3000, pieces: [second(0), second(1), second(36000), second(2)] });
+    const audio = await decodeFile(file, undefined, { openMedia: async () => m, decodeWholeFile: async () => whole });
+    expect(await all(audio)).toBeLessThanOrEqual(4 * 24000);
   });
 
   it('falls back to the whole-file decoder for a short file it cannot stream', async () => {
