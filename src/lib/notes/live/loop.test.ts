@@ -146,6 +146,22 @@ describe('the live notes loop', () => {
     expect(states).toHaveLength(0);
     vi.restoreAllMocks();
   });
+  // Review: disposed while Stop waits for the open request, the loop must not send the last update after all.
+  it('sends nothing more when disposed while Stop waits for the open request', async () => {
+    const { clock, model, live, states } = setup();
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    expect(model.calls).toHaveLength(1);
+    const stopping = live.stop();
+    live.dispose();
+    await stopping;
+    await flush();
+    clock.advance(3 * LIVE_INTERVAL_MS);
+    await flush();
+    expect(model.calls).toHaveLength(1);
+    expect(states).toEqual([]);
+  });
+
   it('sends nothing more on its own once quiet, and still takes the sentences for the last update', async () => {
     const { clock, model, live } = setup();
     live.sentences([s(1)]);

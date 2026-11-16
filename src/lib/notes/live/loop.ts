@@ -145,6 +145,8 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
       cancelTick?.();
       cancelTick = null;
       if (open) await open.promise;
+      // Disposed while waiting: nothing more is said.
+      if (disposed) return;
       const last = send();
       if (last) await last.promise;
     },
