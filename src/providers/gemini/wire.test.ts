@@ -7,6 +7,11 @@ import {
 const PARTICIPANT = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' as const };
 
 describe("Gemini's wire", () => {
+  it('asks the input transcription to expect the custom vocabulary, when there is one', () => {
+    expect(setupFrame({ ...configFor(DIALOGUE), vocabulary: ['Sokuji', 'Kizuna AI'] }, null).setup.inputAudioTranscription).toEqual({ customVocabulary: ['Sokuji', 'Kizuna AI'] });
+    expect(setupFrame(configFor(DIALOGUE), null).setup.inputAudioTranscription).toEqual({});
+  });
+
   it('dials the documented Live endpoint, v1beta, the key in the query (choice 11)', () => {
     expect(liveUrl(KEY.apiKey)).toBe(`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${KEY.apiKey}`);
     expect(liveUrl('a+b/c')).toContain('?key=a%2Bb%2Fc');

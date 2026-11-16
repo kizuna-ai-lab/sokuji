@@ -123,3 +123,11 @@ describe("Gemini's builder, the participant's voice", () => {
     expect(build({ voice: 'Kore', participantVoice: 'Kore' }, PARTICIPANT).voice).toBe('Puck');
   });
 });
+
+describe("buildGemini — the word list", () => {
+  const words = { entries: [{ written: 'Sokuji', translation: '速记' }, { written: 'Kizuna AI' }], background: 'Weekly.' };
+  it('sends a dialogue model its written forms as custom vocabulary, nothing else of it', () => {
+    expect(build({}, SPEAKER, shared({ words })).vocabulary).toEqual(['Sokuji', 'Kizuna AI']);
+    expect(build({}, SPEAKER, shared()).vocabulary).toBeUndefined();
+  });
+});
