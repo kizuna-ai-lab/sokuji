@@ -125,6 +125,27 @@ describe('the notes runner', () => {
     expect(runner.running()).toEqual([]);
   });
 
+  // Review: the last answer can come back just as the user cancels; the version is then cancelled, not complete.
+  it('stores a cancelled version when it is cancelled as its last answer comes back', async () => {
+    const counted = setup();
+    counted.runner.start(ID);
+    await vi.waitFor(() => expect(counted.saved).toHaveLength(1));
+    const last = counted.calls.length;
+    let n = 0;
+    let runner!: ReturnType<typeof setup>['runner'];
+    const chat: ChatPort = async () => {
+      n += 1;
+      // The answer is in; the cancel comes before the runner gets to it.
+      if (n === last) runner.cancel(ID);
+      return ANSWER;
+    };
+    const s = setup({ chat });
+    runner = s.runner;
+    runner.start(ID);
+    await vi.waitFor(() => expect(s.saved).toHaveLength(1));
+    expect(s.saved[0]).toMatchObject({ state: 'cancelled', body: null });
+  });
+
   it('ignores a second start for a record whose notes are being written', async () => {
     const { runner, raw, saved } = setup();
     runner.start(ID);

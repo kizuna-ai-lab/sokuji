@@ -95,6 +95,11 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
       }
       throw error;
     }
+    // Cancelled just as the last answer came in: the user asked to stop, so the version is cancelled.
+    if (controller.signal.aborted) {
+      await save({ state: 'cancelled', failure: null, body: null });
+      return;
+    }
     if (result.ok) await save({ state: 'complete', body: result.body });
     else if ('failure' in result) await save({ state: 'failed', failure: result.failure, body: null });
   }
