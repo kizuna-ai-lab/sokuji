@@ -21,7 +21,7 @@ import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { appNotesRunner, notesChatFromStores, notesLanguageOf } from '../lib/notes/appNotes';
 import { createLiveNotes, type LiveNotes, type LiveNotesDeps } from '../lib/notes/live/loop';
 import { useLiveNotes } from '../lib/notes/live/liveStore';
-import type { LiveSentence } from '../lib/notes/live/state';
+import { emptyLive, type LiveSentence } from '../lib/notes/live/state';
 import { notesSpeakerLabel } from '../lib/notes/runner';
 import type { HistorySentence } from '../lib/history/types';
 import { askQuitWhileNotes, type QuitAnswer } from '../lib/notes/quitQuestion';
@@ -247,7 +247,26 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
 
   // Live notes (stage 4): a loop per record while its session runs, fed the sentences as the record numbers them.
   const liveFactory = options.liveNotes === undefined ? (isElectron() ? createLiveNotes : null) : options.liveNotes;
-  let live: { recordId: string; loop: Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> | null; pending: LiveSentence[]; seen: LiveSentence[] } | null = null;
+  type LiveLoop = Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> & Partial<Pick<LiveNotes, 'quiet'>>;
+  let live: { recordId: string; loop: LiveLoop | null; pending: LiveSentence[]; seen: LiveSentence[] } | null = null;
+  /** Live notes turned off during this record's session: what they go on from when turned on again in it. */
+  let paused: { recordId: string; seen: LiveSentence[] } | null = null;
+  /** The switch is watched only while a loop runs. */
+  let unwatchSwitch: (() => void) | null = null;
+  const unwatch = () => { unwatchSwitch?.(); unwatchSwitch = null; };
+  // Turned off during a session: the loop goes at once, and the panel says so. Turned on again in the same session,
+  // live notes start with the next sentence and go on from the notes on screen.
+  const watchSwitch = () => {
+    unwatch();
+    unwatchSwitch = useSettingsStore.subscribe((now, before) => {
+      if (!before.liveNotes || now.liveNotes || !live) return;
+      live.loop?.dispose();
+      useLiveNotes.getState().turnedOff(live.recordId);
+      paused = { recordId: live.recordId, seen: live.seen };
+      live = null;
+      unwatch();
+    });
+  };
   const liveWanted = () => useSettingsStore.getState().liveNotes && Boolean(useLineUpStore.getState().lineUp?.summarisation);
   const asHistory = (s: LiveSentence): HistorySentence => ({
     ...s, segmentId: s.segmentId ?? null, speakerByUser: null, speakerName: null, language: s.language ?? null,
@@ -270,13 +289,19 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // Another record's loop still here (its run's end was not seen): it has its last update now.
       if (live) endLive(live.recordId, false);
       if (!liveWanted()) return;
-      const begun = { recordId, loop: null as Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'> | null, pending: [] as LiveSentence[], seen: [] as LiveSentence[] };
+      const resumed = paused?.recordId === recordId && useLiveNotes.getState().recordId === recordId ? paused : null;
+      paused = null;
+      const begun = { recordId, loop: null as LiveLoop | null, pending: [] as LiveSentence[], seen: resumed ? [...resumed.seen] : [] as LiveSentence[] };
       live = begun;
-      useLiveNotes.getState().begin(recordId);
+      watchSwitch();
+      if (resumed) useLiveNotes.getState().resume(recordId);
+      else useLiveNotes.getState().begin(recordId);
       void notesChatFromStores().then((service) => {
         if (live !== begun) return;
-        if (!service) { live = null; useLiveNotes.getState().turnedOff(recordId); return; }
+        if (!service) { live = null; unwatch(); useLiveNotes.getState().turnedOff(recordId); return; }
+        const shown = useLiveNotes.getState();
         begun.loop = liveFactory({
+          ...(resumed ? { from: { state: (shown.recordId === recordId ? shown.state : null) ?? emptyLive(), seen: resumed.seen } } : {}),
           // The record's own "my language", as the notes after the session use (spec §6.5).
           chat: service.chat, clock, language: notesLanguageOf({ myLanguage: myLanguageOf(runner.conversation.snapshot()) }),
           speakerLabel: labelsFor(begun.seen),
@@ -287,6 +312,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         });
         begun.loop.sentences(begun.pending);
         begun.pending = [];
+        if (runner.state.getState().phase === 'stopping') begun.loop.quiet?.();
       }, (error: unknown) => reportError('LiveNotes', 'Live notes could not start', { cause: error }));
     }
     live.seen.push(...list);
@@ -295,22 +321,19 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   };
   /** The record's session ended: its last update, unless the app's closing ended it. */
   const endLive = (recordId: string, closing: boolean) => {
+    if (paused?.recordId === recordId) paused = null;
     if (!live || live.recordId !== recordId) return;
     const ending = live;
     live = null;
+    unwatch();
     if (closing) { ending.loop?.dispose(); useLiveNotes.getState().end(recordId); return; }
     void (ending.loop?.stop() ?? Promise.resolve()).finally(() => useLiveNotes.getState().end(recordId));
   };
   // A new run: the last session's live notes leave the screen, and its late answers no longer land there.
+  // Stopping: the loop sends nothing more on its own; its last update comes when the run has ended.
   runner.state.subscribe((now, before) => {
-    if (now.phase === 'starting' && before.phase === 'idle') useLiveNotes.getState().reset();
-  });
-  // Turned off during a session: the loop goes at once, and the panel says so.
-  useSettingsStore.subscribe((now, before) => {
-    if (!before.liveNotes || now.liveNotes || !live) return;
-    live.loop?.dispose();
-    useLiveNotes.getState().turnedOff(live.recordId);
-    live = null;
+    if (now.phase === 'starting' && before.phase === 'idle') { paused = null; useLiveNotes.getState().reset(); }
+    if (now.phase === 'stopping' && before.phase !== 'stopping') live?.loop?.quiet?.();
   });
   /** The notes runner: the app's on the desktop unless one is given. */
   const notesRunner = () => (options.notes === undefined ? (isElectron() ? appNotesRunner() : null) : options.notes);

@@ -1155,6 +1155,89 @@ describe('attach', () => {
         detach();
       });
     });
+    /** A loop that records what happened to it, in order, and what it was told to go on from. */
+    function watchedLive() {
+      const events: string[] = [];
+      const made: Array<{ deps: LiveDeps; sentences: number[] }> = [];
+      const factory = (deps: LiveDeps) => {
+        const one = { deps, sentences: [] as number[] };
+        made.push(one);
+        const i = made.length;
+        return {
+          sentences: (list: ReadonlyArray<{ n: number }>) => { one.sentences.push(...list.map((x) => x.n)); },
+          quiet: () => { events.push(`quiet ${i}`); },
+          stop: async () => { events.push(`stop ${i}`); },
+          dispose: () => { events.push(`dispose ${i}`); },
+        };
+      };
+      return { made, events, factory };
+    }
+
+    it('keeps the loop from sending on its own once the session is stopping: only the last update is left', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(live.events).toContain('stop 1'));
+        expect(live.events).toEqual(['quiet 1', 'stop 1']);
+      });
+    });
+
+    it('turned off and on again in one session, goes on from the notes on screen with the sentences that follow', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = watchedLive();
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+        await session.runner.start();
+        // The first exchange is said; the second starts at 5 s.
+        clock.advance(4000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await vi.waitFor(() => expect(live.made[0].sentences.length).toBeGreaterThan(0));
+        const earlier = [...live.made[0].sentences];
+        live.made[0].deps.onState({ title: 'Weekly', topics: [] });
+        useSettingsStore.setState({ liveNotes: false } as never);
+        useSettingsStore.setState({ liveNotes: true } as never);
+        expect(useLiveNotes.getState().state).toEqual({ title: 'Weekly', topics: [] });
+        clock.advance(20_000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(2));
+        const from = live.made[1].deps.from!;
+        expect(from.state).toEqual({ title: 'Weekly', topics: [] });
+        expect(from.seen.map((x) => x.n)).toEqual(earlier);
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run1', running: true, off: false, state: { title: 'Weekly', topics: [] } });
+        await session.runner.stop();
+      });
+    });
+
+    it('watches the switch only while a loop runs', async () => {
+      await withLive(true, 'openai', async () => {
+        const offs: Array<ReturnType<typeof vi.fn>> = [];
+        const subscribe = useSettingsStore.subscribe;
+        const spy = vi.spyOn(useSettingsStore, 'subscribe').mockImplementation(((listener: never) => {
+          const off = vi.fn(subscribe(listener));
+          offs.push(off);
+          return off;
+        }) as never);
+        try {
+          const live = watchedLive();
+          const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
+          // What the app session holds for its whole life is not this test's: only what a run adds.
+          offs.length = 0;
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(live.made).toHaveLength(1));
+          expect(offs.length).toBeGreaterThan(0);
+          await session.runner.stop();
+          await session.runner.settled();
+          await vi.waitFor(() => expect(live.events).toContain('stop 1'));
+          expect(offs.every((off) => off.mock.calls.length > 0)).toBe(true);
+        } finally {
+          spy.mockRestore();
+        }
+      });
+    });
   });
 
   describe('closing while notes are being written', () => {

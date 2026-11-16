@@ -28,6 +28,8 @@ export interface LiveNotesActions {
   /** The session ended (its last update is in). */
   end(recordId: string): void;
   turnedOff(recordId: string): void;
+  /** Turned on again in the same session: the notes on screen stay, and go on. */
+  resume(recordId: string): void;
   /** Clear: the notes on screen go; a running loop goes on. After the session, nothing is left. */
   clear(): void;
   /** A new run starts: the last session's notes go, and nothing of it lands here any more. */
@@ -47,6 +49,7 @@ export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
     setHint: (recordId, hint) => forRecord(recordId, { hint }),
     end: (recordId) => forRecord(recordId, { running: false, ended: true, hint: false }),
     turnedOff: (recordId) => forRecord(recordId, { running: false, off: true, hint: false }),
+    resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false }),
     clear: () => set((s) => (s.running ? { state: null } : EMPTY)),
     reset: () => set(EMPTY),
   };

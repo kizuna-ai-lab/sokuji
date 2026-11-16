@@ -24,11 +24,15 @@ export interface LiveNotesDeps {
   onHint(shown: boolean): void;
   /** One line per update, for the measurement on live recognition (§12). */
   log?(line: Record<string, unknown>): void;
+  /** Notes to go on from (live notes turned on again in the same session): their sentences are context, not new. */
+  from?: { state: LiveState; seen: readonly LiveSentence[] };
 }
 
 export interface LiveNotes {
   /** Sentences as the record numbers them; each once. */
   sentences(list: readonly LiveSentence[]): void;
+  /** The session is stopping: no update on its own any more; sentences are still taken, for the last one at Stop. */
+  quiet(): void;
   /** One last update with what remains, then nothing. */
   stop(): Promise<void>;
   /** Stops at once: an open request is aborted and nothing more is said. */
@@ -50,16 +54,18 @@ interface Update {
 const unstableCount = (s: LiveState) => s.topics.reduce((sum, t) => sum + t.points.filter((p) => p.unstable).length, 0);
 
 export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
-  let state = emptyLive();
-  const seen: LiveSentence[] = [];
-  const known = new Set<number>();
+  let state = d.from?.state ?? emptyLive();
+  const seen: LiveSentence[] = [...(d.from?.seen ?? [])];
+  const known = new Set<number>(seen.map((x) => x.n));
   /** Sentences folded into the notes. */
-  let covered = 0;
+  let covered = seen.length;
   let failures = 0;
   let hint = false;
   let stopped = false;
   let disposed = false;
   let open: Update | null = null;
+  /** The session is stopping: only the last update at Stop is left. */
+  let quieted = false;
   let cancelTick: (() => void) | null = null;
 
   const failed = () => {
@@ -108,7 +114,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
 
   const tick = () => {
     cancelTick = null;
-    if (stopped || disposed) return;
+    if (stopped || disposed || quieted) return;
     cancelTick = d.clock.setTimeout(tick, LIVE_INTERVAL_MS);
     // The last has not answered: it is given up, and its sentences go with this one.
     if (open && !open.done) {
@@ -127,6 +133,11 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
         known.add(s.n);
         seen.push(s);
       }
+    },
+    quiet() {
+      cancelTick?.();
+      cancelTick = null;
+      quieted = true;
     },
     async stop() {
       if (stopped || disposed) return;

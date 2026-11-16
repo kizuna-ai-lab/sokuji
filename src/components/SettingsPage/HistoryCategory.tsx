@@ -73,7 +73,8 @@ export function HistoryCategory(_props: CategoryBodyProps) {
     if (!notesOn && !explained) { setExplaining('after'); return; }
     void setNotesOn(!notesOn);
   };
-  // Live notes take effect at the next session, or stop the running one's at once when turned off.
+  // Turned on during a session, live notes start with the next sentence; turned off, they stop at once; turned on
+  // again in the same session, they go on from the notes on screen.
   const flipLive = () => {
     if (!liveOn && !liveExplained) { setExplaining('live'); return; }
     void setLiveOn(!liveOn);

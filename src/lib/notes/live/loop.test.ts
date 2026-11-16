@@ -23,7 +23,7 @@ function handModel() {
 const topicWith = (sid: number, text = `point ${sid}`) => ({ title: 'T', new_topic: { title: 'A', summary: 'a', points: [{ text, sid, kinds: [] }] } });
 const addTo = (sid: number, text = `point ${sid}`) => ({ current_topic: { add: [{ text, sid, kinds: [] }] } });
 
-function setup() {
+function setup(from?: { state: LiveState; seen: LiveSentence[] }) {
   const clock = createVirtualClock(0);
   const model = handModel();
   const states: LiveState[] = [];
@@ -32,6 +32,7 @@ function setup() {
   const live = createLiveNotes({
     chat: model.chat, clock, language: { code: 'en', name: 'English' }, speakerLabel: () => 'Other side',
     onState: (st) => states.push(st), onHint: (h) => hints.push(h), log: (l) => lines.push(l),
+    ...(from ? { from } : {}),
   });
   return { clock, model, states, hints, lines, live };
 }
@@ -144,5 +145,34 @@ describe('the live notes loop', () => {
     expect(model.calls).toHaveLength(1);
     expect(states).toHaveLength(0);
     vi.restoreAllMocks();
+  });
+  it('sends nothing more on its own once quiet, and still takes the sentences for the last update', async () => {
+    const { clock, model, live } = setup();
+    live.sentences([s(1)]);
+    live.quiet();
+    live.sentences([s(2)]);
+    clock.advance(3 * LIVE_INTERVAL_MS);
+    await flush();
+    expect(model.calls).toHaveLength(0);
+    const stopped = live.stop();
+    await flush();
+    expect(model.fresh(0)).toEqual([1, 2]);
+    model.calls[0].answer(topicWith(1));
+    await stopped;
+    expect(model.calls).toHaveLength(1);
+  });
+
+  it('goes on from earlier notes: their sentences are context, not new, and the answer adds to them', async () => {
+    const earlier: LiveState = { title: 'Weekly', topics: [{ n: 1, title: 'A', summary: 'a', points: [{ n: 1, text: 'point 1', kinds: [] }] }] };
+    const { clock, model, live, states } = setup({ state: earlier, seen: [s(1), s(2)] });
+    live.sentences([s(2), s(3)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    expect(model.fresh(0)).toEqual([3]);
+    const user = model.calls[0].r.user as { title: string; context: unknown[] };
+    expect(user.title).toBe('Weekly');
+    expect(user.context).toHaveLength(2);
+    model.calls[0].answer(addTo(3));
+    await flush();
+    expect(states[states.length - 1].topics[0].points.map((p) => p.n)).toEqual([1, 3]);
   });
 });
