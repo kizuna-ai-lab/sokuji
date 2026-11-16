@@ -352,6 +352,18 @@ describe('a record', () => {
     expect(screen.getByText('The recording could not be saved.')).toBeTruthy();
   });
 
+  // Review: on a narrow page a search hit in the notes opened on the transcript tab, the hit out of sight.
+  it('opens on the notes tab for a search hit in the notes', async () => {
+    record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: 'When it ships.', format: 'plain' }, topics: [], points: [], names: [] },
+    })) as never;
+    await renderRecord({ kind: 'notes', notesId: 7 });
+    expect(screen.getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('shows the notes in their tab; a point takes the transcript to its sentence and plays from it', async () => {
     record = { ...record, notesVersions: 1, notesState: 'complete', tracks: [
       { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },

@@ -161,6 +161,9 @@ export const RecordPage: React.FC = () => {
   const pageRef = useRef<HTMLDivElement>(null);
   const [wide, setWide] = useState(false);
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
+  // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
+  const hitKind = open?.at?.kind;
+  useEffect(() => { if (hitKind) setPane(hitKind === 'notes' ? 'notes' : 'transcript'); }, [open?.record.id, hitKind]);
   const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
   useEffect(() => {
     const el = pageRef.current;
