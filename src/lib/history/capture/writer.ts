@@ -228,14 +228,22 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
   }
 
   /** Writes what changed since the last pass: segments, sentences and their corrections, notices. */
-  /** Segments of one leg written; a failure keeps what they wrote, a success forgets an earlier failure of them. */
-  function writeSegments(r: Rec, leg: LegName, segments: HistorySegment[]): void {
-    send(r, 'segments', async () => {
-      await port.putSegments({ recordId: r.id, leg, segments });
-      // Writes go one at a time, in order: a success is the latest of each segment it carries.
-      for (const g of segments) r.failedSegments.delete(g.id);
+  /**
+   * Segments of one leg written; a failure keeps what they wrote, a success forgets an earlier failure of them. A
+   * `retained` write (a failed write going again from what it wrote) is checked when it runs: a newer write of the same
+   * segment that went before it has replaced it, and it is dropped rather than written over the newer text.
+   */
+  function writeSegments(r: Rec, leg: LegName, segments: HistorySegment[], retained = false): void {
+    let sent = segments;
+    send(r, 'segments', () => {
+      sent = retained ? segments.filter((g) => r.failedSegments.get(g.id)?.segment === g) : segments;
+      if (sent.length === 0) return null;
+      return port.putSegments({ recordId: r.id, leg, segments: sent }).then(() => {
+        // Writes go one at a time, in order: a success is the latest of each segment it carries.
+        for (const g of sent) r.failedSegments.delete(g.id);
+      });
     }, () => {
-      for (const g of segments) {
+      for (const g of sent) {
         r.failedSegments.set(g.id, { leg, segment: g });
         const t = r.segments.get(g.id);
         if (t) t.dirty = true;
@@ -331,7 +339,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     if (!held(r, 'segments')) {
       for (const name of ['speaker', 'participant'] as const) {
         const orphans = [...r.failedSegments.entries()].filter(([id, f]) => f.leg === name && !shown.has(id)).map(([, f]) => f.segment);
-        if (orphans.length > 0) writeSegments(r, name, orphans);
+        if (orphans.length > 0) writeSegments(r, name, orphans, true);
       }
     }
     if (!held(r, 'notices')) {

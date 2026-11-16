@@ -366,6 +366,27 @@ describe('the history writer', () => {
       expect(report).not.toHaveBeenCalled();
     });
 
+    // Review: a retry of a failed write queued behind a newer write of the same segment must not overwrite it.
+    it('drops a retry of a failed write once a newer write of that segment has gone', async () => {
+      start();
+      port.fail('putSegments', 1);
+      open('speaker', 1, 'source');
+      text('speaker', 1, 'Hello');
+      await writer.settled();
+      port.slow('putSegments');
+      text('speaker', 1, 'Hello there');
+      clock.advance(TICK_MS);
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+      conversation.clear();
+      clock.advance(TICK_MS);
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+      port.release();
+      await writer.settled();
+      const texts = port.calls.filter((c) => c[0] === 'putSegments').flatMap((c) => c[1].segments.map((g: { text: string }) => g.text));
+      expect(texts[texts.length - 1]).toBe('Hello there');
+      expect(texts.filter((x: string) => x === 'Hello').length).toBe(1);
+    });
+
     it('says so at the close when a segment Clear took off the screen could still not be written', async () => {
       start();
       say('speaker', 1, 'Zero.');
