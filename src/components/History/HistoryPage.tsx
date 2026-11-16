@@ -30,8 +30,12 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onClose }) => {
   const error = useStore(store, (s) => s.error);
 
   useEffect(() => { void store.getState().load(); }, [store]);
-  // The page's store follows the app's notes runner while the page is open, and no longer.
-  useEffect(() => () => store.getState().dispose(), [store]);
+  // The page's store follows the app's notes runner while the page is open, and no longer (StrictMode's second run
+  // of the effect follows again).
+  useEffect(() => {
+    store.getState().follow();
+    return () => store.getState().dispose();
+  }, [store]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

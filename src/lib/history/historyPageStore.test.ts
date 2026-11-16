@@ -227,6 +227,7 @@ describe("a record's notes", () => {
   it('writes notes through the runner, says they are being written, and shows them when they are done', async () => {
     const runner = fakeRunner();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, runner);
+    store.getState().follow();
     await store.getState().load();
     await store.getState().openRecord(A);
     store.getState().generateNotes({ code: 'en', name: 'English' });
@@ -332,11 +333,29 @@ describe("a record's notes", () => {
   it('stops following the runner once disposed', async () => {
     const runner = fakeRunner();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, runner);
+    store.getState().follow();
     await store.getState().openRecord(A);
     runner.start(A);
     store.getState().dispose();
     runner.finish(A);
     await flush();
     expect(calls('getRecord')).toEqual([A]);
+  });
+
+  // Review: React's StrictMode runs the page's effect, its cleanup, and the effect again; following has to survive it.
+  it('follows the runner from follow() on, and again after a dispose', async () => {
+    const runner = fakeRunner();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, runner);
+    await store.getState().openRecord(A);
+    runner.start(A);
+    expect(store.getState().notesRunning).toEqual([]);
+    store.getState().follow();
+    expect(store.getState().notesRunning).toEqual([A]);
+    store.getState().dispose();
+    store.getState().follow();
+    runner.finish(A);
+    await flush();
+    expect(store.getState().notesRunning).toEqual([]);
+    expect(calls('getRecord')).toEqual([A, A]);
   });
 });

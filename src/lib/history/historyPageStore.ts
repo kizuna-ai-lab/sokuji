@@ -75,6 +75,8 @@ export interface HistoryPageActions {
   cancelNotes(): void;
   /** Dismisses name `index` of the shown version's names to check. */
   dismissName(index: number): Promise<void>;
+  /** Follows the notes runner while the page is shown: what it writes, and each version that ends. */
+  follow(): void;
   /** Stops following the notes runner (the page is gone). */
   dispose(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
@@ -303,6 +305,23 @@ export function createHistoryPageStore(
         }
       }),
 
+      follow() {
+        if (!notes || offNotes) return;
+        // A version that ends shows itself: the open record and the list are read again (the list's tags follow).
+        const update = () => {
+          const before = get().notesRunning;
+          const now = notes.running();
+          set({ notesRunning: now });
+          const ended = before.filter((id) => !now.includes(id));
+          if (ended.length === 0) return;
+          const open = get().open;
+          if (open && ended.includes(open.record.id)) void get().refreshRecord();
+          if (get().status?.available) void get().load();
+        };
+        offNotes = notes.subscribe(update);
+        set({ notesRunning: notes.running() });
+      },
+
       dispose() {
         offNotes?.();
         offNotes = null;
@@ -331,16 +350,5 @@ export function createHistoryPageStore(
     };
   });
 
-  // A version that ends shows itself: the open record and the list are read again (the list's tags follow).
-  offNotes = notes?.subscribe(() => {
-    const before = store.getState().notesRunning;
-    const now = notes.running();
-    store.setState({ notesRunning: now });
-    const ended = before.filter((id) => !now.includes(id));
-    if (ended.length === 0) return;
-    const open = store.getState().open;
-    if (open && ended.includes(open.record.id)) void store.getState().refreshRecord();
-    if (store.getState().status?.available) void store.getState().load();
-  });
   return store;
 }
