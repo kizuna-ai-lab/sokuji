@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Tài khoản",
       "personal": "Cá nhân",
-      "payerUnknown": "Tài khoản",
       "lowBalance": "Tài khoản — số dư quá thấp để bắt đầu phiên",
       "unverified": "Tài khoản — email chưa được xác minh"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Cần khóa",
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
-        "ready": "Sẵn sàng",
-        "off": "Tắt"
+        "ready": "Sẵn sàng"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",
@@ -1851,7 +1849,6 @@
         "hint": "Giọng được lưu theo từng ngôn ngữ: đây là giọng của cặp ngôn ngữ này.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Không",
       "notesNeedKey": "Thêm khóa OpenAI trong “Tài khoản và khóa” để ghi chú được viết.",
       "alsoFiles": "Cũng chép lời tệp đã nhập và chép lời lại bản ghi.",
       "wordsLeftOut": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này bị bỏ qua.",
@@ -1896,12 +1893,10 @@
       "source": "Nguồn",
       "flow": {
         "myMic": "Micrô của tôi",
-        "toSpeech": "Thành giọng nói",
         "toThem": "Micrô ảo → phía bên kia",
         "theirVoice": "Giọng phía bên kia",
         "myDevice": "Thiết bị phát của tôi",
         "caption": "Âm thanh đi đâu. Đường sáng là đang bật, đường nét đứt là tắt; thay đổi theo các công tắc bên dưới.",
-        "aria": "Âm thanh đi đâu: điều tôi nói được chuyển thành giọng nói, đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được chuyển thành giọng nói và phát trên thiết bị phát của tôi.",
         "translate": "Dịch",
         "speech": "Tạo giọng nói",
         "ariaSteps": "Âm thanh đi đâu: điều tôi nói được dịch, rồi chuyển thành giọng nói đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được dịch, rồi chuyển thành giọng nói phát trên thiết bị phát của tôi. Khi tắt công tắc giọng nói, bản dịch vẫn được tạo nhưng không được đọc."
@@ -1990,11 +1985,8 @@
     "refresh": "Làm mới",
     "moveOneToBin": "Chuyển vào thùng rác",
     "export": "Xuất",
-    "copyText": "Sao chép văn bản",
     "copied": "Đã sao chép.",
     "copyFailed": "Không sao chép được. Hãy kiểm tra quyền truy cập bảng nhớ tạm.",
-    "saveTxt": "Lưu dạng .txt",
-    "saveJson": "Lưu dạng .json",
     "saveSrt": "Lưu phụ đề (.srt)",
     "saveVtt": "Lưu phụ đề (.vtt)",
     "folder": "Thư mục lịch sử",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Lưu bản ghi âm phía bên kia",
     "notesAfterSession": "Viết ghi chú sau mỗi phiên",
     "notesLine": "Khi phiên kết thúc, {{service}} viết ghi chú từ bản ghi lời.",
-    "notesNoService": "Trước tiên hãy chọn dịch vụ cho ghi chú trong “Ngôn ngữ và cách phối hợp”.",
     "notesExplainTitle": "Trước khi viết ghi chú",
     "notesExplain": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng, phía nào và người nói nào đã nói, cùng cách viết trong danh sách từ của bạn được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
     "notesTurnOn": "Bật",

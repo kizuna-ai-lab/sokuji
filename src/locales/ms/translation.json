@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Akaun",
       "personal": "Peribadi",
-      "payerUnknown": "Akaun",
       "lowBalance": "Akaun — baki terlalu rendah untuk memulakan sesi",
       "unverified": "Akaun — e-mel belum disahkan"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Perlu kunci",
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu log masuk",
-        "ready": "Sedia",
-        "off": "Mati"
+        "ready": "Sedia"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
       "hint": "Perkhidmatan mana yang membuat setiap peringkat",
@@ -1851,7 +1849,6 @@
         "hint": "Suara disimpan mengikut bahasa: ini suara untuk pasangan bahasa ini.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Tiada",
       "notesNeedKey": "Tambah kunci OpenAI dalam “Akaun dan kunci” supaya nota ditulis.",
       "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula.",
       "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan.",
@@ -1896,12 +1893,10 @@
       "source": "Sumber",
       "flow": {
         "myMic": "Mikrofon saya",
-        "toSpeech": "Jadi suara",
         "toThem": "Mikrofon maya → pihak lain",
         "theirVoice": "Suara pihak lain",
         "myDevice": "Peranti main balik saya",
         "caption": "Ke mana bunyi pergi. Garisan terang kini aktif, garisan putus-putus tidak; ia mengikut suis di bawah.",
-        "aria": "Ke mana bunyi pergi: apa yang saya cakap, menjadi suara, masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap, menjadi suara, dimainkan pada peranti main balik saya.",
         "translate": "Terjemah",
         "speech": "Jana suara",
         "ariaSteps": "Ke mana bunyi pergi: apa yang saya cakap diterjemah, kemudian dijadikan suara yang masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap diterjemah, kemudian dijadikan suara yang dimainkan pada peranti main balik saya. Jika suis suara dimatikan, terjemahan dibuat tetapi tidak disebut."
@@ -1990,11 +1985,8 @@
     "refresh": "Segarkan",
     "moveOneToBin": "Alih ke tong sampah",
     "export": "Eksport",
-    "copyText": "Salin teks",
     "copied": "Disalin.",
     "copyFailed": "Tidak dapat menyalin. Semak kebenaran papan klip.",
-    "saveTxt": "Simpan sebagai .txt",
-    "saveJson": "Simpan sebagai .json",
     "saveSrt": "Simpan sari kata (.srt)",
     "saveVtt": "Simpan sari kata (.vtt)",
     "folder": "Folder sejarah",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Simpan rakaman pihak lain",
     "notesAfterSession": "Tulis nota selepas setiap sesi",
     "notesLine": "Apabila sesi tamat, {{service}} menulis notanya daripada transkrip.",
-    "notesNoService": "Pilih dahulu perkhidmatan untuk nota dalam “Bahasa dan susunan”.",
     "notesExplainTitle": "Sebelum nota ditulis",
     "notesExplain": "Bagi setiap sesi, teks ayatnya, nombornya, pihak dan penutur yang menyebutnya, serta ejaan dalam senarai perkataan anda dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
     "notesTurnOn": "Hidupkan",

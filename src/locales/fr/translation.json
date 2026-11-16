@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Compte",
       "personal": "Personnel",
-      "payerUnknown": "Compte",
       "lowBalance": "Compte — solde insuffisant pour démarrer une session",
       "unverified": "Compte — e-mail non vérifié"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Clé requise",
         "needsModel": "Modèle requis",
         "needsSignIn": "Connexion requise",
-        "ready": "Prêt",
-        "off": "Désactivé"
+        "ready": "Prêt"
       },
       "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
       "hint": "Quel service assure chaque étape",
@@ -1851,7 +1849,6 @@
         "hint": "Les voix sont gardées par langue : voici celles de cette paire de langues.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Aucun",
       "notesNeedKey": "Ajoutez une clé OpenAI dans « Comptes et clés » pour que les notes soient rédigées.",
       "alsoFiles": "Transcrit aussi les fichiers importés et à nouveau les enregistrements.",
       "wordsLeftOut": "Liste de mots : {{count}} entrées au-delà de la limite de ce service sont laissées de côté.",
@@ -1896,12 +1893,10 @@
       "source": "Source",
       "flow": {
         "myMic": "Mon micro",
-        "toSpeech": "En parole",
         "toThem": "Micro virtuel → l’autre partie",
         "theirVoice": "La voix de l’autre partie",
         "myDevice": "Mon appareil de lecture",
         "caption": "Où va le son. Les lignes allumées sont actives, les pointillées non ; elles suivent les interrupteurs ci-dessous.",
-        "aria": "Où va le son : ce que je dis, transformé en parole, va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie, transformé en parole, joue sur mon appareil de lecture.",
         "translate": "Traduire",
         "speech": "Synthèse vocale",
         "ariaSteps": "Où va le son : ce que je dis est traduit, puis transformé en parole qui va dans le micro virtuel pour l’autre partie et joue aussi chez moi si je l’écoute ; ce que dit l’autre partie est traduit, puis transformé en parole qui joue sur mon appareil de lecture. Quand un interrupteur de parole est coupé, la traduction est faite mais pas prononcée."
@@ -1990,11 +1985,8 @@
     "refresh": "Actualiser",
     "moveOneToBin": "Mettre à la corbeille",
     "export": "Exporter",
-    "copyText": "Copier le texte",
     "copied": "Copié.",
     "copyFailed": "Copie impossible. Vérifiez l’autorisation du presse-papiers.",
-    "saveTxt": "Enregistrer en .txt",
-    "saveJson": "Enregistrer en .json",
     "saveSrt": "Enregistrer les sous-titres (.srt)",
     "saveVtt": "Enregistrer les sous-titres (.vtt)",
     "folder": "Dossier de l’historique",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Enregistrer l’audio de l’autre côté",
     "notesAfterSession": "Rédiger des notes après chaque session",
     "notesLine": "À la fin d’une session, {{service}} rédige ses notes à partir de la transcription.",
-    "notesNoService": "Choisissez d’abord un service pour les notes dans « Langues et composition ».",
     "notesExplainTitle": "Avant la rédaction des notes",
     "notesExplain": "Pour chaque session, le texte de ses phrases, leurs numéros, le côté et l’intervenant qui les ont dites, ainsi que les graphies de votre liste de mots sont envoyés à {{service}} avec votre propre clé. Jamais l’audio, la traduction ni votre compte.",
     "notesTurnOn": "Activer",

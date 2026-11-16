@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Account",
       "personal": "Personale",
-      "payerUnknown": "Account",
       "lowBalance": "Account — saldo insufficiente per avviare una sessione",
       "unverified": "Account — email non verificata"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Serve una chiave",
         "needsModel": "Serve un modello",
         "needsSignIn": "Serve l’accesso",
-        "ready": "Pronto",
-        "off": "Disattivato"
+        "ready": "Pronto"
       },
       "speechModeHint": "Quando un tratto di parlato va alla traduzione; fisso durante la sessione",
       "hint": "Quale servizio svolge ogni fase",
@@ -1851,7 +1849,6 @@
         "hint": "Le voci sono salvate per lingua: queste sono quelle di questa coppia di lingue.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Nessuno",
       "notesNeedKey": "Aggiungi una chiave OpenAI in «Account e chiavi» perché vengano scritte le note.",
       "alsoFiles": "Trascrive anche i file importati e di nuovo i record.",
       "wordsLeftOut": "Elenco di parole: {{count}} voci oltre il limite di questo servizio vengono escluse.",
@@ -1896,12 +1893,10 @@
       "source": "Sorgente",
       "flow": {
         "myMic": "Il mio microfono",
-        "toSpeech": "In voce",
         "toThem": "Microfono virtuale → l’altra parte",
         "theirVoice": "La voce dell’altra parte",
         "myDevice": "Il mio dispositivo di riproduzione",
         "caption": "Dove va il suono. Le linee accese sono attive, quelle tratteggiate no; seguono gli interruttori qui sotto.",
-        "aria": "Dove va il suono: quello che dico, trasformato in voce, va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte, trasformato in voce, suona sul mio dispositivo di riproduzione.",
         "translate": "Tradurre",
         "speech": "Sintesi vocale",
         "ariaSteps": "Dove va il suono: quello che dico viene tradotto, poi trasformato in voce che va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte viene tradotto, poi trasformato in voce che suona sul mio dispositivo di riproduzione. Con un interruttore della voce spento, la traduzione viene fatta ma non pronunciata."
@@ -1990,11 +1985,8 @@
     "refresh": "Aggiorna",
     "moveOneToBin": "Sposta nel cestino",
     "export": "Esporta",
-    "copyText": "Copia testo",
     "copied": "Copiato.",
     "copyFailed": "Impossibile copiare. Controlla l’autorizzazione agli appunti.",
-    "saveTxt": "Salva come .txt",
-    "saveJson": "Salva come .json",
     "saveSrt": "Salva sottotitoli (.srt)",
     "saveVtt": "Salva sottotitoli (.vtt)",
     "folder": "Cartella della cronologia",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Salva la registrazione audio dell’altra parte",
     "notesAfterSession": "Scrivi le note dopo ogni sessione",
     "notesLine": "Quando una sessione finisce, {{service}} ne scrive le note dalla trascrizione.",
-    "notesNoService": "Prima scegli un servizio per le note in «Lingue e composizione».",
     "notesExplainTitle": "Prima che vengano scritte le note",
     "notesExplain": "Per ogni sessione vengono inviati a {{service}}, con la tua chiave, il testo delle sue frasi, i loro numeri, quale parte e quale interlocutore le ha dette e le grafie del tuo elenco di parole. Mai l’audio, la traduzione o il tuo account.",
     "notesTurnOn": "Attiva",

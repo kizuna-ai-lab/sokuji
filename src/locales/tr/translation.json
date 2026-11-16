@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Hesap",
       "personal": "Kişisel",
-      "payerUnknown": "Hesap",
       "lowBalance": "Hesap — oturum başlatmak için bakiye çok düşük",
       "unverified": "Hesap — e-posta doğrulanmadı"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Anahtar gerekli",
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
-        "ready": "Hazır",
-        "off": "Kapalı"
+        "ready": "Hazır"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",
@@ -1851,7 +1849,6 @@
         "hint": "Sesler dile göre saklanır: bunlar bu dil çiftinin sesleri.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Yok",
       "notesNeedKey": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
       "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker.",
       "wordsLeftOut": "Kelime listesi: bu hizmetin sınırını aşan {{count}} giriş dışarıda kalır.",
@@ -1896,12 +1893,10 @@
       "source": "Kaynak",
       "flow": {
         "myMic": "Mikrofonum",
-        "toSpeech": "Konuşmaya",
         "toThem": "Sanal mikrofon → karşı taraf",
         "theirVoice": "Karşı tarafın sesi",
         "myDevice": "Oynatma cihazım",
         "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
-        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar.",
         "translate": "Çeviri",
         "speech": "Seslendirme",
         "ariaSteps": "Sesin gittiği yer: söylediğim çevrilir, sonra konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği çevrilir, sonra konuşmaya dönüşüp oynatma cihazımda çalar. Bir konuşma anahtarı kapalıyken çeviri yapılır ama seslendirilmez."
@@ -1990,11 +1985,8 @@
     "refresh": "Yenile",
     "moveOneToBin": "Çöp kutusuna taşı",
     "export": "Dışa aktar",
-    "copyText": "Metni kopyala",
     "copied": "Kopyalandı.",
     "copyFailed": "Kopyalanamadı. Pano iznini kontrol edin.",
-    "saveTxt": ".txt olarak kaydet",
-    "saveJson": ".json olarak kaydet",
     "saveSrt": "Altyazıyı kaydet (.srt)",
     "saveVtt": "Altyazıyı kaydet (.vtt)",
     "folder": "Geçmiş klasörü",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Karşı tarafın ses kaydını kaydet",
     "notesAfterSession": "Her oturumdan sonra not yaz",
     "notesLine": "Bir oturum bittiğinde {{service}}, dökümden notlarını yazar.",
-    "notesNoService": "Önce “Diller ve düzen” bölümünde notlar için bir hizmet seçin.",
     "notesExplainTitle": "Notlar yazılmadan önce",
     "notesExplain": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
     "notesTurnOn": "Aç",

@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Konto",
       "personal": "Osobiste",
-      "payerUnknown": "Konto",
       "lowBalance": "Konto — saldo zbyt niskie, aby rozpocząć sesję",
       "unverified": "Konto — e-mail niezweryfikowany"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Wymaga klucza",
         "needsModel": "Wymaga modelu",
         "needsSignIn": "Wymaga zalogowania",
-        "ready": "Gotowe",
-        "off": "Wyłączone"
+        "ready": "Gotowe"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",
@@ -1851,7 +1849,6 @@
         "hint": "Głosy są zapisywane dla każdego języka: to głosy tej pary języków.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Brak",
       "notesNeedKey": "Dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane.",
       "alsoFiles": "Transkrybuje też zaimportowane pliki i ponownie zapisy.",
       "wordsLeftOut": "Lista słów: {{count}} wpisów ponad limit tej usługi zostaje pominiętych.",
@@ -1896,12 +1893,10 @@
       "source": "Źródło",
       "flow": {
         "myMic": "Mój mikrofon",
-        "toSpeech": "Na mowę",
         "toThem": "Wirtualny mikrofon → druga strona",
         "theirVoice": "Głos drugiej strony",
         "myDevice": "Moje urządzenie odtwarzające",
         "caption": "Dokąd idzie dźwięk. Jasne linie są teraz włączone, przerywane wyłączone; zmieniają się z przełącznikami poniżej.",
-        "aria": "Dokąd idzie dźwięk: to, co mówię, zamienione na mowę, trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, zamienione na mowę, gra na moim urządzeniu odtwarzającym.",
         "translate": "Tłumaczenie",
         "speech": "Synteza mowy",
         "ariaSteps": "Dokąd idzie dźwięk: to, co mówię, jest tłumaczone, a potem zamieniane na mowę, która trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, jest tłumaczone, a potem zamieniane na mowę, która gra na moim urządzeniu odtwarzania. Gdy przełącznik mowy jest wyłączony, tłumaczenie powstaje, ale nie jest wypowiadane."
@@ -1990,11 +1985,8 @@
     "refresh": "Odśwież",
     "moveOneToBin": "Przenieś do kosza",
     "export": "Eksportuj",
-    "copyText": "Kopiuj tekst",
     "copied": "Skopiowano.",
     "copyFailed": "Nie udało się skopiować. Sprawdź uprawnienia do schowka.",
-    "saveTxt": "Zapisz jako .txt",
-    "saveJson": "Zapisz jako .json",
     "saveSrt": "Zapisz napisy (.srt)",
     "saveVtt": "Zapisz napisy (.vtt)",
     "folder": "Folder historii",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Zapisz nagranie drugiej strony",
     "notesAfterSession": "Pisz notatki po każdej sesji",
     "notesLine": "Po zakończeniu sesji {{service}} pisze notatki na podstawie transkrypcji.",
-    "notesNoService": "Najpierw wybierz usługę do notatek w „Języki i zestaw”.",
     "notesExplainTitle": "Zanim zostaną napisane notatki",
     "notesExplain": "Dla każdej sesji do {{service}} trafiają, z Twoim własnym kluczem, tekst jej zdań, ich numery, to, która strona i który mówca je wypowiedział, oraz pisownia z Twojej listy słów. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
     "notesTurnOn": "Włącz",

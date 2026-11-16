@@ -1362,7 +1362,6 @@
     "account": {
       "label": "Account",
       "personal": "Personal",
-      "payerUnknown": "Account",
       "lowBalance": "Account — balance too low to start a session",
       "unverified": "Account — e-mail not verified"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Needs a key",
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
-        "ready": "Ready",
-        "off": "Off"
+        "ready": "Ready"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",
@@ -1851,7 +1849,6 @@
         "hint": "Voices are kept per language: these are the ones this language pair uses.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "None",
       "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written.",
       "alsoFiles": "Also transcribes imported files and records again.",
       "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out.",
@@ -1896,12 +1893,10 @@
       "source": "Source",
       "flow": {
         "myMic": "My microphone",
-        "toSpeech": "Into speech",
         "toThem": "Virtual mic → the other side",
         "theirVoice": "The other side's voice",
         "myDevice": "My playback device",
         "caption": "Where the sound goes. Lit lines are on now, dashed ones off; they follow the switches below.",
-        "aria": "Where the sound goes: what I say, turned into speech, goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says, turned into speech, plays on my playback device.",
         "translate": "Translate",
         "speech": "Speech",
         "ariaSteps": "Where the sound goes: what I say is translated, then made into speech that goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says is translated, then made into speech that plays on my playback device. With a speech switch off, the translation is made but not spoken."
@@ -1990,11 +1985,8 @@
     "refresh": "Refresh",
     "moveOneToBin": "Move to bin",
     "export": "Export",
-    "copyText": "Copy text",
     "copied": "Copied.",
     "copyFailed": "Could not copy. Check the clipboard permission.",
-    "saveTxt": "Save as .txt",
-    "saveJson": "Save as .json",
     "saveSrt": "Save subtitles (.srt)",
     "saveVtt": "Save subtitles (.vtt)",
     "folder": "History folder",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "Save the other side’s recording",
     "notesAfterSession": "Write notes after each session",
     "notesLine": "When a session ends, {{service}} writes its notes from the transcript.",
-    "notesNoService": "Choose a notes service in Languages and line-up first.",
     "notesExplainTitle": "Before notes are written",
     "notesExplain": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "notesTurnOn": "Turn on",

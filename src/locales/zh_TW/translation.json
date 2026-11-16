@@ -1133,7 +1133,6 @@
     "account": {
       "label": "帳戶",
       "personal": "個人",
-      "payerUnknown": "帳戶",
       "lowBalance": "帳戶 — 餘額不足，無法開始工作階段",
       "unverified": "帳戶 — 電子郵件未驗證"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "需要金鑰",
         "needsModel": "需要模型",
         "needsSignIn": "需要登入",
-        "ready": "就緒",
-        "off": "關閉"
+        "ready": "就緒"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
       "hint": "每個階段由哪個服務來做",
@@ -1851,7 +1849,6 @@
         "hint": "音色依語言分開存：這裡改的是現在這組語言用的音色。",
         "voiceFor": "{{who}}（{{language}}）"
       },
-      "notesNone": "無",
       "notesNeedKey": "在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。",
       "alsoFiles": "也用於匯入檔案和重新轉寫。",
       "wordsLeftOut": "詞表：超出這個服務上限的 {{count}} 筆沒有傳送。",
@@ -1896,12 +1893,10 @@
       "source": "來源",
       "flow": {
         "myMic": "我的麥克風",
-        "toSpeech": "翻譯成語音",
         "toThem": "虛擬麥克風 → 對方",
         "theirVoice": "對方的聲音",
         "myDevice": "我的播放裝置",
         "caption": "聲音走向。亮著的線是現在開著的，虛線是關著的；隨下面的開關變。",
-        "aria": "聲音走向：我說的話翻譯成語音，送進虛擬麥克風給對方，我也聽時在我這邊也放；對方說的話翻譯成語音，從我的播放裝置放出來。",
         "translate": "翻譯",
         "speech": "生成語音",
         "ariaSteps": "聲音走向：我說的話先翻譯，再生成語音，送進虛擬麥克風給對方，我也聽時在我這邊也放；對方說的話先翻譯，再生成語音，從我的播放裝置放出來。語音開關關著時，只翻譯，不生成語音。"
@@ -1990,11 +1985,8 @@
     "refresh": "重新整理",
     "moveOneToBin": "移到回收站",
     "export": "匯出",
-    "copyText": "複製文字",
     "copied": "已複製。",
     "copyFailed": "無法複製。請檢查剪貼簿權限。",
-    "saveTxt": "儲存為 .txt",
-    "saveJson": "儲存為 .json",
     "saveSrt": "儲存字幕（.srt）",
     "saveVtt": "儲存字幕（.vtt）",
     "folder": "歷史資料夾",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "儲存對方的錄音",
     "notesAfterSession": "每次工作階段結束後寫紀要",
     "notesLine": "工作階段結束時，由 {{service}} 根據轉寫寫出紀要。",
-    "notesNoService": "請先在「語言與工作階段組成」裡選擇寫紀要的服務。",
     "notesExplainTitle": "寫紀要之前",
     "notesExplain": "每次工作階段會用你自己的金鑰把這些傳給 {{service}}：各句的文字、句子編號、是哪一方哪位說話者說的，以及詞表裡的寫法。不會傳送聲音、譯文或你的帳號資訊。",
     "notesTurnOn": "開啟",

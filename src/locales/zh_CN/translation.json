@@ -1133,7 +1133,6 @@
     "account": {
       "label": "账户",
       "personal": "个人",
-      "payerUnknown": "账户",
       "lowBalance": "账户 — 余额不足，无法开始会话",
       "unverified": "账户 — 邮箱未验证"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "需要密钥",
         "needsModel": "需要模型",
         "needsSignIn": "需要登录",
-        "ready": "就绪",
-        "off": "关闭"
+        "ready": "就绪"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
       "hint": "每个阶段由哪个服务来做",
@@ -1851,7 +1849,6 @@
         "hint": "音色按语言分开存：这里改的是现在这对语言用的音色。",
         "voiceFor": "{{who}}（{{language}}）"
       },
-      "notesNone": "无",
       "notesNeedKey": "在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。",
       "alsoFiles": "也用于导入文件和重新转写。",
       "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。",
@@ -1896,12 +1893,10 @@
       "source": "来源",
       "flow": {
         "myMic": "我的麦克风",
-        "toSpeech": "翻译成语音",
         "toThem": "虚拟麦克风 → 对方",
         "theirVoice": "对方的声音",
         "myDevice": "我的播放设备",
         "caption": "声音走向。亮着的线是现在开着的，虚线是关着的；随下面的开关变。",
-        "aria": "声音走向：我说的话翻译成语音，送进虚拟麦克风给对方，我也听时在我这边也放；对方说的话翻译成语音，从我的播放设备放出来。",
         "translate": "翻译",
         "speech": "生成语音",
         "ariaSteps": "声音走向：我说的话先翻译，再生成语音，送进虚拟麦克风给对方，我也听时在我这边也放；对方说的话先翻译，再生成语音，从我的播放设备放出来。语音开关关着时，只翻译，不生成语音。"
@@ -1990,11 +1985,8 @@
     "refresh": "刷新",
     "moveOneToBin": "移到回收站",
     "export": "导出",
-    "copyText": "复制文本",
     "copied": "已复制。",
     "copyFailed": "无法复制。请检查剪贴板权限。",
-    "saveTxt": "保存为 .txt",
-    "saveJson": "保存为 .json",
     "saveSrt": "保存字幕（.srt）",
     "saveVtt": "保存字幕（.vtt）",
     "folder": "历史文件夹",
@@ -2035,7 +2027,6 @@
     "saveOtherRecording": "保存对方的录音",
     "notesAfterSession": "每次会话结束后写纪要",
     "notesLine": "会话结束时，由 {{service}} 根据转写写出纪要。",
-    "notesNoService": "请先在“语言与会话组成”里选择写纪要的服务。",
     "notesExplainTitle": "写纪要之前",
     "notesExplain": "每次会话会用你自己的 key 把这些发给 {{service}}：各句的文字、句子编号、是哪一方哪位说话人说的，以及词表里的写法。不会发送声音、译文或你的账号信息。",
     "notesTurnOn": "打开",
