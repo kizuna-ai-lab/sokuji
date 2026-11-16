@@ -248,6 +248,24 @@ describe('launch', () => {
   });
 });
 
+describe('a half-written transcript', () => {
+  const sent = (n) => ({ n, side: 'other', sideCertain: true, track: 'other', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text: `s${n}`, timeKind: 'given' });
+  it('is deleted by its id with its sentences; the record and its other transcripts stay', () => {
+    s.openRecord(rec());
+    const live = s.createTranscript({ recordId: 'run-0001-aaaa', origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: live, sentences: [sent(1), sent(2), sent(3)] });
+    const half = s.createTranscript({ recordId: 'run-0001-aaaa', origin: { service: 'soniox', kind: 'file' } });
+    s.appendSentences({ transcriptId: half, sentences: [sent(1)] });
+    expect(s.getRecord('run-0001-aaaa').sentences).toBe(1);
+    s.deleteTranscript({ transcriptId: half });
+    const r = s.getRecord('run-0001-aaaa');
+    expect(r.transcripts.map((x) => x.id)).toEqual([live]);
+    expect(r.sentences).toBe(3);
+    expect(s.getSentences({ transcriptId: live }).length).toBe(3);
+    expect(() => s.deleteTranscript({ transcriptId: half })).toThrow();
+  });
+});
+
 describe('speakers', () => {
   const sent = (n, over = {}) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text: `s${n}`, timeKind: 'given', ...over });
   let t;

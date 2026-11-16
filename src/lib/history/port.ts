@@ -22,6 +22,8 @@ export interface HistoryPort {
   putNotices(args: { recordId: string; leg: LegName; notices: Notice[] }): Promise<void>;
   getLegs(id: string): Promise<Leg[]>;
   createTranscript(args: { recordId: string; origin: HistoryTranscriptOrigin; textKind?: 'original' | 'translation' }): Promise<number>;
+  /** A transcript that could not be written whole, by its id: the record and its other transcripts stay. */
+  deleteTranscript(args: { transcriptId: number }): Promise<void>;
   appendSentences(args: { transcriptId: number; sentences: HistorySentenceInput[] }): Promise<{ added: number }>;
   reviseSentences(args: { transcriptId: number; revisions: Array<{ n: number; text: string }> }): Promise<void>;
   getSentences(args: { transcriptId: number }): Promise<HistorySentence[]>;
@@ -75,6 +77,7 @@ export const HISTORY_PORT_CHANNELS = [
   ['putNotices', 'history:put-notices'],
   ['getLegs', 'history:get-legs'],
   ['createTranscript', 'history:create-transcript'],
+  ['deleteTranscript', 'history:delete-transcript'],
   ['appendSentences', 'history:append-sentences'],
   ['reviseSentences', 'history:revise-sentences'],
   ['getSentences', 'history:get-sentences'],
@@ -127,6 +130,7 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     putNotices: (a) => call('history:put-notices', a),
     getLegs: (id) => call('history:get-legs', { id }),
     createTranscript: (a) => call('history:create-transcript', a),
+    deleteTranscript: (a) => call('history:delete-transcript', a),
     appendSentences: (a) => call('history:append-sentences', a),
     reviseSentences: (a) => call('history:revise-sentences', a),
     getSentences: (a) => call('history:get-sentences', a),
@@ -166,6 +170,7 @@ export const nullHistoryPort: HistoryPort = {
   putNotices: nothing,
   getLegs: async () => [],
   createTranscript: async () => 0,
+  deleteTranscript: async () => {},
   appendSentences: async () => ({ added: 0 }),
   reviseSentences: nothing,
   getSentences: async () => [],

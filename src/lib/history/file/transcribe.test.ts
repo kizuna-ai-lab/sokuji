@@ -24,7 +24,7 @@ function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?:
   } as unknown as HistoryRecord;
 }
 
-function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string } = {}) {
+function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string; writeFails?: boolean; deleteFails?: boolean } = {}) {
   const asked: HistoryRecognizeRequest[] = [];
   const written: unknown[] = [];
   const port = {
@@ -37,7 +37,11 @@ function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[
     cancelRecognition: vi.fn(async () => true),
     recognitionStatus: vi.fn(async () => ({ phase: 'processing' })),
     createTranscript: vi.fn(async (a: unknown) => { written.push(['createTranscript', a]); return 7; }),
-    appendSentences: vi.fn(async (a: { sentences: unknown[] }) => { written.push(['appendSentences', a]); return { added: a.sentences.length }; }),
+    appendSentences: vi.fn(async (a: { sentences: unknown[] }) => {
+      if (o.writeFails) throw new HistoryUnavailable('disk full', 'LOCAL');
+      written.push(['appendSentences', a]); return { added: a.sentences.length };
+    }),
+    deleteTranscript: vi.fn(async (a: unknown) => { written.push(['deleteTranscript', a]); if (o.deleteFails) throw new Error('still full'); }),
   };
   return { port: port as unknown as HistoryPort, raw: port, asked, written };
 }
@@ -120,6 +124,15 @@ describe('transcribing a record again', () => {
     release();
     await done;
     expect(phases).toEqual(['uploading', 'processing', 'writing']);
+  });
+
+  // The words are paid for and whole; only writing them here can fail half way: the half-written version goes.
+  it('deletes the transcript it made when writing its sentences fails, and passes the failure on', async () => {
+    for (const deleteFails of [false, true]) {
+      const { port, written } = fakePort({ words: { speaker: said('Mine first.', 0), participant: said('Then theirs.', 200) }, writeFails: true, deleteFails });
+      await expect(transcribeRecord({ port, recordId: ID, service: SERVICE, clock: createVirtualClock(0), newJobId })).rejects.toThrow('disk full');
+      expect(written).toContainEqual(['deleteTranscript', { transcriptId: 7 }]);
+    }
   });
 
   it('a cancel stops the running recognition at main and writes nothing', async () => {

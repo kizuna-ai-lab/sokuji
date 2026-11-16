@@ -377,6 +377,16 @@ function openHistory({ dir, now = () => Date.now() }) {
       return Number(lastInsertRowid);
     },
 
+    /**
+     * A transcript and its sentences (and speakers), by its id: one that could not be written whole. The record, its
+     * other transcripts and its notes stay (notes of it lose their link).
+     */
+    deleteTranscript({ transcriptId } = {}) {
+      transcriptOrFail(transcriptId);
+      run('delete from transcripts where id = ?', transcriptId);
+      return null;
+    },
+
     appendSentences({ transcriptId, sentences } = {}) {
       transcriptOrFail(transcriptId);
       if (!Array.isArray(sentences)) fail('BAD_INPUT', 'sentences must be an array');

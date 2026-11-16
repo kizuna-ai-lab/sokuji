@@ -26,6 +26,7 @@ const HISTORY_CHANNELS = Object.freeze({
   'history:put-notices': 'putNotices',
   'history:get-legs': 'getLegs',
   'history:create-transcript': 'createTranscript',
+  'history:delete-transcript': 'deleteTranscript',
   'history:append-sentences': 'appendSentences',
   'history:revise-sentences': 'reviseSentences',
   'history:get-sentences': 'getSentences',
@@ -91,6 +92,7 @@ function setupHistoryHandlers({
   ipcMain.handle('history:put-notices', handle('putNotices'));
   ipcMain.handle('history:get-legs', handle('getLegs'));
   ipcMain.handle('history:create-transcript', handle('createTranscript'));
+  ipcMain.handle('history:delete-transcript', handle('deleteTranscript'));
   ipcMain.handle('history:append-sentences', handle('appendSentences'));
   ipcMain.handle('history:revise-sentences', handle('reviseSentences'));
   ipcMain.handle('history:get-sentences', handle('getSentences'));

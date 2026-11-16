@@ -119,8 +119,15 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   if (o.signal?.aborted) throw cancelled();
   o.onProgress?.({ phase: 'writing' });
   const transcriptId = await o.port.createTranscript({ recordId: o.recordId, origin: { service: o.service.service, kind: 'file' }, textKind: 'original' });
-  for (let i = 0; i < sentences.length; i += WRITE_BATCH) {
-    await o.port.appendSentences({ transcriptId, sentences: sentences.slice(i, i + WRITE_BATCH) });
+  try {
+    for (let i = 0; i < sentences.length; i += WRITE_BATCH) {
+      await o.port.appendSentences({ transcriptId, sentences: sentences.slice(i, i + WRITE_BATCH) });
+    }
+  } catch (error) {
+    // A version with half its sentences is not kept: it goes, by its own id (never the record's other versions). The
+    // write's failure is what the user is told, even when this clean-up fails too.
+    await o.port.deleteTranscript({ transcriptId }).catch(() => {});
+    throw error;
   }
   return { transcriptId, sentences: sentences.length };
 }

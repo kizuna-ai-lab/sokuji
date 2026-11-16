@@ -132,6 +132,7 @@ export const INVOKE_CHANNELS = [
   'history:put-notices',
   'history:get-legs',
   'history:create-transcript',
+  'history:delete-transcript',
   'history:append-sentences',
   'history:revise-sentences',
   'history:get-sentences',
