@@ -970,7 +970,8 @@
         "turn": "Fin de turno",
         "punctuation": "Frases y puntuación",
         "readings": "Lecturas",
-        "voice": "Voz"
+        "voice": "Voz",
+        "engine": "Escritorio"
       },
       "manyLanguages": "Muchos idiomas",
       "languages": "{{count}} idiomas",
@@ -994,7 +995,12 @@
       "voicesTitle": "Voces importadas",
       "voicesHint": "Archivos de voz de Supertonic que importaste.",
       "importedOn": "Importada el {{date}}",
-      "more": "{{count}} más"
+      "more": "{{count}} más",
+      "engineTitle": "Motor local",
+      "engineHint": "El motor de escritorio que versiones anteriores descargaron para ejecutar modelos en este ordenador. El servicio «Este dispositivo» ya no lo usa; quítalo para liberar espacio.",
+      "remove": "Quitar",
+      "engineConfirm": "¿Quitar el motor local?",
+      "engineFrees": "Libera {{size}}."
     }
   },
   "notes": {

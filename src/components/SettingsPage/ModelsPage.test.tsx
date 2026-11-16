@@ -21,6 +21,12 @@ vi.mock('../../lib/local-inference/voiceStorage', () => ({
   listVoices: async () => voices.list,
   deleteVoice: voices.deleteVoice,
 }));
+// The on-device engine row is the desktop's only (B-19).
+const env = vi.hoisted(() => ({ electron: false }));
+vi.mock('../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/environment')>()),
+  isElectron: () => env.electron,
+}));
 vi.mock('../Settings/sections/ModelImportModal', () => ({
   ModelImportModal: ({ modelName }: { modelName: string }) => <div data-testid="import-modal">{modelName}</div>,
 }));
@@ -31,6 +37,7 @@ import { useModelStore } from '../../stores/modelStore';
 import { useSmartTurnStore } from '../../stores/smartTurnStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 
 const store = {
   downloadModel: vi.fn(async (_id: string) => {}),
@@ -40,9 +47,12 @@ const store = {
 };
 const turn = { download: vi.fn(async () => {}), remove: vi.fn(async () => {}), refresh: vi.fn(async () => {}) };
 const punct = { download: vi.fn(async () => {}), cancel: vi.fn(), deleteModels: vi.fn(async () => {}), refresh: vi.fn(async () => {}) };
+const engine = { refreshBundle: vi.fn(async () => {}), refreshBundleUsage: vi.fn(async () => {}), removeBundle: vi.fn(async () => {}) };
 
 beforeEach(() => {
-  for (const f of [...Object.values(store), ...Object.values(turn), ...Object.values(punct), dict.deleteDictionary, voices.deleteVoice]) f.mockClear();
+  for (const f of [...Object.values(store), ...Object.values(turn), ...Object.values(punct), ...Object.values(engine), dict.deleteDictionary, voices.deleteVoice]) f.mockClear();
+  env.electron = false;
+  useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.31.2', bundleUsage: 3_435_973_837, ...engine } as never);
   dict.stored = true;
   voices.list = [];
   useModelStore.setState({
@@ -251,5 +261,79 @@ describe('Models and storage — buttons named by their model', () => {
     expect(screen.getByRole('button', { name: 'Delete: SenseVoice (int8)' })).toHaveTextContent('Delete');
     expect(screen.getByRole('button', { name: 'Download: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' })).toHaveTextContent('Download');
     expect(screen.getByRole('button', { name: 'Cancel: Moonshine Tiny JA (quantized)' })).toHaveTextContent('Cancel');
+  });
+});
+
+// B-19: the desktop engine earlier versions downloaded for on-device models takes several GB, and nothing else in
+// the app can remove it now: Models and storage lists it, with what it takes, and removes it after asking.
+describe('Models and storage — the on-device engine (B-19)', () => {
+  const group = () => screen.queryByRole('region', { name: 'On-device engine' });
+
+  it('on the desktop, shows the engine on disk, its version and what it takes', async () => {
+    env.electron = true;
+    mount();
+    await waitFor(() => expect(group()).not.toBeNull());
+    expect(within(group()!).getByText('Engine 0.31.2')).toBeInTheDocument();
+    expect(group()).toHaveTextContent('3.2 GB on disk');
+    // Read afresh when the page opens: whether it is there, and how much it takes.
+    expect(engine.refreshBundle).toHaveBeenCalled();
+    expect(engine.refreshBundleUsage).toHaveBeenCalled();
+  });
+
+  it('removes it after asking, saying how much that frees', async () => {
+    env.electron = true;
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove: Engine 0.31.2' }));
+    const ask = screen.getByRole('group', { name: 'Remove the on-device engine?' });
+    expect(ask).toHaveTextContent('Frees 3.2 GB.');
+    expect(engine.removeBundle).not.toHaveBeenCalled();
+    fireEvent.click(within(ask).getByRole('button', { name: 'Yes' }));
+    expect(engine.removeBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps it when the answer is no', async () => {
+    env.electron = true;
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove: Engine 0.31.2' }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Remove the on-device engine?' })).getByRole('button', { name: 'No' }));
+    expect(engine.removeBundle).not.toHaveBeenCalled();
+    expect(screen.queryByRole('group', { name: 'Remove the on-device engine?' })).toBeNull();
+  });
+
+  it('names it without a version when the version is not known', async () => {
+    env.electron = true;
+    useNativeModelStore.setState({ bundleVersion: null } as never);
+    mount();
+    await waitFor(() => expect(group()).not.toBeNull());
+    expect(within(group()!).getByText('Engine')).toBeInTheDocument();
+  });
+
+  it('cannot be removed during a session, nor while an engine download is running', async () => {
+    env.electron = true;
+    mount(true);
+    expect(await screen.findByRole('button', { name: 'Remove: Engine 0.31.2' })).toBeDisabled();
+    cleanup();
+    useNativeModelStore.setState({ bundleStatus: 'installing' } as never);
+    mount();
+    expect(await screen.findByRole('button', { name: 'Remove: Engine 0.31.2' })).toBeDisabled();
+  });
+
+  it('is not there on the web, where there is no engine', async () => {
+    mount();
+    await waitFor(() => expect(screen.getByRole('region', { name: /Helper models/ })).toBeInTheDocument());
+    expect(group()).toBeNull();
+    expect(engine.refreshBundle).not.toHaveBeenCalled();
+  });
+
+  it('is not there when nothing of the engine is on disk, or its size is not known yet', async () => {
+    env.electron = true;
+    useNativeModelStore.setState({ bundleUsage: 0 } as never);
+    mount();
+    await waitFor(() => expect(engine.refreshBundleUsage).toHaveBeenCalled());
+    expect(group()).toBeNull();
+    cleanup();
+    useNativeModelStore.setState({ bundleUsage: null } as never);
+    mount();
+    expect(group()).toBeNull();
   });
 });

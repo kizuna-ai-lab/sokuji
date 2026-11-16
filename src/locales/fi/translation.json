@@ -970,7 +970,8 @@
         "turn": "Vuoron loppu",
         "punctuation": "Virkkeet ja välimerkit",
         "readings": "Lukutavat",
-        "voice": "Ääni"
+        "voice": "Ääni",
+        "engine": "Työpöytä"
       },
       "manyLanguages": "Monta kieltä",
       "languages": "{{count}} kieltä",
@@ -994,7 +995,12 @@
       "voicesTitle": "Tuodut äänet",
       "voicesHint": "Tuomasi Supertonic-äänitiedostot.",
       "importedOn": "Tuotu {{date}}",
-      "more": "{{count}} lisää"
+      "more": "{{count}} lisää",
+      "engineTitle": "Paikallinen moottori",
+      "engineHint": "Työpöytämoottori, jonka aiemmat versiot latasivat mallien ajamiseen tällä tietokoneella. Palvelu ”Tämä laite” ei enää käytä sitä; poista se vapauttaaksesi tilaa.",
+      "remove": "Poista",
+      "engineConfirm": "Poistetaanko paikallinen moottori?",
+      "engineFrees": "Vapauttaa {{size}}."
     }
   },
   "notes": {

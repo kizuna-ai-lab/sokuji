@@ -970,7 +970,8 @@
         "turn": "Turslut",
         "punctuation": "Meningar och skiljetecken",
         "readings": "Uttal",
-        "voice": "Röst"
+        "voice": "Röst",
+        "engine": "Dator"
       },
       "manyLanguages": "Många språk",
       "languages": "{{count}} språk",
@@ -994,7 +995,12 @@
       "voicesTitle": "Importerade röster",
       "voicesHint": "Supertonic-röstfiler som du har importerat.",
       "importedOn": "Importerad {{date}}",
-      "more": "{{count}} till"
+      "more": "{{count}} till",
+      "engineTitle": "Lokal motor",
+      "engineHint": "Skrivbordsmotorn som tidigare versioner laddade ned för att köra modeller på den här datorn. Tjänsten ”Den här enheten” använder den inte längre; ta bort den för att frigöra utrymme.",
+      "remove": "Ta bort",
+      "engineConfirm": "Ta bort den lokala motorn?",
+      "engineFrees": "Frigör {{size}}."
     }
   },
   "notes": {

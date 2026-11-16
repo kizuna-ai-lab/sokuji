@@ -91,6 +91,8 @@ interface NativeModelStore {
   /** Download / unpacked sizes from the manifest peek (null while unknown). */
   bundleSize: number | null;
   bundleInstalledSize: number | null;
+  /** What the installed engine takes on disk, measured (B-19); null until read or when it cannot be. */
+  bundleUsage: number | null;
   /** Live download progress while `bundleStatus === 'installing'`. */
   bundleProgress: { downloaded: number; total: number };
   /** Last bundle install error (empty when none). */
@@ -103,6 +105,8 @@ interface NativeModelStore {
   cancelBundle: () => Promise<void>;
   /** Delete the installed engine (frees disk) and re-read status. */
   removeBundle: () => Promise<void>;
+  /** Measure what the installed engine takes on disk (B-19); leaves `bundleUsage` as it was when it cannot. */
+  refreshBundleUsage: () => Promise<void>;
   /** Best-effort manifest peek for exact sizes on the absent/mismatch card. */
   fetchBundleEntry: () => Promise<void>;
   /** Warm the sidecar and load the full model catalog (asr+translate+tts) + hardware.
@@ -321,6 +325,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   bundleDevVenv: false,
   bundleSize: null,
   bundleInstalledSize: null,
+  bundleUsage: null,
   bundleProgress: { downloaded: 0, total: 0 },
   bundleError: '',
 
@@ -402,9 +407,17 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
         // lifecycle back to a state the next validation re-derives from.
         set({ sidecarStatus: 'idle', catalog: {}, statuses: {}, engineInfo: null, deviceProfiles: null, profileGeneration: null });
         await get().refreshBundle();
+        await get().refreshBundleUsage();
         void revalidateNativeProvider();
       }
     } catch { /* best-effort */ }
+  },
+
+  refreshBundleUsage: async () => {
+    try {
+      const r = await bundleInvoke('sidecar-bundle:usage');
+      if (r?.ok && typeof r.bytes === 'number') set({ bundleUsage: r.bytes });
+    } catch { /* not the desktop, or main unreachable: the size stays unknown */ }
   },
 
   fetchBundleEntry: async () => {

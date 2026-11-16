@@ -1199,7 +1199,8 @@
         "turn": "Turn end",
         "punctuation": "Sentences and punctuation",
         "readings": "Readings",
-        "voice": "Voice"
+        "voice": "Voice",
+        "engine": "Desktop"
       },
       "manyLanguages": "Many languages",
       "languages": "{{count}} languages",
@@ -1223,7 +1224,12 @@
       "voicesTitle": "Imported voices",
       "voicesHint": "Supertonic voice files you imported.",
       "importedOn": "Imported {{date}}",
-      "more": "{{count}} more"
+      "more": "{{count}} more",
+      "engineTitle": "On-device engine",
+      "engineHint": "The desktop engine earlier versions downloaded to run models on this computer. The “This device” service no longer uses it; remove it to free the space.",
+      "remove": "Remove",
+      "engineConfirm": "Remove the on-device engine?",
+      "engineFrees": "Frees {{size}}."
     }
   },
   "notes": {

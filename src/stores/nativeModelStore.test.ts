@@ -1077,6 +1077,39 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     expect(s.bundleStatus).toBe('absent');
   });
 
+  // B-19: what the installed engine takes on disk, for the "On-device engine" row in Models and storage.
+  it('refreshBundleUsage reads what the installed engine takes on disk', async () => {
+    useNativeModelStore.setState({ bundleUsage: null });
+    const invoke = vi.fn(async (channel: string) => (channel === 'sidecar-bundle:usage' ? { ok: true, bytes: 3_400_000_000 } : { ok: false }));
+    (globalThis as any).window.electron = { invoke };
+    await useNativeModelStore.getState().refreshBundleUsage();
+    expect(invoke).toHaveBeenCalledWith('sidecar-bundle:usage', undefined);
+    expect(useNativeModelStore.getState().bundleUsage).toBe(3_400_000_000);
+  });
+
+  it('refreshBundleUsage leaves the size unknown when it cannot be read', async () => {
+    useNativeModelStore.setState({ bundleUsage: null });
+    (globalThis as any).window.electron = { invoke: vi.fn().mockResolvedValue({ ok: false, error: 'unsupported platform' }) };
+    await useNativeModelStore.getState().refreshBundleUsage();
+    expect(useNativeModelStore.getState().bundleUsage).toBeNull();
+    (globalThis as any).window.electron = { invoke: vi.fn().mockRejectedValue(new Error('no ipc')) };
+    await useNativeModelStore.getState().refreshBundleUsage();
+    expect(useNativeModelStore.getState().bundleUsage).toBeNull();
+  });
+
+  it('removeBundle reads the size again, so a removed engine takes nothing', async () => {
+    useNativeModelStore.setState({ bundleUsage: 3_400_000_000 });
+    const invoke = vi.fn(async (channel: string) => {
+      if (channel === 'sidecar-bundle:remove') return { ok: true };
+      if (channel === 'sidecar-bundle:usage') return { ok: true, bytes: 0 };
+      return statusReply({ state: 'absent', installed: false, installedVersion: null });
+    });
+    (globalThis as any).window.electron = { invoke };
+    await useNativeModelStore.getState().removeBundle();
+    expect(invoke).toHaveBeenCalledWith('sidecar-bundle:usage', undefined);
+    expect(useNativeModelStore.getState().bundleUsage).toBe(0);
+  });
+
   it('refreshBundle maps ready + carries dev metadata', async () => {
     (globalThis as any).window.electron = {
       invoke: vi.fn().mockResolvedValue(statusReply()),

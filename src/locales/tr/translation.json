@@ -970,7 +970,8 @@
         "turn": "Sıra sonu",
         "punctuation": "Cümleler ve noktalama",
         "readings": "Okunuş",
-        "voice": "Ses"
+        "voice": "Ses",
+        "engine": "Masaüstü"
       },
       "manyLanguages": "Birçok dil",
       "languages": "{{count}} dil",
@@ -994,7 +995,12 @@
       "voicesTitle": "İçe aktarılan sesler",
       "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
       "importedOn": "{{date}} tarihinde içe aktarıldı",
-      "more": "{{count}} tane daha"
+      "more": "{{count}} tane daha",
+      "engineTitle": "Yerel motor",
+      "engineHint": "Önceki sürümlerin modelleri bu bilgisayarda çalıştırmak için indirdiği masaüstü motoru. “Bu cihaz” hizmeti artık bunu kullanmıyor; yer açmak için kaldırın.",
+      "remove": "Kaldır",
+      "engineConfirm": "Yerel motor kaldırılsın mı?",
+      "engineFrees": "{{size}} yer açılır."
     }
   },
   "notes": {

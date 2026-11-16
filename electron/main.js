@@ -855,6 +855,16 @@ ipcMain.handle('sidecar-bundle:cancel', () => {
   _bundleAbort?.abort();
   return { ok: true };
 });
+// What the installed engine takes on disk (B-19: the "On-device engine" row in Models and storage).
+ipcMain.handle('sidecar-bundle:usage', async () => {
+  const sku = _currentSku();
+  if (sku === null) return { ok: false, error: 'unsupported platform' };
+  try {
+    return { ok: true, bytes: await sidecarBundle.installedBytes(app.getPath('userData'), sku) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+});
 ipcMain.handle('sidecar-bundle:remove', () => {
   const sku = _currentSku();
   if (sku === null) return { ok: false, error: 'unsupported platform' };

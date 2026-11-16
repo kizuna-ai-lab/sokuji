@@ -970,7 +970,8 @@
         "turn": "発話の区切り",
         "punctuation": "文の区切りと句読点",
         "readings": "読み",
-        "voice": "ボイス"
+        "voice": "ボイス",
+        "engine": "デスクトップ"
       },
       "manyLanguages": "多言語",
       "languages": "{{count}} 言語",
@@ -994,7 +995,12 @@
       "voicesTitle": "取り込んだボイス",
       "voicesHint": "自分で取り込んだ Supertonic のボイスファイルです。",
       "importedOn": "{{date}} に取り込み",
-      "more": "ほか {{count}} 件"
+      "more": "ほか {{count}} 件",
+      "engineTitle": "ローカルエンジン",
+      "engineHint": "以前のバージョンがこのコンピューターでモデルを動かすためにダウンロードしたデスクトップ用エンジンです。現在の「このデバイス」サービスでは使われません。削除すると空き容量が増えます。",
+      "remove": "削除",
+      "engineConfirm": "ローカルエンジンを削除しますか？",
+      "engineFrees": "{{size}} の空きができます。"
     }
   },
   "notes": {

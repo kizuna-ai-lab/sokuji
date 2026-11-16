@@ -83,6 +83,7 @@ export const INVOKE_CHANNELS = [
   'sidecar-bundle:cancel',
   'sidecar-bundle:manifest',
   'sidecar-bundle:remove',
+  'sidecar-bundle:usage',
   // Auto-update
   'update-check',
   'update-download',

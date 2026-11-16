@@ -970,7 +970,8 @@
         "turn": "Akhir giliran",
         "punctuation": "Kalimat dan tanda baca",
         "readings": "Cara baca",
-        "voice": "Suara"
+        "voice": "Suara",
+        "engine": "Desktop"
       },
       "manyLanguages": "Banyak bahasa",
       "languages": "{{count}} bahasa",
@@ -994,7 +995,12 @@
       "voicesTitle": "Suara yang diimpor",
       "voicesHint": "File suara Supertonic yang Anda impor.",
       "importedOn": "Diimpor {{date}}",
-      "more": "{{count}} lagi"
+      "more": "{{count}} lagi",
+      "engineTitle": "Mesin lokal",
+      "engineHint": "Mesin desktop yang diunduh versi sebelumnya untuk menjalankan model di komputer ini. Layanan “Perangkat ini” tidak lagi memakainya; hapus untuk mengosongkan ruang.",
+      "remove": "Hapus",
+      "engineConfirm": "Hapus mesin lokal?",
+      "engineFrees": "Mengosongkan {{size}}."
     }
   },
   "notes": {
