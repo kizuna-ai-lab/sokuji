@@ -1,4 +1,5 @@
 // Running one version of a record's notes: from its newest transcript to a saved version, one at a time per record.
+import { refreshPrompts, resetPromptSource } from './promptSource';
 import { describe, it, expect, vi } from 'vitest';
 import type { HistoryPort } from '../history/port';
 import type { HistoryRecord, HistorySentence } from '../history/types';
@@ -52,6 +53,14 @@ function setup(o: { chat?: ChatPort | null; sentences?: HistorySentence[] } = {}
   return { runner, raw, saved, calls };
 }
 
+const promptsAt3 = async () => refreshPrompts({
+  fetch: async () => new Response(JSON.stringify({
+    notes: { version: 3, prompts: { 'whole-meeting': 'v3 whole __LANGUAGE__', 'meeting-part': 'v3 part __LANGUAGE__', 'combine-parts': 'v3 combine __LANGUAGE__', 'check-names': 'v3 names' } },
+    live: { version: 3, prompts: { 'live-update': 'v3 live __LANGUAGE__' } },
+  })),
+  save: async () => true,
+});
+
 describe('the notes runner', () => {
   it('writes a version from the newest transcript and saves it as complete notes', async () => {
     const { runner, raw, saved } = setup();
@@ -70,6 +79,23 @@ describe('the notes runner', () => {
     expect(seen).toEqual([[ID], []]);
     // The store names the record after its notes unless the user named it: the runner leaves the title alone.
     expect(raw.renameRecord).not.toHaveBeenCalled();
+  });
+
+  it('writes every call with the prompts in use when it starts, and stores their version', async () => {
+    await promptsAt3();
+    try {
+      const { runner, saved, calls } = setup();
+      runner.start(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+      expect(saved[0]).toMatchObject({ writtenBy: { promptVersion: 3 } });
+      expect(calls.length).toBeGreaterThan(0);
+      for (const call of calls) {
+        expect(call.promptVersion).toBe(3);
+        expect(call.system.startsWith('v3 ')).toBe(true);
+      }
+    } finally {
+      resetPromptSource();
+    }
   });
 
   it('asks for the notes service for the record it writes, so a hosted service bills that meeting', async () => {

@@ -8,7 +8,7 @@ import type { WordEntry } from '../words/list';
 import type { HistoryPort } from '../history/port';
 import type { HistoryNotesInput, HistoryRecord, HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort } from './chat';
-import { NOTES_PROMPT_VERSION } from './prompts';
+import { activePrompts } from './promptSource';
 import { NOTES_MIN_MS, writeNotes } from './write';
 
 export interface NotesLanguage { code: string; name: string }
@@ -79,9 +79,11 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     if (span < NOTES_MIN_MS) return;
     const service = await d.chatFor(recordId);
     const requestIds: string[] = [];
+    // One set of prompts for the whole version; its number is what the version stores.
+    const prompts = activePrompts().notes;
     const base = {
       recordId, transcriptId: newest.id, language: language.code,
-      writtenBy: { kind: 'sokuji' as const, promptVersion: NOTES_PROMPT_VERSION, model: service?.model ?? '' },
+      writtenBy: { kind: 'sokuji' as const, promptVersion: prompts.version, model: service?.model ?? '' },
     };
     const save = (rest: Pick<HistoryNotesInput, 'state' | 'failure' | 'body'>) => d.port.saveNotes({ ...base, ...rest, requestIds: [...requestIds] });
     if (!service) {
@@ -92,7 +94,7 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     try {
       result = await writeNotes({
         sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal, requestIds,
-        names: d.names?.() ?? [],
+        names: d.names?.() ?? [], prompts,
       });
     } catch (error) {
       if (controller.signal.aborted || isAbort(error)) {

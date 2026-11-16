@@ -4,6 +4,7 @@ import { createVirtualClock } from '../../contract/clock';
 import { ChatError, type ChatPort, type ChatRequest } from '../chat';
 import { createLiveNotes, LIVE_INTERVAL_MS } from './loop';
 import { LIVE_PROMPT_VERSION } from '../prompts';
+import { refreshPrompts, resetPromptSource } from '../promptSource';
 import type { LiveSentence, LiveState } from './state';
 
 const s = (n: number, o: Partial<LiveSentence> = {}): LiveSentence => ({
@@ -200,6 +201,21 @@ describe('the live notes loop', () => {
     clock.advance(LIVE_INTERVAL_MS);
     expect(model.calls[0].r).toMatchObject({ prompt: 'live-update', promptVersion: LIVE_PROMPT_VERSION });
     expect((model.calls[0].r.user as { output_language: string }).output_language).toBe('en');
+  });
+
+  it('writes with the live prompt in use when it starts, under that version', async () => {
+    await refreshPrompts({
+      fetch: async () => new Response(JSON.stringify({ live: { version: 3, prompts: { 'live-update': 'v3 live __LANGUAGE__' } } })),
+      save: async () => true,
+    });
+    try {
+      const { clock, model, live } = setup();
+      live.sentences([s(1)]);
+      clock.advance(LIVE_INTERVAL_MS);
+      expect(model.calls[0].r).toMatchObject({ prompt: 'live-update', promptVersion: 3, system: 'v3 live English' });
+    } finally {
+      resetPromptSource();
+    }
   });
 
   // Review focus: after a 402 the loop stops for good and says why; a meeting does not keep calling every 20 seconds.

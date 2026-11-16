@@ -8,7 +8,8 @@ import type { WordEntry } from '../../words/list';
 import type { Clock } from '../../contract/clock';
 import type { ChatPort } from '../chat';
 import { ChatError } from '../chat';
-import { LIVE_PROMPT_VERSION, livePrompt } from '../prompts';
+import { livePrompt } from '../prompts';
+import { activePrompts } from '../promptSource';
 import type { NotesLanguage } from '../runner';
 import { applyLive, emptyLive, livePayload, type LiveSentence, type LiveState } from './state';
 
@@ -63,6 +64,8 @@ const STOPPING_CODES: ReadonlySet<string> = new Set(['no-balance', 'daily-limit'
 const unstableCount = (s: LiveState) => s.topics.reduce((sum, t) => sum + t.points.filter((p) => p.unstable).length, 0);
 
 export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
+  // The live prompt in use when the loop starts, for the whole session.
+  const prompts = activePrompts().live;
   let state = d.from?.state ?? emptyLive();
   const seen: LiveSentence[] = [...(d.from?.seen ?? [])];
   const known = new Set<number>(seen.map((x) => x.n));
@@ -116,7 +119,7 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     const payload = livePayload({ state, fresh, seen: seen.slice(0, upTo), language: d.language, speakerLabel: d.speakerLabel, names: d.names });
     u.cancelTimeout = d.clock.setTimeout(() => { if (!u.done) { u.givenUp = true; controller.abort(); } }, LIVE_TIMEOUT_MS);
     u.promise = d.chat({
-      system: livePrompt(d.language.name), prompt: 'live-update', promptVersion: LIVE_PROMPT_VERSION,
+      system: livePrompt(d.language.name, prompts), prompt: 'live-update', promptVersion: prompts.version,
       user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal,
     })
       .then((answer) => finish(u, answer), (error: unknown) => {

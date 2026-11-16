@@ -10,7 +10,8 @@ import type { WordEntry } from '../words/list';
 import type { HistorySentence, HistorySentenceSide } from '../history/types';
 import type { ChatPort, ChatRequest } from './chat';
 import { ChatError } from './chat';
-import { finishPrompt, namesPrompt, NOTES_PROMPT_VERSION, partPrompt, notesNames } from './prompts';
+import { finishPrompt, namesPrompt, partPrompt, notesNames } from './prompts';
+import { activePrompts, type NotesPrompts } from './promptSource';
 
 /** Less transcript than this has nothing to write notes from: no call is made. */
 export const NOTES_MIN_MS = 60_000;
@@ -84,6 +85,8 @@ export interface WriteNotesOptions {
   requestIds?: string[];
   /** The word list: spellings every call is asked to prefer (stage 5). */
   names?: readonly WordEntry[];
+  /** The prompts every call of this version uses; absent: those in use now. */
+  prompts?: NotesPrompts;
 }
 
 type Raw = Record<string, unknown>;
@@ -246,15 +249,16 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
     return who.certain ? SIDE_WORDS[who.side] : null;
   };
 
+  const prompts = o.prompts ?? activePrompts().notes;
   const preferred = notesNames(o.names);
   const withNames = preferred.length > 0 ? { names: preferred } : {};
   // The parts, all at once. A part that still fails after its tries fails the version: nothing half-written is kept.
   const parts = cutParts(ordered);
   const multiPart = parts.length > 1;
   const written = await Promise.all(parts.map((part, k) => ask(chat, {
-    system: partPrompt(language.name, multiPart),
+    system: partPrompt(language.name, multiPart, prompts),
     prompt: multiPart ? 'meeting-part' : 'whole-meeting',
-    promptVersion: NOTES_PROMPT_VERSION,
+    promptVersion: prompts.version,
     user: {
       output_language: language.code,
       sentences: part.map(view),
@@ -320,9 +324,9 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
 
   // The finishing call reconciles the marks; the names step runs beside it. Either may fail without failing the version.
   const finishing = ask(chat, {
-    system: finishPrompt(language.name),
+    system: finishPrompt(language.name, prompts),
     prompt: 'combine-parts',
-    promptVersion: NOTES_PROMPT_VERSION,
+    promptVersion: prompts.version,
     user: {
       output_language: language.code,
       topics: topics.map((t) => ({ n: t.n, ...(multiPart ? { part: t.part } : {}), title: t.title, summary: t.summary })),
@@ -338,9 +342,9 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
     onAnswered,
   });
   const naming = Promise.all(namesParts(ordered).map((part) => ask(chat, {
-    system: namesPrompt(),
+    system: namesPrompt(prompts),
     prompt: 'check-names',
-    promptVersion: NOTES_PROMPT_VERSION,
+    promptVersion: prompts.version,
     user: { sentences: part.map(view), ...withNames },
     effort: 'medium',
     maxTokens: NAMES_TOKENS,

@@ -1,9 +1,10 @@
 // src/lib/notes/relayChat.ts
 //
 // The notes written by Kizuna AI: the chat port over our relay (`POST <backend>/api/openai/chat/completions`). The body
-// is byte for byte the one an own key sends (`chatBody`); only the address and the credential differ, and four headers
-// say which meeting it is for, who pays, and which prompt and version it is (the relay puts in its own copy of that
-// prompt). The relay's own refusals come in OpenAI's error shape and are read by their code.
+// is the one an own key sends (`chatBody`) with the system message left empty: the relay puts in its own copy of the
+// prompt the headers name. Only the address and the credential differ otherwise, and four headers say which meeting it
+// is for, who pays, and which prompt and version it is. The relay's own refusals come in OpenAI's error shape and are
+// read by their code.
 import { abortError, answerOf, chatBody, ChatError, RATE_LIMIT_WAITS, refusalOf, wait, type ChatPort } from './chat';
 
 /** The one model the relay writes notes with. */
@@ -44,7 +45,8 @@ export function relayChat(o: RelayChatOptions): ChatPort {
     const token = await o.token();
     if (!token) throw new ChatError('Sign in to write notes with Kizuna AI', { code: 'sign-in', retryable: false });
     if (r.signal.aborted) throw abortError();
-    const body = chatBody(RELAY_NOTES_MODEL, r);
+    // The relay puts in its own copy of the prompt named in the headers: the text is not sent.
+    const body = chatBody(RELAY_NOTES_MODEL, { ...r, system: '' });
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,

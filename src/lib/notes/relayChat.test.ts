@@ -16,7 +16,7 @@ const port = (fetch: ReturnType<typeof vi.fn>, o: Partial<Parameters<typeof rela
 const sent = (fetch: ReturnType<typeof vi.fn>) => fetch.mock.calls[0] as unknown as [string, RequestInit];
 
 describe('the notes through Kizuna AI', () => {
-  it('sends byte for byte the body an own key sends, with our address, the sign-in and our headers', async () => {
+  it('sends the body an own key sends, without the prompt text (the relay puts in its own), with our address, the sign-in and our headers', async () => {
     const relay = vi.fn(async () => answer(200, content({ title: 'T' }), { 'X-Sokuji-Balance-After': '123' }));
     const own = vi.fn(async () => answer(200, content({ title: 'T' })));
     const onBalance = vi.fn();
@@ -24,7 +24,9 @@ describe('the notes through Kizuna AI', () => {
     await openAiChat({ baseUrl: 'https://api.openai.com/v1', apiKey: 'sk', model: RELAY_NOTES_MODEL, fetch: own as never })(request());
     const [url, init] = sent(relay);
     expect(url).toBe('https://kizuna.example/api/openai/chat/completions');
-    expect(init.body).toBe(sent(own)[1].body);
+    const ownBody = JSON.parse(sent(own)[1].body as string);
+    ownBody.messages[0].content = '';
+    expect(JSON.parse(init.body as string)).toEqual(ownBody);
     expect(init.headers).toMatchObject({
       Authorization: 'Bearer tok', 'X-Sokuji-Session': 'run-0001', 'X-Sokuji-Payer': 'personal',
       'X-Sokuji-Prompt': 'live-update', 'X-Sokuji-Prompt-Version': '2',
