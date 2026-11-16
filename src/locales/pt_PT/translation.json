@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Lista de palavras: {{count}} entrada acima do limite deste serviço fica de fora.",
       "notesKizunaPrice": "Estimativa da Kizuna AI: notas em direto cerca de {{live}} por hora, notas depois de uma sessão cerca de {{after}} por hora, pagas com o saldo que paga as suas sessões.",
       "notesNeedSignInOrKey": "Inicie sessão, ou adicione uma chave da OpenAI em «Contas e chaves», para que as notas sejam escritas.",
-      "jointCard": "{{stages}} funcionam numa única ligação; mudam em conjunto."
+      "jointCard": "{{stages}} funcionam numa única ligação; mudam em conjunto.",
+      "notesKizunaLine": "A OpenAI escreve as notas através da Kizuna AI, pagas com o seu saldo.",
+      "notesOpenAiLine": "Escreve as notas com a sua própria chave da OpenAI."
     },
     "display": {
       "surface": "Qual apresentação",

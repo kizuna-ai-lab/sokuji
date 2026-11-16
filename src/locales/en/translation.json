@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Word list: {{count}} entry over this service’s limit is left out.",
       "notesKizunaPrice": "Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.",
       "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written.",
-      "jointCard": "{{stages}} go over one connection; they change together."
+      "jointCard": "{{stages}} go over one connection; they change together.",
+      "notesKizunaLine": "OpenAI writes the notes through Kizuna AI, paid from your balance.",
+      "notesOpenAiLine": "Writes the notes with your own OpenAI key."
     },
     "display": {
       "surface": "Which display",

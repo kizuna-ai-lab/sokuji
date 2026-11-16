@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
       "notesKizunaPrice": "Kizuna AI の目安：ライブメモは 1 時間あたり約 {{live}}、会議後のメモは 1 時間あたり約 {{after}}。セッションの料金を払う残高から支払われます。",
       "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。",
-      "jointCard": "{{stages}}は1つの接続で動きます。一緒に切り替わります。"
+      "jointCard": "{{stages}}は1つの接続で動きます。一緒に切り替わります。",
+      "notesKizunaLine": "Kizuna AI 経由で OpenAI がメモを書きます。料金は残高から支払われます。",
+      "notesOpenAiLine": "あなた自身の OpenAI キーでメモを書きます。"
     },
     "display": {
       "surface": "どの表示",

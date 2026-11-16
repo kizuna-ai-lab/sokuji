@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Woordenlijst: {{count}} item boven de limiet van deze dienst wordt weggelaten.",
       "notesKizunaPrice": "Schatting van Kizuna AI: live notities ongeveer {{live}} per uur, notities na een sessie ongeveer {{after}} per uur, betaald uit het saldo dat je sessies betaalt.",
       "notesNeedSignInOrKey": "Log in, of voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’, om notities te laten schrijven.",
-      "jointCard": "{{stages}} gaan over één verbinding; ze wisselen samen."
+      "jointCard": "{{stages}} gaan over één verbinding; ze wisselen samen.",
+      "notesKizunaLine": "OpenAI schrijft de notities via Kizuna AI, betaald uit je saldo.",
+      "notesOpenAiLine": "Schrijft de notities met je eigen OpenAI-sleutel."
     },
     "display": {
       "surface": "Welke weergave",

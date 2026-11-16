@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Kelime listesi: bu hizmetin sınırını aşan {{count}} kayıt gönderilmiyor.",
       "notesKizunaPrice": "Kizuna AI tahmini: canlı notlar saatte yaklaşık {{live}}, oturum sonrası notlar saatte yaklaşık {{after}}; oturumlarınızı ödeyen bakiyeden ödenir.",
       "notesNeedSignInOrKey": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
-      "jointCard": "{{stages}} tek bağlantı üzerinden çalışır; birlikte değişirler."
+      "jointCard": "{{stages}} tek bağlantı üzerinden çalışır; birlikte değişirler.",
+      "notesKizunaLine": "OpenAI notları Kizuna AI üzerinden yazar; bakiyenizden ödenir.",
+      "notesOpenAiLine": "Notları kendi OpenAI anahtarınızla yazar."
     },
     "display": {
       "surface": "Hangi görünüm",

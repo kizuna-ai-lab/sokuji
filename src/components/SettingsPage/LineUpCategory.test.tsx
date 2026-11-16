@@ -6,7 +6,8 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isKizunaAIEnabled: () => true, isElectron: () => env.electron, isExtension: () => !env.electron,
 }));
-vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
+const baseSelect = vi.hoisted(() => ({ rich: false }));
+vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => baseSelect.rich }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading }: { heading?: boolean }) => <div id="languages-section" data-heading={String(heading)} /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
 vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
@@ -369,6 +370,26 @@ describe('the notes card', () => {
     expect(optionTexts('Notes')).toEqual(['None', 'Kizuna AI', 'OpenAI']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
+  });
+
+  // Owner, 2026-11-17: the notes card's choice is drawn like the other stages' (icon, name, a line under it), its
+  // lines about writing notes, not about what the providers do in a session.
+  it('draws its choices like the other stages: an icon, the name, a line about writing notes', () => {
+    baseSelect.rich = true;
+    openAiKey();
+    try {
+      render(<LineUpCategory locked={false} />);
+      const select = screen.getByRole('combobox', { name: 'Notes' });
+      expect(select).toHaveClass('provider-select');
+      const kizuna = within(select).getByRole('option', { name: /^Kizuna AI/ });
+      const openai = within(select).getByRole('option', { name: /^OpenAI/ });
+      expect(kizuna.querySelector('.provider-select__icon')).not.toBeNull();
+      expect(openai.querySelector('.provider-select__icon')).not.toBeNull();
+      expect(kizuna.querySelector('.provider-select__description')).toHaveTextContent('OpenAI writes the notes through Kizuna AI, paid from your balance.');
+      expect(openai.querySelector('.provider-select__description')).toHaveTextContent('Writes the notes with your own OpenAI key.');
+    } finally {
+      baseSelect.rich = false;
+    }
   });
 
   it('is not in the extension', () => {

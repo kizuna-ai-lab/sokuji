@@ -29,6 +29,7 @@ import { directionKey, type Selections } from '../../lib/local-inference/selecti
 import { ProviderLanguages } from '../providers/ProviderLanguages';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
+import { KizunaAIIcon } from '../Icons/ProviderIcons';
 import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
@@ -135,6 +136,19 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       : kizunaChosen ? { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
         : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
   const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
+  // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.
+  const notesOptions: ProviderOptionModel[] = [
+    { id: '', name: t('settingsPage.lineup.notesNone', 'None') },
+    ...(kizunaOffered || kizunaChosen ? [{
+      id: KIZUNA_NOTES, name: 'Kizuna AI', icon: KizunaAIIcon,
+      description: t('settingsPage.lineup.notesKizunaLine', 'OpenAI writes the notes through Kizuna AI, paid from your balance.'),
+      ...(kizunaBlocked ? { blocked: t('settingsPage.lineup.needsSignIn', 'needs a sign-in') } : {}),
+    }] : []),
+    ...(openAiKeyed || notesService === 'openai' ? [{
+      id: 'openai', name: 'OpenAI', icon: openAi?.icon,
+      description: t('settingsPage.lineup.notesOpenAiLine', 'Writes the notes with your own OpenAI key.'),
+    }] : []),
+  ];
   const chooseNotes = async (id: string) => {
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose('summarisation', id || null);
@@ -371,15 +385,11 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
               <em className={`lineup-stage__state${notesState.ok ? ' is-ready' : ''}`}>{notesState.text}</em>
             </div>
-            <select className="select-dropdown" value={notesService ?? ''} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
+            {/* Drawn like the other stages' choices (owner, 2026-11-17): an icon, the name, a line about writing notes. */}
+            <select className="select-dropdown provider-select" value={notesService ?? ''} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
               onChange={(e) => void chooseNotes(e.target.value)}>
-              <option value="">{t('settingsPage.lineup.notesNone', 'None')}</option>
-              {(kizunaOffered || kizunaChosen) && (
-                <option value={KIZUNA_NOTES} disabled={kizunaBlocked}>
-                  {kizunaBlocked ? `Kizuna AI (${t('settingsPage.lineup.needsSignIn', 'needs a sign-in')})` : 'Kizuna AI'}
-                </option>
-              )}
-              {(openAiKeyed || notesService === 'openai') && <option value="openai">OpenAI</option>}
+              {rich && <button type="button"><selectedcontent /></button>}
+              {notesOptions.map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
             </select>
             {kizunaOffered && auth.signedIn && notesPricing && (
               <p className="lineup-stage__joint">{t('settingsPage.lineup.notesKizunaPrice', 'Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.', { live: perHour(notesPricing.liveUsdPerHour), after: perHour(notesPricing.afterSessionUsdPerHour) })}</p>

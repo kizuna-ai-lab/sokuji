@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này không được gửi.",
       "notesKizunaPrice": "Ước tính của Kizuna AI: ghi chú trực tiếp khoảng {{live}} mỗi giờ, ghi chú sau phiên khoảng {{after}} mỗi giờ, trả từ số dư dùng để trả cho các phiên của bạn.",
       "notesNeedSignInOrKey": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa”, để ghi chú được viết.",
-      "jointCard": "{{stages}} đi qua một kết nối; chúng đổi cùng nhau."
+      "jointCard": "{{stages}} đi qua một kết nối; chúng đổi cùng nhau.",
+      "notesKizunaLine": "OpenAI viết ghi chú qua Kizuna AI, trả từ số dư của bạn.",
+      "notesOpenAiLine": "Viết ghi chú bằng khóa OpenAI của chính bạn."
     },
     "display": {
       "surface": "Hiển thị nào",

@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar.",
       "notesKizunaPrice": "Anggaran Kizuna AI: nota langsung kira-kira {{live}} sejam, nota selepas sesi kira-kira {{after}} sejam, dibayar daripada baki yang membayar sesi anda.",
       "notesNeedSignInOrKey": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci”, supaya nota ditulis.",
-      "jointCard": "{{stages}} berjalan melalui satu sambungan; kedua-duanya berubah bersama."
+      "jointCard": "{{stages}} berjalan melalui satu sambungan; kedua-duanya berubah bersama.",
+      "notesKizunaLine": "OpenAI menulis nota melalui Kizuna AI, dibayar daripada baki anda.",
+      "notesOpenAiLine": "Menulis nota dengan kunci OpenAI anda sendiri."
     },
     "display": {
       "surface": "Paparan mana",

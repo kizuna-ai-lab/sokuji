@@ -1859,7 +1859,9 @@
       "wordsLeftOut_one": "Wortliste: {{count}} Eintrag über der Grenze dieses Dienstes wird ausgelassen.",
       "notesKizunaPrice": "Schätzung von Kizuna AI: Live-Notizen etwa {{live}} pro Stunde, Notizen nach einer Sitzung etwa {{after}} pro Stunde, bezahlt aus dem Guthaben, das Ihre Sitzungen bezahlt.",
       "notesNeedSignInOrKey": "Melden Sie sich an oder fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu, damit Notizen geschrieben werden.",
-      "jointCard": "{{stages}} laufen über eine Verbindung; sie wechseln gemeinsam."
+      "jointCard": "{{stages}} laufen über eine Verbindung; sie wechseln gemeinsam.",
+      "notesKizunaLine": "OpenAI schreibt die Notizen über Kizuna AI, bezahlt aus Ihrem Guthaben.",
+      "notesOpenAiLine": "Schreibt die Notizen mit Ihrem eigenen OpenAI-Schlüssel."
     },
     "display": {
       "surface": "Welche Anzeige",
