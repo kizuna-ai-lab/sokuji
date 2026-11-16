@@ -140,13 +140,13 @@ If the user switches to the other regional provider later, that provider gets it
 
 Per provider, all regions in parallel:
 1. **Warm-up round**: one request per region, results discarded (DNS, TCP, TLS).
-2. **Five rounds**, 200 ms apart, one request per region per round; each request
+2. **Three rounds** (five until 2026-11-17, cut by the owner), 200 ms apart, one request per region per round; each request
    `fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', credentials: 'omit' })` with a 3 s
    `AbortController` timeout,
    timed with `performance.now()` around the awaited fetch.
-3. Per region, the **median** of its successful samples; a region with fewer than 3 successes is *unmeasured*.
+3. Per region, the **median** of its successful samples; a region with fewer than 2 successes is *unmeasured*.
 
-About 3 s and 4 × 6 small requests (Soniox) or 2 × 6 (Qwen), once per device per provider. The requests carry no key,
+About 2 s and 4 × 4 small requests (Soniox) or 2 × 4 (Qwen), once per device per provider. The requests carry no key,
 no audio and no account data.
 
 #### B4. The decision and the record

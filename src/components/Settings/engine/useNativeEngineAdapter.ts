@@ -27,9 +27,6 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
       const i = dir.indexOf('→');
       return [dir.slice(0, i), dir.slice(i + 1)];
     };
-    const storageBytes = Object.entries(statuses)
-      .filter(([, s]) => s === 'ready')
-      .reduce((sum, [id]) => sum + (catalog[id]?.sizeBytes ?? 0), 0);
     return {
       directions: [
         { dir: speaker, src: sourceLanguage, tgt: targetLanguage },
@@ -84,7 +81,6 @@ export function useNativeEngineAdapter(isSessionActive = false): EngineAdapter {
         const modelId = useNativeModelStore.getState().resolve(src, tgt, selections)[slot.stage]?.modelId ?? null;
         return React.createElement(SlotDeviceBadge, { stage: slot.stage, modelId, id });
       },
-      storageSummary: fmtBytes(storageBytes) ?? '0 MB',
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,
     };

@@ -970,7 +970,8 @@
         "turn": "말 끝",
         "punctuation": "문장과 문장 부호",
         "readings": "읽는 법",
-        "voice": "목소리"
+        "voice": "목소리",
+        "engine": "데스크톱"
       },
       "manyLanguages": "여러 언어",
       "languages": "{{count}}개 언어",
@@ -994,7 +995,12 @@
       "voicesTitle": "가져온 목소리",
       "voicesHint": "직접 가져온 Supertonic 목소리 파일입니다.",
       "importedOn": "{{date}}에 가져옴",
-      "more": "{{count}}개 더"
+      "more": "{{count}}개 더",
+      "engineTitle": "로컬 엔진",
+      "engineHint": "이전 버전이 이 컴퓨터에서 모델을 실행하려고 내려받은 데스크톱 엔진입니다. 지금의 \"이 기기\" 서비스는 이를 사용하지 않으니, 제거하면 공간이 확보됩니다.",
+      "remove": "제거",
+      "engineConfirm": "로컬 엔진을 제거할까요?",
+      "engineFrees": "{{size}}가 확보됩니다."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "일시정지",
     "position": "재생 위치",
     "speed": "속도",
+    "cannotPlay": "이 녹음은 재생할 수 없습니다",
     "playFromHere": "여기서부터 재생",
     "saveRecording": "녹음 저장(.opus)",
     "saveRecordingFailed": "녹음을 저장할 수 없습니다.",

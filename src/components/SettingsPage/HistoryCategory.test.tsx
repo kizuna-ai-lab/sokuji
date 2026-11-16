@@ -190,6 +190,30 @@ describe('notes after the session', () => {
   });
 });
 
+describe('the first-time explanation sits under the switch that asked for it (B-09)', () => {
+  const AFTER = 'Write notes after each session';
+  const LIVE = 'Live notes during a session';
+
+  it('under "Write notes after each session" for that switch, above the live notes row', async () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    fireEvent.click(within(row(AFTER)).getByRole('switch'));
+    const explained = screen.getByRole('group', { name: 'Before notes are written' });
+    expect(explained.previousElementSibling).toBe(row(AFTER));
+    expect(explained.nextElementSibling).toBe(row(LIVE));
+  });
+
+  it('under "Live notes during a session" for that switch', async () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    fireEvent.click(within(row(LIVE)).getByRole('switch'));
+    const explained = screen.getByRole('group', { name: 'Before live notes are written' });
+    expect(explained.previousElementSibling).toBe(row(LIVE));
+  });
+});
+
 describe('live notes during a session', () => {
   const NAME = 'Live notes during a session';
   const toggle = () => within(row(NAME)).getByRole('switch');

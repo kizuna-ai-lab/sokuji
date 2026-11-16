@@ -16,7 +16,7 @@ export const FALLBACK_PAIR = { source: 'ja', target: 'en' };
  * one more than that.
  *
  * Lives in its own module rather than `LocalInferenceEngine.tsx`: that file
- * also pulls in `EngineSurface`/`ModelManagementSection`/`StoragePage`/
+ * also pulls in `EngineSurface`/`ModelManagementSection`/
  * `useWasmEngineAdapter` — a heavy chain reaching the legacy `settingsStore`,
  * `nativeModelStore` and `segmentationStore` — while `LocalInferenceEngineSummary`
  * is meant to stay the cheap, always-shown piece next to the picker (ruling

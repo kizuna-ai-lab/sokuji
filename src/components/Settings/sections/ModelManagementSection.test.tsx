@@ -24,7 +24,7 @@ const slice = () => ({
 });
 
 vi.mock('react-i18next', () => ({
-  // Interpolating, mirroring StoragePage.test.tsx — needed so {{lang}} in
+  // Interpolating — needed so {{lang}} in
   // the availableWhenLang line actually resolves to the language NAME the
   // component passed in, not the raw placeholder (I5/I3).
   useTranslation: () => ({
@@ -394,10 +394,10 @@ describe('ModelManagementSection — Library surface keeps the original group li
   });
 });
 
-// C1 folded finding: Storage (StoragePage) owns Clear-all now — the bottom
+// C1 folded finding: the Models and storage page owns Clear-all now — the bottom
 // ModelStorageFooter duplicate must not render on the Library push
 // (stageFilter set), only on the standalone (prop-less) Settings-page render,
-// since the two differ in gating (StoragePage now carries isSessionActive;
+// since the two differ in gating (that page carries isSessionActive;
 // this footer's own `disabled` prop is unrelated to that surface).
 describe('ModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
   it('a Library-view (stageFilter set) render has no ModelStorageFooter', async () => {

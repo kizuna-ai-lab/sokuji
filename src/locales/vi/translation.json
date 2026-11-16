@@ -970,7 +970,8 @@
         "turn": "Kết thúc lượt",
         "punctuation": "Câu và dấu câu",
         "readings": "Cách đọc",
-        "voice": "Giọng"
+        "voice": "Giọng",
+        "engine": "Máy tính"
       },
       "manyLanguages": "Nhiều ngôn ngữ",
       "languages": "{{count}} ngôn ngữ",
@@ -994,7 +995,12 @@
       "voicesTitle": "Giọng đã nhập",
       "voicesHint": "Các tệp giọng Supertonic bạn đã nhập.",
       "importedOn": "Đã nhập ngày {{date}}",
-      "more": "Thêm {{count}}"
+      "more": "Thêm {{count}}",
+      "engineTitle": "Công cụ cục bộ",
+      "engineHint": "Công cụ máy tính mà các phiên bản trước đã tải về để chạy mô hình trên máy này. Dịch vụ “Thiết bị này” không còn dùng nó nữa; hãy gỡ bỏ để giải phóng dung lượng.",
+      "remove": "Gỡ bỏ",
+      "engineConfirm": "Gỡ bỏ công cụ cục bộ?",
+      "engineFrees": "Giải phóng {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "Tạm dừng",
     "position": "Vị trí",
     "speed": "Tốc độ",
+    "cannotPlay": "Không thể phát bản ghi này",
     "playFromHere": "Phát từ đây",
     "saveRecording": "Lưu bản ghi âm (.opus)",
     "saveRecordingFailed": "Không lưu được bản ghi âm.",

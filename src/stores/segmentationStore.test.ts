@@ -129,7 +129,7 @@ describe('refresh', () => {
   });
 
   it('a refresh whose reads land after a later refresh started does not write', async () => {
-    // `deleteModels()` wipes the disk and refreshes; `StoragePage`'s Clear all
+    // `deleteModels()` wipes the disk and refreshes; the Models and storage page's Clear all
     // does the same. Either can land while an earlier refresh is still reading,
     // and that earlier read answered "present" — it was issued before the
     // delete. Without a generation bump of its own it writes 'ready' over a

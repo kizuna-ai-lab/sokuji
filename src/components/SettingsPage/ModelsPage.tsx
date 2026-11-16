@@ -3,7 +3,8 @@
 // "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
 // "This device" service can use for the current languages, downloaded or not, each with its own Download or
 // Delete (the rest folded under "other languages"); the helper models (Smart Turn, the punctuation models, the
-// Japanese readings dictionary); the imported voices; and a summary line with Import and Clear all.
+// Japanese readings dictionary); the imported voices; on the desktop, the on-device engine earlier versions
+// downloaded (B-19), with what it takes and Remove; and a summary line with Import and Clear all.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -11,6 +12,8 @@ import {
   useModelDownloads, useModelStatuses, useDownloadErrors, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures, useModelStore,
 } from '../../stores/modelStore';
 import { useSmartTurnStore, SMART_TURN_TOTAL_BYTES } from '../../stores/smartTurnStore';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { storedLocalStages, useStoredLocalStages } from '../../stores/lineUpStore';
@@ -26,7 +29,7 @@ import { voicesWithoutImported } from '../../providers/localInference/voices';
 import { presentProviders } from '../../providers/registry';
 import { SMART_TURN_MODEL_ID } from '../../lib/turn/smartTurn';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
-import { computeDeleteNotes } from '../Settings/engine/StoragePage';
+import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import type { LanguagePair } from '../../lib/provider/types';
@@ -110,6 +113,19 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
     return () => { live = false; };
   }, [looks]);
   useEffect(() => { void useSmartTurnStore.getState().refresh(); void useSegmentationStore.getState().refresh(); }, []);
+
+  // The desktop engine earlier versions downloaded (B-19): nothing in the app uses or removes it now, so it is listed
+  // here with what it takes. Read afresh on opening the page: whether it is there, and its size on disk.
+  const desktop = isElectron();
+  const engineStatus = useNativeModelStore((s) => s.bundleStatus);
+  const engineVersion = useNativeModelStore((s) => s.bundleVersion);
+  const engineBytes = useNativeModelStore((s) => s.bundleUsage);
+  useEffect(() => {
+    if (!desktop) return;
+    const engine = useNativeModelStore.getState();
+    void engine.refreshBundle().then(() => engine.refreshBundleUsage());
+  }, [desktop]);
+  const engineShown = desktop && engineBytes !== null && engineBytes > 0;
 
   // The models this pair can use, both ways, on every stage — and every one already on disk.
   const directions = useMemo(() => [directionKey(pair.source, pair.target), directionKey(pair.target, pair.source)], [pair.source, pair.target]);
@@ -338,6 +354,28 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
           ))}
         </Group>
       )}
+
+      {engineShown && (() => {
+        const name = t('engine.ready', 'Engine {{version}}', { version: engineVersion ?? '' }).trim();
+        const size = formatBytes(engineBytes);
+        const question = t('models.page.engineConfirm', 'Remove the on-device engine?');
+        return (
+          <Group title={t('models.page.engineTitle', 'On-device engine')}
+            hint={t('models.page.engineHint', 'The desktop engine earlier versions downloaded to run models on this computer. The “This device” service no longer uses it; remove it to free the space.')}>
+            <ModelRow tag={t('models.page.tag.engine', 'Desktop')} name={name}
+              meta={<span>{t('engine.onDisk', '{{size}} on disk', { size })}</span>}
+              confirm={asking === 'engine' && (
+                <Confirm question={question} locked={locked} notes={[t('models.page.engineFrees', 'Frees {{size}}.', { size })]}
+                  onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useNativeModelStore.getState().removeBundle(); }} />
+              )}>
+              <button type="button" className="model-row__btn" disabled={locked || engineStatus === 'installing'}
+                aria-label={`${t('models.page.remove', 'Remove')}: ${name}`} onClick={() => setAsking('engine')}>
+                {t('models.page.remove', 'Remove')}
+              </button>
+            </ModelRow>
+          </Group>
+        );
+      })()}
 
       {importTarget && (
         <ModelImportModal isOpen modelId={importTarget.id} modelName={importTarget.name}

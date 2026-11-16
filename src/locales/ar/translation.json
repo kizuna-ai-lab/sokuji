@@ -970,7 +970,8 @@
         "turn": "نهاية الدور",
         "punctuation": "الجمل وعلامات الترقيم",
         "readings": "طريقة القراءة",
-        "voice": "صوت"
+        "voice": "صوت",
+        "engine": "سطح المكتب"
       },
       "manyLanguages": "لغات كثيرة",
       "languages": "{{count}} لغة",
@@ -994,7 +995,12 @@
       "voicesTitle": "الأصوات المستوردة",
       "voicesHint": "ملفات أصوات Supertonic التي استوردتها.",
       "importedOn": "استُورد في {{date}}",
-      "more": "{{count}} أخرى"
+      "more": "{{count}} أخرى",
+      "engineTitle": "المحرك المحلي",
+      "engineHint": "محرك سطح المكتب الذي نزّلته الإصدارات السابقة لتشغيل النماذج على هذا الحاسوب. خدمة «هذا الجهاز» لم تعد تستخدمه؛ أزِله لتحرير المساحة.",
+      "remove": "إزالة",
+      "engineConfirm": "هل تريد إزالة المحرك المحلي؟",
+      "engineFrees": "يحرّر {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "إيقاف مؤقت",
     "position": "الموضع",
     "speed": "السرعة",
+    "cannotPlay": "لا يمكن تشغيل هذا التسجيل",
     "playFromHere": "تشغيل من هنا",
     "saveRecording": "حفظ التسجيل (‎.opus)",
     "saveRecordingFailed": "تعذّر حفظ التسجيل.",

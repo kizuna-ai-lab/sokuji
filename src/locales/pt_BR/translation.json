@@ -970,7 +970,8 @@
         "turn": "Fim de turno",
         "punctuation": "Frases e pontuação",
         "readings": "Leituras",
-        "voice": "Voz"
+        "voice": "Voz",
+        "engine": "Desktop"
       },
       "manyLanguages": "Muitos idiomas",
       "languages": "{{count}} idiomas",
@@ -994,7 +995,12 @@
       "voicesTitle": "Vozes importadas",
       "voicesHint": "Arquivos de voz Supertonic que você importou.",
       "importedOn": "Importada em {{date}}",
-      "more": "Mais {{count}}"
+      "more": "Mais {{count}}",
+      "engineTitle": "Motor local",
+      "engineHint": "O motor de desktop que versões anteriores baixaram para rodar modelos neste computador. O serviço “Este dispositivo” não o usa mais; remova-o para liberar espaço.",
+      "remove": "Remover",
+      "engineConfirm": "Remover o motor local?",
+      "engineFrees": "Libera {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "Pausar",
     "position": "Posição",
     "speed": "Velocidade",
+    "cannotPlay": "Não é possível reproduzir esta gravação",
     "playFromHere": "Reproduzir daqui",
     "saveRecording": "Salvar a gravação (.opus)",
     "saveRecordingFailed": "Não foi possível salvar a gravação.",

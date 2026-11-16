@@ -970,7 +970,8 @@
         "turn": "Dulo ng sinasabi",
         "punctuation": "Pangungusap at bantas",
         "readings": "Pagbasa",
-        "voice": "Boses"
+        "voice": "Boses",
+        "engine": "Desktop"
       },
       "manyLanguages": "Maraming wika",
       "languages": "{{count}} wika",
@@ -994,7 +995,12 @@
       "voicesTitle": "Mga in-import na boses",
       "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
       "importedOn": "In-import noong {{date}}",
-      "more": "{{count}} pa"
+      "more": "{{count}} pa",
+      "engineTitle": "Lokal na engine",
+      "engineHint": "Ang desktop engine na dinownload ng mga naunang bersyon para magpatakbo ng mga model sa computer na ito. Hindi na ito ginagamit ng serbisyong “Ang device na ito”; alisin ito para magbakante ng espasyo.",
+      "remove": "Alisin",
+      "engineConfirm": "Alisin ang lokal na engine?",
+      "engineFrees": "Magbabakante ng {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "I-pause",
     "position": "Posisyon",
     "speed": "Bilis",
+    "cannotPlay": "Hindi ma-play ang recording na ito",
     "playFromHere": "I-play mula rito",
     "saveRecording": "I-save ang recording (.opus)",
     "saveRecordingFailed": "Hindi ma-save ang recording.",

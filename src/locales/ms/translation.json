@@ -970,7 +970,8 @@
         "turn": "Akhir giliran",
         "punctuation": "Ayat dan tanda baca",
         "readings": "Sebutan",
-        "voice": "Suara"
+        "voice": "Suara",
+        "engine": "Desktop"
       },
       "manyLanguages": "Banyak bahasa",
       "languages": "{{count}} bahasa",
@@ -994,7 +995,12 @@
       "voicesTitle": "Suara yang diimport",
       "voicesHint": "Fail suara Supertonic yang anda import.",
       "importedOn": "Diimport pada {{date}}",
-      "more": "{{count}} lagi"
+      "more": "{{count}} lagi",
+      "engineTitle": "Enjin setempat",
+      "engineHint": "Enjin desktop yang dimuat turun oleh versi terdahulu untuk menjalankan model pada komputer ini. Perkhidmatan “Peranti ini” tidak lagi menggunakannya; alih keluar untuk mengosongkan ruang.",
+      "remove": "Alih keluar",
+      "engineConfirm": "Alih keluar enjin setempat?",
+      "engineFrees": "Mengosongkan {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "Jeda",
     "position": "Kedudukan",
     "speed": "Kelajuan",
+    "cannotPlay": "Rakaman ini tidak dapat dimainkan",
     "playFromHere": "Main dari sini",
     "saveRecording": "Simpan rakaman (.opus)",
     "saveRecordingFailed": "Rakaman tidak dapat disimpan.",

@@ -970,7 +970,8 @@
         "turn": "סוף תור",
         "punctuation": "משפטים ופיסוק",
         "readings": "הגייה",
-        "voice": "קול"
+        "voice": "קול",
+        "engine": "שולחן עבודה"
       },
       "manyLanguages": "שפות רבות",
       "languages": "{{count}} שפות",
@@ -994,7 +995,12 @@
       "voicesTitle": "קולות מיובאים",
       "voicesHint": "קובצי קול של Supertonic שייבאת.",
       "importedOn": "יובא ב-{{date}}",
-      "more": "עוד {{count}}"
+      "more": "עוד {{count}}",
+      "engineTitle": "המנוע המקומי",
+      "engineHint": "מנוע שולחן העבודה שגרסאות קודמות הורידו כדי להריץ מודלים במחשב הזה. השירות ״מכשיר זה״ כבר לא משתמש בו; הסירו אותו כדי לפנות מקום.",
+      "remove": "הסרה",
+      "engineConfirm": "להסיר את המנוע המקומי?",
+      "engineFrees": "יפונו {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "השהיה",
     "position": "מיקום",
     "speed": "מהירות",
+    "cannotPlay": "לא ניתן להשמיע את ההקלטה הזו",
     "playFromHere": "הפעלה מכאן",
     "saveRecording": "שמירת ההקלטה (‎.opus)",
     "saveRecordingFailed": "לא ניתן היה לשמור את ההקלטה.",

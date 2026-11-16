@@ -16,6 +16,7 @@ const preview = vi.hoisted(() => ({ make: vi.fn(async () => ({ audio: new Float3
 vi.mock('../../lib/edge-tts/preview', () => ({ previewEdgeVoice: preview.make }));
 vi.mock('../../app/voicePreview', () => ({ appVoicePreview: { play: preview.play, stop: preview.stop } }));
 
+import '../../locales';
 import { EdgeVoices } from './EdgeVoices';
 import { useProviderStore } from '../../stores/providerStore';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';

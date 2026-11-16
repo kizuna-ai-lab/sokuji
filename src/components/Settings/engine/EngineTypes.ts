@@ -34,8 +34,6 @@ export interface EngineAdapter {
   slotBadge?(slot: SlotId, id: string): ReactNode;
   /** Gate banner above the blocks (native engine bundle); absent for WASM. */
   gate?: ReactNode;
-  /** Storage summary line for the storage row. */
-  storageSummary: string;
   /** Which stages a direction renders (participant hides tts today). */
   stagesFor(dir: string, isSpeaker: boolean): Stage[];
   disabled: boolean;           // isSessionActive

@@ -970,7 +970,8 @@
         "turn": "斷句",
         "punctuation": "分句和標點",
         "readings": "注音",
-        "voice": "音色"
+        "voice": "音色",
+        "engine": "桌面版"
       },
       "manyLanguages": "多語言",
       "languages": "{{count}} 種語言",
@@ -994,7 +995,12 @@
       "voicesTitle": "匯入的音色",
       "voicesHint": "自己匯入的 Supertonic 音色檔案。",
       "importedOn": "匯入於 {{date}}",
-      "more": "還有 {{count}} 個"
+      "more": "還有 {{count}} 個",
+      "engineTitle": "本機引擎",
+      "engineHint": "早期版本為在本機執行模型而下載的桌面引擎。現在的「本機」服務不再使用它，移除即可釋放空間。",
+      "remove": "移除",
+      "engineConfirm": "移除本機引擎？",
+      "engineFrees": "可釋放 {{size}}。"
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "暫停",
     "position": "播放位置",
     "speed": "倍速",
+    "cannotPlay": "這段錄音無法播放",
     "playFromHere": "從這裡播放",
     "saveRecording": "儲存錄音（.opus）",
     "saveRecordingFailed": "無法儲存錄音。",

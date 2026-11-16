@@ -970,7 +970,8 @@
         "turn": "Koniec wypowiedzi",
         "punctuation": "Zdania i interpunkcja",
         "readings": "Czytanie",
-        "voice": "Głos"
+        "voice": "Głos",
+        "engine": "Komputer"
       },
       "manyLanguages": "Wiele języków",
       "languages": "{{count}} języków",
@@ -994,7 +995,12 @@
       "voicesTitle": "Zaimportowane głosy",
       "voicesHint": "Zaimportowane przez Ciebie pliki głosów Supertonic.",
       "importedOn": "Zaimportowano {{date}}",
-      "more": "Jeszcze {{count}}"
+      "more": "Jeszcze {{count}}",
+      "engineTitle": "Silnik lokalny",
+      "engineHint": "Silnik desktopowy, który wcześniejsze wersje pobrały, aby uruchamiać modele na tym komputerze. Usługa „To urządzenie” już go nie używa; usuń go, aby zwolnić miejsce.",
+      "remove": "Usuń",
+      "engineConfirm": "Usunąć silnik lokalny?",
+      "engineFrees": "Zwolni {{size}}."
     }
   },
   "notes": {
@@ -2023,6 +2029,7 @@
     "pause": "Wstrzymaj",
     "position": "Pozycja",
     "speed": "Prędkość",
+    "cannotPlay": "Nie można odtworzyć tego nagrania",
     "playFromHere": "Odtwórz od tego miejsca",
     "saveRecording": "Zapisz nagranie (.opus)",
     "saveRecordingFailed": "Nie udało się zapisać nagrania.",
