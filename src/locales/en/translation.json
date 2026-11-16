@@ -2031,7 +2031,7 @@
     "notesLine": "When a session ends, {{service}} writes its notes from the transcript.",
     "notesNoService": "Choose a notes service in Languages and line-up first.",
     "notesExplainTitle": "Before notes are written",
-    "notesExplain": "For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.",
+    "notesExplain": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "notesTurnOn": "Turn on",
     "notesModel": "Notes model",
     "notesModelLine": "The text model that writes the notes, by its name at the service.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Live notes during a session",
     "liveLine": "During a session, {{service}} keeps short notes every 20 seconds beside the conversation. They are not kept.",
     "liveExplainTitle": "Before live notes are written",
-    "liveExplain": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them) and the notes so far are sent to {{service}} with your own key. Never the audio, the translation or your account.",
+    "liveExplain": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them), the notes so far and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "file": {
       "import": "Import a file",
       "importTitle": "Import “{{name}}”",

@@ -2031,7 +2031,7 @@
     "notesLine": "Cuando termina una sesión, {{service}} escribe sus notas a partir de la transcripción.",
     "notesNoService": "Primero elige un servicio para las notas en «Idiomas y combinación».",
     "notesExplainTitle": "Antes de escribir notas",
-    "notesExplain": "De cada sesión se envían a {{service}}, con tu propia clave, el texto de sus frases, sus números y qué lado y qué hablante las dijo. Nunca el audio, la traducción ni tu cuenta.",
+    "notesExplain": "De cada sesión se envían a {{service}}, con tu propia clave, el texto de sus frases, sus números, qué lado y qué hablante las dijo y las grafías de tu lista de palabras. Nunca el audio, la traducción ni tu cuenta.",
     "notesTurnOn": "Activar",
     "notesModel": "Modelo de las notas",
     "notesModelLine": "El modelo de texto que escribe las notas, con su nombre en el servicio.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Notas en directo durante la sesión",
     "liveLine": "Durante una sesión, {{service}} toma notas breves cada 20 segundos junto a la conversación. No se guardan.",
     "liveExplainTitle": "Antes de escribir notas en directo",
-    "liveExplain": "Durante una sesión, cada 20 segundos se envían a {{service}}, con tu propia clave, las frases nuevas (su texto, sus números y qué lado y qué hablante las dijo) y las notas hasta ese momento. Nunca el audio, la traducción ni tu cuenta.",
+    "liveExplain": "Durante una sesión, cada 20 segundos se envían a {{service}}, con tu propia clave, las frases nuevas (su texto, sus números y qué lado y qué hablante las dijo), las notas hasta ese momento y las grafías de tu lista de palabras. Nunca el audio, la traducción ni tu cuenta.",
     "file": {
       "import": "Importar un archivo",
       "importTitle": "Importar «{{name}}»",

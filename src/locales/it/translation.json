@@ -2031,7 +2031,7 @@
     "notesLine": "Quando una sessione finisce, {{service}} ne scrive le note dalla trascrizione.",
     "notesNoService": "Prima scegli un servizio per le note in «Lingue e composizione».",
     "notesExplainTitle": "Prima che vengano scritte le note",
-    "notesExplain": "Per ogni sessione vengono inviati a {{service}}, con la tua chiave, il testo delle sue frasi, i loro numeri e quale parte e quale interlocutore le ha dette. Mai l’audio, la traduzione o il tuo account.",
+    "notesExplain": "Per ogni sessione vengono inviati a {{service}}, con la tua chiave, il testo delle sue frasi, i loro numeri, quale parte e quale interlocutore le ha dette e le grafie del tuo elenco di parole. Mai l’audio, la traduzione o il tuo account.",
     "notesTurnOn": "Attiva",
     "notesModel": "Modello delle note",
     "notesModelLine": "Il modello di testo che scrive le note, con il suo nome presso il servizio.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Note in diretta durante la sessione",
     "liveLine": "Durante una sessione, {{service}} prende brevi note ogni 20 secondi accanto alla conversazione. Non vengono conservate.",
     "liveExplainTitle": "Prima che vengano scritte le note in diretta",
-    "liveExplain": "Durante una sessione, ogni 20 secondi le nuove frasi (testo, numeri e quale parte e quale interlocutore le ha dette) e le note fin qui vengono inviate a {{service}} con la tua chiave. Mai l’audio, la traduzione o il tuo account.",
+    "liveExplain": "Durante una sessione, ogni 20 secondi le nuove frasi (testo, numeri e quale parte e quale interlocutore le ha dette), le note fin qui e le grafie del tuo elenco di parole vengono inviate a {{service}} con la tua chiave. Mai l’audio, la traduzione o il tuo account.",
     "file": {
       "import": "Importa un file",
       "importTitle": "Importa «{{name}}»",

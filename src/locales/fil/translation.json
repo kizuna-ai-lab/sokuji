@@ -2031,7 +2031,7 @@
     "notesLine": "Kapag natapos ang session, isinusulat ng {{service}} ang mga tala nito mula sa transcript.",
     "notesNoService": "Pumili muna ng serbisyo para sa mga tala sa “Mga wika at line-up”.",
     "notesExplainTitle": "Bago isulat ang mga tala",
-    "notesExplain": "Para sa bawat session, ipinapadala sa {{service}} gamit ang sarili mong key ang teksto ng mga pangungusap nito, ang mga numero nila, at kung aling panig at aling tagapagsalita ang nagsabi. Hindi kailanman ang audio, ang salin o ang account mo.",
+    "notesExplain": "Para sa bawat session, ipinapadala sa {{service}} gamit ang sarili mong key ang teksto ng mga pangungusap nito, ang mga numero nila, kung aling panig at aling tagapagsalita ang nagsabi, at ang mga baybay sa listahan ng salita mo. Hindi kailanman ang audio, ang salin o ang account mo.",
     "notesTurnOn": "I-on",
     "notesModel": "Model ng mga tala",
     "notesModelLine": "Ang text model na sumusulat ng mga tala, ayon sa pangalan nito sa serbisyo.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Live na tala habang may session",
     "liveLine": "Habang may session, gumagawa ang {{service}} ng maiikling tala bawat 20 segundo sa tabi ng usapan. Hindi ito iniimbak.",
     "liveExplainTitle": "Bago isulat ang live na tala",
-    "liveExplain": "Habang may session, bawat 20 segundo ay ipinapadala sa {{service}} gamit ang sarili mong key ang mga bagong pangungusap (teksto, numero, at kung aling panig at tagapagsalita ang nagsabi) at ang mga tala sa ngayon. Hindi kailanman ang audio, ang salin o ang account mo.",
+    "liveExplain": "Habang may session, bawat 20 segundo ay ipinapadala sa {{service}} gamit ang sarili mong key ang mga bagong pangungusap (teksto, numero, at kung aling panig at tagapagsalita ang nagsabi), ang mga tala sa ngayon at ang mga baybay sa listahan ng salita mo. Hindi kailanman ang audio, ang salin o ang account mo.",
     "file": {
       "import": "Mag-import ng file",
       "importTitle": "I-import ang “{{name}}”",

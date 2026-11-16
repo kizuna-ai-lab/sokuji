@@ -2031,7 +2031,7 @@
     "notesLine": "À la fin d’une session, {{service}} rédige ses notes à partir de la transcription.",
     "notesNoService": "Choisissez d’abord un service pour les notes dans « Langues et composition ».",
     "notesExplainTitle": "Avant la rédaction des notes",
-    "notesExplain": "Pour chaque session, le texte de ses phrases, leurs numéros, et le côté et l’intervenant qui les ont dites sont envoyés à {{service}} avec votre propre clé. Jamais l’audio, la traduction ni votre compte.",
+    "notesExplain": "Pour chaque session, le texte de ses phrases, leurs numéros, le côté et l’intervenant qui les ont dites, ainsi que les graphies de votre liste de mots sont envoyés à {{service}} avec votre propre clé. Jamais l’audio, la traduction ni votre compte.",
     "notesTurnOn": "Activer",
     "notesModel": "Modèle des notes",
     "notesModelLine": "Le modèle de texte qui rédige les notes, sous son nom chez le service.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Notes en direct pendant la session",
     "liveLine": "Pendant une session, {{service}} prend de courtes notes toutes les 20 secondes à côté de la conversation. Elles ne sont pas conservées.",
     "liveExplainTitle": "Avant la rédaction des notes en direct",
-    "liveExplain": "Pendant une session, toutes les 20 secondes, les nouvelles phrases (leur texte, leurs numéros, et le côté et l’intervenant qui les ont dites) et les notes déjà écrites sont envoyées à {{service}} avec votre propre clé. Jamais l’audio, la traduction ni votre compte.",
+    "liveExplain": "Pendant une session, toutes les 20 secondes, les nouvelles phrases (leur texte, leurs numéros, et le côté et l’intervenant qui les ont dites), les notes déjà écrites et les graphies de votre liste de mots sont envoyées à {{service}} avec votre propre clé. Jamais l’audio, la traduction ni votre compte.",
     "file": {
       "import": "Importer un fichier",
       "importTitle": "Importer « {{name}} »",

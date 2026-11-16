@@ -2031,7 +2031,7 @@
     "notesLine": "Saat sesi berakhir, {{service}} menulis catatannya dari transkrip.",
     "notesNoService": "Pilih dulu layanan untuk catatan di “Bahasa dan susunan”.",
     "notesExplainTitle": "Sebelum catatan ditulis",
-    "notesExplain": "Untuk setiap sesi, teks kalimatnya, nomornya, serta pihak dan pembicara yang mengucapkannya dikirim ke {{service}} dengan kunci Anda sendiri. Tidak pernah audio, terjemahan, atau akun Anda.",
+    "notesExplain": "Untuk setiap sesi, teks kalimatnya, nomornya, pihak dan pembicara yang mengucapkannya, serta ejaan di daftar kata Anda dikirim ke {{service}} dengan kunci Anda sendiri. Tidak pernah audio, terjemahan, atau akun Anda.",
     "notesTurnOn": "Aktifkan",
     "notesModel": "Model catatan",
     "notesModelLine": "Model teks yang menulis catatan, sesuai namanya di layanan.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Catatan langsung selama sesi",
     "liveLine": "Selama sesi, {{service}} membuat catatan singkat setiap 20 detik di samping percakapan. Catatan ini tidak disimpan.",
     "liveExplainTitle": "Sebelum catatan langsung ditulis",
-    "liveExplain": "Selama sesi, setiap 20 detik kalimat baru (teks, nomor, serta pihak dan pembicara yang mengucapkannya) dan catatan sejauh ini dikirim ke {{service}} dengan kunci Anda sendiri. Tidak pernah audio, terjemahan, atau akun Anda.",
+    "liveExplain": "Selama sesi, setiap 20 detik kalimat baru (teks, nomor, serta pihak dan pembicara yang mengucapkannya), catatan sejauh ini, dan ejaan di daftar kata Anda dikirim ke {{service}} dengan kunci Anda sendiri. Tidak pernah audio, terjemahan, atau akun Anda.",
     "file": {
       "import": "Impor file",
       "importTitle": "Impor “{{name}}”",

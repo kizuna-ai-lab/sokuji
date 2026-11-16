@@ -2031,7 +2031,7 @@
     "notesLine": "Bir oturum bittiğinde {{service}}, dökümden notlarını yazar.",
     "notesNoService": "Önce “Diller ve düzen” bölümünde notlar için bir hizmet seçin.",
     "notesExplainTitle": "Notlar yazılmadan önce",
-    "notesExplain": "Her oturum için cümlelerinin metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
+    "notesExplain": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
     "notesTurnOn": "Aç",
     "notesModel": "Not modeli",
     "notesModelLine": "Notları yazan metin modeli, hizmetteki adıyla.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Oturum sırasında canlı notlar",
     "liveLine": "Oturum sırasında {{service}} her 20 saniyede bir konuşmanın yanına kısa notlar yazar. Saklanmazlar.",
     "liveExplainTitle": "Canlı notlar yazılmadan önce",
-    "liveExplain": "Oturum sırasında her 20 saniyede bir yeni cümleler (metin, numaralar ve hangi taraf ile konuşmacının söylediği) ve o ana kadarki notlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
+    "liveExplain": "Oturum sırasında her 20 saniyede bir yeni cümleler (metin, numaralar ve hangi taraf ile konuşmacının söylediği), o ana kadarki notlar ve kelime listenizdeki yazımlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
     "file": {
       "import": "Dosya içe aktar",
       "importTitle": "“{{name}}” içe aktar",

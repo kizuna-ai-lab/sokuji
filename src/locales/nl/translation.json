@@ -2031,7 +2031,7 @@
     "notesLine": "Als een sessie eindigt, schrijft {{service}} de notities uit de transcriptie.",
     "notesNoService": "Kies eerst een dienst voor de notities bij ‘Talen en opstelling’.",
     "notesExplainTitle": "Voordat er notities worden geschreven",
-    "notesExplain": "Voor elke sessie worden de tekst van de zinnen, hun nummers en welke kant en welke spreker ze zei met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
+    "notesExplain": "Voor elke sessie worden de tekst van de zinnen, hun nummers, welke kant en welke spreker ze zei en de schrijfwijzen uit je woordenlijst met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
     "notesTurnOn": "Inschakelen",
     "notesModel": "Model voor notities",
     "notesModelLine": "Het tekstmodel dat de notities schrijft, met de naam die de dienst gebruikt.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Live notities tijdens de sessie",
     "liveLine": "Tijdens een sessie maakt {{service}} elke 20 seconden korte notities naast het gesprek. Ze worden niet bewaard.",
     "liveExplainTitle": "Voordat er live notities worden geschreven",
-    "liveExplain": "Tijdens een sessie worden elke 20 seconden de nieuwe zinnen (tekst, nummers en welke kant en welke spreker ze zei) en de notities tot dan toe met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
+    "liveExplain": "Tijdens een sessie worden elke 20 seconden de nieuwe zinnen (tekst, nummers en welke kant en welke spreker ze zei), de notities tot dan toe en de schrijfwijzen uit je woordenlijst met je eigen sleutel naar {{service}} gestuurd. Nooit de audio, de vertaling of je account.",
     "file": {
       "import": "Bestand importeren",
       "importTitle": "“{{name}}” importeren",

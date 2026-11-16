@@ -2031,7 +2031,7 @@
     "notesLine": "När en session slutar skriver {{service}} anteckningarna utifrån transkriptionen.",
     "notesNoService": "Välj först en tjänst för anteckningarna under ”Språk och uppsättning”.",
     "notesExplainTitle": "Innan anteckningar skrivs",
-    "notesExplain": "För varje session skickas meningarnas text, deras nummer och vilken sida och talare som sa dem till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
+    "notesExplain": "För varje session skickas meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
     "notesTurnOn": "Slå på",
     "notesModel": "Modell för anteckningar",
     "notesModelLine": "Textmodellen som skriver anteckningarna, med det namn tjänsten använder.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Liveanteckningar under sessionen",
     "liveLine": "Under en session skriver {{service}} korta anteckningar var 20:e sekund bredvid samtalet. De sparas inte.",
     "liveExplainTitle": "Innan liveanteckningar skrivs",
-    "liveExplain": "Under en session skickas var 20:e sekund de nya meningarna (text, nummer och vilken sida och talare som sa dem) och anteckningarna hittills till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
+    "liveExplain": "Under en session skickas var 20:e sekund de nya meningarna (text, nummer och vilken sida och talare som sa dem), anteckningarna hittills och stavningarna i din ordlista till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
     "file": {
       "import": "Importera en fil",
       "importTitle": "Importera ”{{name}}”",

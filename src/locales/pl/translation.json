@@ -2031,7 +2031,7 @@
     "notesLine": "Po zakończeniu sesji {{service}} pisze notatki na podstawie transkrypcji.",
     "notesNoService": "Najpierw wybierz usługę do notatek w „Języki i zestaw”.",
     "notesExplainTitle": "Zanim zostaną napisane notatki",
-    "notesExplain": "Dla każdej sesji do {{service}} trafiają, z Twoim własnym kluczem, tekst jej zdań, ich numery oraz to, która strona i który mówca je wypowiedział. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
+    "notesExplain": "Dla każdej sesji do {{service}} trafiają, z Twoim własnym kluczem, tekst jej zdań, ich numery, to, która strona i który mówca je wypowiedział, oraz pisownia z Twojej listy słów. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
     "notesTurnOn": "Włącz",
     "notesModel": "Model notatek",
     "notesModelLine": "Model tekstowy, który pisze notatki, pod nazwą używaną przez usługę.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Notatki na żywo podczas sesji",
     "liveLine": "Podczas sesji {{service}} co 20 sekund pisze krótkie notatki obok rozmowy. Nie są zapisywane.",
     "liveExplainTitle": "Zanim zostaną napisane notatki na żywo",
-    "liveExplain": "Podczas sesji co 20 sekund do {{service}} trafiają, z Twoim własnym kluczem, nowe zdania (tekst, numery oraz to, która strona i który mówca je wypowiedział) i dotychczasowe notatki. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
+    "liveExplain": "Podczas sesji co 20 sekund do {{service}} trafiają, z Twoim własnym kluczem, nowe zdania (tekst, numery oraz to, która strona i który mówca je wypowiedział), dotychczasowe notatki i pisownia z Twojej listy słów. Nigdy dźwięk, tłumaczenie ani Twoje konto.",
     "file": {
       "import": "Importuj plik",
       "importTitle": "Importuj „{{name}}”",

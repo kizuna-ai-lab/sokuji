@@ -2031,7 +2031,7 @@
     "notesLine": "Khi phiên kết thúc, {{service}} viết ghi chú từ bản ghi lời.",
     "notesNoService": "Trước tiên hãy chọn dịch vụ cho ghi chú trong “Ngôn ngữ và cách phối hợp”.",
     "notesExplainTitle": "Trước khi viết ghi chú",
-    "notesExplain": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng và phía nào, người nói nào đã nói được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
+    "notesExplain": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng, phía nào và người nói nào đã nói, cùng cách viết trong danh sách từ của bạn được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
     "notesTurnOn": "Bật",
     "notesModel": "Mô hình ghi chú",
     "notesModelLine": "Mô hình văn bản viết ghi chú, theo tên của nó ở dịch vụ.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Ghi chú trực tiếp trong phiên",
     "liveLine": "Trong phiên, {{service}} ghi chú ngắn mỗi 20 giây bên cạnh cuộc trò chuyện. Ghi chú này không được lưu.",
     "liveExplainTitle": "Trước khi viết ghi chú trực tiếp",
-    "liveExplain": "Trong phiên, cứ 20 giây các câu mới (văn bản, số thứ tự và phía nào, người nói nào) cùng ghi chú đến lúc đó được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
+    "liveExplain": "Trong phiên, cứ 20 giây các câu mới (văn bản, số thứ tự và phía nào, người nói nào), ghi chú đến lúc đó cùng cách viết trong danh sách từ của bạn được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
     "file": {
       "import": "Nhập tệp",
       "importTitle": "Nhập “{{name}}”",

@@ -18,6 +18,6 @@ export function notesExplanation(t: TFunction, service: string, which: 'after' |
   }
   const name = NOTES_SERVICE_NAMES[service] ?? service;
   return which === 'live'
-    ? t('history.liveExplain', 'During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them) and the notes so far are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: name })
-    : t('history.notesExplain', 'For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: name });
+    ? t('history.liveExplain', 'During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them), the notes so far and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: name })
+    : t('history.notesExplain', 'For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: name });
 }

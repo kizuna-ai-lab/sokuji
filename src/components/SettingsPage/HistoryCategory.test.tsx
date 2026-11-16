@@ -101,6 +101,8 @@ describe('notes after the session', () => {
     const explained = screen.getByRole('group', { name: 'Before notes are written' });
     expect(within(explained).getByText(/sent to OpenAI with your own key/)).toBeInTheDocument();
     expect(within(explained).getByText(/Never the audio, the translation or your account\./)).toBeInTheDocument();
+    // The word list goes with every call (owner, 2026-11-17).
+    expect(within(explained).getByText(/the spellings in your word list are sent/)).toBeInTheDocument();
     expect(useSettingsStore.getState().notesAfterSession).toBe(false);
     fireEvent.click(within(explained).getByRole('button', { name: 'Cancel' }));
     await settle();
@@ -216,6 +218,7 @@ describe('live notes during a session', () => {
     fireEvent.click(toggle());
     const explained = screen.getByRole('group', { name: 'Before live notes are written' });
     expect(within(explained).getByText(/every 20 seconds/)).toBeInTheDocument();
+    expect(within(explained).getByText(/the notes so far and the spellings in your word list are sent to OpenAI with your own key/)).toBeInTheDocument();
     fireEvent.click(within(explained).getByRole('button', { name: 'Turn on' }));
     await settle();
     expect(useSettingsStore.getState()).toMatchObject({ liveNotes: true, liveNotesExplained: true });

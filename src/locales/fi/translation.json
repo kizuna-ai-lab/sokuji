@@ -2031,7 +2031,7 @@
     "notesLine": "Kun istunto päättyy, {{service}} kirjoittaa sen muistiinpanot litteroinnista.",
     "notesNoService": "Valitse ensin muistiinpanojen palvelu kohdassa ”Kielet ja kokoonpano”.",
     "notesExplainTitle": "Ennen kuin muistiinpanoja kirjoitetaan",
-    "notesExplain": "Jokaisesta istunnosta lähetetään {{service}}-palveluun omalla avaimellasi sen lauseiden teksti, niiden numerot sekä se, kumpi osapuoli ja kuka puhuja ne sanoi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
+    "notesExplain": "Jokaisesta istunnosta lähetetään {{service}}-palveluun omalla avaimellasi sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
     "notesTurnOn": "Ota käyttöön",
     "notesModel": "Muistiinpanojen malli",
     "notesModelLine": "Muistiinpanot kirjoittava tekstimalli palvelun käyttämällä nimellä.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Reaaliaikaiset muistiinpanot istunnon aikana",
     "liveLine": "Istunnon aikana {{service}} kirjoittaa 20 sekunnin välein lyhyitä muistiinpanoja keskustelun viereen. Niitä ei tallenneta.",
     "liveExplainTitle": "Ennen kuin reaaliaikaisia muistiinpanoja kirjoitetaan",
-    "liveExplain": "Istunnon aikana uudet lauseet (teksti, numerot sekä kumpi osapuoli ja kuka puhuja ne sanoi) ja tähänastiset muistiinpanot lähetetään 20 sekunnin välein {{service}}-palveluun omalla avaimellasi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
+    "liveExplain": "Istunnon aikana uudet lauseet (teksti, numerot sekä kumpi osapuoli ja kuka puhuja ne sanoi), tähänastiset muistiinpanot ja sanalistasi kirjoitusasut lähetetään 20 sekunnin välein {{service}}-palveluun omalla avaimellasi. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
     "file": {
       "import": "Tuo tiedosto",
       "importTitle": "Tuo ”{{name}}”",

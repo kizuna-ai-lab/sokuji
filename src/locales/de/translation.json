@@ -2031,7 +2031,7 @@
     "notesLine": "Wenn eine Sitzung endet, schreibt {{service}} ihre Notizen aus dem Transkript.",
     "notesNoService": "Wählen Sie zuerst unter „Sprachen und Aufstellung“ einen Dienst für die Notizen.",
     "notesExplainTitle": "Bevor Notizen geschrieben werden",
-    "notesExplain": "Für jede Sitzung werden der Text ihrer Sätze, deren Nummern und welche Seite und welcher Sprecher sie gesagt hat mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
+    "notesExplain": "Für jede Sitzung werden der Text ihrer Sätze, deren Nummern, welche Seite und welcher Sprecher sie gesagt hat sowie die Schreibweisen aus Ihrer Wortliste mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
     "notesTurnOn": "Einschalten",
     "notesModel": "Modell für Notizen",
     "notesModelLine": "Das Textmodell, das die Notizen schreibt, mit seinem Namen beim Dienst.",
@@ -2081,7 +2081,7 @@
     "liveNotes": "Live-Notizen während der Sitzung",
     "liveLine": "Während einer Sitzung schreibt {{service}} alle 20 Sekunden kurze Notizen neben das Gespräch. Sie werden nicht gespeichert.",
     "liveExplainTitle": "Bevor Live-Notizen geschrieben werden",
-    "liveExplain": "Während einer Sitzung werden alle 20 Sekunden die neuen Sätze (Text, Nummern und welche Seite und welcher Sprecher sie gesagt hat) und die bisherigen Notizen mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
+    "liveExplain": "Während einer Sitzung werden alle 20 Sekunden die neuen Sätze (Text, Nummern und welche Seite und welcher Sprecher sie gesagt hat), die bisherigen Notizen und die Schreibweisen aus Ihrer Wortliste mit Ihrem eigenen Schlüssel an {{service}} gesendet. Nie der Ton, die Übersetzung oder Ihr Konto.",
     "file": {
       "import": "Datei importieren",
       "importTitle": "„{{name}}“ importieren",
