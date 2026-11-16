@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { AUTO } from '../../lib/provider/languages';
 import { REALTIME_LANGUAGES, TRANSCRIPT_MODELS } from './settings';
-import { buildTranscriptionHint, normalizeTranscriptionLanguage, supportsTranscriptionContext } from './transcription';
+import { buildTranscriptionHint, estimatePromptTokens, normalizeTranscriptionLanguage, PROMPT_TOKEN_BUDGET, supportsTranscriptionContext } from './transcription';
 
 describe('supportsTranscriptionContext', () => {
   it('accepts the two context-capable models', () => {
@@ -62,9 +62,31 @@ describe('buildTranscriptionHint', () => {
     expect(buildTranscriptionHint('gpt-live-transcribe', 'en-US', { terms: ['Sokuji', 'Kizuna AI'], background: 'Weekly sync.' })).toEqual({ model: 'gpt-live-transcribe', languages: ['en'], keywords: ['Sokuji', 'Kizuna AI'] });
   });
 
-  it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update; the written forms, then the background, go as its prompt', () => {
+  // A legacy prompt keeps only its last 224 tokens (whisper-1); the client keeps it under its own budget, so nothing is cut.
+  it('keeps a legacy prompt within its budget: the background is shortened first, then terms go from the end', () => {
+    expect(PROMPT_TOKEN_BUDGET).toBe(200);
+    const terms = ['Sokuji', 'Kizuna AI'];
+    const long = `周会讨论交货。${'议程内容很长'.repeat(60)}`;
+    const shortened = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh', { terms, background: long }).prompt!;
+    expect(shortened).toBe('周会讨论交货。…\nSokuji, Kizuna AI.');
+    const noSentence = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh', { terms, background: '议程'.repeat(150) }).prompt!;
+    expect(noSentence).toBe('Sokuji, Kizuna AI.');
+    const many = Array.from({ length: 150 }, (_, i) => `术语${i + 1}`);
+    const kept = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh', { terms: many }).prompt!;
+    expect(estimatePromptTokens(kept)).toBeLessThanOrEqual(PROMPT_TOKEN_BUDGET);
+    expect(kept.startsWith('术语1, 术语2, ')).toBe(true);
+    expect(kept).not.toContain('术语150');
+  });
+
+  it('counts tokens on the safe side: a CJK character, a punctuation mark and a line break one each, four Latin letters one', () => {
+    expect(estimatePromptTokens('会议')).toBe(2);
+    expect(estimatePromptTokens('Sokuji')).toBe(2);
+    expect(estimatePromptTokens('a, b.\nc')).toBe(6);
+  });
+
+  it('sends the singular language to a legacy model, and never keywords: the API would refuse the whole session.update; the background, then the written forms, go as its prompt', () => {
     const hint = buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { terms: ['Sokuji', 'Kizuna AI'], background: 'Weekly sync.' });
-    expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh', prompt: 'Sokuji, Kizuna AI.\nWeekly sync.' });
+    expect(hint).toEqual({ model: 'gpt-4o-mini-transcribe', language: 'zh', prompt: 'Weekly sync.\nSokuji, Kizuna AI.' });
     expect(buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { terms: ['Sokuji'] }).prompt).toBe('Sokuji.');
     expect(buildTranscriptionHint('gpt-4o-mini-transcribe', 'zh-CN', { background: 'Weekly sync.' }).prompt).toBe('Weekly sync.');
   });

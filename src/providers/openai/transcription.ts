@@ -68,10 +68,54 @@ export function normalizeTranscriptionLanguage(value: string | undefined | null)
 }
 
 /**
+ * The estimated tokens a legacy prompt may take. whisper-1 keeps only the last 224 tokens of a prompt and says nothing;
+ * the same limit is assumed, not verified, for the other legacy models. 200 leaves room for the estimate's error.
+ */
+export const PROMPT_TOKEN_BUDGET = 200;
+
+/**
+ * Tokens of `text`, counted on the safe side: a CJK character, a punctuation mark and a line break one each, a run of
+ * Latin letters or digits one per four characters.
+ */
+export function estimatePromptTokens(text: string): number {
+  let tokens = 0;
+  for (const run of text.match(/[\p{L}\p{N}]+|[^\p{L}\p{N}]/gu) ?? []) {
+    if (/^\s$/u.test(run)) { if (run === '\n') tokens += 1; continue; }
+    if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(run)) {
+      // Letters of other scripts in the same run count by four.
+      const cjk = run.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu)!.length;
+      tokens += cjk + Math.ceil((run.length - cjk) / 4);
+    } else if (/[\p{L}\p{N}]/u.test(run)) tokens += Math.ceil(run.length / 4);
+    else tokens += 1;
+  }
+  return tokens;
+}
+
+/**
+ * A legacy model's prompt: the background, then the written forms on the last line. The model reads the prompt as the
+ * text before the audio, so the line nearest it weighs most; and a prompt over the limit loses its beginning. Over the
+ * budget, the background is cut to its first sentence, then dropped; written forms go from the end of the list last, the
+ * user's first ones kept.
+ */
+function legacyPrompt(background: string, keywords: readonly string[]): string {
+  const fits = (text: string) => estimatePromptTokens(text) <= PROMPT_TOKEN_BUDGET;
+  const termsLine = (list: readonly string[]) => (list.length > 0 ? `${list.join(', ')}.` : '');
+  let terms = [...keywords];
+  while (terms.length > 0 && !fits(termsLine(terms))) terms = terms.slice(0, -1);
+  const line = termsLine(terms);
+  const join = (bg: string) => [bg, line].filter(Boolean).join('\n');
+  const full = background.trim();
+  if (fits(join(full))) return join(full);
+  const first = full.match(/^[^。．.!?！？\n]*[。．.!?！？]/u)?.[0];
+  if (first && first.length < full.length && fits(join(`${first}…`))) return join(`${first}…`);
+  return line;
+}
+
+/**
  * The hint for `model` hearing `sourceLanguage`, with only the fields that model accepts: the word list's written forms
- * as `keywords` to the models that take them; to the legacy models, which have a prompt and no keywords, the written
- * forms and then the session background as the `prompt` (the newer ones' prompt is not verified, and a refused field
- * refuses the whole update).
+ * as `keywords` to the models that take them; to the legacy models, which have a prompt and no keywords, the session
+ * background and then the written forms as the `prompt` (the newer ones' prompt is not verified, and a refused field
+ * refuses the whole update), kept within `PROMPT_TOKEN_BUDGET`.
  */
 export function buildTranscriptionHint(model: string, sourceLanguage: string | undefined, words: { terms?: readonly string[]; background?: string } = {}): TranscriptionHint {
   const hint: TranscriptionHint = { model };
@@ -83,8 +127,7 @@ export function buildTranscriptionHint(model: string, sourceLanguage: string | u
     if (keywords.length > 0) hint.keywords = keywords;
   } else {
     if (language) hint.language = language;
-    // The spellings first, as the model reads a prompt as text that came before: "Sokuji, Kizuna AI." then the background.
-    const prompt = [keywords.length > 0 ? `${keywords.join(', ')}.` : '', words.background ?? ''].filter(Boolean).join('\n');
+    const prompt = legacyPrompt(words.background ?? '', keywords);
     if (prompt) hint.prompt = prompt;
   }
   return hint;
