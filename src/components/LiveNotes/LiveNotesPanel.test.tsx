@@ -50,35 +50,41 @@ describe('the live notes panel', () => {
     expect(screen.getByText('Live notes are off.')).toBeInTheDocument();
   });
 
-  it('after Stop, leads to History', () => {
+  // Review: until History answers, the panel cannot know whether the session is there, or whether notes are written.
+  it('after Stop, says nothing of History until History has answered, then leads there', () => {
     const open = vi.fn();
     act(() => { useLiveNotes.getState().update('run-0001-aaaa', notes); useLiveNotes.getState().end('run-0001-aaaa'); });
-    useSettingsStore.setState({ notesAfterSession: true } as never);
     render(<LiveNotesPanel onOpenHistory={open} />);
+    expect(screen.queryByRole('button', { name: 'Open History' })).toBeNull();
+    expect(screen.queryByText(/History\./)).toBeNull();
+    act(() => useLiveNotes.getState().closed('run-0001-aaaa', { kept: true, fullNotes: true }));
     expect(screen.getByText('The full notes will be in History.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open History' }));
     expect(open).toHaveBeenCalledWith('run-0001-aaaa');
     expect(screen.queryByText(/\(now\)/)).toBeNull();
   });
 
-  // Review: the full notes are written only with the switch on and a notes service in the line-up.
-  it('after Stop, promises full notes only when they will be written', () => {
-    act(() => { useLiveNotes.getState().update('run-0001-aaaa', notes); useLiveNotes.getState().end('run-0001-aaaa'); });
+  // Review: the promise follows what was decided for this session, not the switch as it is now.
+  it('after Stop, promises full notes only when they are being written for this session', () => {
+    act(() => {
+      useLiveNotes.getState().update('run-0001-aaaa', notes);
+      useLiveNotes.getState().end('run-0001-aaaa');
+      useLiveNotes.getState().closed('run-0001-aaaa', { kept: true, fullNotes: false });
+    });
     useSettingsStore.setState({ notesAfterSession: true } as never);
-    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null } } as never);
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
     expect(screen.queryByText('The full notes will be in History.')).toBeNull();
     expect(screen.getByText('Live notes are not kept. The session is in History.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open History' })).toBeInTheDocument();
   });
 
   // Review: History drops a session with nothing in it; the panel must not lead to it.
   it('after Stop, offers no way to History when History did not keep the session', () => {
     act(() => {
       useLiveNotes.getState().update('run-0001-aaaa', notes);
-      useLiveNotes.getState().notKept('run-0001-aaaa');
+      useLiveNotes.getState().closed('run-0001-aaaa', { kept: false, fullNotes: false });
       useLiveNotes.getState().end('run-0001-aaaa');
     });
-    useSettingsStore.setState({ notesAfterSession: true } as never);
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
     expect(screen.getByText('Live notes are not kept, and this session is not in History.')).toBeInTheDocument();
     expect(screen.queryByText('The full notes will be in History.')).toBeNull();

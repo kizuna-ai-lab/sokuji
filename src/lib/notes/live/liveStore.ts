@@ -17,8 +17,10 @@ export interface LiveNotesView {
   off: boolean;
   /** The session ended (the last update is in). */
   ended: boolean;
-  /** History keeps the session (false once it said it did not). */
-  kept: boolean;
+  /** What History said of the session once it closed it: not yet, it is there, or it did not keep it. */
+  history: 'pending' | 'kept' | 'notKept';
+  /** Full notes are being written for the session (decided when History closed it). */
+  fullNotes: boolean;
 }
 
 /** Each action that comes from a loop names its record: an answer of a session that has ended changes nothing once the
@@ -29,8 +31,8 @@ export interface LiveNotesActions {
   setHint(recordId: string, shown: boolean): void;
   /** The session ended (its last update is in). */
   end(recordId: string): void;
-  /** History did not keep the session. */
-  notKept(recordId: string): void;
+  /** History closed the session: whether it kept it, and whether full notes are being written for it. */
+  closed(recordId: string, o: { kept: boolean; fullNotes: boolean }): void;
   turnedOff(recordId: string): void;
   /** Turned on again in the same session: the notes on screen stay, and go on. */
   resume(recordId: string): void;
@@ -40,7 +42,7 @@ export interface LiveNotesActions {
   reset(): void;
 }
 
-const EMPTY: LiveNotesView = { recordId: null, state: null, hint: false, running: false, off: false, ended: false, kept: true };
+const EMPTY: LiveNotesView = { recordId: null, state: null, hint: false, running: false, off: false, ended: false, history: 'pending', fullNotes: false };
 
 export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
   /** Applies `change` only while the screen shows `recordId`'s notes. */
@@ -52,7 +54,7 @@ export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
     update: (recordId, state) => forRecord(recordId, { state }),
     setHint: (recordId, hint) => forRecord(recordId, { hint }),
     end: (recordId) => forRecord(recordId, { running: false, ended: true, hint: false }),
-    notKept: (recordId) => forRecord(recordId, { kept: false }),
+    closed: (recordId, o) => forRecord(recordId, { history: o.kept ? 'kept' : 'notKept', fullNotes: o.kept && o.fullNotes }),
     turnedOff: (recordId) => forRecord(recordId, { running: false, off: true, hint: false }),
     resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false }),
     clear: () => set((s) => (s.running ? { state: null } : EMPTY)),

@@ -349,6 +349,18 @@ describe('the history writer', () => {
     expect(dropped).toEqual(['run-0002-bbbb']);
   });
 
+  it('says when a record could not be closed (it stays open until the next launch closes it)', async () => {
+    writer.dispose();
+    const failed: string[] = [];
+    writer = createHistoryWriter({ state, conversation, port: port.port, clock, facts: () => facts, report, onCloseFailed: (id) => failed.push(id) });
+    port.fail('closeRecord', 1);
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Hello.');
+    end();
+    await writer.settled();
+    expect(failed).toEqual(['run-0001-aaaa']);
+  });
+
   it('says when a run has ended, after its last sentences and before the record is closed, kept or not', async () => {
     writer.dispose();
     const events: string[] = [];

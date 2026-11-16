@@ -421,11 +421,15 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       onSentences: onLiveSentences,
       // The live notes end with the run, whether or not History keeps the record.
       onEnded: (recordId) => endLive(recordId, closedByApp.has(recordId)),
-      onNotKept: (recordId) => useLiveNotes.getState().notKept(recordId),
+      // The live notes panel is told what became of the record, and whether its full notes are being written.
+      onNotKept: (recordId) => useLiveNotes.getState().closed(recordId, { kept: false, fullNotes: false }),
+      onCloseFailed: (recordId) => useLiveNotes.getState().closed(recordId, { kept: true, fullNotes: false }),
       onClosed: (recordId) => {
-        if (closedByApp.has(recordId)) return;
         const notes = notesRunner();
-        if (notes && useSettingsStore.getState().notesAfterSession && useLineUpStore.getState().lineUp?.summarisation) notes.start(recordId);
+        const writing = !closedByApp.has(recordId) && Boolean(notes)
+          && useSettingsStore.getState().notesAfterSession && Boolean(useLineUpStore.getState().lineUp?.summarisation);
+        if (writing) notes!.start(recordId);
+        useLiveNotes.getState().closed(recordId, { kept: true, fullNotes: writing });
       },
     })
     : null;

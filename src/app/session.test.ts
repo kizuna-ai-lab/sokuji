@@ -1101,8 +1101,27 @@ describe('attach', () => {
         await session.runner.stop();
         await session.runner.settled();
         await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
-        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true, kept: false }));
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true, history: 'notKept' }));
       });
+    });
+
+    // Review: the panel's promise of full notes follows what was decided when the record closed.
+    it('tells the panel whether full notes are being written for the record, as decided when it closed', async () => {
+      for (const after of [true, false]) {
+        await withLive(true, 'openai', async () => {
+          useSettingsStore.setState({ notesAfterSession: after } as never);
+          const live = fakeLive();
+          const notes = { start: vi.fn(), cancel: vi.fn(), running: () => [], subscribe: () => () => {} };
+          const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory, notes: notes as never });
+          await session.runner.start();
+          clock.advance(8000);
+          await vi.waitFor(() => expect(live.made).toHaveLength(1));
+          await session.runner.stop();
+          await session.runner.settled();
+          await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ ended: true, history: 'kept', fullNotes: after }));
+          useSettingsStore.setState({ notesAfterSession: false } as never);
+        });
+      }
     });
 
     it('a new start takes the last session\'s notes off the screen, the line saying they were off included', async () => {
