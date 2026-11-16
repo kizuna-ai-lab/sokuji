@@ -34,11 +34,24 @@
     flex-shrink: 0;
   }
 
-  // Who pays, as an icon: centred on the bar's line like the other 14px icons.
+  // Who pays: its name (a long one cut short, whole in the tooltip), or its icon, centred on the bar's line like the
+  // other 14px icons.
   &__payer {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    // The name while the icon shows: laid out, measured, never seen and never in the way.
+    &--measure {
+      display: block;
+      position: absolute;
+      visibility: hidden;
+      pointer-events: none;
+    }
   }
 
   &__dot {

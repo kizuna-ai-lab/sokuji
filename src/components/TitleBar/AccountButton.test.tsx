@@ -110,7 +110,9 @@ describe('AccountButton', () => {
     expect(screen.getByText('< $0.01')).toBeTruthy();
   });
 
-  it('marks who pays beside the balance with an icon named for the payer — never by leaving the mark out', () => {
+  // Owner, 2026-11-17: the name while the title bar has room for it; the payer's icon only when it does not (jsdom lays
+  // nothing out, so the bar always has room here: the name shows).
+  it('names who pays beside the balance — never by leaving the prefix out', () => {
     signedIn = true;
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
     quota = { balance: 3_000_000 };
@@ -120,20 +122,14 @@ describe('AccountButton', () => {
     } });
     localStorage.clear();
     const { unmount } = render(<AccountButton />);
-    // The organization's icon, named for it, because it is paying (owner, 2026-11-17: icons, not the words).
-    const org = screen.getByTitle('Acme');
-    expect(org.getAttribute('data-payer')).toBe('organization');
-    expect(org.querySelector('svg')).not.toBeNull();
-    expect(screen.queryByText('Acme')).toBeNull();
+    // The organization's name, because it is paying.
+    expect(screen.getByText('Acme').closest('[data-payer]')?.getAttribute('data-payer')).toBe('organization');
     unmount();
 
     setUseOwnBalance(true);
     render(<AccountButton />);
-    // Marked too: a session with no payer shows no mark, and the two must not look alike.
-    const own = screen.getByTitle('Personal');
-    expect(own.getAttribute('data-payer')).toBe('personal');
-    expect(own.querySelector('svg')).not.toBeNull();
-    expect(screen.queryByText('Personal')).toBeNull();
+    // Spelled out: a session with no payer shows no name, and the two must not look alike.
+    expect(screen.getByText('Personal').closest('[data-payer]')?.getAttribute('data-payer')).toBe('personal');
     setUseOwnBalance(false);
   });
 
@@ -150,7 +146,7 @@ describe('AccountButton', () => {
     setUseOwnBalance(true);
     run.value = { phase: 'running', payer: 'organization' };
     const { unmount } = render(<AccountButton />);
-    expect(screen.getByTitle('Acme').getAttribute('data-payer')).toBe('organization');
+    expect(screen.getByText('Acme')).toBeTruthy();
     unmount();
     run.value = { phase: 'idle' };
     setUseOwnBalance(false);

@@ -6,7 +6,7 @@
 // The entry renders while SIGNED OUT too. That is the whole point of moving
 // it here — an entry that only appeared after signing in would contribute
 // nothing to registration.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building2, User } from 'lucide-react';
 import { useAuth, useUser } from '../../lib/auth/hooks';
@@ -22,6 +22,7 @@ import { useRunState } from '../../app/useRun';
 import type { AccountState, Payer } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
+import { compactPayer, titleBarSlack } from './payerFit';
 import { useBalanceShortfall } from './useBalanceShortfall';
 import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
 import AccountPopover from './AccountPopover';
@@ -55,6 +56,11 @@ const AccountButton: React.FC = () => {
   // travels between components. It is null on the first render and set by the
   // time the click-triggered re-render opens the popover.
   const btnRef = useRef<HTMLButtonElement | null>(null);
+  // Who pays: its name while the title bar has room for it, its icon when not (owner, 2026-11-17). The name is
+  // measured where it shows, or, while the icon shows, in a hidden copy.
+  const [compact, setCompact] = useState(false);
+  const nameRef = useRef<HTMLSpanElement | null>(null);
+  const iconRef = useRef<HTMLSpanElement | null>(null);
 
   // Other surfaces can ask for this popover instead of growing a sign-in
   // affordance of their own — the provider section's sign-in notice does. The
@@ -74,6 +80,26 @@ const AccountButton: React.FC = () => {
   // cooldown, and it now lives in a component mounted only while the popover is
   // open — this button is always mounted, so the listener belongs here.
   useSessionRefreshOnReturn(isSignedIn, refetch);
+
+  // Measured after layout, and again whenever the title bar or its actions change size (the window, the language, the
+  // balance, the payer). Before the early return below, so the hook order stays unconditional.
+  const payerKey = account?.status === 'known' && account.organization ? `${payer ?? ''}:${account.organization.name}` : '';
+  useLayoutEffect(() => {
+    const bar = btnRef.current?.closest('.title-bar');
+    if (!bar || !payerKey || typeof ResizeObserver === 'undefined') return;
+    const check = () => {
+      const slack = titleBarSlack(bar);
+      const nameWidth = nameRef.current?.getBoundingClientRect().width ?? 0;
+      const iconWidth = iconRef.current?.getBoundingClientRect().width ?? 14;
+      if (slack !== null) setCompact((c) => compactPayer(c, slack, nameWidth, iconWidth));
+    };
+    const observer = new ResizeObserver(check);
+    observer.observe(bar);
+    const actions = bar.querySelector('.title-bar__actions');
+    if (actions) observer.observe(actions);
+    check();
+    return () => observer.disconnect();
+  }, [payerKey]);
 
   // A build with the Kizuna gate closed registers no managed provider and has
   // no wallet, so an account buys nothing there — offering to register would
@@ -108,9 +134,9 @@ const AccountButton: React.FC = () => {
     );
   } else {
     const initial = (user.name?.[0] ?? user.email[0] ?? '?').toUpperCase();
-    // Who pays, marked by an icon rather than spelled out (owner, 2026-11-17): a building for the organization, a person
-    // for the member's own wallet, each named in its tooltip. A session that carries no payer gets no mark at all, which
-    // does not look like either wallet.
+    // Who pays, spelled out rather than inferred from a missing prefix: the organization's name or "Personal"; where
+    // the title bar has no room for it, an icon instead (a building, a person) named in its tooltip (owner,
+    // 2026-11-17). A session that carries no payer gets no mark at all, which does not look like either wallet.
     const payerMark: { kind: Payer; name: string } | null = account?.status === 'known' && account.organization
       ? payer === 'organization'
         ? { kind: 'organization', name: account.organization.name }
@@ -149,11 +175,17 @@ const AccountButton: React.FC = () => {
     content = (
       <>
         <span className="account-button__initial" aria-hidden="true">{initial}</span>
-        {payerMark && (
-          <span className="account-button__payer" data-payer={payerMark.kind} title={payerMark.name}>
-            <PayerIcon size={14} aria-hidden="true" />
-          </span>
-        )}
+        {payerMark && (compact ? (
+          <>
+            <span className="account-button__payer" data-payer={payerMark.kind} title={payerMark.name} ref={iconRef}>
+              <PayerIcon size={14} aria-hidden="true" />
+            </span>
+            {/* The name as it would show, out of the flow, measured to know when it fits again. */}
+            <span className="account-button__payer account-button__payer--measure" aria-hidden="true" ref={nameRef}>{payerMark.name}</span>
+          </>
+        ) : (
+          <span className="account-button__payer" data-payer={payerMark.kind} title={payerMark.name} ref={nameRef}>{payerMark.name}</span>
+        ))}
         {balanceLabel !== null && (
           <span className="title-bar__action-label">{balanceLabel}</span>
         )}
