@@ -1856,7 +1856,9 @@
       "alsoFiles": "取り込んだファイルの文字起こしと、記録の再文字起こしにも使います。",
       "wordsLeftOut": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
       "wordsUnused": "単語リスト：このモデルでは使えません。",
-      "wordsLeftOut_one": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。"
+      "wordsLeftOut_one": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
+      "notesKizunaPrice": "Kizuna AI の目安：ライブメモは 1 時間あたり約 {{live}}、会議後のメモは 1 時間あたり約 {{after}}。セッションの料金を払う残高から支払われます。",
+      "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。"
     },
     "display": {
       "surface": "どの表示",
@@ -2139,7 +2141,10 @@
     "notesJump": "トピックや要点をクリックすると、その文に移動します。",
     "keptHereNotes": "メモがオンの間は、各セッションの文字起こしのテキストもメモを書くために {{service}} に送られます。",
     "notesModelOther": "その他",
-    "notesModelName": "モデル名"
+    "notesModelName": "モデル名",
+    "notesExplainKizuna": "セッションごとに、文の本文、その番号、どちら側のどの話者が話したか、単語リストの表記が、Kizuna AI のサーバーを経由して OpenAI に送られ、OpenAI がメモを書きます。Kizuna AI はどれも保存しません。料金はセッションの料金を払う残高から支払われます。音声と翻訳は送られません。",
+    "liveExplainKizuna": "セッション中、20 秒ごとに新しい文（本文、番号、どちら側のどの話者が話したか）、ここまでのメモ、単語リストの表記が、Kizuna AI のサーバーを経由して OpenAI に送られ、OpenAI がメモを書きます。Kizuna AI はどれも保存しません。料金はセッションの料金を払う残高から支払われます。音声と翻訳は送られません。",
+    "notesModelKizuna": "Kizuna AI は {{model}} でメモを書きます。"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

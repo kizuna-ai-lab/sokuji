@@ -1856,7 +1856,9 @@
       "alsoFiles": "Juga mentranskripsi file yang diimpor dan mentranskripsi ulang catatan.",
       "wordsLeftOut": "Daftar kata: {{count}} entri yang melebihi batas layanan ini tidak disertakan.",
       "wordsUnused": "Daftar kata: model ini tidak dapat memakainya.",
-      "wordsLeftOut_one": "Daftar kata: {{count}} entri di atas batas layanan ini tidak dikirim."
+      "wordsLeftOut_one": "Daftar kata: {{count}} entri di atas batas layanan ini tidak dikirim.",
+      "notesKizunaPrice": "Perkiraan Kizuna AI: catatan langsung sekitar {{live}} per jam, catatan setelah sesi sekitar {{after}} per jam, dibayar dari saldo yang membayar sesi Anda.",
+      "notesNeedSignInOrKey": "Masuk, atau tambahkan kunci OpenAI di “Akun dan kunci”, agar catatan ditulis."
     },
     "display": {
       "surface": "Tampilan mana",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klik topik atau poin untuk menuju kalimatnya.",
     "keptHereNotes": "Selama catatan aktif, teks transkrip setiap sesi juga dikirim ke {{service}} untuk menulisnya.",
     "notesModelOther": "Lainnya",
-    "notesModelName": "Nama model"
+    "notesModelName": "Nama model",
+    "notesExplainKizuna": "Untuk setiap sesi, teks kalimatnya, nomornya, pihak dan pembicara yang mengucapkannya, serta ejaan di daftar kata Anda melewati server Kizuna AI ke OpenAI, yang menulis catatan. Kizuna AI tidak menyimpan apa pun darinya. Biayanya dibayar dari saldo yang membayar sesi Anda. Tidak pernah audio atau terjemahan.",
+    "liveExplainKizuna": "Selama sesi, setiap 20 detik kalimat baru (teks, nomor, serta pihak dan pembicara yang mengucapkannya), catatan sejauh ini, dan ejaan di daftar kata Anda melewati server Kizuna AI ke OpenAI, yang menulis catatan. Kizuna AI tidak menyimpan apa pun darinya. Biayanya dibayar dari saldo yang membayar sesi Anda. Tidak pernah audio atau terjemahan.",
+    "notesModelKizuna": "Kizuna AI menulis catatan dengan {{model}}."
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

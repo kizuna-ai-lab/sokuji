@@ -1856,7 +1856,9 @@
       "alsoFiles": "가져온 파일과 기록을 다시 받아 적을 때도 씁니다.",
       "wordsLeftOut": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 빠집니다.",
       "wordsUnused": "단어 목록: 이 모델은 사용할 수 없습니다.",
-      "wordsLeftOut_one": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 보내지 않습니다."
+      "wordsLeftOut_one": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 보내지 않습니다.",
+      "notesKizunaPrice": "Kizuna AI 예상 비용: 실시간 메모 시간당 약 {{live}}, 세션 후 메모 시간당 약 {{after}}. 세션 비용을 내는 잔액에서 지불됩니다.",
+      "notesNeedSignInOrKey": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가하세요."
     },
     "display": {
       "surface": "어느 화면",
@@ -2139,7 +2141,10 @@
     "notesJump": "주제나 요점을 클릭하면 해당 문장으로 이동합니다.",
     "keptHereNotes": "메모가 켜져 있는 동안에는 각 세션의 전사 텍스트도 메모 작성을 위해 {{service}}로 전송됩니다.",
     "notesModelOther": "기타",
-    "notesModelName": "모델 이름"
+    "notesModelName": "모델 이름",
+    "notesExplainKizuna": "세션마다 문장의 텍스트, 문장 번호, 어느 쪽의 어느 화자가 말했는지, 단어 목록의 표기가 Kizuna AI 서버를 거쳐 OpenAI로 전송되고, OpenAI가 메모를 작성합니다. Kizuna AI는 아무것도 저장하지 않습니다. 비용은 세션 비용을 내는 잔액에서 지불됩니다. 음성과 번역은 절대 보내지 않습니다.",
+    "liveExplainKizuna": "세션 중에는 20초마다 새 문장(텍스트, 번호, 어느 쪽의 어느 화자가 말했는지), 지금까지의 메모, 단어 목록의 표기가 Kizuna AI 서버를 거쳐 OpenAI로 전송되고, OpenAI가 메모를 작성합니다. Kizuna AI는 아무것도 저장하지 않습니다. 비용은 세션 비용을 내는 잔액에서 지불됩니다. 음성과 번역은 절대 보내지 않습니다.",
+    "notesModelKizuna": "Kizuna AI는 {{model}}(으)로 메모를 작성합니다."
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",

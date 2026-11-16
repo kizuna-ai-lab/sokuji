@@ -1856,7 +1856,9 @@
       "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen.",
       "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois.",
       "wordsUnused": "Sanalista: tämä malli ei voi käyttää sitä.",
-      "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois."
+      "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois.",
+      "notesKizunaPrice": "Kizuna AI:n arvio: reaaliaikaiset muistiinpanot noin {{live}} tunnissa, istunnon jälkeiset muistiinpanot noin {{after}} tunnissa, maksetaan saldosta, josta istuntosi maksetaan.",
+      "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -2139,7 +2141,10 @@
     "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen.",
     "keptHereNotes": "Kun muistiinpanot ovat päällä, kunkin istunnon litteroinnin teksti lähetetään myös palveluun {{service}} niiden kirjoittamista varten.",
     "notesModelOther": "Muu",
-    "notesModelName": "Mallin nimi"
+    "notesModelName": "Mallin nimi",
+    "notesExplainKizuna": "Jokaisesta istunnosta sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
+    "liveExplainKizuna": "Istunnon aikana 20 sekunnin välein uudet lauseet (niiden teksti, numerot ja kumpi osapuoli ja kuka puhuja ne sanoi), tähänastiset muistiinpanot ja sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
+    "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}."
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

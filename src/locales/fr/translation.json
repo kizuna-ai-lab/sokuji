@@ -1856,7 +1856,9 @@
       "alsoFiles": "Transcrit aussi les fichiers importés et à nouveau les enregistrements.",
       "wordsLeftOut": "Liste de mots : {{count}} entrées au-delà de la limite de ce service sont laissées de côté.",
       "wordsUnused": "Liste de mots : ce modèle ne peut pas l’utiliser.",
-      "wordsLeftOut_one": "Liste de mots : {{count}} entrée au-delà de la limite de ce service est laissée de côté."
+      "wordsLeftOut_one": "Liste de mots : {{count}} entrée au-delà de la limite de ce service est laissée de côté.",
+      "notesKizunaPrice": "Estimation de Kizuna AI : notes en direct environ {{live}} de l’heure, notes après une session environ {{after}} de l’heure, payées sur le solde qui paie vos sessions.",
+      "notesNeedSignInOrKey": "Connectez-vous, ou ajoutez une clé OpenAI dans « Comptes et clés », pour que les notes soient rédigées."
     },
     "display": {
       "surface": "Quel affichage",
@@ -2139,7 +2141,10 @@
     "notesJump": "Cliquez sur un sujet ou un point pour aller à sa phrase.",
     "keptHereNotes": "Tant que les notes sont activées, le texte de la transcription de chaque session est aussi envoyé à {{service}} pour les rédiger.",
     "notesModelOther": "Autre",
-    "notesModelName": "Nom du modèle"
+    "notesModelName": "Nom du modèle",
+    "notesExplainKizuna": "Pour chaque session, le texte de ses phrases, leurs numéros, le côté et l’intervenant qui les ont dites, ainsi que les graphies de votre liste de mots passent par le serveur de Kizuna AI jusqu’à OpenAI, qui rédige les notes. Kizuna AI n’en conserve rien. C’est payé sur le solde qui paie vos sessions. Jamais l’audio ni la traduction.",
+    "liveExplainKizuna": "Pendant une session, toutes les 20 secondes, les nouvelles phrases (leur texte, leurs numéros, le côté et l’intervenant qui les ont dites), les notes déjà écrites et les graphies de votre liste de mots passent par le serveur de Kizuna AI jusqu’à OpenAI, qui rédige les notes. Kizuna AI n’en conserve rien. C’est payé sur le solde qui paie vos sessions. Jamais l’audio ni la traduction.",
+    "notesModelKizuna": "Kizuna AI rédige les notes avec {{model}}."
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

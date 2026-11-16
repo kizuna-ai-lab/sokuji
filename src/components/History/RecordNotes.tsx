@@ -7,6 +7,7 @@
 // stop it; after a failure it says why and can try again.
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { notesExplanation } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { englishLanguageName, languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
@@ -37,7 +38,7 @@ export interface RecordNotesProps {
   onAddName?(index: number, spelling: string): Promise<'added' | 'known' | null>;
   /** The newest attempt when it is newer than the version shown (it failed or was stopped). */
   latest?: HistoryNotes | null;
-  /** The notes service to name in the once-only explanation, while it is still owed (ruling 37); null when not. */
+  /** The notes service (its line-up id) the once-only explanation is about, while it is still owed (ruling 37); null when not. */
   explainWith: string | null;
   /** The explanation was shown and accepted. */
   onExplained(): void;
@@ -128,7 +129,7 @@ export function RecordNotes(p: RecordNotesProps) {
     content = (
       <div className="history-category__explain" role="group" aria-label={explainTitle}>
         <strong>{explainTitle}</strong>
-        <p>{t('history.notesExplain', 'For each session, the text of its sentences, their numbers, and which side and speaker said them are sent to {{service}} with your own key. Never the audio, the translation or your account.', { service: p.explainWith })}</p>
+        <p>{notesExplanation(t, p.explainWith, 'after')}</p>
         <div className="record-notes__write">
           <button type="button" className="history-button" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
           <button type="button" className="history-button" onClick={() => { p.onExplained(); p.onWrite(explaining); setExplaining(null); }}>

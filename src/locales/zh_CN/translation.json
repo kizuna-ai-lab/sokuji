@@ -1856,7 +1856,9 @@
       "alsoFiles": "也用于导入文件和重新转写。",
       "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。",
       "wordsUnused": "词表：这个型号用不上。",
-      "wordsLeftOut_one": "词表：超出这个服务上限的 {{count}} 条没有发送。"
+      "wordsLeftOut_one": "词表：超出这个服务上限的 {{count}} 条没有发送。",
+      "notesKizunaPrice": "Kizuna AI 估价：实时纪要每小时约 {{live}}，会后纪要每小时约 {{after}}，从支付会话费用的余额中扣除。",
+      "notesNeedSignInOrKey": "登录，或在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。"
     },
     "display": {
       "surface": "哪个界面",
@@ -2139,7 +2141,10 @@
     "notesJump": "点主题或要点，跳到原句。",
     "keptHereNotes": "纪要开启时，每次会话的转写文字也会发给 {{service}}，用来写纪要。",
     "notesModelOther": "其他",
-    "notesModelName": "模型名"
+    "notesModelName": "模型名",
+    "notesExplainKizuna": "每次会话的这些内容会经过 Kizuna AI 的服务器发给 OpenAI，由 OpenAI 写纪要：各句的文字、句子编号、是哪一方哪位说话人说的，以及词表里的写法。Kizuna AI 不保存其中任何内容。费用从支付会话费用的余额中扣除。不会发送声音或译文。",
+    "liveExplainKizuna": "会话中每 20 秒，新的句子（文字、编号、是哪一方哪位说话人说的）、目前为止的纪要和词表里的写法会经过 Kizuna AI 的服务器发给 OpenAI，由 OpenAI 写纪要。Kizuna AI 不保存其中任何内容。费用从支付会话费用的余额中扣除。不会发送声音或译文。",
+    "notesModelKizuna": "Kizuna AI 用 {{model}} 写纪要。"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

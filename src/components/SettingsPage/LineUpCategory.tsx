@@ -3,8 +3,9 @@
 // "Languages and line-up": the language pair, the speech mode, and one row per
 // stage choosing the provider that serves it (Plan 4's line-up). Which model or
 // setting a provider uses is that provider's own options, folded under the rows.
-// On the desktop a fourth card chooses who writes the notes: none, or OpenAI with
-// the user's own key (client side only for now, owner 2026-11-16).
+// On the desktop a fourth card chooses who writes the notes: none, Kizuna AI
+// (signed in, paid from the balance, through our relay), or OpenAI with the
+// user's own key.
 import { useWordList } from '../../lib/words/list';
 import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { effectiveGeminiModel } from '../../providers/gemini/settings';
@@ -13,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
+import { KIZUNA_NOTES } from '../../lib/notes/appNotes';
+import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
 import { presentProviders } from '../../providers/registry';
 import { lineUpChangedEvent, useLineUpStore } from '../../stores/lineUpStore';
@@ -117,13 +120,21 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       });
   };
 
-  // The notes card: OpenAI is offered once it has a key (or while it is chosen, to show what it lacks).
+  // The notes card: Kizuna AI wherever the hosted services are, usable signed in; OpenAI once it has a key. Either
+  // stays listed while it is chosen, to show what it lacks.
   const notesService = lineUp?.summarisation ?? null;
   const openAi = providers.find((p) => p.id === 'openai');
   const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
+  const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
+  const kizunaChosen = notesService === KIZUNA_NOTES;
+  const notesPricing = useNotesPricing(kizunaOffered);
+  const notesReady = kizunaChosen ? auth.signedIn : openAiKeyed;
   const notesState = notesService === null
     ? { ok: false, text: t('settingsPage.lineup.state.off', 'Off') }
-    : openAiKeyed ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') } : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
+    : notesReady ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
+      : kizunaChosen ? { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
+        : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
+  const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
   const chooseNotes = async (id: string) => {
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose('summarisation', id || null);
@@ -331,9 +342,18 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
             <select className="select-dropdown" value={notesService ?? ''} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
               onChange={(e) => void chooseNotes(e.target.value)}>
               <option value="">{t('settingsPage.lineup.notesNone', 'None')}</option>
+              {(kizunaOffered || kizunaChosen) && (
+                <option value={KIZUNA_NOTES} disabled={kizunaBlocked}>
+                  {kizunaBlocked ? `Kizuna AI (${t('settingsPage.lineup.needsSignIn', 'needs a sign-in')})` : 'Kizuna AI'}
+                </option>
+              )}
               {(openAiKeyed || notesService === 'openai') && <option value="openai">OpenAI</option>}
             </select>
-            {!openAiKeyed && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
+            {kizunaOffered && auth.signedIn && notesPricing && (
+              <p className="lineup-stage__joint">{t('settingsPage.lineup.notesKizunaPrice', 'Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.', { live: perHour(notesPricing.liveUsdPerHour), after: perHour(notesPricing.afterSessionUsdPerHour) })}</p>
+            )}
+            {!openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
+            {!openAiKeyed && kizunaOffered && !auth.signedIn && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedSignInOrKey', 'Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')}</p>}
           </div>
         )}
       </div>

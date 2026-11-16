@@ -1856,7 +1856,9 @@
       "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker.",
       "wordsLeftOut": "Kelime listesi: bu hizmetin sınırını aşan {{count}} giriş dışarıda kalır.",
       "wordsUnused": "Kelime listesi: bu model kullanamaz.",
-      "wordsLeftOut_one": "Kelime listesi: bu hizmetin sınırını aşan {{count}} kayıt gönderilmiyor."
+      "wordsLeftOut_one": "Kelime listesi: bu hizmetin sınırını aşan {{count}} kayıt gönderilmiyor.",
+      "notesKizunaPrice": "Kizuna AI tahmini: canlı notlar saatte yaklaşık {{live}}, oturum sonrası notlar saatte yaklaşık {{after}}; oturumlarınızı ödeyen bakiyeden ödenir.",
+      "notesNeedSignInOrKey": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin."
     },
     "display": {
       "surface": "Hangi görünüm",
@@ -2139,7 +2141,10 @@
     "notesJump": "Cümlesine gitmek için bir konuya veya maddeye tıklayın.",
     "keptHereNotes": "Notlar açıkken her oturumun döküm metni, notları yazmak için {{service}} hizmetine de gönderilir.",
     "notesModelOther": "Diğer",
-    "notesModelName": "Model adı"
+    "notesModelName": "Model adı",
+    "notesExplainKizuna": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
+    "liveExplainKizuna": "Oturum sırasında her 20 saniyede yeni cümleler (metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği), şimdiye kadarki notlar ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
+    "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar."
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

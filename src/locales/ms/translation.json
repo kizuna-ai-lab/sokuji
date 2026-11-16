@@ -1856,7 +1856,9 @@
       "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula.",
       "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan.",
       "wordsUnused": "Senarai perkataan: model ini tidak dapat menggunakannya.",
-      "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar."
+      "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar.",
+      "notesKizunaPrice": "Anggaran Kizuna AI: nota langsung kira-kira {{live}} sejam, nota selepas sesi kira-kira {{after}} sejam, dibayar daripada baki yang membayar sesi anda.",
+      "notesNeedSignInOrKey": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci”, supaya nota ditulis."
     },
     "display": {
       "surface": "Paparan mana",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya.",
     "keptHereNotes": "Semasa nota dihidupkan, teks transkrip setiap sesi juga dihantar kepada {{service}} untuk menulisnya.",
     "notesModelOther": "Lain-lain",
-    "notesModelName": "Nama model"
+    "notesModelName": "Nama model",
+    "notesExplainKizuna": "Bagi setiap sesi, teks ayatnya, nombornya, pihak dan penutur yang menyebutnya, serta ejaan dalam senarai perkataan anda melalui pelayan Kizuna AI ke OpenAI, yang menulis nota. Kizuna AI tidak menyimpan apa-apa daripadanya. Kosnya dibayar daripada baki yang membayar sesi anda. Tidak sekali-kali audio atau terjemahan.",
+    "liveExplainKizuna": "Semasa sesi, setiap 20 saat ayat baharu (teks, nombor, serta pihak dan penutur yang menyebutnya), nota setakat ini dan ejaan dalam senarai perkataan anda melalui pelayan Kizuna AI ke OpenAI, yang menulis nota. Kizuna AI tidak menyimpan apa-apa daripadanya. Kosnya dibayar daripada baki yang membayar sesi anda. Tidak sekali-kali audio atau terjemahan.",
+    "notesModelKizuna": "Kizuna AI menulis nota dengan {{model}}."
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

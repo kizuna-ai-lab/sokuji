@@ -1856,7 +1856,9 @@
       "alsoFiles": "Transkriberar även importerade filer och poster igen.",
       "wordsLeftOut": "Ordlista: {{count}} poster över tjänstens gräns utelämnas.",
       "wordsUnused": "Ordlista: den här modellen kan inte använda den.",
-      "wordsLeftOut_one": "Ordlista: {{count}} post över den här tjänstens gräns utelämnas."
+      "wordsLeftOut_one": "Ordlista: {{count}} post över den här tjänstens gräns utelämnas.",
+      "notesKizunaPrice": "Kizuna AI:s uppskattning: liveanteckningar cirka {{live}} i timmen, anteckningar efter en session cirka {{after}} i timmen, betalas från saldot som betalar dina sessioner.",
+      "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar."
     },
     "display": {
       "surface": "Vilken visning",
@@ -2139,7 +2141,10 @@
     "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening.",
     "keptHereNotes": "Medan anteckningar är på skickas även texten i varje sessions transkription till {{service}} för att skriva dem.",
     "notesModelOther": "Annan",
-    "notesModelName": "Modellnamn"
+    "notesModelName": "Modellnamn",
+    "notesExplainKizuna": "För varje session går meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
+    "liveExplainKizuna": "Under en session går var 20:e sekund de nya meningarna (deras text, nummer och vilken sida och talare som sa dem), anteckningarna hittills och stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
+    "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}."
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

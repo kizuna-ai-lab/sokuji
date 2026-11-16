@@ -72,6 +72,15 @@ describe('the notes runner', () => {
     expect(raw.renameRecord).not.toHaveBeenCalled();
   });
 
+  it('asks for the notes service for the record it writes, so a hosted service bills that meeting', async () => {
+    const { port } = fakePort({});
+    const chatFor = vi.fn(async () => ({ chat: (async () => ANSWER) as ChatPort, model: 'gpt-6-luna' }));
+    const runner = createNotesRunner({ port, chatFor, language: () => JA });
+    runner.start(ID);
+    await vi.waitFor(() => expect(chatFor).toHaveBeenCalledWith(ID));
+    await settle();
+  });
+
   it('writes for the transcript asked for, and for the newest when that one is not the record’s', async () => {
     const { runner, raw, saved } = setup();
     runner.start(ID, undefined, 1);

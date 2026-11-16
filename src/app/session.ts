@@ -324,7 +324,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       if (resumed) useLiveNotes.getState().resume(recordId);
       else useLiveNotes.getState().begin(recordId);
       // Read while the session runs; a Stop before it answers keeps the sentences for the last update.
-      void notesChatFromStores().then((service) => {
+      void notesChatFromStores(recordId).then((service) => {
         begun.loading = false;
         if (begun.gone) return;
         if (!service) {

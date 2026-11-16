@@ -15,8 +15,8 @@ export interface NotesLanguage { code: string; name: string }
 
 export interface NotesRunnerDeps {
   port: HistoryPort;
-  /** The notes service with the user's key, and the model it uses; null when none is set up. */
-  chatFor(): Promise<{ chat: ChatPort; model: string } | null>;
+  /** The notes service and the model it uses, for the record written (a hosted service bills that meeting); null when none is set up. */
+  chatFor(recordId: string): Promise<{ chat: ChatPort; model: string } | null>;
   /** The language notes are written in when none is asked for: the record's "my language", or the interface's. */
   language(record: HistoryRecord): NotesLanguage;
   /** The word list: spellings the notes are asked to prefer (stage 5); none when absent. */
@@ -77,7 +77,7 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     const span = sentences.length > 0
       ? Math.max(...sentences.map((s) => s.endMs)) - Math.min(...sentences.map((s) => s.startMs)) : 0;
     if (span < NOTES_MIN_MS) return;
-    const service = await d.chatFor();
+    const service = await d.chatFor(recordId);
     const requestIds: string[] = [];
     const base = {
       recordId, transcriptId: newest.id, language: language.code,

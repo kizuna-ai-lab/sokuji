@@ -126,6 +126,20 @@ describe('notes after the session', () => {
     expect(useSettingsStore.getState().notesAfterSession).toBe(false);
   });
 
+  it('with Kizuna AI, explains that the text goes through Kizuna AI to OpenAI and who pays, and names the one model', async () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    expect(within(row('Notes model')).queryByRole('combobox')).toBeNull();
+    expect(within(row('Notes model')).getByText('Kizuna AI writes the notes with gpt-6-luna.')).toBeInTheDocument();
+    fireEvent.click(toggle());
+    const explained = screen.getByRole('group', { name: 'Before notes are written' });
+    expect(within(explained).getByText(/go through Kizuna AI’s server to OpenAI/)).toBeInTheDocument();
+    expect(within(explained).getByText(/the spellings in your word list/)).toBeInTheDocument();
+    expect(within(explained).getByText(/paid from the balance that pays for your sessions/)).toBeInTheDocument();
+    expect(within(explained).queryByText(/your own key/)).toBeNull();
+  });
+
   const modelSelect = () => within(row('Notes model')).getByRole('combobox', { name: 'Notes model' });
   const choose = (label: string) => {
     const option = within(modelSelect()).getByRole('option', { name: label }) as HTMLOptionElement;
@@ -183,6 +197,17 @@ describe('live notes during a session', () => {
     await settle();
     expect(toggle()).toHaveAttribute('aria-disabled', 'true');
     expect(within(row(NAME)).getByText('Choose a notes service in Languages and line-up first.')).toBeInTheDocument();
+  });
+
+  it('with Kizuna AI, explains what goes through Kizuna AI to OpenAI every 20 seconds, and who pays', async () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    fireEvent.click(toggle());
+    const explained = screen.getByRole('group', { name: 'Before live notes are written' });
+    expect(within(explained).getByText(/every 20 seconds/)).toBeInTheDocument();
+    expect(within(explained).getByText(/go through Kizuna AI’s server to OpenAI/)).toBeInTheDocument();
+    expect(within(explained).getByText(/paid from the balance that pays for your sessions/)).toBeInTheDocument();
   });
 
   it('explains once what is sent every 20 seconds, then switches at once; it can be turned off during a session', async () => {
