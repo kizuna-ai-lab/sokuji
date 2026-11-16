@@ -376,7 +376,10 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     }
     // A segment gone from the snapshot is forgotten, not deleted.
     for (const id of r.segments.keys()) if (!present.has(id)) r.segments.delete(id);
-    if (handed.length > 0) deps.onSentences?.(r.id, handed);
+    // The live notes take what they can; whatever they do, the record's sentences are written.
+    if (handed.length > 0) {
+      try { deps.onSentences?.(r.id, handed); } catch (error) { report('The live notes could not take the new sentences', error); }
+    }
     // What failed before goes first; a correction to a sentence still waiting goes into it.
     const batch = [...r.unsent, ...sentences];
     r.unsent = [];

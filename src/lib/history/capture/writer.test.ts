@@ -273,6 +273,19 @@ describe('the history writer', () => {
     ]);
   });
 
+  it('writes the sentences even when the live notes throw on them', async () => {
+    writer.dispose();
+    writer = createHistoryWriter({
+      state, conversation, port: port.port, clock, facts: () => facts, report,
+      onSentences: () => { throw new Error('live notes broke'); },
+    });
+    start('run-0001-aaaa');
+    say('speaker', 1, 'Hello there.');
+    await writer.settled();
+    expect(allSentences().map((x: { text: string }) => x.text)).toEqual(['Hello there.']);
+    expect(report).toHaveBeenCalledWith(expect.stringContaining('live notes'), expect.any(Error));
+  });
+
   it('hands a sentence cut from words the recognizer has made final as settled, though its segment is still open', async () => {
     writer.dispose();
     const handed: Array<{ n: number; text: string; fromOpen: boolean }> = [];
