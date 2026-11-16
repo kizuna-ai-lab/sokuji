@@ -34,7 +34,6 @@ const adapter = (over: Partial<EngineAdapter> = {}): EngineAdapter => ({
   languageName: (code) => code,
   readyCandidates: () => [{ id: 'm1', name: 'Model One', sizeLabel: '10 MB' }, { id: 'm2', name: 'Model Two' }],
   select: vi.fn(),
-  storageSummary: '796 MB used',
   stagesFor: (_dir, isSpeaker) => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
   disabled: false,
   ...over,
@@ -42,8 +41,7 @@ const adapter = (over: Partial<EngineAdapter> = {}): EngineAdapter => ({
 
 const surface = (a = adapter(), effectiveMode: 'speaker' | 'participant' | 'both' = 'both') => render(
   <EngineSurface adapter={a} effectiveMode={effectiveMode}
-    renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
-    renderStorage={() => <div data-testid="storage" />} />);
+    renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>} />);
 
 const asrSelect = (index = 0) =>
   screen.getAllByRole('combobox', { name: /ASR/ })[index] as HTMLSelectElement;
@@ -137,10 +135,10 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(screen.getByText('Library · ASR')).toBeInTheDocument();
   });
 
-  it('the storage footer pushes the storage page', () => {
+  it('has no storage footer: usage, deleting and importing live on the Models and storage page (B-18)', () => {
     surface();
-    fireEvent.click(screen.getByRole('button', { name: /Storage/ }));
-    expect(screen.getByTestId('storage')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Storage/ })).toBeNull();
+    expect(document.querySelector('.engine-storage-footer')).toBeNull();
   });
 
   it('disabled adapter renders every select disabled', () => {
@@ -188,7 +186,6 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     const props = {
       adapter: adapter(),
       renderLibrary: (slot: any) => <div data-testid="library">{slot.stage}</div>,
-      renderStorage: () => <div data-testid="storage" />,
     };
     const { rerender } = render(
       <EngineSurface {...props} initialSlot={{ dir: 'en→ja', stage: 'asr' }} effectiveMode="both" />);
@@ -205,8 +202,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
   it('returning from a pushed Library does not re-flash the deep-linked slot', async () => {
     render(
       <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }} effectiveMode="both"
-        renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
-        renderStorage={() => <div data-testid="storage" />} />);
+        renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>} />);
 
     expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
 

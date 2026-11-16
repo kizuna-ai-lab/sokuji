@@ -1041,7 +1041,7 @@ export function ModelManagementSection({
       {(!stageFilter || stageFilter === 'translation') && renderTranslationGroup()}
       {(!stageFilter || stageFilter === 'tts') && renderTtsGroup()}
 
-      {/* Storage owns Clear-all now (StoragePage) — this duplicate footer only
+      {/* The Models and storage page owns Clear-all now — this duplicate footer only
           belongs on the standalone (prop-less stageFilter) render; the Library
           push is already scoped to one stage and its gating differs. */}
       {!stageFilter && (

@@ -25,6 +25,7 @@ vi.mock('../Settings/sections/ModelImportModal', () => ({
   ModelImportModal: ({ modelName }: { modelName: string }) => <div data-testid="import-modal">{modelName}</div>,
 }));
 
+import '../../locales';
 import { ModelsPage } from './ModelsPage';
 import { useModelStore } from '../../stores/modelStore';
 import { useSmartTurnStore } from '../../stores/smartTurnStore';

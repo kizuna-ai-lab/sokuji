@@ -6,7 +6,7 @@ import type { AudioMode } from '../../../stores/audioStore';
 import { EnginePage, STAGE_LABEL_KEY } from './EnginePage';
 import './Engine.scss';
 
-type Pushed = null | { page: 'library'; slot: SlotId } | { page: 'storage' };
+type Pushed = null | { page: 'library'; slot: SlotId };
 
 /**
  * Push host for the engine family. Back lives HERE, in the content area —
@@ -16,7 +16,6 @@ type Pushed = null | { page: 'library'; slot: SlotId } | { page: 'storage' };
 export const EngineSurface: React.FC<{
   adapter: EngineAdapter;
   renderLibrary: (slot: SlotId) => React.ReactNode;
-  renderStorage: () => React.ReactNode;
   initialSlot?: SlotId | null;
   /** Called once per consumed initialSlot, so the HOST can drop its stored
    *  copy — a stale prop would re-arm the flash on a later remount
@@ -24,7 +23,7 @@ export const EngineSurface: React.FC<{
   onInitialSlotConsumed?: () => void;
   /** Effective audio mode, handed through to EnginePage (see its doc). */
   effectiveMode: AudioMode;
-}> = ({ adapter, renderLibrary, renderStorage, initialSlot = null, onInitialSlotConsumed, effectiveMode }) => {
+}> = ({ adapter, renderLibrary, initialSlot = null, onInitialSlotConsumed, effectiveMode }) => {
   const { t } = useTranslation();
   const [pushed, setPushed] = useState<Pushed>(null);
   // The flash signal is a CONSUMED copy of initialSlot, not the prop itself:
@@ -99,11 +98,9 @@ export const EngineSurface: React.FC<{
   // swapping its content, not a nested mini-page.
   const pageClass = `engine-surface__page${navDir ? ` engine-surface__page--${navDir}` : ''}`;
   if (pushed) {
-    const title = pushed.page === 'library'
-      ? t('engineUi.titleLibrary', 'Library · {{stage}}', {
-          stage: t(STAGE_LABEL_KEY[pushed.slot.stage][0], STAGE_LABEL_KEY[pushed.slot.stage][1]),
-        })
-      : t('engineUi.titleStorage', 'Storage');
+    const title = t('engineUi.titleLibrary', 'Library · {{stage}}', {
+      stage: t(STAGE_LABEL_KEY[pushed.slot.stage][0], STAGE_LABEL_KEY[pushed.slot.stage][1]),
+    });
     return (
       <div className="config-section engine-surface">
         {/* Key remounts the wrapper per page so the slide animation plays on
@@ -117,7 +114,7 @@ export const EngineSurface: React.FC<{
             </button>
             <span>{title}</span>
           </h3>
-          {pushed.page === 'library' ? renderLibrary(pushed.slot) : renderStorage()}
+          {renderLibrary(pushed.slot)}
         </div>
       </div>
     );
@@ -132,8 +129,7 @@ export const EngineSurface: React.FC<{
         </h3>
         <EnginePage adapter={adapter}
           flashSlot={flashSlot} effectiveMode={effectiveMode}
-          onBrowse={(slot) => push({ page: 'library', slot })}
-          onStorage={() => push({ page: 'storage' })} />
+          onBrowse={(slot) => push({ page: 'library', slot })} />
       </div>
     </div>
   );

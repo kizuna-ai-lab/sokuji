@@ -26,7 +26,7 @@ import { voicesWithoutImported } from '../../providers/localInference/voices';
 import { presentProviders } from '../../providers/registry';
 import { SMART_TURN_MODEL_ID } from '../../lib/turn/smartTurn';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
-import { computeDeleteNotes } from '../Settings/engine/StoragePage';
+import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import type { LanguagePair } from '../../lib/provider/types';
