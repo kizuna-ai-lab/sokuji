@@ -6,7 +6,8 @@
 // On the desktop a fourth card chooses who writes the notes: none, or OpenAI with
 // the user's own key (client side only for now, owner 2026-11-16).
 import { useWordList } from '../../lib/words/list';
-import { wordServiceOf, wordsFor } from '../../lib/words/forService';
+import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
+import { effectiveGeminiModel } from '../../providers/gemini/settings';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
@@ -64,6 +65,11 @@ function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key
 export function LineUpCategory({ locked }: CategoryBodyProps) {
   const wordEntries = useWordList((s) => s.entries);
   const wordBackground = useWordList((s) => s.background);
+  // The Gemini model a session would run: the list goes to some models only.
+  const geminiModel = useProviderStore((s) => {
+    const settings = s.entries.gemini?.settings as { model?: string } | undefined;
+    return settings ? effectiveGeminiModel({ model: settings.model ?? '' }, s.models.gemini ?? []) : null;
+  });
   const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
   const providers = useMemo(() => presentProviders(), []);
@@ -249,7 +255,17 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 const id = lineUp?.[stage] ?? null;
                 if (stage === 'translation' && id === lineUp?.transcription) return null;
                 const service = wordServiceOf(id);
-                const leftOut = service ? wordsFor(service, wordEntries, wordBackground).leftOut : 0;
+                if (!service) return null;
+                // A model that takes no word list: said, not left silent (the list is not sent to it).
+                if (service === 'gemini' && wordEntries.length > 0 && !modelTakesWords('gemini', geminiModel)) {
+                  return (
+                    <p className="lineup-stage__joint">
+                      <ListX size={12} aria-hidden="true" />
+                      {t('settingsPage.lineup.wordsUnused', 'Word list: this model cannot use it.')}
+                    </p>
+                  );
+                }
+                const leftOut = wordsFor(service, wordEntries, wordBackground).leftOut;
                 if (leftOut === 0) return null;
                 return (
                   <p className="lineup-stage__joint">

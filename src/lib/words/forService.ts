@@ -23,20 +23,39 @@ export interface ServiceWords {
 
 type Column = 'terms' | 'translations' | 'heardAs' | 'background';
 
-/** The columns each service has a field for, and how many entries it takes (from the services' documents). */
-export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: number; items?: number; backgroundChars?: number }> = {
+/**
+ * The columns each service has a field for, and how many entries it takes (from the services' documents). `byModel`:
+ * the columns only some of its models take (the usage table says "depends on model").
+ */
+export const WORD_LIMITS: Record<string, { columns: readonly Column[]; byModel?: readonly Column[]; entries: number; items?: number; backgroundChars?: number }> = {
   // Terms, translations and background share one context of about 8,000 tokens: kept under SONIOX_CONTEXT_CHARS.
   soniox: { columns: ['terms', 'translations', 'background'], entries: Number.POSITIVE_INFINITY },
-  // Transcription keywords, and the background as the transcription prompt.
-  openai: { columns: ['terms', 'background'], entries: 1000 },
+  // Transcription keywords (gpt-transcribe, gpt-live-transcribe), and the background as the older models' prompt.
+  openai: { columns: ['terms', 'background'], byModel: ['terms', 'background'], entries: 1000 },
   qwen_livetranslate: { columns: ['translations'], entries: 1000 },
   // Hot words, glossary entries and corrections: at most 1,000 of them together.
   volcengine_ast2: { columns: ['terms', 'translations', 'heardAs'], entries: Number.POSITIVE_INFINITY, items: 1000 },
-  gemini: { columns: ['terms'], entries: 1000 },
+  // Custom vocabulary: gemini-3.8-live only (WORD_LIST_MODELS).
+  gemini: { columns: ['terms'], byModel: ['terms'], entries: 1000 },
   // This device's translation: the words and the start of the background go into the prompt a small model reads for
   // every sentence; each token there costs time on every one.
-  local_inference: { columns: ['terms', 'translations', 'background'], entries: 30, backgroundChars: 300 },
+  // Read by its large-language-model translators only.
+  local_inference: { columns: ['terms', 'translations', 'background'], byModel: ['terms', 'translations', 'background'], entries: 30, backgroundChars: 300 },
 };
+
+/**
+ * Where a service's models differ in taking the list at all, the ones that do (from the service's documents). Any other
+ * model, a new one included, gets nothing: a Live session refuses a setup field its model does not know.
+ */
+export const WORD_LIST_MODELS: Readonly<Record<string, readonly string[]>> = {
+  gemini: ['gemini-3.8-live'],
+};
+
+/** Whether `model` of `service` takes the word list (a service without such a rule: yes). */
+export function modelTakesWords(service: string, model: string | null | undefined): boolean {
+  const only = WORD_LIST_MODELS[service];
+  return !only || (!!model && only.includes(model));
+}
 
 /** The service a provider in the line-up sends the word list to: Kizuna AI's twins use their base's. */
 export function wordServiceOf(providerId: string | null | undefined): string | null {
@@ -101,15 +120,16 @@ export function wordsFor(service: string, entries: readonly WordEntry[], backgro
   let words = mapped(limit.columns, kept, text);
   if (service === 'soniox' && sonioxContextSize(words) > SONIOX_CONTEXT_CHARS) {
     // The background is the weakest hint: it is cut first, to the longest start whose escaped size fits (newlines and
-    // quotes take two characters or more), never inside a surrogate pair; then entries go from the end.
+    // quotes take two characters or more), at a whole character; then entries go from the end.
+    const points = [...text];
     let lo = 0;
-    let hi = text.length;
+    let hi = points.length;
     while (lo < hi) {
       const mid = Math.ceil((lo + hi) / 2);
-      if (sonioxContextSize(mapped(limit.columns, kept, text.slice(0, mid))) <= SONIOX_CONTEXT_CHARS) lo = mid;
+      if (sonioxContextSize(mapped(limit.columns, kept, points.slice(0, mid).join(''))) <= SONIOX_CONTEXT_CHARS) lo = mid;
       else hi = mid - 1;
     }
-    words = mapped(limit.columns, kept, text.slice(0, lo).replace(/[\uD800-\uDBFF]$/, ''));
+    words = mapped(limit.columns, kept, points.slice(0, lo).join(''));
     while (sonioxContextSize(words) > SONIOX_CONTEXT_CHARS && kept.length > 0) {
       kept = kept.slice(0, -1);
       words = mapped(limit.columns, kept, '');

@@ -141,9 +141,7 @@
     "maxTokensTooltip": "Maximum length of each translation. Tokens are like word pieces - 100 tokens ≈ 75 words. 2048-4096 good for conversations. 'inf' = unlimited.",
     "unlimited": "Unlimited",
     "transcriptModelTooltip": "Speech recognition model for your own words. This only affects the original text shown next to each translation — the translation itself is produced from your audio directly. \ngpt-live-transcribe: Most accurate, streams as you speak, and the priciest. \ngpt-transcribe: Current generation, transcribes each finished turn. \ngpt-4o-mini-transcribe: Cheapest, the default. \ngpt-4o-transcribe / whisper-1: Older models.",
-    "transcriptKeywords": "Transcription keywords",
     "transcriptKeywordsTooltip": "Names, jargon, and product terms the transcriber should be ready for, separated by commas. Hints only — a term appears in the transcript only when it is actually spoken. Supported by gpt-live-transcribe and gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
     "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style.",
     "participantInstructions": "Other's Instructions",
@@ -248,14 +246,6 @@
     "voiceIHear": "Voice I hear",
     "voiceIHearSame": "Same as the voice the other side hears, so {{voice}} reads instead.",
     "voiceCustom": "Custom voice",
-    "sonioxVocabulary": "Custom Vocabulary",
-    "sonioxVocabularyTooltip": "Bias recognition toward important names and jargon, and steer how specific terms are translated. Applies from the next session.",
-    "sonioxVocabularyTerms": "Terms",
-    "sonioxVocabularyTermsTooltip": "Improves recognition of uncommon words — names, jargon, product names.",
-    "sonioxVocabularyTermsPlaceholder": "One term per line",
-    "sonioxVocabularyTranslations": "Preferred Translations",
-    "sonioxVocabularyTranslationsTooltip": "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.",
-    "sonioxVocabularyTranslationsPlaceholder": "One source=target per line",
     "sonioxEndpointTuning": "Endpoint Detection Tuning",
     "sonioxEndpointSensitivity": "Endpoint Sensitivity",
     "sonioxEndpointSensitivityTooltip": "How readily a pause is judged as the end of an utterance — higher splits on weaker evidence (snappier, more premature cut-offs), lower demands stronger evidence. Time is bounded by the max-pause setting below. 0 is the Soniox default.",
@@ -267,9 +257,6 @@
     "sonioxLatencyLevelLower": "Lower latency",
     "sonioxLatencyLevelEvenLower": "Even lower latency",
     "sonioxLatencyLevelMost": "Most aggressive",
-    "sonioxBackground": "Session Background",
-    "sonioxBackgroundTooltip": "Free-form background for the next session — agenda, topic, or reference notes. Helps recognition and translation follow the domain. Trimmed first if the combined context exceeds the size limit.",
-    "sonioxBackgroundPlaceholder": "Paste an agenda, topic, or background notes (optional)",
     "sonioxVoiceConsent": "I confirm I have the right to use this voice",
     "sonioxVoiceCloneTitle": "Clone voice",
     "sonioxVoiceCloneReview": "Listen to your clip and name the voice before uploading.",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "Your own voice (cloned)",
       "voiceSummaryCloneTheirs": "Their own voice (cloned)",
       "keyRegion": "Key region: {{region}}",
-      "vocabulary": "Custom Vocabulary",
-      "vocabularyTranslations": "Preferred Translations",
-      "vocabularyTranslationsTooltip": "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line.",
-      "vocabularyTranslationsPlaceholder": "One source=target per line",
       "screenContext": "Screen context",
       "screenContextTooltip": "Lets the model see one window, tab or screen you choose, so the names and terms on it are recognized and translated as written. Everything inside that area is sent to Alibaba Cloud's Qwen service, in the region of this session, as pictures; Kizuna AI never receives them. It adds to the charge for every second of speech while it is on — on your Alibaba Cloud bill with your own key, or on your account's pricing page with a Kizuna AI account; in Both mode each direction's session is billed.",
       "screenContextPicked": "The model will see: {{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "None",
       "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written.",
       "alsoFiles": "Also transcribes imported files and records again.",
-      "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out."
+      "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out.",
+      "wordsUnused": "Word list: this model cannot use it.",
+      "wordsLeftOut_one": "Word list: {{count}} entry over this service’s limit is left out."
     },
     "display": {
       "surface": "Which display",
@@ -1943,7 +1928,9 @@
       "usage": "Which services use what",
       "service": "Service",
       "thisDevice": "This device",
-      "others": "OpenAI Translate, OpenAI Live and Palabra have no place for a word list; they get none."
+      "others": "OpenAI Translate, OpenAI Live and Palabra have no place for a word list; they get none.",
+      "byModel": "Depends on model",
+      "byModelNote": "Depends on model: OpenAI takes the terms with gpt-transcribe and gpt-live-transcribe, and the background with its older transcription models; Gemini Live takes the terms with gemini-3.8-live only; this device reads the list with its large language model translators only."
     }
   },
   "history": {

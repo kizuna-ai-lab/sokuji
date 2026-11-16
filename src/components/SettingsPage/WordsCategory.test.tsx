@@ -83,6 +83,16 @@ describe('the word list in the settings', () => {
     expect(Array.from(qwen.querySelectorAll('td')).map((td) => td.textContent)).toEqual(['—', '✓', '—', '—']);
   });
 
+  it('marks a column some of a service’s models do not take as depending on the model, and says which take it', () => {
+    render(<WordsCategory locked={false} />);
+    const cells = (name: string) => Array.from(screen.getByRole('rowheader', { name }).closest('tr')!.querySelectorAll('td')).map((td) => td.textContent);
+    expect(cells('OpenAI Realtime')).toEqual(['Depends on model', '—', '—', 'Depends on model']);
+    expect(cells('Gemini Live')).toEqual(['Depends on model', '—', '—', '—']);
+    expect(cells('This device')).toEqual(['Depends on model', 'Depends on model', '—', 'Depends on model']);
+    expect(cells('Soniox')).toEqual(['✓', '✓', '—', '✓']);
+    expect(screen.getByText(/gemini-3\.8-live/)).toBeTruthy();
+  });
+
   it('is locked during a session', () => {
     render(<WordsCategory locked />);
     expect(screen.getByLabelText('Written as 1')).toBeDisabled();

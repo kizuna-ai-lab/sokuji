@@ -82,5 +82,18 @@ describe('the word list', () => {
     await addWord({ written: '速记', heardAs: '素记、速记 ' });
     expect(useWordList.getState().entries).toEqual([{ written: '速记', heardAs: '速库季, 苏库吉, 素记, 速记' }]);
   });
-});
+  it('keeps one entry for a word written and translated the same way, with the "often heard as" of both', () => {
+    expect(normaliseEntries([
+      { written: 'Kizuna AI', translation: 'キズナ', heardAs: 'kizuna eye' },
+      { written: 'Kizuna AI', translation: 'キズナ', heardAs: 'kids una，kizuna eye' },
+    ])).toEqual([{ written: 'Kizuna AI', translation: 'キズナ', heardAs: 'kizuna eye, kids una' }]);
+  });
 
+  it('takes a new translation for a word already in the list; a name added from the notes keeps the old one', async () => {
+    await useWordList.getState().setEntries([{ written: 'Soniox', translation: 'ソニオクス' }]);
+    await addWords([{ written: 'Soniox', translation: 'ソニオックス' }]);
+    expect(useWordList.getState().entries).toEqual([{ written: 'Soniox', translation: 'ソニオックス' }]);
+    await addWord({ written: 'Soniox', heardAs: 'sonic ox' });
+    expect(useWordList.getState().entries).toEqual([{ written: 'Soniox', translation: 'ソニオックス', heardAs: 'sonic ox' }]);
+  });
+});

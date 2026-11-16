@@ -131,6 +131,33 @@ describe('languages and line-up', () => {
     expect(screen.queryByText(/left out/)).toBeNull();
   });
 
+  it('says one entry left out in the singular', () => {
+    useWordList.setState({ entries: Array.from({ length: 1001 }, (_, i) => ({ written: `w${i}`, translation: `t${i}` })), background: '', loaded: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'qwen_livetranslate', translation: 'qwen_livetranslate', speech: 'qwen_livetranslate', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Word list: 1 entry over this service’s limit is left out.')).toBeInTheDocument();
+  });
+
+  it('says when the chosen Gemini model cannot use the word list, and not when it can or the list is empty', () => {
+    useWordList.setState({ entries: [{ written: 'Sokuji' }], background: '', loaded: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'gemini', translation: 'gemini', speech: 'gemini', summarisation: null }, stored: true });
+    const gemini = (model: string) => useProviderStore.setState({
+      entries: { gemini: { settings: { model }, credentials: { apiKey: 'k' }, pair: { source: 'ja', target: 'en' } } } as never,
+    });
+    gemini('gemini-2.5-flash-native-audio-preview-12-2025');
+    const first = render(<LineUpCategory locked={false} />);
+    expect(screen.getAllByText('Word list: this model cannot use it.')).toHaveLength(1);
+    first.unmount();
+    gemini('gemini-3.8-live');
+    const second = render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Word list: this model cannot use it.')).toBeNull();
+    second.unmount();
+    gemini('gemini-2.5-flash-native-audio-preview-12-2025');
+    useWordList.setState({ entries: [], background: '', loaded: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Word list: this model cannot use it.')).toBeNull();
+  });
+
   it('says on each row whether the stage is ready or what it lacks', () => {
     useProviderStore.setState({ entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
     render(<LineUpCategory locked={false} />);

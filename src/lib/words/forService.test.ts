@@ -1,6 +1,6 @@
 // What each service gets of the word list: only the columns it has a field for, cut to its limit.
 import { describe, it, expect } from 'vitest';
-import { WORD_LIMITS, SONIOX_CONTEXT_CHARS, wordsFor, sonioxContextSize } from './forService';
+import { WORD_LIMITS, SONIOX_CONTEXT_CHARS, wordsFor, sonioxContextSize, modelTakesWords } from './forService';
 import type { WordEntry } from './list';
 
 const LIST: WordEntry[] = [
@@ -81,5 +81,27 @@ describe('the word list for each service', () => {
     expect(local.terms!.length).toBeLessThanOrEqual(30);
     expect(local.background!.length).toBeLessThanOrEqual(300);
   });
-});
+  it("cuts Soniox's background at the longest start that fits, whatever its characters", () => {
+    const units = ['a', '😀', '"', '\n', 'é', '\\', '漢'];
+    for (let seed = 1; seed <= 60; seed++) {
+      let x = seed;
+      let text = '';
+      while (text.length < 12_000) { x = (x * 1103515245 + 12345) & 0x7fffffff; text += units[x % units.length]; }
+      const got = wordsFor('soniox', [{ written: 'Kizuna' }], text).background ?? '';
+      // The background is sent trimmed.
+      const points = [...text.trim()];
+      const kept = [...got].length;
+      expect(got).toBe(points.slice(0, kept).join(''));
+      expect(sonioxContextSize({ terms: ['Kizuna'], background: got })).toBeLessThanOrEqual(SONIOX_CONTEXT_CHARS);
+      expect(sonioxContextSize({ terms: ['Kizuna'], background: points.slice(0, kept + 1).join('') })).toBeGreaterThan(SONIOX_CONTEXT_CHARS);
+    }
+  });
 
+  it('knows which models take the list where a service’s models differ: Gemini’s only gemini-3.8-live', () => {
+    expect(modelTakesWords('gemini', 'gemini-3.8-live')).toBe(true);
+    for (const model of ['gemini-2.5-flash-native-audio-preview-12-2025', 'gemini-3.1-flash-live-preview', 'gemini-3.5-live-translate-preview', 'gemini-9-live', '', null]) {
+      expect(modelTakesWords('gemini', model)).toBe(false);
+    }
+    expect(modelTakesWords('soniox', null)).toBe(true);
+  });
+});

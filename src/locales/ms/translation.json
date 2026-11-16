@@ -141,9 +141,7 @@
     "maxTokensTooltip": "Tetapkan bilangan token output maksimum",
     "unlimited": "Tidak terhad",
     "transcriptModelTooltip": "Model pengecaman pertuturan untuk kata-kata anda sendiri. Hanya menjejaskan teks asal yang dipaparkan di sebelah setiap terjemahan — terjemahan itu sendiri terhasil terus daripada audio anda.\ngpt-live-transcribe: paling tepat, muncul semasa anda bercakap, paling mahal.\ngpt-transcribe: generasi semasa, mentranskripsikan setiap giliran yang selesai.\ngpt-4o-mini-transcribe: paling murah, lalai.\ngpt-4o-transcribe / whisper-1: model lama.",
-    "transcriptKeywords": "Kata kunci transkripsi",
     "transcriptKeywordsTooltip": "Nama, istilah khusus dan nama produk yang perlu disediakan oleh sistem transkripsi, dipisahkan dengan koma. Petunjuk sahaja — sesuatu istilah muncul dalam transkrip hanya apabila ia benar-benar dituturkan. Disokong oleh gpt-live-transcribe dan gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Tetapkan tahap pengurangan hingar latar belakang",
     "systemInstructionsTooltip": "Masukkan arahan untuk menyesuaikan kelakuan AI",
     "participantInstructions": "Arahan untuk pihak lain",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
     "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan suara automatik — kos dan kependaman lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih boleh dipercayai apabila kedua-duanya bercakap serentak, tetapi kosnya kira-kira dua kali ganda.\n\nHanya menjejaskan mod Kedua-duanya.",
     "sonioxSharedSessionManagedCost": "Kizuna AI menyokong kedua-duanya. Dilumpuhkan menjalankan dua sesi serentak — kira-kira dua kali ganda kos seminit, jadi peruntukan sesi anda habis dalam kira-kira separuh masa dan baki yang lebih tinggi diperlukan untuk bermula.",
-    "sonioxVocabulary": "Perbendaharaan Kata Tersuai",
-    "sonioxVocabularyTooltip": "Mencondongkan pengecaman ke arah nama dan istilah penting, serta memandu cara istilah tertentu diterjemahkan. Berkuat kuasa mulai sesi seterusnya.",
-    "sonioxVocabularyTerms": "Istilah",
-    "sonioxVocabularyTermsTooltip": "Meningkatkan pengecaman perkataan yang tidak biasa — nama, istilah khusus, nama produk.",
-    "sonioxVocabularyTermsPlaceholder": "Satu istilah setiap baris",
-    "sonioxVocabularyTranslations": "Terjemahan Pilihan",
-    "sonioxVocabularyTranslationsTooltip": "Mempengaruhi cara istilah tertentu diterjemahkan — ini keutamaan, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah mantap berfungsi paling baik, manakala perkataan biasa mungkin mengekalkan bahasa model itu sendiri. Entri adalah berarah; arah songsang hanya wujud dalam mod Kedua-duanya, di mana anda boleh menambah baris songsang.",
-    "sonioxVocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
     "sonioxEndpointTuning": "Penalaan Pengesanan Akhir Ujaran",
     "sonioxEndpointSensitivity": "Sensitiviti Pengesanan Akhir Ujaran",
     "sonioxEndpointSensitivityTooltip": "Sejauh mana mudahnya jeda dianggap sebagai penghujung ujaran — nilai tinggi memisah dengan bukti lebih lemah (lebih pantas, lebih banyak pemotongan awal); nilai rendah menuntut bukti lebih kukuh. Masa menunggu dihadkan oleh jeda maksimum di bawah. 0 ialah lalai Soniox.",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "Kependaman lebih rendah",
     "sonioxLatencyLevelEvenLower": "Kependaman lebih rendah lagi",
     "sonioxLatencyLevelMost": "Paling agresif",
-    "sonioxBackground": "Latar Belakang Sesi",
-    "sonioxBackgroundTooltip": "Latar belakang bebas format untuk sesi seterusnya — agenda, topik, atau nota rujukan. Membantu pengecaman dan terjemahan mengikuti bidang tersebut. Dipotong dahulu jika konteks gabungan melebihi had saiz.",
-    "sonioxBackgroundPlaceholder": "Tampal agenda, topik, atau nota latar belakang (pilihan)",
     "sonioxVoiceConsent": "Saya mengesahkan bahawa saya mempunyai hak untuk menggunakan suara ini",
     "sonioxVoiceCloneTitle": "Klon suara",
     "sonioxVoiceCloneReview": "Dengar klip anda dan namakan suara sebelum memuat naik.",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "Suara anda sendiri (diklon)",
       "voiceSummaryCloneTheirs": "Suara pihak lain sendiri (diklon)",
       "keyRegion": "Wilayah kunci: {{region}}",
-      "vocabulary": "Perbendaharaan Kata Tersuai",
-      "vocabularyTranslations": "Terjemahan Pilihan",
-      "vocabularyTranslationsTooltip": "Mempengaruhi cara istilah tertentu diterjemahkan — ini keutamaan, bukan penggantian yang dijamin: nama dengan terjemahan yang sudah mantap berfungsi paling baik, manakala perkataan biasa mungkin mengekalkan bahasa model itu sendiri. Entri adalah berarah; arah songsang hanya wujud dalam mod Kedua-duanya, di mana anda boleh menambah baris songsang.",
-      "vocabularyTranslationsPlaceholder": "Satu entri sumber=sasaran setiap baris",
       "screenContext": "Konteks skrin",
       "screenContextTooltip": "Membolehkan model melihat satu tetingkap, tab atau skrin yang anda pilih, supaya nama dan istilah padanya dikenali dan diterjemahkan seperti yang tertulis. Segala-galanya dalam kawasan itu dihantar sebagai gambar ke perkhidmatan Qwen Alibaba Cloud, di rantau sesi ini; Kizuna AI tidak pernah menerimanya. Selagi dihidupkan, ia menambah caj untuk setiap saat pertuturan — pada bil Alibaba Cloud anda jika menggunakan kunci sendiri, atau mengikut halaman harga akaun anda dengan akaun Kizuna AI; dalam mod Kedua-duanya, sesi setiap arah dicaj.",
       "screenContextPicked": "Model akan melihat: {{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "Tiada",
       "notesNeedKey": "Tambah kunci OpenAI dalam “Akaun dan kunci” supaya nota ditulis.",
       "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula.",
-      "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan."
+      "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan.",
+      "wordsUnused": "Senarai perkataan: model ini tidak dapat menggunakannya.",
+      "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar."
     },
     "display": {
       "surface": "Paparan mana",
@@ -1943,7 +1928,9 @@
       "usage": "Apa yang digunakan setiap perkhidmatan",
       "service": "Perkhidmatan",
       "thisDevice": "Peranti ini",
-      "others": "OpenAI Translate, OpenAI Live dan Palabra tiada tempat untuk senarai perkataan; ia tidak dihantar."
+      "others": "OpenAI Translate, OpenAI Live dan Palabra tiada tempat untuk senarai perkataan; ia tidak dihantar.",
+      "byModel": "Bergantung pada model",
+      "byModelNote": "Bergantung pada model: OpenAI mengambil istilah dengan gpt-transcribe dan gpt-live-transcribe, dan latar belakang dengan model transkripsi lamanya; Gemini Live mengambil istilah dengan gemini-3.8-live sahaja; peranti ini membaca senarai dengan penterjemah model bahasa besarnya sahaja."
     }
   },
   "history": {

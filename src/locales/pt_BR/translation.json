@@ -141,9 +141,7 @@
     "maxTokensTooltip": "Comprimento máximo de cada tradução. Tokens são como pedaços de palavras - 100 tokens ≈ 75 palavras. 2048-4096 bom para conversas. 'inf' = ilimitado.",
     "unlimited": "Ilimitado",
     "transcriptModelTooltip": "Modelo de reconhecimento de fala para o que você diz. Afeta apenas o texto original exibido ao lado de cada tradução — a tradução em si é gerada direto do seu áudio.\ngpt-live-transcribe: o mais preciso, aparece enquanto você fala, o mais caro.\ngpt-transcribe: geração atual, transcreve cada turno concluído.\ngpt-4o-mini-transcribe: o mais barato, é o padrão.\ngpt-4o-transcribe / whisper-1: modelos mais antigos.",
-    "transcriptKeywords": "Palavras-chave de transcrição",
     "transcriptKeywordsTooltip": "Nomes, jargões e termos de produto para os quais a transcrição deve estar preparada, separados por vírgulas. São apenas dicas — um termo só aparece na transcrição se for realmente falado. Compatível com gpt-live-transcribe e gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Remoção de ruído de fundo. \nNenhum: Sem processamento, usar em salas silenciosas. \nCampo próximo: Para fones/microfones próximos. \nCampo distante: Para alto-falantes/salas de conferência com eco.",
     "systemInstructionsTooltip": "Instruções personalizadas para o tradutor de IA. Diga suas preferências como tom formal/casual, tratamento de termos técnicos, ou estilo de tradução específico.",
     "participantInstructions": "Instruções para o outro",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "Sessão compartilhada no modo Ambos",
     "sonioxSharedSessionTooltip": "O modo Ambos pode usar uma única sessão Soniox compartilhada ou uma sessão separada por direção.\n\nAtivado: uma única sessão traduz os dois lados com separação automática de vozes — menor custo e latência.\n\nDesativado: uma sessão separada por direção — mais confiável quando os dois falam ao mesmo tempo, mas com cerca do dobro do custo.\n\nAfeta apenas o modo Ambos.",
     "sonioxSharedSessionManagedCost": "A Kizuna AI oferece as duas opções. Desativado executa duas sessões ao mesmo tempo — cerca do dobro do custo por minuto, então o seu tempo de sessão acaba em aproximadamente metade e é preciso um saldo maior para começar.",
-    "sonioxVocabulary": "Vocabulário personalizado",
-    "sonioxVocabularyTooltip": "Direciona o reconhecimento para nomes e termos importantes e orienta como termos específicos são traduzidos. Aplica-se a partir da próxima sessão.",
-    "sonioxVocabularyTerms": "Termos",
-    "sonioxVocabularyTermsTooltip": "Melhora o reconhecimento de palavras incomuns — nomes, jargões, nomes de produtos.",
-    "sonioxVocabularyTermsPlaceholder": "Um termo por linha",
-    "sonioxVocabularyTranslations": "Traduções preferidas",
-    "sonioxVocabularyTranslationsTooltip": "Influencia como termos específicos são traduzidos — é uma preferência, não uma substituição garantida: nomes com uma tradução já estabelecida funcionam melhor, enquanto palavras comuns podem manter a formulação própria do modelo. As entradas são direcionais; a direção inversa só existe no modo Ambos, onde você pode adicionar uma linha inversa.",
-    "sonioxVocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha",
     "sonioxEndpointTuning": "Ajuste de detecção de fim da fala",
     "sonioxEndpointSensitivity": "Sensibilidade de fim da fala",
     "sonioxEndpointSensitivityTooltip": "Com que facilidade uma pausa é considerada o fim da fala: valores altos dividem com indícios mais fracos (mais rápido, mais cortes prematuros); valores baixos exigem indícios mais fortes. O tempo de espera é limitado pela pausa máxima abaixo. 0 é o padrão do Soniox.",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "Menor latência",
     "sonioxLatencyLevelEvenLower": "Latência ainda menor",
     "sonioxLatencyLevelMost": "Mais agressivo",
-    "sonioxBackground": "Contexto da sessão",
-    "sonioxBackgroundTooltip": "Contexto livre para a próxima sessão — pauta, tópico ou notas de referência. Ajuda o reconhecimento e a tradução a acompanhar o domínio. É cortado primeiro se o contexto combinado exceder o limite de tamanho.",
-    "sonioxBackgroundPlaceholder": "Cole uma pauta, tópico ou notas de contexto (opcional)",
     "sonioxVoiceConsent": "Confirmo que tenho o direito de usar esta voz",
     "sonioxVoiceCloneTitle": "Clonar voz",
     "sonioxVoiceCloneReview": "Ouça seu clipe e nomeie a voz antes de enviá-lo.",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "Sua própria voz (clonada)",
       "voiceSummaryCloneTheirs": "A própria voz do outro (clonada)",
       "keyRegion": "Região da chave: {{region}}",
-      "vocabulary": "Vocabulário personalizado",
-      "vocabularyTranslations": "Traduções preferidas",
-      "vocabularyTranslationsTooltip": "Influencia como termos específicos são traduzidos — é uma preferência, não uma substituição garantida: nomes com uma tradução já estabelecida funcionam melhor, enquanto palavras comuns podem manter a formulação própria do modelo. As entradas são direcionais; a direção inversa só existe no modo Ambos, onde você pode adicionar uma linha inversa.",
-      "vocabularyTranslationsPlaceholder": "Uma entrada origem=destino por linha",
       "screenContext": "Contexto da tela",
       "screenContextTooltip": "Permite que o modelo veja uma janela, aba ou tela que você escolhe, para que os nomes e termos nela sejam reconhecidos e traduzidos como estão escritos. Tudo o que está dentro dessa área é enviado como imagens ao serviço Qwen da Alibaba Cloud, na região desta sessão; a Kizuna AI nunca as recebe. Enquanto estiver ativado, isso aumenta a cobrança por cada segundo de fala — na sua fatura da Alibaba Cloud com a sua própria chave, ou conforme a página de preços da sua conta com uma conta Kizuna AI; no modo Ambos, a sessão de cada direção é cobrada.",
       "screenContextPicked": "O modelo verá: {{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "Nenhum",
       "notesNeedKey": "Adicione uma chave da OpenAI em “Contas e chaves” para que as notas sejam escritas.",
       "alsoFiles": "Também transcreve arquivos importados e registros de novo.",
-      "wordsLeftOut": "Lista de palavras: {{count}} entradas acima do limite deste serviço ficam de fora."
+      "wordsLeftOut": "Lista de palavras: {{count}} entradas acima do limite deste serviço ficam de fora.",
+      "wordsUnused": "Lista de palavras: este modelo não consegue usá-la.",
+      "wordsLeftOut_one": "Lista de palavras: {{count}} entrada acima do limite deste serviço fica de fora."
     },
     "display": {
       "surface": "Qual exibição",
@@ -1943,7 +1928,9 @@
       "usage": "O que cada serviço usa",
       "service": "Serviço",
       "thisDevice": "Este dispositivo",
-      "others": "OpenAI Translate, OpenAI Live e Palabra não têm campo para uma lista de palavras; não recebem nenhuma."
+      "others": "OpenAI Translate, OpenAI Live e Palabra não têm campo para uma lista de palavras; não recebem nenhuma.",
+      "byModel": "Depende do modelo",
+      "byModelNote": "Depende do modelo: o OpenAI usa os termos com gpt-transcribe e gpt-live-transcribe, e o contexto com seus modelos de transcrição mais antigos; o Gemini Live usa os termos só com gemini-3.8-live; este dispositivo lê a lista só com seus tradutores de modelos de linguagem grandes."
     }
   },
   "history": {

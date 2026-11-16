@@ -6,7 +6,7 @@
  * `geminiTranslateModel.ts:85-105`) are gone. The participant speaks when
  * its switch is on (ruling 5): `context.speech` says so.
  */
-import { wordsFor } from '../../lib/words/forService';
+import { modelTakesWords, wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
@@ -100,7 +100,8 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     activity,
     activityHandling: geminiActivityHandling(model),
     textInMarks: geminiTextInMarks(model),
-    ...(dialogue && vocabulary ? { vocabulary } : {}),
+    // Only a model that is known to take it: one that does not would refuse the whole session.
+    ...(dialogue && vocabulary && modelTakesWords('gemini', model) ? { vocabulary } : {}),
   };
 }
 

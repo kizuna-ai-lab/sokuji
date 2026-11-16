@@ -141,9 +141,7 @@
     "maxTokensTooltip": "各翻訳の最大長。トークンは単語の断片のようなものです - 100トークン ≈ 75単語。会話には2048-4096が適しています。'inf' = 無制限。",
     "unlimited": "無制限",
     "transcriptModelTooltip": "あなた自身の発話に使う音声認識モデル。各翻訳の横に表示される原文にのみ影響し、翻訳そのものは音声から直接生成されます。\ngpt-live-transcribe：最も高精度。話しながら文字が出ますが、最も高価です。\ngpt-transcribe：現行世代。発話の区切りごとに文字起こしします。\ngpt-4o-mini-transcribe：最も安価で、既定値です。\ngpt-4o-transcribe / whisper-1：旧世代のモデル。",
-    "transcriptKeywords": "文字起こしキーワード",
     "transcriptKeywordsTooltip": "固有名詞・専門用語・製品名など、文字起こしに備えさせたい語をカンマ区切りで入力します。あくまでヒントで、実際に発話された場合にのみ文字起こしに現れます。gpt-live-transcribe と gpt-transcribe で利用できます。",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景ノイズの除去。\nなし：処理なし、静かな部屋で使用。\n近距離：ヘッドセット/近いマイク用。\n遠距離：エコーのあるスピーカー/会議室用。",
     "systemInstructionsTooltip": "AI翻訳者のカスタム指示。フォーマル/カジュアルなトーン、専門用語の扱い、特定の翻訳スタイルなどの好みを伝えてください。",
     "participantInstructions": "相手の指示",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "「両方」モードでセッションを共有",
     "sonioxSharedSessionTooltip": "「両方」モードでは、1 つの Soniox セッションを共有することも、方向ごとに別々のセッションを使うこともできます。\n\n有効:1 つのセッションで両者を翻訳し、声を自動的に区別します——コストと遅延が低くなります。\n\n無効:方向ごとに別々のセッションを使用します——2 人が同時に話すときに安定しますが、コストは約 2 倍になります。\n\n「両方」モードにのみ影響します。",
     "sonioxSharedSessionManagedCost": "Kizuna AI はどちらにも対応しています。無効にすると 2 つのセッションを同時に実行します。1 分あたりの費用が約 2 倍になるため、セッションの残り時間はおよそ半分になり、開始にはより多くの残高が必要です。",
-    "sonioxVocabulary": "カスタム語彙",
-    "sonioxVocabularyTooltip": "重要な固有名詞や専門用語の認識に重みを付け、特定の用語の訳し方を導きます。次回のセッションから適用されます。",
-    "sonioxVocabularyTerms": "用語",
-    "sonioxVocabularyTermsTooltip": "固有名詞、専門用語、製品名など、一般的でない単語の認識精度を高めます。",
-    "sonioxVocabularyTermsPlaceholder": "1 行に 1 つの用語を入力",
-    "sonioxVocabularyTranslations": "優先する訳語",
-    "sonioxVocabularyTranslationsTooltip": "特定の用語の訳し方に影響を与えます——これは優先指定であり、置き換えを保証するものではありません。定着した訳語がある固有名詞には特に効果的ですが、一般的な単語ではモデル自身の訳し方がそのまま使われることもあります。エントリには方向があります。逆方向は「両方」モードにのみ存在し、そこで逆方向の行を追加できます。",
-    "sonioxVocabularyTranslationsPlaceholder": "1 行に 1 つ、「原語=訳語」の形式で入力",
     "sonioxEndpointTuning": "発話終了検出の調整",
     "sonioxEndpointSensitivity": "発話終了検出の感度",
     "sonioxEndpointSensitivityTooltip": "どの程度の根拠でポーズを発話の終わりと判定するかです。値が高いほど弱い根拠でも区切り（速い反面、早すぎる切断が増える）、低いほど強い根拠を求めます。待ち時間は下の最大ポーズ時間が上限になります。0 が Soniox のデフォルトです。",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "遅延を低減",
     "sonioxLatencyLevelEvenLower": "さらに遅延を低減",
     "sonioxLatencyLevelMost": "最も積極的",
-    "sonioxBackground": "セッションの背景",
-    "sonioxBackgroundTooltip": "次回のセッション用の自由形式の背景情報です——議題、トピック、参考メモなど。認識と翻訳が話題の分野に沿うようになります。結合した文脈がサイズ上限を超える場合、最初に削られます。",
-    "sonioxBackgroundPlaceholder": "議題やトピック、背景メモを貼り付けてください（任意）",
     "sonioxVoiceConsent": "この音声を使用する権利があることを確認します",
     "sonioxVoiceCloneTitle": "音声を複製",
     "sonioxVoiceCloneReview": "アップロードする前に、クリップを聞いて音声に名前を付けてください。",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "自分の声（複製）",
       "voiceSummaryCloneTheirs": "相手自身の声（複製）",
       "keyRegion": "キーのリージョン：{{region}}",
-      "vocabulary": "カスタム語彙",
-      "vocabularyTranslations": "優先する訳語",
-      "vocabularyTranslationsTooltip": "特定の用語の訳し方に影響を与えます——これは優先指定であり、置き換えを保証するものではありません。定着した訳語がある固有名詞には特に効果的ですが、一般的な単語ではモデル自身の訳し方がそのまま使われることもあります。エントリには方向があります。逆方向は「両方」モードにのみ存在し、そこで逆方向の行を追加できます。",
-      "vocabularyTranslationsPlaceholder": "1 行に 1 つ、「原語=訳語」の形式で入力",
       "screenContext": "画面​コンテキスト",
       "screenContextTooltip": "選んだウィンドウ・タブ・画面のどれか一つを、モデルが見られるようにします。そこに表示されている名前や用語を、表記どおりに認識して翻訳できます。その領域内のすべての内容は、画像としてこのセッションのリージョンにある Alibaba Cloud の Qwen サービスに送信されます。Kizuna AI がそれらを受け取ることはありません。オンの間、発話の毎秒ぶんの料金が加算されます。ご自身のキーでは Alibaba Cloud の請求に、Kizuna AI アカウントではアカウントの料金ページのとおりに加算されます。「両方」モードでは方向ごとのセッションに課金されます。",
       "screenContextPicked": "モデルが見る範囲：{{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "なし",
       "notesNeedKey": "メモを書くには「アカウントとキー」で OpenAI のキーを追加してください。",
       "alsoFiles": "取り込んだファイルの文字起こしと、記録の再文字起こしにも使います。",
-      "wordsLeftOut": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。"
+      "wordsLeftOut": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
+      "wordsUnused": "単語リスト：このモデルでは使えません。",
+      "wordsLeftOut_one": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。"
     },
     "display": {
       "surface": "どの表示",
@@ -1943,7 +1928,9 @@
       "usage": "各サービスが使うもの",
       "service": "サービス",
       "thisDevice": "このデバイス",
-      "others": "OpenAI Translate、OpenAI Live、Palabra には単語リストを受け取る欄がないため、送られません。"
+      "others": "OpenAI Translate、OpenAI Live、Palabra には単語リストを受け取る欄がないため、送られません。",
+      "byModel": "モデルによる",
+      "byModelNote": "モデルによる：OpenAI は gpt-transcribe と gpt-live-transcribe で書き方を、以前の文字起こしモデルで背景を受け取ります。Gemini Live は gemini-3.8-live でのみ書き方を受け取ります。このデバイスは大規模言語モデルの翻訳でのみリストを読みます。"
     }
   },
   "history": {

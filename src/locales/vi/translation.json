@@ -141,9 +141,7 @@
     "maxTokensTooltip": "Độ dài tối đa của mỗi bản dịch. Token giống như các mảnh từ - 100 token ≈ 75 từ. 2048-4096 tốt cho hội thoại. 'inf' = không giới hạn.",
     "unlimited": "Không giới hạn",
     "transcriptModelTooltip": "Mô hình nhận dạng giọng nói cho chính lời bạn nói. Chỉ ảnh hưởng đến văn bản gốc hiển thị bên cạnh mỗi bản dịch — bản dịch được tạo trực tiếp từ âm thanh của bạn.\ngpt-live-transcribe: chính xác nhất, hiện chữ ngay khi bạn nói, đắt nhất.\ngpt-transcribe: thế hệ hiện tại, phiên âm từng lượt nói đã kết thúc.\ngpt-4o-mini-transcribe: rẻ nhất, là mặc định.\ngpt-4o-transcribe / whisper-1: các mô hình cũ hơn.",
-    "transcriptKeywords": "Từ khóa phiên âm",
     "transcriptKeywordsTooltip": "Tên riêng, thuật ngữ chuyên ngành và tên sản phẩm mà bộ phiên âm cần sẵn sàng, phân tách bằng dấu phẩy. Chỉ là gợi ý — một từ chỉ xuất hiện trong bản phiên âm khi nó thực sự được nói. Được hỗ trợ bởi gpt-live-transcribe và gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
     "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",
     "participantInstructions": "Hướng dẫn cho đối phương",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "Phiên dùng chung ở chế độ Cả hai",
     "sonioxSharedSessionTooltip": "Chế độ Cả hai có thể dùng một phiên Soniox chung hoặc một phiên riêng cho mỗi chiều.\n\nBật: một phiên duy nhất dịch cả hai bên với việc tách giọng tự động — chi phí và độ trễ thấp hơn.\n\nTắt: một phiên riêng cho mỗi chiều — đáng tin cậy hơn khi cả hai cùng nói, nhưng chi phí khoảng gấp đôi.\n\nChỉ ảnh hưởng đến chế độ Cả hai.",
     "sonioxSharedSessionManagedCost": "Kizuna AI hỗ trợ cả hai. Tắt sẽ chạy hai phiên cùng lúc — chi phí mỗi phút cao khoảng gấp đôi, nên thời lượng phiên của bạn hết trong khoảng một nửa thời gian và cần số dư cao hơn để bắt đầu.",
-    "sonioxVocabulary": "Từ vựng tùy chỉnh",
-    "sonioxVocabularyTooltip": "Định hướng việc nhận diện theo các tên riêng và thuật ngữ quan trọng, đồng thời chi phối cách dịch các thuật ngữ cụ thể. Áp dụng từ phiên tiếp theo.",
-    "sonioxVocabularyTerms": "Thuật ngữ",
-    "sonioxVocabularyTermsTooltip": "Cải thiện nhận diện các từ không phổ biến — tên riêng, thuật ngữ chuyên ngành, tên sản phẩm.",
-    "sonioxVocabularyTermsPlaceholder": "Mỗi dòng một thuật ngữ",
-    "sonioxVocabularyTranslations": "Bản dịch ưu tiên",
-    "sonioxVocabularyTranslationsTooltip": "Ảnh hưởng đến cách dịch các thuật ngữ cụ thể — đây là một sự ưu tiên, không phải một sự thay thế được đảm bảo: các tên đã có cách dịch phổ biến sẽ hiệu quả nhất, trong khi các từ thông dụng có thể vẫn giữ cách diễn đạt riêng của mô hình. Các mục có tính định hướng; chiều ngược lại chỉ tồn tại ở chế độ Cả hai, nơi bạn có thể thêm một dòng ngược.",
-    "sonioxVocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích",
     "sonioxEndpointTuning": "Tinh chỉnh phát hiện kết thúc câu nói",
     "sonioxEndpointSensitivity": "Độ nhạy phát hiện kết thúc câu nói",
     "sonioxEndpointSensitivityTooltip": "Mức độ dễ dàng coi một khoảng dừng là kết thúc phát ngôn — giá trị cao tách câu với bằng chứng yếu hơn (nhanh hơn, nhiều lần cắt sớm hơn); giá trị thấp đòi hỏi bằng chứng mạnh hơn. Thời gian chờ bị giới hạn bởi khoảng dừng tối đa bên dưới. 0 là mặc định của Soniox.",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "Độ trễ thấp hơn",
     "sonioxLatencyLevelEvenLower": "Độ trễ thấp hơn nữa",
     "sonioxLatencyLevelMost": "Mạnh nhất",
-    "sonioxBackground": "Bối cảnh phiên",
-    "sonioxBackgroundTooltip": "Bối cảnh tự do cho phiên tiếp theo — chương trình nghị sự, chủ đề, hoặc ghi chú tham khảo. Giúp việc nhận diện và dịch bám sát lĩnh vực. Sẽ bị cắt bớt trước tiên nếu ngữ cảnh kết hợp vượt quá giới hạn kích thước.",
-    "sonioxBackgroundPlaceholder": "Dán chương trình nghị sự, chủ đề, hoặc ghi chú bối cảnh (tùy chọn)",
     "sonioxVoiceConsent": "Tôi xác nhận rằng tôi có quyền sử dụng giọng nói này",
     "sonioxVoiceCloneTitle": "Nhân bản giọng nói",
     "sonioxVoiceCloneReview": "Hãy nghe đoạn ghi âm của bạn và đặt tên cho giọng nói trước khi tải lên.",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "Giọng của chính bạn (sao chép)",
       "voiceSummaryCloneTheirs": "Giọng của chính bên kia (sao chép)",
       "keyRegion": "Khu vực của khóa: {{region}}",
-      "vocabulary": "Từ vựng tùy chỉnh",
-      "vocabularyTranslations": "Bản dịch ưu tiên",
-      "vocabularyTranslationsTooltip": "Ảnh hưởng đến cách dịch các thuật ngữ cụ thể — đây là một sự ưu tiên, không phải một sự thay thế được đảm bảo: các tên đã có cách dịch phổ biến sẽ hiệu quả nhất, trong khi các từ thông dụng có thể vẫn giữ cách diễn đạt riêng của mô hình. Các mục có tính định hướng; chiều ngược lại chỉ tồn tại ở chế độ Cả hai, nơi bạn có thể thêm một dòng ngược.",
-      "vocabularyTranslationsPlaceholder": "Mỗi dòng một mục theo dạng nguồn=đích",
       "screenContext": "Ngữ cảnh màn hình",
       "screenContextTooltip": "Cho phép mô hình nhìn thấy một cửa sổ, tab hoặc màn hình mà bạn chọn, để các tên và thuật ngữ trên đó được nhận dạng và dịch đúng như đã viết. Mọi thứ trong vùng đó được gửi dưới dạng hình ảnh tới dịch vụ Qwen của Alibaba Cloud, tại khu vực của phiên này; Kizuna AI không bao giờ nhận được chúng. Trong lúc đang bật, tính năng này làm tăng khoản phí cho mỗi giây lời nói — trên hóa đơn Alibaba Cloud của bạn khi dùng khóa riêng, hoặc theo trang giá của tài khoản khi dùng tài khoản Kizuna AI; ở chế độ Cả hai, phiên của mỗi chiều đều bị tính phí.",
       "screenContextPicked": "Mô hình sẽ xem: {{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "Không",
       "notesNeedKey": "Thêm khóa OpenAI trong “Tài khoản và khóa” để ghi chú được viết.",
       "alsoFiles": "Cũng chép lời tệp đã nhập và chép lời lại bản ghi.",
-      "wordsLeftOut": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này bị bỏ qua."
+      "wordsLeftOut": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này bị bỏ qua.",
+      "wordsUnused": "Danh sách từ: mô hình này không dùng được.",
+      "wordsLeftOut_one": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này không được gửi."
     },
     "display": {
       "surface": "Hiển thị nào",
@@ -1943,7 +1928,9 @@
       "usage": "Mỗi dịch vụ dùng gì",
       "service": "Dịch vụ",
       "thisDevice": "Thiết bị này",
-      "others": "OpenAI Translate, OpenAI Live và Palabra không có chỗ cho danh sách từ; chúng không nhận được gì."
+      "others": "OpenAI Translate, OpenAI Live và Palabra không có chỗ cho danh sách từ; chúng không nhận được gì.",
+      "byModel": "Tùy mô hình",
+      "byModelNote": "Tùy mô hình: OpenAI nhận thuật ngữ với gpt-transcribe và gpt-live-transcribe, và phần bối cảnh với các mô hình chép lời cũ hơn; Gemini Live chỉ nhận thuật ngữ với gemini-3.8-live; thiết bị này chỉ đọc danh sách với các trình dịch dùng mô hình ngôn ngữ lớn."
     }
   },
   "history": {

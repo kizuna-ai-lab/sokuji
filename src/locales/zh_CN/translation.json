@@ -141,9 +141,7 @@
     "maxTokensTooltip": "每次翻译的最大长度。Token就像单词片段-100个token≈75个单词。对话用2048-4096好。'inf'=无限制。",
     "unlimited": "无限制",
     "transcriptModelTooltip": "识别您自己说话内容的语音模型。它只影响每条翻译旁边显示的原文，翻译本身直接由音频生成。\ngpt-live-transcribe：最准确，边说边出字，也最贵。\ngpt-transcribe：当前一代，每段话说完后转录。\ngpt-4o-mini-transcribe：最便宜，默认值。\ngpt-4o-transcribe / whisper-1：更早的模型。",
-    "transcriptKeywords": "转录关键词",
     "transcriptKeywordsTooltip": "希望转录模型预先知道的人名、术语和产品名，用逗号分隔。这些只是提示——只有真的说出来，词才会出现在转录结果里。gpt-live-transcribe 和 gpt-transcribe 支持此功能。",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景噪音消除。\n无：不处理，在安静房间使用。\n近场：用于耳机/近距离麦克风。\n远场：用于有回声的扬声器/会议室。",
     "systemInstructionsTooltip": "AI翻译器的自定义指令。告诉它您的偏好，如正式/随意的语调、技术术语处理或特定的翻译风格。",
     "participantInstructions": "对方指令",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "「两者」模式下共享会话",
     "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话，也可以每个方向各用一个独立会话。\n\n已启用：单个会话同时翻译双方，并自动区分声音——成本和延迟更低。\n\n禁用：每个方向各一个独立会话——两人同时说话时更可靠，但成本约为两倍。\n\n仅影响「两者」模式。",
     "sonioxSharedSessionManagedCost": "Kizuna AI 两种方式都支持。关闭后会同时运行两个会话——每分钟成本约为两倍，因此可用会话时长大约减半，开始会话所需的余额也更高。",
-    "sonioxVocabulary": "自定义词表",
-    "sonioxVocabularyTooltip": "使识别偏向重要人名和专业术语，并引导特定术语的译法。将在下次会话生效。",
-    "sonioxVocabularyTerms": "术语",
-    "sonioxVocabularyTermsTooltip": "提高对不常见词汇的识别效果——人名、专业术语、产品名称。",
-    "sonioxVocabularyTermsPlaceholder": "每行一个术语",
-    "sonioxVocabularyTranslations": "指定译法",
-    "sonioxVocabularyTranslationsTooltip": "影响特定术语的译法——这是一种偏好，而非确定替换：已有固定译法的名称效果最好，常见词汇则可能仍保留模型自身的表达方式。条目具有方向性；反向仅存在于「两者」模式，此时可添加一行反向条目。",
-    "sonioxVocabularyTranslationsPlaceholder": "每行一条，格式为原文=译文",
     "sonioxEndpointTuning": "断句检测调节",
     "sonioxEndpointSensitivity": "断句灵敏度",
     "sonioxEndpointSensitivityTooltip": "停顿被判定为句子结束的容易程度——数值越高，证据不足也倾向断句（更快，但更易过早截断）；数值越低，需要更充分的句末证据。等待时长受下方最大停顿时长的上限约束。0 为 Soniox 默认值。",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "更低延迟",
     "sonioxLatencyLevelEvenLower": "进一步降低延迟",
     "sonioxLatencyLevelMost": "最积极",
-    "sonioxBackground": "会话背景",
-    "sonioxBackgroundTooltip": "为下一次会话提供的自由格式背景信息——议程、主题或参考笔记。有助于识别和翻译贴合相关领域。如果合并后的上下文超出大小限制，会首先裁剪这部分内容。",
-    "sonioxBackgroundPlaceholder": "粘贴议程、主题或背景笔记（可选）",
     "sonioxVoiceConsent": "我确认我有权使用此声音",
     "sonioxVoiceCloneTitle": "克隆声音",
     "sonioxVoiceCloneReview": "上传前请先试听您的片段并为声音命名。",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "我自己的声音（复刻）",
       "voiceSummaryCloneTheirs": "对方自己的声音（复刻）",
       "keyRegion": "密钥所属区域：{{region}}",
-      "vocabulary": "自定义词表",
-      "vocabularyTranslations": "指定译法",
-      "vocabularyTranslationsTooltip": "影响特定术语的译法——这是一种偏好，而非确定替换：已有固定译法的名称效果最好，常见词汇则可能仍保留模型自身的表达方式。条目具有方向性；反向仅存在于「两者」模式，此时可添加一行反向条目。",
-      "vocabularyTranslationsPlaceholder": "每行一条，格式为原文=译文",
       "screenContext": "屏幕上下文",
       "screenContextTooltip": "让模型看到你选择的一个窗口、标签页或屏幕，使其中的名称和术语按原文被识别和翻译。该区域内的所有内容都会以图片形式发送到 Alibaba Cloud 的 Qwen 服务（位于本次会话所在的区域）；Kizuna AI 永远不会收到这些图片。开启期间，每一秒语音的费用都会增加——使用自己的密钥时计入你的 Alibaba Cloud 账单，使用 Kizuna AI 账户时按你账户定价页面上的说明计费；在「两者」模式下，每个方向的会话分别计费。",
       "screenContextPicked": "模型将看到：{{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "无",
       "notesNeedKey": "在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。",
       "alsoFiles": "也用于导入文件和重新转写。",
-      "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。"
+      "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。",
+      "wordsUnused": "词表：这个型号用不上。",
+      "wordsLeftOut_one": "词表：超出这个服务上限的 {{count}} 条没有发送。"
     },
     "display": {
       "surface": "哪个界面",
@@ -1943,7 +1928,9 @@
       "usage": "各服务用哪些",
       "service": "服务",
       "thisDevice": "本机",
-      "others": "OpenAI Translate、OpenAI Live 和 Palabra 没有放词表的地方，不会收到。"
+      "others": "OpenAI Translate、OpenAI Live 和 Palabra 没有放词表的地方，不会收到。",
+      "byModel": "看型号",
+      "byModelNote": "看型号：OpenAI 用 gpt-transcribe 和 gpt-live-transcribe 时收写法，用较早的转写型号时收背景；Gemini Live 只有 gemini-3.8-live 收写法；本机只有大语言模型翻译会读词表。"
     }
   },
   "history": {

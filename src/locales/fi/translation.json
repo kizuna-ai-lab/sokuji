@@ -141,9 +141,7 @@
     "maxTokensTooltip": "Asettaa tekoälyn vastauksen enimmäispituuden. Korkeammat arvot sallivat pidemmät käännökset, mutta käyttävät enemmän API-kiintiötäsi.",
     "unlimited": "Rajoittamaton",
     "transcriptModelTooltip": "Puheentunnistusmalli omalle puheellesi. Vaikuttaa vain jokaisen käännöksen vieressä näkyvään alkuperäiseen tekstiin — käännös itse syntyy suoraan äänestäsi.\ngpt-live-transcribe: tarkin, ilmestyy puhuessasi, kallein.\ngpt-transcribe: nykyinen sukupolvi, litteroi jokaisen päättyneen puheenvuoron.\ngpt-4o-mini-transcribe: halvin, oletus.\ngpt-4o-transcribe / whisper-1: vanhempia malleja.",
-    "transcriptKeywords": "Litteroinnin avainsanat",
     "transcriptKeywordsTooltip": "Nimet, ammattitermit ja tuotenimet, joihin litteroinnin tulee varautua, pilkuin eroteltuna. Vain vihjeitä — termi näkyy litteroinnissa vain, jos se todella sanotaan. Tuettu malleissa gpt-live-transcribe ja gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Vähentää taustamelua mikrofonistasi selkeämpää puheen tunnistusta varten.\nPois: Ei käsittelyä (paras hiljaisille huoneille).\nAuto: Mukautuu automaattisesti ympäristöösi.\nMatala: Kevyt melunvaimennus.\nKeski: Kohtalainen melunvaimennus.\nKorkea: Aggressiivinen melunvaimennus (voi vaikuttaa äänen laatuun).",
     "systemInstructionsTooltip": "Mukautetut ohjeet, jotka kertovat tekoälylle kuinka kääntää. Voit käyttää tätä käännöstyylin, muodollisuuden tason tai erityisvaatimusten määrittämiseen.",
     "participantInstructions": "Toisen ohjeet",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
     "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella äänten erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
     "sonioxSharedSessionManagedCost": "Kizuna AI tukee molempia. Kun jaettu istunto on pois käytöstä, kaksi istuntoa on käynnissä samanaikaisesti — noin kaksinkertainen hinta minuutissa, joten istuntosi saldo loppuu noin puolessa ajassa ja aloittamiseen tarvitaan suurempi saldo.",
-    "sonioxVocabulary": "Mukautettu sanasto",
-    "sonioxVocabularyTooltip": "Ohjaa tunnistusta tärkeiden nimien ja erikoistermien suuntaan ja vaikuttaa siihen, miten tietyt termit käännetään. Otetaan käyttöön vasta seuraavasta istunnosta alkaen.",
-    "sonioxVocabularyTerms": "Termit",
-    "sonioxVocabularyTermsTooltip": "Parantaa harvinaisten sanojen tunnistusta — nimet, erikoistermit, tuotenimet.",
-    "sonioxVocabularyTermsPlaceholder": "Yksi termi per rivi",
-    "sonioxVocabularyTranslations": "Suositellut käännökset",
-    "sonioxVocabularyTranslationsTooltip": "Vaikuttaa siihen, miten tietyt termit käännetään — kyse on toiveesta, ei taatusta korvauksesta: nimet, joilla on vakiintunut käännös, toimivat parhaiten, kun taas yleiset sanat saattavat säilyä mallin omalla sanamuodolla. Merkinnät ovat suunnattuja; käänteinen suunta on käytössä vain Molemmat-tilassa, jossa voit lisätä käänteisen rivin.",
-    "sonioxVocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
     "sonioxEndpointTuning": "Puheenvuoron päättymisen tunnistuksen säätö",
     "sonioxEndpointSensitivity": "Puheenvuoron päättymisen herkkyys",
     "sonioxEndpointSensitivityTooltip": "Kuinka herkästi tauko tulkitaan lausuman lopuksi — suuremmat arvot katkaisevat heikommin perustein (nopeampi, enemmän ennenaikaisia katkoja), pienemmät vaativat vahvemmat perusteet. Odotusaikaa rajoittaa alla oleva enimmäistauko. 0 on Sonioxin oletusarvo.",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "Pienempi viive",
     "sonioxLatencyLevelEvenLower": "Vielä pienempi viive",
     "sonioxLatencyLevelMost": "Aggressiivisin",
-    "sonioxBackground": "Istunnon tausta",
-    "sonioxBackgroundTooltip": "Vapaamuotoinen tausta seuraavaa istuntoa varten — asialista, aihe tai viitemuistiinpanot. Auttaa tunnistusta ja käännöstä pysymään aihealueessa. Lyhennetään ensin, jos yhdistetty konteksti ylittää kokorajan.",
-    "sonioxBackgroundPlaceholder": "Liitä asialista, aihe tai taustatiedot (valinnainen)",
     "sonioxVoiceConsent": "Vahvistan, että minulla on oikeus käyttää tätä ääntä",
     "sonioxVoiceCloneTitle": "Kloonaa ääni",
     "sonioxVoiceCloneReview": "Kuuntele klippisi ja nimeä ääni ennen lataamista.",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "Oma äänesi (kloonattu)",
       "voiceSummaryCloneTheirs": "Toisen osapuolen oma ääni (kloonattu)",
       "keyRegion": "Avaimen alue: {{region}}",
-      "vocabulary": "Mukautettu sanasto",
-      "vocabularyTranslations": "Suositellut käännökset",
-      "vocabularyTranslationsTooltip": "Vaikuttaa siihen, miten tietyt termit käännetään — kyse on toiveesta, ei taatusta korvauksesta: nimet, joilla on vakiintunut käännös, toimivat parhaiten, kun taas yleiset sanat saattavat säilyä mallin omalla sanamuodolla. Merkinnät ovat suunnattuja; käänteinen suunta on käytössä vain Molemmat-tilassa, jossa voit lisätä käänteisen rivin.",
-      "vocabularyTranslationsPlaceholder": "Yksi lähde=kohde-merkintä per rivi",
       "screenContext": "Näytön konteksti",
       "screenContextTooltip": "Antaa mallin nähdä yhden valitsemasi ikkunan, välilehden tai näytön, jotta siinä näkyvät nimet ja termit tunnistetaan ja käännetään sellaisina kuin ne on kirjoitettu. Kaikki tämän alueen sisällä oleva lähetetään kuvina Alibaba Cloudin Qwen-palveluun tämän istunnon alueella; Kizuna AI ei koskaan vastaanota niitä. Kun se on päällä, se lisää veloitusta jokaiselta puhesekunnilta — omalla avaimella Alibaba Cloud -laskullesi, Kizuna AI -tilillä tilisi hintasivun mukaan; Molemmat-tilassa kunkin suunnan istunto veloitetaan.",
       "screenContextPicked": "Malli näkee: {{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "Ei mitään",
       "notesNeedKey": "Lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
       "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen.",
-      "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois."
+      "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois.",
+      "wordsUnused": "Sanalista: tämä malli ei voi käyttää sitä.",
+      "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -1943,7 +1928,9 @@
       "usage": "Mitä kukin palvelu käyttää",
       "service": "Palvelu",
       "thisDevice": "Tämä laite",
-      "others": "OpenAI Translatessa, OpenAI Livessa ja Palabrassa ei ole kenttää sanalistalle; ne eivät saa mitään."
+      "others": "OpenAI Translatessa, OpenAI Livessa ja Palabrassa ei ole kenttää sanalistalle; ne eivät saa mitään.",
+      "byModel": "Mallin mukaan",
+      "byModelNote": "Mallin mukaan: OpenAI ottaa termit malleilla gpt-transcribe ja gpt-live-transcribe ja taustan vanhemmilla litterointimalleillaan; Gemini Live ottaa termit vain mallilla gemini-3.8-live; tämä laite lukee luettelon vain suurten kielimallien kääntäjillään."
     }
   },
   "history": {

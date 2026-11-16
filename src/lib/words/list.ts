@@ -22,15 +22,21 @@ interface StoredWords { version: 1; entries: WordEntry[] }
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
+/** "Often heard as" forms joined, each once. */
+function joinHeard(...values: Array<string | undefined>): string {
+  const all = values.filter((h): h is string => !!h).flatMap((h) => h.split(HEARD_AS_SEPARATOR).map((x) => x.trim())).filter(Boolean);
+  return [...new Set(all)].join(', ');
+}
+
 /**
  * The entries as the list keeps them: cells trimmed, an entry with nothing written dropped, empty optional cells
- * left out, and the same written form with the same translation kept once. What is typed inside a cell (commas,
- * `=`, line breaks) is kept as typed: each service's sender escapes it for that service.
+ * left out, and the same written form with the same translation kept once, with the "often heard as" of each. What
+ * is typed inside a cell (commas, `=`, line breaks) is kept as typed: each service's sender escapes it for that service.
  */
 export function normaliseEntries(raw: unknown): WordEntry[] {
   if (!Array.isArray(raw)) return [];
   const out: WordEntry[] = [];
-  const seen = new Set<string>();
+  const at = new Map<string, number>();
   for (const item of raw) {
     if (!item || typeof item !== 'object') continue;
     const r = item as Record<string, unknown>;
@@ -39,8 +45,13 @@ export function normaliseEntries(raw: unknown): WordEntry[] {
     const translation = text(r.translation);
     const heardAs = text(r.heardAs);
     const key = JSON.stringify([written, translation]);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const known = at.get(key);
+    if (known !== undefined) {
+      const joined = joinHeard(out[known].heardAs, heardAs);
+      if (joined) out[known] = { ...out[known], heardAs: joined };
+      continue;
+    }
+    at.set(key, out.length);
     out.push({ written, ...(translation ? { translation } : {}), ...(heardAs ? { heardAs } : {}) });
   }
   return out;
@@ -88,17 +99,19 @@ export const useWordList = create<WordListStore>()((set) => ({
   },
 }));
 
-/** One entry into a list: appended, or filling in the entry already written that way (its "often heard as" joined). */
+/**
+ * One entry into a list: appended, or into the entry already written that way: a translation given replaces the one
+ * there (the user's latest word on it), and the "often heard as" forms are joined.
+ */
 function merged(entries: readonly WordEntry[], added: WordEntry): WordEntry[] {
   const at = entries.findIndex((e) => e.written === added.written);
   if (at < 0) return [...entries, added];
   const known = entries[at];
-  const heard = [known.heardAs, added.heardAs].filter((h): h is string => !!h)
-    .flatMap((h) => h.split(HEARD_AS_SEPARATOR).map((x) => x.trim())).filter(Boolean);
-  const heardAs = [...new Set(heard)].join(', ');
+  const heardAs = joinHeard(known.heardAs, added.heardAs);
+  const translation = added.translation || known.translation;
   const one: WordEntry = {
     written: known.written,
-    ...(known.translation || added.translation ? { translation: known.translation || added.translation } : {}),
+    ...(translation ? { translation } : {}),
     ...(heardAs ? { heardAs } : {}),
   };
   return entries.map((e, i) => (i === at ? one : e));

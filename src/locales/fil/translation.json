@@ -141,9 +141,7 @@
     "maxTokensTooltip": "Nagse-set ng maximum length ng AI response. Ang mas mataas na values ay nagpapahintulot sa mas mahabang pagsasalin ngunit gumagamit ng mas marami sa inyong API quota.",
     "unlimited": "Walang limitasyon",
     "transcriptModelTooltip": "Modelo ng pagkilala sa pananalita para sa sarili mong sinasabi. Nakakaapekto lang ito sa orihinal na tekstong ipinapakita katabi ng bawat pagsasalin — ang pagsasalin mismo ay direktang galing sa iyong audio.\ngpt-live-transcribe: pinakatumpak, lumalabas habang nagsasalita ka, pinakamahal.\ngpt-transcribe: kasalukuyang henerasyon, isinusulat ang bawat natapos na turno.\ngpt-4o-mini-transcribe: pinakamura, ito ang default.\ngpt-4o-transcribe / whisper-1: mga lumang modelo.",
-    "transcriptKeywords": "Mga keyword sa transkripsyon",
     "transcriptKeywordsTooltip": "Mga pangalan, jargon, at terminong pang-produkto na dapat paghandaan ng transcriber, pinaghihiwalay ng kuwit. Pahiwatig lang — lilitaw lang ang termino sa transkripsyon kapag talagang binigkas. Suportado ng gpt-live-transcribe at gpt-transcribe.",
-    "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Binabawasan ang background noise mula sa inyong mikropono para sa mas malinaw na speech recognition.\nPatay: Walang processing (pinakamabuti para sa mga tahimik na silid).\nAuto: Awtomatikong umaangkop sa inyong kapaligiran.\nMababa: Magaan na noise reduction.\nKatamtaman: Moderate na noise reduction.\nMataas: Aggressive na noise reduction (maaaring makaapekto sa kalidad ng boses).",
     "systemInstructionsTooltip": "Mga custom na tagubilin na nagsasabi sa AI kung paano magsasalin. Maaari ninyong gamitin ito para sa pag-define ng translation style, formality level, o mga specific na requirements.",
     "participantInstructions": "Mga tagubilin para sa kausap",
@@ -238,14 +236,6 @@
     "sonioxSharedSession": "Nakabahaging session sa mode na Pareho",
     "sonioxSharedSessionTooltip": "Ang mode na Pareho ay maaaring gumamit ng isang nakabahaging session ng Soniox o hiwalay na session para sa bawat direksyon.\n\nPinagana: isang session ang nagsasalin sa magkabilang panig na may awtomatikong paghihiwalay ng nagsasalita — mas mababang gastos at latency.\n\nHindi pinagana: hiwalay na session para sa bawat direksyon — mas maaasahan kapag sabay na nagsasalita ang dalawa, ngunit halos doble ang gastos.\n\nNakakaapekto lamang sa mode na Pareho.",
     "sonioxSharedSessionManagedCost": "Sinusuportahan ng Kizuna AI ang dalawa. Kapag hindi pinagana ang nakabahaging session, dalawang session ang sabay na tumatakbo — halos doble ang gastos kada minuto, kaya mauubos ang oras ng iyong session sa halos kalahati ng panahon at kailangan ng mas mataas na balanse para makapagsimula.",
-    "sonioxVocabulary": "Custom na Bokabularyo",
-    "sonioxVocabularyTooltip": "Umiimpluwensya sa pagkilala tungo sa mahahalagang pangalan at teknikal na termino, at gumagabay kung paano isinasalin ang mga partikular na termino. Mag-aapply mula sa susunod na session.",
-    "sonioxVocabularyTerms": "Mga Termino",
-    "sonioxVocabularyTermsTooltip": "Pinapahusay ang pagkilala sa mga di-karaniwang salita — mga pangalan, teknikal na termino, pangalan ng produkto.",
-    "sonioxVocabularyTermsPlaceholder": "Isang termino kada linya",
-    "sonioxVocabularyTranslations": "Gustong mga Pagsasalin",
-    "sonioxVocabularyTranslationsTooltip": "Umiimpluwensya kung paano isinasalin ang mga partikular na termino — isang kagustuhan, hindi garantisadong kapalit: pinakamainam ang mga pangalang may itinatag na salin, samantalang maaaring mapanatili ng mga karaniwang salita ang sarili nitong pananalita mula sa modelo. Ang mga entry ay may direksyon; ang kabaligtaran na direksyon ay umiiral lamang sa mode na Pareho, kung saan maaari kang magdagdag ng baliktad na linya.",
-    "sonioxVocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya",
     "sonioxEndpointTuning": "Pagtutuning ng Pag-detect ng Pagtatapos ng Pagsasalita",
     "sonioxEndpointSensitivity": "Sensitivity ng Pag-detect ng Pagtatapos ng Pagsasalita",
     "sonioxEndpointSensitivityTooltip": "Kung gaano kadaling ituring ang paghinto bilang katapusan ng pahayag — mas matataas na halaga ay naghahati kahit mahina ang batayan (mas mabilis, mas maraming maagang putol); mas mabababa ay nangangailangan ng mas matibay na batayan. Ang paghihintay ay nililimitahan ng pinakamahabang paghinto sa ibaba. 0 ang default ng Soniox.",
@@ -257,9 +247,6 @@
     "sonioxLatencyLevelLower": "Mas mababang latency",
     "sonioxLatencyLevelEvenLower": "Mas mababa pang latency",
     "sonioxLatencyLevelMost": "Pinaka-agresibo",
-    "sonioxBackground": "Konteksto ng Session",
-    "sonioxBackgroundTooltip": "Malayang konteksto para sa susunod na session — agenda, paksa, o mga tala sanggunian. Tumutulong ito para sumunod sa larangan ang pagkilala at pagsasalin. Ito ang unang puputulin kung lumampas sa limitasyon ng sukat ang pinagsamang konteksto.",
-    "sonioxBackgroundPlaceholder": "I-paste ang agenda, paksa, o mga tala ng konteksto (opsyonal)",
     "sonioxVoiceConsent": "Kinukumpirma kong may karapatan akong gamitin ang boses na ito",
     "sonioxVoiceCloneTitle": "I-clone ang boses",
     "sonioxVoiceCloneReview": "Pakinggan ang iyong clip at pangalanan ang boses bago i-upload.",
@@ -582,10 +569,6 @@
       "voiceSummaryCloneMine": "Sarili mong boses (na-clone)",
       "voiceSummaryCloneTheirs": "Sariling boses ng kausap (na-clone)",
       "keyRegion": "Rehiyon ng key: {{region}}",
-      "vocabulary": "Custom na Bokabularyo",
-      "vocabularyTranslations": "Gustong mga Pagsasalin",
-      "vocabularyTranslationsTooltip": "Umiimpluwensya kung paano isinasalin ang mga partikular na termino — isang kagustuhan, hindi garantisadong kapalit: pinakamainam ang mga pangalang may itinatag na salin, samantalang maaaring mapanatili ng mga karaniwang salita ang sarili nitong pananalita mula sa modelo. Ang mga entry ay may direksyon; ang kabaligtaran na direksyon ay umiiral lamang sa mode na Pareho, kung saan maaari kang magdagdag ng baliktad na linya.",
-      "vocabularyTranslationsPlaceholder": "Isang entry na source=target kada linya",
       "screenContext": "Konteksto ng screen",
       "screenContextTooltip": "Hinahayaan ang modelo na makita ang isang window, tab o screen na pipiliin mo, para makilala at maisalin ang mga pangalan at terminong nasa mga ito nang eksakto sa pagkakasulat. Lahat ng nasa loob ng lugar na iyon ay ipinapadala bilang mga larawan sa Qwen service ng Alibaba Cloud, sa rehiyon ng session na ito; hindi kailanman natatanggap ng Kizuna AI ang mga ito. Habang naka-on ito, nadaragdagan nito ang singil sa bawat segundo ng pagsasalita — sa iyong Alibaba Cloud bill kung sariling key ang gamit mo, o ayon sa pricing page ng iyong account kung Kizuna AI account; sa mode na Pareho, sinisingil ang session ng bawat direksyon.",
       "screenContextPicked": "Makikita ng modelo: {{name}}",
@@ -1871,7 +1854,9 @@
       "notesNone": "Wala",
       "notesNeedKey": "Magdagdag ng OpenAI key sa “Mga account at key” para maisulat ang mga tala.",
       "alsoFiles": "Nagta-transcribe din ng mga na-import na file at muli ng mga rekord.",
-      "wordsLeftOut": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi isinasama."
+      "wordsLeftOut": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi isinasama.",
+      "wordsUnused": "Listahan ng salita: hindi ito magagamit ng model na ito.",
+      "wordsLeftOut_one": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi ipinadala."
     },
     "display": {
       "surface": "Aling display",
@@ -1943,7 +1928,9 @@
       "usage": "Ano ang ginagamit ng bawat serbisyo",
       "service": "Serbisyo",
       "thisDevice": "Ang device na ito",
-      "others": "Walang lugar para sa listahan ng salita ang OpenAI Translate, OpenAI Live at Palabra; wala silang natatanggap."
+      "others": "Walang lugar para sa listahan ng salita ang OpenAI Translate, OpenAI Live at Palabra; wala silang natatanggap.",
+      "byModel": "Depende sa model",
+      "byModelNote": "Depende sa model: kinukuha ng OpenAI ang mga termino sa gpt-transcribe at gpt-live-transcribe, at ang background sa mas lumang transcription model nito; kinukuha ng Gemini Live ang mga termino sa gemini-3.8-live lang; binabasa ng device na ito ang listahan sa mga tagasaling large language model lang nito."
     }
   },
   "history": {
