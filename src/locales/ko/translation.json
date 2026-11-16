@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "인식 서비스를 확인하지 못했습니다. 닫고 다시 시도하세요."
     },
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
+    "notesAddToWords": "단어 목록에 추가",
+    "notesNameSpelling": "올바른 표기",
+    "notesNameAdd": "추가",
+    "notesNameKnown": "“{{name}}”은(는) 이미 단어 목록에 있습니다.",
+    "notesNameAdded": "“{{name}}”을(를) 단어 목록에 추가했습니다.",
     "length": "길이 {{length}}",
     "notesJumpPlay": "주제나 요점을 클릭하면 해당 문장으로 이동해 거기서부터 재생합니다.",
     "notesJump": "주제나 요점을 클릭하면 해당 문장으로 이동합니다.",

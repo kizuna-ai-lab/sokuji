@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Không kiểm tra được dịch vụ nhận dạng. Hãy đóng mục này và thử lại."
     },
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
+    "notesAddToWords": "Thêm vào danh sách từ",
+    "notesNameSpelling": "Viết như thế nào",
+    "notesNameAdd": "Thêm",
+    "notesNameKnown": "“{{name}}” đã có trong danh sách từ.",
+    "notesNameAdded": "Đã thêm “{{name}}” vào danh sách từ.",
     "length": "Thời lượng {{length}}",
     "notesJumpPlay": "Nhấp vào một chủ đề hoặc ý để đến câu của nó và phát từ đó.",
     "notesJump": "Nhấp vào một chủ đề hoặc ý để đến câu của nó.",

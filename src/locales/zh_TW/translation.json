@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "沒能檢查辨識服務。請關閉這裡再試一次。"
     },
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
+    "notesAddToWords": "加入詞表",
+    "notesNameSpelling": "正確寫法",
+    "notesNameAdd": "新增",
+    "notesNameKnown": "「{{name}}」已經在詞表裡了。",
+    "notesNameAdded": "已把「{{name}}」加入詞表。",
     "length": "時長 {{length}}",
     "notesJumpPlay": "點主題或要點，跳到原句並從那裡播放。",
     "notesJump": "點主題或要點，跳到原句。",

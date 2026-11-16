@@ -1,6 +1,6 @@
 // A record's notes beside its transcript: each state, the filter, the versions and the way into the transcript.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react';
 import '../../locales';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import RecordNotes, { type RecordNotesProps } from './RecordNotes';
@@ -34,7 +34,7 @@ const complete: HistoryNotes = {
 const props = (over: Partial<RecordNotesProps> = {}): RecordNotesProps => ({
   record: record([{ id: 7, transcriptId: 1, language: 'en', createdAt: 0, state: 'complete' }]), notes: complete, writing: false, tooShort: false,
   languages: [{ code: 'zh', name: 'Chinese' }, { code: 'ja', name: 'Japanese' }],
-  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(),
+  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(), onAddName: vi.fn(async () => 'added' as const),
   explainWith: null, onExplained: vi.fn(), latest: null, ...over,
 });
 afterEach(() => cleanup());
@@ -140,6 +140,29 @@ describe("a record's notes", () => {
     expect(p.onJump).toHaveBeenCalledWith(4);
     fireEvent.click(within(names).getAllByRole('button', { name: 'Dismiss' })[1]);
     expect(p.onDismissName).toHaveBeenCalledWith(2);
+  });
+
+  it('adds a name with a suggestion to the word list at once, and asks for the spelling of one without', async () => {
+    const p = props({ notes: { ...complete, body: { ...complete.body!, names: [
+      { written: 'Soku G', likely: 'Sokuji', sentences: [4] }, { written: 'Mr Kawase', likely: null, sentences: [7] },
+    ] } } });
+    render(<RecordNotes {...p} />);
+    const names = screen.getByRole('region', { name: 'Names to check' });
+    fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[0]);
+    expect(p.onAddName).toHaveBeenCalledWith(0, 'Sokuji');
+    fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[1]);
+    const spelling = within(names).getByLabelText('How it is spelled');
+    fireEvent.change(spelling, { target: { value: 'Mr Kawase' } });
+    fireEvent.click(within(names).getByRole('button', { name: 'Add' }));
+    expect(p.onAddName).toHaveBeenCalledWith(1, 'Mr Kawase');
+  });
+
+  it('says when a name was already in the word list', async () => {
+    const p = props({ onAddName: vi.fn(async () => 'known' as const) });
+    render(<RecordNotes {...p} />);
+    const names = screen.getByRole('region', { name: 'Names to check' });
+    await act(async () => { fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[0]); });
+    expect(screen.getByRole('status')).toHaveTextContent('“Sokuji” is already in the word list.');
   });
 
   it('keeps the complete notes in view when a newer attempt failed, and says so above them', () => {

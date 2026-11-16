@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "No se pudo comprobar el servicio de reconocimiento. Cierra esto e inténtalo de nuevo."
     },
     "transcriptStopped": "Parte de la transcripción de esta sesión no se pudo guardar: no se pudo escribir en el disco.",
+    "notesAddToWords": "Añadir a la lista de palabras",
+    "notesNameSpelling": "Cómo se escribe",
+    "notesNameAdd": "Añadir",
+    "notesNameKnown": "«{{name}}» ya está en la lista de palabras.",
+    "notesNameAdded": "«{{name}}» se añadió a la lista de palabras.",
     "length": "Duración {{length}}",
     "notesJumpPlay": "Haz clic en un tema o un punto para ir a su frase y reproducir desde ahí.",
     "notesJump": "Haz clic en un tema o un punto para ir a su frase.",

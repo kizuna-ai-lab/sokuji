@@ -203,7 +203,7 @@ export const RecordPage: React.FC = () => {
     <RecordNotes
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
-      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)}
+      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onAddName={(i, spelling) => actions.addName(i, spelling)}
       latest={open.latest ?? null} explainWith={!notesExplained && notesService ? NOTES_SERVICE_NAMES[notesService] ?? notesService : null}
       onExplained={() => void setNotesExplained(true)}
     />

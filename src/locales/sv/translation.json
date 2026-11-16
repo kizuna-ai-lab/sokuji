@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Igenkänningstjänsten kunde inte kontrolleras. Stäng detta och försök igen."
     },
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
+    "notesAddToWords": "Lägg till i ordlistan",
+    "notesNameSpelling": "Hur det stavas",
+    "notesNameAdd": "Lägg till",
+    "notesNameKnown": "”{{name}}” finns redan i ordlistan.",
+    "notesNameAdded": "”{{name}}” lades till i ordlistan.",
     "length": "Längd {{length}}",
     "notesJumpPlay": "Klicka på ett ämne eller en punkt för att gå till dess mening och spela upp därifrån.",
     "notesJump": "Klicka på ett ämne eller en punkt för att gå till dess mening.",

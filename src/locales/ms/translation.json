@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Perkhidmatan pengecaman tidak dapat disemak. Tutup ini dan cuba lagi."
     },
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
+    "notesAddToWords": "Tambah ke senarai perkataan",
+    "notesNameSpelling": "Cara ejaannya",
+    "notesNameAdd": "Tambah",
+    "notesNameKnown": "“{{name}}” sudah ada dalam senarai perkataan.",
+    "notesNameAdded": "“{{name}}” telah ditambah ke senarai perkataan.",
     "length": "Tempoh {{length}}",
     "notesJumpPlay": "Klik topik atau perkara untuk pergi ke ayatnya dan main dari situ.",
     "notesJump": "Klik topik atau perkara untuk pergi ke ayatnya.",

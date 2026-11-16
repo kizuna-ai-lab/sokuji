@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Tanıma hizmeti denetlenemedi. Bunu kapatıp yeniden deneyin."
     },
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
+    "notesAddToWords": "Kelime listesine ekle",
+    "notesNameSpelling": "Nasıl yazılır",
+    "notesNameAdd": "Ekle",
+    "notesNameKnown": "“{{name}}” zaten kelime listesinde.",
+    "notesNameAdded": "“{{name}}” kelime listesine eklendi.",
     "length": "Süre {{length}}",
     "notesJumpPlay": "Cümlesine gitmek ve oradan oynatmak için bir konuya veya maddeye tıklayın.",
     "notesJump": "Cümlesine gitmek için bir konuya veya maddeye tıklayın.",

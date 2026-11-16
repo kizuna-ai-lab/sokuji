@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "The recognition service could not be checked. Close this and try again."
     },
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
+    "notesAddToWords": "Add to word list",
+    "notesNameSpelling": "How it is spelled",
+    "notesNameAdd": "Add",
+    "notesNameKnown": "“{{name}}” is already in the word list.",
+    "notesNameAdded": "“{{name}}” was added to the word list.",
     "length": "Length {{length}}",
     "notesJumpPlay": "Click a topic or point to go to its sentence and play from there.",
     "notesJump": "Click a topic or point to go to its sentence.",

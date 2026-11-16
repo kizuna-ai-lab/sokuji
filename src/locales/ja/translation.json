@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "認識サービスを確認できませんでした。閉じてからもう一度お試しください。"
     },
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
+    "notesAddToWords": "単語リストに追加",
+    "notesNameSpelling": "正しい表記",
+    "notesNameAdd": "追加",
+    "notesNameKnown": "「{{name}}」はすでに単語リストにあります。",
+    "notesNameAdded": "「{{name}}」を単語リストに追加しました。",
     "length": "長さ {{length}}",
     "notesJumpPlay": "トピックや要点をクリックすると、その文に移動してそこから再生します。",
     "notesJump": "トピックや要点をクリックすると、その文に移動します。",

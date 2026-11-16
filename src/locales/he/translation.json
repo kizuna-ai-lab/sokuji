@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "לא ניתן היה לבדוק את שירות הזיהוי. סגור את החלון ונסה שוב."
     },
     "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
+    "notesAddToWords": "הוספה לרשימת המילים",
+    "notesNameSpelling": "איך זה נכתב",
+    "notesNameAdd": "הוספה",
+    "notesNameKnown": "„{{name}}” כבר ברשימת המילים.",
+    "notesNameAdded": "„{{name}}” נוסף לרשימת המילים.",
     "length": "משך {{length}}",
     "notesJumpPlay": "לחץ על נושא או נקודה כדי לעבור למשפט שלה ולנגן משם.",
     "notesJump": "לחץ על נושא או נקודה כדי לעבור למשפט שלה.",

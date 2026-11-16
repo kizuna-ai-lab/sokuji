@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Non è stato possibile verificare il servizio di riconoscimento. Chiudi e riprova."
     },
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
+    "notesAddToWords": "Aggiungi all’elenco di parole",
+    "notesNameSpelling": "Come si scrive",
+    "notesNameAdd": "Aggiungi",
+    "notesNameKnown": "«{{name}}» è già nell’elenco di parole.",
+    "notesNameAdded": "«{{name}}» è stato aggiunto all’elenco di parole.",
     "length": "Durata {{length}}",
     "notesJumpPlay": "Fai clic su un argomento o un punto per andare alla sua frase e riprodurre da lì.",
     "notesJump": "Fai clic su un argomento o un punto per andare alla sua frase.",

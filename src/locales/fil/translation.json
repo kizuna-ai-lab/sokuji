@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Hindi masuri ang serbisyo ng pagkilala. Isara ito at subukang muli."
     },
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
+    "notesAddToWords": "Idagdag sa listahan ng salita",
+    "notesNameSpelling": "Paano ito isinusulat",
+    "notesNameAdd": "Idagdag",
+    "notesNameKnown": "Nasa listahan ng salita na ang “{{name}}”.",
+    "notesNameAdded": "Naidagdag ang “{{name}}” sa listahan ng salita.",
     "length": "Haba {{length}}",
     "notesJumpPlay": "I-click ang isang paksa o punto para pumunta sa pangungusap nito at mag-play mula roon.",
     "notesJump": "I-click ang isang paksa o punto para pumunta sa pangungusap nito.",

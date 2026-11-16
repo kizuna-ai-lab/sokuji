@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Nie udało się sprawdzić usługi rozpoznawania. Zamknij to okno i spróbuj ponownie."
     },
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
+    "notesAddToWords": "Dodaj do listy słów",
+    "notesNameSpelling": "Jak to się pisze",
+    "notesNameAdd": "Dodaj",
+    "notesNameKnown": "„{{name}}” jest już na liście słów.",
+    "notesNameAdded": "Dodano „{{name}}” do listy słów.",
     "length": "Czas trwania {{length}}",
     "notesJumpPlay": "Kliknij temat lub punkt, aby przejść do jego zdania i odtwarzać od tego miejsca.",
     "notesJump": "Kliknij temat lub punkt, aby przejść do jego zdania.",

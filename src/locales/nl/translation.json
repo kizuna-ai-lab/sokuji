@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "De herkenningsdienst kon niet worden gecontroleerd. Sluit dit en probeer het opnieuw."
     },
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
+    "notesAddToWords": "Toevoegen aan woordenlijst",
+    "notesNameSpelling": "Hoe het gespeld wordt",
+    "notesNameAdd": "Toevoegen",
+    "notesNameKnown": "\"{{name}}\" staat al in de woordenlijst.",
+    "notesNameAdded": "\"{{name}}\" is toegevoegd aan de woordenlijst.",
     "length": "Duur {{length}}",
     "notesJumpPlay": "Klik op een onderwerp of punt om naar de zin te gaan en vanaf daar af te spelen.",
     "notesJump": "Klik op een onderwerp of punt om naar de zin te gaan.",

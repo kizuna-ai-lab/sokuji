@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Layanan pengenalan tidak dapat diperiksa. Tutup ini dan coba lagi."
     },
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
+    "notesAddToWords": "Tambahkan ke daftar kata",
+    "notesNameSpelling": "Cara menulisnya",
+    "notesNameAdd": "Tambahkan",
+    "notesNameKnown": "“{{name}}” sudah ada di daftar kata.",
+    "notesNameAdded": "“{{name}}” ditambahkan ke daftar kata.",
     "length": "Durasi {{length}}",
     "notesJumpPlay": "Klik topik atau poin untuk menuju kalimatnya dan memutar dari sana.",
     "notesJump": "Klik topik atau poin untuk menuju kalimatnya.",

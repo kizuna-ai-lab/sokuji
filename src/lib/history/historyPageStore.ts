@@ -2,6 +2,7 @@
 //
 // The History page's state and actions over a `HistoryPort`, one store per page. Every call can fail: a failure is
 // shown as a line in the interface's words (`errorText`) and leaves what was shown; nothing is retried by itself.
+import { addWord, useWordList } from '../words/list';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
@@ -132,6 +133,11 @@ export interface HistoryPageActions {
   dismissName(index: number): Promise<void>;
   /** Follows the notes runner and the file job while the page is shown: what they do, and each version that ends. */
   follow(): void;
+  /**
+   * Adds name `index` to the word list, spelled `spelling` and often heard as the notes found it written, then
+   * dismisses it (stage 5). 'known' when the word list already had that spelling; null when there is no such name.
+   */
+  addName(index: number, spelling: string): Promise<'added' | 'known' | null>;
   /** Stops following the notes runner (the page is gone). */
   dispose(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
@@ -392,6 +398,16 @@ export function createHistoryPageStore(
       generateNotes(language) {
         const open = get().open;
         if (open && notes) notes.start(open.record.id, language, open.transcriptId ?? undefined);
+      },
+
+      async addName(index, spelling) {
+        const name = get().open?.notes?.body?.names?.[index];
+        const written = spelling.trim();
+        if (!name || typeof name.written !== 'string' || !written) return null;
+        const known = useWordList.getState().entries.some((e) => e.written === written);
+        await addWord({ written, heardAs: name.written });
+        await get().dismissName(index);
+        return known ? 'known' : 'added';
       },
 
       dismissName: (index) => act(async () => {

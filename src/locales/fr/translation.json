@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Le service de reconnaissance n’a pas pu être vérifié. Fermez ceci et réessayez."
     },
     "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
+    "notesAddToWords": "Ajouter à la liste de mots",
+    "notesNameSpelling": "Comment cela s’écrit",
+    "notesNameAdd": "Ajouter",
+    "notesNameKnown": "« {{name}} » est déjà dans la liste de mots.",
+    "notesNameAdded": "« {{name}} » a été ajouté à la liste de mots.",
     "length": "Durée {{length}}",
     "notesJumpPlay": "Cliquez sur un sujet ou un point pour aller à sa phrase et lire à partir de là.",
     "notesJump": "Cliquez sur un sujet ou un point pour aller à sa phrase.",

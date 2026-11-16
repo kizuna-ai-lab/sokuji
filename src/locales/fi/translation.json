@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "Tunnistuspalvelua ei voitu tarkistaa. Sulje tämä ja yritä uudelleen."
     },
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
+    "notesAddToWords": "Lisää sanalistaan",
+    "notesNameSpelling": "Miten se kirjoitetaan",
+    "notesNameAdd": "Lisää",
+    "notesNameKnown": "”{{name}}” on jo sanalistassa.",
+    "notesNameAdded": "”{{name}}” lisättiin sanalistaan.",
     "length": "Kesto {{length}}",
     "notesJumpPlay": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen ja toistaaksesi siitä.",
     "notesJump": "Napsauta aihetta tai kohtaa siirtyäksesi sen virkkeeseen.",

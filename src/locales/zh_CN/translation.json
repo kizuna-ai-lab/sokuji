@@ -2142,6 +2142,11 @@
       "blockedUnchecked": "没能检查识别服务。请关掉这里再试一次。"
     },
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
+    "notesAddToWords": "加入词表",
+    "notesNameSpelling": "正确写法",
+    "notesNameAdd": "添加",
+    "notesNameKnown": "“{{name}}”已经在词表里了。",
+    "notesNameAdded": "已把“{{name}}”加入词表。",
     "length": "时长 {{length}}",
     "notesJumpPlay": "点主题或要点，跳到原句并从那里播放。",
     "notesJump": "点主题或要点，跳到原句。",
