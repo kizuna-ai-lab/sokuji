@@ -33,8 +33,11 @@ export const WORD_LIMITS: Record<string, { columns: readonly Column[]; entries: 
   local_inference: { columns: ['terms', 'translations', 'background'], entries: 100 },
 };
 
-/** Soniox refuses a session whose serialized context is over about 10,000 characters. */
-export const SONIOX_CONTEXT_CHARS = 10_000;
+/**
+ * Soniox refuses a session whose serialized context is over 10,000 characters ("Context is too long"); the context is
+ * kept under this, with room for the JSON around it that Soniox counts.
+ */
+export const SONIOX_CONTEXT_CHARS = 9000;
 
 /** The size of Soniox's context as sent. */
 export function sonioxContextSize(w: Pick<ServiceWords, 'terms' | 'translations' | 'background'>): number {
@@ -67,15 +70,16 @@ export function wordsFor(service: string, entries: readonly WordEntry[], backgro
   let kept = entries.slice(0, limit.entries);
   let words = mapped(limit.columns, kept, text);
   if (service === 'soniox' && sonioxContextSize(words) > SONIOX_CONTEXT_CHARS) {
-    // The background is the weakest hint: it is cut first (its escaped size counts), then entries from the end.
-    let bg = text;
-    while (bg && sonioxContextSize(words) > SONIOX_CONTEXT_CHARS) {
-      // Characters JSON escapes take two or more: cut by what each one costs on average.
-      const perChar = (JSON.stringify(bg).length - 2) / bg.length;
-      const over = sonioxContextSize(words) - SONIOX_CONTEXT_CHARS;
-      bg = bg.slice(0, Math.max(0, bg.length - Math.ceil(over / perChar)));
-      words = mapped(limit.columns, kept, bg);
+    // The background is the weakest hint: it is cut first, to the longest start whose escaped size fits (newlines and
+    // quotes take two characters or more), never inside a surrogate pair; then entries go from the end.
+    let lo = 0;
+    let hi = text.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (sonioxContextSize(mapped(limit.columns, kept, text.slice(0, mid))) <= SONIOX_CONTEXT_CHARS) lo = mid;
+      else hi = mid - 1;
     }
+    words = mapped(limit.columns, kept, text.slice(0, lo).replace(/[\uD800-\uDBFF]$/, ''));
     while (sonioxContextSize(words) > SONIOX_CONTEXT_CHARS && kept.length > 0) {
       kept = kept.slice(0, -1);
       words = mapped(limit.columns, kept, '');

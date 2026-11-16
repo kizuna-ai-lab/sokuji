@@ -2,6 +2,7 @@
  * The provider definition: one object per provider, and the only thing
  * generic code knows about it (spec: "The provider definition"). Types only.
  */
+import type { WordEntry } from '../words/list';
 import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
@@ -140,6 +141,14 @@ export interface SharedSettings {
   speaks?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
+  /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */
+  words?: SessionWords;
+}
+
+/** The word list as a run reads it at start. */
+export interface SessionWords {
+  entries: readonly WordEntry[];
+  background: string;
 }
 
 /** The voice-preview route (spec, "Playback — Routing": voice preview, the real device, a fixed route): one clip at its own rate; `play` resolves when it ends or is stopped. */

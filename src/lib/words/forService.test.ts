@@ -52,9 +52,13 @@ describe('the word list for each service', () => {
     expect(sonioxContextSize(quoted)).toBeLessThanOrEqual(SONIOX_CONTEXT_CHARS);
     expect(quoted.leftOut).toBe(0);
     expect(quoted.background!.length).toBeGreaterThan(4_000);
-    const roomy = wordsFor('soniox', LIST, 'x'.repeat(9_000));
+    const roomy = wordsFor('soniox', LIST, 'x'.repeat(8_000));
     expect(roomy.leftOut).toBe(0);
     expect(sonioxContextSize(roomy)).toBeLessThanOrEqual(SONIOX_CONTEXT_CHARS);
-    expect(roomy.background).toHaveLength(9_000);
+    expect(roomy.background).toHaveLength(8_000);
+    // Cut as long as it fits, never inside a surrogate pair.
+    const emoji = wordsFor('soniox', LIST, '😀'.repeat(6_000));
+    expect(sonioxContextSize(emoji)).toBeGreaterThan(SONIOX_CONTEXT_CHARS - 10);
+    expect(/[\uD800-\uDBFF]$/.test(emoji.background!)).toBe(false);
   });
 });
