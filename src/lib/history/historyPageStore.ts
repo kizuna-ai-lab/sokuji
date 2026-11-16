@@ -229,7 +229,8 @@ export function createHistoryPageStore(
         const record = open?.record.id === id ? open.record : get().rows.find((r) => r.id === id);
         if (!record || record.state === 'open') return;
         await port.binRecords({ ids: [id] });
-        if (get().open?.record.id === id) set({ open: null });
+        // Closed like any closing: a read of it still on its way is not shown.
+        if (get().open?.record.id === id) get().closeRecord();
         await reload();
       }),
 

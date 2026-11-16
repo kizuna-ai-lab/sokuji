@@ -271,6 +271,20 @@ describe("a record's notes", () => {
     expect(store.getState().open).toBeNull();
   });
 
+  it('does not open the record again when a refresh answers after it was moved to the bin', async () => {
+    await store.getState().openRecord(A);
+    let answer!: () => void;
+    const getRecord = port.getRecord;
+    port.getRecord = (async (arg: unknown) => { await new Promise<void>((r) => { answer = r; }); return (getRecord as (a: unknown) => Promise<unknown>)(arg); }) as never;
+    const refreshing = store.getState().refreshRecord();
+    await flush();
+    port.getRecord = getRecord;
+    await store.getState().binRecord(A);
+    answer();
+    await refreshing;
+    expect(store.getState().open).toBeNull();
+  });
+
   it('shows the version chosen last, whichever answers first', async () => {
     withNotes([3, 7, 5]);
     await store.getState().openRecord(A);
