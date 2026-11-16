@@ -112,7 +112,8 @@ describe('the History list', () => {
     ]);
     const row = rowWith('Weekly sync');
     expect(within(row).getByText(formatTime(START, 'en'))).toBeInTheDocument();
-    expect(within(row).getByText('1:02:03')).toBeInTheDocument();
+    // Said as a length: under a day heading the start time is a clock time too.
+    expect(within(row).getByText('Length 1:02:03')).toBeInTheDocument();
     expect(within(row).getByText(/Chinese.*→.*English/)).toBeInTheDocument();
     expect(within(row).getByText('Transcript')).toBeInTheDocument();
     expect(within(row).getByText('Notes')).toBeInTheDocument();

@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Aufnahme speichern",
     "saveMyRecording": "Aufnahme Ihrer Seite speichern",
     "saveOtherRecording": "Aufnahme der anderen Seite speichern",
-    "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden."
+    "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
+    "length": "Dauer {{length}}"
   }
 }

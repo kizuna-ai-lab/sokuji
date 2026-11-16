@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Simpan rakaman",
     "saveMyRecording": "Simpan rakaman pihak anda",
     "saveOtherRecording": "Simpan rakaman pihak lain",
-    "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera."
+    "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
+    "length": "Tempoh {{length}}"
   }
 }

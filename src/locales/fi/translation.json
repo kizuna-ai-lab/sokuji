@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Tallenna äänite",
     "saveMyRecording": "Tallenna oman puolesi äänite",
     "saveOtherRecording": "Tallenna toisen osapuolen äänite",
-    "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle."
+    "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
+    "length": "Kesto {{length}}"
   }
 }

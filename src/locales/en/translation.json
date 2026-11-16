@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Save the recording",
     "saveMyRecording": "Save your side’s recording",
     "saveOtherRecording": "Save the other side’s recording",
-    "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk."
+    "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
+    "length": "Length {{length}}"
   }
 }

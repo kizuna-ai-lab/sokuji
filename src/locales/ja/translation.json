@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "録音を保存",
     "saveMyRecording": "自分側の録音を保存",
     "saveOtherRecording": "相手側の録音を保存",
-    "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。"
+    "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
+    "length": "長さ {{length}}"
   }
 }

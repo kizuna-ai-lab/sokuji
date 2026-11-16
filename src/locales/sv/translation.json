@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Spara inspelningen",
     "saveMyRecording": "Spara inspelningen från din sida",
     "saveOtherRecording": "Spara inspelningen från andra sidan",
-    "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken."
+    "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
+    "length": "Längd {{length}}"
   }
 }

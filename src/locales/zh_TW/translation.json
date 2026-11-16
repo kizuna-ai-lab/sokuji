@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "儲存錄音",
     "saveMyRecording": "儲存我方的錄音",
     "saveOtherRecording": "儲存對方的錄音",
-    "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。"
+    "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
+    "length": "時長 {{length}}"
   }
 }

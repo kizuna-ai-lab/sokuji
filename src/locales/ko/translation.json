@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "녹음 저장",
     "saveMyRecording": "내 쪽 녹음 저장",
     "saveOtherRecording": "상대 쪽 녹음 저장",
-    "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다."
+    "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
+    "length": "길이 {{length}}"
   }
 }

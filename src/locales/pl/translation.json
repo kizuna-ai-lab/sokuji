@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Zapisz nagranie",
     "saveMyRecording": "Zapisz nagranie Twojej strony",
     "saveOtherRecording": "Zapisz nagranie drugiej strony",
-    "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku."
+    "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
+    "length": "Czas trwania {{length}}"
   }
 }

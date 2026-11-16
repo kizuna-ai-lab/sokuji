@@ -131,7 +131,7 @@ describe('a record', () => {
     expect(screen.getByText('0:05')).toBeInTheDocument();
     expect(screen.getAllByText('Other').length).toBeGreaterThan(0);
     expect(screen.getByText('2.0 KB')).toBeInTheDocument();
-    expect(screen.getByText('1:05')).toBeInTheDocument();
+    expect(screen.getByText('Length 1:05')).toBeInTheDocument();
   });
 
   it('renames the record in place and goes back to the automatic title on blank', async () => {

@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "保存录音",
     "saveMyRecording": "保存我方的录音",
     "saveOtherRecording": "保存对方的录音",
-    "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。"
+    "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
+    "length": "时长 {{length}}"
   }
 }

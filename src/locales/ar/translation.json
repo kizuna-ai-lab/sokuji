@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "حفظ التسجيل",
     "saveMyRecording": "حفظ تسجيل جانبك",
     "saveOtherRecording": "حفظ تسجيل الجانب الآخر",
-    "transcriptStopped": "تعذّر حفظ جزء من النص المفرغ لهذه الجلسة: تعذّرت كتابته على القرص."
+    "transcriptStopped": "تعذّر حفظ جزء من النص المفرغ لهذه الجلسة: تعذّرت كتابته على القرص.",
+    "length": "المدة {{length}}"
   }
 }

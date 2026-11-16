@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Simpan rekaman suara",
     "saveMyRecording": "Simpan rekaman suara pihak Anda",
     "saveOtherRecording": "Simpan rekaman suara pihak lain",
-    "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk."
+    "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
+    "length": "Durasi {{length}}"
   }
 }

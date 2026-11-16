@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "ذخیرهٔ ضبط",
     "saveMyRecording": "ذخیرهٔ ضبط طرف شما",
     "saveOtherRecording": "ذخیرهٔ ضبط طرف مقابل",
-    "transcriptStopped": "بخشی از رونوشت این جلسه ذخیره نشد: روی دیسک نوشته نشد."
+    "transcriptStopped": "بخشی از رونوشت این جلسه ذخیره نشد: روی دیسک نوشته نشد.",
+    "length": "مدت {{length}}"
   }
 }

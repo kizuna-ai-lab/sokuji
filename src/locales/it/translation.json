@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Salva la registrazione audio",
     "saveMyRecording": "Salva la registrazione audio della tua parte",
     "saveOtherRecording": "Salva la registrazione audio dell’altra parte",
-    "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco."
+    "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
+    "length": "Durata {{length}}"
   }
 }

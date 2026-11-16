@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Ses kaydını kaydet",
     "saveMyRecording": "Sizin tarafın ses kaydını kaydet",
     "saveOtherRecording": "Karşı tarafın ses kaydını kaydet",
-    "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı."
+    "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
+    "length": "Süre {{length}}"
   }
 }

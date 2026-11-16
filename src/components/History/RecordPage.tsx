@@ -332,7 +332,7 @@ export const RecordPage: React.FC = () => {
             <span>{formatDateTime(record.startedAt, language)}</span>
             {live || record.endedAt === null
               ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
-              : <span>{formatLength(record.endedAt - record.startedAt)}</span>}
+              : <span>{t('history.length', 'Length {{length}}', { length: formatLength(record.endedAt - record.startedAt) })}</span>}
             <span>{`${languageLabel(record.myLanguage, language)} → ${languageLabel(record.targetLanguage, language)}`}</span>
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
           </span>

@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "שמירת ההקלטה",
     "saveMyRecording": "שמירת ההקלטה של הצד שלך",
     "saveOtherRecording": "שמירת ההקלטה של הצד השני",
-    "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק."
+    "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
+    "length": "משך {{length}}"
   }
 }

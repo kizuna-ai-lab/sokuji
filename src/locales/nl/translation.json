@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Geluidsopname opslaan",
     "saveMyRecording": "Geluidsopname van jouw kant opslaan",
     "saveOtherRecording": "Geluidsopname van de andere kant opslaan",
-    "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven."
+    "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
+    "length": "Duur {{length}}"
   }
 }

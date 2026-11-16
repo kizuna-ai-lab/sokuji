@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "I-save ang recording",
     "saveMyRecording": "I-save ang recording ng panig mo",
     "saveOtherRecording": "I-save ang recording ng kabilang panig",
-    "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk."
+    "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
+    "length": "Haba {{length}}"
   }
 }

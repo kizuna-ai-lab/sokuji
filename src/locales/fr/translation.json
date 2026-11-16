@@ -2017,6 +2017,7 @@
     "saveRecordingTitle": "Enregistrer l’audio",
     "saveMyRecording": "Enregistrer l’audio de votre côté",
     "saveOtherRecording": "Enregistrer l’audio de l’autre côté",
-    "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque."
+    "transcriptStopped": "Une partie de la transcription de cette session n’a pas pu être enregistrée : impossible de l’écrire sur le disque.",
+    "length": "Durée {{length}}"
   }
 }
