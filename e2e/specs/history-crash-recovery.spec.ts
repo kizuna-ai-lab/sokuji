@@ -50,6 +50,7 @@ test('after a crash, a session comes back ended with what it had, and an empty r
   // The settings were seeded seconds ago, and Chromium writes the page's storage to disk in batches: a kill now
   // would lose them and the restart would open the setup wizard. A user's settings are long on disk by now.
   await first.app.evaluate(({ session }) => session.defaultSession.flushStorageData());
+  expect(first.errors).toEqual([]);
   await first.kill();
 
   const empty = 'run-e2e-empty-after-crash';
