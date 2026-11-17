@@ -91,6 +91,24 @@ describe('the notes service from the stores', () => {
     }
   });
 
+  // Review: where Kizuna AI is the default whatever OpenAI's key holds (offered, signed in), OpenAI's settings are not
+  // read, so a failure to read them cannot keep the hosted notes from being written.
+  it('with none named and signed in where Kizuna AI is offered, writes with Kizuna AI without reading OpenAI', async () => {
+    desktop.hosted = true;
+    registerAuth(() => ({ signedIn: true, loaded: true, userId: 'u1', getToken: async () => 'token' }) as never);
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: null }, stored: true });
+    useProviderStore.setState({ entries: {} } as never);
+    const load = vi.spyOn(useProviderStore.getState(), 'load').mockRejectedValue(new Error('settings could not be read'));
+    try {
+      const service = await notesChatFromStores('rec-1');
+      expect(service).not.toBeNull();
+      expect(load).not.toHaveBeenCalled();
+    } finally {
+      load.mockRestore();
+      registerAuth(() => undefined);
+    }
+  });
+
   it('with none named in the line-up, writes with the default service; none when OpenAI has no key', async () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: null }, stored: true });
     // Outside the desktop build no hosted service is offered: the default is OpenAI, with the key set up above.

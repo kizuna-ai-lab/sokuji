@@ -52,8 +52,11 @@ describe('TitleBar', () => {
       await act(async () => { await Promise.resolve(); });
       expect(bar.getAttribute('data-fit')).toBe('0');
     } finally {
+      // jsdom keeps both on Element: with no own property here before, the stand-ins are taken away (review).
       if (scroll) Object.defineProperty(HTMLElement.prototype, 'scrollWidth', scroll);
+      else delete (HTMLElement.prototype as { scrollWidth?: number }).scrollWidth;
       if (client) Object.defineProperty(HTMLElement.prototype, 'clientWidth', client);
+      else delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
     }
   });
 

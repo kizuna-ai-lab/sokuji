@@ -88,8 +88,9 @@ export const RecordPage: React.FC = () => {
   // The side panel at the right of the transcript: the speakers now, more later (owner, 2026-11-17). Open the first time,
   // so what it holds is seen at once; the last choice holds for the records after.
   const [sideOpen, setSideOpen] = useState(readSideOpen);
-  // One save of a name at a time: the click that closes the drawer also takes the focus from the name being typed.
-  const savingName = useRef(false);
+  // One save of a name at a time: the click that closes the drawer also takes the focus from the name being typed. A
+  // second ask while it runs waits for it, and is told how it went (review): running is not saved.
+  const nameSave = useRef<Promise<boolean> | null>(null);
   const [nameDraft, setNameDraft] = useState<{ side: HistorySentenceSide; speaker: string; value: string } | null>(null);
   const [menuFor, setMenuFor] = useState<number | null>(null);
   const [hit, setHit] = useState<string | null>(null);
@@ -245,17 +246,18 @@ export const RecordPage: React.FC = () => {
   const speakersOf = (side: HistorySentenceSide) => open.speakers
     .filter((s) => s.side === side && labelOf.has(speakerKey(s.side, s.speaker)))
     .map((s) => ({ ...s, label: labelOf.get(speakerKey(s.side, s.speaker))! }));
-  const saveName = async (): Promise<boolean> => {
-    if (!nameDraft || savingName.current) return true;
-    savingName.current = true;
-    try {
-      await actions.renameSpeaker(nameDraft.side, nameDraft.speaker, nameDraft.value);
+  const saveName = (): Promise<boolean> => {
+    if (nameSave.current) return nameSave.current;
+    if (!nameDraft) return Promise.resolve(true);
+    const draft = nameDraft;
+    const run = (async () => {
+      await actions.renameSpeaker(draft.side, draft.speaker, draft.value);
       if (store.getState().error) return false;
-      setNameDraft((d) => (d === nameDraft ? null : d));
+      setNameDraft((d) => (d === draft ? null : d));
       return true;
-    } finally {
-      savingName.current = false;
-    }
+    })().finally(() => { nameSave.current = null; });
+    nameSave.current = run;
+    return run;
   };
   const newSpeaker = (side: HistorySentenceSide) => {
     const used = open.speakers.filter((s) => s.side === side).map((s) => Number(USER_SPEAKER.exec(s.speaker)?.[1] ?? 0));
@@ -519,7 +521,7 @@ export const RecordPage: React.FC = () => {
             editing={nameDraft !== null || titleDraft !== null}
             onToggle={async () => {
               // Closing with a name being typed saves it first; a name that fails to save keeps the panel open with it.
-              if (sideOpen && nameDraft && !(await saveName())) return;
+              if (sideOpen && (nameDraft || nameSave.current) && !(await saveName())) return;
               writeSideOpen(!sideOpen);
               setSideOpen(!sideOpen);
             }}

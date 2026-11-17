@@ -362,6 +362,22 @@ describe('a record', () => {
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
   });
 
+  // Review: a save already under way is waited for, not taken as done.
+  it('stays open when closed while a started name save is still running, and that save then fails', async () => {
+    let fail: () => void = () => {};
+    port.renameSpeaker = (async () => { await new Promise<void>((_, reject) => { fail = () => reject(new Error('disk full')); }); }) as never;
+    await renderRecord();
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Save' }));
+    fireEvent.click(toggle());
+    await settle();
+    await act(async () => { fail(); });
+    await settle();
+    expect(drawer()).not.toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+  });
+
   it('saves a name being typed when the drawer is closed', async () => {
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
