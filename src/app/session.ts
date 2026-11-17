@@ -254,6 +254,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
    */
   type LiveRun = {
     recordId: string; loop: LiveLoop | null; pending: LiveSentence[]; seen: LiveSentence[]; loading: boolean; stopped: boolean; gone: boolean;
+    /** The notes on screen it goes on from, when turned on again in the same session. */
+    resumed: { recordId: string; seen: LiveSentence[] } | null;
+    /** Reading the notes service failed: the next sentence tries again (review). */
+    failed: boolean;
   };
   let live: LiveRun | null = null;
   /** Runs stopped whose last update has not come yet (their service may still be loading). */
@@ -310,6 +314,52 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       return label(asHistory(s));
     };
   };
+  /** A run's loop, once the notes service is read; a Stop before it answers keeps the sentences for the last update. */
+  const setUpLoop = (begun: LiveRun) => {
+    const factory = liveFactory;
+    if (!factory) return;
+    const recordId = begun.recordId;
+    const resumed = begun.resumed;
+    begun.loading = true;
+    begun.failed = false;
+    void notesChatFromStores(recordId, { onBalance: (microUsd) => useLiveNotes.getState().balanceAfter(recordId, microUsd) }).then((service) => {
+      begun.loading = false;
+      if (begun.gone) return;
+      if (!service) {
+        if (begun.stopped) { finished(begun); return; }
+        live = null;
+        unwatchIfIdle();
+        useLiveNotes.getState().turnedOff(recordId);
+        return;
+      }
+      const shown = useLiveNotes.getState();
+      begun.loop = factory({
+        ...(resumed ? { from: { state: (shown.recordId === recordId ? shown.state : null) ?? emptyLive(), seen: resumed.seen } } : {}),
+        // The record's own "my language", as the notes after the session use (spec §6.5).
+        chat: service.chat, clock, language: notesLanguageOf({ myLanguage: myLanguageOf(runner.conversation.snapshot()) }),
+        speakerLabel: labelsFor(begun.seen),
+        // The word list as it stands at the session's start, like what the services were sent (stage 5).
+        names: useWordList.getState().entries,
+        // Keyed by the record: the last update after Stop still lands, and nothing lands once another session shows.
+        onState: (state) => useLiveNotes.getState().update(recordId, state),
+        onHint: (shown) => useLiveNotes.getState().setHint(recordId, shown),
+        // Kizuna AI refused for the account (the balance ran out…): the loop has stopped; the panel says why.
+        onStopped: (why) => useLiveNotes.getState().stoppedFor(recordId, why),
+        onUsage: (usage) => useLiveNotes.getState().addUsage(recordId, usage),
+        log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
+      });
+      begun.loop.sentences(begun.pending);
+      begun.pending = [];
+      if (begun.stopped) { void begun.loop.stop().finally(() => finished(begun)); return; }
+      if (runner.state.getState().phase === 'stopping') begun.loop.quiet?.();
+    }, (error: unknown) => {
+      begun.loading = false;
+      reportError('LiveNotes', 'Live notes could not start', { cause: error });
+      if (begun.stopped && !begun.gone) finished(begun);
+      // Still going: the run stays (its panel, its sentences); the next sentence tries again (review).
+      else begun.failed = true;
+    });
+  };
   const onLiveSentences = (recordId: string, list: LiveSentence[]) => {
     if (!liveFactory) return;
     if (!live || live.recordId !== recordId) {
@@ -318,48 +368,16 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       if (!liveWanted()) return;
       const resumed = paused?.recordId === recordId && useLiveNotes.getState().recordId === recordId ? paused : null;
       paused = null;
-      const begun: LiveRun = { recordId, loop: null, pending: [], seen: resumed ? [...resumed.seen] : [], loading: true, stopped: false, gone: false };
+      const begun: LiveRun = {
+        recordId, loop: null, pending: [], seen: resumed ? [...resumed.seen] : [], loading: true, stopped: false, gone: false, resumed, failed: false,
+      };
       live = begun;
       watchSwitch();
       if (resumed) useLiveNotes.getState().resume(recordId);
       else useLiveNotes.getState().begin(recordId);
-      // Read while the session runs; a Stop before it answers keeps the sentences for the last update.
-      void notesChatFromStores(recordId, { onBalance: (microUsd) => useLiveNotes.getState().balanceAfter(recordId, microUsd) }).then((service) => {
-        begun.loading = false;
-        if (begun.gone) return;
-        if (!service) {
-          if (begun.stopped) { finished(begun); return; }
-          live = null;
-          unwatchIfIdle();
-          useLiveNotes.getState().turnedOff(recordId);
-          return;
-        }
-        const shown = useLiveNotes.getState();
-        begun.loop = liveFactory({
-          ...(resumed ? { from: { state: (shown.recordId === recordId ? shown.state : null) ?? emptyLive(), seen: resumed.seen } } : {}),
-          // The record's own "my language", as the notes after the session use (spec §6.5).
-          chat: service.chat, clock, language: notesLanguageOf({ myLanguage: myLanguageOf(runner.conversation.snapshot()) }),
-          speakerLabel: labelsFor(begun.seen),
-          // The word list as it stands at the session's start, like what the services were sent (stage 5).
-          names: useWordList.getState().entries,
-          // Keyed by the record: the last update after Stop still lands, and nothing lands once another session shows.
-          onState: (state) => useLiveNotes.getState().update(recordId, state),
-          onHint: (shown) => useLiveNotes.getState().setHint(recordId, shown),
-          // Kizuna AI refused for the account (the balance ran out…): the loop has stopped; the panel says why.
-          onStopped: (why) => useLiveNotes.getState().stoppedFor(recordId, why),
-          onUsage: (usage) => useLiveNotes.getState().addUsage(recordId, usage),
-          log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
-        });
-        begun.loop.sentences(begun.pending);
-        begun.pending = [];
-        if (begun.stopped) { void begun.loop.stop().finally(() => finished(begun)); return; }
-        if (runner.state.getState().phase === 'stopping') begun.loop.quiet?.();
-      }, (error: unknown) => {
-        begun.loading = false;
-        reportError('LiveNotes', 'Live notes could not start', { cause: error });
-        if (begun.stopped && !begun.gone) finished(begun);
-      });
+      setUpLoop(begun);
     }
+    else if (live.failed && !live.loading && !live.loop && !live.stopped) setUpLoop(live);
     live.seen.push(...list);
     if (live.loop) live.loop.sentences(list);
     else live.pending.push(...list);
