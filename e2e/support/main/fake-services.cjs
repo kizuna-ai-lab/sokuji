@@ -19,9 +19,9 @@ globalThis.fetch = async function fetchThroughFakes(input, init) {
   const url = new URL(request.url);
   const service = services.find((s) => s.handles(url));
   if (service) return service.answer(request, url);
-  if (url.protocol === 'file:' || url.protocol === 'data:' || url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-    return realFetch(input, init);
-  }
+  // The machine's own, and data: URLs, are not services. (The request built above is what goes on: building it took
+  // the body of a Request passed in.)
+  if (url.protocol === 'data:' || url.hostname === 'localhost' || url.hostname === '127.0.0.1') return realFetch(request);
   refused.push(`${request.method} ${url.origin}${url.pathname}`);
   throw new TypeError(`fetch failed: nothing answers ${url.host} in this test`);
 };

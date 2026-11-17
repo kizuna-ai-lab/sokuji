@@ -4,6 +4,7 @@
 //   { hold: true }                                         it stays at "transcribing" until `release()`
 //   { fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service', message? }  it fails, for that reason
 // Each upload and transcription is kept until the app deletes it, as Soniox keeps them: `kept()` is what is left.
+// Every app launch is a new main process, so nothing carries over from one test to the next.
 'use strict';
 
 const DEFAULT = {
@@ -54,7 +55,8 @@ async function answer(request, url) {
   const method = request.method;
   asked.push(`${method} ${path}`);
   if (request.signal.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
-  if (next.fail === 'bad-key') return refuse(401, 'unauthenticated', next.message ?? 'Invalid API key.');
+  // A refused key refuses the work; the app's clean-up of what it made before is still answered.
+  if (next.fail === 'bad-key' && method !== 'DELETE') return refuse(401, 'unauthenticated', next.message ?? 'Invalid API key.');
 
   if (method === 'POST' && path === '/v1/files') {
     if (next.fail === 'unreadable') return refuse(400, 'invalid_audio_file', next.message ?? 'The audio file could not be decoded.');
@@ -78,10 +80,16 @@ async function answer(request, url) {
     const { answer: given } = found;
     // A held transcription, released, returns the default sentences.
     const sentences = given.sentences ?? DEFAULT.sentences;
-    if (job[2]) return json(200, { id: job[1], text: '', tokens: tokens(sentences) });
-    if (given.fail === 'service') return json(200, { id: job[1], status: 'error', error_type: 'internal_error', error_message: given.message ?? 'Transcription failed.' });
-    if (given.hold && !released) return json(200, { id: job[1], status: 'processing' });
-    return json(200, { id: job[1], status: 'completed', audio_duration_ms: sentences.length ? sentences[sentences.length - 1].endMs : 0 });
+    const status = given.fail === 'service' ? 'error' : given.hold && !released ? 'processing' : 'completed';
+    // The transcript only once the transcription is complete, as the service answers.
+    if (job[2]) {
+      return status === 'completed'
+        ? json(200, { id: job[1], text: '', tokens: tokens(sentences) })
+        : refuse(409, 'invalid_state', `The transcription is ${status}, not completed.`);
+    }
+    if (status === 'error') return json(200, { id: job[1], status, error_type: 'internal_error', error_message: given.message ?? 'Transcription failed.' });
+    if (status === 'processing') return json(200, { id: job[1], status });
+    return json(200, { id: job[1], status, audio_duration_ms: sentences.length ? sentences[sentences.length - 1].endMs : 0 });
   }
   if (job && method === 'DELETE' && !job[2]) return json(jobs.delete(job[1]) ? 204 : 404, undefined);
   const file = path.match(/^\/v1\/files\/([^/]+)$/);
