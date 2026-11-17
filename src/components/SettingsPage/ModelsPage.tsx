@@ -17,7 +17,8 @@ import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { storedLocalStages, useStoredLocalStages } from '../../stores/lineUpStore';
+import { storedLocalStages, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
+import { runOf } from '../../lib/lineup/catalog';
 import { MODEL_MANIFEST, deviceReady, getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../lib/local-inference/selection/candidates.wasm';
 import { resolveWasmDirection } from '../../lib/local-inference/selection/resolveWithStages';
@@ -96,6 +97,16 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const packPhase = useSegmentationStore((s) => s.phase);
   const packBytes = useSegmentationStore((s) => s.downloadedBytes);
   const stages = useStoredLocalStages();
+  // Whether sessions run on this computer's engine at all: the stored line-up's service, or before one is stored, the
+  // provider chosen. On another service (Soniox, say) no model here is in use, and deleting one changes no session.
+  const lineUp = useLineUpStore((s) => s.lineUp);
+  const lineUpStored = useLineUpStore((s) => s.stored);
+  const chosen = useProviderStore((s) => s.selected);
+  const runsHere = useMemo(() => {
+    if (!lineUpStored || !lineUp) return chosen === 'local_inference';
+    const run = runOf(lineUp);
+    return run.ok && run.provider === 'local_inference';
+  }, [lineUp, lineUpStored, chosen]);
 
   const [asking, setAsking] = useState<string | null>(null);
   const [open, setOpen] = useState<Partial<Record<Stage, boolean>>>({});
@@ -168,18 +179,19 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   // What a session runs now, both ways: In use on its card.
   const inUse = useMemo(() => {
     const used = new Set<string>();
+    if (!runsHere) return used;
     for (const dir of directions) {
       const r = resolveWith(statuses)(dir);
       for (const stage of STAGES) if (r[stage]) used.add(r[stage]!.modelId);
     }
     return used;
-  }, [directions, resolveWith, statuses]);
+  }, [directions, resolveWith, statuses, runsHere]);
 
   // One session model as the library's card (B-20). Deleting asks first, under the card, with what it changes.
   const sessionRow = (m: ModelManifestEntry) => {
     const runnable = deviceReady(m, webgpu);
-    const notes = () => computeDeleteNotes(m.id, (id) => getManifestEntry(id)?.name ?? id, directions.map((dir) => ({ dir })),
-      resolveWith(statuses), resolveWith({ ...statuses, [m.id]: 'not_downloaded' }), t);
+    const notes = () => (runsHere ? computeDeleteNotes(m.id, (id) => getManifestEntry(id)?.name ?? id, directions.map((dir) => ({ dir })),
+      resolveWith(statuses), resolveWith({ ...statuses, [m.id]: 'not_downloaded' }), t) : []);
     return (
       <div key={m.id} className="models-card">
         <ModelCard entry={m} status={downloads[m.id] ? 'downloading' : (statuses[m.id] ?? 'not_downloaded')} download={downloads[m.id]}

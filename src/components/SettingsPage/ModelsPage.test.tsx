@@ -171,6 +171,24 @@ describe('Models and storage — the session models', () => {
     expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-en-quant');
   });
 
+  it('says what deleting the last model of a stage a session runs on this computer does', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true } as never);
+    mount();
+    fireEvent.click(within(card('SenseVoice (int8)')).getByRole('button', { name: 'Delete: SenseVoice (int8)' }));
+    expect(screen.getByRole('group', { name: 'Delete SenseVoice (int8)?' })).toHaveTextContent('sessions cannot start');
+  });
+
+  // Review (#728): a line-up on another service (Soniox here) uses none of these models.
+  it('marks nothing In use, and warns of nothing on delete, when sessions run on another service', () => {
+    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true } as never);
+    mount();
+    expect(within(card('SenseVoice (int8)')).getByText('Downloaded')).toBeInTheDocument();
+    expect(card('SenseVoice (int8)')).not.toHaveClass('model-card--selected');
+    fireEvent.click(within(card('SenseVoice (int8)')).getByRole('button', { name: 'Delete: SenseVoice (int8)' }));
+    expect(screen.getByRole('group', { name: 'Delete SenseVoice (int8)?' })).not.toHaveTextContent('sessions cannot start');
+  });
+
   it('deletes a downloaded model after asking', async () => {
     mount();
     fireEvent.click(within(card('Opus-MT (en → ja)')).getByRole('button', { name: 'Delete: Opus-MT (en → ja)' }));
