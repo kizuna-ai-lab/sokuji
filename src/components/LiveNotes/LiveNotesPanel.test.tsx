@@ -201,5 +201,19 @@ describe('the live notes panel', () => {
       act(() => useLiveNotesShown.getState().setShown(true));
       expect(body.scrollTop).toBe(300);
     });
+
+    // Review: the panel stays up between sessions while live notes are on; a new session's notes start at the top,
+    // not where the reader was in the last one.
+    it('starts a new session\'s notes at the top, hidden in between or not', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      const body = document.querySelector('.live-notes__body') as HTMLElement;
+      body.scrollTop = 300;
+      fireEvent.scroll(body);
+      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => { useLiveNotes.getState().end('run-0001-aaaa'); useLiveNotes.getState().begin('run-0002-bbbb'); useLiveNotes.getState().update('run-0002-bbbb', notes); });
+      act(() => useLiveNotesShown.getState().setShown(true));
+      expect(body.scrollTop).toBe(0);
+    });
   });
 });
