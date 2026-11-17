@@ -7,6 +7,7 @@ import { audible, EARLY_MS, playable, recordLength, rowAt, startFor, trackOf, tr
 const track = (source: string, offsetMs: number, durationMs: number, over: Partial<HistoryTrack> = {}): HistoryTrack =>
   ({ source, file: `${source}.opus`, format: 'ogg-opus', durationMs, bytes: 100, offsetMs, goneAt: null, ...over });
 const row = (startMs: number, side: 'mine' | 'other' = 'mine', over: Partial<RecordRow> = {}): RecordRow => ({
+  sideKnown: true,
   segmentId: `s${startMs}`, leg: side === 'mine' ? 'speaker' : 'participant', side, speaker: '1', speakerLabel: 'Me', startMs, endMs: startMs + 900,
   timeKind: 'given', sentences: [{ n: 1, text: 'x' }], translation: null, ...over,
 });

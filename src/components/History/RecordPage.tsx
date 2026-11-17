@@ -118,7 +118,11 @@ export const RecordPage: React.FC = () => {
   const labels: SpeakerLabels = useMemo(() => {
     const mine = t('history.me', 'Me');
     const other = t('history.other', 'Other');
-    return { mine, other, person: (side, n) => t('history.speakerN', '{{side}} {{n}}', { side: side === 'mine' ? mine : other, n }) };
+    return {
+      mine, other, person: (side, n) => t('history.speakerN', '{{side}} {{n}}', { side: side === 'mine' ? mine : other, n }),
+      // An imported file's speakers: no side is known, so they are named as the main panel names a person.
+      anyone: (n) => t('mainPanel.displayMode.person', 'Speaker {{n}}', { n }),
+    };
   }, [t]);
   const textKind = open?.record.transcripts[open.record.transcripts.length - 1]?.textKind ?? 'original';
   const rows = useMemo(
@@ -305,6 +309,8 @@ export const RecordPage: React.FC = () => {
   // Speakers: the labels the transcript uses, by side, then by label.
   const labelOf = new Map<string, string>();
   for (const r of rows) if (!labelOf.has(speakerKey(r.side, r.speaker))) labelOf.set(speakerKey(r.side, r.speaker), r.speakerLabel);
+  // A side no row knows (an imported file) is listed without its side's heading.
+  const sideKnown = (side: HistorySentenceSide) => rows.some((r) => r.side === side && r.sideKnown);
   const speakersOf = (side: HistorySentenceSide) => open.speakers
     .filter((s) => s.side === side && labelOf.has(speakerKey(s.side, s.speaker)))
     .map((s) => ({ ...s, label: labelOf.get(speakerKey(s.side, s.speaker))! }));
@@ -375,7 +381,7 @@ export const RecordPage: React.FC = () => {
         if (list.length === 0) return null;
         return (
           <div key={side} className={`record-speakers record-speakers--${side}`}>
-            <h4>{side === 'mine' ? t('history.sideMine', 'Your side') : t('history.sideOther', 'The other side')}</h4>
+            {sideKnown(side) && <h4>{side === 'mine' ? t('history.sideMine', 'Your side') : t('history.sideOther', 'The other side')}</h4>}
             <ul>
               {list.map((s) => {
                 const editing = nameDraft && nameDraft.side === side && nameDraft.speaker === s.speaker;
