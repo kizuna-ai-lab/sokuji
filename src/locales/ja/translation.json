@@ -2164,7 +2164,8 @@
     "speakersHint": "名前をクリックすると話者の名前を変えられます。ある一文を別の人に移すには、文字起こしでその文の横にある「話者を変更」ボタンを使います。",
     "sidePanel": "サイドパネル",
     "openSidePanel": "サイドパネルを開く",
-    "closeSidePanel": "サイドパネルを閉じる"
+    "closeSidePanel": "サイドパネルを閉じる",
+    "selectRecords": "記録を選択"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

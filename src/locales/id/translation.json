@@ -2164,7 +2164,8 @@
     "speakersHint": "Klik nama untuk mengganti nama pembicara. Untuk memberikan satu kalimat kepada orang lain, gunakan tombol “Ganti pembicara” di sebelahnya dalam transkrip.",
     "sidePanel": "Panel samping",
     "openSidePanel": "Buka panel samping",
-    "closeSidePanel": "Tutup panel samping"
+    "closeSidePanel": "Tutup panel samping",
+    "selectRecords": "Pilih rekaman"
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

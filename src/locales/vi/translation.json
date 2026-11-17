@@ -2164,7 +2164,8 @@
     "speakersHint": "Nhấp vào tên để đổi tên người nói. Để chuyển một câu cho người khác, dùng nút “Đổi người nói” bên cạnh câu đó trong bản ghi lời.",
     "sidePanel": "Bảng bên",
     "openSidePanel": "Mở bảng bên",
-    "closeSidePanel": "Đóng bảng bên"
+    "closeSidePanel": "Đóng bảng bên",
+    "selectRecords": "Chọn bản ghi"
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

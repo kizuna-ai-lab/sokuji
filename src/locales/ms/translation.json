@@ -2164,7 +2164,8 @@
     "speakersHint": "Klik nama untuk menamakan semula penutur. Untuk memberi satu ayat kepada orang lain, gunakan butang “Tukar penutur” di sebelahnya dalam transkrip.",
     "sidePanel": "Panel sisi",
     "openSidePanel": "Buka panel sisi",
-    "closeSidePanel": "Tutup panel sisi"
+    "closeSidePanel": "Tutup panel sisi",
+    "selectRecords": "Pilih rekod"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

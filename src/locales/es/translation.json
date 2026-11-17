@@ -2164,7 +2164,8 @@
     "speakersHint": "Haz clic en un nombre para cambiar el nombre del hablante. Para asignar una frase a otra persona, usa el botón «Cambiar de hablante» junto a ella en la transcripción.",
     "sidePanel": "Panel lateral",
     "openSidePanel": "Abrir el panel lateral",
-    "closeSidePanel": "Cerrar el panel lateral"
+    "closeSidePanel": "Cerrar el panel lateral",
+    "selectRecords": "Seleccionar registros"
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

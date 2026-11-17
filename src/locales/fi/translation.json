@@ -2164,7 +2164,8 @@
     "speakersHint": "Nimeä puhuja uudelleen napsauttamalla nimeä. Jos haluat antaa yhden lauseen jollekulle toiselle, käytä litteroinnissa sen vieressä olevaa Vaihda puhuja -painiketta.",
     "sidePanel": "Sivupaneeli",
     "openSidePanel": "Avaa sivupaneeli",
-    "closeSidePanel": "Sulje sivupaneeli"
+    "closeSidePanel": "Sulje sivupaneeli",
+    "selectRecords": "Valitse tallenteita"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

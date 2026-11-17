@@ -2164,7 +2164,8 @@
     "speakersHint": "Konuşmacının adını değiştirmek için ada tıklayın. Bir cümleyi başkasına vermek için dökümde yanındaki “Konuşmacıyı değiştir” düğmesini kullanın.",
     "sidePanel": "Yan panel",
     "openSidePanel": "Yan paneli aç",
-    "closeSidePanel": "Yan paneli kapat"
+    "closeSidePanel": "Yan paneli kapat",
+    "selectRecords": "Kayıtları seç"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

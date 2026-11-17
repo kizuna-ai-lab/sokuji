@@ -2164,7 +2164,8 @@
     "speakersHint": "I-click ang pangalan para palitan ang pangalan ng nagsasalita. Para ibigay ang isang pangungusap sa iba, gamitin ang button na “Palitan ang nagsasalita” sa tabi nito sa transcript.",
     "sidePanel": "Side panel",
     "openSidePanel": "Buksan ang side panel",
-    "closeSidePanel": "Isara ang side panel"
+    "closeSidePanel": "Isara ang side panel",
+    "selectRecords": "Pumili ng mga record"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

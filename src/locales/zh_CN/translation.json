@@ -2164,7 +2164,8 @@
     "speakersHint": "点名字改名。要把某一句换给别人，用转写里那一句旁边的「更改说话人」按钮。",
     "sidePanel": "侧栏",
     "openSidePanel": "打开侧栏",
-    "closeSidePanel": "收起侧栏"
+    "closeSidePanel": "收起侧栏",
+    "selectRecords": "选择记录"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

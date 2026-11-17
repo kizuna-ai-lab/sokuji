@@ -2164,7 +2164,8 @@
     "speakersHint": "點名字改名。要把某一句換給別人，用轉寫裡那一句旁邊的「變更說話者」按鈕。",
     "sidePanel": "側欄",
     "openSidePanel": "開啟側欄",
-    "closeSidePanel": "收合側欄"
+    "closeSidePanel": "收合側欄",
+    "selectRecords": "選取記錄"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",

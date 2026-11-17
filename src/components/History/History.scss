@@ -128,15 +128,30 @@
 }
 
 .history-content {
-  // The selection bar stays at the bottom of the scrolling content.
   position: relative;
 
+  // The heading, then what goes with it: "Select records" right after it; in Select, the count beside it and the
+  // actions at the end of the row, which move to a line of their own, together, when the page is narrow.
   &__head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: vars.$space-3;
+    column-gap: vars.$space-3;
+    row-gap: vars.$space-2;
     width: 100%;
+  }
+
+  &__select { display: inline-flex; align-items: center; gap: vars.$space-1; }
+  &__count { color: vars.$text-secondary; }
+  &__actions { display: flex; align-items: center; gap: vars.$space-2; margin-left: auto; }
+
+  // In Select the heading row stays at the top while the list scrolls under it.
+  > header.is-selecting {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: vars.$bg-page;
+    border-bottom: 1px solid vars.$border-subtle;
   }
 }
 
@@ -161,25 +176,6 @@
   white-space: nowrap;
 }
 
-.history-select-bar {
-  position: sticky;
-  bottom: 0;
-  width: 100%;
-  margin-top: auto;
-  border-top: 1px solid vars.$border-subtle;
-  background: vars.$bg-surface;
-
-  // Lined up with the list above it.
-  &__in {
-    display: flex;
-    align-items: center;
-    gap: vars.$space-2;
-    max-width: 720px + 2 * 28px;
-    box-sizing: border-box;
-    padding: vars.$space-2 28px;
-    > span { margin-right: auto; color: vars.$text-secondary; }
-  }
-}
 
 // Inside the content column the confirmation lines up with the rows.
 .settings-page__body > .history-confirm { margin: 0 0 vars.$space-3; }
