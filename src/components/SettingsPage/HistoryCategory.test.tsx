@@ -204,6 +204,25 @@ describe('the first-time explanation sits under the switch that asked for it (B-
     expect(explained.nextElementSibling).toBe(row(LIVE));
   });
 
+  // Checklist B12: turning on one switch, then the other, shows only the second's explanation, under its own switch;
+  // neither switch is on until its explanation is accepted; Cancel puts each away.
+  it('shows only the explanation of the switch last turned on, under it, and Cancel puts it away', async () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<HistoryCategory locked={false} />);
+    await settle();
+    fireEvent.click(within(row(AFTER)).getByRole('switch'));
+    expect(screen.getByRole('group', { name: 'Before notes are written' }).previousElementSibling).toBe(row(AFTER));
+    fireEvent.click(within(row(LIVE)).getByRole('switch'));
+    expect(screen.queryByRole('group', { name: 'Before notes are written' })).toBeNull();
+    const live = screen.getByRole('group', { name: 'Before live notes are written' });
+    expect(live.previousElementSibling).toBe(row(LIVE));
+    expect(useSettingsStore.getState()).toMatchObject({ notesAfterSession: false, liveNotes: false });
+    fireEvent.click(within(live).getByRole('button', { name: 'Cancel' }));
+    await settle();
+    expect(screen.queryByRole('group', { name: /^Before / })).toBeNull();
+    expect(useSettingsStore.getState()).toMatchObject({ notesAfterSession: false, liveNotes: false, liveNotesExplained: false });
+  });
+
   it('under "Live notes during a session" for that switch', async () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
     render(<HistoryCategory locked={false} />);

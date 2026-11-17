@@ -462,6 +462,21 @@ describe('the notes card', () => {
     expect(within(card).getByText('Ready')).toBeInTheDocument();
   });
 
+  // Checklist B14: the card's state follows the service the notes stage names: OpenAI's key state while OpenAI writes
+  // them, Kizuna AI's sign-in once Kizuna AI does, with nothing of OpenAI's key left.
+  it("swaps OpenAI's key state for Kizuna AI's sign-in when the notes stage changes to Kizuna AI", async () => {
+    openAiKey();
+    useProviderStore.setState({ readiness: { openai: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    const card = () => screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card()).getByRole('button', { name: 'Key not accepted' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai' } });
+    await waitFor(() => expect(within(card()).getByText('Ready')).toBeInTheDocument());
+    expect(within(card()).queryByRole('button', { name: /^Key / })).toBeNull();
+    expect(within(card()).queryByText(/OpenAI key/)).toBeNull();
+  });
+
   it('keeps showing Kizuna AI while it is chosen, saying it needs a sign-in once signed out', () => {
     authState.signedIn = false;
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });

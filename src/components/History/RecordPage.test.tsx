@@ -629,6 +629,83 @@ describe('a record', () => {
     expect(play).toHaveBeenCalled();
   });
 
+  // Checklist B4: playback starts at the point's sentence, not at the start of the recording.
+  it("plays a point's sentence from its own start", async () => {
+    record = { ...record, notesVersions: 1, notesState: 'complete', tracks: [
+      { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
+      { source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
+    ], notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: '', format: 'plain' }, topics: [{ title: 'Dates', summary: '', first: 1 }],
+        points: [{ topic: 0, text: 'One more question', sentences: [2], kinds: [] }], names: [] },
+    })) as never;
+    await renderRecord();
+    fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    const play = vi.mocked(HTMLMediaElement.prototype.play);
+    play.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'One more question' }));
+    await settle();
+    expect(play).toHaveBeenCalled();
+    expect(document.querySelector(`[data-segment="${A}:participant:3"]`)).toHaveClass('is-playing');
+    expect(screen.getByText('0:02 / 1:00')).toBeInTheDocument();
+  });
+
+  // Checklist B9: whether a record is too short for notes is worked out from its transcript: under a minute, no way to
+  // write them and the reason said; a minute or more, the way to write them.
+  it('offers no notes for a transcript under a minute, and offers them for one of a minute or more', async () => {
+    // The first sentence starts at 1 s: the last one ending at `endMs` makes the transcript span `endMs - 1000`.
+    const notesTabEndingAt = async (endMs: number) => {
+      cleanup();
+      const spanned = sentences.map((x) => (x.n === 5 ? { ...x, startMs: endMs - 900, endMs } : x));
+      port.getSentences = (async () => spanned) as never;
+      store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.');
+      await renderRecord();
+      fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    };
+    const tooLittle = 'There is too little in this record to write notes from.';
+    await notesTabEndingAt(5_900);
+    expect(screen.getByText(tooLittle)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Write notes' })).toBeNull();
+    await notesTabEndingAt(60_999);
+    expect(screen.getByText(tooLittle)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Write notes' })).toBeNull();
+    await notesTabEndingAt(61_000);
+    expect(screen.queryByText(tooLittle)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Write notes' })).toBeInTheDocument();
+  });
+
+  // Checklist B6: the text file holds what Copy puts on the clipboard, and both hold the same points as the Markdown.
+  it('saves the notes as text with what Copy gives, and the same points as the Markdown', async () => {
+    record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: 'When it ships.', format: 'plain' }, topics: [{ title: 'Dates', summary: 'The date.', first: 1 }],
+        points: [
+          { topic: 0, text: 'Ships by Wednesday', sentences: [2], kinds: ['decision'] },
+          { topic: 0, text: 'Send the tracking number', sentences: [5], kinds: ['todo'], owner: 'My side', due: 'Tuesday' },
+        ], names: [] },
+    })) as never;
+    await renderRecord();
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save notes (.txt)' }));
+    const [txt, txtName, txtType] = vi.mocked(downloadFile).mock.calls[0] as [string, string, string];
+    expect([txtName, txtType]).toEqual(['sokuji-notes-20260115-090000.txt', 'text/plain;charset=utf-8']);
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy notes' }));
+    await settle();
+    expect(copyToClipboard).toHaveBeenLastCalledWith(txt);
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save notes (.md)' }));
+    const md = vi.mocked(downloadFile).mock.calls[1][0] as string;
+    for (const part of ['Shipping', 'When it ships.', 'Dates', 'Ships by Wednesday', 'Send the tracking number', 'Your side', 'Tuesday']) {
+      expect(txt).toContain(part);
+      expect(md).toContain(part);
+    }
+  });
+
   it('exports the shown notes as Markdown or text, or copies them; not without notes', async () => {
     await renderRecord();
     openExport();

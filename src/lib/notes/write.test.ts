@@ -55,6 +55,14 @@ describe('cutting a transcript into parts', () => {
     expect(cutParts(everyMinute(26)).map((p) => p.length)).toEqual([26]);
   });
 
+  // Checklist B11: half an hour is where a transcript starts to be sent in parts of about twenty minutes.
+  it('sends a transcript in one part up to half an hour, and in parts from half an hour on', () => {
+    expect(cutParts(everyMinute(30)).map((p) => p.length)).toEqual([30]);
+    const parts = cutParts(everyMinute(31));
+    expect(parts).toHaveLength(2);
+    expect(parts.flat().map((x) => x.n)).toEqual(everyMinute(31).map((x) => x.n));
+  });
+
   it('cuts 65 minutes into three parts at the longest pause near each mark', () => {
     const parts = cutParts(withPauses());
     expect(parts.map((p) => p[0].n)).toEqual([1, 42, 91]);
@@ -122,6 +130,18 @@ describe('writing the notes', () => {
     const model = fakeChat({ part: () => Promise.reject(new ChatError('busy', { status: 503, serviceMessage: 'The server is overloaded.' })) });
     await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'The server is overloaded.', requestIds: [] });
     expect(model.of('part')).toHaveLength(3);
+    expect(model.of('finish')).toHaveLength(0);
+  });
+
+  // Checklist B11: one part of several failing is the whole version failing: no notes from the other parts are kept.
+  it('fails the whole version when one part of several fails three times, and finishes nothing', async () => {
+    const model = fakeChat({
+      part: (user: PartUser, call) => (user.part?.index === 2
+        ? Promise.reject(new ChatError('busy', { status: 503, serviceMessage: 'The server is overloaded.' }))
+        : onePointPerPart(user, call)),
+    });
+    await expect(write(withPauses(), model.chat)).resolves.toEqual({ ok: false, failure: 'The server is overloaded.', requestIds: [] });
+    expect(model.of('part').filter((c) => (c.user as PartUser).part?.index === 2)).toHaveLength(3);
     expect(model.of('finish')).toHaveLength(0);
   });
 
@@ -232,6 +252,34 @@ describe('writing the notes', () => {
     ]);
   });
 
+  // Checklist B11: the same decision taken up again in a later part is one decision in the notes; a to-do called off is
+  // a plain point, with no to-do mark left on it.
+  it('keeps one decision met in two parts, and leaves a to-do called off without its mark', async () => {
+    const model = fakeChat({
+      part: (user: PartUser) => {
+        const index = user.part?.index ?? 1;
+        const [first, second] = [user.sentences[0].sid, user.sentences[1].sid];
+        return {
+          title: `Part ${index}`, summary: 'S',
+          topics: [{ title: `Topic ${index}`, sid: first, summary: 's', points: index === 1
+            ? [{ text: 'Ship in May', sid: second, kinds: ['decision'] }, { text: 'Book the hall', sid: first, kinds: ['todo'], owner: null, due: null }]
+            : [{ text: 'Shipping in May stands', sid: second, kinds: ['decision'] }] }],
+        };
+      },
+      finish: () => ({
+        title: 'Whole', summary: 'All.', join: [],
+        drop: [{ id: 'p2', kind: 'todo' }],
+        merge: [{ kind: 'decision', keep: 'p1', same: ['p3'], text: 'Ship in May' }],
+      }),
+    });
+    const result = await write(withPauses().slice(0, 90), model.chat);
+    expect(result.ok).toBe(true);
+    const points = result.ok ? result.body.points : [];
+    expect(points.filter((p) => p.kinds.includes('decision')).map((p) => p.text)).toEqual(['Ship in May']);
+    expect(points.find((p) => p.text === 'Shipping in May stands')).toMatchObject({ kinds: [], was: ['decision'] });
+    expect(points.find((p) => p.text === 'Book the hall')).toMatchObject({ kinds: [], was: ['todo'] });
+  });
+
   it('keeps the parts\' notes when the finishing call fails', async () => {
     const model = fakeChat({ finish: () => Promise.reject(new ChatError('Bad gateway', { status: 502 })) });
     const result = await write(withPauses(), model.chat);
@@ -299,6 +347,14 @@ describe('writing the notes', () => {
     const model = fakeChat({ part: () => Promise.reject(new ChatError('refused', { status: 401, serviceMessage: 'Incorrect API key provided.', retryable: false })) });
     await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'Incorrect API key provided.', requestIds: [] });
     expect(model.of('part')).toHaveLength(1);
+  });
+
+  // Checklist B8: no network. The browser's fetch fails with a TypeError; another try may get through, so the part is
+  // tried again, and the version then fails as "could not be reached".
+  it('fails the version as unreachable when the service cannot be reached, after trying again', async () => {
+    const model = fakeChat({ part: () => Promise.reject(new TypeError('Failed to fetch')) });
+    await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'notes:network', requestIds: [] });
+    expect(model.of('part')).toHaveLength(3);
   });
 
   it('tries again a part that wrote no topic, and fails the version when it never does', async () => {
