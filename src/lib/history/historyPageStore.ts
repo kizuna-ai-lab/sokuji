@@ -181,6 +181,8 @@ export function createHistoryPageStore(
   /** Unsubscribes from the notes runner. */
   let offNotes: (() => void) | null | undefined = null;
   let searchSeq = 0;
+  /** Each reload of the list: one a newer reload overtakes keeps nothing it read. */
+  let reloadSeq = 0;
   /** Each opening or closing of a record: a read that answers after the user moved on is not shown. */
   let openSeq = 0;
   /** Each choice of a version of the notes: only the last chosen is shown. */
@@ -215,14 +217,20 @@ export function createHistoryPageStore(
       if (seq === searchSeq) set({ results });
     };
 
-    /** The status, the list (as many records as are shown, at least a page), the space used, and the search again. */
+    /**
+     * The status, the list (as many records as are shown, at least a page), the space used, and the search again.
+     * A reload that a newer one overtakes keeps nothing it read: the newer one's answers are at least as new.
+     */
     const reload = async (): Promise<void> => {
+      const seq = ++reloadSeq;
       const status = await port.status();
+      if (seq !== reloadSeq) return;
       set({ status });
       if (!status.available) return;
       const limit = Math.max(LIST_PAGE, get().rows.length);
       const rows = await port.listRecords({ binned: get().tab === 'bin', limit });
       const usage = await port.usage();
+      if (seq !== reloadSeq) return;
       set({ rows, usage, more: rows.length === limit });
       const text = get().query.trim();
       if (text && get().results !== null) await search(text, searchSeq);
@@ -372,9 +380,13 @@ export function createHistoryPageStore(
         for (const t of open.record.tracks) {
           if (t.goneAt === null) await port.dropTrack({ recordId: open.record.id, source: t.source });
         }
-        await fetchRecord(open.record.id, open.at, open.transcriptId);
-        // The list's recording tag and the space used change too: back on the list, both are as they are now.
-        await reload();
+        // The list's recording tag and the space used change too: back on the list, both are as they are now, even
+        // when the record itself could not be read again (that error is still shown).
+        try {
+          await fetchRecord(open.record.id, open.at, open.transcriptId);
+        } finally {
+          await reload();
+        }
       }),
 
       closeRecord: () => {
