@@ -1825,7 +1825,7 @@
       "and": " 및 ",
       "joint": "{{stages}}와 하나의 연결로 함께 동작하며, 함께 바뀝니다.",
       "granite": "번역과 함께: Granite Speech가 음성을 바로 번역문으로 바꿉니다.",
-      "moved": "{{stages}}도 {{providers}}(으)로 바뀌었습니다. 지금은 이 선택과 함께 쓸 수 없습니다. 섞어 쓰기는 나중에 지원됩니다.",
+      "moved": "{{stages}}도 {{providers}}(으)로 바뀌었습니다. 아직은 이 선택과 함께 쓸 수 없습니다. 섞어 쓰기는 나중에 지원할 예정입니다.",
       "needsKey": "키 필요",
       "needsSignIn": "로그인 필요",
       "options": "{{provider}} 옵션",

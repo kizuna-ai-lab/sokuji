@@ -1825,7 +1825,7 @@
       "and": " at ",
       "joint": "Kasama ng {{stages}} sa iisang koneksyon; sabay silang nagbabago.",
       "granite": "Kasama ang salin: ginagawang salin agad ng Granite Speech ang pagsasalita.",
-      "moved": "Inilipat din ang {{stages}} sa {{providers}}: sa ngayon, hindi ito maisasama sa pinili mo. Darating ang paghahalo sa susunod.",
+      "moved": "Inilipat din ang {{stages}} sa {{providers}}: hindi pa ito maisasama sa pinili mo. Susuportahan ang paghahalo sa susunod.",
       "needsKey": "kailangan ng key",
       "needsSignIn": "kailangang mag-sign in",
       "options": "Mga opsyon ng {{provider}}",

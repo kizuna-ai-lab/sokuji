@@ -1825,7 +1825,7 @@
       "and": " ve ",
       "joint": "{{stages}} ile tek bağlantı üzerinden çalışır; birlikte değişirler.",
       "granite": "Çeviriyle: Granite Speech konuşmayı doğrudan çeviriye dönüştürür.",
-      "moved": "{{stages}} da {{providers}} sağlayıcısına geçti: şu an bu seçimle birlikte kullanılamaz. Karıştırma daha sonra gelecek.",
+      "moved": "{{stages}} da {{providers}} sağlayıcısına geçti: henüz bu seçimle birlikte kullanılamıyor. Karıştırma daha sonra desteklenecek.",
       "needsKey": "anahtar gerekli",
       "needsSignIn": "oturum açılmalı",
       "options": "{{provider}} seçenekleri",

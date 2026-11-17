@@ -1825,7 +1825,7 @@
       "and": "和",
       "joint": "和{{stages}}共用一条连接，会一起换。",
       "granite": "与翻译一起：Granite Speech 直接把语音变成译文。",
-      "moved": "{{stages}}也换成了{{providers}}：目前不能和这个选择混用。混用以后再做。",
+      "moved": "{{stages}}也换成了{{providers}}：目前还不能和这个选择混用，以后会支持。",
       "needsKey": "需要密钥",
       "needsSignIn": "需要登录",
       "options": "{{provider}} 的选项",
