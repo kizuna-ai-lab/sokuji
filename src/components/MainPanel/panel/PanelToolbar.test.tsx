@@ -221,6 +221,13 @@ describe('PanelToolbar — live notes switch', () => {
     expect(liveSwitch()).not.toBeNull();
   });
 
+  it('is not there outside the desktop app, live notes or not', () => {
+    useSettingsStore.setState({ liveNotes: true } as never);
+    useLiveNotes.getState().begin('run-0001-aaaa');
+    renderToolbar(['speaker']);
+    expect(liveSwitch()).toBeNull();
+  });
+
   it('is pressed while they are shown, and says what a click does, still being written or not', () => {
     env.electron = true;
     useSettingsStore.setState({ liveNotes: true } as never);
