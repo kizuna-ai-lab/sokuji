@@ -95,6 +95,17 @@ describe('G4 languages and line-up: the four cards', () => {
     expect(states(cardOf('Notes'))).toEqual(['Needs a sign-in']);
   });
 
+  it('"Needs a sign-in" takes you to the Kizuna AI sign-in, on a stage card and on the notes card', () => {
+    authState.signedIn = false;
+    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: 'kizunaai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    const card = document.querySelector<HTMLElement>('.lineup-stage.is-joint')!;
+    fireEvent.click(within(card).getAllByRole('button', { name: 'Needs a sign-in' })[0]);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:kizunaai_soniox');
+    fireEvent.click(within(cardOf('Notes')).getByRole('button', { name: 'Needs a sign-in' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('user-account');
+  });
+
   it('a Kizuna AI service not chosen is offered as needing a sign-in while signed out', () => {
     authState.signedIn = false;
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });

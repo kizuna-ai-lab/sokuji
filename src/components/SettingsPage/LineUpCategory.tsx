@@ -278,14 +278,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     i = j;
   }
 
-  /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work takes you to the key. */
-  const stateOf = (id: string): { ok: boolean; text: string; toKey?: boolean } => {
+  /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work, or a sign-in it waits for, takes you to
+   *  that provider's row in Accounts and keys. */
+  const stateOf = (id: string): { ok: boolean; text: string; toAccount?: boolean } => {
     const p = providers.find((x) => x.id === id) ?? (caps(id)?.family === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
     // Bing and Edge are online services of the local family: no key and no model.
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
-    if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toKey: true };
-    if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
+    if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
+    if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in'), toAccount: true };
     const r = p ? readiness[p.id] : undefined;
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
     // A saved key is Ready only once its check passed (B-11; Rudolf's review: saved is not working). The store keeps a
@@ -297,21 +298,21 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       if (r?.state === 'not-ready' && r.code === 'auth') {
         const region = p.id === 'soniox' ? SONIOX_REGION_LABELS[asSonioxRegion((entries[p.id]?.settings as { region?: string } | undefined)?.region)] : null;
         return {
-          ok: false, toKey: true,
+          ok: false, toAccount: true,
           text: region ? t('settingsPage.lineup.state.noKeyForRegion', 'No working key for {{region}}', { region })
             : t('settingsPage.lineup.state.keyRefused', 'Key not accepted'),
         };
       }
       // Never checked, or the check could not reach the service.
-      return { ok: false, toKey: true, text: t('settingsPage.lineup.state.keyNotVerified', 'Key not verified') };
+      return { ok: false, toAccount: true, text: t('settingsPage.lineup.state.keyNotVerified', 'Key not verified') };
     }
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
   };
-  /** A row's state as drawn: a key it lacks or that does not work is a way to the key. */
+  /** A row's state as drawn: a key it lacks or that does not work, or a sign-in it waits for, is a way to its account row. */
   const stateTag = (id: string) => {
     const s = stateOf(id);
     const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
-    return s.toKey
+    return s.toAccount
       ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(id))}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
   };
@@ -452,7 +453,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
               {kizunaChosen
-                ? <em className={`lineup-stage__state${kizunaNotesState.ok ? ' is-ready' : ''}`}>{kizunaNotesState.text}</em>
+                ? kizunaNotesState.ok
+                  ? <em className="lineup-stage__state is-ready">{kizunaNotesState.text}</em>
+                  : <button type="button" className="lineup-stage__state lineup-stage__state--link" onClick={() => navigateToSettings('user-account')}>{kizunaNotesState.text}</button>
                 : stateTag('openai')}
             </div>
             {/* Drawn like the other stages' choices (owner, 2026-11-17): an icon, the name, a line about writing notes. */}
