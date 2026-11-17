@@ -2080,7 +2080,16 @@
       "not-json": "纪要模型的回答格式不对。",
       "no-answer": "纪要模型没有回答。",
       "network": "连不上写纪要的服务。",
-      "refused": "服务拒绝了请求（{{status}}）。"
+      "refused": "服务拒绝了请求（{{status}}）。",
+      "sign-in": "要用 Kizuna AI 写纪要，请先登录 Kizuna AI。",
+      "unavailable": "Kizuna AI 的纪要服务还没有开放。",
+      "no-balance": "Kizuna AI 的余额用完了。",
+      "daily-limit": "今天用 Kizuna AI 写纪要的次数已达上限，请明天再试。",
+      "wallet-frozen": "你的 Kizuna AI 钱包已被冻结。",
+      "not-member": "你已经不是为 Kizuna AI 付费的那个组织的成员了。",
+      "too-large": "这条记录太长，Kizuna AI 没法据此写纪要。",
+      "update-required": "要用 Kizuna AI 写纪要，请先更新 Sokuji。",
+      "other": "写纪要的服务拒绝了请求。"
     },
     "notesLatestFailed": "最近一次没能写成：{{reason}}",
     "notesLatestStopped": "最近一次已停止。",

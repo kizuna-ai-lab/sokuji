@@ -2080,7 +2080,16 @@
       "not-json": "Das Modell hat nicht in der erwarteten Form geantwortet.",
       "no-answer": "Das Modell hat keine Antwort gegeben.",
       "network": "Der Dienst für Notizen war nicht erreichbar.",
-      "refused": "Der Dienst hat die Anfrage abgelehnt ({{status}})."
+      "refused": "Der Dienst hat die Anfrage abgelehnt ({{status}}).",
+      "sign-in": "Melde dich bei Kizuna AI an, um damit Notizen zu schreiben.",
+      "unavailable": "Notizen von Kizuna AI sind noch nicht verfügbar.",
+      "no-balance": "Dein Guthaben bei Kizuna AI ist aufgebraucht.",
+      "daily-limit": "Das heutige Limit für Notizen von Kizuna AI ist erreicht. Versuche es morgen erneut.",
+      "wallet-frozen": "Dein Kizuna-AI-Guthabenkonto ist gesperrt.",
+      "not-member": "Du bist nicht mehr Mitglied der Organisation, die für Kizuna AI bezahlt.",
+      "too-large": "Diese Aufnahme ist zu lang, als dass Kizuna AI Notizen daraus schreiben könnte.",
+      "update-required": "Aktualisiere Sokuji, um Notizen mit Kizuna AI zu schreiben.",
+      "other": "Der Dienst für Notizen hat die Anfrage abgelehnt."
     },
     "notesLatestFailed": "Der letzte Versuch konnte nicht geschrieben werden: {{reason}}",
     "notesLatestStopped": "Der letzte Versuch wurde abgebrochen.",

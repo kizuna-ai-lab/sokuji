@@ -11,7 +11,7 @@ import { abortError, answerOf, chatBody, ChatError, RATE_LIMIT_WAITS, refusalOf,
 export const RELAY_NOTES_MODEL = 'gpt-6-luna';
 
 /** The relay's codes, as the notes name them; absent from the table: final, with the service's message. */
-const FINAL_CODES: Readonly<Record<string, string>> = {
+export const FINAL_CODES: Readonly<Record<string, string>> = {
   no_balance: 'no-balance',
   daily_limit: 'daily-limit',
   not_signed_in: 'sign-in',

@@ -2080,7 +2080,16 @@
       "not-json": "메모 모델이 예상한 형식으로 답하지 않았습니다.",
       "no-answer": "메모 모델이 답하지 않았습니다.",
       "network": "메모 서비스에 연결할 수 없습니다.",
-      "refused": "서비스가 요청을 거부했습니다({{status}})."
+      "refused": "서비스가 요청을 거부했습니다({{status}}).",
+      "sign-in": "Kizuna AI로 메모를 작성하려면 Kizuna AI에 로그인하세요.",
+      "unavailable": "Kizuna AI 메모는 아직 사용할 수 없습니다.",
+      "no-balance": "Kizuna AI 잔액이 모두 소진되었습니다.",
+      "daily-limit": "오늘 Kizuna AI 메모 한도에 도달했습니다. 내일 다시 시도하세요.",
+      "wallet-frozen": "Kizuna AI 지갑이 동결되었습니다.",
+      "not-member": "Kizuna AI 비용을 내는 조직의 구성원이 더 이상 아닙니다.",
+      "too-large": "이 기록은 너무 길어서 Kizuna AI가 메모를 작성할 수 없습니다.",
+      "update-required": "Kizuna AI로 메모를 작성하려면 Sokuji를 업데이트하세요.",
+      "other": "메모 서비스가 요청을 거부했습니다."
     },
     "notesLatestFailed": "가장 최근 시도는 작성하지 못했습니다: {{reason}}",
     "notesLatestStopped": "가장 최근 시도는 중지되었습니다.",

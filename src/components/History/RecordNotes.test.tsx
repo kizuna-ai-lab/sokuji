@@ -4,6 +4,8 @@ import { render, screen, fireEvent, cleanup, within, act } from '@testing-librar
 import '../../locales';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import RecordNotes, { type RecordNotesProps } from './RecordNotes';
+import { FINAL_CODES } from '../../lib/notes/relayChat';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 const A = 'run-000a-aaaa';
 const record = (notes: HistoryRecord['notes'] = []): HistoryRecord => ({
@@ -267,6 +269,46 @@ describe("a record's notes", () => {
     cleanup();
     render(<RecordNotes {...props({ notes: failed('Incorrect API key provided.') })} />);
     expect(screen.getByText('The notes could not be written: Incorrect API key provided.')).toBeInTheDocument();
+  });
+
+  // Test finding (2026-11-17): a refusal from Kizuna AI's notes service came out as its code (`notes:sign-in`). Every
+  // code the notes calls can give has words; a code not known yet has general words.
+  it('words every reason Kizuna AI can give, and never shows a code', () => {
+    const failed = (failure: string): HistoryNotes => ({ ...complete, state: 'failed', failure, body: null });
+    const words: Record<string, string> = {
+      'sign-in': 'Sign in to Kizuna AI to write notes with it.',
+      unavailable: 'Notes by Kizuna AI are not available yet.',
+      'no-balance': 'Your Kizuna AI balance has run out.',
+      'daily-limit': 'Today\'s limit for notes by Kizuna AI is reached. Try again tomorrow.',
+      'wallet-frozen': 'Your Kizuna AI wallet is frozen.',
+      'not-member': 'You are no longer a member of the organization that pays for Kizuna AI.',
+      'too-large': 'This record is too long for Kizuna AI to write notes from.',
+      'update-required': 'Update Sokuji to write notes with Kizuna AI.',
+    };
+    for (const code of new Set([...Object.values(FINAL_CODES), 'sign-in', 'unavailable'])) {
+      render(<RecordNotes {...props({ notes: failed(`notes:${code}`) })} />);
+      expect(words[code], code).toBeDefined();
+      expect(screen.getByText(`The notes could not be written: ${words[code]}`)).toBeInTheDocument();
+      cleanup();
+    }
+    render(<RecordNotes {...props({ notes: failed('notes:something-new') })} />);
+    expect(screen.getByText('The notes could not be written: The notes service refused the request.')).toBeInTheDocument();
+  });
+
+  it('leads to the account for a reason the user can change there, and nowhere for the others', () => {
+    const failed = (failure: string): HistoryNotes => ({ ...complete, state: 'failed', failure, body: null });
+    for (const code of ['sign-in', 'no-balance', 'wallet-frozen', 'not-member']) {
+      useSettingsStore.setState({ settingsNavigationTarget: null });
+      render(<RecordNotes {...props({ notes: failed(`notes:${code}`) })} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Open Accounts and keys' }));
+      expect(useSettingsStore.getState().settingsNavigationTarget, code).toBe('user-account');
+      cleanup();
+    }
+    for (const code of ['unavailable', 'daily-limit', 'too-large', 'update-required', 'network']) {
+      render(<RecordNotes {...props({ notes: failed(`notes:${code}`) })} />);
+      expect(screen.queryByRole('button', { name: /^Open / }), code).toBeNull();
+      cleanup();
+    }
   });
 
   it('shows an owner and a date only on a point that is still a to-do', () => {

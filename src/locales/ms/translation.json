@@ -2080,7 +2080,16 @@
       "not-json": "Model nota tidak menjawab dalam bentuk yang dijangka.",
       "no-answer": "Model nota tidak memberi jawapan.",
       "network": "Perkhidmatan nota tidak dapat dihubungi.",
-      "refused": "Perkhidmatan menolak permintaan ({{status}})."
+      "refused": "Perkhidmatan menolak permintaan ({{status}}).",
+      "sign-in": "Log masuk ke Kizuna AI untuk menulis nota dengannya.",
+      "unavailable": "Nota oleh Kizuna AI belum tersedia.",
+      "no-balance": "Baki Kizuna AI anda sudah habis.",
+      "daily-limit": "Had hari ini untuk nota oleh Kizuna AI telah dicapai. Cuba lagi esok.",
+      "wallet-frozen": "Dompet Kizuna AI anda dibekukan.",
+      "not-member": "Anda bukan lagi ahli organisasi yang membayar Kizuna AI.",
+      "too-large": "Rekod ini terlalu panjang untuk Kizuna AI menulis nota daripadanya.",
+      "update-required": "Kemas kini Sokuji untuk menulis nota dengan Kizuna AI.",
+      "other": "Perkhidmatan nota menolak permintaan."
     },
     "notesLatestFailed": "Cubaan terakhir tidak dapat ditulis: {{reason}}",
     "notesLatestStopped": "Cubaan terakhir dihentikan.",

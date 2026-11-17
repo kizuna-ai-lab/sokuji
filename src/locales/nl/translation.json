@@ -2080,7 +2080,16 @@
       "not-json": "Het model antwoordde niet in de verwachte vorm.",
       "no-answer": "Het model gaf geen antwoord.",
       "network": "De dienst voor notities was niet bereikbaar.",
-      "refused": "De dienst weigerde het verzoek ({{status}})."
+      "refused": "De dienst weigerde het verzoek ({{status}}).",
+      "sign-in": "Meld je aan bij Kizuna AI om er notities mee te schrijven.",
+      "unavailable": "Notities van Kizuna AI zijn nog niet beschikbaar.",
+      "no-balance": "Je tegoed bij Kizuna AI is op.",
+      "daily-limit": "De limiet van vandaag voor notities van Kizuna AI is bereikt. Probeer het morgen opnieuw.",
+      "wallet-frozen": "Je Kizuna AI-portemonnee is bevroren.",
+      "not-member": "Je bent geen lid meer van de organisatie die voor Kizuna AI betaalt.",
+      "too-large": "Deze opname is te lang voor Kizuna AI om er notities van te schrijven.",
+      "update-required": "Werk Sokuji bij om notities te schrijven met Kizuna AI.",
+      "other": "De notitiedienst heeft het verzoek geweigerd."
     },
     "notesLatestFailed": "De laatste poging kon niet worden geschreven: {{reason}}",
     "notesLatestStopped": "De laatste poging is gestopt.",

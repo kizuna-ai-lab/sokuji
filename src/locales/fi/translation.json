@@ -2080,7 +2080,16 @@
       "not-json": "Muistiinpanomalli ei vastannut odotetussa muodossa.",
       "no-answer": "Muistiinpanomalli ei antanut vastausta.",
       "network": "Muistiinpanojen palveluun ei saatu yhteyttä.",
-      "refused": "Palvelu hylkäsi pyynnön ({{status}})."
+      "refused": "Palvelu hylkäsi pyynnön ({{status}}).",
+      "sign-in": "Kirjaudu Kizuna AI:hin, jotta voit kirjoittaa muistiinpanoja sillä.",
+      "unavailable": "Kizuna AI:n muistiinpanot eivät ole vielä käytettävissä.",
+      "no-balance": "Kizuna AI -saldosi on loppunut.",
+      "daily-limit": "Kizuna AI:n muistiinpanojen tämän päivän raja on täynnä. Yritä huomenna uudelleen.",
+      "wallet-frozen": "Kizuna AI -lompakkosi on jäädytetty.",
+      "not-member": "Et ole enää sen organisaation jäsen, joka maksaa Kizuna AI:n.",
+      "too-large": "Tämä tallenne on liian pitkä, jotta Kizuna AI voisi kirjoittaa siitä muistiinpanot.",
+      "update-required": "Päivitä Sokuji, jotta voit kirjoittaa muistiinpanoja Kizuna AI:lla.",
+      "other": "Muistiinpanopalvelu hylkäsi pyynnön."
     },
     "notesLatestFailed": "Viimeisintä yritystä ei voitu kirjoittaa: {{reason}}",
     "notesLatestStopped": "Viimeisin yritys keskeytettiin.",
