@@ -115,6 +115,22 @@ describe('importing a file', () => {
     }
   });
 
+  // Checklist D4: with another import or transcription running, the reason has no link: no setting would change it.
+  it('says another job is running, with no link to Settings', async () => {
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    act(() => { void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    await settle();
+    show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('Another import or transcription is running.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
+    expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
+    // The service can do it: the line that names it stays.
+    expect(screen.getByText('Transcribed by Soniox, with your own key.')).toBeTruthy();
+  });
+
   it('calls the line-up\'s stage "transcription", never "recognition"', () => {
     const texts = (d: { history: { file: Record<string, unknown> } }) => Object.values(d.history.file).filter((v): v is string => typeof v === 'string');
     expect(texts(en).filter((v) => /recogni/i.test(v))).toEqual([]);
@@ -168,6 +184,23 @@ describe('the line of a file job, in each case', () => {
       await act(async () => { pending.reject!(error); await started(); });
       expect(screen.getByText('It could not be saved on this computer. Try again.')).toBeTruthy();
       expect(screen.queryByText(/Soniox could not transcribe/)).toBeNull();
+      cleanup();
+    }
+  });
+
+  // Checklist D3: each file the import cannot take says why in a sentence of its own (the import keeps nothing of
+  // it: importFile.test.ts).
+  it('says why a file could not be imported: too long, too large, silent, unreadable', async () => {
+    for (const [code, text] of [
+      ['TOO_LONG', 'The file is longer than five hours.'],
+      ['TOO_BIG', 'The file is larger than 16 GB.'],
+      ['NO_AUDIO', 'The file holds no sound.'],
+      ['UNSUPPORTED', 'The audio of this file cannot be read.'],
+    ] as const) {
+      const { pending, started } = await running();
+      await act(async () => { pending.reject!(Object.assign(new Error(code), { code })); await started(); });
+      expect(screen.getByText(text)).toBeTruthy();
+      expect(screen.queryByText('The recording was kept. Open the record to transcribe it.')).toBeNull();
       cleanup();
     }
   });
