@@ -881,6 +881,13 @@
   }
 
   &__blocked { color: vars.$color-error; }
+  // The setting to change, after the reason (B-35): a link in the reason's colour, as the line-up's own links are.
+  &__link {
+    padding: 0; border: none; background: none; color: inherit; font: inherit; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
 
   &__line { margin: vars.$space-2 vars.$space-4; }
 

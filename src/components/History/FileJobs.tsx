@@ -2,14 +2,15 @@
 //
 // Importing a file and transcribing a record again, on the History screens (desktop): the panel that asks before an
 // import, the one that asks before a transcription again, the line that follows the running job and says how it
-// ended, and the choice between a record's transcripts. Each names the service and the stage of the line-up it
-// belongs to (recognition). With the user's own key no price is shown (owner, 2026-11-16).
+// ended, and the choice between a record's transcripts. Each names the service; the stage of the line-up it belongs to
+// is called transcription, as the line-up calls it (B-35). With the user's own key no price is shown (owner, 2026-11-16).
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import type { FileJobBlock } from '../../lib/history/historyPageStore';
 import { languageLabel } from '../../lib/language/label';
 import { useProviderStore } from '../../stores/providerStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useHistoryPageContext } from './historyContext';
 import { formatDateTime } from './format';
@@ -27,12 +28,21 @@ function useFileTexts() {
   const { t } = useTranslation();
   return useMemo(() => {
     const blocks: Record<FileJobBlock | 'no-recording', string> = {
-      'no-file-service': t('history.file.blockedNotSoniox', 'Needs Soniox as the recognition service in the line-up.'),
-      'no-key': t('history.file.blockedNoKey', 'Needs a Soniox key in Settings.'),
+      'no-file-service': t('history.file.blockedNotSoniox', 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.'),
+      'hosted-soniox': t('history.file.blockedHostedSoniox', 'Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.'),
+      'no-key': t('history.file.blockedNoKey', 'Your Soniox key is not filled in yet.'),
       session: t('history.file.blockedSession', 'Available when no session is running.'),
       busy: t('history.file.blockedBusy', 'Another import or transcription is running.'),
-      unchecked: t('history.file.blockedUnchecked', 'The recognition service could not be checked. Close this and try again.'),
+      unchecked: t('history.file.blockedUnchecked', 'The transcription service could not be checked. Close this and try again.'),
       'no-recording': t('history.file.blockedNoRecording', 'This record keeps no recording.'),
+    };
+    // What to change, as a link to it in Settings (owner, 2026-11-17; B-35): the line-up, or the key.
+    const open = (category: 'lineup' | 'accounts', fallback: string) =>
+      t('history.file.openSettings', 'Open {{place}}', { place: t(`settingsPage.categories.${category}`, fallback) });
+    const fixes: Partial<Record<FileJobBlock, { label: string; target: string }>> = {
+      'no-file-service': { label: open('lineup', 'Languages and line-up'), target: 'lineup' },
+      'hosted-soniox': { label: open('lineup', 'Languages and line-up'), target: 'lineup' },
+      'no-key': { label: open('accounts', 'Accounts and keys'), target: 'provider' },
     };
     const phases: Record<string, string> = {
       reading: t('history.file.phase.reading', 'Reading the file'),
@@ -62,9 +72,10 @@ function useFileTexts() {
     };
     return {
       block: (b: FileJobBlock | 'no-recording') => blocks[b],
+      fix: (b: FileJobBlock | 'no-recording' | null) => (b && b !== 'no-recording' ? fixes[b] ?? null : null),
       phase: (p: string) => phases[p] ?? p,
       failure: (code: string) => failures[code] ?? blocks[(code === 'NO_TRACK' ? 'no-recording' : code) as FileJobBlock] ?? failures.LOCAL,
-      service: t('history.file.service', 'Transcribed by Soniox, the recognition service in your line-up.'),
+      service: t('history.file.service', 'Transcribed by Soniox, with your own key.'),
     };
   }, [t]);
 }
@@ -81,6 +92,24 @@ function usePanel(onClose: () => void) {
   };
   return { ref, tabIndex: -1, onKeyDown };
 }
+
+/** The service line only when the service can do the job: not beside a reason it cannot (B-35). */
+const serviceFine = (known: boolean, blocked: FileJobBlock | null) => known && (blocked === null || blocked === 'session' || blocked === 'busy');
+
+/** Why the job cannot start, and the link to what to change; the link closes the panel and opens Settings there. */
+const Blocked: React.FC<{ text: string; fix: { label: string; target: string } | null; onClose(): void }> = ({ text, fix, onClose }) => (
+  <p className="history-file__blocked" role="status">
+    <span>{text}</span>
+    {fix && (
+      <>
+        {' '}
+        <button type="button" className="history-file__link" onClick={() => { onClose(); useSettingsStore.getState().navigateToSettings(fix.target); }}>
+          {fix.label}
+        </button>
+      </>
+    )}
+  </p>
+);
 
 /** Why the job cannot start, asked once the panel shows. */
 function useBlocked(kind: 'import' | 'transcribe'): { known: boolean; blocked: FileJobBlock | null } {
@@ -123,8 +152,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
           {codes.map((c) => <option key={c} value={c}>{languageLabel(c, i18n.language)}</option>)}
         </select>
       </label>
-      <p>{texts.service}</p>
-      {blocked && <p className="history-file__blocked" role="status">{texts.block(blocked)}</p>}
+      {serviceFine(known, blocked) && <p>{texts.service}</p>}
+      {blocked && <Blocked text={texts.block(blocked)} fix={texts.fix(blocked)} onClose={onClose} />}
       <div className="history-confirm__actions">
         <button type="button" className="history-button" disabled={!known || blocked !== null} onClick={start}>{t('history.file.start', 'Start')}</button>
         <button type="button" className="history-button history-button--quiet" onClick={onClose}>{t('history.cancel', 'Cancel')}</button>
@@ -152,8 +181,8 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
     <div className="history-confirm history-file record-page__confirm" role="dialog" aria-label={title} {...panel}>
       <p className="history-file__title">{title}</p>
       <p>{t('history.file.transcribeNote', 'The saved recording is transcribed again. A new version is made; the transcripts already here stay.')}</p>
-      <p>{texts.service}</p>
-      {why && <p className="history-file__blocked" role="status">{why}</p>}
+      {serviceFine(known, blocked) && <p>{texts.service}</p>}
+      {why && <Blocked text={why} fix={kept.length === 0 ? null : texts.fix(blocked)} onClose={onClose} />}
       <div className="history-confirm__actions">
         <button type="button" className="history-button" disabled={!known || why !== null} onClick={start}>{t('history.file.start', 'Start')}</button>
         <button type="button" className="history-button history-button--quiet" onClick={onClose}>{t('history.cancel', 'Cancel')}</button>

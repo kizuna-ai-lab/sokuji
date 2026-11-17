@@ -8,11 +8,13 @@ import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useProviderStore } from '../../../stores/providerStore';
 
 export type FileRecognitionService = FileRecognitionSpec;
-export interface FileRecognitionMissing { missing: 'no-file-service' | 'no-key' }
+export interface FileRecognitionMissing { missing: 'no-file-service' | 'hosted-soniox' | 'no-key' }
 
 export async function fileRecognitionFromStores(): Promise<FileRecognitionService | FileRecognitionMissing> {
   const id = useLineUpStore.getState().lineUp?.transcription;
   const provider = id ? getProvider(id) : undefined;
+  // Kizuna AI's Soniox transcribes live sessions only, for now: said as such, not as a service that is not Soniox (B-35).
+  if (id === 'kizunaai_soniox') return { missing: 'hosted-soniox' };
   if (!id || !provider?.fileRecognition) return { missing: 'no-file-service' };
   if (!useProviderStore.getState().entries[id]) await useProviderStore.getState().load(provider);
   const entry = useProviderStore.getState().entries[id];
