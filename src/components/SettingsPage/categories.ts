@@ -3,6 +3,7 @@
 // The categories of the settings page, in the agreed order (providers and
 // stages design, section 8.1), and where each of today's navigation targets
 // lands on the page.
+import { CAPS } from '../../lib/lineup/catalog';
 import { accountAnchor, accountKeyOf, providerOfTarget } from './accountRows';
 
 export type CategoryId = 'lineup' | 'words' | 'accounts' | 'models' | 'audio' | 'display' | 'history' | 'general';
@@ -17,6 +18,8 @@ export interface Category {
   wordsKey: string;
   /** English search words, used too when a locale has none. */
   words: readonly string[];
+  /** Translation keys of names that find this category too, as the interface shows them (a provider's name). */
+  nameKeys?: readonly string[];
   desktopOnly?: true;
   /** During a session: everything locked, part of it, or nothing. */
   lockedInSession: 'locked' | 'partly' | 'open';
@@ -32,14 +35,16 @@ export const CATEGORIES: readonly Category[] = [
   category({ id: 'lineup', group: 'session', words: ['language', 'languages', 'speech mode', 'push to talk', 'transcription', 'translation', 'speech', 'voice', 'provider', 'model', 'line-up'], lockedInSession: 'locked', shown: () => true }),
   // The app's one word list and the session background (spec §9); the extension has it too.
   category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => true }),
-  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance'], lockedInSession: 'partly', shown: () => true }),
+  // Every provider by the name the interface gives it: their keys and sign-ins are on this page.
+  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance', 'volcengine' /* Doubao's maker, whose console issues its keys */], nameKeys: CAPS.map((c) => `providers.${c.id}.name`), lockedInSession: 'partly', shown: () => true }),
   // Every download, delete and import there waits for the session to end (the owner, 2026-11-17).
   category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
   category({ id: 'display', group: 'devices', words: ['font', 'size', 'colour', 'color', 'compact', 'subtitles', 'captions', 'preview'], lockedInSession: 'open', shown: () => true }),
   // Desktop only: the extension has no History.
   category({ id: 'history', group: 'data', words: ['history', 'notes', 'folder'], desktopOnly: true, lockedInSession: 'open', shown: () => true }),
-  category({ id: 'general', group: 'app', words: ['interface language', 'appearance', 'theme', 'updates', 'logs', 'setup', 'help', 'version'], lockedInSession: 'open', shown: () => true }),
+  // The interface language and the setup wizard wait for the session to end; the rest stays open.
+  category({ id: 'general', group: 'app', words: ['interface language', 'appearance', 'theme', 'updates', 'logs', 'setup', 'help', 'version'], lockedInSession: 'partly', shown: () => true }),
 ];
 
 export const GROUPS: readonly CategoryGroup[] = ['session', 'providers', 'devices', 'data', 'app'];
@@ -112,5 +117,9 @@ export function targetToCategory(target: string): { category: CategoryId; anchor
 export function filterCategories(query: string, t: (key: string) => string, list: readonly Category[] = CATEGORIES): readonly Category[] {
   const q = query.trim().toLowerCase();
   if (!q) return list;
-  return list.filter((c) => [t(c.titleKey), t(c.wordsKey), ...c.words].some((text) => text.toLowerCase().includes(q)));
+  // A name matches with its spaces left out on both sides ("kizuna ai" finds "KizunaAI"); the other words as typed, so a
+  // query does not run across their spaces ("sand" does not find "Accounts and keys").
+  const squash = (text: string) => text.toLowerCase().replace(/\s+/g, '');
+  return list.filter((c) => [t(c.titleKey), t(c.wordsKey), ...c.words].some((text) => text.toLowerCase().includes(q))
+    || (c.nameKeys ?? []).some((k) => squash(t(k)).includes(squash(q))));
 }
