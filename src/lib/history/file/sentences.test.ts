@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import type { FileToken } from '../types';
 import { fileSentences, numberSentences, TURN_GAP_MS } from './sentences';
+import sonioxAnswer from './testdata/soniox-translated.json';
 
 /** Words of one speaker, each `step` ms long, starting at `at`. */
 function words(text: string, o: { at: number; step?: number; speaker?: string; language?: string; spaced?: boolean }): FileToken[] {
@@ -74,31 +75,44 @@ const spoken = (text: string, o: Parameters<typeof words>[1]) => words(text, o).
 const carried = (tokens: FileToken[]) => fileSentences(tokens, OTHER).map((x) => [x.segmentId, x.text, x.translation]);
 
 describe('translations from a file transcript', () => {
-  it('a turn\u2019s translation is the translated words that follow its words, on its first sentence; they are never spoken words', () => {
-    const tokens = [
-      ...spoken('Hello there. How are you?', { at: 0 }), ...translated('你好。你好吗？'),
-      ...spoken('Bye.', { at: 1800, speaker: '2' }), ...translated('再见。'),
-    ];
+  // As Soniox answers (checked against its file API with the repository's recordings): the translation of a clause or
+  // a sentence follows its words, and none runs over the end of a sentence.
+  it('each sentence carries the translation that follows its words; translated words are never spoken ones', () => {
+    const [hello, there, how, are, you] = spoken('Hello there. How are you?', { at: 0 });
+    const tokens = [hello, there, ...translated('你好。'), how, are, you, ...translated('你好吗？'), ...spoken('Bye.', { at: 1800, speaker: '2' }), ...translated('再见。')];
     expect(fileSentences(tokens, OTHER).map((x) => [x.segmentId, x.text, x.startMs, x.endMs, x.translation])).toEqual([
-      ['file-participant-1', 'Hello there.', 0, 600, '你好。你好吗？'],
-      ['file-participant-1', 'How are you?', 600, 1500, undefined],
+      ['file-participant-1', 'Hello there.', 0, 600, '你好。'],
+      ['file-participant-1', 'How are you?', 600, 1500, '你好吗？'],
       ['file-participant-2', 'Bye.', 1800, 2100, '再见。'],
     ]);
   });
 
-  it('a turn of several translated rounds joins them; a round over two turns goes to the turn it began in', () => {
-    const [one, two] = spoken('One. Two.', { at: 0 });
-    expect(carried([
-      one, ...translated('一。'), two, ...translated(' 二。'),
-      ...spoken('Three.', { at: 900, speaker: '2' }), ...spoken('Four.', { at: 1300, speaker: '3' }), ...translated('三。'), ...translated('四。'),
-    ])).toEqual([
-      ['file-participant-1', 'One.', '一。二。'],
-      ['file-participant-1', 'Two.', undefined],
-      ['file-participant-2', 'Three.', '三。四。'],
-      ['file-participant-3', 'Four.', undefined],
+  // Soniox's own answer for two of the repository's Japanese recordings (scripts/dev/wire-probe/assets/ja: umbrella,
+  // door), translated into English: the first sentence came back as two clauses, each translated after its words.
+  it('pairs Soniox\u2019s real answer sentence by sentence', () => {
+    expect(carried(sonioxAnswer as FileToken[])).toEqual([
+      ['file-participant-1', '今日は雨が降りそうなので、傘を持っていきます。', "It looks like it's going to rain today, so I'll take an umbrella."],
+      ['file-participant-2', 'ドアを閉めてください。', 'Please close the door.'],
     ]);
-    expect(carried([one, ...translated('Uno.', 'es'), two, ...translated('Dos.', 'es')]))
-      .toEqual([['file-participant-1', 'One.', 'Uno. Dos.'], ['file-participant-1', 'Two.', undefined]]);
+  });
+
+  it('a sentence translated clause by clause carries the clauses joined', () => {
+    const [it, will, rain, so, take, an, umbrella] = spoken('It will rain, so take an umbrella.', { at: 0 });
+    expect(carried([it, will, rain, ...translated('要下雨了，'), so, take, an, umbrella, ...translated('所以带把伞。')]))
+      .toEqual([['file-participant-1', 'It will rain, so take an umbrella.', '要下雨了，所以带把伞。']]);
+    expect(carried([it, will, rain, ...translated('Va a llover,', 'es'), so, take, an, umbrella, ...translated(' así que lleva un paraguas.', 'es')]))
+      .toEqual([['file-participant-1', 'It will rain, so take an umbrella.', 'Va a llover, así que lleva un paraguas.']]);
+  });
+
+  it('a translation over two sentences, or two turns, goes to the one it began in', () => {
+    expect(carried([...spoken('Hello there. How are you?', { at: 0 }), ...translated('你好。你好吗？')])).toEqual([
+      ['file-participant-1', 'Hello there.', '你好。你好吗？'],
+      ['file-participant-1', 'How are you?', undefined],
+    ]);
+    expect(carried([...spoken('Three.', { at: 900, speaker: '2' }), ...spoken('Four.', { at: 1300, speaker: '3' }), ...translated('三。'), ...translated('四。')])).toEqual([
+      ['file-participant-1', 'Three.', '三。四。'],
+      ['file-participant-2', 'Four.', undefined],
+    ]);
   });
 
   it('words already in the language asked for are not translated: their turn carries none', () => {

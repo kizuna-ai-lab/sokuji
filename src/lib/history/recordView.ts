@@ -53,13 +53,11 @@ export function recordRows(o: {
   sidesKnown?: boolean;
 }): RecordRow[] {
   // The round's translation, by the source segments it pairs with (as the conversation shows it); a file transcript's
-  // own, carried by the first sentence of each turn, when it has them. A transcript cut from the translation has none:
-  // its sentences already are the translation.
+  // own, carried by its sentences, when it has them: a row shows its sentences' translations. A transcript cut from the
+  // translation has none: its sentences already are the translation.
   const translationOf = new Map<string, string>();
-  const carried = o.sentences.filter((s) => s.translation && s.segmentId !== null);
-  if (o.textKind === 'original' && carried.length > 0) {
-    for (const s of carried) translationOf.set(s.segmentId!, s.translation!);
-  } else if (o.textKind === 'original' && o.legs.length > 0) {
+  const carried = o.textKind === 'original' && o.sentences.some((s) => s.translation);
+  if (o.textKind === 'original' && !carried && o.legs.length > 0) {
     for (const e of createProjector().project(o.legs, DEFAULT_PROJECTION)) {
       if (e.kind !== 'exchange') continue;
       const text = joinSegmentTexts(e.translation.map((r) => r.text));
@@ -97,12 +95,14 @@ export function recordRows(o: {
         endMs: Math.max(last.endMs, s.endMs),
         timeKind: RANK[s.timeKind] > RANK[last.timeKind] ? s.timeKind : last.timeKind,
         sentences: [...last.sentences, { n: s.n, text: s.text }],
+        ...(carried && s.translation ? { translation: joinSegmentTexts([last.translation ?? '', s.translation]) } : {}),
       };
       continue;
     }
     const segmentId = s.segmentId ?? `n${s.n}`;
     // A round split between speakers shows its translation once, on its first row.
-    const translation = s.segmentId !== null && !translated.has(s.segmentId) ? translationOf.get(s.segmentId) ?? null : null;
+    const translation = carried ? s.translation || null
+      : s.segmentId !== null && !translated.has(s.segmentId) ? translationOf.get(s.segmentId) ?? null : null;
     if (s.segmentId !== null) translated.add(s.segmentId);
     rows.push({
       segmentId, leg: legOf(s.side), side: s.side, speaker: who, speakerLabel: labelOf(s.side, who), sideKnown: sidesKnown,

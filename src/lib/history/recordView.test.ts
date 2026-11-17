@@ -41,21 +41,22 @@ describe('a record\'s transcript rows', () => {
     expect(rows[0].translation).toBe('Uno. Dos.');
   });
 
-  it('shows a file transcript\u2019s own translations, each on the first row of its turn, and not the session\u2019s', () => {
+  it('shows a file transcript\u2019s own translations: each row its sentences\u2019, and not the session\u2019s', () => {
     const rows = recordRows({
       sentences: [
-        s(1, 'file-participant-1', 'Hello.', { side: 'other', speaker: '1', translation: '你好。你好吗？' }),
-        s(2, 'file-participant-1', 'How are you?', { side: 'other', speaker: '2' }),
-        s(3, 'file-participant-2', 'Fine.', { side: 'other', speaker: '1', translation: '很好。' }),
+        s(1, 'file-participant-1', 'Hello.', { side: 'other', speaker: '1', translation: '你好。' }),
+        s(2, 'file-participant-1', 'How are you?', { side: 'other', speaker: '1', translation: '你好吗？' }),
+        s(3, 'file-participant-1', 'Fine.', { side: 'other', speaker: '2', translation: '很好。' }),
+        s(4, 'file-participant-2', 'Thanks.', { side: 'other', speaker: '1' }),
       ],
       // The session's translations name its own segments: none of them is a file transcript's.
       legs: [leg('speaker', [seg('run:speaker:1', 'source', 'Hello.', 'u1'), seg('run:speaker:2', 'translation', 'Hola.', 'u1')])],
       textKind: 'original', labels, sidesKnown: false,
     });
     expect(rows.map((r) => [r.segmentId, r.sentences.map((x) => x.text), r.translation])).toEqual([
-      ['file-participant-1', ['Hello.'], '你好。你好吗？'],
-      ['file-participant-1', ['How are you?'], null],
-      ['file-participant-2', ['Fine.'], '很好。'],
+      ['file-participant-1', ['Hello.', 'How are you?'], '你好。你好吗？'],
+      ['file-participant-1', ['Fine.'], '很好。'],
+      ['file-participant-2', ['Thanks.'], null],
     ]);
   });
 
