@@ -58,9 +58,11 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   // The balance the title bar shows: a member's wallet the next Start spends, else the account's own.
   const quota = useOptionalUserProfile()?.quota;
   const account = useAccountStore((s) => s.account);
-  const payer = useAccountPayer(account);
-  // The account panel reads the payer a running session was started with, as the title bar's does.
+  const livePayer = useAccountPayer(account);
+  // The row and the account panel read the payer a running session was started with, as the title bar does: idle,
+  // the switch; running, the wallet the session spends, though the switch may have been flipped since.
   const run = useRunState();
+  const payer = run.phase === 'idle' ? livePayer : run.payer;
   const balance = account?.status === 'known' && account.organization ? payerDisplayBalance(account, payer) : quota?.balance ?? quota?.remaining;
   // This device's models: how many are on disk, known once the store has looked.
   const statuses = useModelStatuses();

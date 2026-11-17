@@ -17,7 +17,8 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 const authState = vi.hoisted(() => ({ signedIn: true }));
 vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: authState.signedIn, getToken: async () => null }) }));
 vi.mock('../Auth/UserAccountInfo', () => ({ UserAccountInfo: () => <div>account panel</div> }));
-vi.mock('../../app/useRun', () => ({ useRunState: () => ({ phase: 'idle' }) }));
+const run = vi.hoisted(() => ({ value: { phase: 'idle' } as { phase: string; payer?: 'organization' | 'personal' } }));
+vi.mock('../../app/useRun', () => ({ useRunState: () => run.value }));
 vi.mock('../providers/ManagedAccountRow', () => ({ ManagedAccountRow: () => <button type="button">Sign in</button> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 const profile = vi.hoisted(() => ({ quota: { balance: 12_400_000 } as { balance?: number } | null }));
@@ -113,6 +114,22 @@ describe('G6 the account: sign-in, balance', () => {
     render(<AccountsCategory locked={false} />);
     // The member's own wallet pays: its balance ("Account (Personal)", $40.00 in the title bar).
     expect(state('Kizuna AI')).toHaveTextContent('Signed in; balance $40.00');
+  });
+
+  it('during a session, shows the wallet the session spends even after the payer switch is flipped', () => {
+    useAccountStore.setState({ account: {
+      status: 'known', balanceMicroUsd: 3_000_000, frozen: false,
+      organization: { name: 'Acme', availableMicroUsd: 3_000_000, frozen: false }, personal: { balanceMicroUsd: 40_000_000, frozen: false },
+    } } as never);
+    // Started with the organization paying; the switch then flipped to the member's own wallet (another window can).
+    run.value = { phase: 'running', payer: 'organization' };
+    setUseOwnBalance(true);
+    try {
+      render(<AccountsCategory locked />);
+      expect(state('Kizuna AI')).toHaveTextContent('Signed in; balance $3.00');
+    } finally {
+      run.value = { phase: 'idle' };
+    }
   });
 
   it('adds no top-up of its own: the only payment entry is in the account panel', () => {
