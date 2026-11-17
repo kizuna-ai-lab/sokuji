@@ -99,6 +99,18 @@ describe('PanelToolbar — display-mode buttons', () => {
 });
 
 describe('PanelToolbar — export menu', () => {
+  // Checklist F1, F2: on the desktop every export is in History, so the conversation's toolbar has no export menu;
+  // the extension, which has no History, keeps it.
+  it('has no export menu in the desktop app, and keeps it in the extension', () => {
+    env.electron = true;
+    renderToolbar(['speaker', 'participant']);
+    expect(exportCalls).toHaveLength(0);
+    cleanup();
+    env.electron = false;
+    renderToolbar(['speaker', 'participant']);
+    expect(exportCalls.length).toBeGreaterThan(0);
+  });
+
   it("hands the export marker the exporter and today's two display modes", () => {
     renderToolbar(['speaker', 'participant']);
     // useFloating's position effect settles after mount, which re-renders
