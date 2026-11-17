@@ -145,7 +145,8 @@ describe('startCapture', () => {
     const spawn = vi.fn(() => child);
     const onPcm = vi.fn();
 
-    expect(startCapture('app:pid:42', onPcm, vi.fn(), { spawn, resolvePath })).toBe(true);
+    // Linux: no Sokuji pids to exclude (darwin adds them; asserted below), so the test reads the same on any host.
+    expect(startCapture('app:pid:42', onPcm, vi.fn(), { spawn, resolvePath, platform: 'linux' })).toBe(true);
     expect(spawn.mock.calls[0][1]).toEqual(['--target', 'pid:42']);
 
     const pcm = Buffer.from([1, 2, 3, 4]);
@@ -281,7 +282,7 @@ describe('startCapture', () => {
     const child = fakeChild();
     const spawn = vi.fn(() => child);
 
-    startCapture('desktop-audio-loopback', vi.fn(), vi.fn(), { spawn, resolvePath });
+    startCapture('desktop-audio-loopback', vi.fn(), vi.fn(), { spawn, resolvePath, platform: 'linux' });
 
     expect(spawn.mock.calls[0][1]).toEqual(['--target', 'system']);
   });
