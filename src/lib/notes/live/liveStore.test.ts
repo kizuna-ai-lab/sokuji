@@ -49,10 +49,12 @@ describe('the live notes on screen', () => {
     expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: { title: 'Mine' }, hint: false, running: true, ended: false, off: false });
   });
 
-  it('Clear empties what is shown and keeps a running loop running', () => {
+  // During a session Clear empties the captions only. The live notes are the whole meeting's, as the notes written
+  // after it are; emptied, they came back with the loop's next update.
+  it('Clear during a session leaves the live notes as they are', () => {
     useLiveNotes.getState().update(RECORD, { title: 'T', topics: [] });
     useLiveNotes.getState().clear();
-    expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: null, running: true });
+    expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: { title: 'T', topics: [] }, running: true });
   });
 
   it('Clear after the session leaves nothing, the line saying live notes are off included', () => {

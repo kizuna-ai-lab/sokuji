@@ -1196,7 +1196,8 @@ describe('attach', () => {
       });
     });
 
-    it('Clear empties the notes on screen, not the loop', async () => {
+    // During a session Clear empties the captions only.
+    it('Clear during a session leaves the live notes on screen and their loop', async () => {
       await withLive(true, 'openai', async () => {
         const live = fakeLive();
         const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
@@ -1206,7 +1207,7 @@ describe('attach', () => {
         await vi.waitFor(() => expect(live.made).toHaveLength(1));
         useLiveNotes.getState().update('run1', { title: 'T', topics: [] });
         session.runner.clear();
-        expect(useLiveNotes.getState().state).toBeNull();
+        expect(useLiveNotes.getState().state).toEqual({ title: 'T', topics: [] });
         expect(live.made[0].disposed).toBe(false);
         await session.runner.stop();
         detach();
