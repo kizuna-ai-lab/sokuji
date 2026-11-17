@@ -230,10 +230,12 @@ export const RecordPage: React.FC = () => {
 
   // A title or a name stays in its field until it is saved: a save that fails keeps what was typed (the page says why).
   const saveTitle = async (): Promise<boolean> => {
-    if (titleDraft === null) return true;
-    await actions.rename(record.id, titleDraft);
+    const submitted = titleDraft;
+    if (submitted === null) return true;
+    await actions.rename(record.id, submitted);
     if (store.getState().error) return false;
-    setTitleDraft(null);
+    // What was typed while the save ran is kept: the field closes only on the title it saved.
+    setTitleDraft((d) => (d === submitted ? null : d));
     return true;
   };
 
@@ -292,6 +294,8 @@ export const RecordPage: React.FC = () => {
                       <button
                         type="button"
                         className="record-speakers__name"
+                        // One name at a time: while one saves, another is not started (its text is kept if the save fails).
+                        disabled={busy}
                         aria-label={t('history.renameSpeaker', 'Rename {{name}}', { name: s.label })}
                         onClick={() => setNameDraft({ side, speaker: s.speaker, value: s.name ?? '' })}
                       >
@@ -511,9 +515,11 @@ export const RecordPage: React.FC = () => {
         {speakerCount > 0 && (wide || pane === 'transcript') && (
           <RecordSidePanel
             open={sideOpen}
-            editing={nameDraft !== null}
-            onToggle={() => {
-              if (sideOpen && nameDraft) void saveName();
+            // A name or the title being typed: Escape is the field's, not the panel's.
+            editing={nameDraft !== null || titleDraft !== null}
+            onToggle={async () => {
+              // Closing with a name being typed saves it first; a name that fails to save keeps the panel open with it.
+              if (sideOpen && nameDraft && !(await saveName())) return;
               writeSideOpen(!sideOpen);
               setSideOpen(!sideOpen);
             }}

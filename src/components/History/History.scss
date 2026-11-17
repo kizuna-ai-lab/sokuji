@@ -884,7 +884,8 @@
   right: 0;
   bottom: 0;
   z-index: 5;
-  width: min(320px, 100%);
+  // Never the whole width: the handle on its left edge stays on screen, so a narrow window can still close it.
+  width: min(320px, calc(100% - 24px));
   transform: translateX(100%);
   transition: transform vars.$transition-normal;
   pointer-events: none;

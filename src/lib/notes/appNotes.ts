@@ -35,7 +35,10 @@ export async function notesChatFromStores(
   sessionRef?: string,
   o: { onBalance?(microUsd: number): void } = {},
 ): Promise<{ chat: ChatPort; model: string } | null> {
-  const service = notesServiceOf(useLineUpStore.getState().lineUp);
+  const lineUp = useLineUpStore.getState().lineUp;
+  // With no service chosen the default depends on whether OpenAI has a key: read it first, loaded if it is not yet.
+  if (!lineUp?.summarisation && !useProviderStore.getState().entries.openai) await useProviderStore.getState().load(openaiProvider);
+  const service = notesServiceOf(lineUp);
   if (service === KIZUNA_NOTES) {
     if (currentAuth()?.signedIn !== true) return null;
     const chat = relayChat({
