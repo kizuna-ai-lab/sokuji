@@ -9,6 +9,7 @@ npm run e2e:build   # the E2E build: build/ and dist-electron/
 npm run e2e         # every spec in e2e/specs
 npm run e2e -- session-to-history   # one spec
 npm run e2e:long    # the meeting-length session (15 minutes; E2E_LONG_MINUTES=3 for a shorter one)
+E2E_SONIOX_KEY=... npm run e2e:real   # the same length against Soniox itself (skipped without the key)
 ```
 
 Node 22.20 or newer (the history reader uses `node:sqlite`; 22.19's has a bug).
@@ -24,6 +25,13 @@ A spec whose title carries `@long` is left out of `npm run e2e` and run by `npm 
 plays the fake service's long script for fifteen minutes and checks what only shows with time: every sentence kept,
 a recording as long as the meeting that plays to its end, and the page's memory (as the system counts it) not
 running away. Its readings are attached to the report as annotations.
+
+A spec whose title carries `@real` talks to a real service and is run by `npm run e2e:real` only. The one there is
+types a Soniox key (`E2E_SONIOX_KEY`) into Settings as a user would, then holds a fifteen-minute Japanese-to-English
+session: the repository's eight recorded sentences are played into the microphone in rounds, with over a minute of
+silence in the middle, and the record must carry the words heard and translated before and after it, nothing made up
+during it, and a whole recording. It costs fifteen minutes of Soniox usage a run. The test leaves the key nowhere: that spec records no trace, and the app's settings
+(where the app keeps the key) are deleted from its user-data directory when it ends, passed or failed.
 
 ## The E2E build
 
@@ -92,6 +100,8 @@ conversation shows does not depend on the injected sound; the recording does.
   is transpiled by the runner and carries helpers the page does not have.
 - Register init scripts after the window exists (`launch` does); added earlier, they are not applied to it.
 - One worker: the apps share the machine's display and audio.
+- The microphone plays a synthetic tone. For real speech seed `'e2e.mic': 'speech'` and play clips with
+  `navigator.mediaDevices.__e2eSay(pcm16Base64, rate)` from the page (see `real-soniox.spec.ts`).
 
 Not covered here: the other side's audio (system capture), sign-in and balance,
-Kizuna AI's own notes service, real providers.
+Kizuna AI's own notes service, real providers other than Soniox.
