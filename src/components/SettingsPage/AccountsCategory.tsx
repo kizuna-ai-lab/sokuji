@@ -31,8 +31,8 @@ import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { useRunState } from '../../app/useRun';
 import { useAuthContext } from '../providers/useAuthContext';
 import type { CategoryBodyProps } from './SettingsPage';
+import { accountAnchor, accountKeyOf, OPENAI_IDS, providerOfTarget } from './accountRows';
 
-const OPENAI_IDS = ['openai', 'openai_translate', 'openai_live'];
 const STAGE_TITLES: Record<RunStage, string> = { transcription: 'Transcription', translation: 'Translation', speech: 'Speech' };
 
 interface Account {
@@ -75,6 +75,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   // Opened by a notice or the tour about a key or a sign-in: the selected provider's account is shown open.
   useEffect(() => {
     if (openedBy === 'user-account') { setOpen('kizuna'); return; }
+    // One provider's key, named by the link that opened the page (owner, 2026-11-17): that provider's row, whatever the session runs on.
+    const named = providerOfTarget(openedBy);
+    if (named) { setOpen(accountKeyOf(named)); return; }
     if (openedBy !== 'provider') return;
     const p = providers.find((x) => x.id === useProviderStore.getState().selected);
     if (p?.kind === 'managed') setOpen('kizuna');
@@ -176,7 +179,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         const entry = p ? entries[p.id] : undefined;
         const isOpen = open === a.key;
         return (
-          <div className="accounts-row" role="group" aria-label={a.name} key={a.key} id={a.kind === 'kizuna' ? 'user-account-section' : undefined}>
+          <div className="accounts-row" role="group" aria-label={a.name} key={a.key} id={`${accountAnchor(a.key)}-section`}>
             {/* The mock's row: the name with what the account can do beside it (owner, 2026-11-15: no need to open
                 the row to see them), its state under it, one button. */}
             <div className="accounts-row__head">

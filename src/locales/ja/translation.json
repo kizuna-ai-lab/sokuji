@@ -1753,7 +1753,7 @@
     "changeable": "セッション中も変更可",
     "lockedNote": "セッション中はロック",
     "partlyLocked": "セッション中は一部ロック",
-    "lockedLine": "セッション実行中です。言語・構成・単語リスト・キーはロックされています。音声・表示・その他は変更できます。",
+    "lockedLine": "セッション実行中です。言語・構成・単語リスト・モデル・キーはロックされています。音声・表示・その他は変更できます。",
     "categories": {
       "lineup": "言語と構成",
       "words": "単語リストと背景",
@@ -1798,22 +1798,19 @@
       "localModels": "このパソコンで動作します。ダウンロード済みのモデル {{count}} 個、合計 {{size}}",
       "localNone": "このパソコンで動作します。モデルはまだダウンロードしていません",
       "soniox": {
-        "byRegion": "リージョン別のキー",
-        "keySaved": "キー保存済み",
-        "noKey": "キーなし",
-        "selected": "（選択中）",
         "save": "保存してリージョンを判定",
         "finding": "このキーのリージョンを判定しています…",
-        "savedFor": "このキーは{{region}}のものです。そちらに保存しました。",
         "unreachable": "このキーがどのリージョンのものか Soniox に確認できませんでした。選択中のリージョン（{{region}}）に保存しました。",
         "refused": "このキーを受け付ける Soniox のリージョンがありません。Soniox の API キーか確認してください。",
-        "elsewhere": "{{selected}}が選択されていますが、キーは{{region}}のものです。",
         "switchTo": "{{region}}に切り替える",
-        "keyWorks": "キー使用可",
-        "keyRefused": "キーが拒否されました",
-        "keyUnverified": "保存済み・未確認",
         "remove": "削除",
-        "removeFor": "{{region}}のキーを削除"
+        "removeFor": "{{region}}のキーを削除",
+        "stateWorks": "キーは使えます",
+        "stateRefused": "キーが拒否されました",
+        "stateUnverified": "キー保存済み・未確認",
+        "stateSaved": "キー保存済み",
+        "belongsTo": "{{region}}のキー",
+        "switched": "{{region}}に切り替えました：このキーはそこでのみ使えます。"
       }
     },
     "lineup": {

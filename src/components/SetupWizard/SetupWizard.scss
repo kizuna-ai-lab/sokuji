@@ -149,12 +149,14 @@
 .lineup-preview__rows {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
   gap: vars.$space-1 vars.$space-3;
   margin: 0;
-  dt { color: vars.$text-secondary; }
-  dd { margin: 0; display: flex; flex-wrap: wrap; gap: 0 vars.$space-2; }
+  // Sized as the finish step's summary: the stage small, the provider at body size (B-32: unset, both fell to 16px).
+  dt { color: vars.$text-secondary; font-size: vars.$font-caption; }
+  dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 vars.$space-2; }
 }
-.lineup-preview__name { color: vars.$text-primary; }
+.lineup-preview__name { color: vars.$text-primary; font-size: vars.$font-body; }
 .lineup-preview__about { font-size: vars.$font-caption; color: vars.$text-muted; }
 
 // A notice in two sentences, each on its own line.

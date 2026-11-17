@@ -1753,7 +1753,7 @@
     "changeable": "Changeable during a session",
     "lockedNote": "Locked during a session",
     "partlyLocked": "Partly locked during a session",
-    "lockedLine": "A session is running. Languages, the line-up, the word list and keys are locked; audio, display and the rest can be changed.",
+    "lockedLine": "A session is running. Languages, the line-up, the word list, models and keys are locked; audio, display and the rest can be changed.",
     "categories": {
       "lineup": "Languages and line-up",
       "words": "Word list and background",
@@ -1798,22 +1798,19 @@
       "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
       "localNone": "Runs on this computer; no models downloaded yet",
       "soniox": {
-        "byRegion": "Keys by region",
-        "keySaved": "key saved",
-        "noKey": "no key",
-        "selected": "(selected)",
         "save": "Save and find its region",
         "finding": "Finding the region of this key…",
-        "savedFor": "This key belongs to {{region}}: saved there.",
         "unreachable": "Could not ask Soniox which region this key belongs to; saved for {{region}}, the region selected now.",
         "refused": "No Soniox region accepts this key. Check that it is a Soniox API key.",
-        "elsewhere": "{{selected}} is selected, but your key is for {{region}}.",
         "switchTo": "Switch to {{region}}",
-        "keyWorks": "key works",
-        "keyRefused": "key refused",
-        "keyUnverified": "key saved, not verified yet",
         "remove": "Remove",
-        "removeFor": "Remove the key for {{region}}"
+        "removeFor": "Remove the key for {{region}}",
+        "stateWorks": "Key works",
+        "stateRefused": "Key refused",
+        "stateUnverified": "Key saved, not verified yet",
+        "stateSaved": "Key saved",
+        "belongsTo": "Belongs to {{region}}",
+        "switched": "Switched to {{region}}: this key works there only."
       }
     },
     "lineup": {

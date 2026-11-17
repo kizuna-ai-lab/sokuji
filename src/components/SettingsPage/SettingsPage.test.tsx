@@ -67,6 +67,10 @@ describe('the settings page', () => {
     expect(screen.getByRole('status')).toHaveTextContent('A session is running');
     expect(screen.getByRole('button', { name: /^Languages and line-up/ })).toHaveTextContent('Locked during a session');
     expect(screen.getByRole('button', { name: /^Display/ })).toHaveTextContent('Changeable during a session');
+    // The owner, 2026-11-17: every download, delete and import there waits for the session to end.
+    expect(screen.getByRole('button', { name: /^Models and storage/ })).toHaveTextContent('Locked during a session');
+    // …and the line above the page names it among the locked ones, not among "the rest".
+    expect(screen.getByRole('status')).toHaveTextContent('the word list, models and keys are locked');
   });
 
   it('Esc goes back to the list in the narrow form and closes in the wide form', () => {

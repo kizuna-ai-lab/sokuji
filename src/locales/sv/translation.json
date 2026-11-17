@@ -1753,7 +1753,7 @@
     "changeable": "Kan ändras under en session",
     "lockedNote": "Låst under en session",
     "partlyLocked": "Delvis låst under en session",
-    "lockedLine": "En session pågår. Språk, uppsättning, ordlista och nycklar är låsta; ljud, visning och resten kan ändras.",
+    "lockedLine": "En session pågår. Språk, uppsättning, ordlista, modeller och nycklar är låsta; ljud, visning och resten kan ändras.",
     "categories": {
       "lineup": "Språk och uppsättning",
       "words": "Ordlista och bakgrund",
@@ -1798,22 +1798,19 @@
       "localModels": "Körs på den här datorn; {{count}} modeller nedladdade, totalt {{size}}",
       "localNone": "Körs på den här datorn; inga modeller nedladdade ännu",
       "soniox": {
-        "byRegion": "Nycklar per region",
-        "keySaved": "nyckel sparad",
-        "noKey": "ingen nyckel",
-        "selected": "(vald)",
         "save": "Spara och hitta regionen",
         "finding": "Söker nyckelns region…",
-        "savedFor": "Nyckeln hör till {{region}}: sparad där.",
         "unreachable": "Kunde inte fråga Soniox vilken region nyckeln hör till; sparad för {{region}}, den region som är vald nu.",
         "refused": "Ingen Soniox-region godtar nyckeln. Kontrollera att det är en API-nyckel från Soniox.",
-        "elsewhere": "{{selected}} är vald, men din nyckel hör till {{region}}.",
         "switchTo": "Byt till {{region}}",
-        "keyWorks": "nyckeln fungerar",
-        "keyRefused": "nyckeln avvisad",
-        "keyUnverified": "nyckel sparad, inte kontrollerad än",
         "remove": "Ta bort",
-        "removeFor": "Ta bort nyckeln för {{region}}"
+        "removeFor": "Ta bort nyckeln för {{region}}",
+        "stateWorks": "Nyckeln fungerar",
+        "stateRefused": "Nyckeln nekades",
+        "stateUnverified": "Nyckeln sparad, inte verifierad ännu",
+        "stateSaved": "Nyckeln sparad",
+        "belongsTo": "Hör till {{region}}",
+        "switched": "Bytte till {{region}}: nyckeln fungerar bara där."
       }
     },
     "lineup": {

@@ -3,6 +3,7 @@
 // The categories of the settings page, in the agreed order (providers and
 // stages design, section 8.1), and where each of today's navigation targets
 // lands on the page.
+import { accountAnchor, accountKeyOf, providerOfTarget } from './accountRows';
 
 export type CategoryId = 'lineup' | 'words' | 'accounts' | 'models' | 'audio' | 'display' | 'history' | 'general';
 export type CategoryGroup = 'session' | 'providers' | 'devices' | 'data' | 'app';
@@ -32,7 +33,8 @@ export const CATEGORIES: readonly Category[] = [
   // The app's one word list and the session background (spec §9); the extension has it too.
   category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance'], lockedInSession: 'partly', shown: () => true }),
-  category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'open', shown: () => true }),
+  // Every download, delete and import there waits for the session to end (the owner, 2026-11-17).
+  category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
   category({ id: 'display', group: 'devices', words: ['font', 'size', 'colour', 'color', 'compact', 'subtitles', 'captions', 'preview'], lockedInSession: 'open', shown: () => true }),
   // Desktop only: the extension has no History.
@@ -100,6 +102,9 @@ export function categoryHolding(anchor: string): CategoryId | null {
 
 /** Where a target lands; a target the page does not know opens "General" without a highlight. */
 export function targetToCategory(target: string): { category: CategoryId; anchor: string | null } {
+  // One provider's key or sign-in (owner, 2026-11-17): its own row in the accounts.
+  const provider = providerOfTarget(target);
+  if (provider) return { category: 'accounts', anchor: accountAnchor(accountKeyOf(provider)) };
   return TARGETS[target] ?? { category: 'general', anchor: null };
 }
 

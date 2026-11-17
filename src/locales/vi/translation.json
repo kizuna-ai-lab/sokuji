@@ -1753,7 +1753,7 @@
     "changeable": "Có thể thay đổi trong phiên",
     "lockedNote": "Bị khóa trong phiên",
     "partlyLocked": "Bị khóa một phần trong phiên",
-    "lockedLine": "Đang có một phiên. Ngôn ngữ, cách phối hợp, danh sách từ và khóa bị khóa; âm thanh, hiển thị và các mục khác vẫn đổi được.",
+    "lockedLine": "Đang có một phiên. Ngôn ngữ, cách phối hợp, danh sách từ, mô hình và khóa bị khóa; âm thanh, hiển thị và các mục khác vẫn đổi được.",
     "categories": {
       "lineup": "Ngôn ngữ và cách phối hợp",
       "words": "Danh sách từ và bối cảnh",
@@ -1798,22 +1798,19 @@
       "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
       "localNone": "Chạy trên máy này; chưa tải mô hình nào",
       "soniox": {
-        "byRegion": "Khóa theo khu vực",
-        "keySaved": "đã lưu khóa",
-        "noKey": "chưa có khóa",
-        "selected": "(đang chọn)",
         "save": "Lưu và tìm khu vực",
         "finding": "Đang tìm khu vực của khóa này…",
-        "savedFor": "Khóa này thuộc {{region}}: đã lưu ở đó.",
         "unreachable": "Không hỏi được Soniox khóa này thuộc khu vực nào; đã lưu cho {{region}}, khu vực đang chọn.",
         "refused": "Không khu vực nào của Soniox chấp nhận khóa này. Hãy kiểm tra đó có phải là khóa API của Soniox không.",
-        "elsewhere": "Đang chọn {{selected}}, nhưng khóa của bạn thuộc {{region}}.",
         "switchTo": "Chuyển sang {{region}}",
-        "keyWorks": "khóa dùng được",
-        "keyRefused": "khóa bị từ chối",
-        "keyUnverified": "đã lưu khóa, chưa xác minh",
         "remove": "Xóa",
-        "removeFor": "Xóa khóa của {{region}}"
+        "removeFor": "Xóa khóa của {{region}}",
+        "stateWorks": "Khóa hoạt động",
+        "stateRefused": "Khóa bị từ chối",
+        "stateUnverified": "Đã lưu khóa, chưa xác minh",
+        "stateSaved": "Đã lưu khóa",
+        "belongsTo": "Thuộc {{region}}",
+        "switched": "Đã chuyển sang {{region}}: khóa này chỉ dùng được ở đó."
       }
     },
     "lineup": {

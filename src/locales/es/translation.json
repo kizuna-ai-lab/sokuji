@@ -1753,7 +1753,7 @@
     "changeable": "Se puede cambiar durante una sesión",
     "lockedNote": "Bloqueado durante una sesión",
     "partlyLocked": "Bloqueado en parte durante una sesión",
-    "lockedLine": "Hay una sesión en curso. Los idiomas, la combinación, la lista de palabras y las claves están bloqueados; el audio, la visualización y lo demás se pueden cambiar.",
+    "lockedLine": "Hay una sesión en curso. Los idiomas, la combinación, la lista de palabras, los modelos y las claves están bloqueados; el audio, la visualización y lo demás se pueden cambiar.",
     "categories": {
       "lineup": "Idiomas y combinación",
       "words": "Lista de palabras y contexto",
@@ -1798,22 +1798,19 @@
       "localModels": "Funciona en este ordenador; {{count}} modelos descargados, {{size}} en total",
       "localNone": "Funciona en este ordenador; aún no hay modelos descargados",
       "soniox": {
-        "byRegion": "Claves por región",
-        "keySaved": "clave guardada",
-        "noKey": "sin clave",
-        "selected": "(seleccionada)",
         "save": "Guardar y averiguar su región",
         "finding": "Averiguando la región de esta clave…",
-        "savedFor": "Esta clave es de {{region}}: guardada allí.",
         "unreachable": "No se pudo preguntar a Soniox de qué región es esta clave; guardada para {{region}}, la región seleccionada ahora.",
         "refused": "Ninguna región de Soniox acepta esta clave. Comprueba que sea una clave de API de Soniox.",
-        "elsewhere": "Está seleccionada {{selected}}, pero tu clave es de {{region}}.",
         "switchTo": "Cambiar a {{region}}",
-        "keyWorks": "la clave funciona",
-        "keyRefused": "clave rechazada",
-        "keyUnverified": "clave guardada, aún sin verificar",
         "remove": "Quitar",
-        "removeFor": "Quitar la clave de {{region}}"
+        "removeFor": "Quitar la clave de {{region}}",
+        "stateWorks": "La clave funciona",
+        "stateRefused": "Clave rechazada",
+        "stateUnverified": "Clave guardada, sin verificar aún",
+        "stateSaved": "Clave guardada",
+        "belongsTo": "Pertenece a {{region}}",
+        "switched": "Cambiado a {{region}}: esta clave solo funciona allí."
       }
     },
     "lineup": {

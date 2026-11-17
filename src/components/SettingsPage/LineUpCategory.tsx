@@ -36,6 +36,7 @@ import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { EdgeVoices } from './EdgeVoices';
 import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
 import { LocalVoices } from './LocalVoices';
+import { providerTarget } from './accountRows';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -131,6 +132,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
   const notesService = notesServiceOf(lineUp, { hostedOffered: kizunaOffered, signedIn: auth.signedIn, openAiKeyed });
   const kizunaChosen = notesService === KIZUNA_NOTES;
+  // The app checks only the session's own provider by itself: OpenAI chosen for the notes alone was never checked, and
+  // its card said "Key not verified" for ever (the owner, 2026-11-17). The card checks the key it shows, once, while
+  // nothing has checked it yet; not during a session.
+  const openAiNotesUnchecked = notesService === 'openai' && openAiKeyed && Boolean(entries.openai)
+    && (readiness.openai?.state ?? 'unknown') === 'unknown';
+  useEffect(() => {
+    if (!openAiNotesUnchecked || locked || !openAi) return;
+    void useProviderStore.getState().refreshReadiness(openAi, auth);
+  }, [openAiNotesUnchecked, locked]); // eslint-disable-line react-hooks/exhaustive-deps
   const notesPricing = useNotesPricing(kizunaOffered);
   const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
   // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.
@@ -302,7 +312,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const s = stateOf(id);
     const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
     return s.toKey
-      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings('provider')}>{s.text}</button>
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(id))}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
   };
 
@@ -451,7 +461,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               {rich && <button type="button"><selectedcontent /></button>}
               {notesOptions.map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
             </select>
-            {kizunaOffered && auth.signedIn && notesPricing && (
+            {/* Kizuna AI's prices where Kizuna AI writes the notes, not under OpenAI's own key (the owner, 2026-11-17). */}
+            {kizunaChosen && auth.signedIn && notesPricing && (
               <p className="lineup-stage__joint">{t('settingsPage.lineup.notesKizunaPrice', 'Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.', { live: perHour(notesPricing.liveUsdPerHour), after: perHour(notesPricing.afterSessionUsdPerHour) })}</p>
             )}
             {!openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}

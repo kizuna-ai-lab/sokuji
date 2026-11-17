@@ -1753,7 +1753,7 @@
     "changeable": "工作階段中可改",
     "lockedNote": "工作階段中鎖定",
     "partlyLocked": "工作階段中部分鎖定",
-    "lockedLine": "工作階段進行中：語言、工作階段組成、詞表和金鑰不能改；音訊、顯示和其餘設定可以改。",
+    "lockedLine": "工作階段進行中：語言、工作階段組成、詞表、模型和金鑰不能改；音訊、顯示和其餘設定可以改。",
     "categories": {
       "lineup": "語言與工作階段組成",
       "words": "詞表與背景",
@@ -1798,22 +1798,19 @@
       "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
       "localNone": "在這台電腦上執行；還沒有下載模型",
       "soniox": {
-        "byRegion": "各區域的金鑰",
-        "keySaved": "已儲存金鑰",
-        "noKey": "沒有金鑰",
-        "selected": "（目前）",
         "save": "儲存並辨識區域",
         "finding": "正在辨識這個金鑰屬於哪個區域…",
-        "savedFor": "這個金鑰屬於 {{region}}，已存到那裡。",
         "unreachable": "無法向 Soniox 確認這個金鑰屬於哪個區域；已存到目前選擇的區域：{{region}}。",
         "refused": "Soniox 的所有區域都不接受這個金鑰。請確認它是 Soniox 的 API 金鑰。",
-        "elsewhere": "目前選擇的是 {{selected}}，但你的金鑰屬於 {{region}}。",
         "switchTo": "切換到 {{region}}",
-        "keyWorks": "金鑰可用",
-        "keyRefused": "金鑰被拒絕",
-        "keyUnverified": "已儲存，未驗證",
         "remove": "移除",
-        "removeFor": "移除 {{region}} 的金鑰"
+        "removeFor": "移除 {{region}} 的金鑰",
+        "stateWorks": "金鑰可用",
+        "stateRefused": "金鑰被拒絕",
+        "stateUnverified": "已儲存金鑰，尚未驗證",
+        "stateSaved": "已儲存金鑰",
+        "belongsTo": "屬於 {{region}}",
+        "switched": "已切換到 {{region}}：這個金鑰只在那裡能用。"
       }
     },
     "lineup": {

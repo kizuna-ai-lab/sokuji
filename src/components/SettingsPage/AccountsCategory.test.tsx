@@ -61,10 +61,12 @@ describe('accounts and keys', () => {
   });
 
   // B-11: Soniox's key is kept by region, found by asking every region.
-  it("opens Soniox's key by region, not a single field", () => {
+  // B-39: the key and the region it belongs to, in one line; no list of regions.
+  it("opens Soniox's key with the region it belongs to", () => {
     render(<AccountsCategory locked={false} />);
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
-    expect(within(row('Soniox')).getByRole('list', { name: 'Keys by region' })).toHaveTextContent('United States: key saved, not verified yet (selected)');
+    expect(row('Soniox').querySelector('.soniox-key__line')).toHaveTextContent('Key saved, not verified yet · Belongs to United States');
+    expect(within(row('Soniox')).queryByRole('list')).toBeNull();
     expect(within(row('Soniox')).getByRole('button', { name: 'Save and find its region' })).toBeInTheDocument();
   });
 
@@ -135,6 +137,17 @@ describe('accounts and keys — opened from a notice or the tour', () => {
     render(<AccountsCategory locked={false} openedBy="provider" />);
     expect(within(row('OpenAI')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  // Owner, 2026-11-17: a link about OpenAI's key, with the session on another provider, opens OpenAI's row, which the page then
+  // scrolls to by its id.
+  it("opened by one provider's target, shows that provider's key, whatever the session runs on", () => {
+    useProviderStore.setState({ selected: 'soniox' });
+    render(<AccountsCategory locked={false} openedBy="provider:openai" />);
+    expect(within(row('OpenAI')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
+    expect(row('OpenAI')).toHaveAttribute('id', 'account-openai-section');
+    expect(row('Soniox')).toHaveAttribute('id', 'account-soniox-section');
   });
 
   it("opened by the 'provider' target under a hosted provider, shows the Kizuna AI sign-in", () => {

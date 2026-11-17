@@ -373,6 +373,57 @@ describe('languages and line-up — as the mock draws them', () => {
 // The fourth stage (stage 3, client side): the notes after a session, written with the user's own OpenAI key.
 describe('the notes card', () => {
   const openAiKey = () => useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-test' } } } as never });
+  // The key checks the card asks for, answered here and never sent anywhere.
+  let checked: string[] = [];
+  beforeEach(() => {
+    checked = [];
+    useProviderStore.setState({ refreshReadiness: (async (p: { id: string }) => { checked.push(p.id); return { state: 'unknown' }; }) as never });
+  });
+
+  // The owner, 2026-11-17: OpenAI chosen for the notes said "Key not verified" for ever — only the session's own
+  // provider is checked by itself. The card checks the key it shows, once, when nothing has checked it yet.
+  it("checks an OpenAI key chosen for the notes, though the session runs on another service", async () => {
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    await waitFor(() => expect(checked).toEqual(['openai']));
+  });
+
+  const settle = () => new Promise((r) => setTimeout(r, 20));
+  it('checks no OpenAI key already checked', async () => {
+    authState.signedIn = false;
+    openAiKey();
+    useProviderStore.setState({ readiness: { openai: { state: 'ready', models: [] } } as never });
+    render(<LineUpCategory locked={false} />);
+    await settle();
+    expect(checked).toEqual([]);
+  });
+
+  it('checks no OpenAI key when Kizuna AI writes the notes', async () => {
+    authState.signedIn = true;
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    await settle();
+    expect(checked).toEqual([]);
+  });
+
+  // Andrew's review: each condition on its own, the key never checked yet.
+  it('checks no OpenAI key during a session, though it was never checked', async () => {
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked />);
+    await settle();
+    expect(checked).toEqual([]);
+  });
+
+  it('checks nothing when OpenAI is chosen for the notes but has no key', async () => {
+    authState.signedIn = false;
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: '' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    await settle();
+    expect(checked).toEqual([]);
+  });
 
   // Owner, 2026-11-17: no "None"; the card always names a service, Kizuna AI by default where it is offered.
   it('signed out with no OpenAI key: Kizuna AI by default, waiting for a sign-in, and the card says how to have notes written', () => {
@@ -385,15 +436,28 @@ describe('the notes card', () => {
     expect(screen.getByText('Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')).toBeInTheDocument();
   });
 
+  // Andrew's review of B-48: Kizuna AI can be the notes' service while signed out; its prices wait for a sign-in.
+  it('shows no Kizuna AI prices signed out, though Kizuna AI writes the notes', () => {
+    authState.signedIn = false;
+    notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai');
+    expect(screen.queryByText(/^Kizuna AI estimates/)).toBeNull();
+  });
+
   it('signed in: offers Kizuna AI with its estimated prices per hour, and a choice sets the notes stage', async () => {
     notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
     expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI']);
     expect(screen.queryByText(/Add an OpenAI key/)).toBeNull();
-    expect(screen.getByText('Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.')).toBeInTheDocument();
+    // The owner, 2026-11-17: Kizuna AI's prices only where Kizuna AI writes the notes; not under OpenAI's own key.
+    const price = 'Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.';
+    expect(screen.queryByText(price)).toBeNull();
     fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'kizunaai' }));
+    expect(await screen.findByText(price)).toBeInTheDocument();
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Ready')).toBeInTheDocument();
   });
@@ -436,7 +500,8 @@ describe('the notes card', () => {
     const card = screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
     const state = within(card).getAllByRole('button', { name: 'No working key for 日本 (Japan)' })[0];
     fireEvent.click(state);
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    // Owner, 2026-11-17: to that provider's key, not only to the accounts page.
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:soniox');
   });
 
   // Rudolf's review of B-11: a saved key is not a working key. Only a check that passed says Ready; a key never
@@ -468,8 +533,11 @@ describe('the notes card', () => {
 
   it('takes you to the key from "Needs a key"', () => {
     render(<LineUpCategory locked={false} />);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Needs a key' })[0]);
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    const needs = screen.getAllByRole('button', { name: 'Needs a key' })[0];
+    const card = needs.closest('.lineup-stage') as HTMLElement;
+    const chosen = (within(card).getAllByRole('combobox')[0] as HTMLSelectElement).value;
+    fireEvent.click(needs);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe(`provider:${chosen}`);
   });
 
   // Review: signed out with an OpenAI key, the notes are written with that key; no extra choice is needed. Ready
@@ -493,7 +561,8 @@ describe('the notes card', () => {
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).queryByText('Ready')).toBeNull();
     fireEvent.click(within(card).getByRole('button', { name: 'Key not accepted' }));
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    // Owner, 2026-11-17: to OpenAI's key, whatever provider the session runs on.
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:openai');
   });
 
   it('says an OpenAI key not checked yet is not verified on the notes card', () => {

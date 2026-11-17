@@ -1753,7 +1753,7 @@
     "changeable": "Te wijzigen tijdens een sessie",
     "lockedNote": "Vergrendeld tijdens een sessie",
     "partlyLocked": "Deels vergrendeld tijdens een sessie",
-    "lockedLine": "Er loopt een sessie. Talen, opstelling, woordenlijst en sleutels zijn vergrendeld; audio, weergave en de rest kun je wijzigen.",
+    "lockedLine": "Er loopt een sessie. Talen, opstelling, woordenlijst, modellen en sleutels zijn vergrendeld; audio, weergave en de rest kun je wijzigen.",
     "categories": {
       "lineup": "Talen en opstelling",
       "words": "Woordenlijst en achtergrond",
@@ -1798,22 +1798,19 @@
       "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
       "localNone": "Draait op deze computer; nog geen modellen gedownload",
       "soniox": {
-        "byRegion": "Sleutels per regio",
-        "keySaved": "sleutel opgeslagen",
-        "noKey": "geen sleutel",
-        "selected": "(geselecteerd)",
         "save": "Opslaan en regio zoeken",
         "finding": "Regio van deze sleutel zoeken…",
-        "savedFor": "Deze sleutel hoort bij {{region}}: daar opgeslagen.",
         "unreachable": "Kon Soniox niet vragen bij welke regio deze sleutel hoort; opgeslagen voor {{region}}, de nu gekozen regio.",
         "refused": "Geen enkele Soniox-regio accepteert deze sleutel. Controleer of het een Soniox-API-sleutel is.",
-        "elsewhere": "{{selected}} is gekozen, maar je sleutel hoort bij {{region}}.",
         "switchTo": "Overschakelen naar {{region}}",
-        "keyWorks": "sleutel werkt",
-        "keyRefused": "sleutel geweigerd",
-        "keyUnverified": "sleutel opgeslagen, nog niet gecontroleerd",
         "remove": "Verwijderen",
-        "removeFor": "Sleutel voor {{region}} verwijderen"
+        "removeFor": "Sleutel voor {{region}} verwijderen",
+        "stateWorks": "Sleutel werkt",
+        "stateRefused": "Sleutel geweigerd",
+        "stateUnverified": "Sleutel opgeslagen, nog niet gecontroleerd",
+        "stateSaved": "Sleutel opgeslagen",
+        "belongsTo": "Hoort bij {{region}}",
+        "switched": "Overgeschakeld naar {{region}}: deze sleutel werkt alleen daar."
       }
     },
     "lineup": {

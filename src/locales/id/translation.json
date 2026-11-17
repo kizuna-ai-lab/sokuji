@@ -1753,7 +1753,7 @@
     "changeable": "Dapat diubah selama sesi",
     "lockedNote": "Terkunci selama sesi",
     "partlyLocked": "Sebagian terkunci selama sesi",
-    "lockedLine": "Sesi sedang berjalan. Bahasa, susunan, daftar kata, dan kunci terkunci; audio, tampilan, dan lainnya dapat diubah.",
+    "lockedLine": "Sesi sedang berjalan. Bahasa, susunan, daftar kata, model, dan kunci terkunci; audio, tampilan, dan lainnya dapat diubah.",
     "categories": {
       "lineup": "Bahasa dan susunan",
       "words": "Daftar kata dan latar",
@@ -1798,22 +1798,19 @@
       "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
       "localNone": "Berjalan di komputer ini; belum ada model yang diunduh",
       "soniox": {
-        "byRegion": "Kunci per wilayah",
-        "keySaved": "kunci tersimpan",
-        "noKey": "tidak ada kunci",
-        "selected": "(dipilih)",
         "save": "Simpan dan cari wilayahnya",
         "finding": "Mencari wilayah kunci ini…",
-        "savedFor": "Kunci ini milik {{region}}: disimpan di sana.",
         "unreachable": "Tidak dapat menanyakan ke Soniox wilayah kunci ini; disimpan untuk {{region}}, wilayah yang dipilih sekarang.",
         "refused": "Tidak ada wilayah Soniox yang menerima kunci ini. Pastikan ini kunci API Soniox.",
-        "elsewhere": "{{selected}} dipilih, tetapi kunci Anda milik {{region}}.",
         "switchTo": "Beralih ke {{region}}",
-        "keyWorks": "kunci berfungsi",
-        "keyRefused": "kunci ditolak",
-        "keyUnverified": "kunci tersimpan, belum diverifikasi",
         "remove": "Hapus",
-        "removeFor": "Hapus kunci untuk {{region}}"
+        "removeFor": "Hapus kunci untuk {{region}}",
+        "stateWorks": "Kunci berfungsi",
+        "stateRefused": "Kunci ditolak",
+        "stateUnverified": "Kunci tersimpan, belum diverifikasi",
+        "stateSaved": "Kunci tersimpan",
+        "belongsTo": "Milik {{region}}",
+        "switched": "Beralih ke {{region}}: kunci ini hanya berfungsi di sana."
       }
     },
     "lineup": {
