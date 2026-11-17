@@ -2,8 +2,8 @@
 @use '../../styles/tokens' as tk;
 
 // Docked beside the conversation; MainLayout puts it on the right, or above the conversation when narrow. The handle
-// at its left edge hides it, leaving a strip with the handle (owner, 2026-11-17; B-30); above the conversation the
-// handle sits at the end of its title line, and hidden it leaves that line.
+// at its left edge hides it, leaving a line and the handle, as a record's notes column does (owner, 2026-11-17; B-30);
+// above the conversation the handle sits at the end of its title line, and hidden it leaves that line.
 .live-notes {
   position: relative;
   display: flex;
@@ -14,9 +14,11 @@
   color: vars.$text-primary;
   font-size: 12.5px;
 
+  // The title line is as tall as the handle beside it, so the notes below start clear of it and keep the whole width.
   &__head {
-    padding: vars.$space-3 vars.$space-3 0 calc(#{vars.$space-3} + 24px);
+    padding: vars.$space-2 vars.$space-3 0 calc(#{vars.$space-3} + 24px);
     font-size: vars.$font-caption;
+    line-height: 32px;
     color: vars.$text-tertiary;
   }
   &__body {
@@ -33,14 +35,14 @@
 
   &__handle {
     position: absolute;
-    top: 6px;
+    top: vars.$space-2;
     left: 0;
     z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 24px;
-    height: 28px;
+    height: 32px;
     padding: 0;
     border: 1px solid vars.$border-default;
     border-left: none;

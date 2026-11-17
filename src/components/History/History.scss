@@ -464,8 +464,9 @@
     padding: vars.$space-3 vars.$space-4;
   }
   &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
-  // Wide: the notes keep clear of the handle at their right edge; hidden, they leave a strip with a line beside it.
-  &__columns.is-wide &__notes { padding-right: calc(#{vars.$space-4} + 24px); }
+  // Wide: the notes' scrolling box ends 24px early, leaving the handle a lane of its own beside the scrollbar (owner,
+  // 2026-11-17); hidden, they leave that lane with a line beside it.
+  &__columns.is-wide &__notes { margin-right: 24px; }
   &__columns.is-wide &__notes-col:has(> &__notes[hidden]) { border-right: 1px solid vars.$border-subtle; }
 
   &__notes-handle {
@@ -971,8 +972,9 @@
   &__hint { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-tertiary; }
 }
 
-// The transcript keeps clear of the handle at its right edge.
-.record-page__transcript { padding-right: calc(#{vars.$space-4} + 24px); }
+// The transcript's scrolling box ends 24px early when the side panel is there: its handle has a lane of its own beside
+// the scrollbar, instead of lying over it (owner, 2026-11-17).
+.record-page__body:has(> .record-side) .record-page__transcript { margin-right: 24px; }
 
 // A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.
 .inline-edit {
