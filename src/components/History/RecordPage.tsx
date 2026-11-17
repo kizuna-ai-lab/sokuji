@@ -517,8 +517,9 @@ export const RecordPage: React.FC = () => {
             open={sideOpen}
             // A name or the title being typed: Escape is the field's, not the panel's.
             editing={nameDraft !== null || titleDraft !== null}
-            onToggle={() => {
-              if (sideOpen && nameDraft) void saveName();
+            onToggle={async () => {
+              // Closing with a name being typed saves it first; a name that fails to save keeps the panel open with it.
+              if (sideOpen && nameDraft && !(await saveName())) return;
               writeSideOpen(!sideOpen);
               setSideOpen(!sideOpen);
             }}

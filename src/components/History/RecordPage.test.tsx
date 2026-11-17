@@ -351,6 +351,17 @@ describe('a record', () => {
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
   });
 
+  it('stays open, the name kept, when the name being typed fails to save as the panel is closed', async () => {
+    port.renameSpeaker = (async () => { throw new Error('disk full'); }) as never;
+    await renderRecord();
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(toggle());
+    await settle();
+    expect(drawer()).not.toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+  });
+
   it('saves a name being typed when the drawer is closed', async () => {
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));

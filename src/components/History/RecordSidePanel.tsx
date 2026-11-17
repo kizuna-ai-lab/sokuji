@@ -12,7 +12,7 @@ import { isComposing } from './format';
 
 export interface RecordSidePanelProps {
   open: boolean;
-  onToggle(): void;
+  onToggle(): void | Promise<void>;
   /** Something is being typed in the panel: Escape is the field's (it cancels the typing), not the panel's. */
   editing: boolean;
   /** The panel's parts. */
@@ -34,7 +34,7 @@ export function RecordSidePanel({ open, onToggle, editing, children }: RecordSid
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented || isComposing(e) || editingRef.current) return;
       e.preventDefault();
-      toggleRef.current();
+      void toggleRef.current();
     };
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
@@ -43,7 +43,7 @@ export function RecordSidePanel({ open, onToggle, editing, children }: RecordSid
   const handle = open ? t('history.closeSidePanel', 'Close the side panel') : t('history.openSidePanel', 'Open the side panel');
   return (
     <div className={`record-side${open ? ' is-open' : ''}`}>
-      <button type="button" className="record-side__handle" aria-label={handle} title={handle} aria-expanded={open} aria-controls={id} onClick={onToggle}>
+      <button type="button" className="record-side__handle" aria-label={handle} title={handle} aria-expanded={open} aria-controls={id} onClick={() => void onToggle()}>
         {open ? <ChevronsRight size={14} aria-hidden="true" /> : <ChevronsLeft size={14} aria-hidden="true" />}
       </button>
       {open && (
