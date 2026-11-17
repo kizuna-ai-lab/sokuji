@@ -7,7 +7,7 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import { reportWarning } from '../../lib/diagnostics/report';
 import { wordsFor } from '../../lib/words/forService';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SessionWords, SharedSettings } from '../../lib/provider/types';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 import { participantVoiceFor, sonioxSharedBoth, sonioxSpeakerVoice, type SonioxSettings } from './settings';
 import { SONIOX_STT_MODEL } from './sttStream';
@@ -46,24 +46,32 @@ export function clampNumber(value: unknown, min: number, max: number, dflt: numb
     : dflt;
 }
 
-export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
-  // The app's word list (spec §9), kept under Soniox's context limit; its own old vocabulary is no longer read.
-  const words = wordsFor('soniox', shared.words?.entries ?? [], shared.words?.background ?? '');
-  if (words.leftOut > 0) {
-    reportWarning('SonioxConfig', `The word list is over Soniox's context limit: ${words.leftOut} entries were left out`, { dedupeKey: 'soniox:context-budget' });
+/**
+ * The app's word list (spec §9) as Soniox's context, kept under its limit: the same for a live session and a file.
+ * Absent when there is nothing to send. Its own old vocabulary is no longer read.
+ */
+export function sonioxContext(words: SessionWords | undefined): SonioxWireContext | undefined {
+  const w = wordsFor('soniox', words?.entries ?? [], words?.background ?? '');
+  if (w.leftOut > 0) {
+    reportWarning('SonioxConfig', `The word list is over Soniox's context limit: ${w.leftOut} entries were left out`, { dedupeKey: 'soniox:context-budget' });
   }
   const wire: SonioxWireContext = {
-    ...(words.terms ? { terms: words.terms } : {}),
-    ...(words.translations ? { translation_terms: words.translations.map(([source, target]) => ({ source, target })) } : {}),
-    ...(words.background ? { text: words.background } : {}),
+    ...(w.terms ? { terms: w.terms } : {}),
+    ...(w.translations ? { translation_terms: w.translations.map(([source, target]) => ({ source, target })) } : {}),
+    ...(w.background ? { text: w.background } : {}),
   };
+  return Object.keys(wire).length > 0 ? wire : undefined;
+}
+
+export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
+  const wire = sonioxContext(shared.words);
   const speakerVoice = sonioxSpeakerVoice(s);
   // Chosen here, by leg: a lone leg's adapter session cannot tell which leg it serves.
   const voice = shared.reversed(context.direction) ? participantVoiceFor(s, speakerVoice) : speakerVoice;
   return {
     stt: {
       model: SONIOX_STT_MODEL,
-      ...(Object.keys(wire).length > 0 ? { context: wire } : {}),
+      ...(wire ? { context: wire } : {}),
       endpointSensitivity: clampNumber(s.endpointSensitivity, -1, 1, 0),
       endpointLatencyAdjustmentLevel: Math.round(clampNumber(s.endpointLatencyAdjustmentLevel, 0, 3, 0)),
       endpointMaxDelayMs: Math.round(clampNumber(s.endpointMaxDelayMs, 500, 3000, 2000)),
