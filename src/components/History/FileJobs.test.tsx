@@ -90,7 +90,8 @@ describe('importing a file', () => {
     for (const [o, text, link, target, serviceLine] of [
       [{ missing: 'no-file-service' }, 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.', 'Open Languages and line-up', 'lineup', false],
       [{ missing: 'hosted-soniox' }, 'Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.', 'Open Languages and line-up', 'lineup', false],
-      [{ missing: 'no-key' }, 'Your Soniox key is not filled in yet.', 'Open Accounts and keys', 'provider', false],
+      // The key missing is Soniox's: the link opens Soniox's row, whatever provider the session runs on.
+      [{ missing: 'no-key' }, 'Your Soniox key is not filled in yet.', 'Open Accounts and keys', 'provider:soniox', false],
       [{ session: true }, 'Available when no session is running.', null, null, true],
       [{ serviceFails: true }, 'The transcription service could not be checked. Close this and try again.', null, null, false],
     ] as const) {

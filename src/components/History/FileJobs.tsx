@@ -14,6 +14,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useHistoryPageContext } from './historyContext';
 import { formatDateTime } from './format';
+import { providerTarget } from '../SettingsPage/accountRows';
 
 const baseOf = (code: string) => code.split(/[-_]/)[0].toLowerCase();
 
@@ -42,7 +43,8 @@ function useFileTexts() {
     const fixes: Partial<Record<FileJobBlock, { label: string; target: string }>> = {
       'no-file-service': { label: open('lineup', 'Languages and line-up'), target: 'lineup' },
       'hosted-soniox': { label: open('lineup', 'Languages and line-up'), target: 'lineup' },
-      'no-key': { label: open('accounts', 'Accounts and keys'), target: 'provider' },
+      // Soniox's own key: its row, not the row of the provider the session runs on.
+      'no-key': { label: open('accounts', 'Accounts and keys'), target: providerTarget('soniox') },
     };
     const phases: Record<string, string> = {
       reading: t('history.file.phase.reading', 'Reading the file'),
