@@ -32,8 +32,9 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const scrolledTo = useRef(0);
   useLayoutEffect(() => {
     const body = bodyRef.current;
-    if (!body) return undefined;
-    if (shown) body.scrollTop = scrolledTo.current;
+    // Hidden, it keeps where the reader was: a scroll that lands then reads 0 from a box with no layout.
+    if (!body || !shown) return undefined;
+    body.scrollTop = scrolledTo.current;
     const onScroll = () => { scrolledTo.current = body.scrollTop; };
     body.addEventListener('scroll', onScroll);
     return () => body.removeEventListener('scroll', onScroll);

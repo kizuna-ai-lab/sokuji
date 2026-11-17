@@ -185,5 +185,21 @@ describe('the live notes panel', () => {
       expect(localStorage.getItem('liveNotes.hidden')).toBe('1');
       expect(readLiveNotesShown()).toBe(false);
     });
+
+    // Review: a scroll that lands after the panel is hidden reads 0 from a box with no layout; it must not replace
+    // where the reader was, which the panel goes back to when shown.
+    it('goes back to where the reader was, whatever scroll comes while it is hidden', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      const body = document.querySelector('.live-notes__body') as HTMLElement;
+      body.scrollTop = 300;
+      fireEvent.scroll(body);
+      act(() => useLiveNotesShown.getState().setShown(false));
+      body.scrollTop = 0;
+      fireEvent.scroll(body);
+      body.scrollTop = 0;
+      act(() => useLiveNotesShown.getState().setShown(true));
+      expect(body.scrollTop).toBe(300);
+    });
   });
 });
