@@ -51,7 +51,7 @@ export interface LiveNotesActions {
   balanceAfter(recordId: string, microUsd: number): void;
   /** Turned on again in the same session: the notes on screen stay, and go on. */
   resume(recordId: string): void;
-  /** Clear: the notes on screen go; a running loop goes on. After the session, nothing is left. */
+  /** Clear: during a session the notes stay, as does their loop (the captions alone go); after it, nothing is left. */
   clear(): void;
   /** A new run starts: the last session's notes go, and nothing of it lands here any more. */
   reset(): void;
