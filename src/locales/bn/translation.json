@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "নোট লেখাতে সাইন ইন করুন, অথবা “অ্যাকাউন্ট ও কী”-তে একটি OpenAI কী যোগ করুন।",
       "jointCard": "{{stages}} একটি সংযোগে চলে; এগুলো একসঙ্গে বদলায়।",
       "notesKizunaLine": "Kizuna AI-এর মাধ্যমে OpenAI নোট লেখে, খরচ আপনার ব্যালান্স থেকে।",
-      "notesOpenAiLine": "আপনার নিজের OpenAI কী দিয়ে নোট লেখে।"
+      "notesOpenAiLine": "আপনার নিজের OpenAI কী দিয়ে নোট লেখে।",
+      "notesNeedSignInOrChoose": "নোট লেখাতে সাইন ইন করুন, অথবা এখানে OpenAI বেছে নিন।",
+      "notesNeedSignInOrKeyAndChoose": "নোট লেখাতে সাইন ইন করুন, অথবা “অ্যাকাউন্ট ও কী”-তে একটি OpenAI কী যোগ করে এখানে OpenAI বেছে নিন।"
     },
     "display": {
       "surface": "কোন প্রদর্শন",

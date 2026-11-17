@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar.",
       "jointCard": "{{stages}} går över en anslutning; de byts tillsammans.",
       "notesKizunaLine": "OpenAI skriver anteckningarna via Kizuna AI, betalas från ditt saldo.",
-      "notesOpenAiLine": "Skriver anteckningarna med din egen OpenAI-nyckel."
+      "notesOpenAiLine": "Skriver anteckningarna med din egen OpenAI-nyckel.",
+      "notesNeedSignInOrChoose": "Logga in, eller välj OpenAI här, så skrivs anteckningar.",
+      "notesNeedSignInOrKeyAndChoose": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar” och välj OpenAI här, så skrivs anteckningar."
     },
     "display": {
       "surface": "Vilken visning",

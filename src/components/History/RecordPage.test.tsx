@@ -378,6 +378,39 @@ describe('a record', () => {
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
   });
 
+  // Review: a newer name typed while a save ran is saved too before the panel closes, not left hidden.
+  it('saves the newer name as well before closing, when more was typed while a save ran', async () => {
+    let finish: () => void = () => {};
+    const names: string[] = [];
+    port.renameSpeaker = (async (arg: { name: string }) => {
+      names.push(arg.name);
+      if (names.length === 1) await new Promise<void>((resolve) => { finish = resolve; });
+    }) as never;
+    await renderRecord();
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Save' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina Lee' } });
+    fireEvent.click(toggle());
+    await settle();
+    await act(async () => { finish(); });
+    await settle();
+    expect(names).toEqual(['Mina', 'Mina Lee']);
+    expect(drawer()).toBeNull();
+  });
+
+  // Review: Escape is the open sentence menu's first; the panel closes only on an Escape nothing else took.
+  it('Escape in an open sentence menu closes the menu and leaves the side panel open', async () => {
+    await renderRecord();
+    expect(drawer()).not.toBeNull();
+    const second = document.querySelector('[data-n="2"]') as HTMLElement;
+    fireEvent.click(within(second).getByRole('button', { name: 'Change speaker' }));
+    const item = screen.getByRole('menuitem', { name: 'New speaker' });
+    fireEvent.keyDown(item, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Change speaker' })).toBeNull();
+    expect(drawer()).not.toBeNull();
+  });
+
   it('saves a name being typed when the drawer is closed', async () => {
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));

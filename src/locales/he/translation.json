@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "כדי שייכתבו הערות, היכנסו לחשבון או הוסיפו מפתח OpenAI ב„חשבונות ומפתחות”.",
       "jointCard": "{{stages}} פועלים בחיבור אחד; הם משתנים יחד.",
       "notesKizunaLine": "OpenAI כותבת את ההערות דרך Kizuna AI, בתשלום מהיתרה שלך.",
-      "notesOpenAiLine": "כותב את ההערות עם מפתח OpenAI משלך."
+      "notesOpenAiLine": "כותב את ההערות עם מפתח OpenAI משלך.",
+      "notesNeedSignInOrChoose": "כדי שייכתבו הערות, היכנסו לחשבון או בחרו כאן ב-OpenAI.",
+      "notesNeedSignInOrKeyAndChoose": "כדי שייכתבו הערות, היכנסו לחשבון או הוסיפו מפתח OpenAI ב„חשבונות ומפתחות” ובחרו כאן ב-OpenAI."
     },
     "display": {
       "surface": "איזו תצוגה",

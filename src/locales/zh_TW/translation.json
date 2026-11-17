@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "登入，或在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。",
       "jointCard": "{{stages}}共用一條連線，會一起換。",
       "notesKizunaLine": "經 Kizuna AI 由 OpenAI 寫紀要，從餘額扣費。",
-      "notesOpenAiLine": "用你自己的 OpenAI 金鑰寫紀要。"
+      "notesOpenAiLine": "用你自己的 OpenAI 金鑰寫紀要。",
+      "notesNeedSignInOrChoose": "登入，或在這裡選 OpenAI，才能寫紀要。",
+      "notesNeedSignInOrKeyAndChoose": "登入，或在「帳號與金鑰」裡新增 OpenAI 的金鑰並在這裡選 OpenAI，才能寫紀要。"
     },
     "display": {
       "surface": "哪個介面",

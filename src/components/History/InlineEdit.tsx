@@ -42,6 +42,8 @@ export function InlineEdit({ value, placeholder, ariaLabel, fieldClassName, onCh
     <span
       className="inline-edit"
       ref={boxRef}
+      // It takes Escape itself (below): a side panel around it leaves Escape to it.
+      data-escape-own=""
       // Focus leaving the field and its buttons is a click elsewhere: it saves.
       onBlur={(e) => { if (!boxRef.current?.contains(e.relatedTarget as Node | null)) void save(); }}
       // Escape from the field or from its buttons cancels the edit, and that is all: the page does not take it as a way

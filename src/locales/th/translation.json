@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "ลงชื่อเข้าใช้ หรือเพิ่มคีย์ OpenAI ใน “บัญชีและคีย์” เพื่อให้เขียนบันทึก",
       "jointCard": "{{stages}}ทำงานผ่านการเชื่อมต่อเดียว และเปลี่ยนไปพร้อมกัน",
       "notesKizunaLine": "OpenAI เขียนบันทึกผ่าน Kizuna AI ชำระจากยอดเงินของคุณ",
-      "notesOpenAiLine": "เขียนบันทึกด้วยคีย์ OpenAI ของคุณเอง"
+      "notesOpenAiLine": "เขียนบันทึกด้วยคีย์ OpenAI ของคุณเอง",
+      "notesNeedSignInOrChoose": "ลงชื่อเข้าใช้ หรือเลือก OpenAI ที่นี่ เพื่อให้เขียนบันทึก",
+      "notesNeedSignInOrKeyAndChoose": "ลงชื่อเข้าใช้ หรือเพิ่มคีย์ OpenAI ใน “บัญชีและคีย์” แล้วเลือก OpenAI ที่นี่ เพื่อให้เขียนบันทึก"
     },
     "display": {
       "surface": "การแสดงผลใด",

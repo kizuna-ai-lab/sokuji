@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "గమనికలు రాయించడానికి సైన్ ఇన్ చేయండి, లేదా “ఖాతాలు, కీలు”లో OpenAI కీని జోడించండి.",
       "jointCard": "{{stages}} ఒకే కనెక్షన్‌పై నడుస్తాయి; ఇవి కలిసి మారతాయి.",
       "notesKizunaLine": "Kizuna AI ద్వారా OpenAI గమనికలు రాస్తుంది; మీ బ్యాలెన్స్ నుంచి చెల్లించబడుతుంది.",
-      "notesOpenAiLine": "మీ సొంత OpenAI కీతో గమనికలు రాస్తుంది."
+      "notesOpenAiLine": "మీ సొంత OpenAI కీతో గమనికలు రాస్తుంది.",
+      "notesNeedSignInOrChoose": "గమనికలు రాయించడానికి సైన్ ఇన్ చేయండి, లేదా ఇక్కడ OpenAIని ఎంచుకోండి.",
+      "notesNeedSignInOrKeyAndChoose": "గమనికలు రాయించడానికి సైన్ ఇన్ చేయండి, లేదా “ఖాతాలు, కీలు”లో OpenAI కీని జోడించి ఇక్కడ OpenAIని ఎంచుకోండి."
     },
     "display": {
       "surface": "ఏ ప్రదర్శన",

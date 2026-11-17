@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "برای نوشتن یادداشت‌ها، وارد شوید یا یک کلید OpenAI در «حساب‌ها و کلیدها» اضافه کنید.",
       "jointCard": "{{stages}} از یک اتصال می‌روند؛ با هم عوض می‌شوند.",
       "notesKizunaLine": "OpenAI از طریق Kizuna AI یادداشت‌ها را می‌نویسد و هزینه از موجودی شما کم می‌شود.",
-      "notesOpenAiLine": "با کلید OpenAI خودتان یادداشت‌ها را می‌نویسد."
+      "notesOpenAiLine": "با کلید OpenAI خودتان یادداشت‌ها را می‌نویسد.",
+      "notesNeedSignInOrChoose": "برای نوشتن یادداشت‌ها، وارد شوید یا همین‌جا OpenAI را انتخاب کنید.",
+      "notesNeedSignInOrKeyAndChoose": "برای نوشتن یادداشت‌ها، وارد شوید یا یک کلید OpenAI در «حساب‌ها و کلیدها» اضافه کنید و همین‌جا OpenAI را انتخاب کنید."
     },
     "display": {
       "surface": "کدام نمایش",

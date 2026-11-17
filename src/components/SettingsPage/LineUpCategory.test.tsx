@@ -414,6 +414,18 @@ describe('the notes card', () => {
     expect(within(card).getByText('Ready')).toBeInTheDocument();
   });
 
+  // Review: a Kizuna AI chosen on purpose is not changed by adding a key; the guidance says to choose OpenAI here too.
+  it('with Kizuna AI chosen and signed out, says to sign in or to choose OpenAI here (adding a key first if need be)', () => {
+    authState.signedIn = false;
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written.')).toBeInTheDocument();
+    unmount();
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Sign in, or choose OpenAI here, to have notes written.')).toBeInTheDocument();
+  });
+
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);

@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "Увійдіть або додайте ключ OpenAI в розділі «Облікові записи та ключі», щоб писалися нотатки.",
       "jointCard": "{{stages}}: працюють через одне з’єднання й змінюються разом.",
       "notesKizunaLine": "OpenAI пише нотатки через Kizuna AI, оплата з вашого балансу.",
-      "notesOpenAiLine": "Пише нотатки з вашим власним ключем OpenAI."
+      "notesOpenAiLine": "Пише нотатки з вашим власним ключем OpenAI.",
+      "notesNeedSignInOrChoose": "Увійдіть або виберіть тут OpenAI, щоб писалися нотатки.",
+      "notesNeedSignInOrKeyAndChoose": "Увійдіть або додайте ключ OpenAI в розділі «Облікові записи та ключі» й виберіть тут OpenAI, щоб писалися нотатки."
     },
     "display": {
       "surface": "Яке відображення",

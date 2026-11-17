@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "Entre na sua conta, ou adicione uma chave da OpenAI em “Contas e chaves”, para que as notas sejam escritas.",
       "jointCard": "{{stages}} funcionam em uma única conexão; mudam juntas.",
       "notesKizunaLine": "A OpenAI escreve as notas pela Kizuna AI, pagas com o seu saldo.",
-      "notesOpenAiLine": "Escreve as notas com a sua própria chave da OpenAI."
+      "notesOpenAiLine": "Escreve as notas com a sua própria chave da OpenAI.",
+      "notesNeedSignInOrChoose": "Entre na sua conta, ou escolha a OpenAI aqui, para que as notas sejam escritas.",
+      "notesNeedSignInOrKeyAndChoose": "Entre na sua conta, ou adicione uma chave da OpenAI em “Contas e chaves” e escolha a OpenAI aqui, para que as notas sejam escritas."
     },
     "display": {
       "surface": "Qual exibição",

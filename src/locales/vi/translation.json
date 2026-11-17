@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa”, để ghi chú được viết.",
       "jointCard": "{{stages}} đi qua một kết nối; chúng đổi cùng nhau.",
       "notesKizunaLine": "OpenAI viết ghi chú qua Kizuna AI, trả từ số dư của bạn.",
-      "notesOpenAiLine": "Viết ghi chú bằng khóa OpenAI của chính bạn."
+      "notesOpenAiLine": "Viết ghi chú bằng khóa OpenAI của chính bạn.",
+      "notesNeedSignInOrChoose": "Đăng nhập, hoặc chọn OpenAI ở đây, để ghi chú được viết.",
+      "notesNeedSignInOrKeyAndChoose": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa” rồi chọn OpenAI ở đây, để ghi chú được viết."
     },
     "display": {
       "surface": "Hiển thị nào",

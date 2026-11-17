@@ -92,6 +92,9 @@ export const RecordPage: React.FC = () => {
   // second ask while it runs waits for it, and is told how it went (review): running is not saved.
   const nameSave = useRef<Promise<boolean> | null>(null);
   const [nameDraft, setNameDraft] = useState<{ side: HistorySentenceSide; speaker: string; value: string } | null>(null);
+  // The name being typed as it is now: a save that finishes later, or a close waiting on one, reads it here.
+  const nameDraftRef = useRef(nameDraft);
+  nameDraftRef.current = nameDraft;
   const [menuFor, setMenuFor] = useState<number | null>(null);
   const [hit, setHit] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -248,11 +251,13 @@ export const RecordPage: React.FC = () => {
     .map((s) => ({ ...s, label: labelOf.get(speakerKey(s.side, s.speaker))! }));
   const saveName = (): Promise<boolean> => {
     if (nameSave.current) return nameSave.current;
-    if (!nameDraft) return Promise.resolve(true);
-    const draft = nameDraft;
+    const draft = nameDraftRef.current;
+    if (!draft) return Promise.resolve(true);
     const run = (async () => {
       await actions.renameSpeaker(draft.side, draft.speaker, draft.value);
       if (store.getState().error) return false;
+      // Saved: no longer the name being typed (unless more was typed meanwhile, which stays to be saved).
+      if (nameDraftRef.current === draft) nameDraftRef.current = null;
       setNameDraft((d) => (d === draft ? null : d));
       return true;
     })().finally(() => { nameSave.current = null; });
@@ -320,6 +325,8 @@ export const RecordPage: React.FC = () => {
     <span
       className="record-sentence__more"
       data-for={n}
+      // Open, the menu takes Escape itself: the side panel leaves it alone (review).
+      data-escape-own={menuFor === n ? '' : undefined}
       // Escape closes the menu, from its button or from inside it, and goes no further.
       onKeyDown={(e) => { if (e.key === 'Escape' && menuFor === n && !isComposing(e.nativeEvent)) { e.preventDefault(); setMenuFor(null); } }}
     >
@@ -427,6 +434,7 @@ export const RecordPage: React.FC = () => {
           <RecordExportMenu record={record} legs={open.legs} rows={rows} transcript={record.transcripts.find((x) => x.id === open.transcriptId) ?? null} notes={open.notes} onResult={setResult} />
           <span
             className="record-page__more"
+            data-escape-own={moreOpen ? '' : undefined}
             onKeyDown={(e) => { if (e.key === 'Escape' && moreOpen && !isComposing(e.nativeEvent)) { e.preventDefault(); setMoreOpen(false); } }}
           >
             <button
@@ -520,8 +528,14 @@ export const RecordPage: React.FC = () => {
             // A name or the title being typed: Escape is the field's, not the panel's.
             editing={nameDraft !== null || titleDraft !== null}
             onToggle={async () => {
-              // Closing with a name being typed saves it first; a name that fails to save keeps the panel open with it.
-              if (sideOpen && (nameDraft || nameSave.current) && !(await saveName())) return;
+              // Closing with a name being typed saves it first, a newer one typed while an earlier save ran as well
+              // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
+              if (sideOpen) {
+                for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
+                  if (!(await saveName())) return;
+                }
+                if (nameDraftRef.current) return;
+              }
               writeSideOpen(!sideOpen);
               setSideOpen(!sideOpen);
             }}

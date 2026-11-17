@@ -1858,7 +1858,9 @@
       "notesNeedSignInOrKey": "سجّل الدخول، أو أضف مفتاح OpenAI في «الحسابات والمفاتيح»، لتُكتب الملاحظات.",
       "jointCard": "{{stages}}: عبر اتصال واحد؛ وتتغيّر معًا.",
       "notesKizunaLine": "تكتب OpenAI الملاحظات عبر Kizuna AI، وتُدفع من رصيدك.",
-      "notesOpenAiLine": "يكتب الملاحظات بمفتاح OpenAI الخاص بك."
+      "notesOpenAiLine": "يكتب الملاحظات بمفتاح OpenAI الخاص بك.",
+      "notesNeedSignInOrChoose": "سجّل الدخول، أو اختر OpenAI هنا، لتُكتب الملاحظات.",
+      "notesNeedSignInOrKeyAndChoose": "سجّل الدخول، أو أضف مفتاح OpenAI في «الحسابات والمفاتيح» ثم اختر OpenAI هنا، لتُكتب الملاحظات."
     },
     "display": {
       "surface": "أي عرض",
