@@ -436,6 +436,16 @@ describe('the notes card', () => {
     expect(screen.getByText('Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')).toBeInTheDocument();
   });
 
+  // Andrew's review of B-48: Kizuna AI can be the notes' service while signed out; its prices wait for a sign-in.
+  it('shows no Kizuna AI prices signed out, though Kizuna AI writes the notes', () => {
+    authState.signedIn = false;
+    notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai');
+    expect(screen.queryByText(/^Kizuna AI estimates/)).toBeNull();
+  });
+
   it('signed in: offers Kizuna AI with its estimated prices per hour, and a choice sets the notes stage', async () => {
     notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
