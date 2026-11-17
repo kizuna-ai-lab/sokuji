@@ -43,6 +43,9 @@ audio away from any Sokuji already running on the machine.
   A new directory is a first run; passing the directory of an app that was closed is a restart on the same state.
 - `baseStorage('fake')` is the seed every session test wants: the setup wizard and the tour are done,
   the interface is English, the fake provider runs every stage.
+- `sokuji.kill()` ends the process at once (a crash); launch again on the same `userData` to test recovery.
+- `sokuji.answerSaveDialog(path)` / `answerOpenDialog(paths)` set what the system dialog answers (`null` is Cancel);
+  Playwright cannot click a native dialog.
 - `mainAction(page)` is the Start / End session button.
 - `readHistory(userData)` reads `history/history.db` from disk. Call it after `close()`.
 - `removeUserData(userData)` at the end of a test that passed.

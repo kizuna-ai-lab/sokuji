@@ -14,6 +14,12 @@ export interface Sokuji {
   errors: string[];
   /** Quits the app. The user-data directory stays, for a relaunch or for reading the history. */
   close(): Promise<void>;
+  /** Ends the process at once, as a crash or a power cut would: nothing in the app gets to clean up. Relaunch on `userData` to see what it recovers. */
+  kill(): Promise<void>;
+  /** What the system's Save dialog answers from now on: the chosen path, or null for Cancel. Playwright cannot click a native dialog. */
+  answerSaveDialog(filePath: string | null): Promise<void>;
+  /** What the system's Open dialog answers from now on: the chosen paths, or null for Cancel. */
+  answerOpenDialog(filePaths: string[] | null): Promise<void>;
 }
 
 /** What the first-run wizard would have stored, plus the choices every test wants: the wizard and the tour are done, the interface is English. */
@@ -92,6 +98,21 @@ export async function launch(options: { userData?: string; seed?: Seed } = {}): 
   return {
     app, page, userData, errors,
     close: async () => { await app.close().catch(() => undefined); },
+    kill: async () => {
+      const child = app.process();
+      const gone = new Promise<void>((resolve) => { if (child.exitCode !== null || child.signalCode !== null) resolve(); else child.once('exit', () => resolve()); });
+      // The whole process group: the renderer and GPU processes would otherwise outlive the main process and hold the runner open.
+      try { if (child.pid && process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL'); } catch { /* not a group leader */ }
+      child.kill('SIGKILL');
+      await gone;
+      await Promise.race([app.close().catch(() => undefined), new Promise((resolve) => setTimeout(resolve, 3_000))]);
+    },
+    answerSaveDialog: (filePath) => app.evaluate(({ dialog }, chosen) => {
+      dialog.showSaveDialog = (async () => (chosen === null ? { canceled: true, filePath: '' } : { canceled: false, filePath: chosen })) as typeof dialog.showSaveDialog;
+    }, filePath),
+    answerOpenDialog: (filePaths) => app.evaluate(({ dialog }, chosen) => {
+      dialog.showOpenDialog = (async () => (chosen === null ? { canceled: true, filePaths: [] } : { canceled: false, filePaths: chosen })) as typeof dialog.showOpenDialog;
+    }, filePaths),
   };
 }
 
