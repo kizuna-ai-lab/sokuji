@@ -15,7 +15,7 @@ const SUPPORTED_LATER: Record<string, string> = {
   fr: 'sera pris en charge plus tard', he: 'ייתמך בהמשך', hi: 'बाद में दी जाएगी', id: 'akan didukung nanti',
   it: 'sarà supportato più avanti', ja: '今後対応します', ko: '나중에 지원할 예정입니다', ms: 'akan disokong kemudian',
   nl: 'wordt later ondersteund', pl: 'będzie obsługiwane później', pt_BR: 'será suportada mais adiante',
-  pt_PT: 'será suportada mais tarde', ru: 'будет поддерживаться позже', sv: 'kommer att stödjas senare',
+  pt_PT: 'passará a ser possível mais tarde', ru: 'будет поддерживаться позже', sv: 'kommer att stödjas senare',
   ta: 'பின்னர் ஆதரிக்கப்படும்', te: 'తర్వాత మద్దతు వస్తుంది', th: 'จะรองรับการผสมในภายหลัง', tr: 'daha sonra desteklenecek',
   uk: 'підтримуватиметься пізніше', vi: 'sẽ được hỗ trợ sau', zh_CN: '以后会支持', zh_TW: '以後會支援',
 };
