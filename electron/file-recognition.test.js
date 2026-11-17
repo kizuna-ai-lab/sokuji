@@ -114,6 +114,29 @@ describe('Soniox file recognition', () => {
     expect(waits).toEqual([5000, 5000, 5000]);
   });
 
+  it('asks for the translation into the language given, and sends the word list as its context', async () => {
+    const soniox = fakeSoniox();
+    const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant });
+    const context = { terms: ['Sokuji'], translation_terms: [{ source: 'Kizuna', target: '絆' }], text: 'A weekly meeting.' };
+    await recognizer.recognize(request({ languageHints: ['ja', 'en'], translateTo: 'zh', context }));
+    expect(soniox.calls[1].json).toEqual({
+      model: 'stt-async-v6', file_id: 'file-1', enable_speaker_diarization: true, enable_language_identification: true,
+      language_hints: ['ja', 'en'], context, translation: { type: 'one_way', target_language: 'zh' }, client_reference_id: 'job-1',
+    });
+  });
+
+  it('refuses a context or a translation it could not send as given, before calling Soniox', async () => {
+    const soniox = fakeSoniox();
+    const recognizer = createFileRecognizer({ fetch: soniox.fetch, wait: instant });
+    for (const over of [
+      { translateTo: '' }, { translateTo: 7 }, { context: 'terms' }, { context: { terms: [1] } }, { context: { text: 3 } },
+      { context: { translation_terms: [{ source: 'a' }] } }, { context: { unknown: [] } },
+    ]) {
+      await expect(recognizer.recognize(request(over)), JSON.stringify(over)).rejects.toMatchObject({ code: 'BAD_INPUT' });
+    }
+    expect(soniox.calls).toEqual([]);
+  });
+
   it('says which phase a job is in, and nothing once it has ended', async () => {
     const seen = [];
     let recognizer;

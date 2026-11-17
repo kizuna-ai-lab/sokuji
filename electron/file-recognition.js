@@ -29,6 +29,22 @@ function sonioxApiHost(region) {
 }
 
 const isString = (v) => typeof v === 'string' && v.length > 0;
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const isText = (v) => typeof v === 'string';
+
+/**
+ * The word list in Soniox's context shape, as the live session sends it: terms, term translations, background text.
+ * Anything else is refused rather than sent.
+ */
+function isSonioxContext(c) {
+  if (!isPlainObject(c)) return false;
+  const known = new Set(['terms', 'translation_terms', 'text']);
+  if (Object.keys(c).some((k) => !known.has(k))) return false;
+  if (c.terms !== undefined && !(Array.isArray(c.terms) && c.terms.every(isText))) return false;
+  if (c.translation_terms !== undefined
+    && !(Array.isArray(c.translation_terms) && c.translation_terms.every((t) => isPlainObject(t) && isText(t.source) && isText(t.target)))) return false;
+  return c.text === undefined || isText(c.text);
+}
 const abortError = () => Object.assign(new Error('Cancelled'), { name: 'AbortError' });
 
 /** Waits `ms`, or rejects as soon as `signal` aborts. */
@@ -79,10 +95,13 @@ function createFileRecognizer({
   /** Clean-ups still running after their recognition ended. */
   const cleanups = new Set();
 
-  async function recognize({ store, recordId, service, source, apiKey, region, languageHints = [], jobId } = {}) {
+  async function recognize({ store, recordId, service, source, apiKey, region, languageHints = [], translateTo, context, jobId } = {}) {
     if (service !== 'soniox') throw new HistoryError('BAD_INPUT', `No file recognition for ${String(service)}`);
     if (!isString(apiKey) || !REGIONS.has(region) || !isString(jobId) || !Array.isArray(languageHints) || !languageHints.every(isString)) {
       throw new HistoryError('BAD_INPUT', 'A recognition needs a key, a Soniox region, language hints and a job id');
+    }
+    if ((translateTo !== undefined && !isString(translateTo)) || (context !== undefined && !isSonioxContext(context))) {
+      throw new HistoryError('BAD_INPUT', 'A translation needs its language, and a context the word list in Soniox\'s shape');
     }
     if (jobs.has(jobId)) throw new HistoryError('BAD_INPUT', `Job ${jobId} is already running`);
     const file = store.trackFile({ recordId, source });
@@ -158,7 +177,11 @@ function createFileRecognizer({
       transcriptionId = (await call('POST', '/v1/transcriptions', {
         json: {
           model: MODEL, file_id: fileId, enable_speaker_diarization: true, enable_language_identification: true,
-          language_hints: languageHints, client_reference_id: jobId,
+          language_hints: languageHints,
+          ...(context !== undefined ? { context } : {}),
+          // One way: what is already in that language is left as it is.
+          ...(translateTo !== undefined ? { translation: { type: 'one_way', target_language: translateTo } } : {}),
+          client_reference_id: jobId,
         },
       })).id;
       let state;
