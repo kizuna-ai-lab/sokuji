@@ -16,7 +16,7 @@ const record = {
   services: { provider: 'soniox', models: { transcription: 'stt-async-v6' } }, appVersion: '1', textBytes: 1, legs: [], notes: [], tracks: [], transcripts: [file],
 } as unknown as HistoryRecord;
 const rows: RecordRow[] = [{
-  segmentId: 'file-participant:1', leg: 'participant', side: 'other', speaker: '1', speakerLabel: 'Speaker 1', startMs: 5000, endMs: 9000,
+  segmentId: 'file-participant:1', leg: 'participant', side: 'other', speaker: '1', speakerLabel: 'Speaker 1', sideKnown: false, startMs: 5000, endMs: 9000,
   timeKind: 'given', sentences: [{ n: 1, text: 'Welcome.' }, { n: 2, text: 'Let us start.' }], translation: null,
 }];
 

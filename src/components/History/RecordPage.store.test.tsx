@@ -84,3 +84,42 @@ describe('a record\'s speakers, kept by the store', () => {
     ]));
   });
 });
+
+describe('an imported record\'s speakers', () => {
+  // An imported file holds everyone on one track: who is on which side is not known, and the page names no side.
+  it('are numbered, with no side named in the transcript or the side panel', async () => {
+    const I = 'import-0001-aaaa';
+    real.store.openRecord({ id: I, startedAt: START, mode: 'import', myLanguage: 'en', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const transcriptId = real.store.createTranscript({ recordId: I, origin: { service: 'soniox', kind: 'file' } });
+    real.store.appendSentences({ transcriptId, sentences: [
+      { ...sentence(1, 'other', 'Welcome, everyone.'), sideCertain: false, track: 'other', segmentId: 'f-1' },
+      { ...sentence(2, 'other', 'Thanks for having me.', '2'), sideCertain: false, track: 'other', segmentId: 'f-2' },
+    ] });
+    real.store.closeRecord({ id: I, endedAt: START + 10_000 });
+    await act(() => store.getState().openRecord(I));
+    await settle();
+    expect(speakerOf(1)).toBe('Speaker 1');
+    expect(speakerOf(2)).toBe('Speaker 2');
+    expect(within(drawer()).getByRole('button', { name: 'Rename Speaker 1' })).toBeInTheDocument();
+    expect(within(drawer()).queryByText('The other side')).toBeNull();
+    expect(within(drawer()).queryByText('Your side')).toBeNull();
+  });
+
+  // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.
+  it('a session whose sides were only inferred keeps them, under their headings', async () => {
+    const F = 'run-0009-ffff';
+    real.store.openRecord({ id: F, startedAt: START, mode: 'face-to-face', myLanguage: 'en', targetLanguage: 'zh', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const transcriptId = real.store.createTranscript({ recordId: F, origin: { service: 'soniox', kind: 'live' } });
+    real.store.appendSentences({ transcriptId, sentences: [
+      { ...sentence(1, 'mine', 'Shall we start?'), sideCertain: false },
+      { ...sentence(2, 'other', 'Yes, please.'), sideCertain: false },
+    ] });
+    real.store.closeRecord({ id: F, endedAt: START + 10_000 });
+    await act(() => store.getState().openRecord(F));
+    await settle();
+    expect(speakerOf(1)).toBe('Me');
+    expect(speakerOf(2)).toBe('Other');
+    expect(within(drawer()).getByText('Your side')).toBeInTheDocument();
+    expect(within(drawer()).getByText('The other side')).toBeInTheDocument();
+  });
+});

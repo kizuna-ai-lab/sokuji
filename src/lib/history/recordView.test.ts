@@ -4,7 +4,9 @@ import type { Leg, LegName, Segment } from '../conversation/types';
 import type { HistorySentence } from './types';
 import { recordCues, recordRows, type RecordRow, type SpeakerLabels } from './recordView';
 
-const labels: SpeakerLabels = { mine: 'Me', other: 'Other', person: (side, n) => `${side === 'mine' ? 'Me' : 'Other'} speaker ${n}` };
+const labels: SpeakerLabels = {
+  mine: 'Me', other: 'Other', person: (side, n) => `${side === 'mine' ? 'Me' : 'Other'} speaker ${n}`, anyone: (n) => `Speaker ${n}`,
+};
 
 const s = (n: number, segmentId: string | null, text: string, over: Partial<HistorySentence> = {}): HistorySentence => ({
   n, segmentId, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', speakerByUser: null, speakerName: null,
@@ -15,6 +17,7 @@ const seg = (id: string, side: 'source' | 'translation', text: string, origin: s
 });
 const leg = (name: LegName, segments: Segment[]): Leg => ({ leg: name, session: 'run', languages: { source: 'en', target: 'es' }, segments, notices: [] });
 const row = (over: Partial<RecordRow>): RecordRow => ({
+  sideKnown: true,
   segmentId: 'a', leg: 'speaker', side: 'mine', speaker: '1', speakerLabel: 'Me', startMs: 0, endMs: 0, timeKind: 'given',
   sentences: [], translation: null, ...over,
 });
@@ -41,6 +44,27 @@ describe('a record\'s transcript rows', () => {
   it('shows a transcript cut from the translation once, with no second translation line', () => {
     const rows = recordRows({ sentences: [s(1, 'run:speaker:2', 'Uno.')], legs: [leg('speaker', [seg('run:speaker:2', 'translation', 'Uno.', 'u1')])], textKind: 'translation', labels });
     expect(rows[0]).toEqual(expect.objectContaining({ sentences: [{ n: 1, text: 'Uno.' }], translation: null }));
+  });
+
+  // An imported file holds everyone on one track: who is on which side is not known, and no side is named.
+  it('labels the speakers of a file whose sides are not known by number alone, one speaker or several', () => {
+    const file = { side: 'other' as const, sideCertain: false, track: 'other' as const };
+    const of = (sentences: HistorySentence[]) => recordRows({ sentences, legs: [], textKind: 'original', labels, sidesKnown: false });
+    const one = of([s(1, 'f-1', 'Hello.', file), s(2, 'f-2', 'Again.', file)]);
+    expect(one.map((r) => [r.speakerLabel, r.sideKnown])).toEqual([['Speaker 1', false], ['Speaker 1', false]]);
+    expect(of([s(1, 'f-1', 'Hello.', file), s(2, 'f-2', 'Hi.', { ...file, speaker: '2' })]).map((r) => r.speakerLabel)).toEqual(['Speaker 1', 'Speaker 2']);
+    // A name given to one of them is still its label.
+    expect(of([s(1, 'f-1', 'Hello.', { ...file, speakerName: 'Mina' })])[0].speakerLabel).toBe('Mina');
+  });
+
+  // Face to face (one microphone for both people) a session's sides are inferred, not certain: they still say who
+  // spoke, and keep their words.
+  it('keeps the sides of a session whose sides were only inferred', () => {
+    const rows = recordRows({
+      sentences: [s(1, 'a', 'Hello.', { sideCertain: false }), s(2, 'b', 'Hi.', { side: 'other', sideCertain: false, track: 'other' })],
+      legs: [], textKind: 'original', labels,
+    });
+    expect(rows.map((r) => [r.speakerLabel, r.sideKnown])).toEqual([['Me', true], ['Other', true]]);
   });
 
   it('labels speakers by name, by number when a side has several, else by side', () => {

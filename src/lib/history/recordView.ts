@@ -15,6 +15,8 @@ export interface SpeakerLabels {
   other: string;
   /** The n-th speaker of a side, counted by first appearance, when the side has several. */
   person(side: HistorySentenceSide, n: number): string;
+  /** The n-th speaker where no side is known (an imported file: everyone on one track), one speaker or several. */
+  anyone(n: number): string;
 }
 
 export interface RecordRow {
@@ -24,6 +26,8 @@ export interface RecordRow {
   /** The effective speaker: the one the user gave, else the recognizer's. */
   speaker: string;
   speakerLabel: string;
+  /** Whether the row's side is known: not for an imported file, where everyone is on one track. */
+  sideKnown: boolean;
   startMs: number;
   endMs: number;
   timeKind: HistoryTimeKind;
@@ -41,6 +45,12 @@ export function recordRows(o: {
   legs: readonly Leg[];
   textKind: 'original' | 'translation';
   labels: SpeakerLabels;
+  /**
+   * Whether the sentences' sides mean who spoke: not for an imported file, where everyone is on one track. (A
+   * session's sentences keep their sides, even where the side was inferred: a shared microphone, face to face.)
+   * Default: true, the sides are known.
+   */
+  sidesKnown?: boolean;
 }): RecordRow[] {
   // The round's translation, by the source segments it pairs with (as the conversation shows it). A transcript cut
   // from the translation has none: its sentences already are the translation.
@@ -62,9 +72,15 @@ export function recordRows(o: {
     if (!order[s.side].includes(who)) order[s.side].push(who);
     if (s.speakerName) names.set(`${s.side}\u0000${who}`, s.speakerName);
   }
-  const labelOf = (side: HistorySentenceSide, who: string) =>
-    names.get(`${side}\u0000${who}`)
-      ?? (order[side].length >= 2 ? o.labels.person(side, order[side].indexOf(who) + 1) : side === 'mine' ? o.labels.mine : o.labels.other);
+  // An imported file's speakers are named by number, not by a side.
+  const sidesKnown = o.sidesKnown ?? true;
+  const labelOf = (side: HistorySentenceSide, who: string) => {
+    const named = names.get(`${side}\u0000${who}`);
+    if (named) return named;
+    const n = order[side].indexOf(who) + 1;
+    if (!sidesKnown) return o.labels.anyone(n);
+    return order[side].length >= 2 ? o.labels.person(side, n) : side === 'mine' ? o.labels.mine : o.labels.other;
+  };
 
   const rows: RecordRow[] = [];
   const translated = new Set<string>();
@@ -85,7 +101,7 @@ export function recordRows(o: {
     const translation = s.segmentId !== null && !translated.has(s.segmentId) ? translationOf.get(s.segmentId) ?? null : null;
     if (s.segmentId !== null) translated.add(s.segmentId);
     rows.push({
-      segmentId, leg: legOf(s.side), side: s.side, speaker: who, speakerLabel: labelOf(s.side, who),
+      segmentId, leg: legOf(s.side), side: s.side, speaker: who, speakerLabel: labelOf(s.side, who), sideKnown: sidesKnown,
       startMs: s.startMs, endMs: s.endMs, timeKind: s.timeKind, sentences: [{ n: s.n, text: s.text }], translation,
     });
   }
