@@ -121,13 +121,21 @@ export function RecordNotes(p: RecordNotesProps) {
   const languageRef = useRef<HTMLSelectElement>(null);
   const [languageWidth, setLanguageWidth] = useState<number | null>(null);
   const languageNames = p.languages.map((l) => languageLabel(l.code, ui)).join('\n');
+  // Measured again once the fonts have come in: before, the names are measured in a fallback font.
   useLayoutEffect(() => {
     const select = languageRef.current;
     const context = select ? document.createElement('canvas').getContext?.('2d') : null;
-    if (!select || !context) return;
-    const style = getComputedStyle(select);
-    context.font = style.font || `${style.fontSize} ${style.fontFamily}`;
-    setLanguageWidth(selectMinWidth(languageNames.split('\n'), (label) => context.measureText(label).width, selectChrome(style)));
+    if (!select || !context) return undefined;
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      const style = getComputedStyle(select);
+      context.font = style.font || `${style.fontSize} ${style.fontFamily}`;
+      setLanguageWidth(selectMinWidth(languageNames.split('\n'), (label) => context.measureText(label).width, selectChrome(style)));
+    };
+    measure();
+    void document.fonts?.ready.then(measure);
+    return () => { live = false; };
   }, [languageNames, p.notes?.id, p.writing, p.tooShort]);
   const writeControls = (label: string) => (
     <div className="record-notes__write">

@@ -150,6 +150,29 @@ describe("a record's notes", () => {
     expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeGreaterThanOrEqual(longest * 10);
   });
 
+  // Review: measured before the app's font has come in, the names are measured in a fallback font; measured again
+  // once fonts are ready, the select is wide enough in the font it shows.
+  it('measures the names again once the fonts have come in', async () => {
+    let fontIn = false;
+    const measureText = (text: string) => ({ width: text.length * (fontIn ? 20 : 10) });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({ font: '', measureText }) as unknown as CanvasRenderingContext2D);
+    let loaded!: () => void;
+    const ready = new Promise<void>((resolve) => { loaded = resolve; });
+    const fonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready } });
+    try {
+      render(<RecordNotes {...props({ record: record(), notes: null })} />);
+      const select = screen.getByLabelText('Language of the notes') as HTMLSelectElement;
+      const longest = Math.max(...[...select.options].map((o) => (o.textContent ?? '').length));
+      expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeLessThan(longest * 20);
+      fontIn = true;
+      await act(async () => { loaded(); await ready; });
+      expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeGreaterThanOrEqual(longest * 20);
+    } finally {
+      if (fonts) Object.defineProperty(document, 'fonts', fonts); else delete (document as { fonts?: unknown }).fonts;
+    }
+  });
+
   it('keeps the same group for a new version of notes already written', () => {
     render(<RecordNotes {...props()} />);
     const pick = screen.getByLabelText('Language of the notes').closest('.record-notes__pick') as HTMLElement;
