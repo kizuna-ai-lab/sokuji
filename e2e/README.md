@@ -66,7 +66,7 @@ conversation shows does not depend on the injected sound; the recording does.
 
 ## Writing a spec
 
-- Name the test after its scenario id (`A1 …`).
+- Name the test after the behaviour it checks, in words a reader of the repository understands (no tracker or checklist ids).
 - Wait for what the user would see (`expect(locator).toBeVisible()`), not for time.
 - Find elements by role and name (the interface is English); add a `data-testid` where that is not enough.
 - Scripts that run in the page are plain `.js` files or source text. A function passed from a `.ts` file

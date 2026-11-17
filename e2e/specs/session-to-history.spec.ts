@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { baseStorage, launch, mainAction, removeUserData } from '../support/app';
 import { readHistory } from '../support/history';
 
-// A1 (scenario list): a session is stored in History by itself, and is still there after a restart.
-test('A1 a session on the fake service is saved to History and survives a restart', async () => {
+// A session is stored in History by itself, and is still there after a restart.
+test('a session on the fake service is saved to History and survives a restart', async () => {
   const sokuji = await launch({ seed: { storage: baseStorage('fake') } });
   const { page, userData } = sokuji;
 
