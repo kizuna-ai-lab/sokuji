@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  English | <a href="docs/README.ja.md">日本語</a> | <a href="docs/README.zh.md">中文</a>
+  English | <a href="docs/README.ja.md">日本語</a> | <a href="docs/README.zh.md">中文</a> | <a href="docs/README.vi.md">Tiếng Việt</a>
 </p>
 
 ---
@@ -147,7 +147,7 @@ audio and microphone together, and everyone follows along.
 
 ### Local Inference (Edge AI)
 
-Run everything on your device — no API keys, no internet, no expensive GPU, complete privacy. Powered by WASM and WebGPU, Sokuji runs efficiently on any modern browser using your existing CPU and integrated graphics.
+Run everything on your device — no API keys, no internet once models are downloaded, no expensive GPU, complete privacy. Powered by WASM and WebGPU, Sokuji runs efficiently on any modern browser using your existing CPU and integrated graphics.
 
 - **44 ASR models** (23 offline + 10 streaming + 11 WebGPU including Whisper, Cohere Transcribe, Voxtral, Granite Speech) covering 99+ languages
 - **75 translation models** — 69 Opus-MT language pairs + 6 multilingual LLMs (Qwen 2.5 / 3 / 3.5, Hunyuan-MT 1.5, TranslateGemma) with WebGPU
@@ -186,11 +186,11 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 
 ## Privacy
 
-**Your audio stays on your device — if you choose Local Inference, nothing ever leaves.**
+**Your audio stays on your device — if you choose Local Inference, your audio and text never leave.**
 
 - Cloud mode connects **directly** to provider APIs — no intermediary servers
 - API keys stored **locally only**, never transmitted to us
-- Local Inference processes everything **on-device** with zero network requests
+- Local Inference processes audio and text **on-device**; anonymous usage analytics are still sent to PostHog
 - Anonymous usage analytics via PostHog
 
 ---
