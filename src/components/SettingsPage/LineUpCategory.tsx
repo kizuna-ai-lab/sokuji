@@ -132,6 +132,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
   const notesService = notesServiceOf(lineUp, { hostedOffered: kizunaOffered, signedIn: auth.signedIn, openAiKeyed });
   const kizunaChosen = notesService === KIZUNA_NOTES;
+  // The app checks only the session's own provider by itself: OpenAI chosen for the notes alone was never checked, and
+  // its card said "Key not verified" for ever (the owner, 2026-11-17). The card checks the key it shows, once, while
+  // nothing has checked it yet; not during a session.
+  const openAiNotesUnchecked = notesService === 'openai' && openAiKeyed && Boolean(entries.openai)
+    && (readiness.openai?.state ?? 'unknown') === 'unknown';
+  useEffect(() => {
+    if (!openAiNotesUnchecked || locked || !openAi) return;
+    void useProviderStore.getState().refreshReadiness(openAi, auth);
+  }, [openAiNotesUnchecked, locked]); // eslint-disable-line react-hooks/exhaustive-deps
   const notesPricing = useNotesPricing(kizunaOffered);
   const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
   // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.

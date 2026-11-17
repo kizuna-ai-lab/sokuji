@@ -373,6 +373,38 @@ describe('languages and line-up — as the mock draws them', () => {
 // The fourth stage (stage 3, client side): the notes after a session, written with the user's own OpenAI key.
 describe('the notes card', () => {
   const openAiKey = () => useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-test' } } } as never });
+  // The key checks the card asks for, answered here and never sent anywhere.
+  let checked: string[] = [];
+  beforeEach(() => {
+    checked = [];
+    useProviderStore.setState({ refreshReadiness: (async (p: { id: string }) => { checked.push(p.id); return { state: 'unknown' }; }) as never });
+  });
+
+  // The owner, 2026-11-17: OpenAI chosen for the notes said "Key not verified" for ever — only the session's own
+  // provider is checked by itself. The card checks the key it shows, once, when nothing has checked it yet.
+  it("checks an OpenAI key chosen for the notes, though the session runs on another service", async () => {
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    await waitFor(() => expect(checked).toEqual(['openai']));
+  });
+
+  it('checks no OpenAI key already checked, none for Kizuna AI, and none during a session', async () => {
+    authState.signedIn = false;
+    openAiKey();
+    useProviderStore.setState({ readiness: { openai: { state: 'ready', models: [] } } as never });
+    const first = render(<LineUpCategory locked={false} />);
+    first.unmount();
+    authState.signedIn = true;
+    openAiKey();
+    const second = render(<LineUpCategory locked={false} />);
+    second.unmount();
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked />);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(checked).toEqual([]);
+  });
 
   // Owner, 2026-11-17: no "None"; the card always names a service, Kizuna AI by default where it is offered.
   it('signed out with no OpenAI key: Kizuna AI by default, waiting for a sign-in, and the card says how to have notes written', () => {
