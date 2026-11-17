@@ -206,6 +206,14 @@ describe('the History page state', () => {
     expect(calls('getRecord')).toEqual([A]);
   });
 
+  it('reads the list and the space again once the recording is deleted, so the list no longer shows it', async () => {
+    await store.getState().openRecord(A);
+    port.calls.length = 0;
+    await store.getState().dropRecording();
+    expect(calls('listRecords')).toHaveLength(1);
+    expect(calls('usage')).toHaveLength(1);
+  });
+
   it('renames a record with its text trimmed', async () => {
     await store.getState().rename(A, '  Weekly  ');
     expect(calls('renameRecord')).toEqual([{ id: A, title: 'Weekly' }]);

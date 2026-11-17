@@ -373,6 +373,8 @@ export function createHistoryPageStore(
           if (t.goneAt === null) await port.dropTrack({ recordId: open.record.id, source: t.source });
         }
         await fetchRecord(open.record.id, open.at, open.transcriptId);
+        // The list's recording tag and the space used change too: back on the list, both are as they are now.
+        await reload();
       }),
 
       closeRecord: () => {
