@@ -461,7 +461,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               {rich && <button type="button"><selectedcontent /></button>}
               {notesOptions.map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
             </select>
-            {kizunaOffered && auth.signedIn && notesPricing && (
+            {/* Kizuna AI's prices where Kizuna AI writes the notes, not under OpenAI's own key (the owner, 2026-11-17). */}
+            {kizunaChosen && auth.signedIn && notesPricing && (
               <p className="lineup-stage__joint">{t('settingsPage.lineup.notesKizunaPrice', 'Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.', { live: perHour(notesPricing.liveUsdPerHour), after: perHour(notesPricing.afterSessionUsdPerHour) })}</p>
             )}
             {!openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}

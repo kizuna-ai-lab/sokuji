@@ -442,9 +442,12 @@ describe('the notes card', () => {
     render(<LineUpCategory locked={false} />);
     expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI']);
     expect(screen.queryByText(/Add an OpenAI key/)).toBeNull();
-    expect(screen.getByText('Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.')).toBeInTheDocument();
+    // The owner, 2026-11-17: Kizuna AI's prices only where Kizuna AI writes the notes; not under OpenAI's own key.
+    const price = 'Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.';
+    expect(screen.queryByText(price)).toBeNull();
     fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'kizunaai' }));
+    expect(await screen.findByText(price)).toBeInTheDocument();
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Ready')).toBeInTheDocument();
   });
