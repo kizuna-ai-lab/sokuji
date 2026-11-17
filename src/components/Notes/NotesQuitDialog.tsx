@@ -5,10 +5,11 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuitQuestion } from '../../lib/notes/quitQuestion';
+import { formatDateTime } from '../History/format';
 import './NotesQuitDialog.scss';
 
 export function NotesQuitDialog() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const asking = useQuitQuestion((s) => s.asking);
   const quitRef = useRef<HTMLButtonElement>(null);
   const stayRef = useRef<HTMLButtonElement>(null);
@@ -20,8 +21,10 @@ export function NotesQuitDialog() {
     return () => { if (before?.isConnected) before.focus(); };
   }, [asking]);
   if (!asking) return null;
-  const text = asking.titles.length > 0
-    ? t('notesQuit.named', 'Notes are being written for “{{title}}”. Quit anyway? They will be marked cancelled.', { title: asking.titles.join('”, “') })
+  // Each record as History names it: its title, or, when nobody gave it one, when it started.
+  const names = asking.records.map((r) => r.title ?? formatDateTime(r.startedAt, i18n.language));
+  const text = names.length > 0
+    ? t('notesQuit.named', 'Notes are being written for “{{title}}”. Quit anyway? They will be marked cancelled.', { title: names.join('”, “') })
     : t('notesQuit.unnamed', 'Notes are being written. Quit anyway? They will be marked cancelled.');
   return (
     <div className="notes-quit" role="alertdialog" aria-modal="true" aria-labelledby="notes-quit-text"
