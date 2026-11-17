@@ -14,7 +14,8 @@ function twoRecords() {
   ]);
   return userData;
 }
-const storage = (language = 'en') => ({ ...baseStorage('fake'), 'settings.common.uiLanguage': language });
+/** The app's settings, in an interface language (`i18nextLng`, where the app reads it from). */
+const storage = (language = 'en') => ({ ...baseStorage('fake'), i18nextLng: language });
 
 /** The window's page this wide (and 760 high), once the page has it. */
 async function widthTo(app: ElectronApplication, page: Page, width: number) {
@@ -74,6 +75,7 @@ for (const language of ['ta', 'de']) {
   test(`the record page's buttons stay whole and even, and a long title gives way, in a narrow window (${language})`, async ({ launchApp }) => {
     const sokuji = await launchApp({ userData: twoRecords(), seed: { storage: storage(language) } });
     const { page, app } = sokuji;
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe(language);
     await widthTo(app, page, 1200);
     await openHistory(page);
     await openRow(page, 0);
