@@ -4,8 +4,14 @@
 // a new speaker, or a silence of TURN_GAP_MS, begins one — and each turn is cut by the same cutter as live text, as a
 // finished segment whose words are its heard pieces: sentence ends, the cut after a pause and the 45 s cap apply alike,
 // and every time is given. A turn's sentences share one segment id, so the record page shows a turn as one row.
-import type { HistorySentenceInput, HistorySentenceSide, HistorySentenceTrack, FileToken } from '../types';
+//
+// Translated words (asked for with the transcription) have no time: they follow the words they translate. A run of
+// them translates the spoken words since the run before (a round), and belongs to the turn that round began in; a turn
+// in which several rounds began has their translations joined. The rounds are the service's, the turns ours: a round
+// over two turns is shown with the first.
+import type { HistorySentenceInput, HistorySentenceSide, HistorySentenceTrack, HistoryTranslationInput, FileToken } from '../types';
 import { createSegmentCut } from '../capture/cut';
+import { joinSegmentTexts } from '../../projection/join';
 
 /** A silence this long between two words begins a new turn. */
 export const TURN_GAP_MS = 1500;
@@ -37,18 +43,64 @@ function mostOf(values: readonly (string | undefined)[]): string | undefined {
   return best;
 }
 
-export function fileSentences(tokens: readonly FileToken[], o: FileSentenceOptions): FileSentence[] {
-  const words = tokens.filter((t) => typeof t.text === 'string' && t.text.length > 0);
-  const turns: FileToken[][] = [];
-  for (const w of words) {
-    const turn = turns[turns.length - 1];
-    const last = turn?.[turn.length - 1];
-    if (last && (w.speaker ?? '1') === (last.speaker ?? '1') && w.start_ms - last.end_ms < TURN_GAP_MS) turn.push(w);
-    else turns.push([w]);
-  }
+/** A spoken word: its times are known. */
+type SpokenToken = FileToken & { start_ms: number; end_ms: number };
 
+interface Turn {
+  words: SpokenToken[];
+  /** The translations of the rounds that began in this turn, in order. */
+  rounds: string[];
+  language?: string;
+}
+
+const isSpoken = (t: FileToken): t is SpokenToken =>
+  t.translation_status !== 'translation' && Number.isFinite(t.start_ms) && Number.isFinite(t.end_ms);
+
+/** The transcript's turns, each with the translations that belong to it. */
+function turnsOf(tokens: readonly FileToken[]): Turn[] {
+  const turns: Turn[] = [];
+  /** The turn the round now being spoken began in; null until a spoken word follows a translation. */
+  let roundBegan: Turn | null = null;
+  /** The turn whose translation is being read, while translated words follow one another. */
+  let reading: Turn | null = null;
+  for (const t of tokens) {
+    if (typeof t.text !== 'string' || t.text.length === 0) continue;
+    if (t.translation_status === 'translation') {
+      if (!reading) {
+        reading = roundBegan;
+        roundBegan = null;
+        reading?.rounds.push('');
+      }
+      if (!reading) continue;
+      reading.rounds[reading.rounds.length - 1] += t.text;
+      if (t.language) reading.language = t.language;
+      continue;
+    }
+    if (!isSpoken(t)) continue;
+    reading = null;
+    const turn = turns[turns.length - 1];
+    const last = turn?.words[turn.words.length - 1];
+    if (turn && last && (t.speaker ?? '1') === (last.speaker ?? '1') && t.start_ms - last.end_ms < TURN_GAP_MS) turn.words.push(t);
+    else turns.push({ words: [t], rounds: [] });
+    // A word already in the language asked for is not translated: it begins no round.
+    if (t.translation_status !== 'none') roundBegan ??= turns[turns.length - 1];
+  }
+  return turns;
+}
+
+/** Each turn's translation, under the segment id its sentences have. */
+export function fileTranslations(tokens: readonly FileToken[], o: Pick<FileSentenceOptions, 'idPrefix'>): HistoryTranslationInput[] {
+  const out: HistoryTranslationInput[] = [];
+  turnsOf(tokens).forEach((turn, k) => {
+    const text = joinSegmentTexts(turn.rounds);
+    if (text) out.push({ segmentId: `${o.idPrefix}-${k + 1}`, text, ...(turn.language ? { language: turn.language } : {}) });
+  });
+  return out;
+}
+
+export function fileSentences(tokens: readonly FileToken[], o: FileSentenceOptions): FileSentence[] {
   const out: FileSentence[] = [];
-  turns.forEach((turn, k) => {
+  turnsOf(tokens).forEach(({ words: turn }, k) => {
     let text = '';
     const pieces = [];
     const marks = [];

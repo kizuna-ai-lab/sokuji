@@ -111,15 +111,23 @@ export interface HistoryTranscriptRow {
   sentences: number;
 }
 
-/** A word of a file transcript: every file recognition service answers in this shape (Soniox's own). */
+/**
+ * A word of a file transcript: every file recognition service answers in this shape (Soniox's own). A translated word
+ * says so (`translation_status: 'translation'`) and has no time: it follows the words it translates.
+ */
 export interface FileToken {
   text: string;
-  start_ms: number;
-  end_ms: number;
+  start_ms?: number;
+  end_ms?: number;
   speaker?: string;
   language?: string;
   confidence?: number;
+  translation_status?: 'original' | 'translation' | 'none';
+  source_language?: string;
 }
+
+/** The app's word list in the file recognition service's own context shape: sent as it is. */
+export type FileRecognitionContext = Record<string, unknown>;
 
 /** A kept track sent to file recognition: the service, its key and region, the languages to expect, the job's id. */
 export interface HistoryRecognizeRequest {
@@ -129,6 +137,10 @@ export interface HistoryRecognizeRequest {
   apiKey: string;
   region?: string;
   languageHints: string[];
+  /** The service's code of the language to translate into; absent, nothing is translated. */
+  translateTo?: string;
+  /** The word list, in the service's own shape; absent, none is sent. */
+  context?: FileRecognitionContext;
   jobId: string;
 }
 
