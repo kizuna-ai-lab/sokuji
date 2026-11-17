@@ -201,7 +201,12 @@ export const RecordPage: React.FC = () => {
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
-  useEffect(() => { if (hitKind) setPane(hitKind === 'notes' ? 'notes' : 'transcript'); }, [open?.record.id, hitKind]);
+  useEffect(() => {
+    if (!hitKind) return;
+    setPane(hitKind === 'notes' ? 'notes' : 'transcript');
+    // A hit in the notes shows them on a wide page too; the closed choice stays saved for ordinary openings.
+    if (hitKind === 'notes') setNotesOpen(true);
+  }, [open?.record.id, hitKind]);
   const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
   useEffect(() => {
     const el = pageRef.current;

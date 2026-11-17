@@ -739,6 +739,23 @@ describe('the notes column on a wide page', () => {
 
   const notesSwitch = () => screen.getByRole('button', { name: 'Notes' });
 
+  // Review: a search hit in the notes shows the notes even when they were closed; the closed choice is kept for
+  // ordinary openings.
+  it('shows the closed notes for a search hit in them, and keeps them closed for the next record', async () => {
+    widePage();
+    localStorage.setItem('history.notesClosed', '1');
+    record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: 'When it ships.', format: 'plain' }, topics: [], points: [], names: [] },
+    })) as never;
+    await renderRecord({ kind: 'notes', notesId: 7 });
+    expect(notes()).not.toHaveAttribute('hidden');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.getItem('history.notesClosed')).toBe('1');
+  });
+
   it('has a divider to drag, and the switch that shows and hides the notes sits in the toolbar with the side panel\'s', async () => {
     widePage();
     await renderRecord();
