@@ -13,10 +13,18 @@ test(`@long a ${MINUTES}-minute session keeps every sentence and its whole recor
   test.setTimeout(SESSION_MS + 5 * 60_000);
   const sokuji = await launchApp({ seed: { storage: { ...baseStorage('fake'), 'settings.fake.script': 'long' } } });
   const { page, userData } = sokuji;
-  // The page's process as the system sees it (Electron's own metrics). `performance.memory` is no use here: Chromium
-  // rounds it into buckets and refreshes it rarely, so it reads the same number for the whole session.
-  const memoryMb = () => sokuji.app.evaluate(({ app }) => Math.round(
-    app.getAppMetrics().filter((p) => p.type === 'Tab').reduce((sum, p) => sum + p.memory.workingSetSize, 0) / 1024));
+  // What the page still holds after a collection: the script heap in use, and the page process as the system
+  // counts it. Collected first, on purpose: left alone, the process grows by several MB a minute with garbage the
+  // engine has no reason yet to collect, which says nothing about what the app keeps. (`performance.memory` is no
+  // use either: Chromium rounds it into buckets and refreshes it rarely.)
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('HeapProfiler.enable');
+  const memoryMb = async () => {
+    await cdp.send('HeapProfiler.collectGarbage');
+    const heap = await cdp.send('Runtime.getHeapUsage');
+    const process = await sokuji.app.evaluate(({ app }) => app.getAppMetrics().filter((p) => p.type === 'Tab').reduce((sum, p) => sum + p.memory.workingSetSize, 0) / 1024);
+    return { heap: Math.round(heap.usedSize / 1_048_576), process: Math.round(process) };
+  };
 
   await expect(mainAction(page)).toBeEnabled({ timeout: 30_000 });
   await mainAction(page).click();
@@ -24,13 +32,13 @@ test(`@long a ${MINUTES}-minute session keeps every sentence and its whole recor
   const startedAt = Date.now();
 
   // A reading a minute. The first two minutes are the app warming up; the rest must not keep climbing.
-  const memory: number[] = [];
+  const memory: { heap: number; process: number }[] = [];
   while (Date.now() - startedAt < SESSION_MS) {
     await page.waitForTimeout(Math.min(60_000, SESSION_MS - (Date.now() - startedAt)));
     memory.push(await memoryMb());
     await expect(mainAction(page)).toBeEnabled(); // still a running session with a live Stop button
   }
-  test.info().annotations.push({ type: 'page memory MB, one reading a minute', description: memory.join(' ') });
+  test.info().annotations.push({ type: 'script heap / page process MB after a collection, one reading a minute', description: memory.map((m) => `${m.heap}/${m.process}`).join(' ') });
 
   await mainAction(page).click();
   await expect(mainAction(page)).toBeEnabled({ timeout: 60_000 });
@@ -62,13 +70,16 @@ test(`@long a ${MINUTES}-minute session keeps every sentence and its whole recor
   expect(track.fileBytes).toBe(track.bytes);
   expect(Math.abs(track.durationMs - ranMs)).toBeLessThan(10_000);
 
-  // Memory: the mean of the last third of the readings is not far above the mean of the third before it.
+  // Memory, after a collection each time: neither the script heap nor the page process in the last third of the
+  // readings is far above the third before it. (The conversation's own rows do add up: about fourteen elements each.)
   if (memory.length >= 9) {
     const third = Math.floor(memory.length / 3);
     const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
-    const middle = mean(memory.slice(third, 2 * third));
-    const last = mean(memory.slice(2 * third));
-    test.info().annotations.push({ type: 'page memory MB, middle third / last third', description: `${middle.toFixed(0)} / ${last.toFixed(0)}` });
-    expect(last).toBeLessThan(middle * 1.3 + 50);
+    for (const kind of ['heap', 'process'] as const) {
+      const middle = mean(memory.slice(third, 2 * third).map((m) => m[kind]));
+      const last = mean(memory.slice(2 * third).map((m) => m[kind]));
+      test.info().annotations.push({ type: `${kind} MB, middle third / last third`, description: `${middle.toFixed(0)} / ${last.toFixed(0)}` });
+      expect(last, kind).toBeLessThan(middle * 1.25 + 10);
+    }
   }
 });
