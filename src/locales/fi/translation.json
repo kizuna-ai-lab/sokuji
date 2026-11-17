@@ -2013,7 +2013,6 @@
     "allRecords": "Kaikki tallenteet",
     "binTitle": "Roskakori",
     "results": "Hakutulokset",
-    "selectMode": "Valitse",
     "selectedCount": "{{count}} valittu",
     "tagTranscript": "Litterointi",
     "tagNotes": "Muistiinpanot",
@@ -2096,13 +2095,13 @@
       "import": "Tuo tiedosto",
       "importTitle": "Tuo ”{{name}}”",
       "language": "Puhuttu kieli",
-      "service": "Litteroijana Soniox, kokoonpanosi tunnistuspalvelu.",
+      "service": "Litteroijana Soniox, omalla avaimellasi.",
       "start": "Aloita",
       "transcribe": "Litteroi",
       "transcribeAgain": "Litteroi uudelleen",
       "transcribeNote": "Tallennettu äänite litteroidaan uudelleen. Siitä tulee uusi versio; nykyiset litteroinnit säilyvät.",
-      "blockedNotSoniox": "Vaatii Sonioxin tunnistuspalveluksi kokoonpanoon.",
-      "blockedNoKey": "Vaatii Soniox-avaimen asetuksissa.",
+      "blockedNotSoniox": "Tiedostoja litteroi vain Soniox omalla avaimellasi. Valitse se kokoonpanossa litteroinnille.",
+      "blockedNoKey": "Soniox-avaintasi ei ole vielä annettu.",
       "blockedSession": "Käytettävissä, kun istunto ei ole käynnissä.",
       "blockedBusy": "Toinen tuonti tai litterointi on käynnissä.",
       "blockedNoRecording": "Tähän tallenteeseen ei ole säilytetty äänitettä.",
@@ -2138,7 +2137,9 @@
       "versions": "Litteroinnin versio",
       "versionLive": "Reaaliaikainen · {{time}}",
       "versionFile": "Soniox-tiedosto · {{time}}",
-      "blockedUnchecked": "Tunnistuspalvelua ei voitu tarkistaa. Sulje tämä ja yritä uudelleen."
+      "blockedUnchecked": "Litterointipalvelua ei voitu tarkistaa. Sulje tämä ja yritä uudelleen.",
+      "blockedHostedSoniox": "Tiedostot litteroidaan vain omalla Soniox-avaimellasi: Kizuna AI:n Soniox on toistaiseksi vain reaaliaikaisia istuntoja varten.",
+      "openSettings": "Avaa {{place}}"
     },
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "notesAddToWords": "Lisää sanalistaan",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Nimeä puhuja uudelleen napsauttamalla nimeä. Jos haluat antaa yhden lauseen jollekulle toiselle, käytä litteroinnissa sen vieressä olevaa Vaihda puhuja -painiketta.",
     "sidePanel": "Sivupaneeli",
     "openSidePanel": "Avaa sivupaneeli",
-    "closeSidePanel": "Sulje sivupaneeli"
+    "closeSidePanel": "Sulje sivupaneeli",
+    "selectRecords": "Valitse tallenteita",
+    "hideNotes": "Piilota muistiinpanot",
+    "showNotes": "Näytä muistiinpanot"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Saldosi loppui; reaaliaikaiset muistiinpanot pysähtyivät.",
     "stoppedByService": "Kizuna AI ei voi nyt kirjoittaa reaaliaikaisia muistiinpanoja; ne pysähtyivät.",
     "costSoFar": "Reaaliaikaiset muistiinpanot tähän asti: noin {{cost}}",
-    "lowBalance": "Saldosi on vähissä: jäljellä {{balance}}."
+    "lowBalance": "Saldosi on vähissä: jäljellä {{balance}}.",
+    "hide": "Piilota reaaliaikaiset muistiinpanot",
+    "show": "Näytä reaaliaikaiset muistiinpanot",
+    "showWriting": "Näytä reaaliaikaiset muistiinpanot (kirjoitetaan yhä)"
   }
 }

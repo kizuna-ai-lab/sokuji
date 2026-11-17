@@ -2013,7 +2013,6 @@
     "allRecords": "全部記錄",
     "binTitle": "回收站",
     "results": "搜尋結果",
-    "selectMode": "選取",
     "selectedCount": "已選 {{count}} 筆",
     "tagTranscript": "轉寫",
     "tagNotes": "紀要",
@@ -2096,13 +2095,13 @@
       "import": "匯入檔案",
       "importTitle": "匯入「{{name}}」",
       "language": "錄音中說的語言",
-      "service": "由 Soniox 轉寫（工作組合裡「辨識」那一環選的服務）。",
+      "service": "由 Soniox 轉寫（用你自己的金鑰）。",
       "start": "開始",
       "transcribe": "轉寫",
       "transcribeAgain": "重新轉寫",
       "transcribeNote": "把保存的錄音重新轉寫一次，產生一個新版本；現有的轉寫都保留。",
-      "blockedNotSoniox": "需要在工作組合的「辨識」那一環選 Soniox。",
-      "blockedNoKey": "需要在設定裡填 Soniox 金鑰。",
+      "blockedNotSoniox": "檔案只能由 Soniox（用你自己的金鑰）轉寫。請在工作組合的轉寫裡選它。",
+      "blockedNoKey": "還沒有填 Soniox 金鑰。",
       "blockedSession": "沒有工作階段進行時才能用。",
       "blockedBusy": "已經有一個匯入或轉寫在進行。",
       "blockedNoRecording": "這筆紀錄沒有保存錄音。",
@@ -2138,7 +2137,9 @@
       "versions": "轉寫版本",
       "versionLive": "即時 · {{time}}",
       "versionFile": "Soniox 檔案 · {{time}}",
-      "blockedUnchecked": "沒能檢查辨識服務。請關閉這裡再試一次。"
+      "blockedUnchecked": "沒能檢查轉寫服務。請關閉這裡再試一次。",
+      "blockedHostedSoniox": "檔案要用你自己的 Soniox 金鑰轉寫：Kizuna AI 的 Soniox 目前只用於即時會話。",
+      "openSettings": "前往{{place}}"
     },
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "notesAddToWords": "加入詞表",
@@ -2164,7 +2165,10 @@
     "speakersHint": "點名字改名。要把某一句換給別人，用轉寫裡那一句旁邊的「變更說話者」按鈕。",
     "sidePanel": "側欄",
     "openSidePanel": "開啟側欄",
-    "closeSidePanel": "收合側欄"
+    "closeSidePanel": "收合側欄",
+    "selectRecords": "選取記錄",
+    "hideNotes": "收合紀要",
+    "showNotes": "展開紀要"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",
@@ -2186,6 +2190,9 @@
     "noBalance": "餘額已用完，即時紀要已停止。",
     "stoppedByService": "Kizuna AI 現在無法寫即時紀要，已停止。",
     "costSoFar": "本次即時紀要已用：約 {{cost}}",
-    "lowBalance": "餘額不多了：還剩 {{balance}}。"
+    "lowBalance": "餘額不多了：還剩 {{balance}}。",
+    "hide": "收合即時紀要",
+    "show": "展開即時紀要",
+    "showWriting": "展開即時紀要（仍在生成）"
   }
 }

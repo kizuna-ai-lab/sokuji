@@ -2,12 +2,13 @@
 //
 // The list of records in the settings page's frame (the owner chose it, 2026-11-16): on the left the way back to the
 // session, the search, "All records" and "Bin", and the space History takes; on the right the records by day, the
-// search's results or the bin. Checkboxes appear only after "Select". A record still being written is listed as
+// search's results or the bin. Checkboxes appear only after "Select records", and the heading row then holds the count and
+// the actions, kept at the top while the list scrolls (owner, 2026-11-17). A record still being written is listed as
 // "In progress" and cannot be selected; nothing is deleted for good before the user answers a confirmation on the page.
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { ChevronLeft, FileUp, FolderOpen, Search } from 'lucide-react';
+import { ChevronLeft, FileUp, FolderOpen, ListChecks, Search } from 'lucide-react';
 import { languageLabel } from '../../lib/language/label';
 import type { HitTarget } from '../../lib/history/historyPageStore';
 import type { HistoryRecordRow, HistorySearchHit, HistorySearchResult } from '../../lib/history/types';
@@ -269,8 +270,34 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
 
   const heading = searching ? t('history.results', 'Search results') : tab === 'records' ? t('history.allRecords', 'All records') : t('history.binTitle', 'Bin');
   let headAction: React.ReactNode = null;
-  if (status && !searching && tab === 'records' && rows.length > 0 && !selecting) {
-    headAction = <button type="button" className="history-button" onClick={() => setSelecting(true)}>{t('history.selectMode', 'Select')}</button>;
+  const selectingNow = selecting && !searching && tab === 'records';
+  if (selectingNow) {
+    // Where "Select records" was clicked: the count beside the heading, the actions at the end of the row.
+    headAction = (
+      <>
+        <span className="history-content__count">{t('history.selectedCount', '{{count}} selected', { count: selected.size })}</span>
+        <span className="history-content__actions">
+          <button
+            type="button"
+            className="history-button"
+            disabled={busy || selected.size === 0}
+            onClick={async () => { await actions.binSelected(); setSelecting(false); }}
+          >
+            {t('history.moveOneToBin', 'Move to bin')}
+          </button>
+          <button type="button" className="history-button history-button--quiet" onClick={leaveSelect}>
+            {t('history.cancel', 'Cancel')}
+          </button>
+        </span>
+      </>
+    );
+  } else if (status && !searching && tab === 'records' && rows.length > 0) {
+    headAction = (
+      <button type="button" className="history-button history-button--quiet history-content__select" onClick={() => setSelecting(true)}>
+        <ListChecks size={14} aria-hidden="true" />
+        {t('history.selectRecords', 'Select records')}
+      </button>
+    );
   } else if (status && !searching && tab === 'bin' && rows.length > 0) {
     headAction = (
       <button type="button" className="history-button history-button--danger" disabled={busy} onClick={() => setConfirm({ all: true, count: usage?.binned ?? rows.length })}>
@@ -343,7 +370,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
       )}
     </nav>,
     <section className="settings-page__content history-content" ref={scroller} onScroll={(e) => { if (!hidden) scrolledTo.current = e.currentTarget.scrollTop; }}>
-      <header>
+      <header className={selectingNow ? 'is-selecting' : undefined}>
         <div className="history-content__head">
           <h2>{heading}</h2>
           {headAction}
@@ -380,24 +407,6 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
         )}
         {body}
       </div>
-      {selecting && !searching && tab === 'records' && (
-        <div className="history-select-bar" role="toolbar">
-          <div className="history-select-bar__in">
-          <span>{t('history.selectedCount', '{{count}} selected', { count: selected.size })}</span>
-          <button
-            type="button"
-            className="history-button"
-            disabled={busy || selected.size === 0}
-            onClick={async () => { await actions.binSelected(); setSelecting(false); }}
-          >
-            {t('history.moveOneToBin', 'Move to bin')}
-          </button>
-          <button type="button" className="history-button history-button--quiet" onClick={leaveSelect}>
-            {t('history.cancel', 'Cancel')}
-          </button>
-          </div>
-        </div>
-      )}
     </section>,
   );
 };

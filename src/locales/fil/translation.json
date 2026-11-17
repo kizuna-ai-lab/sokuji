@@ -2013,7 +2013,6 @@
     "allRecords": "Lahat ng record",
     "binTitle": "Basurahan",
     "results": "Mga resulta ng paghahanap",
-    "selectMode": "Pumili",
     "selectedCount": "{{count}} ang napili",
     "tagTranscript": "Transcript",
     "tagNotes": "Tala",
@@ -2096,13 +2095,13 @@
       "import": "Mag-import ng file",
       "importTitle": "I-import ang “{{name}}”",
       "language": "Wikang ginamit dito",
-      "service": "Isasalin sa teksto ng Soniox, ang serbisyo ng pagkilala sa iyong line-up.",
+      "service": "Isasalin sa teksto ng Soniox, gamit ang sarili mong key.",
       "start": "Simulan",
       "transcribe": "I-transcribe",
       "transcribeAgain": "I-transcribe muli",
       "transcribeNote": "Muling isasalin sa teksto ang naka-save na recording. Gagawa ng bagong bersyon; mananatili ang mga transcript na narito na.",
-      "blockedNotSoniox": "Kailangang Soniox ang serbisyo ng pagkilala sa line-up.",
-      "blockedNoKey": "Kailangan ng Soniox key sa Settings.",
+      "blockedNotSoniox": "Ang Soniox lang na may sarili mong key ang nagta-transcribe ng mga file. Piliin ito para sa transkripsyon sa line-up.",
+      "blockedNoKey": "Hindi pa nailalagay ang iyong Soniox key.",
       "blockedSession": "Magagamit kapag walang tumatakbong session.",
       "blockedBusy": "May isa pang import o transcription na tumatakbo.",
       "blockedNoRecording": "Walang naka-save na recording ang rekord na ito.",
@@ -2138,7 +2137,9 @@
       "versions": "Bersyon ng transcript",
       "versionLive": "Live · {{time}}",
       "versionFile": "Soniox file · {{time}}",
-      "blockedUnchecked": "Hindi masuri ang serbisyo ng pagkilala. Isara ito at subukang muli."
+      "blockedUnchecked": "Hindi masuri ang serbisyo ng transkripsyon. Isara ito at subukang muli.",
+      "blockedHostedSoniox": "Sa sarili mong Soniox key lang nata-transcribe ang mga file: ang Soniox ng Kizuna AI ay para lang sa mga live session sa ngayon.",
+      "openSettings": "Buksan ang {{place}}"
     },
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "notesAddToWords": "Idagdag sa listahan ng salita",
@@ -2164,7 +2165,10 @@
     "speakersHint": "I-click ang pangalan para palitan ang pangalan ng nagsasalita. Para ibigay ang isang pangungusap sa iba, gamitin ang button na “Palitan ang nagsasalita” sa tabi nito sa transcript.",
     "sidePanel": "Side panel",
     "openSidePanel": "Buksan ang side panel",
-    "closeSidePanel": "Isara ang side panel"
+    "closeSidePanel": "Isara ang side panel",
+    "selectRecords": "Pumili ng mga record",
+    "hideNotes": "Itago ang mga tala",
+    "showNotes": "Ipakita ang mga tala"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Naubos ang iyong balanse; huminto ang live na tala.",
     "stoppedByService": "Hindi makapagsulat ngayon ang Kizuna AI ng live na tala; huminto ang mga ito.",
     "costSoFar": "Live na tala sa ngayon: mga {{cost}}",
-    "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira."
+    "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira.",
+    "hide": "Itago ang live na tala",
+    "show": "Ipakita ang live na tala",
+    "showWriting": "Ipakita ang live na tala (isinusulat pa)"
   }
 }

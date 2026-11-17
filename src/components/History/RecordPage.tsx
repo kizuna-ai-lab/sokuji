@@ -4,11 +4,11 @@
 // one block per round and speaker with the translation under it; its speakers, named in place; and its export. A record
 // still being written shows how it was when opened, with Refresh. The notes and the player get their places later: the
 // side column below the speakers, and a strip along the bottom.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { AudioLines, ChevronLeft, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
-import { englishLanguageName, languageLabel, uiLocale } from '../../lib/language/label';
+import { AudioLines, ChevronLeft, Ellipsis, MicOff, PanelLeft, PanelRight, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import { NOTES_MIN_MS } from '../../lib/notes/write';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
@@ -21,13 +21,16 @@ import RecordExportMenu from './RecordExportMenu';
 import RecordPlayer, { type SeekFn } from './RecordPlayer';
 import RecordNotes from './RecordNotes';
 import { TranscribePanel, TranscriptChooser } from './FileJobs';
-import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
+import { notesLanguagesOf } from './notesLanguages';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
 import { InlineEdit } from './InlineEdit';
+import PanelResizer from '../MainLayout/PanelResizer';
+import { labelsFit } from './panelSwitchFit';
+import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -182,18 +185,77 @@ export const RecordPage: React.FC = () => {
   const notesRunning = useStore(store, (s) => s.notesRunning);
   const pageRef = useRef<HTMLDivElement>(null);
   const [wide, setWide] = useState(false);
+  const [pageWidth, setPageWidth] = useState(0);
+  // Wide: the notes column's width, dragged at the divider, and whether it is shown, from a switch in the toolbar; both
+  // kept for the next record (owner, 2026-11-17; B-31, B-40). Hidden, the transcript takes the whole width.
+  const [notesOpen, setNotesOpen] = useState(readNotesOpen);
+  const [notesWidth, setNotesWidth] = useState(readNotesWidth);
+  const notesId = useId();
+  const sideId = useId();
+  // The switches' words, kept while the heading has its room beside the actions (panelSwitchFit.ts).
+  const headRef = useRef<HTMLElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  // The actions' width with the words, measured while they show; once hidden, what the words add to the actions
+  // (taken at the first measure without them), so actions that change while the words are hidden are judged right.
+  const wordsWidth = useRef(0);
+  const wordsAdd = useRef<number | null>(null);
+  const [switchWords, setSwitchWords] = useState(true);
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
-  useEffect(() => { if (hitKind) setPane(hitKind === 'notes' ? 'notes' : 'transcript'); }, [open?.record.id, hitKind]);
+  useEffect(() => {
+    if (!hitKind) return;
+    setPane(hitKind === 'notes' ? 'notes' : 'transcript');
+    // A hit in the notes shows them on a wide page too; the closed choice stays saved for ordinary openings.
+    if (hitKind === 'notes') setNotesOpen(true);
+  }, [open?.record.id, hitKind]);
   const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
   useEffect(() => {
     const el = pageRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const watch = new ResizeObserver(() => setWide(el.clientWidth >= NOTES_WIDE_PX));
+    const watch = new ResizeObserver(() => {
+      setWide(el.clientWidth >= NOTES_WIDE_PX);
+      setPageWidth(el.clientWidth);
+    });
     watch.observe(el);
     return () => watch.disconnect();
   }, [open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Measured again whenever the head or the actions change size (a window resized, a font come in, a button added).
+  const wordsShown = useRef(switchWords);
+  wordsShown.current = switchWords;
+  useLayoutEffect(() => {
+    const head = headRef.current;
+    const actions = actionsRef.current;
+    if (!head || !actions) return undefined;
+    const measure = () => {
+      const style = getComputedStyle(head);
+      const padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      const gap = parseFloat(style.columnGap) || 0;
+      const parts = [...head.children] as HTMLElement[];
+      const others = parts.filter((p) => p !== actions && !p.classList.contains('record-page__heading'))
+        .reduce((sum, p) => sum + p.getBoundingClientRect().width, 0);
+      const width = actions.getBoundingClientRect().width;
+      let withWords: number;
+      if (wordsShown.current) {
+        wordsWidth.current = width;
+        wordsAdd.current = null;
+        withWords = width;
+      } else {
+        wordsAdd.current ??= Math.max(0, wordsWidth.current - width);
+        withWords = width + wordsAdd.current;
+      }
+      const fit = labelsFit({ head: head.clientWidth, padding, gaps: gap * Math.max(0, parts.length - 1), others, actions: withWords });
+      if (fit !== wordsShown.current) setSwitchWords(fit);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const watch = new ResizeObserver(measure);
+    watch.observe(head);
+    watch.observe(actions);
+    return () => watch.disconnect();
+  }, [switchWords, open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A new language measures its words again.
+  useEffect(() => { setSwitchWords(true); }, [language]);
   // A point or topic of the notes: the transcript shows its sentence, marked, and plays from it when there is sound.
   useEffect(() => {
     if (!jumpTo || !open) return;
@@ -204,13 +266,8 @@ export const RecordPage: React.FC = () => {
     const sentence = open.sentences.find((s) => s.n === jumpTo.n);
     if (sentence && playable(open.record.tracks).length > 0) seekRef.current?.(startFor(sentence), true);
   }, [jumpTo, open]);
-  // Any language the app knows (its interface languages), the record's own and the interface's first.
-  const notesLanguages = useMemo((): NotesLanguage[] => {
-    if (!open) return [];
-    const codes = [open.record.myLanguage, open.record.targetLanguage, uiLocale(language), ...INTERFACE_LANGUAGES.map((l) => uiLocale(l.value))]
-      .filter((c) => c && c !== 'auto' && !c.includes('+'));
-    return [...new Set(codes)].map((code) => ({ code, name: englishLanguageName(code) }));
-  }, [open, language]);
+  // The record's own two languages, mine first (notesLanguages.ts).
+  const notesLanguages = useMemo((): NotesLanguage[] => (open ? notesLanguagesOf(open.record, language) : []), [open, language]);
   const notesService = useLineUpStore((s) => notesServiceOf(s.lineUp));
   const notesExplained = useNotesExplained();
   const setNotesExplained = useSetNotesExplained();
@@ -229,6 +286,8 @@ export const RecordPage: React.FC = () => {
     />
   );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
+  // The width shown fits this page; the one kept stays as the user left it, for a wider window later.
+  const shownNotesWidth = notesWidthWithin(notesWidth, pageWidth);
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
@@ -274,6 +333,41 @@ export const RecordPage: React.FC = () => {
   };
 
   const speakerCount = speakersOf('mine').length + speakersOf('other').length;
+  const sideShown = speakerCount > 0 && (wide || pane === 'transcript');
+  // Hiding the side panel with a name being typed saves it first, a newer one typed while an earlier save ran as well
+  // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
+  const toggleSide = async () => {
+    if (sideOpen) {
+      for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
+        if (!(await saveName())) return;
+      }
+      if (nameDraftRef.current) return;
+    }
+    writeSideOpen(!sideOpen);
+    setSideOpen(!sideOpen);
+  };
+  // The two panels' switches, together in the toolbar before Export: the icon says which side, the pressed state that
+  // the panel is shown, the tooltip what a click does (design review, 2026-11-17; B-40).
+  const panelSwitches = (wide || sideShown) && (
+    <span className="record-page__panels" data-compact={switchWords ? undefined : ''}>
+      {wide && (
+        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
+          title={notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes')}
+          aria-pressed={notesOpen} aria-controls={notesId} onClick={() => { writeNotesOpen(!notesOpen); setNotesOpen(!notesOpen); }}>
+          <PanelLeft size={16} aria-hidden="true" />
+          <span className="record-page__panel-word">{t('history.notes', 'Notes')}</span>
+        </button>
+      )}
+      {sideShown && (
+        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.sidePanel', 'Side panel')}
+          title={sideOpen ? t('history.closeSidePanel', 'Close the side panel') : t('history.openSidePanel', 'Open the side panel')}
+          aria-pressed={sideOpen} aria-controls={sideId} onClick={() => void toggleSide()}>
+          <PanelRight size={16} aria-hidden="true" />
+          <span className="record-page__panel-word">{t('history.sidePanel', 'Side panel')}</span>
+        </button>
+      )}
+    </span>
+  );
   const speakersPanel = (
     <div className="record-page__speakers">
       {(['mine', 'other'] as const).map((side) => {
@@ -391,7 +485,7 @@ export const RecordPage: React.FC = () => {
 
   return (
     <div className="record-page" ref={pageRef}>
-      <header className="record-page__head">
+      <header className="record-page__head" ref={headRef}>
         <button type="button" className="settings-page__back" onClick={() => actions.closeRecord()}>
           <ChevronLeft size={14} aria-hidden="true" /> {t('history.backToList', 'Back to the list')}
         </button>
@@ -423,7 +517,7 @@ export const RecordPage: React.FC = () => {
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
           </span>
         </div>
-        <div className="record-page__actions">
+        <div className="record-page__actions" ref={actionsRef}>
           {result && <span className="record-page__result" role="status">{result}</span>}
           {live && (
             <button type="button" className="history-button" disabled={busy} onClick={() => void actions.refreshRecord()}>
@@ -431,6 +525,7 @@ export const RecordPage: React.FC = () => {
               {t('history.refresh', 'Refresh')}
             </button>
           )}
+          {panelSwitches}
           <RecordExportMenu record={record} legs={open.legs} rows={rows} transcript={record.transcripts.find((x) => x.id === open.transcriptId) ?? null} notes={open.notes} onResult={setResult} />
           <span
             className="record-page__more"
@@ -514,31 +609,40 @@ export const RecordPage: React.FC = () => {
       )}
       {/* The columns, in a frame that does not scroll: the speakers' drawer stays put over them. */}
       <div className="record-page__body">
-      <div className={`record-page__columns${wide ? ' is-wide' : ''}`}>
-        <div className="record-page__notes" hidden={!wide && pane !== 'notes'}>{notesView}</div>
+      <div
+        className={`record-page__columns${wide ? ' is-wide' : ''}`}
+        style={wide ? { gridTemplateColumns: notesOpen ? `${shownNotesWidth}px ${DIVIDER_PX}px minmax(0, 1fr)` : 'minmax(0, 1fr)' } : undefined}
+      >
+        <div className="record-page__notes-col" hidden={wide ? !notesOpen : pane !== 'notes'}>
+          <div className="record-page__notes" id={notesId} hidden={wide && !notesOpen}>{notesView}</div>
+        </div>
+        {wide && notesOpen && (
+          <PanelResizer
+            side="left"
+            width={shownNotesWidth}
+            min={NOTES_MIN_PX}
+            max={notesWidthWithin(Number.POSITIVE_INFINITY, pageWidth)}
+            onResize={(next) => setNotesWidth(notesWidthWithin(next, pageWidth))}
+            onCommit={(next) => {
+              const width = notesWidthWithin(next, pageWidth);
+              setNotesWidth(width);
+              writeNotesWidth(width);
+            }}
+          />
+        )}
         <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
           {transcript}
         </div>
       </div>
         {/* The side panel over the transcript (owner, 2026-11-17): the speakers have no column of their own. Closing it
             while a name is typed saves the name, as a click elsewhere does. */}
-        {speakerCount > 0 && (wide || pane === 'transcript') && (
+        {sideShown && (
           <RecordSidePanel
+            id={sideId}
             open={sideOpen}
             // A name or the title being typed: Escape is the field's, not the panel's.
             editing={nameDraft !== null || titleDraft !== null}
-            onToggle={async () => {
-              // Closing with a name being typed saves it first, a newer one typed while an earlier save ran as well
-              // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
-              if (sideOpen) {
-                for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
-                  if (!(await saveName())) return;
-                }
-                if (nameDraftRef.current) return;
-              }
-              writeSideOpen(!sideOpen);
-              setSideOpen(!sideOpen);
-            }}
+            onToggle={toggleSide}
           >
             <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
               <h3>{t('history.speakers', 'Speakers')}</h3>

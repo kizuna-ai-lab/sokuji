@@ -475,7 +475,7 @@ describe('transcripts and file jobs', () => {
     expect(runner.start).toHaveBeenCalledWith(A, undefined, 1);
   });
 
-  function fakeJobs(o: { missing?: 'no-file-service' | 'no-key'; session?: boolean } = {}) {
+  function fakeJobs(o: { missing?: 'no-file-service' | 'hosted-soniox' | 'no-key'; session?: boolean } = {}) {
     let finishImport!: (r: unknown) => void;
     let finishTranscribe!: (r: unknown) => void;
     const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
@@ -529,6 +529,24 @@ describe('transcripts and file jobs', () => {
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
     store.getState().follow();
     expect(await store.getState().fileJobBlocked('transcribe')).toBeNull();
+  });
+
+  // Review: with a job running, a line-up that cannot transcribe files says so, not "busy" (the panel would then
+  // name a service that cannot do the job).
+  it('says a job is running only when the line-up could transcribe the file', async () => {
+    const shared = createFileJobState();
+    const ok = fakeJobs();
+    const first = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...ok.jobs, state: shared } as never);
+    first.getState().follow();
+    void first.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await vi.waitFor(() => expect(ok.jobs.importFile).toHaveBeenCalled());
+    expect(await first.getState().fileJobBlocked('import')).toBe('busy');
+    const hosted = fakeJobs({ missing: 'hosted-soniox' });
+    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...hosted.jobs, state: shared } as never);
+    second.getState().follow();
+    expect(await second.getState().fileJobBlocked('import')).toBe('hosted-soniox');
+    first.getState().dispose();
+    second.getState().dispose();
   });
 
   it('a file job outlives the page: the next page shows it, can cancel it, and cannot start a second', async () => {

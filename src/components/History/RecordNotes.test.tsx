@@ -70,6 +70,23 @@ describe("a record's notes", () => {
     expect(screen.getByRole('button', { name: /The boxes were redone/ })).toBeInTheDocument();
   });
 
+  // Owner, 2026-11-17: a long point is one run of text, its bullet at its first line and its kinds right after its last
+  // word. A <button> is laid out as a block of its own, which put the bullet at its last line and the kinds on a line
+  // of their own.
+  it('lets a point\'s text run inline, its kinds straight after it, and still go to its sentence from the keyboard', () => {
+    const p = props();
+    render(<RecordNotes {...p} />);
+    const point = screen.getByRole('button', { name: /Customs may hold it/ });
+    expect(point.tagName).toBe('SPAN');
+    expect(point.tabIndex).toBe(0);
+    expect(point.nextElementSibling?.className).toBe('record-notes__marks');
+    expect(point.nextElementSibling?.tagName).toBe('SPAN');
+    fireEvent.keyDown(point, { key: 'Enter' });
+    fireEvent.keyDown(point, { key: ' ' });
+    fireEvent.keyDown(point, { key: 'a' });
+    expect(vi.mocked(p.onJump).mock.calls).toEqual([[8], [8]]);
+  });
+
   it('takes a point to its sentence and a topic to its first', () => {
     const p = props();
     render(<RecordNotes {...p} />);
@@ -105,6 +122,62 @@ describe("a record's notes", () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Language of the notes' }), { target: { value: 'ja' } });
     fireEvent.click(screen.getByRole('button', { name: 'Write notes' }));
     expect(p.onWrite).toHaveBeenCalledWith({ code: 'ja', name: 'Japanese' });
+  });
+
+  it('says on the screen that the language is the notes\' language, with the select and the button kept together after it', () => {
+    render(<RecordNotes {...props({ record: record(), notes: null })} />);
+    const select = screen.getByLabelText('Language of the notes');
+    expect(select.tagName).toBe('SELECT');
+    expect(select.getAttribute('aria-label')).toBeNull();
+    const label = screen.getByText('Language of the notes');
+    expect(label.tagName).toBe('LABEL');
+    const group = label.closest('.record-notes__write')!;
+    const pick = select.closest('.record-notes__pick')!;
+    expect(group.contains(pick)).toBe(true);
+    expect(within(pick as HTMLElement).getByRole('button', { name: 'Write notes' })).toBeInTheDocument();
+    // The label first, then the select and the button.
+    expect([...group.children]).toEqual([label, pick]);
+  });
+
+  // Owner, 2026-11-17: the select is at least as wide as its longest language name. The app's selects draw their own
+  // picker (appearance: base-select), which is only as wide as the chosen name, so the width is measured.
+  it('makes the select at least as wide as its longest language name', () => {
+    const measureText = (text: string) => ({ width: text.length * 10 });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({ font: '', measureText }) as unknown as CanvasRenderingContext2D);
+    render(<RecordNotes {...props({ record: record(), notes: null })} />);
+    const select = screen.getByLabelText('Language of the notes') as HTMLSelectElement;
+    const longest = Math.max(...[...select.options].map((o) => (o.textContent ?? '').length));
+    expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeGreaterThanOrEqual(longest * 10);
+  });
+
+  // Review: measured before the app's font has come in, the names are measured in a fallback font; measured again
+  // once fonts are ready, the select is wide enough in the font it shows.
+  it('measures the names again once the fonts have come in', async () => {
+    let fontIn = false;
+    const measureText = (text: string) => ({ width: text.length * (fontIn ? 20 : 10) });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({ font: '', measureText }) as unknown as CanvasRenderingContext2D);
+    let loaded!: () => void;
+    const ready = new Promise<void>((resolve) => { loaded = resolve; });
+    const fonts = Object.getOwnPropertyDescriptor(document, 'fonts');
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready } });
+    try {
+      render(<RecordNotes {...props({ record: record(), notes: null })} />);
+      const select = screen.getByLabelText('Language of the notes') as HTMLSelectElement;
+      const longest = Math.max(...[...select.options].map((o) => (o.textContent ?? '').length));
+      expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeLessThan(longest * 20);
+      fontIn = true;
+      await act(async () => { loaded(); await ready; });
+      expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeGreaterThanOrEqual(longest * 20);
+    } finally {
+      if (fonts) Object.defineProperty(document, 'fonts', fonts); else delete (document as { fonts?: unknown }).fonts;
+    }
+  });
+
+  it('keeps the same group for a new version of notes already written', () => {
+    render(<RecordNotes {...props()} />);
+    const pick = screen.getByLabelText('Language of the notes').closest('.record-notes__pick') as HTMLElement;
+    expect(within(pick).getByRole('button', { name: 'Write a new version' })).toBeInTheDocument();
+    expect(screen.getByText('Language of the notes').tagName).toBe('LABEL');
   });
 
   it('says notes are being written, with a way to stop', () => {
@@ -219,5 +292,54 @@ describe("a record's notes", () => {
     fireEvent.click(within(explained).getByRole('button', { name: 'Write notes' }));
     expect(p.onExplained).toHaveBeenCalled();
     expect(p.onWrite).toHaveBeenCalledWith({ code: 'zh', name: 'Chinese' });
+  });
+});
+
+describe('RecordNotes styles: the language and the button', () => {
+  // B-49 (owner, 2026-11-17): first the label takes a line of its own; when the select and the button still do not fit
+  // side by side, the button goes on to the next line, under the select, rather than out of the notes column.
+  it('wraps the label on to a line of its own first, then the button under the select, never out of the column', async () => {
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, 'History.scss')).css;
+    const write = css.match(/\.record-notes__write\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(write).toMatch(/flex-wrap:\s*wrap/);
+    const pick = css.match(/\.record-notes__pick\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(pick).toMatch(/display:\s*flex/);
+    expect(pick).toMatch(/flex-wrap:\s*wrap/);
+    expect(pick).not.toMatch(/flex-wrap:\s*nowrap/);
+    // The button keeps its words on one line, and is never wider than the column.
+    const button = css.match(/\.record-notes__pick \.history-button\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(button).toMatch(/flex:\s*none/);
+    expect(button).toMatch(/white-space:\s*nowrap/);
+    expect(button).toMatch(/max-width:\s*100%/);
+  });
+
+  // Owner, 2026-11-17: the select as wide as its longest language name (not capped, not stretched), and as tall as the
+  // button beside it.
+  it('makes the select as wide as its longest name and as tall as the button', async () => {
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, 'History.scss')).css;
+    const select = css.match(/\.record-notes__pick select\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(select).toMatch(/width:\s*auto/);
+    expect(select).not.toMatch(/max-width:\s*160px/);
+    // The measured width, and never more than most of the row in a narrow column (its button stays beside it).
+    expect(select).toMatch(/min-width:\s*min\(var\(--language-min, 0px\), 55cqw\)/);
+    expect(css).toMatch(/\.record-notes\s*\{[^}]*container-type:\s*inline-size/);
+    const height = (body: string) => body.match(/(?:^|;|\s)height:\s*([^;]+);/)?.[1]?.trim();
+    const button = css.match(/\.record-notes__pick \.history-button\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(height(select)).toBe('30px');
+    expect(height(button)).toBe('30px');
+    expect(select).toMatch(/box-sizing:\s*border-box/);
+    expect(button).toMatch(/box-sizing:\s*border-box/);
+    // Held to the button's height, its words and its arrow sit in the middle: no padding above and below to push them
+    // down (owner, 2026-11-17).
+    expect(select).toMatch(/padding-block:\s*0/);
+    expect(select).toMatch(/align-items:\s*center/);
+    // Opened, its list is exactly as wide as the select (owner, 2026-11-17).
+    const picker = css.match(/\.record-notes__pick select::picker\(select\)\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(picker).toMatch(/width:\s*anchor-size\(width\)/);
+    expect(picker).toMatch(/box-sizing:\s*border-box/);
   });
 });

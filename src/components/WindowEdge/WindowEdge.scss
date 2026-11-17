@@ -1,0 +1,10 @@
+@use '../../styles/tokens' as tk;
+
+// Two 1px lines just inside the window's bounds: the window keeps its size, and every click goes through.
+.window-edge {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483647;
+  box-shadow: inset 0 0 0 1px tk.$color-window-edge, inset 0 0 0 2px tk.$color-window-edge-inner;
+}

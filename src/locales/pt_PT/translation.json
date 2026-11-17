@@ -2013,7 +2013,6 @@
     "allRecords": "Todos os registos",
     "binTitle": "Reciclagem",
     "results": "Resultados da pesquisa",
-    "selectMode": "Selecionar",
     "selectedCount": "{{count}} selecionados",
     "tagTranscript": "Transcrição",
     "tagNotes": "Notas",
@@ -2096,13 +2095,13 @@
       "import": "Importar um ficheiro",
       "importTitle": "Importar «{{name}}»",
       "language": "Língua falada",
-      "service": "Transcrito pelo Soniox, o serviço de reconhecimento da sua configuração.",
+      "service": "Transcrito pelo Soniox, com a sua própria chave.",
       "start": "Iniciar",
       "transcribe": "Transcrever",
       "transcribeAgain": "Transcrever novamente",
       "transcribeNote": "A gravação guardada é transcrita novamente. É criada uma nova versão; as transcrições existentes mantêm-se.",
-      "blockedNotSoniox": "Requer o Soniox como serviço de reconhecimento na configuração.",
-      "blockedNoKey": "Requer uma chave Soniox nas Definições.",
+      "blockedNotSoniox": "Só o Soniox com a sua própria chave transcreve ficheiros. Escolha-o para a transcrição na sua configuração.",
+      "blockedNoKey": "A sua chave do Soniox ainda não foi preenchida.",
       "blockedSession": "Disponível quando não houver nenhuma sessão a decorrer.",
       "blockedBusy": "Outra importação ou transcrição está a decorrer.",
       "blockedNoRecording": "Este registo não guarda gravação.",
@@ -2138,7 +2137,9 @@
       "versions": "Versão da transcrição",
       "versionLive": "Em direto · {{time}}",
       "versionFile": "Ficheiro Soniox · {{time}}",
-      "blockedUnchecked": "Não foi possível verificar o serviço de reconhecimento. Feche e tente novamente."
+      "blockedUnchecked": "Não foi possível verificar o serviço de transcrição. Feche e tente novamente.",
+      "blockedHostedSoniox": "Os ficheiros só são transcritos com a sua própria chave do Soniox: o Soniox da Kizuna AI, por agora, é só para sessões em direto.",
+      "openSettings": "Abrir {{place}}"
     },
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser guardada: não foi possível escrevê-la no disco.",
     "notesAddToWords": "Adicionar à lista de palavras",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Clique num nome para mudar o nome do orador. Para atribuir uma frase a outra pessoa, use o botão «Mudar de orador» ao lado dela na transcrição.",
     "sidePanel": "Painel lateral",
     "openSidePanel": "Abrir o painel lateral",
-    "closeSidePanel": "Fechar o painel lateral"
+    "closeSidePanel": "Fechar o painel lateral",
+    "selectRecords": "Selecionar registos",
+    "hideNotes": "Ocultar as notas",
+    "showNotes": "Mostrar as notas"
   },
   "notesQuit": {
     "named": "As notas de «{{title}}» estão a ser escritas. Sair mesmo assim? Serão marcadas como canceladas.",
@@ -2186,6 +2190,9 @@
     "noBalance": "O seu saldo esgotou-se; as notas em direto pararam.",
     "stoppedByService": "A Kizuna AI não pode escrever notas em direto agora; pararam.",
     "costSoFar": "Notas em direto até agora: cerca de {{cost}}",
-    "lowBalance": "O seu saldo está baixo: restam {{balance}}."
+    "lowBalance": "O seu saldo está baixo: restam {{balance}}.",
+    "hide": "Ocultar as notas em direto",
+    "show": "Mostrar as notas em direto",
+    "showWriting": "Mostrar as notas em direto (ainda a ser escritas)"
   }
 }

@@ -2013,7 +2013,6 @@
     "allRecords": "Tüm kayıtlar",
     "binTitle": "Çöp kutusu",
     "results": "Arama sonuçları",
-    "selectMode": "Seç",
     "selectedCount": "{{count}} seçildi",
     "tagTranscript": "Döküm",
     "tagNotes": "Notlar",
@@ -2096,13 +2095,13 @@
       "import": "Dosya içe aktar",
       "importTitle": "“{{name}}” içe aktar",
       "language": "Konuşulan dil",
-      "service": "Dizilimindeki tanıma hizmeti Soniox tarafından yazıya dökülür.",
+      "service": "Kendi anahtarınızla Soniox tarafından yazıya dökülür.",
       "start": "Başlat",
       "transcribe": "Yazıya dök",
       "transcribeAgain": "Yeniden yazıya dök",
       "transcribeNote": "Kaydedilen ses yeniden yazıya dökülür. Yeni bir sürüm oluşur; mevcut dökümler kalır.",
-      "blockedNotSoniox": "Dizilimde tanıma hizmeti olarak Soniox gerekir.",
-      "blockedNoKey": "Ayarlarda bir Soniox anahtarı gerekir.",
+      "blockedNotSoniox": "Dosyaları yalnızca kendi anahtarınızla Soniox yazıya döker. Dizilimde transkripsiyon için onu seçin.",
+      "blockedNoKey": "Soniox anahtarınız henüz girilmedi.",
       "blockedSession": "Çalışan bir oturum yokken kullanılabilir.",
       "blockedBusy": "Başka bir içe aktarma ya da döküm sürüyor.",
       "blockedNoRecording": "Bu kayıtta ses kaydı tutulmuyor.",
@@ -2138,7 +2137,9 @@
       "versions": "Döküm sürümü",
       "versionLive": "Canlı · {{time}}",
       "versionFile": "Soniox dosyası · {{time}}",
-      "blockedUnchecked": "Tanıma hizmeti denetlenemedi. Bunu kapatıp yeniden deneyin."
+      "blockedUnchecked": "Transkripsiyon hizmeti denetlenemedi. Bunu kapatıp yeniden deneyin.",
+      "blockedHostedSoniox": "Dosyalar yalnızca kendi Soniox anahtarınızla yazıya dökülür: Kizuna AI'ın Soniox'u şimdilik yalnızca canlı oturumlar içindir.",
+      "openSettings": "{{place}} bölümünü aç"
     },
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "notesAddToWords": "Kelime listesine ekle",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Konuşmacının adını değiştirmek için ada tıklayın. Bir cümleyi başkasına vermek için dökümde yanındaki “Konuşmacıyı değiştir” düğmesini kullanın.",
     "sidePanel": "Yan panel",
     "openSidePanel": "Yan paneli aç",
-    "closeSidePanel": "Yan paneli kapat"
+    "closeSidePanel": "Yan paneli kapat",
+    "selectRecords": "Kayıtları seç",
+    "hideNotes": "Notları gizle",
+    "showNotes": "Notları göster"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Bakiyeniz bitti; canlı notlar durdu.",
     "stoppedByService": "Kizuna AI şu anda canlı not yazamıyor; notlar durdu.",
     "costSoFar": "Şimdiye kadarki canlı notlar: yaklaşık {{cost}}",
-    "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı."
+    "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı.",
+    "hide": "Canlı notları gizle",
+    "show": "Canlı notları göster",
+    "showWriting": "Canlı notları göster (hâlâ yazılıyor)"
   }
 }

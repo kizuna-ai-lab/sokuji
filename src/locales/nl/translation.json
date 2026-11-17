@@ -2013,7 +2013,6 @@
     "allRecords": "Alle opnames",
     "binTitle": "Prullenbak",
     "results": "Zoekresultaten",
-    "selectMode": "Selecteren",
     "selectedCount": "{{count}} geselecteerd",
     "tagTranscript": "Transcriptie",
     "tagNotes": "Notities",
@@ -2096,13 +2095,13 @@
       "import": "Bestand importeren",
       "importTitle": "“{{name}}” importeren",
       "language": "Gesproken taal",
-      "service": "Getranscribeerd door Soniox, de herkenningsdienst in je opstelling.",
+      "service": "Getranscribeerd door Soniox, met je eigen sleutel.",
       "start": "Starten",
       "transcribe": "Transcriberen",
       "transcribeAgain": "Opnieuw transcriberen",
       "transcribeNote": "De bewaarde opname wordt opnieuw getranscribeerd. Er komt een nieuwe versie bij; de bestaande transcripties blijven.",
-      "blockedNotSoniox": "Hiervoor moet Soniox de herkenningsdienst in de opstelling zijn.",
-      "blockedNoKey": "Hiervoor is een Soniox-sleutel in Instellingen nodig.",
+      "blockedNotSoniox": "Alleen Soniox met je eigen sleutel transcribeert bestanden. Kies het voor transcriptie in je opstelling.",
+      "blockedNoKey": "Je Soniox-sleutel is nog niet ingevuld.",
       "blockedSession": "Beschikbaar als er geen sessie loopt.",
       "blockedBusy": "Er loopt al een andere import of transcriptie.",
       "blockedNoRecording": "Dit verslag bewaart geen opname.",
@@ -2138,7 +2137,9 @@
       "versions": "Versie van de transcriptie",
       "versionLive": "Live · {{time}}",
       "versionFile": "Soniox-bestand · {{time}}",
-      "blockedUnchecked": "De herkenningsdienst kon niet worden gecontroleerd. Sluit dit en probeer het opnieuw."
+      "blockedUnchecked": "De transcriptiedienst kon niet worden gecontroleerd. Sluit dit en probeer het opnieuw.",
+      "blockedHostedSoniox": "Bestanden worden alleen met je eigen Soniox-sleutel getranscribeerd: de Soniox van Kizuna AI is voorlopig alleen voor livesessies.",
+      "openSettings": "{{place}} openen"
     },
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "notesAddToWords": "Toevoegen aan woordenlijst",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Klik op een naam om de spreker te hernoemen. Wil je één zin aan iemand anders geven, gebruik dan in de transcriptie de knop ‘Spreker wijzigen’ ernaast.",
     "sidePanel": "Zijpaneel",
     "openSidePanel": "Zijpaneel openen",
-    "closeSidePanel": "Zijpaneel sluiten"
+    "closeSidePanel": "Zijpaneel sluiten",
+    "selectRecords": "Opnames selecteren",
+    "hideNotes": "Notities verbergen",
+    "showNotes": "Notities tonen"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Je saldo is op; de live notities zijn gestopt.",
     "stoppedByService": "Kizuna AI kan nu geen live notities schrijven; ze zijn gestopt.",
     "costSoFar": "Live notities tot nu toe: ongeveer {{cost}}",
-    "lowBalance": "Je saldo is laag: nog {{balance}}."
+    "lowBalance": "Je saldo is laag: nog {{balance}}.",
+    "hide": "Live notities verbergen",
+    "show": "Live notities tonen",
+    "showWriting": "Live notities tonen (worden nog geschreven)"
   }
 }

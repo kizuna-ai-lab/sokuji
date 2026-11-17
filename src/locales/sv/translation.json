@@ -2013,7 +2013,6 @@
     "allRecords": "Alla poster",
     "binTitle": "Papperskorg",
     "results": "Sökresultat",
-    "selectMode": "Markera",
     "selectedCount": "{{count}} markerade",
     "tagTranscript": "Transkription",
     "tagNotes": "Anteckningar",
@@ -2096,13 +2095,13 @@
       "import": "Importera en fil",
       "importTitle": "Importera ”{{name}}”",
       "language": "Talat språk",
-      "service": "Transkriberas av Soniox, igenkänningstjänsten i din uppsättning.",
+      "service": "Transkriberas av Soniox, med din egen nyckel.",
       "start": "Starta",
       "transcribe": "Transkribera",
       "transcribeAgain": "Transkribera igen",
       "transcribeNote": "Den sparade inspelningen transkriberas igen. En ny version skapas; de transkript som redan finns ligger kvar.",
-      "blockedNotSoniox": "Kräver Soniox som igenkänningstjänst i uppsättningen.",
-      "blockedNoKey": "Kräver en Soniox-nyckel i Inställningar.",
+      "blockedNotSoniox": "Filer transkriberas bara av Soniox med din egen nyckel. Välj det för transkribering i din uppsättning.",
+      "blockedNoKey": "Din Soniox-nyckel är inte ifylld än.",
       "blockedSession": "Tillgängligt när ingen session pågår.",
       "blockedBusy": "En annan import eller transkribering pågår.",
       "blockedNoRecording": "Den här posten har ingen sparad inspelning.",
@@ -2138,7 +2137,9 @@
       "versions": "Transkriptversion",
       "versionLive": "Live · {{time}}",
       "versionFile": "Soniox-fil · {{time}}",
-      "blockedUnchecked": "Igenkänningstjänsten kunde inte kontrolleras. Stäng detta och försök igen."
+      "blockedUnchecked": "Transkriberingstjänsten kunde inte kontrolleras. Stäng detta och försök igen.",
+      "blockedHostedSoniox": "Filer transkriberas bara med din egen Soniox-nyckel: Kizuna AI:s Soniox är tills vidare bara för livesessioner.",
+      "openSettings": "Öppna {{place}}"
     },
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "notesAddToWords": "Lägg till i ordlistan",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Klicka på ett namn för att byta namn på talaren. Om du vill ge en mening till någon annan använder du knappen ”Byt talare” bredvid den i transkriptionen.",
     "sidePanel": "Sidopanel",
     "openSidePanel": "Öppna sidopanelen",
-    "closeSidePanel": "Stäng sidopanelen"
+    "closeSidePanel": "Stäng sidopanelen",
+    "selectRecords": "Markera poster",
+    "hideNotes": "Dölj anteckningarna",
+    "showNotes": "Visa anteckningarna"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Ditt saldo är slut; liveanteckningarna har stoppats.",
     "stoppedByService": "Kizuna AI kan inte skriva liveanteckningar just nu; de har stoppats.",
     "costSoFar": "Liveanteckningar hittills: cirka {{cost}}",
-    "lowBalance": "Ditt saldo är lågt: {{balance}} kvar."
+    "lowBalance": "Ditt saldo är lågt: {{balance}} kvar.",
+    "hide": "Dölj liveanteckningarna",
+    "show": "Visa liveanteckningarna",
+    "showWriting": "Visa liveanteckningarna (skrivs fortfarande)"
   }
 }

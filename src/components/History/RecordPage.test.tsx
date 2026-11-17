@@ -260,28 +260,28 @@ describe('a record', () => {
   });
 
   // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
-  // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later, opened and closed by one
-  // small handle whose chevrons say which way it goes (no ✕, no row of its own); the transcript keeps its width under it.
+  // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later; the transcript keeps its
+  // width under it. It is shown and hidden from a switch in the page's toolbar (B-40 redone: no handle on its edge).
   const drawer = () => screen.queryByRole('complementary', { name: 'Side panel' });
-  const toggle = () => screen.getByRole('button', { name: /^(Open|Close) the side panel$/ });
+  const toggle = () => screen.getByRole('button', { name: 'Side panel' });
 
-  it('keeps the speakers in a side panel opened and closed by one handle, and gives their column to the transcript', async () => {
+  it('keeps the speakers in a side panel shown and hidden from a switch in the toolbar, and gives their column to the transcript', async () => {
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
     expect(document.querySelector('.record-page__transcript-head')).toBeNull();
+    expect(document.querySelector('.record-side__handle')).toBeNull();
     // Open the first time (owner, 2026-11-17: what it holds is seen at once); closed here to start from closed.
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
-    expect(toggle()).toHaveAccessibleName('Open the side panel');
     expect(toggle()).toHaveAttribute('title', 'Open the side panel');
-    expect(toggle()).toHaveAttribute('aria-expanded', 'false');
-    expect(toggle().querySelector('.lucide-chevrons-left')).not.toBeNull();
-    // The handle is the icon alone: no words of its own.
-    expect(toggle().textContent).toBe('');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle().querySelector('.lucide-panel-right')).not.toBeNull();
+    // The icon and its word, as the title bar's buttons have while there is room (owner, 2026-11-17).
+    expect(toggle().textContent).toBe('Side panel');
+    expect(toggle().closest('.record-page__actions')).not.toBeNull();
     fireEvent.click(toggle());
-    expect(toggle()).toHaveAccessibleName('Close the side panel');
-    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle().querySelector('.lucide-chevrons-right')).not.toBeNull();
+    expect(toggle()).toHaveAttribute('title', 'Close the side panel');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     // The speakers are its first part, under their own heading.
     const speakers = within(drawer()!).getByRole('region', { name: 'Speakers' });
     expect(within(speakers).getByRole('heading', { name: 'Speakers' })).toBeInTheDocument();
@@ -295,7 +295,7 @@ describe('a record', () => {
   it('is open the first time, and remembers the last choice for the next record', async () => {
     await renderRecord();
     expect(drawer()).not.toBeNull();
-    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
     cleanup();
@@ -672,7 +672,7 @@ describe('a record', () => {
     expect(store.getState().open).toBeNull();
   });
 
-  it('offers a new version of the notes in any language the app knows', async () => {
+  it('offers a new version of the notes in the record\'s own two languages only', async () => {
     record = { ...record, notesVersions: 1, notesState: 'complete', notesComplete: true, notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
     port.getNotes = (async () => ({
       id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
@@ -682,9 +682,7 @@ describe('a record', () => {
     await renderRecord();
     fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
     const choices = within(screen.getByRole('combobox', { name: 'Language of the notes' })).getAllByRole('option').map((o) => o.textContent);
-    expect(choices.slice(0, 2)).toEqual(['English', 'Chinese']);
-    expect(choices).toEqual(expect.arrayContaining(['Japanese', 'German', 'Hindi', 'Vietnamese']));
-    expect(new Set(choices).size).toBe(choices.length);
+    expect(choices).toEqual(['English', 'Chinese']);
   });
 });
 
@@ -714,5 +712,156 @@ describe('a record transcribed again', () => {
     expect(store.getState().open?.transcriptId).toBe(1);
     expect(screen.getByLabelText('Transcript version')).toBeTruthy();
     expect(document.querySelector('[data-n="2"]')?.className ?? '').toMatch(/is-hit|hit/);
+  });
+});
+
+// Owner, 2026-11-17 (B-31): on a wide page the notes column can be dragged wider or narrower and hidden; both are kept.
+describe('the notes column on a wide page', () => {
+  /** A page this wide, as the ResizeObserver the record page watches it with reports. */
+  function widePage(width = 1200) {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly cb: () => void) {}
+      observe() { this.cb(); }
+      unobserve() {}
+      disconnect() {}
+    });
+  }
+  const columns = () => document.querySelector('.record-page__columns') as HTMLElement;
+  const notes = () => document.querySelector('.record-page__notes') as HTMLElement;
+  const drag = (from: number, to: number, done = true) => {
+    const sep = within(columns()).getByRole('separator');
+    act(() => { sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: from, button: 0 }), { pointerType: 'mouse' })); });
+    act(() => { window.dispatchEvent(new MouseEvent('pointermove', { clientX: to })); });
+    if (done) act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: to })); });
+  };
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  const notesSwitch = () => screen.getByRole('button', { name: 'Notes' });
+
+  // Review: a search hit in the notes shows the notes even when they were closed; the closed choice is kept for
+  // ordinary openings.
+  it('shows the closed notes for a search hit in them, and keeps them closed for the next record', async () => {
+    widePage();
+    localStorage.setItem('history.notesClosed', '1');
+    record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
+    port.getNotes = (async () => ({
+      id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Shipping', overview: { text: 'When it ships.', format: 'plain' }, topics: [], points: [], names: [] },
+    })) as never;
+    await renderRecord({ kind: 'notes', notesId: 7 });
+    expect(notes()).not.toHaveAttribute('hidden');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.getItem('history.notesClosed')).toBe('1');
+  });
+
+  it('has a divider to drag, and the switch that shows and hides the notes sits in the toolbar with the side panel\'s', async () => {
+    widePage();
+    await renderRecord();
+    expect(within(columns()).getByRole('separator')).toBeInTheDocument();
+    expect(document.querySelector('.record-page__notes-handle')).toBeNull();
+    expect(notesSwitch()).toHaveAttribute('title', 'Hide the notes');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(notesSwitch().querySelector('.lucide-panel-left')).not.toBeNull();
+    // The two switches together, before Export.
+    const group = notesSwitch().closest('.record-page__panels')!;
+    expect(within(group as HTMLElement).getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+    const actions = [...document.querySelectorAll('.record-page__actions > *')];
+    const exportAt = actions.findIndex((el) => el.textContent?.includes('Export'));
+    expect(actions.indexOf(group)).toBeLessThan(exportAt);
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
+  });
+
+  it('follows the divider while it is dragged, and opens the next record at the width it was left at', async () => {
+    widePage();
+    await renderRecord();
+    drag(380, 500, false);
+    expect(columns().style.gridTemplateColumns).toBe('500px 1px minmax(0, 1fr)');
+    act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: 520 })); });
+    expect(localStorage.getItem('history.notesWidth')).toBe('520');
+    cleanup();
+    widePage();
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('520px 1px minmax(0, 1fr)');
+  });
+
+  it('leaves the transcript 400px however far the divider goes, and the notes 240px', async () => {
+    widePage(1000);
+    await renderRecord();
+    drag(380, 1900);
+    expect(columns().style.gridTemplateColumns).toBe('599px 1px minmax(0, 1fr)');
+    drag(599, 0);
+    expect(columns().style.gridTemplateColumns).toBe('240px 1px minmax(0, 1fr)');
+  });
+
+  it('hiding the notes gives the transcript the whole width, with nothing left in their place, and holds for the next record', async () => {
+    widePage();
+    await renderRecord();
+    fireEvent.click(notesSwitch());
+    expect(notes()).toHaveAttribute('hidden');
+    expect(within(columns()).queryByRole('separator')).toBeNull();
+    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr)');
+    expect(notesSwitch()).toHaveAttribute('title', 'Show the notes');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'false');
+    expect(localStorage.getItem('history.notesClosed')).toBe('1');
+    cleanup();
+    widePage();
+    await renderRecord();
+    expect(notes()).toHaveAttribute('hidden');
+    fireEvent.click(notesSwitch());
+    expect(notes()).not.toHaveAttribute('hidden');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.getItem('history.notesClosed')).toBeNull();
+  });
+
+  it('drops the switches\' words, keeping their icons, when the heading would have too little room beside them', async () => {
+    // A wide page whose actions, with their words, would leave the heading less than its 240px.
+    widePage(1000);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const width = this.classList.contains('record-page__actions') ? 900 : 0;
+      return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    await renderRecord();
+    const group = notesSwitch().closest('.record-page__panels')!;
+    expect(group).toHaveAttribute('data-compact');
+    expect(notesSwitch()).toHaveAccessibleName('Notes');
+    expect(notesSwitch()).toHaveAttribute('title', 'Hide the notes');
+  });
+
+  // Review: hidden, the words are not measured; what they would add is kept from when they were last shown, so actions
+  // that change while the words are hidden (a button gone) are judged with the words' own width, not a stale total.
+  it('brings the switches\' words back when the actions shrink while the words are hidden', async () => {
+    const page = 1000;
+    let others = 700;
+    const observers: (() => void)[] = [];
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => page);
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly cb: () => void) { observers.push(cb); }
+      observe() { this.cb(); }
+      unobserve() {}
+      disconnect() {}
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const compact = document.querySelector('.record-page__panels')?.hasAttribute('data-compact');
+      const width = this.classList.contains('record-page__actions') ? others + (compact ? 0 : 100) : 0;
+      return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    await renderRecord();
+    const group = () => notesSwitch().closest('.record-page__panels')!;
+    // 1000 - (700 + 100) leaves the heading 200px: the words go.
+    expect(group()).toHaveAttribute('data-compact');
+    // A button goes: 1000 - (600 + 100) leaves 300px, room for the words again.
+    others = 600;
+    act(() => { for (const cb of observers) cb(); });
+    expect(group()).not.toHaveAttribute('data-compact');
+  });
+
+  it('on a narrow page keeps the two tabs, with no divider and no notes switch (the side panel\'s stays)', async () => {
+    await renderRecord();
+    expect(screen.getByRole('tab', { name: 'Notes' })).toBeInTheDocument();
+    expect(within(columns()).queryByRole('separator')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Notes' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
   });
 });

@@ -17,6 +17,7 @@ const { createWsHeaderRules } = require('./ws-header-rules.js');
 const { registerSessionNetworkDiagnostics } = require('./session-network-diagnostics.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { captureSourceMode, listCaptureSources, screenRecordingState, reaskScreenRecording, MAC_BUNDLE_ID } = require('./capture-sources');
+const { windowStateOf, watchWindowState } = require('./window-state');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 const { ignoreStdioErrors, createExitHandler } = require('./exit-handler');
 
@@ -487,6 +488,8 @@ function createWindow() {
   // and freezes the whole session — see the module for the measured details.
   // An Electron-drawn Minimize/Maximize/Close menu takes its place.
   setupCaptionContextMenu(mainWindow);
+  // The page draws the window's edge itself (no system frame does), but not while it is maximized or full screen.
+  watchWindowState(mainWindow);
   setupPopoverWindowHandlers(mainWindow);
   captionShare.attachWindow(mainWindow);
   closeHandshake.attachWindow(mainWindow);
@@ -895,6 +898,8 @@ ipcMain.handle('window:maximize-toggle', () => {
 ipcMain.handle('window:close', () => {
   if (mainWindow) mainWindow.close();
 });
+// Whether the window is maximized or full screen now; later changes arrive as 'window:state' (window-state.js).
+ipcMain.handle('window:get-state', () => (mainWindow ? windowStateOf(mainWindow) : null));
 
 // IPC handlers for audio functionality
 ipcMain.handle('check-audio-system', async () => {

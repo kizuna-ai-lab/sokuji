@@ -151,7 +151,7 @@ describe('the History list', () => {
   it('shows checkboxes only after Select, and moves the selected records to the bin', async () => {
     await renderList();
     expect(screen.queryByRole('checkbox')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select records' }));
     expect(within(rowWith('In progress')).queryByRole('checkbox')).toBeNull();
     fireEvent.click(screen.getByText('Weekly sync'));
     expect(calls('getRecord')).toEqual([]);
@@ -163,9 +163,37 @@ describe('the History list', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
   });
 
+  it('names what Select selects, with a quiet button right after the heading', async () => {
+    await renderList();
+    const button = screen.getByRole('button', { name: 'Select records' });
+    expect(button.className).toContain('history-button--quiet');
+    const head = screen.getByRole('heading', { level: 2, name: 'All records' }).parentElement!;
+    expect(head.contains(button)).toBe(true);
+    expect(head.firstElementChild).toBe(screen.getByRole('heading', { level: 2, name: 'All records' }));
+    expect(head.children[1]).toBe(button);
+  });
+
+  it('in Select, turns the heading row into the actions: the heading stays, the count beside it, no bar at the bottom', async () => {
+    await renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Select records' }));
+    const heading = screen.getByRole('heading', { level: 2, name: 'All records' });
+    const head = heading.parentElement!;
+    expect(within(head).getByText('0 selected')).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: 'Move to bin' })).toBeDisabled();
+    expect(within(head).getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Select records' })).toBeNull();
+    expect(document.querySelector('.history-select-bar')).toBeNull();
+    expect(head.closest('header')!.className).toContain('is-selecting');
+    fireEvent.click(screen.getByText('Weekly sync'));
+    expect(within(head).getByText('1 selected')).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: 'Move to bin' })).toBeEnabled();
+    fireEvent.click(within(head).getByRole('button', { name: 'Cancel' }));
+    expect(head.closest('header')!.className).not.toContain('is-selecting');
+  });
+
   it('leaves Select without a change', async () => {
     await renderList();
-    fireEvent.click(screen.getByRole('button', { name: 'Select' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select records' }));
     fireEvent.click(screen.getByText('Weekly sync'));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('checkbox')).toBeNull();
@@ -370,5 +398,21 @@ describe('importing from the list', () => {
     records = [rowOf(A, { title: 'Imported talk', sentences: 0, hasRecording: true, audioBytes: 2048 })];
     await renderList();
     expect(within(rowWith('Imported talk')).getByText('Not transcribed')).toBeTruthy();
+  });
+});
+
+describe('HistoryList styles: Select', () => {
+  it('keeps the heading row, with its actions, at the top of the list while it scrolls in Select', async () => {
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, 'History.scss')).css;
+    const rule = css.match(/\.history-content > header\.is-selecting\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(rule).toMatch(/position:\s*sticky/);
+    expect(rule).toMatch(/top:\s*0/);
+    expect(rule).toMatch(/background:/);
+    // The count and the two buttons stay together; they wrap as a group on a narrow page.
+    const actions = css.match(/\.history-content__actions\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(actions).toMatch(/margin-left:\s*auto/);
+    expect(css).not.toMatch(/\.history-select-bar/);
   });
 });

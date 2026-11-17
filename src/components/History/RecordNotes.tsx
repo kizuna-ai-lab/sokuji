@@ -5,7 +5,7 @@
 // version selector shows another version when there are several. A topic or a point takes the transcript to the
 // sentence that says it. Without notes the page offers to write them; while a version is written it says so and can
 // stop it; after a failure it says why and can try again.
-import { useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { notesExplanation } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
@@ -16,6 +16,7 @@ import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
 import FormInput from '../Settings/shared/FormInput';
+import { selectChrome, selectMinWidth } from './selectWidth';
 
 export interface RecordNotesProps {
   record: HistoryRecord;
@@ -113,13 +114,39 @@ export function RecordNotes(p: RecordNotesProps) {
     </select>
   );
 
+  // "Language of the notes [Chinese ▾] [Write notes]" (owner, 2026-11-17; B-33): the label says what the select is for,
+  // and the select and the button stay together; in a narrow column the label goes on a line of its own above them.
+  const languageId = useId();
+  // At least as wide as its longest language name, measured in its own font (selectWidth.ts).
+  const languageRef = useRef<HTMLSelectElement>(null);
+  const [languageWidth, setLanguageWidth] = useState<number | null>(null);
+  const languageNames = p.languages.map((l) => languageLabel(l.code, ui)).join('\n');
+  // Measured again once the fonts have come in: before, the names are measured in a fallback font.
+  useLayoutEffect(() => {
+    const select = languageRef.current;
+    const context = select ? document.createElement('canvas').getContext?.('2d') : null;
+    if (!select || !context) return undefined;
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      const style = getComputedStyle(select);
+      context.font = style.font || `${style.fontSize} ${style.fontFamily}`;
+      setLanguageWidth(selectMinWidth(languageNames.split('\n'), (label) => context.measureText(label).width, selectChrome(style)));
+    };
+    measure();
+    void document.fonts?.ready.then(measure);
+    return () => { live = false; };
+  }, [languageNames, p.notes?.id, p.writing, p.tooShort]);
   const writeControls = (label: string) => (
     <div className="record-notes__write">
-      <select className="select-dropdown" aria-label={t('history.notesLanguage', 'Language of the notes')} value={chosen?.code ?? ''}
-        onChange={(e) => setChoice(e.target.value)}>
-        {p.languages.map((l) => <option key={l.code} value={l.code}>{languageLabel(l.code, ui)}</option>)}
-      </select>
-      <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && write(chosen)}>{label}</button>
+      <label htmlFor={languageId}>{t('history.notesLanguage', 'Language of the notes')}</label>
+      <div className="record-notes__pick">
+        <select id={languageId} ref={languageRef} className="select-dropdown" value={chosen?.code ?? ''} onChange={(e) => setChoice(e.target.value)}
+          style={languageWidth ? ({ '--language-min': `${languageWidth}px` } as CSSProperties) : undefined}>
+          {p.languages.map((l) => <option key={l.code} value={l.code}>{languageLabel(l.code, ui)}</option>)}
+        </select>
+        <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && write(chosen)}>{label}</button>
+      </div>
     </div>
   );
 
@@ -205,7 +232,21 @@ export function RecordNotes(p: RecordNotesProps) {
                     const who = todo ? [ownerWord(pt.owner, sides), pt.due].filter(Boolean).join(' · ') : '';
                     return (
                       <li key={i} className="record-notes__point">
-                        <button type="button" className="record-notes__jump" onClick={() => p.onJump(pt.sentences[0])}>{pt.text}</button>
+                        {/* Inline text, not a <button>: a button is laid out as a box of its own, which put the bullet at
+                            its last line and the kinds on a line of their own (owner, 2026-11-17). */}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="record-notes__jump"
+                          onClick={() => p.onJump(pt.sentences[0])}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return;
+                            e.preventDefault();
+                            p.onJump(pt.sentences[0]);
+                          }}
+                        >
+                          {pt.text}
+                        </span>
                         {(pt.kinds.length > 0 || who) && (
                           <span className="record-notes__marks">
                             {pt.kinds.map((k) => <span key={k} className={`record-notes__kind record-notes__kind--${k}`}>{kindWord[k]}</span>)}

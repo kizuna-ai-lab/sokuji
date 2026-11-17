@@ -2013,7 +2013,6 @@
     "allRecords": "Semua rekod",
     "binTitle": "Tong sampah",
     "results": "Hasil carian",
-    "selectMode": "Pilih",
     "selectedCount": "{{count}} dipilih",
     "tagTranscript": "Transkrip",
     "tagNotes": "Nota",
@@ -2096,13 +2095,13 @@
       "import": "Import fail",
       "importTitle": "Import “{{name}}”",
       "language": "Bahasa yang dituturkan",
-      "service": "Ditranskrip oleh Soniox, perkhidmatan pengecaman dalam susunan anda.",
+      "service": "Ditranskrip oleh Soniox, dengan kunci anda sendiri.",
       "start": "Mula",
       "transcribe": "Transkrip",
       "transcribeAgain": "Transkrip semula",
       "transcribeNote": "Rakaman yang disimpan ditranskrip semula. Versi baharu dibuat; transkrip yang sedia ada kekal.",
-      "blockedNotSoniox": "Perlukan Soniox sebagai perkhidmatan pengecaman dalam susunan.",
-      "blockedNoKey": "Perlukan kunci Soniox dalam Tetapan.",
+      "blockedNotSoniox": "Fail hanya ditranskrip oleh Soniox dengan kunci anda sendiri. Pilihnya untuk transkripsi dalam susunan anda.",
+      "blockedNoKey": "Kunci Soniox anda belum diisi.",
       "blockedSession": "Tersedia apabila tiada sesi berjalan.",
       "blockedBusy": "Import atau transkrip lain sedang berjalan.",
       "blockedNoRecording": "Rekod ini tidak menyimpan rakaman.",
@@ -2138,7 +2137,9 @@
       "versions": "Versi transkrip",
       "versionLive": "Langsung · {{time}}",
       "versionFile": "Fail Soniox · {{time}}",
-      "blockedUnchecked": "Perkhidmatan pengecaman tidak dapat disemak. Tutup ini dan cuba lagi."
+      "blockedUnchecked": "Perkhidmatan transkripsi tidak dapat disemak. Tutup ini dan cuba lagi.",
+      "blockedHostedSoniox": "Fail hanya ditranskrip dengan kunci Soniox anda sendiri: Soniox Kizuna AI buat masa ini hanya untuk sesi langsung.",
+      "openSettings": "Buka {{place}}"
     },
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "notesAddToWords": "Tambah ke senarai perkataan",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Klik nama untuk menamakan semula penutur. Untuk memberi satu ayat kepada orang lain, gunakan butang “Tukar penutur” di sebelahnya dalam transkrip.",
     "sidePanel": "Panel sisi",
     "openSidePanel": "Buka panel sisi",
-    "closeSidePanel": "Tutup panel sisi"
+    "closeSidePanel": "Tutup panel sisi",
+    "selectRecords": "Pilih rekod",
+    "hideNotes": "Sembunyikan nota",
+    "showNotes": "Tunjukkan nota"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Baki anda telah habis; nota langsung berhenti.",
     "stoppedByService": "Kizuna AI tidak dapat menulis nota langsung sekarang; nota berhenti.",
     "costSoFar": "Nota langsung setakat ini: kira-kira {{cost}}",
-    "lowBalance": "Baki anda rendah: tinggal {{balance}}."
+    "lowBalance": "Baki anda rendah: tinggal {{balance}}.",
+    "hide": "Sembunyikan nota langsung",
+    "show": "Tunjukkan nota langsung",
+    "showWriting": "Tunjukkan nota langsung (masih ditulis)"
   }
 }

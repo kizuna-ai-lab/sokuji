@@ -29,4 +29,10 @@ describe('the file recognition service', () => {
     soniox({ region: 'jp' }, { apiKey: 'sk-us' });
     expect(await fileRecognitionFromStores()).toEqual({ missing: 'no-key' });
   });
+
+  // B-35 (owner, 2026-11-17): Kizuna AI's Soniox transcribes live sessions only, for now; said as such, not as "not Soniox".
+  it('is missing as Kizuna AI\'s Soniox when that is the transcription in the line-up', async () => {
+    useLineUpStore.setState({ lineUp: lineUp('kizunaai_soniox') } as never);
+    expect(await fileRecognitionFromStores()).toEqual({ missing: 'hosted-soniox' });
+  });
 });

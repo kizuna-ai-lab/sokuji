@@ -94,6 +94,8 @@ export const INVOKE_CHANNELS = [
   'window:minimize',
   'window:maximize-toggle',
   'window:close',
+  // Whether the window is maximized or full screen, for the edge the page draws (electron/window-state.js)
+  'window:get-state',
   // Appearance: the renderer's setting, so nativeTheme (menus, dialogs) agrees with the window
   'theme:set',
   // Subtitle mode

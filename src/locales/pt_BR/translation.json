@@ -2013,7 +2013,6 @@
     "allRecords": "Todos os registros",
     "binTitle": "Lixeira",
     "results": "Resultados da pesquisa",
-    "selectMode": "Selecionar",
     "selectedCount": "{{count}} selecionados",
     "tagTranscript": "Transcrição",
     "tagNotes": "Notas",
@@ -2096,13 +2095,13 @@
       "import": "Importar um arquivo",
       "importTitle": "Importar “{{name}}”",
       "language": "Idioma falado",
-      "service": "Transcrito pelo Soniox, o serviço de reconhecimento da sua configuração.",
+      "service": "Transcrito pelo Soniox, com a sua própria chave.",
       "start": "Iniciar",
       "transcribe": "Transcrever",
       "transcribeAgain": "Transcrever de novo",
       "transcribeNote": "A gravação salva é transcrita de novo. Uma nova versão é criada; as transcrições que já existem continuam.",
-      "blockedNotSoniox": "Requer o Soniox como serviço de reconhecimento na configuração.",
-      "blockedNoKey": "Requer uma chave Soniox nas Configurações.",
+      "blockedNotSoniox": "Só o Soniox com a sua própria chave transcreve arquivos. Escolha-o para a transcrição na sua configuração.",
+      "blockedNoKey": "Sua chave do Soniox ainda não foi preenchida.",
       "blockedSession": "Disponível quando nenhuma sessão estiver em andamento.",
       "blockedBusy": "Outra importação ou transcrição está em andamento.",
       "blockedNoRecording": "Este registro não guarda gravação.",
@@ -2138,7 +2137,9 @@
       "versions": "Versão da transcrição",
       "versionLive": "Ao vivo · {{time}}",
       "versionFile": "Arquivo Soniox · {{time}}",
-      "blockedUnchecked": "Não foi possível verificar o serviço de reconhecimento. Feche e tente novamente."
+      "blockedUnchecked": "Não foi possível verificar o serviço de transcrição. Feche e tente novamente.",
+      "blockedHostedSoniox": "Os arquivos só são transcritos com a sua própria chave do Soniox: o Soniox da Kizuna AI, por enquanto, é só para sessões ao vivo.",
+      "openSettings": "Abrir {{place}}"
     },
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser salva: não foi possível gravá-la no disco.",
     "notesAddToWords": "Adicionar à lista de palavras",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Clique em um nome para renomear o falante. Para passar uma frase para outra pessoa, use o botão “Trocar falante” ao lado dela na transcrição.",
     "sidePanel": "Painel lateral",
     "openSidePanel": "Abrir o painel lateral",
-    "closeSidePanel": "Fechar o painel lateral"
+    "closeSidePanel": "Fechar o painel lateral",
+    "selectRecords": "Selecionar registros",
+    "hideNotes": "Ocultar as notas",
+    "showNotes": "Mostrar as notas"
   },
   "notesQuit": {
     "named": "As notas de “{{title}}” estão sendo escritas. Sair mesmo assim? Elas serão marcadas como canceladas.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Seu saldo acabou; as notas ao vivo pararam.",
     "stoppedByService": "A Kizuna AI não pode escrever notas ao vivo agora; elas pararam.",
     "costSoFar": "Notas ao vivo até agora: cerca de {{cost}}",
-    "lowBalance": "Seu saldo está baixo: restam {{balance}}."
+    "lowBalance": "Seu saldo está baixo: restam {{balance}}.",
+    "hide": "Ocultar as notas ao vivo",
+    "show": "Mostrar as notas ao vivo",
+    "showWriting": "Mostrar as notas ao vivo (ainda sendo escritas)"
   }
 }

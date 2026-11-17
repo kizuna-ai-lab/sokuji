@@ -2013,7 +2013,6 @@
     "allRecords": "すべての記録",
     "binTitle": "ごみ箱",
     "results": "検索結果",
-    "selectMode": "選択",
     "selectedCount": "{{count}} 件選択中",
     "tagTranscript": "文字起こし",
     "tagNotes": "メモ",
@@ -2096,13 +2095,13 @@
       "import": "ファイルを取り込む",
       "importTitle": "「{{name}}」を取り込む",
       "language": "話されている言語",
-      "service": "構成の「認識」で選んだ Soniox が文字起こしします。",
+      "service": "ご自身のキーで Soniox が文字起こしします。",
       "start": "開始",
       "transcribe": "文字起こし",
       "transcribeAgain": "もう一度文字起こし",
       "transcribeNote": "保存された録音をもう一度文字起こしします。新しい版が作られ、今ある文字起こしはそのまま残ります。",
-      "blockedNotSoniox": "構成の「認識」で Soniox を選ぶ必要があります。",
-      "blockedNoKey": "設定で Soniox のキーが必要です。",
+      "blockedNotSoniox": "ファイルの文字起こしは、ご自身のキーを使う Soniox だけが行えます。構成の文字起こしで選んでください。",
+      "blockedNoKey": "Soniox のキーがまだ入力されていません。",
       "blockedSession": "セッション中でないときに使えます。",
       "blockedBusy": "別の取り込みか文字起こしが進行中です。",
       "blockedNoRecording": "この記録には録音が残っていません。",
@@ -2138,7 +2137,9 @@
       "versions": "文字起こしの版",
       "versionLive": "ライブ · {{time}}",
       "versionFile": "Soniox ファイル · {{time}}",
-      "blockedUnchecked": "認識サービスを確認できませんでした。閉じてからもう一度お試しください。"
+      "blockedUnchecked": "文字起こしサービスを確認できませんでした。閉じてからもう一度お試しください。",
+      "blockedHostedSoniox": "ファイルはご自身の Soniox キーでのみ文字起こしできます。Kizuna AI の Soniox は今のところライブセッション専用です。",
+      "openSettings": "{{place}}を開く"
     },
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "notesAddToWords": "単語リストに追加",
@@ -2164,7 +2165,10 @@
     "speakersHint": "名前をクリックすると話者の名前を変えられます。ある一文を別の人に移すには、文字起こしでその文の横にある「話者を変更」ボタンを使います。",
     "sidePanel": "サイドパネル",
     "openSidePanel": "サイドパネルを開く",
-    "closeSidePanel": "サイドパネルを閉じる"
+    "closeSidePanel": "サイドパネルを閉じる",
+    "selectRecords": "記録を選択",
+    "hideNotes": "メモを隠す",
+    "showNotes": "メモを表示"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",
@@ -2186,6 +2190,9 @@
     "noBalance": "残高がなくなったため、ライブメモを停止しました。",
     "stoppedByService": "Kizuna AI は今ライブメモを書けないため、停止しました。",
     "costSoFar": "ここまでのライブメモ：約 {{cost}}",
-    "lowBalance": "残高が少なくなっています：残り {{balance}}。"
+    "lowBalance": "残高が少なくなっています：残り {{balance}}。",
+    "hide": "ライブメモを隠す",
+    "show": "ライブメモを表示",
+    "showWriting": "ライブメモを表示（書き続けています）"
   }
 }

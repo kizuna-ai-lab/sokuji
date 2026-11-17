@@ -2013,7 +2013,6 @@
     "allRecords": "Wszystkie zapisy",
     "binTitle": "Kosz",
     "results": "Wyniki wyszukiwania",
-    "selectMode": "Zaznacz",
     "selectedCount": "Zaznaczone: {{count}}",
     "tagTranscript": "Transkrypcja",
     "tagNotes": "Notatki",
@@ -2096,13 +2095,13 @@
       "import": "Importuj plik",
       "importTitle": "Importuj „{{name}}”",
       "language": "Język nagrania",
-      "service": "Transkrybuje Soniox — usługa rozpoznawania w Twoim zestawie.",
+      "service": "Transkrybuje Soniox — z Twoim własnym kluczem.",
       "start": "Rozpocznij",
       "transcribe": "Transkrybuj",
       "transcribeAgain": "Transkrybuj ponownie",
       "transcribeNote": "Zapisane nagranie zostanie transkrybowane ponownie. Powstanie nowa wersja; dotychczasowe transkrypcje zostaną.",
-      "blockedNotSoniox": "Wymaga Soniox jako usługi rozpoznawania w zestawie.",
-      "blockedNoKey": "Wymaga klucza Soniox w ustawieniach.",
+      "blockedNotSoniox": "Pliki transkrybuje tylko Soniox z Twoim własnym kluczem. Wybierz go do transkrypcji w swoim zestawie.",
+      "blockedNoKey": "Klucz Soniox nie został jeszcze wpisany.",
       "blockedSession": "Dostępne, gdy nie trwa żadna sesja.",
       "blockedBusy": "Trwa już inny import lub transkrypcja.",
       "blockedNoRecording": "Ten zapis nie przechowuje nagrania.",
@@ -2138,7 +2137,9 @@
       "versions": "Wersja transkrypcji",
       "versionLive": "Na żywo · {{time}}",
       "versionFile": "Plik Soniox · {{time}}",
-      "blockedUnchecked": "Nie udało się sprawdzić usługi rozpoznawania. Zamknij to okno i spróbuj ponownie."
+      "blockedUnchecked": "Nie udało się sprawdzić usługi transkrypcji. Zamknij to okno i spróbuj ponownie.",
+      "blockedHostedSoniox": "Pliki są transkrybowane tylko z Twoim własnym kluczem Soniox: Soniox od Kizuna AI służy na razie tylko do sesji na żywo.",
+      "openSettings": "Otwórz {{place}}"
     },
     "transcriptStopped": "Nie udało się zachować części transkrypcji tej sesji: nie można było zapisać jej na dysku.",
     "notesAddToWords": "Dodaj do listy słów",
@@ -2164,7 +2165,10 @@
     "speakersHint": "Kliknij imię, aby zmienić nazwę mówcy. Aby przypisać jedno zdanie komuś innemu, użyj przycisku „Zmień mówcę” obok niego w transkrypcji.",
     "sidePanel": "Panel boczny",
     "openSidePanel": "Otwórz panel boczny",
-    "closeSidePanel": "Zamknij panel boczny"
+    "closeSidePanel": "Zamknij panel boczny",
+    "selectRecords": "Zaznacz zapisy",
+    "hideNotes": "Ukryj notatki",
+    "showNotes": "Pokaż notatki"
   },
   "notesQuit": {
     "named": "Trwa pisanie notatek do „{{title}}”. Zamknąć mimo to? Zostaną oznaczone jako anulowane.",
@@ -2186,6 +2190,9 @@
     "noBalance": "Saldo się wyczerpało; notatki na żywo zostały zatrzymane.",
     "stoppedByService": "Kizuna AI nie może teraz pisać notatek na żywo; zostały zatrzymane.",
     "costSoFar": "Notatki na żywo do tej pory: około {{cost}}",
-    "lowBalance": "Saldo jest niskie: zostało {{balance}}."
+    "lowBalance": "Saldo jest niskie: zostało {{balance}}.",
+    "hide": "Ukryj notatki na żywo",
+    "show": "Pokaż notatki na żywo",
+    "showWriting": "Pokaż notatki na żywo (nadal są pisane)"
   }
 }

@@ -8,6 +8,10 @@ import { createHistoryPageStore, type FileJobs } from '../../lib/history/history
 import '../../locales';
 import { HistoryPageContext } from './historyContext';
 import { FileJobLine, ImportPanel, TranscribePanel, TranscriptChooser } from './FileJobs';
+import { useSettingsStore } from '../../stores/settingsStore';
+import en from '../../locales/en/translation.json';
+import zhCN from '../../locales/zh_CN/translation.json';
+import zhTW from '../../locales/zh_TW/translation.json';
 
 const A = 'run-000a-aaaa';
 const START = new Date(2026, 0, 15, 9, 0, 0).getTime();
@@ -28,7 +32,7 @@ function fakePort() {
   return { port: port as unknown as HistoryPort, calls };
 }
 
-function fakeJobs(o: { missing?: 'no-file-service' | 'no-key'; session?: boolean; serviceFails?: boolean } = {}) {
+function fakeJobs(o: { missing?: 'no-file-service' | 'hosted-soniox' | 'no-key'; session?: boolean; serviceFails?: boolean } = {}) {
   const pending: { resolve?: (v: unknown) => void; reject?: (e: unknown) => void } = {};
   const jobs: FileJobs = {
     service: vi.fn(async () => {
@@ -68,7 +72,7 @@ describe('importing a file', () => {
     show(<ImportPanel file={file} myLanguage="zh" onClose={onClose} />);
     await settle();
     expect(screen.getByRole('dialog', { name: 'Import “Team sync.mp4”' })).toBeTruthy();
-    expect(screen.getByText('Transcribed by Soniox, the recognition service in your line-up.')).toBeTruthy();
+    expect(screen.getByText('Transcribed by Soniox, with your own key.')).toBeTruthy();
     // With the user's own key there is no price to show (owner, 2026-11-16).
     expect(screen.queryByText(/USD/)).toBeNull();
     // The app's own dropdown, as every other one.
@@ -80,22 +84,42 @@ describe('importing a file', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('says why it cannot start, and cannot be started', async () => {
-    for (const [o, text] of [
-      [{ missing: 'no-file-service' }, 'Needs Soniox as the recognition service in the line-up.'],
-      [{ missing: 'no-key' }, 'Needs a Soniox key in Settings.'],
-      [{ session: true }, 'Available when no session is running.'],
-      [{ serviceFails: true }, 'The recognition service could not be checked. Close this and try again.'],
+  // B-35 (owner, 2026-11-17): only the reason and what to do, then a link to the setting to change; the line that
+  // names the service only when the service can do it.
+  it('says why it cannot start and what to do, links to the setting, and cannot be started', async () => {
+    for (const [o, text, link, target, serviceLine] of [
+      [{ missing: 'no-file-service' }, 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.', 'Open Languages and line-up', 'lineup', false],
+      [{ missing: 'hosted-soniox' }, 'Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.', 'Open Languages and line-up', 'lineup', false],
+      [{ missing: 'no-key' }, 'Your Soniox key is not filled in yet.', 'Open Accounts and keys', 'provider', false],
+      [{ session: true }, 'Available when no session is running.', null, null, true],
+      [{ serviceFails: true }, 'The transcription service could not be checked. Close this and try again.', null, null, false],
     ] as const) {
+      useSettingsStore.setState({ settingsNavigationTarget: null });
       const { jobs } = fakeJobs(o);
       store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
       store.getState().follow();
-      show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
+      const onClose = vi.fn();
+      show(<ImportPanel file={file} myLanguage="zh" onClose={onClose} />);
       await settle();
       expect(screen.getByText(text)).toBeTruthy();
       expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.queryByText('Transcribed by Soniox, with your own key.') !== null).toBe(serviceLine);
+      if (link) {
+        fireEvent.click(screen.getByRole('button', { name: link }));
+        expect(useSettingsStore.getState().settingsNavigationTarget).toBe(target);
+        expect(onClose).toHaveBeenCalled();
+      } else {
+        expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
+      }
       cleanup();
     }
+  });
+
+  it('calls the line-up\'s stage "transcription", never "recognition"', () => {
+    const texts = (d: { history: { file: Record<string, unknown> } }) => Object.values(d.history.file).filter((v): v is string => typeof v === 'string');
+    expect(texts(en).filter((v) => /recogni/i.test(v))).toEqual([]);
+    expect(texts(zhCN).filter((v) => v.includes('识别'))).toEqual([]);
+    expect(texts(zhTW).filter((v) => v.includes('辨識'))).toEqual([]);
   });
 });
 
@@ -178,6 +202,35 @@ describe('transcribing a record again', () => {
     await settle();
     expect(jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  // No setting brings back a recording: the reason stands alone, whatever the line-up's transcription is (B-35 review).
+  it('says a record without a recording keeps none, with no link to Settings', async () => {
+    record = { ...record, tracks: record.tracks.map((t) => ({ ...t, goneAt: START })) };
+    const { jobs } = fakeJobs({ missing: 'hosted-soniox' });
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('This record keeps no recording.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
+    expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('says the same reason and link as the import when Kizuna AI\'s Soniox transcribes the line-up', async () => {
+    useSettingsStore.setState({ settingsNavigationTarget: null });
+    const { jobs } = fakeJobs({ missing: 'hosted-soniox' });
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.')).toBeTruthy();
+    expect(screen.queryByText('Transcribed by Soniox, with your own key.')).toBeNull();
+    expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Languages and line-up' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('lineup');
   });
 
   it('lets another transcript be chosen, newest first', async () => {

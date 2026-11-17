@@ -1,20 +1,35 @@
 @use '../Settings/shared/variables' as vars;
 @use '../../styles/tokens' as tk;
 
-// Docked beside the conversation; MainLayout puts it on the right, or above the conversation when narrow.
+// Docked beside the conversation; MainLayout puts it on the right, or above the conversation when narrow. A switch in
+// the conversation's toolbar hides it for a while (owner and design review, 2026-11-17; B-30, B-40): hidden, it leaves
+// nothing in its place.
 .live-notes {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: vars.$space-2;
   min-height: 0;
-  overflow-y: auto;
-  padding: vars.$space-3;
   border-left: 1px solid vars.$border-subtle;
   background: vars.$bg-surface;
   color: vars.$text-primary;
   font-size: 12.5px;
 
-  &__head { font-size: vars.$font-caption; color: vars.$text-tertiary; }
+  &[hidden] { display: none; }
+  &__head {
+    padding: vars.$space-3 vars.$space-3 0;
+    font-size: vars.$font-caption;
+    color: vars.$text-tertiary;
+  }
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-2;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: vars.$space-2 vars.$space-3 vars.$space-3;
+  }
+
   &__title { margin: 0; font-size: 14px; font-weight: vars.$weight-semibold; }
   &__line { margin: 0; color: vars.$text-secondary; line-height: 1.5; }
   &__topic {

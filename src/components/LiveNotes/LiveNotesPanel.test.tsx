@@ -11,6 +11,7 @@ import type { LiveState } from '../../lib/notes/live/state';
 import useSettingsStore from '../../stores/settingsStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import LiveNotesPanel from './LiveNotesPanel';
+import { readLiveNotesShown, useLiveNotesShown } from '../../lib/notes/live/livePanel';
 
 const notesPricing = vi.hoisted(() => ({ value: { inputPerMTok: 0.2, cachedInputPerMTok: 0.02, outputPerMTok: 1, liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 } as null | Record<string, number> }));
 vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({
@@ -31,7 +32,7 @@ beforeEach(() => {
   useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
   useLiveNotes.getState().begin('run-0001-aaaa');
 });
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); useLiveNotesShown.setState({ shown: true }); });
 
 describe('the live notes panel', () => {
   it('with Kizuna AI, shows what the live notes have used so far, and says when the balance is low', () => {
@@ -138,10 +139,81 @@ describe('the live notes panel', () => {
     expect(useLiveNotes.getState().running).toBe(false);
   });
 
+  // Owner, 2026-11-17: with live notes on, the panel is there before the session starts, saying where its notes will
+  // come, and nothing more.
+  it('before a session, with live notes on, shows its title and where the notes will come', () => {
+    act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    const panel = screen.getByRole('complementary', { name: 'Live notes' });
+    expect(within(panel).getByText('Notes appear here as the conversation goes on.')).toBeInTheDocument();
+    expect(within(panel).queryByRole('heading')).toBeNull();
+  });
+
   it('is not there when live notes are off and nothing was written', () => {
     useSettingsStore.setState({ liveNotes: false } as never);
     act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
     expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  // Owner, 2026-11-17 (B-30, B-40): the live notes can be hidden for a while from a switch in the conversation's toolbar
+  // (PanelToolbar); the panel has no handle of its own, and hidden it leaves nothing beside the conversation.
+  describe('hidden for a while', () => {
+    const panel = () => screen.queryByRole('complementary', { name: 'Live notes' });
+
+    it('has no handle of its own, and hidden it leaves nothing beside the conversation while the notes go on', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      expect(document.querySelector('.live-notes__handle')).toBeNull();
+      expect(screen.queryByRole('button', { name: /live notes/i })).toBeNull();
+      act(() => useLiveNotesShown.getState().setShown(false));
+      expect(panel()).toBeNull();
+      expect(document.querySelector('.live-notes')).toHaveAttribute('hidden');
+      // Hiding is not stopping: the loop runs and the setting is untouched.
+      expect(useLiveNotes.getState().running).toBe(true);
+      expect(useSettingsStore.getState().liveNotes).toBe(true);
+      act(() => useLiveNotesShown.getState().setShown(true));
+      expect(panel()).not.toBeNull();
+      expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeVisible();
+    });
+
+    it('stays hidden when new notes come in, and for the next session', () => {
+      act(() => useLiveNotesShown.getState().setShown(false));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      expect(panel()).toBeNull();
+      expect(localStorage.getItem('liveNotes.hidden')).toBe('1');
+      expect(readLiveNotesShown()).toBe(false);
+    });
+
+    // Review: a scroll that lands after the panel is hidden reads 0 from a box with no layout; it must not replace
+    // where the reader was, which the panel goes back to when shown.
+    it('goes back to where the reader was, whatever scroll comes while it is hidden', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      const body = document.querySelector('.live-notes__body') as HTMLElement;
+      body.scrollTop = 300;
+      fireEvent.scroll(body);
+      act(() => useLiveNotesShown.getState().setShown(false));
+      body.scrollTop = 0;
+      fireEvent.scroll(body);
+      body.scrollTop = 0;
+      act(() => useLiveNotesShown.getState().setShown(true));
+      expect(body.scrollTop).toBe(300);
+    });
+
+    // Review: the panel stays up between sessions while live notes are on; a new session's notes start at the top,
+    // not where the reader was in the last one.
+    it('starts a new session\'s notes at the top, hidden in between or not', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      const body = document.querySelector('.live-notes__body') as HTMLElement;
+      body.scrollTop = 300;
+      fireEvent.scroll(body);
+      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => { useLiveNotes.getState().end('run-0001-aaaa'); useLiveNotes.getState().begin('run-0002-bbbb'); useLiveNotes.getState().update('run-0002-bbbb', notes); });
+      act(() => useLiveNotesShown.getState().setShown(true));
+      expect(body.scrollTop).toBe(0);
+    });
   });
 });

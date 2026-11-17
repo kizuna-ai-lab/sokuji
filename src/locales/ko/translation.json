@@ -2013,7 +2013,6 @@
     "allRecords": "모든 기록",
     "binTitle": "휴지통",
     "results": "검색 결과",
-    "selectMode": "선택",
     "selectedCount": "{{count}}개 선택됨",
     "tagTranscript": "전사",
     "tagNotes": "메모",
@@ -2096,13 +2095,13 @@
       "import": "파일 가져오기",
       "importTitle": "“{{name}}” 가져오기",
       "language": "사용된 언어",
-      "service": "구성의 인식 서비스인 Soniox가 받아 적습니다.",
+      "service": "직접 입력한 키로 Soniox가 받아 적습니다.",
       "start": "시작",
       "transcribe": "받아 적기",
       "transcribeAgain": "다시 받아 적기",
       "transcribeNote": "저장된 녹음을 다시 받아 적습니다. 새 버전이 만들어지고, 지금 있는 기록은 그대로 남습니다.",
-      "blockedNotSoniox": "구성의 인식 서비스로 Soniox를 선택해야 합니다.",
-      "blockedNoKey": "설정에 Soniox 키가 필요합니다.",
+      "blockedNotSoniox": "파일은 직접 입력한 키를 쓰는 Soniox만 받아 적을 수 있습니다. 구성에서 전사 서비스로 선택하세요.",
+      "blockedNoKey": "Soniox 키를 아직 입력하지 않았습니다.",
       "blockedSession": "진행 중인 세션이 없을 때 쓸 수 있습니다.",
       "blockedBusy": "다른 가져오기나 받아 적기가 진행 중입니다.",
       "blockedNoRecording": "이 기록에는 녹음이 남아 있지 않습니다.",
@@ -2138,7 +2137,9 @@
       "versions": "받아 적은 글 버전",
       "versionLive": "실시간 · {{time}}",
       "versionFile": "Soniox 파일 · {{time}}",
-      "blockedUnchecked": "인식 서비스를 확인하지 못했습니다. 닫고 다시 시도하세요."
+      "blockedUnchecked": "전사 서비스를 확인하지 못했습니다. 닫고 다시 시도하세요.",
+      "blockedHostedSoniox": "파일은 직접 입력한 Soniox 키로만 받아 적을 수 있습니다. Kizuna AI의 Soniox는 지금은 실시간 세션 전용입니다.",
+      "openSettings": "{{place}} 열기"
     },
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "notesAddToWords": "단어 목록에 추가",
@@ -2164,7 +2165,10 @@
     "speakersHint": "이름을 클릭하면 화자 이름을 바꿀 수 있습니다. 한 문장을 다른 사람에게 옮기려면 전사에서 그 문장 옆의 ‘화자 변경’ 버튼을 사용하세요.",
     "sidePanel": "사이드 패널",
     "openSidePanel": "사이드 패널 열기",
-    "closeSidePanel": "사이드 패널 닫기"
+    "closeSidePanel": "사이드 패널 닫기",
+    "selectRecords": "기록 선택",
+    "hideNotes": "메모 숨기기",
+    "showNotes": "메모 보기"
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",
@@ -2186,6 +2190,9 @@
     "noBalance": "잔액이 소진되어 실시간 메모가 중지되었습니다.",
     "stoppedByService": "Kizuna AI가 지금은 실시간 메모를 작성할 수 없어 중지되었습니다.",
     "costSoFar": "지금까지의 실시간 메모: 약 {{cost}}",
-    "lowBalance": "잔액이 얼마 남지 않았습니다: {{balance}} 남음."
+    "lowBalance": "잔액이 얼마 남지 않았습니다: {{balance}} 남음.",
+    "hide": "실시간 메모 숨기기",
+    "show": "실시간 메모 보기",
+    "showWriting": "실시간 메모 보기(계속 작성 중)"
   }
 }

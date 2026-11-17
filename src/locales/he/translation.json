@@ -2013,7 +2013,6 @@
     "allRecords": "כל הרשומות",
     "binTitle": "סל המחזור",
     "results": "תוצאות החיפוש",
-    "selectMode": "בחירה",
     "selectedCount": "נבחרו {{count}}",
     "tagTranscript": "תמלול",
     "tagNotes": "הערות",
@@ -2096,13 +2095,13 @@
       "import": "ייבוא קובץ",
       "importTitle": "ייבוא „{{name}}”",
       "language": "השפה המדוברת בו",
-      "service": "התמלול נעשה על ידי Soniox, שירות הזיהוי במערך שלך.",
+      "service": "התמלול נעשה על ידי Soniox, עם המפתח שלך.",
       "start": "התחל",
       "transcribe": "תמלל",
       "transcribeAgain": "תמלל שוב",
       "transcribeNote": "ההקלטה השמורה מתומללת שוב. נוצרת גרסה חדשה; התמלולים הקיימים נשארים.",
-      "blockedNotSoniox": "נדרש Soniox כשירות הזיהוי במערך.",
-      "blockedNoKey": "נדרש מפתח Soniox בהגדרות.",
+      "blockedNotSoniox": "רק Soniox עם המפתח שלך מתמלל קבצים. בחר בו לתמלול במערך.",
+      "blockedNoKey": "עדיין לא הוזן מפתח Soniox שלך.",
       "blockedSession": "זמין כשאין שיחה פעילה.",
       "blockedBusy": "ייבוא או תמלול אחר פועל כעת.",
       "blockedNoRecording": "הרשומה הזו לא שומרת הקלטה.",
@@ -2138,7 +2137,9 @@
       "versions": "גרסת התמלול",
       "versionLive": "חי · {{time}}",
       "versionFile": "קובץ Soniox · {{time}}",
-      "blockedUnchecked": "לא ניתן היה לבדוק את שירות הזיהוי. סגור את החלון ונסה שוב."
+      "blockedUnchecked": "לא ניתן היה לבדוק את שירות התמלול. סגור את החלון ונסה שוב.",
+      "blockedHostedSoniox": "קבצים מתומללים רק עם מפתח Soniox משלך: ה-Soniox של Kizuna AI מיועד כרגע לסשנים חיים בלבד.",
+      "openSettings": "פתיחת {{place}}"
     },
     "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
     "notesAddToWords": "הוספה לרשימת המילים",
@@ -2164,7 +2165,10 @@
     "speakersHint": "לחצו על שם כדי לשנות את שם הדובר. כדי להעביר משפט אחד למישהו אחר, השתמשו בכפתור „החלפת דובר” שלידו בתמלול.",
     "sidePanel": "חלונית צד",
     "openSidePanel": "פתיחת חלונית הצד",
-    "closeSidePanel": "סגירת חלונית הצד"
+    "closeSidePanel": "סגירת חלונית הצד",
+    "selectRecords": "בחירת רשומות",
+    "hideNotes": "הסתרת ההערות",
+    "showNotes": "הצגת ההערות"
   },
   "notesQuit": {
     "named": "נכתבות הערות עבור „{{title}}”. לצאת בכל זאת? הן יסומנו כמבוטלות.",
@@ -2186,6 +2190,9 @@
     "noBalance": "היתרה שלך נגמרה; ההערות החיות נעצרו.",
     "stoppedByService": "Kizuna AI לא יכולה לכתוב הערות חיות כרגע; הן נעצרו.",
     "costSoFar": "הערות חיות עד כה: כ־{{cost}}",
-    "lowBalance": "היתרה שלך נמוכה: נותרו {{balance}}."
+    "lowBalance": "היתרה שלך נמוכה: נותרו {{balance}}.",
+    "hide": "הסתרת ההערות החיות",
+    "show": "הצגת ההערות החיות",
+    "showWriting": "הצגת ההערות החיות (עדיין נכתבות)"
   }
 }

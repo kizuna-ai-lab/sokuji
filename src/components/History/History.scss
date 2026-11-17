@@ -128,15 +128,30 @@
 }
 
 .history-content {
-  // The selection bar stays at the bottom of the scrolling content.
   position: relative;
 
+  // The heading, then what goes with it: "Select records" right after it; in Select, the count beside it and the
+  // actions at the end of the row, which move to a line of their own, together, when the page is narrow.
   &__head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: vars.$space-3;
+    column-gap: vars.$space-3;
+    row-gap: vars.$space-2;
     width: 100%;
+  }
+
+  &__select { display: inline-flex; align-items: center; gap: vars.$space-1; }
+  &__count { color: vars.$text-secondary; }
+  &__actions { display: flex; align-items: center; gap: vars.$space-2; margin-left: auto; }
+
+  // In Select the heading row stays at the top while the list scrolls under it.
+  > header.is-selecting {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: vars.$bg-page;
+    border-bottom: 1px solid vars.$border-subtle;
   }
 }
 
@@ -161,25 +176,6 @@
   white-space: nowrap;
 }
 
-.history-select-bar {
-  position: sticky;
-  bottom: 0;
-  width: 100%;
-  margin-top: auto;
-  border-top: 1px solid vars.$border-subtle;
-  background: vars.$bg-surface;
-
-  // Lined up with the list above it.
-  &__in {
-    display: flex;
-    align-items: center;
-    gap: vars.$space-2;
-    max-width: 720px + 2 * 28px;
-    box-sizing: border-box;
-    padding: vars.$space-2 28px;
-    > span { margin-right: auto; color: vars.$text-secondary; }
-  }
-}
 
 // Inside the content column the confirmation lines up with the rows.
 .settings-page__body > .history-confirm { margin: 0 0 vars.$space-3; }
@@ -366,6 +362,24 @@
 
   &__more { position: relative; }
 
+  // The two panels' switches, a pair set a little apart from Export and More; a shown panel's switch is pressed. Their
+  // words go, the icons staying, when the heading would have too little room (RecordPage measures; owner, 2026-11-17).
+  // As far apart as the other actions (owner, 2026-11-17): one even row, no extra space of its own.
+  &__panels { display: inline-flex; gap: vars.$space-2; }
+  &__panels[data-compact] &__panel-word { display: none; }
+  &__panels[data-compact] &__panel-switch { padding: vars.$space-1; }
+  // Off, the icon alone; on, the button filled and outlined, so which panels are shown reads at a glance.
+  &__panel-switch {
+    border-color: transparent;
+    background: transparent;
+    color: vars.$text-tertiary;
+  }
+  &__panel-switch[aria-pressed='true'] {
+    border-color: vars.$border-default;
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
+  }
+
   &__menu {
     position: absolute;
     top: calc(100% + 4px);
@@ -453,13 +467,25 @@
     }
   }
 
+  // The notes and, when the page is wide, the handle that hides and shows them; the divider beside it sets the width.
+  &__notes-col {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    // Its flex outranks the browser's own [hidden] rule: hidden (the Transcript tab on a narrow page, the notes closed
+    // on a wide one), it takes no room at all.
+    &[hidden] { display: none; }
+  }
   &__notes {
+    flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: vars.$space-3 vars.$space-4;
-    border-right: 1px solid vars.$border-subtle;
   }
-  &__columns:not(.is-wide) &__notes { grid-column: 1 / -1; border-right: none; }
+  &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
+
 
   &__transcript {
     min-height: 0;
@@ -730,12 +756,45 @@
   display: flex;
   flex-direction: column;
   gap: vars.$space-2;
+  // Its own width is what the language select keeps to in a narrow column (cqw below).
+  container-type: inline-size;
 
   &__version { align-self: flex-start; max-width: 100%; }
   &__title { margin: 0; font-size: 15px; font-weight: vars.$weight-semibold; }
   &__overview { margin: 0; color: vars.$text-secondary; line-height: 1.6; }
   &__state { display: flex; flex-direction: column; align-items: flex-start; gap: vars.$space-2; color: vars.$text-secondary; p { margin: 0; } }
   &__write { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; margin-top: vars.$space-2; }
+  &__write > label { color: vars.$text-secondary; font-size: vars.$font-caption; }
+  // When the row is too narrow, the label above takes a line of its own first; when the select and the button still
+  // do not fit side by side, the button goes on to the next line, under the select, never out of the column (B-49).
+  &__pick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: vars.$space-2;
+    min-width: 0;
+  }
+  // As wide as its longest language name, not stretched across the column, and as tall as the button (owner,
+  // 2026-11-17).
+  // Its longest name's width is measured (RecordNotes, --language-min); in a narrow column it keeps to a little over
+  // half the notes' width.
+  // Held to 30px, its words and its arrow centred, with no padding above and below to push them down.
+  &__pick select {
+    width: auto;
+    min-width: min(var(--language-min, 0px), 55cqw);
+    max-width: 100%;
+    height: 30px;
+    box-sizing: border-box;
+    padding-block: 0;
+    align-items: center;
+  }
+  // Opened, the list exactly as wide as the select (owner, 2026-11-17).
+  &__pick select::picker(select) {
+    width: anchor-size(width);
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  &__pick .history-button { flex: none; white-space: nowrap; max-width: 100%; height: 30px; box-sizing: border-box; }
 
   // One pill per choice, the chosen one filled (so it does not read as a kind tag on a point); in a narrow pane the
   // choices go on to a second line rather than being cut off.
@@ -825,6 +884,13 @@
   }
 
   &__blocked { color: vars.$color-error; }
+  // The setting to change, after the reason (B-35): a link in the reason's colour, as the line-up's own links are.
+  &__link {
+    padding: 0; border: none; background: none; color: inherit; font: inherit; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
 
   &__line { margin: vars.$space-2 vars.$space-4; }
 
@@ -884,34 +950,15 @@
   right: 0;
   bottom: 0;
   z-index: 5;
-  // Never the whole width: the handle on its left edge stays on screen, so a narrow window can still close it.
-  width: min(320px, calc(100% - 24px));
+  // Shown and hidden from the toolbar's switch, so it may take the whole width of a narrow window.
+  width: min(320px, 100%);
   transform: translateX(100%);
   transition: transform vars.$transition-normal;
   pointer-events: none;
   &.is-open { transform: none; }
   @media (prefers-reduced-motion: reduce) { transition: none; }
 
-  &__handle {
-    position: absolute;
-    top: vars.$space-2;
-    right: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid vars.$border-default;
-    border-right: none;
-    border-radius: vars.$radius-sm 0 0 vars.$radius-sm;
-    background: vars.$bg-surface;
-    color: vars.$text-secondary;
-    cursor: pointer;
-    pointer-events: auto;
-    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
-  }
+
 
   &__panel {
     height: 100%;
@@ -932,8 +979,6 @@
   &__hint { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-tertiary; }
 }
 
-// The transcript keeps clear of the handle at its right edge.
-.record-page__transcript { padding-right: calc(#{vars.$space-4} + 24px); }
 
 // A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.
 .inline-edit {
