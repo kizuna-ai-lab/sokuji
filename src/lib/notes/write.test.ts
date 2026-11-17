@@ -55,7 +55,7 @@ describe('cutting a transcript into parts', () => {
     expect(cutParts(everyMinute(26)).map((p) => p.length)).toEqual([26]);
   });
 
-  // Checklist B11: half an hour is where a transcript starts to be sent in parts of about twenty minutes.
+  // Half an hour is where a transcript starts to be sent in parts of about twenty minutes.
   it('sends a transcript in one part up to half an hour, and in parts from half an hour on', () => {
     expect(cutParts(everyMinute(30)).map((p) => p.length)).toEqual([30]);
     const parts = cutParts(everyMinute(31));
@@ -133,7 +133,7 @@ describe('writing the notes', () => {
     expect(model.of('finish')).toHaveLength(0);
   });
 
-  // Checklist B11: one part of several failing is the whole version failing: no notes from the other parts are kept.
+  // One part of several failing is the whole version failing: no notes from the other parts are kept.
   it('fails the whole version when one part of several fails three times, and finishes nothing', async () => {
     const model = fakeChat({
       part: (user: PartUser, call) => (user.part?.index === 2
@@ -252,7 +252,7 @@ describe('writing the notes', () => {
     ]);
   });
 
-  // Checklist B11: the same decision taken up again in a later part is one decision in the notes; a to-do called off is
+  // The same decision taken up again in a later part is one decision in the notes; a to-do called off is
   // a plain point, with no to-do mark left on it.
   it('keeps one decision met in two parts, and leaves a to-do called off without its mark', async () => {
     const model = fakeChat({
@@ -349,7 +349,7 @@ describe('writing the notes', () => {
     expect(model.of('part')).toHaveLength(1);
   });
 
-  // Checklist B8: no network. The browser's fetch fails with a TypeError; another try may get through, so the part is
+  // No network. The browser's fetch fails with a TypeError; another try may get through, so the part is
   // tried again, and the version then fails as "could not be reached".
   it('fails the version as unreachable when the service cannot be reached, after trying again', async () => {
     const model = fakeChat({ part: () => Promise.reject(new TypeError('Failed to fetch')) });

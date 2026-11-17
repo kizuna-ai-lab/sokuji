@@ -462,7 +462,7 @@ describe('the notes card', () => {
     expect(within(card).getByText('Ready')).toBeInTheDocument();
   });
 
-  // Checklist B14: the card's state follows the service the notes stage names: OpenAI's key state while OpenAI writes
+  // The card's state follows the service the notes stage names: OpenAI's key state while OpenAI writes
   // them, Kizuna AI's sign-in once Kizuna AI does, with nothing of OpenAI's key left.
   it("swaps OpenAI's key state for Kizuna AI's sign-in when the notes stage changes to Kizuna AI", async () => {
     openAiKey();

@@ -204,7 +204,7 @@ describe('the first-time explanation sits under the switch that asked for it (B-
     expect(explained.nextElementSibling).toBe(row(LIVE));
   });
 
-  // Checklist B12: turning on one switch, then the other, shows only the second's explanation, under its own switch;
+  // Turning on one switch, then the other, shows only the second's explanation, under its own switch;
   // neither switch is on until its explanation is accepted; Cancel puts each away.
   it('shows only the explanation of the switch last turned on, under it, and Cancel puts it away', async () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });

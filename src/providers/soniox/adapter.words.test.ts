@@ -1,5 +1,5 @@
 /**
- * The word list on its way to Soniox (checklist E3): what the user keeps in Settings › Word list and background,
+ * The word list on its way to Soniox: what the user keeps in Settings › Word list and background,
  * read into the run's shape at Start (`readShapeFromStores`), built into Soniox's config and sent in the STT socket's
  * first frame. Soniox takes the written forms, the translations and the background; it has no field for "often heard
  * as", so those never leave the app for Soniox. An empty list sends no context at all. Driven on `FakeSocket`.
@@ -55,7 +55,7 @@ beforeEach(() => {
   });
 });
 
-describe('the word list in the request Soniox is sent (checklist E3)', () => {
+describe('the word list in the request Soniox is sent', () => {
   it("sends a person's and a product's written forms, a translation and the background, and no \"often heard as\"", async () => {
     const frame = await firstFrame([
       { written: 'Tanaka Hiroshi', heardAs: 'tana car, tanaka hero' },

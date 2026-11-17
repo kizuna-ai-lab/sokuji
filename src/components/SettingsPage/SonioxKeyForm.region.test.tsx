@@ -1,4 +1,4 @@
-// Checklist B13 through the form and the app's own region change: a pasted Soniox key that belongs to another region,
+// A pasted Soniox key's region, through the form and the app's own region change: a key that belongs to another region,
 // with a custom voice in the selected region, is not followed there without asking. Cancel keeps the selected region
 // and its key; confirm moves the region and keeps the one key. Only the voice reconciliation and storage are stubbed.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -47,7 +47,7 @@ async function pasteJapanKey() {
   await waitFor(() => expect(useRegionChangeStore.getState().question).toMatchObject({ providerId: 'soniox', from: 'us', to: 'jp' }));
 }
 
-describe("a pasted key of another region, with a custom voice in this one (checklist B13)", () => {
+describe("a pasted key of another region, with a custom voice in this one", () => {
   it('asks first; Cancel keeps the region and the key that works in it', async () => {
     await pasteJapanKey();
     expect(region()).toBe('us');
