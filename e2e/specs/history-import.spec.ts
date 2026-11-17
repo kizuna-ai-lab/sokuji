@@ -165,15 +165,16 @@ test('the common audio and video formats import, each as long as its file, and p
 });
 
 // ALAC (Apple Lossless) and AC-3 (a 5.1 video's sound) are decoded by neither of the page's decoders today, on Linux
-// or macOS. Such a file is refused before anything is kept: it says the audio cannot be read, leaves no record or
-// folder, and nothing is sent to the service. (Should either codec be supported one day, it moves to the list above.)
-test('a file whose sound the app cannot decode is refused, says so, and leaves nothing', async ({ launchApp }) => {
+// or macOS. Such a file is refused before anything is kept: it says the audio cannot be read and what to convert it
+// to, leaves no record or folder, and nothing is sent to the service. (Should either codec be supported one day, it
+// moves to the list above.)
+test('a file whose sound the app cannot decode is refused, says what to convert it to, and leaves nothing', async ({ launchApp }) => {
   const { sokuji, transcription } = await readyToImport(launchApp);
   const { page, userData } = sokuji;
   const failure = page.locator('.history-file__line[role="alert"]');
   for (const file of ['sample-alac.m4a', 'sample-ac3-5.1.mp4']) {
     await importFile(page, file);
-    await expect(failure, file).toContainText('The audio of this file cannot be read.', { timeout: 30_000 });
+    await expect(failure, file).toContainText('The audio of this file cannot be read. Convert it to AAC or MP3 and import it again.', { timeout: 30_000 });
     await expect(failure, file).not.toContainText('The recording was kept');
     await failure.getByRole('button', { name: 'Got it' }).click();
     await expect(page.locator('.history-list [data-record]'), file).toHaveCount(0);
