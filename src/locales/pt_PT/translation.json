@@ -1753,7 +1753,7 @@
     "changeable": "Pode ser alterado durante uma sessão",
     "lockedNote": "Bloqueado durante uma sessão",
     "partlyLocked": "Parcialmente bloqueado durante uma sessão",
-    "lockedLine": "Está a decorrer uma sessão. Idiomas, composição, lista de palavras e chaves estão bloqueados; áudio, apresentação e o resto podem ser alterados.",
+    "lockedLine": "Está a decorrer uma sessão. Idiomas, composição, lista de palavras, modelos e chaves estão bloqueados; áudio, apresentação e o resto podem ser alterados.",
     "categories": {
       "lineup": "Idiomas e composição",
       "words": "Lista de palavras e contexto",

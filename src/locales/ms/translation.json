@@ -1753,7 +1753,7 @@
     "changeable": "Boleh diubah semasa sesi",
     "lockedNote": "Dikunci semasa sesi",
     "partlyLocked": "Sebahagiannya dikunci semasa sesi",
-    "lockedLine": "Satu sesi sedang berjalan. Bahasa, susunan, senarai perkataan dan kunci dikunci; audio, paparan dan yang lain boleh diubah.",
+    "lockedLine": "Satu sesi sedang berjalan. Bahasa, susunan, senarai perkataan, model dan kunci dikunci; audio, paparan dan yang lain boleh diubah.",
     "categories": {
       "lineup": "Bahasa dan susunan",
       "words": "Senarai perkataan dan latar",

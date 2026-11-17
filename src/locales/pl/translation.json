@@ -1753,7 +1753,7 @@
     "changeable": "Można zmieniać w trakcie sesji",
     "lockedNote": "Zablokowane w trakcie sesji",
     "partlyLocked": "Częściowo zablokowane w trakcie sesji",
-    "lockedLine": "Trwa sesja. Języki, zestaw, lista słów i klucze są zablokowane; dźwięk, wyświetlanie i resztę można zmieniać.",
+    "lockedLine": "Trwa sesja. Języki, zestaw, lista słów, modele i klucze są zablokowane; dźwięk, wyświetlanie i resztę można zmieniać.",
     "categories": {
       "lineup": "Języki i zestaw",
       "words": "Lista słów i kontekst",

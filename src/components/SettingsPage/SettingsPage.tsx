@@ -212,7 +212,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
     <div ref={root} className={`settings-page ${wide ? 'settings-page--wide' : 'settings-page--narrow'}`} data-testid="settings-page">
       {locked && (
         <div className="settings-page__locked" role="status">
-          {t('settingsPage.lockedLine', 'A session is running. Languages, the line-up, the word list and keys are locked; audio, display and the rest can be changed.')}
+          {t('settingsPage.lockedLine', 'A session is running. Languages, the line-up, the word list, models and keys are locked; audio, display and the rest can be changed.')}
         </div>
       )}
       {wide ? (

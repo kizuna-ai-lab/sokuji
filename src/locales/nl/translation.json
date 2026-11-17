@@ -1753,7 +1753,7 @@
     "changeable": "Te wijzigen tijdens een sessie",
     "lockedNote": "Vergrendeld tijdens een sessie",
     "partlyLocked": "Deels vergrendeld tijdens een sessie",
-    "lockedLine": "Er loopt een sessie. Talen, opstelling, woordenlijst en sleutels zijn vergrendeld; audio, weergave en de rest kun je wijzigen.",
+    "lockedLine": "Er loopt een sessie. Talen, opstelling, woordenlijst, modellen en sleutels zijn vergrendeld; audio, weergave en de rest kun je wijzigen.",
     "categories": {
       "lineup": "Talen en opstelling",
       "words": "Woordenlijst en achtergrond",

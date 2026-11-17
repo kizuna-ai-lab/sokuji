@@ -1753,7 +1753,7 @@
     "changeable": "Có thể thay đổi trong phiên",
     "lockedNote": "Bị khóa trong phiên",
     "partlyLocked": "Bị khóa một phần trong phiên",
-    "lockedLine": "Đang có một phiên. Ngôn ngữ, cách phối hợp, danh sách từ và khóa bị khóa; âm thanh, hiển thị và các mục khác vẫn đổi được.",
+    "lockedLine": "Đang có một phiên. Ngôn ngữ, cách phối hợp, danh sách từ, mô hình và khóa bị khóa; âm thanh, hiển thị và các mục khác vẫn đổi được.",
     "categories": {
       "lineup": "Ngôn ngữ và cách phối hợp",
       "words": "Danh sách từ và bối cảnh",

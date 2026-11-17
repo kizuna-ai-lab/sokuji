@@ -1753,7 +1753,7 @@
     "changeable": "Während einer Sitzung änderbar",
     "lockedNote": "Während einer Sitzung gesperrt",
     "partlyLocked": "Während einer Sitzung teilweise gesperrt",
-    "lockedLine": "Eine Sitzung läuft. Sprachen, Aufstellung, Wortliste und Schlüssel sind gesperrt; Audio, Anzeige und der Rest lassen sich ändern.",
+    "lockedLine": "Eine Sitzung läuft. Sprachen, Aufstellung, Wortliste, Modelle und Schlüssel sind gesperrt; Audio, Anzeige und der Rest lassen sich ändern.",
     "categories": {
       "lineup": "Sprachen und Aufstellung",
       "words": "Wortliste und Hintergrund",

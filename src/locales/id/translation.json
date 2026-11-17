@@ -1753,7 +1753,7 @@
     "changeable": "Dapat diubah selama sesi",
     "lockedNote": "Terkunci selama sesi",
     "partlyLocked": "Sebagian terkunci selama sesi",
-    "lockedLine": "Sesi sedang berjalan. Bahasa, susunan, daftar kata, dan kunci terkunci; audio, tampilan, dan lainnya dapat diubah.",
+    "lockedLine": "Sesi sedang berjalan. Bahasa, susunan, daftar kata, model, dan kunci terkunci; audio, tampilan, dan lainnya dapat diubah.",
     "categories": {
       "lineup": "Bahasa dan susunan",
       "words": "Daftar kata dan latar",

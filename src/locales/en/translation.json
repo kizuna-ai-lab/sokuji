@@ -1753,7 +1753,7 @@
     "changeable": "Changeable during a session",
     "lockedNote": "Locked during a session",
     "partlyLocked": "Partly locked during a session",
-    "lockedLine": "A session is running. Languages, the line-up, the word list and keys are locked; audio, display and the rest can be changed.",
+    "lockedLine": "A session is running. Languages, the line-up, the word list, models and keys are locked; audio, display and the rest can be changed.",
     "categories": {
       "lineup": "Languages and line-up",
       "words": "Word list and background",

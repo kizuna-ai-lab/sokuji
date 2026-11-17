@@ -1753,7 +1753,7 @@
     "changeable": "Mababago habang may session",
     "lockedNote": "Naka-lock habang may session",
     "partlyLocked": "Bahagyang naka-lock habang may session",
-    "lockedLine": "May tumatakbong session. Naka-lock ang mga wika, ang line-up, ang listahan ng salita at ang mga key; mababago ang audio, ang display at ang iba pa.",
+    "lockedLine": "May tumatakbong session. Naka-lock ang mga wika, ang line-up, ang listahan ng salita, ang mga model at ang mga key; mababago ang audio, ang display at ang iba pa.",
     "categories": {
       "lineup": "Mga wika at line-up",
       "words": "Listahan ng salita at background",

@@ -1753,7 +1753,7 @@
     "changeable": "Oturum sırasında değiştirilebilir",
     "lockedNote": "Oturum sırasında kilitli",
     "partlyLocked": "Oturum sırasında kısmen kilitli",
-    "lockedLine": "Bir oturum sürüyor. Diller, düzen, kelime listesi ve anahtarlar kilitli; ses, görünüm ve diğerleri değiştirilebilir.",
+    "lockedLine": "Bir oturum sürüyor. Diller, düzen, kelime listesi, modeller ve anahtarlar kilitli; ses, görünüm ve diğerleri değiştirilebilir.",
     "categories": {
       "lineup": "Diller ve düzen",
       "words": "Kelime listesi ve arka plan",

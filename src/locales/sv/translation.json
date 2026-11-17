@@ -1753,7 +1753,7 @@
     "changeable": "Kan ändras under en session",
     "lockedNote": "Låst under en session",
     "partlyLocked": "Delvis låst under en session",
-    "lockedLine": "En session pågår. Språk, uppsättning, ordlista och nycklar är låsta; ljud, visning och resten kan ändras.",
+    "lockedLine": "En session pågår. Språk, uppsättning, ordlista, modeller och nycklar är låsta; ljud, visning och resten kan ändras.",
     "categories": {
       "lineup": "Språk och uppsättning",
       "words": "Ordlista och bakgrund",

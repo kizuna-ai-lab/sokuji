@@ -1753,7 +1753,7 @@
     "changeable": "Muutettavissa istunnon aikana",
     "lockedNote": "Lukittu istunnon ajaksi",
     "partlyLocked": "Osittain lukittu istunnon ajaksi",
-    "lockedLine": "Istunto on käynnissä. Kielet, kokoonpano, sanalista ja avaimet ovat lukittuina; ääntä, näkymää ja muuta voi muuttaa.",
+    "lockedLine": "Istunto on käynnissä. Kielet, kokoonpano, sanalista, mallit ja avaimet ovat lukittuina; ääntä, näkymää ja muuta voi muuttaa.",
     "categories": {
       "lineup": "Kielet ja kokoonpano",
       "words": "Sanalista ja tausta",
