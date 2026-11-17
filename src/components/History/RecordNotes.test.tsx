@@ -291,8 +291,11 @@ describe("a record's notes", () => {
       expect(screen.getByText(`The notes could not be written: ${words[code]}`)).toBeInTheDocument();
       cleanup();
     }
-    render(<RecordNotes {...props({ notes: failed('notes:something-new') })} />);
-    expect(screen.getByText('The notes could not be written: The notes service refused the request.')).toBeInTheDocument();
+    for (const unknown of ['notes:something-new', 'notes:constructor', 'notes:toString']) {
+      render(<RecordNotes {...props({ notes: failed(unknown) })} />);
+      expect(screen.getByText('The notes could not be written: The notes service refused the request.'), unknown).toBeInTheDocument();
+      cleanup();
+    }
   });
 
   it('leads to the account for a reason the user can change there, and nowhere for the others', () => {

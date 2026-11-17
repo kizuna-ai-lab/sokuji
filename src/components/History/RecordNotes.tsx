@@ -97,7 +97,7 @@ export function RecordNotes(p: RecordNotesProps) {
     const code = failure.slice('notes:'.length);
     if (code.startsWith('refused:')) return t('history.notesFailure.refused', 'The service refused the request ({{status}}).', { status: code.slice('refused:'.length) });
     // A code this version does not know yet still reads as words, never as the code.
-    if (!(code in FAILURE_WORDS)) return t('history.notesFailure.other', 'The notes service refused the request.');
+    if (!Object.prototype.hasOwnProperty.call(FAILURE_WORDS, code)) return t('history.notesFailure.other', 'The notes service refused the request.');
     return t(`history.notesFailure.${code}`, FAILURE_WORDS[code]);
   };
   // A reason the account can change leads there, under a version that failed and under a newer attempt that did.
