@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가하세요.",
       "jointCard": "{{stages}}는 하나의 연결로 동작하며, 함께 바뀝니다.",
       "notesKizunaLine": "Kizuna AI를 통해 OpenAI가 메모를 작성하며, 비용은 잔액에서 지불됩니다.",
-      "notesOpenAiLine": "본인의 OpenAI 키로 메모를 작성합니다."
+      "notesOpenAiLine": "본인의 OpenAI 키로 메모를 작성합니다.",
+      "notesNeedSignInOrChoose": "메모를 작성하려면 로그인하거나 여기에서 OpenAI를 선택하세요.",
+      "notesNeedSignInOrKeyAndChoose": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가한 뒤 여기에서 OpenAI를 선택하세요."
     },
     "display": {
       "surface": "어느 화면",

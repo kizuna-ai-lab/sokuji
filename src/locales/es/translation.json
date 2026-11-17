@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves», para que se escriban las notas.",
       "jointCard": "{{stages}} van por una sola conexión; cambian juntas.",
       "notesKizunaLine": "OpenAI escribe las notas a través de Kizuna AI, pagadas con tu saldo.",
-      "notesOpenAiLine": "Escribe las notas con tu propia clave de OpenAI."
+      "notesOpenAiLine": "Escribe las notas con tu propia clave de OpenAI.",
+      "notesNeedSignInOrChoose": "Inicia sesión, o elige OpenAI aquí, para que se escriban las notas.",
+      "notesNeedSignInOrKeyAndChoose": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves» y elige OpenAI aquí, para que se escriban las notas."
     },
     "display": {
       "surface": "Qué visualización",

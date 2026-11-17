@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key”, para maisulat ang mga tala.",
       "jointCard": "Magkasama sa iisang koneksyon ang {{stages}}; sabay silang nagbabago.",
       "notesKizunaLine": "Isinusulat ng OpenAI ang mga tala sa pamamagitan ng Kizuna AI, bayad mula sa iyong balanse.",
-      "notesOpenAiLine": "Isinusulat ang mga tala gamit ang sarili mong OpenAI key."
+      "notesOpenAiLine": "Isinusulat ang mga tala gamit ang sarili mong OpenAI key.",
+      "notesNeedSignInOrChoose": "Mag-sign in, o piliin ang OpenAI dito, para maisulat ang mga tala.",
+      "notesNeedSignInOrKeyAndChoose": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key” at piliin ang OpenAI dito, para maisulat ang mga tala."
     },
     "display": {
       "surface": "Aling display",

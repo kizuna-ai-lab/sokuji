@@ -33,6 +33,9 @@ export function RecordSidePanel({ open, onToggle, editing, children }: RecordSid
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented || isComposing(e) || editingRef.current) return;
+      // An open menu or a field that takes Escape itself has it first: the panel closes only on an Escape nothing else
+      // takes (review).
+      if ((e.target as Element | null)?.closest?.('[data-escape-own]')) return;
       e.preventDefault();
       void toggleRef.current();
     };

@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "登录，或在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。",
       "jointCard": "{{stages}}共用一条连接，会一起换。",
       "notesKizunaLine": "经 Kizuna AI 由 OpenAI 写纪要，从余额扣费。",
-      "notesOpenAiLine": "用你自己的 OpenAI key 写纪要。"
+      "notesOpenAiLine": "用你自己的 OpenAI key 写纪要。",
+      "notesNeedSignInOrChoose": "登录，或在这里选 OpenAI，才能写纪要。",
+      "notesNeedSignInOrKeyAndChoose": "登录，或在“账号与密钥”里添加 OpenAI 的 key 并在这里选 OpenAI，才能写纪要。"
     },
     "display": {
       "surface": "哪个界面",

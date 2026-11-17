@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci”, supaya nota ditulis.",
       "jointCard": "{{stages}} berjalan melalui satu sambungan; kedua-duanya berubah bersama.",
       "notesKizunaLine": "OpenAI menulis nota melalui Kizuna AI, dibayar daripada baki anda.",
-      "notesOpenAiLine": "Menulis nota dengan kunci OpenAI anda sendiri."
+      "notesOpenAiLine": "Menulis nota dengan kunci OpenAI anda sendiri.",
+      "notesNeedSignInOrChoose": "Log masuk, atau pilih OpenAI di sini, supaya nota ditulis.",
+      "notesNeedSignInOrKeyAndChoose": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci” dan pilih OpenAI di sini, supaya nota ditulis."
     },
     "display": {
       "surface": "Paparan mana",

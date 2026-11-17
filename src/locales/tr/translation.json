@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
       "jointCard": "{{stages}} tek bağlantı üzerinden çalışır; birlikte değişirler.",
       "notesKizunaLine": "OpenAI notları Kizuna AI üzerinden yazar; bakiyenizden ödenir.",
-      "notesOpenAiLine": "Notları kendi OpenAI anahtarınızla yazar."
+      "notesOpenAiLine": "Notları kendi OpenAI anahtarınızla yazar.",
+      "notesNeedSignInOrChoose": "Notların yazılması için oturum açın veya burada OpenAI'ı seçin.",
+      "notesNeedSignInOrKeyAndChoose": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyip burada OpenAI'ı seçin."
     },
     "display": {
       "surface": "Hangi görünüm",

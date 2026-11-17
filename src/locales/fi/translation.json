@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
       "jointCard": "{{stages}} kulkevat yhden yhteyden kautta; ne vaihtuvat yhdessä.",
       "notesKizunaLine": "OpenAI kirjoittaa muistiinpanot Kizuna AI:n kautta, maksetaan saldostasi.",
-      "notesOpenAiLine": "Kirjoittaa muistiinpanot omalla OpenAI-avaimellasi."
+      "notesOpenAiLine": "Kirjoittaa muistiinpanot omalla OpenAI-avaimellasi.",
+      "notesNeedSignInOrChoose": "Kirjaudu sisään tai valitse tästä OpenAI, niin muistiinpanot kirjoitetaan.",
+      "notesNeedSignInOrKeyAndChoose": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet” ja valitse tästä OpenAI, niin muistiinpanot kirjoitetaan."
     },
     "display": {
       "surface": "Mikä näkymä",

@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written.",
       "jointCard": "{{stages}} go over one connection; they change together.",
       "notesKizunaLine": "OpenAI writes the notes through Kizuna AI, paid from your balance.",
-      "notesOpenAiLine": "Writes the notes with your own OpenAI key."
+      "notesOpenAiLine": "Writes the notes with your own OpenAI key.",
+      "notesNeedSignInOrChoose": "Sign in, or choose OpenAI here, to have notes written.",
+      "notesNeedSignInOrKeyAndChoose": "Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written."
     },
     "display": {
       "surface": "Which display",

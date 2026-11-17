@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Log in, of voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’, om notities te laten schrijven.",
       "jointCard": "{{stages}} gaan over één verbinding; ze wisselen samen.",
       "notesKizunaLine": "OpenAI schrijft de notities via Kizuna AI, betaald uit je saldo.",
-      "notesOpenAiLine": "Schrijft de notities met je eigen OpenAI-sleutel."
+      "notesOpenAiLine": "Schrijft de notities met je eigen OpenAI-sleutel.",
+      "notesNeedSignInOrChoose": "Log in, of kies hier OpenAI, om notities te laten schrijven.",
+      "notesNeedSignInOrKeyAndChoose": "Log in, of voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’ en kies hier OpenAI, om notities te laten schrijven."
     },
     "display": {
       "surface": "Welke weergave",

@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。",
       "jointCard": "{{stages}}は1つの接続で動きます。一緒に切り替わります。",
       "notesKizunaLine": "Kizuna AI 経由で OpenAI がメモを書きます。料金は残高から支払われます。",
-      "notesOpenAiLine": "あなた自身の OpenAI キーでメモを書きます。"
+      "notesOpenAiLine": "あなた自身の OpenAI キーでメモを書きます。",
+      "notesNeedSignInOrChoose": "メモを書くには、サインインするか、ここで OpenAI を選んでください。",
+      "notesNeedSignInOrKeyAndChoose": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加して、ここで OpenAI を選んでください。"
     },
     "display": {
       "surface": "どの表示",

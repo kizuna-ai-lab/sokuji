@@ -455,7 +455,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               <p className="lineup-stage__joint">{t('settingsPage.lineup.notesKizunaPrice', 'Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.', { live: perHour(notesPricing.liveUsdPerHour), after: perHour(notesPricing.afterSessionUsdPerHour) })}</p>
             )}
             {!openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
-            {!openAiKeyed && kizunaOffered && !auth.signedIn && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedSignInOrKey', 'Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')}</p>}
+            {/* Signed out where Kizuna AI writes the notes: chosen on purpose, adding a key does not change the choice, so
+                the line says to choose OpenAI here too (review); by default, a key is enough. */}
+            {kizunaOffered && !auth.signedIn && (lineUp?.summarisation === KIZUNA_NOTES
+              ? <p className="lineup-stage__joint">{openAiKeyed
+                ? t('settingsPage.lineup.notesNeedSignInOrChoose', 'Sign in, or choose OpenAI here, to have notes written.')
+                : t('settingsPage.lineup.notesNeedSignInOrKeyAndChoose', 'Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written.')}</p>
+              : !openAiKeyed && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedSignInOrKey', 'Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')}</p>)}
           </div>
         )}
       </div>

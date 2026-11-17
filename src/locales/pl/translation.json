@@ -1867,7 +1867,9 @@
       "notesNeedSignInOrKey": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane.",
       "jointCard": "{{stages}} działają przez jedno połączenie; zmieniają się razem.",
       "notesKizunaLine": "OpenAI pisze notatki przez Kizuna AI, płatne z Twojego salda.",
-      "notesOpenAiLine": "Pisze notatki z Twoim własnym kluczem OpenAI."
+      "notesOpenAiLine": "Pisze notatki z Twoim własnym kluczem OpenAI.",
+      "notesNeedSignInOrChoose": "Zaloguj się albo wybierz tutaj OpenAI, aby notatki były pisane.",
+      "notesNeedSignInOrKeyAndChoose": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze” i wybierz tutaj OpenAI, aby notatki były pisane."
     },
     "display": {
       "surface": "Który widok",
