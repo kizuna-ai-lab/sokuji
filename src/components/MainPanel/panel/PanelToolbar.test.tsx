@@ -221,6 +221,19 @@ describe('PanelToolbar — live notes switch', () => {
     expect(liveSwitch()).not.toBeNull();
   });
 
+  // Owner, 2026-11-17: with live notes on, the switch is there before the session starts too (its panel then empty).
+  it('is there before a session starts while live notes are on, and not while they are off', () => {
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true } as never);
+    useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false });
+    renderToolbar(['speaker']);
+    expect(liveSwitch()).not.toBeNull();
+    cleanup();
+    useSettingsStore.setState({ liveNotes: false } as never);
+    renderToolbar(['speaker']);
+    expect(liveSwitch()).toBeNull();
+  });
+
   it('is not there outside the desktop app, live notes or not', () => {
     useSettingsStore.setState({ liveNotes: true } as never);
     useLiveNotes.getState().begin('run-0001-aaaa');

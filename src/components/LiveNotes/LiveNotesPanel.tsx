@@ -67,7 +67,8 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
         </p>
       )}
       {state?.title && <h3 className="live-notes__title">{state.title}</h3>}
-      {topics.length === 0 && running && <p className="live-notes__line">{t('liveNotes.waiting', 'Notes appear here as the conversation goes on.')}</p>}
+      {/* Running, or before a session starts: where the notes will come. */}
+      {topics.length === 0 && (running || !recordId) && <p className="live-notes__line">{t('liveNotes.waiting', 'Notes appear here as the conversation goes on.')}</p>}
       {topics.map((topic) => (
         <section className="live-notes__topic" key={topic.n}>
           <h4>{topic === openTopic ? t('liveNotes.openTopic', '{{title}} (now)', { title: topic.title }) : topic.title}</h4>

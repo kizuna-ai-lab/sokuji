@@ -139,6 +139,16 @@ describe('the live notes panel', () => {
     expect(useLiveNotes.getState().running).toBe(false);
   });
 
+  // Owner, 2026-11-17: with live notes on, the panel is there before the session starts, saying where its notes will
+  // come, and nothing more.
+  it('before a session, with live notes on, shows its title and where the notes will come', () => {
+    act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));
+    render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+    const panel = screen.getByRole('complementary', { name: 'Live notes' });
+    expect(within(panel).getByText('Notes appear here as the conversation goes on.')).toBeInTheDocument();
+    expect(within(panel).queryByRole('heading')).toBeNull();
+  });
+
   it('is not there when live notes are off and nothing was written', () => {
     useSettingsStore.setState({ liveNotes: false } as never);
     act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));

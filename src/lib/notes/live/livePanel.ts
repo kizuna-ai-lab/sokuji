@@ -26,10 +26,14 @@ export const useLiveNotesShown = create<{ shown: boolean; setShown(shown: boolea
   },
 }));
 
-/** There is a live notes panel (desktop; live notes on, or something written or said about them this session). */
+/**
+ * There is a live notes panel: in the desktop app, while live notes are on (before a session starts too, the panel
+ * then saying where its notes will come; owner, 2026-11-17), or while this session wrote or said something about them.
+ */
 export function useLiveNotesPresent(): boolean {
   const { recordId, state, running, off } = useLiveNotes();
   const liveOn = useLiveNotesSetting();
-  if (!isElectron() || (!liveOn && !state && !running && !off)) return false;
-  return Boolean(recordId || state);
+  if (!isElectron()) return false;
+  if (liveOn) return true;
+  return Boolean((state || running || off) && (recordId || state));
 }
