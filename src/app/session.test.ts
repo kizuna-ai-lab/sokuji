@@ -1237,6 +1237,38 @@ describe('attach', () => {
         detach();
       });
     });
+    it('Clear after Stop, before any sentence reached the live notes, keeps them cleared when the last sentences come', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        let runs = 0;
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory, newSessionId: () => `run${++runs}` });
+        const detach = session.attach();
+        await session.runner.start();
+        const stopping = session.runner.stop();
+        session.runner.clear();
+        // A last final the service sends while the run stops, after the Clear: a sentence for the same record.
+        const speaker = session.runner.conversation.get('speaker')!;
+        speaker.apply({ kind: 'segmentOpened', payload: { ref: 99, side: 'source' } });
+        speaker.apply({ kind: 'segmentText', payload: { ref: 99, text: 'One last thing before we go.' } });
+        speaker.apply({ kind: 'segmentClosed', payload: { ref: 99 } });
+        clock.advance(3000);
+        await stopping;
+        clock.advance(8000);
+        await session.runner.settled();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(live.made).toHaveLength(0);
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, running: false });
+        // The next session has its live notes again.
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run2', running: true });
+        await session.runner.stop();
+        await session.runner.settled();
+        detach();
+      });
+    });
+
     /** A loop that records what happened to it, in order, and what it was told to go on from. */
     function watchedLive() {
       const events: string[] = [];
