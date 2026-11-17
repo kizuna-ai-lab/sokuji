@@ -6,6 +6,7 @@
 // key, and one key is kept (B-39, the owner, 2026-11-17).
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { currentRunPhase } from '../../app/runPhase';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { requestRegionChange } from '../../lib/region/regionChange';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
@@ -55,9 +56,14 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
   const store = () => useProviderStore.getState();
   // Run the check whether or not anyone listens: `onChecked?.(await …)` would skip the check itself when no one does.
   const check = async () => { const answer = await store().refreshReadiness(provider, auth); onChecked?.(answer); };
+  // Every region's key but `region`'s emptied, as stored now: a save outlives the render it started in.
+  const emptyOthers = (region: SonioxRegion) => {
+    const stored = (store().entries[provider.id]?.credentials ?? {}) as Record<string, string>;
+    for (const r of SONIOX_REGIONS) if (r !== region && (stored[SONIOX_KEY_FIELD[r]] ?? '') !== '') store().setCredential(provider, SONIOX_KEY_FIELD[r], '');
+  };
   // One key: kept for `region`, every other region's emptied.
   const keepOnly = (region: SonioxRegion, key: string) => {
-    for (const r of SONIOX_REGIONS) if (r !== region && keyOf(r) !== '') store().setCredential(provider, SONIOX_KEY_FIELD[r], '');
+    emptyOthers(region);
     store().setCredential(provider, SONIOX_KEY_FIELD[region], key);
   };
   const switchTo = (to: SonioxRegion) => requestRegionChange({ providerId: provider.id, to, origin: 'select', auth });
@@ -69,25 +75,30 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
     setOutcome(null);
     try {
       const { accepted, unreachable } = await (detect ?? ((k) => regionsAccepting(k, settings)))(key);
-      // Kept where it is accepted, the selected region first; asked nowhere, kept for the selected region.
+      // A session that started while Soniox was being asked has locked the keys: nothing is stored.
+      if (currentRunPhase() !== 'idle') return;
+      // Kept where it is accepted, the selected region first; asked nowhere, kept for the selected region, and no other
+      // region's key goes for a key nothing vouched for.
       const region = accepted.includes(selected) ? selected : accepted[0];
       if (!region) {
         if (unreachable.length === 0) { setOutcome({ kind: 'refused' }); return; }
-        keepOnly(selected, key);
+        store().setCredential(provider, SONIOX_KEY_FIELD[selected], key);
         setOutcome({ kind: 'unreachable', region: selected });
         await check();
         return;
       }
-      keepOnly(region, key);
-      if (region === selected) { await check(); return; }
-      // The key works in its own region only: the region follows it (a Soniox voice may be asked about first).
+      if (region === selected) { keepOnly(region, key); await check(); return; }
+      // The key works in its own region only: the region follows it (a Soniox voice may be asked about first). The
+      // other regions' keys go only once it has: a declined switch leaves the selected region's key working.
+      store().setCredential(provider, SONIOX_KEY_FIELD[region], key);
       switching.current = true;
       if (await switchTo(region)) {
+        emptyOthers(region);
         setOutcome({ kind: 'switched', region });
-        await check();
       } else {
         switching.current = false;
       }
+      await check();
     } finally {
       setBusy(false);
     }

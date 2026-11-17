@@ -23,6 +23,7 @@ vi.mock('../../lib/region/regionChange', () => ({
 import '../../locales';
 import { SonioxKeyForm } from './SonioxKeyForm';
 import { useProviderStore } from '../../stores/providerStore';
+import { registerRunPhase } from '../../app/runPhase';
 import { presentProviders } from '../../providers/registry';
 import type { KeyRegions } from '../../providers/soniox/keyRegion';
 import type { AnyProvider } from '../../lib/provider/types';
@@ -54,7 +55,15 @@ beforeEach(() => {
   change.refuse = false;
   given('us', {});
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); registerRunPhase(() => 'idle'); });
+
+/** A region search that answers only when the test says so. */
+function pending() {
+  let answer!: (regions: KeyRegions) => void;
+  const detect = () => new Promise<KeyRegions>((resolve) => { answer = resolve; });
+  return { detect, answer: (regions: KeyRegions) => answer(regions) };
+}
+const saveButton = () => screen.findByRole('button', { name: 'Save and find its region' });
 
 describe("Soniox's key and its region", () => {
   it('says what its check found and which region it belongs to, and names no other region', () => {
@@ -122,6 +131,45 @@ describe("Soniox's key and its region", () => {
     await waitFor(() => expect(region()).toBe('jp'));
   });
 
+  it("keeps the selected region's working key when the switch to the new key's region is declined", async () => {
+    change.refuse = true;
+    given('us', { apiKey: 'sk-us' }, { state: 'ready', models: [] });
+    mount(async () => ({ accepted: ['jp'], unreachable: [] }));
+    paste('sk-jp');
+    save();
+    await waitFor(() => expect(creds().apiKeyJp).toBe('sk-jp'));
+    expect(change.calls).toEqual([{ providerId: 'soniox', to: 'jp' }]);
+    expect(region()).toBe('us');
+    expect(creds().apiKey).toBe('sk-us');
+    await waitFor(() => expect(checked).toBeGreaterThan(0));
+  });
+
+  it('empties a key stored for another region while this one was being placed', async () => {
+    const search = pending();
+    mount(search.detect);
+    paste('sk-us');
+    save();
+    const entry = useProviderStore.getState().entries.soniox!;
+    useProviderStore.setState({ entries: { soniox: { ...entry, credentials: { ...entry.credentials, apiKeyEu: 'sk-eu' } } } as never });
+    search.answer({ accepted: ['us'], unreachable: [] });
+    await waitFor(() => expect(creds().apiKey).toBe('sk-us'));
+    expect(creds().apiKeyEu).toBe('');
+  });
+
+  it('stores nothing when a session started while the region was being found', async () => {
+    given('us', { apiKeyJp: 'sk-old-jp' });
+    const search = pending();
+    mount(search.detect);
+    paste('sk-new');
+    save();
+    registerRunPhase(() => 'running');
+    search.answer({ accepted: ['us'], unreachable: [] });
+    await saveButton();
+    expect(creds().apiKey).toBe('');
+    expect(creds().apiKeyJp).toBe('sk-old-jp');
+    expect(checked).toBe(0);
+  });
+
   it('keeps no key that no region accepts, and says so', async () => {
     given('us', { apiKey: 'sk-us' });
     mount(nowhere);
@@ -131,13 +179,14 @@ describe("Soniox's key and its region", () => {
     expect(creds().apiKey).toBe('sk-us');
   });
 
-  it('keeps the key for the selected region when Soniox cannot be asked, as the one key, and says so', async () => {
+  it("keeps the key for the selected region when Soniox cannot be asked, removes no other region's key, and says so", async () => {
     given('us', { apiKeyJp: 'sk-old-jp' });
     mount(async () => ({ accepted: [], unreachable: ['us', 'eu', 'jp', 'in'] }));
     paste('sk-maybe');
     save();
     await waitFor(() => expect(creds().apiKey).toBe('sk-maybe'));
-    expect(creds().apiKeyJp).toBe('');
+    // Nothing vouched for the new key: a key kept for another region may be the one that works.
+    expect(creds().apiKeyJp).toBe('sk-old-jp');
     expect(screen.getByRole('status')).toHaveTextContent('Could not ask Soniox which region this key belongs to; saved for United States, the region selected now.');
   });
 

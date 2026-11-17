@@ -36,6 +36,7 @@ import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { EdgeVoices } from './EdgeVoices';
 import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
 import { LocalVoices } from './LocalVoices';
+import { providerTarget } from './accountRows';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -55,7 +56,6 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
 
 import { stageInSentence } from '../../lib/lineup/stageWords';
-import { providerTarget } from './accountRows';
 export { stageInSentence };
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
