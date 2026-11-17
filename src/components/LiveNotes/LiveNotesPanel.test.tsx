@@ -31,7 +31,7 @@ beforeEach(() => {
   useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
   useLiveNotes.getState().begin('run-0001-aaaa');
 });
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); });
 
 describe('the live notes panel', () => {
   it('with Kizuna AI, shows what the live notes have used so far, and says when the balance is low', () => {
@@ -143,5 +143,71 @@ describe('the live notes panel', () => {
     act(() => useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false }));
     render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
     expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  // Owner, 2026-11-17 (B-30): the live notes can be hidden for a while, from a handle of their own; they go on being written.
+  describe('hiding them for a while', () => {
+    /** A window narrow enough for the notes to sit above the conversation. */
+    const narrowWindow = () => vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(max-width: 767px)', media: query, addEventListener: () => {}, removeEventListener: () => {},
+    }));
+    const body = () => document.querySelector('.live-notes__body') as HTMLElement;
+
+    it('hides them from a handle, says they are still being written, and shows them again', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      const hide = screen.getByRole('button', { name: 'Hide live notes' });
+      expect(hide).toHaveAttribute('title', 'Hide live notes');
+      expect(hide).toHaveAttribute('aria-expanded', 'true');
+      fireEvent.click(hide);
+      expect(body()).toHaveAttribute('hidden');
+      expect(screen.getByRole('complementary', { name: 'Live notes' }).className).toContain('is-hidden');
+      const show = screen.getByRole('button', { name: 'Show live notes (still being written)' });
+      expect(show).toHaveAttribute('title', 'Show live notes (still being written)');
+      expect(show).toHaveAttribute('aria-expanded', 'false');
+      // Hiding is not stopping: the loop runs and the setting is untouched.
+      expect(useLiveNotes.getState().running).toBe(true);
+      expect(useSettingsStore.getState().liveNotes).toBe(true);
+      fireEvent.click(show);
+      expect(body()).not.toHaveAttribute('hidden');
+      expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeVisible();
+    });
+
+    it('stays hidden when new notes come in, and for the next session', () => {
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Hide live notes' }));
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      expect(body()).toHaveAttribute('hidden');
+      expect(localStorage.getItem('liveNotes.hidden')).toBe('1');
+      cleanup();
+      act(() => useLiveNotes.getState().begin('run-0002-bbbb'));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      expect(body()).toHaveAttribute('hidden');
+      fireEvent.click(screen.getByRole('button', { name: 'Show live notes (still being written)' }));
+      expect(localStorage.getItem('liveNotes.hidden')).toBeNull();
+    });
+
+    it('once the session has ended, offers to show them without saying they are being written', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      act(() => useLiveNotes.getState().end('run-0001-aaaa'));
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Hide live notes' }));
+      expect(screen.getByRole('button', { name: 'Show live notes' })).toBeInTheDocument();
+    });
+
+    it('points its arrows the way the notes go: to the right edge in a wide window, up in a narrow one', () => {
+      const { unmount } = render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      const icon = () => screen.getByRole('button', { name: /live notes/ }).querySelector('svg')!.getAttribute('class');
+      expect(icon()).toContain('lucide-chevrons-right');
+      fireEvent.click(screen.getByRole('button', { name: 'Hide live notes' }));
+      expect(icon()).toContain('lucide-chevrons-left');
+      unmount();
+      localStorage.clear();
+      narrowWindow();
+      render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
+      expect(icon()).toContain('lucide-chevrons-up');
+      fireEvent.click(screen.getByRole('button', { name: 'Hide live notes' }));
+      expect(icon()).toContain('lucide-chevrons-down');
+    });
   });
 });

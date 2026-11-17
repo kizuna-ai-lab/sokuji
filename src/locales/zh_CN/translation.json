@@ -2189,6 +2189,9 @@
     "noBalance": "余额已用完，实时纪要已停止。",
     "stoppedByService": "Kizuna AI 现在无法写实时纪要，已停止。",
     "costSoFar": "本次实时纪要已用：约 {{cost}}",
-    "lowBalance": "余额不多了：还剩 {{balance}}。"
+    "lowBalance": "余额不多了：还剩 {{balance}}。",
+    "hide": "收起实时纪要",
+    "show": "展开实时纪要",
+    "showWriting": "展开实时纪要（仍在生成）"
   }
 }

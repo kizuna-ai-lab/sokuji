@@ -2189,6 +2189,9 @@
     "noBalance": "Ihr Guthaben ist aufgebraucht; die Live-Notizen wurden beendet.",
     "stoppedByService": "Kizuna AI kann gerade keine Live-Notizen schreiben; sie wurden beendet.",
     "costSoFar": "Live-Notizen bisher: etwa {{cost}}",
-    "lowBalance": "Ihr Guthaben ist niedrig: noch {{balance}}."
+    "lowBalance": "Ihr Guthaben ist niedrig: noch {{balance}}.",
+    "hide": "Live-Notizen ausblenden",
+    "show": "Live-Notizen einblenden",
+    "showWriting": "Live-Notizen einblenden (werden weiter geschrieben)"
   }
 }

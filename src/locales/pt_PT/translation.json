@@ -2189,6 +2189,9 @@
     "noBalance": "O seu saldo esgotou-se; as notas em direto pararam.",
     "stoppedByService": "A Kizuna AI não pode escrever notas em direto agora; pararam.",
     "costSoFar": "Notas em direto até agora: cerca de {{cost}}",
-    "lowBalance": "O seu saldo está baixo: restam {{balance}}."
+    "lowBalance": "O seu saldo está baixo: restam {{balance}}.",
+    "hide": "Ocultar as notas em direto",
+    "show": "Mostrar as notas em direto",
+    "showWriting": "Mostrar as notas em direto (ainda a ser escritas)"
   }
 }

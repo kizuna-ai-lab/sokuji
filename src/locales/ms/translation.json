@@ -2189,6 +2189,9 @@
     "noBalance": "Baki anda telah habis; nota langsung berhenti.",
     "stoppedByService": "Kizuna AI tidak dapat menulis nota langsung sekarang; nota berhenti.",
     "costSoFar": "Nota langsung setakat ini: kira-kira {{cost}}",
-    "lowBalance": "Baki anda rendah: tinggal {{balance}}."
+    "lowBalance": "Baki anda rendah: tinggal {{balance}}.",
+    "hide": "Sembunyikan nota langsung",
+    "show": "Tunjukkan nota langsung",
+    "showWriting": "Tunjukkan nota langsung (masih ditulis)"
   }
 }

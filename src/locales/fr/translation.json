@@ -2189,6 +2189,9 @@
     "noBalance": "Votre solde est épuisé ; les notes en direct se sont arrêtées.",
     "stoppedByService": "Kizuna AI ne peut pas rédiger de notes en direct pour le moment ; elles se sont arrêtées.",
     "costSoFar": "Notes en direct jusqu’ici : environ {{cost}}",
-    "lowBalance": "Votre solde est bas : il reste {{balance}}."
+    "lowBalance": "Votre solde est bas : il reste {{balance}}.",
+    "hide": "Masquer les notes en direct",
+    "show": "Afficher les notes en direct",
+    "showWriting": "Afficher les notes en direct (toujours en cours de rédaction)"
   }
 }

@@ -2189,6 +2189,9 @@
     "noBalance": "Naubos ang iyong balanse; huminto ang live na tala.",
     "stoppedByService": "Hindi makapagsulat ngayon ang Kizuna AI ng live na tala; huminto ang mga ito.",
     "costSoFar": "Live na tala sa ngayon: mga {{cost}}",
-    "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira."
+    "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira.",
+    "hide": "Itago ang live na tala",
+    "show": "Ipakita ang live na tala",
+    "showWriting": "Ipakita ang live na tala (isinusulat pa)"
   }
 }

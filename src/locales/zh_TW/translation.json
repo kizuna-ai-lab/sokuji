@@ -2189,6 +2189,9 @@
     "noBalance": "餘額已用完，即時紀要已停止。",
     "stoppedByService": "Kizuna AI 現在無法寫即時紀要，已停止。",
     "costSoFar": "本次即時紀要已用：約 {{cost}}",
-    "lowBalance": "餘額不多了：還剩 {{balance}}。"
+    "lowBalance": "餘額不多了：還剩 {{balance}}。",
+    "hide": "收合即時紀要",
+    "show": "展開即時紀要",
+    "showWriting": "展開即時紀要（仍在生成）"
   }
 }

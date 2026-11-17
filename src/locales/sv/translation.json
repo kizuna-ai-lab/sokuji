@@ -2189,6 +2189,9 @@
     "noBalance": "Ditt saldo är slut; liveanteckningarna har stoppats.",
     "stoppedByService": "Kizuna AI kan inte skriva liveanteckningar just nu; de har stoppats.",
     "costSoFar": "Liveanteckningar hittills: cirka {{cost}}",
-    "lowBalance": "Ditt saldo är lågt: {{balance}} kvar."
+    "lowBalance": "Ditt saldo är lågt: {{balance}} kvar.",
+    "hide": "Dölj liveanteckningarna",
+    "show": "Visa liveanteckningarna",
+    "showWriting": "Visa liveanteckningarna (skrivs fortfarande)"
   }
 }

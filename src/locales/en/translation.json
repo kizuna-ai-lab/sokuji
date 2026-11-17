@@ -2189,6 +2189,9 @@
     "noBalance": "Your balance ran out; live notes stopped.",
     "stoppedByService": "Kizuna AI cannot write live notes right now; they stopped.",
     "costSoFar": "Live notes so far: about {{cost}}",
-    "lowBalance": "Your balance is low: {{balance}} left."
+    "lowBalance": "Your balance is low: {{balance}} left.",
+    "hide": "Hide live notes",
+    "show": "Show live notes",
+    "showWriting": "Show live notes (still being written)"
   }
 }

@@ -2189,6 +2189,9 @@
     "noBalance": "Bakiyeniz bitti; canlı notlar durdu.",
     "stoppedByService": "Kizuna AI şu anda canlı not yazamıyor; notlar durdu.",
     "costSoFar": "Şimdiye kadarki canlı notlar: yaklaşık {{cost}}",
-    "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı."
+    "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı.",
+    "hide": "Canlı notları gizle",
+    "show": "Canlı notları göster",
+    "showWriting": "Canlı notları göster (hâlâ yazılıyor)"
   }
 }

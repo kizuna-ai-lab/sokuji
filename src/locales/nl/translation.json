@@ -2189,6 +2189,9 @@
     "noBalance": "Je saldo is op; de live notities zijn gestopt.",
     "stoppedByService": "Kizuna AI kan nu geen live notities schrijven; ze zijn gestopt.",
     "costSoFar": "Live notities tot nu toe: ongeveer {{cost}}",
-    "lowBalance": "Je saldo is laag: nog {{balance}}."
+    "lowBalance": "Je saldo is laag: nog {{balance}}.",
+    "hide": "Live notities verbergen",
+    "show": "Live notities tonen",
+    "showWriting": "Live notities tonen (worden nog geschreven)"
   }
 }

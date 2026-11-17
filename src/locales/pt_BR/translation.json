@@ -2189,6 +2189,9 @@
     "noBalance": "Seu saldo acabou; as notas ao vivo pararam.",
     "stoppedByService": "A Kizuna AI não pode escrever notas ao vivo agora; elas pararam.",
     "costSoFar": "Notas ao vivo até agora: cerca de {{cost}}",
-    "lowBalance": "Seu saldo está baixo: restam {{balance}}."
+    "lowBalance": "Seu saldo está baixo: restam {{balance}}.",
+    "hide": "Ocultar as notas ao vivo",
+    "show": "Mostrar as notas ao vivo",
+    "showWriting": "Mostrar as notas ao vivo (ainda sendo escritas)"
   }
 }

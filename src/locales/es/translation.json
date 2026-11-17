@@ -2189,6 +2189,9 @@
     "noBalance": "Se agotó tu saldo; las notas en directo se detuvieron.",
     "stoppedByService": "Kizuna AI no puede escribir notas en directo ahora; se detuvieron.",
     "costSoFar": "Notas en directo hasta ahora: unos {{cost}}",
-    "lowBalance": "Tu saldo es bajo: quedan {{balance}}."
+    "lowBalance": "Tu saldo es bajo: quedan {{balance}}.",
+    "hide": "Ocultar las notas en directo",
+    "show": "Mostrar las notas en directo",
+    "showWriting": "Mostrar las notas en directo (se siguen escribiendo)"
   }
 }

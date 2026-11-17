@@ -2189,6 +2189,9 @@
     "noBalance": "Saldosi loppui; reaaliaikaiset muistiinpanot pysähtyivät.",
     "stoppedByService": "Kizuna AI ei voi nyt kirjoittaa reaaliaikaisia muistiinpanoja; ne pysähtyivät.",
     "costSoFar": "Reaaliaikaiset muistiinpanot tähän asti: noin {{cost}}",
-    "lowBalance": "Saldosi on vähissä: jäljellä {{balance}}."
+    "lowBalance": "Saldosi on vähissä: jäljellä {{balance}}.",
+    "hide": "Piilota reaaliaikaiset muistiinpanot",
+    "show": "Näytä reaaliaikaiset muistiinpanot",
+    "showWriting": "Näytä reaaliaikaiset muistiinpanot (kirjoitetaan yhä)"
   }
 }

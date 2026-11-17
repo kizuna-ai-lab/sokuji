@@ -2189,6 +2189,9 @@
     "noBalance": "Saldo Anda habis; catatan langsung berhenti.",
     "stoppedByService": "Kizuna AI tidak dapat menulis catatan langsung saat ini; catatan berhenti.",
     "costSoFar": "Catatan langsung sejauh ini: sekitar {{cost}}",
-    "lowBalance": "Saldo Anda rendah: tersisa {{balance}}."
+    "lowBalance": "Saldo Anda rendah: tersisa {{balance}}.",
+    "hide": "Sembunyikan catatan langsung",
+    "show": "Tampilkan catatan langsung",
+    "showWriting": "Tampilkan catatan langsung (masih ditulis)"
   }
 }
