@@ -362,6 +362,20 @@
 
   &__more { position: relative; }
 
+  // The two panels' switches, a pair set a little apart from Export and More; a shown panel's switch is pressed.
+  &__panels { display: inline-flex; gap: vars.$space-1; margin-right: vars.$space-2; }
+  // Off, the icon alone; on, the button filled and outlined, so which panels are shown reads at a glance.
+  &__panel-switch {
+    border-color: transparent;
+    background: transparent;
+    color: vars.$text-tertiary;
+  }
+  &__panel-switch[aria-pressed='true'] {
+    border-color: vars.$border-default;
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
+  }
+
   &__menu {
     position: absolute;
     top: calc(100% + 4px);
@@ -464,30 +478,7 @@
     padding: vars.$space-3 vars.$space-4;
   }
   &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
-  // Wide: the notes' scrolling box ends 24px early, leaving the handle a lane of its own beside the scrollbar (owner,
-  // 2026-11-17); hidden, they leave that lane with a line beside it.
-  &__columns.is-wide &__notes { margin-right: 24px; }
-  &__columns.is-wide &__notes-col:has(> &__notes[hidden]) { border-right: 1px solid vars.$border-subtle; }
 
-  &__notes-handle {
-    position: absolute;
-    top: vars.$space-2;
-    right: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid vars.$border-default;
-    border-right: none;
-    border-radius: vars.$radius-sm 0 0 vars.$radius-sm;
-    background: vars.$bg-surface;
-    color: vars.$text-secondary;
-    cursor: pointer;
-    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
-  }
 
   &__transcript {
     min-height: 0;
@@ -924,34 +915,15 @@
   right: 0;
   bottom: 0;
   z-index: 5;
-  // Never the whole width: the handle on its left edge stays on screen, so a narrow window can still close it.
-  width: min(320px, calc(100% - 24px));
+  // Shown and hidden from the toolbar's switch, so it may take the whole width of a narrow window.
+  width: min(320px, 100%);
   transform: translateX(100%);
   transition: transform vars.$transition-normal;
   pointer-events: none;
   &.is-open { transform: none; }
   @media (prefers-reduced-motion: reduce) { transition: none; }
 
-  &__handle {
-    position: absolute;
-    top: vars.$space-2;
-    right: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 32px;
-    padding: 0;
-    border: 1px solid vars.$border-default;
-    border-right: none;
-    border-radius: vars.$radius-sm 0 0 vars.$radius-sm;
-    background: vars.$bg-surface;
-    color: vars.$text-secondary;
-    cursor: pointer;
-    pointer-events: auto;
-    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
-    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
-  }
+
 
   &__panel {
     height: 100%;
@@ -972,9 +944,6 @@
   &__hint { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-tertiary; }
 }
 
-// The transcript's scrolling box ends 24px early when the side panel is there: its handle has a lane of its own beside
-// the scrollbar, instead of lying over it (owner, 2026-11-17).
-.record-page__body:has(> .record-side) .record-page__transcript { margin-right: 24px; }
 
 // A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.
 .inline-edit {

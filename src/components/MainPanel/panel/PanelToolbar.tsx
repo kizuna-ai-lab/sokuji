@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Settings, Trash2 } from 'lucide-react';
+import { AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, PanelRight, PanelTop, Settings, Trash2 } from 'lucide-react';
 import {
   useFloating,
   autoUpdate,
@@ -21,6 +21,9 @@ import CaptionShareButton from '../../CaptionShare/CaptionShareButton';
 import { HearingButton } from '../HearingButton';
 import { useReadingTargets } from '../../../lib/reading/useReadingTargets';
 import { isElectron } from '../../../utils/environment';
+import { useLiveNotes } from '../../../lib/notes/live/liveStore';
+import { useLiveNotesPresent, useLiveNotesShown } from '../../../lib/notes/live/livePanel';
+import { useNarrowWindow } from '../../../lib/notes/live/useNarrowWindow';
 import {
   useSpeakerDisplayMode,
   useParticipantDisplayMode,
@@ -99,6 +102,13 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
     useDismiss(displayPopoverFloating.context),
     useRole(displayPopoverFloating.context, { role: 'dialog' }),
   ]);
+
+  const liveNotesPresent = useLiveNotesPresent();
+  const liveNotesShown = useLiveNotesShown((x) => x.shown);
+  const setLiveNotesShown = useLiveNotesShown((x) => x.setShown);
+  const liveNotesRunning = useLiveNotes((x) => x.running);
+  // Beside the conversation in a wide window, above it in a narrow one (MainLayout): the icon says which.
+  const narrowWindow = useNarrowWindow();
 
   return (
     <>
@@ -205,6 +215,23 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
         >
           <Trash2 size={14} />
         </button>
+        {/* The live notes beside the conversation are shown and hidden here, the switch staying while they are hidden;
+            hiding does not stop them (owner and design review, 2026-11-17; B-30, B-40). */}
+        {liveNotesPresent && (
+          <button
+            className="font-size-btn live-notes-switch"
+            onClick={() => setLiveNotesShown(!liveNotesShown)}
+            title={liveNotesShown
+              ? t('liveNotes.hide', 'Hide live notes')
+              : liveNotesRunning ? t('liveNotes.showWriting', 'Show live notes (still being written)') : t('liveNotes.show', 'Show live notes')}
+            aria-label={t('liveNotes.title', 'Live notes')}
+            aria-pressed={liveNotesShown}
+            aria-controls="live-notes-panel"
+            type="button"
+          >
+            {narrowWindow ? <PanelTop size={14} aria-hidden="true" /> : <PanelRight size={14} aria-hidden="true" />}
+          </button>
+        )}
       </div>
       {displayPopoverOpen && (
         <FloatingPortal>

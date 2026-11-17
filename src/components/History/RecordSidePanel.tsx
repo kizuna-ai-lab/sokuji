@@ -1,16 +1,16 @@
 // src/components/History/RecordSidePanel.tsx
 //
 // A record's side panel, at the right of its transcript (owner, 2026-11-17): the speakers now (who spoke, how many
-// sentences each, their names), more tools later, each in a part of its own. One small handle opens and closes it, its
-// chevrons saying which way it goes, its name in its tooltip; it rides on the panel's edge, at the transcript's top
-// right while the panel is closed. The panel covers the transcript, in wide and narrow windows alike, so the transcript
-// keeps its width.
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+// sentences each, their names), more tools later, each in a part of its own. A switch in the page's toolbar shows and
+// hides it (the page's, with `id` naming it); Escape hides it too. The panel covers the transcript, in wide and narrow
+// windows alike, so the transcript keeps its width.
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { isComposing } from './format';
 
 export interface RecordSidePanelProps {
+  /** The panel's id, for the toolbar switch that controls it. */
+  id: string;
   open: boolean;
   onToggle(): void | Promise<void>;
   /** Something is being typed in the panel: Escape is the field's (it cancels the typing), not the panel's. */
@@ -19,9 +19,8 @@ export interface RecordSidePanelProps {
   children: ReactNode;
 }
 
-export function RecordSidePanel({ open, onToggle, editing, children }: RecordSidePanelProps) {
+export function RecordSidePanel({ id, open, onToggle, editing, children }: RecordSidePanelProps) {
   const { t } = useTranslation();
-  const id = useId();
   const editingRef = useRef(editing);
   editingRef.current = editing;
   const toggleRef = useRef(onToggle);
@@ -43,12 +42,8 @@ export function RecordSidePanel({ open, onToggle, editing, children }: RecordSid
     return () => document.removeEventListener('keydown', onKey, true);
   }, [open]);
 
-  const handle = open ? t('history.closeSidePanel', 'Close the side panel') : t('history.openSidePanel', 'Open the side panel');
   return (
     <div className={`record-side${open ? ' is-open' : ''}`}>
-      <button type="button" className="record-side__handle" aria-label={handle} title={handle} aria-expanded={open} aria-controls={id} onClick={() => void onToggle()}>
-        {open ? <ChevronsRight size={14} aria-hidden="true" /> : <ChevronsLeft size={14} aria-hidden="true" />}
-      </button>
       {open && (
         <aside className="record-side__panel" id={id} aria-label={t('history.sidePanel', 'Side panel')}>
           {children}

@@ -260,28 +260,28 @@ describe('a record', () => {
   });
 
   // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
-  // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later, opened and closed by one
-  // small handle whose chevrons say which way it goes (no ✕, no row of its own); the transcript keeps its width under it.
+  // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later; the transcript keeps its
+  // width under it. It is shown and hidden from a switch in the page's toolbar (B-40 redone: no handle on its edge).
   const drawer = () => screen.queryByRole('complementary', { name: 'Side panel' });
-  const toggle = () => screen.getByRole('button', { name: /^(Open|Close) the side panel$/ });
+  const toggle = () => screen.getByRole('button', { name: 'Side panel' });
 
-  it('keeps the speakers in a side panel opened and closed by one handle, and gives their column to the transcript', async () => {
+  it('keeps the speakers in a side panel shown and hidden from a switch in the toolbar, and gives their column to the transcript', async () => {
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
     expect(document.querySelector('.record-page__transcript-head')).toBeNull();
+    expect(document.querySelector('.record-side__handle')).toBeNull();
     // Open the first time (owner, 2026-11-17: what it holds is seen at once); closed here to start from closed.
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
-    expect(toggle()).toHaveAccessibleName('Open the side panel');
     expect(toggle()).toHaveAttribute('title', 'Open the side panel');
-    expect(toggle()).toHaveAttribute('aria-expanded', 'false');
-    expect(toggle().querySelector('.lucide-chevrons-left')).not.toBeNull();
-    // The handle is the icon alone: no words of its own.
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle().querySelector('.lucide-panel-right')).not.toBeNull();
+    // The switch is the icon alone: its name and tooltip say what it does.
     expect(toggle().textContent).toBe('');
+    expect(toggle().closest('.record-page__actions')).not.toBeNull();
     fireEvent.click(toggle());
-    expect(toggle()).toHaveAccessibleName('Close the side panel');
-    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle().querySelector('.lucide-chevrons-right')).not.toBeNull();
+    expect(toggle()).toHaveAttribute('title', 'Close the side panel');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     // The speakers are its first part, under their own heading.
     const speakers = within(drawer()!).getByRole('region', { name: 'Speakers' });
     expect(within(speakers).getByRole('heading', { name: 'Speakers' })).toBeInTheDocument();
@@ -295,7 +295,7 @@ describe('a record', () => {
   it('is open the first time, and remembers the last choice for the next record', async () => {
     await renderRecord();
     expect(drawer()).not.toBeNull();
-    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
     cleanup();
@@ -739,14 +739,22 @@ describe('the notes column on a wide page', () => {
   };
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('has a divider to drag and, apart from it, a handle that hides the notes', async () => {
+  const notesSwitch = () => screen.getByRole('button', { name: 'Notes' });
+
+  it('has a divider to drag, and the switch that shows and hides the notes sits in the toolbar with the side panel\'s', async () => {
     widePage();
     await renderRecord();
-    const divider = within(columns()).getByRole('separator');
-    const handle = screen.getByRole('button', { name: 'Hide the notes' });
-    expect(handle).toHaveAttribute('title', 'Hide the notes');
-    expect(handle).toHaveAttribute('aria-expanded', 'true');
-    expect(divider.contains(handle)).toBe(false);
+    expect(within(columns()).getByRole('separator')).toBeInTheDocument();
+    expect(document.querySelector('.record-page__notes-handle')).toBeNull();
+    expect(notesSwitch()).toHaveAttribute('title', 'Hide the notes');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(notesSwitch().querySelector('.lucide-panel-left')).not.toBeNull();
+    // The two switches together, before Export.
+    const group = notesSwitch().closest('.record-page__panels')!;
+    expect(within(group as HTMLElement).getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+    const actions = [...document.querySelectorAll('.record-page__actions > *')];
+    const exportAt = actions.findIndex((el) => el.textContent?.includes('Export'));
+    expect(actions.indexOf(group)).toBeLessThan(exportAt);
     expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
   });
 
@@ -772,30 +780,31 @@ describe('the notes column on a wide page', () => {
     expect(columns().style.gridTemplateColumns).toBe('240px 1px minmax(0, 1fr)');
   });
 
-  it('hiding the notes leaves a strip with a handle to show them again, gives the transcript the room, and holds for the next record', async () => {
+  it('hiding the notes gives the transcript the whole width, with nothing left in their place, and holds for the next record', async () => {
     widePage();
     await renderRecord();
-    fireEvent.click(screen.getByRole('button', { name: 'Hide the notes' }));
+    fireEvent.click(notesSwitch());
     expect(notes()).toHaveAttribute('hidden');
     expect(within(columns()).queryByRole('separator')).toBeNull();
-    expect(columns().style.gridTemplateColumns).toBe('24px minmax(0, 1fr)');
-    const show = screen.getByRole('button', { name: 'Show the notes' });
-    expect(show).toHaveAttribute('title', 'Show the notes');
-    expect(show).toHaveAttribute('aria-expanded', 'false');
+    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr)');
+    expect(notesSwitch()).toHaveAttribute('title', 'Show the notes');
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'false');
     expect(localStorage.getItem('history.notesClosed')).toBe('1');
     cleanup();
     widePage();
     await renderRecord();
-    fireEvent.click(screen.getByRole('button', { name: 'Show the notes' }));
+    expect(notes()).toHaveAttribute('hidden');
+    fireEvent.click(notesSwitch());
     expect(notes()).not.toHaveAttribute('hidden');
-    expect(screen.getByRole('button', { name: 'Hide the notes' })).toBeInTheDocument();
+    expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
     expect(localStorage.getItem('history.notesClosed')).toBeNull();
   });
 
-  it('on a narrow page keeps the two tabs, with no divider and no handle', async () => {
+  it('on a narrow page keeps the two tabs, with no divider and no notes switch (the side panel\'s stays)', async () => {
     await renderRecord();
     expect(screen.getByRole('tab', { name: 'Notes' })).toBeInTheDocument();
     expect(within(columns()).queryByRole('separator')).toBeNull();
-    expect(screen.queryByRole('button', { name: /^(Hide|Show) the notes$/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Notes' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
   });
 });

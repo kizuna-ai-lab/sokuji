@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import useSettingsStore from '../../../stores/settingsStore';
 import {
   useConversationDisplayStore,
@@ -9,6 +9,9 @@ import {
 import type { Exporter } from '../../../lib/export/exporter';
 import type { LegName } from '../../../lib/conversation/types';
 import PanelToolbar from './PanelToolbar';
+import { useLiveNotes } from '../../../lib/notes/live/liveStore';
+import { useLiveNotesShown } from '../../../lib/notes/live/livePanel';
+
 
 // react-i18next: return the key itself, so an assertion against
 // e.g. title="mainPanel.clearConversation" is an assertion against the real
@@ -192,5 +195,67 @@ describe('PanelToolbar — what I hear', () => {
     env.electron = false;
     renderToolbar(['speaker']);
     expect(screen.getByTestId('hearing-marker')).toBeTruthy();
+  });
+});
+
+// Owner and design review, 2026-11-17 (B-30, B-40): the live notes are shown and hidden from a switch here, at the end of
+// the conversation's toolbar, where it stays while they are hidden.
+describe('PanelToolbar — live notes switch', () => {
+  const liveSwitch = () => screen.queryByRole('button', { name: 'liveNotes.title' });
+  afterEach(() => {
+    env.electron = false;
+    useLiveNotesShown.setState({ shown: true });
+    useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false });
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it('is there only while the live notes panel is, in the desktop app', () => {
+    renderToolbar(['speaker']);
+    expect(liveSwitch()).toBeNull();
+    cleanup();
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true } as never);
+    useLiveNotes.getState().begin('run-0001-aaaa');
+    renderToolbar(['speaker']);
+    expect(liveSwitch()).not.toBeNull();
+  });
+
+  it('is pressed while they are shown, and says what a click does, still being written or not', () => {
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true } as never);
+    useLiveNotes.getState().begin('run-0001-aaaa');
+    renderToolbar(['speaker']);
+    expect(liveSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.hide');
+    expect(liveSwitch()!.querySelector('.lucide-panel-right')).not.toBeNull();
+    fireEvent.click(liveSwitch()!);
+    expect(useLiveNotesShown.getState().shown).toBe(false);
+    expect(liveSwitch()).toHaveAttribute('aria-pressed', 'false');
+    expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.showWriting');
+    act(() => useLiveNotes.getState().end('run-0001-aaaa'));
+    expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.show');
+    fireEvent.click(liveSwitch()!);
+    expect(useLiveNotesShown.getState().shown).toBe(true);
+  });
+
+  it('shows the panel above the conversation in a narrow window', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(max-width: 767px)', media: query, addEventListener: () => {}, removeEventListener: () => {} }));
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true } as never);
+    useLiveNotes.getState().begin('run-0001-aaaa');
+    renderToolbar(['speaker']);
+    expect(liveSwitch()!.querySelector('.lucide-panel-top')).not.toBeNull();
+  });
+});
+
+describe('PanelToolbar — live notes switch styles', () => {
+  it('fills the switch while the live notes are shown', async () => {
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, '../MainPanel.scss')).css;
+    const on = css.match(/\.live-notes-switch\[aria-pressed=["']?true["']?\]\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(on).toMatch(/background:/);
+    expect(on).toMatch(/color:/);
   });
 });

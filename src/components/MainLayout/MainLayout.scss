@@ -108,16 +108,9 @@
     min-width: 0;
     // 300px of notes and their 12px sides, as before the panel's padding moved inside it (B-30).
     > .live-notes { flex: 0 0 324px; }
-    // Hidden for a while: its line and its handle, the conversation's own ground behind them, like a record's notes.
-    > .live-notes.is-hidden { flex: 0 0 24px; background: transparent; }
     @media (max-width: 767px) {
       flex-direction: column;
       > .live-notes { order: -1; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
-      // Above the conversation the handle ends the title line, and hidden, that line is what is left.
-      > .live-notes.is-hidden { flex: 0 0 auto; background: vars.$bg-surface; }
-      > .live-notes .live-notes__head { display: block; padding: vars.$space-2 calc(#{vars.$space-3} + 28px) vars.$space-2 vars.$space-3; }
-      > .live-notes .live-notes__body { padding-top: 0; }
-      > .live-notes .live-notes__handle { top: 4px; left: auto; right: vars.$space-2; width: 28px; height: 24px; border: 1px solid vars.$border-default; border-radius: vars.$radius-sm; }
     }
   }
 

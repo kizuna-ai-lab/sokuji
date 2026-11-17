@@ -7,7 +7,7 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { AudioLines, ChevronLeft, ChevronsLeft, ChevronsRight, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { AudioLines, ChevronLeft, Ellipsis, MicOff, PanelLeft, PanelRight, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
 import { englishLanguageName, languageLabel, uiLocale } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import { NOTES_MIN_MS } from '../../lib/notes/write';
@@ -49,8 +49,6 @@ const spaceBetween = (before: string, after: string) => {
 
 /** From this width of the page the notes stand beside the transcript; narrower, each has its tab. */
 const NOTES_WIDE_PX = 1000;
-/** The strip a hidden notes column leaves, holding the handle that shows it again. */
-const NOTES_STRIP_PX = 24;
 
 /** A value inside a quoted attribute selector. */
 const quoted = (value: string) => value.replace(/["\\]/g, '\\$&');
@@ -187,11 +185,12 @@ export const RecordPage: React.FC = () => {
   const pageRef = useRef<HTMLDivElement>(null);
   const [wide, setWide] = useState(false);
   const [pageWidth, setPageWidth] = useState(0);
-  // Wide: the notes column's width, dragged at the divider, and whether it is shown; both kept for the next record
-  // (owner, 2026-11-17; B-31). Hidden, it leaves a strip with the handle that shows it again.
+  // Wide: the notes column's width, dragged at the divider, and whether it is shown, from a switch in the toolbar; both
+  // kept for the next record (owner, 2026-11-17; B-31, B-40). Hidden, the transcript takes the whole width.
   const [notesOpen, setNotesOpen] = useState(readNotesOpen);
   const [notesWidth, setNotesWidth] = useState(readNotesWidth);
   const notesId = useId();
+  const sideId = useId();
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
@@ -244,7 +243,6 @@ export const RecordPage: React.FC = () => {
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
   // The width shown fits this page; the one kept stays as the user left it, for a wider window later.
   const shownNotesWidth = notesWidthWithin(notesWidth, pageWidth);
-  const notesHandle = notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes');
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
@@ -290,6 +288,39 @@ export const RecordPage: React.FC = () => {
   };
 
   const speakerCount = speakersOf('mine').length + speakersOf('other').length;
+  const sideShown = speakerCount > 0 && (wide || pane === 'transcript');
+  // Hiding the side panel with a name being typed saves it first, a newer one typed while an earlier save ran as well
+  // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
+  const toggleSide = async () => {
+    if (sideOpen) {
+      for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
+        if (!(await saveName())) return;
+      }
+      if (nameDraftRef.current) return;
+    }
+    writeSideOpen(!sideOpen);
+    setSideOpen(!sideOpen);
+  };
+  // The two panels' switches, together in the toolbar before Export: the icon says which side, the pressed state that
+  // the panel is shown, the tooltip what a click does (design review, 2026-11-17; B-40).
+  const panelSwitches = (wide || sideShown) && (
+    <span className="record-page__panels">
+      {wide && (
+        <button type="button" className="history-button history-button--icon record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
+          title={notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes')}
+          aria-pressed={notesOpen} aria-controls={notesId} onClick={() => { writeNotesOpen(!notesOpen); setNotesOpen(!notesOpen); }}>
+          <PanelLeft size={16} aria-hidden="true" />
+        </button>
+      )}
+      {sideShown && (
+        <button type="button" className="history-button history-button--icon record-page__panel-switch" aria-label={t('history.sidePanel', 'Side panel')}
+          title={sideOpen ? t('history.closeSidePanel', 'Close the side panel') : t('history.openSidePanel', 'Open the side panel')}
+          aria-pressed={sideOpen} aria-controls={sideId} onClick={() => void toggleSide()}>
+          <PanelRight size={16} aria-hidden="true" />
+        </button>
+      )}
+    </span>
+  );
   const speakersPanel = (
     <div className="record-page__speakers">
       {(['mine', 'other'] as const).map((side) => {
@@ -447,6 +478,7 @@ export const RecordPage: React.FC = () => {
               {t('history.refresh', 'Refresh')}
             </button>
           )}
+          {panelSwitches}
           <RecordExportMenu record={record} legs={open.legs} rows={rows} transcript={record.transcripts.find((x) => x.id === open.transcriptId) ?? null} notes={open.notes} onResult={setResult} />
           <span
             className="record-page__more"
@@ -532,17 +564,10 @@ export const RecordPage: React.FC = () => {
       <div className="record-page__body">
       <div
         className={`record-page__columns${wide ? ' is-wide' : ''}`}
-        style={wide ? { gridTemplateColumns: notesOpen ? `${shownNotesWidth}px ${DIVIDER_PX}px minmax(0, 1fr)` : `${NOTES_STRIP_PX}px minmax(0, 1fr)` } : undefined}
+        style={wide ? { gridTemplateColumns: notesOpen ? `${shownNotesWidth}px ${DIVIDER_PX}px minmax(0, 1fr)` : 'minmax(0, 1fr)' } : undefined}
       >
-        <div className="record-page__notes-col" hidden={!wide && pane !== 'notes'}>
+        <div className="record-page__notes-col" hidden={wide ? !notesOpen : pane !== 'notes'}>
           <div className="record-page__notes" id={notesId} hidden={wide && !notesOpen}>{notesView}</div>
-          {/* Its own small button, apart from the divider: dragging sets the width, the button only hides and shows. */}
-          {wide && (
-            <button type="button" className="record-page__notes-handle" aria-label={notesHandle} title={notesHandle} aria-expanded={notesOpen} aria-controls={notesId}
-              onClick={() => { writeNotesOpen(!notesOpen); setNotesOpen(!notesOpen); }}>
-              {notesOpen ? <ChevronsLeft size={14} aria-hidden="true" /> : <ChevronsRight size={14} aria-hidden="true" />}
-            </button>
-          )}
         </div>
         {wide && notesOpen && (
           <PanelResizer
@@ -564,23 +589,13 @@ export const RecordPage: React.FC = () => {
       </div>
         {/* The side panel over the transcript (owner, 2026-11-17): the speakers have no column of their own. Closing it
             while a name is typed saves the name, as a click elsewhere does. */}
-        {speakerCount > 0 && (wide || pane === 'transcript') && (
+        {sideShown && (
           <RecordSidePanel
+            id={sideId}
             open={sideOpen}
             // A name or the title being typed: Escape is the field's, not the panel's.
             editing={nameDraft !== null || titleDraft !== null}
-            onToggle={async () => {
-              // Closing with a name being typed saves it first, a newer one typed while an earlier save ran as well
-              // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
-              if (sideOpen) {
-                for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
-                  if (!(await saveName())) return;
-                }
-                if (nameDraftRef.current) return;
-              }
-              writeSideOpen(!sideOpen);
-              setSideOpen(!sideOpen);
-            }}
+            onToggle={toggleSide}
           >
             <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
               <h3>{t('history.speakers', 'Speakers')}</h3>
