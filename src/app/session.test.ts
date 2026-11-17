@@ -955,14 +955,15 @@ describe('attach', () => {
 
   describe('live notes during a session', () => {
     /** A live notes loop the test watches: what it was given, and whether it stopped or was let go. */
-    function fakeLive() {
+    /** A loop that records what happened to it; `lastUpdate`, when given, holds its stop until it settles. */
+    function fakeLive(lastUpdate?: Promise<void>) {
       const made: Array<{ deps: unknown; sentences: number[]; stopped: boolean; disposed: boolean }> = [];
       const factory = (deps: unknown) => {
         const one = { deps, sentences: [] as number[], stopped: false, disposed: false };
         made.push(one);
         return {
           sentences: (list: ReadonlyArray<{ n: number }>) => { one.sentences.push(...list.map((x) => x.n)); },
-          stop: async () => { one.stopped = true; },
+          stop: async () => { await lastUpdate; one.stopped = true; },
           dispose: () => { one.disposed = true; },
         };
       };
@@ -1210,6 +1211,29 @@ describe('attach', () => {
         expect(useLiveNotes.getState().state).toEqual({ title: 'T', topics: [] });
         expect(live.made[0].disposed).toBe(false);
         await session.runner.stop();
+        detach();
+      });
+    });
+    // Review: after Stop the loop runs on until its last update is back; a Clear then is after the session, and empties
+    // the notes, and the update that comes back late lands nowhere.
+    it('Clear after Stop empties the live notes while their last update is on its way, and drops it', async () => {
+      await withLive(true, 'openai', async () => {
+        let settle!: () => void;
+        const live = fakeLive(new Promise<void>((resolve) => { settle = resolve; }));
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        const detach = session.attach();
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useLiveNotes.getState().update('run1', { title: 'T', topics: [] });
+        await session.runner.stop();
+        expect(useLiveNotes.getState().running).toBe(true);
+        session.runner.clear();
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null });
+        useLiveNotes.getState().update('run1', { title: 'Late', topics: [] });
+        settle();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, ended: false });
         detach();
       });
     });

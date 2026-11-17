@@ -640,7 +640,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // The conversation emptied — Clear from any surface (the subtitle bar's
       // reaches the runner, not MainPanel's handler) — and the notes go with it
       // (the live notes only once the session is over: liveStore's clear).
-      offs.push(runner.conversation.onReset(() => { usePanelNotesStore.getState().clear(); useLiveNotes.getState().clear(); }));
+      offs.push(runner.conversation.onReset(() => {
+        usePanelNotesStore.getState().clear();
+        const { phase } = runner.state.getState();
+        useLiveNotes.getState().clear(phase === 'starting' || phase === 'running');
+      }));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;
