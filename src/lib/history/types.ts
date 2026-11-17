@@ -135,7 +135,7 @@ export interface FileToken {
 }
 
 /** The app's word list in the file recognition service's own context shape: sent as it is. */
-export type FileRecognitionContext = Record<string, unknown>;
+export type FileRecognitionContext = object;
 
 /** A kept track sent to file recognition: the service, its key and region, the languages to expect, the job's id. */
 export interface HistoryRecognizeRequest {
@@ -195,19 +195,8 @@ export interface HistorySentenceInput {
   text: string;
   language?: string;
   timeKind: HistoryTimeKind;
-}
-
-/** A file transcript's translation of one segment (a turn) of its sentences. */
-export interface HistoryTranslationInput {
-  segmentId: string;
-  text: string;
-  language?: string;
-}
-
-export interface HistoryTranslation {
-  segmentId: string;
-  text: string;
-  language: string | null;
+  /** A file transcript's translation of the turn this sentence begins; absent on the turn's other sentences. */
+  translation?: string;
 }
 
 export interface HistorySentence {
@@ -227,6 +216,8 @@ export interface HistorySentence {
   text: string;
   language: string | null;
   timeKind: HistoryTimeKind;
+  /** A file transcript's translation of the turn this sentence begins; null on its other sentences and in a session's. */
+  translation: string | null;
 }
 
 export interface HistorySpeaker {

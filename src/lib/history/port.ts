@@ -6,7 +6,7 @@ import type { Leg, LegName, Notice } from '../conversation/types';
 import { isElectron } from '../../utils/environment';
 import type {
   HistoryLegInput, HistoryNotes, HistoryNotesInput, HistoryNotesRow, HistoryRecord, HistoryRecordInput, HistoryRecordRow,
-  HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker, HistoryTranslation, HistoryTranslationInput,
+  HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker,
   HistoryRecognizePhase, HistoryRecognizeRequest, HistoryStatus, HistoryTrackPiece, HistoryTranscriptOrigin, HistoryUsage,
   FileToken,
 } from './types';
@@ -27,9 +27,6 @@ export interface HistoryPort {
   appendSentences(args: { transcriptId: number; sentences: HistorySentenceInput[] }): Promise<{ added: number }>;
   reviseSentences(args: { transcriptId: number; revisions: Array<{ n: number; text: string }> }): Promise<void>;
   getSentences(args: { transcriptId: number }): Promise<HistorySentence[]>;
-  /** A file transcript's translations, by the segment of its sentences each translates. */
-  putTranslations(args: { transcriptId: number; translations: HistoryTranslationInput[] }): Promise<void>;
-  getTranslations(args: { transcriptId: number }): Promise<HistoryTranslation[]>;
   renameSpeaker(args: { transcriptId: number; side: HistorySentenceSide; speaker: string; name: string }): Promise<void>;
   reassignSentence(args: { transcriptId: number; n: number; speaker: string | null }): Promise<void>;
   getSpeakers(args: { transcriptId: number }): Promise<HistorySpeaker[]>;
@@ -84,8 +81,6 @@ export const HISTORY_PORT_CHANNELS = [
   ['appendSentences', 'history:append-sentences'],
   ['reviseSentences', 'history:revise-sentences'],
   ['getSentences', 'history:get-sentences'],
-  ['putTranslations', 'history:put-translations'],
-  ['getTranslations', 'history:get-translations'],
   ['renameSpeaker', 'history:rename-speaker'],
   ['reassignSentence', 'history:reassign-sentence'],
   ['getSpeakers', 'history:get-speakers'],
@@ -139,8 +134,6 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     appendSentences: (a) => call('history:append-sentences', a),
     reviseSentences: (a) => call('history:revise-sentences', a),
     getSentences: (a) => call('history:get-sentences', a),
-    putTranslations: (a) => call('history:put-translations', a),
-    getTranslations: (a) => call('history:get-translations', a),
     renameSpeaker: (a) => call('history:rename-speaker', a),
     reassignSentence: (a) => call('history:reassign-sentence', a),
     getSpeakers: (a) => call('history:get-speakers', a),
@@ -181,8 +174,6 @@ export const nullHistoryPort: HistoryPort = {
   appendSentences: async () => ({ added: 0 }),
   reviseSentences: nothing,
   getSentences: async () => [],
-  putTranslations: nothing,
-  getTranslations: async () => [],
   renameSpeaker: nothing,
   reassignSentence: nothing,
   getSpeakers: async () => [],

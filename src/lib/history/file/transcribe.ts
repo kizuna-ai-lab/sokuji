@@ -3,15 +3,13 @@
 // A record transcribed (again) from its kept recording: each kept track goes through the file recognition in turn,
 // asked for what the user chose (the languages spoken, the language to translate into) with the app's word list; its
 // words become sentences on the track's side, the tracks' sentences are merged by time, and one new transcript holds
-// them, with the translation of each turn. The transcript is made only once every track has its words, so a failure or a cancel leaves the record
+// them, each turn's translation on its first sentence. The transcript is made only once every track has its words, so a failure or a cancel leaves the record
 // as it was. A new transcript never replaces another (spec: several transcripts per record).
 import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
-import type {
-  FileTranscriptionOptions, HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource, HistoryTranslationInput,
-} from '../types';
+import type { FileTranscriptionOptions, HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource } from '../types';
 import type { FileRecognitionService } from './service';
-import { fileSentences, fileTranslations, numberSentences, type FileSentence } from './sentences';
+import { fileSentences, numberSentences, type FileSentence } from './sentences';
 
 /** How often the page asks main for a running recognition's phase. */
 export const STATUS_EVERY_MS = 1000;
@@ -68,7 +66,6 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   };
 
   const lists: FileSentence[][] = [];
-  const translations: HistoryTranslationInput[] = [];
   for (const track of tracks) {
     if (o.signal?.aborted) throw cancelled();
     const jobId = o.newJobId();
@@ -105,12 +102,10 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     }
     if (o.signal?.aborted) throw cancelled();
     const leg = legOf(track.source);
-    const idPrefix = `file-${track.source}`;
     lists.push(fileSentences(tokens, {
       side: SIDE_OF[track.source], sideCertain, track: leg?.input === 'microphone' ? 'microphone' : 'other',
-      offsetMs: track.offsetMs, idPrefix, language: leg?.languages.source,
+      offsetMs: track.offsetMs, idPrefix: `file-${track.source}`, language: leg?.languages.source,
     }));
-    translations.push(...fileTranslations(tokens, { idPrefix }));
   }
 
   const sentences = numberSentences(lists);
@@ -123,9 +118,6 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   try {
     for (let i = 0; i < sentences.length; i += WRITE_BATCH) {
       await o.port.appendSentences({ transcriptId, sentences: sentences.slice(i, i + WRITE_BATCH) });
-    }
-    for (let i = 0; i < translations.length; i += WRITE_BATCH) {
-      await o.port.putTranslations({ transcriptId, translations: translations.slice(i, i + WRITE_BATCH) });
     }
   } catch (error) {
     // A version with half its sentences is not kept: it goes, by its own id (never the record's other versions). The

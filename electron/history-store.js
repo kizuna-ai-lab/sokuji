@@ -167,7 +167,7 @@ function openHistory({ dir, now = () => Date.now() }) {
   function checkSentence(x) {
     if (!isPlainObject(x) || !isInt(x.n) || !SENTENCE_SIDES.has(x.side) || typeof x.sideCertain !== 'boolean' || !TRACKS.has(x.track)
       || !isString(x.speaker) || !isInt(x.startMs) || !isInt(x.endMs) || !isString(x.text) || !TIME_KINDS.has(x.timeKind)
-      || !isOptionalString(x.segmentId) || !isOptionalString(x.language)) {
+      || !isOptionalString(x.segmentId) || !isOptionalString(x.language) || !isOptionalString(x.translation)) {
       fail('BAD_INPUT', 'A sentence needs n, side, sideCertain, track, speaker, startMs, endMs, text and timeKind');
     }
   }
@@ -404,9 +404,10 @@ function openHistory({ dir, now = () => Date.now() }) {
             continue;
           }
           run(
-            `insert into sentences (transcript_id, n, segment_id, side, side_certain, track, speaker, start_ms, end_ms, text, language, time_kind)
-             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `insert into sentences (transcript_id, n, segment_id, side, side_certain, track, speaker, start_ms, end_ms, text, language, time_kind, translation)
+             values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             transcriptId, x.n, x.segmentId ?? null, x.side, x.sideCertain ? 1 : 0, x.track, x.speaker, x.startMs, x.endMs, x.text, x.language ?? null, x.timeKind,
+            x.translation ?? null,
           );
           added += 1;
         }
@@ -449,31 +450,8 @@ function openHistory({ dir, now = () => Date.now() }) {
         text: x.text,
         language: x.language,
         timeKind: x.time_kind,
+        translation: x.translation,
       }));
-    },
-
-    /** A transcript's translations, one per segment of its sentences: a segment sent again has its new text. */
-    putTranslations({ transcriptId, translations } = {}) {
-      transcriptOrFail(transcriptId);
-      if (!Array.isArray(translations) || translations.some((x) => !isPlainObject(x) || !isString(x.segmentId) || x.segmentId === '' || !isString(x.text) || !isOptionalString(x.language))) {
-        fail('BAD_INPUT', 'translations must be { segmentId, text, language? }');
-      }
-      transaction(db, () => {
-        for (const x of translations) {
-          run(
-            `insert into translations (transcript_id, segment_id, text, language) values (?, ?, ?, ?)
-             on conflict (transcript_id, segment_id) do update set text = excluded.text, language = excluded.language`,
-            transcriptId, x.segmentId, x.text, x.language ?? null,
-          );
-        }
-      });
-      return null;
-    },
-
-    getTranslations({ transcriptId } = {}) {
-      transcriptOrFail(transcriptId);
-      return all('select segment_id, text, language from translations where transcript_id = ? order by rowid', transcriptId)
-        .map((x) => ({ segmentId: x.segment_id, text: x.text, language: x.language }));
     },
 
     renameSpeaker({ transcriptId, side, speaker, name } = {}) {
@@ -565,20 +543,15 @@ function openHistory({ dir, now = () => Date.now() }) {
       if (!text) return [];
       const p = likeAnywhere(text);
       // Counted in the database, one row per record, newest first; only the records shown are read further. A
-      // record's sentence hits are those of its newest transcript that matches, a file transcript's translations
-      // counted with its sentences; a translation segment a matching sentence of a translation transcript was cut from
+      // record's sentence hits are those of its newest transcript that matches (a sentence of a file transcript also by
+      // the translation it carries); a translation segment a matching sentence of a translation transcript was cut from
       // is that sentence, not a second hit.
       const rows = db.prepare(
         `with
          s_match as materialized (
            select t.record_id, t.id as tid from sentences s
            join transcripts t on t.id = s.transcript_id join records r on r.id = t.record_id
-           where r.binned_at is null and s.text like :p escape '\\'
-           union all
-           select t.record_id, t.id as tid from translations x
-           join transcripts t on t.id = x.transcript_id join records r on r.id = t.record_id
-           where r.binned_at is null and x.text like :p escape '\\'
-             and exists (select 1 from sentences s where s.transcript_id = x.transcript_id and s.segment_id = x.segment_id)
+           where r.binned_at is null and (s.text like :p escape '\\' or s.translation like :p escape '\\')
          ),
          s_newest as (select record_id, max(tid) as tid from s_match group by record_id),
          s_count as (
@@ -615,13 +588,9 @@ function openHistory({ dir, now = () => Date.now() }) {
       return rows.map((r) => {
         let first;
         if (r.sentence_hits > 0) {
-          // A sentence that matches; else a translation, shown at the first sentence of the turn it translates.
+          // A sentence that matches; else the one whose turn's translation does, shown by that translation.
           const x = one(`select n, text from sentences where transcript_id = ? and text like ? escape '\\' order by start_ms, n limit 1`, r.newest_tid, p)
-            ?? one(
-              `select s.n, x.text from translations x join sentences s on s.transcript_id = x.transcript_id and s.segment_id = x.segment_id
-               where x.transcript_id = ? and x.text like ? escape '\\' order by s.start_ms, s.n limit 1`,
-              r.newest_tid, p,
-            );
+            ?? one(`select n, translation as text from sentences where transcript_id = ? and translation like ? escape '\\' order by start_ms, n limit 1`, r.newest_tid, p);
           first = { kind: 'sentence', transcriptId: r.newest_tid, n: x.n, text: x.text };
         } else if (r.translation_hits > 0) {
           const g = one(

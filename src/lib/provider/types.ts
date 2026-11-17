@@ -230,7 +230,7 @@ export interface FileRecognitionSpec {
   /** The languages, as app codes, it transcribes a file in and translates it into: the choices offered. */
   languages: readonly string[];
   /** The word list in the service's context shape, sent with every file; absent when there is nothing to send. */
-  context?: Record<string, unknown>;
+  context?: object;
 }
 
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object, R extends { missing?: never } & object = K> {

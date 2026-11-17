@@ -212,35 +212,12 @@ describe('transcripts and sentences', () => {
     expect(() => s.reviseSentences({ transcriptId: t, revisions: [{ n: 1, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
   });
 
-  it('a transcript keeps its own translations, by segment; another transcript’s are its own', () => {
-    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: '你好。', language: 'zh' }, { segmentId: 'f-2', text: '再见。' }] });
-    const other = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'file' } });
-    s.putTranslations({ transcriptId: other, translations: [{ segmentId: 'f-1', text: 'こんにちは。', language: 'ja' }] });
-    expect(s.getTranslations({ transcriptId: t })).toEqual([
-      { segmentId: 'f-1', text: '你好。', language: 'zh' },
-      { segmentId: 'f-2', text: '再见。', language: null },
-    ]);
-    expect(s.getTranslations({ transcriptId: other })).toEqual([{ segmentId: 'f-1', text: 'こんにちは。', language: 'ja' }]);
-    // The same segment again is its new translation.
-    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: '您好。', language: 'zh' }] });
-    expect(s.getTranslations({ transcriptId: t })[0]).toEqual({ segmentId: 'f-1', text: '您好。', language: 'zh' });
-  });
-
-  it('a translation needs a segment and its text; one refused keeps nothing of its call', () => {
-    expect(() => s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: 'a' }, { segmentId: '', text: 'b' }] }))
-      .toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
-    expect(() => s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1' }] })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
-    expect(() => s.putTranslations({ transcriptId: t, translations: 'x' })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
-    expect(() => s.putTranslations({ transcriptId: 999, translations: [] })).toThrow(expect.objectContaining({ code: 'NO_TRANSCRIPT' }));
-    expect(s.getTranslations({ transcriptId: t })).toEqual([]);
-  });
-
-  it('a transcript deleted takes its translations with it', () => {
-    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: '你好。' }] });
-    s.deleteTranscript({ transcriptId: t });
-    const next = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'file' } });
-    expect(s.getTranslations({ transcriptId: next })).toEqual([]);
-    expect(() => s.getTranslations({ transcriptId: t })).toThrow(expect.objectContaining({ code: 'NO_TRANSCRIPT' }));
+  it('a sentence keeps the translation of the turn it begins; the others of the turn and a session\u2019s have none', () => {
+    s.appendSentences({ transcriptId: t, sentences: [
+      sent(1, { segmentId: 'f-1', translation: '你好。你好吗？' }), sent(2, { segmentId: 'f-1' }), sent(3, { segmentId: 'f-2', translation: '再见。' }),
+    ] });
+    expect(s.getSentences({ transcriptId: t }).map((x) => [x.n, x.translation])).toEqual([[1, '你好。你好吗？'], [2, null], [3, '再见。']]);
+    expect(() => s.appendSentences({ transcriptId: t, sentences: [sent(4, { translation: 5 })] })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
   });
 
   it('a record with a sentence is kept when closed', () => {
@@ -461,18 +438,17 @@ describe('search', () => {
     expect(s.search({ query: 'plan' }).map((r) => r.recordId)).toEqual([B]);
   });
 
-  it('finds a file transcript\u2019s translation, at the first sentence of the turn it translates', () => {
+  it('finds a file transcript\u2019s translation, at the sentence that carries it', () => {
     s.openRecord(rec({ id: A, startedAt: 1000 }));
     const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'file' } });
     s.appendSentences({ transcriptId: t, sentences: [
-      sent(1, 'Hello.', { segmentId: 'file-participant-1', side: 'other', track: 'other' }),
-      sent(2, 'The budget is tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other' }),
+      sent(1, 'Hello.', { segmentId: 'file-participant-1', side: 'other', track: 'other', translation: '你好。' }),
+      sent(2, 'The budget is tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other', translation: '预算很紧，非常紧。' }),
       sent(3, 'Very tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other' }),
     ] });
-    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'file-participant-1', text: '你好。' }, { segmentId: 'file-participant-2', text: '预算很紧，非常紧。' }] });
     expect(s.search({ query: '预算' })).toEqual([expect.objectContaining({ recordId: A, hits: 1, first: { kind: 'sentence', transcriptId: t, n: 2, text: '预算很紧，非常紧。' } })]);
-    // Found in both, a turn counts its sentence and its translation, and the sentence is shown first.
-    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'file-participant-1', text: 'Hello, budget.' }] });
+    // A sentence found by its text and by its translation counts once; the text is what is shown.
+    s.appendSentences({ transcriptId: t, sentences: [sent(4, 'Budget again.', { segmentId: 'file-participant-3', side: 'other', track: 'other', translation: 'Budget 再说一次。' })] });
     expect(s.search({ query: 'budget' })).toEqual([expect.objectContaining({ recordId: A, hits: 2, first: { kind: 'sentence', transcriptId: t, n: 2, text: 'The budget is tight.' } })]);
   });
 

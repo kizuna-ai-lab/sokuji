@@ -27,7 +27,6 @@ function fakePort() {
     getRecord: answer('getRecord', () => record),
     getLegs: answer('getLegs', () => []),
     getSentences: answer('getSentences', () => []),
-    getTranslations: answer('getTranslations', () => []),
     getSpeakers: answer('getSpeakers', () => []),
   };
   return { port: port as unknown as HistoryPort, calls };
@@ -136,7 +135,7 @@ describe('importing a file', () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
-    act(() => { void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    act(() => { void store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
     await settle();
     show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
     await settle();
@@ -162,7 +161,7 @@ describe('a file job running, and how it ended', () => {
     store.getState().follow();
     show(<FileJobLine />);
     let started!: Promise<void>;
-    act(() => { started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    act(() => { started = store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
     await settle();
     expect(screen.getByText('Importing “Team sync.mp4”: Reading the file')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -181,7 +180,7 @@ describe('the line of a file job, in each case', () => {
     store.getState().follow();
     show(<FileJobLine />);
     let started!: Promise<void>;
-    act(() => { started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    act(() => { started = store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
     await settle();
     return { jobs, pending, started: () => started };
   };
@@ -228,7 +227,7 @@ describe('the line of a file job, in each case', () => {
     await act(async () => { await store.getState().openRecord(A); });
     show(<FileJobLine />);
     let started!: Promise<void>;
-    act(() => { started = store.getState().transcribeOpen(); });
+    act(() => { started = store.getState().transcribeOpen({ languages: ['en'], translateTo: 'zh' }); });
     await settle();
     await act(async () => { pending.reject!(Object.assign(new Error('too long'), { code: 'TOO_LONG' })); await started; });
     expect(screen.getByText('The recording is longer than five hours, more than Soniox transcribes at once.')).toBeTruthy();

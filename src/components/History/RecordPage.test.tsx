@@ -48,7 +48,7 @@ const legs: Leg[] = [
 ];
 const sentence = (n: number, segmentId: string, text: string, over: Partial<HistorySentence> = {}): HistorySentence => ({
   n, segmentId, side: 'other', sideCertain: true, track: 'other', speaker: '1.1', speakerByUser: null, speakerName: null,
-  startMs: n * 1000, endMs: n * 1000 + 900, text, language: null, timeKind: 'given', ...over,
+  startMs: n * 1000, endMs: n * 1000 + 900, text, language: null, timeKind: 'given', translation: null, ...over,
 });
 const sentences: HistorySentence[] = [
   sentence(1, `${A}:participant:1`, '下周三之前能交货吗？', { timeKind: 'estimated' }),
@@ -76,7 +76,6 @@ function fakePort(): Fake {
     getRecord: answer('getRecord', () => record),
     getLegs: answer('getLegs', () => legs),
     getSentences: answer('getSentences', () => sentences),
-    getTranslations: answer('getTranslations', () => []),
     getSpeakers: answer('getSpeakers', () => speakers),
     renameSpeaker: answer('renameSpeaker', () => undefined),
     reassignSentence: answer('reassignSentence', () => undefined),

@@ -44,8 +44,6 @@ export function recordRows(o: {
   sentences: readonly HistorySentence[];
   legs: readonly Leg[];
   textKind: 'original' | 'translation';
-  /** The transcript's own translations, by the segment (turn) of its sentences: a file transcript's. */
-  translations?: readonly { segmentId: string; text: string }[];
   labels: SpeakerLabels;
   /**
    * Whether the sentences' sides mean who spoke: not for an imported file, where everyone is on one track. (A
@@ -55,11 +53,12 @@ export function recordRows(o: {
   sidesKnown?: boolean;
 }): RecordRow[] {
   // The round's translation, by the source segments it pairs with (as the conversation shows it); a file transcript's
-  // own, by its turns, when it has them. A transcript cut from the translation has none: its sentences already are the
-  // translation.
+  // own, carried by the first sentence of each turn, when it has them. A transcript cut from the translation has none:
+  // its sentences already are the translation.
   const translationOf = new Map<string, string>();
-  if (o.textKind === 'original' && o.translations?.length) {
-    for (const x of o.translations) translationOf.set(x.segmentId, x.text);
+  const carried = o.sentences.filter((s) => s.translation && s.segmentId !== null);
+  if (o.textKind === 'original' && carried.length > 0) {
+    for (const s of carried) translationOf.set(s.segmentId!, s.translation!);
   } else if (o.textKind === 'original' && o.legs.length > 0) {
     for (const e of createProjector().project(o.legs, DEFAULT_PROJECTION)) {
       if (e.kind !== 'exchange') continue;

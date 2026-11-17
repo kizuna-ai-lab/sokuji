@@ -5,11 +5,11 @@
 // finished segment whose words are its heard pieces: sentence ends, the cut after a pause and the 45 s cap apply alike,
 // and every time is given. A turn's sentences share one segment id, so the record page shows a turn as one row.
 //
-// Translated words (asked for with the transcription) have no time: they follow the words they translate. A run of
-// them translates the spoken words since the run before (a round), and belongs to the turn that round began in; a turn
-// in which several rounds began has their translations joined. The rounds are the service's, the turns ours: a round
-// over two turns is shown with the first.
-import type { HistorySentenceInput, HistorySentenceSide, HistorySentenceTrack, HistoryTranslationInput, FileToken } from '../types';
+// Translated words (asked for with the transcription) have no time of their own (Soniox gives 0): they follow the words
+// they translate. A run of them translates the spoken words since the run before (a round), and belongs to the turn
+// that round began in; a turn in which several rounds began has their translations joined, and its first sentence
+// carries them. The rounds are the service's, the turns ours: a round over two turns is shown with the first.
+import type { HistorySentenceInput, HistorySentenceSide, HistorySentenceTrack, FileToken } from '../types';
 import { createSegmentCut } from '../capture/cut';
 import { joinSegmentTexts } from '../../projection/join';
 
@@ -50,7 +50,6 @@ interface Turn {
   words: SpokenToken[];
   /** The translations of the rounds that began in this turn, in order. */
   rounds: string[];
-  language?: string;
 }
 
 const isSpoken = (t: FileToken): t is SpokenToken =>
@@ -73,7 +72,6 @@ function turnsOf(tokens: readonly FileToken[]): Turn[] {
       }
       if (!reading) continue;
       reading.rounds[reading.rounds.length - 1] += t.text;
-      if (t.language) reading.language = t.language;
       continue;
     }
     if (!isSpoken(t)) continue;
@@ -88,19 +86,10 @@ function turnsOf(tokens: readonly FileToken[]): Turn[] {
   return turns;
 }
 
-/** Each turn's translation, under the segment id its sentences have. */
-export function fileTranslations(tokens: readonly FileToken[], o: Pick<FileSentenceOptions, 'idPrefix'>): HistoryTranslationInput[] {
-  const out: HistoryTranslationInput[] = [];
-  turnsOf(tokens).forEach((turn, k) => {
-    const text = joinSegmentTexts(turn.rounds);
-    if (text) out.push({ segmentId: `${o.idPrefix}-${k + 1}`, text, ...(turn.language ? { language: turn.language } : {}) });
-  });
-  return out;
-}
-
 export function fileSentences(tokens: readonly FileToken[], o: FileSentenceOptions): FileSentence[] {
   const out: FileSentence[] = [];
-  turnsOf(tokens).forEach(({ words: turn }, k) => {
+  turnsOf(tokens).forEach(({ words: turn, rounds }, k) => {
+    const translation = joinSegmentTexts(rounds);
     let text = '';
     const pieces = [];
     const marks = [];
@@ -116,12 +105,13 @@ export function fileSentences(tokens: readonly FileToken[], o: FileSentenceOptio
       text, final: true, openedAt: o.offsetMs + first.start_ms, marks, heard: { pieces, stableLen: text.length }, now: o.offsetMs + last.end_ms,
     });
     const language = mostOf(turn.map((w) => w.language)) ?? o.language;
-    for (const s of added) {
+    added.forEach((s, i) => {
       out.push({
         segmentId: `${o.idPrefix}-${k + 1}`, side: o.side, sideCertain: o.sideCertain, track: o.track, speaker: first.speaker ?? '1',
         startMs: Math.round(s.startAt), endMs: Math.round(s.endAt), text: s.text, ...(language ? { language } : {}), timeKind: 'given',
+        ...(i === 0 && translation ? { translation } : {}),
       });
-    }
+    });
   });
   return out;
 }

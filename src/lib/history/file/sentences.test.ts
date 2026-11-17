@@ -1,7 +1,7 @@
 // A file transcript's words become the record's numbered sentences, cut as live sentences are.
 import { describe, it, expect } from 'vitest';
 import type { FileToken } from '../types';
-import { fileSentences, fileTranslations, numberSentences, TURN_GAP_MS } from './sentences';
+import { fileSentences, numberSentences, TURN_GAP_MS } from './sentences';
 
 /** Words of one speaker, each `step` ms long, starting at `at`. */
 function words(text: string, o: { at: number; step?: number; speaker?: string; language?: string; spaced?: boolean }): FileToken[] {
@@ -70,43 +70,52 @@ describe('sentences from a file transcript', () => {
 const translated = (text: string, language = 'zh'): FileToken[] => [{ text, translation_status: 'translation', language, source_language: 'en' }];
 const spoken = (text: string, o: Parameters<typeof words>[1]) => words(text, o).map((t) => ({ ...t, translation_status: 'original' as const }));
 
+/** Each sentence's turn, text and the translation it carries. */
+const carried = (tokens: FileToken[]) => fileSentences(tokens, OTHER).map((x) => [x.segmentId, x.text, x.translation]);
+
 describe('translations from a file transcript', () => {
-  it('a turn\u2019s translation is the translated words that follow its words; they are never taken for spoken ones', () => {
+  it('a turn\u2019s translation is the translated words that follow its words, on its first sentence; they are never spoken words', () => {
     const tokens = [
-      ...spoken('Hello there.', { at: 0 }), ...translated('你好。'),
-      ...spoken('Bye.', { at: 900, speaker: '2' }), ...translated('再见。'),
+      ...spoken('Hello there. How are you?', { at: 0 }), ...translated('你好。你好吗？'),
+      ...spoken('Bye.', { at: 1800, speaker: '2' }), ...translated('再见。'),
     ];
-    expect(fileSentences(tokens, OTHER).map((s) => [s.segmentId, s.text, s.startMs, s.endMs])).toEqual([
-      ['file-participant-1', 'Hello there.', 0, 600],
-      ['file-participant-2', 'Bye.', 900, 1200],
-    ]);
-    expect(fileTranslations(tokens, OTHER)).toEqual([
-      { segmentId: 'file-participant-1', text: '你好。', language: 'zh' },
-      { segmentId: 'file-participant-2', text: '再见。', language: 'zh' },
+    expect(fileSentences(tokens, OTHER).map((x) => [x.segmentId, x.text, x.startMs, x.endMs, x.translation])).toEqual([
+      ['file-participant-1', 'Hello there.', 0, 600, '你好。你好吗？'],
+      ['file-participant-1', 'How are you?', 600, 1500, undefined],
+      ['file-participant-2', 'Bye.', 1800, 2100, '再见。'],
     ]);
   });
 
   it('a turn of several translated rounds joins them; a round over two turns goes to the turn it began in', () => {
-    const tokens = [
-      ...spoken('One.', { at: 0 }), ...translated('一。'), ...spoken('Two.', { at: 400 }), ...translated(' 二。'),
+    const [one, two] = spoken('One. Two.', { at: 0 });
+    expect(carried([
+      one, ...translated('一。'), two, ...translated(' 二。'),
       ...spoken('Three.', { at: 900, speaker: '2' }), ...spoken('Four.', { at: 1300, speaker: '3' }), ...translated('三。'), ...translated('四。'),
-    ];
-    expect(fileTranslations(tokens, OTHER)).toEqual([
-      { segmentId: 'file-participant-1', text: '一。二。', language: 'zh' },
-      { segmentId: 'file-participant-2', text: '三。四。', language: 'zh' },
+    ])).toEqual([
+      ['file-participant-1', 'One.', '一。二。'],
+      ['file-participant-1', 'Two.', undefined],
+      ['file-participant-2', 'Three.', '三。四。'],
+      ['file-participant-3', 'Four.', undefined],
     ]);
-    expect(fileTranslations([...spoken('One.', { at: 0 }), ...translated('Uno.', 'es'), ...spoken('Two.', { at: 400 }), ...translated('Dos.', 'es')], OTHER))
-      .toEqual([{ segmentId: 'file-participant-1', text: 'Uno. Dos.', language: 'es' }]);
+    expect(carried([one, ...translated('Uno.', 'es'), two, ...translated('Dos.', 'es')]))
+      .toEqual([['file-participant-1', 'One.', 'Uno. Dos.'], ['file-participant-1', 'Two.', undefined]]);
   });
 
-  it('words already in the language asked for are not translated: their turn has none', () => {
+  it('words already in the language asked for are not translated: their turn carries none', () => {
     const tokens = words('你好。', { at: 0, spaced: false, language: 'zh' }).map((t) => ({ ...t, translation_status: 'none' as const }));
-    expect(fileTranslations([...tokens, ...spoken('Hi.', { at: 2000 + TURN_GAP_MS }), ...translated('嗨。')], OTHER))
-      .toEqual([{ segmentId: 'file-participant-2', text: '嗨。', language: 'zh' }]);
-    expect(fileTranslations(words('No translation asked.', { at: 0 }), OTHER)).toEqual([]);
+    expect(carried([...tokens, ...spoken('Hi.', { at: 2000 + TURN_GAP_MS }), ...translated('嗨。')]))
+      .toEqual([['file-participant-1', '你好。', undefined], ['file-participant-2', 'Hi.', '嗨。']]);
+    expect(carried(words('No translation asked.', { at: 0 }))).toEqual([['file-participant-1', 'No translation asked.', undefined]]);
   });
 
   it('translated words with nothing before them to translate are left out', () => {
-    expect(fileTranslations([...translated('孤独。'), ...spoken('Hi.', { at: 0 })], OTHER)).toEqual([]);
+    expect(carried([...translated('孤独。'), ...spoken('Hi.', { at: 0 })])).toEqual([['file-participant-1', 'Hi.', undefined]]);
+  });
+
+  // As Soniox answers (checked against its file API): a translated word has times of 0, and says it is a translation.
+  it('takes translated words with times of 0 for translations, not for words spoken at the start', () => {
+    const zeroed = translated('明天的会议下午三点开始。').map((t) => ({ ...t, start_ms: 0, end_ms: 0 }));
+    expect(carried([...spoken('明日の会議は午後三時に始まります。', { at: 270, spaced: false, language: 'ja' }), ...zeroed]))
+      .toEqual([['file-participant-1', '明日の会議は午後三時に始まります。', '明天的会议下午三点开始。']]);
   });
 });

@@ -111,12 +111,8 @@ describe('an imported record\'s speakers', () => {
     real.store.openRecord({ id: I, startedAt: START, mode: 'import', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
     const transcriptId = real.store.createTranscript({ recordId: I, origin: { service: 'soniox', kind: 'file', options: { languages: ['en'], translateTo: 'zh' } } });
     real.store.appendSentences({ transcriptId, sentences: [
-      { ...sentence(1, 'other', 'Welcome, everyone.'), sideCertain: false, track: 'other', segmentId: 'file-participant-1' },
-      { ...sentence(2, 'other', 'Thanks for having me.', '2'), sideCertain: false, track: 'other', segmentId: 'file-participant-2' },
-    ] });
-    real.store.putTranslations({ transcriptId, translations: [
-      { segmentId: 'file-participant-1', text: '欢迎大家。', language: 'zh' },
-      { segmentId: 'file-participant-2', text: '谢谢邀请我。', language: 'zh' },
+      { ...sentence(1, 'other', 'Welcome, everyone.'), sideCertain: false, track: 'other', segmentId: 'file-participant-1', translation: '欢迎大家。' },
+      { ...sentence(2, 'other', 'Thanks for having me.', '2'), sideCertain: false, track: 'other', segmentId: 'file-participant-2', translation: '谢谢邀请我。' },
     ] });
     real.store.closeRecord({ id: I, endedAt: START + 10_000 });
     await act(() => store.getState().openRecord(I));

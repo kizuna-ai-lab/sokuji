@@ -27,9 +27,7 @@ function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?:
   } as unknown as HistoryRecord;
 }
 
-function fakePort(o: {
-  record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string; writeFails?: boolean; deleteFails?: boolean; translationsFail?: boolean;
-} = {}) {
+function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string; writeFails?: boolean; deleteFails?: boolean } = {}) {
   const asked: HistoryRecognizeRequest[] = [];
   const written: unknown[] = [];
   const port = {
@@ -45,10 +43,6 @@ function fakePort(o: {
     appendSentences: vi.fn(async (a: { sentences: unknown[] }) => {
       if (o.writeFails) throw new HistoryUnavailable('disk full', 'LOCAL');
       written.push(['appendSentences', a]); return { added: a.sentences.length };
-    }),
-    putTranslations: vi.fn(async (a: unknown) => {
-      if (o.translationsFail) throw new HistoryUnavailable('disk full', 'LOCAL');
-      written.push(['putTranslations', a]);
     }),
     deleteTranscript: vi.fn(async (a: unknown) => { written.push(['deleteTranscript', a]); if (o.deleteFails) throw new Error('still full'); }),
   };
@@ -110,25 +104,12 @@ describe('transcribing a record again', () => {
     expect(none.asked.map((r) => ['translateTo' in r, 'context' in r])).toEqual([[false, true], [false, true]]);
   });
 
-  it('keeps each track\u2019s translations with the new transcript, under the turns they translate', async () => {
+  it('keeps each turn\u2019s translation on its first sentence, in the new transcript', async () => {
     const { port, written } = fakePort({ words: { speaker: [...said('Mine.', 0), ...translated('我的。')], participant: [...said('Theirs.', 200), ...translated('他们的。')] } });
     await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
-    expect(written.map(([what]) => what)).toEqual(['createTranscript', 'appendSentences', 'putTranslations']);
-    expect(written[2]).toEqual(['putTranslations', { transcriptId: 7, translations: [
-      { segmentId: 'file-speaker-1', text: '我的。', language: 'zh' },
-      { segmentId: 'file-participant-1', text: '他们的。', language: 'zh' },
-    ] }]);
-    const sentences = (written[1] as [string, { sentences: Array<{ text: string }> }])[1].sentences;
-    expect(sentences.map((x) => x.text)).toEqual(['Mine.', 'Theirs.']);
-  });
-
-  it('writes no translations when there are none, and deletes the transcript when writing them fails', async () => {
-    const plain = fakePort({ words: { speaker: said('One.', 0) }, record: record({ tracks: [{ source: 'speaker', offsetMs: 0 }] }) });
-    await transcribeRecord({ options: OPTIONS, port: plain.port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
-    expect(plain.written.map(([what]) => what)).toEqual(['createTranscript', 'appendSentences']);
-    const failing = fakePort({ words: { speaker: [...said('One.', 0), ...translated('一。')] }, record: record({ tracks: [{ source: 'speaker', offsetMs: 0 }] }), translationsFail: true });
-    await expect(transcribeRecord({ options: OPTIONS, port: failing.port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) })).rejects.toThrow('disk full');
-    expect(failing.written).toContainEqual(['deleteTranscript', { transcriptId: 7 }]);
+    expect(written.map((w) => (w as [string])[0])).toEqual(['createTranscript', 'appendSentences']);
+    const sentences = (written[1] as [string, { sentences: Array<{ text: string; translation?: string }> }])[1].sentences;
+    expect(sentences.map((x) => [x.text, x.translation])).toEqual([['Mine.', '我的。'], ['Theirs.', '他们的。']]);
   });
 
   it('writes nothing when one track fails, and passes its reason on', async () => {

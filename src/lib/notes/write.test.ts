@@ -10,7 +10,7 @@ const MIN = 60_000;
 
 const sentence = (n: number, startMs: number, o: Partial<HistorySentence> = {}): HistorySentence => ({
   n, segmentId: null, side: 'other', sideCertain: true, track: 'other', speaker: 'Other side 1', speakerByUser: null,
-  speakerName: null, startMs, endMs: startMs + 10_000, text: `sentence ${n}`, language: 'ja', timeKind: 'given', ...o,
+  speakerName: null, startMs, endMs: startMs + 10_000, text: `sentence ${n}`, language: 'ja', timeKind: 'given', translation: null, ...o,
 });
 
 /** One sentence a minute: `count` of them. */

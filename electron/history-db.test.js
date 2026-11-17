@@ -39,18 +39,6 @@ describe('the history database file', () => {
     db.close();
   });
 
-  it('a file of the first version gains the translations table and keeps what it had', () => {
-    const { MIGRATIONS } = nodeRequire('./history-schema.js');
-    const first = openDatabase({ file, migrations: MIGRATIONS.slice(0, 1) }).db;
-    first.prepare("insert into records (id, started_at, state, mode, my_language, target_language, services, app_version) values ('r', 1, 'closed', 'import', 'zh', 'en', '{}', '0.51.0')").run();
-    first.close();
-    const { db, version, migratedFrom } = openDatabase({ file });
-    expect([migratedFrom, version]).toEqual([1, SCHEMA_VERSION]);
-    expect(db.prepare("select count(*) c from sqlite_master where type = 'table' and name = 'translations'").get().c).toBe(1);
-    expect(db.prepare('select id from records').all().map((r) => r.id)).toEqual(['r']);
-    db.close();
-  });
-
   it('refuses a file from a newer version and leaves it untouched', () => {
     openDatabase({ file, migrations: ['create table a(x integer) strict', 'create table b(x integer) strict'] }).db.close();
     const before = readFileSync(file);
