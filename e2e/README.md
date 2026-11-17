@@ -53,7 +53,8 @@ audio away from any Sokuji already running on the machine.
 - The launch refuses anything but the E2E build (it looks for the build's marker in `dist-electron/main.js`): a release or
   development build started from here would clean and recreate the system's virtual audio devices.
 - `baseStorage('fake')` is the seed every session test wants: the setup wizard and the tour are done,
-  the interface is English, the fake provider runs every stage.
+  the interface is English, noise suppression is off (the enhanced mode sometimes removes seconds of the
+  injected microphone's tone from the recording), the fake provider runs every stage.
   Another interface language: `{ ...baseStorage('fake'), i18nextLng: 'ja' }`.
 - `sokuji.kill()` ends the process at once (a crash); launch again on the same `userData` to test recovery.
   The seeded settings are written to disk at launch, so they survive a kill; settings changed later through the app are

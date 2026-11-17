@@ -41,6 +41,10 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
     // Without it the app follows the machine's language, and specs that find elements by their English names fail.
     i18nextLng: 'en',
     'settings.common.uiLanguage': 'en',
+    // Noise suppression off: the recording keeps what is sent for recognition, after noise suppression, and the
+    // enhanced mode (the app's default) now and then takes the injected microphone's steady tone for noise and
+    // removes seconds of it. A spec about noise suppression sets its own mode.
+    'audio.noiseSuppressionMode': 'off',
   };
 }
 
