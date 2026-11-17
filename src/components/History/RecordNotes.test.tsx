@@ -273,7 +273,9 @@ describe("a record's notes", () => {
 });
 
 describe('RecordNotes styles: the language and the button', () => {
-  it('wraps the label on to a line of its own before splitting the select from the button', async () => {
+  // B-49 (owner, 2026-11-17): first the label takes a line of its own; when the select and the button still do not fit
+  // side by side, the button goes on to the next line, under the select, rather than out of the notes column.
+  it('wraps the label on to a line of its own first, then the button under the select, never out of the column', async () => {
     const { compile } = await import('sass');
     const { resolve } = await import('node:path');
     const css = compile(resolve(__dirname, 'History.scss')).css;
@@ -281,11 +283,13 @@ describe('RecordNotes styles: the language and the button', () => {
     expect(write).toMatch(/flex-wrap:\s*wrap/);
     const pick = css.match(/\.record-notes__pick\s*\{([^}]*)\}/)?.[1] ?? '';
     expect(pick).toMatch(/display:\s*flex/);
-    expect(pick).toMatch(/flex-wrap:\s*nowrap/);
-    // The button keeps its words on one line; the select gives way first.
+    expect(pick).toMatch(/flex-wrap:\s*wrap/);
+    expect(pick).not.toMatch(/flex-wrap:\s*nowrap/);
+    // The button keeps its words on one line, and is never wider than the column.
     const button = css.match(/\.record-notes__pick \.history-button\s*\{([^}]*)\}/)?.[1] ?? '';
     expect(button).toMatch(/flex:\s*none/);
     expect(button).toMatch(/white-space:\s*nowrap/);
+    expect(button).toMatch(/max-width:\s*100%/);
   });
 
   // Owner, 2026-11-17: the select as wide as its longest language name (not capped, not stretched), and as tall as the

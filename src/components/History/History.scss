@@ -762,10 +762,11 @@
   &__state { display: flex; flex-direction: column; align-items: flex-start; gap: vars.$space-2; color: vars.$text-secondary; p { margin: 0; } }
   &__write { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; margin-top: vars.$space-2; }
   &__write > label { color: vars.$text-secondary; font-size: vars.$font-caption; }
-  // The language and the button never part: when the row is too narrow, the label above takes a line of its own.
+  // When the row is too narrow, the label above takes a line of its own first; when the select and the button still
+  // do not fit side by side, the button goes on to the next line, under the select, never out of the column (B-49).
   &__pick {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: vars.$space-2;
     min-width: 0;
@@ -773,7 +774,7 @@
   // As wide as its longest language name, not stretched across the column, and as tall as the button (owner,
   // 2026-11-17).
   // Its longest name's width is measured (RecordNotes, --language-min); in a narrow column it keeps to a little over
-  // half the notes' width, leaving its button beside it.
+  // half the notes' width.
   // Held to 30px, its words and its arrow centred, with no padding above and below to push them down.
   &__pick select {
     width: auto;
@@ -790,7 +791,7 @@
     min-width: 0;
     box-sizing: border-box;
   }
-  &__pick .history-button { flex: none; white-space: nowrap; height: 30px; box-sizing: border-box; }
+  &__pick .history-button { flex: none; white-space: nowrap; max-width: 100%; height: 30px; box-sizing: border-box; }
 
   // One pill per choice, the chosen one filled (so it does not read as a kind tag on a point); in a narrow pane the
   // choices go on to a second line rather than being cut off.
