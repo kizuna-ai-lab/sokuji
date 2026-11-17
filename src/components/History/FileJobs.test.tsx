@@ -8,6 +8,16 @@ import { createHistoryPageStore, type FileJobs } from '../../lib/history/history
 import '../../locales';
 import { HistoryPageContext } from './historyContext';
 import { FileJobLine, ImportPanel, TranscribePanel, TranscriptChooser } from './FileJobs';
+import { PIN_SEPARATOR } from '../../lib/language/order';
+
+/** A language list's two parts, as the source and target lists have them: the likely languages, a line, then all. */
+function parts(select: HTMLSelectElement) {
+  const values = [...select.options].map((o) => o.value).filter(Boolean);
+  const line = values.indexOf(PIN_SEPARATOR);
+  expect(line, 'the line between the two parts').toBeGreaterThan(0);
+  expect(select.querySelector(`option[value="${PIN_SEPARATOR}"]`)).toBeDisabled();
+  return { likely: values.slice(0, line), all: values.slice(line + 1) };
+}
 import { useSettingsStore } from '../../stores/settingsStore';
 import en from '../../locales/en/translation.json';
 import zhCN from '../../locales/zh_CN/translation.json';
@@ -81,11 +91,16 @@ describe('importing a file', () => {
     expect(main).toHaveClass('select-dropdown');
     expect(into).toHaveClass('select-dropdown');
     expect([main.value, into.value]).toEqual(['zh', 'zh']);
-    expect([...main.options].map((o) => o.value).sort()).toEqual(['en', 'fr', 'ja', 'zh']);
+    // The language chosen and the interface's first, then every language the service has.
+    expect(parts(main)).toEqual({ likely: ['zh', 'en'], all: expect.arrayContaining(['en', 'fr', 'ja', 'zh']) });
+    expect(parts(main).all).toHaveLength(4);
+    expect(parts(into).likely).toEqual(['zh', 'en']);
     fireEvent.change(main, { target: { value: 'ja' } });
-    // Other languages it may contain: added one by one, each shown with a way to take it out again.
+    // Other languages it may contain: added one by one, each shown with a way to take it out again; the ones already
+    // chosen are not offered.
     const add = screen.getByLabelText<HTMLSelectElement>('Add another language');
-    expect([...add.options].map((o) => o.value).filter(Boolean).sort()).toEqual(['en', 'fr', 'zh']);
+    expect(parts(add)).toEqual({ likely: ['zh', 'en'], all: expect.arrayContaining(['en', 'fr', 'zh']) });
+    expect(parts(add).all).toHaveLength(3);
     fireEvent.change(add, { target: { value: 'en' } });
     fireEvent.change(add, { target: { value: 'fr' } });
     expect(screen.getByRole('button', { name: 'Remove English' })).toBeTruthy();

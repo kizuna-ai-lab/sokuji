@@ -12,7 +12,8 @@ import { useStore } from 'zustand';
 import type { FileJobBlock } from '../../lib/history/historyPageStore';
 import { importOptions, optionsFor, withMain, withOther, withoutOther } from '../../lib/history/file/options';
 import type { FileTranscriptionOptions } from '../../lib/history/types';
-import { languageLabel } from '../../lib/language/label';
+import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
+import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useHistoryPageContext } from './historyContext';
@@ -140,30 +141,43 @@ function useFileLanguages(): readonly string[] {
   return languages;
 }
 
+const SEPARATOR = '──────────';
+
 /**
  * What a file transcription is asked for, the same for an import and a transcription again: the main language spoken,
- * the others it may contain (each added on its own and taken out again), and the language to translate into.
+ * the others it may contain (each added on its own and taken out again), and the language to translate into. Each
+ * list is drawn as the source and target lists are: the likely languages first (the ones chosen, the interface's),
+ * a line, then every language in the app's order.
  */
 export const FileOptionsFields: React.FC<{ value: FileTranscriptionOptions; onChange(value: FileTranscriptionOptions): void }> = ({ value, onChange }) => {
   const { t, i18n } = useTranslation();
+  const labelOf = useLanguageLabel();
   const offered = useFileLanguages();
   const othersId = useId();
-  // The service's languages and any already chosen, by name in the interface's language.
-  const named = useMemo(() => {
-    const collator = new Intl.Collator(i18n.language);
-    return [...new Set([...offered, ...value.languages, value.translateTo])]
-      .map((code) => ({ code, label: languageLabel(code, i18n.language) }))
-      .sort((a, b) => collator.compare(a.label, b.label));
-  }, [offered, value, i18n.language]);
-  const labelOf = (code: string) => languageLabel(code, i18n.language);
-  const choices = (list: typeof named) => list.map(({ code, label }) => <option key={code} value={code}>{label}</option>);
+  const ui = i18n?.language ?? 'en';
+  const browser = typeof navigator !== 'undefined' ? navigator.languages ?? [] : [];
+  const browserKey = browser.join(',');
+  const ctx: OrderContext = useMemo(() => ({ ui, browser }), [ui, browserKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const [main, ...others] = value.languages;
+  // The service's languages, and any chosen that it does not list (so a choice is never hidden).
+  const all = useMemo(() => [...new Set([...offered, ...value.languages, value.translateTo])].map((code) => ({ value: code })), [offered, value]);
+  const likelyPair = { source: main, target: value.translateTo };
+  const choices = (options: readonly { value: string }[]) => {
+    const pinned = pinnedLanguages(options, likelyPair, ctx);
+    return (
+      <>
+        {pinned.map((o) => <option key={`pin:${o.value}`} value={o.value}>{labelOf(o.value)}</option>)}
+        {pinned.length > 0 && <option key="pin-separator" value={PIN_SEPARATOR} disabled>{SEPARATOR}</option>}
+        {orderLanguages(options, ctx).map((o) => <option key={o.value} value={o.value}>{labelOf(o.value)}</option>)}
+      </>
+    );
+  };
   const add = t('history.file.addLanguage', 'Add another language');
   return (
     <>
       <label className="history-file__field">
         <span>{t('history.file.mainLanguage', 'Main language')}</span>
-        <select className="select-dropdown" value={main} onChange={(e) => onChange(withMain(value, e.target.value))}>{choices(named)}</select>
+        <select className="select-dropdown" value={main} onChange={(e) => onChange(withMain(value, e.target.value))}>{choices(all)}</select>
       </label>
       <div className="history-file__field" role="group" aria-labelledby={othersId}>
         <span id={othersId}>{t('history.file.otherLanguages', 'Other languages it may contain')}</span>
@@ -186,12 +200,12 @@ export const FileOptionsFields: React.FC<{ value: FileTranscriptionOptions; onCh
         )}
         <select className="select-dropdown" aria-label={add} value="" onChange={(e) => { if (e.target.value) onChange(withOther(value, e.target.value)); }}>
           <option value="">{add}</option>
-          {choices(named.filter(({ code }) => !value.languages.includes(code)))}
+          {choices(all.filter((o) => !value.languages.includes(o.value)))}
         </select>
       </div>
       <label className="history-file__field">
         <span>{t('history.file.translateInto', 'Translate into')}</span>
-        <select className="select-dropdown" value={value.translateTo} onChange={(e) => onChange({ ...value, translateTo: e.target.value })}>{choices(named)}</select>
+        <select className="select-dropdown" value={value.translateTo} onChange={(e) => onChange({ ...value, translateTo: e.target.value })}>{choices(all)}</select>
       </label>
     </>
   );
