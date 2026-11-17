@@ -306,11 +306,11 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       : <em className={className}>{s.text}</em>;
   };
 
-  // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own, so a key that is missing,
-  // rejected or not yet checked reads the same here as on a stage (review).
-  const notesState = kizunaChosen
-    ? auth.signedIn ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') } : { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
-    : stateOf('openai');
+  // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own (stateTag), so a key that
+  // is missing, rejected or not yet checked reads the same here as on a stage, and takes you to the key (review).
+  const kizunaNotesState = auth.signedIn
+    ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
+    : { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
 
   // Granite Speech is a local model: when the local transcription and translation choices are the same Granite
   // Speech model, today's code turns speech straight into the translation (Plan 4, Task 3).
@@ -441,7 +441,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           <div className="lineup-stage">
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
-              <em className={`lineup-stage__state${notesState.ok ? ' is-ready' : ''}`}>{notesState.text}</em>
+              {kizunaChosen
+                ? <em className={`lineup-stage__state${kizunaNotesState.ok ? ' is-ready' : ''}`}>{kizunaNotesState.text}</em>
+                : stateTag('openai')}
             </div>
             {/* Drawn like the other stages' choices (owner, 2026-11-17): an icon, the name, a line about writing notes. */}
             <select className="select-dropdown provider-select" value={notesService} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}

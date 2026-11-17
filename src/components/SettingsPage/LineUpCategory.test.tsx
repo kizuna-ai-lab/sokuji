@@ -484,6 +484,27 @@ describe('the notes card', () => {
     expect(within(card).getByText('Ready')).toBeInTheDocument();
   });
 
+  // #728 review: the notes card follows the OpenAI key's check, as the other stages do.
+  it('does not call an OpenAI key the service refuses Ready on the notes card, and takes you to the key', () => {
+    authState.signedIn = false;
+    openAiKey();
+    useProviderStore.setState({ readiness: { openai: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).queryByText('Ready')).toBeNull();
+    fireEvent.click(within(card).getByRole('button', { name: 'Key not accepted' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+
+  it('says an OpenAI key not checked yet is not verified on the notes card', () => {
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).queryByText('Ready')).toBeNull();
+    expect(within(card).getByRole('button', { name: 'Key not verified' })).toBeInTheDocument();
+  });
+
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
