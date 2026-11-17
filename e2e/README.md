@@ -52,6 +52,13 @@ audio away from any Sokuji already running on the machine.
 - `sokuji.answerSaveDialog(path)` / `answerOpenDialog(paths)` set what the system dialog answers (`null` is Cancel);
   Playwright cannot click a native dialog.
 - `mainAction(page)` is the Start / End session button.
+- `fakeOpenAi(sokuji)` (`support/openai.ts`) answers the app's requests to api.openai.com from the test, in the page's network
+  layer: notes (a chat-completions request) and the key check (the model list). The app is not changed and nothing leaves the
+  machine. By default every notes prompt gets a usable answer; `answerChat(...)` swaps in a refusal (`{ status, message }`) or
+  no answer at all (`{ hang: true }`); `requests` is what the app sent. The user's key is seeded as `settings.openai.apiKey`.
+- `seedHistory(userData, records)` (`support/seed.ts`) writes closed records into History with the app's own store before the
+  app starts (`newUserData()` first, then `launchApp({ userData, seed })`). Notes need a record of a minute or more, and no test
+  should wait a minute for one. `meeting(18)` is eighteen sentences ten seconds apart.
 - `readHistory(userData)` reads `history/history.db` from disk. Call it after `close()`.
 
 ## The microphone
@@ -77,4 +84,4 @@ conversation shows does not depend on the injected sound; the recording does.
 - One worker: the apps share the machine's display and audio.
 
 Not covered here: the other side's audio (system capture), sign-in and balance,
-real providers.
+Kizuna AI's own notes service, real providers.
