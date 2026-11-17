@@ -107,6 +107,10 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
   const liveNotesShown = useLiveNotesShown((x) => x.shown);
   const setLiveNotesShown = useLiveNotesShown((x) => x.setShown);
   const liveNotesRunning = useLiveNotes((x) => x.running);
+  // What a click does; hidden while the session runs, it says the notes are still being written.
+  let liveNotesSwitchTitle = t('liveNotes.show', 'Show live notes');
+  if (liveNotesShown) liveNotesSwitchTitle = t('liveNotes.hide', 'Hide live notes');
+  else if (liveNotesRunning) liveNotesSwitchTitle = t('liveNotes.showWriting', 'Show live notes (still being written)');
   // Beside the conversation in a wide window, above it in a narrow one (MainLayout): the icon says which.
   const narrowWindow = useNarrowWindow();
 
@@ -221,9 +225,7 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
           <button
             className="font-size-btn live-notes-switch"
             onClick={() => setLiveNotesShown(!liveNotesShown)}
-            title={liveNotesShown
-              ? t('liveNotes.hide', 'Hide live notes')
-              : liveNotesRunning ? t('liveNotes.showWriting', 'Show live notes (still being written)') : t('liveNotes.show', 'Show live notes')}
+            title={liveNotesSwitchTitle}
             aria-label={t('liveNotes.title', 'Live notes')}
             aria-pressed={liveNotesShown}
             aria-controls="live-notes-panel"

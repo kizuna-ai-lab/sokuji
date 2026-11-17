@@ -108,6 +108,7 @@
     min-width: 0;
     // 300px of notes and their 12px sides, as before the panel's padding moved inside it (B-30).
     > .live-notes { flex: 0 0 324px; }
+    // The same width as useNarrowWindow.ts, which picks the live notes switch's icon: change both together.
     @media (max-width: 767px) {
       flex-direction: column;
       > .live-notes { order: -1; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
