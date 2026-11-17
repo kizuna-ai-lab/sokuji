@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Model terjemahan semasa tidak menyokong prompt tersuai. Tukar kepada model keluarga Qwen dalam Pengurusan Model untuk mengaktifkannya.",
     "localPromptNoThinkHint": "Untuk model Qwen3, ` /no_think` akan ditambah secara automatik.",
     "participantInstructionsPlaceholder": "Biarkan kosong untuk menggunakan arahan utama",
-    "webgpuNotSupported": "Tidak tersedia dalam persekitaran semasa",
-    "langMismatch": "Bahasa tidak sepadan",
     "localInferenceTurnDetectionTooltip": "Auto: Pengesanan Aktiviti Suara tempatan mengesan pertuturan secara automatik. \nTekan untuk Bercakap: tahan kekunci Space atau butang mikrofon untuk menghantar audio secara manual. \nTekan untuk Terjemah: seperti Tekan untuk Bercakap, tetapi menghalakan mikrofon mentah anda ke mikrofon maya apabila tidak aktif supaya anda boleh bercakap secara langsung tanpa terjemahan.",
-    "noAsrModel": "Tiada model Pengecaman pertuturan (ASR) untuk {{language}}",
-    "noTranslationModel": "Tiada model terjemahan untuk {{source}} → {{target}}",
     "noTtsModel": "Tiada model Sintesis pertuturan (TTS) untuk {{language}}",
     "ttsNone": "Tiada (teks sahaja)",
     "ttsSettings": "Tetapan Sintesis pertuturan (TTS)",
@@ -846,7 +842,6 @@
     "ready": "Enjin {{version}}",
     "onDisk": "{{size}} pada cakera",
     "remove": "Buang enjin",
-    "removeConfirm": "Buang enjin dan bebaskan ruang cakera?",
     "unsupported": "Inferens tempatan tidak disokong pada peranti ini",
     "installHint": "Pasang enjin untuk melayari dan memuat turun model",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Cuba lagi",
     "showAllAsr": "Tunjukkan semua model Pengecaman pertuturan (ASR) ({{count}})",
     "showAll": "Tunjukkan semua model terjemahan ({{count}})",
-    "showAllTts": "Tunjukkan semua model Sintesis pertuturan (TTS) ({{count}})",
     "hideOther": "Sembunyikan model lain",
     "clearAll": "Padam semua",
     "confirmClearAll": "Padam semua model?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "Pecutan GPU tidak tersedia",
     "gpuSlowWarning": "Model tempatan masih berfungsi, tetapi transkripsi dan terjemahan akan menjadi jauh lebih perlahan.",
     "gpuWaylandRemedy": "Dalam sesi Wayland, Chromium tidak boleh menggunakan GPU untuk ini. Menjalankan Sokuji dengan --ozone-platform=x11 memulihkan pecutan.",
-    "incompatibleVariant": "Format model ini tidak serasi dengan peranti anda. Sila padam dan muat turun semula.",
-    "initFailed": "Storan model gagal dimulakan: {{message}}",
     "othersGroup": "Model lain",
     "requiresGpu": "Memerlukan GPU",
-    "upgradeVariant": "Peranti anda menyokong format model yang lebih pantas. Padam dan muat turun semula untuk prestasi lebih baik.",
     "licenseConsent": {
       "title": "Lesen bukan komersial",
       "restrictedTitle": "Lesen terhad",
@@ -970,11 +961,9 @@
         "turn": "Akhir giliran",
         "punctuation": "Ayat dan tanda baca",
         "readings": "Sebutan",
-        "voice": "Suara"
+        "voice": "Suara",
+        "engine": "Desktop"
       },
-      "manyLanguages": "Banyak bahasa",
-      "languages": "{{count}} bahasa",
-      "direct": "juga boleh terus memberi terjemahan",
       "downloading": "Memuat turun {{percent}}%",
       "failed": "Muat turun gagal",
       "cannotRun": "Komputer ini tidak dapat menjalankannya",
@@ -994,7 +983,12 @@
       "voicesTitle": "Suara yang diimport",
       "voicesHint": "Fail suara Supertonic yang anda import.",
       "importedOn": "Diimport pada {{date}}",
-      "more": "{{count}} lagi"
+      "more": "{{count}} lagi",
+      "engineTitle": "Enjin setempat",
+      "engineHint": "Enjin desktop yang dimuat turun oleh versi terdahulu untuk menjalankan model pada komputer ini. Perkhidmatan “Peranti ini” tidak lagi menggunakannya; alih keluar untuk mengosongkan ruang.",
+      "remove": "Alih keluar",
+      "engineConfirm": "Alih keluar enjin setempat?",
+      "engineFrees": "Mengosongkan {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Automatik · {{name}}",
     "autoOptionNone": "Automatik",
     "browseLibrary": "Lihat pustaka",
-    "storageUsedLine": "Storan: {{summary}} digunakan",
-    "manageStorage": "Urus",
-    "back": "Kembali",
-    "titleLibrary": "Pustaka · {{stage}}",
-    "titleStorage": "Storan",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "Sedang digunakan",
     "estimated": "Anggaran",
     "translationOnCpu": "Terjemahan pada CPU — VRAM tidak mencukupi",
     "availableWhenLang": "Dimuat turun. Tersedia apabila bahasa anda ialah {{lang}}.",
     "deleteConfirm": "Padam {{name}}?",
     "deleteFallsBack": "Memadam {{name}}: {{stage}} beralih semula kepada {{to}}.",
     "deleteNoModel": "Memadam {{name}}: tiada model {{stage}} yang tinggal — sesi tidak dapat dimulakan.",
-    "clearAllKeepsPicks": "Pilihan anda disimpan dan akan kembali apabila model dimuat turun semula.",
-    "importChooseModel": "Pilih model untuk diimport"
+    "clearAllKeepsPicks": "Pilihan anda disimpan dan akan kembali apabila model dimuat turun semula."
   },
   "setup": {
     "title": "Sediakan Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Transkripsi dan terjemahan",
       "signedInBalance": "Telah log masuk; baki {{amount}}",
       "localModels": "Berjalan pada komputer ini; {{count}} model dimuat turun, jumlah {{size}}",
-      "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun"
+      "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun",
+      "soniox": {
+        "byRegion": "Kunci mengikut rantau",
+        "keySaved": "kunci disimpan",
+        "noKey": "tiada kunci",
+        "selected": "(dipilih)",
+        "save": "Simpan dan cari rantaunya",
+        "finding": "Mencari rantau kunci ini…",
+        "savedFor": "Kunci ini milik {{region}}: disimpan di sana.",
+        "unreachable": "Tidak dapat bertanya kepada Soniox rantau kunci ini; disimpan untuk {{region}}, rantau yang dipilih sekarang.",
+        "refused": "Tiada rantau Soniox yang menerima kunci ini. Pastikan ia kunci API Soniox.",
+        "elsewhere": "{{selected}} dipilih, tetapi kunci anda milik {{region}}.",
+        "switchTo": "Tukar ke {{region}}",
+        "keyWorks": "kunci berfungsi",
+        "keyRefused": "kunci ditolak",
+        "keyUnverified": "kunci disimpan, belum disahkan",
+        "remove": "Buang",
+        "removeFor": "Buang kunci untuk {{region}}"
+      }
     },
     "lineup": {
       "title": "Susunan",
@@ -1830,7 +1835,11 @@
         "needsKey": "Perlu kunci",
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu log masuk",
-        "ready": "Sedia"
+        "ready": "Sedia",
+        "noKeyForRegion": "Tiada kunci yang berfungsi untuk {{region}}",
+        "keyRefused": "Kunci ditolak",
+        "keyNotVerified": "Kunci belum disahkan",
+        "checkingKey": "Menyemak kunci…"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
       "hint": "Perkhidmatan mana yang membuat setiap peringkat",
@@ -1901,7 +1910,8 @@
         "caption": "Ke mana bunyi pergi. Garisan terang kini aktif, garisan putus-putus tidak; ia mengikut suis di bawah.",
         "translate": "Terjemah",
         "speech": "Jana suara",
-        "ariaSteps": "Ke mana bunyi pergi: apa yang saya cakap diterjemah, kemudian dijadikan suara yang masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap diterjemah, kemudian dijadikan suara yang dimainkan pada peranti main balik saya. Jika suis suara dimatikan, terjemahan dibuat tetapi tidak disebut."
+        "ariaSteps": "Ke mana bunyi pergi: apa yang saya cakap diterjemah, kemudian dijadikan suara yang masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap diterjemah, kemudian dijadikan suara yang dimainkan pada peranti main balik saya. Jika suis suara dimatikan, terjemahan dibuat tetapi tidak disebut.",
+        "goTo": "Pergi ke tetapan “{{name}}”"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Jeda",
     "position": "Kedudukan",
     "speed": "Kelajuan",
+    "cannotPlay": "Rakaman ini tidak dapat dimainkan",
     "playFromHere": "Main dari sini",
     "saveRecording": "Simpan rakaman (.opus)",
     "saveRecordingFailed": "Rakaman tidak dapat disimpan.",

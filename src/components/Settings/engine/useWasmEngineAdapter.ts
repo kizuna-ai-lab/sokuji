@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useStoredLocalStages } from '../../../stores/lineUpStore';
 import {
-  useModelStore, useModelStatuses, useWebGPUAvailable, useDeviceFeatures, useStorageUsedMb,
+  useModelStore, useModelStatuses, useWebGPUAvailable, useDeviceFeatures,
 } from '../../../stores/modelStore';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, emptyDirection, type Stage } from '../../../lib/local-inference/selection/types';
@@ -31,7 +31,6 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
   const modelStatuses = useModelStatuses();
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
-  const storageUsedMb = useStorageUsedMb();
 
   const sourceLanguage = override.pair.source;
   const targetLanguage = override.pair.target;
@@ -104,10 +103,9 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
         }
         await override.update({ selections: next });
       },
-      storageSummary: `${storageUsedMb} MB`,
       // The participant direction's TTS slot shows only while that leg speaks (#619).
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker || override.participantSpeaks ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,
     };
-  }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, storageUsedMb, override, isSessionActive, stages]);
+  }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, override, isSessionActive, stages]);
 }

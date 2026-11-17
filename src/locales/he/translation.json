@@ -151,11 +151,7 @@
     "localPromptUnsupported": "מודל התרגום הנוכחי אינו תומך בפרומפטים מותאמים אישית. עבור למודל ממשפחת Qwen בניהול מודלים כדי להפעיל.",
     "localPromptNoThinkHint": "עבור מודלי Qwen3, ` /no_think` יתווסף אוטומטית.",
     "participantInstructionsPlaceholder": "השאר ריק לשימוש בהוראות הראשיות",
-    "webgpuNotSupported": "לא זמין בסביבה הנוכחית",
-    "langMismatch": "אי-התאמת שפה",
     "localInferenceTurnDetectionTooltip": "אוטומטי: זיהוי פעילות קולית מקומי מזהה דיבור באופן אוטומטי. \nלחץ כדי לדבר: החזק את מקש הרווח או כפתור המיקרופון כדי לשלוח שמע ידנית. \nלחץ כדי לתרגם: כמו לחץ כדי לדבר, אך מנתב את המיקרופון הגולמי שלך אל המיקרופון הווירטואלי כשאינו פעיל, כדי שתוכל לדבר ישירות ללא תרגום.",
-    "noAsrModel": "אין מודל זיהוי דיבור (ASR) עבור {{language}}",
-    "noTranslationModel": "אין מודל תרגום עבור {{source}} → {{target}}",
     "noTtsModel": "אין מודל סינתזת דיבור (TTS) עבור {{language}}",
     "ttsNone": "ללא (טקסט בלבד)",
     "ttsSettings": "הגדרות סינתזת דיבור (TTS)",
@@ -846,7 +842,6 @@
     "ready": "מנוע {{version}}",
     "onDisk": "{{size}} בדיסק",
     "remove": "הסר מנוע",
-    "removeConfirm": "להסיר את המנוע ולפנות מקום בדיסק?",
     "unsupported": "הסקה מקומית אינה נתמכת במכשיר זה",
     "installHint": "התקן את המנוע כדי לעיין במודלים ולהוריד אותם",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "נסה שוב",
     "showAllAsr": "הצג את כל מודלי זיהוי דיבור (ASR) ({{count}})",
     "showAll": "הצג את כל מודלי התרגום ({{count}})",
-    "showAllTts": "הצג את כל מודלי סינתזת דיבור (TTS) ({{count}})",
     "hideOther": "הסתר מודלים אחרים",
     "clearAll": "נקה הכל",
     "confirmClearAll": "למחוק את כל המודלים?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "האצת GPU אינה זמינה",
     "gpuSlowWarning": "מודלים מקומיים ימשיכו לעבוד, אך התמלול והתרגום יהיו איטיים באופן מורגש.",
     "gpuWaylandRemedy": "בהפעלת Wayland, Chromium אינו יכול להשתמש ב-GPU לשם כך. הפעלת Sokuji עם --ozone-platform=x11 משחזרת את ההאצה.",
-    "incompatibleVariant": "פורמט המודל הזה אינו תואם להתקן שלך. אנא מחק והורד מחדש.",
-    "initFailed": "אתחול אחסון המודלים נכשל: {{message}}",
     "othersGroup": "דגמים אחרים",
     "requiresGpu": "דורש GPU",
-    "upgradeVariant": "ההתקן שלך תומך בפורמט מודל מהיר יותר. מחק והורד מחדש לביצועים טובים יותר.",
     "licenseConsent": {
       "title": "רישיון לא מסחרי",
       "restrictedTitle": "רישיון מוגבל",
@@ -970,11 +961,9 @@
         "turn": "סוף תור",
         "punctuation": "משפטים ופיסוק",
         "readings": "הגייה",
-        "voice": "קול"
+        "voice": "קול",
+        "engine": "שולחן עבודה"
       },
-      "manyLanguages": "שפות רבות",
-      "languages": "{{count}} שפות",
-      "direct": "יכול גם לתת את התרגום ישירות",
       "downloading": "מוריד {{percent}}%",
       "failed": "ההורדה נכשלה",
       "cannotRun": "המחשב הזה לא יכול להריץ אותו",
@@ -994,7 +983,12 @@
       "voicesTitle": "קולות מיובאים",
       "voicesHint": "קובצי קול של Supertonic שייבאת.",
       "importedOn": "יובא ב-{{date}}",
-      "more": "עוד {{count}}"
+      "more": "עוד {{count}}",
+      "engineTitle": "המנוע המקומי",
+      "engineHint": "מנוע שולחן העבודה שגרסאות קודמות הורידו כדי להריץ מודלים במחשב הזה. השירות ״מכשיר זה״ כבר לא משתמש בו; הסירו אותו כדי לפנות מקום.",
+      "remove": "הסרה",
+      "engineConfirm": "להסיר את המנוע המקומי?",
+      "engineFrees": "יפונו {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "אוטומטי · {{name}}",
     "autoOptionNone": "אוטומטי",
     "browseLibrary": "עיון בספרייה",
-    "storageUsedLine": "אחסון: {{summary}} בשימוש",
-    "manageStorage": "ניהול",
-    "back": "חזרה",
-    "titleLibrary": "ספרייה · {{stage}}",
-    "titleStorage": "אחסון",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "בשימוש",
     "estimated": "משוער",
     "translationOnCpu": "תרגום במעבד (CPU) — אין מספיק VRAM",
     "availableWhenLang": "הורד. זמין כאשר שפתך היא {{lang}}.",
     "deleteConfirm": "למחוק את {{name}}?",
     "deleteFallsBack": "מחיקת {{name}}: {{stage}} יחזור אל {{to}}.",
     "deleteNoModel": "מחיקת {{name}}: לא נותר מודל {{stage}} — לא ניתן להתחיל הפעלות.",
-    "clearAllKeepsPicks": "הבחירות שלך נשמרות ויחזרו כאשר המודלים יורדו שוב.",
-    "importChooseModel": "בחר מודל לייבוא"
+    "clearAllKeepsPicks": "הבחירות שלך נשמרות ויחזרו כאשר המודלים יורדו שוב."
   },
   "setup": {
     "title": "התקנת Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "תמלול ותרגום",
       "signedInBalance": "מחובר; יתרה {{amount}}",
       "localModels": "פועל במחשב הזה; הורדו {{count}} מודלים, {{size}} בסך הכול",
-      "localNone": "פועל במחשב הזה; עדיין לא הורדו מודלים"
+      "localNone": "פועל במחשב הזה; עדיין לא הורדו מודלים",
+      "soniox": {
+        "byRegion": "מפתחות לפי אזור",
+        "keySaved": "מפתח שמור",
+        "noKey": "אין מפתח",
+        "selected": "(נבחר)",
+        "save": "שמירה ומציאת האזור",
+        "finding": "מחפשים את האזור של המפתח…",
+        "savedFor": "המפתח שייך ל{{region}}: נשמר שם.",
+        "unreachable": "לא ניתן היה לשאול את Soniox לאיזה אזור המפתח שייך; נשמר עבור {{region}}, האזור שנבחר עכשיו.",
+        "refused": "אף אזור של Soniox לא מקבל את המפתח הזה. בדקו שזה מפתח API של Soniox.",
+        "elsewhere": "נבחר {{selected}}, אבל המפתח שלכם שייך ל{{region}}.",
+        "switchTo": "מעבר ל{{region}}",
+        "keyWorks": "המפתח עובד",
+        "keyRefused": "המפתח נדחה",
+        "keyUnverified": "המפתח נשמר, עוד לא אומת",
+        "remove": "הסרה",
+        "removeFor": "הסרת המפתח של {{region}}"
+      }
     },
     "lineup": {
       "title": "הרכב",
@@ -1830,7 +1835,11 @@
         "needsKey": "נדרש מפתח",
         "needsModel": "נדרש מודל",
         "needsSignIn": "נדרשת התחברות",
-        "ready": "מוכן"
+        "ready": "מוכן",
+        "noKeyForRegion": "אין מפתח תקין עבור {{region}}",
+        "keyRefused": "המפתח לא התקבל",
+        "keyNotVerified": "המפתח לא אומת",
+        "checkingKey": "בודקים את המפתח…"
       },
       "speechModeHint": "מתי קטע דיבור נשלח לתרגום; קבוע במהלך הסשן",
       "hint": "איזה שירות מבצע כל שלב",
@@ -1901,7 +1910,8 @@
         "caption": "לאן הצליל הולך. קווים מוארים פעילים כעת, מקווקווים כבויים; הם עוקבים אחרי המתגים שלמטה.",
         "translate": "תרגום",
         "speech": "יצירת דיבור",
-        "ariaSteps": "לאן הצליל הולך: מה שאני אומר מתורגם ואז הופך לדיבור שנכנס למיקרופון הווירטואלי עבור הצד השני, ומתנגן גם אצלי כשאני מקשיב; מה שהצד השני אומר מתורגם ואז הופך לדיבור שמתנגן בהתקן ההשמעה שלי. כשמתג הדיבור כבוי, התרגום נעשה אבל לא נאמר."
+        "ariaSteps": "לאן הצליל הולך: מה שאני אומר מתורגם ואז הופך לדיבור שנכנס למיקרופון הווירטואלי עבור הצד השני, ומתנגן גם אצלי כשאני מקשיב; מה שהצד השני אומר מתורגם ואז הופך לדיבור שמתנגן בהתקן ההשמעה שלי. כשמתג הדיבור כבוי, התרגום נעשה אבל לא נאמר.",
+        "goTo": "מעבר להגדרה ״{{name}}״"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "השהיה",
     "position": "מיקום",
     "speed": "מהירות",
+    "cannotPlay": "לא ניתן להשמיע את ההקלטה הזו",
     "playFromHere": "הפעלה מכאן",
     "saveRecording": "שמירת ההקלטה (‎.opus)",
     "saveRecordingFailed": "לא ניתן היה לשמור את ההקלטה.",

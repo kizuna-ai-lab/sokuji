@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Il modello di traduzione attuale non supporta prompt personalizzati. Passa a un modello della famiglia Qwen in Gestione Modelli per abilitarlo.",
     "localPromptNoThinkHint": "Per i modelli Qwen3, ` /no_think` verrà aggiunto automaticamente.",
     "participantInstructionsPlaceholder": "Lascia vuoto per usare le istruzioni principali",
-    "webgpuNotSupported": "Non disponibile nell'ambiente attuale",
-    "langMismatch": "Lingua non corrispondente",
     "localInferenceTurnDetectionTooltip": "Auto: il rilevamento locale dell'attività vocale rileva automaticamente il parlato. \nPremi per parlare: tieni premuto Spazio o il pulsante del microfono per inviare audio manualmente. \nPremi per tradurre: come Premi per parlare, ma instrada il microfono originale al microfono virtuale quando inattivo, così puoi parlare direttamente senza traduzione.",
-    "noAsrModel": "Nessun modello Riconoscimento vocale (ASR) per {{language}}",
-    "noTranslationModel": "Nessun modello di traduzione per {{source}} → {{target}}",
     "noTtsModel": "Nessun modello Sintesi vocale (TTS) per {{language}}",
     "ttsNone": "Nessuno (solo testo)",
     "ttsSettings": "Impostazioni Sintesi vocale (TTS)",
@@ -846,7 +842,6 @@
     "ready": "Motore {{version}}",
     "onDisk": "{{size}} su disco",
     "remove": "Rimuovi motore",
-    "removeConfirm": "Rimuovere il motore e liberare spazio su disco?",
     "unsupported": "L'inferenza locale non è supportata su questo dispositivo",
     "installHint": "Installa il motore per sfogliare e scaricare i modelli",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Riprova",
     "showAllAsr": "Mostra tutti i modelli Riconoscimento vocale (ASR) ({{count}})",
     "showAll": "Mostra tutti i modelli di traduzione ({{count}})",
-    "showAllTts": "Mostra tutti i modelli Sintesi vocale (TTS) ({{count}})",
     "hideOther": "Nascondi altri modelli",
     "clearAll": "Cancella tutto",
     "confirmClearAll": "Eliminare tutti i modelli?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "Accelerazione GPU non disponibile",
     "gpuSlowWarning": "I modelli locali continueranno a funzionare, ma trascrizione e traduzione saranno molto più lente.",
     "gpuWaylandRemedy": "In una sessione Wayland, Chromium non può usare la GPU per questo. Avviare Sokuji con --ozone-platform=x11 ripristina l'accelerazione.",
-    "incompatibleVariant": "Questo formato di modello non è compatibile con il tuo dispositivo. Eliminalo e scaricalo di nuovo.",
-    "initFailed": "Inizializzazione dell'archiviazione dei modelli non riuscita: {{message}}",
     "othersGroup": "Altri modelli",
     "requiresGpu": "Richiede una GPU",
-    "upgradeVariant": "Il tuo dispositivo supporta un formato di modello più veloce. Elimina e scarica di nuovo per prestazioni migliori.",
     "licenseConsent": {
       "title": "Licenza non commerciale",
       "restrictedTitle": "Licenza con restrizioni",
@@ -970,11 +961,9 @@
         "turn": "Fine turno",
         "punctuation": "Frasi e punteggiatura",
         "readings": "Letture",
-        "voice": "Voce"
+        "voice": "Voce",
+        "engine": "Desktop"
       },
-      "manyLanguages": "Molte lingue",
-      "languages": "{{count}} lingue",
-      "direct": "può anche dare direttamente la traduzione",
       "downloading": "Download {{percent}}%",
       "failed": "Download non riuscito",
       "cannotRun": "Questo computer non può eseguirlo",
@@ -994,7 +983,12 @@
       "voicesTitle": "Voci importate",
       "voicesHint": "I file di voce Supertonic che hai importato.",
       "importedOn": "Importata il {{date}}",
-      "more": "Altri {{count}}"
+      "more": "Altri {{count}}",
+      "engineTitle": "Motore locale",
+      "engineHint": "Il motore desktop che le versioni precedenti hanno scaricato per eseguire i modelli su questo computer. Il servizio «Questo dispositivo» non lo usa più; rimuovilo per liberare spazio.",
+      "remove": "Rimuovi",
+      "engineConfirm": "Rimuovere il motore locale?",
+      "engineFrees": "Libera {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Sfoglia libreria",
-    "storageUsedLine": "Archiviazione: {{summary}} usati",
-    "manageStorage": "Gestisci",
-    "back": "Indietro",
-    "titleLibrary": "Libreria · {{stage}}",
-    "titleStorage": "Archiviazione",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "In uso",
     "estimated": "Stimato",
     "translationOnCpu": "Traduzione su CPU — VRAM insufficiente",
     "availableWhenLang": "Scaricato. Disponibile quando la lingua è {{lang}}.",
     "deleteConfirm": "Eliminare {{name}}?",
     "deleteFallsBack": "Eliminazione di {{name}}: {{stage}} passa a {{to}}.",
     "deleteNoModel": "Eliminazione di {{name}}: nessun modello di {{stage}} rimane — le sessioni non possono avviarsi.",
-    "clearAllKeepsPicks": "Le tue selezioni vengono ricordate e ripristinate quando i modelli vengono scaricati di nuovo.",
-    "importChooseModel": "Scegli un modello da importare"
+    "clearAllKeepsPicks": "Le tue selezioni vengono ricordate e ripristinate quando i modelli vengono scaricati di nuovo."
   },
   "setup": {
     "title": "Configura Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Trascrizione e traduzione",
       "signedInBalance": "Accesso eseguito; saldo {{amount}}",
       "localModels": "Funziona su questo computer; {{count}} modelli scaricati, {{size}} in tutto",
-      "localNone": "Funziona su questo computer; nessun modello scaricato finora"
+      "localNone": "Funziona su questo computer; nessun modello scaricato finora",
+      "soniox": {
+        "byRegion": "Chiavi per regione",
+        "keySaved": "chiave salvata",
+        "noKey": "nessuna chiave",
+        "selected": "(selezionata)",
+        "save": "Salva e trova la sua regione",
+        "finding": "Ricerca della regione di questa chiave…",
+        "savedFor": "Questa chiave appartiene a {{region}}: salvata lì.",
+        "unreachable": "Impossibile chiedere a Soniox a quale regione appartenga questa chiave; salvata per {{region}}, la regione selezionata ora.",
+        "refused": "Nessuna regione di Soniox accetta questa chiave. Verifica che sia una chiave API di Soniox.",
+        "elsewhere": "È selezionata {{selected}}, ma la tua chiave è di {{region}}.",
+        "switchTo": "Passa a {{region}}",
+        "keyWorks": "la chiave funziona",
+        "keyRefused": "chiave rifiutata",
+        "keyUnverified": "chiave salvata, non ancora verificata",
+        "remove": "Rimuovi",
+        "removeFor": "Rimuovi la chiave per {{region}}"
+      }
     },
     "lineup": {
       "title": "Composizione",
@@ -1830,7 +1835,11 @@
         "needsKey": "Serve una chiave",
         "needsModel": "Serve un modello",
         "needsSignIn": "Serve l’accesso",
-        "ready": "Pronto"
+        "ready": "Pronto",
+        "noKeyForRegion": "Nessuna chiave valida per {{region}}",
+        "keyRefused": "Chiave rifiutata",
+        "keyNotVerified": "Chiave non verificata",
+        "checkingKey": "Verifica della chiave…"
       },
       "speechModeHint": "Quando un tratto di parlato va alla traduzione; fisso durante la sessione",
       "hint": "Quale servizio svolge ogni fase",
@@ -1901,7 +1910,8 @@
         "caption": "Dove va il suono. Le linee accese sono attive, quelle tratteggiate no; seguono gli interruttori qui sotto.",
         "translate": "Tradurre",
         "speech": "Sintesi vocale",
-        "ariaSteps": "Dove va il suono: quello che dico viene tradotto, poi trasformato in voce che va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte viene tradotto, poi trasformato in voce che suona sul mio dispositivo di riproduzione. Con un interruttore della voce spento, la traduzione viene fatta ma non pronunciata."
+        "ariaSteps": "Dove va il suono: quello che dico viene tradotto, poi trasformato in voce che va nel microfono virtuale per l’altra parte e suona anche da me se lo ascolto; quello che dice l’altra parte viene tradotto, poi trasformato in voce che suona sul mio dispositivo di riproduzione. Con un interruttore della voce spento, la traduzione viene fatta ma non pronunciata.",
+        "goTo": "Vai all'impostazione «{{name}}»"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Pausa",
     "position": "Posizione",
     "speed": "Velocità",
+    "cannotPlay": "Impossibile riprodurre questa registrazione",
     "playFromHere": "Riproduci da qui",
     "saveRecording": "Salva la registrazione audio (.opus)",
     "saveRecordingFailed": "Impossibile salvare la registrazione audio.",

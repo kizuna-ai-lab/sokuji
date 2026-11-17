@@ -11,6 +11,7 @@ vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => bas
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ heading }: { heading?: boolean }) => <div id="languages-section" data-heading={String(heading)} /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
 vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
+vi.mock('./LocalVoices', () => ({ LocalVoices: () => <div id="local-voices-section" /> }));
 const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
 vi.mock('../providers/ProviderOwnSettings', async () => {
   // The provider's settings say which stage they are drawn for, so a test can tell whose options a fold holds.
@@ -116,6 +117,26 @@ describe('languages and line-up', () => {
     expect(within(card).getByRole('combobox', { name: 'Speech' })).toHaveValue('edge');
     expect(card.querySelector('#model-management-section')).toBeNull();
     expect(card.querySelector('#provider-own-settings')).not.toBeNull();
+  });
+
+  // B-20: the local engine's voices moved out of its model library into the speech card's own options.
+  it("with this device speaking, the speech card holds the local engine's voices under its speech slot", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'local_inference', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    render(<LineUpCategory locked={false} />);
+    expect(document.getElementById('local-voices-section')).toBeNull();
+    act(() => { useSettingsStore.getState().navigateToSettings('local-voices'); });
+    const card = document.getElementById('local-voices-section')!.closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByRole('combobox', { name: 'Speech' })).toHaveValue('local_inference');
+    expect(document.querySelectorAll('#local-voices-section')).toHaveLength(1);
+  });
+
+  it("with Edge speaking, the speech card has no local voices", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState({ selected: 'local_inference' });
+    render(<LineUpCategory locked={false} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('edge-voices'); });
+    expect(document.getElementById('local-voices-section')).toBeNull();
   });
 
   it('says so when Granite Speech turns speech straight into the translation', () => {
@@ -404,14 +425,84 @@ describe('the notes card', () => {
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
   });
 
-  // Review: signed out with an OpenAI key, the notes are written with that key; no extra choice is needed.
+  // B-11 (the owner, 2026-11-17): Ready means the key works, not only that one is saved. A Soniox key the selected
+  // region refuses says so, by region, and takes you to the key.
+  it("says a Soniox key the selected region refuses is no working key there, and takes you to the key", () => {
+    useProviderStore.setState({
+      entries: { soniox: { settings: { region: 'jp' }, credentials: { apiKey: 'sk-us', apiKeyJp: 'sk-wrong' }, pair: { source: 'ja', target: 'en' } } } as never,
+      readiness: { soniox: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never,
+    });
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
+    const state = within(card).getAllByRole('button', { name: 'No working key for 日本 (Japan)' })[0];
+    fireEvent.click(state);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+
+  // Rudolf's review of B-11: a saved key is not a working key. Only a check that passed says Ready; a key never
+  // checked, or whose check could not reach the service, says it is not verified (a key that passed before for the
+  // same region is served from that answer by the store, so it stays Ready).
+  it('says Ready only for a key whose check passed', () => {
+    const sonioxKey = (readiness: unknown) => useProviderStore.setState({
+      entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: 'sk-us' }, pair: { source: 'ja', target: 'en' } } } as never,
+      readiness: (readiness === undefined ? {} : { soniox: readiness }) as never,
+    });
+    const card = () => screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
+    sonioxKey({ state: 'ready', models: [] });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByText('Ready').length).toBeGreaterThan(0);
+    unmount();
+    sonioxKey({ state: 'not-ready', code: 'network', reason: 'offline' });
+    const second = render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByRole('button', { name: 'Key not verified' }).length).toBeGreaterThan(0);
+    expect(within(card()).queryByText('Ready')).toBeNull();
+    second.unmount();
+    sonioxKey(undefined);
+    const third = render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByRole('button', { name: 'Key not verified' }).length).toBeGreaterThan(0);
+    third.unmount();
+    sonioxKey({ state: 'checking' });
+    render(<LineUpCategory locked={false} />);
+    expect(within(card()).getAllByText('Checking the key…').length).toBeGreaterThan(0);
+  });
+
+  it('takes you to the key from "Needs a key"', () => {
+    render(<LineUpCategory locked={false} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Needs a key' })[0]);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+
+  // Review: signed out with an OpenAI key, the notes are written with that key; no extra choice is needed. Ready
+  // once the key's check has passed (B-11: a saved key is not a working key).
   it('signed out with an OpenAI key and nothing chosen: OpenAI by default, ready', () => {
     authState.signedIn = false;
     openAiKey();
+    useProviderStore.setState({ readiness: { openai: { state: 'ready', models: [] } } as never });
     render(<LineUpCategory locked={false} />);
     expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('openai');
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Ready')).toBeInTheDocument();
+  });
+
+  // #728 review: the notes card follows the OpenAI key's check, as the other stages do.
+  it('does not call an OpenAI key the service refuses Ready on the notes card, and takes you to the key', () => {
+    authState.signedIn = false;
+    openAiKey();
+    useProviderStore.setState({ readiness: { openai: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).queryByText('Ready')).toBeNull();
+    fireEvent.click(within(card).getByRole('button', { name: 'Key not accepted' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+  });
+
+  it('says an OpenAI key not checked yet is not verified on the notes card', () => {
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).queryByText('Ready')).toBeNull();
+    expect(within(card).getByRole('button', { name: 'Key not verified' })).toBeInTheDocument();
   });
 
   // Review: a Kizuna AI chosen on purpose is not changed by adding a key; the guidance says to choose OpenAI here too.

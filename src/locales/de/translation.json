@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Das aktuelle Übersetzungsmodell unterstützt keine benutzerdefinierten Prompts. Wechseln Sie in der Modellverwaltung zu einem Qwen-Modell, um dies zu aktivieren.",
     "localPromptNoThinkHint": "Bei Qwen3-Modellen wird ` /no_think` automatisch angehängt.",
     "participantInstructionsPlaceholder": "Leer lassen, um die Hauptanweisungen zu verwenden",
-    "webgpuNotSupported": "In der aktuellen Umgebung nicht verfügbar",
-    "langMismatch": "Sprachkonflikt",
     "localInferenceTurnDetectionTooltip": "Auto: Lokale Sprachaktivitätserkennung erkennt Sprache automatisch. \nPush-to-Talk: Halten Sie die Leertaste oder die Mikrofontaste, um Audio manuell zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",
-    "noAsrModel": "Kein Spracherkennung (ASR)-Modell für {{language}}",
-    "noTranslationModel": "Kein Übersetzungsmodell für {{source}} → {{target}}",
     "noTtsModel": "Kein Sprachsynthese (TTS)-Modell für {{language}}",
     "ttsNone": "Keine (nur Text)",
     "ttsSettings": "Sprachsynthese (TTS)-Einstellungen",
@@ -846,7 +842,6 @@
     "ready": "Engine {{version}}",
     "onDisk": "{{size}} auf der Festplatte",
     "remove": "Engine entfernen",
-    "removeConfirm": "Engine entfernen und Speicherplatz freigeben?",
     "unsupported": "Lokale Inferenz wird auf diesem Gerät nicht unterstützt",
     "installHint": "Installieren Sie die Engine, um Modelle zu durchsuchen und herunterzuladen",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Wiederholen",
     "showAllAsr": "Alle Spracherkennung (ASR)-Modelle anzeigen ({{count}})",
     "showAll": "Alle Übersetzungsmodelle anzeigen ({{count}})",
-    "showAllTts": "Alle Sprachsynthese (TTS)-Modelle anzeigen ({{count}})",
     "hideOther": "Andere Modelle ausblenden",
     "clearAll": "Alle löschen",
     "confirmClearAll": "Alle Modelle löschen?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "GPU-Beschleunigung nicht verfügbar",
     "gpuSlowWarning": "Lokale Modelle funktionieren weiterhin, aber Transkription und Übersetzung sind spürbar langsamer.",
     "gpuWaylandRemedy": "In einer Wayland-Sitzung kann Chromium die GPU dafür nicht nutzen. Sokuji mit --ozone-platform=x11 zu starten stellt die Beschleunigung wieder her.",
-    "incompatibleVariant": "Dieses Modellformat ist mit Ihrem Gerät nicht kompatibel. Bitte löschen und erneut herunterladen.",
-    "initFailed": "Modellspeicher konnte nicht initialisiert werden: {{message}}",
     "othersGroup": "Andere Modelle",
     "requiresGpu": "Erfordert eine GPU",
-    "upgradeVariant": "Ihr Gerät unterstützt ein schnelleres Modellformat. Löschen und erneut herunterladen für bessere Leistung.",
     "licenseConsent": {
       "title": "Nichtkommerzielle Lizenz",
       "restrictedTitle": "Eingeschränkte Lizenz",
@@ -970,11 +961,9 @@
         "turn": "Redeende",
         "punctuation": "Sätze und Satzzeichen",
         "readings": "Lesungen",
-        "voice": "Stimme"
+        "voice": "Stimme",
+        "engine": "Desktop"
       },
-      "manyLanguages": "Viele Sprachen",
-      "languages": "{{count}} Sprachen",
-      "direct": "kann auch direkt übersetzen",
       "downloading": "Wird geladen {{percent}} %",
       "failed": "Download fehlgeschlagen",
       "cannotRun": "Läuft auf diesem Computer nicht",
@@ -994,7 +983,12 @@
       "voicesTitle": "Importierte Stimmen",
       "voicesHint": "Supertonic-Stimmdateien, die Sie importiert haben.",
       "importedOn": "Importiert am {{date}}",
-      "more": "{{count}} weitere"
+      "more": "{{count}} weitere",
+      "engineTitle": "Lokale Engine",
+      "engineHint": "Die Desktop-Engine, die frühere Versionen heruntergeladen haben, um Modelle auf diesem Computer auszuführen. Der Dienst „Dieses Gerät“ nutzt sie nicht mehr; entfernen Sie sie, um Speicherplatz freizugeben.",
+      "remove": "Entfernen",
+      "engineConfirm": "Lokale Engine entfernen?",
+      "engineFrees": "Gibt {{size}} frei."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Automatisch · {{name}}",
     "autoOptionNone": "Automatisch",
     "browseLibrary": "Bibliothek durchsuchen",
-    "storageUsedLine": "Speicher: {{summary}} belegt",
-    "manageStorage": "Verwalten",
-    "back": "Zurück",
-    "titleLibrary": "Bibliothek · {{stage}}",
-    "titleStorage": "Speicher",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "In Verwendung",
     "estimated": "Geschätzt",
     "translationOnCpu": "Übersetzung auf CPU — nicht genug VRAM",
     "availableWhenLang": "Heruntergeladen. Verfügbar, wenn Ihre Sprache {{lang}} ist.",
     "deleteConfirm": "{{name}} löschen?",
     "deleteFallsBack": "{{name}} wird gelöscht: {{stage}} wechselt zurück zu {{to}}.",
     "deleteNoModel": "{{name}} wird gelöscht: Kein Modell für {{stage}} bleibt übrig — Sitzungen können nicht gestartet werden.",
-    "clearAllKeepsPicks": "Ihre Auswahl wird gespeichert und kehrt zurück, sobald die Modelle erneut heruntergeladen werden.",
-    "importChooseModel": "Modell zum Importieren auswählen"
+    "clearAllKeepsPicks": "Ihre Auswahl wird gespeichert und kehrt zurück, sobald die Modelle erneut heruntergeladen werden."
   },
   "setup": {
     "title": "Sokuji einrichten",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Transkription und Übersetzung",
       "signedInBalance": "Angemeldet; Guthaben {{amount}}",
       "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
-      "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen"
+      "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen",
+      "soniox": {
+        "byRegion": "Schlüssel nach Region",
+        "keySaved": "Schlüssel gespeichert",
+        "noKey": "kein Schlüssel",
+        "selected": "(ausgewählt)",
+        "save": "Speichern und Region finden",
+        "finding": "Region dieses Schlüssels wird ermittelt …",
+        "savedFor": "Dieser Schlüssel gehört zu {{region}}: dort gespeichert.",
+        "unreachable": "Soniox konnte nicht gefragt werden, zu welcher Region dieser Schlüssel gehört; für {{region}} gespeichert, die gerade ausgewählte Region.",
+        "refused": "Keine Soniox-Region akzeptiert diesen Schlüssel. Prüfen Sie, ob es ein Soniox-API-Schlüssel ist.",
+        "elsewhere": "{{selected}} ist ausgewählt, aber Ihr Schlüssel gehört zu {{region}}.",
+        "switchTo": "Zu {{region}} wechseln",
+        "keyWorks": "Schlüssel funktioniert",
+        "keyRefused": "Schlüssel abgelehnt",
+        "keyUnverified": "Schlüssel gespeichert, noch nicht geprüft",
+        "remove": "Entfernen",
+        "removeFor": "Schlüssel für {{region}} entfernen"
+      }
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1830,7 +1835,11 @@
         "needsKey": "Braucht einen Schlüssel",
         "needsModel": "Braucht ein Modell",
         "needsSignIn": "Anmeldung nötig",
-        "ready": "Bereit"
+        "ready": "Bereit",
+        "noKeyForRegion": "Kein gültiger Schlüssel für {{region}}",
+        "keyRefused": "Schlüssel abgelehnt",
+        "keyNotVerified": "Schlüssel nicht geprüft",
+        "checkingKey": "Schlüssel wird geprüft …"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",
@@ -1901,7 +1910,8 @@
         "caption": "Wohin der Ton geht. Helle Linien sind gerade an, gestrichelte aus; sie folgen den Schaltern darunter.",
         "translate": "Übersetzen",
         "speech": "Sprachausgabe",
-        "ariaSteps": "Wohin der Ton geht: Was ich sage, wird übersetzt, dann zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird übersetzt, dann zu Sprache und spielt auf meinem Wiedergabegerät. Ist ein Sprachschalter aus, wird übersetzt, aber nicht gesprochen."
+        "ariaSteps": "Wohin der Ton geht: Was ich sage, wird übersetzt, dann zu Sprache, geht ins virtuelle Mikrofon für die Gegenseite und spielt auch bei mir, wenn ich mithöre; was die Gegenseite sagt, wird übersetzt, dann zu Sprache und spielt auf meinem Wiedergabegerät. Ist ein Sprachschalter aus, wird übersetzt, aber nicht gesprochen.",
+        "goTo": "Zur Einstellung „{{name}}“"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Pause",
     "position": "Position",
     "speed": "Geschwindigkeit",
+    "cannotPlay": "Diese Aufnahme kann nicht abgespielt werden",
     "playFromHere": "Ab hier abspielen",
     "saveRecording": "Aufnahme speichern (.opus)",
     "saveRecordingFailed": "Die Aufnahme konnte nicht gespeichert werden.",

@@ -212,7 +212,7 @@ const mockRetrySidecar = vi.fn();
 // ---------------------------------------------------------------------------
 
 vi.mock('react-i18next', () => ({
-  // Interpolating, mirroring StoragePage.test.tsx — needed so the
+  // Interpolating — needed so the
   // availableWhenLang line's {{lang}} actually resolves to the language
   // NAME the component passed in, not the raw placeholder.
   useTranslation: () => ({
@@ -773,7 +773,7 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
   });
 });
 
-// C1 folded finding: Storage (StoragePage) owns Clear-all now — the bottom
+// C1 folded finding: the Models and storage page owns Clear-all now — the bottom
 // ModelStorageFooter duplicate must not render on the Library push
 // (stageFilter set), only on the standalone (prop-less) Settings-page render.
 describe('NativeModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {

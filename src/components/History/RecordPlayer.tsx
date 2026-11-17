@@ -36,6 +36,13 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [speed, setSpeed] = useState(1);
+  /** The tracks whose file could not be loaded or decoded: when every kept track is one, nothing can be heard. */
+  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
+  const unplayable = kept.length > 0 && kept.every((track) => failed.has(track.source));
+  const unplayableRef = useRef(unplayable);
+  unplayableRef.current = unplayable;
+  useEffect(() => { setFailed(new Set()); }, [recordId]);
+  const markFailed = (source: string) => setFailed((prev) => (prev.has(source) ? prev : new Set(prev).add(source)));
   const audio = useRef(new Map<string, HTMLAudioElement>());
   const started = useRef(new Set<HTMLAudioElement>());
   /** The position at `at` (Date.now()); it moves at `speed` while playing. */
@@ -87,7 +94,8 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
 
   const move = (pos: number, play: boolean) => {
     const at = Math.min(Math.max(0, pos), length);
-    clock.current = { ...clock.current, base: at, at: Date.now(), playing: play && at < length };
+    // A recording none of whose tracks loaded does not play: the clock would run on silence.
+    clock.current = { ...clock.current, base: at, at: Date.now(), playing: play && at < length && !unplayableRef.current };
     setPosition(at);
     setPlaying(clock.current.playing);
     report.current(at);
@@ -99,6 +107,13 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     (seekRef as { current: SeekFn | null }).current = seek;
     return () => { (seekRef as { current: SeekFn | null }).current = null; };
   });
+
+  // Every track failed while playing: stop where it is.
+  useEffect(() => {
+    if (unplayable && playing) move(now(), false);
+    // `move` and `now` read refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unplayable, playing]);
 
   useEffect(() => {
     if (!playing) return undefined;
@@ -120,13 +135,23 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, length, kept]);
 
-  /** One ref callback per track, kept across renders: it is called with null only when the element really goes. */
+  /**
+   * One ref callback per track, kept across renders: it is called with null when the element goes, and in development
+   * also once on mount, StrictMode detaching and re-attaching the same element.
+   */
   const refs = useRef(new Map<string, (el: HTMLAudioElement | null) => void>());
+  /** The address each released element had, for when the same element is given back. */
+  const released = useRef(new WeakMap<HTMLAudioElement, string>());
   const refFor = (source: string) => {
     let ref = refs.current.get(source);
     if (!ref) {
       ref = (el) => {
         if (el) {
+          // Given back after a release (StrictMode's rehearsal in development): React does not set an unchanged
+          // `src` again, so the element gets its file back here, or it would play nothing.
+          const address = released.current.get(el);
+          if (address && !el.getAttribute('src')) el.setAttribute('src', address);
+          released.current.delete(el);
           audio.current.set(source, el);
           return;
         }
@@ -143,6 +168,8 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
   const release = (el: HTMLAudioElement) => {
     el.pause();
     started.current.delete(el);
+    const address = el.getAttribute('src');
+    if (address) released.current.set(el, address);
     el.removeAttribute('src');
     try { el.load(); } catch { /* nothing to unload */ }
   };
@@ -162,6 +189,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
           ref={refFor(track.source)}
           src={trackUrl(recordId, track.source)}
           preload="metadata"
+          onError={() => markFailed(track.source)}
         />
       ))}
       <button
@@ -173,6 +201,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
         {playing ? <Pause size={16} /> : <Play size={16} />}
       </button>
       <span className="record-player__time">{`${formatLength(position)} / ${formatLength(length)}`}</span>
+      {unplayable && <span className="record-player__error" role="status">{t('history.cannotPlay', 'This recording cannot be played')}</span>}
       <input
         type="range"
         className="slider record-player__seek"

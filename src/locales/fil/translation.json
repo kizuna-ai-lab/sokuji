@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Ang kasalukuyang modelo ng pagsasalin ay hindi sumusuporta sa mga custom na prompt. Lumipat sa isang modelo ng pamilya Qwen sa Pamamahala ng Mga Model upang paganahin.",
     "localPromptNoThinkHint": "Para sa mga modelo ng Qwen3, ang ` /no_think` ay awtomatikong idadagdag.",
     "participantInstructionsPlaceholder": "Iwanang blangko upang gamitin ang mga pangunahing tagubilin",
-    "webgpuNotSupported": "Hindi available sa kasalukuyang environment",
-    "langMismatch": "Hindi tugmang wika",
     "localInferenceTurnDetectionTooltip": "Auto: awtomatikong nakakatukoy ang local Voice Activity Detection ng pagsasalita. \nPush-to-Talk: pindutin nang matagal ang Space o ang microphone button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
-    "noAsrModel": "Walang Pagkilala sa pagsasalita (ASR) model para sa {{language}}",
-    "noTranslationModel": "Walang translation model para sa {{source}} → {{target}}",
     "noTtsModel": "Walang Sintesis ng pagsasalita (TTS) model para sa {{language}}",
     "ttsNone": "Wala (teksto lang)",
     "ttsSettings": "Mga Setting ng Sintesis ng pagsasalita (TTS)",
@@ -846,7 +842,6 @@
     "ready": "Engine {{version}}",
     "onDisk": "{{size}} sa disk",
     "remove": "Alisin ang engine",
-    "removeConfirm": "Alisin ang engine at magbakante ng disk space?",
     "unsupported": "Hindi sinusuportahan ang local inference sa device na ito",
     "installHint": "I-install ang engine para mag-browse at mag-download ng mga modelo",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Subukan muli",
     "showAllAsr": "Ipakita lahat ng Pagkilala sa pagsasalita (ASR) model ({{count}})",
     "showAll": "Ipakita lahat ng translation model ({{count}})",
-    "showAllTts": "Ipakita lahat ng Sintesis ng pagsasalita (TTS) model ({{count}})",
     "hideOther": "Itago ang ibang model",
     "clearAll": "Burahin lahat",
     "confirmClearAll": "Burahin lahat ng modelo?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "Hindi available ang GPU acceleration",
     "gpuSlowWarning": "Gagana pa rin ang mga lokal na modelo, ngunit magiging kapansin-pansing mas mabagal ang transcription at pagsasalin.",
     "gpuWaylandRemedy": "Sa isang Wayland session, hindi magagamit ng Chromium ang GPU para dito. Ang pagbukas ng Sokuji gamit ang --ozone-platform=x11 ay nagbabalik ng acceleration.",
-    "incompatibleVariant": "Hindi tugma ang format ng modelong ito sa inyong device. Pakiusap na i-delete at i-download muli.",
-    "initFailed": "Nabigong mag-initialize ang storage ng modelo: {{message}}",
     "othersGroup": "Iba pang mga modelo",
     "requiresGpu": "Nangangailangan ng GPU",
-    "upgradeVariant": "Sinusuportahan ng inyong device ang mas mabilis na format ng modelo. I-delete at i-download muli para sa mas magandang performance.",
     "licenseConsent": {
       "title": "Lisensyang hindi pangkomersyo",
       "restrictedTitle": "Limitadong lisensya",
@@ -970,11 +961,9 @@
         "turn": "Dulo ng sinasabi",
         "punctuation": "Pangungusap at bantas",
         "readings": "Pagbasa",
-        "voice": "Boses"
+        "voice": "Boses",
+        "engine": "Desktop"
       },
-      "manyLanguages": "Maraming wika",
-      "languages": "{{count}} wika",
-      "direct": "kaya ring direktang magbigay ng salin",
       "downloading": "Dina-download {{percent}}%",
       "failed": "Nabigo ang pag-download",
       "cannotRun": "Hindi ito kayang patakbuhin ng computer na ito",
@@ -994,7 +983,12 @@
       "voicesTitle": "Mga in-import na boses",
       "voicesHint": "Mga voice file ng Supertonic na in-import mo.",
       "importedOn": "In-import noong {{date}}",
-      "more": "{{count}} pa"
+      "more": "{{count}} pa",
+      "engineTitle": "Lokal na engine",
+      "engineHint": "Ang desktop engine na dinownload ng mga naunang bersyon para magpatakbo ng mga model sa computer na ito. Hindi na ito ginagamit ng serbisyong “Ang device na ito”; alisin ito para magbakante ng espasyo.",
+      "remove": "Alisin",
+      "engineConfirm": "Alisin ang lokal na engine?",
+      "engineFrees": "Magbabakante ng {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Awtomatiko · {{name}}",
     "autoOptionNone": "Awtomatiko",
     "browseLibrary": "Tingnan ang library",
-    "storageUsedLine": "Storage: {{summary}} ang nagamit",
-    "manageStorage": "Pamahalaan",
-    "back": "Bumalik",
-    "titleLibrary": "Library · {{stage}}",
-    "titleStorage": "Storage",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "Ginagamit",
     "estimated": "Tinatayang",
     "translationOnCpu": "Pagsasalin sa CPU — kulang ang VRAM",
     "availableWhenLang": "Na-download na. Magagamit kapag ang wika mo ay {{lang}}.",
     "deleteConfirm": "Burahin ang {{name}}?",
     "deleteFallsBack": "Pagbura sa {{name}}: babalik sa {{to}} ang {{stage}}.",
     "deleteNoModel": "Pagbura sa {{name}}: wala nang matitirang modelo para sa {{stage}} — hindi maaaring magsimula ang mga session.",
-    "clearAllKeepsPicks": "Naaalala ang mga napili mo at babalik ang mga ito kapag na-download muli ang mga modelo.",
-    "importChooseModel": "Pumili ng modelong ii-import"
+    "clearAllKeepsPicks": "Naaalala ang mga napili mo at babalik ang mga ito kapag na-download muli ang mga modelo."
   },
   "setup": {
     "title": "Pag-setup ng Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Transkripsyon at pagsasalin",
       "signedInBalance": "Naka-sign in; balanse {{amount}}",
       "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
-      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model"
+      "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model",
+      "soniox": {
+        "byRegion": "Mga key ayon sa rehiyon",
+        "keySaved": "naka-save ang key",
+        "noKey": "walang key",
+        "selected": "(napili)",
+        "save": "I-save at hanapin ang rehiyon",
+        "finding": "Hinahanap ang rehiyon ng key na ito…",
+        "savedFor": "Ang key na ito ay sa {{region}}: doon na-save.",
+        "unreachable": "Hindi natanong ang Soniox kung saang rehiyon ang key na ito; na-save para sa {{region}}, ang rehiyong napili ngayon.",
+        "refused": "Walang rehiyon ng Soniox na tumatanggap sa key na ito. Tingnan kung API key ito ng Soniox.",
+        "elsewhere": "{{selected}} ang napili, pero ang key mo ay sa {{region}}.",
+        "switchTo": "Lumipat sa {{region}}",
+        "keyWorks": "gumagana ang key",
+        "keyRefused": "tinanggihan ang key",
+        "keyUnverified": "naka-save ang key, hindi pa beripikado",
+        "remove": "Alisin",
+        "removeFor": "Alisin ang key para sa {{region}}"
+      }
     },
     "lineup": {
       "title": "Line-up",
@@ -1830,7 +1835,11 @@
         "needsKey": "Kailangan ng key",
         "needsModel": "Kailangan ng model",
         "needsSignIn": "Kailangang mag-sign in",
-        "ready": "Handa"
+        "ready": "Handa",
+        "noKeyForRegion": "Walang gumaganang key para sa {{region}}",
+        "keyRefused": "Hindi tinanggap ang key",
+        "keyNotVerified": "Hindi pa beripikado ang key",
+        "checkingKey": "Sinusuri ang key…"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
@@ -1901,7 +1910,8 @@
         "caption": "Saan napupunta ang tunog. Naka-on ngayon ang maliliwanag na linya, naka-off ang putol-putol; sumusunod sila sa mga switch sa ibaba.",
         "translate": "Isalin",
         "speech": "Gawing boses",
-        "ariaSteps": "Saan napupunta ang tunog: ang sinasabi ko ay isinasalin, saka ginagawang boses na pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig ay isinasalin, saka ginagawang boses na tumutugtog sa aking playback device. Kapag naka-off ang switch ng boses, may salin pero hindi ito binibigkas."
+        "ariaSteps": "Saan napupunta ang tunog: ang sinasabi ko ay isinasalin, saka ginagawang boses na pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig ay isinasalin, saka ginagawang boses na tumutugtog sa aking playback device. Kapag naka-off ang switch ng boses, may salin pero hindi ito binibigkas.",
+        "goTo": "Pumunta sa setting na “{{name}}”"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "I-pause",
     "position": "Posisyon",
     "speed": "Bilis",
+    "cannotPlay": "Hindi ma-play ang recording na ito",
     "playFromHere": "I-play mula rito",
     "saveRecording": "I-save ang recording (.opus)",
     "saveRecordingFailed": "Hindi ma-save ang recording.",

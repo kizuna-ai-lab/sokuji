@@ -10,8 +10,6 @@ const seenEngineSurfaceProps: any[] = [];
 vi.mock('../../components/Settings/engine/EngineSurface', () => ({
   EngineSurface: (props: any) => { seenEngineSurfaceProps.push(props); return null; },
 }));
-vi.mock('../../components/Settings/sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));
-vi.mock('../../components/Settings/engine/StoragePage', () => ({ StoragePage: () => null }));
 
 import { LocalInferenceEngine } from './LocalInferenceEngine';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';

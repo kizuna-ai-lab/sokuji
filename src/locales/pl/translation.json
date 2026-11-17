@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Obecny model tłumaczenia nie obsługuje niestandardowych promptów. Przełącz się na model z rodziny Qwen w Zarządzaniu modelami, aby to włączyć.",
     "localPromptNoThinkHint": "W przypadku modeli Qwen3 ` /no_think` zostanie dodane automatycznie.",
     "participantInstructionsPlaceholder": "Pozostaw puste, aby użyć głównych instrukcji",
-    "webgpuNotSupported": "Niedostępne w bieżącym środowisku",
-    "langMismatch": "Niezgodność języka",
     "localInferenceTurnDetectionTooltip": "Auto: lokalne wykrywanie aktywności głosowej automatycznie rozpoznaje mowę. \nNaciśnij i mów: przytrzymaj spację lub przycisk mikrofonu, aby ręcznie wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
-    "noAsrModel": "Brak modelu Rozpoznawanie mowy (ASR) dla {{language}}",
-    "noTranslationModel": "Brak modelu tłumaczenia dla {{source}} → {{target}}",
     "noTtsModel": "Brak modelu Synteza mowy (TTS) dla {{language}}",
     "ttsNone": "Brak (tylko tekst)",
     "ttsSettings": "Ustawienia Synteza mowy (TTS)",
@@ -846,7 +842,6 @@
     "ready": "Silnik {{version}}",
     "onDisk": "{{size}} na dysku",
     "remove": "Usuń silnik",
-    "removeConfirm": "Usunąć silnik i zwolnić miejsce na dysku?",
     "unsupported": "Lokalne wnioskowanie nie jest obsługiwane na tym urządzeniu",
     "installHint": "Zainstaluj silnik, aby przeglądać i pobierać modele",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Ponów",
     "showAllAsr": "Pokaż wszystkie modele Rozpoznawanie mowy (ASR) ({{count}})",
     "showAll": "Pokaż wszystkie modele tłumaczenia ({{count}})",
-    "showAllTts": "Pokaż wszystkie modele Synteza mowy (TTS) ({{count}})",
     "hideOther": "Ukryj inne modele",
     "clearAll": "Wyczyść wszystko",
     "confirmClearAll": "Usunąć wszystkie modele?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "Przyspieszenie GPU niedostępne",
     "gpuSlowWarning": "Modele lokalne nadal będą działać, ale transkrypcja i tłumaczenie będą zauważalnie wolniejsze.",
     "gpuWaylandRemedy": "W sesji Wayland Chromium nie może użyć do tego GPU. Uruchomienie Sokuji z --ozone-platform=x11 przywraca przyspieszenie.",
-    "incompatibleVariant": "Ten format modelu jest niezgodny z Twoim urządzeniem. Usuń go i pobierz ponownie.",
-    "initFailed": "Nie udało się zainicjować pamięci modeli: {{message}}",
     "othersGroup": "Inne modele",
     "requiresGpu": "Wymaga GPU",
-    "upgradeVariant": "Twoje urządzenie obsługuje szybszy format modelu. Usuń i pobierz ponownie, aby uzyskać lepszą wydajność.",
     "licenseConsent": {
       "title": "Licencja niekomercyjna",
       "restrictedTitle": "Licencja z ograniczeniami",
@@ -970,11 +961,9 @@
         "turn": "Koniec wypowiedzi",
         "punctuation": "Zdania i interpunkcja",
         "readings": "Czytanie",
-        "voice": "Głos"
+        "voice": "Głos",
+        "engine": "Komputer"
       },
-      "manyLanguages": "Wiele języków",
-      "languages": "{{count}} języków",
-      "direct": "potrafi też od razu podać tłumaczenie",
       "downloading": "Pobieranie {{percent}}%",
       "failed": "Pobieranie nie powiodło się",
       "cannotRun": "Ten komputer nie może go uruchomić",
@@ -994,7 +983,12 @@
       "voicesTitle": "Zaimportowane głosy",
       "voicesHint": "Zaimportowane przez Ciebie pliki głosów Supertonic.",
       "importedOn": "Zaimportowano {{date}}",
-      "more": "Jeszcze {{count}}"
+      "more": "Jeszcze {{count}}",
+      "engineTitle": "Silnik lokalny",
+      "engineHint": "Silnik desktopowy, który wcześniejsze wersje pobrały, aby uruchamiać modele na tym komputerze. Usługa „To urządzenie” już go nie używa; usuń go, aby zwolnić miejsce.",
+      "remove": "Usuń",
+      "engineConfirm": "Usunąć silnik lokalny?",
+      "engineFrees": "Zwolni {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Przeglądaj bibliotekę",
-    "storageUsedLine": "Pamięć: wykorzystano {{summary}}",
-    "manageStorage": "Zarządzaj",
-    "back": "Wstecz",
-    "titleLibrary": "Biblioteka · {{stage}}",
-    "titleStorage": "Pamięć",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "W użyciu",
     "estimated": "Szacowane",
     "translationOnCpu": "Tłumaczenie na CPU — za mało VRAM",
     "availableWhenLang": "Pobrano. Dostępne, gdy Twój język to {{lang}}.",
     "deleteConfirm": "Usunąć {{name}}?",
     "deleteFallsBack": "Usuwanie {{name}}: {{stage}} przełączy się na {{to}}.",
     "deleteNoModel": "Usuwanie {{name}}: nie pozostanie żaden model do zadania „{{stage}}” — sesji nie będzie można rozpocząć.",
-    "clearAllKeepsPicks": "Twoje wybory są zapamiętywane i wracają po ponownym pobraniu modeli.",
-    "importChooseModel": "Wybierz model do zaimportowania"
+    "clearAllKeepsPicks": "Twoje wybory są zapamiętywane i wracają po ponownym pobraniu modeli."
   },
   "setup": {
     "title": "Konfiguracja Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Transkrypcja i tłumaczenie",
       "signedInBalance": "Zalogowano; saldo {{amount}}",
       "localModels": "Działa na tym komputerze; pobrano modeli: {{count}}, razem {{size}}",
-      "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli"
+      "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli",
+      "soniox": {
+        "byRegion": "Klucze według regionu",
+        "keySaved": "klucz zapisany",
+        "noKey": "brak klucza",
+        "selected": "(wybrany)",
+        "save": "Zapisz i znajdź region",
+        "finding": "Szukanie regionu tego klucza…",
+        "savedFor": "Ten klucz należy do regionu {{region}}: zapisano go tam.",
+        "unreachable": "Nie udało się zapytać Soniox, do którego regionu należy ten klucz; zapisano go dla {{region}}, regionu wybranego teraz.",
+        "refused": "Żaden region Soniox nie akceptuje tego klucza. Sprawdź, czy to klucz API Soniox.",
+        "elsewhere": "Wybrany jest region {{selected}}, ale twój klucz należy do {{region}}.",
+        "switchTo": "Przełącz na {{region}}",
+        "keyWorks": "klucz działa",
+        "keyRefused": "klucz odrzucony",
+        "keyUnverified": "klucz zapisany, jeszcze niesprawdzony",
+        "remove": "Usuń",
+        "removeFor": "Usuń klucz dla regionu {{region}}"
+      }
     },
     "lineup": {
       "title": "Zestaw",
@@ -1830,7 +1835,11 @@
         "needsKey": "Wymaga klucza",
         "needsModel": "Wymaga modelu",
         "needsSignIn": "Wymaga zalogowania",
-        "ready": "Gotowe"
+        "ready": "Gotowe",
+        "noKeyForRegion": "Brak działającego klucza dla {{region}}",
+        "keyRefused": "Klucz odrzucony",
+        "keyNotVerified": "Klucz niezweryfikowany",
+        "checkingKey": "Sprawdzanie klucza…"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",
@@ -1901,7 +1910,8 @@
         "caption": "Dokąd idzie dźwięk. Jasne linie są teraz włączone, przerywane wyłączone; zmieniają się z przełącznikami poniżej.",
         "translate": "Tłumaczenie",
         "speech": "Synteza mowy",
-        "ariaSteps": "Dokąd idzie dźwięk: to, co mówię, jest tłumaczone, a potem zamieniane na mowę, która trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, jest tłumaczone, a potem zamieniane na mowę, która gra na moim urządzeniu odtwarzania. Gdy przełącznik mowy jest wyłączony, tłumaczenie powstaje, ale nie jest wypowiadane."
+        "ariaSteps": "Dokąd idzie dźwięk: to, co mówię, jest tłumaczone, a potem zamieniane na mowę, która trafia do wirtualnego mikrofonu dla drugiej strony i gra też u mnie, gdy słucham; to, co mówi druga strona, jest tłumaczone, a potem zamieniane na mowę, która gra na moim urządzeniu odtwarzania. Gdy przełącznik mowy jest wyłączony, tłumaczenie powstaje, ale nie jest wypowiadane.",
+        "goTo": "Przejdź do ustawienia „{{name}}”"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Wstrzymaj",
     "position": "Pozycja",
     "speed": "Prędkość",
+    "cannotPlay": "Nie można odtworzyć tego nagrania",
     "playFromHere": "Odtwórz od tego miejsca",
     "saveRecording": "Zapisz nagranie (.opus)",
     "saveRecordingFailed": "Nie udało się zapisać nagrania.",

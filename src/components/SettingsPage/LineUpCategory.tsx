@@ -34,6 +34,8 @@ import { SettingsStage, cardOptions, useStageList } from '../providers/stagePart
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { EdgeVoices } from './EdgeVoices';
+import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
+import { LocalVoices } from './LocalVoices';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -47,7 +49,7 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
   'provider-options': 'first', 'model-management': 'first',
   'model-asr': 'transcription', 'turn-detection-tuning': 'transcription',
   'model-translation': 'translation', 'system-instructions': 'translation',
-  'model-tts': 'speech', 'voice-settings': 'speech', 'edge-voices': 'speech',
+  'model-tts': 'speech', 'voice-settings': 'speech', 'edge-voices': 'speech', 'local-voices': 'speech',
 };
 /** An engine slot's stage, as the line-up names it. */
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
@@ -222,9 +224,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               <SettingsStage stage={stage} served={o.served}>
                 {/* Edge speaking: its voices, not the engine's speech slot, whose models do not run. */}
                 {stage === 'speech' && id === 'edge' ? <EdgeVoices disabled={locked} /> : (
-                  <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
-                    initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
-                    onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                  <>
+                    <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                      initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
+                      onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                    {/* This device speaking: its voices under its speech model (B-20, out of the old model library). */}
+                    {stage === 'speech' && id === 'local_inference' && <LocalVoices disabled={locked} />}
+                  </>
                 )}
                 <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
                 {stage === 'transcription' && <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />}
@@ -262,24 +268,49 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     i = j;
   }
 
-  /** A row's state: what the chosen provider lacks, or Ready. */
-  const stateOf = (id: string): { ok: boolean; text: string } => {
+  /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work takes you to the key. */
+  const stateOf = (id: string): { ok: boolean; text: string; toKey?: boolean } => {
     const p = providers.find((x) => x.id === id) ?? (caps(id)?.family === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
     // Bing and Edge are online services of the local family: no key and no model.
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
-    if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
+    if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toKey: true };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
     const r = p ? readiness[p.id] : undefined;
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
+    // A saved key is Ready only once its check passed (B-11; Rudolf's review: saved is not working). The store keeps a
+    // passed check for the same key and region, so a key that worked before stays Ready when the service is out of reach.
+    if (p?.kind === 'own-key') {
+      if (r?.state === 'ready') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
+      if (r?.state === 'checking') return { ok: false, text: t('settingsPage.lineup.state.checkingKey', 'Checking the key…') };
+      // Refused: a Soniox key works in one region's project only, so it names the region it was tried in.
+      if (r?.state === 'not-ready' && r.code === 'auth') {
+        const region = p.id === 'soniox' ? SONIOX_REGION_LABELS[asSonioxRegion((entries[p.id]?.settings as { region?: string } | undefined)?.region)] : null;
+        return {
+          ok: false, toKey: true,
+          text: region ? t('settingsPage.lineup.state.noKeyForRegion', 'No working key for {{region}}', { region })
+            : t('settingsPage.lineup.state.keyRefused', 'Key not accepted'),
+        };
+      }
+      // Never checked, or the check could not reach the service.
+      return { ok: false, toKey: true, text: t('settingsPage.lineup.state.keyNotVerified', 'Key not verified') };
+    }
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
   };
+  /** A row's state as drawn: a key it lacks or that does not work is a way to the key. */
+  const stateTag = (id: string) => {
+    const s = stateOf(id);
+    const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
+    return s.toKey
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings('provider')}>{s.text}</button>
+      : <em className={className}>{s.text}</em>;
+  };
 
-  // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own, so a key that is missing,
-  // rejected or not yet checked reads the same here as on a stage (review).
-  const notesState = kizunaChosen
-    ? auth.signedIn ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') } : { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
-    : stateOf('openai');
+  // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own (stateTag), so a key that
+  // is missing, rejected or not yet checked reads the same here as on a stage, and takes you to the key (review).
+  const kizunaNotesState = auth.signedIn
+    ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
+    : { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
 
   // Granite Speech is a local model: when the local transcription and translation choices are the same Granite
   // Speech model, today's code turns speech straight into the translation (Plan 4, Task 3).
@@ -314,7 +345,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>
-              <em className={`lineup-stage__state${stateOf(id).ok ? ' is-ready' : ''}`}>{stateOf(id).text}</em>
+              {stateTag(id)}
             </div>
           );
           // What one stage of the card says about itself, then its own options.
@@ -410,7 +441,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           <div className="lineup-stage">
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
-              <em className={`lineup-stage__state${notesState.ok ? ' is-ready' : ''}`}>{notesState.text}</em>
+              {kizunaChosen
+                ? <em className={`lineup-stage__state${kizunaNotesState.ok ? ' is-ready' : ''}`}>{kizunaNotesState.text}</em>
+                : stateTag('openai')}
             </div>
             {/* Drawn like the other stages' choices (owner, 2026-11-17): an icon, the name, a line about writing notes. */}
             <select className="select-dropdown provider-select" value={notesService} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}

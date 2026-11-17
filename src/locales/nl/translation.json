@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Het huidige vertaalmodel ondersteunt geen aangepaste prompts. Schakel over naar een Qwen-familiemodel in Modelbeheer om dit in te schakelen.",
     "localPromptNoThinkHint": "Voor Qwen3-modellen wordt ` /no_think` automatisch toegevoegd.",
     "participantInstructionsPlaceholder": "Leeg laten om de hoofdinstructies te gebruiken",
-    "webgpuNotSupported": "Niet beschikbaar in de huidige omgeving",
-    "langMismatch": "Taal komt niet overeen",
     "localInferenceTurnDetectionTooltip": "Auto: lokale spraakactiviteitsdetectie detecteert spraak automatisch. \nPush-to-Talk: houd Spatie of de microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
-    "noAsrModel": "Geen Spraakherkenning (ASR)-model voor {{language}}",
-    "noTranslationModel": "Geen vertaalmodel voor {{source}} → {{target}}",
     "noTtsModel": "Geen Spraaksynthese (TTS)-model voor {{language}}",
     "ttsNone": "Geen (alleen tekst)",
     "ttsSettings": "Spraaksynthese (TTS)-instellingen",
@@ -846,7 +842,6 @@
     "ready": "Engine {{version}}",
     "onDisk": "{{size}} op schijf",
     "remove": "Engine verwijderen",
-    "removeConfirm": "Engine verwijderen en schijfruimte vrijmaken?",
     "unsupported": "Lokale inferentie wordt niet ondersteund op dit apparaat",
     "installHint": "Installeer de engine om modellen te bekijken en te downloaden",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Opnieuw",
     "showAllAsr": "Alle Spraakherkenning (ASR)-modellen tonen ({{count}})",
     "showAll": "Alle vertaalmodellen tonen ({{count}})",
-    "showAllTts": "Alle Spraaksynthese (TTS)-modellen tonen ({{count}})",
     "hideOther": "Andere modellen verbergen",
     "clearAll": "Alles wissen",
     "confirmClearAll": "Alle modellen verwijderen?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "GPU-versnelling niet beschikbaar",
     "gpuSlowWarning": "Lokale modellen blijven werken, maar transcriptie en vertaling worden merkbaar trager.",
     "gpuWaylandRemedy": "In een Wayland-sessie kan Chromium de GPU hiervoor niet gebruiken. Sokuji starten met --ozone-platform=x11 herstelt de versnelling.",
-    "incompatibleVariant": "Dit modelformaat is niet compatibel met uw apparaat. Verwijder het en download het opnieuw.",
-    "initFailed": "Initialiseren van modelopslag mislukt: {{message}}",
     "othersGroup": "Overige modellen",
     "requiresGpu": "Vereist een GPU",
-    "upgradeVariant": "Uw apparaat ondersteunt een sneller modelformaat. Verwijder en download opnieuw voor betere prestaties.",
     "licenseConsent": {
       "title": "Niet-commerciële licentie",
       "restrictedTitle": "Beperkte licentie",
@@ -970,11 +961,9 @@
         "turn": "Einde beurt",
         "punctuation": "Zinnen en leestekens",
         "readings": "Uitspraak",
-        "voice": "Stem"
+        "voice": "Stem",
+        "engine": "Desktop"
       },
-      "manyLanguages": "Veel talen",
-      "languages": "{{count}} talen",
-      "direct": "kan ook direct de vertaling geven",
       "downloading": "Downloaden {{percent}}%",
       "failed": "Downloaden mislukt",
       "cannotRun": "Deze computer kan het niet draaien",
@@ -994,7 +983,12 @@
       "voicesTitle": "Geïmporteerde stemmen",
       "voicesHint": "Supertonic-stembestanden die u hebt geïmporteerd.",
       "importedOn": "Geïmporteerd op {{date}}",
-      "more": "Nog {{count}}"
+      "more": "Nog {{count}}",
+      "engineTitle": "Lokale engine",
+      "engineHint": "De desktop-engine die eerdere versies downloadden om modellen op deze computer te draaien. De dienst ‘Dit apparaat’ gebruikt hem niet meer; verwijder hem om ruimte vrij te maken.",
+      "remove": "Verwijderen",
+      "engineConfirm": "De lokale engine verwijderen?",
+      "engineFrees": "Maakt {{size}} vrij."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Automatisch · {{name}}",
     "autoOptionNone": "Automatisch",
     "browseLibrary": "Bibliotheek doorzoeken",
-    "storageUsedLine": "Opslag: {{summary}} gebruikt",
-    "manageStorage": "Beheren",
-    "back": "Terug",
-    "titleLibrary": "Bibliotheek · {{stage}}",
-    "titleStorage": "Opslag",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "In gebruik",
     "estimated": "Geschat",
     "translationOnCpu": "Vertaling op cpu — onvoldoende vram",
     "availableWhenLang": "Gedownload. Beschikbaar wanneer je taal {{lang}} is.",
     "deleteConfirm": "{{name}} verwijderen?",
     "deleteFallsBack": "{{name}} verwijderen: {{stage}} valt terug op {{to}}.",
     "deleteNoModel": "{{name}} verwijderen: er blijft geen model voor {{stage}} over — sessies kunnen niet starten.",
-    "clearAllKeepsPicks": "Je keuzes worden onthouden en keren terug zodra modellen opnieuw worden gedownload.",
-    "importChooseModel": "Kies een model om te importeren"
+    "clearAllKeepsPicks": "Je keuzes worden onthouden en keren terug zodra modellen opnieuw worden gedownload."
   },
   "setup": {
     "title": "Sokuji instellen",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Transcriptie en vertaling",
       "signedInBalance": "Aangemeld; saldo {{amount}}",
       "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
-      "localNone": "Draait op deze computer; nog geen modellen gedownload"
+      "localNone": "Draait op deze computer; nog geen modellen gedownload",
+      "soniox": {
+        "byRegion": "Sleutels per regio",
+        "keySaved": "sleutel opgeslagen",
+        "noKey": "geen sleutel",
+        "selected": "(geselecteerd)",
+        "save": "Opslaan en regio zoeken",
+        "finding": "Regio van deze sleutel zoeken…",
+        "savedFor": "Deze sleutel hoort bij {{region}}: daar opgeslagen.",
+        "unreachable": "Kon Soniox niet vragen bij welke regio deze sleutel hoort; opgeslagen voor {{region}}, de nu gekozen regio.",
+        "refused": "Geen enkele Soniox-regio accepteert deze sleutel. Controleer of het een Soniox-API-sleutel is.",
+        "elsewhere": "{{selected}} is gekozen, maar je sleutel hoort bij {{region}}.",
+        "switchTo": "Overschakelen naar {{region}}",
+        "keyWorks": "sleutel werkt",
+        "keyRefused": "sleutel geweigerd",
+        "keyUnverified": "sleutel opgeslagen, nog niet gecontroleerd",
+        "remove": "Verwijderen",
+        "removeFor": "Sleutel voor {{region}} verwijderen"
+      }
     },
     "lineup": {
       "title": "Opstelling",
@@ -1830,7 +1835,11 @@
         "needsKey": "Sleutel nodig",
         "needsModel": "Model nodig",
         "needsSignIn": "Inloggen nodig",
-        "ready": "Klaar"
+        "ready": "Klaar",
+        "noKeyForRegion": "Geen werkende sleutel voor {{region}}",
+        "keyRefused": "Sleutel geweigerd",
+        "keyNotVerified": "Sleutel niet gecontroleerd",
+        "checkingKey": "Sleutel controleren…"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
       "hint": "Welke dienst elke stap doet",
@@ -1901,7 +1910,8 @@
         "caption": "Waar het geluid heen gaat. Heldere lijnen staan nu aan, gestippelde uit; ze volgen de schakelaars hieronder.",
         "translate": "Vertalen",
         "speech": "Spraak",
-        "ariaSteps": "Waar het geluid heen gaat: wat ik zeg wordt vertaald en dan spraak, die naar de virtuele microfoon voor de andere kant gaat en ook bij mij speelt als ik meeluister; wat de andere kant zegt wordt vertaald en dan spraak, die op mijn afspeelapparaat speelt. Staat een spraakschakelaar uit, dan wordt er vertaald maar niet gesproken."
+        "ariaSteps": "Waar het geluid heen gaat: wat ik zeg wordt vertaald en dan spraak, die naar de virtuele microfoon voor de andere kant gaat en ook bij mij speelt als ik meeluister; wat de andere kant zegt wordt vertaald en dan spraak, die op mijn afspeelapparaat speelt. Staat een spraakschakelaar uit, dan wordt er vertaald maar niet gesproken.",
+        "goTo": "Ga naar de instelling ‘{{name}}’"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Pauzeren",
     "position": "Positie",
     "speed": "Snelheid",
+    "cannotPlay": "Deze opname kan niet worden afgespeeld",
     "playFromHere": "Vanaf hier afspelen",
     "saveRecording": "Geluidsopname opslaan (.opus)",
     "saveRecordingFailed": "De geluidsopname kon niet worden opgeslagen.",

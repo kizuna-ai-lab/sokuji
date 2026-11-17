@@ -221,6 +221,13 @@
   &__part { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px solid vars.$border-subtle; }
   &__name { font-size: 13px; font-weight: vars.$weight-semibold; color: vars.$text-primary; }
   &__state { margin-left: auto; white-space: nowrap; font-style: normal; font-size: 11.5px; color: vars.$color-warning; &.is-ready { color: vars.$color-primary; } }
+  // A key it lacks or that does not work (B-11): the state is the way to the key.
+  &__state--link {
+    padding: 0; border: none; background: none; font-family: inherit; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+  }
 
   &__joint, &__moved {
     margin: 0;
@@ -263,6 +270,30 @@
 
 // Accounts and keys (the mock): one row per account, rows split by a thin line; the name, its state under it, one button.
 .accounts-category { display: flex; flex-direction: column; }
+// Soniox's key by region (B-11): every region's key on one line, the selected one marked; the key field; what saving
+// found; switching to the region the key belongs to.
+.soniox-key {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  &__regions {
+    display: flex; flex-wrap: wrap; gap: 4px 14px;
+    margin: 0; padding: 0; list-style: none;
+    font-size: 12px; color: vars.$text-tertiary;
+    li.is-selected { color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  }
+  // A small text button after a region's key: the row stays a line of text.
+  &__remove {
+    margin-left: 6px; padding: 0; border: 0; background: none;
+    font: inherit; font-weight: vars.$weight-normal; color: vars.$text-secondary;
+    text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    &:hover:not(:disabled) { color: vars.$color-error; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+  &__note { margin: 0; font-size: 12px; color: vars.$text-secondary; &.is-error { color: vars.$color-error; } }
+  &__switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 12px; color: vars.$color-warning; }
+}
+
 .accounts-row {
   display: flex;
   flex-direction: column;
@@ -424,7 +455,9 @@
   box-shadow: 0 0 0 8px vars.$bg-base;
   &__tag { display: block; padding: 5px 10px; font-size: 11px; color: vars.$text-muted; background: vars.$bg-surface; border-bottom: 1px solid vars.$border-subtle; }
   &__surface { background: vars.$bg-base; }
-  &__rows { padding: 8px 14px; max-height: 240px; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+  // Held to the bottom, as the conversation keeps its newest line in view: rows taller than the box (readings, a
+  // large size) lose the oldest at the top, never the newest at the bottom.
+  &__rows { padding: 8px 14px; max-height: 240px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
   &__empty { padding: 18px 0; color: vars.$text-muted; font-size: 12.5px; text-align: center; }
   rt { font-size: 0.5em; }
   // Caption mode floats over another window.
@@ -652,6 +685,11 @@
   }
   &__actions { flex: none; display: flex; gap: 6px; }
   &__btn {
+    // An icon beside the label (Open folder, Add a line) sits on the label's middle, not its baseline.
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: vars.$space-1;
     height: 28px;
     padding: 0 11px;
     border: 1px solid vars.$border-subtle;
@@ -690,6 +728,11 @@
   &__caption { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed vars.$border-subtle; font-size: 11.5px; color: vars.$text-muted; }
   .models-group__fold { border-top: none; }
   .models-stage__shown + .models-group__fold { border-top: 1px solid vars.$border-subtle; }
+  // Where an engine slot's "Browse library…" lands (B-20): the sections' pulse, on that stage's group.
+  &.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }
+  // The model library's cards (B-20), a little apart; a card's "Delete …?" right under it.
+  .models-card { margin-top: 6px; }
+  .models-card > .model-row__confirm { margin-top: 6px; }
 }
 
 // General, as mock v19 draws it: two groups of plain rows, thin lines between, no cards; two quiet links last.
@@ -712,7 +755,6 @@
 }
 // History and notes: the folder's path may be long; the line under the folder row.
 .history-category {
-  .model-row__btn { gap: vars.$space-1; }
   &__dir { overflow-wrap: anywhere; }
   &__hint { margin: 0; padding: 9px 0; border-bottom: 1px solid vars.$border-subtle; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
   // The once-only explanation before notes are first turned on (ruling 37): under the switch, in the list's rhythm.
@@ -826,6 +868,20 @@
   }
 }
 
+// The local engine's voices in the speech card (B-20), as Edge's are: a quiet line, then per speaking direction its
+// name over its voices; Supertonic's notes under them.
+.local-voices {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  &__hint { margin: 0; font-size: 12px; line-height: 1.6; color: vars.$text-tertiary; }
+  &__row { display: grid; gap: 4px; }
+  &__label { font-size: 12px; color: vars.$text-tertiary; }
+  &__row .setting-item { margin: 0; }
+  &__note { margin: 0; font-size: 11.5px; line-height: 1.5; color: vars.$text-muted; }
+  &__note--error { color: vars.$color-error; }
+}
+
 // Switches on the page turn on in the same deep green as the chosen segment (the mock's `.tg`), not the brighter accent.
 .settings-page .toggle-switch-component .toggle-track-container input:checked + .toggle-track {
   background-color: vars.$color-primary-fill;
@@ -841,5 +897,20 @@
   &__leg.is-off { color: vars.$text-disabled; path { stroke-dasharray: 3 4; } }
   &__side.is-unused { opacity: 0.3; }
   figcaption { margin-top: 4px; font-size: 11.5px; color: vars.$text-muted; }
+  // A part that takes you to its setting (B-27): the pointer over its whole box, not only its strokes, and on hover or
+  // keyboard focus the primary colour with its name underlined.
+  &__go {
+    cursor: pointer;
+    pointer-events: bounding-box;
+    outline: none;
+    &:hover,
+    &:focus-visible {
+      color: vars.$color-primary;
+      .sound-flow__box { color: vars.$color-primary; }
+      text { text-decoration: underline; }
+    }
+  }
 }
 .settings-page--narrow .sound-flow { display: none; }
+// A row the page went to (B-27: from the drawing above): the sections' pulse, on that row alone.
+.settings-page .setting-row.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }

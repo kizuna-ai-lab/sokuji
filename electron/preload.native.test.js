@@ -16,7 +16,7 @@ describe('native / sidecar IPC channels are exposed', () => {
   it('sidecar-bundle invoke channels are in the registry', () => {
     for (const ch of [
       'sidecar-bundle:status', 'sidecar-bundle:install', 'sidecar-bundle:cancel',
-      'sidecar-bundle:manifest', 'sidecar-bundle:remove',
+      'sidecar-bundle:manifest', 'sidecar-bundle:remove', 'sidecar-bundle:usage',
     ]) {
       expect(INVOKE_CHANNELS).toContain(ch);
     }

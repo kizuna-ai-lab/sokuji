@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Current translation model does not support custom prompts. Switch to a Qwen-family model in Model Management to enable.",
     "localPromptNoThinkHint": "For Qwen3 models, ` /no_think` will be automatically appended.",
     "participantInstructionsPlaceholder": "Leave empty to use main instructions",
-    "webgpuNotSupported": "Not available in current environment",
-    "langMismatch": "language mismatch",
     "localInferenceTurnDetectionTooltip": "Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
-    "noAsrModel": "No Speech Recognition (ASR) model for {{language}}",
-    "noTranslationModel": "No translation model for {{source}} → {{target}}",
     "noTtsModel": "No Speech Synthesis (TTS) model for {{language}}",
     "ttsNone": "None (text only)",
     "ttsSettings": "Speech Synthesis (TTS) Settings",
@@ -1075,7 +1071,6 @@
     "ready": "Engine {{version}}",
     "onDisk": "{{size}} on disk",
     "remove": "Remove engine",
-    "removeConfirm": "Remove the engine and free disk space?",
     "unsupported": "Local inference is not supported on this device",
     "installHint": "Install the engine to browse and download models",
     "status": {
@@ -1134,7 +1129,6 @@
     "retry": "Retry",
     "showAllAsr": "Show all Speech Recognition (ASR) models ({{count}})",
     "showAll": "Show all translation models ({{count}})",
-    "showAllTts": "Show all Speech Synthesis (TTS) models ({{count}})",
     "hideOther": "Hide other models",
     "clearAll": "Clear all",
     "confirmClearAll": "Delete all models?",
@@ -1170,11 +1164,8 @@
     "gpuUnavailable": "GPU acceleration unavailable",
     "gpuSlowWarning": "Local models will still work, but transcription and translation will be noticeably slower.",
     "gpuWaylandRemedy": "On a Wayland session, Chromium cannot use the GPU for this. Starting Sokuji with --ozone-platform=x11 restores acceleration.",
-    "incompatibleVariant": "This model format is incompatible with your device. Please delete and re-download.",
-    "initFailed": "Model storage failed to initialize: {{message}}",
     "othersGroup": "Other models",
     "requiresGpu": "Requires a GPU",
-    "upgradeVariant": "Your device supports a faster model format. Delete and re-download for better performance.",
     "licenseConsent": {
       "title": "Non-commercial license",
       "restrictedTitle": "Restricted license",
@@ -1199,11 +1190,9 @@
         "turn": "Turn end",
         "punctuation": "Sentences and punctuation",
         "readings": "Readings",
-        "voice": "Voice"
+        "voice": "Voice",
+        "engine": "Desktop"
       },
-      "manyLanguages": "Many languages",
-      "languages": "{{count}} languages",
-      "direct": "can also give the translation directly",
       "downloading": "Downloading {{percent}}%",
       "failed": "Download failed",
       "cannotRun": "This computer can't run it",
@@ -1223,7 +1212,12 @@
       "voicesTitle": "Imported voices",
       "voicesHint": "Supertonic voice files you imported.",
       "importedOn": "Imported {{date}}",
-      "more": "{{count}} more"
+      "more": "{{count}} more",
+      "engineTitle": "On-device engine",
+      "engineHint": "The desktop engine earlier versions downloaded to run models on this computer. The “This device” service no longer uses it; remove it to free the space.",
+      "remove": "Remove",
+      "engineConfirm": "Remove the on-device engine?",
+      "engineFrees": "Frees {{size}}."
     }
   },
   "notes": {
@@ -1514,21 +1508,14 @@
     "autoValue": "Auto · {{name}}",
     "autoOptionNone": "Auto",
     "browseLibrary": "Browse library",
-    "storageUsedLine": "Storage: {{summary}} used",
-    "manageStorage": "Manage",
-    "back": "Back",
-    "titleLibrary": "Library · {{stage}}",
-    "titleStorage": "Storage",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "In use",
     "estimated": "Estimated",
     "translationOnCpu": "Translation on CPU — not enough VRAM",
     "availableWhenLang": "Downloaded. Available when your language is {{lang}}.",
     "deleteConfirm": "Delete {{name}}?",
     "deleteFallsBack": "Deleting {{name}}: {{stage}} falls back to {{to}}.",
     "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
-    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
-    "importChooseModel": "Choose a model to import"
+    "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again."
   },
   "notices": {
     "no_provider": "Choose a provider in Settings before starting.",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Transcription and translation",
       "signedInBalance": "Signed in; balance {{amount}}",
       "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
-      "localNone": "Runs on this computer; no models downloaded yet"
+      "localNone": "Runs on this computer; no models downloaded yet",
+      "soniox": {
+        "byRegion": "Keys by region",
+        "keySaved": "key saved",
+        "noKey": "no key",
+        "selected": "(selected)",
+        "save": "Save and find its region",
+        "finding": "Finding the region of this key…",
+        "savedFor": "This key belongs to {{region}}: saved there.",
+        "unreachable": "Could not ask Soniox which region this key belongs to; saved for {{region}}, the region selected now.",
+        "refused": "No Soniox region accepts this key. Check that it is a Soniox API key.",
+        "elsewhere": "{{selected}} is selected, but your key is for {{region}}.",
+        "switchTo": "Switch to {{region}}",
+        "keyWorks": "key works",
+        "keyRefused": "key refused",
+        "keyUnverified": "key saved, not verified yet",
+        "remove": "Remove",
+        "removeFor": "Remove the key for {{region}}"
+      }
     },
     "lineup": {
       "title": "Line-up",
@@ -1830,7 +1835,11 @@
         "needsKey": "Needs a key",
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
-        "ready": "Ready"
+        "ready": "Ready",
+        "noKeyForRegion": "No working key for {{region}}",
+        "keyRefused": "Key not accepted",
+        "keyNotVerified": "Key not verified",
+        "checkingKey": "Checking the key…"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",
@@ -1901,7 +1910,8 @@
         "caption": "Where the sound goes. Lit lines are on now, dashed ones off; they follow the switches below.",
         "translate": "Translate",
         "speech": "Speech",
-        "ariaSteps": "Where the sound goes: what I say is translated, then made into speech that goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says is translated, then made into speech that plays on my playback device. With a speech switch off, the translation is made but not spoken."
+        "ariaSteps": "Where the sound goes: what I say is translated, then made into speech that goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says is translated, then made into speech that plays on my playback device. With a speech switch off, the translation is made but not spoken.",
+        "goTo": "Go to the “{{name}}” setting"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Pause",
     "position": "Position",
     "speed": "Speed",
+    "cannotPlay": "This recording cannot be played",
     "playFromHere": "Play from here",
     "saveRecording": "Save the recording (.opus)",
     "saveRecordingFailed": "The recording could not be saved.",

@@ -1,6 +1,5 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, HardDrive } from 'lucide-react';
 import type { EngineAdapter, SlotId } from './EngineTypes';
 import { SlotRow } from './SlotRow';
 import { StagePart } from '../../providers/stageParts';
@@ -52,7 +51,6 @@ export const BROWSE_OPTION_VALUE = '__browse__';
 export const EnginePage: React.FC<{
   adapter: EngineAdapter;
   onBrowse: (slot: SlotId) => void;
-  onStorage: () => void;
   /** One-shot: the slot a chip click just deep-linked (Finding 4). Passed
    *  straight through to every SlotRow, which decides for itself whether
    *  it's the match — see SlotRow's own doc comment. */
@@ -63,7 +61,7 @@ export const EnginePage: React.FC<{
    *  chain into every consumer's test environment (the "Denied ID" trap),
    *  and the hosts all read the stores already. */
   effectiveMode: AudioMode;
-}> = ({ adapter, onBrowse, onStorage, flashSlot = null, effectiveMode }) => {
+}> = ({ adapter, onBrowse, flashSlot = null, effectiveMode }) => {
   const { t } = useTranslation();
   // Prefix for the per-slot badge ids the selects describe themselves by.
   const pageId = useId();
@@ -119,15 +117,16 @@ export const EnginePage: React.FC<{
                   onChange={(e) => {
                     const picked = e.target.value;
                     if (picked === BROWSE_OPTION_VALUE) {
-                      // An action, not an option: push the Library and keep
-                      // the selection where it was (the controlled value
-                      // snaps the control back on re-render). Deferred one
-                      // task, with an explicit blur first: pushing
-                      // synchronously from inside the change event unmounts
-                      // the select while its top-layer picker is still
-                      // committing its close, and on some Chromium builds
-                      // (Electron's 144) that strands the picker/backdrop
-                      // open, swallowing all input — the frozen-UI bug.
+                      // An action, not an option: open the slot's stage in
+                      // Models and storage (B-20) and keep the selection where
+                      // it was (the controlled value snaps the control back on
+                      // re-render). Deferred one task, with an explicit blur
+                      // first: leaving the page synchronously from inside the
+                      // change event unmounts the select while its top-layer
+                      // picker is still committing its close, and on some
+                      // Chromium builds (Electron's 144) that strands the
+                      // picker/backdrop open, swallowing all input — the
+                      // frozen-UI bug.
                       e.currentTarget.blur();
                       window.setTimeout(() => onBrowse(slot), 0);
                       return;
@@ -188,17 +187,6 @@ export const EnginePage: React.FC<{
           })}
         </div>
       ))}
-      {/* Storage entry as the section's footer — storage is a different kind
-          of thing than the slots above it. The whole footer is the button;
-          "Manage ›" names where it goes. */}
-      <button type="button" className="engine-storage-footer" onClick={onStorage}>
-        <HardDrive size={14} />
-        <span>{t('engineUi.storageUsedLine', 'Storage: {{summary}} used', { summary: adapter.storageSummary })}</span>
-        <span className="engine-storage-footer__manage">
-          {t('engineUi.manageStorage', 'Manage')}
-          <ChevronRight size={12} />
-        </span>
-      </button>
     </div>
   );
 };

@@ -29,3 +29,13 @@ export function openTtsSlot(leg: LegName): void {
   }
   navigateToSettings('provider-options');
 }
+
+/**
+ * Opens the local engine's voices, in the line-up's speech card (B-20: out of the old model library): Edge's when
+ * Edge speaks, this device's own otherwise. Any slot target still pending is cleared: nothing there would consume it.
+ */
+export function openLocalVoices(): void {
+  const { setEngineSlotTarget, navigateToSettings } = useSettingsStore.getState();
+  setEngineSlotTarget(null);
+  navigateToSettings(useLineUpStore.getState().lineUp?.speech === 'edge' ? 'edge-voices' : 'local-voices');
+}

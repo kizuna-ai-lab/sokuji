@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
@@ -9,11 +9,16 @@ vi.mock('../Display/DisplaySettingsPopover', () => ({
 }));
 vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../utils/environment')>()), isElectron: () => true }));
 vi.mock('../../lib/reading/useReadingTargets', () => ({ useReadingTargets: () => new Set(['ja']) }));
+// Readings as the rows get them, marked with the language that asked, so a test can tell which text has them.
+vi.mock('../../lib/reading/useReading', () => ({
+  useReading: (text: string, lang: string | null) => (lang ? [{ text, reading: `(${lang})` }] : null),
+}));
 
 import { DisplayCategory } from './DisplayCategory';
 import { CONVERSATION_SCHEME_COLOURS, useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import useSettingsStore from '../../stores/settingsStore';
+import { useProviderStore } from '../../stores/providerStore';
 
 beforeEach(() => {
   useConversationDisplayStore.setState({ fontSize: 14, compactMode: false });
@@ -156,6 +161,8 @@ describe('display — the rows as the mock draws them', () => {
   });
 
   it('draws caption mode over another window, as bands when compact, the newest one lit', () => {
+    // The sample speaks the pair (B-22): Chinese for me, Japanese for the other side.
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: {}, credentials: {}, pair: { source: 'zh', target: 'ja' } } } as never });
     useSubtitleStore.setState({ compactMode: true });
     render(<DisplayCategory locked={false} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
@@ -171,5 +178,62 @@ describe('display — the rows as the mock draws them', () => {
     render(<DisplayCategory locked={false} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
     expect(preview().querySelectorAll('.subtitle-stream__item--lit').length).toBe(0);
+    useProviderStore.setState({ selected: null, entries: {} });
+  });
+});
+
+// B-22: the sample speaks the user's pair, not a fixed Chinese and Japanese.
+describe('display — the preview speaks the pair', () => {
+  const pairIs = (source: string, target: string) =>
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: {}, credentials: {}, pair: { source, target } } } as never });
+  afterEach(() => useProviderStore.setState({ selected: null, entries: {} }));
+  const badges = () => [...preview().querySelectorAll('.lang-badge')].map((b) => b.textContent);
+
+  it('writes my lines in the language I speak and theirs in the language the other side hears', () => {
+    pairIs('en', 'ko');
+    render(<DisplayCategory locked={false} />);
+    expect(preview()).toHaveTextContent('Can you deliver by next Wednesday?');
+    expect(preview()).toHaveTextContent('다음 주 수요일까지 납품할 수 있나요?');
+    expect(preview()).toHaveTextContent('인증 시험 결과에 따라 달라요.');
+    expect(preview()).toHaveTextContent('It depends on the certification test results.');
+    expect(preview()).not.toHaveTextContent('下周三之前能交货吗？');
+    expect(badges()).toEqual(['EN', 'KO', 'KO', 'EN', 'EN', 'KO']);
+  });
+
+  it("follows a change of the pair", () => {
+    pairIs('en', 'ko');
+    render(<DisplayCategory locked={false} />);
+    act(() => pairIs('de', 'fr'));
+    expect(preview()).toHaveTextContent('Können Sie bis nächsten Mittwoch liefern?');
+    expect(preview()).toHaveTextContent('Pouvez-vous livrer d’ici mercredi prochain ?');
+    expect(badges()).toEqual(['DE', 'FR', 'FR', 'DE', 'DE', 'FR']);
+  });
+
+  it("speaks the pair in caption mode's compact bands too", () => {
+    pairIs('es', 'it');
+    useSubtitleStore.setState({ compactMode: true });
+    render(<DisplayCategory locked={false} />);
+    fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
+    expect(preview().querySelector('.subtitle-stream')).not.toBeNull();
+    expect(preview()).toHaveTextContent('¿Cuándo salen los resultados?');
+    expect(preview()).toHaveTextContent('Quando escono i risultati?');
+    expect(preview()).not.toHaveTextContent('結果はいつ出ますか？');
+  });
+
+  it("gives readings, when they are on, to the text in the target's reading language only", () => {
+    pairIs('en', 'ja');
+    useConversationDisplayStore.setState({ showReadings: true });
+    render(<DisplayCategory locked={false} />);
+    const readings = [...preview().querySelectorAll('rt')].map((rt) => rt.textContent);
+    expect(readings).toEqual(['(ja)', '(ja)', '(ja)']);
+    expect(preview().querySelector('ruby')).toHaveTextContent('来週の水曜日までに納品できますか？');
+  });
+
+  it('draws no readings while they are off', () => {
+    pairIs('en', 'ja');
+    useConversationDisplayStore.setState({ showReadings: false });
+    render(<DisplayCategory locked={false} />);
+    expect(preview().querySelectorAll('rt')).toHaveLength(0);
+    expect(preview()).toHaveTextContent('来週の水曜日までに納品できますか？');
   });
 });

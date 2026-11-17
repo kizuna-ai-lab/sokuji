@@ -434,11 +434,32 @@ function removeBundle(userDataDir, sku) {
   fs.rmSync(bundleInstallDir(userDataDir, sku), { recursive: true, force: true });
 }
 
+// What the installed bundle takes on disk, in bytes (B-19: Models and storage names it beside Remove). Walked
+// asynchronously — the tree holds thousands of files; a link counts as itself, never followed; 0 when nothing is
+// installed.
+async function installedBytes(userDataDir, sku) {
+  const walk = async (dir) => {
+    let entries;
+    try { entries = await fs.promises.readdir(dir, { withFileTypes: true }); }
+    catch { return 0; }
+    let total = 0;
+    for (const e of entries) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) total += await walk(p);
+      else {
+        try { total += (await fs.promises.lstat(p)).size; } catch { /* gone meanwhile */ }
+      }
+    }
+    return total;
+  };
+  return walk(bundleInstallDir(userDataDir, sku));
+}
+
 module.exports = {
   archiveName, bundleInstallDir, bundleStatus, pickBundle,
   verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
+  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs, installedBytes,
   // Exported for sidecar-sku.consistency.test.js only (nothing in the app reads
   // it from outside this file): the test proves this hand-maintained mirror
   // still equals detectSku's real output set.

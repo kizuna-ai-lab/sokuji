@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Mô hình dịch thuật hiện tại không hỗ trợ prompt tùy chỉnh. Chuyển sang mô hình thuộc dòng Qwen trong Quản lý Mô hình để kích hoạt.",
     "localPromptNoThinkHint": "Với các mô hình Qwen3, ` /no_think` sẽ được tự động thêm vào.",
     "participantInstructionsPlaceholder": "Để trống để dùng hướng dẫn chính",
-    "webgpuNotSupported": "Không khả dụng trong môi trường hiện tại",
-    "langMismatch": "Ngôn ngữ không khớp",
     "localInferenceTurnDetectionTooltip": "Tự động: phát hiện hoạt động giọng nói cục bộ tự động nhận diện giọng nói. \nNhấn để nói: giữ phím Space hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
-    "noAsrModel": "Không có mô hình Nhận dạng giọng nói (ASR) cho {{language}}",
-    "noTranslationModel": "Không có mô hình dịch cho {{source}} → {{target}}",
     "noTtsModel": "Không có mô hình Tổng hợp giọng nói (TTS) cho {{language}}",
     "ttsNone": "Không (chỉ văn bản)",
     "ttsSettings": "Cài đặt Tổng hợp giọng nói (TTS)",
@@ -846,7 +842,6 @@
     "ready": "Công cụ {{version}}",
     "onDisk": "{{size}} trên ổ đĩa",
     "remove": "Gỡ công cụ",
-    "removeConfirm": "Gỡ công cụ và giải phóng dung lượng ổ đĩa?",
     "unsupported": "Suy luận cục bộ không được hỗ trợ trên thiết bị này",
     "installHint": "Cài đặt công cụ để duyệt và tải xuống mô hình",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Thử lại",
     "showAllAsr": "Hiện tất cả mô hình Nhận dạng giọng nói (ASR) ({{count}})",
     "showAll": "Hiện tất cả mô hình dịch ({{count}})",
-    "showAllTts": "Hiện tất cả mô hình Tổng hợp giọng nói (TTS) ({{count}})",
     "hideOther": "Ẩn các mô hình khác",
     "clearAll": "Xóa tất cả",
     "confirmClearAll": "Xóa tất cả mô hình?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "Không có tăng tốc GPU",
     "gpuSlowWarning": "Các mô hình cục bộ vẫn hoạt động, nhưng việc phiên âm và dịch sẽ chậm hơn đáng kể.",
     "gpuWaylandRemedy": "Trong phiên Wayland, Chromium không thể dùng GPU cho việc này. Khởi chạy Sokuji với --ozone-platform=x11 sẽ khôi phục tăng tốc.",
-    "incompatibleVariant": "Định dạng mô hình này không tương thích với thiết bị của bạn. Vui lòng xóa và tải lại.",
-    "initFailed": "Khởi tạo bộ nhớ mô hình thất bại: {{message}}",
     "othersGroup": "Mô hình khác",
     "requiresGpu": "Yêu cầu GPU",
-    "upgradeVariant": "Thiết bị của bạn hỗ trợ định dạng mô hình nhanh hơn. Xóa và tải lại để có hiệu năng tốt hơn.",
     "licenseConsent": {
       "title": "Giấy phép phi thương mại",
       "restrictedTitle": "Giấy phép hạn chế",
@@ -970,11 +961,9 @@
         "turn": "Kết thúc lượt",
         "punctuation": "Câu và dấu câu",
         "readings": "Cách đọc",
-        "voice": "Giọng"
+        "voice": "Giọng",
+        "engine": "Máy tính"
       },
-      "manyLanguages": "Nhiều ngôn ngữ",
-      "languages": "{{count}} ngôn ngữ",
-      "direct": "cũng có thể cho bản dịch trực tiếp",
       "downloading": "Đang tải {{percent}}%",
       "failed": "Tải xuống thất bại",
       "cannotRun": "Máy tính này không chạy được",
@@ -994,7 +983,12 @@
       "voicesTitle": "Giọng đã nhập",
       "voicesHint": "Các tệp giọng Supertonic bạn đã nhập.",
       "importedOn": "Đã nhập ngày {{date}}",
-      "more": "Thêm {{count}}"
+      "more": "Thêm {{count}}",
+      "engineTitle": "Công cụ cục bộ",
+      "engineHint": "Công cụ máy tính mà các phiên bản trước đã tải về để chạy mô hình trên máy này. Dịch vụ “Thiết bị này” không còn dùng nó nữa; hãy gỡ bỏ để giải phóng dung lượng.",
+      "remove": "Gỡ bỏ",
+      "engineConfirm": "Gỡ bỏ công cụ cục bộ?",
+      "engineFrees": "Giải phóng {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Tự động · {{name}}",
     "autoOptionNone": "Tự động",
     "browseLibrary": "Duyệt thư viện",
-    "storageUsedLine": "Bộ nhớ: đã dùng {{summary}}",
-    "manageStorage": "Quản lý",
-    "back": "Quay lại",
-    "titleLibrary": "Thư viện · {{stage}}",
-    "titleStorage": "Bộ nhớ",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "Đang sử dụng",
     "estimated": "Ước tính",
     "translationOnCpu": "Dịch trên CPU — không đủ VRAM",
     "availableWhenLang": "Đã tải xuống. Khả dụng khi ngôn ngữ của bạn là {{lang}}.",
     "deleteConfirm": "Xóa {{name}}?",
     "deleteFallsBack": "Xóa {{name}}: {{stage}} sẽ chuyển về {{to}}.",
     "deleteNoModel": "Xóa {{name}}: không còn mô hình {{stage}} nào — không thể bắt đầu phiên.",
-    "clearAllKeepsPicks": "Lựa chọn của bạn được ghi nhớ và sẽ quay lại khi mô hình được tải xuống lần nữa.",
-    "importChooseModel": "Chọn một mô hình để nhập"
+    "clearAllKeepsPicks": "Lựa chọn của bạn được ghi nhớ và sẽ quay lại khi mô hình được tải xuống lần nữa."
   },
   "setup": {
     "title": "Cài đặt Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Phiên âm và dịch",
       "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
       "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
-      "localNone": "Chạy trên máy này; chưa tải mô hình nào"
+      "localNone": "Chạy trên máy này; chưa tải mô hình nào",
+      "soniox": {
+        "byRegion": "Khóa theo khu vực",
+        "keySaved": "đã lưu khóa",
+        "noKey": "chưa có khóa",
+        "selected": "(đang chọn)",
+        "save": "Lưu và tìm khu vực",
+        "finding": "Đang tìm khu vực của khóa này…",
+        "savedFor": "Khóa này thuộc {{region}}: đã lưu ở đó.",
+        "unreachable": "Không hỏi được Soniox khóa này thuộc khu vực nào; đã lưu cho {{region}}, khu vực đang chọn.",
+        "refused": "Không khu vực nào của Soniox chấp nhận khóa này. Hãy kiểm tra đó có phải là khóa API của Soniox không.",
+        "elsewhere": "Đang chọn {{selected}}, nhưng khóa của bạn thuộc {{region}}.",
+        "switchTo": "Chuyển sang {{region}}",
+        "keyWorks": "khóa dùng được",
+        "keyRefused": "khóa bị từ chối",
+        "keyUnverified": "đã lưu khóa, chưa xác minh",
+        "remove": "Xóa",
+        "removeFor": "Xóa khóa của {{region}}"
+      }
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1830,7 +1835,11 @@
         "needsKey": "Cần khóa",
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
-        "ready": "Sẵn sàng"
+        "ready": "Sẵn sàng",
+        "noKeyForRegion": "Không có khóa dùng được cho {{region}}",
+        "keyRefused": "Khóa không được chấp nhận",
+        "keyNotVerified": "Chưa xác minh khóa",
+        "checkingKey": "Đang kiểm tra khóa…"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",
@@ -1901,7 +1910,8 @@
         "caption": "Âm thanh đi đâu. Đường sáng là đang bật, đường nét đứt là tắt; thay đổi theo các công tắc bên dưới.",
         "translate": "Dịch",
         "speech": "Tạo giọng nói",
-        "ariaSteps": "Âm thanh đi đâu: điều tôi nói được dịch, rồi chuyển thành giọng nói đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được dịch, rồi chuyển thành giọng nói phát trên thiết bị phát của tôi. Khi tắt công tắc giọng nói, bản dịch vẫn được tạo nhưng không được đọc."
+        "ariaSteps": "Âm thanh đi đâu: điều tôi nói được dịch, rồi chuyển thành giọng nói đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được dịch, rồi chuyển thành giọng nói phát trên thiết bị phát của tôi. Khi tắt công tắc giọng nói, bản dịch vẫn được tạo nhưng không được đọc.",
+        "goTo": "Đi tới cài đặt “{{name}}”"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Tạm dừng",
     "position": "Vị trí",
     "speed": "Tốc độ",
+    "cannotPlay": "Không thể phát bản ghi này",
     "playFromHere": "Phát từ đây",
     "saveRecording": "Lưu bản ghi âm (.opus)",
     "saveRecordingFailed": "Không lưu được bản ghi âm.",

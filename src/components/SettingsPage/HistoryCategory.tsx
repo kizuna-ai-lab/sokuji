@@ -144,6 +144,18 @@ export function HistoryCategory(_props: CategoryBodyProps) {
     );
   }
 
+  // The first-time explanation, right under the switch that asked for it.
+  const explanation = explaining && (
+    <div className="history-category__explain" role="group" aria-label={explainTitle}>
+      <strong>{explainTitle}</strong>
+      <p>{notesExplanation(t, service, explaining)}</p>
+      <div className="history-category__explain-actions">
+        <button type="button" className="model-row__btn" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
+        <button type="button" className="model-row__btn model-row__btn--primary" onClick={() => void turnOn()}>{t('history.notesTurnOn', 'Turn on')}</button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="general-category history-category">
       <div className="general-list">
@@ -160,19 +172,11 @@ export function HistoryCategory(_props: CategoryBodyProps) {
         <Row name={notesName} line={t('history.notesLine', 'When a session ends, {{service}} writes its notes from the transcript.', { service: serviceName })}>
           <ToggleSwitch checked={notesOn} onChange={flipNotes} label="" ariaLabel={notesName} />
         </Row>
+        {explaining === 'after' && explanation}
         <Row name={liveName} line={t('history.liveLine', 'During a session, {{service}} keeps short notes every 20 seconds beside the conversation. They are not kept.', { service: serviceName })}>
           <ToggleSwitch checked={liveOn} onChange={flipLive} label="" ariaLabel={liveName} />
         </Row>
-        {explaining && (
-          <div className="history-category__explain" role="group" aria-label={explainTitle}>
-            <strong>{explainTitle}</strong>
-            <p>{notesExplanation(t, service, explaining)}</p>
-            <div className="history-category__explain-actions">
-              <button type="button" className="model-row__btn" onClick={() => setExplaining(null)}>{t('history.cancel', 'Cancel')}</button>
-              <button type="button" className="model-row__btn model-row__btn--primary" onClick={() => void turnOn()}>{t('history.notesTurnOn', 'Turn on')}</button>
-            </div>
-          </div>
-        )}
+        {explaining === 'live' && explanation}
         {service === KIZUNA_NOTES ? (
           // Kizuna AI writes with the one model its relay allows: nothing to choose.
           <Row name={modelName} line={t('history.notesModelKizuna', 'Kizuna AI writes the notes with {{model}}.', { model: RELAY_NOTES_MODEL })}>{null}</Row>

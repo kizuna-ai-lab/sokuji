@@ -151,11 +151,7 @@
     "localPromptUnsupported": "현재 번역 모델은 맞춤 프롬프트를 지원하지 않습니다. 모델 관리에서 Qwen 계열 모델로 전환하면 사용 가능합니다.",
     "localPromptNoThinkHint": "Qwen3 모델의 경우 ` /no_think`이 자동으로 추가됩니다.",
     "participantInstructionsPlaceholder": "기본 지시를 사용하려면 비워 두세요",
-    "webgpuNotSupported": "현재 환경에서 사용할 수 없음",
-    "langMismatch": "언어 불일치",
     "localInferenceTurnDetectionTooltip": "자동: 로컬 음성 활동 감지가 자동으로 음성을 감지합니다. \n푸시 투 토크: 스페이스 또는 마이크 버튼을 눌러 오디오를 수동으로 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
-    "noAsrModel": "{{language}}용 음성 인식(ASR) 모델 없음",
-    "noTranslationModel": "{{source}} → {{target}} 번역 모델 없음",
     "noTtsModel": "{{language}}용 음성 합성(TTS) 모델 없음",
     "ttsNone": "없음 (텍스트만)",
     "ttsSettings": "음성 합성(TTS) 설정",
@@ -846,7 +842,6 @@
     "ready": "엔진 {{version}}",
     "onDisk": "디스크에 {{size}}",
     "remove": "엔진 제거",
-    "removeConfirm": "엔진을 제거하고 디스크 공간을 확보하시겠습니까?",
     "unsupported": "이 장치에서는 로컬 추론을 지원하지 않습니다",
     "installHint": "모델을 찾아보고 다운로드하려면 엔진을 설치하세요",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "재시도",
     "showAllAsr": "모든 음성 인식(ASR) 모델 표시 ({{count}})",
     "showAll": "모든 번역 모델 표시 ({{count}})",
-    "showAllTts": "모든 음성 합성(TTS) 모델 표시 ({{count}})",
     "hideOther": "다른 모델 숨기기",
     "clearAll": "모두 삭제",
     "confirmClearAll": "모든 모델을 삭제하시겠습니까?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "GPU 가속을 사용할 수 없음",
     "gpuSlowWarning": "로컬 모델은 계속 작동하지만 전사와 번역이 눈에 띄게 느려집니다.",
     "gpuWaylandRemedy": "Wayland 세션에서는 Chromium이 이 작업에 GPU를 사용할 수 없습니다. --ozone-platform=x11 옵션으로 Sokuji를 실행하면 가속이 복원됩니다.",
-    "incompatibleVariant": "이 모델 형식은 사용 중인 장치와 호환되지 않습니다. 삭제 후 다시 다운로드하세요.",
-    "initFailed": "모델 저장소 초기화에 실패했습니다: {{message}}",
     "othersGroup": "기타 모델",
     "requiresGpu": "GPU 필요",
-    "upgradeVariant": "이 장치는 더 빠른 모델 형식을 지원합니다. 성능 향상을 위해 삭제 후 다시 다운로드하세요.",
     "licenseConsent": {
       "title": "비상업 라이선스",
       "restrictedTitle": "제한적 라이선스",
@@ -970,11 +961,9 @@
         "turn": "말 끝",
         "punctuation": "문장과 문장 부호",
         "readings": "읽는 법",
-        "voice": "목소리"
+        "voice": "목소리",
+        "engine": "데스크톱"
       },
-      "manyLanguages": "여러 언어",
-      "languages": "{{count}}개 언어",
-      "direct": "번역도 바로 낼 수 있음",
       "downloading": "다운로드 중 {{percent}}%",
       "failed": "다운로드 실패",
       "cannotRun": "이 컴퓨터에서는 실행할 수 없음",
@@ -994,7 +983,12 @@
       "voicesTitle": "가져온 목소리",
       "voicesHint": "직접 가져온 Supertonic 목소리 파일입니다.",
       "importedOn": "{{date}}에 가져옴",
-      "more": "{{count}}개 더"
+      "more": "{{count}}개 더",
+      "engineTitle": "로컬 엔진",
+      "engineHint": "이전 버전이 이 컴퓨터에서 모델을 실행하려고 내려받은 데스크톱 엔진입니다. 지금의 \"이 기기\" 서비스는 이를 사용하지 않으니, 제거하면 공간이 확보됩니다.",
+      "remove": "제거",
+      "engineConfirm": "로컬 엔진을 제거할까요?",
+      "engineFrees": "{{size}}가 확보됩니다."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "자동 · {{name}}",
     "autoOptionNone": "자동",
     "browseLibrary": "라이브러리 보기",
-    "storageUsedLine": "저장 공간: {{summary}} 사용 중",
-    "manageStorage": "관리",
-    "back": "뒤로",
-    "titleLibrary": "라이브러리 · {{stage}}",
-    "titleStorage": "저장 공간",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "사용 중",
     "estimated": "예상",
     "translationOnCpu": "CPU에서 번역 — VRAM 부족",
     "availableWhenLang": "다운로드됨. 언어가 {{lang}}일 때 사용할 수 있습니다.",
     "deleteConfirm": "{{name}}을(를) 삭제하시겠습니까?",
     "deleteFallsBack": "{{name}} 삭제 시 {{stage}}이(가) {{to}}(으)로 대체됩니다.",
     "deleteNoModel": "{{name}} 삭제 시 {{stage}} 모델이 남지 않아 세션을 시작할 수 없습니다.",
-    "clearAllKeepsPicks": "선택 항목은 저장되며, 모델을 다시 다운로드하면 복원됩니다.",
-    "importChooseModel": "가져올 모델 선택"
+    "clearAllKeepsPicks": "선택 항목은 저장되며, 모델을 다시 다운로드하면 복원됩니다."
   },
   "setup": {
     "title": "Sokuji 설정",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "받아쓰기와 번역",
       "signedInBalance": "로그인됨, 잔액 {{amount}}",
       "localModels": "이 컴퓨터에서 실행됩니다. 모델 {{count}}개 다운로드됨, 모두 {{size}}",
-      "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다"
+      "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다",
+      "soniox": {
+        "byRegion": "지역별 키",
+        "keySaved": "키 저장됨",
+        "noKey": "키 없음",
+        "selected": "(선택됨)",
+        "save": "저장하고 지역 찾기",
+        "finding": "이 키의 지역을 찾는 중…",
+        "savedFor": "이 키는 {{region}}의 키입니다. 그곳에 저장했습니다.",
+        "unreachable": "이 키가 어느 지역의 키인지 Soniox에 확인할 수 없었습니다. 현재 선택한 지역({{region}})에 저장했습니다.",
+        "refused": "이 키를 받는 Soniox 지역이 없습니다. Soniox API 키인지 확인하세요.",
+        "elsewhere": "{{selected}}이(가) 선택되어 있지만 키는 {{region}}의 키입니다.",
+        "switchTo": "{{region}}(으)로 전환",
+        "keyWorks": "키 사용 가능",
+        "keyRefused": "키 거부됨",
+        "keyUnverified": "저장됨, 아직 확인 안 됨",
+        "remove": "삭제",
+        "removeFor": "{{region}} 키 삭제"
+      }
     },
     "lineup": {
       "title": "구성",
@@ -1830,7 +1835,11 @@
         "needsKey": "키 필요",
         "needsModel": "모델 필요",
         "needsSignIn": "로그인 필요",
-        "ready": "준비됨"
+        "ready": "준비됨",
+        "noKeyForRegion": "{{region}}에서 쓸 수 있는 키가 없음",
+        "keyRefused": "키가 거부됨",
+        "keyNotVerified": "키 확인 안 됨",
+        "checkingKey": "키 확인 중…"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",
@@ -1901,7 +1910,8 @@
         "caption": "소리가 가는 길. 밝은 선은 지금 켜져 있고 점선은 꺼져 있습니다. 아래 스위치를 따라 바뀝니다.",
         "translate": "번역",
         "speech": "음성 생성",
-        "ariaSteps": "소리가 가는 길: 내가 한 말은 번역된 뒤 음성으로 바뀌어 상대방을 위한 가상 마이크로 가고, 내가 같이 들으면 내 쪽에서도 재생됩니다. 상대방이 한 말은 번역된 뒤 음성으로 바뀌어 내 재생 장치에서 재생됩니다. 음성 스위치가 꺼져 있으면 번역만 하고 음성으로는 만들지 않습니다."
+        "ariaSteps": "소리가 가는 길: 내가 한 말은 번역된 뒤 음성으로 바뀌어 상대방을 위한 가상 마이크로 가고, 내가 같이 들으면 내 쪽에서도 재생됩니다. 상대방이 한 말은 번역된 뒤 음성으로 바뀌어 내 재생 장치에서 재생됩니다. 음성 스위치가 꺼져 있으면 번역만 하고 음성으로는 만들지 않습니다.",
+        "goTo": "'{{name}}' 설정으로 이동"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "일시정지",
     "position": "재생 위치",
     "speed": "속도",
+    "cannotPlay": "이 녹음은 재생할 수 없습니다",
     "playFromHere": "여기서부터 재생",
     "saveRecording": "녹음 저장(.opus)",
     "saveRecordingFailed": "녹음을 저장할 수 없습니다.",

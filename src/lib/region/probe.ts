@@ -21,10 +21,12 @@ export interface ProbeDeps {
   signal?: AbortSignal;
 }
 
-export const PROBE_ROUNDS = 5;
+/** Timed rounds after the warm-up (owner, 2026-11-17: 3, not 5 — 16 requests a measurement for Soniox's 4 regions). */
+export const PROBE_ROUNDS = 3;
 export const PROBE_GAP_MS = 200;
 export const PROBE_TIMEOUT_MS = 3000;
-export const PROBE_MIN_SUCCESSES = 3;
+/** A region needs most of its rounds answered to have a median: one lost request out of 3 still measures. */
+export const PROBE_MIN_SUCCESSES = 2;
 
 /** One timed request; the elapsed ms, or null on rejection or timeout. */
 async function probeOnce(url: string, deps: ProbeDeps): Promise<number | null> {

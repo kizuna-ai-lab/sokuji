@@ -463,7 +463,7 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(document.querySelector('.setting-row__voice')).toBeNull();
   });
 
-  it("for a provider whose voices sit in its engine, the name opens that leg's TTS slot in the provider's options (#619)", () => {
+  it("for a provider whose voices sit with its engine, the name opens its voices in the line-up's speech card (B-20)", () => {
     useProviderStore.setState({
       selected: 'local_inference',
       entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { edge: 'en-US-AvaNeural' } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
@@ -473,8 +473,8 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     mount();
     fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Ava' }));
     expect(useSettingsStore.getState().uiMode).toBe('basic');
-    expect(useSettingsStore.getState().engineSlotTarget).toEqual({ dir: 'ja→en', stage: 'tts' });
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');
+    expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('local-voices');
   });
 });
 
@@ -591,5 +591,35 @@ describe('SpeechOutputSection — where the sound goes', () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     mount();
     expect(document.querySelector('.sound-flow')).toBeNull();
+  });
+
+  // B-28: the drawing names passthrough's volume while it is off, as its row's slider shows it.
+  it("names passthrough's volume while it is off", () => {
+    useAudioStore.setState({ isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.35 });
+    mount();
+    const flow = document.querySelector('.sound-flow')!;
+    expect(flow.querySelector('[data-leg="passthrough"]')).toHaveClass('is-off');
+    expect(flow.textContent).toContain('Passthrough 35%');
+  });
+
+  // B-27: each part of the drawing with a row below takes you to that row; the page scrolls to `#<target>-section`.
+  it('takes each part to its setting: the microphone, the other side\'s voice, and the four rows by their own anchors', () => {
+    useAudioStore.setState({ mode: 'both' });
+    useSettingsStore.setState({ settingsNavigationTarget: null });
+    mount();
+    const go = (name: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `Go to the “${name}” setting` }));
+      return useSettingsStore.getState().settingsNavigationTarget;
+    };
+    expect(go('My microphone')).toBe('microphone');
+    expect(go("The other side's voice")).toBe('participant');
+    expect(go('Translation the other side hears')).toBe('speech-other-hears');
+    expect(go('I hear it too')).toBe('speech-me-too');
+    expect(go('Passthrough')).toBe('speech-passthrough');
+    expect(go('Translation I hear')).toBe('speech-i-hear');
+    expect(document.getElementById('speech-other-hears-section')).toBe(row('Translation the other side hears'));
+    expect(document.getElementById('speech-me-too-section')).toBe(row('I hear it too'));
+    expect(document.getElementById('speech-passthrough-section')).toBe(row('Passthrough'));
+    expect(document.getElementById('speech-i-hear-section')).toBe(row('Translation I hear'));
   });
 });

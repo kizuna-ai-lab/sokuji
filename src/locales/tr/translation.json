@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Mevcut çeviri modeli özel prompt'ları desteklemiyor. Etkinleştirmek için Model Yönetimi'nde Qwen ailesinin bir modeline geçin.",
     "localPromptNoThinkHint": "Qwen3 modelleri için ` /no_think` otomatik olarak eklenecektir.",
     "participantInstructionsPlaceholder": "Ana talimatları kullanmak için boş bırakın",
-    "webgpuNotSupported": "Mevcut ortamda kullanılamaz",
-    "langMismatch": "Dil uyuşmazlığı",
     "localInferenceTurnDetectionTooltip": "Otomatik: yerel ses etkinliği algılama, konuşmayı otomatik olarak algılar. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
-    "noAsrModel": "{{language}} için Konuşma tanıma (ASR) modeli yok",
-    "noTranslationModel": "{{source}} → {{target}} için çeviri modeli yok",
     "noTtsModel": "{{language}} için Konuşma sentezi (TTS) modeli yok",
     "ttsNone": "Yok (yalnızca metin)",
     "ttsSettings": "Konuşma sentezi (TTS) Ayarları",
@@ -846,7 +842,6 @@
     "ready": "Motor {{version}}",
     "onDisk": "diskte {{size}}",
     "remove": "Motoru kaldır",
-    "removeConfirm": "Motor kaldırılsın ve disk alanı boşaltılsın mı?",
     "unsupported": "Bu cihazda yerel çıkarım desteklenmiyor",
     "installHint": "Modellere göz atmak ve indirmek için motoru kurun",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Yeniden dene",
     "showAllAsr": "Tüm Konuşma tanıma (ASR) modellerini göster ({{count}})",
     "showAll": "Tüm çeviri modellerini göster ({{count}})",
-    "showAllTts": "Tüm Konuşma sentezi (TTS) modellerini göster ({{count}})",
     "hideOther": "Diğer modelleri gizle",
     "clearAll": "Tümünü temizle",
     "confirmClearAll": "Tüm modeller silinsin mi?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "GPU hızlandırma kullanılamıyor",
     "gpuSlowWarning": "Yerel modeller çalışmaya devam eder, ancak deşifre ve çeviri belirgin şekilde yavaşlar.",
     "gpuWaylandRemedy": "Wayland oturumunda Chromium bunun için GPU'yu kullanamaz. Sokuji'yi --ozone-platform=x11 ile başlatmak hızlandırmayı geri getirir.",
-    "incompatibleVariant": "Bu model formatı cihazınızla uyumlu değil. Lütfen silip yeniden indirin.",
-    "initFailed": "Model deposu başlatılamadı: {{message}}",
     "othersGroup": "Diğer modeller",
     "requiresGpu": "GPU gerektirir",
-    "upgradeVariant": "Cihazınız daha hızlı bir model formatını destekliyor. Daha iyi performans için silip yeniden indirin.",
     "licenseConsent": {
       "title": "Ticari olmayan lisans",
       "restrictedTitle": "Kısıtlı lisans",
@@ -970,11 +961,9 @@
         "turn": "Sıra sonu",
         "punctuation": "Cümleler ve noktalama",
         "readings": "Okunuş",
-        "voice": "Ses"
+        "voice": "Ses",
+        "engine": "Masaüstü"
       },
-      "manyLanguages": "Birçok dil",
-      "languages": "{{count}} dil",
-      "direct": "çeviriyi de doğrudan verebilir",
       "downloading": "İndiriliyor %{{percent}}",
       "failed": "İndirme başarısız",
       "cannotRun": "Bu bilgisayar çalıştıramaz",
@@ -994,7 +983,12 @@
       "voicesTitle": "İçe aktarılan sesler",
       "voicesHint": "İçe aktardığınız Supertonic ses dosyaları.",
       "importedOn": "{{date}} tarihinde içe aktarıldı",
-      "more": "{{count}} tane daha"
+      "more": "{{count}} tane daha",
+      "engineTitle": "Yerel motor",
+      "engineHint": "Önceki sürümlerin modelleri bu bilgisayarda çalıştırmak için indirdiği masaüstü motoru. “Bu cihaz” hizmeti artık bunu kullanmıyor; yer açmak için kaldırın.",
+      "remove": "Kaldır",
+      "engineConfirm": "Yerel motor kaldırılsın mı?",
+      "engineFrees": "{{size}} yer açılır."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Otomatik · {{name}}",
     "autoOptionNone": "Otomatik",
     "browseLibrary": "Kitaplığa göz at",
-    "storageUsedLine": "Depolama: {{summary}} kullanılıyor",
-    "manageStorage": "Yönet",
-    "back": "Geri",
-    "titleLibrary": "Kitaplık · {{stage}}",
-    "titleStorage": "Depolama",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "Kullanımda",
     "estimated": "Tahmini",
     "translationOnCpu": "CPU'da çeviri — yeterli VRAM yok",
     "availableWhenLang": "İndirildi. Diliniz {{lang}} olduğunda kullanılabilir.",
     "deleteConfirm": "{{name}} silinsin mi?",
     "deleteFallsBack": "{{name}} siliniyor: {{stage}} için {{to}} kullanılacak.",
     "deleteNoModel": "{{name}} siliniyor: {{stage}} için model kalmadı — oturumlar başlatılamaz.",
-    "clearAllKeepsPicks": "Seçimleriniz hatırlanır ve modeller tekrar indirildiğinde geri döner.",
-    "importChooseModel": "İçe aktarılacak modeli seçin"
+    "clearAllKeepsPicks": "Seçimleriniz hatırlanır ve modeller tekrar indirildiğinde geri döner."
   },
   "setup": {
     "title": "Sokuji kurulumu",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Döküm ve çeviri",
       "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
       "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
-      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi"
+      "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi",
+      "soniox": {
+        "byRegion": "Bölgeye göre anahtarlar",
+        "keySaved": "anahtar kayıtlı",
+        "noKey": "anahtar yok",
+        "selected": "(seçili)",
+        "save": "Kaydet ve bölgesini bul",
+        "finding": "Bu anahtarın bölgesi bulunuyor…",
+        "savedFor": "Bu anahtar {{region}} bölgesine ait: oraya kaydedildi.",
+        "unreachable": "Bu anahtarın hangi bölgeye ait olduğu Soniox’a sorulamadı; şu an seçili bölge olan {{region}} için kaydedildi.",
+        "refused": "Hiçbir Soniox bölgesi bu anahtarı kabul etmiyor. Bunun bir Soniox API anahtarı olduğunu kontrol edin.",
+        "elsewhere": "{{selected}} seçili, ancak anahtarınız {{region}} bölgesine ait.",
+        "switchTo": "{{region}} bölgesine geç",
+        "keyWorks": "anahtar çalışıyor",
+        "keyRefused": "anahtar reddedildi",
+        "keyUnverified": "anahtar kayıtlı, henüz doğrulanmadı",
+        "remove": "Kaldır",
+        "removeFor": "{{region}} anahtarını kaldır"
+      }
     },
     "lineup": {
       "title": "Düzen",
@@ -1830,7 +1835,11 @@
         "needsKey": "Anahtar gerekli",
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
-        "ready": "Hazır"
+        "ready": "Hazır",
+        "noKeyForRegion": "{{region}} için çalışan anahtar yok",
+        "keyRefused": "Anahtar kabul edilmedi",
+        "keyNotVerified": "Anahtar doğrulanmadı",
+        "checkingKey": "Anahtar kontrol ediliyor…"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",
@@ -1901,7 +1910,8 @@
         "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
         "translate": "Çeviri",
         "speech": "Seslendirme",
-        "ariaSteps": "Sesin gittiği yer: söylediğim çevrilir, sonra konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği çevrilir, sonra konuşmaya dönüşüp oynatma cihazımda çalar. Bir konuşma anahtarı kapalıyken çeviri yapılır ama seslendirilmez."
+        "ariaSteps": "Sesin gittiği yer: söylediğim çevrilir, sonra konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği çevrilir, sonra konuşmaya dönüşüp oynatma cihazımda çalar. Bir konuşma anahtarı kapalıyken çeviri yapılır ama seslendirilmez.",
+        "goTo": "“{{name}}” ayarına git"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Duraklat",
     "position": "Konum",
     "speed": "Hız",
+    "cannotPlay": "Bu kayıt oynatılamıyor",
     "playFromHere": "Buradan oynat",
     "saveRecording": "Ses kaydını kaydet (.opus)",
     "saveRecordingFailed": "Ses kaydı kaydedilemedi.",

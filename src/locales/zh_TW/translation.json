@@ -151,11 +151,7 @@
     "localPromptUnsupported": "當前翻譯模型不支援自訂提示詞。在「模型管理」中切換到 Qwen 系列模型後可用。",
     "localPromptNoThinkHint": "Qwen3 模型會自動追加 ` /no_think`。",
     "participantInstructionsPlaceholder": "留空則使用上方的主指令",
-    "webgpuNotSupported": "當前環境不可用",
-    "langMismatch": "語言不匹配",
     "localInferenceTurnDetectionTooltip": "自動：本地語音活動偵測自動識別語音。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
-    "noAsrModel": "沒有 {{language}} 的語音辨識（ASR）模型",
-    "noTranslationModel": "沒有 {{source}} → {{target}} 的翻譯模型",
     "noTtsModel": "沒有 {{language}} 的語音合成（TTS）模型",
     "ttsNone": "無（僅文字）",
     "ttsSettings": "語音合成（TTS）設定",
@@ -846,7 +842,6 @@
     "ready": "引擎 {{version}}",
     "onDisk": "佔用磁碟 {{size}}",
     "remove": "刪除引擎",
-    "removeConfirm": "刪除引擎並釋放磁碟空間?",
     "unsupported": "此裝置不支援本機推理",
     "installHint": "安裝引擎後可瀏覽和下載模型",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "重試",
     "showAllAsr": "顯示所有語音辨識（ASR）模型（{{count}}）",
     "showAll": "顯示所有翻譯模型（{{count}}）",
-    "showAllTts": "顯示所有語音合成（TTS）模型（{{count}}）",
     "hideOther": "隱藏其他模型",
     "clearAll": "全部清除",
     "confirmClearAll": "刪除所有模型？",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "GPU 加速不可用",
     "gpuSlowWarning": "本機模型仍可使用，但轉錄與翻譯會明顯變慢。",
     "gpuWaylandRemedy": "在 Wayland 工作階段中 Chromium 無法使用 GPU。使用 --ozone-platform=x11 啟動 Sokuji 可恢復加速。",
-    "incompatibleVariant": "此模型格式與您的裝置不相容。請刪除後重新下載。",
-    "initFailed": "模型儲存空間初始化失敗：{{message}}",
     "othersGroup": "其他模型",
     "requiresGpu": "需要 GPU",
-    "upgradeVariant": "您的裝置支援更快的模型格式。刪除後重新下載可獲得更佳效能。",
     "licenseConsent": {
       "title": "非商業授權",
       "restrictedTitle": "受限授權",
@@ -970,11 +961,9 @@
         "turn": "斷句",
         "punctuation": "分句和標點",
         "readings": "注音",
-        "voice": "音色"
+        "voice": "音色",
+        "engine": "桌面版"
       },
-      "manyLanguages": "多語言",
-      "languages": "{{count}} 種語言",
-      "direct": "也能直接出譯文",
       "downloading": "下載中 {{percent}}%",
       "failed": "下載失敗",
       "cannotRun": "這台電腦跑不了",
@@ -994,7 +983,12 @@
       "voicesTitle": "匯入的音色",
       "voicesHint": "自己匯入的 Supertonic 音色檔案。",
       "importedOn": "匯入於 {{date}}",
-      "more": "還有 {{count}} 個"
+      "more": "還有 {{count}} 個",
+      "engineTitle": "本機引擎",
+      "engineHint": "早期版本為在本機執行模型而下載的桌面引擎。現在的「本機」服務不再使用它，移除即可釋放空間。",
+      "remove": "移除",
+      "engineConfirm": "移除本機引擎？",
+      "engineFrees": "可釋放 {{size}}。"
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "自動 · {{name}}",
     "autoOptionNone": "自動",
     "browseLibrary": "瀏覽模型庫",
-    "storageUsedLine": "儲存空間：已使用 {{summary}}",
-    "manageStorage": "管理",
-    "back": "返回",
-    "titleLibrary": "模型庫 · {{stage}}",
-    "titleStorage": "儲存空間",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "使用中",
     "estimated": "預估",
     "translationOnCpu": "翻譯於 CPU 執行 — VRAM 不足",
     "availableWhenLang": "已下載。當您的語言為 {{lang}} 時可使用。",
     "deleteConfirm": "要刪除 {{name}} 嗎？",
     "deleteFallsBack": "刪除 {{name}}：{{stage}}將改用 {{to}}。",
     "deleteNoModel": "刪除 {{name}}：已無可用的{{stage}}模型 — 無法開始會話。",
-    "clearAllKeepsPicks": "您的選擇會被記住，再次下載模型後會自動套用。",
-    "importChooseModel": "選擇要匯入的模型"
+    "clearAllKeepsPicks": "您的選擇會被記住，再次下載模型後會自動套用。"
   },
   "setup": {
     "title": "設定 Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "轉寫並翻譯",
       "signedInBalance": "已登入，餘額 {{amount}}",
       "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
-      "localNone": "在這台電腦上執行；還沒有下載模型"
+      "localNone": "在這台電腦上執行；還沒有下載模型",
+      "soniox": {
+        "byRegion": "各區域的金鑰",
+        "keySaved": "已儲存金鑰",
+        "noKey": "沒有金鑰",
+        "selected": "（目前）",
+        "save": "儲存並辨識區域",
+        "finding": "正在辨識這個金鑰屬於哪個區域…",
+        "savedFor": "這個金鑰屬於 {{region}}，已存到那裡。",
+        "unreachable": "無法向 Soniox 確認這個金鑰屬於哪個區域；已存到目前選擇的區域：{{region}}。",
+        "refused": "Soniox 的所有區域都不接受這個金鑰。請確認它是 Soniox 的 API 金鑰。",
+        "elsewhere": "目前選擇的是 {{selected}}，但你的金鑰屬於 {{region}}。",
+        "switchTo": "切換到 {{region}}",
+        "keyWorks": "金鑰可用",
+        "keyRefused": "金鑰被拒絕",
+        "keyUnverified": "已儲存，未驗證",
+        "remove": "移除",
+        "removeFor": "移除 {{region}} 的金鑰"
+      }
     },
     "lineup": {
       "title": "工作階段組成",
@@ -1830,7 +1835,11 @@
         "needsKey": "需要金鑰",
         "needsModel": "需要模型",
         "needsSignIn": "需要登入",
-        "ready": "就緒"
+        "ready": "就緒",
+        "noKeyForRegion": "{{region}} 沒有可用的金鑰",
+        "keyRefused": "金鑰無法使用",
+        "keyNotVerified": "金鑰未驗證",
+        "checkingKey": "正在驗證金鑰…"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
       "hint": "每個階段由哪個服務來做",
@@ -1901,7 +1910,8 @@
         "caption": "聲音走向。亮著的線是現在開著的，虛線是關著的；隨下面的開關變。",
         "translate": "翻譯",
         "speech": "生成語音",
-        "ariaSteps": "聲音走向：我說的話先翻譯，再生成語音，送進虛擬麥克風給對方，我也聽時在我這邊也放；對方說的話先翻譯，再生成語音，從我的播放裝置放出來。語音開關關著時，只翻譯，不生成語音。"
+        "ariaSteps": "聲音走向：我說的話先翻譯，再生成語音，送進虛擬麥克風給對方，我也聽時在我這邊也放；對方說的話先翻譯，再生成語音，從我的播放裝置放出來。語音開關關著時，只翻譯，不生成語音。",
+        "goTo": "前往「{{name}}」設定"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "暫停",
     "position": "播放位置",
     "speed": "倍速",
+    "cannotPlay": "這段錄音無法播放",
     "playFromHere": "從這裡播放",
     "saveRecording": "儲存錄音（.opus）",
     "saveRecordingFailed": "無法儲存錄音。",

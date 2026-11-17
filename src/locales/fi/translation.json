@@ -151,11 +151,7 @@
     "localPromptUnsupported": "Nykyinen käännösmalli ei tue mukautettuja prompteja. Siirry Qwen-perheen malliin mallienhallinnassa ottaaksesi sen käyttöön.",
     "localPromptNoThinkHint": "Qwen3-malleille ` /no_think` lisätään automaattisesti.",
     "participantInstructionsPlaceholder": "Jätä tyhjäksi käyttääksesi pääohjeita",
-    "webgpuNotSupported": "Ei saatavilla nykyisessä ympäristössä",
-    "langMismatch": "Kieliristiriita",
     "localInferenceTurnDetectionTooltip": "Auto: paikallinen ääniaktiivisuuden tunnistus havaitsee puheen automaattisesti. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
-    "noAsrModel": "Ei Puheentunnistus (ASR)-mallia kielelle {{language}}",
-    "noTranslationModel": "Ei käännösmallia kielille {{source}} → {{target}}",
     "noTtsModel": "Ei Puhesynteesi (TTS)-mallia kielelle {{language}}",
     "ttsNone": "Ei mitään (vain teksti)",
     "ttsSettings": "Puhesynteesi (TTS)-asetukset",
@@ -846,7 +842,6 @@
     "ready": "Moottori {{version}}",
     "onDisk": "{{size}} levyllä",
     "remove": "Poista moottori",
-    "removeConfirm": "Poistetaanko moottori ja vapautetaanko levytilaa?",
     "unsupported": "Paikallista päättelyä ei tueta tällä laitteella",
     "installHint": "Asenna moottori selataksesi ja ladataksesi malleja",
     "status": {
@@ -905,7 +900,6 @@
     "retry": "Yritä uudelleen",
     "showAllAsr": "Näytä kaikki Puheentunnistus (ASR)-mallit ({{count}})",
     "showAll": "Näytä kaikki käännösmallit ({{count}})",
-    "showAllTts": "Näytä kaikki Puhesynteesi (TTS)-mallit ({{count}})",
     "hideOther": "Piilota muut mallit",
     "clearAll": "Tyhjennä kaikki",
     "confirmClearAll": "Poista kaikki mallit?",
@@ -941,11 +935,8 @@
     "gpuUnavailable": "GPU-kiihdytys ei ole käytettävissä",
     "gpuSlowWarning": "Paikalliset mallit toimivat edelleen, mutta litterointi ja kääntäminen ovat huomattavasti hitaampia.",
     "gpuWaylandRemedy": "Wayland-istunnossa Chromium ei voi käyttää näytönohjainta tähän. Sokujin käynnistäminen valitsimella --ozone-platform=x11 palauttaa kiihdytyksen.",
-    "incompatibleVariant": "Tämä malliformaatti ei ole yhteensopiva laitteesi kanssa. Poista se ja lataa uudelleen.",
-    "initFailed": "Mallien tallennustilan alustus epäonnistui: {{message}}",
     "othersGroup": "Muut mallit",
     "requiresGpu": "Vaatii GPU:n",
-    "upgradeVariant": "Laitteesi tukee nopeampaa malliformaattia. Poista ja lataa uudelleen paremman suorituskyvyn saamiseksi.",
     "licenseConsent": {
       "title": "Ei-kaupallinen lisenssi",
       "restrictedTitle": "Rajoitettu lisenssi",
@@ -970,11 +961,9 @@
         "turn": "Vuoron loppu",
         "punctuation": "Virkkeet ja välimerkit",
         "readings": "Lukutavat",
-        "voice": "Ääni"
+        "voice": "Ääni",
+        "engine": "Työpöytä"
       },
-      "manyLanguages": "Monta kieltä",
-      "languages": "{{count}} kieltä",
-      "direct": "voi antaa myös käännöksen suoraan",
       "downloading": "Ladataan {{percent}} %",
       "failed": "Lataus epäonnistui",
       "cannotRun": "Tämä tietokone ei pysty ajamaan sitä",
@@ -994,7 +983,12 @@
       "voicesTitle": "Tuodut äänet",
       "voicesHint": "Tuomasi Supertonic-äänitiedostot.",
       "importedOn": "Tuotu {{date}}",
-      "more": "{{count}} lisää"
+      "more": "{{count}} lisää",
+      "engineTitle": "Paikallinen moottori",
+      "engineHint": "Työpöytämoottori, jonka aiemmat versiot latasivat mallien ajamiseen tällä tietokoneella. Palvelu ”Tämä laite” ei enää käytä sitä; poista se vapauttaaksesi tilaa.",
+      "remove": "Poista",
+      "engineConfirm": "Poistetaanko paikallinen moottori?",
+      "engineFrees": "Vapauttaa {{size}}."
     }
   },
   "notes": {
@@ -1285,21 +1279,14 @@
     "autoValue": "Automaattinen · {{name}}",
     "autoOptionNone": "Automaattinen",
     "browseLibrary": "Selaa kirjastoa",
-    "storageUsedLine": "Tallennustila: {{summary}} käytössä",
-    "manageStorage": "Hallinnoi",
-    "back": "Takaisin",
-    "titleLibrary": "Kirjasto · {{stage}}",
-    "titleStorage": "Tallennustila",
     "speakerHeading": "{{src}} → {{tgt}}",
-    "inUse": "Käytössä",
     "estimated": "Arvioitu",
     "translationOnCpu": "Käännös suoritetaan CPU:lla — VRAM ei riitä",
     "availableWhenLang": "Ladattu. Käytettävissä, kun kielesi on {{lang}}.",
     "deleteConfirm": "Poistetaanko {{name}}?",
     "deleteFallsBack": "Poistetaan {{name}}: {{stage}} vaihtuu malliin {{to}}.",
     "deleteNoModel": "Poistetaan {{name}}: {{stage}}-malleja ei jää jäljelle — istuntoja ei voi käynnistää.",
-    "clearAllKeepsPicks": "Valintasi muistetaan ja palautuvat, kun mallit ladataan uudelleen.",
-    "importChooseModel": "Valitse tuotava malli"
+    "clearAllKeepsPicks": "Valintasi muistetaan ja palautuvat, kun mallit ladataan uudelleen."
   },
   "setup": {
     "title": "Määritä Sokuji",
@@ -1809,7 +1796,25 @@
       "transcribeTranslate": "Litterointi ja käännös",
       "signedInBalance": "Kirjautunut; saldo {{amount}}",
       "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
-      "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu"
+      "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu",
+      "soniox": {
+        "byRegion": "Avaimet alueittain",
+        "keySaved": "avain tallennettu",
+        "noKey": "ei avainta",
+        "selected": "(valittu)",
+        "save": "Tallenna ja etsi alue",
+        "finding": "Etsitään avaimen aluetta…",
+        "savedFor": "Avain kuuluu alueelle {{region}}: tallennettu sinne.",
+        "unreachable": "Sonioxilta ei voitu kysyä, mille alueelle avain kuuluu; tallennettu alueelle {{region}}, joka on nyt valittuna.",
+        "refused": "Mikään Sonioxin alue ei hyväksy tätä avainta. Tarkista, että se on Sonioxin API-avain.",
+        "elsewhere": "Valittuna on {{selected}}, mutta avaimesi kuuluu alueelle {{region}}.",
+        "switchTo": "Vaihda alueelle {{region}}",
+        "keyWorks": "avain toimii",
+        "keyRefused": "avain hylätty",
+        "keyUnverified": "avain tallennettu, ei vielä tarkistettu",
+        "remove": "Poista",
+        "removeFor": "Poista alueen {{region}} avain"
+      }
     },
     "lineup": {
       "title": "Kokoonpano",
@@ -1830,7 +1835,11 @@
         "needsKey": "Tarvitsee avaimen",
         "needsModel": "Tarvitsee mallin",
         "needsSignIn": "Vaatii kirjautumisen",
-        "ready": "Valmis"
+        "ready": "Valmis",
+        "noKeyForRegion": "Ei toimivaa avainta alueelle {{region}}",
+        "keyRefused": "Avainta ei hyväksytty",
+        "keyNotVerified": "Avainta ei tarkistettu",
+        "checkingKey": "Tarkistetaan avainta…"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",
@@ -1901,7 +1910,8 @@
         "caption": "Mihin ääni kulkee. Kirkkaat viivat ovat nyt päällä, katkoviivat pois; ne seuraavat alla olevia kytkimiä.",
         "translate": "Käännös",
         "speech": "Puhe",
-        "ariaSteps": "Mihin ääni kulkee: sanomani käännetään ja muutetaan sitten puheeksi, joka menee virtuaalimikrofoniin toiselle osapuolelle ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma käännetään ja muutetaan sitten puheeksi, joka soi toistolaitteessani. Kun puheen kytkin on pois päältä, käännös tehdään mutta sitä ei puhuta."
+        "ariaSteps": "Mihin ääni kulkee: sanomani käännetään ja muutetaan sitten puheeksi, joka menee virtuaalimikrofoniin toiselle osapuolelle ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma käännetään ja muutetaan sitten puheeksi, joka soi toistolaitteessani. Kun puheen kytkin on pois päältä, käännös tehdään mutta sitä ei puhuta.",
+        "goTo": "Siirry asetukseen ”{{name}}”"
       }
     },
     "general": {
@@ -2017,6 +2027,7 @@
     "pause": "Tauko",
     "position": "Kohta",
     "speed": "Nopeus",
+    "cannotPlay": "Tätä tallennetta ei voi toistaa",
     "playFromHere": "Toista tästä",
     "saveRecording": "Tallenna äänite (.opus)",
     "saveRecordingFailed": "Äänitettä ei voitu tallentaa.",

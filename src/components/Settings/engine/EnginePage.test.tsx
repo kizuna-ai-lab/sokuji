@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+vi.mock('../../../services/ServiceFactory', () => ({
+  ServiceFactory: { getSettingsService: () => ({ getSetting: async (_k: string, d: unknown) => d, setSetting: async () => ({ success: true }) }) },
+}));
+
 import { EngineSurface } from './EngineSurface';
+import { useSettingsStore } from '../../../stores/settingsStore';
 import type { EngineAdapter } from './EngineTypes';
 
 let mockRichSelect = false;
@@ -9,6 +15,8 @@ vi.mock('../../../utils/supportsBaseSelect', () => ({
 }));
 
 vi.mock('react-i18next', () => ({
+  // The settings store, where Browse library… navigates (B-20), loads the translations.
+  initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({
     t: (key: string, defaultValue?: string, options?: Record<string, string>) => {
       if (options) {
@@ -34,16 +42,13 @@ const adapter = (over: Partial<EngineAdapter> = {}): EngineAdapter => ({
   languageName: (code) => code,
   readyCandidates: () => [{ id: 'm1', name: 'Model One', sizeLabel: '10 MB' }, { id: 'm2', name: 'Model Two' }],
   select: vi.fn(),
-  storageSummary: '796 MB used',
   stagesFor: (_dir, isSpeaker) => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
   disabled: false,
   ...over,
 });
 
 const surface = (a = adapter(), effectiveMode: 'speaker' | 'participant' | 'both' = 'both') => render(
-  <EngineSurface adapter={a} effectiveMode={effectiveMode}
-    renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
-    renderStorage={() => <div data-testid="storage" />} />);
+  <EngineSurface adapter={a} effectiveMode={effectiveMode} />);
 
 const asrSelect = (index = 0) =>
   screen.getAllByRole('combobox', { name: /ASR/ })[index] as HTMLSelectElement;
@@ -111,36 +116,34 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(tts.options[0].textContent).toBe('Auto');
   });
 
-  it('the Browse library option pushes the Library for THAT slot and keeps the selection', async () => {
+  // B-20: the model library is Models and storage now; Browse library… opens that slot's stage there.
+  it("the Browse library option opens THAT slot's stage in Models and storage and keeps the selection", async () => {
+    useSettingsStore.setState({ settingsNavigationTarget: null });
     const a = adapter();
     surface(a);
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
-    // The push is deferred one task (see the change handler: unmounting the
-    // select synchronously strands the top-layer picker on some Chromium
-    // builds), so the Library appears asynchronously.
-    expect(await screen.findByTestId('library')).toHaveTextContent('asr');
+    // Deferred one task (see the change handler: the select's top-layer picker must finish closing first).
+    await waitFor(() => expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-asr'));
     expect(a.select).not.toHaveBeenCalled();
-    // Back returns to the engine page with the select back on its value.
-    fireEvent.click(screen.getByRole('button', { name: /Back/ }));
     expect(asrSelect().value).toBe('');
+    const tts = screen.getAllByRole('combobox', { name: /TTS/ })[0];
+    fireEvent.change(tts, { target: { value: '__browse__' } });
+    await waitFor(() => expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-tts'));
   });
 
-  it('the back CHIP names the PARENT page while the current page title stands beside it (B, 2026-08-23)', async () => {
+  it('has no library page of its own: no Back, no "Library · …" title', async () => {
     surface();
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
-    const back = await screen.findByRole('button', { name: 'Back' });
-    // iOS-style: the chip says where the click LANDS, not where you are.
-    expect(back).toHaveTextContent('Models');
-    expect(back).not.toHaveTextContent('Library');
-    expect(back.getAttribute('aria-label')).toBe('Back');
-    // The page's own title is plain heading text next to the chip.
-    expect(screen.getByText('Library · ASR')).toBeInTheDocument();
+    await waitFor(() => expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-asr'));
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(screen.queryByText(/Library ·/)).toBeNull();
+    expect(asrSelect()).toBeInTheDocument();
   });
 
-  it('the storage footer pushes the storage page', () => {
+  it('has no storage footer: usage, deleting and importing live on the Models and storage page (B-18)', () => {
     surface();
-    fireEvent.click(screen.getByRole('button', { name: /Storage/ }));
-    expect(screen.getByTestId('storage')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Storage/ })).toBeNull();
+    expect(document.querySelector('.engine-storage-footer')).toBeNull();
   });
 
   it('disabled adapter renders every select disabled', () => {
@@ -185,11 +188,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
   });
 
   it('a mode switch kills a pending flash — revealing a direction later never replays it', () => {
-    const props = {
-      adapter: adapter(),
-      renderLibrary: (slot: any) => <div data-testid="library">{slot.stage}</div>,
-      renderStorage: () => <div data-testid="storage" />,
-    };
+    const props = { adapter: adapter() };
     const { rerender } = render(
       <EngineSurface {...props} initialSlot={{ dir: 'en→ja', stage: 'asr' }} effectiveMode="both" />);
     expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
@@ -199,20 +198,6 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
 
     rerender(<EngineSurface {...props} initialSlot={{ dir: 'en→ja', stage: 'asr' }} effectiveMode="both" />);
     expect(screen.getByText('en → ja')).toBeInTheDocument();
-    expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
-  });
-
-  it('returning from a pushed Library does not re-flash the deep-linked slot', async () => {
-    render(
-      <EngineSurface adapter={adapter()} initialSlot={{ dir: 'ja→en', stage: 'asr' }} effectiveMode="both"
-        renderLibrary={(slot) => <div data-testid="library">{slot.stage}</div>}
-        renderStorage={() => <div data-testid="storage" />} />);
-
-    expect(document.querySelector('.engine-slot.highlight')).toBeInTheDocument();
-
-    fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Back' }));
-
     expect(document.querySelector('.engine-slot.highlight')).not.toBeInTheDocument();
   });
 

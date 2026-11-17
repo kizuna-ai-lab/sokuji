@@ -7,7 +7,7 @@ import { createRequire } from 'module';
 import {
   archiveName, bundleInstallDir, pickBundle, verifySha256, extractTarZst, installBundle,
   requiredSidecarVersion, bundleBaseUrl, stagingDir, stagedBytes, pruneStaging,
-  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs,
+  downloadPart, concatParts, removeBundle, pruneStaleSkuDirs, installedBytes,
 } from './sidecar-bundle.js';
 
 // Shares the Node module cache with sidecar-bundle.js's own `require('fs')` (core
@@ -525,5 +525,42 @@ describe('installBundle v2 pipeline (spec S4-S9)', () => {
     writeFileSync(path.join(u, 'sidecar', 'mac-arm64', 'bundle.json'), '{}');
     removeBundle(u, 'mac-arm64');
     expect(existsSync(path.join(u, 'sidecar', 'mac-arm64'))).toBe(false);
+  });
+});
+
+// B-19: what the installed engine takes on disk, for the "On-device engine" row in Models and storage.
+describe('installedBytes', () => {
+  it('adds up every file under the installed bundle, in nested folders too', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-usage-'));
+    const dir = bundleInstallDir(u, 'linux-x64');
+    mkdirSync(path.join(dir, 'lib', 'deep'), { recursive: true });
+    writeFileSync(path.join(dir, 'bundle.json'), '{"version":"1"}');
+    writeFileSync(path.join(dir, 'lib', 'a.so'), Buffer.alloc(1000));
+    writeFileSync(path.join(dir, 'lib', 'deep', 'b.bin'), Buffer.alloc(2500));
+    expect(await installedBytes(u, 'linux-x64')).toBe(15 + 1000 + 2500);
+  });
+
+  it('is 0 when no engine is installed', async () => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-usage-'));
+    expect(await installedBytes(u, 'linux-x64')).toBe(0);
+  });
+
+  it('counts a link as itself, not what it points at', async (ctx) => {
+    const u = mkdtempSync(path.join(tmpdir(), 'sb-usage-'));
+    const outside = path.join(u, 'outside.bin');
+    writeFileSync(outside, Buffer.alloc(5000));
+    const dir = bundleInstallDir(u, 'linux-x64');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'bundle.json'), '{}');
+    try {
+      req('fs').symlinkSync(outside, path.join(dir, 'link.bin'));
+    } catch (error) {
+      // Windows makes links only in Developer Mode or with elevation: without either, there is nothing to count.
+      if (error.code === 'EPERM') return ctx.skip();
+      throw error;
+    }
+    const n = await installedBytes(u, 'linux-x64');
+    expect(n).toBeLessThan(5000);
+    expect(n).toBeGreaterThanOrEqual(2);
   });
 });

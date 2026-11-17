@@ -55,6 +55,12 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'model-tts': { category: 'lineup', anchor: 'model-tts' },
   // Edge's voices, in the speech card when Edge speaks.
   'edge-voices': { category: 'lineup', anchor: 'edge-voices' },
+  // Each stage's models in Models and storage, where an engine slot's "Browse library…" goes (B-20).
+  'models-asr': { category: 'models', anchor: 'models-asr' },
+  'models-translation': { category: 'models', anchor: 'models-translation' },
+  'models-tts': { category: 'models', anchor: 'models-tts' },
+  // The local engine's voices, in the speech card when this device speaks (B-20).
+  'local-voices': { category: 'lineup', anchor: 'local-voices' },
   // The stage rows: where a provider is chosen (a notice with no provider).
   lineup: { category: 'lineup', anchor: 'lineup' },
   // What a provider needs besides a key (models, memory, voices, an engine slot): its own options, unfolded.
@@ -67,6 +73,11 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   participant: { category: 'audio', anchor: 'participant' },
   // Lands on the other side's audio, the section that holds the system audio choice.
   'system-audio': { category: 'audio', anchor: 'participant' },
+  // The speech rows, one by one: where the audio page's drawing takes you (B-27).
+  'speech-other-hears': { category: 'audio', anchor: 'speech-other-hears' },
+  'speech-me-too': { category: 'audio', anchor: 'speech-me-too' },
+  'speech-passthrough': { category: 'audio', anchor: 'speech-passthrough' },
+  'speech-i-hear': { category: 'audio', anchor: 'speech-i-hear' },
 };
 
 /**

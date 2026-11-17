@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
-import { openTtsSlot } from '../../providers/openTtsSlot';
+import { openLocalVoices } from '../../providers/openTtsSlot';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import type { OutletName } from '../../../lib/audio/outlets';
 import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
@@ -40,8 +40,8 @@ export interface SpeechOutputSectionProps {
  * summary's pattern (`SpeechSection.tsx`), its `settings_mode_switched`
  * event included when it leaves Simple. Nothing for a provider without one;
  * a summary that renders nothing leaves the link empty, and Settings.scss
- * hides the line. A provider whose voices sit in its engine (`voicesInEngine`)
- * opens that leg's TTS slot instead, in either layout. Usable during a run:
+ * hides the line. A provider whose voices sit with its engine (`voicesInEngine`)
+ * opens them in the line-up's speech card instead (B-20). Usable during a run:
  * it only navigates.
  */
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
@@ -54,7 +54,8 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
 
   const openVoices = () => {
     if (selection.provider.voicesInEngine) {
-      openTtsSlot(leg);
+      // Its voices are in the line-up's speech card now (B-20), whichever leg asked.
+      openLocalVoices();
       return;
     }
     // One settings page now (no Quick or Advanced layout): the voice settings are reached directly.
@@ -106,6 +107,8 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
   // The rows of what I hear follow the same rules here and in the toolbar's headphones entry.
   const hearing = useHearingRows(isSessionActive);
+  // The drawing's parts take you to their rows (B-27).
+  const navigateToSettings = useNavigateToSettings();
   const { myLegRuns, theirLegRuns, recaptured, otherOn, themLocked, themOn } = hearing;
   const vbCable = useVbCablePresence();
   // On Windows the virtual microphone is VB-CABLE, a driver the user installs: while it is
@@ -179,8 +182,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
           otherHears={otherOn}
           meToo={hearing.meChecked}
           iHear={themOn}
-          passthrough={hasVirtualBus && (isRealVoicePassthroughEnabled || pushToTranslate) ? Math.round(realVoicePassthroughVolume * 100) : null}
+          passthroughOn={hasVirtualBus && (isRealVoicePassthroughEnabled || pushToTranslate)}
+          passthroughPercent={Math.round(realVoicePassthroughVolume * 100)}
           virtualBus={hasVirtualBus}
+          onGo={navigateToSettings}
         />
       )}
 
@@ -208,6 +213,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       <p className="speech-section__caption">{t('audioPanel.captionMine', 'What I say, as speech')}</p>
       <SettingRow
+        id="speech-other-hears-section"
         layout="inline"
         label={otherLabel}
         tooltip={playsOnTip(f2f.other) ?? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : speech === 'never' ? t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.') : t('audioPanel.otherHearsTip', 'What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.'))}
@@ -233,6 +239,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       {!faceToFace && (
         <SettingRow
+          id="speech-me-too-section"
           layout="inline"
           label={meLabel}
           tooltip={t('audioPanel.meTooTip', 'Also plays the translation the other side hears on my side (the spoken translation, not my own voice).')}
@@ -246,6 +253,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       {!faceToFace && hasVirtualBus && (
         <SettingRow
+          id="speech-passthrough-section"
           layout="inline"
           label={passthroughLabel}
           tooltip={pushToTranslate ? t('audioPanel.passthroughManagedByPushToTranslate') : t('audioPanel.passthroughTip', 'Mixes my own voice, at a lower level, under the translation into the virtual microphone. 60% at most.')}
@@ -280,6 +288,7 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
 
       <p className="speech-section__caption">{t('audioPanel.captionTheirs', 'What the other side says, as speech')}</p>
       <SettingRow
+        id="speech-i-hear-section"
         layout="inline"
         label={themLabel}
         tooltip={playsOnTip(f2f.me) ?? (!participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.") : t('audioPanel.iHearTip', 'What the other side says, translated and read aloud to me.'))}
