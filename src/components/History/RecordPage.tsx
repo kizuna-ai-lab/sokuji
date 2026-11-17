@@ -8,7 +8,7 @@ import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } f
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import { AudioLines, ChevronLeft, Ellipsis, MicOff, PanelLeft, PanelRight, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
-import { englishLanguageName, languageLabel, uiLocale } from '../../lib/language/label';
+import { languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import { NOTES_MIN_MS } from '../../lib/notes/write';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
@@ -21,7 +21,7 @@ import RecordExportMenu from './RecordExportMenu';
 import RecordPlayer, { type SeekFn } from './RecordPlayer';
 import RecordNotes from './RecordNotes';
 import { TranscribePanel, TranscriptChooser } from './FileJobs';
-import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
+import { notesLanguagesOf } from './notesLanguages';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
@@ -250,13 +250,8 @@ export const RecordPage: React.FC = () => {
     const sentence = open.sentences.find((s) => s.n === jumpTo.n);
     if (sentence && playable(open.record.tracks).length > 0) seekRef.current?.(startFor(sentence), true);
   }, [jumpTo, open]);
-  // Any language the app knows (its interface languages), the record's own and the interface's first.
-  const notesLanguages = useMemo((): NotesLanguage[] => {
-    if (!open) return [];
-    const codes = [open.record.myLanguage, open.record.targetLanguage, uiLocale(language), ...INTERFACE_LANGUAGES.map((l) => uiLocale(l.value))]
-      .filter((c) => c && c !== 'auto' && !c.includes('+'));
-    return [...new Set(codes)].map((code) => ({ code, name: englishLanguageName(code) }));
-  }, [open, language]);
+  // The record's own two languages, mine first (notesLanguages.ts).
+  const notesLanguages = useMemo((): NotesLanguage[] => (open ? notesLanguagesOf(open.record, language) : []), [open, language]);
   const notesService = useLineUpStore((s) => notesServiceOf(s.lineUp));
   const notesExplained = useNotesExplained();
   const setNotesExplained = useSetNotesExplained();

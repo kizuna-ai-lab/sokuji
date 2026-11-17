@@ -672,7 +672,7 @@ describe('a record', () => {
     expect(store.getState().open).toBeNull();
   });
 
-  it('offers a new version of the notes in any language the app knows', async () => {
+  it('offers a new version of the notes in the record\'s own two languages only', async () => {
     record = { ...record, notesVersions: 1, notesState: 'complete', notesComplete: true, notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
     port.getNotes = (async () => ({
       id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
@@ -682,9 +682,7 @@ describe('a record', () => {
     await renderRecord();
     fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
     const choices = within(screen.getByRole('combobox', { name: 'Language of the notes' })).getAllByRole('option').map((o) => o.textContent);
-    expect(choices.slice(0, 2)).toEqual(['English', 'Chinese']);
-    expect(choices).toEqual(expect.arrayContaining(['Japanese', 'German', 'Hindi', 'Vietnamese']));
-    expect(new Set(choices).size).toBe(choices.length);
+    expect(choices).toEqual(['English', 'Chinese']);
   });
 });
 
