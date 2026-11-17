@@ -885,6 +885,43 @@
 
   &__blocked { color: vars.$color-error; }
 
+  // The other languages chosen: one tag each, with its own way out; the "add" dropdown under them.
+  &__languages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: vars.$space-1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 2px 0 6px;
+      border: 1px solid vars.$border-subtle;
+      border-radius: vars.$radius-sm;
+      line-height: 22px;
+    }
+  }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: none;
+    color: vars.$text-tertiary;
+    cursor: pointer;
+
+    &:hover { color: vars.$text-secondary; }
+    &:focus-visible { outline: 2px solid vars.$color-info-border; outline-offset: 1px; }
+  }
+
   &__line { margin: vars.$space-2 vars.$space-4; }
 
   &__versions {

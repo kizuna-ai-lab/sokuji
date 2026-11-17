@@ -524,7 +524,7 @@ describe('transcripts and file jobs', () => {
     let finishTranscribe!: (r: unknown) => void;
     const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
     const jobs = {
-      service: vi.fn(async () => (o.missing ? { missing: o.missing } : { service: 'soniox', apiKey: 'k', region: 'us' })),
+      service: vi.fn(async () => (o.missing ? { missing: o.missing } : { service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'ja', 'zh'] })),
       sessionRunning: vi.fn(() => o.session ?? false),
       importFile: vi.fn((a: { onProgress(p: { phase: string }): void; signal: AbortSignal }) => {
         progress.cb = a.onProgress;
@@ -541,18 +541,44 @@ describe('transcripts and file jobs', () => {
     return { jobs, progress, finishImport: (r: unknown) => finishImport(r), finishTranscribe: (r: unknown) => finishTranscribe(r) };
   }
   const file = { name: 'Team sync.mp4', size: 10 } as unknown as File;
+  const OPTS = { languages: ['en', 'ja'], translateTo: 'zh' };
+
+  it('passes the options chosen to the import and to a transcription again', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
+    void store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+    await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalledWith(expect.objectContaining({ file, options: OPTS, myLanguage: 'zh' })));
+    f.finishImport({ recordId: B, transcribed: true });
+    await vi.waitFor(() => expect(store.getState().job).toBeNull());
+    port.getRecord = async () => recordOf(A, [1]);
+    await store.getState().openRecord(A);
+    void store.getState().transcribeOpen(OPTS);
+    await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A, options: OPTS })));
+  });
+
+  it('offers the file service\u2019s languages, and none when there is no service', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    expect(await store.getState().fileLanguages()).toEqual(['en', 'ja', 'zh']);
+    const missing = fakeJobs({ missing: 'no-key' });
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, missing.jobs as never);
+    expect(await store.getState().fileLanguages()).toEqual([]);
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, null);
+    expect(await store.getState().fileLanguages()).toEqual([]);
+  });
 
   it('imports one file at a time, shows its phase, then lists it and writes its notes', async () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
     store.getState().follow();
     await store.getState().load();
-    const started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
     expect(store.getState().job).toMatchObject({ kind: 'import', name: 'Team sync.mp4', phase: 'reading' });
     f.progress.cb!({ phase: 'processing' });
     expect(store.getState().job).toMatchObject({ phase: 'processing' });
-    await store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     expect(f.jobs.importFile).toHaveBeenCalledTimes(1);
     const listed = calls('listRecords').length;
     f.finishImport({ recordId: B, transcribed: true });
@@ -582,7 +608,7 @@ describe('transcripts and file jobs', () => {
     const ok = fakeJobs();
     const first = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...ok.jobs, state: shared } as never);
     first.getState().follow();
-    void first.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    void first.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(ok.jobs.importFile).toHaveBeenCalled());
     expect(await first.getState().fileJobBlocked('import')).toBe('busy');
     const hosted = fakeJobs({ missing: 'hosted-soniox' });
@@ -598,13 +624,13 @@ describe('transcripts and file jobs', () => {
     const jobs = { ...f.jobs, state: createFileJobState() };
     const first = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
     first.getState().follow();
-    const started = first.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    const started = first.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
     first.getState().dispose();
     const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
     second.getState().follow();
     expect(second.getState().job).toMatchObject({ kind: 'import', name: 'Team sync.mp4' });
-    await second.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    await second.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     expect(f.jobs.importFile).toHaveBeenCalledTimes(1);
     second.getState().cancelJob();
     expect(f.progress.signal!.aborted).toBe(true);
@@ -617,8 +643,8 @@ describe('transcripts and file jobs', () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
     store.getState().follow();
-    void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
-    void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    void store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+    void store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
     await flush();
     expect(f.jobs.importFile).toHaveBeenCalledTimes(1);
@@ -628,7 +654,7 @@ describe('transcripts and file jobs', () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
     store.getState().follow();
-    const started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' });
+    const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
     f.finishImport({ recordId: B, transcribed: false, failure: 'NO_KEY' });
     await started;
@@ -645,7 +671,7 @@ describe('transcripts and file jobs', () => {
     store.getState().follow();
     port.getRecord = async () => recordOf(A, [1]);
     await store.getState().openRecord(A);
-    const started = store.getState().transcribeOpen();
+    const started = store.getState().transcribeOpen(OPTS);
     await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A })));
     expect(store.getState().job).toMatchObject({ kind: 'transcribe', recordId: A });
     port.getRecord = async () => recordOf(A, [1, 5]);
@@ -653,7 +679,7 @@ describe('transcripts and file jobs', () => {
     await started;
     expect(store.getState().open).toMatchObject({ transcriptId: 5 });
 
-    const again = store.getState().transcribeOpen();
+    const again = store.getState().transcribeOpen(OPTS);
     await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalledTimes(2));
     store.getState().cancelJob();
     expect(f.progress.signal!.aborted).toBe(true);

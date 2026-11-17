@@ -97,9 +97,17 @@ export interface HistoryLegInput {
   spoken?: boolean;
 }
 
+/** What a file transcription is asked for: the languages spoken (the main one first), and the one to translate into. */
+export interface FileTranscriptionOptions {
+  languages: string[];
+  translateTo: string;
+}
+
 export interface HistoryTranscriptOrigin {
   service: string;
   kind: 'live' | 'file';
+  /** A file transcript's: what it was asked for. */
+  options?: FileTranscriptionOptions;
 }
 
 export interface HistoryTranscriptRow {

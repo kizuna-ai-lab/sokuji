@@ -771,7 +771,7 @@ describe('a record transcribed again', () => {
     record.hasRecording = true;
     record.tracks = [{ source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 10, offsetMs: 0, goneAt: null }];
     const jobs = {
-      service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const }),
+      service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const, languages: ['en', 'zh'] }),
       sessionRunning: () => false, importFile: vi.fn(), transcribe: vi.fn(() => new Promise<never>(() => {})), notesAfterImport: vi.fn(),
     };
     store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.', null, jobs as never);
