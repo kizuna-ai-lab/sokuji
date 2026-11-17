@@ -66,11 +66,11 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe('from the History page red notices into Settings', () => {
-  it('"key not filled in": closes the panel, then opens Accounts and keys', async () => {
+  it('"key not filled in": closes the panel, then opens Accounts and keys at Soniox', async () => {
     const s = await scene('no-key');
     expect(screen.getByText('Your Soniox key is not filled in yet.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open Accounts and keys' }));
-    expect(s.events).toEqual(['close', 'navigate:provider']);
+    expect(s.events).toEqual(['close', 'navigate:provider:soniox']);
     expect(s.isPanelOpen()).toBe(false);
     expect(screen.getByRole('heading', { level: 2, name: 'Accounts and keys' })).toBeInTheDocument();
     s.unsubscribe();
