@@ -1825,7 +1825,7 @@
       "and": " dan ",
       "joint": "Berjalan bersama {{stages}} lewat satu koneksi; keduanya berubah bersama.",
       "granite": "Bersama terjemahan: Granite Speech mengubah ucapan langsung menjadi terjemahan.",
-      "moved": "{{stages}} juga pindah ke {{providers}}: saat ini tidak dapat digabung dengan pilihan ini. Pencampuran menyusul nanti.",
+      "moved": "{{stages}} juga pindah ke {{providers}}: belum dapat digabung dengan pilihan ini. Pencampuran akan didukung nanti.",
       "needsKey": "perlu kunci",
       "needsSignIn": "perlu masuk",
       "options": "Opsi {{provider}}",

@@ -1825,7 +1825,7 @@
       "and": " et ",
       "joint": "Va avec {{stages}} sur une seule connexion ; ils changent ensemble.",
       "granite": "Avec la traduction : Granite Speech transforme directement la parole en traduction.",
-      "moved": "{{stages}} passe aussi à {{providers}} : pour l’instant, ce choix ne peut pas être combiné. Le mélange viendra plus tard.",
+      "moved": "{{stages}} passe aussi à {{providers}} : ce choix ne peut pas encore être combiné. Le mélange sera pris en charge plus tard.",
       "needsKey": "clé requise",
       "needsSignIn": "connexion requise",
       "options": "Options de {{provider}}",

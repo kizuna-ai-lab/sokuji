@@ -1825,7 +1825,7 @@
       "and": " e ",
       "joint": "Funciona com {{stages}} em uma única conexão; mudam juntas.",
       "granite": "Com a tradução: o Granite Speech transforma a fala direto na tradução.",
-      "moved": "{{stages}} também passou para {{providers}}: por enquanto não dá para combinar com esta escolha. A mistura vem depois.",
+      "moved": "{{stages}} também passou para {{providers}}: ainda não dá para combinar com esta escolha. A mistura será suportada mais adiante.",
       "needsKey": "precisa de chave",
       "needsSignIn": "precisa entrar",
       "options": "Opções de {{provider}}",

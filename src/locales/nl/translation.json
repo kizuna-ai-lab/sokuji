@@ -1825,7 +1825,7 @@
       "and": " en ",
       "joint": "Gaat samen met {{stages}} over één verbinding; ze wisselen samen.",
       "granite": "Met vertaling: Granite Speech zet spraak meteen om in de vertaling.",
-      "moved": "{{stages}} is ook naar {{providers}} gegaan: dit is nu niet te combineren met deze keuze. Mengen komt later.",
+      "moved": "{{stages}} is ook naar {{providers}} gegaan: dit is nog niet te combineren met deze keuze. Mengen wordt later ondersteund.",
       "needsKey": "sleutel nodig",
       "needsSignIn": "inloggen nodig",
       "options": "Opties van {{provider}}",

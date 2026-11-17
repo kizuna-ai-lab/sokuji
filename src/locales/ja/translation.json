@@ -1825,7 +1825,7 @@
       "and": "・",
       "joint": "{{stages}}と1つの接続で動きます。一緒に切り替わります。",
       "granite": "翻訳と一緒に：Granite Speech が音声をそのまま訳文にします。",
-      "moved": "{{stages}}も{{providers}}に切り替わりました。現在はこの選択と組み合わせられません。組み合わせは今後対応します。",
+      "moved": "{{stages}}も{{providers}}に切り替わりました。まだこの選択とは組み合わせられません。組み合わせには今後対応します。",
       "needsKey": "キーが必要",
       "needsSignIn": "サインインが必要",
       "options": "{{provider}} のオプション",

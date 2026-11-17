@@ -174,7 +174,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const providerNames = [...new Set(extra.map((s) => model(choice.lineUp[s] ?? '', providers.find((p) => p.id === choice.lineUp[s])).name))];
     setMoved({
       stage,
-      text: t('settingsPage.lineup.moved', '{{stages}} moved to {{providers}} too: today they cannot be combined with this choice. Mixing comes later.', {
+      text: t('settingsPage.lineup.moved', '{{stages}} moved to {{providers}} too: they cannot be combined with this choice yet. Mixing will be supported later.', {
         stages: names.join(t('settingsPage.lineup.and', ' and ')), providers: providerNames.join(t('settingsPage.lineup.and', ' and ')),
       }),
     });
