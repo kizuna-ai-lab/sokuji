@@ -260,6 +260,29 @@ describe("a record's notes", () => {
     expect(screen.getByText('The latest attempt could not be written: No notes service is set up. Choose one in Languages and line-up and add its key.')).toBeInTheDocument();
   });
 
+  // Checklist B8: a newer attempt stopped (the app quit while writing, or Stop) is said above the notes kept, as a failed
+  // one is, with a way to write it again in its language.
+  it('keeps the complete notes in view when a newer attempt was stopped, says so above them, and offers to try again', () => {
+    const p = props({ record: record([
+      { id: 9, transcriptId: 1, language: 'ja', createdAt: 2000, state: 'cancelled' },
+      { id: 7, transcriptId: 1, language: 'en', createdAt: 1000, state: 'complete' },
+    ]), latest: { ...complete, id: 9, language: 'ja', state: 'cancelled', failure: null, body: null } });
+    render(<RecordNotes {...p} />);
+    expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeInTheDocument();
+    expect(screen.getByText('The latest attempt was stopped.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(p.onWrite).toHaveBeenCalledWith({ code: 'ja', name: 'Japanese' });
+  });
+
+  // Checklist B8: no network.
+  it('says a version failed because the notes service could not be reached, with a way to try again', () => {
+    const p = props({ notes: { ...complete, state: 'failed', failure: 'notes:network', body: null, language: 'zh' } });
+    render(<RecordNotes {...p} />);
+    expect(screen.getByText('The notes could not be written: The notes service could not be reached.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(p.onWrite).toHaveBeenCalledWith({ code: 'zh', name: 'Chinese' });
+  });
+
   it("words the program's own reasons in the interface's language, and shows a service's as it is", () => {
     const failed = (failure: string): HistoryNotes => ({ ...complete, state: 'failed', failure, body: null });
     render(<RecordNotes {...props({ notes: failed('notes:refused:503') })} />);

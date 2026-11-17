@@ -301,6 +301,14 @@ describe('writing the notes', () => {
     expect(model.of('part')).toHaveLength(1);
   });
 
+  // Checklist B8: no network. The browser's fetch fails with a TypeError; another try may get through, so the part is
+  // tried again, and the version then fails as "could not be reached".
+  it('fails the version as unreachable when the service cannot be reached, after trying again', async () => {
+    const model = fakeChat({ part: () => Promise.reject(new TypeError('Failed to fetch')) });
+    await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'notes:network', requestIds: [] });
+    expect(model.of('part')).toHaveLength(3);
+  });
+
   it('tries again a part that wrote no topic, and fails the version when it never does', async () => {
     let tries = 0;
     const model = fakeChat({ part: (user, call) => (++tries < 2 ? { title: 'T', summary: 'S', topics: [] } : onePointPerPart(user, call)) });
