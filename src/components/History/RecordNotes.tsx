@@ -100,6 +100,12 @@ export function RecordNotes(p: RecordNotesProps) {
     if (!(code in FAILURE_WORDS)) return t('history.notesFailure.other', 'The notes service refused the request.');
     return t(`history.notesFailure.${code}`, FAILURE_WORDS[code]);
   };
+  // A reason the account can change leads there, under a version that failed and under a newer attempt that did.
+  const accountLink = (failure: string | null) => (failure && ACCOUNT_REASONS.has(failure) ? (
+    <button type="button" className="history-link" onClick={() => useSettingsStore.getState().navigateToSettings('user-account')}>
+      {t('history.file.openSettings', 'Open {{place}}', { place: t('settingsPage.categories.accounts', 'Accounts and keys') })}
+    </button>
+  ) : null);
   const sides = { mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side') };
   const again = (language: string) => () => write({ code: language, name: englishLanguageName(language) });
 
@@ -194,11 +200,7 @@ export function RecordNotes(p: RecordNotesProps) {
     content = (
       <div className="record-notes__state">
         <p>{t('history.notesFailed', 'The notes could not be written: {{reason}}', { reason: failureText(p.notes.failure) })}</p>
-        {p.notes.failure && ACCOUNT_REASONS.has(p.notes.failure) && (
-          <button type="button" className="history-link" onClick={() => useSettingsStore.getState().navigateToSettings('user-account')}>
-            {t('history.file.openSettings', 'Open {{place}}', { place: t('settingsPage.categories.accounts', 'Accounts and keys') })}
-          </button>
-        )}
+        {accountLink(p.notes.failure)}
         <button type="button" className="history-button" onClick={again(p.notes.language)}>
           {t('history.notesTryAgain', 'Try again')}
         </button>
@@ -222,6 +224,7 @@ export function RecordNotes(p: RecordNotesProps) {
             <p>{latest.state === 'failed'
               ? t('history.notesLatestFailed', 'The latest attempt could not be written: {{reason}}', { reason: failureText(latest.failure) })
               : t('history.notesLatestStopped', 'The latest attempt was stopped.')}</p>
+            {latest.state === 'failed' && accountLink(latest.failure)}
             <button type="button" className="history-button" onClick={again(latest.language)}>{t('history.notesTryAgain', 'Try again')}</button>
           </div>
         )}

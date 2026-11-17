@@ -304,6 +304,13 @@ describe("a record's notes", () => {
       expect(useSettingsStore.getState().settingsNavigationTarget, code).toBe('user-account');
       cleanup();
     }
+    // Notes already written, and a newer attempt failed for one of these: the line above the notes leads there too.
+    useSettingsStore.setState({ settingsNavigationTarget: null });
+    render(<RecordNotes {...props({ latest: { ...complete, id: 9, state: 'failed', failure: 'notes:no-balance', body: null } })} />);
+    expect(screen.getByText('The latest attempt could not be written: Your Kizuna AI balance has run out.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Accounts and keys' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('user-account');
+    cleanup();
     for (const code of ['unavailable', 'daily-limit', 'too-large', 'update-required', 'network']) {
       render(<RecordNotes {...props({ notes: failed(`notes:${code}`) })} />);
       expect(screen.queryByRole('button', { name: /^Open / }), code).toBeNull();
