@@ -25,7 +25,7 @@ import { useLiveNotes } from '../lib/notes/live/liveStore';
 import { emptyLive, type LiveSentence } from '../lib/notes/live/state';
 import { notesSpeakerLabel } from '../lib/notes/runner';
 import type { HistorySentence } from '../lib/history/types';
-import { askQuitWhileNotes, type QuitAnswer } from '../lib/notes/quitQuestion';
+import { askQuitWhileNotes, type QuitAnswer, type QuitRecord } from '../lib/notes/quitQuestion';
 import type { NotesRunner } from '../lib/notes/runner';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
@@ -92,8 +92,8 @@ export interface AppSessionOptions {
   historyEncoder?: OpusEncoderFactory | null;
   /** Who writes a closed record's notes; default the app's notes runner on the desktop; `null` for none. */
   notes?: Pick<NotesRunner, 'start' | 'cancel' | 'running' | 'subscribe'> | null;
-  /** Asks whether to quit while notes are written (the titles of their records); default the page's dialog. */
-  askQuit?(titles: readonly string[]): Promise<QuitAnswer>;
+  /** Asks whether to quit while notes are written (their records, to be named); default the page's dialog. */
+  askQuit?(records: readonly QuitRecord[]): Promise<QuitAnswer>;
   /** Makes the live notes' loop; default the app's on the desktop; `null` for none. */
   liveNotes?: ((deps: LiveNotesDeps) => Pick<LiveNotes, 'sentences' | 'stop' | 'dispose'>) | null;
   /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
@@ -409,11 +409,13 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   });
   /** The notes runner: the app's on the desktop unless one is given. */
   const notesRunner = () => (options.notes === undefined ? (isElectron() ? appNotesRunner() : null) : options.notes);
-  /** The titles of the records whose notes are being written, as far as History can tell. */
-  const titlesOf = async (ids: readonly string[]): Promise<string[]> => {
+  /** The records whose notes are being written, as far as History can tell, for the question to name: a record nobody
+   *  titled is named by its start. */
+  const recordsOf = async (ids: readonly string[]): Promise<QuitRecord[]> => {
     if (!historyPortOrNull) return [];
-    const titles = await Promise.all(ids.map((id) => historyPortOrNull.getRecord(id).then((r) => r?.title ?? null, () => null)));
-    return titles.filter((t): t is string => Boolean(t));
+    const records = await Promise.all(ids.map((id) => historyPortOrNull.getRecord(id)
+      .then((r) => (r ? { title: r.title || null, startedAt: r.startedAt } : null), () => null)));
+    return records.filter((r): r is QuitRecord => r !== null);
   };
   /** The versions cancelled at a quit have been saved, or 5 s have passed. */
   const notesCancelled = (notes: NonNullable<ReturnType<typeof notesRunner>>, ids: readonly string[]): Promise<void> =>
@@ -691,7 +693,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
               const writing = notes?.running() ?? [];
               if (notes && writing.length > 0) {
                 await ipc.invoke('app:close-asking');
-                const answer = await (options.askQuit ?? askQuitWhileNotes)(await titlesOf(writing));
+                const answer = await (options.askQuit ?? askQuitWhileNotes)(await recordsOf(writing));
                 if (answer === 'stay') {
                   close = false;
                   await ipc.invoke('app:close-cancelled');
