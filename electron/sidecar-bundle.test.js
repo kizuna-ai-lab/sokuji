@@ -545,14 +545,20 @@ describe('installedBytes', () => {
     expect(await installedBytes(u, 'linux-x64')).toBe(0);
   });
 
-  it('counts a link as itself, not what it points at', async () => {
+  it('counts a link as itself, not what it points at', async (ctx) => {
     const u = mkdtempSync(path.join(tmpdir(), 'sb-usage-'));
     const outside = path.join(u, 'outside.bin');
     writeFileSync(outside, Buffer.alloc(5000));
     const dir = bundleInstallDir(u, 'linux-x64');
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'bundle.json'), '{}');
-    req('fs').symlinkSync(outside, path.join(dir, 'link.bin'));
+    try {
+      req('fs').symlinkSync(outside, path.join(dir, 'link.bin'));
+    } catch (error) {
+      // Windows makes links only in Developer Mode or with elevation: without either, there is nothing to count.
+      if (error.code === 'EPERM') return ctx.skip();
+      throw error;
+    }
     const n = await installedBytes(u, 'linux-x64');
     expect(n).toBeLessThan(5000);
     expect(n).toBeGreaterThanOrEqual(2);
