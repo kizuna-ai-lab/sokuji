@@ -155,7 +155,7 @@ describe('G3 locked during a session (page level)', () => {
     expect(note(/^Audio/)).toBe('Partly locked during a session');
     expect(note(/^Display/)).toBe('Changeable during a session');
     expect(note(/^History and notes/)).toBe('Changeable during a session');
-    expect(note(/^General/)).toBe('Changeable during a session');
+    expect(note(/^General/)).toBe('Partly locked during a session');
   });
 
   it('labels them in Chinese with "会话中锁定" and "会话中部分锁定"', async () => {
