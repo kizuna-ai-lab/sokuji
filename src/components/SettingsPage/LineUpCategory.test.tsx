@@ -389,20 +389,39 @@ describe('the notes card', () => {
     await waitFor(() => expect(checked).toEqual(['openai']));
   });
 
-  it('checks no OpenAI key already checked, none for Kizuna AI, and none during a session', async () => {
+  const settle = () => new Promise((r) => setTimeout(r, 20));
+  it('checks no OpenAI key already checked', async () => {
     authState.signedIn = false;
     openAiKey();
     useProviderStore.setState({ readiness: { openai: { state: 'ready', models: [] } } as never });
-    const first = render(<LineUpCategory locked={false} />);
-    first.unmount();
+    render(<LineUpCategory locked={false} />);
+    await settle();
+    expect(checked).toEqual([]);
+  });
+
+  it('checks no OpenAI key when Kizuna AI writes the notes', async () => {
     authState.signedIn = true;
     openAiKey();
-    const second = render(<LineUpCategory locked={false} />);
-    second.unmount();
+    render(<LineUpCategory locked={false} />);
+    await settle();
+    expect(checked).toEqual([]);
+  });
+
+  // Andrew's review: each condition on its own, the key never checked yet.
+  it('checks no OpenAI key during a session, though it was never checked', async () => {
     authState.signedIn = false;
     openAiKey();
     render(<LineUpCategory locked />);
-    await new Promise((r) => setTimeout(r, 20));
+    await settle();
+    expect(checked).toEqual([]);
+  });
+
+  it('checks nothing when OpenAI is chosen for the notes but has no key', async () => {
+    authState.signedIn = false;
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: '' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    await settle();
     expect(checked).toEqual([]);
   });
 
