@@ -76,6 +76,7 @@ function fakePort(): Fake {
     getRecord: answer('getRecord', () => record),
     getLegs: answer('getLegs', () => legs),
     getSentences: answer('getSentences', () => sentences),
+    getTranslations: answer('getTranslations', () => []),
     getSpeakers: answer('getSpeakers', () => speakers),
     renameSpeaker: answer('renameSpeaker', () => undefined),
     reassignSentence: answer('reassignSentence', () => undefined),

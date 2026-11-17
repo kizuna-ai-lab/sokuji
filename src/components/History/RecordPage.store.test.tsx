@@ -105,6 +105,26 @@ describe('an imported record\'s speakers', () => {
     expect(within(drawer()).queryByText('Your side')).toBeNull();
   });
 
+  // A file transcribed with a translation: each turn's translation under its first row, as a session's.
+  it('show each turn\u2019s translation under it', async () => {
+    const I = 'import-0002-aaaa';
+    real.store.openRecord({ id: I, startedAt: START, mode: 'import', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const transcriptId = real.store.createTranscript({ recordId: I, origin: { service: 'soniox', kind: 'file', options: { languages: ['en'], translateTo: 'zh' } } });
+    real.store.appendSentences({ transcriptId, sentences: [
+      { ...sentence(1, 'other', 'Welcome, everyone.'), sideCertain: false, track: 'other', segmentId: 'file-participant-1' },
+      { ...sentence(2, 'other', 'Thanks for having me.', '2'), sideCertain: false, track: 'other', segmentId: 'file-participant-2' },
+    ] });
+    real.store.putTranslations({ transcriptId, translations: [
+      { segmentId: 'file-participant-1', text: '欢迎大家。', language: 'zh' },
+      { segmentId: 'file-participant-2', text: '谢谢邀请我。', language: 'zh' },
+    ] });
+    real.store.closeRecord({ id: I, endedAt: START + 10_000 });
+    await act(() => store.getState().openRecord(I));
+    await settle();
+    expect(row(1)?.querySelector('.record-row__translation')?.textContent).toBe('欢迎大家。');
+    expect(row(2)?.querySelector('.record-row__translation')?.textContent).toBe('谢谢邀请我。');
+  });
+
   // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.
   it('a session whose sides were only inferred keeps them, under their headings', async () => {
     const F = 'run-0009-ffff';

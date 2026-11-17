@@ -461,6 +461,21 @@ describe('search', () => {
     expect(s.search({ query: 'plan' }).map((r) => r.recordId)).toEqual([B]);
   });
 
+  it('finds a file transcript\u2019s translation, at the first sentence of the turn it translates', () => {
+    s.openRecord(rec({ id: A, startedAt: 1000 }));
+    const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'file' } });
+    s.appendSentences({ transcriptId: t, sentences: [
+      sent(1, 'Hello.', { segmentId: 'file-participant-1', side: 'other', track: 'other' }),
+      sent(2, 'The budget is tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other' }),
+      sent(3, 'Very tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other' }),
+    ] });
+    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'file-participant-1', text: '你好。' }, { segmentId: 'file-participant-2', text: '预算很紧，非常紧。' }] });
+    expect(s.search({ query: '预算' })).toEqual([expect.objectContaining({ recordId: A, hits: 1, first: { kind: 'sentence', transcriptId: t, n: 2, text: '预算很紧，非常紧。' } })]);
+    // Found in both, a turn counts its sentence and its translation, and the sentence is shown first.
+    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'file-participant-1', text: 'Hello, budget.' }] });
+    expect(s.search({ query: 'budget' })).toEqual([expect.objectContaining({ recordId: A, hits: 2, first: { kind: 'sentence', transcriptId: t, n: 2, text: 'The budget is tight.' } })]);
+  });
+
   it('counts a sentence cut from the translation once, not again as its translation segment', () => {
     s.openRecord(rec({ id: A, startedAt: 1000 }));
     s.putLeg({ recordId: A, leg: 'participant', languages: { source: 'ja', target: 'zh' } });

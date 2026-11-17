@@ -14,6 +14,7 @@ import type { HistoryPort } from './port';
 import type {
   FileTranscriptionOptions,
   HistoryNotes, HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
+  HistoryTranslation,
 } from './types';
 
 /** Where to land in an opened record: a search hit. */
@@ -28,6 +29,8 @@ export interface OpenRecord {
   /** The transcript shown (the newest unless another was chosen); null when the record has none. */
   transcriptId: number | null;
   sentences: readonly HistorySentence[];
+  /** The shown transcript's own translations, by turn: a file transcript's; none for a session's. */
+  translations: readonly HistoryTranslation[];
   speakers: readonly HistorySpeaker[];
   legs: readonly Leg[];
   at: HitTarget | null;
@@ -254,6 +257,7 @@ export function createHistoryPageStore(
       const shownTranscript = record.transcripts.find((t) => t.id === transcriptId)
         ?? record.transcripts.find((t) => t.id === hitIn) ?? newest;
       const sentences = shownTranscript ? await port.getSentences({ transcriptId: shownTranscript.id }) : [];
+      const translations = shownTranscript?.origin.kind === 'file' ? await port.getTranslations({ transcriptId: shownTranscript.id }) : [];
       const speakers = shownTranscript ? await port.getSpeakers({ transcriptId: shownTranscript.id }) : [];
       // A version whose transcript was deleted goes with the newest transcript.
       const own = (n: HistoryRecord['notes'][number]) => !shownTranscript || n.transcriptId === shownTranscript.id
@@ -266,7 +270,7 @@ export function createHistoryPageStore(
       const latest = lastTry && chosen && lastTry.id !== chosen.id ? await port.getNotes({ id: lastTry.id }) : null;
       // The user closed this record, or opened another, while it was read.
       if (seq !== openSeq) return;
-      set({ open: { record, transcriptId: shownTranscript?.id ?? null, sentences, speakers, legs, at, notes: shown, latest } });
+      set({ open: { record, transcriptId: shownTranscript?.id ?? null, sentences, translations, speakers, legs, at, notes: shown, latest } });
     };
 
     return {

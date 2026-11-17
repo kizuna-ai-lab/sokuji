@@ -59,6 +59,7 @@ function fakePort(): Fake {
     getRecord: answer('getRecord', () => recordOf(A)),
     getLegs: answer('getLegs', () => []),
     getSentences: answer('getSentences', () => []),
+    getTranslations: answer('getTranslations', () => []),
     getSpeakers: answer('getSpeakers', () => []),
   } as unknown as Fake;
 }

@@ -565,14 +565,20 @@ function openHistory({ dir, now = () => Date.now() }) {
       if (!text) return [];
       const p = likeAnywhere(text);
       // Counted in the database, one row per record, newest first; only the records shown are read further. A
-      // record's sentence hits are those of its newest transcript that matches; a translation segment a matching
-      // sentence of a translation transcript was cut from is that sentence, not a second hit.
+      // record's sentence hits are those of its newest transcript that matches, a file transcript's translations
+      // counted with its sentences; a translation segment a matching sentence of a translation transcript was cut from
+      // is that sentence, not a second hit.
       const rows = db.prepare(
         `with
          s_match as materialized (
            select t.record_id, t.id as tid from sentences s
            join transcripts t on t.id = s.transcript_id join records r on r.id = t.record_id
            where r.binned_at is null and s.text like :p escape '\\'
+           union all
+           select t.record_id, t.id as tid from translations x
+           join transcripts t on t.id = x.transcript_id join records r on r.id = t.record_id
+           where r.binned_at is null and x.text like :p escape '\\'
+             and exists (select 1 from sentences s where s.transcript_id = x.transcript_id and s.segment_id = x.segment_id)
          ),
          s_newest as (select record_id, max(tid) as tid from s_match group by record_id),
          s_count as (
@@ -609,7 +615,13 @@ function openHistory({ dir, now = () => Date.now() }) {
       return rows.map((r) => {
         let first;
         if (r.sentence_hits > 0) {
-          const x = one(`select n, text from sentences where transcript_id = ? and text like ? escape '\\' order by start_ms, n limit 1`, r.newest_tid, p);
+          // A sentence that matches; else a translation, shown at the first sentence of the turn it translates.
+          const x = one(`select n, text from sentences where transcript_id = ? and text like ? escape '\\' order by start_ms, n limit 1`, r.newest_tid, p)
+            ?? one(
+              `select s.n, x.text from translations x join sentences s on s.transcript_id = x.transcript_id and s.segment_id = x.segment_id
+               where x.transcript_id = ? and x.text like ? escape '\\' order by s.start_ms, s.n limit 1`,
+              r.newest_tid, p,
+            );
           first = { kind: 'sentence', transcriptId: r.newest_tid, n: x.n, text: x.text };
         } else if (r.translation_hits > 0) {
           const g = one(

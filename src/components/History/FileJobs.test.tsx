@@ -27,6 +27,7 @@ function fakePort() {
     getRecord: answer('getRecord', () => record),
     getLegs: answer('getLegs', () => []),
     getSentences: answer('getSentences', () => []),
+    getTranslations: answer('getTranslations', () => []),
     getSpeakers: answer('getSpeakers', () => []),
   };
   return { port: port as unknown as HistoryPort, calls };

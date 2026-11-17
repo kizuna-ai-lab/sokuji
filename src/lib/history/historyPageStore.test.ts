@@ -64,6 +64,7 @@ function fakePort(): Fake {
     getRecord: answer('getRecord', recordOf(A, [1, 2])),
     getLegs: answer('getLegs', []),
     getSentences: answer('getSentences', []),
+    getTranslations: answer('getTranslations', []),
     getSpeakers: answer('getSpeakers', []),
     renameSpeaker: answer('renameSpeaker', undefined),
     reassignSentence: answer('reassignSentence', undefined),
@@ -130,6 +131,19 @@ describe('the History page state', () => {
     expect(store.getState().open).toBeNull();
     expect(store.getState().error).toBe('failed: gone');
     expect(store.getState().busy).toBe(false);
+  });
+
+  it('opens a file transcript with its own translations; a session\u2019s transcript asks for none', async () => {
+    const fileRecord = recordOf(A, [1, 2]);
+    fileRecord.transcripts[1] = { ...fileRecord.transcripts[1], origin: { service: 'soniox', kind: 'file' } };
+    port.getRecord = async () => fileRecord;
+    port.getTranslations = async (arg: { transcriptId: number }) => { port.calls.push(['getTranslations', arg]); return [{ segmentId: 'file-participant-1', text: '你好。', language: 'zh' }]; };
+    await store.getState().openRecord(A);
+    expect(calls('getTranslations')).toEqual([{ transcriptId: 2 }]);
+    expect(store.getState().open?.translations).toEqual([{ segmentId: 'file-participant-1', text: '你好。', language: 'zh' }]);
+    await store.getState().showTranscript(1);
+    expect(calls('getTranslations')).toEqual([{ transcriptId: 2 }]);
+    expect(store.getState().open?.translations).toEqual([]);
   });
 
   it('renames a speaker on the newest transcript and refreshes the record', async () => {
