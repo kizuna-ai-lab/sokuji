@@ -482,14 +482,15 @@ export function createHistoryPageStore(
 
       async fileJobBlocked(kind) {
         if (!files) return 'no-file-service';
-        if (jobs.getState().job) return 'busy';
         let service: Awaited<ReturnType<FileJobs['service']>>;
         try {
           service = await files.service();
         } catch {
           return 'unchecked';
         }
+        // What the line-up cannot do comes first: "busy" would let the panel name a service that cannot do the job.
         if ('missing' in service) return service.missing;
+        if (jobs.getState().job) return 'busy';
         if (kind === 'import' && files.sessionRunning()) return 'session';
         return null;
       },
