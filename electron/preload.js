@@ -81,6 +81,8 @@ const validReceiveChannels = [
   'output-devices:changed',
   // Opt-in managed session-service transport diagnostics
   'session-network:event',
+  // The main window was maximized, restored, or entered or left full screen (electron/window-state.js)
+  'window:state',
 ];
 
 // Expose protected methods that allow the renderer process to use

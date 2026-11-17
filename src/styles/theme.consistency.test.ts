@@ -81,6 +81,7 @@ const DARK_PINNED: Record<string, string> = {
   'degraded': '#f39c12', 'usage': '#e67e22', 'usage-hover': '#f39c12', 'usage-deep': '#d35400', 'info': '#4285f4',
   'toolbar-icon': '#8a8a8a',
   'waveform-speaker': '#0099ff', 'waveform-participant': '#f59e0b', 'waveform-output': '#ff9900',
+  'window-edge': '#000000', 'window-edge-inner': 'rgba(255,255,255,0.15)',
 };
 
 // Spec §7: the light block's floors, each role against the background it sits on.
@@ -124,7 +125,7 @@ describe('theme.scss', () => {
     expect(names(LIGHT)).toEqual(names(DARK));
     expect(names(TONE_DARK)).toEqual(names(DARK));
     expect(names(TONE_LIGHT)).toEqual(names(DARK));
-    expect(names(DARK)).toHaveLength(51);
+    expect(names(DARK)).toHaveLength(53);
   });
 
   it('sets color-scheme on the two root blocks only', () => {

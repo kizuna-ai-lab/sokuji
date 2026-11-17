@@ -152,6 +152,7 @@ export default defineConfig(({ command, mode }) => {
             'sidecar-sku': 'electron/sidecar-sku.js',
             'sidecar-bundle': 'electron/sidecar-bundle.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
+            'window-state': 'electron/window-state.js',
             'pipewire-app-audio': 'electron/pipewire-app-audio.js',
             'linux-window-titles': 'electron/linux-window-titles.js',
             'linux-gpu-flags': 'electron/linux-gpu-flags.js',

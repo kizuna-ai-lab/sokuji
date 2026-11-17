@@ -69,6 +69,9 @@ $dark: (
   'waveform-speaker': #0099ff,
   'waveform-participant': #f59e0b,
   'waveform-output': #ff9900,
+  // the desktop window's own edge (no system frame draws one): a black line, a faint light one inside it
+  'window-edge': #000000,
+  'window-edge-inner': rgba(255, 255, 255, 0.15),
 );
 
 $light: (
@@ -128,6 +131,9 @@ $light: (
   'waveform-speaker': #1a73e8,
   'waveform-participant': #b45309,
   'waveform-output': #b45309,
+  // the desktop window's own edge: a grey line
+  'window-edge': rgba(0, 0, 0, 0.28),
+  'window-edge-inner': rgba(255, 255, 255, 0.6),
 );
 
 @mixin emit($map) {

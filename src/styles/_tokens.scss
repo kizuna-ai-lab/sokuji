@@ -67,3 +67,9 @@ $color-toolbar-icon: var(--sk-toolbar-icon);
 $color-waveform-speaker:     var(--sk-waveform-speaker);
 $color-waveform-participant: var(--sk-waveform-participant);
 $color-waveform-output:      var(--sk-waveform-output);
+
+// ── Desktop window edge ──
+// The desktop window has no system frame, so on Linux and Windows the page
+// draws its edge (WindowEdge): an outer line and a fainter one inside it.
+$color-window-edge:       var(--sk-window-edge);
+$color-window-edge-inner: var(--sk-window-edge-inner);

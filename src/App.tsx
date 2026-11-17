@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import WindowEdge from './components/WindowEdge/WindowEdge';
 import './App.scss';
 import './locales'; // Initialize i18n
 import { NativeTtsProto } from './components/dev/NativeTtsProto';
@@ -86,6 +87,8 @@ function App() {
   return (
     <div className="App">
       <RouterProvider router={router} />
+      {/* The desktop window's edge, which no system frame draws (Linux, Windows): on every screen, the first-run wizard included. */}
+      <WindowEdge />
       {showNativeTts && <NativeTtsProto onClose={() => setShowNativeTts(false)} />}
       {showNotices && NoticesPreview && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100000 }}>
