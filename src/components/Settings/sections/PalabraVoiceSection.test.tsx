@@ -461,8 +461,12 @@ describe('PalabraVoiceSection: creating a voice', () => {
     const sleep = instantSleep();
     mount({ sleep });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/still processing/i));
+    // The budget is fifteen minutes of waiting, and the time each status request itself takes counts against it
+    // (waitUntilSettled reads the real clock around the request). Here the requests are mocks, so the sleeps add up
+    // to the budget less the few real milliseconds those mocks took: never more, and never a whole second less.
     const total = sleep.mock.calls.reduce((n, [ms]) => n + ms, 0);
-    expect(total).toBe(15 * 60 * 1000);
+    expect(total).toBeLessThanOrEqual(15 * 60 * 1000);
+    expect(total).toBeGreaterThan(15 * 60 * 1000 - 1000);
   });
 });
 

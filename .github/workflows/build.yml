@@ -25,19 +25,19 @@ jobs:
   # fail CI. That is what let the LogsPanel copy-export defect and the
   # console/logStore drift in #441 survive.
   #
-  # Deliberately scoped rather than the whole suite: the full run has
-  # pre-existing failures unrelated to these files, and a job that is red on
-  # arrival gets ignored. Widen it as suites are cleaned up — the value is in
-  # the diagnostics guards running on every PR, starting now.
+  # The whole unit suite. It used to be a list of paths,
+  # because the full run had failures of its own and a job that is red on
+  # arrival gets ignored; those are gone, and the list had become the gap: tests for the settings page,
+  # History and the notes were merged without ever running here. The repository
+  # is public, so the minutes are not a constraint, only the queue.
   #
-  # src/lib/local-inference joined on 2026-09-06 (after #497): its 51 files were
-  # green but had never run in CI, so the source guards for the ASR workers
-  # (harness-consolidation.test.ts) could not fail a PR — #497's first version
-  # of the #470 decode-handoff guard was vacuous for two workers and nothing
-  # noticed until a maintainer ran it locally.
+  # Not here: the end-to-end tests under e2e/ (Playwright on the real Electron
+  # app). They need a display and a built app, and are run locally with
+  # `npm run e2e`; vitest.config.ts keeps them out of this run.
   test:
-    name: test (diagnostics)
+    name: test (unit)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
         with:
@@ -54,42 +54,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run diagnostics, log-surface, local-inference and client-contract tests
-        run: >-
-          npx vitest run
-          src/lib/diagnostics
-          src/lib/errorTracking.test.ts
-          src/stores/logStore.test.ts
-          src/stores/sanitizeEvent.test.ts
-          src/components/LogsPanel
-          src/lib/local-inference
-          src/lib/contract
-          src/lib/conversation
-          src/lib/projection
-          src/lib/export
-          src/lib/session
-          src/lib/audio
-          src/lib/provider
-          src/providers
-          src/stores/providerStore.test.ts
-          src/stores/providerStore.readiness.test.ts
-          src/stores/turnModeStore.test.ts
-          src/stores/routingStore.test.ts
-          src/components/providers
-          src/components/dev
-          src/dev
-          vite.react-grab.test.ts
-          src/utils/featureGateForwarding.consistency.test.ts
-          electron/squirrel-nuspec.consistency.test.js
-          electron/distribution-channel.test.js
-          electron/vb-cable-installer.test.js
-          electron/vbcable.wiring.test.js
-          electron/ipc-channels.test.js
-          src/stores/vbCableStore.test.ts
-          src/components/VbCable
-          src/locales/locales.consistency.test.ts
-          electron/store-installer.consistency.test.js
-          electron/entry-map.consistency.test.js
+      - name: Run the unit tests
+        run: npx vitest run
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
