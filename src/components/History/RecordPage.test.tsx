@@ -643,8 +643,11 @@ describe('a record', () => {
     })) as never;
     await renderRecord();
     fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    const play = vi.mocked(HTMLMediaElement.prototype.play);
+    play.mockClear();
     fireEvent.click(screen.getByRole('button', { name: 'One more question' }));
     await settle();
+    expect(play).toHaveBeenCalled();
     expect(document.querySelector(`[data-segment="${A}:participant:3"]`)).toHaveClass('is-playing');
     expect(screen.getByText('0:02 / 1:00')).toBeInTheDocument();
   });
@@ -652,17 +655,24 @@ describe('a record', () => {
   // Checklist B9: whether a record is too short for notes is worked out from its transcript: under a minute, no way to
   // write them and the reason said; a minute or more, the way to write them.
   it('offers no notes for a transcript under a minute, and offers them for one of a minute or more', async () => {
-    await renderRecord();
-    fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
-    expect(screen.getByText('There is too little in this record to write notes from.')).toBeInTheDocument();
+    // The first sentence starts at 1 s: the last one ending at `endMs` makes the transcript span `endMs - 1000`.
+    const notesTabEndingAt = async (endMs: number) => {
+      cleanup();
+      const spanned = sentences.map((x) => (x.n === 5 ? { ...x, startMs: endMs - 900, endMs } : x));
+      port.getSentences = (async () => spanned) as never;
+      store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.');
+      await renderRecord();
+      fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    };
+    const tooLittle = 'There is too little in this record to write notes from.';
+    await notesTabEndingAt(5_900);
+    expect(screen.getByText(tooLittle)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Write notes' })).toBeNull();
-    cleanup();
-    const long = sentences.map((x) => (x.n === 5 ? { ...x, startMs: 64_000, endMs: 65_000 } : x));
-    port.getSentences = (async () => long) as never;
-    store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.');
-    await renderRecord();
-    fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
-    expect(screen.queryByText('There is too little in this record to write notes from.')).toBeNull();
+    await notesTabEndingAt(60_999);
+    expect(screen.getByText(tooLittle)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Write notes' })).toBeNull();
+    await notesTabEndingAt(61_000);
+    expect(screen.queryByText(tooLittle)).toBeNull();
     expect(screen.getByRole('button', { name: 'Write notes' })).toBeInTheDocument();
   });
 
