@@ -22,6 +22,10 @@ const openTheRecord = async (page: Page) => {
 /** The window's close button, as the user presses it: the window is asked to close and the app decides. */
 const closeTheWindow = (sokuji: Sokuji) => sokuji.app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0]?.close(); });
 
+/** Quitting the app itself (⌘Q on macOS, the Quit menu item elsewhere): closing the last window does not end the app on
+ *  macOS, so the quit is asked of the app. It asks the same question first. */
+const quitTheApp = (sokuji: Sokuji) => sokuji.app.evaluate(({ app }) => { app.quit(); });
+
 test('closing the app while notes are being written asks first: Stay keeps writing, Quit stops that version', async ({ launchApp }) => {
   const { userData, seed } = withARecord();
   const sokuji = await launchApp({ userData, seed });
@@ -48,10 +52,10 @@ test('closing the app while notes are being written asks first: Stay keeps writi
   await expect(notes.getByRole('status')).toContainText('Writing notes');
   expect(sokuji.app.process().exitCode).toBeNull();
 
-  // Quit: the app ends.
+  // Quitting the app asks the same question; Quit: the app ends.
   const child = sokuji.app.process();
   const ended = new Promise<void>((resolve) => child.once('exit', () => resolve()));
-  await closeTheWindow(sokuji);
+  await quitTheApp(sokuji);
   await expect(question).toBeVisible();
   await question.getByRole('button', { name: 'Quit' }).click();
   await ended;
