@@ -75,8 +75,10 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
     setOutcome(null);
     try {
       const { accepted, unreachable } = await (detect ?? ((k) => regionsAccepting(k, settings)))(key);
-      // A session that started while Soniox was being asked has locked the keys: nothing is stored.
-      if (currentRunPhase() !== 'idle') return;
+      // A session that started while Soniox was being asked has locked the keys, and a region changed meanwhile is not
+      // the one this save placed the key against: either way, nothing is stored.
+      const regionNow = asSonioxRegion((store().entries[provider.id]?.settings as SonioxSettings | undefined)?.region);
+      if (currentRunPhase() !== 'idle' || regionNow !== selected) return;
       // Kept where it is accepted, the selected region first; asked nowhere, kept for the selected region, and no other
       // region's key goes for a key nothing vouched for.
       const region = accepted.includes(selected) ? selected : accepted[0];

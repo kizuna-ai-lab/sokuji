@@ -156,6 +156,21 @@ describe("Soniox's key and its region", () => {
     expect(creds().apiKeyEu).toBe('');
   });
 
+  it('stores nothing when the region was changed while the key was being placed', async () => {
+    given('us', { apiKeyEu: 'sk-eu' });
+    const search = pending();
+    mount(search.detect);
+    paste('sk-us');
+    save();
+    const entry = useProviderStore.getState().entries.soniox!;
+    useProviderStore.setState({ entries: { soniox: { ...entry, settings: { ...(entry.settings as object), region: 'eu' } } } as never });
+    search.answer({ accepted: ['us'], unreachable: [] });
+    await saveButton();
+    expect(creds().apiKeyEu).toBe('sk-eu');
+    expect(creds().apiKey).toBe('');
+    expect(checked).toBe(0);
+  });
+
   it('stores nothing when a session started while the region was being found', async () => {
     given('us', { apiKeyJp: 'sk-old-jp' });
     const search = pending();
