@@ -340,7 +340,7 @@ export class Run {
     // can refuse the start: a refused lease leaves the last conversation on
     // screen (choice 3). A provider with neither a lease nor `startBoth` hands
     // them over before its legs open, as before.
-    host.conversations(this.conversations, { provider: this.shape.provider.id, models: this.models });
+    host.conversations(this.conversations, { provider: this.shape.provider.id, models: this.models, startedAt: this.startedAt });
 
     const requests = Object.fromEntries(shape.legs.map((leg) => [leg, {
       context: contexts[leg]!,

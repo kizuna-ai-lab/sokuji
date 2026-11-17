@@ -121,6 +121,12 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
   const txt = await download(app, dir, () => item('Save the conversation (.txt)').click());
   expect(txt.name).toMatch(/^sokuji-conversation-\d{8}-\d{6}\.txt$/);
   expect(txt.text).toContain('Provider: fake');
+  // When the session started, and when the file was saved: the one is the file's name, the other is now.
+  const header = txt.text.split('\n');
+  expect(header[1]).toMatch(/^Session started: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  expect(header[2]).toMatch(/^Exported: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  const stamp = (line: string) => line.slice(line.indexOf(': ') + 2).replace(/[-: ]/g, '');
+  expect(txt.name).toBe(`sokuji-conversation-${stamp(header[1]).slice(0, 8)}-${stamp(header[1]).slice(8)}.txt`);
   expect(txt.text.endsWith(`\n\n${copied}`)).toBe(true);
 
   // .json: the conversation export's format, the same sentences, at the times the text shows.
@@ -128,10 +134,10 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
   const json = await download(app, dir, () => item('Save the conversation (.json)').click());
   expect(json.name).toBe(txt.name.replace(/\.txt$/, '.json'));
   const data = JSON.parse(json.text) as {
-    format: string; provider: string;
+    format: string; provider: string; sessionStartedAt: string; exportedAt: string;
     groups: { t: number; source: { text: string }; translation: { text: string } }[];
   };
-  expect(Object.keys(data)).toEqual(['format', 'exportedAt', 'appVersion', 'provider', 'models', 'languages', 'groups', 'notices']);
+  expect(Object.keys(data)).toEqual(['format', 'sessionStartedAt', 'exportedAt', 'appVersion', 'provider', 'models', 'languages', 'groups', 'notices']);
   expect(data.format).toBe('sokuji-conversation/2');
   expect(data.provider).toBe('fake');
   expect(data.groups.map((g) => [g.source.text, g.translation.text]))
@@ -139,6 +145,9 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
   for (const group of data.groups) expect(Object.keys(group)).toEqual(['id', 'leg', 't', 'pairing', 'source', 'translation']);
   const times = data.groups.map((g) => g.t);
   expect(times.map((t) => new Date(t).toTimeString().slice(0, 8))).toEqual(clock);
+  // The session started before its first sentence, and the file was saved after its last.
+  expect(Date.parse(data.sessionStartedAt)).toBeLessThanOrEqual(times[0]);
+  expect(Date.parse(data.exportedAt)).toBeGreaterThan(times[times.length - 1]);
 
   // Subtitles: one cue per exchange, its sentence over its translation, on the record's clock, the same in both files.
   await exportButton.click();

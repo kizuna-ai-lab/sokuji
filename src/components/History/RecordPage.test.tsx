@@ -452,14 +452,17 @@ describe('a record', () => {
     expect(calls('reassignSentence')).toEqual([{ transcriptId: 1, n: 2, speaker: 'u1' }]);
   });
 
-  it("exports the same text as today's exporter on the stored conversation", async () => {
+  it("exports the same text as today's exporter on the stored conversation: started when the record did, exported now", async () => {
     await renderRecord();
+    const exportedAt = START + 3_600_000;
+    const now = vi.spyOn(Date, 'now').mockReturnValue(exportedAt);
     const expectedTxt = conversationExporter({
-      entries: createProjector().project(legs, DEFAULT_PROJECTION), legs, info: { provider: 'soniox', models: {} },
-      words: exportWords(i18n.t.bind(i18n) as never), appVersion: '1.2.3', now: () => START,
+      entries: createProjector().project(legs, DEFAULT_PROJECTION), legs, info: { provider: 'soniox', models: {}, startedAt: START },
+      words: exportWords(i18n.t.bind(i18n) as never), appVersion: '1.2.3', now: () => exportedAt,
     }).text(FULL_SCOPE, true);
     openExport();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Save the conversation (.txt)' }));
+    now.mockRestore();
     expect(downloadFile).toHaveBeenCalledWith(expectedTxt, 'sokuji-conversation-20260115-090000.txt', 'text/plain;charset=utf-8');
 
     openExport();

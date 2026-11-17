@@ -1307,12 +1307,13 @@ describe('runner — the conversation', () => {
     expect(runner.conversation.snapshot()[0].segments).toEqual([]);
   });
 
-  it('records the provider and the models its run described on the conversation', async () => {
-    const { runner } = setup();
+  it('records the provider and the models its run described on the conversation, and when the run started', async () => {
+    const { runner, clock } = setup();
     expect(runner.conversation.info).toBeNull();
+    const startedAt = clock.now();
     await runner.start();
     // The fake describes every stage as 'fake' (`src/providers/fake/provider.ts`).
-    expect(runner.conversation.info).toEqual({ provider: 'fake', models: { asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' } });
+    expect(runner.conversation.info).toEqual({ provider: 'fake', models: { asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' }, startedAt });
   });
 
   it('keeps no replay audio when keepReplayAudio is off', async () => {

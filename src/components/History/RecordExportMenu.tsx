@@ -66,14 +66,15 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
       legs,
       words: exportWords(t as Parameters<typeof exportWords>[0]),
       appVersion: record.appVersion,
-      now: () => record.startedAt,
+      // A saved file says when its session started and when it was saved; its name is the session's start (below).
+      now: () => Date.now(),
     };
     return fromFile && shown
-      ? rowsExporter({ ...common, rows, startedAt: record.startedAt, info: { provider: shown.origin.service, models: {} } })
+      ? rowsExporter({ ...common, rows, startedAt: record.startedAt, info: { provider: shown.origin.service, models: {}, startedAt: record.startedAt } })
       : conversationExporter({
         ...common,
         entries: createProjector().project(legs, DEFAULT_PROJECTION),
-        info: { provider: record.services.provider, models: record.services.models },
+        info: { provider: record.services.provider, models: record.services.models, startedAt: record.startedAt },
       });
   }, [legs, record, rows, shown, fromFile, t]);
 

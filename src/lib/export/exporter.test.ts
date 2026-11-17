@@ -5,6 +5,7 @@ import { conversationExporter, exportWords, rowsExporter } from './exporter';
 import { FULL_SCOPE } from './transcript';
 
 // Local times, so the formatted clock reads the same in every timezone.
+const started = new Date(2026, 8, 24, 10, 0, 0).getTime();
 const said = new Date(2026, 8, 24, 10, 0, 5).getTime();
 const exported = new Date(2026, 8, 24, 10, 1, 0).getTime();
 
@@ -18,15 +19,16 @@ const entries: Entry[] = [
 ];
 const words = exportWords((_key, defaultValue) => defaultValue);
 const exporter = (over: Partial<Parameters<typeof conversationExporter>[0]> = {}) => conversationExporter({
-  entries, legs, info: { provider: 'fake', models: { asrModel: 'a', ttsModel: 't' } }, words, appVersion: '9.9.9', now: () => exported, ...over,
+  entries, legs, info: { provider: 'fake', models: { asrModel: 'a', ttsModel: 't' }, startedAt: started }, words, appVersion: '9.9.9', now: () => exported, ...over,
 });
 
 describe('conversationExporter', () => {
-  it("copies without a header and writes a file with one, from the run's own provider and models", () => {
+  it("copies without a header and writes a file with one: when the session started and when it was exported, the run's own provider and models", () => {
     expect(exporter().text(FULL_SCOPE, false)).toBe('[10:00:05] Me\n  今日は天気がいいですね。\n  → 今天天气很好。\n');
     expect(exporter().text(FULL_SCOPE, true)).toBe([
       'Sokuji conversation export',
-      'Generated: 2026-09-24 10:01:00',
+      'Session started: 2026-09-24 10:00:00',
+      'Exported: 2026-09-24 10:01:00',
       'Provider: fake',
       'Models: asr=a, tts=t',
       "My Language: ja → Other's Language: zh",
@@ -52,13 +54,14 @@ describe('conversationExporter', () => {
     expect(exporter({ entries: noTranslation }).hasScopedContent({ speaker: 'translation', participant: 'none' })).toBe(false);
   });
 
-  it('writes the JSON with the metadata of the export and the run', () => {
+  it('writes the JSON with the metadata of the export and the run: when the session started, and when it was exported', () => {
     const written = exporter().json(FULL_SCOPE);
     expect(written.endsWith('\n')).toBe(true);
     const parsed = JSON.parse(written);
-    expect(Object.keys(parsed)[0]).toBe('format');
+    expect(Object.keys(parsed)).toEqual(['format', 'sessionStartedAt', 'exportedAt', 'appVersion', 'provider', 'models', 'languages', 'groups', 'notices']);
     expect(parsed).toMatchObject({
       format: 'sokuji-conversation/2',
+      sessionStartedAt: new Date(started).toISOString(),
       exportedAt: new Date(exported).toISOString(),
       appVersion: '9.9.9',
       provider: 'fake',
@@ -68,10 +71,13 @@ describe('conversationExporter', () => {
     });
   });
 
-  it('names no provider and no models before any run', () => {
+  it('names no provider, no models and no session start before any run', () => {
     const text = exporter({ info: null }).text(FULL_SCOPE, true);
     expect(text).not.toContain('Provider:');
     expect(text).not.toContain('Models:');
+    expect(text).not.toContain('Session started:');
+    expect(text).toContain('Exported: 2026-09-24 10:01:00');
+    expect(JSON.parse(exporter({ info: null }).json(FULL_SCOPE)).sessionStartedAt).toBeNull();
   });
 });
 
@@ -86,6 +92,8 @@ describe('exportWords', () => {
       noSource: 'mainPanel.export.noSource|(no source)',
     });
     expect(person(3)).toBe('mainPanel.displayMode.person|Speaker {{n}}|{"n":3}');
+    expect(keyed.header.sessionStarted).toBe('mainPanel.export.headerSessionStarted|Session started');
+    expect(keyed.header.exported).toBe('mainPanel.export.headerExported|Exported');
     expect(keyed.header.narrowed).toBe('mainPanel.export.headerNarrowed|Note: this export was narrowed at export time — some lines were left out.');
   });
 });
@@ -99,13 +107,13 @@ describe('rowsExporter', () => {
     { leg: 'participant' as const, startMs: 65_000, speakerLabel: 'Speaker 2', sentences: [{ n: 3, text: '好的。' }, { n: 4, text: '开始吧。' }], translation: null },
   ];
   const rowsOut = (over: Partial<Parameters<typeof rowsExporter>[0]> = {}) => rowsExporter({
-    rows, startedAt: start, legs: [], info: { provider: 'soniox', models: {} }, words, appVersion: '9.9.9', now: () => exported, ...over,
+    rows, startedAt: start, legs: [], info: { provider: 'soniox', models: {}, startedAt: start }, words, appVersion: '9.9.9', now: () => exported, ...over,
   });
 
   it('writes each row at its clock time with its speaker, and its sentences as one line', () => {
     expect(rowsOut().text(FULL_SCOPE, false)).toBe('[10:00:05] Speaker 1\n  Welcome. Let us start.\n\n[10:01:05] Speaker 2\n  好的。开始吧。\n');
     expect(rowsOut().text(FULL_SCOPE, true).split('\n').slice(0, 5)).toEqual([
-      'Sokuji conversation export', 'Generated: 2026-09-24 10:01:00', 'Provider: soniox', '', '[10:00:05] Speaker 1',
+      'Sokuji conversation export', 'Session started: 2026-09-24 10:00:00', 'Exported: 2026-09-24 10:01:00', 'Provider: soniox', '',
     ]);
   });
 
@@ -120,6 +128,8 @@ describe('rowsExporter', () => {
   it('writes the JSON with the metadata and one group per row', () => {
     const json = JSON.parse(rowsOut().json(FULL_SCOPE));
     expect(json.format).toBe('sokuji-transcript/1');
+    expect(json.sessionStartedAt).toBe(new Date(start).toISOString());
+    expect(json.exportedAt).toBe(new Date(exported).toISOString());
     expect(json.provider).toBe('soniox');
     expect(json.groups).toEqual([
       { leg: 'participant', t: new Date(start + 5000).toISOString(), speaker: 'Speaker 1', source: { text: 'Welcome. Let us start.' } },

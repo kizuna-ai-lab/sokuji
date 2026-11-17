@@ -8,6 +8,8 @@ const ORDER: readonly LegName[] = ['speaker', 'participant'];
 export interface ConversationInfo {
   provider: string;
   models: { asrModel?: string; translationModel?: string; ttsModel?: string };
+  /** When the run started (ms since the epoch): the session start an export names. */
+  startedAt: number;
 }
 
 /** Why the conversation emptied: `clear()` was called, or a new run replaced it. */

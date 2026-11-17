@@ -49,7 +49,8 @@ export function exportWords(t: (key: string, defaultValue: string, params?: Reco
     },
     header: {
       title: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
-      generated: t('mainPanel.export.headerGenerated', 'Generated'),
+      sessionStarted: t('mainPanel.export.headerSessionStarted', 'Session started'),
+      exported: t('mainPanel.export.headerExported', 'Exported'),
       provider: t('mainPanel.export.headerProvider', 'Provider'),
       models: t('mainPanel.export.headerModels', 'Models'),
       source: t('mainPanel.export.headerSource', 'My Language'),
@@ -66,7 +67,7 @@ export interface ConversationExportInput {
   info: ConversationInfo | null;
   words: ExportWords;
   appVersion: string | null;
-  /** The export's own moment: the header's "Generated" and the JSON's `exportedAt`. */
+  /** The export's own moment: the header's "Exported" and the JSON's `exportedAt`. */
   now: () => number;
 }
 
@@ -82,7 +83,9 @@ function modelsOf(info: ConversationInfo | null): Record<string, string> {
 const formatTime = (ms: number) => `[${formatLocalTime(ms)}]`;
 
 export function conversationExporter({ entries, legs, info, words, appVersion, now }: ConversationExportInput): Exporter {
-  const meta = (): TranscriptMeta => ({ exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info) });
+  const meta = (): TranscriptMeta => ({
+    sessionStartedAt: info?.startedAt ?? null, exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info),
+  });
   return {
     // Answered from the entries' rows, not a render: an exchange always has
     // rows (the projector drops exchanges with none, and `sideOf` returns
@@ -118,7 +121,9 @@ export interface RowsExportInput extends Omit<ConversationExportInput, 'entries'
  * conversation behind it, so it is written from its own rows, in the conversation export's shape.
  */
 export function rowsExporter({ rows, startedAt, legs, info, words, appVersion, now }: RowsExportInput): Exporter {
-  const meta = (): TranscriptMeta => ({ exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info) });
+  const meta = (): TranscriptMeta => ({
+    sessionStartedAt: startedAt, exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info),
+  });
   return {
     hasContent: rows.length > 0,
     hasScopedContent: (scope) => rowGroups(rows, scope, startedAt).length > 0,

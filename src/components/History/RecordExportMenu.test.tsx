@@ -32,6 +32,35 @@ describe("a record's export", () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Speaker 1\n  Welcome. Let us start.'));
   });
 
+  // Owner, 2026-11-18: a saved file says both when its session started and when the file was saved, each under its
+  // own name; the file's name stays the session's start.
+  it('says when the session started and when the file was saved, and names the file for the start', async () => {
+    const EXPORTED = new Date(2026, 1, 3, 18, 30, 0).getTime();
+    const { createObjectURL, revokeObjectURL } = URL;
+    vi.spyOn(Date, 'now').mockReturnValue(EXPORTED);
+    let made: Blob | null = null;
+    URL.createObjectURL = ((blob: Blob) => { made = blob; return 'blob:saved'; }) as typeof URL.createObjectURL;
+    URL.revokeObjectURL = () => {};
+    const saved: { name: string; blob: Blob }[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { saved.push({ name: this.download, blob: made! }); });
+    try {
+      render(<RecordExportMenu record={record} legs={[]} rows={rows} transcript={file} />);
+      for (const name of ['Save the conversation (.txt)', 'Save the conversation (.json)']) {
+        fireEvent.click(screen.getByRole('button', { name: /Export/ }));
+        fireEvent.click(screen.getByRole('menuitem', { name }));
+      }
+      expect(saved.map((s) => s.name)).toEqual(['sokuji-conversation-20260115-090000.txt', 'sokuji-conversation-20260115-090000.json']);
+      const read = (blob: Blob) => new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.readAsText(blob); });
+      const [txt, json] = await Promise.all(saved.map((s) => read(s.blob)));
+      expect(txt.split('\n').slice(1, 3)).toEqual(['Session started: 2026-01-15 09:00:00', 'Exported: 2026-02-03 18:30:00']);
+      expect(JSON.parse(json)).toMatchObject({ sessionStartedAt: new Date(START).toISOString(), exportedAt: new Date(EXPORTED).toISOString() });
+    } finally {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+      vi.restoreAllMocks();
+    }
+  });
+
   // Owner, 2026-11-17: the conversation's items say they are the conversation, as the subtitles' and the notes' do;
   // and copying comes before saving, the notes' too.
   it('names what each item copies or saves, copying first', () => {
