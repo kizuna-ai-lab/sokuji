@@ -276,8 +276,8 @@ describe('a record', () => {
     expect(toggle()).toHaveAttribute('title', 'Open the side panel');
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     expect(toggle().querySelector('.lucide-panel-right')).not.toBeNull();
-    // The switch is the icon alone: its name and tooltip say what it does.
-    expect(toggle().textContent).toBe('');
+    // The icon and its word, as the title bar's buttons have while there is room (owner, 2026-11-17).
+    expect(toggle().textContent).toBe('Side panel');
     expect(toggle().closest('.record-page__actions')).not.toBeNull();
     fireEvent.click(toggle());
     expect(toggle()).toHaveAttribute('title', 'Close the side panel');
@@ -798,6 +798,20 @@ describe('the notes column on a wide page', () => {
     expect(notes()).not.toHaveAttribute('hidden');
     expect(notesSwitch()).toHaveAttribute('aria-pressed', 'true');
     expect(localStorage.getItem('history.notesClosed')).toBeNull();
+  });
+
+  it('drops the switches\' words, keeping their icons, when the heading would have too little room beside them', async () => {
+    // A wide page whose actions, with their words, would leave the heading less than its 240px.
+    widePage(1000);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const width = this.classList.contains('record-page__actions') ? 900 : 0;
+      return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    await renderRecord();
+    const group = notesSwitch().closest('.record-page__panels')!;
+    expect(group).toHaveAttribute('data-compact');
+    expect(notesSwitch()).toHaveAccessibleName('Notes');
+    expect(notesSwitch()).toHaveAttribute('title', 'Hide the notes');
   });
 
   it('on a narrow page keeps the two tabs, with no divider and no notes switch (the side panel\'s stays)', async () => {

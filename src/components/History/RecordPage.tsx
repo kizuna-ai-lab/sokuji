@@ -4,7 +4,7 @@
 // one block per round and speaker with the translation under it; its speakers, named in place; and its export. A record
 // still being written shows how it was when opened, with Refresh. The notes and the player get their places later: the
 // side column below the speakers, and a strip along the bottom.
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import { AudioLines, ChevronLeft, Ellipsis, MicOff, PanelLeft, PanelRight, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
@@ -29,6 +29,7 @@ import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
 import { InlineEdit } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
+import { labelsFit } from './panelSwitchFit';
 import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
 import './History.scss';
 
@@ -191,6 +192,12 @@ export const RecordPage: React.FC = () => {
   const [notesWidth, setNotesWidth] = useState(readNotesWidth);
   const notesId = useId();
   const sideId = useId();
+  // The switches' words, kept while the heading has its room beside the actions (panelSwitchFit.ts). The actions'
+  // width with the words is measured while they show, and kept to decide when they can come back.
+  const headRef = useRef<HTMLElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const wordsWidth = useRef(0);
+  const [switchWords, setSwitchWords] = useState(true);
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
@@ -206,6 +213,33 @@ export const RecordPage: React.FC = () => {
     watch.observe(el);
     return () => watch.disconnect();
   }, [open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Measured again whenever the head or the actions change size (a window resized, a font come in, a button added).
+  const wordsShown = useRef(switchWords);
+  wordsShown.current = switchWords;
+  useLayoutEffect(() => {
+    const head = headRef.current;
+    const actions = actionsRef.current;
+    if (!head || !actions) return undefined;
+    const measure = () => {
+      const style = getComputedStyle(head);
+      const padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      const gap = parseFloat(style.columnGap) || 0;
+      const parts = [...head.children] as HTMLElement[];
+      const others = parts.filter((p) => p !== actions && !p.classList.contains('record-page__heading'))
+        .reduce((sum, p) => sum + p.getBoundingClientRect().width, 0);
+      if (wordsShown.current) wordsWidth.current = actions.getBoundingClientRect().width;
+      const fit = labelsFit({ head: head.clientWidth, padding, gaps: gap * Math.max(0, parts.length - 1), others, actions: wordsWidth.current });
+      if (fit !== wordsShown.current) setSwitchWords(fit);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const watch = new ResizeObserver(measure);
+    watch.observe(head);
+    watch.observe(actions);
+    return () => watch.disconnect();
+  }, [switchWords, open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A new language measures its words again.
+  useEffect(() => { setSwitchWords(true); }, [language]);
   // A point or topic of the notes: the transcript shows its sentence, marked, and plays from it when there is sound.
   useEffect(() => {
     if (!jumpTo || !open) return;
@@ -304,19 +338,21 @@ export const RecordPage: React.FC = () => {
   // The two panels' switches, together in the toolbar before Export: the icon says which side, the pressed state that
   // the panel is shown, the tooltip what a click does (design review, 2026-11-17; B-40).
   const panelSwitches = (wide || sideShown) && (
-    <span className="record-page__panels">
+    <span className="record-page__panels" data-compact={switchWords ? undefined : ''}>
       {wide && (
-        <button type="button" className="history-button history-button--icon record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
+        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
           title={notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes')}
           aria-pressed={notesOpen} aria-controls={notesId} onClick={() => { writeNotesOpen(!notesOpen); setNotesOpen(!notesOpen); }}>
           <PanelLeft size={16} aria-hidden="true" />
+          <span className="record-page__panel-word">{t('history.notes', 'Notes')}</span>
         </button>
       )}
       {sideShown && (
-        <button type="button" className="history-button history-button--icon record-page__panel-switch" aria-label={t('history.sidePanel', 'Side panel')}
+        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.sidePanel', 'Side panel')}
           title={sideOpen ? t('history.closeSidePanel', 'Close the side panel') : t('history.openSidePanel', 'Open the side panel')}
           aria-pressed={sideOpen} aria-controls={sideId} onClick={() => void toggleSide()}>
           <PanelRight size={16} aria-hidden="true" />
+          <span className="record-page__panel-word">{t('history.sidePanel', 'Side panel')}</span>
         </button>
       )}
     </span>
@@ -438,7 +474,7 @@ export const RecordPage: React.FC = () => {
 
   return (
     <div className="record-page" ref={pageRef}>
-      <header className="record-page__head">
+      <header className="record-page__head" ref={headRef}>
         <button type="button" className="settings-page__back" onClick={() => actions.closeRecord()}>
           <ChevronLeft size={14} aria-hidden="true" /> {t('history.backToList', 'Back to the list')}
         </button>
@@ -470,7 +506,7 @@ export const RecordPage: React.FC = () => {
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
           </span>
         </div>
-        <div className="record-page__actions">
+        <div className="record-page__actions" ref={actionsRef}>
           {result && <span className="record-page__result" role="status">{result}</span>}
           {live && (
             <button type="button" className="history-button" disabled={busy} onClick={() => void actions.refreshRecord()}>

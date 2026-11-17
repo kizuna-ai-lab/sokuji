@@ -362,8 +362,11 @@
 
   &__more { position: relative; }
 
-  // The two panels' switches, a pair set a little apart from Export and More; a shown panel's switch is pressed.
+  // The two panels' switches, a pair set a little apart from Export and More; a shown panel's switch is pressed. Their
+  // words go, the icons staying, when the heading would have too little room (RecordPage measures; owner, 2026-11-17).
   &__panels { display: inline-flex; gap: vars.$space-1; margin-right: vars.$space-2; }
+  &__panels[data-compact] &__panel-word { display: none; }
+  &__panels[data-compact] &__panel-switch { padding: vars.$space-1; }
   // Off, the icon alone; on, the button filled and outlined, so which panels are shown reads at a glance.
   &__panel-switch {
     border-color: transparent;
