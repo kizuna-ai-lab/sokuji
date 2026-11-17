@@ -1,5 +1,16 @@
 // The app's notes service and language, read from the stores.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// The desktop build with the hosted services in it, where a test asks for it (the default notes service depends on it).
+const desktop = vi.hoisted(() => ({ hosted: false }));
+vi.mock('../../utils/environment', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/environment')>();
+  return { ...actual, isElectron: () => desktop.hosted || actual.isElectron() };
+});
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../providers/registry')>();
+  return { ...actual, presentProviders: () => (desktop.hosted ? [{ id: 'kizunaai_soniox', kind: 'managed' }] : actual.presentProviders()) as never };
+});
 import i18n from '../../locales';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -13,6 +24,7 @@ import { getBackendUrl } from '../../utils/environment';
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox' };
 
 beforeEach(() => {
+  desktop.hosted = false;
   useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
   useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: ' sk-test ' }, pair: { source: 'en', target: 'ja' } } } as never });
   useSettingsStore.setState({ notesModel: 'gpt-6-luna' } as never);
@@ -59,6 +71,24 @@ describe('the notes service from the stores', () => {
     expect(await notesChatFromStores('rec-1')).toBeNull();
     registerAuth(() => undefined);
     expect(await notesChatFromStores('rec-1')).toBeNull();
+  });
+
+  // Review: signed out with an OpenAI key and no service chosen, the notes are written with that key. The key is read
+  // before the default is worked out, even when the OpenAI settings have not been loaded yet.
+  it('with none named and signed out, writes with OpenAI once its stored key is loaded', async () => {
+    desktop.hosted = true;
+    registerAuth(() => ({ signedIn: false, loaded: true, userId: null, getToken: async () => null }) as never);
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: null }, stored: true });
+    useProviderStore.setState({ entries: {} } as never);
+    const load = vi.spyOn(useProviderStore.getState(), 'load').mockImplementation(async () => {
+      useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-stored' }, pair: { source: 'en', target: 'ja' } } } } as never);
+    });
+    try {
+      expect((await notesChatFromStores())?.model).toBe('gpt-6-luna');
+    } finally {
+      load.mockRestore();
+      registerAuth(() => undefined);
+    }
   });
 
   it('with none named in the line-up, writes with the default service; none when OpenAI has no key', async () => {

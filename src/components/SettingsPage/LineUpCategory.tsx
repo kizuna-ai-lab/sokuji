@@ -127,13 +127,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const openAi = providers.find((p) => p.id === 'openai');
   const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
   const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
-  const notesService = notesServiceOf(lineUp, kizunaOffered);
+  const notesService = notesServiceOf(lineUp, { hostedOffered: kizunaOffered, signedIn: auth.signedIn, openAiKeyed });
   const kizunaChosen = notesService === KIZUNA_NOTES;
   const notesPricing = useNotesPricing(kizunaOffered);
-  const notesReady = kizunaChosen ? auth.signedIn : openAiKeyed;
-  const notesState = notesReady ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
-      : kizunaChosen ? { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
-        : { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key') };
   const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
   // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.
   const notesOptions: ProviderOptionModel[] = [
@@ -278,6 +274,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
   };
+
+  // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own, so a key that is missing,
+  // rejected or not yet checked reads the same here as on a stage (review).
+  const notesState = kizunaChosen
+    ? auth.signedIn ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') } : { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') }
+    : stateOf('openai');
 
   // Granite Speech is a local model: when the local transcription and translation choices are the same Granite
   // Speech model, today's code turns speech straight into the translation (Plan 4, Task 3).

@@ -404,6 +404,16 @@ describe('the notes card', () => {
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
   });
 
+  // Review: signed out with an OpenAI key, the notes are written with that key; no extra choice is needed.
+  it('signed out with an OpenAI key and nothing chosen: OpenAI by default, ready', () => {
+    authState.signedIn = false;
+    openAiKey();
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('openai');
+    const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+    expect(within(card).getByText('Ready')).toBeInTheDocument();
+  });
+
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
