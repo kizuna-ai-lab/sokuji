@@ -70,6 +70,23 @@ describe("a record's notes", () => {
     expect(screen.getByRole('button', { name: /The boxes were redone/ })).toBeInTheDocument();
   });
 
+  // Owner, 2026-11-17: a long point is one run of text, its bullet at its first line and its kinds right after its last
+  // word. A <button> is laid out as a block of its own, which put the bullet at its last line and the kinds on a line
+  // of their own.
+  it('lets a point\'s text run inline, its kinds straight after it, and still go to its sentence from the keyboard', () => {
+    const p = props();
+    render(<RecordNotes {...p} />);
+    const point = screen.getByRole('button', { name: /Customs may hold it/ });
+    expect(point.tagName).toBe('SPAN');
+    expect(point.tabIndex).toBe(0);
+    expect(point.nextElementSibling?.className).toBe('record-notes__marks');
+    expect(point.nextElementSibling?.tagName).toBe('SPAN');
+    fireEvent.keyDown(point, { key: 'Enter' });
+    fireEvent.keyDown(point, { key: ' ' });
+    fireEvent.keyDown(point, { key: 'a' });
+    expect(vi.mocked(p.onJump).mock.calls).toEqual([[8], [8]]);
+  });
+
   it('takes a point to its sentence and a topic to its first', () => {
     const p = props();
     render(<RecordNotes {...p} />);

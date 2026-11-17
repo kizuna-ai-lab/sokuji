@@ -210,7 +210,21 @@ export function RecordNotes(p: RecordNotesProps) {
                     const who = todo ? [ownerWord(pt.owner, sides), pt.due].filter(Boolean).join(' · ') : '';
                     return (
                       <li key={i} className="record-notes__point">
-                        <button type="button" className="record-notes__jump" onClick={() => p.onJump(pt.sentences[0])}>{pt.text}</button>
+                        {/* Inline text, not a <button>: a button is laid out as a box of its own, which put the bullet at
+                            its last line and the kinds on a line of their own (owner, 2026-11-17). */}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="record-notes__jump"
+                          onClick={() => p.onJump(pt.sentences[0])}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return;
+                            e.preventDefault();
+                            p.onJump(pt.sentences[0]);
+                          }}
+                        >
+                          {pt.text}
+                        </span>
                         {(pt.kinds.length > 0 || who) && (
                           <span className="record-notes__marks">
                             {pt.kinds.map((k) => <span key={k} className={`record-notes__kind record-notes__kind--${k}`}>{kindWord[k]}</span>)}
