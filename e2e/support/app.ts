@@ -61,7 +61,12 @@ export function removeUserData(userData: string): void {
  * Starts the E2E build (`npm run e2e:build`) on `userData`. A new directory is a first run;
  * passing the directory of an app that was closed (or killed) is a restart on the same state.
  */
-export async function launch(options: { userData?: string; seed?: Seed } = {}): Promise<Sokuji> {
+export async function launch(options: {
+  userData?: string;
+  seed?: Seed;
+  /** The services the main process calls are answered by the test's fakes (e2e/support/main/fake-services.cjs). */
+  fakeServices?: boolean;
+} = {}): Promise<Sokuji> {
   const main = path.join(REPO, 'dist-electron/main.js');
   if (!fs.existsSync(path.join(REPO, 'build/index.html')) || !fs.existsSync(main)) {
     throw new Error('No E2E build found. Run `npm run e2e:build` first.');
@@ -75,6 +80,8 @@ export async function launch(options: { userData?: string; seed?: Seed } = {}): 
   const app = await electron.launch({
     cwd: REPO,
     args: [
+      // Loaded into the main process before the app's own code, so that the app takes the fakes' `fetch`.
+      ...(options.fakeServices ? ['-r', path.join(__dirname, 'main', 'fake-services.cjs')] : []),
       '.',
       `--user-data-dir=${userData}`,
       '--use-fake-device-for-media-stream',
