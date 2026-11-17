@@ -216,8 +216,9 @@
     "extension:dev": "cd extension && npx vite build --watch --mode development",
     "sidecar:setup": "bash sidecar/setup.sh",
     "e2e:build": "vite build --mode e2e",
-    "e2e": "playwright test -c e2e/playwright.config.ts --grep-invert @long",
-    "e2e:long": "playwright test -c e2e/playwright.config.ts --grep @long"
+    "e2e": "playwright test -c e2e/playwright.config.ts --grep-invert \"@long|@real\"",
+    "e2e:long": "playwright test -c e2e/playwright.config.ts --grep @long",
+    "e2e:real": "playwright test -c e2e/playwright.config.ts --grep @real"
   },
   "eslintConfig": {
     "extends": [
