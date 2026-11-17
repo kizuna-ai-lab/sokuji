@@ -84,8 +84,9 @@ audio away from any Sokuji already running on the machine.
   request leaving the main process is refused and listed by `refused()`, so a service without a fake shows up at once. The
   test speaks of no particular service: `answerWith({ sentences })`, `{ hold: true }` (stays at "transcribing" until
   `release()`), or `{ fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service' }`; `kept()` is what the service still holds
-  (the app deletes its uploads and jobs when done). Soniox is the one service registered today
-  (`support/main/transcription-soniox.cjs`); another one is another file there, registered in `fake-services.cjs`.
+  (the app deletes its uploads and jobs when done). Fakes are registered under their service's id in the line-up, and
+  `fakeTranscription` takes the one for the line-up's transcription service. Soniox is the one registered today
+  (`support/main/transcription-soniox.cjs`); another service is another file there, registered in `fake-services.cjs`.
   `addTranscriptionKey(sokuji)` puts the key in from Settings, as a user does.
 - `e2e/fixtures/audio/` holds a few seconds of the same repository recording in each format a file may come in
   (`make.sh` makes them; the m4a and AC-3 ones were made on macOS). Never use synthesised speech for them.

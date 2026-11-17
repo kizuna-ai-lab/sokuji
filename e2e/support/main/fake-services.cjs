@@ -4,8 +4,9 @@
 // the main process is refused and noted, for the test to find: a service no fake answers shows up at once instead of
 // reaching the real one.
 //
-// A fake service is a module with `name`, `handles(url)`, `answer(request, url)` and `control`; `control` is what the
-// test drives (see e2e/support/transcription.ts). Plain JavaScript on purpose: it runs as it is, before the app.
+// A fake service is a module with `name` (the service's id in the app's line-up, so two services never share one),
+// `handles(url)`, `answer(request, url)` and `control`; `control` is what the test drives (see
+// e2e/support/transcription.ts). Plain JavaScript on purpose: it runs as it is, before the app.
 'use strict';
 
 const services = [require('./transcription-soniox.cjs')];

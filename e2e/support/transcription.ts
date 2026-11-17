@@ -41,8 +41,8 @@ type Control = {
   asked(): string[];
   kept(): number;
 };
-/** The fakes the main process was given at launch (e2e/support/main/fake-services.cjs). */
-type Fakes = { refused: string[]; services: { transcription: Control } };
+/** The fakes the main process was given at launch (e2e/support/main/fake-services.cjs), by service id. */
+type Fakes = { refused: string[]; services: Record<string, Control> };
 /** The main process's global object, with the fakes on it. */
 type Main = typeof globalThis & { e2eFakes: Fakes };
 
@@ -52,15 +52,21 @@ type Main = typeof globalThis & { e2eFakes: Fakes };
  */
 export async function fakeTranscription(sokuji: Sokuji): Promise<FakeTranscription> {
   const { app } = sokuji;
-  const ready = await app.evaluate(() => Boolean((globalThis as { e2eFakes?: unknown }).e2eFakes));
-  if (!ready) throw new Error('The fakes are not in the main process: launch the app with `fakeServices: true`.');
-  await sonioxAcceptsKeys(sokuji);
+  // The fake of the service the line-up transcribes with: the tests read the same whichever it is.
+  const service = await sokuji.page.evaluate(() => (JSON.parse(localStorage.getItem('settings.lineup') ?? '{}') as { transcription?: string }).transcription ?? '');
+  const known = await app.evaluate((_e, id) => {
+    const fakes = (globalThis as Partial<Main>).e2eFakes;
+    return fakes ? (id in fakes.services ? 'yes' : Object.keys(fakes.services).join(', ')) : null;
+  }, service);
+  if (known === null) throw new Error('The fakes are not in the main process: launch the app with `fakeServices: true`.');
+  if (known !== 'yes') throw new Error(`No fake transcribes for "${service}" (fakes: ${known}). Add one in e2e/support/main/.`);
+  if (service === 'soniox') await sonioxAcceptsKeys(sokuji);
   // Each runs in the main process, which sees nothing of this file but what is passed (so no shared helper).
   return {
-    answerWith: (answer) => app.evaluate((_e, a) => { (globalThis as Main).e2eFakes.services.transcription.answerWith(a); }, answer),
-    release: () => app.evaluate(() => { (globalThis as Main).e2eFakes.services.transcription.release(); }),
-    asked: () => app.evaluate(() => (globalThis as Main).e2eFakes.services.transcription.asked()),
-    kept: () => app.evaluate(() => (globalThis as Main).e2eFakes.services.transcription.kept()),
+    answerWith: (answer) => app.evaluate((_e, [id, a]) => { (globalThis as Main).e2eFakes.services[id].answerWith(a); }, [service, answer] as const),
+    release: () => app.evaluate((_e, id) => { (globalThis as Main).e2eFakes.services[id].release(); }, service),
+    asked: () => app.evaluate((_e, id) => (globalThis as Main).e2eFakes.services[id].asked(), service),
+    kept: () => app.evaluate((_e, id) => (globalThis as Main).e2eFakes.services[id].kept(), service),
     refused: () => app.evaluate(() => [...(globalThis as Main).e2eFakes.refused]),
   };
 }

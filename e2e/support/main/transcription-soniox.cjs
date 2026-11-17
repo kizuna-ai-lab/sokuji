@@ -98,7 +98,8 @@ async function answer(request, url) {
 }
 
 module.exports = {
-  name: 'transcription',
+  /** The service's id in the app's line-up: the fake the tests reach for when Soniox transcribes. */
+  name: 'soniox',
   handles: (url) => /^api(\.[a-z]+)?\.soniox\.com$/.test(url.hostname) && /^\/v1\/(files|transcriptions)(\/|$)/.test(url.pathname),
   answer,
   control,
