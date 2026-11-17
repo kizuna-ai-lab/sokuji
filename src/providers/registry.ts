@@ -31,7 +31,8 @@ export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[num
 // a release build replaces with `false`, which drops the fake from the bundle.
 // The E2E build (`--mode e2e`) is a production bundle that keeps the fake: its
 // tests run sessions on it. `MODE` is a literal too, so a release build drops it.
-export const PROVIDERS: readonly AnyProvider[] = import.meta.env.DEV || import.meta.env.MODE === 'e2e' ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
+export const PROVIDERS: readonly AnyProvider[] =
+  (import.meta.env.DEV || import.meta.env.MODE === 'e2e') ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
 
 export function currentPresenceEnv(): PresenceEnv {
   return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds(), kizuna: isKizunaAIEnabled(), switchOn: debugSwitchOn };

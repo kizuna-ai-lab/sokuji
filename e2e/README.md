@@ -10,6 +10,8 @@ npm run e2e         # every spec in e2e/specs
 npm run e2e -- session-to-history   # one spec
 ```
 
+Node 22.20 or newer (the history reader uses `node:sqlite`; 22.19's has a bug).
+
 Rebuild after changing anything under `src/` or `electron/`. A failed test keeps
 its trace and a screenshot in `e2e/test-results/` (`npx playwright show-trace <trace.zip>`)
 and leaves its user-data directory in the system temp directory (`sokuji-e2e-*`).

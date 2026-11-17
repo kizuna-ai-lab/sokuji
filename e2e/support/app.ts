@@ -1,4 +1,5 @@
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -69,44 +70,66 @@ export async function launch(options: { userData?: string; seed?: Seed } = {}): 
     ],
     env: { ...process.env, ...(process.platform === 'linux' && !process.env.DISPLAY ? { DISPLAY: ':1' } : {}) },
   });
-  const isMain = (page: Page) => page.url().endsWith('/build/index.html');
-  const page = app.windows().find(isMain) ?? await app.waitForEvent('window', { predicate: isMain });
+  // Ends the app at once, with its renderer, GPU and utility processes: left alone they outlive the main process,
+  // keep the user-data directory busy and hold the test runner open. Every process of this app carries the
+  // user-data directory on its command line, and no other process does, so that is how they are found.
+  const kill = async () => {
+    const child = app.process();
+    const gone = new Promise<void>((resolve) => { if (child.exitCode !== null || child.signalCode !== null) resolve(); else child.once('exit', () => resolve()); });
+    // Playwright starts the app as the leader of its own process group: the group goes first, all at once.
+    // (Killing the main process alone leaves the runner waiting two minutes at teardown.)
+    try { if (child.pid && process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL'); } catch { /* no such group */ }
+    child.kill('SIGKILL');
+    await gone;
+    // Whatever left the group is found by its command line.
+    if (process.platform !== 'win32') {
+      const rows = execFileSync('ps', ['-axo', 'pid=,args='], { encoding: 'utf8' }).split('\n');
+      for (const row of rows) {
+        if (!row.includes(`--user-data-dir=${userData}`)) continue;
+        const pid = Number(row.trim().split(/\s+/, 1)[0]);
+        if (pid && pid !== process.pid) { try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ } }
+      }
+    }
+    await Promise.race([app.close().catch(() => undefined), new Promise((resolve) => setTimeout(resolve, 3_000))]);
+  };
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
-  page.on('console', (message) => { if (message.type() === 'error') errors.push(`console: ${message.text()}`); });
-  await page.waitForLoadState('domcontentloaded');
-  // Registered once the window is known: an init script added before Playwright has attached to the
-  // window is not applied to it (seen with Electron 44 and Playwright 1.65).
-  await app.context().addInitScript({ path: path.join(__dirname, 'page/mic.js') });
-  // The window began loading before this process could reach it, so its first document ran without the
-  // microphone and without the seed. Write the seed into the page that is there, then load once more.
-  // Only where nothing was seeded yet: a restart must find what the app itself wrote.
-  const storage = options.seed?.storage;
-  if (storage) {
-    await page.evaluate((entries) => {
-      if (localStorage.getItem('e2e.seeded')) return;
-      localStorage.clear();
-      for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
-      localStorage.setItem('e2e.seeded', '1');
-    }, storage);
-  }
-  await page.reload();
-  await page.waitForLoadState('domcontentloaded');
-  if (!(await page.evaluate(() => Boolean((navigator.mediaDevices as MediaDevices & { __e2eMic?: boolean }).__e2eMic)))) {
-    throw new Error('The E2E microphone was not installed in the page.');
+  let page: Page;
+  try {
+    const isMain = (candidate: Page) => candidate.url().endsWith('/build/index.html');
+    page = app.windows().find(isMain) ?? await app.waitForEvent('window', { predicate: isMain });
+    page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(`console: ${message.text()}`); });
+    await page.waitForLoadState('domcontentloaded');
+    // Registered once the window is known: an init script added before Playwright has attached to the
+    // window is not applied to it (seen with Electron 44 and Playwright 1.65).
+    await app.context().addInitScript({ path: path.join(__dirname, 'page/mic.js') });
+    // The window began loading before this process could reach it, so its first document ran without the
+    // microphone and without the seed. Write the seed into the page that is there, then load once more.
+    // Only where nothing was seeded yet: a restart must find what the app itself wrote.
+    const storage = options.seed?.storage;
+    if (storage) {
+      await page.evaluate((entries) => {
+        if (localStorage.getItem('e2e.seeded')) return;
+        localStorage.clear();
+        for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+        localStorage.setItem('e2e.seeded', '1');
+      }, storage);
+    }
+    // Always, seed or not, restart or not: only a document loaded after the init script was registered has the microphone.
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    if (!(await page.evaluate(() => Boolean((navigator.mediaDevices as MediaDevices & { __e2eMic?: boolean }).__e2eMic)))) {
+      throw new Error('The E2E microphone was not installed in the page.');
+    }
+  } catch (error) {
+    // A half-started app would keep its user-data directory and its processes; the next test must not meet it.
+    await kill();
+    throw error;
   }
   return {
     app, page, userData, errors,
     close: async () => { await app.close().catch(() => undefined); },
-    kill: async () => {
-      const child = app.process();
-      const gone = new Promise<void>((resolve) => { if (child.exitCode !== null || child.signalCode !== null) resolve(); else child.once('exit', () => resolve()); });
-      // The whole process group: the renderer and GPU processes would otherwise outlive the main process and hold the runner open.
-      try { if (child.pid && process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL'); } catch { /* not a group leader */ }
-      child.kill('SIGKILL');
-      await gone;
-      await Promise.race([app.close().catch(() => undefined), new Promise((resolve) => setTimeout(resolve, 3_000))]);
-    },
+    kill,
     answerSaveDialog: (filePath) => app.evaluate(({ dialog }, chosen) => {
       dialog.showSaveDialog = (async () => (chosen === null ? { canceled: true, filePath: '' } : { canceled: false, filePath: chosen })) as typeof dialog.showSaveDialog;
     }, filePath),
