@@ -8,6 +8,7 @@ Sokuji you have open.
 npm run e2e:build   # the E2E build: build/ and dist-electron/
 npm run e2e         # every spec in e2e/specs
 npm run e2e -- session-to-history   # one spec
+npm run e2e:long    # the meeting-length session (15 minutes; E2E_LONG_MINUTES=3 for a shorter one)
 ```
 
 Node 22.20 or newer (the history reader uses `node:sqlite`; 22.19's has a bug).
@@ -18,6 +19,11 @@ and leaves its user-data directory in the system temp directory (`sokuji-e2e-*`)
 
 Linux: the app is started with `--no-sandbox` and on `DISPLAY=:1` when `DISPLAY`
 is not set.
+
+A spec whose title carries `@long` is left out of `npm run e2e` and run by `npm run e2e:long`. The long session
+plays the fake service's long script for fifteen minutes and checks what only shows with time: every sentence kept,
+a recording as long as the meeting that plays to its end, and the page's memory (as the system counts it) not
+running away. Its readings are attached to the report as annotations.
 
 ## The E2E build
 
