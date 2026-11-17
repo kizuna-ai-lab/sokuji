@@ -2081,7 +2081,16 @@
       "not-json": "لم يُجب نموذج الملاحظات بالشكل المتوقع.",
       "no-answer": "لم يقدّم نموذج الملاحظات أي إجابة.",
       "network": "تعذّر الوصول إلى خدمة الملاحظات.",
-      "refused": "رفضت الخدمة الطلب ({{status}})."
+      "refused": "رفضت الخدمة الطلب ({{status}}).",
+      "sign-in": "سجّل الدخول إلى Kizuna AI لكتابة الملاحظات به.",
+      "unavailable": "ملاحظات Kizuna AI غير متاحة بعد.",
+      "no-balance": "نفد رصيدك في Kizuna AI.",
+      "daily-limit": "تم بلوغ الحد اليومي لملاحظات Kizuna AI. حاول مرة أخرى غدًا.",
+      "wallet-frozen": "محفظتك في Kizuna AI مجمّدة.",
+      "not-member": "لم تعد عضوًا في المؤسسة التي تدفع مقابل Kizuna AI.",
+      "too-large": "هذا السجل أطول من أن يكتب منه Kizuna AI الملاحظات.",
+      "update-required": "حدّث Sokuji لكتابة الملاحظات باستخدام Kizuna AI.",
+      "other": "رفضت خدمة الملاحظات الطلب."
     },
     "notesLatestFailed": "تعذّرت كتابة المحاولة الأخيرة: {{reason}}",
     "notesLatestStopped": "أُوقفت المحاولة الأخيرة.",

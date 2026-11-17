@@ -2081,7 +2081,16 @@
       "not-json": "Model notatek nie odpowiedział w oczekiwanej formie.",
       "no-answer": "Model notatek nie udzielił odpowiedzi.",
       "network": "Nie udało się połączyć z usługą notatek.",
-      "refused": "Usługa odrzuciła żądanie ({{status}})."
+      "refused": "Usługa odrzuciła żądanie ({{status}}).",
+      "sign-in": "Zaloguj się do Kizuna AI, aby pisać nim notatki.",
+      "unavailable": "Notatki od Kizuna AI nie są jeszcze dostępne.",
+      "no-balance": "Twoje saldo w Kizuna AI się wyczerpało.",
+      "daily-limit": "Osiągnięto dzisiejszy limit notatek od Kizuna AI. Spróbuj ponownie jutro.",
+      "wallet-frozen": "Twój portfel w Kizuna AI jest zamrożony.",
+      "not-member": "Nie jesteś już członkiem organizacji, która płaci za Kizuna AI.",
+      "too-large": "To nagranie jest za długie, by Kizuna AI mogło napisać z niego notatki.",
+      "update-required": "Zaktualizuj Sokuji, aby pisać notatki z Kizuna AI.",
+      "other": "Usługa notatek odrzuciła żądanie."
     },
     "notesLatestFailed": "Ostatniej próby nie udało się napisać: {{reason}}",
     "notesLatestStopped": "Ostatnia próba została przerwana.",

@@ -2081,7 +2081,16 @@
       "not-json": "Modellen svarade inte i den väntade formen.",
       "no-answer": "Modellen gav inget svar.",
       "network": "Det gick inte att nå tjänsten för anteckningar.",
-      "refused": "Tjänsten avvisade begäran ({{status}})."
+      "refused": "Tjänsten avvisade begäran ({{status}}).",
+      "sign-in": "Logga in på Kizuna AI för att skriva anteckningar med det.",
+      "unavailable": "Anteckningar från Kizuna AI är inte tillgängliga än.",
+      "no-balance": "Ditt saldo hos Kizuna AI har tagit slut.",
+      "daily-limit": "Dagens gräns för anteckningar från Kizuna AI är nådd. Försök igen i morgon.",
+      "wallet-frozen": "Din plånbok hos Kizuna AI är spärrad.",
+      "not-member": "Du är inte längre medlem i organisationen som betalar för Kizuna AI.",
+      "too-large": "Den här inspelningen är för lång för att Kizuna AI ska kunna skriva anteckningar från den.",
+      "update-required": "Uppdatera Sokuji för att skriva anteckningar med Kizuna AI.",
+      "other": "Anteckningstjänsten avvisade begäran."
     },
     "notesLatestFailed": "Det senaste försöket kunde inte skrivas: {{reason}}",
     "notesLatestStopped": "Det senaste försöket avbröts.",

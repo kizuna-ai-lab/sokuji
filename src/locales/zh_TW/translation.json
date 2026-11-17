@@ -2081,7 +2081,16 @@
       "not-json": "紀要模型的回答格式不對。",
       "no-answer": "紀要模型沒有回答。",
       "network": "連不上寫紀要的服務。",
-      "refused": "服務拒絕了請求（{{status}}）。"
+      "refused": "服務拒絕了請求（{{status}}）。",
+      "sign-in": "要用 Kizuna AI 寫紀要，請先登入 Kizuna AI。",
+      "unavailable": "Kizuna AI 的紀要服務還沒有開放。",
+      "no-balance": "Kizuna AI 的餘額用完了。",
+      "daily-limit": "今天用 Kizuna AI 寫紀要的次數已達上限，請明天再試。",
+      "wallet-frozen": "你的 Kizuna AI 錢包已被凍結。",
+      "not-member": "你已經不是為 Kizuna AI 付費的那個組織的成員了。",
+      "too-large": "這條記錄太長，Kizuna AI 沒辦法據此寫紀要。",
+      "update-required": "要用 Kizuna AI 寫紀要，請先更新 Sokuji。",
+      "other": "寫紀要的服務拒絕了請求。"
     },
     "notesLatestFailed": "最近一次沒能寫成：{{reason}}",
     "notesLatestStopped": "最近一次已停止。",

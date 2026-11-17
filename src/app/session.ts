@@ -264,6 +264,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const finishing = new Set<LiveRun>();
   /** Live notes turned off during this record's session: what they go on from when turned on again in it. */
   let paused: { recordId: string; seen: LiveSentence[] } | null = null;
+  /**
+   * Clear came once the session was stopping or over: the live notes are gone for it, and a sentence that comes
+   * after (a last final the service sends while the run stops) does not start them again. A new run lets them go.
+   */
+  let clearedAfterRun = false;
   /** The switch is watched only while a loop runs or gives its last update. */
   let unwatchSwitch: (() => void) | null = null;
   const unwatch = () => { unwatchSwitch?.(); unwatchSwitch = null; };
@@ -365,7 +370,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     if (!live || live.recordId !== recordId) {
       // Another record's loop still here (its run's end was not seen): it has its last update now.
       if (live) endLive(live.recordId, false);
-      if (!liveWanted()) return;
+      if (!liveWanted() || clearedAfterRun) return;
       const resumed = paused?.recordId === recordId && useLiveNotes.getState().recordId === recordId ? paused : null;
       paused = null;
       const begun: LiveRun = {
@@ -404,7 +409,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   // A new run: the last session's live notes leave the screen, and its late answers no longer land there.
   // Stopping: the loop sends nothing more on its own; its last update comes when the run has ended.
   runner.state.subscribe((now, before) => {
-    if (now.phase === 'starting' && before.phase === 'idle') { paused = null; useLiveNotes.getState().reset(); }
+    if (now.phase === 'starting' && before.phase === 'idle') { paused = null; clearedAfterRun = false; useLiveNotes.getState().reset(); }
     if (now.phase === 'stopping' && before.phase !== 'stopping') live?.loop?.quiet?.();
   });
   /** The notes runner: the app's on the desktop unless one is given. */
@@ -640,8 +645,15 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         if (now.phase === 'starting' && before.phase === 'idle') usePanelNotesStore.getState().clear();
       }));
       // The conversation emptied — Clear from any surface (the subtitle bar's
-      // reaches the runner, not MainPanel's handler) — and the notes go with it.
-      offs.push(runner.conversation.onReset(() => { usePanelNotesStore.getState().clear(); useLiveNotes.getState().clear(); }));
+      // reaches the runner, not MainPanel's handler) — and the notes go with it
+      // (the live notes only once the session is over: liveStore's clear).
+      offs.push(runner.conversation.onReset(() => {
+        usePanelNotesStore.getState().clear();
+        const { phase } = runner.state.getState();
+        const sessionRunning = phase === 'starting' || phase === 'running';
+        useLiveNotes.getState().clear(sessionRunning);
+        if (!sessionRunning) clearedAfterRun = true;
+      }));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;

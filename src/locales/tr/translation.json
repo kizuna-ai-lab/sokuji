@@ -2081,7 +2081,16 @@
       "not-json": "Not modeli beklenen biçimde yanıt vermedi.",
       "no-answer": "Not modeli yanıt vermedi.",
       "network": "Not hizmetine ulaşılamadı.",
-      "refused": "Hizmet isteği reddetti ({{status}})."
+      "refused": "Hizmet isteği reddetti ({{status}}).",
+      "sign-in": "Kizuna AI ile not yazmak için Kizuna AI'da oturum açın.",
+      "unavailable": "Kizuna AI notları henüz kullanılamıyor.",
+      "no-balance": "Kizuna AI bakiyeniz bitti.",
+      "daily-limit": "Kizuna AI notları için bugünkü sınıra ulaşıldı. Yarın yeniden deneyin.",
+      "wallet-frozen": "Kizuna AI cüzdanınız donduruldu.",
+      "not-member": "Artık Kizuna AI'ın ücretini ödeyen kuruluşun üyesi değilsiniz.",
+      "too-large": "Bu kayıt, Kizuna AI'ın not yazabilmesi için fazla uzun.",
+      "update-required": "Kizuna AI ile not yazmak için Sokuji'yi güncelleyin.",
+      "other": "Not hizmeti isteği reddetti."
     },
     "notesLatestFailed": "Son deneme yazılamadı: {{reason}}",
     "notesLatestStopped": "Son deneme durduruldu.",

@@ -172,11 +172,11 @@ async function ask(chat: ChatPort, r: ChatRequest, usable: (value: Raw) => boole
 }
 
 /**
- * What went wrong, for the version: the service's own words when it gave any, else the program's reason as a code
- * the page words in the interface's language (`notes:<code>`).
+ * What went wrong, for the version: a reason with a code of ours as that code, which the page words in the
+ * interface's language (`notes:<code>`); else the service's own words when it gave any; else its status.
  */
 const failureOf = (error: unknown): string => {
-  if (error instanceof ChatError) return error.serviceMessage || (error.code ? `notes:${error.code}` : error.status ? `notes:refused:${error.status}` : error.message);
+  if (error instanceof ChatError) return error.code ? `notes:${error.code}` : error.serviceMessage || (error.status ? `notes:refused:${error.status}` : error.message);
   if (error instanceof TypeError) return 'notes:network';
   if (error instanceof Error) return error.message;
   return String(error);

@@ -2081,7 +2081,16 @@
       "not-json": "O modelo de notas não respondeu no formato esperado.",
       "no-answer": "O modelo de notas não deu resposta.",
       "network": "Não foi possível contactar o serviço de notas.",
-      "refused": "O serviço recusou o pedido ({{status}})."
+      "refused": "O serviço recusou o pedido ({{status}}).",
+      "sign-in": "Inicie sessão no Kizuna AI para escrever notas com ele.",
+      "unavailable": "As notas do Kizuna AI ainda não estão disponíveis.",
+      "no-balance": "O seu saldo do Kizuna AI esgotou-se.",
+      "daily-limit": "O limite de hoje para notas do Kizuna AI foi atingido. Tente novamente amanhã.",
+      "wallet-frozen": "A sua carteira do Kizuna AI está congelada.",
+      "not-member": "Já não é membro da organização que paga o Kizuna AI.",
+      "too-large": "Este registo é demasiado longo para o Kizuna AI escrever notas dele.",
+      "update-required": "Atualize o Sokuji para escrever notas com o Kizuna AI.",
+      "other": "O serviço de notas recusou o pedido."
     },
     "notesLatestFailed": "A última tentativa não pôde ser escrita: {{reason}}",
     "notesLatestStopped": "A última tentativa foi interrompida.",

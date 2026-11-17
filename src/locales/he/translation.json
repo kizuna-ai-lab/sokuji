@@ -2081,7 +2081,16 @@
       "not-json": "מודל ההערות לא ענה בצורה המצופה.",
       "no-answer": "מודל ההערות לא נתן תשובה.",
       "network": "לא ניתן היה להגיע לשירות ההערות.",
-      "refused": "השירות דחה את הבקשה ({{status}})."
+      "refused": "השירות דחה את הבקשה ({{status}}).",
+      "sign-in": "יש להתחבר ל-Kizuna AI כדי לכתוב איתו הערות.",
+      "unavailable": "ההערות של Kizuna AI עדיין לא זמינות.",
+      "no-balance": "היתרה שלך ב-Kizuna AI נגמרה.",
+      "daily-limit": "המכסה היומית להערות של Kizuna AI נוצלה. נסה שוב מחר.",
+      "wallet-frozen": "הארנק שלך ב-Kizuna AI מוקפא.",
+      "not-member": "אינך עוד חבר בארגון שמשלם על Kizuna AI.",
+      "too-large": "הרשומה הזאת ארוכה מדי ש-Kizuna AI יכתוב ממנה הערות.",
+      "update-required": "יש לעדכן את Sokuji כדי לכתוב הערות עם Kizuna AI.",
+      "other": "שירות ההערות דחה את הבקשה."
     },
     "notesLatestFailed": "לא ניתן היה לכתוב את הניסיון האחרון: {{reason}}",
     "notesLatestStopped": "הניסיון האחרון הופסק.",

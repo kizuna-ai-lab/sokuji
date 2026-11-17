@@ -2081,7 +2081,16 @@
       "not-json": "Model catatan tidak menjawab dalam bentuk yang diharapkan.",
       "no-answer": "Model catatan tidak memberi jawaban.",
       "network": "Layanan catatan tidak bisa dihubungi.",
-      "refused": "Layanan menolak permintaan ({{status}})."
+      "refused": "Layanan menolak permintaan ({{status}}).",
+      "sign-in": "Masuk ke Kizuna AI untuk menulis catatan dengannya.",
+      "unavailable": "Catatan dari Kizuna AI belum tersedia.",
+      "no-balance": "Saldo Kizuna AI Anda sudah habis.",
+      "daily-limit": "Batas hari ini untuk catatan dari Kizuna AI sudah tercapai. Coba lagi besok.",
+      "wallet-frozen": "Dompet Kizuna AI Anda dibekukan.",
+      "not-member": "Anda bukan lagi anggota organisasi yang membayar Kizuna AI.",
+      "too-large": "Rekaman ini terlalu panjang untuk ditulis catatannya oleh Kizuna AI.",
+      "update-required": "Perbarui Sokuji untuk menulis catatan dengan Kizuna AI.",
+      "other": "Layanan catatan menolak permintaan."
     },
     "notesLatestFailed": "Percobaan terakhir tidak bisa ditulis: {{reason}}",
     "notesLatestStopped": "Percobaan terakhir dihentikan.",

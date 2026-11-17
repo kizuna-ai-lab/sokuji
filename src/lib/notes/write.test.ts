@@ -357,6 +357,13 @@ describe('writing the notes', () => {
     expect(model.of('part')).toHaveLength(3);
   });
 
+  // A refusal Kizuna AI gives a code for is kept as that code, which the page words in the interface's language, not
+  // as the service's English words.
+  it('keeps a refusal with a code of ours as the code, not the service\'s words', async () => {
+    const model = fakeChat({ part: () => Promise.reject(new ChatError('refused', { status: 402, serviceMessage: 'Insufficient balance.', code: 'no-balance', retryable: false })) });
+    await expect(write(everyMinute(26), model.chat)).resolves.toEqual({ ok: false, failure: 'notes:no-balance', requestIds: [] });
+  });
+
   it('tries again a part that wrote no topic, and fails the version when it never does', async () => {
     let tries = 0;
     const model = fakeChat({ part: (user, call) => (++tries < 2 ? { title: 'T', summary: 'S', topics: [] } : onePointPerPart(user, call)) });

@@ -955,14 +955,15 @@ describe('attach', () => {
 
   describe('live notes during a session', () => {
     /** A live notes loop the test watches: what it was given, and whether it stopped or was let go. */
-    function fakeLive() {
+    /** A loop that records what happened to it; `lastUpdate`, when given, holds its stop until it settles. */
+    function fakeLive(lastUpdate?: Promise<void>) {
       const made: Array<{ deps: unknown; sentences: number[]; stopped: boolean; disposed: boolean }> = [];
       const factory = (deps: unknown) => {
         const one = { deps, sentences: [] as number[], stopped: false, disposed: false };
         made.push(one);
         return {
           sentences: (list: ReadonlyArray<{ n: number }>) => { one.sentences.push(...list.map((x) => x.n)); },
-          stop: async () => { one.stopped = true; },
+          stop: async () => { await lastUpdate; one.stopped = true; },
           dispose: () => { one.disposed = true; },
         };
       };
@@ -1196,7 +1197,8 @@ describe('attach', () => {
       });
     });
 
-    it('Clear empties the notes on screen, not the loop', async () => {
+    // During a session Clear empties the captions only.
+    it('Clear during a session leaves the live notes on screen and their loop', async () => {
       await withLive(true, 'openai', async () => {
         const live = fakeLive();
         const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
@@ -1206,12 +1208,67 @@ describe('attach', () => {
         await vi.waitFor(() => expect(live.made).toHaveLength(1));
         useLiveNotes.getState().update('run1', { title: 'T', topics: [] });
         session.runner.clear();
-        expect(useLiveNotes.getState().state).toBeNull();
+        expect(useLiveNotes.getState().state).toEqual({ title: 'T', topics: [] });
         expect(live.made[0].disposed).toBe(false);
         await session.runner.stop();
         detach();
       });
     });
+    // Review: after Stop the loop runs on until its last update is back; a Clear then is after the session, and empties
+    // the notes, and the update that comes back late lands nowhere.
+    it('Clear after Stop empties the live notes while their last update is on its way, and drops it', async () => {
+      await withLive(true, 'openai', async () => {
+        let settle!: () => void;
+        const live = fakeLive(new Promise<void>((resolve) => { settle = resolve; }));
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        const detach = session.attach();
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        useLiveNotes.getState().update('run1', { title: 'T', topics: [] });
+        await session.runner.stop();
+        expect(useLiveNotes.getState().running).toBe(true);
+        session.runner.clear();
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null });
+        useLiveNotes.getState().update('run1', { title: 'Late', topics: [] });
+        settle();
+        await vi.waitFor(() => expect(live.made[0].stopped).toBe(true));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, ended: false });
+        detach();
+      });
+    });
+    it('Clear after Stop, before any sentence reached the live notes, keeps them cleared when the last sentences come', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = fakeLive();
+        let runs = 0;
+        const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory, newSessionId: () => `run${++runs}` });
+        const detach = session.attach();
+        await session.runner.start();
+        const stopping = session.runner.stop();
+        session.runner.clear();
+        // A last final the service sends while the run stops, after the Clear: a sentence for the same record.
+        const speaker = session.runner.conversation.get('speaker')!;
+        speaker.apply({ kind: 'segmentOpened', payload: { ref: 99, side: 'source' } });
+        speaker.apply({ kind: 'segmentText', payload: { ref: 99, text: 'One last thing before we go.' } });
+        speaker.apply({ kind: 'segmentClosed', payload: { ref: 99 } });
+        clock.advance(3000);
+        await stopping;
+        clock.advance(8000);
+        await session.runner.settled();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(live.made).toHaveLength(0);
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: null, running: false });
+        // The next session has its live notes again.
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        expect(useLiveNotes.getState()).toMatchObject({ recordId: 'run2', running: true });
+        await session.runner.stop();
+        await session.runner.settled();
+        detach();
+      });
+    });
+
     /** A loop that records what happened to it, in order, and what it was told to go on from. */
     function watchedLive() {
       const events: string[] = [];

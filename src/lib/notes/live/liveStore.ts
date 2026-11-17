@@ -51,8 +51,12 @@ export interface LiveNotesActions {
   balanceAfter(recordId: string, microUsd: number): void;
   /** Turned on again in the same session: the notes on screen stay, and go on. */
   resume(recordId: string): void;
-  /** Clear: the notes on screen go; a running loop goes on. After the session, nothing is left. */
-  clear(): void;
+  /**
+   * Clear: during a session the notes stay, as does their loop (the captions alone go); after it, nothing is left, and
+   * a last update still on its way lands nowhere. Whether the session runs is the runner's to say: after Stop the loop
+   * runs on until its last update is back.
+   */
+  clear(sessionRunning: boolean): void;
   /** A new run starts: the last session's notes go, and nothing of it lands here any more. */
   reset(): void;
 }
@@ -86,7 +90,9 @@ export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
     balanceAfter: (recordId, balanceMicroUsd) => forRecord(recordId, { balanceMicroUsd }),
     // A new loop: an earlier stop for the account is forgotten (a refusal stops this one too, and says so again).
     resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false, stopped: null }),
-    clear: () => set((s) => (s.running ? { state: null } : EMPTY)),
+    // Clear empties the captions. During a session the live notes stay: they are the whole meeting's, and the loop
+    // would bring them back with its next update anyway (owner, 2026-11-17). After the session they go with Clear.
+    clear: (sessionRunning) => set((s) => (sessionRunning ? s : EMPTY)),
     reset: () => set(EMPTY),
   };
 });

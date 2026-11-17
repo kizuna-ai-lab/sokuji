@@ -2081,7 +2081,16 @@
       "not-json": "Hindi sumagot sa inaasahang anyo ang model ng mga tala.",
       "no-answer": "Walang sagot ang model ng mga tala.",
       "network": "Hindi maabot ang serbisyo ng mga tala.",
-      "refused": "Tinanggihan ng serbisyo ang kahilingan ({{status}})."
+      "refused": "Tinanggihan ng serbisyo ang kahilingan ({{status}}).",
+      "sign-in": "Mag-sign in sa Kizuna AI para makasulat ng mga tala gamit ito.",
+      "unavailable": "Hindi pa available ang mga tala ng Kizuna AI.",
+      "no-balance": "Naubos na ang balanse mo sa Kizuna AI.",
+      "daily-limit": "Naabot na ang limitasyon ngayong araw para sa mga tala ng Kizuna AI. Subukang muli bukas.",
+      "wallet-frozen": "Naka-freeze ang wallet mo sa Kizuna AI.",
+      "not-member": "Hindi ka na miyembro ng organisasyong nagbabayad para sa Kizuna AI.",
+      "too-large": "Masyadong mahaba ang record na ito para makasulat ang Kizuna AI ng mga tala mula rito.",
+      "update-required": "I-update ang Sokuji para makasulat ng mga tala gamit ang Kizuna AI.",
+      "other": "Tinanggihan ng serbisyo ng tala ang kahilingan."
     },
     "notesLatestFailed": "Hindi naisulat ang huling pagtatangka: {{reason}}",
     "notesLatestStopped": "Itinigil ang huling pagtatangka.",

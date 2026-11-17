@@ -49,20 +49,31 @@ describe('the live notes on screen', () => {
     expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: { title: 'Mine' }, hint: false, running: true, ended: false, off: false });
   });
 
-  it('Clear empties what is shown and keeps a running loop running', () => {
+  // During a session Clear empties the captions only. The live notes are the whole meeting's, as the notes written
+  // after it are; emptied, they came back with the loop's next update.
+  it('Clear during a session leaves the live notes as they are', () => {
     useLiveNotes.getState().update(RECORD, { title: 'T', topics: [] });
-    useLiveNotes.getState().clear();
-    expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: null, running: true });
+    useLiveNotes.getState().clear(true);
+    expect(useLiveNotes.getState()).toMatchObject({ recordId: RECORD, state: { title: 'T', topics: [] }, running: true });
+  });
+
+  // Review: after Stop the loop is still running until its last update is back. Clear then is after the session.
+  it('Clear after the session empties the notes even while their last update is on its way, which then lands nowhere', () => {
+    useLiveNotes.getState().update(RECORD, { title: 'T', topics: [] });
+    useLiveNotes.getState().clear(false);
+    expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, running: false });
+    useLiveNotes.getState().update(RECORD, { title: 'Late', topics: [] });
+    expect(useLiveNotes.getState().state).toBeNull();
   });
 
   it('Clear after the session leaves nothing, the line saying live notes are off included', () => {
     useLiveNotes.getState().turnedOff(RECORD);
-    useLiveNotes.getState().clear();
+    useLiveNotes.getState().clear(false);
     expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, running: false, off: false, ended: false });
     useLiveNotes.getState().begin(RECORD);
     useLiveNotes.getState().update(RECORD, { title: 'T', topics: [] });
     useLiveNotes.getState().end(RECORD);
-    useLiveNotes.getState().clear();
+    useLiveNotes.getState().clear(false);
     expect(useLiveNotes.getState()).toMatchObject({ recordId: null, state: null, ended: false });
   });
 
