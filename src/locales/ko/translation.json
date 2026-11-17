@@ -367,7 +367,7 @@
     "defaultPlayback": "기본 재생 장치",
     "defaultPlaybackTip": "장치를 따로 지정하지 않은 소리는 여기서 재생됩니다.",
     "otherHears": "상대방에게 들리는 번역",
-    "otherHearsTip": "내가 한 말을 번역해 상대방에게 읽어 줍니다. 가상 마이크로 보낼 때는 상대방이 자신의 앱에서 그것을 마이크로 선택하면 들립니다.",
+    "otherHearsTip": "내가 한 말을 번역해 상대방에게 읽어 줍니다. 가상 마이크로 보낼 때는 회의 앱에서 그것을 마이크로 선택하세요.",
     "otherHearsAlwaysSpeaks": "이 서비스는 항상 읽어 줍니다.",
     "otherHearsNeverSpeaks": "이 서비스는 읽어 주지 않습니다.",
     "meToo": "나도 듣기",

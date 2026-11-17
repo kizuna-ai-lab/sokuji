@@ -35,7 +35,7 @@ When you click the Sokuji extension icon:
 2. Click the Sokuji extension icon
 3. Click "Open Sokuji" in the popup
 4. Configure your API key (OpenAI or Gemini) in the settings.
-5. Select "Sokuji_Virtual_Mic" as your microphone in the meeting
+5. Select "Sokuji Virtual Microphone" as your microphone in the meeting
 6. Start speaking to see real-time translation!
 
 ### 3. Platform-Specific Notes
@@ -133,7 +133,7 @@ extension/
 
 ### Virtual Microphone Issues
 
-1. Ensure you've selected "Sokuji_Virtual_Mic" in your meeting platform
+1. Ensure you've selected "Sokuji Virtual Microphone" in your meeting platform
 2. Check microphone permissions in Chrome
 3. Verify your API key for the selected provider (OpenAI/Gemini) is configured correctly
 

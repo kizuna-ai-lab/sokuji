@@ -371,7 +371,7 @@
     "defaultPlayback": "Default playback device",
     "defaultPlaybackTip": "Sounds with no device of their own play here.",
     "otherHears": "Translation the other side hears",
-    "otherHearsTip": "What I say, translated and read aloud to the other side. Into the virtual microphone: the other side picks it as the microphone in their own app.",
+    "otherHearsTip": "What I say, translated and read aloud to the other side. Into the virtual microphone: choose it as the microphone in your meeting app.",
     "otherHearsAlwaysSpeaks": "This service always speaks.",
     "otherHearsNeverSpeaks": "This service never speaks.",
     "meToo": "I hear it too",

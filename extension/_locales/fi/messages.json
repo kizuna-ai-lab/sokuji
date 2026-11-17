@@ -33,7 +33,7 @@
     "message": "Pika-aloitus:"
   },
   "quickStartInstructions": {
-    "message": "Määritä API-avaimesi (OpenAI tai Gemini) → Valitse \"Sokuji_Virtual_Mic\" mikrofoniksi → Aloita puhuminen!"
+    "message": "Valitse kokouksessa \"Sokuji Virtual Microphone\" mikrofoniksi → Aloita puhuminen!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

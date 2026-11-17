@@ -33,7 +33,7 @@
     "message": "Bắt Đầu Nhanh:"
   },
   "quickStartInstructions": {
-    "message": "Cấu hình khóa API OpenAI của bạn → Chọn \"Sokuji_Virtual_Mic\" làm microphone → Bắt đầu nói!"
+    "message": "Trong cuộc họp, chọn \"Sokuji Virtual Microphone\" làm microphone → Bắt đầu nói!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

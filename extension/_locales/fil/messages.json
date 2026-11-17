@@ -33,7 +33,7 @@
     "message": "Mabilis na Simula:"
   },
   "quickStartInstructions": {
-    "message": "I-configure ang inyong API key (OpenAI or Gemini) ← Piliin ang \"Sokuji_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
+    "message": "Sa inyong meeting, piliin ang \"Sokuji Virtual Microphone\" bilang microphone → Simulang magsalita!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

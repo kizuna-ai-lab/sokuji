@@ -367,7 +367,7 @@
     "defaultPlayback": "Varsayılan oynatma cihazı",
     "defaultPlaybackTip": "Kendi cihazı olmayan sesler burada çalınır.",
     "otherHears": "Karşı tarafın duyduğu çeviri",
-    "otherHearsTip": "Söylediklerim çevrilip karşı tarafa sesli okunur. Sanal mikrofona gönderirken karşı taraf bunu kendi uygulamasında mikrofon olarak seçer.",
+    "otherHearsTip": "Söylediklerim çevrilip karşı tarafa sesli okunur. Sanal mikrofona gönderirken toplantı uygulamanızda onu mikrofon olarak seçin.",
     "otherHearsAlwaysSpeaks": "Bu hizmet her zaman konuşur.",
     "otherHearsNeverSpeaks": "Bu hizmet hiç konuşmaz.",
     "meToo": "Ben de duyayım",

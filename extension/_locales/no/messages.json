@@ -33,7 +33,7 @@
     "message": "Hurtigstart:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurer din API-nøkkel (OpenAI eller Gemini) → Velg \"Sokuji_Virtual_Mic\" som mikrofon → Begynn å snakke!"
+    "message": "Velg \"Sokuji Virtual Microphone\" som mikrofon i møtet → Begynn å snakke!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

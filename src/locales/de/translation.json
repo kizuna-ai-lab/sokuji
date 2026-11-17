@@ -367,7 +367,7 @@
     "defaultPlayback": "Standard-Wiedergabegerät",
     "defaultPlaybackTip": "Töne ohne eigenes Gerät werden hier abgespielt.",
     "otherHears": "Übersetzung, die das Gegenüber hört",
-    "otherHearsTip": "Was ich sage, übersetzt und dem Gegenüber vorgelesen. Ins virtuelle Mikrofon: Das Gegenüber wählt es in seiner eigenen App als Mikrofon aus.",
+    "otherHearsTip": "Was ich sage, übersetzt und dem Gegenüber vorgelesen. Ins virtuelle Mikrofon: Wählen Sie es in Ihrer Meeting-App als Mikrofon aus.",
     "otherHearsAlwaysSpeaks": "Dieser Dienst spricht immer.",
     "otherHearsNeverSpeaks": "Dieser Dienst spricht nie.",
     "meToo": "Ich höre es auch",

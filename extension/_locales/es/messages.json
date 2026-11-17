@@ -33,7 +33,7 @@
     "message": "Inicio Rápido:"
   },
   "quickStartInstructions": {
-    "message": "Configura tu clave API (OpenAI o Gemini) → Selecciona \"Sokuji_Virtual_Mic\" como micrófono → ¡Comienza a hablar!"
+    "message": "En tu reunión, selecciona \"Sokuji Virtual Microphone\" como micrófono → ¡Comienza a hablar!"
   },
   "gatherTownTitle": {
     "message": "Sokuji para Gather Town"

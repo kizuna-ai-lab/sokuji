@@ -367,7 +367,7 @@
     "defaultPlayback": "Domyślne urządzenie odtwarzania",
     "defaultPlaybackTip": "Dźwięki bez własnego urządzenia są odtwarzane tutaj.",
     "otherHears": "Tłumaczenie, które słyszy druga strona",
-    "otherHearsTip": "To, co mówię, przetłumaczone i odczytane drugiej stronie. Do wirtualnego mikrofonu: druga strona wybiera go jako mikrofon w swojej aplikacji.",
+    "otherHearsTip": "To, co mówię, przetłumaczone i odczytane drugiej stronie. Do wirtualnego mikrofonu: wybierz go jako mikrofon w swojej aplikacji konferencyjnej.",
     "otherHearsAlwaysSpeaks": "Ta usługa zawsze mówi.",
     "otherHearsNeverSpeaks": "Ta usługa nigdy nie mówi.",
     "meToo": "Ja też słyszę",

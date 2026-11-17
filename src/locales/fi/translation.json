@@ -367,7 +367,7 @@
     "defaultPlayback": "Oletustoistolaite",
     "defaultPlaybackTip": "Äänet, joilla ei ole omaa laitetta, toistetaan tässä.",
     "otherHears": "Käännös, jonka toinen osapuoli kuulee",
-    "otherHearsTip": "Se, mitä sanon, käännettynä ja luettuna ääneen toiselle osapuolelle. Virtuaalimikrofoniin: toinen osapuoli valitsee sen mikrofoniksi omassa sovelluksessaan.",
+    "otherHearsTip": "Se, mitä sanon, käännettynä ja luettuna ääneen toiselle osapuolelle. Virtuaalimikrofoniin: valitse se mikrofoniksi kokoussovelluksessasi.",
     "otherHearsAlwaysSpeaks": "Tämä palvelu puhuu aina.",
     "otherHearsNeverSpeaks": "Tämä palvelu ei puhu koskaan.",
     "meToo": "Kuulen sen myös",
