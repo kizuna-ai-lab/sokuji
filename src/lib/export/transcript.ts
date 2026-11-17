@@ -31,7 +31,10 @@ export function isNarrowed(scope: TranscriptScope): boolean {
 
 export interface TranscriptHeaderLabels {
   title: string;
-  generated: string;
+  /** When the conversation's session started. */
+  sessionStarted: string;
+  /** When the file was written. */
+  exported: string;
   provider: string;
   models: string;
   source: string;
@@ -42,6 +45,9 @@ export interface TranscriptHeaderLabels {
 
 /** What a file says about itself: from the conversation's own run, never the current settings. */
 export interface TranscriptMeta {
+  /** When the conversation's session started; null when it is not known (no run yet). */
+  sessionStartedAt: number | null;
+  /** When the file is written. */
   exportedAt: number;
   appVersion: string | null;
   /** The provider the conversation ran on; null before any run. */
@@ -79,6 +85,7 @@ export type TranscriptNotice = Omit<Extract<Entry, { kind: 'notice' }>, 'kind'>;
 export interface TranscriptJson {
   groups: TranscriptGroup[];
   notices: TranscriptNotice[];
+  sessionStartedAt?: string | null;
   exportedAt?: string;
   appVersion?: string | null;
   provider?: string | null;
@@ -121,9 +128,13 @@ function modelsLine(models: Readonly<Record<string, string>>): string {
   return Object.entries(nonEmptyModels(models)).map(([key, value]) => `${key}=${value}`).join(', ');
 }
 
+const isoOrNull = (ms: number | null): string | null => (ms === null ? null : new Date(ms).toISOString());
+
 function headerLines(header: NonNullable<TranscriptOptions['header']>, legs: readonly Leg[], narrowed: boolean): string[] {
   const { labels, meta } = header;
-  const lines = [labels.title, `${labels.generated}: ${header.formatDateTime(meta.exportedAt)}`];
+  const lines = [labels.title];
+  if (meta.sessionStartedAt !== null) lines.push(`${labels.sessionStarted}: ${header.formatDateTime(meta.sessionStartedAt)}`);
+  lines.push(`${labels.exported}: ${header.formatDateTime(meta.exportedAt)}`);
   if (meta.provider) lines.push(`${labels.provider}: ${meta.provider}`);
   const models = modelsLine(meta.models);
   if (models) lines.push(`${labels.models}: ${models}`);
@@ -162,6 +173,7 @@ export function renderTranscriptJson(
   // metadata is built first and groups/notices are spread in last.
   const meta: Partial<TranscriptJson> = {};
   if (o.meta) {
+    meta.sessionStartedAt = isoOrNull(o.meta.sessionStartedAt);
     meta.exportedAt = new Date(o.meta.exportedAt).toISOString();
     meta.appVersion = o.meta.appVersion;
     meta.provider = o.meta.provider;
@@ -235,6 +247,7 @@ export function renderRowsJson(rows: readonly TranscriptRowText[], legs: readonl
     ...(g.source ? { source: { text: g.source } } : {}), ...(g.translation ? { translation: { text: g.translation } } : {}),
   }));
   return {
+    sessionStartedAt: isoOrNull(o.meta.sessionStartedAt),
     exportedAt: new Date(o.meta.exportedAt).toISOString(), appVersion: o.meta.appVersion, provider: o.meta.provider,
     models: nonEmptyModels(o.meta.models), languages: pairOf(legs), ...(isNarrowed(scope) ? { scope } : {}), groups,
   };

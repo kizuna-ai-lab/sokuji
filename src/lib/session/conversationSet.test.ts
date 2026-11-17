@@ -77,16 +77,16 @@ describe('ConversationSet', () => {
   it("keeps the run's provider and models with the conversation, through a clear, until the next replace", () => {
     const set = new ConversationSet();
     expect(set.info).toBeNull();
-    set.replace(new Map(), { provider: 'fake', models: { asrModel: 'a' } });
+    set.replace(new Map(), { provider: 'fake', models: { asrModel: 'a' }, startedAt: 0 });
     set.clear();
-    expect(set.info).toEqual({ provider: 'fake', models: { asrModel: 'a' } });
-    set.replace(new Map(), { provider: 'other', models: {} });
+    expect(set.info).toEqual({ provider: 'fake', models: { asrModel: 'a' }, startedAt: 0 });
+    set.replace(new Map(), { provider: 'other', models: {}, startedAt: 0 });
     expect(set.info?.provider).toBe('other');
   });
 
   it("forgets the last run's info when legs are replaced without any", () => {
     const set = new ConversationSet();
-    set.replace(new Map(), { provider: 'fake', models: {} });
+    set.replace(new Map(), { provider: 'fake', models: {}, startedAt: 0 });
     set.replace(new Map());
     expect(set.info).toBeNull();
   });

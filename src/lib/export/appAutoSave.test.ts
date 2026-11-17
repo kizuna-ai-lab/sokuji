@@ -42,7 +42,7 @@ const participantLeg: Leg = {
     seg({ id: 'r:participant:2', side: 'translation', text: 'こんにちは。', origin: 'p1', openedAt: 1_700_000_010_400 }),
   ],
 };
-const info = { provider: 'fake', models: { asrModel: 'fake' } };
+const info = { provider: 'fake', models: { asrModel: 'fake' }, startedAt: 0 };
 const invoke = vi.fn();
 const note = vi.fn();
 
@@ -60,7 +60,7 @@ describe('autoSaveConversation', () => {
   it('saves the whole conversation, header first, one block per exchange', async () => {
     expect(await autoSaveConversation(legs, info, { note })).toBe('saved');
     const [content, filename, mime] = downloadFile.mock.calls[0];
-    expect(content).toMatch(/^Sokuji conversation export\nGenerated: /);
+    expect(content).toMatch(/^Sokuji conversation export\nSession started: .+\nExported: /);
     expect(content).toContain('Provider: fake\nModels: asr=fake\n');
     expect(content).toMatch(/\[\d{2}:\d{2}:\d{2}\] Me\n  今日は天気がいいですね。公園に行きましょう。\n  → 今天天气很好。我们去公园吧。\n/);
     expect(filename).toMatch(/^sokuji-conversation-\d{8}-\d{6}\.txt$/);

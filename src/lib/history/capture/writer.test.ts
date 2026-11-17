@@ -83,7 +83,7 @@ function start(id = 'run-0001-aaaa', o: { legs?: LegName[]; languages?: { source
     leg, session: id, clock,
     languages: leg === 'speaker' ? languages : { source: languages.target, target: languages.source },
   })]));
-  conversation.replace(legs, { provider: 'fake', models: {} });
+  conversation.replace(legs, { provider: 'fake', models: {}, startedAt: 0 });
   state.setState({ phase: 'running', participantSpeech: false, since: clock.now(), legs: {} });
 }
 const end = () => state.setState({ phase: 'idle', lastEnd: { reason: 'user' } } as RunState);

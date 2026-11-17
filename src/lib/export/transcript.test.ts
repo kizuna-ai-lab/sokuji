@@ -59,8 +59,8 @@ describe('renderTranscriptTxt', () => {
 
 describe('scope, header and metadata', () => {
   const header = {
-    labels: { title: 'Sokuji conversation export', generated: 'Generated', provider: 'Provider', models: 'Models', source: 'My Language', target: "Other's Language", narrowed: 'Note: narrowed.' },
-    meta: { exportedAt: 0, appVersion: '1.2.3', provider: 'fake', models: { asr: 'a1', translation: '', tts: 't1' } },
+    labels: { title: 'Sokuji conversation export', sessionStarted: 'Session started', exported: 'Exported', provider: 'Provider', models: 'Models', source: 'My Language', target: "Other's Language", narrowed: 'Note: narrowed.' },
+    meta: { sessionStartedAt: -1000, exportedAt: 0, appVersion: '1.2.3', provider: 'fake', models: { asr: 'a1', translation: '', tts: 't1' } },
     formatDateTime: (ms: number) => `<${ms}>`,
   };
 
@@ -73,9 +73,10 @@ describe('scope, header and metadata', () => {
 
   it('starts a file with the header: provider, models, the speaker pair, and the narrowed note only when narrowed', () => {
     const full = renderTranscriptTxt(entries, legs, { ...options, header });
-    expect(full.split('\n').slice(0, 6)).toEqual([
+    expect(full.split('\n').slice(0, 7)).toEqual([
       'Sokuji conversation export',
-      'Generated: <0>',
+      'Session started: <-1000>',
+      'Exported: <0>',
       'Provider: fake',
       'Models: asr=a1, tts=t1',
       "My Language: zh → Other's Language: en",
@@ -114,7 +115,7 @@ describe('scope, header and metadata', () => {
 
   it('puts what the file is before its groups', () => {
     const json = renderTranscriptJson(entries, legs, { scope: { speaker: 'both', participant: 'source' }, meta: header.meta });
-    expect(Object.keys(json)).toEqual(['exportedAt', 'appVersion', 'provider', 'models', 'languages', 'scope', 'groups', 'notices']);
+    expect(Object.keys(json)).toEqual(['sessionStartedAt', 'exportedAt', 'appVersion', 'provider', 'models', 'languages', 'scope', 'groups', 'notices']);
   });
 });
 

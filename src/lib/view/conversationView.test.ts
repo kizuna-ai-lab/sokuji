@@ -82,7 +82,7 @@ describe('createConversationView', () => {
     const conv = conversation([legWith('Hello.')]);
     const view = createConversationView(conv, settings(DEFAULT_PROJECTION), clock);
     expect(view.get().info).toBeNull();
-    const info: ConversationInfo = { provider: 'fake', models: { asrModel: 'a' } };
+    const info: ConversationInfo = { provider: 'fake', models: { asrModel: 'a' }, startedAt: 0 };
     conv.set([legWith('Hi.')], info);
     clock.advance(VIEW_INTERVAL_MS);
     expect(view.get().info).toBe(info);
