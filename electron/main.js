@@ -47,6 +47,10 @@ if (process.platform === 'win32') {
 // release build folds it to false and drops every E2E branch.
 const IS_E2E = import.meta.env.MODE === 'e2e';
 const isDevBuild = () => !IS_E2E && (import.meta.env.MODE === 'development' || !app.isPackaged);
+// The test runner looks for this name in dist-electron/main.js before it starts the app: a release or
+// development build has no such line, and started by the tests it would clean and recreate the
+// system's virtual audio devices.
+if (IS_E2E) process.env.SOKUJI_E2E_BUILD = '1';
 
 const { UpdateManager } = require('./update-manager');
 const { NativeHostManager } = require('./native-host-manager');

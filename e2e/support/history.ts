@@ -8,7 +8,8 @@ export interface StoredRecord {
   sentences: number;
   /** The record's services as stored (JSON). */
   services: string;
-  tracks: { source: string; file: string; bytes: number; durationMs: number }[];
+  /** `fileBytes` is the size of the recording on disk, or null when the file is not there. */
+  tracks: { source: string; file: string; bytes: number; durationMs: number; fileBytes: number | null }[];
 }
 
 /** What the history database holds, read from disk. Call it after the app has closed: the app owns the file while it runs. */
@@ -22,7 +23,13 @@ export function readHistory(userData: string): StoredRecord[] {
       const id = String(record.id);
       const sentences = (db.prepare('select count(*) as n from sentences where transcript_id in (select id from transcripts where record_id = ?)').get(id) as { n: number }).n;
       const tracks = (db.prepare('select * from tracks where record_id = ?').all(id) as Record<string, unknown>[])
-        .map((track) => ({ source: String(track.source), file: String(track.file), bytes: Number(track.bytes), durationMs: Number(track.duration_ms) }));
+        .map((track) => {
+          const onDisk = path.join(userData, 'history', 'records', id, String(track.file));
+          return {
+            source: String(track.source), file: String(track.file), bytes: Number(track.bytes), durationMs: Number(track.duration_ms),
+            fileBytes: fs.existsSync(onDisk) ? fs.statSync(onDisk).size : null,
+          };
+        });
       return { id, state: String(record.state), services: String(record.services), sentences, tracks };
     });
   } finally {

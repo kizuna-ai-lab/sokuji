@@ -55,8 +55,14 @@ export function removeUserData(userData: string): void {
  * passing the directory of an app that was closed (or killed) is a restart on the same state.
  */
 export async function launch(options: { userData?: string; seed?: Seed } = {}): Promise<Sokuji> {
-  if (!fs.existsSync(path.join(REPO, 'build/index.html')) || !fs.existsSync(path.join(REPO, 'dist-electron/main.js'))) {
+  const main = path.join(REPO, 'dist-electron/main.js');
+  if (!fs.existsSync(path.join(REPO, 'build/index.html')) || !fs.existsSync(main)) {
     throw new Error('No E2E build found. Run `npm run e2e:build` first.');
+  }
+  // `npm run build` leaves the same two files. That build must never be started from here: it cleans and
+  // recreates the system's virtual audio devices, whichever user-data directory it runs on.
+  if (!fs.readFileSync(main, 'utf8').includes('SOKUJI_E2E_BUILD')) {
+    throw new Error('build/ and dist-electron/ hold another build, not the E2E build. Run `npm run e2e:build`.');
   }
   const userData = options.userData ?? newUserData();
   const app = await electron.launch({
@@ -73,12 +79,21 @@ export async function launch(options: { userData?: string; seed?: Seed } = {}): 
   // Ends the app at once, with its renderer, GPU and utility processes: left alone they outlive the main process,
   // keep the user-data directory busy and hold the test runner open. Every process of this app carries the
   // user-data directory on its command line, and no other process does, so that is how they are found.
+  // Taken now: once the app has closed, Playwright no longer hands its process out.
+  const child = app.process();
+  let ended = false;
   const kill = async () => {
-    const child = app.process();
+    if (ended) return;
+    ended = true;
     const gone = new Promise<void>((resolve) => { if (child.exitCode !== null || child.signalCode !== null) resolve(); else child.once('exit', () => resolve()); });
     // Playwright starts the app as the leader of its own process group: the group goes first, all at once.
     // (Killing the main process alone leaves the runner waiting two minutes at teardown.)
     try { if (child.pid && process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL'); } catch { /* no such group */ }
+    // Windows (not exercised yet: the tests have only run on Linux and macOS): the child is the launcher shell,
+    // so the tree is ended by its pid while the shell still lives.
+    if (child.pid && process.platform === 'win32') {
+      try { execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* already gone */ }
+    }
     child.kill('SIGKILL');
     await gone;
     // Whatever left the group is found by its command line.
@@ -128,7 +143,8 @@ export async function launch(options: { userData?: string; seed?: Seed } = {}): 
   }
   return {
     app, page, userData, errors,
-    close: async () => { await app.close().catch(() => undefined); },
+    // A clean quit; whatever is still there afterwards is swept by kill(), which is then a no-op for the rest.
+    close: async () => { await app.close().catch(() => undefined); await kill(); },
     kill,
     answerSaveDialog: (filePath) => app.evaluate(({ dialog }, chosen) => {
       dialog.showSaveDialog = (async () => (chosen === null ? { canceled: true, filePath: '' } : { canceled: false, filePath: chosen })) as typeof dialog.showSaveDialog;

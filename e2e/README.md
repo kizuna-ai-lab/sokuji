@@ -41,8 +41,11 @@ audio away from any Sokuji already running on the machine.
 
 ## What a test gets (`e2e/support`)
 
-- `launch({ seed, userData })` starts the app and returns `{ app, page, userData, errors, close }`.
+- `test` from `support/test.ts` gives a spec `launchApp({ seed, userData })`. It returns `{ app, page, userData, errors, close, kill, … }`.
   A new directory is a first run; passing the directory of an app that was closed is a restart on the same state.
+  Every app a test started is killed when the test ends, passed or failed; the user-data directories of a test that passed are deleted.
+- The launch refuses anything but the E2E build (it looks for the build's marker in `dist-electron/main.js`): a release or
+  development build started from here would clean and recreate the system's virtual audio devices.
 - `baseStorage('fake')` is the seed every session test wants: the setup wizard and the tour are done,
   the interface is English, the fake provider runs every stage.
 - `sokuji.kill()` ends the process at once (a crash); launch again on the same `userData` to test recovery.
@@ -50,7 +53,6 @@ audio away from any Sokuji already running on the machine.
   Playwright cannot click a native dialog.
 - `mainAction(page)` is the Start / End session button.
 - `readHistory(userData)` reads `history/history.db` from disk. Call it after `close()`.
-- `removeUserData(userData)` at the end of a test that passed.
 
 ## The microphone
 
