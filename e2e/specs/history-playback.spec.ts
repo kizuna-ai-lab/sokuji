@@ -61,12 +61,20 @@ test('a recorded session plays back with the sentence being played marked, from 
   const first = await playingIndex(page);
   await expect.poll(() => playingIndex(page), { timeout: 20_000 }).toBeGreaterThan(first);
 
-  // Play from here, on the last sentence: the sound starts there and that sentence is the marked one.
+  // Play from here, on the last sentence: the sound starts there and that sentence is the marked one. From the
+  // start first, so a "Play from here" that did not move the sound would leave it seconds short of the sentence.
+  await player.getByRole('button', { name: 'Pause' }).click();
+  await player.getByLabel('Position').fill('0');
   const last = (await rows(page).count()) - 1;
+  const lastStart = (await rowStarts(page))[last];
+  expect(lastStart).toBeGreaterThan(8);
   await rows(page).nth(last).getByRole('button', { name: 'Play from here' }).click();
+  // Where the sound is: the sentence's start (its label is whole seconds), 2.5 s earlier for a time the service did
+  // not give, and up to 1.5 s less again as the recording starts a little after the record.
+  let fromHere = 0;
+  await expect.poll(async () => (fromHere = (await audio(page)).at), { timeout: 2_000 }).toBeGreaterThan(lastStart - 4.5);
+  expect(fromHere).toBeLessThan(lastStart + 1.5);
   await expect.poll(() => playingIndex(page), { timeout: 5_000 }).toBe(last);
-  const fromHere = (await audio(page)).at;
-  expect(fromHere).toBeGreaterThan(1);
 
   // Twice as fast: the recording plays at 2x and covers about twice the time.
   await player.getByRole('button', { name: 'Pause' }).click();
