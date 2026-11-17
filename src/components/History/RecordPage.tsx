@@ -126,7 +126,10 @@ export const RecordPage: React.FC = () => {
   }, [t]);
   const textKind = open?.record.transcripts[open.record.transcripts.length - 1]?.textKind ?? 'original';
   const rows = useMemo(
-    () => (open ? recordRows({ sentences: open.sentences, legs: open.legs, textKind, labels }) : []),
+    () => (open
+      // An imported file's sides do not say who spoke (everyone is on one track): its speakers are numbered.
+      ? recordRows({ sentences: open.sentences, legs: open.legs, textKind, labels, sidesKnown: open.record.mode !== 'import' })
+      : []),
     [open, textKind, labels],
   );
 

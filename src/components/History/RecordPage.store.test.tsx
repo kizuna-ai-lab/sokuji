@@ -104,4 +104,22 @@ describe('an imported record\'s speakers', () => {
     expect(within(drawer()).queryByText('The other side')).toBeNull();
     expect(within(drawer()).queryByText('Your side')).toBeNull();
   });
+
+  // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.
+  it('a session whose sides were only inferred keeps them, under their headings', async () => {
+    const F = 'run-0009-ffff';
+    real.store.openRecord({ id: F, startedAt: START, mode: 'face-to-face', myLanguage: 'en', targetLanguage: 'zh', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const transcriptId = real.store.createTranscript({ recordId: F, origin: { service: 'soniox', kind: 'live' } });
+    real.store.appendSentences({ transcriptId, sentences: [
+      { ...sentence(1, 'mine', 'Shall we start?'), sideCertain: false },
+      { ...sentence(2, 'other', 'Yes, please.'), sideCertain: false },
+    ] });
+    real.store.closeRecord({ id: F, endedAt: START + 10_000 });
+    await act(() => store.getState().openRecord(F));
+    await settle();
+    expect(speakerOf(1)).toBe('Me');
+    expect(speakerOf(2)).toBe('Other');
+    expect(within(drawer()).getByText('Your side')).toBeInTheDocument();
+    expect(within(drawer()).getByText('The other side')).toBeInTheDocument();
+  });
 });

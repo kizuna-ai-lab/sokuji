@@ -45,6 +45,12 @@ export function recordRows(o: {
   legs: readonly Leg[];
   textKind: 'original' | 'translation';
   labels: SpeakerLabels;
+  /**
+   * Whether the sentences' sides mean who spoke: not for an imported file, where everyone is on one track. (A
+   * session's sentences keep their sides, even where the side was inferred: a shared microphone, face to face.)
+   * Default: true, the sides are known.
+   */
+  sidesKnown?: boolean;
 }): RecordRow[] {
   // The round's translation, by the source segments it pairs with (as the conversation shows it). A transcript cut
   // from the translation has none: its sentences already are the translation.
@@ -66,16 +72,13 @@ export function recordRows(o: {
     if (!order[s.side].includes(who)) order[s.side].push(who);
     if (s.speakerName) names.set(`${s.side}\u0000${who}`, s.speakerName);
   }
-  // A side is known when one of its sentences is: an imported file's are not, and its speakers are named by number.
-  const known: Record<HistorySentenceSide, boolean> = {
-    mine: o.sentences.some((s) => s.side === 'mine' && s.sideCertain),
-    other: o.sentences.some((s) => s.side === 'other' && s.sideCertain),
-  };
+  // An imported file's speakers are named by number, not by a side.
+  const sidesKnown = o.sidesKnown ?? true;
   const labelOf = (side: HistorySentenceSide, who: string) => {
     const named = names.get(`${side}\u0000${who}`);
     if (named) return named;
     const n = order[side].indexOf(who) + 1;
-    if (!known[side]) return o.labels.anyone(n);
+    if (!sidesKnown) return o.labels.anyone(n);
     return order[side].length >= 2 ? o.labels.person(side, n) : side === 'mine' ? o.labels.mine : o.labels.other;
   };
 
@@ -98,7 +101,7 @@ export function recordRows(o: {
     const translation = s.segmentId !== null && !translated.has(s.segmentId) ? translationOf.get(s.segmentId) ?? null : null;
     if (s.segmentId !== null) translated.add(s.segmentId);
     rows.push({
-      segmentId, leg: legOf(s.side), side: s.side, speaker: who, speakerLabel: labelOf(s.side, who), sideKnown: known[s.side],
+      segmentId, leg: legOf(s.side), side: s.side, speaker: who, speakerLabel: labelOf(s.side, who), sideKnown: sidesKnown,
       startMs: s.startMs, endMs: s.endMs, timeKind: s.timeKind, sentences: [{ n: s.n, text: s.text }], translation,
     });
   }

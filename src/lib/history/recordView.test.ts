@@ -47,18 +47,24 @@ describe('a record\'s transcript rows', () => {
   });
 
   // An imported file holds everyone on one track: who is on which side is not known, and no side is named.
-  it('labels the speakers of a side that is not known by number alone, one speaker or several', () => {
-    const unknown = { side: 'other' as const, sideCertain: false, track: 'other' as const };
-    const one = recordRows({ sentences: [s(1, 'f-1', 'Hello.', unknown), s(2, 'f-2', 'Again.', unknown)], legs: [], textKind: 'original', labels });
+  it('labels the speakers of a file whose sides are not known by number alone, one speaker or several', () => {
+    const file = { side: 'other' as const, sideCertain: false, track: 'other' as const };
+    const of = (sentences: HistorySentence[]) => recordRows({ sentences, legs: [], textKind: 'original', labels, sidesKnown: false });
+    const one = of([s(1, 'f-1', 'Hello.', file), s(2, 'f-2', 'Again.', file)]);
     expect(one.map((r) => [r.speakerLabel, r.sideKnown])).toEqual([['Speaker 1', false], ['Speaker 1', false]]);
-    const two = recordRows({ sentences: [s(1, 'f-1', 'Hello.', unknown), s(2, 'f-2', 'Hi.', { ...unknown, speaker: '2' })], legs: [], textKind: 'original', labels });
-    expect(two.map((r) => r.speakerLabel)).toEqual(['Speaker 1', 'Speaker 2']);
+    expect(of([s(1, 'f-1', 'Hello.', file), s(2, 'f-2', 'Hi.', { ...file, speaker: '2' })]).map((r) => r.speakerLabel)).toEqual(['Speaker 1', 'Speaker 2']);
     // A name given to one of them is still its label.
-    const named = recordRows({ sentences: [s(1, 'f-1', 'Hello.', { ...unknown, speakerName: 'Mina' })], legs: [], textKind: 'original', labels });
-    expect(named[0].speakerLabel).toBe('Mina');
-    // A known side keeps its side's words.
-    const known = recordRows({ sentences: [s(1, 'a', 'Hello.')], legs: [], textKind: 'original', labels });
-    expect(known.map((r) => [r.speakerLabel, r.sideKnown])).toEqual([['Me', true]]);
+    expect(of([s(1, 'f-1', 'Hello.', { ...file, speakerName: 'Mina' })])[0].speakerLabel).toBe('Mina');
+  });
+
+  // Face to face (one microphone for both people) a session's sides are inferred, not certain: they still say who
+  // spoke, and keep their words.
+  it('keeps the sides of a session whose sides were only inferred', () => {
+    const rows = recordRows({
+      sentences: [s(1, 'a', 'Hello.', { sideCertain: false }), s(2, 'b', 'Hi.', { side: 'other', sideCertain: false, track: 'other' })],
+      legs: [], textKind: 'original', labels,
+    });
+    expect(rows.map((r) => [r.speakerLabel, r.sideKnown])).toEqual([['Me', true], ['Other', true]]);
   });
 
   it('labels speakers by name, by number when a side has several, else by side', () => {
