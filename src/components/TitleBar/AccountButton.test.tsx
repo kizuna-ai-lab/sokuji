@@ -74,6 +74,8 @@ beforeEach(() => {
   signedIn = false;
   authUser = null;
   quota = null;
+  // No organization carried over from another test: who pays is now part of the button's name.
+  useAccountStore.setState({ account: null });
   shortfall.value = false;
   popoverRequested = false;
   setPopoverRequested.mockClear();
@@ -126,6 +128,8 @@ describe('AccountButton', () => {
     const org = screen.getByText('Acme').closest('[data-payer]')!;
     expect(org.getAttribute('data-payer')).toBe('organization');
     expect(org.querySelector('svg')).not.toBeNull();
+    // Who pays is in the button's name too: a screen reader hears it whether the name or the icon shows (review).
+    expect(screen.getByRole('button', { name: 'Account (Acme)' })).toBeInTheDocument();
     unmount();
 
     setUseOwnBalance(true);
@@ -134,6 +138,7 @@ describe('AccountButton', () => {
     const own = screen.getByText('Personal').closest('[data-payer]')!;
     expect(own.getAttribute('data-payer')).toBe('personal');
     expect(own.querySelector('svg')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Account (Personal)' })).toBeInTheDocument();
     setUseOwnBalance(false);
   });
 

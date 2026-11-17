@@ -92,6 +92,8 @@ const AccountButton: React.FC = () => {
   // plus a popover from each branch would mount the popover twice.
   let label: string;
   let content: React.ReactNode;
+  /** Who pays, for the button's name: heard by a screen reader whether the payer shows as a name or an icon. */
+  let payerHeard: string | null = null;
 
   if (!isSignedIn || !user) {
     // Labelled, like every neighbour in this bar. A bare glyph between two
@@ -119,6 +121,7 @@ const AccountButton: React.FC = () => {
           : null
       : null;
     const PayerIcon = payerMark?.kind === 'organization' ? Building2 : User;
+    payerHeard = payerMark?.name ?? null;
     // The balance of the wallet the next Start spends: the organization's, or the member's own with the switch on.
     const balance = shownBalance(account, payer, quota);
 
@@ -172,7 +175,7 @@ const AccountButton: React.FC = () => {
         data-tour="account-button"
         className="title-bar__action account-button"
         title={label}
-        aria-label={label}
+        aria-label={payerHeard ? `${label} (${payerHeard})` : label}
         // The button is not floating-ui's managed reference in this split, so
         // useRole cannot wire these two for us — they are written by hand.
         aria-haspopup="dialog"
