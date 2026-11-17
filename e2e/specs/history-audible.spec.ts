@@ -45,7 +45,10 @@ const loudShare = (page: Page, file: string) => page.evaluate(async (base64) => 
 // microphone gave it; the player plays it unmuted at full volume; 1.5× runs at one and a half times the pace; and at
 // the end it stops, and Play starts it again from the beginning.
 test('a recording plays as sound, faster at 1.5×, and from the beginning again once it has ended', async ({ launchApp }) => {
-  const sokuji = await launchApp({ seed: { storage: baseStorage('fake') } });
+  // The recording keeps what is sent to be transcribed, after noise suppression; at its default ("enhanced") level it
+  // now and then takes the test microphone's steady tone for noise and removes seconds of it. This test is about the
+  // recording and its playback, so suppression is off.
+  const sokuji = await launchApp({ seed: { storage: { ...baseStorage('fake'), 'audio.noiseSuppressionMode': 'off' } } });
   const { page, userData } = sokuji;
   await recordASession(page);
 
