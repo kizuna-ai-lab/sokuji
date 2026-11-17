@@ -2101,7 +2101,6 @@
     "file": {
       "import": "ফাইল আমদানি করুন",
       "importTitle": "“{{name}}” আমদানি করুন",
-      "language": "এতে বলা ভাষা",
       "service": "Soniox প্রতিলিপি করবে, আপনার নিজের কী দিয়ে।",
       "start": "শুরু করুন",
       "transcribe": "লিখিত রূপ দিন",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox ফাইল · {{time}}",
       "blockedUnchecked": "প্রতিলিপি পরিষেবাটি যাচাই করা যায়নি। এটি বন্ধ করে আবার চেষ্টা করুন।",
       "blockedHostedSoniox": "ফাইলের প্রতিলিপি শুধু আপনার নিজের Soniox কী দিয়ে হয়: Kizuna AI-এর Soniox আপাতত শুধু লাইভ সেশনের জন্য।",
-      "openSettings": "{{place}} খুলুন"
+      "openSettings": "{{place}} খুলুন",
+      "mainLanguage": "প্রধান ভাষা",
+      "otherLanguages": "এতে থাকতে পারে এমন অন্য ভাষা",
+      "addLanguage": "আরেকটি ভাষা যোগ করুন",
+      "removeLanguage": "{{language}} সরান",
+      "translateInto": "অনুবাদের ভাষা"
     },
     "transcriptStopped": "এই সেশনের ট্রান্সক্রিপ্টের কিছু অংশ সংরক্ষণ করা যায়নি: ডিস্কে লেখা যায়নি।",
     "notesAddToWords": "শব্দতালিকায় যোগ করুন",

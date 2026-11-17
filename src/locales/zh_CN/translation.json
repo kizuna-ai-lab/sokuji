@@ -2101,7 +2101,6 @@
     "file": {
       "import": "导入文件",
       "importTitle": "导入“{{name}}”",
-      "language": "录音中说的语言",
       "service": "由 Soniox 转写（用你自己的密钥）。",
       "start": "开始",
       "transcribe": "转写",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox 文件 · {{time}}",
       "blockedUnchecked": "没能检查转写服务。请关掉这里再试一次。",
       "blockedHostedSoniox": "文件要用你自己的 Soniox 密钥转写：Kizuna AI 的 Soniox 目前只用于实时会话。",
-      "openSettings": "去{{place}}"
+      "openSettings": "去{{place}}",
+      "mainLanguage": "主要语言",
+      "otherLanguages": "可能含有的其他语言",
+      "addLanguage": "添加其他语言",
+      "removeLanguage": "移除{{language}}",
+      "translateInto": "翻译成"
     },
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "notesAddToWords": "加入词表",

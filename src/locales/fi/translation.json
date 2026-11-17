@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Tuo tiedosto",
       "importTitle": "Tuo ”{{name}}”",
-      "language": "Puhuttu kieli",
       "service": "Litteroijana Soniox, omalla avaimellasi.",
       "start": "Aloita",
       "transcribe": "Litteroi",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox-tiedosto · {{time}}",
       "blockedUnchecked": "Litterointipalvelua ei voitu tarkistaa. Sulje tämä ja yritä uudelleen.",
       "blockedHostedSoniox": "Tiedostot litteroidaan vain omalla Soniox-avaimellasi: Kizuna AI:n Soniox on toistaiseksi vain reaaliaikaisia istuntoja varten.",
-      "openSettings": "Avaa {{place}}"
+      "openSettings": "Avaa {{place}}",
+      "mainLanguage": "Pääkieli",
+      "otherLanguages": "Muut kielet, joita siinä voi olla",
+      "addLanguage": "Lisää toinen kieli",
+      "removeLanguage": "Poista {{language}}",
+      "translateInto": "Käännä kielelle"
     },
     "transcriptStopped": "Osaa tämän istunnon litteroinnista ei voitu tallentaa: sitä ei voitu kirjoittaa levylle.",
     "notesAddToWords": "Lisää sanalistaan",

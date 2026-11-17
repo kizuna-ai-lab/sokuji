@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Datei importieren",
       "importTitle": "„{{name}}“ importieren",
-      "language": "Gesprochene Sprache",
       "service": "Transkribiert von Soniox, mit deinem eigenen Schlüssel.",
       "start": "Starten",
       "transcribe": "Transkribieren",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox-Datei · {{time}}",
       "blockedUnchecked": "Der Transkriptionsdienst konnte nicht geprüft werden. Schließe dies und versuche es erneut.",
       "blockedHostedSoniox": "Dateien werden nur mit deinem eigenen Soniox-Schlüssel transkribiert: Das Soniox von Kizuna AI ist vorerst nur für Live-Sitzungen.",
-      "openSettings": "{{place}} öffnen"
+      "openSettings": "{{place}} öffnen",
+      "mainLanguage": "Hauptsprache",
+      "otherLanguages": "Weitere Sprachen darin",
+      "addLanguage": "Weitere Sprache hinzufügen",
+      "removeLanguage": "{{language}} entfernen",
+      "translateInto": "Übersetzen in"
     },
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "notesAddToWords": "Zur Wortliste hinzufügen",

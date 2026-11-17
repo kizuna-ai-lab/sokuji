@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Bestand importeren",
       "importTitle": "“{{name}}” importeren",
-      "language": "Gesproken taal",
       "service": "Getranscribeerd door Soniox, met je eigen sleutel.",
       "start": "Starten",
       "transcribe": "Transcriberen",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox-bestand · {{time}}",
       "blockedUnchecked": "De transcriptiedienst kon niet worden gecontroleerd. Sluit dit en probeer het opnieuw.",
       "blockedHostedSoniox": "Bestanden worden alleen met je eigen Soniox-sleutel getranscribeerd: de Soniox van Kizuna AI is voorlopig alleen voor livesessies.",
-      "openSettings": "{{place}} openen"
+      "openSettings": "{{place}} openen",
+      "mainLanguage": "Hoofdtaal",
+      "otherLanguages": "Andere talen die erin kunnen voorkomen",
+      "addLanguage": "Nog een taal toevoegen",
+      "removeLanguage": "{{language}} verwijderen",
+      "translateInto": "Vertalen naar"
     },
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "notesAddToWords": "Toevoegen aan woordenlijst",

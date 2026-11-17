@@ -2101,7 +2101,6 @@
     "file": {
       "import": "ייבוא קובץ",
       "importTitle": "ייבוא „{{name}}”",
-      "language": "השפה המדוברת בו",
       "service": "התמלול נעשה על ידי Soniox, עם המפתח שלך.",
       "start": "התחל",
       "transcribe": "תמלל",
@@ -2146,7 +2145,12 @@
       "versionFile": "קובץ Soniox · {{time}}",
       "blockedUnchecked": "לא ניתן היה לבדוק את שירות התמלול. סגור את החלון ונסה שוב.",
       "blockedHostedSoniox": "קבצים מתומללים רק עם מפתח Soniox משלך: ה-Soniox של Kizuna AI מיועד כרגע לסשנים חיים בלבד.",
-      "openSettings": "פתיחת {{place}}"
+      "openSettings": "פתיחת {{place}}",
+      "mainLanguage": "השפה העיקרית",
+      "otherLanguages": "שפות נוספות שייתכן שיש בו",
+      "addLanguage": "הוספת שפה נוספת",
+      "removeLanguage": "הסרת {{language}}",
+      "translateInto": "שפת התרגום"
     },
     "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
     "notesAddToWords": "הוספה לרשימת המילים",

@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Importera en fil",
       "importTitle": "Importera ”{{name}}”",
-      "language": "Talat språk",
       "service": "Transkriberas av Soniox, med din egen nyckel.",
       "start": "Starta",
       "transcribe": "Transkribera",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox-fil · {{time}}",
       "blockedUnchecked": "Transkriberingstjänsten kunde inte kontrolleras. Stäng detta och försök igen.",
       "blockedHostedSoniox": "Filer transkriberas bara med din egen Soniox-nyckel: Kizuna AI:s Soniox är tills vidare bara för livesessioner.",
-      "openSettings": "Öppna {{place}}"
+      "openSettings": "Öppna {{place}}",
+      "mainLanguage": "Huvudspråk",
+      "otherLanguages": "Andra språk som kan förekomma",
+      "addLanguage": "Lägg till ett språk till",
+      "removeLanguage": "Ta bort {{language}}",
+      "translateInto": "Översätt till"
     },
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "notesAddToWords": "Lägg till i ordlistan",

@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Dosya içe aktar",
       "importTitle": "“{{name}}” içe aktar",
-      "language": "Konuşulan dil",
       "service": "Kendi anahtarınızla Soniox tarafından yazıya dökülür.",
       "start": "Başlat",
       "transcribe": "Yazıya dök",
@@ -2146,7 +2145,12 @@
       "versionFile": "Soniox dosyası · {{time}}",
       "blockedUnchecked": "Transkripsiyon hizmeti denetlenemedi. Bunu kapatıp yeniden deneyin.",
       "blockedHostedSoniox": "Dosyalar yalnızca kendi Soniox anahtarınızla yazıya dökülür: Kizuna AI'ın Soniox'u şimdilik yalnızca canlı oturumlar içindir.",
-      "openSettings": "{{place}} bölümünü aç"
+      "openSettings": "{{place}} bölümünü aç",
+      "mainLanguage": "Ana dil",
+      "otherLanguages": "İçinde geçebilecek diğer diller",
+      "addLanguage": "Başka bir dil ekle",
+      "removeLanguage": "{{language}} dilini kaldır",
+      "translateInto": "Çeviri dili"
     },
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "notesAddToWords": "Kelime listesine ekle",
