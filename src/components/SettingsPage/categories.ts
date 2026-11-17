@@ -32,7 +32,8 @@ export const CATEGORIES: readonly Category[] = [
   category({ id: 'lineup', group: 'session', words: ['language', 'languages', 'speech mode', 'push to talk', 'transcription', 'translation', 'speech', 'voice', 'provider', 'model', 'line-up'], lockedInSession: 'locked', shown: () => true }),
   // The app's one word list and the session background (spec §9); the extension has it too.
   category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => true }),
-  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance'], lockedInSession: 'partly', shown: () => true }),
+  // The providers by name too: their keys and sign-ins are on this page, and a name reads the same in every language.
+  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance', 'kizuna ai', 'openai', 'soniox', 'gemini', 'google', 'doubao', 'volcengine', 'qwen', 'palabra'], lockedInSession: 'partly', shown: () => true }),
   // Every download, delete and import there waits for the session to end (the owner, 2026-11-17).
   category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
