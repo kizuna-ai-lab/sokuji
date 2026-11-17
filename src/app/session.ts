@@ -638,7 +638,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         if (now.phase === 'starting' && before.phase === 'idle') usePanelNotesStore.getState().clear();
       }));
       // The conversation emptied — Clear from any surface (the subtitle bar's
-      // reaches the runner, not MainPanel's handler) — and the notes go with it.
+      // reaches the runner, not MainPanel's handler) — and the notes go with it
+      // (the live notes only once the session is over: liveStore's clear).
       offs.push(runner.conversation.onReset(() => { usePanelNotesStore.getState().clear(); useLiveNotes.getState().clear(); }));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {

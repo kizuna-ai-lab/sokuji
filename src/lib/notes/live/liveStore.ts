@@ -86,7 +86,9 @@ export const useLiveNotes = create<LiveNotesView & LiveNotesActions>((set) => {
     balanceAfter: (recordId, balanceMicroUsd) => forRecord(recordId, { balanceMicroUsd }),
     // A new loop: an earlier stop for the account is forgotten (a refusal stops this one too, and says so again).
     resume: (recordId) => forRecord(recordId, { running: true, off: false, hint: false, stopped: null }),
-    clear: () => set((s) => (s.running ? { state: null } : EMPTY)),
+    // Clear empties the captions. During a session the live notes stay: they are the whole meeting's, and the loop
+    // would bring them back with its next update anyway (owner, 2026-11-17). After the session they go with Clear.
+    clear: () => set((s) => (s.running ? s : EMPTY)),
     reset: () => set(EMPTY),
   };
 });
