@@ -192,11 +192,13 @@ export const RecordPage: React.FC = () => {
   const [notesWidth, setNotesWidth] = useState(readNotesWidth);
   const notesId = useId();
   const sideId = useId();
-  // The switches' words, kept while the heading has its room beside the actions (panelSwitchFit.ts). The actions'
-  // width with the words is measured while they show, and kept to decide when they can come back.
+  // The switches' words, kept while the heading has its room beside the actions (panelSwitchFit.ts).
   const headRef = useRef<HTMLElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  // The actions' width with the words, measured while they show; once hidden, what the words add to the actions
+  // (taken at the first measure without them), so actions that change while the words are hidden are judged right.
   const wordsWidth = useRef(0);
+  const wordsAdd = useRef<number | null>(null);
   const [switchWords, setSwitchWords] = useState(true);
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
@@ -232,8 +234,17 @@ export const RecordPage: React.FC = () => {
       const parts = [...head.children] as HTMLElement[];
       const others = parts.filter((p) => p !== actions && !p.classList.contains('record-page__heading'))
         .reduce((sum, p) => sum + p.getBoundingClientRect().width, 0);
-      if (wordsShown.current) wordsWidth.current = actions.getBoundingClientRect().width;
-      const fit = labelsFit({ head: head.clientWidth, padding, gaps: gap * Math.max(0, parts.length - 1), others, actions: wordsWidth.current });
+      const width = actions.getBoundingClientRect().width;
+      let withWords: number;
+      if (wordsShown.current) {
+        wordsWidth.current = width;
+        wordsAdd.current = null;
+        withWords = width;
+      } else {
+        wordsAdd.current ??= Math.max(0, wordsWidth.current - width);
+        withWords = width + wordsAdd.current;
+      }
+      const fit = labelsFit({ head: head.clientWidth, padding, gaps: gap * Math.max(0, parts.length - 1), others, actions: withWords });
       if (fit !== wordsShown.current) setSwitchWords(fit);
     };
     measure();

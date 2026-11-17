@@ -829,6 +829,34 @@ describe('the notes column on a wide page', () => {
     expect(notesSwitch()).toHaveAttribute('title', 'Hide the notes');
   });
 
+  // Review: hidden, the words are not measured; what they would add is kept from when they were last shown, so actions
+  // that change while the words are hidden (a button gone) are judged with the words' own width, not a stale total.
+  it('brings the switches\' words back when the actions shrink while the words are hidden', async () => {
+    const page = 1000;
+    let others = 700;
+    const observers: (() => void)[] = [];
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => page);
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly cb: () => void) { observers.push(cb); }
+      observe() { this.cb(); }
+      unobserve() {}
+      disconnect() {}
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const compact = document.querySelector('.record-page__panels')?.hasAttribute('data-compact');
+      const width = this.classList.contains('record-page__actions') ? others + (compact ? 0 : 100) : 0;
+      return { width, height: 0, top: 0, left: 0, right: width, bottom: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    await renderRecord();
+    const group = () => notesSwitch().closest('.record-page__panels')!;
+    // 1000 - (700 + 100) leaves the heading 200px: the words go.
+    expect(group()).toHaveAttribute('data-compact');
+    // A button goes: 1000 - (600 + 100) leaves 300px, room for the words again.
+    others = 600;
+    act(() => { for (const cb of observers) cb(); });
+    expect(group()).not.toHaveAttribute('data-compact');
+  });
+
   it('on a narrow page keeps the two tabs, with no divider and no notes switch (the side panel\'s stays)', async () => {
     await renderRecord();
     expect(screen.getByRole('tab', { name: 'Notes' })).toBeInTheDocument();
