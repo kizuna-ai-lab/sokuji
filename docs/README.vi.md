@@ -147,7 +147,7 @@ theo thời gian thực. Chỉ cần đặt Ngôn ngữ A và Ngôn ngữ B, thu
 
 ### Local Inference (Edge AI)
 
-Chạy mọi thứ trên thiết bị của bạn — không API key, không internet, không cần GPU đắt tiền, riêng tư tuyệt đối. Nhờ WASM và WebGPU, Sokuji chạy hiệu quả trên mọi trình duyệt hiện đại, tận dụng CPU và card đồ họa tích hợp sẵn có.
+Chạy mọi thứ trên thiết bị của bạn — không API key, không cần internet sau khi đã tải mô hình, không cần GPU đắt tiền, riêng tư tuyệt đối. Nhờ WASM và WebGPU, Sokuji chạy hiệu quả trên mọi trình duyệt hiện đại, tận dụng CPU và card đồ họa tích hợp sẵn có.
 
 - **44 mô hình ASR** (23 offline + 10 streaming + 11 WebGPU, gồm Whisper, Cohere Transcribe, Voxtral, Granite Speech) bao phủ 99+ ngôn ngữ
 - **75 mô hình dịch** — 69 cặp ngôn ngữ Opus-MT + 6 LLM đa ngôn ngữ (Qwen 2.5 / 3 / 3.5, Hunyuan-MT 1.5, TranslateGemma) chạy bằng WebGPU
@@ -186,11 +186,11 @@ Chạy mọi thứ trên thiết bị của bạn — không API key, không int
 
 ## Quyền riêng tư
 
-**Âm thanh của bạn ở lại trên thiết bị — nếu chọn Local Inference, không có gì rời khỏi máy.**
+**Âm thanh của bạn ở lại trên thiết bị — nếu chọn Local Inference, âm thanh và văn bản không rời khỏi máy.**
 
 - Chế độ cloud kết nối **trực tiếp** tới API của nhà cung cấp — không qua máy chủ trung gian
 - API key **chỉ lưu cục bộ**, không bao giờ gửi cho chúng tôi
-- Local Inference xử lý mọi thứ **trên thiết bị**, không phát sinh bất kỳ request mạng nào
+- Local Inference xử lý âm thanh và văn bản **trên thiết bị**; vẫn có request thống kê ẩn danh gửi tới PostHog
 - Thống kê sử dụng ẩn danh qua PostHog
 
 ---
