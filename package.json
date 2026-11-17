@@ -145,6 +145,7 @@
     "@google/genai": "^2.16.0",
     "@huggingface/tokenizers": "0.1.3",
     "@huggingface/transformers": "^4.3.1",
+    "@playwright/test": "^1.65.1",
     "@ricky0123/vad-web": "^0.0.30",
     "@sapphi-red/web-noise-suppressor": "^0.3.5",
     "@testing-library/dom": "^10.4.1",
@@ -213,7 +214,9 @@
     "postinstall": "electron-rebuild && bash scripts/copy-ort-wasm.sh",
     "extension:build": "cd extension && npx vite build",
     "extension:dev": "cd extension && npx vite build --watch --mode development",
-    "sidecar:setup": "bash sidecar/setup.sh"
+    "sidecar:setup": "bash sidecar/setup.sh",
+    "e2e:build": "vite build --mode e2e",
+    "e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "eslintConfig": {
     "extends": [
