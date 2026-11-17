@@ -93,6 +93,38 @@ describe('the record player', () => {
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
 
+  it('keeps the speed chosen on this computer: the next record opened plays at it', () => {
+    localStorage.clear();
+    const seekRef = createRef<SeekFn>();
+    const { unmount } = render(<RecordPlayer recordId="a" tracks={[track('speaker', 0, 2000)]} onPosition={() => {}} seekRef={seekRef} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Speed' }), { target: { value: '1.5' } });
+    unmount();
+
+    const positions: number[] = [];
+    render(<RecordPlayer recordId="b" tracks={[track('speaker', 0, 4000)]} onPosition={(ms) => positions.push(ms)} seekRef={seekRef} />);
+    expect(screen.getByRole('combobox', { name: 'Speed' })).toHaveValue('1.5');
+    expect(audios()[0].playbackRate).toBe(1.5);
+    // An element's own load puts its rate back to the default one: that is the chosen speed too.
+    expect(audios()[0].defaultPlaybackRate).toBe(1.5);
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    act(() => { vi.advanceTimersByTime(1000); });
+    const last = positions[positions.length - 1];
+    expect(last).toBeGreaterThanOrEqual(1400);
+    expect(last).toBeLessThanOrEqual(1600);
+  });
+
+  it('plays at 1× when no speed was kept, or what was kept is not one of its speeds', () => {
+    const seekRef = createRef<SeekFn>();
+    for (const kept of [null, '3', 'fast']) {
+      localStorage.clear();
+      if (kept !== null) localStorage.setItem('history.playbackSpeed', kept);
+      render(<RecordPlayer recordId="r" tracks={[track('speaker', 0, 2000)]} onPosition={() => {}} seekRef={seekRef} />);
+      expect(screen.getByRole('combobox', { name: 'Speed' })).toHaveValue('1');
+      expect(audios()[0].playbackRate).toBe(1);
+      cleanup();
+    }
+  });
+
   it('follows the playing track instead of seeking it, at 2× as at 1×', () => {
     const original = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'readyState');
     Object.defineProperty(HTMLMediaElement.prototype, 'readyState', { configurable: true, get: () => 4 });

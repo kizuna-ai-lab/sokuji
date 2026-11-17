@@ -206,6 +206,50 @@ describe('the History page state', () => {
     expect(calls('getRecord')).toEqual([A]);
   });
 
+  it('reads the list and the space again once the recording is deleted, so the list no longer shows it', async () => {
+    await store.getState().openRecord(A);
+    port.calls.length = 0;
+    await store.getState().dropRecording();
+    expect(calls('listRecords')).toHaveLength(1);
+    expect(calls('usage')).toHaveLength(1);
+  });
+
+  it('reads the list again after deleting the recording even when the record cannot be read again, and says why', async () => {
+    await store.getState().openRecord(A);
+    port.getRecord = (async () => { throw new Error('gone'); }) as never;
+    port.calls.length = 0;
+    await store.getState().dropRecording();
+    expect(calls('listRecords')).toHaveLength(1);
+    expect(store.getState().error).toBe('failed: gone');
+  });
+
+  it('shows why the record could not be read again, even when the list cannot be read either', async () => {
+    await store.getState().openRecord(A);
+    port.getRecord = (async () => { throw new Error('record gone'); }) as never;
+    port.listRecords = (async () => { throw new Error('list gone'); }) as never;
+    await store.getState().dropRecording();
+    expect(store.getState().error).toBe('failed: record gone');
+  });
+
+  it('keeps the newer list when an older read of it answers last', async () => {
+    let answerOld!: () => void;
+    const held = new Promise<void>((resolve) => { answerOld = resolve; });
+    let reads = 0;
+    port.listRecords = (async (arg: unknown) => {
+      port.calls.push(['listRecords', arg]);
+      reads += 1;
+      if (reads === 1) { await held; return [rowOf(A, { hasRecording: true, audioBytes: 500 })]; }
+      return [rowOf(A)];
+    }) as never;
+    const older = store.getState().load();
+    await flush();
+    await store.getState().openRecord(A);
+    await store.getState().dropRecording();
+    answerOld();
+    await older;
+    expect(store.getState().rows).toEqual([rowOf(A)]);
+  });
+
   it('renames a record with its text trimmed', async () => {
     await store.getState().rename(A, '  Weekly  ');
     expect(calls('renameRecord')).toEqual([{ id: A, title: 'Weekly' }]);

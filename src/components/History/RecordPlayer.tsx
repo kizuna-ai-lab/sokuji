@@ -28,6 +28,17 @@ const DRIFT_S = 0.15;
 /** `HAVE_FUTURE_DATA`: an element playing with data in hand. */
 const READY = 3;
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
+/** The speed last chosen, kept on this computer: the next record opened plays at it too. */
+const SPEED_KEY = 'history.playbackSpeed';
+const readSpeed = (): number => {
+  try {
+    const kept = Number(localStorage.getItem(SPEED_KEY));
+    return (SPEEDS as readonly number[]).includes(kept) ? kept : 1;
+  } catch { return 1; }
+};
+const writeSpeed = (speed: number): void => { try { localStorage.setItem(SPEED_KEY, String(speed)); } catch { /* 1× next time */ } };
+/** An element at `speed`; its default rate too, which its own load goes back to. */
+const applySpeed = (el: HTMLAudioElement, speed: number): void => { el.defaultPlaybackRate = speed; el.playbackRate = speed; };
 
 export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, onPosition, seekRef }) => {
   const { t } = useTranslation();
@@ -35,7 +46,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
   const length = useMemo(() => recordLength(tracks), [tracks]);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(readSpeed);
   /** The tracks whose file could not be loaded or decoded: when every kept track is one, nothing can be heard. */
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
   const unplayable = kept.length > 0 && kept.every((track) => failed.has(track.source));
@@ -46,7 +57,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
   const audio = useRef(new Map<string, HTMLAudioElement>());
   const started = useRef(new Set<HTMLAudioElement>());
   /** The position at `at` (Date.now()); it moves at `speed` while playing. */
-  const clock = useRef({ base: 0, at: 0, playing: false, speed: 1 });
+  const clock = useRef({ base: 0, at: 0, playing: false, speed });
   const report = useRef(onPosition);
   report.current = onPosition;
 
@@ -152,6 +163,7 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
           const address = released.current.get(el);
           if (address && !el.getAttribute('src')) el.setAttribute('src', address);
           released.current.delete(el);
+          applySpeed(el, clock.current.speed);
           audio.current.set(source, el);
           return;
         }
@@ -178,7 +190,8 @@ export const RecordPlayer: React.FC<RecordPlayerProps> = ({ recordId, tracks, on
     const pos = now();
     clock.current = { ...clock.current, base: pos, at: Date.now(), speed: next };
     setSpeed(next);
-    for (const el of audio.current.values()) el.playbackRate = next;
+    writeSpeed(next);
+    for (const el of audio.current.values()) applySpeed(el, next);
   };
 
   return (
