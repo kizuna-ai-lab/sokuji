@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> | <a href="README.ja.md">日本語</a> | 中文
+  <a href="../README.md">English</a> | <a href="README.ja.md">日本語</a> | 中文 | <a href="README.vi.md">Tiếng Việt</a>
 </p>
 
 <p align="center">
