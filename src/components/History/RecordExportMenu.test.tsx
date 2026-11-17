@@ -1,9 +1,9 @@
 // A record's export from the transcript the page shows: a file transcript has no conversation behind it.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import '../../locales';
+import { changeLanguageWithLoad } from '../../locales';
 import RecordExportMenu from './RecordExportMenu';
-import type { HistoryRecord, HistoryTranscriptRow as HistoryTranscript } from '../../lib/history/types';
+import type { HistoryNotes, HistoryRecord, HistoryTranscriptRow as HistoryTranscript } from '../../lib/history/types';
 import type { RecordRow } from '../../lib/history/recordView';
 
 afterEach(() => cleanup());
@@ -41,5 +41,47 @@ describe("a record's export", () => {
     expect(names.slice(0, 3)).toEqual(['Copy the conversation', 'Save the conversation (.txt)', 'Save the conversation (.json)']);
     const notes = names.filter((n) => /notes/.test(n ?? ''));
     expect(notes).toEqual(['Copy notes', 'Save notes (.md)', 'Save notes (.txt)']);
+  });
+
+  // Checklist A13: the items stand in one order, each says what it is in the interface's language, and an item for
+  // something the record does not have (notes, a recording) stays in its place, unavailable.
+  describe('its items', () => {
+    const notes = {
+      id: 7, recordId: record.id, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
+      state: 'complete', failure: null, requestIds: [],
+      body: { title: 'Team sync', overview: { text: 'Plans.', format: 'plain' }, topics: [], points: [], names: [] },
+    } as unknown as HistoryNotes;
+    const withRecording = { ...record, tracks: [{ source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 10, offsetMs: 0, goneAt: null }] } as unknown as HistoryRecord;
+    const items = () => screen.getAllByRole('menuitem') as HTMLButtonElement[];
+    const open = (r: HistoryRecord, n: HistoryNotes | null) => {
+      render(<RecordExportMenu record={r} legs={[]} rows={rows} transcript={file} notes={n} />);
+      fireEvent.click(screen.getByRole('button', { name: /Export|导出/ }));
+    };
+    afterEach(async () => { await changeLanguageWithLoad('en'); });
+
+    it('stand in one order, the record\'s notes and recording among them', () => {
+      open(withRecording, notes);
+      expect(items().map((m) => m.textContent)).toEqual([
+        'Copy the conversation', 'Save the conversation (.txt)', 'Save the conversation (.json)',
+        'Save subtitles (.srt)', 'Save subtitles (.vtt)',
+        'Copy notes', 'Save notes (.md)', 'Save notes (.txt)', 'Save the recording (.opus)',
+      ]);
+      expect(items().every((m) => !m.disabled)).toBe(true);
+    });
+
+    it('keep their place but are unavailable for notes or a recording the record does not have', () => {
+      open(record, null);
+      const byName = (name: string) => items().find((m) => m.textContent === name)!;
+      for (const name of ['Copy notes', 'Save notes (.md)', 'Save notes (.txt)', 'Save the recording (.opus)']) expect(byName(name).disabled, name).toBe(true);
+      expect(byName('Copy the conversation').disabled).toBe(false);
+    });
+
+    it('say what they are in the interface\'s language, with no English left in them', async () => {
+      await act(async () => { await changeLanguageWithLoad('zh_CN'); });
+      open(withRecording, notes);
+      for (const name of items().map((m) => m.textContent ?? '')) {
+        expect(name.replace(/\.(txt|json|md|opus|srt|vtt)/g, ''), name).not.toMatch(/[A-Za-z]/);
+      }
+    });
   });
 });
