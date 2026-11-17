@@ -89,14 +89,16 @@ test('a recorded session plays back with the sentence being played marked, from 
   // up to that much earlier than the record's.
   await player.getByRole('button', { name: 'Pause' }).click();
   const length = Number(await player.getByLabel('Position').getAttribute('max'));
-  await player.getByLabel('Position').fill(String(Math.round(length / 2)));
-  await expect(player.getByLabel('Position')).toHaveValue(String(Math.round(length / 2 / 100) * 100));
-  await expect.poll(async () => (await audio(page)).at * 1000 - length / 2, { timeout: 5_000 }).toBeGreaterThan(-2_000);
-  expect((await audio(page)).at * 1000 - length / 2).toBeLessThan(500);
+  // The bar moves in steps of 100 ms: the target is on a step, so what is filled is what the bar keeps.
+  const middleMs = Math.round(length / 2 / 100) * 100;
+  await player.getByLabel('Position').fill(String(middleMs));
+  await expect(player.getByLabel('Position')).toHaveValue(String(middleMs));
+  await expect.poll(async () => (await audio(page)).at * 1000 - middleMs, { timeout: 5_000 }).toBeGreaterThan(-2_000);
+  expect((await audio(page)).at * 1000 - middleMs).toBeLessThan(500);
   // The marked row starts at or before that time (its label is whole seconds), and the next one after it.
   const marked = await playingIndex(page);
   const starts = await rowStarts(page);
-  const middle = length / 2000;
+  const middle = middleMs / 1000;
   expect(marked).toBeGreaterThanOrEqual(0);
   expect(starts[marked]).toBeLessThanOrEqual(middle);
   if (marked + 1 < starts.length) expect(starts[marked + 1]).toBeGreaterThan(middle - 1);
