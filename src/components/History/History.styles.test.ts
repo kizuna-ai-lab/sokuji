@@ -22,3 +22,12 @@ describe("the notes' filter", () => {
     expect(button).toMatch(/border-radius:\s*12px/);
   });
 });
+
+// Review: the notes column lays itself out with flex, which outranks the browser's own [hidden] rule; hidden (the
+// Transcript tab on a narrow page, or the notes closed on a wide one) it must still take no room at all.
+describe('the record page\'s notes column', () => {
+  it('takes no room when hidden', () => {
+    expect(ruleBody('.record-page__notes-col') ?? '').toMatch(/display:\s*flex/);
+    expect(ruleBody('.record-page__notes-col[hidden]') ?? '').toMatch(/display:\s*none/);
+  });
+});
