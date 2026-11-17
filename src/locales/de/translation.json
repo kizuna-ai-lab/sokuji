@@ -1798,22 +1798,19 @@
       "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
       "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen",
       "soniox": {
-        "byRegion": "Schlüssel nach Region",
-        "keySaved": "Schlüssel gespeichert",
-        "noKey": "kein Schlüssel",
-        "selected": "(ausgewählt)",
         "save": "Speichern und Region finden",
         "finding": "Region dieses Schlüssels wird ermittelt …",
-        "savedFor": "Dieser Schlüssel gehört zu {{region}}: dort gespeichert.",
         "unreachable": "Soniox konnte nicht gefragt werden, zu welcher Region dieser Schlüssel gehört; für {{region}} gespeichert, die gerade ausgewählte Region.",
         "refused": "Keine Soniox-Region akzeptiert diesen Schlüssel. Prüfen Sie, ob es ein Soniox-API-Schlüssel ist.",
-        "elsewhere": "{{selected}} ist ausgewählt, aber Ihr Schlüssel gehört zu {{region}}.",
         "switchTo": "Zu {{region}} wechseln",
-        "keyWorks": "Schlüssel funktioniert",
-        "keyRefused": "Schlüssel abgelehnt",
-        "keyUnverified": "Schlüssel gespeichert, noch nicht geprüft",
         "remove": "Entfernen",
-        "removeFor": "Schlüssel für {{region}} entfernen"
+        "removeFor": "Schlüssel für {{region}} entfernen",
+        "stateWorks": "Schlüssel funktioniert",
+        "stateRefused": "Schlüssel abgelehnt",
+        "stateUnverified": "Schlüssel gespeichert, noch nicht geprüft",
+        "stateSaved": "Schlüssel gespeichert",
+        "belongsTo": "Gehört zu {{region}}",
+        "switched": "Zu {{region}} gewechselt: Dieser Schlüssel funktioniert nur dort."
       }
     },
     "lineup": {

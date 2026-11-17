@@ -1798,22 +1798,19 @@
       "localModels": "פועל במחשב הזה; הורדו {{count}} מודלים, {{size}} בסך הכול",
       "localNone": "פועל במחשב הזה; עדיין לא הורדו מודלים",
       "soniox": {
-        "byRegion": "מפתחות לפי אזור",
-        "keySaved": "מפתח שמור",
-        "noKey": "אין מפתח",
-        "selected": "(נבחר)",
         "save": "שמירה ומציאת האזור",
         "finding": "מחפשים את האזור של המפתח…",
-        "savedFor": "המפתח שייך ל{{region}}: נשמר שם.",
         "unreachable": "לא ניתן היה לשאול את Soniox לאיזה אזור המפתח שייך; נשמר עבור {{region}}, האזור שנבחר עכשיו.",
         "refused": "אף אזור של Soniox לא מקבל את המפתח הזה. בדקו שזה מפתח API של Soniox.",
-        "elsewhere": "נבחר {{selected}}, אבל המפתח שלכם שייך ל{{region}}.",
         "switchTo": "מעבר ל{{region}}",
-        "keyWorks": "המפתח עובד",
-        "keyRefused": "המפתח נדחה",
-        "keyUnverified": "המפתח נשמר, עוד לא אומת",
         "remove": "הסרה",
-        "removeFor": "הסרת המפתח של {{region}}"
+        "removeFor": "הסרת המפתח של {{region}}",
+        "stateWorks": "המפתח עובד",
+        "stateRefused": "המפתח נדחה",
+        "stateUnverified": "המפתח נשמר, טרם אומת",
+        "stateSaved": "המפתח נשמר",
+        "belongsTo": "שייך ל־{{region}}",
+        "switched": "עברנו ל־{{region}}: המפתח הזה עובד רק שם."
       }
     },
     "lineup": {

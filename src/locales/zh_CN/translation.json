@@ -1798,22 +1798,19 @@
       "localModels": "在这台电脑上运行；已下载 {{count}} 个模型，共 {{size}}",
       "localNone": "在这台电脑上运行；还没有下载模型",
       "soniox": {
-        "byRegion": "各区域的密钥",
-        "keySaved": "已保存密钥",
-        "noKey": "没有密钥",
-        "selected": "（当前）",
         "save": "保存并识别区域",
         "finding": "正在识别这个密钥属于哪个区域…",
-        "savedFor": "这个密钥属于 {{region}}，已存到那里。",
         "unreachable": "无法向 Soniox 确认这个密钥属于哪个区域；已存到当前选择的区域：{{region}}。",
         "refused": "Soniox 的所有区域都不接受这个密钥。请确认它是 Soniox 的 API 密钥。",
-        "elsewhere": "当前选择的是 {{selected}}，但你的密钥属于 {{region}}。",
         "switchTo": "切换到 {{region}}",
-        "keyWorks": "密钥可用",
-        "keyRefused": "密钥被拒绝",
-        "keyUnverified": "已保存，未验证",
         "remove": "移除",
-        "removeFor": "移除 {{region}} 的密钥"
+        "removeFor": "移除 {{region}} 的密钥",
+        "stateWorks": "密钥可用",
+        "stateRefused": "密钥被拒绝",
+        "stateUnverified": "已保存密钥，尚未验证",
+        "stateSaved": "已保存密钥",
+        "belongsTo": "属于 {{region}}",
+        "switched": "已切到 {{region}}：这个密钥只在那里能用。"
       }
     },
     "lineup": {

@@ -61,10 +61,12 @@ describe('accounts and keys', () => {
   });
 
   // B-11: Soniox's key is kept by region, found by asking every region.
-  it("opens Soniox's key by region, not a single field", () => {
+  // B-39: the key and the region it belongs to, in one line; no list of regions.
+  it("opens Soniox's key with the region it belongs to", () => {
     render(<AccountsCategory locked={false} />);
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
-    expect(within(row('Soniox')).getByRole('list', { name: 'Keys by region' })).toHaveTextContent('United States: key saved, not verified yet (selected)');
+    expect(row('Soniox').querySelector('.soniox-key__line')).toHaveTextContent('Key saved, not verified yet · Belongs to United States');
+    expect(within(row('Soniox')).queryByRole('list')).toBeNull();
     expect(within(row('Soniox')).getByRole('button', { name: 'Save and find its region' })).toBeInTheDocument();
   });
 

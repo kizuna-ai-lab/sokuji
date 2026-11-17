@@ -1798,22 +1798,19 @@
       "localModels": "Funziona su questo computer; {{count}} modelli scaricati, {{size}} in tutto",
       "localNone": "Funziona su questo computer; nessun modello scaricato finora",
       "soniox": {
-        "byRegion": "Chiavi per regione",
-        "keySaved": "chiave salvata",
-        "noKey": "nessuna chiave",
-        "selected": "(selezionata)",
         "save": "Salva e trova la sua regione",
         "finding": "Ricerca della regione di questa chiave…",
-        "savedFor": "Questa chiave appartiene a {{region}}: salvata lì.",
         "unreachable": "Impossibile chiedere a Soniox a quale regione appartenga questa chiave; salvata per {{region}}, la regione selezionata ora.",
         "refused": "Nessuna regione di Soniox accetta questa chiave. Verifica che sia una chiave API di Soniox.",
-        "elsewhere": "È selezionata {{selected}}, ma la tua chiave è di {{region}}.",
         "switchTo": "Passa a {{region}}",
-        "keyWorks": "la chiave funziona",
-        "keyRefused": "chiave rifiutata",
-        "keyUnverified": "chiave salvata, non ancora verificata",
         "remove": "Rimuovi",
-        "removeFor": "Rimuovi la chiave per {{region}}"
+        "removeFor": "Rimuovi la chiave per {{region}}",
+        "stateWorks": "La chiave funziona",
+        "stateRefused": "Chiave rifiutata",
+        "stateUnverified": "Chiave salvata, non ancora verificata",
+        "stateSaved": "Chiave salvata",
+        "belongsTo": "Appartiene a {{region}}",
+        "switched": "Passato a {{region}}: questa chiave funziona solo lì."
       }
     },
     "lineup": {

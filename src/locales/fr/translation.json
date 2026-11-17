@@ -1798,22 +1798,19 @@
       "localModels": "Fonctionne sur cet ordinateur ; {{count}} modèles téléchargés, {{size}} au total",
       "localNone": "Fonctionne sur cet ordinateur ; aucun modèle téléchargé pour l’instant",
       "soniox": {
-        "byRegion": "Clés par région",
-        "keySaved": "clé enregistrée",
-        "noKey": "aucune clé",
-        "selected": "(sélectionnée)",
         "save": "Enregistrer et trouver sa région",
         "finding": "Recherche de la région de cette clé…",
-        "savedFor": "Cette clé appartient à {{region}} : enregistrée là.",
         "unreachable": "Impossible de demander à Soniox à quelle région appartient cette clé ; enregistrée pour {{region}}, la région sélectionnée.",
         "refused": "Aucune région Soniox n’accepte cette clé. Vérifiez qu’il s’agit d’une clé d’API Soniox.",
-        "elsewhere": "{{selected}} est sélectionnée, mais votre clé est pour {{region}}.",
         "switchTo": "Passer à {{region}}",
-        "keyWorks": "la clé fonctionne",
-        "keyRefused": "clé refusée",
-        "keyUnverified": "clé enregistrée, pas encore vérifiée",
         "remove": "Supprimer",
-        "removeFor": "Supprimer la clé pour {{region}}"
+        "removeFor": "Supprimer la clé pour {{region}}",
+        "stateWorks": "La clé fonctionne",
+        "stateRefused": "Clé refusée",
+        "stateUnverified": "Clé enregistrée, pas encore vérifiée",
+        "stateSaved": "Clé enregistrée",
+        "belongsTo": "Appartient à {{region}}",
+        "switched": "Passé à {{region}} : cette clé ne fonctionne que là."
       }
     },
     "lineup": {

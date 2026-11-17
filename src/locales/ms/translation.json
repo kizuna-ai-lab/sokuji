@@ -1798,22 +1798,19 @@
       "localModels": "Berjalan pada komputer ini; {{count}} model dimuat turun, jumlah {{size}}",
       "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun",
       "soniox": {
-        "byRegion": "Kunci mengikut rantau",
-        "keySaved": "kunci disimpan",
-        "noKey": "tiada kunci",
-        "selected": "(dipilih)",
         "save": "Simpan dan cari rantaunya",
         "finding": "Mencari rantau kunci ini…",
-        "savedFor": "Kunci ini milik {{region}}: disimpan di sana.",
         "unreachable": "Tidak dapat bertanya kepada Soniox rantau kunci ini; disimpan untuk {{region}}, rantau yang dipilih sekarang.",
         "refused": "Tiada rantau Soniox yang menerima kunci ini. Pastikan ia kunci API Soniox.",
-        "elsewhere": "{{selected}} dipilih, tetapi kunci anda milik {{region}}.",
         "switchTo": "Tukar ke {{region}}",
-        "keyWorks": "kunci berfungsi",
-        "keyRefused": "kunci ditolak",
-        "keyUnverified": "kunci disimpan, belum disahkan",
         "remove": "Buang",
-        "removeFor": "Buang kunci untuk {{region}}"
+        "removeFor": "Buang kunci untuk {{region}}",
+        "stateWorks": "Kunci berfungsi",
+        "stateRefused": "Kunci ditolak",
+        "stateUnverified": "Kunci disimpan, belum disahkan",
+        "stateSaved": "Kunci disimpan",
+        "belongsTo": "Milik {{region}}",
+        "switched": "Bertukar ke {{region}}: kunci ini hanya berfungsi di sana."
       }
     },
     "lineup": {

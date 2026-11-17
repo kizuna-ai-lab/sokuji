@@ -276,13 +276,13 @@
   display: grid;
   gap: 8px;
   margin-top: 8px;
-  &__regions {
-    display: flex; flex-wrap: wrap; gap: 4px 14px;
-    margin: 0; padding: 0; list-style: none;
-    font-size: 12px; color: vars.$text-tertiary;
-    li.is-selected { color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  // The key in one line (B-39): what its check found and the region it belongs to, then Remove.
+  &__line {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+    margin: 0; font-size: 12px; color: vars.$text-secondary;
+    &.is-ok > span { color: vars.$color-primary; }
   }
-  // A small text button after a region's key: the row stays a line of text.
+  // A small text button after the key: the row stays a line of text.
   &__remove {
     margin-left: 6px; padding: 0; border: 0; background: none;
     font: inherit; font-weight: vars.$weight-normal; color: vars.$text-secondary;
@@ -291,7 +291,6 @@
     &:disabled { opacity: 0.5; cursor: default; }
   }
   &__note { margin: 0; font-size: 12px; color: vars.$text-secondary; &.is-error { color: vars.$color-error; } }
-  &__switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 12px; color: vars.$color-warning; }
 }
 
 .accounts-row {

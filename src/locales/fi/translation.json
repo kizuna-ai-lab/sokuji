@@ -1798,22 +1798,19 @@
       "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
       "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu",
       "soniox": {
-        "byRegion": "Avaimet alueittain",
-        "keySaved": "avain tallennettu",
-        "noKey": "ei avainta",
-        "selected": "(valittu)",
         "save": "Tallenna ja etsi alue",
         "finding": "Etsitään avaimen aluetta…",
-        "savedFor": "Avain kuuluu alueelle {{region}}: tallennettu sinne.",
         "unreachable": "Sonioxilta ei voitu kysyä, mille alueelle avain kuuluu; tallennettu alueelle {{region}}, joka on nyt valittuna.",
         "refused": "Mikään Sonioxin alue ei hyväksy tätä avainta. Tarkista, että se on Sonioxin API-avain.",
-        "elsewhere": "Valittuna on {{selected}}, mutta avaimesi kuuluu alueelle {{region}}.",
         "switchTo": "Vaihda alueelle {{region}}",
-        "keyWorks": "avain toimii",
-        "keyRefused": "avain hylätty",
-        "keyUnverified": "avain tallennettu, ei vielä tarkistettu",
         "remove": "Poista",
-        "removeFor": "Poista alueen {{region}} avain"
+        "removeFor": "Poista alueen {{region}} avain",
+        "stateWorks": "Avain toimii",
+        "stateRefused": "Avain hylättiin",
+        "stateUnverified": "Avain tallennettu, ei vielä tarkistettu",
+        "stateSaved": "Avain tallennettu",
+        "belongsTo": "Kuuluu alueeseen {{region}}",
+        "switched": "Vaihdettiin alueeseen {{region}}: avain toimii vain siellä."
       }
     },
     "lineup": {

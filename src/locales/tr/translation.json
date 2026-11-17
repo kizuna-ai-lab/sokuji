@@ -1798,22 +1798,19 @@
       "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
       "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi",
       "soniox": {
-        "byRegion": "Bölgeye göre anahtarlar",
-        "keySaved": "anahtar kayıtlı",
-        "noKey": "anahtar yok",
-        "selected": "(seçili)",
         "save": "Kaydet ve bölgesini bul",
         "finding": "Bu anahtarın bölgesi bulunuyor…",
-        "savedFor": "Bu anahtar {{region}} bölgesine ait: oraya kaydedildi.",
         "unreachable": "Bu anahtarın hangi bölgeye ait olduğu Soniox’a sorulamadı; şu an seçili bölge olan {{region}} için kaydedildi.",
         "refused": "Hiçbir Soniox bölgesi bu anahtarı kabul etmiyor. Bunun bir Soniox API anahtarı olduğunu kontrol edin.",
-        "elsewhere": "{{selected}} seçili, ancak anahtarınız {{region}} bölgesine ait.",
         "switchTo": "{{region}} bölgesine geç",
-        "keyWorks": "anahtar çalışıyor",
-        "keyRefused": "anahtar reddedildi",
-        "keyUnverified": "anahtar kayıtlı, henüz doğrulanmadı",
         "remove": "Kaldır",
-        "removeFor": "{{region}} anahtarını kaldır"
+        "removeFor": "{{region}} anahtarını kaldır",
+        "stateWorks": "Anahtar çalışıyor",
+        "stateRefused": "Anahtar reddedildi",
+        "stateUnverified": "Anahtar kaydedildi, henüz doğrulanmadı",
+        "stateSaved": "Anahtar kaydedildi",
+        "belongsTo": "{{region}} bölgesine ait",
+        "switched": "{{region}} bölgesine geçildi: bu anahtar yalnızca orada çalışır."
       }
     },
     "lineup": {
