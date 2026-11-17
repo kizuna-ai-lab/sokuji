@@ -732,6 +732,18 @@
   &__overview { margin: 0; color: vars.$text-secondary; line-height: 1.6; }
   &__state { display: flex; flex-direction: column; align-items: flex-start; gap: vars.$space-2; color: vars.$text-secondary; p { margin: 0; } }
   &__write { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-2; margin-top: vars.$space-2; }
+  &__write > label { color: vars.$text-secondary; font-size: vars.$font-caption; }
+  // The language and the button never part: when the row is too narrow, the label above takes a line of its own.
+  &__pick {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: vars.$space-2;
+    min-width: 0;
+  }
+  // Short: the longest language name no longer sets the width; the open list still shows the whole names.
+  &__pick select { width: auto; min-width: 0; max-width: 160px; }
+  &__pick .history-button { flex: none; white-space: nowrap; }
 
   // One pill per choice, the chosen one filled (so it does not read as a kind tag on a point); in a narrow pane the
   // choices go on to a second line rather than being cut off.

@@ -107,6 +107,28 @@ describe("a record's notes", () => {
     expect(p.onWrite).toHaveBeenCalledWith({ code: 'ja', name: 'Japanese' });
   });
 
+  it('says on the screen that the language is the notes\' language, with the select and the button kept together after it', () => {
+    render(<RecordNotes {...props({ record: record(), notes: null })} />);
+    const select = screen.getByLabelText('Language of the notes');
+    expect(select.tagName).toBe('SELECT');
+    expect(select.getAttribute('aria-label')).toBeNull();
+    const label = screen.getByText('Language of the notes');
+    expect(label.tagName).toBe('LABEL');
+    const group = label.closest('.record-notes__write')!;
+    const pick = select.closest('.record-notes__pick')!;
+    expect(group.contains(pick)).toBe(true);
+    expect(within(pick as HTMLElement).getByRole('button', { name: 'Write notes' })).toBeInTheDocument();
+    // The label first, then the select and the button.
+    expect([...group.children]).toEqual([label, pick]);
+  });
+
+  it('keeps the same group for a new version of notes already written', () => {
+    render(<RecordNotes {...props()} />);
+    const pick = screen.getByLabelText('Language of the notes').closest('.record-notes__pick') as HTMLElement;
+    expect(within(pick).getByRole('button', { name: 'Write a new version' })).toBeInTheDocument();
+    expect(screen.getByText('Language of the notes').tagName).toBe('LABEL');
+  });
+
   it('says notes are being written, with a way to stop', () => {
     const p = props({ writing: true });
     render(<RecordNotes {...p} />);
@@ -219,5 +241,25 @@ describe("a record's notes", () => {
     fireEvent.click(within(explained).getByRole('button', { name: 'Write notes' }));
     expect(p.onExplained).toHaveBeenCalled();
     expect(p.onWrite).toHaveBeenCalledWith({ code: 'zh', name: 'Chinese' });
+  });
+});
+
+describe('RecordNotes styles: the language and the button', () => {
+  it('wraps the label on to a line of its own before splitting the select from the button, and keeps the select short', async () => {
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, 'History.scss')).css;
+    const write = css.match(/\.record-notes__write\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(write).toMatch(/flex-wrap:\s*wrap/);
+    const pick = css.match(/\.record-notes__pick\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(pick).toMatch(/display:\s*flex/);
+    expect(pick).toMatch(/flex-wrap:\s*nowrap/);
+    const select = css.match(/\.record-notes__pick select\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(select).toMatch(/max-width:\s*160px/);
+    expect(select).toMatch(/min-width:\s*0/);
+    // The button keeps its words on one line; the select gives way first.
+    const button = css.match(/\.record-notes__pick \.history-button\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(button).toMatch(/flex:\s*none/);
+    expect(button).toMatch(/white-space:\s*nowrap/);
   });
 });

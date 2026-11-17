@@ -5,7 +5,7 @@
 // version selector shows another version when there are several. A topic or a point takes the transcript to the
 // sentence that says it. Without notes the page offers to write them; while a version is written it says so and can
 // stop it; after a failure it says why and can try again.
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { notesExplanation } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
@@ -113,13 +113,18 @@ export function RecordNotes(p: RecordNotesProps) {
     </select>
   );
 
+  // "Language of the notes [Chinese ▾] [Write notes]" (owner, 2026-11-17; B-33): the label says what the select is for,
+  // and the select and the button stay together; in a narrow column the label goes on a line of its own above them.
+  const languageId = useId();
   const writeControls = (label: string) => (
     <div className="record-notes__write">
-      <select className="select-dropdown" aria-label={t('history.notesLanguage', 'Language of the notes')} value={chosen?.code ?? ''}
-        onChange={(e) => setChoice(e.target.value)}>
-        {p.languages.map((l) => <option key={l.code} value={l.code}>{languageLabel(l.code, ui)}</option>)}
-      </select>
-      <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && write(chosen)}>{label}</button>
+      <label htmlFor={languageId}>{t('history.notesLanguage', 'Language of the notes')}</label>
+      <div className="record-notes__pick">
+        <select id={languageId} className="select-dropdown" value={chosen?.code ?? ''} onChange={(e) => setChoice(e.target.value)}>
+          {p.languages.map((l) => <option key={l.code} value={l.code}>{languageLabel(l.code, ui)}</option>)}
+        </select>
+        <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && write(chosen)}>{label}</button>
+      </div>
     </div>
   );
 
