@@ -116,7 +116,7 @@ describe("a record's notes", () => {
     expect(p.onShowVersion).toHaveBeenCalledWith(4);
   });
 
-  // Checklist B4: each kind on its own; a topic with nothing of that kind is left out.
+  // Each kind on its own; a topic with nothing of that kind is left out.
   it('filters to the decisions alone and to the risks alone', () => {
     render(<RecordNotes {...props()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Decisions' }));
@@ -129,7 +129,7 @@ describe("a record's notes", () => {
     expect(screen.queryByRole('button', { name: 'Delivery' })).toBeNull();
   });
 
-  // Checklist B7: a new version, beside the notes already there, in the other language of the record.
+  // A new version, beside the notes already there, in the other language of the record.
   it('writes a new version in the language chosen beside the notes already there', () => {
     const p = props();
     render(<RecordNotes {...p} />);
@@ -138,7 +138,7 @@ describe("a record's notes", () => {
     expect(p.onWrite).toHaveBeenCalledWith({ code: 'ja', name: 'Japanese' });
   });
 
-  // Checklist B15: the language list holds only the record's two languages now; a version written earlier in another
+  // The language list holds only the record's two languages now; a version written earlier in another
   // language stays in the versions, named by its language, and opens.
   it('keeps a version written earlier in a language the record no longer offers, and opens it', () => {
     const p = props({ record: record([
@@ -301,7 +301,7 @@ describe("a record's notes", () => {
     expect(screen.getByText('The latest attempt could not be written: No notes service is set up. Choose one in Languages and line-up and add its key.')).toBeInTheDocument();
   });
 
-  // Checklist B8: a newer attempt stopped (the app quit while writing, or Stop) is said above the notes kept, as a failed
+  // A newer attempt stopped (the app quit while writing, or Stop) is said above the notes kept, as a failed
   // one is, with a way to write it again in its language.
   it('keeps the complete notes in view when a newer attempt was stopped, says so above them, and offers to try again', () => {
     const p = props({ record: record([
@@ -315,7 +315,7 @@ describe("a record's notes", () => {
     expect(p.onWrite).toHaveBeenCalledWith({ code: 'ja', name: 'Japanese' });
   });
 
-  // Checklist B8: no network.
+  // No network.
   it('says a version failed because the notes service could not be reached, with a way to try again', () => {
     const p = props({ notes: { ...complete, state: 'failed', failure: 'notes:network', body: null, language: 'zh' } });
     render(<RecordNotes {...p} />);

@@ -629,7 +629,7 @@ describe('a record', () => {
     expect(play).toHaveBeenCalled();
   });
 
-  // Checklist B4: playback starts at the point's sentence, not at the start of the recording.
+  // Playback starts at the point's sentence, not at the start of the recording.
   it("plays a point's sentence from its own start", async () => {
     record = { ...record, notesVersions: 1, notesState: 'complete', tracks: [
       { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },
@@ -652,7 +652,7 @@ describe('a record', () => {
     expect(screen.getByText('0:02 / 1:00')).toBeInTheDocument();
   });
 
-  // Checklist B9: whether a record is too short for notes is worked out from its transcript: under a minute, no way to
+  // Whether a record is too short for notes is worked out from its transcript: under a minute, no way to
   // write them and the reason said; a minute or more, the way to write them.
   it('offers no notes for a transcript under a minute, and offers them for one of a minute or more', async () => {
     // The first sentence starts at 1 s: the last one ending at `endMs` makes the transcript span `endMs - 1000`.
@@ -676,7 +676,7 @@ describe('a record', () => {
     expect(screen.getByRole('button', { name: 'Write notes' })).toBeInTheDocument();
   });
 
-  // Checklist B6: the text file holds what Copy puts on the clipboard, and both hold the same points as the Markdown.
+  // The text file holds what Copy puts on the clipboard, and both hold the same points as the Markdown.
   it('saves the notes as text with what Copy gives, and the same points as the Markdown', async () => {
     record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
     port.getNotes = (async () => ({
