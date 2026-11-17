@@ -139,6 +139,8 @@ export const INVOKE_CHANNELS = [
   'history:append-sentences',
   'history:revise-sentences',
   'history:get-sentences',
+  'history:put-translations',
+  'history:get-translations',
   'history:rename-speaker',
   'history:reassign-sentence',
   'history:get-speakers',

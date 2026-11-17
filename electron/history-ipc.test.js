@@ -46,9 +46,11 @@ afterEach(() => {
 describe('the history channels', () => {
   it('registers exactly the channels in the map', () => {
     expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track', 'history:recognize', 'history:recognize-cancel', 'history:recognize-status'].sort());
-    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(28);
+    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(30);
     expect(HISTORY_CHANNELS['history:update-notes-names']).toBe('updateNotesNames');
     expect(HISTORY_CHANNELS['history:append-track']).toBe('appendTrack');
+    expect(HISTORY_CHANNELS['history:put-translations']).toBe('putTranslations');
+    expect(HISTORY_CHANNELS['history:get-translations']).toBe('getTranslations');
   });
 
   it('writes every channel out as a literal handle call, the way the registry guard reads them', () => {

@@ -128,7 +128,18 @@ create index notes_record on notes (record_id);
 create index notes_transcript on notes (transcript_id);
 `;
 
-const MIGRATIONS = [V1];
+// A file transcript's translation, by the segment (turn) of its sentences it translates: each transcript its own.
+const V2 = `
+create table translations (
+  transcript_id integer not null references transcripts(id) on delete cascade,
+  segment_id text not null,
+  text text not null,
+  language text,
+  primary key (transcript_id, segment_id)
+) strict;
+`;
+
+const MIGRATIONS = [V1, V2];
 const SCHEMA_VERSION = MIGRATIONS.length;
 
 module.exports = { MIGRATIONS, SCHEMA_VERSION };

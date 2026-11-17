@@ -212,6 +212,37 @@ describe('transcripts and sentences', () => {
     expect(() => s.reviseSentences({ transcriptId: t, revisions: [{ n: 1, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
   });
 
+  it('a transcript keeps its own translations, by segment; another transcript’s are its own', () => {
+    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: '你好。', language: 'zh' }, { segmentId: 'f-2', text: '再见。' }] });
+    const other = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'file' } });
+    s.putTranslations({ transcriptId: other, translations: [{ segmentId: 'f-1', text: 'こんにちは。', language: 'ja' }] });
+    expect(s.getTranslations({ transcriptId: t })).toEqual([
+      { segmentId: 'f-1', text: '你好。', language: 'zh' },
+      { segmentId: 'f-2', text: '再见。', language: null },
+    ]);
+    expect(s.getTranslations({ transcriptId: other })).toEqual([{ segmentId: 'f-1', text: 'こんにちは。', language: 'ja' }]);
+    // The same segment again is its new translation.
+    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: '您好。', language: 'zh' }] });
+    expect(s.getTranslations({ transcriptId: t })[0]).toEqual({ segmentId: 'f-1', text: '您好。', language: 'zh' });
+  });
+
+  it('a translation needs a segment and its text; one refused keeps nothing of its call', () => {
+    expect(() => s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: 'a' }, { segmentId: '', text: 'b' }] }))
+      .toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+    expect(() => s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1' }] })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+    expect(() => s.putTranslations({ transcriptId: t, translations: 'x' })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+    expect(() => s.putTranslations({ transcriptId: 999, translations: [] })).toThrow(expect.objectContaining({ code: 'NO_TRANSCRIPT' }));
+    expect(s.getTranslations({ transcriptId: t })).toEqual([]);
+  });
+
+  it('a transcript deleted takes its translations with it', () => {
+    s.putTranslations({ transcriptId: t, translations: [{ segmentId: 'f-1', text: '你好。' }] });
+    s.deleteTranscript({ transcriptId: t });
+    const next = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'file' } });
+    expect(s.getTranslations({ transcriptId: next })).toEqual([]);
+    expect(() => s.getTranslations({ transcriptId: t })).toThrow(expect.objectContaining({ code: 'NO_TRANSCRIPT' }));
+  });
+
   it('a record with a sentence is kept when closed', () => {
     s.appendSentences({ transcriptId: t, sentences: [sent(1)] });
     expect(s.closeRecord({ id: ID, endedAt: 99 })).toEqual({ kept: true });

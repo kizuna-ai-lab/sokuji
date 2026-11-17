@@ -30,6 +30,8 @@ const HISTORY_CHANNELS = Object.freeze({
   'history:append-sentences': 'appendSentences',
   'history:revise-sentences': 'reviseSentences',
   'history:get-sentences': 'getSentences',
+  'history:put-translations': 'putTranslations',
+  'history:get-translations': 'getTranslations',
   'history:rename-speaker': 'renameSpeaker',
   'history:reassign-sentence': 'reassignSentence',
   'history:get-speakers': 'getSpeakers',
@@ -96,6 +98,8 @@ function setupHistoryHandlers({
   ipcMain.handle('history:append-sentences', handle('appendSentences'));
   ipcMain.handle('history:revise-sentences', handle('reviseSentences'));
   ipcMain.handle('history:get-sentences', handle('getSentences'));
+  ipcMain.handle('history:put-translations', handle('putTranslations'));
+  ipcMain.handle('history:get-translations', handle('getTranslations'));
   ipcMain.handle('history:rename-speaker', handle('renameSpeaker'));
   ipcMain.handle('history:reassign-sentence', handle('reassignSentence'));
   ipcMain.handle('history:get-speakers', handle('getSpeakers'));

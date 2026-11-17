@@ -177,6 +177,19 @@ export interface HistorySentenceInput {
   timeKind: HistoryTimeKind;
 }
 
+/** A file transcript's translation of one segment (a turn) of its sentences. */
+export interface HistoryTranslationInput {
+  segmentId: string;
+  text: string;
+  language?: string;
+}
+
+export interface HistoryTranslation {
+  segmentId: string;
+  text: string;
+  language: string | null;
+}
+
 export interface HistorySentence {
   n: number;
   segmentId: string | null;

@@ -452,6 +452,30 @@ function openHistory({ dir, now = () => Date.now() }) {
       }));
     },
 
+    /** A transcript's translations, one per segment of its sentences: a segment sent again has its new text. */
+    putTranslations({ transcriptId, translations } = {}) {
+      transcriptOrFail(transcriptId);
+      if (!Array.isArray(translations) || translations.some((x) => !isPlainObject(x) || !isString(x.segmentId) || x.segmentId === '' || !isString(x.text) || !isOptionalString(x.language))) {
+        fail('BAD_INPUT', 'translations must be { segmentId, text, language? }');
+      }
+      transaction(db, () => {
+        for (const x of translations) {
+          run(
+            `insert into translations (transcript_id, segment_id, text, language) values (?, ?, ?, ?)
+             on conflict (transcript_id, segment_id) do update set text = excluded.text, language = excluded.language`,
+            transcriptId, x.segmentId, x.text, x.language ?? null,
+          );
+        }
+      });
+      return null;
+    },
+
+    getTranslations({ transcriptId } = {}) {
+      transcriptOrFail(transcriptId);
+      return all('select segment_id, text, language from translations where transcript_id = ? order by rowid', transcriptId)
+        .map((x) => ({ segmentId: x.segment_id, text: x.text, language: x.language }));
+    },
+
     renameSpeaker({ transcriptId, side, speaker, name } = {}) {
       transcriptOrFail(transcriptId);
       if (!SENTENCE_SIDES.has(side) || !isString(speaker) || !isString(name)) fail('BAD_INPUT', 'A rename needs side, speaker and name');
