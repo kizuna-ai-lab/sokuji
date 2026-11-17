@@ -108,6 +108,24 @@ describe("the local engine's voices", () => {
     await waitFor(() => expect(savedVoices()['ja→en']?.speaker).not.toBe(sid));
   });
 
+  // Review (#728): the cleanup reads the settings as they are once the voice is deleted, not as they were before.
+  it('keeps a choice made while an imported voice is being deleted', async () => {
+    voices.list = [{ id: 7, engine: 'supertonic-3', name: 'My voice', jsonData: new Blob(['{}']), importedAt: 0 }];
+    let release!: () => void;
+    voices.deleteVoice.mockImplementationOnce(() => new Promise<void>((r) => { release = r; }));
+    render(<LocalVoices disabled={false} />);
+    const [theirs, mine] = await screen.findAllByTestId('voice-library');
+    await waitFor(() => expect(within(theirs).getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    fireEvent.click(within(theirs).getByRole('button', { name: 'My voice' }));
+    const sid = savedVoices()['ja→en'].speaker!;
+    fireEvent.click(within(theirs).getByRole('button', { name: 'Delete My voice' }));
+    await waitFor(() => expect(voices.deleteVoice).toHaveBeenCalledWith(7));
+    fireEvent.click(within(mine).getByRole('button', { name: presets[3].name }));
+    release();
+    await waitFor(() => expect(savedVoices()['ja→en']?.speaker).not.toBe(sid));
+    expect(savedVoices()['en→ja']).toEqual({ speaker: presets[3].sid });
+  });
+
   it('shows only the voice of a direction that speaks', () => {
     given({ participantSpeech: false });
     render(<LocalVoices disabled={false} />);

@@ -113,9 +113,11 @@ export function LocalVoices({ disabled }: { disabled: boolean }) {
     if (dbKey === null) return;
     await voiceStorage.deleteVoice(dbKey);
     // Every direction that spoke in it goes back to the model's default speaker (#619), as Models and storage does.
-    const voices = voicesWithoutImported(settings.voices, sid, (dir) => {
+    // From the settings as they are now: a choice made while the voice was being deleted stays.
+    const now = useProviderStore.getState().entries.local_inference?.settings as LocalInferenceSettings | undefined;
+    const voices = now && voicesWithoutImported(now.voices, sid, (dir) => {
       const [src, tgt] = splitDirection(dir);
-      return useModelStore.getState().resolve(src, tgt, settings.selections, storedLocalStages()).tts?.modelId;
+      return useModelStore.getState().resolve(src, tgt, now.selections, storedLocalStages()).tts?.modelId;
     });
     if (voices) useProviderStore.getState().updateSettings(localInferenceProvider, { voices });
     await refreshImported();
