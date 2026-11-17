@@ -221,6 +221,33 @@ describe('a record', () => {
     expect(store.getState().error).toBe('That did not work.');
   });
 
+  // Review of the edit fields: what is typed while a save runs is kept; Escape from the field's buttons is the edit's.
+  it('keeps what is typed into the title while an earlier save of it is still running', async () => {
+    let finish: () => void = () => {};
+    port.renameRecord = (async () => { await new Promise<void>((resolve) => { finish = resolve; }); }) as never;
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Weekly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Weekly sync' } });
+    await act(async () => { finish(); });
+    await settle();
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Weekly sync');
+  });
+
+  it('Escape on the field\'s Save or Cancel button cancels the edit and stays on the record', async () => {
+    render(<HistoryPage onClose={() => {}} />);
+    await settle();
+    fireEvent.click(screen.getByText(/^Session at /));
+    expect(await screen.findByText('Can you ship by Wednesday?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Something' } });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Save' }), { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+    expect(screen.getByText('Can you ship by Wednesday?')).toBeInTheDocument();
+    expect(calls('renameRecord')).toEqual([]);
+  });
+
   it('an Enter or Escape that ends an input method composition does not save or cancel the title', async () => {
     await renderRecord();
     fireEvent.click(screen.getByRole('button', { name: when() }));
@@ -295,6 +322,33 @@ describe('a record', () => {
     expect(drawer()).toBeNull();
     // The record is still open.
     expect(screen.getByText('Can you ship by Wednesday?')).toBeInTheDocument();
+  });
+
+  it('Escape in the title field cancels the title edit and leaves the side panel open', async () => {
+    await renderRecord();
+    expect(drawer()).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: when() }));
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    // Heard by the panel first: while the title is being typed, the Escape is the title's.
+    expect(drawer()).not.toBeNull();
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Title' }), { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+    expect(drawer()).not.toBeNull();
+  });
+
+  it('keeps a name that failed to save, and offers no other rename while one is saving', async () => {
+    let fail: () => void = () => {};
+    port.renameSpeaker = (async () => { await new Promise<void>((_, reject) => { fail = () => reject(new Error('disk full')); }); }) as never;
+    await renderRecord();
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(within(drawer()!).getByRole('button', { name: 'Save' }));
+    await settle();
+    // Another speaker cannot be renamed while this name is saving.
+    for (const b of within(drawer()!).queryAllByRole('button', { name: /^Rename / })) expect(b).toBeDisabled();
+    await act(async () => { fail(); });
+    await settle();
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
   });
 
   it('saves a name being typed when the drawer is closed', async () => {

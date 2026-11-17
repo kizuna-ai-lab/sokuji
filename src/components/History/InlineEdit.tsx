@@ -44,6 +44,15 @@ export function InlineEdit({ value, placeholder, ariaLabel, fieldClassName, onCh
       ref={boxRef}
       // Focus leaving the field and its buttons is a click elsewhere: it saves.
       onBlur={(e) => { if (!boxRef.current?.contains(e.relatedTarget as Node | null)) void save(); }}
+      // Escape from the field or from its buttons cancels the edit, and that is all: the page does not take it as a way
+      // back, nor a panel the field sits in as a reason to close (one that starts listening as the edit ends would still
+      // hear it).
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape' || isComposing(e.nativeEvent)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        cancel();
+      }}
     >
       <input
         ref={inputRef}
@@ -56,9 +65,6 @@ export function InlineEdit({ value, placeholder, ariaLabel, fieldClassName, onCh
         onKeyDown={(e) => {
           if (isComposing(e.nativeEvent)) return;
           if (e.key === 'Enter') { e.preventDefault(); void save(); }
-          // The edit is cancelled, and that is all: the page does not take this Escape as a way back, nor a panel the
-          // field sits in as a reason to close (one that starts listening as the edit ends would still hear it).
-          else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(); }
         }}
       />
       {/* Pressed with the mouse, the buttons keep the focus in the field, so the press is theirs, not a blur's. */}
