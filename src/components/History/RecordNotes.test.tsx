@@ -116,6 +116,47 @@ describe("a record's notes", () => {
     expect(p.onShowVersion).toHaveBeenCalledWith(4);
   });
 
+  // Checklist B4: each kind on its own; a topic with nothing of that kind is left out.
+  it('filters to the decisions alone and to the risks alone', () => {
+    render(<RecordNotes {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Decisions' }));
+    expect(screen.getByRole('button', { name: /Ships next Tuesday/ })).toBeInTheDocument();
+    for (const other of [/Send the tracking number/, /The boxes were redone/, /Customs may hold it/]) expect(screen.queryByRole('button', { name: other })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Packaging' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Risks' }));
+    expect(screen.getByRole('button', { name: /Customs may hold it/ })).toBeInTheDocument();
+    for (const other of [/Ships next Tuesday/, /Send the tracking number/, /The boxes were redone/]) expect(screen.queryByRole('button', { name: other })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delivery' })).toBeNull();
+  });
+
+  // Checklist B7: a new version, beside the notes already there, in the other language of the record.
+  it('writes a new version in the language chosen beside the notes already there', () => {
+    const p = props();
+    render(<RecordNotes {...p} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Language of the notes' }), { target: { value: 'ja' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Write a new version' }));
+    expect(p.onWrite).toHaveBeenCalledWith({ code: 'ja', name: 'Japanese' });
+  });
+
+  // Checklist B15: the language list holds only the record's two languages now; a version written earlier in another
+  // language stays in the versions, named by its language, and opens.
+  it('keeps a version written earlier in a language the record no longer offers, and opens it', () => {
+    const p = props({ record: record([
+      { id: 7, transcriptId: 1, language: 'en', createdAt: 2000, state: 'complete' },
+      { id: 3, transcriptId: 1, language: 'fr', createdAt: 1000, state: 'complete' },
+    ]) });
+    render(<RecordNotes {...p} />);
+    const versions = screen.getByRole('combobox', { name: 'Version' });
+    expect(within(versions).getAllByRole('option').map((o) => o.textContent)).toEqual([expect.stringContaining('English'), expect.stringContaining('French')]);
+    expect(within(screen.getByRole('combobox', { name: 'Language of the notes' })).getAllByRole('option').map((o) => o.textContent)).toEqual(['Chinese', 'Japanese']);
+    fireEvent.change(versions, { target: { value: '3' } });
+    expect(p.onShowVersion).toHaveBeenCalledWith(3);
+    cleanup();
+    render(<RecordNotes {...props({ record: p.record, notes: { ...complete, id: 3, language: 'fr' } })} />);
+    expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeInTheDocument();
+    expect((screen.getByRole('combobox', { name: 'Version' }) as HTMLSelectElement).value).toBe('3');
+  });
+
   it('offers to write notes when there are none, in a language of the record', () => {
     const p = props({ record: record(), notes: null });
     render(<RecordNotes {...p} />);
