@@ -192,10 +192,11 @@ test('an import goes on away from History, and its progress shows on coming back
   await importFile(page, 'sample.wav');
   const transcribing = page.getByText(/^Importing “sample\.wav”: Soniox is transcribing$/);
   await expect(transcribing).toBeVisible({ timeout: 30_000 });
-  // Away from History, long enough for the service to be asked again.
+  // Away from History until the service has been asked again: held, the app's only requests are its looks at the job.
   await page.getByRole('button', { name: 'Back to the session' }).click();
   await expect(page.locator('[data-tour="main-action"]')).toBeVisible();
-  await page.waitForTimeout(6_000);
+  const asked = (await transcription.asked()).length;
+  await expect.poll(async () => (await transcription.asked()).length, { timeout: 15_000 }).toBeGreaterThan(asked);
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await expect(transcribing).toBeVisible();
   await expect(page.locator('.history-list [data-record]')).toHaveCount(1);

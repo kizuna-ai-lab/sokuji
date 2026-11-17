@@ -23,9 +23,12 @@ export type TranscriptionAnswer =
   | { fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service'; message?: string };
 
 export interface FakeTranscription {
-  /** How the transcriptions started from now on answer. Default: two short English sentences. */
+  /**
+   * How the transcriptions started from now on answer; those started before keep their own answer. Default: two short
+   * English sentences.
+   */
   answerWith(answer: TranscriptionAnswer): Promise<void>;
-  /** A transcription held by `{ hold: true }` finishes, with the default sentences. */
+  /** The transcriptions held now finish, with the default sentences. One started later answers as it was told to. */
   release(): Promise<void>;
   /** The requests the service was sent, in its own terms: for a failure's message. */
   asked(): Promise<string[]>;

@@ -83,8 +83,9 @@ audio away from any Sokuji already running on the machine.
   the main process before the app (`electron -r`), and sends each request by its host to the fake registered for it. Any other
   request leaving the main process is refused and listed by `refused()`, so a service without a fake shows up at once. The
   test speaks of no particular service: `answerWith({ sentences })`, `{ hold: true }` (stays at "transcribing" until
-  `release()`), or `{ fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service' }`; `kept()` is what the service still holds
-  (the app deletes its uploads and jobs when done). Fakes are registered under their service's id in the line-up, and
+  `release()`), or `{ fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service' }`. An answer is for the transcriptions
+  started after it: each keeps the one it started with. `kept()` is what the service still holds (the app deletes its
+  uploads and jobs when done). Fakes are registered under their service's id in the line-up, and
   `fakeTranscription` takes the one for the line-up's transcription service. Soniox is the one registered today
   (`support/main/transcription-soniox.cjs`); another service is another file there, registered in `fake-services.cjs`.
   `addTranscriptionKey(sokuji)` puts the key in from Settings, as a user does.

@@ -3,6 +3,7 @@
 //   { sentences: [{ text, startMs, endMs, speaker? }] }  the transcription returns these sentences
 //   { hold: true }                                         it stays at "transcribing" until `release()`
 //   { fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service', message? }  it fails, for that reason
+// An answer is for the transcriptions started after it: each keeps the one it started with, whatever is answered later.
 // Each upload and transcription is kept until the app deletes it, as Soniox keeps them: `kept()` is what is left.
 // Every app launch is a new main process, so nothing carries over from one test to the next.
 'use strict';
@@ -18,12 +19,12 @@ const files = new Map();
 const jobs = new Map();
 const asked = [];
 let next = DEFAULT;
-let released = false;
 let ids = 0;
 
 const control = {
-  answerWith(answer) { next = answer; released = false; },
-  release() { released = true; },
+  answerWith(answer) { next = answer; },
+  /** The transcriptions held now finish; one started later is held, or not, as its own answer says. */
+  release() { for (const job of jobs.values()) job.released = true; },
   asked: () => [...asked],
   kept: () => files.size + jobs.size,
 };
@@ -55,10 +56,11 @@ async function answer(request, url) {
   const method = request.method;
   asked.push(`${method} ${path}`);
   if (request.signal.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
-  // A refused key refuses the work; the app's clean-up of what it made before is still answered.
-  if (next.fail === 'bad-key' && method !== 'DELETE') return refuse(401, 'unauthenticated', next.message ?? 'Invalid API key.');
+  // A refused key refuses new work. What was started before goes on as it was told to, and is cleaned up.
+  const badKey = () => refuse(401, 'unauthenticated', next.message ?? 'Invalid API key.');
 
   if (method === 'POST' && path === '/v1/files') {
+    if (next.fail === 'bad-key') return badKey();
     if (next.fail === 'unreadable') return refuse(400, 'invalid_audio_file', next.message ?? 'The audio file could not be decoded.');
     const form = await request.formData();
     const file = form.get('file');
@@ -67,17 +69,18 @@ async function answer(request, url) {
     return json(201, { id });
   }
   if (method === 'POST' && path === '/v1/transcriptions') {
+    if (next.fail === 'bad-key') return badKey();
     if (next.fail === 'no-credit') return refuse(402, 'insufficient_balance', next.message ?? 'Your account has no credit left.');
     const body = await request.json();
     const id = `transcription-${++ids}`;
-    jobs.set(id, { fileId: body.file_id, answer: next });
+    jobs.set(id, { fileId: body.file_id, answer: next, released: false });
     return json(201, { id, status: 'queued' });
   }
   const job = path.match(/^\/v1\/transcriptions\/([^/]+)(\/transcript)?$/);
   if (job && method === 'GET') {
     const found = jobs.get(job[1]);
     if (!found) return refuse(404, 'not_found', 'No such transcription.');
-    const { answer: given } = found;
+    const { answer: given, released } = found;
     // A held transcription, released, returns the default sentences.
     const sentences = given.sentences ?? DEFAULT.sentences;
     const status = given.fail === 'service' ? 'error' : given.hold && !released ? 'processing' : 'completed';
