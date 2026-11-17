@@ -26,6 +26,8 @@ import { formatUsdFloor } from '../../utils/formatters';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { CredentialForm } from '../providers/CredentialForm';
 import { ManagedAccountRow } from '../providers/ManagedAccountRow';
+import { UserAccountInfo } from '../Auth/UserAccountInfo';
+import { useRunState } from '../../app/useRun';
 import { useAuthContext } from '../providers/useAuthContext';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -56,6 +58,8 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   const quota = useOptionalUserProfile()?.quota;
   const account = useAccountStore((s) => s.account);
   const payer = useAccountPayer(account);
+  // The account panel reads the payer a running session was started with, as the title bar's does.
+  const run = useRunState();
   const balance = account?.status === 'known' && account.organization ? payerDisplayBalance(account, payer) : quota?.balance ?? quota?.remaining;
   // This device's models: how many are on disk, known once the store has looked.
   const statuses = useModelStatuses();
@@ -164,10 +168,14 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         const isOpen = open === a.key;
         return (
           <div className="accounts-row" role="group" aria-label={a.name} key={a.key} id={a.kind === 'kizuna' ? 'user-account-section' : undefined}>
-            {/* The mock's row: the name, its state under it, one button; what the account can do once it is open. */}
+            {/* The mock's row: the name with what the account can do beside it (owner, 2026-11-15: no need to open
+                the row to see them), its state under it, one button. */}
             <div className="accounts-row__head">
               <div className="accounts-row__main">
-                <span className="accounts-row__name">{a.name}</span>
+                <span className="accounts-row__title">
+                  <span className="accounts-row__name">{a.name}</span>
+                  {chips(a)}
+                </span>
                 <span className={`accounts-row__state${ready(a) ? ' is-ok' : ''}`}>
                   {stateOf(a)}
                   {a.guide && (
@@ -183,8 +191,11 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
                   : a.kind === 'key' && !keySaved(p) ? t('settingsPage.accounts.addKey', 'Add key') : t('settingsPage.accounts.view', 'View')}
               </button>
             </div>
-            {isOpen && chips(a)}
-            {isOpen && a.kind === 'kizuna' && <ManagedAccountRow auth={auth} />}
+            {/* Signed in, the title bar's account panel (owner, 2026-11-15): the balance, the organization's too, and
+                the dashboard, sign-out, feedback and top-up; else the sign-in. */}
+            {isOpen && a.kind === 'kizuna' && (auth.signedIn
+              ? <div className="accounts-row__account"><UserAccountInfo idle={run.phase === 'idle'} runPayer={run.phase === 'idle' ? undefined : run.payer} /></div>
+              : <ManagedAccountRow auth={auth} />)}
             {isOpen && a.kind === 'key' && p && entry && (
               <CredentialForm
                 fields={p.credentials.fields(entry.settings as never)}

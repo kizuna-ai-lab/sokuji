@@ -74,6 +74,8 @@ beforeEach(() => {
   signedIn = false;
   authUser = null;
   quota = null;
+  // No organization carried over from another test: who pays is now part of the button's name.
+  useAccountStore.setState({ account: null });
   shortfall.value = false;
   popoverRequested = false;
   setPopoverRequested.mockClear();
@@ -110,6 +112,8 @@ describe('AccountButton', () => {
     expect(screen.getByText('< $0.01')).toBeTruthy();
   });
 
+  // Owner, 2026-11-17: the name while the title bar has room for it; the payer's icon only when it does not (jsdom lays
+  // nothing out, so the bar always has room here: the name shows).
   it('names who pays beside the balance — never by leaving the prefix out', () => {
     signedIn = true;
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
@@ -120,15 +124,21 @@ describe('AccountButton', () => {
     } });
     localStorage.clear();
     const { unmount } = render(<AccountButton />);
-    // The organization's name, because it is paying.
-    expect(screen.getByText('Acme')).toBeTruthy();
+    // The organization's name, because it is paying; its icon beside it for a title bar with no room for the name.
+    const org = screen.getByText('Acme').closest('[data-payer]')!;
+    expect(org.getAttribute('data-payer')).toBe('organization');
+    expect(org.querySelector('svg')).not.toBeNull();
+    // Who pays is in the button's name too: a screen reader hears it whether the name or the icon shows (review).
+    expect(screen.getByRole('button', { name: 'Account (Acme)' })).toBeInTheDocument();
     unmount();
 
     setUseOwnBalance(true);
     render(<AccountButton />);
-    // Spelled out: a session with no payer also shows no name, and the two must
-    // not look alike.
-    expect(screen.getByText('Personal')).toBeTruthy();
+    // Spelled out: a session with no payer shows no name, and the two must not look alike.
+    const own = screen.getByText('Personal').closest('[data-payer]')!;
+    expect(own.getAttribute('data-payer')).toBe('personal');
+    expect(own.querySelector('svg')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Account (Personal)' })).toBeInTheDocument();
     setUseOwnBalance(false);
   });
 
@@ -162,9 +172,10 @@ describe('AccountButton', () => {
     localStorage.clear();
     run.value = { phase: 'running' };
     render(<AccountButton />);
-    // Never "Personal" and never the organization's name: who pays is unknown.
-    expect(screen.queryByText('Acme')).toBeNull();
-    expect(screen.queryByText('Personal')).toBeNull();
+    // Neither the personal mark nor the organization's: who pays is unknown.
+    expect(screen.queryByTitle('Acme')).toBeNull();
+    expect(screen.queryByTitle('Personal')).toBeNull();
+    expect(document.querySelector('[data-payer]')).toBeNull();
     run.value = { phase: 'idle' };
   });
 

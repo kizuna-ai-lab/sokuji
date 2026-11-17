@@ -99,6 +99,12 @@
   @media (max-width: 600px) {
     display: none;
   }
+
+  // The bar's last step, wherever the labels do not fit (owner, 2026-11-17; titleBarFit.ts): icons alone, each still
+  // named by its tooltip.
+  .title-bar[data-fit='2'] & {
+    display: none;
+  }
 }
 
 .title-bar__buttons {

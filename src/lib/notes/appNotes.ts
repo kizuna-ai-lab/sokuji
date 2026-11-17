@@ -4,6 +4,7 @@
 // cancels them. The notes service is the line-up's notes stage: OpenAI with the user's own key, called from the page
 // with the model named in History and notes; or Kizuna AI, through our relay with the user's sign-in, paid by the
 // payer the app has chosen, with the one model the relay writes notes with.
+import { KIZUNA_NOTES, notesDefaultsNow, notesServiceOf } from './notesService';
 import { useWordList } from '../words/list';
 import i18n from '../../locales';
 import { reportError } from '../diagnostics/report';
@@ -24,8 +25,7 @@ import { createNotesRunner, type NotesLanguage, type NotesRunner } from './runne
 
 export const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
-/** The line-up's notes service: Kizuna AI's. */
-export const KIZUNA_NOTES = 'kizunaai';
+export { KIZUNA_NOTES } from './notesService';
 
 /**
  * The notes service the line-up chose, for the meeting `sessionRef` (a record id); null when it chose none, the key is
@@ -35,7 +35,14 @@ export async function notesChatFromStores(
   sessionRef?: string,
   o: { onBalance?(microUsd: number): void } = {},
 ): Promise<{ chat: ChatPort; model: string } | null> {
-  const service = useLineUpStore.getState().lineUp?.summarisation;
+  const lineUp = useLineUpStore.getState().lineUp;
+  // With no service chosen the default may depend on whether OpenAI has a key: read it first, loaded if it is not yet,
+  // but only then (review): where Kizuna AI can write the notes it is the default whatever the key holds, and a failed
+  // read of OpenAI's settings must not keep its notes from being written.
+  const defaults = notesDefaultsNow();
+  const keyMatters = !lineUp?.summarisation && !(defaults.hostedOffered && defaults.signedIn);
+  if (keyMatters && !useProviderStore.getState().entries.openai) await useProviderStore.getState().load(openaiProvider);
+  const service = notesServiceOf(lineUp);
   if (service === KIZUNA_NOTES) {
     if (currentAuth()?.signedIn !== true) return null;
     const chat = relayChat({

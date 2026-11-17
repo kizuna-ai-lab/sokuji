@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Hesap",
       "personal": "Kişisel",
-      "payerUnknown": "Hesap",
       "lowBalance": "Hesap — oturum başlatmak için bakiye çok düşük",
       "unverified": "Hesap — e-posta doğrulanmadı"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Anahtar gerekli",
         "needsModel": "Model gerekli",
         "needsSignIn": "Oturum açılmalı",
-        "ready": "Hazır",
-        "off": "Kapalı"
+        "ready": "Hazır"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",
@@ -1851,14 +1849,18 @@
         "hint": "Sesler dile göre saklanır: bunlar bu dil çiftinin sesleri.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Yok",
       "notesNeedKey": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
       "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker.",
       "wordsLeftOut": "Kelime listesi: bu hizmetin sınırını aşan {{count}} giriş dışarıda kalır.",
       "wordsUnused": "Kelime listesi: bu model kullanamaz.",
       "wordsLeftOut_one": "Kelime listesi: bu hizmetin sınırını aşan {{count}} kayıt gönderilmiyor.",
       "notesKizunaPrice": "Kizuna AI tahmini: canlı notlar saatte yaklaşık {{live}}, oturum sonrası notlar saatte yaklaşık {{after}}; oturumlarınızı ödeyen bakiyeden ödenir.",
-      "notesNeedSignInOrKey": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin."
+      "notesNeedSignInOrKey": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
+      "jointCard": "{{stages}} tek bağlantı üzerinden çalışır; birlikte değişirler.",
+      "notesKizunaLine": "OpenAI notları Kizuna AI üzerinden yazar; bakiyenizden ödenir.",
+      "notesOpenAiLine": "Notları kendi OpenAI anahtarınızla yazar.",
+      "notesNeedSignInOrChoose": "Notların yazılması için oturum açın veya burada OpenAI'ı seçin.",
+      "notesNeedSignInOrKeyAndChoose": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyip burada OpenAI'ı seçin."
     },
     "display": {
       "surface": "Hangi görünüm",
@@ -1893,12 +1895,13 @@
       "source": "Kaynak",
       "flow": {
         "myMic": "Mikrofonum",
-        "toSpeech": "Konuşmaya",
         "toThem": "Sanal mikrofon → karşı taraf",
         "theirVoice": "Karşı tarafın sesi",
         "myDevice": "Oynatma cihazım",
         "caption": "Sesin gittiği yer. Parlak çizgiler şu an açık, kesikli olanlar kapalı; aşağıdaki anahtarları izler.",
-        "aria": "Sesin gittiği yer: söylediğim konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği konuşmaya dönüşüp oynatma cihazımda çalar."
+        "translate": "Çeviri",
+        "speech": "Seslendirme",
+        "ariaSteps": "Sesin gittiği yer: söylediğim çevrilir, sonra konuşmaya dönüşüp karşı taraf için sanal mikrofona gider, ben de dinlersem bende de çalar; karşı tarafın söylediği çevrilir, sonra konuşmaya dönüşüp oynatma cihazımda çalar. Bir konuşma anahtarı kapalıyken çeviri yapılır ama seslendirilmez."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Yenile",
     "moveOneToBin": "Çöp kutusuna taşı",
     "export": "Dışa aktar",
-    "copyText": "Metni kopyala",
     "copied": "Kopyalandı.",
     "copyFailed": "Kopyalanamadı. Pano iznini kontrol edin.",
-    "saveTxt": ".txt olarak kaydet",
-    "saveJson": ".json olarak kaydet",
     "saveSrt": "Altyazıyı kaydet (.srt)",
     "saveVtt": "Altyazıyı kaydet (.vtt)",
     "folder": "Geçmiş klasörü",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Karşı tarafın ses kaydını kaydet",
     "notesAfterSession": "Her oturumdan sonra not yaz",
     "notesLine": "Bir oturum bittiğinde {{service}}, dökümden notlarını yazar.",
-    "notesNoService": "Önce “Diller ve düzen” bölümünde notlar için bir hizmet seçin.",
     "notesExplainTitle": "Notlar yazılmadan önce",
     "notesExplain": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar kendi anahtarınızla {{service}} hizmetine gönderilir. Asla ses, çeviri veya hesabınız gönderilmez.",
     "notesTurnOn": "Aç",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Model adı",
     "notesExplainKizuna": "Her oturum için cümlelerinin metni, numaraları, hangi taraf ile hangi konuşmacının söylediği ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
     "liveExplainKizuna": "Oturum sırasında her 20 saniyede yeni cümleler (metni, numaraları ve hangi taraf ile hangi konuşmacının söylediği), şimdiye kadarki notlar ve kelime listenizdeki yazımlar Kizuna AI sunucusu üzerinden notları yazan OpenAI’ye gider. Kizuna AI bunların hiçbirini saklamaz. Ücret, oturumlarınızı ödeyen bakiyeden ödenir. Ses veya çeviri asla gönderilmez.",
-    "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar."
+    "notesModelKizuna": "Kizuna AI notları {{model}} ile yazar.",
+    "copyConversation": "Konuşmayı kopyala",
+    "saveConversationTxt": "Konuşmayı kaydet (.txt)",
+    "saveConversationJson": "Konuşmayı kaydet (.json)",
+    "editSave": "Kaydet",
+    "editSaveHint": "Kaydet (Enter)",
+    "editCancelHint": "İptal (Esc)",
+    "speakersHint": "Konuşmacının adını değiştirmek için ada tıklayın. Bir cümleyi başkasına vermek için dökümde yanındaki “Konuşmacıyı değiştir” düğmesini kullanın.",
+    "sidePanel": "Yan panel",
+    "openSidePanel": "Yan paneli aç",
+    "closeSidePanel": "Yan paneli kapat"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

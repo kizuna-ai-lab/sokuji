@@ -117,14 +117,15 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
 
   const items = [
     {
-      key: 'copy', label: t('history.copyText', 'Copy text'), Icon: Copy,
+      // Each item says what it copies or saves, as the subtitles' and the notes' do; copying first (owner, 2026-11-17).
+      key: 'copy', label: t('history.copyConversation', 'Copy the conversation'), Icon: Copy,
       run: async () => {
         const ok = await copyToClipboard(exporter.text(scope, false));
         onResult?.(ok ? t('history.copied', 'Copied.') : t('history.copyFailed', 'Could not copy. Check the clipboard permission.'));
       },
     },
-    { key: 'txt', label: t('history.saveTxt', 'Save as .txt'), Icon: FileText, run: () => downloadFile(exporter.text(scope, true), file('txt'), 'text/plain;charset=utf-8') },
-    { key: 'json', label: t('history.saveJson', 'Save as .json'), Icon: FileJson, run: () => downloadFile(exporter.json(scope), file('json'), 'application/json') },
+    { key: 'txt', label: t('history.saveConversationTxt', 'Save the conversation (.txt)'), Icon: FileText, run: () => downloadFile(exporter.text(scope, true), file('txt'), 'text/plain;charset=utf-8') },
+    { key: 'json', label: t('history.saveConversationJson', 'Save the conversation (.json)'), Icon: FileJson, run: () => downloadFile(exporter.json(scope), file('json'), 'application/json') },
     {
       key: 'srt', label: t('history.saveSrt', 'Save subtitles (.srt)'), Icon: Captions,
       run: () => downloadFile(renderSrt(recordCues(rows, cueScope(scope, textKind))), file('srt'), 'application/x-subrip;charset=utf-8'),
@@ -134,20 +135,20 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
       run: () => downloadFile(renderVtt(recordCues(rows, cueScope(scope, textKind))), file('vtt'), 'text/vtt;charset=utf-8'),
     },
     {
-      key: 'notes-md', label: t('history.saveNotesMd', 'Save notes (.md)'), Icon: FileText, own: true, enabled: notesBody !== null,
-      run: () => { if (notesBody) downloadFile(notesMarkdown(notesBody, notesWords), notesFile('md'), 'text/markdown;charset=utf-8'); },
-    },
-    {
-      key: 'notes-txt', label: t('history.saveNotesTxt', 'Save notes (.txt)'), Icon: FileText, own: true, enabled: notesBody !== null,
-      run: () => { if (notesBody) downloadFile(notesText(notesBody, notesWords), notesFile('txt'), 'text/plain;charset=utf-8'); },
-    },
-    {
       key: 'notes-copy', label: t('history.copyNotes', 'Copy notes'), Icon: Copy, own: true, enabled: notesBody !== null,
       run: async () => {
         if (!notesBody) return;
         const ok = await copyToClipboard(notesText(notesBody, notesWords));
         onResult?.(ok ? t('history.copied', 'Copied.') : t('history.copyFailed', 'Could not copy. Check the clipboard permission.'));
       },
+    },
+    {
+      key: 'notes-md', label: t('history.saveNotesMd', 'Save notes (.md)'), Icon: FileText, own: true, enabled: notesBody !== null,
+      run: () => { if (notesBody) downloadFile(notesMarkdown(notesBody, notesWords), notesFile('md'), 'text/markdown;charset=utf-8'); },
+    },
+    {
+      key: 'notes-txt', label: t('history.saveNotesTxt', 'Save notes (.txt)'), Icon: FileText, own: true, enabled: notesBody !== null,
+      run: () => { if (notesBody) downloadFile(notesText(notesBody, notesWords), notesFile('txt'), 'text/plain;charset=utf-8'); },
     },
     {
       // The stored files as they are, one per track (spec §7); not narrowed by the choice above. The main process asks

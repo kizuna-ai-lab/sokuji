@@ -9,7 +9,13 @@ vi.mock('../../providers/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../providers/registry')>();
   return { ...actual, presentProviders: () => actual.RELEASED };
 });
-vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: true, getToken: async () => null }) }));
+const authState = vi.hoisted(() => ({ signedIn: true }));
+vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: authState.signedIn, getToken: async () => null }) }));
+// The title bar's account panel, which the open Kizuna AI row shows signed in (owner, 2026-11-15).
+const panel = vi.hoisted(() => ({ props: [] as Array<{ idle?: boolean; runPayer?: string }> }));
+vi.mock('../Auth/UserAccountInfo', () => ({ UserAccountInfo: (p: { idle?: boolean; runPayer?: string }) => { panel.props.push(p); return <div>account panel</div>; } }));
+const runState = vi.hoisted(() => ({ value: { phase: 'idle' } as { phase: string; payer?: string } }));
+vi.mock('../../app/useRun', () => ({ useRunState: () => runState.value }));
 vi.mock('../providers/ManagedAccountRow', () => ({ ManagedAccountRow: () => <div>account row</div> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 const profile = vi.hoisted(() => ({ quota: { balance: 12_400_000 } as { balance?: number } | null }));
@@ -42,10 +48,12 @@ describe('accounts and keys', () => {
     expect(row('OpenAI')).toHaveTextContent('Needs a key');
     expect(row('Bing')).toHaveTextContent('No key needed; online, a Microsoft service');
     expect(row('This device')).toHaveTextContent('Runs on this computer');
-    // What an account can do is shown once its row is open (the mock's rows carry name and state only).
-    expect(within(row('Soniox')).queryByText('Transcription and translation')).toBeNull();
+    // What an account can do is shown beside its name, folded or open (owner, 2026-11-15: the page is wide, and many
+    // providers have only a key besides these tags).
+    const name = row('Soniox').querySelector('.accounts-row__name')!;
+    expect(name.parentElement!.querySelector('.accounts-row__chips')).toHaveTextContent('Transcription and translation');
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
-    expect(within(row('Soniox')).getByText('Transcription and translation')).toBeInTheDocument();
+    expect(within(row('Soniox')).getAllByText('Transcription and translation')).toHaveLength(1);
     expect(within(row('Soniox')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
   });
 
@@ -102,9 +110,33 @@ describe('accounts and keys — opened from a notice or the tour', () => {
   });
 
   it("opened by the 'provider' target under a hosted provider, shows the Kizuna AI sign-in", () => {
+    authState.signedIn = false;
     useProviderStore.setState({ selected: 'kizunaai_soniox' });
     render(<AccountsCategory locked={false} openedBy="provider" />);
     expect(within(row('Kizuna AI')).getByText('account row')).toBeInTheDocument();
+    authState.signedIn = true;
+  });
+
+  it('opened, Kizuna AI shows the account panel signed in: balances, dashboard, sign out, feedback, top up', () => {
+    authState.signedIn = true;
+    runState.value = { phase: 'running', payer: 'personal' };
+    panel.props.length = 0;
+    render(<AccountsCategory locked={false} />);
+    fireEvent.click(within(row('Kizuna AI')).getByRole('button', { name: 'View' }));
+    expect(within(row('Kizuna AI')).getByText('account panel')).toBeInTheDocument();
+    expect(within(row('Kizuna AI')).queryByText('account row')).toBeNull();
+    // The run's payer while a session runs, as the title bar's panel reads it.
+    expect(panel.props[panel.props.length - 1]).toMatchObject({ idle: false, runPayer: 'personal' });
+    runState.value = { phase: 'idle' };
+  });
+
+  it('opened, Kizuna AI signed out still offers the sign-in', () => {
+    authState.signedIn = false;
+    render(<AccountsCategory locked={false} />);
+    fireEvent.click(within(row('Kizuna AI')).getByRole('button', { name: 'View' }));
+    expect(within(row('Kizuna AI')).getByText('account row')).toBeInTheDocument();
+    expect(within(row('Kizuna AI')).queryByText('account panel')).toBeNull();
+    authState.signedIn = true;
   });
 
   it('opened from the list, keeps every row folded', () => {
@@ -140,20 +172,17 @@ describe('accounts and keys — what each can do, as the mock tags it', () => {
 
   it('tags a provider that serves transcription and translation over one connection, and speech apart', () => {
     render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
     expect(tags('Soniox')).toEqual(['Transcription and translation', 'Speech']);
   });
 
   it('tags an end-to-end provider once', () => {
     render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(row('OpenAI')).getByRole('button', { name: 'Add key' }));
     expect(tags('OpenAI')).toContain('End to end');
     expect(tags('OpenAI')).not.toContain('Transcription');
   });
 
   it('tags each stage of a provider that binds none', () => {
     render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(row('This device')).getByRole('button', { name: 'View' }));
     expect(tags('This device')).toEqual(['Transcription', 'Translation', 'Speech']);
   });
 });

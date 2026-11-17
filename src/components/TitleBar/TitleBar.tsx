@@ -1,11 +1,12 @@
 // src/components/TitleBar/TitleBar.tsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Minus, Square, X, Settings, Terminal } from 'lucide-react';
 import { isElectron, isMacOS } from '../../utils/environment';
 import SubtitleEnterButton from '../Subtitle/SubtitleEnterButton';
 import AccountButton from './AccountButton';
 import HistoryButton from './HistoryButton';
+import { nextFit, overflowOf, type Fit } from './titleBarFit';
 import './TitleBar.scss';
 
 interface TitleBarProps {
@@ -26,7 +27,55 @@ const TitleBar: React.FC<TitleBarProps> = ({
   onToggleSettings,
   onToggleLogs,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // How much the bar spells out: everything while it fits, then who pays as an icon, then icons alone (owner,
+  // 2026-11-17; titleBarFit.ts). Checked after each change of step, before the screen is painted, and whenever the bar
+  // or its actions change size.
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const fitRef = useRef<Fit>({ level: 0, needed: [] });
+  const [fitLevel, setFitLevel] = useState(0);
+  // Bumped to measure from everything again: what each step needed is not known any more.
+  const [measureTurn, setMeasureTurn] = useState(0);
+  const checkFit = useCallback(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const next = nextFit(fitRef.current, overflowOf(bar), bar.clientWidth);
+    fitRef.current = next;
+    if (next.level !== fitLevel) setFitLevel(next.level);
+  }, [fitLevel]);
+  useLayoutEffect(() => { checkFit(); }, [checkFit, measureTurn]);
+  const remeasure = useCallback(() => {
+    fitRef.current = { level: 0, needed: [] };
+    setFitLevel(0);
+    setMeasureTurn((n) => n + 1);
+  }, []);
+  // Another language words everything anew (its first value is no change).
+  const language = i18n?.language;
+  const shownLanguage = useRef(language);
+  useLayoutEffect(() => {
+    if (shownLanguage.current === language) return;
+    shownLanguage.current = language;
+    remeasure();
+  }, [language, remeasure]);
+  // So does a change in what the bar holds (review): the logs button coming or going, who pays, the balance. Without
+  // it a bar that fits again would stay on icons until the window was widened past what it needed before.
+  useEffect(() => {
+    const actions = barRef.current?.querySelector('.title-bar__actions');
+    if (!actions || typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver(() => remeasure());
+    observer.observe(actions, { childList: true, characterData: true, subtree: true });
+    return () => observer.disconnect();
+  }, [remeasure]);
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => checkFit());
+    observer.observe(bar);
+    const actions = bar.querySelector('.title-bar__actions');
+    if (actions) observer.observe(actions);
+    return () => observer.disconnect();
+  }, [checkFit]);
 
   const minimize = useCallback(() => {
     void window.electron?.invoke('window:minimize');
@@ -56,8 +105,10 @@ const TitleBar: React.FC<TitleBarProps> = ({
 
   return (
     <div
+      ref={barRef}
       className={`title-bar ${platformClass}${showInAppWindowControls ? ' has-window-controls' : ''}`}
       role="banner"
+      data-fit={fitLevel}
     >
       <span className="title-bar__title">Sokuji</span>
       <div className="title-bar__actions">

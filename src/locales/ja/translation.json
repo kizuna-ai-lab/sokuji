@@ -1133,7 +1133,6 @@
     "account": {
       "label": "アカウント",
       "personal": "個人",
-      "payerUnknown": "アカウント",
       "lowBalance": "アカウント — 残高が不足しているためセッションを開始できません",
       "unverified": "アカウント — メールアドレスが未認証です"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "キーが必要",
         "needsModel": "モデルが必要",
         "needsSignIn": "サインインが必要",
-        "ready": "準備完了",
-        "off": "オフ"
+        "ready": "準備完了"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
       "hint": "各段階をどのサービスが担当するか",
@@ -1851,14 +1849,18 @@
         "hint": "音声は言語ごとに保存されます。ここで変えるのは、いまの言語の組み合わせで使う音声です。",
         "voiceFor": "{{who}}（{{language}}）"
       },
-      "notesNone": "なし",
       "notesNeedKey": "メモを書くには「アカウントとキー」で OpenAI のキーを追加してください。",
       "alsoFiles": "取り込んだファイルの文字起こしと、記録の再文字起こしにも使います。",
       "wordsLeftOut": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
       "wordsUnused": "単語リスト：このモデルでは使えません。",
       "wordsLeftOut_one": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
       "notesKizunaPrice": "Kizuna AI の目安：ライブメモは 1 時間あたり約 {{live}}、会議後のメモは 1 時間あたり約 {{after}}。セッションの料金を払う残高から支払われます。",
-      "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。"
+      "notesNeedSignInOrKey": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加してください。",
+      "jointCard": "{{stages}}は1つの接続で動きます。一緒に切り替わります。",
+      "notesKizunaLine": "Kizuna AI 経由で OpenAI がメモを書きます。料金は残高から支払われます。",
+      "notesOpenAiLine": "あなた自身の OpenAI キーでメモを書きます。",
+      "notesNeedSignInOrChoose": "メモを書くには、サインインするか、ここで OpenAI を選んでください。",
+      "notesNeedSignInOrKeyAndChoose": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加して、ここで OpenAI を選んでください。"
     },
     "display": {
       "surface": "どの表示",
@@ -1893,12 +1895,13 @@
       "source": "取り込み元",
       "flow": {
         "myMic": "自分のマイク",
-        "toSpeech": "音声に",
         "toThem": "仮想マイク → 相手",
         "theirVoice": "相手の声",
         "myDevice": "自分の再生デバイス",
         "caption": "音の流れ。明るい線はいまオン、破線はオフです。下のスイッチに合わせて変わります。",
-        "aria": "音の流れ：自分の発言は音声になって仮想マイクから相手へ届き、自分も聞く場合はこちらでも鳴ります。相手の発言は音声になって自分の再生デバイスで鳴ります。"
+        "translate": "翻訳",
+        "speech": "音声生成",
+        "ariaSteps": "音の流れ：自分の発言は翻訳されてから音声になり、仮想マイクから相手へ届き、自分も聞く場合はこちらでも鳴ります。相手の発言は翻訳されてから音声になり、自分の再生デバイスで鳴ります。音声のスイッチがオフのときは、翻訳だけして音声にはしません。"
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "更新",
     "moveOneToBin": "ごみ箱に移動",
     "export": "エクスポート",
-    "copyText": "テキストをコピー",
     "copied": "コピーしました。",
     "copyFailed": "コピーできませんでした。クリップボードの許可を確認してください。",
-    "saveTxt": ".txt で保存",
-    "saveJson": ".json で保存",
     "saveSrt": "字幕を保存 (.srt)",
     "saveVtt": "字幕を保存 (.vtt)",
     "folder": "履歴フォルダー",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "相手側の録音を保存",
     "notesAfterSession": "セッションごとにメモを書く",
     "notesLine": "セッションが終わると、{{service}} が文字起こしからメモを書きます。",
-    "notesNoService": "先に「言語と構成」でメモのサービスを選んでください。",
     "notesExplainTitle": "メモを書く前に",
     "notesExplain": "セッションごとに、文の本文、その番号、どちら側のどの話者が話したか、単語リストの表記が、あなた自身のキーで {{service}} に送られます。音声、翻訳、アカウントは送られません。",
     "notesTurnOn": "オンにする",
@@ -2144,7 +2143,17 @@
     "notesModelName": "モデル名",
     "notesExplainKizuna": "セッションごとに、文の本文、その番号、どちら側のどの話者が話したか、単語リストの表記が、Kizuna AI のサーバーを経由して OpenAI に送られ、OpenAI がメモを書きます。Kizuna AI はどれも保存しません。料金はセッションの料金を払う残高から支払われます。音声と翻訳は送られません。",
     "liveExplainKizuna": "セッション中、20 秒ごとに新しい文（本文、番号、どちら側のどの話者が話したか）、ここまでのメモ、単語リストの表記が、Kizuna AI のサーバーを経由して OpenAI に送られ、OpenAI がメモを書きます。Kizuna AI はどれも保存しません。料金はセッションの料金を払う残高から支払われます。音声と翻訳は送られません。",
-    "notesModelKizuna": "Kizuna AI は {{model}} でメモを書きます。"
+    "notesModelKizuna": "Kizuna AI は {{model}} でメモを書きます。",
+    "copyConversation": "会話をコピー",
+    "saveConversationTxt": "会話を保存 (.txt)",
+    "saveConversationJson": "会話を保存 (.json)",
+    "editSave": "保存",
+    "editSaveHint": "保存（Enter）",
+    "editCancelHint": "キャンセル（Esc）",
+    "speakersHint": "名前をクリックすると話者の名前を変えられます。ある一文を別の人に移すには、文字起こしでその文の横にある「話者を変更」ボタンを使います。",
+    "sidePanel": "サイドパネル",
+    "openSidePanel": "サイドパネルを開く",
+    "closeSidePanel": "サイドパネルを閉じる"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

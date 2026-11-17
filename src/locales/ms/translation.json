@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Akaun",
       "personal": "Peribadi",
-      "payerUnknown": "Akaun",
       "lowBalance": "Akaun — baki terlalu rendah untuk memulakan sesi",
       "unverified": "Akaun — e-mel belum disahkan"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Perlu kunci",
         "needsModel": "Perlu model",
         "needsSignIn": "Perlu log masuk",
-        "ready": "Sedia",
-        "off": "Mati"
+        "ready": "Sedia"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
       "hint": "Perkhidmatan mana yang membuat setiap peringkat",
@@ -1851,14 +1849,18 @@
         "hint": "Suara disimpan mengikut bahasa: ini suara untuk pasangan bahasa ini.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Tiada",
       "notesNeedKey": "Tambah kunci OpenAI dalam “Akaun dan kunci” supaya nota ditulis.",
       "alsoFiles": "Juga mentranskrip fail yang diimport dan rekod semula.",
       "wordsLeftOut": "Senarai perkataan: {{count}} entri yang melebihi had perkhidmatan ini ditinggalkan.",
       "wordsUnused": "Senarai perkataan: model ini tidak dapat menggunakannya.",
       "wordsLeftOut_one": "Senarai perkataan: {{count}} entri melebihi had perkhidmatan ini tidak dihantar.",
       "notesKizunaPrice": "Anggaran Kizuna AI: nota langsung kira-kira {{live}} sejam, nota selepas sesi kira-kira {{after}} sejam, dibayar daripada baki yang membayar sesi anda.",
-      "notesNeedSignInOrKey": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci”, supaya nota ditulis."
+      "notesNeedSignInOrKey": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci”, supaya nota ditulis.",
+      "jointCard": "{{stages}} berjalan melalui satu sambungan; kedua-duanya berubah bersama.",
+      "notesKizunaLine": "OpenAI menulis nota melalui Kizuna AI, dibayar daripada baki anda.",
+      "notesOpenAiLine": "Menulis nota dengan kunci OpenAI anda sendiri.",
+      "notesNeedSignInOrChoose": "Log masuk, atau pilih OpenAI di sini, supaya nota ditulis.",
+      "notesNeedSignInOrKeyAndChoose": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci” dan pilih OpenAI di sini, supaya nota ditulis."
     },
     "display": {
       "surface": "Paparan mana",
@@ -1893,12 +1895,13 @@
       "source": "Sumber",
       "flow": {
         "myMic": "Mikrofon saya",
-        "toSpeech": "Jadi suara",
         "toThem": "Mikrofon maya → pihak lain",
         "theirVoice": "Suara pihak lain",
         "myDevice": "Peranti main balik saya",
         "caption": "Ke mana bunyi pergi. Garisan terang kini aktif, garisan putus-putus tidak; ia mengikut suis di bawah.",
-        "aria": "Ke mana bunyi pergi: apa yang saya cakap, menjadi suara, masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap, menjadi suara, dimainkan pada peranti main balik saya."
+        "translate": "Terjemah",
+        "speech": "Jana suara",
+        "ariaSteps": "Ke mana bunyi pergi: apa yang saya cakap diterjemah, kemudian dijadikan suara yang masuk ke mikrofon maya untuk pihak lain, dan dimainkan juga pada saya jika saya mendengar; apa yang pihak lain cakap diterjemah, kemudian dijadikan suara yang dimainkan pada peranti main balik saya. Jika suis suara dimatikan, terjemahan dibuat tetapi tidak disebut."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Segarkan",
     "moveOneToBin": "Alih ke tong sampah",
     "export": "Eksport",
-    "copyText": "Salin teks",
     "copied": "Disalin.",
     "copyFailed": "Tidak dapat menyalin. Semak kebenaran papan klip.",
-    "saveTxt": "Simpan sebagai .txt",
-    "saveJson": "Simpan sebagai .json",
     "saveSrt": "Simpan sari kata (.srt)",
     "saveVtt": "Simpan sari kata (.vtt)",
     "folder": "Folder sejarah",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Simpan rakaman pihak lain",
     "notesAfterSession": "Tulis nota selepas setiap sesi",
     "notesLine": "Apabila sesi tamat, {{service}} menulis notanya daripada transkrip.",
-    "notesNoService": "Pilih dahulu perkhidmatan untuk nota dalam “Bahasa dan susunan”.",
     "notesExplainTitle": "Sebelum nota ditulis",
     "notesExplain": "Bagi setiap sesi, teks ayatnya, nombornya, pihak dan penutur yang menyebutnya, serta ejaan dalam senarai perkataan anda dihantar kepada {{service}} dengan kunci anda sendiri. Tidak sekali-kali audio, terjemahan atau akaun anda.",
     "notesTurnOn": "Hidupkan",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Nama model",
     "notesExplainKizuna": "Bagi setiap sesi, teks ayatnya, nombornya, pihak dan penutur yang menyebutnya, serta ejaan dalam senarai perkataan anda melalui pelayan Kizuna AI ke OpenAI, yang menulis nota. Kizuna AI tidak menyimpan apa-apa daripadanya. Kosnya dibayar daripada baki yang membayar sesi anda. Tidak sekali-kali audio atau terjemahan.",
     "liveExplainKizuna": "Semasa sesi, setiap 20 saat ayat baharu (teks, nombor, serta pihak dan penutur yang menyebutnya), nota setakat ini dan ejaan dalam senarai perkataan anda melalui pelayan Kizuna AI ke OpenAI, yang menulis nota. Kizuna AI tidak menyimpan apa-apa daripadanya. Kosnya dibayar daripada baki yang membayar sesi anda. Tidak sekali-kali audio atau terjemahan.",
-    "notesModelKizuna": "Kizuna AI menulis nota dengan {{model}}."
+    "notesModelKizuna": "Kizuna AI menulis nota dengan {{model}}.",
+    "copyConversation": "Salin perbualan",
+    "saveConversationTxt": "Simpan perbualan (.txt)",
+    "saveConversationJson": "Simpan perbualan (.json)",
+    "editSave": "Simpan",
+    "editSaveHint": "Simpan (Enter)",
+    "editCancelHint": "Batal (Esc)",
+    "speakersHint": "Klik nama untuk menamakan semula penutur. Untuk memberi satu ayat kepada orang lain, gunakan butang “Tukar penutur” di sebelahnya dalam transkrip.",
+    "sidePanel": "Panel sisi",
+    "openSidePanel": "Buka panel sisi",
+    "closeSidePanel": "Tutup panel sisi"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

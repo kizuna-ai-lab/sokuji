@@ -83,14 +83,15 @@ export function cardOptions(
   served: readonly RunStage[],
   stage: RunStage,
   hasTurnDetection: boolean,
-): { has: boolean; pointerTo: RunStage | null; pointerStages: RunStage[] } {
+): { has: boolean; rows: boolean; pointerTo: RunStage | null; pointerStages: RunStage[] } {
   const first = RUN_STAGES.find((s) => served.includes(s));
-  if (!optionStages) return { has: stage === first, pointerTo: null, pointerStages: [] };
+  if (!optionStages) return { has: stage === first, rows: stage === first, pointerTo: null, pointerStages: [] };
   const acts = optionStages.map((st) => actingOn(st, served)).filter((a) => a.length > 0);
   const own = acts.some((a) => a.length === 1 && a[0] === stage) || (stage === 'transcription' && hasTurnDetection);
   const sharedHere = acts.some((a) => a.length > 1 && a[0] === stage);
   const elsewhere = acts.filter((a) => a.length > 1 && a[0] !== stage && a.includes(stage));
   const pointerTo = elsewhere.length > 0 ? elsewhere[0][0] : null;
   const pointerStages = RUN_STAGES.filter((s) => elsewhere.some((a) => a.includes(s)));
-  return { has: own || sharedHere || pointerTo !== null, pointerTo, pointerStages };
+  // `rows`: the card draws options of its own (not only the pointer to another card's).
+  return { has: own || sharedHere || pointerTo !== null, rows: own || sharedHere, pointerTo, pointerStages };
 }

@@ -1362,7 +1362,6 @@
     "account": {
       "label": "Account",
       "personal": "Personal",
-      "payerUnknown": "Account",
       "lowBalance": "Account — balance too low to start a session",
       "unverified": "Account — e-mail not verified"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Needs a key",
         "needsModel": "Needs a model",
         "needsSignIn": "Needs a sign-in",
-        "ready": "Ready",
-        "off": "Off"
+        "ready": "Ready"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",
@@ -1851,14 +1849,18 @@
         "hint": "Voices are kept per language: these are the ones this language pair uses.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "None",
       "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written.",
       "alsoFiles": "Also transcribes imported files and records again.",
       "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out.",
       "wordsUnused": "Word list: this model cannot use it.",
       "wordsLeftOut_one": "Word list: {{count}} entry over this service’s limit is left out.",
       "notesKizunaPrice": "Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.",
-      "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written."
+      "notesNeedSignInOrKey": "Sign in, or add an OpenAI key in Accounts and keys, to have notes written.",
+      "jointCard": "{{stages}} go over one connection; they change together.",
+      "notesKizunaLine": "OpenAI writes the notes through Kizuna AI, paid from your balance.",
+      "notesOpenAiLine": "Writes the notes with your own OpenAI key.",
+      "notesNeedSignInOrChoose": "Sign in, or choose OpenAI here, to have notes written.",
+      "notesNeedSignInOrKeyAndChoose": "Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written."
     },
     "display": {
       "surface": "Which display",
@@ -1893,12 +1895,13 @@
       "source": "Source",
       "flow": {
         "myMic": "My microphone",
-        "toSpeech": "Into speech",
         "toThem": "Virtual mic → the other side",
         "theirVoice": "The other side's voice",
         "myDevice": "My playback device",
         "caption": "Where the sound goes. Lit lines are on now, dashed ones off; they follow the switches below.",
-        "aria": "Where the sound goes: what I say, turned into speech, goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says, turned into speech, plays on my playback device."
+        "translate": "Translate",
+        "speech": "Speech",
+        "ariaSteps": "Where the sound goes: what I say is translated, then made into speech that goes into the virtual microphone for the other side, and plays on my side too when I hear it; what the other side says is translated, then made into speech that plays on my playback device. With a speech switch off, the translation is made but not spoken."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Refresh",
     "moveOneToBin": "Move to bin",
     "export": "Export",
-    "copyText": "Copy text",
     "copied": "Copied.",
     "copyFailed": "Could not copy. Check the clipboard permission.",
-    "saveTxt": "Save as .txt",
-    "saveJson": "Save as .json",
     "saveSrt": "Save subtitles (.srt)",
     "saveVtt": "Save subtitles (.vtt)",
     "folder": "History folder",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Save the other side’s recording",
     "notesAfterSession": "Write notes after each session",
     "notesLine": "When a session ends, {{service}} writes its notes from the transcript.",
-    "notesNoService": "Choose a notes service in Languages and line-up first.",
     "notesExplainTitle": "Before notes are written",
     "notesExplain": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "notesTurnOn": "Turn on",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Model name",
     "notesExplainKizuna": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list go through Kizuna AI’s server to OpenAI, which writes the notes. Kizuna AI keeps none of it. It is paid from the balance that pays for your sessions. Never the audio or the translation.",
     "liveExplainKizuna": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them), the notes so far and the spellings in your word list go through Kizuna AI’s server to OpenAI, which writes the notes. Kizuna AI keeps none of it. It is paid from the balance that pays for your sessions. Never the audio or the translation.",
-    "notesModelKizuna": "Kizuna AI writes the notes with {{model}}."
+    "notesModelKizuna": "Kizuna AI writes the notes with {{model}}.",
+    "copyConversation": "Copy the conversation",
+    "saveConversationTxt": "Save the conversation (.txt)",
+    "saveConversationJson": "Save the conversation (.json)",
+    "editSave": "Save",
+    "editSaveHint": "Save (Enter)",
+    "editCancelHint": "Cancel (Esc)",
+    "speakersHint": "Click a name to rename the speaker. To give one sentence to someone else, use the “Change speaker” button beside it in the transcript.",
+    "sidePanel": "Side panel",
+    "openSidePanel": "Open the side panel",
+    "closeSidePanel": "Close the side panel"
   },
   "notesQuit": {
     "named": "Notes are being written for “{{title}}”. Quit anyway? They will be marked cancelled.",

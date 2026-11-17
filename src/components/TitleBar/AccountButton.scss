@@ -34,6 +34,21 @@
     flex-shrink: 0;
   }
 
+  // Who pays: its name (a long one cut short, whole in the tooltip), or, where the title bar has no room for it, its
+  // icon, centred on the bar's line like the other 14px icons (TitleBar's data-fit, titleBarFit.ts).
+  &__payer {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  &__payer-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__payer-icon { display: none; }
+
   &__dot {
     position: absolute;
     right: 6px;
@@ -48,4 +63,10 @@
     &[data-tone='low'] { background: tk.$color-error; }
     &[data-tone='unverified'] { background: tk.$color-usage; }
   }
+}
+
+// From the bar's first step on, who pays is an icon.
+.title-bar:not([data-fit='0']) .account-button {
+  .account-button__payer-name { display: none; }
+  .account-button__payer-icon { display: block; }
 }

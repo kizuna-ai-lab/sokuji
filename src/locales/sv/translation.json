@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Konto",
       "personal": "Personligt",
-      "payerUnknown": "Konto",
       "lowBalance": "Konto — saldot är för lågt för att starta en session",
       "unverified": "Konto — e-post inte verifierad"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Behöver en nyckel",
         "needsModel": "Behöver en modell",
         "needsSignIn": "Kräver inloggning",
-        "ready": "Klar",
-        "off": "Av"
+        "ready": "Klar"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
       "hint": "Vilken tjänst som gör varje steg",
@@ -1851,14 +1849,18 @@
         "hint": "Röster sparas per språk: det här är rösterna för det här språkparet.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Ingen",
       "notesNeedKey": "Lägg till en OpenAI-nyckel under ”Konton och nycklar” så skrivs anteckningar.",
       "alsoFiles": "Transkriberar även importerade filer och poster igen.",
       "wordsLeftOut": "Ordlista: {{count}} poster över tjänstens gräns utelämnas.",
       "wordsUnused": "Ordlista: den här modellen kan inte använda den.",
       "wordsLeftOut_one": "Ordlista: {{count}} post över den här tjänstens gräns utelämnas.",
       "notesKizunaPrice": "Kizuna AI:s uppskattning: liveanteckningar cirka {{live}} i timmen, anteckningar efter en session cirka {{after}} i timmen, betalas från saldot som betalar dina sessioner.",
-      "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar."
+      "notesNeedSignInOrKey": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar”, så skrivs anteckningar.",
+      "jointCard": "{{stages}} går över en anslutning; de byts tillsammans.",
+      "notesKizunaLine": "OpenAI skriver anteckningarna via Kizuna AI, betalas från ditt saldo.",
+      "notesOpenAiLine": "Skriver anteckningarna med din egen OpenAI-nyckel.",
+      "notesNeedSignInOrChoose": "Logga in, eller välj OpenAI här, så skrivs anteckningar.",
+      "notesNeedSignInOrKeyAndChoose": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar” och välj OpenAI här, så skrivs anteckningar."
     },
     "display": {
       "surface": "Vilken visning",
@@ -1893,12 +1895,13 @@
       "source": "Källa",
       "flow": {
         "myMic": "Min mikrofon",
-        "toSpeech": "Till tal",
         "toThem": "Virtuell mikrofon → andra sidan",
         "theirVoice": "Andra sidans röst",
         "myDevice": "Min uppspelningsenhet",
         "caption": "Vart ljudet går. Ljusa linjer är på nu, streckade av; de följer reglagen nedanför.",
-        "aria": "Vart ljudet går: det jag säger blir tal och går till den virtuella mikrofonen för andra sidan, och spelas också hos mig när jag lyssnar; det andra sidan säger blir tal och spelas på min uppspelningsenhet."
+        "translate": "Översätt",
+        "speech": "Talsyntes",
+        "ariaSteps": "Vart ljudet går: det jag säger översätts och blir sedan tal som går till den virtuella mikrofonen för andra sidan och spelas också hos mig när jag lyssnar; det andra sidan säger översätts och blir sedan tal som spelas på min uppspelningsenhet. När en talströmbrytare är av översätts det men sägs inte."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Uppdatera",
     "moveOneToBin": "Flytta till papperskorgen",
     "export": "Exportera",
-    "copyText": "Kopiera text",
     "copied": "Kopierat.",
     "copyFailed": "Det gick inte att kopiera. Kontrollera behörigheten för urklipp.",
-    "saveTxt": "Spara som .txt",
-    "saveJson": "Spara som .json",
     "saveSrt": "Spara undertexter (.srt)",
     "saveVtt": "Spara undertexter (.vtt)",
     "folder": "Historikmapp",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Spara inspelningen från andra sidan",
     "notesAfterSession": "Skriv anteckningar efter varje session",
     "notesLine": "När en session slutar skriver {{service}} anteckningarna utifrån transkriptionen.",
-    "notesNoService": "Välj först en tjänst för anteckningarna under ”Språk och uppsättning”.",
     "notesExplainTitle": "Innan anteckningar skrivs",
     "notesExplain": "För varje session skickas meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista till {{service}} med din egen nyckel. Aldrig ljudet, översättningen eller ditt konto.",
     "notesTurnOn": "Slå på",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Modellnamn",
     "notesExplainKizuna": "För varje session går meningarnas text, deras nummer, vilken sida och talare som sa dem samt stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
     "liveExplainKizuna": "Under en session går var 20:e sekund de nya meningarna (deras text, nummer och vilken sida och talare som sa dem), anteckningarna hittills och stavningarna i din ordlista via Kizuna AI:s server till OpenAI, som skriver anteckningarna. Kizuna AI sparar inget av det. Det betalas från saldot som betalar dina sessioner. Aldrig ljudet eller översättningen.",
-    "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}."
+    "notesModelKizuna": "Kizuna AI skriver anteckningarna med {{model}}.",
+    "copyConversation": "Kopiera samtalet",
+    "saveConversationTxt": "Spara samtalet (.txt)",
+    "saveConversationJson": "Spara samtalet (.json)",
+    "editSave": "Spara",
+    "editSaveHint": "Spara (Enter)",
+    "editCancelHint": "Avbryt (Esc)",
+    "speakersHint": "Klicka på ett namn för att byta namn på talaren. Om du vill ge en mening till någon annan använder du knappen ”Byt talare” bredvid den i transkriptionen.",
+    "sidePanel": "Sidopanel",
+    "openSidePanel": "Öppna sidopanelen",
+    "closeSidePanel": "Stäng sidopanelen"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

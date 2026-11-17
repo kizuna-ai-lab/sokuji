@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Tili",
       "personal": "Henkilökohtainen",
-      "payerUnknown": "Tili",
       "lowBalance": "Tili — saldo ei riitä istunnon aloittamiseen",
       "unverified": "Tili — sähköpostia ei ole vahvistettu"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Tarvitsee avaimen",
         "needsModel": "Tarvitsee mallin",
         "needsSignIn": "Vaatii kirjautumisen",
-        "ready": "Valmis",
-        "off": "Pois"
+        "ready": "Valmis"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",
@@ -1851,14 +1849,18 @@
         "hint": "Äänet tallennetaan kielittäin: nämä ovat tämän kieliparin äänet.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Ei mitään",
       "notesNeedKey": "Lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
       "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen.",
       "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois.",
       "wordsUnused": "Sanalista: tämä malli ei voi käyttää sitä.",
       "wordsLeftOut_one": "Sanalista: {{count}} tämän palvelun rajan ylittävä kohta jätetään pois.",
       "notesKizunaPrice": "Kizuna AI:n arvio: reaaliaikaiset muistiinpanot noin {{live}} tunnissa, istunnon jälkeiset muistiinpanot noin {{after}} tunnissa, maksetaan saldosta, josta istuntosi maksetaan.",
-      "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan."
+      "notesNeedSignInOrKey": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
+      "jointCard": "{{stages}} kulkevat yhden yhteyden kautta; ne vaihtuvat yhdessä.",
+      "notesKizunaLine": "OpenAI kirjoittaa muistiinpanot Kizuna AI:n kautta, maksetaan saldostasi.",
+      "notesOpenAiLine": "Kirjoittaa muistiinpanot omalla OpenAI-avaimellasi.",
+      "notesNeedSignInOrChoose": "Kirjaudu sisään tai valitse tästä OpenAI, niin muistiinpanot kirjoitetaan.",
+      "notesNeedSignInOrKeyAndChoose": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet” ja valitse tästä OpenAI, niin muistiinpanot kirjoitetaan."
     },
     "display": {
       "surface": "Mikä näkymä",
@@ -1893,12 +1895,13 @@
       "source": "Lähde",
       "flow": {
         "myMic": "Mikrofonini",
-        "toSpeech": "Puheeksi",
         "toThem": "Virtuaalimikki → toinen osapuoli",
         "theirVoice": "Toisen osapuolen ääni",
         "myDevice": "Toistolaitteeni",
         "caption": "Mihin ääni kulkee. Kirkkaat viivat ovat nyt päällä, katkoviivat pois; ne seuraavat alla olevia kytkimiä.",
-        "aria": "Mihin ääni kulkee: sanomani muuttuu puheeksi ja menee virtuaalimikrofoniin toiselle osapuolelle, ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma muuttuu puheeksi ja soi toistolaitteestani."
+        "translate": "Käännös",
+        "speech": "Puhe",
+        "ariaSteps": "Mihin ääni kulkee: sanomani käännetään ja muutetaan sitten puheeksi, joka menee virtuaalimikrofoniin toiselle osapuolelle ja soi myös minulle, kun kuuntelen; toisen osapuolen sanoma käännetään ja muutetaan sitten puheeksi, joka soi toistolaitteessani. Kun puheen kytkin on pois päältä, käännös tehdään mutta sitä ei puhuta."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Päivitä",
     "moveOneToBin": "Siirrä roskakoriin",
     "export": "Vie",
-    "copyText": "Kopioi teksti",
     "copied": "Kopioitu.",
     "copyFailed": "Kopiointi ei onnistunut. Tarkista leikepöydän käyttöoikeus.",
-    "saveTxt": "Tallenna .txt-tiedostona",
-    "saveJson": "Tallenna .json-tiedostona",
     "saveSrt": "Tallenna tekstitys (.srt)",
     "saveVtt": "Tallenna tekstitys (.vtt)",
     "folder": "Historiakansio",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Tallenna toisen osapuolen äänite",
     "notesAfterSession": "Kirjoita muistiinpanot jokaisen istunnon jälkeen",
     "notesLine": "Kun istunto päättyy, {{service}} kirjoittaa sen muistiinpanot litteroinnista.",
-    "notesNoService": "Valitse ensin muistiinpanojen palvelu kohdassa ”Kielet ja kokoonpano”.",
     "notesExplainTitle": "Ennen kuin muistiinpanoja kirjoitetaan",
     "notesExplain": "Jokaisesta istunnosta lähetetään {{service}}-palveluun omalla avaimellasi sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut. Ei koskaan ääntä, käännöstä eikä tiliäsi.",
     "notesTurnOn": "Ota käyttöön",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Mallin nimi",
     "notesExplainKizuna": "Jokaisesta istunnosta sen lauseiden teksti, niiden numerot, kumpi osapuoli ja kuka puhuja ne sanoi sekä sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
     "liveExplainKizuna": "Istunnon aikana 20 sekunnin välein uudet lauseet (niiden teksti, numerot ja kumpi osapuoli ja kuka puhuja ne sanoi), tähänastiset muistiinpanot ja sanalistasi kirjoitusasut kulkevat Kizuna AI:n palvelimen kautta OpenAI:lle, joka kirjoittaa muistiinpanot. Kizuna AI ei säilytä niistä mitään. Se maksetaan saldosta, josta istuntosi maksetaan. Ei koskaan ääntä tai käännöstä.",
-    "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}."
+    "notesModelKizuna": "Kizuna AI kirjoittaa muistiinpanot mallilla {{model}}.",
+    "copyConversation": "Kopioi keskustelu",
+    "saveConversationTxt": "Tallenna keskustelu (.txt)",
+    "saveConversationJson": "Tallenna keskustelu (.json)",
+    "editSave": "Tallenna",
+    "editSaveHint": "Tallenna (Enter)",
+    "editCancelHint": "Peruuta (Esc)",
+    "speakersHint": "Nimeä puhuja uudelleen napsauttamalla nimeä. Jos haluat antaa yhden lauseen jollekulle toiselle, käytä litteroinnissa sen vieressä olevaa Vaihda puhuja -painiketta.",
+    "sidePanel": "Sivupaneeli",
+    "openSidePanel": "Avaa sivupaneeli",
+    "closeSidePanel": "Sulje sivupaneeli"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

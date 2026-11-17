@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Cuenta",
       "personal": "Personal",
-      "payerUnknown": "Cuenta",
       "lowBalance": "Cuenta — saldo insuficiente para iniciar una sesión",
       "unverified": "Cuenta — correo sin verificar"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Necesita una clave",
         "needsModel": "Necesita un modelo",
         "needsSignIn": "Requiere iniciar sesión",
-        "ready": "Listo",
-        "off": "Desactivado"
+        "ready": "Listo"
       },
       "speechModeHint": "Cuándo se envía un tramo de voz a traducir; fijo durante la sesión",
       "hint": "Qué servicio hace cada etapa",
@@ -1851,14 +1849,18 @@
         "hint": "Las voces se guardan por idioma: estas son las que usa este par de idiomas.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Ninguno",
       "notesNeedKey": "Añade una clave de OpenAI en «Cuentas y claves» para que se escriban las notas.",
       "alsoFiles": "También transcribe los archivos importados y vuelve a transcribir registros.",
       "wordsLeftOut": "Lista de palabras: se omiten {{count}} entradas que superan el límite de este servicio.",
       "wordsUnused": "Lista de palabras: este modelo no puede usarla.",
       "wordsLeftOut_one": "Lista de palabras: se omite {{count}} entrada que supera el límite de este servicio.",
       "notesKizunaPrice": "Estimación de Kizuna AI: notas en directo unos {{live}} por hora, notas después de una sesión unos {{after}} por hora, pagadas con el saldo que paga tus sesiones.",
-      "notesNeedSignInOrKey": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves», para que se escriban las notas."
+      "notesNeedSignInOrKey": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves», para que se escriban las notas.",
+      "jointCard": "{{stages}} van por una sola conexión; cambian juntas.",
+      "notesKizunaLine": "OpenAI escribe las notas a través de Kizuna AI, pagadas con tu saldo.",
+      "notesOpenAiLine": "Escribe las notas con tu propia clave de OpenAI.",
+      "notesNeedSignInOrChoose": "Inicia sesión, o elige OpenAI aquí, para que se escriban las notas.",
+      "notesNeedSignInOrKeyAndChoose": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves» y elige OpenAI aquí, para que se escriban las notas."
     },
     "display": {
       "surface": "Qué visualización",
@@ -1893,12 +1895,13 @@
       "source": "Fuente",
       "flow": {
         "myMic": "Mi micrófono",
-        "toSpeech": "A voz",
         "toThem": "Micro virtual → la otra parte",
         "theirVoice": "La voz de la otra parte",
         "myDevice": "Mi dispositivo de reproducción",
         "caption": "Adónde va el sonido. Las líneas iluminadas están activas, las discontinuas no; siguen los interruptores de abajo.",
-        "aria": "Adónde va el sonido: lo que digo, convertido en voz, va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte, convertido en voz, suena en mi dispositivo de reproducción."
+        "translate": "Traducir",
+        "speech": "Generar voz",
+        "ariaSteps": "Adónde va el sonido: lo que digo se traduce y luego se convierte en voz, que va al micrófono virtual para la otra parte y suena también de mi lado si lo escucho; lo que dice la otra parte se traduce y luego se convierte en voz, que suena en mi dispositivo de reproducción. Con un interruptor de voz apagado, se traduce pero no se habla."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Actualizar",
     "moveOneToBin": "Mover a la papelera",
     "export": "Exportar",
-    "copyText": "Copiar texto",
     "copied": "Copiado.",
     "copyFailed": "No se pudo copiar. Revisa el permiso del portapapeles.",
-    "saveTxt": "Guardar como .txt",
-    "saveJson": "Guardar como .json",
     "saveSrt": "Guardar subtítulos (.srt)",
     "saveVtt": "Guardar subtítulos (.vtt)",
     "folder": "Carpeta del historial",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Guardar la grabación del otro lado",
     "notesAfterSession": "Escribir notas después de cada sesión",
     "notesLine": "Cuando termina una sesión, {{service}} escribe sus notas a partir de la transcripción.",
-    "notesNoService": "Primero elige un servicio para las notas en «Idiomas y combinación».",
     "notesExplainTitle": "Antes de escribir notas",
     "notesExplain": "De cada sesión se envían a {{service}}, con tu propia clave, el texto de sus frases, sus números, qué lado y qué hablante las dijo y las grafías de tu lista de palabras. Nunca el audio, la traducción ni tu cuenta.",
     "notesTurnOn": "Activar",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Nombre del modelo",
     "notesExplainKizuna": "De cada sesión, el texto de sus frases, sus números, qué lado y qué hablante las dijo y las grafías de tu lista de palabras pasan por el servidor de Kizuna AI hasta OpenAI, que escribe las notas. Kizuna AI no guarda nada de ello. Se paga con el saldo que paga tus sesiones. Nunca el audio ni la traducción.",
     "liveExplainKizuna": "Durante una sesión, cada 20 segundos las frases nuevas (su texto, sus números y qué lado y qué hablante las dijo), las notas hasta el momento y las grafías de tu lista de palabras pasan por el servidor de Kizuna AI hasta OpenAI, que escribe las notas. Kizuna AI no guarda nada de ello. Se paga con el saldo que paga tus sesiones. Nunca el audio ni la traducción.",
-    "notesModelKizuna": "Kizuna AI escribe las notas con {{model}}."
+    "notesModelKizuna": "Kizuna AI escribe las notas con {{model}}.",
+    "copyConversation": "Copiar la conversación",
+    "saveConversationTxt": "Guardar la conversación (.txt)",
+    "saveConversationJson": "Guardar la conversación (.json)",
+    "editSave": "Guardar",
+    "editSaveHint": "Guardar (Intro)",
+    "editCancelHint": "Cancelar (Esc)",
+    "speakersHint": "Haz clic en un nombre para cambiar el nombre del hablante. Para asignar una frase a otra persona, usa el botón «Cambiar de hablante» junto a ella en la transcripción.",
+    "sidePanel": "Panel lateral",
+    "openSidePanel": "Abrir el panel lateral",
+    "closeSidePanel": "Cerrar el panel lateral"
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

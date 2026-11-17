@@ -26,9 +26,20 @@ describe("a record's export", () => {
     Object.assign(navigator, { clipboard: { writeText } });
     render(<RecordExportMenu record={record} legs={[]} rows={rows} transcript={file} />);
     fireEvent.click(screen.getByRole('button', { name: /Export/ }));
-    const copy = screen.getByRole('menuitem', { name: 'Copy text' }) as HTMLButtonElement;
+    const copy = screen.getByRole('menuitem', { name: 'Copy the conversation' }) as HTMLButtonElement;
     expect(copy.disabled).toBe(false);
     await act(async () => { fireEvent.click(copy); });
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Speaker 1\n  Welcome. Let us start.'));
+  });
+
+  // Owner, 2026-11-17: the conversation's items say they are the conversation, as the subtitles' and the notes' do;
+  // and copying comes before saving, the notes' too.
+  it('names what each item copies or saves, copying first', () => {
+    render(<RecordExportMenu record={record} legs={[]} rows={rows} transcript={file} />);
+    fireEvent.click(screen.getByRole('button', { name: /Export/ }));
+    const names = screen.getAllByRole('menuitem').map((m) => m.textContent);
+    expect(names.slice(0, 3)).toEqual(['Copy the conversation', 'Save the conversation (.txt)', 'Save the conversation (.json)']);
+    const notes = names.filter((n) => /notes/.test(n ?? ''));
+    expect(notes).toEqual(['Copy notes', 'Save notes (.md)', 'Save notes (.txt)']);
   });
 });

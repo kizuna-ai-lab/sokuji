@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Tài khoản",
       "personal": "Cá nhân",
-      "payerUnknown": "Tài khoản",
       "lowBalance": "Tài khoản — số dư quá thấp để bắt đầu phiên",
       "unverified": "Tài khoản — email chưa được xác minh"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Cần khóa",
         "needsModel": "Cần mô hình",
         "needsSignIn": "Cần đăng nhập",
-        "ready": "Sẵn sàng",
-        "off": "Tắt"
+        "ready": "Sẵn sàng"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",
@@ -1851,14 +1849,18 @@
         "hint": "Giọng được lưu theo từng ngôn ngữ: đây là giọng của cặp ngôn ngữ này.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Không",
       "notesNeedKey": "Thêm khóa OpenAI trong “Tài khoản và khóa” để ghi chú được viết.",
       "alsoFiles": "Cũng chép lời tệp đã nhập và chép lời lại bản ghi.",
       "wordsLeftOut": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này bị bỏ qua.",
       "wordsUnused": "Danh sách từ: mô hình này không dùng được.",
       "wordsLeftOut_one": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này không được gửi.",
       "notesKizunaPrice": "Ước tính của Kizuna AI: ghi chú trực tiếp khoảng {{live}} mỗi giờ, ghi chú sau phiên khoảng {{after}} mỗi giờ, trả từ số dư dùng để trả cho các phiên của bạn.",
-      "notesNeedSignInOrKey": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa”, để ghi chú được viết."
+      "notesNeedSignInOrKey": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa”, để ghi chú được viết.",
+      "jointCard": "{{stages}} đi qua một kết nối; chúng đổi cùng nhau.",
+      "notesKizunaLine": "OpenAI viết ghi chú qua Kizuna AI, trả từ số dư của bạn.",
+      "notesOpenAiLine": "Viết ghi chú bằng khóa OpenAI của chính bạn.",
+      "notesNeedSignInOrChoose": "Đăng nhập, hoặc chọn OpenAI ở đây, để ghi chú được viết.",
+      "notesNeedSignInOrKeyAndChoose": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa” rồi chọn OpenAI ở đây, để ghi chú được viết."
     },
     "display": {
       "surface": "Hiển thị nào",
@@ -1893,12 +1895,13 @@
       "source": "Nguồn",
       "flow": {
         "myMic": "Micrô của tôi",
-        "toSpeech": "Thành giọng nói",
         "toThem": "Micrô ảo → phía bên kia",
         "theirVoice": "Giọng phía bên kia",
         "myDevice": "Thiết bị phát của tôi",
         "caption": "Âm thanh đi đâu. Đường sáng là đang bật, đường nét đứt là tắt; thay đổi theo các công tắc bên dưới.",
-        "aria": "Âm thanh đi đâu: điều tôi nói được chuyển thành giọng nói, đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được chuyển thành giọng nói và phát trên thiết bị phát của tôi."
+        "translate": "Dịch",
+        "speech": "Tạo giọng nói",
+        "ariaSteps": "Âm thanh đi đâu: điều tôi nói được dịch, rồi chuyển thành giọng nói đi vào micrô ảo cho phía bên kia, và phát cả bên tôi khi tôi nghe; điều phía bên kia nói được dịch, rồi chuyển thành giọng nói phát trên thiết bị phát của tôi. Khi tắt công tắc giọng nói, bản dịch vẫn được tạo nhưng không được đọc."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "Làm mới",
     "moveOneToBin": "Chuyển vào thùng rác",
     "export": "Xuất",
-    "copyText": "Sao chép văn bản",
     "copied": "Đã sao chép.",
     "copyFailed": "Không sao chép được. Hãy kiểm tra quyền truy cập bảng nhớ tạm.",
-    "saveTxt": "Lưu dạng .txt",
-    "saveJson": "Lưu dạng .json",
     "saveSrt": "Lưu phụ đề (.srt)",
     "saveVtt": "Lưu phụ đề (.vtt)",
     "folder": "Thư mục lịch sử",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "Lưu bản ghi âm phía bên kia",
     "notesAfterSession": "Viết ghi chú sau mỗi phiên",
     "notesLine": "Khi phiên kết thúc, {{service}} viết ghi chú từ bản ghi lời.",
-    "notesNoService": "Trước tiên hãy chọn dịch vụ cho ghi chú trong “Ngôn ngữ và cách phối hợp”.",
     "notesExplainTitle": "Trước khi viết ghi chú",
     "notesExplain": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng, phía nào và người nói nào đã nói, cùng cách viết trong danh sách từ của bạn được gửi đến {{service}} bằng khóa của chính bạn. Không bao giờ gửi âm thanh, bản dịch hay tài khoản của bạn.",
     "notesTurnOn": "Bật",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Tên mô hình",
     "notesExplainKizuna": "Với mỗi phiên, văn bản các câu, số thứ tự của chúng, phía nào và người nói nào đã nói, cùng cách viết trong danh sách từ của bạn đi qua máy chủ của Kizuna AI đến OpenAI, nơi viết ghi chú. Kizuna AI không lưu lại gì trong số đó. Chi phí được trả từ số dư dùng để trả cho các phiên của bạn. Không bao giờ gửi âm thanh hay bản dịch.",
     "liveExplainKizuna": "Trong phiên, cứ mỗi 20 giây các câu mới (văn bản, số thứ tự, và phía nào, người nói nào đã nói), ghi chú đến lúc đó và cách viết trong danh sách từ của bạn đi qua máy chủ của Kizuna AI đến OpenAI, nơi viết ghi chú. Kizuna AI không lưu lại gì trong số đó. Chi phí được trả từ số dư dùng để trả cho các phiên của bạn. Không bao giờ gửi âm thanh hay bản dịch.",
-    "notesModelKizuna": "Kizuna AI viết ghi chú bằng {{model}}."
+    "notesModelKizuna": "Kizuna AI viết ghi chú bằng {{model}}.",
+    "copyConversation": "Sao chép cuộc trò chuyện",
+    "saveConversationTxt": "Lưu cuộc trò chuyện (.txt)",
+    "saveConversationJson": "Lưu cuộc trò chuyện (.json)",
+    "editSave": "Lưu",
+    "editSaveHint": "Lưu (Enter)",
+    "editCancelHint": "Hủy (Esc)",
+    "speakersHint": "Nhấp vào tên để đổi tên người nói. Để chuyển một câu cho người khác, dùng nút “Đổi người nói” bên cạnh câu đó trong bản ghi lời.",
+    "sidePanel": "Bảng bên",
+    "openSidePanel": "Mở bảng bên",
+    "closeSidePanel": "Đóng bảng bên"
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

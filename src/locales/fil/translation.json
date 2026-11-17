@@ -1133,7 +1133,6 @@
     "account": {
       "label": "Account",
       "personal": "Personal",
-      "payerUnknown": "Account",
       "lowBalance": "Account — masyadong mababa ang balanse para magsimula ng session",
       "unverified": "Account — hindi pa na-verify ang email"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "Kailangan ng key",
         "needsModel": "Kailangan ng model",
         "needsSignIn": "Kailangang mag-sign in",
-        "ready": "Handa",
-        "off": "Naka-off"
+        "ready": "Handa"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
@@ -1851,14 +1849,18 @@
         "hint": "Nakatabi ang mga boses ayon sa wika: ito ang mga ginagamit ng pares ng wikang ito.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "Wala",
       "notesNeedKey": "Magdagdag ng OpenAI key sa “Mga account at key” para maisulat ang mga tala.",
       "alsoFiles": "Nagta-transcribe din ng mga na-import na file at muli ng mga rekord.",
       "wordsLeftOut": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi isinasama.",
       "wordsUnused": "Listahan ng salita: hindi ito magagamit ng model na ito.",
       "wordsLeftOut_one": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi ipinadala.",
       "notesKizunaPrice": "Tantiya ng Kizuna AI: live na tala mga {{live}} kada oras, tala pagkatapos ng session mga {{after}} kada oras, binabayaran mula sa balanseng nagbabayad sa mga session mo.",
-      "notesNeedSignInOrKey": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key”, para maisulat ang mga tala."
+      "notesNeedSignInOrKey": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key”, para maisulat ang mga tala.",
+      "jointCard": "Magkasama sa iisang koneksyon ang {{stages}}; sabay silang nagbabago.",
+      "notesKizunaLine": "Isinusulat ng OpenAI ang mga tala sa pamamagitan ng Kizuna AI, bayad mula sa iyong balanse.",
+      "notesOpenAiLine": "Isinusulat ang mga tala gamit ang sarili mong OpenAI key.",
+      "notesNeedSignInOrChoose": "Mag-sign in, o piliin ang OpenAI dito, para maisulat ang mga tala.",
+      "notesNeedSignInOrKeyAndChoose": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key” at piliin ang OpenAI dito, para maisulat ang mga tala."
     },
     "display": {
       "surface": "Aling display",
@@ -1893,12 +1895,13 @@
       "source": "Pinagmulan",
       "flow": {
         "myMic": "Mikropono ko",
-        "toSpeech": "Gawing boses",
         "toThem": "Virtual mic → kabilang panig",
         "theirVoice": "Boses ng kabilang panig",
         "myDevice": "Device ko sa pag-play",
         "caption": "Saan napupunta ang tunog. Naka-on ngayon ang maliliwanag na linya, naka-off ang putol-putol; sumusunod sila sa mga switch sa ibaba.",
-        "aria": "Saan napupunta ang tunog: ang sinasabi ko, ginawang boses, ay pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig, ginawang boses, ay tumutugtog sa device ko."
+        "translate": "Isalin",
+        "speech": "Gawing boses",
+        "ariaSteps": "Saan napupunta ang tunog: ang sinasabi ko ay isinasalin, saka ginagawang boses na pumupunta sa virtual mic para sa kabilang panig, at tumutugtog din sa akin kapag nakikinig ako; ang sinasabi ng kabilang panig ay isinasalin, saka ginagawang boses na tumutugtog sa aking playback device. Kapag naka-off ang switch ng boses, may salin pero hindi ito binibigkas."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "I-refresh",
     "moveOneToBin": "Ilipat sa basurahan",
     "export": "I-export",
-    "copyText": "Kopyahin ang teksto",
     "copied": "Nakopya na.",
     "copyFailed": "Hindi makopya. Tingnan ang pahintulot sa clipboard.",
-    "saveTxt": "I-save bilang .txt",
-    "saveJson": "I-save bilang .json",
     "saveSrt": "I-save ang subtitle (.srt)",
     "saveVtt": "I-save ang subtitle (.vtt)",
     "folder": "Folder ng Kasaysayan",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "I-save ang recording ng kabilang panig",
     "notesAfterSession": "Magsulat ng mga tala pagkatapos ng bawat session",
     "notesLine": "Kapag natapos ang session, isinusulat ng {{service}} ang mga tala nito mula sa transcript.",
-    "notesNoService": "Pumili muna ng serbisyo para sa mga tala sa “Mga wika at line-up”.",
     "notesExplainTitle": "Bago isulat ang mga tala",
     "notesExplain": "Para sa bawat session, ipinapadala sa {{service}} gamit ang sarili mong key ang teksto ng mga pangungusap nito, ang mga numero nila, kung aling panig at aling tagapagsalita ang nagsabi, at ang mga baybay sa listahan ng salita mo. Hindi kailanman ang audio, ang salin o ang account mo.",
     "notesTurnOn": "I-on",
@@ -2144,7 +2143,17 @@
     "notesModelName": "Pangalan ng model",
     "notesExplainKizuna": "Para sa bawat session, ang teksto ng mga pangungusap nito, ang mga numero nila, kung aling panig at aling tagapagsalita ang nagsabi, at ang mga baybay sa listahan ng salita mo ay dumadaan sa server ng Kizuna AI papunta sa OpenAI, na siyang sumusulat ng mga tala. Walang itinatago ang Kizuna AI rito. Binabayaran ito mula sa balanseng nagbabayad sa mga session mo. Hindi kailanman ang audio o ang salin.",
     "liveExplainKizuna": "Habang may session, bawat 20 segundo ang mga bagong pangungusap (ang teksto, numero, at kung aling panig at aling tagapagsalita ang nagsabi), ang mga tala sa ngayon at ang mga baybay sa listahan ng salita mo ay dumadaan sa server ng Kizuna AI papunta sa OpenAI, na siyang sumusulat ng mga tala. Walang itinatago ang Kizuna AI rito. Binabayaran ito mula sa balanseng nagbabayad sa mga session mo. Hindi kailanman ang audio o ang salin.",
-    "notesModelKizuna": "Isinusulat ng Kizuna AI ang mga tala gamit ang {{model}}."
+    "notesModelKizuna": "Isinusulat ng Kizuna AI ang mga tala gamit ang {{model}}.",
+    "copyConversation": "Kopyahin ang usapan",
+    "saveConversationTxt": "I-save ang usapan (.txt)",
+    "saveConversationJson": "I-save ang usapan (.json)",
+    "editSave": "I-save",
+    "editSaveHint": "I-save (Enter)",
+    "editCancelHint": "Kanselahin (Esc)",
+    "speakersHint": "I-click ang pangalan para palitan ang pangalan ng nagsasalita. Para ibigay ang isang pangungusap sa iba, gamitin ang button na “Palitan ang nagsasalita” sa tabi nito sa transcript.",
+    "sidePanel": "Side panel",
+    "openSidePanel": "Buksan ang side panel",
+    "closeSidePanel": "Isara ang side panel"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

@@ -1133,7 +1133,6 @@
     "account": {
       "label": "계정",
       "personal": "개인",
-      "payerUnknown": "계정",
       "lowBalance": "계정 — 잔액이 부족하여 세션을 시작할 수 없습니다",
       "unverified": "계정 — 이메일이 인증되지 않았습니다"
     },
@@ -1831,8 +1830,7 @@
         "needsKey": "키 필요",
         "needsModel": "모델 필요",
         "needsSignIn": "로그인 필요",
-        "ready": "준비됨",
-        "off": "꺼짐"
+        "ready": "준비됨"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",
@@ -1851,14 +1849,18 @@
         "hint": "음성은 언어별로 저장됩니다. 여기서 바꾸는 것은 지금 언어 조합에서 쓰는 음성입니다.",
         "voiceFor": "{{who}} ({{language}})"
       },
-      "notesNone": "없음",
       "notesNeedKey": "메모를 작성하려면 ‘계정과 키’에서 OpenAI 키를 추가하세요.",
       "alsoFiles": "가져온 파일과 기록을 다시 받아 적을 때도 씁니다.",
       "wordsLeftOut": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 빠집니다.",
       "wordsUnused": "단어 목록: 이 모델은 사용할 수 없습니다.",
       "wordsLeftOut_one": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 보내지 않습니다.",
       "notesKizunaPrice": "Kizuna AI 예상 비용: 실시간 메모 시간당 약 {{live}}, 세션 후 메모 시간당 약 {{after}}. 세션 비용을 내는 잔액에서 지불됩니다.",
-      "notesNeedSignInOrKey": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가하세요."
+      "notesNeedSignInOrKey": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가하세요.",
+      "jointCard": "{{stages}}는 하나의 연결로 동작하며, 함께 바뀝니다.",
+      "notesKizunaLine": "Kizuna AI를 통해 OpenAI가 메모를 작성하며, 비용은 잔액에서 지불됩니다.",
+      "notesOpenAiLine": "본인의 OpenAI 키로 메모를 작성합니다.",
+      "notesNeedSignInOrChoose": "메모를 작성하려면 로그인하거나 여기에서 OpenAI를 선택하세요.",
+      "notesNeedSignInOrKeyAndChoose": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가한 뒤 여기에서 OpenAI를 선택하세요."
     },
     "display": {
       "surface": "어느 화면",
@@ -1893,12 +1895,13 @@
       "source": "소스",
       "flow": {
         "myMic": "내 마이크",
-        "toSpeech": "음성으로",
         "toThem": "가상 마이크 → 상대방",
         "theirVoice": "상대방 목소리",
         "myDevice": "내 재생 장치",
         "caption": "소리가 가는 길. 밝은 선은 지금 켜져 있고 점선은 꺼져 있습니다. 아래 스위치를 따라 바뀝니다.",
-        "aria": "소리가 가는 길: 내가 한 말은 음성으로 바뀌어 상대방을 위한 가상 마이크로 가고, 내가 같이 들으면 내 쪽에서도 재생됩니다. 상대방이 한 말은 음성으로 바뀌어 내 재생 장치에서 재생됩니다."
+        "translate": "번역",
+        "speech": "음성 생성",
+        "ariaSteps": "소리가 가는 길: 내가 한 말은 번역된 뒤 음성으로 바뀌어 상대방을 위한 가상 마이크로 가고, 내가 같이 들으면 내 쪽에서도 재생됩니다. 상대방이 한 말은 번역된 뒤 음성으로 바뀌어 내 재생 장치에서 재생됩니다. 음성 스위치가 꺼져 있으면 번역만 하고 음성으로는 만들지 않습니다."
       }
     },
     "general": {
@@ -1984,11 +1987,8 @@
     "refresh": "새로 고침",
     "moveOneToBin": "휴지통으로 이동",
     "export": "내보내기",
-    "copyText": "텍스트 복사",
     "copied": "복사했습니다.",
     "copyFailed": "복사하지 못했습니다. 클립보드 권한을 확인하세요.",
-    "saveTxt": ".txt로 저장",
-    "saveJson": ".json으로 저장",
     "saveSrt": "자막 저장(.srt)",
     "saveVtt": "자막 저장(.vtt)",
     "folder": "기록 폴더",
@@ -2029,7 +2029,6 @@
     "saveOtherRecording": "상대 쪽 녹음 저장",
     "notesAfterSession": "세션이 끝날 때마다 메모 작성",
     "notesLine": "세션이 끝나면 {{service}}가 전사를 바탕으로 메모를 작성합니다.",
-    "notesNoService": "먼저 ‘언어와 구성’에서 메모를 맡을 서비스를 선택하세요.",
     "notesExplainTitle": "메모를 작성하기 전에",
     "notesExplain": "세션마다 문장의 텍스트, 문장 번호, 어느 쪽의 어느 화자가 말했는지, 단어 목록의 표기가 본인의 키로 {{service}}에 전송됩니다. 음성, 번역, 계정은 절대 보내지 않습니다.",
     "notesTurnOn": "켜기",
@@ -2144,7 +2143,17 @@
     "notesModelName": "모델 이름",
     "notesExplainKizuna": "세션마다 문장의 텍스트, 문장 번호, 어느 쪽의 어느 화자가 말했는지, 단어 목록의 표기가 Kizuna AI 서버를 거쳐 OpenAI로 전송되고, OpenAI가 메모를 작성합니다. Kizuna AI는 아무것도 저장하지 않습니다. 비용은 세션 비용을 내는 잔액에서 지불됩니다. 음성과 번역은 절대 보내지 않습니다.",
     "liveExplainKizuna": "세션 중에는 20초마다 새 문장(텍스트, 번호, 어느 쪽의 어느 화자가 말했는지), 지금까지의 메모, 단어 목록의 표기가 Kizuna AI 서버를 거쳐 OpenAI로 전송되고, OpenAI가 메모를 작성합니다. Kizuna AI는 아무것도 저장하지 않습니다. 비용은 세션 비용을 내는 잔액에서 지불됩니다. 음성과 번역은 절대 보내지 않습니다.",
-    "notesModelKizuna": "Kizuna AI는 {{model}}(으)로 메모를 작성합니다."
+    "notesModelKizuna": "Kizuna AI는 {{model}}(으)로 메모를 작성합니다.",
+    "copyConversation": "대화 복사",
+    "saveConversationTxt": "대화 저장(.txt)",
+    "saveConversationJson": "대화 저장(.json)",
+    "editSave": "저장",
+    "editSaveHint": "저장(Enter)",
+    "editCancelHint": "취소(Esc)",
+    "speakersHint": "이름을 클릭하면 화자 이름을 바꿀 수 있습니다. 한 문장을 다른 사람에게 옮기려면 전사에서 그 문장 옆의 ‘화자 변경’ 버튼을 사용하세요.",
+    "sidePanel": "사이드 패널",
+    "openSidePanel": "사이드 패널 열기",
+    "closeSidePanel": "사이드 패널 닫기"
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",
