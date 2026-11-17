@@ -1811,7 +1811,9 @@
         "switchTo": "{{region}}(으)로 전환",
         "keyWorks": "키 사용 가능",
         "keyRefused": "키 거부됨",
-        "keyUnverified": "저장됨, 아직 확인 안 됨"
+        "keyUnverified": "저장됨, 아직 확인 안 됨",
+        "remove": "삭제",
+        "removeFor": "{{region}} 키 삭제"
       }
     },
     "lineup": {

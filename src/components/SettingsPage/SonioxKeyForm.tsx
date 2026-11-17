@@ -73,6 +73,15 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
     }
   };
 
+  // A key is removed from its region's row: emptying the field and saving would only look for an empty key's region.
+  const remove = (r: SonioxRegion) => {
+    keep(r, '');
+    if (r !== selected) return;
+    setDraft('');
+    setOutcome(null);
+    void useProviderStore.getState().refreshReadiness(provider, auth).then((answer) => onChecked?.(answer));
+  };
+
   // A key says what its check found, for the selected region (the one checked): saved is not working (Rudolf's review).
   const keyState = (r: SonioxRegion) => {
     if (!keyOf(r)) return t('settingsPage.accounts.soniox.noKey', 'no key');
@@ -82,9 +91,11 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
     return t('settingsPage.accounts.soniox.keyUnverified', 'key saved, not verified yet');
   };
 
-  // The selected region with no key while another has one: offer that one (the first in the usual order).
+  // A key just kept in another region: offer that one, even when the selected region still has a (refused) key.
+  // Otherwise, the selected region with no key while another has one: offer that one (the first in the usual order).
   const keyed = SONIOX_REGIONS.filter((r) => keyOf(r) !== '');
-  const elsewhere = keyOf(selected) === '' ? keyed[0] : undefined;
+  const keptElsewhere = outcome?.kind === 'saved' && outcome.region !== selected && keyOf(outcome.region) !== '' ? outcome.region : undefined;
+  const elsewhere = keptElsewhere ?? (keyOf(selected) === '' ? keyed[0] : undefined);
   const switchTo = (to: SonioxRegion) => { void requestRegionChange({ providerId: provider.id, to, origin: 'select', auth }); };
 
   return (
@@ -94,6 +105,12 @@ export function SonioxKeyForm({ provider, auth, disabled, detect, onChecked }: {
           <li key={r} className={r === selected ? 'is-selected' : undefined}>
             {label(r)}: {keyState(r)}
             {r === selected && ` ${t('settingsPage.accounts.soniox.selected', '(selected)')}`}
+            {keyOf(r) !== '' && (
+              <button type="button" className="soniox-key__remove" disabled={disabled || busy} onClick={() => remove(r)}
+                aria-label={t('settingsPage.accounts.soniox.removeFor', 'Remove the key for {{region}}', { region: label(r) })}>
+                {t('settingsPage.accounts.soniox.remove', 'Remove')}
+              </button>
+            )}
           </li>
         ))}
       </ul>

@@ -1811,7 +1811,9 @@
         "switchTo": "Mudar para {{region}}",
         "keyWorks": "a chave funciona",
         "keyRefused": "chave recusada",
-        "keyUnverified": "chave salva, ainda não verificada"
+        "keyUnverified": "chave salva, ainda não verificada",
+        "remove": "Remover",
+        "removeFor": "Remover a chave de {{region}}"
       }
     },
     "lineup": {

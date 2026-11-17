@@ -1811,7 +1811,9 @@
         "switchTo": "Overschakelen naar {{region}}",
         "keyWorks": "sleutel werkt",
         "keyRefused": "sleutel geweigerd",
-        "keyUnverified": "sleutel opgeslagen, nog niet gecontroleerd"
+        "keyUnverified": "sleutel opgeslagen, nog niet gecontroleerd",
+        "remove": "Verwijderen",
+        "removeFor": "Sleutel voor {{region}} verwijderen"
       }
     },
     "lineup": {

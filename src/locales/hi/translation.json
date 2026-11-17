@@ -1811,7 +1811,9 @@
         "switchTo": "{{region}} पर जाएँ",
         "keyWorks": "कुंजी काम करती है",
         "keyRefused": "कुंजी अस्वीकृत",
-        "keyUnverified": "कुंजी सहेजी गई, अभी सत्यापित नहीं"
+        "keyUnverified": "कुंजी सहेजी गई, अभी सत्यापित नहीं",
+        "remove": "हटाएँ",
+        "removeFor": "{{region}} की कुंजी हटाएँ"
       }
     },
     "lineup": {

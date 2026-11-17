@@ -1811,7 +1811,9 @@
         "switchTo": "{{region}}-এ যান",
         "keyWorks": "কী কাজ করছে",
         "keyRefused": "কী প্রত্যাখ্যাত",
-        "keyUnverified": "কী সংরক্ষিত, এখনও যাচাই হয়নি"
+        "keyUnverified": "কী সংরক্ষিত, এখনও যাচাই হয়নি",
+        "remove": "সরান",
+        "removeFor": "{{region}}-এর কী সরান"
       }
     },
     "lineup": {

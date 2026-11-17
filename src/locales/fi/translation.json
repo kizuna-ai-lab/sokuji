@@ -1811,7 +1811,9 @@
         "switchTo": "Vaihda alueelle {{region}}",
         "keyWorks": "avain toimii",
         "keyRefused": "avain hylätty",
-        "keyUnverified": "avain tallennettu, ei vielä tarkistettu"
+        "keyUnverified": "avain tallennettu, ei vielä tarkistettu",
+        "remove": "Poista",
+        "removeFor": "Poista alueen {{region}} avain"
       }
     },
     "lineup": {

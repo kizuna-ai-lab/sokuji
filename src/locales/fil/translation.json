@@ -1811,7 +1811,9 @@
         "switchTo": "Lumipat sa {{region}}",
         "keyWorks": "gumagana ang key",
         "keyRefused": "tinanggihan ang key",
-        "keyUnverified": "naka-save ang key, hindi pa beripikado"
+        "keyUnverified": "naka-save ang key, hindi pa beripikado",
+        "remove": "Alisin",
+        "removeFor": "Alisin ang key para sa {{region}}"
       }
     },
     "lineup": {

@@ -1811,7 +1811,9 @@
         "switchTo": "Chuyển sang {{region}}",
         "keyWorks": "khóa dùng được",
         "keyRefused": "khóa bị từ chối",
-        "keyUnverified": "đã lưu khóa, chưa xác minh"
+        "keyUnverified": "đã lưu khóa, chưa xác minh",
+        "remove": "Xóa",
+        "removeFor": "Xóa khóa của {{region}}"
       }
     },
     "lineup": {

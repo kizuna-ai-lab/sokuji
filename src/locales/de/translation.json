@@ -1811,7 +1811,9 @@
         "switchTo": "Zu {{region}} wechseln",
         "keyWorks": "Schlüssel funktioniert",
         "keyRefused": "Schlüssel abgelehnt",
-        "keyUnverified": "Schlüssel gespeichert, noch nicht geprüft"
+        "keyUnverified": "Schlüssel gespeichert, noch nicht geprüft",
+        "remove": "Entfernen",
+        "removeFor": "Schlüssel für {{region}} entfernen"
       }
     },
     "lineup": {

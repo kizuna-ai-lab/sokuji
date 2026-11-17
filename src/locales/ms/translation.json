@@ -1811,7 +1811,9 @@
         "switchTo": "Tukar ke {{region}}",
         "keyWorks": "kunci berfungsi",
         "keyRefused": "kunci ditolak",
-        "keyUnverified": "kunci disimpan, belum disahkan"
+        "keyUnverified": "kunci disimpan, belum disahkan",
+        "remove": "Buang",
+        "removeFor": "Buang kunci untuk {{region}}"
       }
     },
     "lineup": {

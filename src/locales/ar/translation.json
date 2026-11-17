@@ -1811,7 +1811,9 @@
         "switchTo": "التبديل إلى {{region}}",
         "keyWorks": "المفتاح يعمل",
         "keyRefused": "رُفض المفتاح",
-        "keyUnverified": "المفتاح محفوظ، ولم يُتحقَّق منه بعد"
+        "keyUnverified": "المفتاح محفوظ، ولم يُتحقَّق منه بعد",
+        "remove": "إزالة",
+        "removeFor": "إزالة مفتاح {{region}}"
       }
     },
     "lineup": {

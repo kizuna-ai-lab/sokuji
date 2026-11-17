@@ -1811,7 +1811,9 @@
         "switchTo": "Switch to {{region}}",
         "keyWorks": "key works",
         "keyRefused": "key refused",
-        "keyUnverified": "key saved, not verified yet"
+        "keyUnverified": "key saved, not verified yet",
+        "remove": "Remove",
+        "removeFor": "Remove the key for {{region}}"
       }
     },
     "lineup": {

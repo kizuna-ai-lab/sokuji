@@ -1811,7 +1811,9 @@
         "switchTo": "Przełącz na {{region}}",
         "keyWorks": "klucz działa",
         "keyRefused": "klucz odrzucony",
-        "keyUnverified": "klucz zapisany, jeszcze niesprawdzony"
+        "keyUnverified": "klucz zapisany, jeszcze niesprawdzony",
+        "remove": "Usuń",
+        "removeFor": "Usuń klucz dla regionu {{region}}"
       }
     },
     "lineup": {

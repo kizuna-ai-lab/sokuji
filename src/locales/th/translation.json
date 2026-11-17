@@ -1811,7 +1811,9 @@
         "switchTo": "สลับไปที่{{region}}",
         "keyWorks": "คีย์ใช้งานได้",
         "keyRefused": "คีย์ถูกปฏิเสธ",
-        "keyUnverified": "บันทึกคีย์แล้ว ยังไม่ได้ยืนยัน"
+        "keyUnverified": "บันทึกคีย์แล้ว ยังไม่ได้ยืนยัน",
+        "remove": "ลบ",
+        "removeFor": "ลบคีย์ของ {{region}}"
       }
     },
     "lineup": {

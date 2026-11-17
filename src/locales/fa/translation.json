@@ -1811,7 +1811,9 @@
         "switchTo": "رفتن به {{region}}",
         "keyWorks": "کلید کار می‌کند",
         "keyRefused": "کلید رد شد",
-        "keyUnverified": "کلید ذخیره شده، هنوز تأیید نشده"
+        "keyUnverified": "کلید ذخیره شده، هنوز تأیید نشده",
+        "remove": "حذف",
+        "removeFor": "حذف کلید {{region}}"
       }
     },
     "lineup": {

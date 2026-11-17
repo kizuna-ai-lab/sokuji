@@ -1811,7 +1811,9 @@
         "switchTo": "מעבר ל{{region}}",
         "keyWorks": "המפתח עובד",
         "keyRefused": "המפתח נדחה",
-        "keyUnverified": "המפתח נשמר, עוד לא אומת"
+        "keyUnverified": "המפתח נשמר, עוד לא אומת",
+        "remove": "הסרה",
+        "removeFor": "הסרת המפתח של {{region}}"
       }
     },
     "lineup": {

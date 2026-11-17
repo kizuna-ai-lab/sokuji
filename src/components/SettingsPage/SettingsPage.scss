@@ -282,6 +282,14 @@
     font-size: 12px; color: vars.$text-tertiary;
     li.is-selected { color: vars.$text-primary; font-weight: vars.$weight-semibold; }
   }
+  // A small text button after a region's key: the row stays a line of text.
+  &__remove {
+    margin-left: 6px; padding: 0; border: 0; background: none;
+    font: inherit; font-weight: vars.$weight-normal; color: vars.$text-secondary;
+    text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    &:hover:not(:disabled) { color: vars.$color-error; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
   &__note { margin: 0; font-size: 12px; color: vars.$text-secondary; &.is-error { color: vars.$color-error; } }
   &__switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 12px; color: vars.$color-warning; }
 }

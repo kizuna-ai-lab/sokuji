@@ -1811,7 +1811,9 @@
         "switchTo": "{{region}}に切り替える",
         "keyWorks": "キー使用可",
         "keyRefused": "キーが拒否されました",
-        "keyUnverified": "保存済み・未確認"
+        "keyUnverified": "保存済み・未確認",
+        "remove": "削除",
+        "removeFor": "{{region}}のキーを削除"
       }
     },
     "lineup": {

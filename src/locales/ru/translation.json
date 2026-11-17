@@ -1811,7 +1811,9 @@
         "switchTo": "Переключиться на {{region}}",
         "keyWorks": "ключ работает",
         "keyRefused": "ключ отклонён",
-        "keyUnverified": "ключ сохранён, ещё не проверен"
+        "keyUnverified": "ключ сохранён, ещё не проверен",
+        "remove": "Удалить",
+        "removeFor": "Удалить ключ для региона {{region}}"
       }
     },
     "lineup": {

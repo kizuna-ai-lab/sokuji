@@ -1811,7 +1811,9 @@
         "switchTo": "{{region}}కి మారండి",
         "keyWorks": "కీ పనిచేస్తోంది",
         "keyRefused": "కీ తిరస్కరించబడింది",
-        "keyUnverified": "కీ సేవ్ అయింది, ఇంకా ధృవీకరించలేదు"
+        "keyUnverified": "కీ సేవ్ అయింది, ఇంకా ధృవీకరించలేదు",
+        "remove": "తొలగించు",
+        "removeFor": "{{region}} కీని తొలగించు"
       }
     },
     "lineup": {

@@ -1811,7 +1811,9 @@
         "switchTo": "切換到 {{region}}",
         "keyWorks": "金鑰可用",
         "keyRefused": "金鑰被拒絕",
-        "keyUnverified": "已儲存，未驗證"
+        "keyUnverified": "已儲存，未驗證",
+        "remove": "移除",
+        "removeFor": "移除 {{region}} 的金鑰"
       }
     },
     "lineup": {

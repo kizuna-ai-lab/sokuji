@@ -1811,7 +1811,9 @@
         "switchTo": "{{region}} bölgesine geç",
         "keyWorks": "anahtar çalışıyor",
         "keyRefused": "anahtar reddedildi",
-        "keyUnverified": "anahtar kayıtlı, henüz doğrulanmadı"
+        "keyUnverified": "anahtar kayıtlı, henüz doğrulanmadı",
+        "remove": "Kaldır",
+        "removeFor": "{{region}} anahtarını kaldır"
       }
     },
     "lineup": {

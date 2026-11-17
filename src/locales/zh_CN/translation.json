@@ -1811,7 +1811,9 @@
         "switchTo": "切换到 {{region}}",
         "keyWorks": "密钥可用",
         "keyRefused": "密钥被拒绝",
-        "keyUnverified": "已保存，未验证"
+        "keyUnverified": "已保存，未验证",
+        "remove": "移除",
+        "removeFor": "移除 {{region}} 的密钥"
       }
     },
     "lineup": {

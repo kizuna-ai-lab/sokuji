@@ -115,6 +115,37 @@ describe("Soniox's key, by region", () => {
     await waitFor(() => expect(change.calls).toEqual([{ providerId: 'soniox', to: 'us' }]));
   });
 
+  // Review (#728): with Save and find its region, emptying the field no longer removes a key; each key is removed
+  // from its own region's row.
+  it("removes a region's key from its row, and only that one", () => {
+    given('us', { apiKey: 'sk-us', apiKeyJp: 'sk-jp' });
+    mount(async () => ({ accepted: [], unreachable: [] }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the key for 日本 (Japan)' }));
+    expect(creds().apiKeyJp).toBe('');
+    expect(creds().apiKey).toBe('sk-us');
+    expect(screen.queryByRole('button', { name: 'Remove the key for European Union' })).toBeNull();
+  });
+
+  it("empties the field and checks again when the selected region's key is removed", async () => {
+    given('us', { apiKey: 'sk-us' });
+    mount(async () => ({ accepted: [], unreachable: [] }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the key for United States' }));
+    expect(creds().apiKey).toBe('');
+    expect(screen.getByLabelText('API key')).toHaveValue('');
+    await waitFor(() => expect(useProviderStore.getState().refreshReadiness).toHaveBeenCalled());
+  });
+
+  // Review (#728): the selected region keeps a refused key, and the new one belongs elsewhere: switching is offered.
+  it('offers to switch to the region a new key was kept in, even when the selected region still has a key', async () => {
+    given('us', { apiKey: 'sk-refused' });
+    mount(async () => ({ accepted: ['eu'], unreachable: [] }));
+    paste('sk-eu');
+    save();
+    await waitFor(() => expect(creds().apiKeyEu).toBe('sk-eu'));
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to European Union' }));
+    await waitFor(() => expect(change.calls).toEqual([{ providerId: 'soniox', to: 'eu' }]));
+  });
+
   it('shows the selected region\'s key in the field', () => {
     given('jp', { apiKeyJp: 'sk-jp' });
     mount(async () => ({ accepted: [], unreachable: [] }));
@@ -125,5 +156,11 @@ describe("Soniox's key, by region", () => {
     mount(async () => ({ accepted: [], unreachable: [] }), true);
     expect(screen.getByLabelText('API key')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Save and find its region' })).toBeDisabled();
+  });
+
+  it('removes no key during a session', () => {
+    given('us', { apiKey: 'sk-us' });
+    mount(async () => ({ accepted: [], unreachable: [] }), true);
+    expect(screen.getByRole('button', { name: 'Remove the key for United States' })).toBeDisabled();
   });
 });
