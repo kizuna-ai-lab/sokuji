@@ -306,5 +306,13 @@ describe('RecordNotes styles: the language and the button', () => {
     expect(height(button)).toBe('30px');
     expect(select).toMatch(/box-sizing:\s*border-box/);
     expect(button).toMatch(/box-sizing:\s*border-box/);
+    // Held to the button's height, its words and its arrow sit in the middle: no padding above and below to push them
+    // down (owner, 2026-11-17).
+    expect(select).toMatch(/padding-block:\s*0/);
+    expect(select).toMatch(/align-items:\s*center/);
+    // Opened, its list is exactly as wide as the select (owner, 2026-11-17).
+    const picker = css.match(/\.record-notes__pick select::picker\(select\)\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(picker).toMatch(/width:\s*anchor-size\(width\)/);
+    expect(picker).toMatch(/box-sizing:\s*border-box/);
   });
 });

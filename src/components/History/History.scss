@@ -774,7 +774,22 @@
   // 2026-11-17).
   // Its longest name's width is measured (RecordNotes, --language-min); in a narrow column it keeps to a little over
   // half the notes' width, leaving its button beside it.
-  &__pick select { width: auto; min-width: min(var(--language-min, 0px), 55cqw); max-width: 100%; height: 30px; box-sizing: border-box; }
+  // Held to 30px, its words and its arrow centred, with no padding above and below to push them down.
+  &__pick select {
+    width: auto;
+    min-width: min(var(--language-min, 0px), 55cqw);
+    max-width: 100%;
+    height: 30px;
+    box-sizing: border-box;
+    padding-block: 0;
+    align-items: center;
+  }
+  // Opened, the list exactly as wide as the select (owner, 2026-11-17).
+  &__pick select::picker(select) {
+    width: anchor-size(width);
+    min-width: 0;
+    box-sizing: border-box;
+  }
   &__pick .history-button { flex: none; white-space: nowrap; height: 30px; box-sizing: border-box; }
 
   // One pill per choice, the chosen one filled (so it does not read as a kind tag on a point); in a narrow pane the
