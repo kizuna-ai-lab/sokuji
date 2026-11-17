@@ -4,7 +4,8 @@
 import { isElectron, isExtension, isWeb } from '../utils/environment';
 
 export const ANALYTICS_CONFIG = {
-  POSTHOG_KEY: import.meta.env.VITE_POSTHOG_KEY || '',
+  // The E2E build (`--mode e2e`) never reports: its sessions are test runs, whatever key the build machine has.
+  POSTHOG_KEY: import.meta.env.MODE === 'e2e' ? '' : import.meta.env.VITE_POSTHOG_KEY || '',
   POSTHOG_HOST: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
 } as const;
 

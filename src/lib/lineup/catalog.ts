@@ -26,6 +26,9 @@ export const CAPS: readonly ProviderCaps[] = [
   endToEnd('openai_live', 'key'),
   endToEnd('qwen_livetranslate', 'key'),
   endToEnd('palabraai', 'key'),
+  // The E2E build (`--mode e2e`) runs its sessions on the fake providers, so there a line-up may name them.
+  // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
+  ...(import.meta.env.MODE === 'e2e' ? [endToEnd('fake', 'none'), endToEnd('fake_leased', 'none')] : []),
 ];
 
 export function caps(id: string): ProviderCaps | undefined {

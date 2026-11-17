@@ -36,6 +36,8 @@ export default defineConfig({
     // Expo app: it runs its own vitest (node environment, its own deps), and
     // its files must not be collected under jsdom with this suite's setup.
     // Anchored to the root on purpose: a src/**/mobile/ directory stays in.
-    exclude: [...configDefaults.exclude, '**/.claude/**', '**/native/build/**', 'mobile/**'],
+    // The top-level e2e/ holds Playwright specs: they run through `npm run e2e`,
+    // and Playwright's test() throws when another runner imports it.
+    exclude: [...configDefaults.exclude, '**/.claude/**', '**/native/build/**', 'mobile/**', 'e2e/**'],
   },
 })

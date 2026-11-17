@@ -40,6 +40,18 @@ if (process.platform === 'win32') {
   }
 }
 
+// The E2E build (`vite build --mode e2e`, see e2e/README.md) is a production
+// bundle that the test runner starts unpackaged with `electron .`. It must
+// behave like the packaged app -- load build/index.html, keep web security on,
+// no DevTools -- although app.isPackaged is false. A compile-time constant: a
+// release build folds it to false and drops every E2E branch.
+const IS_E2E = import.meta.env.MODE === 'e2e';
+const isDevBuild = () => !IS_E2E && (import.meta.env.MODE === 'development' || !app.isPackaged);
+// The test runner looks for this name in dist-electron/main.js before it starts the app: a release or
+// development build has no such line, and started by the tests it would clean and recreate the
+// system's virtual audio devices.
+if (IS_E2E) process.env.SOKUJI_E2E_BUILD = '1';
+
 const { UpdateManager } = require('./update-manager');
 const { NativeHostManager } = require('./native-host-manager');
 const nativeHost = new NativeHostManager();
@@ -53,7 +65,7 @@ const captionShare = setupCaptionShare({
   app,
   isTrustedSender: (sender) => sender === mainWindow?.webContents,
   getMainWindow: () => mainWindow,
-  isDev: import.meta.env.MODE === 'development' || !app.isPackaged,
+  isDev: isDevBuild(),
 });
 
 // Config utility no longer needed - using localStorage in renderer process
@@ -80,6 +92,20 @@ if (process.platform === 'linux') {
       console.log('[Sokuji] [Main] No orphaned devices to clean on this platform');
       return true;
     }
+  };
+}
+
+// The virtual devices are system-global (the PulseAudio modules are found and
+// unloaded by name, whoever made them), so an E2E run must neither create nor
+// clean them: a Sokuji the user has open on the same machine would lose its
+// audio. The app then reports the virtual microphone as unavailable, which is
+// what it does on a machine without PulseAudio.
+if (IS_E2E) {
+  audioUtils = {
+    ...audioUtils,
+    createVirtualAudioDevices: async () => false,
+    removeVirtualAudioDevices: () => {},
+    cleanupOrphanedDevices: async () => true,
   };
 }
 
@@ -443,7 +469,7 @@ function createWindow() {
     : path.join(__dirname, '../assets/icon.png');
 
   // Create the browser window
-  const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
+  const isDev = isDevBuild();
 
   // Build custom User Agent to identify Electron app
   // Use standard OS names so PostHog's regex-based $os detection works
@@ -577,7 +603,7 @@ app.whenReady().then(async () => {
     return;
   }
 
-  const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
+  const isDev = isDevBuild();
 
   registerOutputFormFactor({ ipcMain, powerMonitor, app, getWindows: () => BrowserWindow.getAllWindows() });
 
@@ -695,7 +721,8 @@ app.whenReady().then(async () => {
   global.updateManager = new UpdateManager(mainWindow, {
     beforeInstall: (fn) => closeHandshake.endSessionThen(fn),
   });
-  global.updateManager.checkAfterDelay(5000);
+  // An E2E run never asks the release feed anything.
+  if (!IS_E2E) global.updateManager.checkAfterDelay(5000);
 
   // electron-audio-loopback handles setDisplayMediaRequestHandler automatically via initMain()
 });

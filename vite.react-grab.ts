@@ -19,7 +19,7 @@ import type { Plugin } from 'vite'
 export function reactGrabDev(src: string): Plugin {
   return {
     name: 'sokuji-react-grab-dev',
-    apply: (_config, env) => env.mode !== 'production',
+    apply: (_config, env) => env.mode !== 'production' && env.mode !== 'e2e',
     transformIndexHtml: {
       order: 'pre',
       handler: (html) => injectReactGrab(html, src),
