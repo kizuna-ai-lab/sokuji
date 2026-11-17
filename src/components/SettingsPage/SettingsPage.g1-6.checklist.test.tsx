@@ -121,8 +121,10 @@ describe('G2 search in the settings', () => {
 
   it('a provider name finds Accounts and keys, in any interface language', async () => {
     render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
-    fireEvent.change(search(), { target: { value: 'Soniox' } });
-    expect(listed()).toEqual(['Accounts and keys']);
+    for (const name of ['Soniox', 'KizunaAI', 'kizuna ai', 'Palabra AI', 'OpenAI Realtime', 'Google Gemini', 'Doubao AST']) {
+      fireEvent.change(search(), { target: { value: name } });
+      expect(listed()).toEqual(['Accounts and keys']);
+    }
     await changeLanguageWithLoad('zh_CN');
     fireEvent.change(search(), { target: { value: 'openai' } });
     expect(listed()).toEqual(['账号与密钥']);

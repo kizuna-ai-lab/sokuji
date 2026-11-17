@@ -17,7 +17,6 @@ import { presentProviders } from '../../providers/registry';
 import { useProviderStore } from '../../stores/providerStore';
 import { useModelStore, useModelStatuses, useStorageUsedMb } from '../../stores/modelStore';
 import { useAccountStore } from '../../stores/accountStore';
-import { useAccountPayer } from '../../lib/session/payerChoice';
 import { payerDisplayBalance } from '../../lib/session/orgNotice';
 import { useOptionalUserProfile } from '../../contexts/UserProfileContext';
 import { MODEL_MANIFEST } from '../../lib/local-inference/modelManifest';
@@ -29,6 +28,7 @@ import { SonioxKeyForm } from './SonioxKeyForm';
 import { ManagedAccountRow } from '../providers/ManagedAccountRow';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { useRunState } from '../../app/useRun';
+import { useShownPayer } from '../../app/useShownPayer';
 import { useAuthContext } from '../providers/useAuthContext';
 import type { CategoryBodyProps } from './SettingsPage';
 import { accountAnchor, accountKeyOf, OPENAI_IDS, providerOfTarget } from './accountRows';
@@ -58,11 +58,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   // The balance the title bar shows: a member's wallet the next Start spends, else the account's own.
   const quota = useOptionalUserProfile()?.quota;
   const account = useAccountStore((s) => s.account);
-  const livePayer = useAccountPayer(account);
-  // The row and the account panel read the payer a running session was started with, as the title bar does: idle,
-  // the switch; running, the wallet the session spends, though the switch may have been flipped since.
+  // The row and the account panel show the wallet the title bar shows (useShownPayer).
   const run = useRunState();
-  const payer = run.phase === 'idle' ? livePayer : run.payer;
+  const payer = useShownPayer(account);
   const balance = account?.status === 'known' && account.organization ? payerDisplayBalance(account, payer) : quota?.balance ?? quota?.remaining;
   // This device's models: how many are on disk, known once the store has looked.
   const statuses = useModelStatuses();
@@ -208,7 +206,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
             {/* Signed in, the title bar's account panel (owner, 2026-11-15): the balance, the organization's too, and
                 the dashboard, sign-out, feedback and top-up; else the sign-in. */}
             {isOpen && a.kind === 'kizuna' && (auth.signedIn
-              ? <div className="accounts-row__account"><UserAccountInfo idle={run.phase === 'idle'} runPayer={run.phase === 'idle' ? undefined : run.payer} /></div>
+              ? <div className="accounts-row__account"><UserAccountInfo idle={run.phase === 'idle'} runPayer={run.phase === 'idle' ? undefined : payer} /></div>
               : <ManagedAccountRow auth={auth} />)}
             {/* Soniox's key is kept by region, found by asking every region (B-11). */}
             {isOpen && a.kind === 'key' && p && entry && p.id === 'soniox' && (

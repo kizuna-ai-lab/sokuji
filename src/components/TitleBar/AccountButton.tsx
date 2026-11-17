@@ -17,8 +17,8 @@ import {
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
 import { payerDisplayBalance } from '../../lib/session/orgNotice';
-import { useAccountPayer } from '../../lib/session/payerChoice';
 import { useRunState } from '../../app/useRun';
+import { useShownPayer } from '../../app/useShownPayer';
 import type { AccountState, Payer } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
@@ -44,12 +44,9 @@ const AccountButton: React.FC = () => {
   // The start gate's own answer for the selected provider (Stage 2 Kizuna Soniox, choice 9).
   const lowBalance = useBalanceShortfall();
   const account = useAccountStore((s) => s.account);
-  // Which wallet the title bar shows. Idle: the switch. Running: the payer the
-  // session was started with — another window can flip the switch, and a
-  // running session keeps what it was granted.
-  const livePayer = useAccountPayer(account);
+  // Which wallet the title bar shows: the same rule as Accounts and keys (useShownPayer).
+  const payer = useShownPayer(account);
   const run = useRunState();
-  const payer = run.phase === 'idle' ? livePayer : run.payer;
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -189,7 +186,7 @@ const AccountButton: React.FC = () => {
         anchorEl={btnRef.current}
         onClose={() => setOpen(false)}
         idle={run.phase === 'idle'}
-        runPayer={run.phase === 'idle' ? undefined : run.payer}
+        runPayer={run.phase === 'idle' ? undefined : payer}
       />
     </>
   );
