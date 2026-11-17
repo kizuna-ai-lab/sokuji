@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "O arquivo tem mais de cinco horas.",
         "TOO_BIG": "O arquivo tem mais de 16 GB.",
-        "UNSUPPORTED": "Não é possível ler o áudio deste arquivo.",
+        "UNSUPPORTED": "Não é possível ler o áudio deste arquivo. Converta-o para AAC ou MP3 e importe-o de novo.",
         "NO_AUDIO": "O arquivo não tem som.",
         "NO_SPEECH": "O Soniox não ouviu fala na gravação.",
         "NO_KEY": "O Soniox não aceitou a chave. Verifique-a nas Configurações.",

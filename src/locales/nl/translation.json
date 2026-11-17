@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Het bestand duurt langer dan vijf uur.",
         "TOO_BIG": "Het bestand is groter dan 16 GB.",
-        "UNSUPPORTED": "Het geluid van dit bestand kan niet worden gelezen.",
+        "UNSUPPORTED": "Het geluid van dit bestand kan niet worden gelezen. Zet het om naar AAC of MP3 en importeer het opnieuw.",
         "NO_AUDIO": "Het bestand bevat geen geluid.",
         "NO_SPEECH": "Soniox hoorde geen spraak in de opname.",
         "NO_KEY": "Soniox accepteerde de sleutel niet. Controleer hem in Instellingen.",

@@ -2,8 +2,10 @@
 //
 // The page's decoder for an imported file. The container is read with mediabunny, a range of the file at a time, and
 // its audio decoded by the browser's own WebCodecs decoder, a block at a time: memory does not grow with the file.
-// A codec WebCodecs cannot decode (AC-3, E-AC-3, ALAC) is decoded whole by `decodeAudioData` instead, for files of up
-// to an hour (an hour of 48 kHz stereo takes about 2.1 GB that way); longer ones are refused.
+// A codec WebCodecs cannot decode is tried whole by `decodeAudioData` instead, for files of up to an hour (an hour of
+// 48 kHz stereo takes about 2.1 GB that way); longer ones are refused. That is no way in for AC-3, E-AC-3 or ALAC: the
+// app's Chromium decodes none of them either way, on any platform, so such a file is refused as unreadable, with the
+// advice to convert it to AAC or MP3 (owner, 2026-11-17: they are not supported).
 import { SAMPLE_RATE } from '../../contract/adapter';
 import type { DecodedAudio } from './importFile';
 import { toPcm24k, type DecodedPiece } from './toPcm24k';

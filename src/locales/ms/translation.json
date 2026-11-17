@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Fail ini lebih daripada lima jam.",
         "TOO_BIG": "Fail ini lebih besar daripada 16 GB.",
-        "UNSUPPORTED": "Audio fail ini tidak boleh dibaca.",
+        "UNSUPPORTED": "Audio fail ini tidak boleh dibaca. Tukarkannya kepada AAC atau MP3, kemudian import semula.",
         "NO_AUDIO": "Fail ini tiada bunyi.",
         "NO_SPEECH": "Soniox tidak mendengar sebarang pertuturan dalam rakaman.",
         "NO_KEY": "Soniox tidak menerima kunci. Semak dalam Tetapan.",

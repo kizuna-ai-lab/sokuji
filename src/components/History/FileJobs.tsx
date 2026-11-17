@@ -60,7 +60,7 @@ function useFileTexts() {
       TOO_LONG: t('history.file.failure.TOO_LONG', 'The file is longer than five hours.'),
       RECORD_TOO_LONG: t('history.file.failure.RECORD_TOO_LONG', 'The recording is longer than five hours, more than Soniox transcribes at once.'),
       TOO_BIG: t('history.file.failure.TOO_BIG', 'The file is larger than 16 GB.'),
-      UNSUPPORTED: t('history.file.failure.UNSUPPORTED', 'The audio of this file cannot be read.'),
+      UNSUPPORTED: t('history.file.failure.UNSUPPORTED', 'The audio of this file cannot be read. Convert it to AAC or MP3 and import it again.'),
       NO_AUDIO: t('history.file.failure.NO_AUDIO', 'The file holds no sound.'),
       NO_SPEECH: t('history.file.failure.NO_SPEECH', 'Soniox heard no speech in the recording.'),
       NO_KEY: t('history.file.failure.NO_KEY', 'Soniox did not accept the key. Check it in Settings.'),

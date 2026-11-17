@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Tiedosto on yli viisi tuntia pitkä.",
         "TOO_BIG": "Tiedosto on yli 16 Gt.",
-        "UNSUPPORTED": "Tämän tiedoston ääntä ei voi lukea.",
+        "UNSUPPORTED": "Tämän tiedoston ääntä ei voi lukea. Muunna se AAC- tai MP3-muotoon ja tuo se uudelleen.",
         "NO_AUDIO": "Tiedostossa ei ole ääntä.",
         "NO_SPEECH": "Soniox ei kuullut äänitteessä puhetta.",
         "NO_KEY": "Soniox ei hyväksynyt avainta. Tarkista se asetuksista.",
