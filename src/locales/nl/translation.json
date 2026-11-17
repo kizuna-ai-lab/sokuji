@@ -2165,7 +2165,9 @@
     "sidePanel": "Zijpaneel",
     "openSidePanel": "Zijpaneel openen",
     "closeSidePanel": "Zijpaneel sluiten",
-    "selectRecords": "Opnames selecteren"
+    "selectRecords": "Opnames selecteren",
+    "hideNotes": "Notities verbergen",
+    "showNotes": "Notities tonen"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

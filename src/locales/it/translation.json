@@ -2165,7 +2165,9 @@
     "sidePanel": "Pannello laterale",
     "openSidePanel": "Apri il pannello laterale",
     "closeSidePanel": "Chiudi il pannello laterale",
-    "selectRecords": "Seleziona registrazioni"
+    "selectRecords": "Seleziona registrazioni",
+    "hideNotes": "Nascondi le note",
+    "showNotes": "Mostra le note"
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

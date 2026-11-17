@@ -449,13 +449,44 @@
     }
   }
 
+  // The notes and, when the page is wide, the handle that hides and shows them; the divider beside it sets the width.
+  &__notes-col {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
   &__notes {
+    flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: vars.$space-3 vars.$space-4;
-    border-right: 1px solid vars.$border-subtle;
   }
-  &__columns:not(.is-wide) &__notes { grid-column: 1 / -1; border-right: none; }
+  &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
+  // Wide: the notes keep clear of the handle at their right edge; hidden, they leave a strip with a line beside it.
+  &__columns.is-wide &__notes { padding-right: calc(#{vars.$space-4} + 24px); }
+  &__columns.is-wide &__notes-col:has(> &__notes[hidden]) { border-right: 1px solid vars.$border-subtle; }
+
+  &__notes-handle {
+    position: absolute;
+    top: vars.$space-2;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid vars.$border-default;
+    border-right: none;
+    border-radius: vars.$radius-sm 0 0 vars.$radius-sm;
+    background: vars.$bg-surface;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: -2px; }
+  }
 
   &__transcript {
     min-height: 0;

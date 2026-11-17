@@ -2165,7 +2165,9 @@
     "sidePanel": "サイドパネル",
     "openSidePanel": "サイドパネルを開く",
     "closeSidePanel": "サイドパネルを閉じる",
-    "selectRecords": "記録を選択"
+    "selectRecords": "記録を選択",
+    "hideNotes": "メモを隠す",
+    "showNotes": "メモを表示"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

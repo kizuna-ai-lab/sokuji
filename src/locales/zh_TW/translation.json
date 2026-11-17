@@ -2165,7 +2165,9 @@
     "sidePanel": "側欄",
     "openSidePanel": "開啟側欄",
     "closeSidePanel": "收合側欄",
-    "selectRecords": "選取記錄"
+    "selectRecords": "選取記錄",
+    "hideNotes": "收合紀要",
+    "showNotes": "展開紀要"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",

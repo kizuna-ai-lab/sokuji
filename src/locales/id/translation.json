@@ -2165,7 +2165,9 @@
     "sidePanel": "Panel samping",
     "openSidePanel": "Buka panel samping",
     "closeSidePanel": "Tutup panel samping",
-    "selectRecords": "Pilih rekaman"
+    "selectRecords": "Pilih rekaman",
+    "hideNotes": "Sembunyikan catatan",
+    "showNotes": "Tampilkan catatan"
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

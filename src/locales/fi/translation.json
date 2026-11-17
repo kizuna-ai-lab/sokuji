@@ -2165,7 +2165,9 @@
     "sidePanel": "Sivupaneeli",
     "openSidePanel": "Avaa sivupaneeli",
     "closeSidePanel": "Sulje sivupaneeli",
-    "selectRecords": "Valitse tallenteita"
+    "selectRecords": "Valitse tallenteita",
+    "hideNotes": "Piilota muistiinpanot",
+    "showNotes": "Näytä muistiinpanot"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

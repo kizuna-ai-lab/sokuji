@@ -2165,7 +2165,9 @@
     "sidePanel": "Panel sisi",
     "openSidePanel": "Buka panel sisi",
     "closeSidePanel": "Tutup panel sisi",
-    "selectRecords": "Pilih rekod"
+    "selectRecords": "Pilih rekod",
+    "hideNotes": "Sembunyikan nota",
+    "showNotes": "Tunjukkan nota"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

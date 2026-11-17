@@ -2165,7 +2165,9 @@
     "sidePanel": "Yan panel",
     "openSidePanel": "Yan paneli aç",
     "closeSidePanel": "Yan paneli kapat",
-    "selectRecords": "Kayıtları seç"
+    "selectRecords": "Kayıtları seç",
+    "hideNotes": "Notları gizle",
+    "showNotes": "Notları göster"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

@@ -716,3 +716,86 @@ describe('a record transcribed again', () => {
     expect(document.querySelector('[data-n="2"]')?.className ?? '').toMatch(/is-hit|hit/);
   });
 });
+
+// Owner, 2026-11-17 (B-31): on a wide page the notes column can be dragged wider or narrower and hidden; both are kept.
+describe('the notes column on a wide page', () => {
+  /** A page this wide, as the ResizeObserver the record page watches it with reports. */
+  function widePage(width = 1200) {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly cb: () => void) {}
+      observe() { this.cb(); }
+      unobserve() {}
+      disconnect() {}
+    });
+  }
+  const columns = () => document.querySelector('.record-page__columns') as HTMLElement;
+  const notes = () => document.querySelector('.record-page__notes') as HTMLElement;
+  const drag = (from: number, to: number, done = true) => {
+    const sep = within(columns()).getByRole('separator');
+    act(() => { sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: from, button: 0 }), { pointerType: 'mouse' })); });
+    act(() => { window.dispatchEvent(new MouseEvent('pointermove', { clientX: to })); });
+    if (done) act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: to })); });
+  };
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('has a divider to drag and, apart from it, a handle that hides the notes', async () => {
+    widePage();
+    await renderRecord();
+    const divider = within(columns()).getByRole('separator');
+    const handle = screen.getByRole('button', { name: 'Hide the notes' });
+    expect(handle).toHaveAttribute('title', 'Hide the notes');
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    expect(divider.contains(handle)).toBe(false);
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
+  });
+
+  it('follows the divider while it is dragged, and opens the next record at the width it was left at', async () => {
+    widePage();
+    await renderRecord();
+    drag(380, 500, false);
+    expect(columns().style.gridTemplateColumns).toBe('500px 1px minmax(0, 1fr)');
+    act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: 520 })); });
+    expect(localStorage.getItem('history.notesWidth')).toBe('520');
+    cleanup();
+    widePage();
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('520px 1px minmax(0, 1fr)');
+  });
+
+  it('leaves the transcript 400px however far the divider goes, and the notes 240px', async () => {
+    widePage(1000);
+    await renderRecord();
+    drag(380, 1900);
+    expect(columns().style.gridTemplateColumns).toBe('599px 1px minmax(0, 1fr)');
+    drag(599, 0);
+    expect(columns().style.gridTemplateColumns).toBe('240px 1px minmax(0, 1fr)');
+  });
+
+  it('hiding the notes leaves a strip with a handle to show them again, gives the transcript the room, and holds for the next record', async () => {
+    widePage();
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide the notes' }));
+    expect(notes()).toHaveAttribute('hidden');
+    expect(within(columns()).queryByRole('separator')).toBeNull();
+    expect(columns().style.gridTemplateColumns).toBe('24px minmax(0, 1fr)');
+    const show = screen.getByRole('button', { name: 'Show the notes' });
+    expect(show).toHaveAttribute('title', 'Show the notes');
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    expect(localStorage.getItem('history.notesClosed')).toBe('1');
+    cleanup();
+    widePage();
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'Show the notes' }));
+    expect(notes()).not.toHaveAttribute('hidden');
+    expect(screen.getByRole('button', { name: 'Hide the notes' })).toBeInTheDocument();
+    expect(localStorage.getItem('history.notesClosed')).toBeNull();
+  });
+
+  it('on a narrow page keeps the two tabs, with no divider and no handle', async () => {
+    await renderRecord();
+    expect(screen.getByRole('tab', { name: 'Notes' })).toBeInTheDocument();
+    expect(within(columns()).queryByRole('separator')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(Hide|Show) the notes$/ })).toBeNull();
+  });
+});

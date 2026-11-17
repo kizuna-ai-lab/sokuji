@@ -2165,7 +2165,9 @@
     "sidePanel": "แผงด้านข้าง",
     "openSidePanel": "เปิดแผงด้านข้าง",
     "closeSidePanel": "ปิดแผงด้านข้าง",
-    "selectRecords": "เลือกรายการ"
+    "selectRecords": "เลือกรายการ",
+    "hideNotes": "ซ่อนบันทึก",
+    "showNotes": "แสดงบันทึก"
   },
   "notesQuit": {
     "named": "กำลังเขียนบันทึกของ “{{title}}” จะออกเลยไหม บันทึกจะถูกระบุว่ายกเลิก",

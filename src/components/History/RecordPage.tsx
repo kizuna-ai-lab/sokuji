@@ -4,10 +4,10 @@
 // one block per round and speaker with the translation under it; its speakers, named in place; and its export. A record
 // still being written shows how it was when opened, with Refresh. The notes and the player get their places later: the
 // side column below the speakers, and a strip along the bottom.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
-import { AudioLines, ChevronLeft, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
+import { AudioLines, ChevronLeft, ChevronsLeft, ChevronsRight, Ellipsis, MicOff, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
 import { englishLanguageName, languageLabel, uiLocale } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import { NOTES_MIN_MS } from '../../lib/notes/write';
@@ -28,6 +28,8 @@ import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
 import { InlineEdit } from './InlineEdit';
+import PanelResizer from '../MainLayout/PanelResizer';
+import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -47,6 +49,8 @@ const spaceBetween = (before: string, after: string) => {
 
 /** From this width of the page the notes stand beside the transcript; narrower, each has its tab. */
 const NOTES_WIDE_PX = 1000;
+/** The strip a hidden notes column leaves, holding the handle that shows it again. */
+const NOTES_STRIP_PX = 24;
 
 /** A value inside a quoted attribute selector. */
 const quoted = (value: string) => value.replace(/["\\]/g, '\\$&');
@@ -182,6 +186,12 @@ export const RecordPage: React.FC = () => {
   const notesRunning = useStore(store, (s) => s.notesRunning);
   const pageRef = useRef<HTMLDivElement>(null);
   const [wide, setWide] = useState(false);
+  const [pageWidth, setPageWidth] = useState(0);
+  // Wide: the notes column's width, dragged at the divider, and whether it is shown; both kept for the next record
+  // (owner, 2026-11-17; B-31). Hidden, it leaves a strip with the handle that shows it again.
+  const [notesOpen, setNotesOpen] = useState(readNotesOpen);
+  const [notesWidth, setNotesWidth] = useState(readNotesWidth);
+  const notesId = useId();
   const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
@@ -190,7 +200,10 @@ export const RecordPage: React.FC = () => {
   useEffect(() => {
     const el = pageRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const watch = new ResizeObserver(() => setWide(el.clientWidth >= NOTES_WIDE_PX));
+    const watch = new ResizeObserver(() => {
+      setWide(el.clientWidth >= NOTES_WIDE_PX);
+      setPageWidth(el.clientWidth);
+    });
     watch.observe(el);
     return () => watch.disconnect();
   }, [open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -229,6 +242,9 @@ export const RecordPage: React.FC = () => {
     />
   );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
+  // The width shown fits this page; the one kept stays as the user left it, for a wider window later.
+  const shownNotesWidth = notesWidthWithin(notesWidth, pageWidth);
+  const notesHandle = notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes');
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
@@ -514,8 +530,34 @@ export const RecordPage: React.FC = () => {
       )}
       {/* The columns, in a frame that does not scroll: the speakers' drawer stays put over them. */}
       <div className="record-page__body">
-      <div className={`record-page__columns${wide ? ' is-wide' : ''}`}>
-        <div className="record-page__notes" hidden={!wide && pane !== 'notes'}>{notesView}</div>
+      <div
+        className={`record-page__columns${wide ? ' is-wide' : ''}`}
+        style={wide ? { gridTemplateColumns: notesOpen ? `${shownNotesWidth}px ${DIVIDER_PX}px minmax(0, 1fr)` : `${NOTES_STRIP_PX}px minmax(0, 1fr)` } : undefined}
+      >
+        <div className="record-page__notes-col" hidden={!wide && pane !== 'notes'}>
+          <div className="record-page__notes" id={notesId} hidden={wide && !notesOpen}>{notesView}</div>
+          {/* Its own small button, apart from the divider: dragging sets the width, the button only hides and shows. */}
+          {wide && (
+            <button type="button" className="record-page__notes-handle" aria-label={notesHandle} title={notesHandle} aria-expanded={notesOpen} aria-controls={notesId}
+              onClick={() => { writeNotesOpen(!notesOpen); setNotesOpen(!notesOpen); }}>
+              {notesOpen ? <ChevronsLeft size={14} aria-hidden="true" /> : <ChevronsRight size={14} aria-hidden="true" />}
+            </button>
+          )}
+        </div>
+        {wide && notesOpen && (
+          <PanelResizer
+            side="left"
+            width={shownNotesWidth}
+            min={NOTES_MIN_PX}
+            max={notesWidthWithin(Number.POSITIVE_INFINITY, pageWidth)}
+            onResize={(next) => setNotesWidth(notesWidthWithin(next, pageWidth))}
+            onCommit={(next) => {
+              const width = notesWidthWithin(next, pageWidth);
+              setNotesWidth(width);
+              writeNotesWidth(width);
+            }}
+          />
+        )}
         <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
           {transcript}
         </div>

@@ -2165,7 +2165,9 @@
     "sidePanel": "Seitenleiste",
     "openSidePanel": "Seitenleiste öffnen",
     "closeSidePanel": "Seitenleiste schließen",
-    "selectRecords": "Aufzeichnungen auswählen"
+    "selectRecords": "Aufzeichnungen auswählen",
+    "hideNotes": "Notizen ausblenden",
+    "showNotes": "Notizen einblenden"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

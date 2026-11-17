@@ -2165,7 +2165,9 @@
     "sidePanel": "Sidopanel",
     "openSidePanel": "Öppna sidopanelen",
     "closeSidePanel": "Stäng sidopanelen",
-    "selectRecords": "Markera poster"
+    "selectRecords": "Markera poster",
+    "hideNotes": "Dölj anteckningarna",
+    "showNotes": "Visa anteckningarna"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

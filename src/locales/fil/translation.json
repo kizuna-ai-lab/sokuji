@@ -2165,7 +2165,9 @@
     "sidePanel": "Side panel",
     "openSidePanel": "Buksan ang side panel",
     "closeSidePanel": "Isara ang side panel",
-    "selectRecords": "Pumili ng mga record"
+    "selectRecords": "Pumili ng mga record",
+    "hideNotes": "Itago ang mga tala",
+    "showNotes": "Ipakita ang mga tala"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

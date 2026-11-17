@@ -2165,7 +2165,9 @@
     "sidePanel": "사이드 패널",
     "openSidePanel": "사이드 패널 열기",
     "closeSidePanel": "사이드 패널 닫기",
-    "selectRecords": "기록 선택"
+    "selectRecords": "기록 선택",
+    "hideNotes": "메모 숨기기",
+    "showNotes": "메모 보기"
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",

@@ -2165,7 +2165,9 @@
     "sidePanel": "Panel lateral",
     "openSidePanel": "Abrir el panel lateral",
     "closeSidePanel": "Cerrar el panel lateral",
-    "selectRecords": "Seleccionar registros"
+    "selectRecords": "Seleccionar registros",
+    "hideNotes": "Ocultar las notas",
+    "showNotes": "Mostrar las notas"
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

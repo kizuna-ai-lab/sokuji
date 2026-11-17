@@ -10,11 +10,13 @@ interface PanelResizerProps {
   onResize: (next: number) => void;
   /** On pointerup / keypress. Caller clamps + persists. */
   onCommit: (next: number) => void;
+  /** Which side of the seam the panel is on: 'right' (the default) widens when dragged left, 'left' when dragged right. */
+  side?: 'left' | 'right';
 }
 
 const STEP = 16;
 
-const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, onCommit }) => {
+const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, onCommit, side = 'right' }) => {
   const { t } = useTranslation();
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
   // Holds the teardown for an in-progress drag so we can run it on unmount.
@@ -30,8 +32,8 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
     e.preventDefault();
     const start = { startX: e.clientX, startWidth: width };
     drag.current = start;
-    // Panel is docked on the right: dragging left (smaller clientX) widens it.
-    const widthFrom = (clientX: number) => start.startWidth + (start.startX - clientX);
+    // Docked on the right, dragging left (smaller clientX) widens the panel; docked on the left, dragging right does.
+    const widthFrom = (clientX: number) => start.startWidth + (side === 'left' ? clientX - start.startX : start.startX - clientX);
 
     const onMove = (ev: PointerEvent) => { if (drag.current) onResize(widthFrom(ev.clientX)); };
     // Hoisted so onUp/onCancel below can reference it; only invoked on release.
@@ -51,18 +53,21 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
     window.addEventListener('pointercancel', onCancel);
     document.body.classList.add('is-resizing-panel');
     cleanupRef.current = teardown;
-  }, [width, onResize, onCommit]);
+  }, [width, onResize, onCommit, side]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     let next: number | null = null;
-    if (e.key === 'ArrowLeft') next = width + STEP;       // wider
-    else if (e.key === 'ArrowRight') next = width - STEP; // narrower
+    // The arrow pointing away from the panel widens it.
+    const wider = side === 'left' ? 'ArrowRight' : 'ArrowLeft';
+    const narrower = side === 'left' ? 'ArrowLeft' : 'ArrowRight';
+    if (e.key === wider) next = width + STEP;
+    else if (e.key === narrower) next = width - STEP;
     if (next !== null) {
       e.preventDefault();
       onResize(next);
       onCommit(next);
     }
-  }, [width, onResize, onCommit]);
+  }, [width, onResize, onCommit, side]);
 
   return (
     <div

@@ -2165,7 +2165,9 @@
     "sidePanel": "Panneau latéral",
     "openSidePanel": "Ouvrir le panneau latéral",
     "closeSidePanel": "Fermer le panneau latéral",
-    "selectRecords": "Sélectionner des enregistrements"
+    "selectRecords": "Sélectionner des enregistrements",
+    "hideNotes": "Masquer les notes",
+    "showNotes": "Afficher les notes"
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

@@ -2165,7 +2165,9 @@
     "sidePanel": "侧栏",
     "openSidePanel": "打开侧栏",
     "closeSidePanel": "收起侧栏",
-    "selectRecords": "选择记录"
+    "selectRecords": "选择记录",
+    "hideNotes": "收起纪要",
+    "showNotes": "展开纪要"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",
