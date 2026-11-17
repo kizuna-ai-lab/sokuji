@@ -5,7 +5,7 @@
 // version selector shows another version when there are several. A topic or a point takes the transcript to the
 // sentence that says it. Without notes the page offers to write them; while a version is written it says so and can
 // stop it; after a failure it says why and can try again.
-import { useId, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { notesExplanation } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
@@ -16,6 +16,7 @@ import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
 import FormInput from '../Settings/shared/FormInput';
+import { selectChrome, selectMinWidth } from './selectWidth';
 
 export interface RecordNotesProps {
   record: HistoryRecord;
@@ -116,11 +117,24 @@ export function RecordNotes(p: RecordNotesProps) {
   // "Language of the notes [Chinese ▾] [Write notes]" (owner, 2026-11-17; B-33): the label says what the select is for,
   // and the select and the button stay together; in a narrow column the label goes on a line of its own above them.
   const languageId = useId();
+  // At least as wide as its longest language name, measured in its own font (selectWidth.ts).
+  const languageRef = useRef<HTMLSelectElement>(null);
+  const [languageWidth, setLanguageWidth] = useState<number | null>(null);
+  const languageNames = p.languages.map((l) => languageLabel(l.code, ui)).join('\n');
+  useLayoutEffect(() => {
+    const select = languageRef.current;
+    const context = select ? document.createElement('canvas').getContext?.('2d') : null;
+    if (!select || !context) return;
+    const style = getComputedStyle(select);
+    context.font = style.font || `${style.fontSize} ${style.fontFamily}`;
+    setLanguageWidth(selectMinWidth(languageNames.split('\n'), (label) => context.measureText(label).width, selectChrome(style)));
+  }, [languageNames, p.notes?.id, p.writing, p.tooShort]);
   const writeControls = (label: string) => (
     <div className="record-notes__write">
       <label htmlFor={languageId}>{t('history.notesLanguage', 'Language of the notes')}</label>
       <div className="record-notes__pick">
-        <select id={languageId} className="select-dropdown" value={chosen?.code ?? ''} onChange={(e) => setChoice(e.target.value)}>
+        <select id={languageId} ref={languageRef} className="select-dropdown" value={chosen?.code ?? ''} onChange={(e) => setChoice(e.target.value)}
+          style={languageWidth ? ({ '--language-min': `${languageWidth}px` } as CSSProperties) : undefined}>
           {p.languages.map((l) => <option key={l.code} value={l.code}>{languageLabel(l.code, ui)}</option>)}
         </select>
         <button type="button" className="history-button" disabled={!chosen} onClick={() => chosen && write(chosen)}>{label}</button>

@@ -364,7 +364,8 @@
 
   // The two panels' switches, a pair set a little apart from Export and More; a shown panel's switch is pressed. Their
   // words go, the icons staying, when the heading would have too little room (RecordPage measures; owner, 2026-11-17).
-  &__panels { display: inline-flex; gap: vars.$space-1; margin-right: vars.$space-2; }
+  // As far apart as the other actions (owner, 2026-11-17): one even row, no extra space of its own.
+  &__panels { display: inline-flex; gap: vars.$space-2; }
   &__panels[data-compact] &__panel-word { display: none; }
   &__panels[data-compact] &__panel-switch { padding: vars.$space-1; }
   // Off, the icon alone; on, the button filled and outlined, so which panels are shown reads at a glance.
@@ -752,6 +753,8 @@
   display: flex;
   flex-direction: column;
   gap: vars.$space-2;
+  // Its own width is what the language select keeps to in a narrow column (cqw below).
+  container-type: inline-size;
 
   &__version { align-self: flex-start; max-width: 100%; }
   &__title { margin: 0; font-size: 15px; font-weight: vars.$weight-semibold; }
@@ -767,9 +770,12 @@
     gap: vars.$space-2;
     min-width: 0;
   }
-  // Short: the longest language name no longer sets the width; the open list still shows the whole names.
-  &__pick select { width: auto; min-width: 0; max-width: 160px; }
-  &__pick .history-button { flex: none; white-space: nowrap; }
+  // As wide as its longest language name, not stretched across the column, and as tall as the button (owner,
+  // 2026-11-17).
+  // Its longest name's width is measured (RecordNotes, --language-min); in a narrow column it keeps to a little over
+  // half the notes' width, leaving its button beside it.
+  &__pick select { width: auto; min-width: min(var(--language-min, 0px), 55cqw); max-width: 100%; height: 30px; box-sizing: border-box; }
+  &__pick .history-button { flex: none; white-space: nowrap; height: 30px; box-sizing: border-box; }
 
   // One pill per choice, the chosen one filled (so it does not read as a kind tag on a point); in a narrow pane the
   // choices go on to a second line rather than being cut off.

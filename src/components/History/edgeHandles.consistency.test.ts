@@ -27,4 +27,13 @@ describe('the panels\' switches', () => {
   it('mark the switch of a panel that is shown', () => {
     expect(history).toMatch(/\.record-page__panel-switch\[aria-pressed=["']?true["']?\]\s*\{[^}]*background/);
   });
+
+  // Owner, 2026-11-17: the notes, side panel, Export and More buttons stand evenly apart, as one row.
+  it('stand as far apart as the other actions, the pair with no extra space of its own', () => {
+    const panels = history.match(/\.record-page__panels\s*\{([^}]*)\}/)?.[1] ?? '';
+    const actions = history.match(/\.record-page__actions\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(actions).toMatch(/gap:\s*8px/);
+    expect(panels).toMatch(/gap:\s*8px/);
+    expect(panels).not.toMatch(/margin/);
+  });
 });

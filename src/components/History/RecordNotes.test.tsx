@@ -139,6 +139,17 @@ describe("a record's notes", () => {
     expect([...group.children]).toEqual([label, pick]);
   });
 
+  // Owner, 2026-11-17: the select is at least as wide as its longest language name. The app's selects draw their own
+  // picker (appearance: base-select), which is only as wide as the chosen name, so the width is measured.
+  it('makes the select at least as wide as its longest language name', () => {
+    const measureText = (text: string) => ({ width: text.length * 10 });
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({ font: '', measureText }) as unknown as CanvasRenderingContext2D);
+    render(<RecordNotes {...props({ record: record(), notes: null })} />);
+    const select = screen.getByLabelText('Language of the notes') as HTMLSelectElement;
+    const longest = Math.max(...[...select.options].map((o) => (o.textContent ?? '').length));
+    expect(parseFloat(select.style.getPropertyValue('--language-min'))).toBeGreaterThanOrEqual(longest * 10);
+  });
+
   it('keeps the same group for a new version of notes already written', () => {
     render(<RecordNotes {...props()} />);
     const pick = screen.getByLabelText('Language of the notes').closest('.record-notes__pick') as HTMLElement;
@@ -262,7 +273,7 @@ describe("a record's notes", () => {
 });
 
 describe('RecordNotes styles: the language and the button', () => {
-  it('wraps the label on to a line of its own before splitting the select from the button, and keeps the select short', async () => {
+  it('wraps the label on to a line of its own before splitting the select from the button', async () => {
     const { compile } = await import('sass');
     const { resolve } = await import('node:path');
     const css = compile(resolve(__dirname, 'History.scss')).css;
@@ -271,12 +282,29 @@ describe('RecordNotes styles: the language and the button', () => {
     const pick = css.match(/\.record-notes__pick\s*\{([^}]*)\}/)?.[1] ?? '';
     expect(pick).toMatch(/display:\s*flex/);
     expect(pick).toMatch(/flex-wrap:\s*nowrap/);
-    const select = css.match(/\.record-notes__pick select\s*\{([^}]*)\}/)?.[1] ?? '';
-    expect(select).toMatch(/max-width:\s*160px/);
-    expect(select).toMatch(/min-width:\s*0/);
     // The button keeps its words on one line; the select gives way first.
     const button = css.match(/\.record-notes__pick \.history-button\s*\{([^}]*)\}/)?.[1] ?? '';
     expect(button).toMatch(/flex:\s*none/);
     expect(button).toMatch(/white-space:\s*nowrap/);
+  });
+
+  // Owner, 2026-11-17: the select as wide as its longest language name (not capped, not stretched), and as tall as the
+  // button beside it.
+  it('makes the select as wide as its longest name and as tall as the button', async () => {
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, 'History.scss')).css;
+    const select = css.match(/\.record-notes__pick select\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(select).toMatch(/width:\s*auto/);
+    expect(select).not.toMatch(/max-width:\s*160px/);
+    // The measured width, and never more than most of the row in a narrow column (its button stays beside it).
+    expect(select).toMatch(/min-width:\s*min\(var\(--language-min, 0px\), 55cqw\)/);
+    expect(css).toMatch(/\.record-notes\s*\{[^}]*container-type:\s*inline-size/);
+    const height = (body: string) => body.match(/(?:^|;|\s)height:\s*([^;]+);/)?.[1]?.trim();
+    const button = css.match(/\.record-notes__pick \.history-button\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(height(select)).toBe('30px');
+    expect(height(button)).toBe('30px');
+    expect(select).toMatch(/box-sizing:\s*border-box/);
+    expect(button).toMatch(/box-sizing:\s*border-box/);
   });
 });
