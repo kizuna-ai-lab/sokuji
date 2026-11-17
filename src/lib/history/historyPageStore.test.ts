@@ -223,6 +223,14 @@ describe('the History page state', () => {
     expect(store.getState().error).toBe('failed: gone');
   });
 
+  it('shows why the record could not be read again, even when the list cannot be read either', async () => {
+    await store.getState().openRecord(A);
+    port.getRecord = (async () => { throw new Error('record gone'); }) as never;
+    port.listRecords = (async () => { throw new Error('list gone'); }) as never;
+    await store.getState().dropRecording();
+    expect(store.getState().error).toBe('failed: record gone');
+  });
+
   it('keeps the newer list when an older read of it answers last', async () => {
     let answerOld!: () => void;
     const held = new Promise<void>((resolve) => { answerOld = resolve; });

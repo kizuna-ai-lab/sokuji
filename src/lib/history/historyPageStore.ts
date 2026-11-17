@@ -381,12 +381,19 @@ export function createHistoryPageStore(
           if (t.goneAt === null) await port.dropTrack({ recordId: open.record.id, source: t.source });
         }
         // The list's recording tag and the space used change too: back on the list, both are as they are now, even
-        // when the record itself could not be read again (that error is still shown).
+        // when the record itself could not be read again. That error is the one shown, also when the list fails too.
+        let failure: unknown = null;
         try {
           await fetchRecord(open.record.id, open.at, open.transcriptId);
-        } finally {
-          await reload();
+        } catch (error) {
+          failure = error;
         }
+        try {
+          await reload();
+        } catch (error) {
+          failure ??= error;
+        }
+        if (failure !== null) throw failure;
       }),
 
       closeRecord: () => {
