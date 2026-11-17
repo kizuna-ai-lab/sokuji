@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Filen är längre än fem timmar.",
         "TOO_BIG": "Filen är större än 16 GB.",
-        "UNSUPPORTED": "Ljudet i filen kan inte läsas.",
+        "UNSUPPORTED": "Ljudet i filen kan inte läsas. Konvertera den till AAC eller MP3 och importera den igen.",
         "NO_AUDIO": "Filen innehåller inget ljud.",
         "NO_SPEECH": "Soniox hörde inget tal i inspelningen.",
         "NO_KEY": "Soniox godtog inte nyckeln. Kontrollera den i Inställningar.",

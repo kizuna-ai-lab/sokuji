@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "File lebih dari lima jam.",
         "TOO_BIG": "File lebih besar dari 16 GB.",
-        "UNSUPPORTED": "Audio file ini tidak dapat dibaca.",
+        "UNSUPPORTED": "Audio file ini tidak dapat dibaca. Ubah ke AAC atau MP3, lalu impor lagi.",
         "NO_AUDIO": "File tidak berisi suara.",
         "NO_SPEECH": "Soniox tidak mendengar ucapan dalam rekaman.",
         "NO_KEY": "Soniox tidak menerima kunci. Periksa di Pengaturan.",

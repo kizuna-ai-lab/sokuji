@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Tệp dài hơn năm giờ.",
         "TOO_BIG": "Tệp lớn hơn 16 GB.",
-        "UNSUPPORTED": "Không đọc được âm thanh của tệp này.",
+        "UNSUPPORTED": "Không đọc được âm thanh của tệp này. Hãy chuyển sang AAC hoặc MP3 rồi nhập lại.",
         "NO_AUDIO": "Tệp không có âm thanh.",
         "NO_SPEECH": "Soniox không nghe thấy lời nói nào trong bản ghi âm.",
         "NO_KEY": "Soniox không chấp nhận khóa. Hãy kiểm tra trong Cài đặt.",

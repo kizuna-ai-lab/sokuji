@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "文件超过五小时。",
         "TOO_BIG": "文件大于 16 GB。",
-        "UNSUPPORTED": "读不出这个文件的声音。",
+        "UNSUPPORTED": "读不出这个文件的声音。请先转成 AAC 或 MP3，再导入。",
         "NO_AUDIO": "文件里没有声音。",
         "NO_SPEECH": "Soniox 在录音里没有听到说话。",
         "NO_KEY": "Soniox 没有接受这个 key，请在设置里检查。",

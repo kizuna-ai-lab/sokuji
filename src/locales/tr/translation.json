@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Dosya beş saatten uzun.",
         "TOO_BIG": "Dosya 16 GB’tan büyük.",
-        "UNSUPPORTED": "Bu dosyanın sesi okunamıyor.",
+        "UNSUPPORTED": "Bu dosyanın sesi okunamıyor. AAC veya MP3’e dönüştürüp yeniden içe aktar.",
         "NO_AUDIO": "Dosyada ses yok.",
         "NO_SPEECH": "Soniox kayıtta konuşma duymadı.",
         "NO_KEY": "Soniox anahtarı kabul etmedi. Ayarlardan kontrol et.",

@@ -196,7 +196,7 @@ describe('the line of a file job, in each case', () => {
       ['TOO_LONG', 'The file is longer than five hours.'],
       ['TOO_BIG', 'The file is larger than 16 GB.'],
       ['NO_AUDIO', 'The file holds no sound.'],
-      ['UNSUPPORTED', 'The audio of this file cannot be read.'],
+      ['UNSUPPORTED', 'The audio of this file cannot be read. Convert it to AAC or MP3 and import it again.'],
     ] as const) {
       const { pending, started } = await running();
       await act(async () => { pending.reject!(Object.assign(new Error(code), { code })); await started(); });

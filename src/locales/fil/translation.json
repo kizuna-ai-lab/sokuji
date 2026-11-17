@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "Mas mahaba sa limang oras ang file.",
         "TOO_BIG": "Mas malaki sa 16 GB ang file.",
-        "UNSUPPORTED": "Hindi mabasa ang audio ng file na ito.",
+        "UNSUPPORTED": "Hindi mabasa ang audio ng file na ito. I-convert ito sa AAC o MP3, saka i-import muli.",
         "NO_AUDIO": "Walang tunog ang file.",
         "NO_SPEECH": "Walang narinig na pananalita ang Soniox sa recording.",
         "NO_KEY": "Hindi tinanggap ng Soniox ang key. Tingnan ito sa Settings.",

@@ -2127,7 +2127,7 @@
       "failure": {
         "TOO_LONG": "El archivo dura más de cinco horas.",
         "TOO_BIG": "El archivo ocupa más de 16 GB.",
-        "UNSUPPORTED": "No se puede leer el audio de este archivo.",
+        "UNSUPPORTED": "No se puede leer el audio de este archivo. Conviértelo a AAC o MP3 e impórtalo de nuevo.",
         "NO_AUDIO": "El archivo no tiene sonido.",
         "NO_SPEECH": "Soniox no oyó ninguna voz en la grabación.",
         "NO_KEY": "Soniox no aceptó la clave. Revísala en Ajustes.",
