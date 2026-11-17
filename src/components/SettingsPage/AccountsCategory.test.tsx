@@ -137,6 +137,17 @@ describe('accounts and keys — opened from a notice or the tour', () => {
     expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
   });
 
+  // Owner, 2026-11-17: a link about OpenAI's key, with the session on another provider, opens OpenAI's row, which the page then
+  // scrolls to by its id.
+  it("opened by one provider's target, shows that provider's key, whatever the session runs on", () => {
+    useProviderStore.setState({ selected: 'soniox' });
+    render(<AccountsCategory locked={false} openedBy="provider:openai" />);
+    expect(within(row('OpenAI')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
+    expect(row('OpenAI')).toHaveAttribute('id', 'account-openai-section');
+    expect(row('Soniox')).toHaveAttribute('id', 'account-soniox-section');
+  });
+
   it("opened by the 'provider' target under a hosted provider, shows the Kizuna AI sign-in", () => {
     authState.signedIn = false;
     useProviderStore.setState({ selected: 'kizunaai_soniox' });

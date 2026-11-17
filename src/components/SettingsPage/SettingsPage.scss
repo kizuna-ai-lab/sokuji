@@ -913,4 +913,6 @@
 }
 .settings-page--narrow .sound-flow { display: none; }
 // A row the page went to (B-27: from the drawing above): the sections' pulse, on that row alone.
-.settings-page .setting-row.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }
+// A target's landing: the row a link named (an account's row), pulsing once as the sections do.
+.settings-page .setting-row.highlight,
+.settings-page .accounts-row.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }

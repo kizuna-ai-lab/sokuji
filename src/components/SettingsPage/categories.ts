@@ -3,6 +3,7 @@
 // The categories of the settings page, in the agreed order (providers and
 // stages design, section 8.1), and where each of today's navigation targets
 // lands on the page.
+import { accountAnchor, accountKeyOf, providerOfTarget } from './accountRows';
 
 export type CategoryId = 'lineup' | 'words' | 'accounts' | 'models' | 'audio' | 'display' | 'history' | 'general';
 export type CategoryGroup = 'session' | 'providers' | 'devices' | 'data' | 'app';
@@ -100,6 +101,9 @@ export function categoryHolding(anchor: string): CategoryId | null {
 
 /** Where a target lands; a target the page does not know opens "General" without a highlight. */
 export function targetToCategory(target: string): { category: CategoryId; anchor: string | null } {
+  // One provider's key or sign-in (owner, 2026-11-17): its own row in the accounts.
+  const provider = providerOfTarget(target);
+  if (provider) return { category: 'accounts', anchor: accountAnchor(accountKeyOf(provider)) };
   return TARGETS[target] ?? { category: 'general', anchor: null };
 }
 

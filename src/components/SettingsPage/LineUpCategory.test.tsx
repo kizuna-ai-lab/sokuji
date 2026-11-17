@@ -436,7 +436,8 @@ describe('the notes card', () => {
     const card = screen.getByRole('combobox', { name: 'Transcription and translation' }).closest('.lineup-stage') as HTMLElement;
     const state = within(card).getAllByRole('button', { name: 'No working key for 日本 (Japan)' })[0];
     fireEvent.click(state);
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    // Owner, 2026-11-17: to that provider's key, not only to the accounts page.
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:soniox');
   });
 
   // Rudolf's review of B-11: a saved key is not a working key. Only a check that passed says Ready; a key never
@@ -468,8 +469,11 @@ describe('the notes card', () => {
 
   it('takes you to the key from "Needs a key"', () => {
     render(<LineUpCategory locked={false} />);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Needs a key' })[0]);
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    const needs = screen.getAllByRole('button', { name: 'Needs a key' })[0];
+    const card = needs.closest('.lineup-stage') as HTMLElement;
+    const chosen = (within(card).getAllByRole('combobox')[0] as HTMLSelectElement).value;
+    fireEvent.click(needs);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe(`provider:${chosen}`);
   });
 
   // Review: signed out with an OpenAI key, the notes are written with that key; no extra choice is needed. Ready
@@ -493,7 +497,8 @@ describe('the notes card', () => {
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).queryByText('Ready')).toBeNull();
     fireEvent.click(within(card).getByRole('button', { name: 'Key not accepted' }));
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider');
+    // Owner, 2026-11-17: to OpenAI's key, whatever provider the session runs on.
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:openai');
   });
 
   it('says an OpenAI key not checked yet is not verified on the notes card', () => {

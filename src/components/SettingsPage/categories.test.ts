@@ -45,6 +45,15 @@ describe('the settings categories', () => {
     expect(targetToCategory('participant')).toEqual({ category: 'audio', anchor: 'participant' });
   });
 
+  // Owner, 2026-11-17: a link about one provider's key lands on that provider's row in Accounts and keys (the OpenAI services share
+  // one row; the hosted ones are Kizuna AI's sign-in).
+  it("maps a provider's key to its own row in the accounts", () => {
+    expect(targetToCategory('provider:openai')).toEqual({ category: 'accounts', anchor: 'account-openai' });
+    expect(targetToCategory('provider:openai_live')).toEqual({ category: 'accounts', anchor: 'account-openai' });
+    expect(targetToCategory('provider:soniox')).toEqual({ category: 'accounts', anchor: 'account-soniox' });
+    expect(targetToCategory('provider:kizunaai_soniox')).toEqual({ category: 'accounts', anchor: 'user-account' });
+  });
+
   it('filters categories by title and search words', () => {
     expect(filterCategories('key', t).map((c) => c.id)).toEqual(['accounts']);
     expect(filterCategories('麦克风', zh).map((c) => c.id)).toEqual(['audio']);

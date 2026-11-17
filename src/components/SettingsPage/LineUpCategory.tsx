@@ -55,6 +55,7 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
 
 import { stageInSentence } from '../../lib/lineup/stageWords';
+import { providerTarget } from './accountRows';
 export { stageInSentence };
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
@@ -302,7 +303,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const s = stateOf(id);
     const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
     return s.toKey
-      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings('provider')}>{s.text}</button>
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(id))}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
   };
 
