@@ -2080,7 +2080,16 @@
       "not-json": "メモのモデルが想定した形式で答えませんでした。",
       "no-answer": "メモのモデルから答えがありませんでした。",
       "network": "メモのサービスに接続できませんでした。",
-      "refused": "サービスが要求を拒否しました（{{status}}）。"
+      "refused": "サービスが要求を拒否しました（{{status}}）。",
+      "sign-in": "Kizuna AI でメモを書くには、Kizuna AI にサインインしてください。",
+      "unavailable": "Kizuna AI のメモはまだ利用できません。",
+      "no-balance": "Kizuna AI の残高がなくなりました。",
+      "daily-limit": "今日の Kizuna AI のメモの上限に達しました。明日もう一度お試しください。",
+      "wallet-frozen": "Kizuna AI のウォレットは凍結されています。",
+      "not-member": "Kizuna AI の料金を支払う組織のメンバーではなくなりました。",
+      "too-large": "この記録は長すぎるため、Kizuna AI ではメモを書けません。",
+      "update-required": "Kizuna AI でメモを書くには、Sokuji を更新してください。",
+      "other": "メモのサービスがリクエストを拒否しました。"
     },
     "notesLatestFailed": "最新の試みは書けませんでした：{{reason}}",
     "notesLatestStopped": "最新の試みは中止されました。",

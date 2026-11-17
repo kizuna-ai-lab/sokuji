@@ -7,6 +7,7 @@
 // stop it; after a failure it says why and can try again.
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { notesExplanation } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { englishLanguageName, languageLabel } from '../../lib/language/label';
@@ -52,7 +53,18 @@ const FAILURE_WORDS: Record<string, string> = {
   'not-json': 'The notes model did not answer in the expected form.',
   'no-answer': 'The notes model gave no answer.',
   network: 'The notes service could not be reached.',
+  // Kizuna AI's notes service (relayChat.ts): every reason it gives a code for has words of its own.
+  'sign-in': 'Sign in to Kizuna AI to write notes with it.',
+  unavailable: 'Notes by Kizuna AI are not available yet.',
+  'no-balance': 'Your Kizuna AI balance has run out.',
+  'daily-limit': 'Today\'s limit for notes by Kizuna AI is reached. Try again tomorrow.',
+  'wallet-frozen': 'Your Kizuna AI wallet is frozen.',
+  'not-member': 'You are no longer a member of the organization that pays for Kizuna AI.',
+  'too-large': 'This record is too long for Kizuna AI to write notes from.',
+  'update-required': 'Update Sokuji to write notes with Kizuna AI.',
 };
+/** The reasons the account can change: the failure leads there (the Kizuna AI row of Accounts and keys). */
+const ACCOUNT_REASONS = new Set(['notes:sign-in', 'notes:no-balance', 'notes:wallet-frozen', 'notes:not-member']);
 
 type Filter = 'all' | NoteKind;
 
@@ -84,8 +96,16 @@ export function RecordNotes(p: RecordNotesProps) {
     if (!failure?.startsWith('notes:')) return failure ?? '';
     const code = failure.slice('notes:'.length);
     if (code.startsWith('refused:')) return t('history.notesFailure.refused', 'The service refused the request ({{status}}).', { status: code.slice('refused:'.length) });
-    return t(`history.notesFailure.${code}`, FAILURE_WORDS[code] ?? failure);
+    // A code this version does not know yet still reads as words, never as the code.
+    if (!Object.prototype.hasOwnProperty.call(FAILURE_WORDS, code)) return t('history.notesFailure.other', 'The notes service refused the request.');
+    return t(`history.notesFailure.${code}`, FAILURE_WORDS[code]);
   };
+  // A reason the account can change leads there, under a version that failed and under a newer attempt that did.
+  const accountLink = (failure: string | null) => (failure && ACCOUNT_REASONS.has(failure) ? (
+    <button type="button" className="history-link" onClick={() => useSettingsStore.getState().navigateToSettings('user-account')}>
+      {t('history.file.openSettings', 'Open {{place}}', { place: t('settingsPage.categories.accounts', 'Accounts and keys') })}
+    </button>
+  ) : null);
   const sides = { mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side') };
   const again = (language: string) => () => write({ code: language, name: englishLanguageName(language) });
 
@@ -180,6 +200,7 @@ export function RecordNotes(p: RecordNotesProps) {
     content = (
       <div className="record-notes__state">
         <p>{t('history.notesFailed', 'The notes could not be written: {{reason}}', { reason: failureText(p.notes.failure) })}</p>
+        {accountLink(p.notes.failure)}
         <button type="button" className="history-button" onClick={again(p.notes.language)}>
           {t('history.notesTryAgain', 'Try again')}
         </button>
@@ -203,6 +224,7 @@ export function RecordNotes(p: RecordNotesProps) {
             <p>{latest.state === 'failed'
               ? t('history.notesLatestFailed', 'The latest attempt could not be written: {{reason}}', { reason: failureText(latest.failure) })
               : t('history.notesLatestStopped', 'The latest attempt was stopped.')}</p>
+            {latest.state === 'failed' && accountLink(latest.failure)}
             <button type="button" className="history-button" onClick={again(latest.language)}>{t('history.notesTryAgain', 'Try again')}</button>
           </div>
         )}

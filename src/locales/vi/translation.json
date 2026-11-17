@@ -2080,7 +2080,16 @@
       "not-json": "Mô hình ghi chú không trả lời theo dạng mong đợi.",
       "no-answer": "Mô hình ghi chú không trả lời.",
       "network": "Không kết nối được tới dịch vụ ghi chú.",
-      "refused": "Dịch vụ đã từ chối yêu cầu ({{status}})."
+      "refused": "Dịch vụ đã từ chối yêu cầu ({{status}}).",
+      "sign-in": "Hãy đăng nhập Kizuna AI để viết ghi chú bằng Kizuna AI.",
+      "unavailable": "Ghi chú của Kizuna AI chưa khả dụng.",
+      "no-balance": "Số dư Kizuna AI của bạn đã hết.",
+      "daily-limit": "Đã đạt giới hạn hôm nay cho ghi chú của Kizuna AI. Hãy thử lại vào ngày mai.",
+      "wallet-frozen": "Ví Kizuna AI của bạn đang bị đóng băng.",
+      "not-member": "Bạn không còn là thành viên của tổ chức trả phí cho Kizuna AI.",
+      "too-large": "Bản ghi này quá dài để Kizuna AI viết ghi chú.",
+      "update-required": "Hãy cập nhật Sokuji để viết ghi chú bằng Kizuna AI.",
+      "other": "Dịch vụ ghi chú đã từ chối yêu cầu."
     },
     "notesLatestFailed": "Lần thử gần nhất không viết được: {{reason}}",
     "notesLatestStopped": "Lần thử gần nhất đã bị dừng.",
