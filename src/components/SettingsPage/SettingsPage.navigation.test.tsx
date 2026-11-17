@@ -125,6 +125,9 @@ describe('search in the settings', () => {
       fireEvent.change(search(), { target: { value: name } });
       expect(listed()).toEqual(['Accounts and keys']);
     }
+    // Only names are matched without their spaces: a query does not run across the spaces of other words.
+    fireEvent.change(search(), { target: { value: 'sand' } });
+    expect(listed()).toEqual([]);
     await changeLanguageWithLoad('zh_CN');
     fireEvent.change(search(), { target: { value: 'openai' } });
     expect(listed()).toEqual(['账号与密钥']);

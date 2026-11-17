@@ -1,5 +1,4 @@
 // Settings › History and notes, the folder and the space it takes, after a record is deleted.
-// HistoryFolderUsage.test.tsx covers the same row; these add what changes after a record is deleted.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react';
 

@@ -36,7 +36,7 @@ export const CATEGORIES: readonly Category[] = [
   // The app's one word list and the session background (spec §9); the extension has it too.
   category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => true }),
   // Every provider by the name the interface gives it: their keys and sign-ins are on this page.
-  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance', 'volcengine'], nameKeys: CAPS.map((c) => `providers.${c.id}.name`), lockedInSession: 'partly', shown: () => true }),
+  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance', 'volcengine' /* Doubao's maker, whose console issues its keys */], nameKeys: CAPS.map((c) => `providers.${c.id}.name`), lockedInSession: 'partly', shown: () => true }),
   // Every download, delete and import there waits for the session to end (the owner, 2026-11-17).
   category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
@@ -115,9 +115,11 @@ export function targetToCategory(target: string): { category: CategoryId; anchor
 
 /** The categories whose title or search words contain the query, in order; an empty query keeps them all. */
 export function filterCategories(query: string, t: (key: string) => string, list: readonly Category[] = CATEGORIES): readonly Category[] {
-  // Spaces do not count: "kizuna ai" finds "KizunaAI", "openai realtime" finds "OpenAI Realtime".
-  const squash = (text: string) => text.toLowerCase().replace(/\s+/g, '');
-  const q = squash(query);
+  const q = query.trim().toLowerCase();
   if (!q) return list;
-  return list.filter((c) => [t(c.titleKey), t(c.wordsKey), ...c.words, ...(c.nameKeys ?? []).map((k) => t(k))].some((text) => squash(text).includes(q)));
+  // A name matches with its spaces left out on both sides ("kizuna ai" finds "KizunaAI"); the other words as typed, so a
+  // query does not run across their spaces ("sand" does not find "Accounts and keys").
+  const squash = (text: string) => text.toLowerCase().replace(/\s+/g, '');
+  return list.filter((c) => [t(c.titleKey), t(c.wordsKey), ...c.words].some((text) => text.toLowerCase().includes(q))
+    || (c.nameKeys ?? []).some((k) => squash(t(k)).includes(squash(q))));
 }
