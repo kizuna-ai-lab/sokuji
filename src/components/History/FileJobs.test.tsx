@@ -204,6 +204,20 @@ describe('transcribing a record again', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  // No setting brings back a recording: the reason stands alone, whatever the line-up's transcription is (B-35 review).
+  it('says a record without a recording keeps none, with no link to Settings', async () => {
+    record = { ...record, tracks: record.tracks.map((t) => ({ ...t, goneAt: START })) };
+    const { jobs } = fakeJobs({ missing: 'hosted-soniox' });
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('This record keeps no recording.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
+    expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('says the same reason and link as the import when Kizuna AI\'s Soniox transcribes the line-up', async () => {
     useSettingsStore.setState({ settingsNavigationTarget: null });
     const { jobs } = fakeJobs({ missing: 'hosted-soniox' });
