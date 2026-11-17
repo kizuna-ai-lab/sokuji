@@ -367,7 +367,7 @@
     "defaultPlayback": "預設播放裝置",
     "defaultPlaybackTip": "未單獨指定裝置的聲音，從這裡播放。",
     "otherHears": "對方聽到的翻譯",
-    "otherHearsTip": "我說的話翻譯後朗讀給對方。送進虛擬麥克風時，對方在自己的軟體裡把它選作麥克風就能聽到。",
+    "otherHearsTip": "我說的話翻譯後朗讀給對方。送進虛擬麥克風時，請在您的會議應用程式中選擇它作為麥克風。",
     "otherHearsAlwaysSpeaks": "此服務總是朗讀。",
     "otherHearsNeverSpeaks": "此服務不朗讀。",
     "meToo": "我也聽",

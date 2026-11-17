@@ -33,7 +33,7 @@
     "message": "快速開始："
   },
   "quickStartInstructions": {
-    "message": "設定您的 API 金鑰（OpenAI 或 Gemini）→ 選擇「Sokuji_Virtual_Mic」作為麥克風 → 開始說話！"
+    "message": "在會議中選擇「Sokuji Virtual Microphone」作為麥克風 → 開始說話！"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

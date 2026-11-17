@@ -33,7 +33,7 @@
     "message": "Gyors Kezdés:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurálja API kulcsát (OpenAI vagy Gemini) → Válassza a \"Sokuji_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
+    "message": "A megbeszélésen válassza a \"Sokuji Virtual Microphone\"-t mikrofonként → Kezdjen el beszélni!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

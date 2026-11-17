@@ -367,7 +367,7 @@
     "defaultPlayback": "Appareil de lecture par défaut",
     "defaultPlaybackTip": "Les sons sans appareil propre sont lus ici.",
     "otherHears": "Traduction entendue par l'autre",
-    "otherHearsTip": "Ce que je dis, traduit et lu à voix haute à l'autre. Vers le micro virtuel : l'autre le choisit comme micro dans sa propre application.",
+    "otherHearsTip": "Ce que je dis, traduit et lu à voix haute à l'autre. Vers le micro virtuel : choisissez-le comme micro dans votre application de réunion.",
     "otherHearsAlwaysSpeaks": "Ce service parle toujours.",
     "otherHearsNeverSpeaks": "Ce service ne parle jamais.",
     "meToo": "Je l'entends aussi",

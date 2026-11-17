@@ -33,7 +33,7 @@
     "message": "빠른 시작:"
   },
   "quickStartInstructions": {
-    "message": "API 키 설정 (OpenAI 또는 Gemini) → 마이크로 \"Sokuji_Virtual_Mic\" 선택 → 말하기 시작!"
+    "message": "회의에서 마이크로 \"Sokuji Virtual Microphone\" 선택 → 말하기 시작!"
   },
   "gatherTownTitle": {
     "message": "Gather Town용 Sokuji"

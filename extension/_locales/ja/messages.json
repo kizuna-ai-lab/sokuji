@@ -33,7 +33,7 @@
     "message": "クイックスタート："
   },
   "quickStartInstructions": {
-    "message": "APIキー（OpenAI または Gemini）を設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！"
+    "message": "会議でマイクとして「Sokuji Virtual Microphone」を選択 → 話し始める！"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

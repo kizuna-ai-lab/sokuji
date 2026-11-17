@@ -33,7 +33,7 @@
     "message": "Быстрый старт:"
   },
   "quickStartInstructions": {
-    "message": "Настройте ваш API-ключ OpenAI → Выберите \"Sokuji_Virtual_Mic\" как микрофон → Начните говорить!"
+    "message": "На встрече выберите \"Sokuji Virtual Microphone\" как микрофон → Начните говорить!"
   },
   "gatherTownTitle": {
     "message": "Sokuji для Gather Town"

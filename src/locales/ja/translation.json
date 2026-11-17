@@ -367,7 +367,7 @@
     "defaultPlayback": "既定の再生デバイス",
     "defaultPlaybackTip": "デバイスを個別に指定していない音は、ここで再生されます。",
     "otherHears": "相手に聞こえる翻訳",
-    "otherHearsTip": "自分の発言を翻訳して相手に読み上げます。仮想マイクに送る場合、相手は自分のアプリでそれをマイクとして選ぶと聞こえます。",
+    "otherHearsTip": "自分の発言を翻訳して相手に読み上げます。仮想マイクに送る場合は、会議アプリでそれをマイクに選んでください。",
     "otherHearsAlwaysSpeaks": "このサービスは常に読み上げます。",
     "otherHearsNeverSpeaks": "このサービスは読み上げません。",
     "meToo": "自分にも再生",

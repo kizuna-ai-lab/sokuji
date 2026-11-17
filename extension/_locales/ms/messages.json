@@ -33,7 +33,7 @@
     "message": "Mula Pantas:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurasikan kunci API OpenAI anda ← Pilih \"Sokuji_Virtual_Mic\" sebagai mikrofon ← Mula bercakap!"
+    "message": "Dalam mesyuarat anda, pilih \"Sokuji Virtual Microphone\" sebagai mikrofon → Mula bercakap!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

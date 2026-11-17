@@ -367,7 +367,7 @@
     "defaultPlayback": "Dispositivo di riproduzione predefinito",
     "defaultPlaybackTip": "I suoni senza un dispositivo proprio vengono riprodotti qui.",
     "otherHears": "Traduzione che sente l'altra parte",
-    "otherHearsTip": "Quello che dico, tradotto e letto ad alta voce all'altra parte. Nel microfono virtuale: l'altra parte lo sceglie come microfono nella propria app.",
+    "otherHearsTip": "Quello che dico, tradotto e letto ad alta voce all'altra parte. Nel microfono virtuale: selezionalo come microfono nella tua app di riunione.",
     "otherHearsAlwaysSpeaks": "Questo servizio parla sempre.",
     "otherHearsNeverSpeaks": "Questo servizio non parla mai.",
     "meToo": "Lo sento anche io",

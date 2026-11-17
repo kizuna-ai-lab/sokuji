@@ -33,7 +33,7 @@
     "message": "התחלה מהירה:"
   },
   "quickStartInstructions": {
-    "message": "הגדר את מפתח ה-API של OpenAI שלך ← בחר \"Sokuji_Virtual_Mic\" כמיקרופון ← התחל לדבר!"
+    "message": "בפגישה, בחר \"Sokuji Virtual Microphone\" כמיקרופון ← התחל לדבר!"
   },
   "gatherTownTitle": {
     "message": "Sokuji for Gather Town"

@@ -367,7 +367,7 @@
     "defaultPlayback": "Standarduppspelningsenhet",
     "defaultPlaybackTip": "Ljud utan egen enhet spelas upp här.",
     "otherHears": "Översättning som motparten hör",
-    "otherHearsTip": "Det jag säger, översatt och uppläst för motparten. In i den virtuella mikrofonen: motparten väljer den som mikrofon i sin egen app.",
+    "otherHearsTip": "Det jag säger, översatt och uppläst för motparten. In i den virtuella mikrofonen: välj den som mikrofon i din mötesapplikation.",
     "otherHearsAlwaysSpeaks": "Den här tjänsten talar alltid.",
     "otherHearsNeverSpeaks": "Den här tjänsten talar aldrig.",
     "meToo": "Jag hör den också",
