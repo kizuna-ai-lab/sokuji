@@ -37,6 +37,9 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
     'settings.tour': JSON.stringify({ version: 1, completedChapters: ['basics'], completedAt: now(), method: 'skipped' }),
     'settings.common.provider': provider,
     'settings.lineup': JSON.stringify({ transcription: provider, translation: provider, speech: provider, summarisation: null }),
+    // The interface language: the app reads it from `i18nextLng` (the setting beside it is what Settings shows).
+    // Without it the app follows the machine's language, and specs that find elements by their English names fail.
+    i18nextLng: 'en',
     'settings.common.uiLanguage': 'en',
   };
 }
@@ -133,6 +136,11 @@ export async function launch(options: { userData?: string; seed?: Seed } = {}): 
     // Always, seed or not, restart or not: only a document loaded after the init script was registered has the microphone.
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
+    // Chromium writes a page's storage to disk in batches. A user's settings are long on disk when the app crashes;
+    // a test's were seeded a moment ago, and a kill() soon after would lose them and restart into the setup wizard.
+    // So what was seeded is written out now. Settings a test changes later through the app are not: a crash right
+    // after such a change is the app's own behaviour to test.
+    if (storage) await app.evaluate(({ session }) => session.defaultSession.flushStorageData());
     if (!(await page.evaluate(() => Boolean((navigator.mediaDevices as MediaDevices & { __e2eMic?: boolean }).__e2eMic)))) {
       throw new Error('The E2E microphone was not installed in the page.');
     }

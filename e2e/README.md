@@ -54,7 +54,10 @@ audio away from any Sokuji already running on the machine.
   development build started from here would clean and recreate the system's virtual audio devices.
 - `baseStorage('fake')` is the seed every session test wants: the setup wizard and the tour are done,
   the interface is English, the fake provider runs every stage.
+  Another interface language: `{ ...baseStorage('fake'), i18nextLng: 'ja' }`.
 - `sokuji.kill()` ends the process at once (a crash); launch again on the same `userData` to test recovery.
+  The seeded settings are written to disk at launch, so they survive a kill; settings changed later through the app are
+  on disk only when Chromium gets to them (seconds), as for a user.
 - `sokuji.answerSaveDialog(path)` / `answerOpenDialog(paths)` set what the system dialog answers (`null` is Cancel);
   Playwright cannot click a native dialog.
 - `mainAction(page)` is the Start / End session button.
