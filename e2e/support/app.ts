@@ -37,6 +37,9 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
     'settings.tour': JSON.stringify({ version: 1, completedChapters: ['basics'], completedAt: now(), method: 'skipped' }),
     'settings.common.provider': provider,
     'settings.lineup': JSON.stringify({ transcription: provider, translation: provider, speech: provider, summarisation: null }),
+    // The interface language: the app reads it from `i18nextLng` (the setting beside it is what Settings shows).
+    // Without it the app follows the machine's language, and specs that find elements by their English names fail.
+    i18nextLng: 'en',
     'settings.common.uiLanguage': 'en',
   };
 }
