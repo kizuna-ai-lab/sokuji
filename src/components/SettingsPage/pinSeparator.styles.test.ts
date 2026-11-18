@@ -7,24 +7,36 @@ import { resolve } from 'node:path';
 
 const css = compile(resolve(__dirname, 'SettingsPage.scss'), { silenceDeprecations: ['import', 'global-builtin'] }).css;
 
-/** Whether a selector's subject (its last compound, the option the rule sizes) is an option that is not the separator. */
-const subjectSkipsSeparator = (selector: string): boolean => {
+/**
+ * Whether a selector can match the separator: its subject (the last compound, the element the rule styles) is an
+ * option or names no element, carries no class or id (the separator has neither), and does not leave the separator out
+ * with `:not([value='__pin-separator__'])`. `[value='__pin-separator__']` on its own matches it.
+ */
+const canMatchSeparator = (selector: string): boolean => {
   const subject = selector.trim().split(/\s*[\s>+~]\s*/).pop() ?? '';
-  return /^option:not\(\[value=["']?__pin-separator__["']?\]\)$/.test(subject);
+  const type = /^[a-z*]+/i.exec(subject)?.[0];
+  if (type && type !== 'option' && type !== '*') return false;
+  if (/[.#]/.test(subject.replace(/\[[^\]]*\]/g, ''))) return false;
+  return !/:not\(\[value=["']?__pin-separator__["']?\]\)/.test(subject);
 };
 
+/** The rules that give an element the 30px row height, as their selectors' comma-separated parts. */
+const sizedSelectors = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  .filter((m) => /min-height:\s*30px/.test(m[2]))
+  .flatMap((m) => m[1].split(','));
+
 describe("the settings page's dropdown options", () => {
-  it('tells a rule that sizes every option but the separator from one that only skips it as a neighbour', () => {
-    expect(subjectSkipsSeparator(".settings-page .language-select option:not([value='__pin-separator__'])")).toBe(true);
-    expect(subjectSkipsSeparator(".settings-page .language-select option:not([value='__pin-separator__']) + option")).toBe(false);
-    expect(subjectSkipsSeparator('.settings-page .language-select option')).toBe(false);
+  it('tells a rule that can size the separator from one that cannot', () => {
+    expect(canMatchSeparator(".settings-page .language-select option:not([value='__pin-separator__'])")).toBe(false);
+    expect(canMatchSeparator(".settings-page .language-select option:not([value='__pin-separator__']):checked")).toBe(false);
+    expect(canMatchSeparator('.settings-page .language-select')).toBe(false);
+    expect(canMatchSeparator(".settings-page .language-select option:not([value='__pin-separator__']) + option")).toBe(true);
+    expect(canMatchSeparator('.settings-page .language-select option')).toBe(true);
+    expect(canMatchSeparator(".settings-page .language-select [value='__pin-separator__']")).toBe(true);
   });
 
   it('are sized as rows, all but the pinned-languages separator', () => {
-    const sized = [...css.matchAll(/([^{}]*\boption\b[^{}]*)\{([^}]*min-height:\s*30px[^}]*)\}/g)].map((m) => m[1]);
-    expect(sized.length).toBeGreaterThan(0);
-    for (const selector of sized) {
-      for (const part of selector.split(',')) expect(subjectSkipsSeparator(part)).toBe(true);
-    }
+    expect(sizedSelectors.some((selector) => /\boption\b/.test(selector))).toBe(true);
+    expect(sizedSelectors.filter(canMatchSeparator)).toEqual([]);
   });
 });
