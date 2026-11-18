@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Note in diretta",
+    "resize": "Ridimensiona le note in diretta",
     "hint": "Impossibile aggiornare le note in diretta. Si riproverà.",
     "off": "Le note in diretta sono disattivate.",
     "waiting": "Le note compaiono qui man mano che la conversazione procede.",

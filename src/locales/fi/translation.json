@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Reaaliaikaiset muistiinpanot",
+    "resize": "Muuta reaaliaikaisten muistiinpanojen kokoa",
     "hint": "Reaaliaikaisia muistiinpanoja ei voitu päivittää. Yritetään uudelleen.",
     "off": "Reaaliaikaiset muistiinpanot ovat pois päältä.",
     "waiting": "Muistiinpanot ilmestyvät tähän keskustelun edetessä.",

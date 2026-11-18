@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Live na tala",
+    "resize": "Baguhin ang laki ng live na tala",
     "hint": "Hindi ma-update ang live na tala. Susubukan ulit.",
     "off": "Naka-off ang live na tala.",
     "waiting": "Lalabas dito ang mga tala habang tumatakbo ang usapan.",

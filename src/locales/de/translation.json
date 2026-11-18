@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Live-Notizen",
+    "resize": "Größe der Live-Notizen ändern",
     "hint": "Die Live-Notizen konnten nicht aktualisiert werden. Es wird erneut versucht.",
     "off": "Live-Notizen sind aus.",
     "waiting": "Die Notizen erscheinen hier, während das Gespräch läuft.",

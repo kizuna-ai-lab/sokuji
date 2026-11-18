@@ -2,11 +2,12 @@
 //
 // The live notes beside the conversation (stage 4, desktop): the title, then the topics in the order they came, each
 // with its points and what they are; the newest topic is the one being written. Docked on the right of a window at
-// least 768 px wide, above the conversation when narrower (MainLayout's styles); not shown in caption mode, nor when
-// live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
+// least 768 px wide, above the conversation when narrower (MainLayout's styles); docked on the right, its width is
+// dragged at the divider on its left and kept for the next session (owner, 2026-11-18; liveNotesWidth.ts). Not shown in
+// caption mode, nor when live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
 // notes will come. After Stop the notes stay until the next start or Clear, with the way to History, where the full
 // notes are written. Live notes are never kept (ruling 16).
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveNotesPresent, useLiveNotesShown } from '../../lib/notes/live/livePanel';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
@@ -16,6 +17,8 @@ import { useLineUpStore } from '../../stores/lineUpStore';
 import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { liveCostUsd, LOW_BALANCE_MICRO_USD, usd, useNotesPricing } from '../../lib/notes/notesPricing';
 import { isElectron } from '../../utils/environment';
+import PanelResizer from '../MainLayout/PanelResizer';
+import { LIVE_NOTES_MIN_PX, liveNotesWidthWithin, readLiveNotesWidth, writeLiveNotesWidth } from './liveNotesWidth';
 import './LiveNotesPanel.scss';
 
 export interface LiveNotesPanelProps {
@@ -31,6 +34,27 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const present = useLiveNotesPresent();
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrolledTo = useRef(0);
+  // The width the reader left it at (kept on this computer, and held here too, so one that could not be saved still
+  // holds for this session); what a drag shows until it ends; and the conversation's row it shares, measured before it
+  // paints. The width shown fits the row; the one kept stays as it was left, for a wider window later.
+  const asideRef = useRef<HTMLElement>(null);
+  const [kept, setKept] = useState(readLiveNotesWidth);
+  const [preview, setPreview] = useState<number | null>(null);
+  const [row, setRow] = useState(0);
+  // Read when a drag ends: its handlers were made when it began, and the row may have changed since.
+  const rowNow = useRef(0);
+  useLayoutEffect(() => {
+    const el = asideRef.current?.parentElement;
+    if (!el) return undefined;
+    const measure = () => { rowNow.current = el.clientWidth; setRow(el.clientWidth); };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [present]);
+  // Hidden or gone in the middle of a drag, the divider goes, and what it showed with it.
+  useEffect(() => { if (!shown || !present) setPreview(null); }, [shown, present]);
   // A new session's notes start at the top: the panel stays up between sessions while live notes are on.
   const liveRecordId = useLiveNotes((x) => x.recordId);
   const readingRecord = useRef(liveRecordId);
@@ -52,6 +76,7 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const hosted = useLineUpStore((s) => notesServiceOf(s.lineUp) === KIZUNA_NOTES);
   const pricing = useNotesPricing(hosted && isElectron());
   if (!present) return null;
+  const shownWidth = liveNotesWidthWithin(preview ?? kept, row);
 
   const kindWord: Record<NoteKind, string> = {
     decision: t('history.notesKind.decision', 'Decision'),
@@ -63,7 +88,35 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const openTopic = running && last && last.points.length < LIVE_FULL ? last : null;
 
   return (
-    <aside className="live-notes" id="live-notes-panel" aria-label={t('liveNotes.title', 'Live notes')} hidden={!shown}>
+    <>
+    {/* Hidden, the notes leave no divider either. */}
+    {shown && (
+      <PanelResizer
+        width={shownWidth}
+        min={LIVE_NOTES_MIN_PX}
+        max={liveNotesWidthWithin(Number.POSITIVE_INFINITY, row)}
+        label={t('liveNotes.resize', 'Resize live notes')}
+        onResize={setPreview}
+        onCancel={() => setPreview(null)}
+        onCommit={(next) => {
+          setPreview(null);
+          const fitted = liveNotesWidthWithin(next, rowNow.current);
+          // Ending where the kept width shows (a click, a key at the limit, a drag back to the start) changes nothing:
+          // the width kept from a wider window stays, for when there is room again (review).
+          if (fitted === liveNotesWidthWithin(kept, rowNow.current)) return;
+          setKept(fitted);
+          writeLiveNotesWidth(fitted);
+        }}
+      />
+    )}
+    <aside
+      ref={asideRef}
+      className="live-notes"
+      id="live-notes-panel"
+      aria-label={t('liveNotes.title', 'Live notes')}
+      hidden={!shown}
+      style={{ '--live-notes-width': `${shownWidth}px` } as CSSProperties}
+    >
       <div className="live-notes__head">{t('liveNotes.title', 'Live notes')}</div>
       <div className="live-notes__body" ref={bodyRef}>
         {hint && <p className="live-notes__line" role="status">{t('liveNotes.hint', 'Live notes could not be updated. They will try again.')}</p>}
@@ -114,6 +167,7 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
         )}
       </div>
     </aside>
+    </>
   );
 }
 

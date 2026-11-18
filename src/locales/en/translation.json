@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Live notes",
+    "resize": "Resize live notes",
     "hint": "Live notes could not be updated. They will try again.",
     "off": "Live notes are off.",
     "waiting": "Notes appear here as the conversation goes on.",

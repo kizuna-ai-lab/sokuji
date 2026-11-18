@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Notatki na żywo",
+    "resize": "Zmień rozmiar notatek na żywo",
     "hint": "Nie udało się zaktualizować notatek na żywo. Nastąpi ponowna próba.",
     "off": "Notatki na żywo są wyłączone.",
     "waiting": "Notatki pojawiają się tutaj w miarę trwania rozmowy.",

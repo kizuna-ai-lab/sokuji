@@ -14,6 +14,23 @@ describe('PanelResizer', () => {
     expect(sep).toHaveAttribute('aria-valuemax', '900');
   });
 
+  it('is named after the panel it resizes when the caller says which, so two dividers can be told apart', () => {
+    render(<PanelResizer {...base} label="Resize live notes" onResize={() => {}} onCommit={() => {}} />);
+    expect(screen.getByRole('separator', { name: 'Resize live notes' })).toBeInTheDocument();
+  });
+
+  it('tells the caller when a drag is cancelled, without committing it', () => {
+    const onResize = vi.fn(); const onCommit = vi.fn(); const onCancel = vi.fn();
+    render(<PanelResizer {...base} onResize={onResize} onCommit={onCommit} onCancel={onCancel} />);
+    const sep = screen.getByRole('separator');
+    sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 500, button: 0 }), { pointerType: 'mouse' }));
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 440 }));
+    expect(onResize).toHaveBeenLastCalledWith(510);
+    window.dispatchEvent(new Event('pointercancel'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('ArrowLeft widens by 16 (resize + commit)', () => {
     const onResize = vi.fn(); const onCommit = vi.fn();
     render(<PanelResizer {...base} onResize={onResize} onCommit={onCommit} />);

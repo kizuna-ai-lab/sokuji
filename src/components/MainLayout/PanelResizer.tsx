@@ -12,11 +12,15 @@ interface PanelResizerProps {
   onCommit: (next: number) => void;
   /** Which side of the seam the panel is on: 'right' (the default) widens when dragged left, 'left' when dragged right. */
   side?: 'left' | 'right';
+  /** The divider's name, saying which panel it resizes; "Resize panel" when not given. */
+  label?: string;
+  /** A drag that ended without a release (`pointercancel`): nothing is committed, the caller drops what it previewed. */
+  onCancel?: () => void;
 }
 
 const STEP = 16;
 
-const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, onCommit, side = 'right' }) => {
+const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, onCommit, side = 'right', label, onCancel }) => {
   const { t } = useTranslation();
   const drag = useRef<{ startX: number; startWidth: number } | null>(null);
   // Holds the teardown for an in-progress drag so we can run it on unmount.
@@ -36,24 +40,24 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
     const widthFrom = (clientX: number) => start.startWidth + (side === 'left' ? clientX - start.startX : start.startX - clientX);
 
     const onMove = (ev: PointerEvent) => { if (drag.current) onResize(widthFrom(ev.clientX)); };
-    // Hoisted so onUp/onCancel below can reference it; only invoked on release.
+    // Hoisted so onUp/onCancelled below can reference it; only invoked on release or cancel.
     function teardown() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('pointercancel', onCancelled);
       document.body.classList.remove('is-resizing-panel');
       drag.current = null;
       cleanupRef.current = null;
     }
     const onUp = (ev: PointerEvent) => { onCommit(widthFrom(ev.clientX)); teardown(); };
-    const onCancel = () => teardown();
+    const onCancelled = () => { teardown(); onCancel?.(); };
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onCancel);
+    window.addEventListener('pointercancel', onCancelled);
     document.body.classList.add('is-resizing-panel');
     cleanupRef.current = teardown;
-  }, [width, onResize, onCommit, side]);
+  }, [width, onResize, onCommit, side, onCancel]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     let next: number | null = null;
@@ -74,7 +78,7 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
       className="panel-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label={t('common.resizePanel', 'Resize panel')}
+      aria-label={label ?? t('common.resizePanel', 'Resize panel')}
       aria-valuenow={Math.round(width)}
       aria-valuemin={min}
       aria-valuemax={max}
