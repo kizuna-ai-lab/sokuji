@@ -74,6 +74,15 @@ describe('transcribing a record again', () => {
     expect(result).toEqual({ transcriptId: 7, sentences: 2 });
   });
 
+  // The whole request, so nothing meant for the Kizuna AI service (a sign-in, its address, a payer, the audio still to
+  // come) ever rides along with the user's own key; strictly, so not even such a key left undefined.
+  it('asks with the key, the region and what the user chose, and nothing else', async () => {
+    const { port, asked } = fakePort({ words: { speaker: said('One.', 0), participant: said('Two.', 0) } });
+    await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
+    const sent = { recordId: ID, service: 'soniox', apiKey: 'sk-test', region: 'eu', languageHints: ['en', 'zh'], translateTo: 'zh', jobId: expect.any(String) };
+    expect(asked).toStrictEqual([{ ...sent, source: 'speaker' }, { ...sent, source: 'participant' }]);
+  });
+
   it('is not certain of the side when both legs heard one input', async () => {
     const { port, written } = fakePort({ record: record({ sameInput: true }), words: { speaker: said('One.', 0), participant: said('Two.', 0) } });
     await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
@@ -217,6 +226,13 @@ describe('transcribing a record through the Kizuna AI service', () => {
     expect(result).toEqual({ transcriptId: 7, sentences: 2 });
   });
 
+  it('counts only the tracks still kept in the audio still to come', async () => {
+    const goneLater = record({ tracks: [{ source: 'speaker', offsetMs: 0, durationMs: 90_000 }, { source: 'participant', offsetMs: 1000, durationMs: 45_000, goneAt: 5 }] });
+    const { port, asked } = fakePort({ record: goneLater, words });
+    await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(async () => 'tok'), newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => [r.source, r.laterAudioMs])).toEqual([['speaker', 0]]);
+  });
+
   it('names no payer when there is none to name, and the word list goes with every track', async () => {
     const context = { terms: ['Sokuji'] };
     const { port, asked } = fakePort({ record: twoTracks(), words });
@@ -257,5 +273,15 @@ describe('transcribing a record through the Kizuna AI service', () => {
       .rejects.toMatchObject({ code: 'CANCELLED' });
     expect(raw.recognize).not.toHaveBeenCalled();
     expect(raw.createTranscript).not.toHaveBeenCalled();
+  });
+
+  // A cancel that lands while the sign-in is read is a cancel, not a missing sign-in.
+  it('a cancel while the sign-in is read says it was cancelled, even when no sign-in came back', async () => {
+    const controller = new AbortController();
+    const { port, raw } = fakePort({ record: twoTracks(), words });
+    const token = async () => { controller.abort(); return null; };
+    await expect(transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(token), newJobId, clock: createVirtualClock(0), signal: controller.signal }))
+      .rejects.toMatchObject({ code: 'CANCELLED' });
+    expect(raw.recognize).not.toHaveBeenCalled();
   });
 });

@@ -83,7 +83,11 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     const s = o.service;
     if (!('hosted' in s)) return { apiKey: s.apiKey, ...(s.region ? { region: s.region } : {}) };
     const token = s.access ? await s.access.token() : null;
-    if (!s.access || !token) throw new TranscribeError('SIGN_IN', 'Sign in to Kizuna AI to transcribe with it');
+    if (!s.access || !token) {
+      // Cancelled while the sign-in was read: the cancel is what happened, not a missing sign-in.
+      if (o.signal?.aborted) throw cancelled();
+      throw new TranscribeError('SIGN_IN', 'Sign in to Kizuna AI to transcribe with it');
+    }
     const laterAudioMs = tracks.slice(index + 1).reduce((sum, t) => sum + t.durationMs, 0);
     return { region: s.region, apiUrl: s.access.apiUrl, token, ...(s.access.payer ? { payer: s.access.payer } : {}), laterAudioMs };
   };
