@@ -2207,6 +2207,7 @@
     "costSoFar": "Notas ao vivo até agora: cerca de {{cost}}",
     "lowBalance": "Seu saldo está baixo: restam {{balance}}.",
     "hide": "Ocultar as notas ao vivo",
+    "showAlone": "Mostrar só as notas ao vivo",
     "show": "Mostrar as notas ao vivo",
     "showWriting": "Mostrar as notas ao vivo (ainda sendo escritas)"
   }

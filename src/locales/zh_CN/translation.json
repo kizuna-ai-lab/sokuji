@@ -2207,6 +2207,7 @@
     "costSoFar": "本次实时纪要已用：约 {{cost}}",
     "lowBalance": "余额不多了：还剩 {{balance}}。",
     "hide": "收起实时纪要",
+    "showAlone": "只看实时纪要",
     "show": "展开实时纪要",
     "showWriting": "展开实时纪要（仍在生成）"
   }

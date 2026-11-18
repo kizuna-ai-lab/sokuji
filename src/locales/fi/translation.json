@@ -2207,6 +2207,7 @@
     "costSoFar": "Reaaliaikaiset muistiinpanot tähän asti: noin {{cost}}",
     "lowBalance": "Saldosi on vähissä: jäljellä {{balance}}.",
     "hide": "Piilota reaaliaikaiset muistiinpanot",
+    "showAlone": "Näytä vain reaaliaikaiset muistiinpanot",
     "show": "Näytä reaaliaikaiset muistiinpanot",
     "showWriting": "Näytä reaaliaikaiset muistiinpanot (kirjoitetaan yhä)"
   }

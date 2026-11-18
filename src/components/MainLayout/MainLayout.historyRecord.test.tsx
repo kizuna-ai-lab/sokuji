@@ -1,8 +1,10 @@
 // The record the live notes open History at is for that one opening: History closed any other way opens at its list.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
-vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
+// MainLayout hands MainPanel the live notes to draw in the conversation's area.
+vi.mock('../MainPanel/MainPanel', () => ({ default: (p: { liveNotes?: ReactNode }) => <div data-testid="main-panel">{p.liveNotes}</div> }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => null }));
 vi.mock('../VbCable/VbCableIntro', () => ({ default: () => null }));
 vi.mock('../Region/RegionRecommendation', () => ({ default: () => null }));

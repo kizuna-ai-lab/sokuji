@@ -4,7 +4,7 @@
  * controls, the toolbar with the export menu, the footers over the run's
  * state.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Captions, MessageSquare } from 'lucide-react';
 import { getAppSession, type AppSession, type LoadedAudio } from '../../app/session';
@@ -71,6 +71,7 @@ import { SourcePicker } from '../ScreenContext/SourcePicker';
 import { StatusLine } from './StatusLine';
 import { useStatusLine } from './useStatusLine';
 import { toneOf } from '../../lib/view/tone';
+import { useLiveNotesShows } from '../../lib/notes/live/livePanel';
 import './MainPanel.scss';
 
 /**
@@ -146,8 +147,15 @@ function useUpdateAndAudioSystemListeners(): void {
   }, [initAudioSystemListeners, cleanupAudioSystemListeners]);
 }
 
-export default function MainPanel() {
+export interface MainPanelProps {
+  /** The live notes, drawn in the conversation's area beside the conversation (owner, 2026-11-18). */
+  liveNotes?: ReactNode;
+}
+
+export default function MainPanel({ liveNotes }: MainPanelProps) {
   const { t } = useTranslation();
+  // The notes alone in the area hide the conversation, kept as it was (livePanel.ts); only where there are notes to show.
+  const areaShows = useLiveNotesShows();
   const { trackEvent } = useAnalytics();
   const session = getAppSession();
   const { runner } = session;
@@ -336,37 +344,44 @@ export default function MainPanel() {
         {(!takeover || run.phase !== 'idle' || hasConversation) && (
           <PanelToolbar legs={subtitle.legs} exporter={exporter} hasConversation={hasConversation} onClear={onClear} />
         )}
-        {takeover ? (
-          <div className="conversation-display" data-tone={toneOf(colours.bgColor)}>
-            <div className="empty-state">
-              <Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
-              {overlayNotes.length > 0 && (
-                <div className="conversation-list">
-                  {overlayNotes.map((note) => <SystemRow key={note.id} notice={note} action={noticeAction(note)} />)}
+        {/* The conversation and the live notes share the area between the toolbar and the footer (owner, 2026-11-18): side
+            by side, or either alone, from the toolbar's switch. */}
+        <div className="conversation-area">
+          <div className="conversation-column" hidden={Boolean(liveNotes) && !areaShows.conversation}>
+            {takeover ? (
+              <div className="conversation-display" data-tone={toneOf(colours.bgColor)}>
+                <div className="empty-state">
+                  <Captions size={32} /><p>{t('mainPanel.subtitleTakeover', 'Translations are showing in the subtitle overlay')}</p>
+                  {overlayNotes.length > 0 && (
+                    <div className="conversation-list">
+                      {overlayNotes.map((note) => <SystemRow key={note.id} notice={note} action={noticeAction(note)} />)}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <ConversationList
+                // The conversation keeps the user's colours in both app themes, and a colour never set follows the scheme; its palette follows them (spec §3).
+                tone={toneOf(colours.bgColor)}
+                readings={showReadings ? readingTargets : undefined}
+                items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
+                canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
+                onReplay={(leg, id) => {
+                  if (!audio) return;
+                  // The replay that is playing: its button stops it (today's toggle, pre-switch MainPanel.tsx:3543-3551).
+                  if (replaying === id) { audio.playback.stopReplay(); return; }
+                  const s = segments.get(id);
+                  if (s) audio.playback.replay(leg, s);
+                }}
+                replayBlocked={blocked} noticeAction={noticeAction}
+                ears={voicedEars(f2f)}
+                compact={display.compactMode} fontSize={display.fontSize}
+                empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
+              />
+            )}
           </div>
-        ) : (
-          <ConversationList
-            // The conversation keeps the user's colours in both app themes, and a colour never set follows the scheme; its palette follows them (spec §3).
-            tone={toneOf(colours.bgColor)}
-            readings={showReadings ? readingTargets : undefined}
-            items={drawn} lit={lit} replaying={replaying} replayLegs={replayLegs}
-            canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
-            onReplay={(leg, id) => {
-              if (!audio) return;
-              // The replay that is playing: its button stops it (today's toggle, pre-switch MainPanel.tsx:3543-3551).
-              if (replaying === id) { audio.playback.stopReplay(); return; }
-              const s = segments.get(id);
-              if (s) audio.playback.replay(leg, s);
-            }}
-            replayBlocked={blocked} noticeAction={noticeAction}
-            ears={voicedEars(f2f)}
-            compact={display.compactMode} fontSize={display.fontSize}
-            empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
-          />
-        )}
+          {liveNotes}
+        </div>
         {canSendText && <TypedText onSend={(text) => runner.sendText(text)} />}
         {status && <StatusLine entry={status} onAction={runNoticeAction} onDismiss={onDismissStatus} />}
         {/* One settings page, no Quick or Advanced layout: everyone gets the full footer (settings page plan, ruling 4). */}

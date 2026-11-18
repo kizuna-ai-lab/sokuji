@@ -2207,6 +2207,7 @@
     "costSoFar": "本次即時紀要已用：約 {{cost}}",
     "lowBalance": "餘額不多了：還剩 {{balance}}。",
     "hide": "收合即時紀要",
+    "showAlone": "只看即時紀要",
     "show": "展開即時紀要",
     "showWriting": "展開即時紀要（仍在生成）"
   }

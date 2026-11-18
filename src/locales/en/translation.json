@@ -2207,6 +2207,7 @@
     "costSoFar": "Live notes so far: about {{cost}}",
     "lowBalance": "Your balance is low: {{balance}} left.",
     "hide": "Hide live notes",
+    "showAlone": "Show only the live notes",
     "show": "Show live notes",
     "showWriting": "Show live notes (still being written)"
   }

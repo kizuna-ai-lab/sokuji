@@ -2207,6 +2207,7 @@
     "costSoFar": "Live notities tot nu toe: ongeveer {{cost}}",
     "lowBalance": "Je saldo is laag: nog {{balance}}.",
     "hide": "Live notities verbergen",
+    "showAlone": "Alleen de live notities tonen",
     "show": "Live notities tonen",
     "showWriting": "Live notities tonen (worden nog geschreven)"
   }

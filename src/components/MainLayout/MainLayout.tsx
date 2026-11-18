@@ -203,12 +203,9 @@ const MainLayout: React.FC = () => {
         className={`main-content ${sidePanelOpen ? 'with-panel' : 'full-width'}`}
         style={pageInPlace || historyInPlace ? { display: 'none' } : undefined}
       >
-        {/* The conversation, and the live notes beside it (on the right; above it when narrow). */}
-        <div className="main-panel-row">
-          <div className="main-panel-container">
-            <MainPanel />
-          </div>
-          <LiveNotesPanel onOpenHistory={(id) => { setHistoryRecord(id); setHistoryOpen(true); }} />
+        {/* The conversation, with the live notes in its area (owner, 2026-11-18; MainPanel). */}
+        <div className="main-panel-container">
+          <MainPanel liveNotes={<LiveNotesPanel onOpenHistory={(id) => { setHistoryRecord(id); setHistoryOpen(true); }} />} />
         </div>
       </div>
       {/* Kept mounted behind an <Activity> boundary, like the side panels, so its open category and scroll survive a close. */}

@@ -19,8 +19,7 @@ const narrowRule = (selector: string): string | null => {
 
 describe('the main layout in a narrow window with a side panel open', () => {
   // Review: only the control footer stays under the panel; the live notes go with the transcript.
-  it('hides the live notes with the transcript', () => {
-    expect(narrowRule('.main-content.with-panel .conversation-display')).toMatch(/display:\s*none/);
-    expect(narrowRule('.main-content.with-panel .live-notes')).toMatch(/display:\s*none/);
+  it('hides the live notes with the transcript: the area they share', () => {
+    expect(narrowRule('.main-content.with-panel .conversation-area')).toMatch(/display:\s*none/);
   });
 });

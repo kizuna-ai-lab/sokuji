@@ -2207,6 +2207,7 @@
     "costSoFar": "Şimdiye kadarki canlı notlar: yaklaşık {{cost}}",
     "lowBalance": "Bakiyeniz azaldı: {{balance}} kaldı.",
     "hide": "Canlı notları gizle",
+    "showAlone": "Yalnızca canlı notları göster",
     "show": "Canlı notları göster",
     "showWriting": "Canlı notları göster (hâlâ yazılıyor)"
   }

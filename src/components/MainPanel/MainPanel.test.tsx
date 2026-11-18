@@ -152,6 +152,7 @@ import { usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import type { Sampler, SamplerState } from '../../lib/screen/sampler';
+import { useLiveNotesLayout } from '../../lib/notes/live/livePanel';
 import MainPanel from './MainPanel';
 
 const clock = createVirtualClock(0);
@@ -1085,5 +1086,54 @@ describe('MainPanel — screen context', () => {
       setBridges.mockRestore();
       delete (window as unknown as { electron?: unknown }).electron;
     }
+  });
+});
+
+// Owner, 2026-11-18: the live notes share the conversation's area, between its toolbar and its footer; the toolbar's
+// switch shows them beside it or either alone (livePanel.ts).
+describe('MainPanel — the live notes in the conversation\'s area', () => {
+  afterEach(() => {
+    useLiveNotesLayout.setState({ layout: 'both' });
+    useSettingsStore.setState({ liveNotes: false });
+  });
+  const renderWithNotes = async () => {
+    const result = render(<MainPanel liveNotes={<aside className="live-notes" />} />);
+    await act(() => getAppSession().audio());
+    return result;
+  };
+
+  it('draws them after the conversation, in the area between the toolbar and the footer', async () => {
+    const { container } = await renderWithNotes();
+    const area = container.querySelector('.main-panel > .conversation-area')!;
+    expect([...area.children].map((c) => c.className)).toEqual(['conversation-column', 'live-notes']);
+    expect(area.querySelector('.conversation-column > .conversation-display')).not.toBeNull();
+    expect(area.previousElementSibling).toHaveClass('conversation-toolbar');
+    expect(container.querySelector('.main-panel > .conversation-area ~ .control-footer')).not.toBeNull();
+  });
+
+  it('hides the conversation, kept, while the notes are alone; with no notes panel, the conversation shows', async () => {
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true });
+    useLiveNotesLayout.setState({ layout: 'notes' });
+    const { container } = await renderWithNotes();
+    const column = container.querySelector('.conversation-column')!;
+    expect(column).toHaveAttribute('hidden');
+    expect(column.querySelector('.conversation-display')).not.toBeNull();
+    act(() => useLiveNotesLayout.setState({ layout: 'conversation' }));
+    expect(column).not.toHaveAttribute('hidden');
+    act(() => useLiveNotesLayout.setState({ layout: 'notes' }));
+    expect(column).toHaveAttribute('hidden');
+    // Live notes turned off with nothing written: no panel, so nothing hides the conversation.
+    act(() => useSettingsStore.setState({ liveNotes: false }));
+    expect(column).not.toHaveAttribute('hidden');
+  });
+
+  // Review: a panel drawn without the notes (a preview) never hides its conversation for them.
+  it('given no notes to draw, shows the conversation whatever the layout', async () => {
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true });
+    useLiveNotesLayout.setState({ layout: 'notes' });
+    const { container } = await renderPanel();
+    expect(container.querySelector('.conversation-column')).not.toHaveAttribute('hidden');
   });
 });

@@ -2207,6 +2207,7 @@
     "costSoFar": "지금까지의 실시간 메모: 약 {{cost}}",
     "lowBalance": "잔액이 얼마 남지 않았습니다: {{balance}} 남음.",
     "hide": "실시간 메모 숨기기",
+    "showAlone": "실시간 메모만 보기",
     "show": "실시간 메모 보기",
     "showWriting": "실시간 메모 보기(계속 작성 중)"
   }

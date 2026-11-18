@@ -10,7 +10,7 @@ import type { Exporter } from '../../../lib/export/exporter';
 import type { LegName } from '../../../lib/conversation/types';
 import PanelToolbar from './PanelToolbar';
 import { useLiveNotes } from '../../../lib/notes/live/liveStore';
-import { useLiveNotesShown } from '../../../lib/notes/live/livePanel';
+import { useLiveNotesLayout } from '../../../lib/notes/live/livePanel';
 
 
 // react-i18next: return the key itself, so an assertion against
@@ -211,12 +211,13 @@ describe('PanelToolbar — what I hear', () => {
 });
 
 // Owner and design review, 2026-11-17 (B-30, B-40): the live notes are shown and hidden from a switch here, at the end of
-// the conversation's toolbar, where it stays while they are hidden.
+// the conversation's toolbar, where it stays while they are hidden. Owner, 2026-11-18: it goes round three layouts of the
+// conversation's area — side by side, the notes alone, the conversation alone.
 describe('PanelToolbar — live notes switch', () => {
   const liveSwitch = () => screen.queryByRole('button', { name: 'liveNotes.title' });
   afterEach(() => {
     env.electron = false;
-    useLiveNotesShown.setState({ shown: true });
+    useLiveNotesLayout.setState({ layout: 'both' });
     useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false });
     localStorage.clear();
     vi.unstubAllGlobals();
@@ -253,31 +254,40 @@ describe('PanelToolbar — live notes switch', () => {
     expect(liveSwitch()).toBeNull();
   });
 
-  it('is pressed while they are shown, and says what a click does, still being written or not', () => {
+  it('goes round side by side, the notes alone, the conversation alone; pressed while they show, saying what a click does', () => {
     env.electron = true;
     useSettingsStore.setState({ liveNotes: true } as never);
     useLiveNotes.getState().begin('run-0001-aaaa');
     renderToolbar(['speaker']);
+    // Side by side.
+    expect(liveSwitch()).toHaveAttribute('aria-pressed', 'true');
+    expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.showAlone');
+    expect(liveSwitch()!.querySelector('.lucide-columns-2')).not.toBeNull();
+    fireEvent.click(liveSwitch()!);
+    // The notes alone.
+    expect(useLiveNotesLayout.getState().layout).toBe('notes');
     expect(liveSwitch()).toHaveAttribute('aria-pressed', 'true');
     expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.hide');
-    expect(liveSwitch()!.querySelector('.lucide-panel-right')).not.toBeNull();
+    expect(liveSwitch()!.querySelector('.lucide-notebook-text')).not.toBeNull();
     fireEvent.click(liveSwitch()!);
-    expect(useLiveNotesShown.getState().shown).toBe(false);
+    // The conversation alone, the notes still being written, then not.
+    expect(useLiveNotesLayout.getState().layout).toBe('conversation');
     expect(liveSwitch()).toHaveAttribute('aria-pressed', 'false');
     expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.showWriting');
+    expect(liveSwitch()!.querySelector('.lucide-message-square-text')).not.toBeNull();
     act(() => useLiveNotes.getState().end('run-0001-aaaa'));
     expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.show');
     fireEvent.click(liveSwitch()!);
-    expect(useLiveNotesShown.getState().shown).toBe(true);
+    expect(useLiveNotesLayout.getState().layout).toBe('both');
   });
 
-  it('shows the panel above the conversation in a narrow window', () => {
+  it('draws two rows in a narrow window when both are shown (the notes above the conversation)', () => {
     vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(max-width: 767px)', media: query, addEventListener: () => {}, removeEventListener: () => {} }));
     env.electron = true;
     useSettingsStore.setState({ liveNotes: true } as never);
     useLiveNotes.getState().begin('run-0001-aaaa');
     renderToolbar(['speaker']);
-    expect(liveSwitch()!.querySelector('.lucide-panel-top')).not.toBeNull();
+    expect(liveSwitch()!.querySelector('.lucide-rows-2')).not.toBeNull();
   });
 });
 

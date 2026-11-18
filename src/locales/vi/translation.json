@@ -2207,6 +2207,7 @@
     "costSoFar": "Ghi chú trực tiếp đến giờ: khoảng {{cost}}",
     "lowBalance": "Số dư của bạn sắp hết: còn {{balance}}.",
     "hide": "Ẩn ghi chú trực tiếp",
+    "showAlone": "Chỉ hiện ghi chú trực tiếp",
     "show": "Hiện ghi chú trực tiếp",
     "showWriting": "Hiện ghi chú trực tiếp (vẫn đang được viết)"
   }
