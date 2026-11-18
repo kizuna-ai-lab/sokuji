@@ -8,7 +8,7 @@ import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } f
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import { AudioLines, ChevronLeft, Ellipsis, MicOff, PanelLeft, PanelRight, Pencil, Play, RefreshCw, Trash2, UserRoundPen } from 'lucide-react';
-import { languageLabel } from '../../lib/language/label';
+import { languageDirection } from './languageDirection';
 import type { NotesLanguage } from '../../lib/notes/runner';
 import { NOTES_MIN_MS } from '../../lib/notes/write';
 import type { HitTarget, OpenRecord } from '../../lib/history/historyPageStore';
@@ -523,7 +523,7 @@ export const RecordPage: React.FC = () => {
               ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
               : <span>{t('history.length', 'Length {{length}}', { length: formatLength(record.endedAt - record.startedAt) })}</span>}
             {/* A session's languages; an imported file's are what each transcript was asked for, said above its transcript. */}
-            {record.mode !== 'import' && <span>{`${languageLabel(record.myLanguage, language)} → ${languageLabel(record.targetLanguage, language)}`}</span>}
+            {record.mode !== 'import' && <span>{languageDirection(record, language)}</span>}
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
             {/* Which transcript the page shows, when there is more than one: the notes and the speakers follow it, so it
                 is the record's, on the record's line (owner, 2026-11-18), not a bar over the columns. */}

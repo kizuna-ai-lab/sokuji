@@ -114,7 +114,8 @@ describe('the History list', () => {
     expect(within(row).getByText(formatTime(START, 'en'))).toBeInTheDocument();
     // Said as a length: under a day heading the start time is a clock time too.
     expect(within(row).getByText('Length 1:02:03')).toBeInTheDocument();
-    expect(within(row).getByText(/Chinese.*→.*English/)).toBeInTheDocument();
+    // The rows' session translated both sides: each way (languageDirection.ts).
+    expect(within(row).getByText('Chinese ⇄ English')).toBeInTheDocument();
     expect(within(row).getByText('Transcript')).toBeInTheDocument();
     expect(within(row).getByText('Notes')).toBeInTheDocument();
     expect(within(row).queryByText('Recording')).toBeNull();

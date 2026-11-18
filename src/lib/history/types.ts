@@ -17,7 +17,10 @@ export interface HistoryRecordInput {
   /** The run's id. */
   id: string;
   startedAt: number;
-  /** A label of the preset the user picked; nothing decides anything by it. */
+  /**
+   * Whose speech the session heard: 'speaker', 'participant', 'both', 'face-to-face', or 'import' for a file. History
+   * shows which way the languages went by it (languageDirection.ts); any other value reads as 'speaker'.
+   */
   mode: string;
   myLanguage: string;
   targetLanguage: string;

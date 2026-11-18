@@ -9,7 +9,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import { ChevronLeft, FileUp, FolderOpen, ListChecks, Search } from 'lucide-react';
-import { languageLabel } from '../../lib/language/label';
+import { languageDirection } from './languageDirection';
 import type { HitTarget } from '../../lib/history/historyPageStore';
 import type { HistoryRecordRow, HistorySearchHit, HistorySearchResult } from '../../lib/history/types';
 import { isElectron } from '../../utils/environment';
@@ -92,7 +92,6 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
   }, [hidden]);
 
   const titleOf = (r: { title: string | null; startedAt: number }) => r.title ?? formatDateTime(r.startedAt, language);
-  const languagesOf = (r: HistoryRecordRow) => `${languageLabel(r.myLanguage, language)} → ${languageLabel(r.targetLanguage, language)}`;
   const searching = query.trim() !== '';
 
   const back = (
@@ -162,7 +161,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
       {r.state === 'open' || r.endedAt === null
         ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
         : <span>{t('history.length', 'Length {{length}}', { length: formatLength(r.endedAt - r.startedAt) })}</span>}
-      {r.mode !== 'import' && <span>{languagesOf(r)}</span>}
+      {r.mode !== 'import' && <span>{languageDirection(r, language)}</span>}
     </span>
   );
 

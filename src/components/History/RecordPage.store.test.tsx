@@ -128,7 +128,7 @@ describe('an imported record\'s speakers', () => {
     await act(() => store.getState().openRecord(A));
     await settle();
     expect(document.querySelector('.record-page__asked')).toBeNull();
-    expect(document.querySelector('.record-page__head')?.textContent).toContain('English → Chinese');
+    expect(document.querySelector('.record-page__head')?.textContent).toContain('English ⇄ Chinese');
   });
 
   // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.
