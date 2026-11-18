@@ -7,6 +7,9 @@
 .caption-share-floating {
   display: flex;
   min-height: 0;
+  // Placed by floating-ui (`floatingStyles`, no layer of its own): above the divider between the conversation and the
+  // live notes (PanelResizer), on the popovers' layer.
+  z-index: 1000;
 
   .caption-share-panel {
     min-height: 0;
