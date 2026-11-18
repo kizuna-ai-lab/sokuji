@@ -80,6 +80,16 @@ describe('the options a file transcription starts from', () => {
     expect(optionsFor(unknown)).toEqual({ languages: ['zh'], translateTo: 'zh' });
   });
 
+  it('"each side" only where the service translates into both sides\u2019 languages', () => {
+    expect(eachSideOffered(record(), ['en', 'zh'])).toBe(true);
+    // A regional code counts as its language.
+    expect(eachSideOffered(record({ legs: [leg('speaker', 'zh', 'en-US'), leg('participant', 'en', 'zh-Hant')] } as never), ['en', 'zh'])).toBe(true);
+    // An English / Amharic session: the service has no Amharic to translate the other side into.
+    const amharic = record({ legs: [leg('speaker', 'am', 'en'), leg('participant', 'en', 'am')] } as never);
+    expect(eachSideOffered(amharic, ['en', 'zh'])).toBe(false);
+    expect(fitOptions(optionsFor(amharic), ['en', 'zh'], 'en', eachSideOffered(amharic, ['en', 'zh']))).toEqual({ languages: ['en'], translateTo: 'en' });
+  });
+
   it('a session whose sides say "automatic" or a two-way pair offers no "each side"', () => {
     const auto = record({ myLanguage: 'auto', legs: [leg('speaker', 'auto', 'en'), leg('participant', 'en', 'auto')] } as never);
     expect(eachSideOffered(auto)).toBe(false);

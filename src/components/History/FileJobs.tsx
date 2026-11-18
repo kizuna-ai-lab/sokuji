@@ -274,7 +274,8 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
   const [chosen, setChosen] = useState<{ recordId: string; options: FileTranscriptionOptions } | null>(null);
   if (!open) return null;
   const record = open.record;
-  const eachSide = eachSideOffered(record);
+  // Only when the service translates into both sides' languages: else a side would go untranslated.
+  const eachSide = eachSideOffered(record, offered);
   const asked = chosen?.recordId === record.id ? chosen.options : optionsFor(record);
   // As the service can take them: "automatic" or a language it does not have is never sent.
   const options = fitOptions(asked, offered, myLanguageNow(i18n?.language ?? 'en'), eachSide);

@@ -296,6 +296,26 @@ describe('transcribing a record again', () => {
     expect(jobs.transcribe).toHaveBeenLastCalledWith(expect.objectContaining({ options: { languages: ['ja', 'en'], translateTo: 'each-side' } }));
   });
 
+  it('a session whose other side the service cannot translate into offers no "each side"', async () => {
+    const leg = (name: 'speaker' | 'participant', source: string, target: string) => ({ leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: true, spoken: false });
+    record = {
+      ...record, myLanguage: 'en', targetLanguage: 'am',
+      legs: [leg('speaker', 'en', 'am'), leg('participant', 'am', 'en')],
+      tracks: [...record.tracks, { ...record.tracks[0], source: 'speaker', file: 'speaker.opus' }],
+    } as typeof record;
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect([...into.options].map((o) => o.value)).not.toContain('each-side');
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await settle();
+    expect(vi.mocked(jobs.transcribe).mock.calls.at(-1)![0].options.translateTo).not.toBe('each-side');
+  });
+
   it('a session that said "automatic" starts from languages the service has', async () => {
     record = { ...record, myLanguage: 'auto', targetLanguage: 'auto' };
     const { jobs } = fakeJobs();

@@ -32,11 +32,22 @@ function keptLegs(record: HistoryRecord): HistoryLegComposition[] {
   return record.legs.filter((l) => kept.has(l.leg));
 }
 
-/** A session whose two sides are both kept, each with one language heard and one it was translated into. */
-export function eachSideOffered(record: HistoryRecord): boolean {
+/** The code as one of the offered languages: itself, or for a regional code its language; null when neither is offered. */
+function offeredAs(code: string, offered: readonly string[]): string | null {
+  if (offered.includes(code)) return code;
+  const base = code.split(/[-_]/)[0].toLowerCase();
+  return offered.includes(base) ? base : null;
+}
+
+/**
+ * A session whose two sides are both kept, each with one language heard and one it was translated into; once the
+ * service's languages are known, both of those it translates into among them (else a side would go untranslated).
+ */
+export function eachSideOffered(record: HistoryRecord, offered: readonly string[] = []): boolean {
   if (record.mode === 'import') return false;
   const legs = keptLegs(record);
-  return legs.length === 2 && legs.every((l) => isOne(l.languages.source) && isOne(l.languages.target));
+  if (legs.length !== 2 || !legs.every((l) => isOne(l.languages.source) && isOne(l.languages.target))) return false;
+  return offered.length === 0 || legs.every((l) => offeredAs(l.languages.target, offered) !== null);
 }
 
 /**
@@ -85,11 +96,7 @@ export function optionsFor(record: HistoryRecord): FileTranscriptionOptions {
  */
 export function fitOptions(o: FileTranscriptionOptions, offered: readonly string[], fallback: string, eachSide: boolean): FileTranscriptionOptions {
   if (offered.length === 0) return o;
-  const pick = (code: string): string | null => {
-    if (offered.includes(code)) return code;
-    const base = code.split(/[-_]/)[0].toLowerCase();
-    return offered.includes(base) ? base : null;
-  };
+  const pick = (code: string) => offeredAs(code, offered);
   const first = pick(fallback) ?? offered[0];
   const languages = [...new Set(o.languages.flatMap(languagesOf).map(pick).filter((c): c is string => c !== null))];
   if (languages.length === 0) languages.push(first);
