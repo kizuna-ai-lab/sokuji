@@ -8,8 +8,12 @@ import { isElectron } from '../../utils/environment';
 import { currentAuth } from '../../app/currentAuth';
 import { useProviderStore } from '../../stores/providerStore';
 
-/** The line-up's notes service: Kizuna AI's. */
-export const KIZUNA_NOTES = 'kizunaai';
+/** The line-up's notes service: Kizuna AI's, by OpenAI, named like the other hosted services (owner, 2026-11-18). */
+export const KIZUNA_NOTES = 'kizunaai_openai';
+/** The line-up's notes service with the user's own OpenAI key: the provider's own id. */
+export const OPENAI_NOTES = 'openai';
+/** The notes services the app knows. */
+const NOTES_SERVICES: readonly string[] = [KIZUNA_NOTES, OPENAI_NOTES];
 
 /** Whether this build offers Kizuna AI's notes: the desktop app, with the hosted services in it. */
 export function hostedNotesOffered(): boolean {
@@ -36,10 +40,14 @@ export function notesDefaultsNow(): NotesDefaults {
   };
 }
 
-/** The notes service of a line-up: its choice, or the default when it names none. */
+/**
+ * The notes service of a line-up: its choice, or the default when it names none. A value the app does not know (a name
+ * since changed, a service since removed) is no choice: nothing was released under another name, so nothing is migrated.
+ */
 export function notesServiceOf(lineUp: Pick<LineUp, 'summarisation'> | null | undefined, d: NotesDefaults = notesDefaultsNow()): string {
-  if (lineUp?.summarisation) return lineUp.summarisation;
+  const chosen = lineUp?.summarisation;
+  if (chosen && NOTES_SERVICES.includes(chosen)) return chosen;
   if (d.hostedOffered && d.signedIn) return KIZUNA_NOTES;
-  if (d.openAiKeyed) return 'openai';
-  return d.hostedOffered ? KIZUNA_NOTES : 'openai';
+  if (d.openAiKeyed) return OPENAI_NOTES;
+  return d.hostedOffered ? KIZUNA_NOTES : OPENAI_NOTES;
 }

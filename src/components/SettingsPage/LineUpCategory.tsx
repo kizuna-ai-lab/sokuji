@@ -33,7 +33,7 @@ import { useSelectedProvider } from '../providers/useSelectedProvider';
 import { AudioModeSwitch } from './AudioModeSwitch';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
-import { KizunaAIIcon } from '../Icons/ProviderIcons';
+import { KizunaOpenAIIcon } from '../Icons/ProviderIcons';
 import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
@@ -156,7 +156,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.
   const notesOptions: ProviderOptionModel[] = [
     ...(kizunaOffered || kizunaChosen ? [{
-      id: KIZUNA_NOTES, name: 'Kizuna AI', icon: KizunaAIIcon,
+      id: KIZUNA_NOTES, name: 'Kizuna AI', icon: KizunaOpenAIIcon,
       description: t('settingsPage.lineup.notesKizunaLine', 'OpenAI writes the notes through Kizuna AI, paid from your balance.'),
       ...(kizunaBlocked ? { blocked: t('settingsPage.lineup.needsSignIn', 'needs a sign-in') } : {}),
     }] : []),

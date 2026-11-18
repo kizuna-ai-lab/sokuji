@@ -130,7 +130,7 @@ describe('notes after the session', () => {
   });
 
   it('with Kizuna AI, explains that the text goes through Kizuna AI to OpenAI and who pays, and names the one model', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
     expect(within(row('Notes model')).queryByRole('combobox')).toBeNull();
@@ -195,7 +195,7 @@ describe('the first-time explanation sits under the switch that asked for it (B-
   const LIVE = 'Live notes during a session';
 
   it('under "Write notes after each session" for that switch, above the live notes row', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
     fireEvent.click(within(row(AFTER)).getByRole('switch'));
@@ -207,7 +207,7 @@ describe('the first-time explanation sits under the switch that asked for it (B-
   // Turning on one switch, then the other, shows only the second's explanation, under its own switch;
   // neither switch is on until its explanation is accepted; Cancel puts each away.
   it('shows only the explanation of the switch last turned on, under it, and Cancel puts it away', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
     fireEvent.click(within(row(AFTER)).getByRole('switch'));
@@ -224,7 +224,7 @@ describe('the first-time explanation sits under the switch that asked for it (B-
   });
 
   it('under "Live notes during a session" for that switch', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
     fireEvent.click(within(row(LIVE)).getByRole('switch'));
@@ -246,7 +246,7 @@ describe('live notes during a session', () => {
   });
 
   it('with Kizuna AI, explains what goes through Kizuna AI to OpenAI every 20 seconds, and who pays', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
     fireEvent.click(toggle());
