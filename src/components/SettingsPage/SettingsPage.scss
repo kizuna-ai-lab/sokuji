@@ -76,7 +76,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    h3 { margin: vars.$space-2 0 vars.$space-1; font-size: vars.$font-caption; font-weight: vars.$weight-medium; color: vars.$text-muted; }
+    // On the line of the Back arrow and the search glass (owner, 2026-11-19); its items one step in from it.
+    h3 { margin: vars.$space-2 0 vars.$space-1; padding-inline: vars.$space-3; font-size: vars.$font-caption; font-weight: vars.$weight-medium; color: vars.$text-muted; }
   }
 
   &__item {
@@ -84,7 +85,9 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
-    padding: 6px 8px;
+    // The text one step in from its group's heading, which is on the line of the Back arrow and the search glass (owner,
+    // 2026-11-19: the headings and their items keep their levels); the highlight still starts at the search box's edge.
+    padding: 6px vars.$space-3 6px vars.$space-6;
     border: none;
     border-radius: vars.$radius-md;
     background: transparent;
