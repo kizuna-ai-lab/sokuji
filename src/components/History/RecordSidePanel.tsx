@@ -1,9 +1,9 @@
 // src/components/History/RecordSidePanel.tsx
 //
-// A record's side panel, at the right of its transcript (owner, 2026-11-17): the speakers now (who spoke, how many
-// sentences each, their names), more tools later, each in a part of its own. A switch in the page's toolbar shows and
-// hides it (the page's, with `id` naming it); Escape hides it too. The panel covers the transcript, in wide and narrow
-// windows alike, so the transcript keeps its width.
+// A record's edit panel (named "Edit", owner, 2026-11-18): the speakers now (who spoke, how many sentences each, their
+// names), tools that fix the transcript later, each in a part of its own. Never over the transcript: on a wide page a
+// column at its right, shown and hidden from a switch in the page's toolbar (the page's, with `id` naming it); on a narrow
+// one the third tab. Escape leaves it too. The page lays it out.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isComposing } from './format';
@@ -42,13 +42,10 @@ export function RecordSidePanel({ id, open, onToggle, editing, children }: Recor
     return () => document.removeEventListener('keydown', onKey, true);
   }, [open]);
 
+  if (!open) return null;
   return (
-    <div className={`record-side${open ? ' is-open' : ''}`}>
-      {open && (
-        <aside className="record-side__panel" id={id} aria-label={t('history.sidePanel', 'Side panel')}>
-          {children}
-        </aside>
-      )}
-    </div>
+    <aside className="record-side" id={id} aria-label={t('history.sidePanel', 'Edit')}>
+      {children}
+    </aside>
   );
 }

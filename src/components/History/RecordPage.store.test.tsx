@@ -1,7 +1,7 @@
 // The record page on the app's own history store (not a fake): what a user changes is what comes back when the record
 // is opened again: a rename changes that one speaker and a move that one sentence; the other
 // speakers of the same side and the other sentences stay as they were.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { createHistoryPageStore } from '../../lib/history/historyPageStore';
@@ -20,7 +20,7 @@ const sentence = (n: number, side: 'mine' | 'other', text: string, speaker = '1'
 let real: RealStorePort;
 let store: ReturnType<typeof createHistoryPageStore>;
 const settle = () => act(async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); });
-const drawer = () => screen.getByRole('complementary', { name: 'Side panel' });
+const drawer = () => screen.getByRole('complementary', { name: 'Edit' });
 const row = (n: number) => document.querySelector(`[data-n="${n}"]`)?.closest('.record-row') as HTMLElement | null;
 const speakerOf = (n: number) => row(n)?.querySelector('.record-row__speaker')?.textContent;
 
@@ -44,7 +44,18 @@ beforeEach(() => {
     </HistoryPageContext.Provider>,
   );
 });
-afterEach(() => { cleanup(); real.dispose(); });
+afterEach(() => { cleanup(); real.dispose(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+// The speakers are in the edit panel: a column on a wide page (owner, 2026-11-18), a tab on a narrow one. Wide here.
+beforeEach(() => {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1200);
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(private readonly cb: () => void) {}
+    observe() { this.cb(); }
+    unobserve() {}
+    disconnect() {}
+  });
+});
 
 describe('a record\'s speakers, kept by the store', () => {
   it('keeps a renamed speaker and a sentence given to a new speaker when the record is opened again', async () => {

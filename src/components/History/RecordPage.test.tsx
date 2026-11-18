@@ -117,9 +117,21 @@ beforeEach(() => {
   vi.mocked(downloadFile).mockClear();
   vi.mocked(copyToClipboard).mockClear();
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 const openExport = () => fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+/** A page 1200 px wide, as the ResizeObserver the record page watches it with reports: the edit panel is a column there
+ *  (owner, 2026-11-18); on a narrow page it is a tab. */
+function widePage(width = 1200) {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(private readonly cb: () => void) {}
+    observe() { this.cb(); }
+    unobserve() {}
+    disconnect() {}
+  });
+}
 
 describe('a record', () => {
   it('shows the transcript with speakers, times and translations', async () => {
@@ -262,10 +274,11 @@ describe('a record', () => {
   // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
   // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later; the transcript keeps its
   // width under it. It is shown and hidden from a switch in the page's toolbar (B-40 redone: no handle on its edge).
-  const drawer = () => screen.queryByRole('complementary', { name: 'Side panel' });
-  const toggle = () => screen.getByRole('button', { name: 'Side panel' });
+  const drawer = () => screen.queryByRole('complementary', { name: 'Edit' });
+  const toggle = () => screen.getByRole('button', { name: 'Edit' });
 
   it('keeps the speakers in a side panel shown and hidden from a switch in the toolbar, and gives their column to the transcript', async () => {
+    widePage();
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
     expect(document.querySelector('.record-page__transcript-head')).toBeNull();
@@ -273,14 +286,14 @@ describe('a record', () => {
     // Open the first time (owner, 2026-11-17: what it holds is seen at once); closed here to start from closed.
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
-    expect(toggle()).toHaveAttribute('title', 'Open the side panel');
+    expect(toggle()).toHaveAttribute('title', 'Show the edit panel');
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     expect(toggle().querySelector('.lucide-panel-right')).not.toBeNull();
     // The icon and its word, as the title bar's buttons have while there is room (owner, 2026-11-17).
-    expect(toggle().textContent).toBe('Side panel');
+    expect(toggle().textContent).toBe('Edit');
     expect(toggle().closest('.record-page__actions')).not.toBeNull();
     fireEvent.click(toggle());
-    expect(toggle()).toHaveAttribute('title', 'Close the side panel');
+    expect(toggle()).toHaveAttribute('title', 'Hide the edit panel');
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     // The speakers are its first part, under their own heading.
     const speakers = within(drawer()!).getByRole('region', { name: 'Speakers' });
@@ -293,6 +306,7 @@ describe('a record', () => {
   });
 
   it('is open the first time, and remembers the last choice for the next record', async () => {
+    widePage();
     await renderRecord();
     expect(drawer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
@@ -308,6 +322,7 @@ describe('a record', () => {
   });
 
   it('closes the drawer on Escape, but drops only the name while one is typed, and stays on the record', async () => {
+    widePage();
     render(<HistoryPage onClose={() => {}} />);
     await settle();
     fireEvent.click(screen.getByText(/^Session at /));
@@ -325,6 +340,7 @@ describe('a record', () => {
   });
 
   it('Escape in the title field cancels the title edit and leaves the side panel open', async () => {
+    widePage();
     await renderRecord();
     expect(drawer()).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: when() }));
@@ -337,6 +353,7 @@ describe('a record', () => {
   });
 
   it('keeps a name that failed to save, and offers no other rename while one is saving', async () => {
+    widePage();
     let fail: () => void = () => {};
     port.renameSpeaker = (async () => { await new Promise<void>((_, reject) => { fail = () => reject(new Error('disk full')); }); }) as never;
     await renderRecord();
@@ -352,6 +369,7 @@ describe('a record', () => {
   });
 
   it('stays open, the name kept, when the name being typed fails to save as the panel is closed', async () => {
+    widePage();
     port.renameSpeaker = (async () => { throw new Error('disk full'); }) as never;
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
@@ -364,6 +382,7 @@ describe('a record', () => {
 
   // Review: a save already under way is waited for, not taken as done.
   it('stays open when closed while a started name save is still running, and that save then fails', async () => {
+    widePage();
     let fail: () => void = () => {};
     port.renameSpeaker = (async () => { await new Promise<void>((_, reject) => { fail = () => reject(new Error('disk full')); }); }) as never;
     await renderRecord();
@@ -380,6 +399,7 @@ describe('a record', () => {
 
   // Review: a newer name typed while a save ran is saved too before the panel closes, not left hidden.
   it('saves the newer name as well before closing, when more was typed while a save ran', async () => {
+    widePage();
     let finish: () => void = () => {};
     const names: string[] = [];
     port.renameSpeaker = (async (arg: { name: string }) => {
@@ -401,6 +421,7 @@ describe('a record', () => {
 
   // Review: Escape is the open sentence menu's first; the panel closes only on an Escape nothing else took.
   it('Escape in an open sentence menu closes the menu and leaves the side panel open', async () => {
+    widePage();
     await renderRecord();
     expect(drawer()).not.toBeNull();
     const second = document.querySelector('[data-n="2"]') as HTMLElement;
@@ -412,6 +433,7 @@ describe('a record', () => {
   });
 
   it('saves a name being typed when the drawer is closed', async () => {
+    widePage();
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
@@ -421,6 +443,7 @@ describe('a record', () => {
   });
 
   it('renames a speaker and moves one sentence to a new speaker', async () => {
+    widePage();
     await renderRecord();
     const panel = drawer()!;
     expect(within(panel).getByText('2 sentences')).toBeInTheDocument();
@@ -827,6 +850,8 @@ describe('the notes column on a wide page', () => {
     if (done) act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: to })); });
   };
   afterEach(() => { vi.unstubAllGlobals(); });
+  // The side panel has a column of its own on a wide page too (below); closed here, these are about the notes alone.
+  beforeEach(() => { localStorage.setItem('history.sidePanelClosed', '1'); });
 
   const notesSwitch = () => screen.getByRole('button', { name: 'Notes' });
 
@@ -857,7 +882,7 @@ describe('the notes column on a wide page', () => {
     expect(notesSwitch().querySelector('.lucide-panel-left')).not.toBeNull();
     // The two switches together, before Export.
     const group = notesSwitch().closest('.record-page__panels')!;
-    expect(within(group as HTMLElement).getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+    expect(within(group as HTMLElement).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     const actions = [...document.querySelectorAll('.record-page__actions > *')];
     const exportAt = actions.findIndex((el) => el.textContent?.includes('Export'));
     expect(actions.indexOf(group)).toBeLessThan(exportAt);
@@ -948,11 +973,257 @@ describe('the notes column on a wide page', () => {
     expect(group()).not.toHaveAttribute('data-compact');
   });
 
-  it('on a narrow page keeps the two tabs, with no divider and no notes switch (the side panel\'s stays)', async () => {
+  // Owner, 2026-11-18: the edit panel is the third tab there, so neither panel has a switch in the toolbar.
+  it('on a narrow page keeps the tabs (the edit panel the third), with no divider and no switches', async () => {
     await renderRecord();
-    expect(screen.getByRole('tab', { name: 'Notes' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Notes', 'Transcript', 'Edit']);
     expect(within(columns()).queryByRole('separator')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Notes' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+});
+
+// Owner, 2026-11-18: the side panel is not a drawer over the transcript any more but a column of the page, as the notes
+// are: it is to hold tools that edit the transcript, which a drawer would cover. No sliding in; a divider sets its width,
+// kept for the next record.
+describe("the side panel's column", () => {
+  let width = 1200;
+  let watchers: (() => void)[] = [];
+  function page(px: number) {
+    width = px;
+    watchers = [];
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width);
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly cb: () => void) { watchers.push(cb); }
+      observe() { this.cb(); }
+      unobserve() {}
+      disconnect() {}
+    });
+  }
+  /** The window resized: the page is `px` wide now. */
+  const resize = (px: number) => { width = px; act(() => { for (const cb of watchers) cb(); }); };
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+  const columns = () => document.querySelector('.record-page__columns') as HTMLElement;
+  const side = () => screen.queryByRole('complementary', { name: 'Edit' });
+  const sideDivider = () => within(columns()).queryByRole('separator', { name: 'Resize the edit panel' });
+  const transcript = () => document.querySelector('.record-page__transcript') as HTMLElement;
+  const leftColumn = () => document.querySelector('.record-page__notes-col') as HTMLElement;
+  const notesPart = () => document.querySelector('.record-page__notes') as HTMLElement;
+
+  it('stands at the right of the transcript, in the page\'s columns, with a divider of its own beside the notes\'', async () => {
+    page(1200);
+    await renderRecord();
+    expect(side()).not.toBeNull();
+    expect(side()!.parentElement).toBe(columns());
+    expect(transcript().compareDocumentPosition(side()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(columns()).getByRole('separator', { name: 'Resize the notes' })).toBeInTheDocument();
+    expect(sideDivider()).toBeInTheDocument();
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr) 1px 300px');
+  });
+
+  it('follows its divider, and opens the next record at the width it was left at', async () => {
+    page(1200);
+    await renderRecord();
+    const sep = sideDivider()!;
+    act(() => { sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 900, button: 0 }), { pointerType: 'mouse' })); });
+    act(() => { window.dispatchEvent(new MouseEvent('pointermove', { clientX: 820 })); });
+    act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: 820 })); });
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr) 1px 380px');
+    expect(localStorage.getItem('history.sideWidth')).toBe('380');
+    cleanup();
+    page(1200);
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr) 1px 380px');
+  });
+
+  it('closed, gives its room back to the transcript and leaves nothing in its place', async () => {
+    page(1200);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(side()).toBeNull();
+    expect(sideDivider()).toBeNull();
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
+  });
+
+  // Owner, 2026-11-19: with room for two columns and not three, the transcript keeps its column and has the one panel
+  // switched on beside it, where that panel stands with room for three.
+  it('with room for two columns, stands beside the transcript when the notes are hidden', async () => {
+    localStorage.setItem('history.notesClosed', '1');
+    page(760);
+    await renderRecord();
+    expect(screen.queryAllByRole('tab')).toEqual([]);
+    expect(side()!.parentElement).toBe(columns());
+    expect(sideDivider()).toBeInTheDocument();
+    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr) 1px 300px');
+    expect(screen.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('with room for two columns, leaves the notes beside the transcript when it is hidden', async () => {
+    localStorage.setItem('history.sidePanelClosed', '1');
+    page(760);
+    await renderRecord();
+    expect(screen.queryAllByRole('tab')).toEqual([]);
+    expect(side()).toBeNull();
+    expect(notesPart()).not.toHaveAttribute('hidden');
+    expect(columns().style.gridTemplateColumns).toBe('359px 1px minmax(0, 1fr)');
+  });
+
+  // Owner, 2026-11-19: both switched on with room for two columns only: the notes and the edit panel share the left
+  // column, a tab each; the transcript keeps its own.
+  it('with both switched on and room for two columns, shares the left column with the notes, a tab each', async () => {
+    page(760);
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('359px 1px minmax(0, 1fr)');
+    expect(sideDivider()).toBeNull();
+    expect(within(columns()).getByRole('separator', { name: 'Resize the notes' })).toBeInTheDocument();
+    const tabs = within(leftColumn()).getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Notes', 'Edit']);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    expect(notesPart()).not.toHaveAttribute('hidden');
+    expect(side()).toBeNull();
+    expect(transcript()).not.toHaveAttribute('hidden');
+    // Both switches stay on: each panel is still shown, in its tab.
+    expect(screen.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Edit' }));
+    await settle();
+    expect(within(leftColumn()).getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()!.parentElement).toBe(leftColumn());
+    expect(notesPart()).toHaveAttribute('hidden');
+    expect(transcript()).not.toHaveAttribute('hidden');
+    // The edit panel switched off: the notes have the column to themselves again, without tabs.
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(side()).toBeNull();
+    expect(within(leftColumn()).queryAllByRole('tab')).toEqual([]);
+    expect(notesPart()).not.toHaveAttribute('hidden');
+  });
+
+  it('shows in the shared column the panel just switched on', async () => {
+    localStorage.setItem('history.sidePanelClosed', '1');
+    page(760);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(within(leftColumn()).getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
+    await settle();
+    expect(within(leftColumn()).getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()).toBeNull();
+  });
+
+  it('saves a name being typed before the shared column turns to the notes', async () => {
+    page(760);
+    await renderRecord();
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Edit' }));
+    await settle();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Notes' }));
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+    expect(side()).toBeNull();
+  });
+
+  // Review: the edit panel moves between the shared column and its own as the window is resized; a name being typed
+  // in it is the page's, and stays typed.
+  it('keeps a name being typed when the window is resized from two columns to three and back', async () => {
+    page(760);
+    await renderRecord();
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Edit' }));
+    await settle();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(1200);
+    await settle();
+    expect(side()!.parentElement).toBe(columns());
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+    resize(760);
+    await settle();
+    expect(side()!.parentElement).toBe(leftColumn());
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+  });
+
+  // Review: a name being typed keeps the edit panel in view whatever layout the window changes to; it is leaving the
+  // panel that saves the name, and the window resized is not leaving it.
+  it('keeps the edit panel shown, a name typed in it, when the window narrows to two columns with the notes on', async () => {
+    page(1200);
+    await renderRecord();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(760);
+    await settle();
+    expect(side()!.parentElement).toBe(leftColumn());
+    expect(within(leftColumn()).getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+    expect(calls('renameSpeaker')).toEqual([]);
+    // Leaving it for the notes saves the name, then shows them.
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Notes' }));
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+    expect(side()).toBeNull();
+    expect(notesPart()).not.toHaveAttribute('hidden');
+  });
+
+  it('keeps the edit panel shown, a name typed in it, when the window narrows to tabs', async () => {
+    page(1200);
+    await renderRecord();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(600);
+    await settle();
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()).not.toBeNull();
+    expect(transcript()).toHaveAttribute('hidden');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+  });
+
+  it('keeps the edit panel shown, a name typed in its tab, when the window widens with the panel switched off', async () => {
+    localStorage.setItem('history.sidePanelClosed', '1');
+    page(600);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    await settle();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(1200);
+    await settle();
+    expect(side()!.parentElement).toBe(columns());
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+    // Hidden from its switch: the name is saved first, and the panel stays hidden as it was chosen.
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+    expect(side()).toBeNull();
+    expect(localStorage.getItem('history.sidePanelClosed')).toBe('1');
+  });
+
+  // Owner, 2026-11-18/19: on a page too narrow even for two columns, the three are tabs, as the notes and the transcript
+  // were: Notes | Transcript | Edit, each taking the page; the toolbar has no switch for them there.
+  it('on a narrow page is a third tab, "Edit", taking the page when chosen', async () => {
+    page(600);
+    await renderRecord();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Notes', 'Transcript', 'Edit']);
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    expect(side()).toBeNull();
+    expect(columns().style.gridTemplateColumns).toBe('');
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()!.parentElement).toBe(columns());
+    expect(transcript()).toHaveAttribute('hidden');
+    expect(sideDivider()).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Transcript' }));
+    expect(side()).toBeNull();
+    expect(transcript()).not.toHaveAttribute('hidden');
+    // Escape on the Edit tab leaves it for the transcript, as it hides the column on a wide page.
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await act(async () => {});
+    expect(side()).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Transcript' })).toHaveAttribute('aria-selected', 'true');
   });
 });

@@ -428,7 +428,7 @@
     color: vars.$text-secondary;
   }
 
-  // The columns' frame: the speakers' drawer is placed against it, not against the columns (which scroll when narrow).
+  // The columns' frame, between the head and the player.
   &__body {
     position: relative;
     display: flex;
@@ -443,12 +443,13 @@
     grid-template-columns: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
-    // Wide (the page is 1000 px or more): the notes stand left of the transcript. The speakers have no column of their
-    // own: a button over the transcript opens them (owner, 2026-11-17).
-    &.is-wide { grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); }
+    // In columns (recordLayout.ts): the notes stand left of the transcript, the edit panel right of it, or the two share
+    // the left column (owner, 2026-11-18/19). The page sets the widths.
+    &.has-columns { grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); }
   }
 
-  // Narrow: the notes and the transcript each have a tab; the notes take the whole width.
+  // Tabs: the notes, the transcript and the edit panel each have one, taking the whole width; or, at the top of the left
+  // column, the notes and the edit panel when they share it.
   &__panes {
     display: flex;
     gap: vars.$space-1;
@@ -484,7 +485,9 @@
     overflow-y: auto;
     padding: vars.$space-3 vars.$space-4;
   }
-  &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
+  &__columns:not(.has-columns) &__notes-col { grid-column: 1 / -1; }
+  // The edit panel in the left column, on its tab there: it takes the column's height, as the notes do.
+  &__notes-col > .record-side { flex: 1; }
 
 
   // What a file transcript was asked for: a quiet caption at the top of its transcript, scrolling with it.
@@ -508,13 +511,15 @@
     background: vars.$bg-surface;
   }
 
+  // A small window, the tabs: the part shown scrolls with its frame. Columns side by side (641 px and up, which a window
+  // under 768 px can still give) each scroll on their own, as on a wide window (review).
   @media (max-width: 767px) {
-    &__columns {
+    &__columns:not(.has-columns) {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto minmax(0, 1fr);
       overflow-y: auto;
     }
-    &__transcript { overflow-y: visible; }
+    &__columns:not(.has-columns) &__transcript { overflow-y: visible; }
   }
 }
 
@@ -999,35 +1004,15 @@
   }
 }
 
-// The record's side panel (RecordSidePanel): at the right of the record's columns, over the transcript. Closed, it
-// waits past the right edge and only its handle shows, against the transcript's right edge; open, it slides in and the
-// handle rides on its left edge. The handle is a small tab: the chevrons alone, its name in its tooltip.
+// The record's edit panel (RecordSidePanel): on a wide page a column of the record's columns at the right of the
+// transcript, as the notes are at its left; on a narrow one the third tab (owner, 2026-11-18). The page sets its width and
+// the divider beside it. It scrolls on its own.
 .record-side {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5;
-  // Shown and hidden from the toolbar's switch, so it may take the whole width of a narrow window.
-  width: min(320px, 100%);
-  transform: translateX(100%);
-  transition: transform vars.$transition-normal;
-  pointer-events: none;
-  &.is-open { transform: none; }
-  @media (prefers-reduced-motion: reduce) { transition: none; }
-
-
-
-  &__panel {
-    height: 100%;
-    box-sizing: border-box;
-    overflow-y: auto;
-    padding: vars.$space-3 vars.$space-4;
-    background: vars.$bg-surface;
-    border-left: 1px solid vars.$border-default;
-    box-shadow: -6px 0 16px vars.$shadow;
-    pointer-events: auto;
-  }
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: vars.$space-3 vars.$space-4;
 
   // One part of the panel per tool: the speakers now, more later, one under another.
   &__part {
@@ -1036,6 +1021,10 @@
   }
   &__hint { margin: 0 0 vars.$space-3; font-size: vars.$font-caption; color: vars.$text-tertiary; }
 }
+
+// The record page's dividers stay on a small window. MainLayout hides .panel-resizer at 768 px and below, where its own
+// panels stack; the record page's columns stand side by side down to 641 px (recordLayout.ts), so theirs are kept.
+.record-page .record-page__columns > .panel-resizer { display: block; }
 
 
 // A name typed in place (InlineEdit): the field, then Save and Cancel on its row, as small as the pencil they replace.

@@ -32,6 +32,42 @@ describe('the record page\'s notes column', () => {
   });
 });
 
+// Owner, 2026-11-19: the record page has two columns down to 641 px, on a window MainLayout already counts as narrow
+// (768 px and below), where it hides .panel-resizer because its own panels stack. The record page's columns still stand
+// side by side there, so their dividers are kept.
+describe("the record page's dividers", () => {
+  it('stay on a window too narrow for the main layout\'s dividers', () => {
+    // Three classes: it outranks both rules that hide the divider there, PanelResizer's own (.panel-resizer) and
+    // MainLayout's (.main-layout .panel-resizer).
+    expect(ruleBody('.record-page .record-page__columns > .panel-resizer') ?? '').toMatch(/display:\s*block/);
+  });
+});
+
+// Review: a window under 768 px scrolls the record page's columns as one, the transcript growing in them; with two
+// columns side by side there (641 px and up) that moved the notes or the edit panel off with the transcript. Only the
+// tabs, one part at a time, scroll so.
+describe("the record page's scrolling on a narrow window", () => {
+  const narrow = (() => {
+    const at = css.indexOf('@media (max-width: 767px)');
+    const open = css.indexOf('{', at);
+    let depth = 0;
+    for (let i = open; i < css.length; i++) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}' && --depth === 0) return css.slice(open + 1, i);
+    }
+    return '';
+  })();
+  const rules = [...narrow.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim(), body: m[2] }));
+
+  it('scrolls the columns as one only in the tabs, leaving side-by-side columns to scroll each on its own', () => {
+    const scrolling = rules.filter((r) => /overflow-y/.test(r.body) && r.selector.includes('record-page'));
+    expect(scrolling.map((r) => r.selector).sort()).toEqual([
+      '.record-page__columns:not(.has-columns)',
+      '.record-page__columns:not(.has-columns) .record-page__transcript',
+    ]);
+  });
+});
+
 // Owner, 2026-11-18: the version dropdown's chevron sits at its right edge, as on every other dropdown. A base-select
 // control lays its chevron out after the text (pushed to the end), so the right padding the classic background arrow
 // needed would leave an empty strip after the chevron.
