@@ -83,13 +83,24 @@ describe('writing the notes', () => {
     for (const c of plain.calls) expect(c.user).not.toHaveProperty('names');
   });
 
+  // Owner, 2026-11-18: with no reasoning, notes of Japanese speech asked for in Chinese came out in Japanese, or in
+  // Traditional Chinese, in most runs (16 of 20 on five recorded sessions); a little reasoning wrote Simplified Chinese in
+  // all 20. The finishing call keeps its own, higher effort.
+  it('writes each part with a little reasoning, so the notes keep to the language asked for', async () => {
+    const model = fakeChat();
+    await write(withPauses(), model.chat);
+    expect(model.of('part').length).toBeGreaterThan(1);
+    for (const c of model.of('part')) expect(c.effort).toBe('low');
+    for (const c of model.of('finish')) expect(c.effort).toBe('medium');
+  });
+
   it('writes a short recording in one part and keeps its title', async () => {
     const model = fakeChat();
     const result = await write(everyMinute(26), model.chat);
     const [part] = model.of('part');
     expect(model.of('part')).toHaveLength(1);
     expect(part.system).toBe(partPrompt('Japanese', false));
-    expect(part.effort).toBe('none');
+    expect(part.effort).toBe('low');
     expect(part.maxTokens).toBe(32000);
     expect(part.user).toEqual({
       output_language: 'ja',

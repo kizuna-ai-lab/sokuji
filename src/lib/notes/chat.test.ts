@@ -37,9 +37,9 @@ describe('the notes chat', () => {
   });
 
   // Measured on the service: these two refuse 'none' and take 'low' at the least.
-  it("sends 'low' for 'none' to the listed models that refuse 'none', and 'medium' as it is", async () => {
+  it("sends 'low' for 'none' to the listed models that refuse 'none', and 'low' and 'medium' as they are", async () => {
     for (const [model, none] of [['gpt-6-astra', 'low'], ['gpt-6.1-sol', 'low'], ['gpt-6-luna', 'none'], ['gpt-6-sol', 'none'], ['gpt-6.1-terra', 'none']] as const) {
-      for (const [effort, sent] of [['none', none], ['medium', 'medium']] as const) {
+      for (const [effort, sent] of [['none', none], ['low', 'low'], ['medium', 'medium']] as const) {
         const fetch = vi.fn(async () => answer(200, content({ title: 'T' })));
         await openAiChat({ ...base, model, fetch })({ system: 'S', prompt: 'whole-meeting', promptVersion: 2, user: {}, effort, maxTokens: 10, signal: new AbortController().signal });
         const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
