@@ -18,6 +18,7 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
+import { describeCause, reportWarning } from '../diagnostics/report';
 
 export interface StoredNativeVoice {
   id: number;
@@ -68,7 +69,7 @@ async function migrateFromLegacyStore(db: IDBPDatabase): Promise<void> {
   } catch (err) {
     // Migration is best-effort: a failure must not take down the voice
     // library itself (the legacy records stay put for a later retry).
-    console.warn('[Sokuji] [NativeVoiceStorage] legacy voice migration skipped:', err);
+    reportWarning('NativeVoiceStorage', `Legacy voice migration skipped: ${describeCause(err)}`, { cause: err });
   }
 }
 

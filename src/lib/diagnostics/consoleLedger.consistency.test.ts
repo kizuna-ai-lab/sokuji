@@ -204,10 +204,7 @@ const LEDGER: Record<string, number> = {
   'src/lib/modern-audio/BaseAudioRecorder.ts': 2,
   'src/lib/modern-audio/TabAudioRecorder.ts': 2,
   'src/lib/edge-tts/EdgeTtsConnection.ts': 1,
-  'src/lib/local-inference/modelStorage.ts': 1,
-  'src/lib/local-inference/nativeVoiceStorage.ts': 1,
   'src/lib/modern-audio/ParticipantRecorder.ts': 1,
-  'src/lib/soniox/voiceClipStorage.ts': 1,
 };
 
 describe('console ledger', () => {

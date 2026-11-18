@@ -31,6 +31,7 @@
  * fake-indexeddb, and untestable storage is storage nobody can change safely.
  */
 import { openDB, type IDBPDatabase } from 'idb';
+import { describeCause, reportWarning } from '../diagnostics/report';
 
 const DB_NAME = 'sokuji-voice-clip';
 /** v2 added `accountId` to the record. */
@@ -131,7 +132,7 @@ export async function loadVoiceClip(accountId: string | null | undefined): Promi
     if (!record || record.accountId !== accountId) return null;
     return new Blob([record.bytes], { type: record.type });
   } catch (error) {
-    console.warn('[Sokuji] [voiceClipStorage] Could not read the stored clip:', error);
+    reportWarning('VoiceClipStorage', `Could not read the stored clip: ${describeCause(error)}`, { cause: error });
     return null;
   }
 }
