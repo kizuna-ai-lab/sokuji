@@ -37,7 +37,7 @@ afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); useLiv
 
 describe('the live notes panel', () => {
   it('with Kizuna AI, shows what the live notes have used so far, and says when the balance is low', () => {
-    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'kizunaai' } } as never);
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'kizunaai_openai' } } as never);
     act(() => {
       // 1000 × 0.2 + 8000 × 0.02 + 3000 × 1 per million: $0.00336.
       useLiveNotes.getState().addUsage('run-0001-aaaa', { prompt_tokens: 9000, completion_tokens: 3000, prompt_tokens_details: { cached_tokens: 8000 } });
@@ -360,7 +360,7 @@ describe('the live notes panel', () => {
       update(1200, 1);
       expect(box.top).toBe(900);
       box.height = 1250;
-      act(() => useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'kizunaai' } } as never));
+      act(() => useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'kizunaai_openai' } } as never));
       expect(screen.getByText(/Live notes so far/)).toBeInTheDocument();
       expect(box.top).toBe(950);
     });

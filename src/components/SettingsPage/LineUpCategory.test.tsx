@@ -546,19 +546,35 @@ describe('the notes card', () => {
     authState.signedIn = false;
     render(<LineUpCategory locked={false} />);
     expect(optionTexts('Notes')).toEqual(['Kizuna AI']);
-    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai');
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai_openai');
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
     expect(screen.getByText('Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')).toBeInTheDocument();
+  });
+
+  // Owner, 2026-11-18: Kizuna AI's notes are written by OpenAI; its mark reads so, as the other hosted services' do: the
+  // Kizuna AI logo with OpenAI's mark as a corner badge.
+  it("draws Kizuna AI's notes as Kizuna AI with OpenAI's badge", () => {
+    baseSelect.rich = true;
+    try {
+      useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+      const badge = card.querySelector('.hosted-provider-icon__badge');
+      expect(badge).not.toBeNull();
+      expect(badge!.querySelector('svg path')?.getAttribute('d')).toMatch(/^M9\.205 8\.658/);
+    } finally {
+      baseSelect.rich = false;
+    }
   });
 
   // Andrew's review of B-48: Kizuna AI can be the notes' service while signed out; its prices wait for a sign-in.
   it('shows no Kizuna AI prices signed out, though Kizuna AI writes the notes', () => {
     authState.signedIn = false;
     notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai');
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai_openai');
     expect(screen.queryByText(/^Kizuna AI estimates/)).toBeNull();
   });
 
@@ -571,8 +587,8 @@ describe('the notes card', () => {
     // The owner, 2026-11-17: Kizuna AI's prices only where Kizuna AI writes the notes; not under OpenAI's own key.
     const price = 'Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.';
     expect(screen.queryByText(price)).toBeNull();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai' } });
-    await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'kizunaai' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai_openai' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'kizunaai_openai' }));
     expect(await screen.findByText(price)).toBeInTheDocument();
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Ready')).toBeInTheDocument();
@@ -587,7 +603,7 @@ describe('the notes card', () => {
     render(<LineUpCategory locked={false} />);
     const card = () => screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card()).getByRole('button', { name: 'Key not accepted' })).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'kizunaai_openai' } });
     await waitFor(() => expect(within(card()).getByText('Ready')).toBeInTheDocument());
     expect(within(card()).queryByRole('button', { name: /^Key / })).toBeNull();
     expect(within(card()).queryByText(/OpenAI key/)).toBeNull();
@@ -595,7 +611,7 @@ describe('the notes card', () => {
 
   it('keeps showing Kizuna AI while it is chosen, saying it needs a sign-in once signed out', () => {
     authState.signedIn = false;
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
     expect(optionTexts('Notes')).toEqual(['Kizuna AI']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
@@ -708,7 +724,7 @@ describe('the notes card', () => {
   // Review: a Kizuna AI chosen on purpose is not changed by adding a key; the guidance says to choose OpenAI here too.
   it('with Kizuna AI chosen and signed out, says to sign in or to choose OpenAI here (adding a key first if need be)', () => {
     authState.signedIn = false;
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     const { unmount } = render(<LineUpCategory locked={false} />);
     expect(screen.getByText('Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written.')).toBeInTheDocument();
     unmount();

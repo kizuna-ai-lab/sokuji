@@ -87,7 +87,7 @@ describe('languages and line-up: the four cards', () => {
 
   it('an explicit Kizuna AI choice while signed out says on its card that a sign-in is needed', () => {
     authState.signedIn = false;
-    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
     const card = document.querySelector<HTMLElement>('.lineup-stage.is-joint')!;
     expect(within(card).getByRole('combobox')).toHaveValue('kizunaai_soniox');
@@ -97,7 +97,7 @@ describe('languages and line-up: the four cards', () => {
 
   it('"Needs a sign-in" takes you to the Kizuna AI sign-in, on a stage card and on the notes card', () => {
     authState.signedIn = false;
-    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
     const card = document.querySelector<HTMLElement>('.lineup-stage.is-joint')!;
     fireEvent.click(within(card).getAllByRole('button', { name: 'Needs a sign-in' })[0]);

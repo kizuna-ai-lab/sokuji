@@ -44,7 +44,7 @@ describe('the notes service from the stores', () => {
   });
 
   it('is Kizuna AI\'s relay when chosen and signed in: the sign-in, the meeting and the chosen payer go with each call', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     registerAuth(() => ({ signedIn: true, getToken: async () => 'session-token' }));
     useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1, frozen: false, organization: { name: 'Org', availableMicroUsd: 1, frozen: false } } });
     setUseOwnBalance(true);
@@ -66,7 +66,7 @@ describe('the notes service from the stores', () => {
   });
 
   it('is none for Kizuna AI while signed out', async () => {
-    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai' }, stored: true });
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     registerAuth(() => ({ signedIn: false, getToken: async () => null }));
     expect(await notesChatFromStores('rec-1')).toBeNull();
     registerAuth(() => undefined);

@@ -5,6 +5,18 @@ import { notesServiceOf, KIZUNA_NOTES } from './notesService';
 const d = (hostedOffered: boolean, signedIn: boolean, openAiKeyed: boolean) => ({ hostedOffered, signedIn, openAiKeyed });
 
 describe('the notes service', () => {
+  // Owner, 2026-11-18: named like the other hosted services (kizunaai_soniox, kizunaai_qwen): Kizuna AI, by OpenAI.
+  it("is stored as 'kizunaai_openai' for Kizuna AI's", () => {
+    expect(KIZUNA_NOTES).toBe('kizunaai_openai');
+  });
+
+  // Not released under the old name, so nothing is migrated; a value the app no longer knows (the old 'kizunaai', a
+  // service since removed) reads as none chosen, so the notes are not left unwritten.
+  it('reads a value it does not know as none chosen', () => {
+    expect(notesServiceOf({ summarisation: 'kizunaai_openai' }, d(true, true, false))).toBe(KIZUNA_NOTES);
+    expect(notesServiceOf({ summarisation: 'gone' }, d(false, false, true))).toBe('openai');
+  });
+
   it('is the one the line-up chose', () => {
     expect(notesServiceOf({ summarisation: 'openai' }, d(true, true, false))).toBe('openai');
     expect(notesServiceOf({ summarisation: KIZUNA_NOTES }, d(false, false, true))).toBe(KIZUNA_NOTES);
