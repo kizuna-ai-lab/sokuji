@@ -187,10 +187,9 @@
     font-size: 12px;
     line-height: 18px;
     cursor: pointer;
-    &:hover:not(:disabled) { color: vars.$text-primary; border-bottom-color: vars.$text-secondary; }
+    &:hover { color: vars.$text-primary; border-bottom-color: vars.$text-secondary; }
     &:focus-visible { @include vars.focus-ring; }
     &:dir(rtl) { background-position: left 2px center, left 6px center; }
-    &:disabled { cursor: default; border-bottom-style: none; background-image: none; padding-inline-end: 0; }
   }
   // Why a word cannot be changed now, and the way to the audio settings.
   .language-receive-reason {

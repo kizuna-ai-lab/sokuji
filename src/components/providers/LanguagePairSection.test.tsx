@@ -41,6 +41,7 @@ const draw = (
 const receiveSelects = () => (screen.getAllByRole('combobox') as HTMLSelectElement[]).filter((s) => values(s).includes('hear'));
 const choice = (hears: boolean, blocked: string | null = null) => ({ hears, onChange: vi.fn(), blocked });
 const values = (select: HTMLElement) => [...(select as HTMLSelectElement).options].map((o) => o.value);
+const disabledValues = (select: HTMLSelectElement) => [...select.options].filter((o) => o.disabled).map((o) => o.value);
 // The codes on offer, whatever the display order, pinned copies or separator.
 const codesOf = (select: HTMLElement) => [...new Set(values(select).filter((v) => v !== PIN_SEPARATOR))].sort();
 
@@ -266,19 +267,24 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
       receive: { theirs: choice(true, 'audioPanel.rowLockedByRun'), mine: choice(true) },
     });
     const [theirs, mine] = receiveSelects();
-    expect(theirs.disabled).toBe(true);
-    expect(mine.disabled).toBe(false);
+    // Both still open: the locked one offers only what it is.
+    expect([theirs.disabled, mine.disabled]).toEqual([false, false]);
+    expect(disabledValues(theirs)).toEqual(['read']);
+    expect(disabledValues(mine)).toEqual([]);
     expect((screen.getAllByRole('combobox').filter((s) => s.classList.contains('language-select')) as HTMLSelectElement[]).every((s) => s.disabled)).toBe(true);
   });
 
-  it('a choice that cannot be changed is shown, disabled, with why and the way to the audio settings', () => {
+  it('a choice that cannot be changed still opens, showing what it cannot become greyed, with why and the way to the audio settings (owner, 2026-11-18)', () => {
     const openAudio = vi.fn();
     draw({ source: 'ja', target: 'en' }, undefined, {
       sentence: { mode: 'participant', textOnly: false },
       receive: { mine: choice(false, 'audioPanel.blockedWholeSystem'), onOpenAudio: openAudio },
     });
-    expect(receiveSelects()[0].disabled).toBe(true);
-    expect(screen.getByText('audioPanel.blockedWholeSystem')).toBeTruthy();
+    const [select] = receiveSelects();
+    expect(select.disabled).toBe(false);
+    expect(select.value).toBe('read');
+    expect(disabledValues(select)).toEqual(['hear']);
+    expect(select.getAttribute('aria-describedby')).toBe(screen.getByText('audioPanel.blockedWholeSystem').closest('p')!.id);
     fireEvent.click(screen.getByRole('button', { name: 'mainPanel.audioSettings' }));
     expect(openAudio).toHaveBeenCalledWith('mine');
   });

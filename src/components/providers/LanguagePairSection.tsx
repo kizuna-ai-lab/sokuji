@@ -131,22 +131,25 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
     theirs: [t('settings.langSentence.theyHear', 'they hear'), t('settings.langSentence.theyRead', 'they read')] as const,
     mine: [t('settings.langSentence.iHear', 'I hear'), t('settings.langSentence.iRead', 'I read')] as const,
   };
-  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, [hear, read]: readonly [string, string]) => (
-    <select
-      className="language-receive"
-      value={choice.hears ? 'hear' : 'read'}
-      aria-label={`${hear} / ${read}`}
-      title={choice.blocked ?? undefined}
-      aria-describedby={choice.blocked ? `${id}-reason-${side}` : undefined}
-      // Its own lock, not the section's: the session's lock is in `blocked` where it applies (Translation I hear stays
-      // switchable during a run that speaks it, as on the Audio page).
-      disabled={Boolean(choice.blocked)}
-      onChange={(e) => choice.onChange(e.target.value === 'hear')}
-    >
-      <option value="hear">{hear}</option>
-      <option value="read">{read}</option>
-    </select>
-  );
+  // A choice that cannot change still opens, the way it cannot go greyed, so the choice is seen to be there (owner,
+  // 2026-11-18). Its own lock, not the section's: the session's lock is in `blocked` where it applies (Translation I
+  // hear stays switchable during a run that speaks it, as on the Audio page).
+  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, [hear, read]: readonly [string, string]) => {
+    const locked = Boolean(choice.blocked);
+    return (
+      <select
+        className="language-receive"
+        value={choice.hears ? 'hear' : 'read'}
+        aria-label={`${hear} / ${read}`}
+        title={choice.blocked ?? undefined}
+        aria-describedby={locked ? `${id}-reason-${side}` : undefined}
+        onChange={(e) => choice.onChange(e.target.value === 'hear')}
+      >
+        <option value="hear" disabled={locked && !choice.hears}>{hear}</option>
+        <option value="read" disabled={locked && choice.hears}>{read}</option>
+      </select>
+    );
+  };
   // Why a side's word cannot change, under the row it belongs to; its link opens that side's switch.
   const reasonFor = (side: 'theirs' | 'mine') => {
     const text = (side === 'theirs' ? theirs : mine)?.blocked;
