@@ -68,6 +68,11 @@ interface LanguagePairSectionProps {
   sentence?: { mode: AudioMode; textOnly: boolean; participantSpeaks?: boolean };
   /** Whether a run would speak (Stage 2 Volcengine AST2, choice 1): the lists are the offer for it. Absent: the provider's widest offer. */
   context?: LanguageContext;
+  /**
+   * The other side's leg's own context, which Start checks its reverse under (`gate`, D20): the choices of their row in
+   * Both. Absent: `context`.
+   */
+  reverseContext?: LanguageContext;
   /** Absent or true: the section's own heading. False where the page names the languages already (the settings page). */
   heading?: boolean;
   /**
@@ -84,7 +89,7 @@ interface LanguagePairSectionProps {
  * allowed whenever the provider supports the reversed pair. Markup is
  * LanguageSection's translation-languages block.
  */
-export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, heading = true, receive }: LanguagePairSectionProps) {
+export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, reverseContext = context, heading = true, receive }: LanguagePairSectionProps) {
   const { t, i18n } = useTranslation();
   const id = useId();
   const label = useLanguageLabel();
@@ -172,7 +177,9 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   };
   // The Other mode: my word leads the first row.
   const mineLeads = Boolean(mine) && sentence?.mode === 'participant';
-  const chooseSource = (source: string) => onChange(normalizePair(provider, settings, { source, target: pair.target }, context));
+  // A new source keeps the target where the provider offers it with that source, else takes the first it does.
+  const pairWithSource = (source: string) => normalizePair(provider, settings, { source, target: pair.target }, context);
+  const chooseSource = (source: string) => onChange(pairWithSource(source));
   const chooseTarget = (target: string) => onChange({ source: pair.source, target });
   const sourceSelect = (selectId: string, ariaLabel?: string) => (
     <select
@@ -201,16 +208,15 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   // The other side's leg runs the pair's reverse as the provider states it (`reversedPair`: Palabra's is its own codes,
   // not a swap), so their row shows that leg's languages. Each stands for the choice of the pair it comes from, and a
   // change there is that choice: one pair either way, so a change in one row is the other's too. Only choices their
-  // leg runs in are offered (`reverseSupported`: a provider's reverse can be null, and an automatic source never
-  // reverses, D20); review, PR #784: one that does not is a pair Start refuses.
+  // leg runs in are offered, checked as Start's gate checks it (review, PR #784: one that does not is a pair Start
+  // refuses): `reverseSupported` under their leg's own context, on the pair the choice makes (a language I get can move
+  // the target, as `chooseSource` does). A provider's reverse can be null, and an automatic source never reverses (D20):
+  // with none to offer, the row shows what it is, unchosen.
   const leg = (p: LanguagePair) => reversedPair(provider, settings, p) ?? { source: p.target, target: p.source };
-  const runs = (p: LanguagePair) => reverseSupported(provider, settings, p, context);
+  const runs = (p: LanguagePair) => reverseSupported(provider, settings, p, reverseContext);
   const theirPair = (target: string) => ({ source: pair.source, target });
-  const myPair = (source: string) => ({ source, target: pair.target });
-  const theyRun = only(targetOptions, (o) => runs(theirPair(o.value)));
-  // With a language I get that runs with none of them (an automatic one), their language is the pair's target as it is.
-  const theyCanSpeak = theyRun.ordered.length > 0 ? theyRun : targetOptions;
-  const iCanGet = only(sourceOptions, (o) => runs(myPair(o.value)));
+  const theyCanSpeak = only(targetOptions, (o) => runs(theirPair(o.value)));
+  const iCanGet = only(sourceOptions, (o) => runs(pairWithSource(o.value)));
   const legSelect = (selectId: string, lists: OptionLists, code: (value: string) => string, current: string, choose: (value: string) => void, ariaLabel?: string) => {
     const shown = viewThrough(lists, code);
     const value = code(current);
@@ -291,7 +297,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
           {swap}
           <div className="language-select-group">
             <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
-            {legSelect(`${id}-their-source`, iCanGet, (source) => leg(myPair(source)).target, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
+            {legSelect(`${id}-their-source`, iCanGet, (source) => leg(pairWithSource(source)).target, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
           </div>
         </div>
       )}

@@ -208,6 +208,9 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     // Shown as it stands, but not a choice.
     expect(auto).toHaveLength(1);
     expect(auto[0].disabled).toBe(true);
+    // Review (PR #784): nor is their language, with no language I get to run their leg: it shows, unchosen.
+    const theirLanguage = row.querySelectorAll('select.language-select')[0] as HTMLSelectElement;
+    expect([...theirLanguage.options].map((o) => [o.value, o.disabled])).toEqual([['en', true]]);
     fireEvent.change(myLanguage, { target: { value: 'ja' } });
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ source: 'ja' }));
   });
@@ -259,6 +262,50 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     myLanguage = screen.getByTestId('language-their-row').querySelectorAll('select.language-select')[1] as HTMLSelectElement;
     expect(myLanguage.value).toBe('eu');
     expect([...myLanguage.options].filter((o) => o.value === 'eu').map((o) => o.disabled)).toEqual([true]);
+  });
+
+  // Review (PR #784): their row checks a choice as Start's gate does, under their own leg's context: here my leg speaks
+  // and theirs reads, and only a run that speaks narrows the offer.
+  it("'both': checks the other side's choices under their own leg's context, not the whole run's", () => {
+    const provider = {
+      ...fakeProvider,
+      languages: {
+        ...fakeProvider.languages,
+        sources: () => [{ value: 'en' }, { value: 'zh' }, { value: 'ru' }],
+        targets: (source: string, _s: unknown, ctx?: LanguageContext) => (ctx?.speech ? ['en', 'zh'] : ['en', 'zh', 'ru']).filter((t) => t !== source).map((value) => ({ value })),
+        reverse: undefined,
+      },
+    } as unknown as typeof fakeProvider;
+    render(
+      <LanguagePairSection
+        provider={provider} settings={FAKE_DEFAULTS} pair={{ source: 'en', target: 'zh' }} onChange={vi.fn()}
+        sentence={{ mode: 'both', textOnly: false }} receive={{ theirs: choice(true), mine: choice(false) }}
+        context={{ speech: true }} reverseContext={{ speech: false }}
+      />,
+    );
+    const myLanguage = screen.getByTestId('language-their-row').querySelectorAll('select.language-select')[1] as HTMLSelectElement;
+    // ru → zh runs, and so does its reverse zh → ru for a leg that reads.
+    expect(codesOf(myLanguage)).toEqual(['en', 'ru', 'zh']);
+  });
+
+  // Review (PR #784): a language I get is checked as the pair it would make, after the target is moved to fit it.
+  it("'both': checks each language I get as the pair choosing it makes", () => {
+    const targets: Record<string, string[]> = { en: ['ja'], ja: ['en', 'zh'], zh: ['en'] };
+    const provider = {
+      ...fakeProvider,
+      languages: {
+        ...fakeProvider.languages,
+        sources: () => [{ value: 'en' }, { value: 'ja' }, { value: 'zh' }],
+        targets: (source: string) => (targets[source] ?? []).map((value) => ({ value })),
+        reverse: undefined,
+      },
+    } as unknown as typeof fakeProvider;
+    const onChange = draw({ source: 'en', target: 'ja' }, undefined, { provider, sentence: { mode: 'both', textOnly: false }, receive: { theirs: choice(true), mine: choice(false) } });
+    const myLanguage = screen.getByTestId('language-their-row').querySelectorAll('select.language-select')[1] as HTMLSelectElement;
+    // Chinese would make zh → en, whose reverse en → zh this provider does not run.
+    expect(codesOf(myLanguage)).toEqual(['en', 'ja']);
+    fireEvent.change(myLanguage, { target: { value: 'ja' } });
+    expect(onChange).toHaveBeenLastCalledWith({ source: 'ja', target: 'en' });
   });
 
   it("each reason's link opens the switch of the side it explains", () => {

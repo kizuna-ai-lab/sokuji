@@ -2,7 +2,7 @@ import { useRunParticipantSpeech } from '../../app/useRun';
 import { useAnalytics } from '../../lib/analytics';
 import type { AnyProvider } from '../../lib/provider/types';
 import { speechFromStores } from '../../lib/session/appShape';
-import { languageContext } from '../../lib/session/shape';
+import { languageContext, legSpeaks } from '../../lib/session/shape';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -54,6 +54,7 @@ export function ProviderLanguages({ providers, disabled, sentence, heading, rece
       receive={receive}
       sentence={sentence && { ...sentence, participantSpeaks: runSpeech !== false && speechFromStores(provider).them }}
       context={languageContext(provider, legs, speech)}
+      reverseContext={{ speech: legSpeaks(provider, 'participant', speech) }}
       onChange={(pair) => {
         if (pair.source !== entry.pair.source) trackEvent('language_changed', { to_language: pair.source, language_type: 'source' });
         if (pair.target !== entry.pair.target) trackEvent('language_changed', { to_language: pair.target, language_type: 'target' });
