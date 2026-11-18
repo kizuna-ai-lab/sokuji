@@ -476,7 +476,7 @@ describe('through Kizuna AI’s Soniox', () => {
   it('names Kizuna AI as the service in both panels, and what a transcription is estimated to cost as the options change', async () => {
     useAccountStore.setState({ account: known(10_000_000) });
     keeping(HOUR);
-    const { jobs } = hosted();
+    hosted();
     show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
     await settle();
     expect(screen.getByText(SERVICE_HOSTED)).toBeTruthy();
@@ -485,15 +485,17 @@ describe('through Kizuna AI’s Soniox', () => {
     expect(screen.queryByText(/^About /)).toBeNull();
     cleanup();
 
-    // This service has no code for French: a translation into it is not asked for, so not paid for.
-    vi.mocked(jobs.service).mockResolvedValue({ ...HOSTED, languageHint: (code: string) => (code === 'fr' ? null : code) });
+    // Transcribed before in Chinese and translated into Chinese, as an import starts: nothing to translate, so the
+    // translation is not asked for, nor paid for (owner, 2026-11-19).
+    const asked = { languages: ['zh'], translateTo: 'zh' };
+    record = { ...record, transcripts: [...record.transcripts, { id: 2, origin: { service: 'kizunaai_soniox', kind: 'file', options: asked }, textKind: 'original', createdAt: START + 1, sentences: 3 }] };
     await act(() => store.getState().openRecord(A));
     show(<TranscribePanel onClose={() => {}} />);
     await settle();
     expect(screen.getByText(SERVICE_HOSTED)).toBeTruthy();
     expect(screen.queryByText(SERVICE_OWN_KEY)).toBeNull();
-    translateInto('fr');
-    await settle();
+    expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('zh');
+    expect(screen.getByLabelText<HTMLSelectElement>('Translate into').value).toBe('zh');
     expect(screen.getByText('About $0.20.')).toBeTruthy();
     translateInto('ja');
     await settle();

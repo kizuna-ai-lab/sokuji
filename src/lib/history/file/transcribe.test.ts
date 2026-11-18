@@ -83,6 +83,14 @@ describe('transcribing a record again', () => {
     expect(asked).toStrictEqual([{ ...sent, source: 'speaker' }, { ...sent, source: 'participant' }]);
   });
 
+  // Only Kizuna AI's service leaves out a translation into the recording's own language; the user's own key is asked
+  // exactly what the user chose.
+  it('asks the user’s own key for a translation into the only language spoken, as chosen', async () => {
+    const { port, asked } = fakePort({ words: { speaker: said('One.', 0), participant: said('Two.', 0) } });
+    await transcribeRecord({ options: { languages: ['zh'], translateTo: 'zh' }, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => [r.source, r.languageHints, r.translateTo])).toEqual([['speaker', ['zh'], 'zh'], ['participant', ['zh'], 'zh']]);
+  });
+
   it('is not certain of the side when both legs heard one input', async () => {
     const { port, written } = fakePort({ record: record({ sameInput: true }), words: { speaker: said('One.', 0), participant: said('Two.', 0) } });
     await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
@@ -245,6 +253,32 @@ describe('transcribing a record through the Kizuna AI service', () => {
     const { port, asked } = fakePort({ record: twoTracks(), words });
     await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: { ...hosted(async () => 'tok'), context }, newJobId, clock: createVirtualClock(0) });
     expect(asked.map((r) => ['payer' in r, r.context])).toEqual([[false, context], [false, context]]);
+  });
+
+  // One language spoken and translated into itself: there is nothing to translate, so none is asked for, nor paid for
+  // (owner, 2026-11-19). The new version still says what the user chose.
+  it('asks for no translation into the only language spoken', async () => {
+    const options = { languages: ['zh'], translateTo: 'zh' };
+    const { port, asked, written } = fakePort({ record: twoTracks(), words });
+    await transcribeRecord({ options, port, recordId: ID, service: hosted(async () => 'tok'), newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => [r.source, r.languageHints, 'translateTo' in r])).toEqual([['speaker', ['zh'], false], ['participant', ['zh'], false]]);
+    expect(written[0]).toEqual(['createTranscript', { recordId: ID, origin: { service: 'kizunaai_soniox', kind: 'file', options }, textKind: 'original' }]);
+  });
+
+  it('asks for the translation when another language is spoken too, or it goes into another language', async () => {
+    for (const options of [{ languages: ['zh', 'en'], translateTo: 'zh' }, { languages: ['zh'], translateTo: 'en' }]) {
+      const { port, asked } = fakePort({ record: twoTracks(), words });
+      await transcribeRecord({ options, port, recordId: ID, service: hosted(async () => 'tok'), newJobId, clock: createVirtualClock(0) });
+      expect(asked.map((r) => r.translateTo), JSON.stringify(options)).toEqual([options.translateTo, options.translateTo]);
+    }
+  });
+
+  it('compares the languages in the service’s own codes', async () => {
+    const { port, asked } = fakePort({ record: twoTracks(), words });
+    const service = { ...hosted(async () => 'tok'), languageHint: (code: string) => (code === 'zh' ? 'zh' : null) };
+    // A regional code the service knows only by its language: the same language as the translation's.
+    await transcribeRecord({ options: { languages: ['zh-CN'], translateTo: 'zh' }, port, recordId: ID, service, newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => [r.languageHints, 'translateTo' in r])).toEqual([[['zh'], false], [['zh'], false]]);
   });
 
   it('says to sign in, and sends nothing, when there is no sign-in', async () => {

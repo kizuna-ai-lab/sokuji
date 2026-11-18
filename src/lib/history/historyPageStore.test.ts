@@ -948,6 +948,14 @@ describe('transcripts and file jobs', () => {
       expect(await store.getState().fileEstimate('import', OPTS)).toBeNull();
     });
 
+    // The job asks for no translation into the only language spoken (owner, 2026-11-19), so none is priced.
+    it('prices one language translated into itself as not translated', async () => {
+      hostedStore();
+      await openWith([track('speaker', HOUR)]);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['zh'], translateTo: 'zh' })).toBe(0.2);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['zh'], translateTo: 'en' })).toBe(0.32);
+    });
+
     // Priced as the job sends it: a side the session translated into nothing is sent, and priced, without a translation.
     it('prices each side as it will be sent when each side goes into the other’s language', async () => {
       hostedStore();

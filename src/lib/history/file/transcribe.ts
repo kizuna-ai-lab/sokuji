@@ -61,15 +61,24 @@ function serviceLanguage(service: LanguageCodes, code: string): string | null {
 
 /**
  * What a track is translated into, in the service's code; null when no translation is asked for it: none chosen;
- * "each side into the other's language" for a side the session translated into nothing; or a language the service has
- * no code for. Each side goes into what its own side was translated into in the session. The job sends, and the
- * estimate prices, every track by this one answer.
+ * "each side into the other's language" for a side the session translated into nothing; a language the service has
+ * no code for; or, through Kizuna AI's service, the only language spoken (owner, 2026-11-19). Each side goes into what
+ * its own side was translated into in the session. The job sends, and the estimate prices, every track by this one
+ * answer.
  */
 export function trackTranslation(
-  record: Pick<HistoryRecord, 'legs'>, source: HistoryTrackSource, options: FileTranscriptionOptions, service: LanguageCodes,
+  record: Pick<HistoryRecord, 'legs'>, source: HistoryTrackSource, options: FileTranscriptionOptions,
+  service: LanguageCodes & { hosted?: true },
 ): string | null {
   const into = options.translateTo === EACH_SIDE ? record.legs.find((l) => l.leg === source)?.languages.target : options.translateTo;
-  return into ? serviceLanguage(service, into) : null;
+  const translateTo = into ? serviceLanguage(service, into) : null;
+  // The panels always name a language to translate into, an import's own by default. Kizuna AI's service charges a
+  // translation: into the only language spoken there is nothing to translate, so it is not asked for, nor paid for.
+  // Compared in the service's codes; "automatic" is never translated into, so never matches. The user's own key is
+  // asked exactly as chosen.
+  const spokenOnly = options.languages.length === 1 ? serviceLanguage(service, options.languages[0]) : null;
+  if (service.hosted && translateTo !== null && translateTo === spokenOnly) return null;
+  return translateTo;
 }
 
 export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcriptId: number; sentences: number }> {
