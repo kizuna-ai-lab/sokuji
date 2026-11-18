@@ -782,7 +782,7 @@ describe('transcripts and file jobs', () => {
     it('says a job is running, or a session, before asking anything of Kizuna AI', async () => {
       const f = fakeJobs({ hosted: true, session: true, terms: new Error('offline'), account: known(0, { frozen: true }) });
       const state = createFileJobState();
-      state.setState({ job: { kind: 'transcribe', recordId: B, name: null, phase: 'processing' } });
+      state.setState({ job: { kind: 'transcribe', recordId: B, name: null, phase: 'processing', hosted: true } });
       store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...f.jobs, state } as never);
       expect(await blocked('transcribe')).toBe('busy');
       expect(await blocked('import')).toBe('busy');

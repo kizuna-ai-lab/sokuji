@@ -89,7 +89,7 @@ describe('from the History page red notices into Settings', () => {
   });
 
   for (const [missing, text] of [
-    ['no-file-service', 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.'],
+    ['no-file-service', 'Files are transcribed only by Soniox. Choose it for transcription in the line-up.'],
   ] as const) {
     it(`"${missing}": closes the panel, then opens Languages and line-up, scrolled to the line-up and lit for 3 seconds`, async () => {
       const s = await scene(missing);

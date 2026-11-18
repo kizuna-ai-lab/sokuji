@@ -4,6 +4,7 @@
 // shown as a line in the interface's words (`errorText`) and leaves what was shown; nothing is retried by itself.
 import { addWord, useWordList } from '../words/list';
 import { createStore, type StoreApi } from 'zustand/vanilla';
+import { useAccountStore } from '../../stores/accountStore';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
 import type { NotesLanguage, NotesRunner } from '../notes/runner';
@@ -49,6 +50,11 @@ export interface FileJob {
   /** The imported file's name. */
   name: string | null;
   phase: ImportPhase;
+  /**
+   * Through Kizuna AI's service, which charges the account: set once the job knows its service (false until then).
+   * Cancelled once Soniox is transcribing, such a job is still charged.
+   */
+  hosted: boolean;
 }
 
 /**
@@ -166,6 +172,10 @@ export interface HistoryPageActions {
    * user's own key (no price is shown), for an import (its length is not known before it is read), or without the terms.
    */
   fileEstimate(kind: 'import' | 'transcribe', options: FileTranscriptionOptions): Promise<number | null>;
+  /** Whether files are transcribed through Kizuna AI's service; false with the user's own key, with none, or when it could not be checked. */
+  fileHosted(): Promise<boolean>;
+  /** Kizuna AI's terms for a file job (what it takes at most); null without file jobs, or when it has none or they cannot be read. */
+  hostedTerms(): Promise<HostedFileTerms | null>;
   /** The languages a file can be transcribed in and translated into: the file service's; none without one; null when the service could not be asked. */
   fileLanguages(): Promise<readonly string[] | null>;
   /** Imports a file as a new record, transcribed as `options` say: one job at a time. */
@@ -217,10 +227,16 @@ export function createHistoryPageStore(
   let offJobs: (() => void) | null = null;
   /** The page's reading again after the last file job ended: the action that began the job waits for it. */
   let afterJob: Promise<void> | null = null;
-  const setJobPhase = (phase: ImportPhase) => {
+  const changeJob = (change: Partial<FileJob>) => {
     const job = jobs.getState().job;
-    if (job) jobs.setState({ job: { ...job, phase } });
+    if (job) jobs.setState({ job: { ...job, ...change } });
   };
+  const setJobPhase = (phase: ImportPhase) => changeJob({ phase });
+  /**
+   * A job through Kizuna AI has ended, however it ended: the wallet is read again, so the balance shown counts what it
+   * spent (or held and gave back), as after a refused session start.
+   */
+  const refreshBalance = () => { void useAccountStore.getState().refreshAccount?.().catch(() => {}); };
 
   const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
     /** One action: busy while it runs, a rejection shown and nothing else changed. */
@@ -601,6 +617,24 @@ export function createHistoryPageStore(
         }
       },
 
+      async fileHosted() {
+        if (!files) return false;
+        try {
+          return 'hosted' in (await files.service());
+        } catch {
+          return false;
+        }
+      },
+
+      async hostedTerms() {
+        if (!files) return null;
+        try {
+          return await files.hostedTerms();
+        } catch {
+          return null;
+        }
+      },
+
       async fileLanguages() {
         if (!files) return [];
         try {
@@ -615,10 +649,13 @@ export function createHistoryPageStore(
         // The job is taken before anything is awaited: a second start finds it.
         if (!files || jobs.getState().job) return;
         const controller = new AbortController();
-        jobs.setState({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading' }, jobFailure: null, jobKept: false, controller });
+        jobs.setState({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading', hosted: false }, jobFailure: null, jobKept: false, controller });
+        let hosted = false;
         try {
           const service = await files.service();
           if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
+          hosted = 'hosted' in service;
+          changeJob({ hosted });
           const result = await files.importFile({
             file, options: o.options, myLanguage: o.myLanguage, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           });
@@ -629,6 +666,7 @@ export function createHistoryPageStore(
         } finally {
           // The page shown now (this one, or the next if History was closed meanwhile) reads the list again.
           jobs.setState({ job: null, controller: null });
+          if (hosted) refreshBalance();
         }
         await afterJob;
       },
@@ -638,10 +676,13 @@ export function createHistoryPageStore(
         if (!files || jobs.getState().job || !open) return;
         const recordId = open.record.id;
         const controller = new AbortController();
-        jobs.setState({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null, jobKept: false, controller });
+        jobs.setState({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading', hosted: false }, jobFailure: null, jobKept: false, controller });
+        let hosted = false;
         try {
           const service = await files.service();
           if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
+          hosted = 'hosted' in service;
+          changeJob({ hosted });
           await files.transcribe({
             recordId, options, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           });
@@ -652,6 +693,7 @@ export function createHistoryPageStore(
         } finally {
           // The page shown now shows the new transcript (see follow()).
           jobs.setState({ job: null, controller: null });
+          if (hosted) refreshBalance();
         }
         await afterJob;
       },
