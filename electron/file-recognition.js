@@ -10,7 +10,8 @@
 // Kizuna AI's Soniox (`kizunaai_soniox`) reaches the same Soniox through the Kizuna AI service, as a file job of the
 // signed-in account: the track is uploaded to the service, transcribed there, its words (Soniox's) come back, and the
 // job is ended at the service in every outcome once it has an id. The sign-in token is used for that job's calls only,
-// sent only to an http(s) address, and no message, error or log line repeats it.
+// sent only over https (over http only to this computer, for development), and no message, error or log line repeats
+// it.
 'use strict';
 
 const fs = require('node:fs');
@@ -31,6 +32,10 @@ const REGIONS = new Set(SONIOX_REGIONS);
 const END_RETRIES = 3;
 /** A file job's state not had (a network failure or a 5xx) is asked again at the next poll, this many times in a row. */
 const POLL_RETRIES = 3;
+/** A file job polled this long without finishing is given up as the service's failure (and ended there). */
+const HOSTED_MAX_WAIT_MS = 60 * 60_000;
+/** The hosts the sign-in token may be sent to over plain http: this computer, for development. */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 /** Whose balance pays a file job at the Kizuna AI service; absent, the service's own choice. */
 const PAYERS = new Set(['organization', 'personal']);
 
@@ -94,15 +99,21 @@ function failedTranscription(errorType, message) {
   return new HistoryError('SERVICE', said);
 }
 
-/** An http: or https: address: the only kind the sign-in token is sent to. */
-function isHttpUrl(v) {
-  if (!isString(v)) return false;
+/**
+ * The Kizuna AI service's address as the calls are made below it, without its trailing slash; null for one the sign-in
+ * token must not be sent to: not https (http only to this computer, for development), or carrying a query or a
+ * fragment, which would ride along with every call.
+ */
+function serviceAddress(v) {
+  if (!isString(v) || /[?#]/.test(v)) return null;
+  let url;
   try {
-    const { protocol } = new URL(v);
-    return protocol === 'https:' || protocol === 'http:';
+    url = new URL(v);
   } catch {
-    return false;
+    return null;
   }
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname))) return null;
+  return v.replace(/\/+$/, '');
 }
 
 /**
@@ -118,9 +129,10 @@ function hostedRefusal(status, answer, { starting, payer, token }) {
     if (answer && answer.reason === 'org_balance_held') return as('ORG_BALANCE_HELD', 'holds the organization\'s balance');
     return as(payer === 'organization' ? 'ORG_NO_BALANCE' : 'NO_BALANCE', 'found no balance left');
   }
-  if (status === 403) {
-    if (code === 'not_org_member') return as('NOT_ORG_MEMBER', 'found the account no longer in the organization');
-    return as(answer && answer.subject === 'organization' ? 'ORG_WALLET_FROZEN' : 'WALLET_FROZEN', 'found the wallet frozen');
+  // A frozen wallet only when the service says so: any other 403 (another code, none, a proxy's page) is its failure.
+  if (status === 403 && code === 'not_org_member') return as('NOT_ORG_MEMBER', 'found the account no longer in the organization');
+  if (status === 403 && code === 'wallet_frozen') {
+    return as(answer.subject === 'organization' ? 'ORG_WALLET_FROZEN' : 'WALLET_FROZEN', 'found the wallet frozen');
   }
   if (status === 404 && starting) return as('HOSTED_UNAVAILABLE', 'has no file transcription for this account');
   if (status === 409 && code === 'file_job_running') return as('JOB_RUNNING', 'is already running a file job of this account');
@@ -138,11 +150,11 @@ function failedFileJob(errorType, token) {
 }
 
 /**
- * `fetch`, `wait(ms, signal)` and `later(ms)` (the clean-up's pause) are the outside world; `openBlob(path, options)`
- * reads a file from disk as a Blob without loading it all.
+ * `fetch`, `wait(ms, signal)`, `later(ms)` (the clean-up's pause) and `now()` (the clock a file job's polling is timed
+ * by) are the outside world; `openBlob(path, options)` reads a file from disk as a Blob without loading it all.
  */
 function createFileRecognizer({
-  fetch = globalThis.fetch, wait = waitFor, later = (ms) => waitFor(ms), openBlob = fs.openAsBlob, logger = console,
+  fetch = globalThis.fetch, wait = waitFor, later = (ms) => waitFor(ms), now = Date.now, openBlob = fs.openAsBlob, logger = console,
   cleanupTimeoutMs = CLEANUP_TIMEOUT_MS,
 } = {}) {
   /** jobId → { phase, controller } while a recognition runs. */
@@ -293,8 +305,9 @@ function createFileRecognizer({
   async function recognizeThroughKizuna({
     store, recordId, source, apiUrl, token, region, payer, laterAudioMs = 0, languageHints = [], translateTo, context, jobId,
   }) {
-    if (!isHttpUrl(apiUrl) || !isString(token) || !REGIONS.has(region) || !isString(jobId) || !Array.isArray(languageHints) || !languageHints.every(isString)) {
-      throw new HistoryError('BAD_INPUT', 'A recognition through Kizuna AI needs the service\'s http(s) address, a sign-in, a Soniox region, language hints and a job id');
+    const address = serviceAddress(apiUrl);
+    if (!address || !isString(token) || !REGIONS.has(region) || !isString(jobId) || !Array.isArray(languageHints) || !languageHints.every(isString)) {
+      throw new HistoryError('BAD_INPUT', 'A recognition through Kizuna AI needs the service\'s https address (http only on this computer) without a query, a sign-in, a Soniox region, language hints and a job id');
     }
     if (!Number.isInteger(laterAudioMs) || laterAudioMs < 0 || (payer !== undefined && !PAYERS.has(payer))) {
       throw new HistoryError('BAD_INPUT', 'The audio still to come is a whole number of milliseconds, and the payer the organization or the person');
@@ -308,7 +321,7 @@ function createFileRecognizer({
     const track = record ? record.tracks.find((t) => t.source === source && t.goneAt === null) : null;
     if (!file || !track) throw new HistoryError('NO_TRACK', `No kept ${source} track in record ${recordId}`);
 
-    const base = `${apiUrl}/soniox/file-jobs`;
+    const base = `${address}/soniox/file-jobs`;
     const controller = new AbortController();
     const job = { phase: 'uploading', controller };
     jobs.set(jobId, job);
@@ -322,7 +335,9 @@ function createFileRecognizer({
      */
     async function call(method, path, { json, blob, starting = false, cancellable = true } = {}) {
       const signal = cancellable ? controller.signal : AbortSignal.timeout(cleanupTimeoutMs);
-      const contentType = json !== undefined ? 'application/json' : blob !== undefined ? 'audio/ogg' : null;
+      let contentType = null;
+      if (json !== undefined) contentType = 'application/json';
+      else if (blob !== undefined) contentType = 'audio/ogg';
       let response;
       try {
         response = await fetch(`${base}${path}`, {
@@ -396,8 +411,13 @@ function createFileRecognizer({
       let state;
       /** Polls in a row whose state could not be had; a passing failure is asked again at the next poll. */
       let failedPolls = 0;
+      const pollingSince = now();
       for (;;) {
         checkCancelled();
+        // A job the service never finishes is not waited for for ever; the job is still ended there below.
+        if (now() - pollingSince > HOSTED_MAX_WAIT_MS) {
+          throw new HistoryError('SERVICE', `The Kizuna AI service did not finish the transcription within ${HOSTED_MAX_WAIT_MS / 60_000} minutes`);
+        }
         try {
           await wait(POLL_MS, controller.signal);
         } catch {

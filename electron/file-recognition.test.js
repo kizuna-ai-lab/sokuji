@@ -293,7 +293,8 @@ const END = 'DELETE /soniox/file-jobs/job-1';
 /**
  * The Kizuna AI service answering each call from a script: `statuses` are what successive state calls see (a state,
  * or a failed poll: an HTTP status, or 'throw' for a network failure), `ends` what successive ends answer (a status,
- * or 'throw'). Every call is recorded with its path below the service's address, its query, auth and content type, and
+ * or 'throw'), `refusals` a call refused with its JSON `body`, or with a page's `text` (a proxy's, not the service's).
+ * Every call is recorded with its path below the service's address, its query, auth and content type, and
  * its body: the bytes of an upload, the parsed JSON of a request. `onCall(key)` runs as a call arrives; a call in
  * `hangs` never answers (only its signal ends it), one in `holds` waits until the test rejects it through `pending`,
  * one in `bodies` is answered by `bodies[key](signal)`.
@@ -326,7 +327,10 @@ function fakeService(o = {}) {
       });
     }
     if (holds.has(key)) return new Promise((_, reject) => { pending.set(key, reject); });
-    if (refusals[key]) return json(refusals[key].status, refusals[key].body);
+    if (refusals[key]) {
+      const { status, body, text } = refusals[key];
+      return text !== undefined ? new Response(text, { status, headers: { 'Content-Type': 'text/html' } }) : json(status, body);
+    }
     if (o.bodies?.[key]) return o.bodies[key](init.signal);
     if (key === START) return json(201, { id: 'job-1', estimateMicroUsd: 56, region: 'jp' });
     if (key === TRANSCRIBE) return json(201, { id: 'job-1', status: 'queued' });
@@ -412,6 +416,12 @@ describe('through the Kizuna AI service', () => {
       [{ [TRANSCRIBE]: refused(403, { code: 'not_org_member' }) }, 'NOT_ORG_MEMBER', [START, TRANSCRIBE, END], { payer: 'organization' }],
       [{ [START]: refused(403, { code: 'wallet_frozen', subject: 'organization' }) }, 'ORG_WALLET_FROZEN', [START], { payer: 'organization' }],
       [{ [START]: refused(403, { code: 'wallet_frozen' }) }, 'WALLET_FROZEN', [START]],
+      // A 403 the service does not explain as a frozen wallet is its failure: no code, another code, a subject alone,
+      // a proxy's page.
+      [{ [START]: refused(403) }, 'SERVICE', [START]],
+      [{ [START]: refused(403, { code: 'forbidden' }) }, 'SERVICE', [START]],
+      [{ [START]: refused(403, { subject: 'organization' }) }, 'SERVICE', [START], { payer: 'organization' }],
+      [{ [TRANSCRIBE]: { status: 403, text: `<html>Forbidden ${TOKEN}</html>` } }, 'SERVICE', [START, TRANSCRIBE, END]],
       [{ [START]: refused(404) }, 'HOSTED_UNAVAILABLE', [START]],
       [{ [TRANSCRIBE]: refused(404) }, 'SERVICE', [START, TRANSCRIBE, END]],
       [{ [START]: refused(409, { code: 'file_job_running' }) }, 'JOB_RUNNING', [START]],
@@ -429,7 +439,8 @@ describe('through the Kizuna AI service', () => {
       const service = fakeService({ refusals });
       const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
       const error = await recognizer.recognize(hostedRequest(over)).then(() => null, (e) => e);
-      const label = `${Object.keys(refusals)[0]} ${JSON.stringify(Object.values(refusals)[0].body)}`;
+      const refusal = Object.values(refusals)[0];
+      const label = `${Object.keys(refusals)[0]} ${refusal.status} ${JSON.stringify(refusal.body ?? refusal.text)}`;
       expect(error, label).toMatchObject({ code });
       expect(error.message, label).not.toContain(TOKEN);
       expect(error.message, label).not.toContain('Refused for');
@@ -658,12 +669,63 @@ describe('through the Kizuna AI service', () => {
     const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
     for (const over of [
       { token: undefined }, { token: '' }, { apiUrl: 'ftp://service.test/api' }, { apiUrl: 'not a url' }, { apiUrl: undefined },
+      // The sign-in goes over https only; http to this computer alone.
+      { apiUrl: 'http://service.test/api' }, { apiUrl: 'http://localhost.service.test/api' }, { apiUrl: 'http://10.0.0.1/api' },
+      // An address with a query or a fragment would carry them into every call.
+      { apiUrl: 'https://service.test/api?region=eu' }, { apiUrl: 'https://service.test/api?' }, { apiUrl: 'https://service.test/api#top' },
       { laterAudioMs: -1 }, { laterAudioMs: 1.5 }, { laterAudioMs: '0' }, { payer: 'someone' }, { region: 'mars' }, { jobId: '' },
       { languageHints: 'en' }, { translateTo: '' }, { context: { unknown: [] } },
     ]) {
       await expect(recognizer.recognize(hostedRequest(over)), JSON.stringify(over)).rejects.toMatchObject({ code: 'BAD_INPUT' });
     }
     expect(service.calls).toEqual([]);
+  });
+
+  it('sends the sign-in over http only to this computer, for development', async () => {
+    for (const apiUrl of ['http://localhost:8787/api', 'http://127.0.0.1:8787/api', 'http://[::1]:8787/api']) {
+      const service = fakeService();
+      const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
+      await recognizer.recognize(hostedRequest({ apiUrl }));
+      expect(service.calls.every((c) => c.url.startsWith(`${apiUrl}/soniox/file-jobs`)), apiUrl).toBe(true);
+      expect(service.paths(), apiUrl).toEqual([START, TRANSCRIBE, STATE, STATE, STATE, TRANSCRIPT, END]);
+    }
+  });
+
+  it('takes the service’s address with a trailing slash, and calls below it without doubling the slash', async () => {
+    const service = fakeService();
+    const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
+    await recognizer.recognize(hostedRequest({ apiUrl: `${API_URL}/` }));
+    expect(service.calls.every((c) => c.url.startsWith(`${API_URL}/soniox/file-jobs`))).toBe(true);
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, STATE, STATE, TRANSCRIPT, END]);
+  });
+
+  // A job the service never finishes is not polled for ever: after 60 minutes of polling it is the service's failure.
+  it('gives up a job still running after 60 minutes of polling: SERVICE, and the job ended', async () => {
+    let now = 1_800_000_000_000;
+    const service = fakeService({ statuses: ['processing'] });
+    // Each wait before a poll takes 15 minutes of the clock.
+    const recognizer = createFileRecognizer({ fetch: service.fetch, now: () => now, wait: async () => { now += 15 * 60_000; } });
+    const error = await recognizer.recognize(hostedRequest()).then(() => null, (e) => e);
+    expect(error).toMatchObject({ code: 'SERVICE' });
+    expect(error.message).not.toContain(TOKEN);
+    // Polled at 15, 30, 45 and 60 minutes: at exactly 60 it polls once more (at 75); past 60 it asks no more.
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, STATE, STATE, STATE, STATE, END]);
+  });
+
+  it('counts the failed polls in the 60 minutes too', async () => {
+    let now = 0;
+    const service = fakeService({ statuses: ['processing', 503, 'processing', 'throw', 'processing'] });
+    const recognizer = createFileRecognizer({ fetch: service.fetch, now: () => now, wait: async () => { now += 20 * 60_000; } });
+    await expect(recognizer.recognize(hostedRequest())).rejects.toMatchObject({ code: 'SERVICE' });
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, STATE, STATE, STATE, END]);
+  });
+
+  it('returns the words of a job that completes within the 60 minutes', async () => {
+    let now = 0;
+    // Completed at the poll 60 minutes in.
+    const service = fakeService({ statuses: ['queued', 'processing', 'processing', 'completed'] });
+    const recognizer = createFileRecognizer({ fetch: service.fetch, now: () => now, wait: async () => { now += 15 * 60_000; } });
+    expect(await recognizer.recognize(hostedRequest())).toEqual({ tokens: TOKENS, audioMs: 1000 });
   });
 
   it('refuses a track that is not kept, before calling the service', async () => {
