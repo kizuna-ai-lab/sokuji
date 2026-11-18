@@ -173,7 +173,12 @@
   // size and colour, a dashed underline and a small chevron (drawn in the text's own colour) to show it can be changed.
   // The word's sentence around its choice (owner, 2026-11-19: only the verb is the choice). Its spaces are the
   // language's own ("they hear"), kept at the edges of the text either side of the choice.
-  .language-receive-label { display: inline-flex; align-items: baseline; margin-bottom: 4px; white-space: pre; }
+  // One label, as its neighbours "I speak" / "they speak" are (owner, 2026-11-19): the subject and the verb in their size and
+  // colour, only the verb marked as the choice (its dashed line and chevron).
+  .language-receive-label {
+    display: inline-flex; align-items: baseline; margin-bottom: 4px; white-space: pre;
+    font-size: 12px; line-height: 18px; color: vars.$text-tertiary;
+  }
   .language-receive {
     appearance: none;
     width: auto;
@@ -187,10 +192,8 @@
       linear-gradient(45deg, transparent 50%, currentColor 50%) no-repeat right 6px center / 4px 4px,
       linear-gradient(135deg, currentColor 50%, transparent 50%) no-repeat right 2px center / 4px 4px;
     background-color: transparent;
-    color: vars.$text-secondary;
+    color: inherit;
     font: inherit;
-    font-size: 12px;
-    line-height: 18px;
     cursor: pointer;
     &:hover { color: vars.$text-primary; border-bottom-color: vars.$text-secondary; }
     &:focus-visible { @include vars.focus-ring; }
