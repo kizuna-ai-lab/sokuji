@@ -20,6 +20,31 @@ function only({ pinned, ordered }: OptionLists, keep: (option: LanguageOption) =
   return { pinned: pinned.filter(keep), ordered: ordered.filter(keep) };
 }
 
+/**
+ * The provider with each answer of its language rules worked out once. The other side's row asks them for every choice,
+ * and a provider's rules can be costly (the local engine's go through its model manifest each time).
+ */
+function answeringOnce(provider: AnyProvider): AnyProvider {
+  const { languages } = provider;
+  const known = new Map<string, readonly LanguageOption[]>();
+  const once = (key: string, work: () => readonly LanguageOption[]) => {
+    const kept = known.get(key);
+    if (kept) return kept;
+    const answer = work();
+    known.set(key, answer);
+    return answer;
+  };
+  const about = (context?: LanguageContext) => (context ? String(context.speech) : '');
+  return {
+    ...provider,
+    languages: {
+      ...languages,
+      sources: (s: unknown, context?: LanguageContext) => once(`sources|${about(context)}`, () => languages.sources(s, context)),
+      targets: (source: string, s: unknown, context?: LanguageContext) => once(`targets|${source}|${about(context)}`, () => languages.targets(source, s, context)),
+    },
+  } as AnyProvider;
+}
+
 /** The lists seen through `code`: each option under its code there, the first of each code kept. */
 function viewThrough({ pinned, ordered }: OptionLists, code: (value: string) => string): OptionLists {
   const once = (list: LanguageOption[]) => {
@@ -178,8 +203,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   // The Other mode: my word leads the first row.
   const mineLeads = Boolean(mine) && sentence?.mode === 'participant';
   // A new source keeps the target where the provider offers it with that source, else takes the first it does.
-  const pairWithSource = (source: string) => normalizePair(provider, settings, { source, target: pair.target }, context);
-  const chooseSource = (source: string) => onChange(pairWithSource(source));
+  const chooseSource = (source: string) => onChange(normalizePair(provider, settings, { source, target: pair.target }, context));
   const chooseTarget = (target: string) => onChange({ source: pair.source, target });
   const sourceSelect = (selectId: string, ariaLabel?: string) => (
     <select
@@ -212,11 +236,20 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   // refuses): `reverseSupported` under their leg's own context, on the pair the choice makes (a language I get can move
   // the target, as `chooseSource` does). A provider's reverse can be null, and an automatic source never reverses (D20):
   // with none to offer, the row shows what it is, unchosen.
+  // Worked out only where the row is drawn, each language rule asked once (`answeringOnce`).
   const leg = (p: LanguagePair) => reversedPair(provider, settings, p) ?? { source: p.target, target: p.source };
-  const runs = (p: LanguagePair) => reverseSupported(provider, settings, p, reverseContext);
-  const theirPair = (target: string) => ({ source: pair.source, target });
-  const theyCanSpeak = only(targetOptions, (o) => runs(theirPair(o.value)));
-  const iCanGet = only(sourceOptions, (o) => runs(pairWithSource(o.value)));
+  const theirRow = Boolean(mine) && sentence?.mode === 'both';
+  const theirChoices = (() => {
+    if (!theirRow) return null;
+    const asked = answeringOnce(provider);
+    const runs = (p: LanguagePair) => reverseSupported(asked, settings, p, reverseContext);
+    const withSource = (source: string) => normalizePair(asked, settings, { source, target: pair.target }, context);
+    return {
+      theyCanSpeak: only(targetOptions, (o) => runs({ source: pair.source, target: o.value })),
+      iCanGet: only(sourceOptions, (o) => runs(withSource(o.value))),
+      iGet: (source: string) => leg(withSource(source)).target,
+    };
+  })();
   const legSelect = (selectId: string, lists: OptionLists, code: (value: string) => string, current: string, choose: (value: string) => void, ariaLabel?: string) => {
     const shown = viewThrough(lists, code);
     const value = code(current);
@@ -252,9 +285,8 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       </button>
     </div>
   );
-  // Both, with my word a choice: the other side's leg is a row of its own, drawn as the first (owner, 2026-11-18): two
-  // legs of equal weight, each language shown where it comes from and where it goes.
-  const theirRow = Boolean(mine) && sentence?.mode === 'both';
+  // Both, with my word a choice (`theirRow` above): the other side's leg is a row of its own, drawn as the first (owner,
+  // 2026-11-18): two legs of equal weight, each language shown where it comes from and where it goes.
   const theySpeakLabel = t('settings.langSentence.theySpeak', 'they speak');
 
   return (
@@ -288,16 +320,16 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       {/* Each reason under the row its word is in: theirs in the first; mine there in Other, under its own row in Both. */}
       {reasonFor('theirs')}
       {mineLeads && reasonFor('mine')}
-      {theirRow && mine && (
+      {theirChoices && mine && (
         <div className="language-pair-row" data-testid="language-their-row">
           <div className="language-select-group">
             <label htmlFor={`${id}-their-target`}>{theySpeakLabel}</label>
-            {legSelect(`${id}-their-target`, theyCanSpeak, (target) => leg(theirPair(target)).source, pair.target, chooseTarget)}
+            {legSelect(`${id}-their-target`, theirChoices.theyCanSpeak, (target) => leg({ source: pair.source, target }).source, pair.target, chooseTarget)}
           </div>
           {swap}
           <div className="language-select-group">
             <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
-            {legSelect(`${id}-their-source`, iCanGet, (source) => leg(pairWithSource(source)).target, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
+            {legSelect(`${id}-their-source`, theirChoices.iCanGet, theirChoices.iGet, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
           </div>
         </div>
       )}

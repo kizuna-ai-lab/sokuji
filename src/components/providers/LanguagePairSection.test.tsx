@@ -308,6 +308,26 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     expect(onChange).toHaveBeenLastCalledWith({ source: 'ja', target: 'en' });
   });
 
+  // CI, PR #784: the other side's row asks the provider's language rules for every choice, and a provider's rules can be
+  // costly (the local engine's go through its model manifest); they are asked once each, and not at all without the row.
+  it("asks each language rule once while drawing the other side's row, and not at all for it elsewhere", () => {
+    const codes = Array.from({ length: 30 }, (_, i) => `l${i}`);
+    const sources = vi.fn(() => codes.map((value) => ({ value })));
+    const targets = vi.fn((source: string) => codes.filter((c) => c !== source).map((value) => ({ value })));
+    const provider = { ...fakeProvider, languages: { ...fakeProvider.languages, sources, targets, reverse: undefined } } as unknown as typeof fakeProvider;
+    draw({ source: 'l0', target: 'l1' }, undefined, { provider, sentence: { mode: 'both', textOnly: false } });
+    const without = { sources: sources.mock.calls.length, targets: targets.mock.calls.length };
+    cleanup();
+    sources.mockClear();
+    targets.mockClear();
+    draw({ source: 'l0', target: 'l1' }, undefined, { provider, sentence: { mode: 'both', textOnly: false }, receive: { theirs: choice(true), mine: choice(false) } });
+    expect(screen.getByTestId('language-their-row')).toBeTruthy();
+    // The row adds one question per context and source at most.
+    expect(sources.mock.calls.length).toBeLessThanOrEqual(without.sources + 1);
+    expect(targets.mock.calls.length).toBeLessThanOrEqual(without.targets + codes.length);
+    expect(without.sources).toBeLessThanOrEqual(3);
+  });
+
   it("each reason's link opens the switch of the side it explains", () => {
     const openAudio = vi.fn();
     draw({ source: 'ja', target: 'en' }, undefined, {
