@@ -89,10 +89,14 @@ describe('from the History page red notices into Settings', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open Languages and line-up' }));
       expect(s.events).toEqual(['close', 'navigate:lineup']);
       expect(screen.getByRole('heading', { level: 2, name: 'Languages and line-up' })).toBeInTheDocument();
-      act(() => { vi.advanceTimersByTime(200); });
       const section = document.getElementById('lineup-section')!;
+      // Below the window, as the line-up is on a real page: brought to the middle (reveal.ts; one already in view is left
+      // where it is).
+      section.getBoundingClientRect = () => ({ top: 1500, bottom: 1600, height: 100 }) as DOMRect;
+      act(() => { vi.advanceTimersByTime(200); });
       expect(scrolled).toHaveBeenCalledTimes(1);
       expect(scrolled.mock.contexts[0]).toBe(section);
+      expect(scrolled).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
       expect(section).toHaveClass('highlight');
       act(() => { vi.advanceTimersByTime(2900); });
       expect(section).toHaveClass('highlight');
