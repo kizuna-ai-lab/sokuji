@@ -116,6 +116,34 @@ describe('SubtitleBody — expanded', () => {
     expect([...container.querySelectorAll('.conversation-row .row-text')].map((el) => el.textContent)).toEqual(['こんにちは。']);
     expect(container.querySelector('.row-play-btn')).toBeNull();
   });
+
+  // #652: a long turn is one row; uncapped, its translation outgrows the window and pushes the source row out.
+  it("caps each row at a share of the list's height, never under two lines, and pins its tail; the text is one inline flow", async () => {
+    const { container } = render(<SubtitleBody {...props({ compact: false })} />);
+    const text = container.querySelector('.conversation-row .row-text');
+    expect(text?.children).toHaveLength(1);
+    expect(text?.firstElementChild?.className).toBe('row-text__flow');
+
+    const { compile } = await import('sass');
+    const { resolve } = await import('node:path');
+    const css = compile(resolve(__dirname, 'SubtitleStream.scss')).css;
+    expect(css).toMatch(/\.subtitle-stream\.expanded \.conversation-display\s*\{[^}]*container-type:\s*size/);
+    const rowText = css.match(/\.subtitle-stream\.expanded \.row-text\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(rowText).toMatch(/max-height:\s*max\(40cqh,\s*2\.8em\)/);
+    expect(rowText).toMatch(/overflow:\s*hidden/);
+    expect(rowText).toMatch(/flex-direction:\s*column-reverse/);
+    // The top line fades only while the row is clipped: the fade runs on the row's own scroll range.
+    expect(rowText).toMatch(/scroll-timeline:\s*--subtitle-row block/);
+    expect(rowText).toMatch(/animation-timeline:\s*--subtitle-row/);
+    expect(rowText).not.toMatch(/mask-image/);
+    // The badge moves to the newest line only while the row is clipped, read from the same timeline.
+    const rowBody = css.match(/\.subtitle-stream\.expanded \.row-body\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(rowBody).toMatch(/timeline-scope:\s*--subtitle-row/);
+    expect(rowBody).toMatch(/animation-timeline:\s*--subtitle-row/);
+    expect(rowBody).not.toMatch(/align-items/);
+    // Compact bands are not touched.
+    expect(css).not.toMatch(/\.subtitle-stream\.compact \.row-text/);
+  });
 });
 
 describe('SubtitleBody — a transient notice (#481)', () => {

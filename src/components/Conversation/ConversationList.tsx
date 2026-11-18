@@ -241,18 +241,21 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
           <span className={`lang-badge ${isTranslation ? 'tr' : 'src'} source-${leg}`}>{lang.toUpperCase()}</span>
         )}
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>
-          {pieces ? (
-            <RubyText pieces={pieces} played={played} />
-          ) : played <= 0 ? (
-            <span>{text}</span>
-          ) : played >= text.length ? (
-            <span className="karaoke-played">{text}</span>
-          ) : (
-            <>
-              <span className="karaoke-played">{text.slice(0, played)}</span>
-              <span>{text.slice(played)}</span>
-            </>
-          )}
+          {/* One inline flow, so a surface can lay the row out as a box and pin its tail (the subtitle list, #652). */}
+          <span className="row-text__flow">
+            {pieces ? (
+              <RubyText pieces={pieces} played={played} />
+            ) : played <= 0 ? (
+              <span>{text}</span>
+            ) : played >= text.length ? (
+              <span className="karaoke-played">{text}</span>
+            ) : (
+              <>
+                <span className="karaoke-played">{text.slice(0, played)}</span>
+                <span>{text.slice(played)}</span>
+              </>
+            )}
+          </span>
         </span>
         {ear === 'muted' && (
           <span
