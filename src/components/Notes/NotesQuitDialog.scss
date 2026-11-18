@@ -20,12 +20,17 @@
     background: vars.$bg-popover;
     color: vars.$text-primary;
     box-shadow: vars.$shadow;
-    p { margin: 0 0 vars.$space-3; line-height: 1.55; }
+    // In the app's body size, as its other confirmations (owner and design review, 2026-11-19): the page's 16px
+    // default was a size larger than everything around it.
+    font-size: vars.$font-body;
+    p { margin: 0 0 vars.$space-3; line-height: 20px; }
   }
   &__actions { display: flex; justify-content: flex-end; gap: vars.$space-2; }
   &__button {
     height: 28px;
     padding: 0 12px;
+    // The box's type, not the browser's own for buttons.
+    font: inherit;
     border: 1px solid vars.$border-subtle;
     border-radius: vars.$radius-sm;
     background: vars.$bg-control;
