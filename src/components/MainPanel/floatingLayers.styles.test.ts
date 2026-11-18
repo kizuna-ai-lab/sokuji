@@ -2,6 +2,10 @@
 // between the conversation and the live notes stacks above its neighbours (PanelResizer.scss), and since the notes moved
 // into the conversation's area (owner, 2026-11-18) it runs under these panels: each must stack above it, on the layer
 // the other popovers already use (owner, 2026-11-19: the divider was drawn across the display settings).
+//
+// Only the panels that stack through a stylesheet need a rule here: the export menu and the screen-content card set
+// their layer inline (zIndex 9999, ExportButton.tsx / ScreenContextChip.tsx), and the export menu's other mount is a
+// child window, where the page's divider cannot reach it.
 import { describe, expect, it } from 'vitest';
 import { compile } from 'sass';
 import { resolve } from 'node:path';
@@ -22,8 +26,6 @@ describe('the floating panels of the conversation stack above its divider', () =
   const panels: [string, string][] = [
     ['MainPanel/MainPanel.scss', '.display-popover-floating'],
     ['CaptionShare/CaptionSharePanel.scss', '.caption-share-floating'],
-    ['MainPanel/ExportButton.scss', '.export-menu'],
-    ['MainPanel/panel/ScreenContextChip.scss', '.screen-context-card'],
     ['MainPanel/HearingButton.scss', '.hearing-popover'],
     ['MainPanel/ModeDevicePopover.scss', '.mode-device-popover'],
   ];
