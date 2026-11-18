@@ -946,15 +946,16 @@
 
   &__line { margin: vars.$space-2 vars.$space-4; }
 
+  // On the record's date-and-length line, at its end: the line keeps its height (owner, 2026-11-18).
   &__versions {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: vars.$space-2;
-    margin: vars.$space-2 vars.$space-4 0;
+    gap: vars.$space-1;
+    max-width: 100%;
 
     span { white-space: nowrap; }
-    // The shared dropdown, compact: as wide as its versions need and as tall as its label (a line over the record,
-    // not a form field); the caption size the player's speed uses.
+    // The shared dropdown, compact: as wide as its versions need and as tall as the line's text (not a form field);
+    // the caption size the player's speed uses.
     .select-dropdown {
       width: auto;
       max-width: 320px;
