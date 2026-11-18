@@ -10,7 +10,7 @@ import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { LanguagePair } from '../../../lib/provider/types';
-import { arrowBetween } from '../../../lib/language/arrowBetween';
+import { LanguagePairText, type LanguageArrow } from '../../LanguagePairText/LanguagePairText';
 
 export interface PanelFooterProps {
   site: 'basic' | 'advanced';
@@ -142,10 +142,12 @@ function ControlFooter(props: PanelFooterProps) {
   // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`. Otherwise my language stays first, as
   // the pair is chosen, and the arrow points the way the mode translates (owner, 2026-11-18): "Other" translates the other
   // side into mine, "Both" (face to face too) each way.
-  let arrow = '→';
+  let arrow: LanguageArrow = '→';
   if (mode === 'participant') arrow = '←';
   else if (mode === 'both' || faceToFace) arrow = '⇄';
-  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : arrowBetween(label(pair.source), arrow, label(pair.target));
+  let pairShown: ReactNode = null;
+  if (pair && pair.source === pair.target) pairShown = label(pair.source);
+  else if (pair) pairShown = <LanguagePairText left={label(pair.source)} arrow={arrow} right={label(pair.target)} />;
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 
@@ -213,7 +215,7 @@ function ControlFooter(props: PanelFooterProps) {
             onClick={onLanguages}
             title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
           >
-            {languagePairText}
+            {pairShown}
           </span>
           {isRunning && duration && (
             <span className="session-duration">{duration}</span>
@@ -303,7 +305,7 @@ function ControlFooter(props: PanelFooterProps) {
           onClick={onLanguages}
           title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
         >
-          {languagePairText}
+          {pairShown}
         </span>
         {isRunning && duration && (
           <span className="session-duration">{duration}</span>
