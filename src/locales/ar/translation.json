@@ -15,7 +15,10 @@
     "dismiss": "تجاهل",
     "none": "بدون",
     "retry": "إعادة المحاولة",
-    "topUp": "شحن الرصيد"
+    "topUp": "شحن الرصيد",
+    "translatedInto": "الترجمة إلى",
+    "translatedFrom": "الترجمة من",
+    "translatedBothWays": "ترجمة في الاتجاهين"
   },
   "settings": {
     "title": "الإعدادات",

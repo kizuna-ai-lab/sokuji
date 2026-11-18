@@ -15,7 +15,10 @@
     "dismiss": "忽略",
     "none": "无",
     "retry": "重试",
-    "topUp": "充值"
+    "topUp": "充值",
+    "translatedInto": "译为",
+    "translatedFrom": "译自",
+    "translatedBothWays": "互译"
   },
   "settings": {
     "title": "设置",

@@ -33,6 +33,7 @@ import { labelsFit } from './panelSwitchFit';
 import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
 import { SIDE_MIN_PX, readSideWidth, sideWidthWithin, writeSideWidth } from './sideColumn';
 import { layoutFor } from './recordLayout';
+import { LanguagePairText } from '../LanguagePairText/LanguagePairText';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -594,7 +595,7 @@ export const RecordPage: React.FC = () => {
               ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
               : <span>{t('history.length', 'Length {{length}}', { length: formatLength(record.endedAt - record.startedAt) })}</span>}
             {/* A session's languages; an imported file's are what each transcript was asked for, said above its transcript. */}
-            {record.mode !== 'import' && <span>{languageDirection(record, language)}</span>}
+            {record.mode !== 'import' && <span><LanguagePairText {...languageDirection(record, language, t)} /></span>}
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
             {/* Which transcript the page shows, when there is more than one: the notes and the speakers follow it, so it
                 is the record's, on the record's line (owner, 2026-11-18), not a bar over the columns. */}

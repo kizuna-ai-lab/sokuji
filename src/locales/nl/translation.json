@@ -15,7 +15,10 @@
     "dismiss": "Sluiten",
     "none": "Geen",
     "retry": "Opnieuw proberen",
-    "topUp": "Opwaarderen"
+    "topUp": "Opwaarderen",
+    "translatedInto": "vertaald naar",
+    "translatedFrom": "vertaald uit",
+    "translatedBothWays": "in beide richtingen vertaald"
   },
   "settings": {
     "title": "Instellingen",

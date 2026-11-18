@@ -15,7 +15,10 @@
     "dismiss": "Kapat",
     "none": "Yok",
     "retry": "Yeniden dene",
-    "topUp": "Bakiye yükle"
+    "topUp": "Bakiye yükle",
+    "translatedInto": "çeviri hedefi",
+    "translatedFrom": "çeviri kaynağı",
+    "translatedBothWays": "iki yönlü çeviri"
   },
   "settings": {
     "title": "Ayarlar",

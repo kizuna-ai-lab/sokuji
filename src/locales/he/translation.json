@@ -15,7 +15,10 @@
     "dismiss": "התעלם",
     "none": "ללא",
     "retry": "נסה שוב",
-    "topUp": "טעינת יתרה"
+    "topUp": "טעינת יתרה",
+    "translatedInto": "שפת היעד",
+    "translatedFrom": "שפת המקור",
+    "translatedBothWays": "תרגום דו־כיווני"
   },
   "settings": {
     "title": "הגדרות",

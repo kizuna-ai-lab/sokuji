@@ -15,7 +15,10 @@
     "dismiss": "Відхилити",
     "none": "Немає",
     "retry": "Повторити",
-    "topUp": "Поповнити"
+    "topUp": "Поповнити",
+    "translatedInto": "переклад на",
+    "translatedFrom": "переклад з",
+    "translatedBothWays": "переклад в обидва боки"
   },
   "settings": {
     "title": "Налаштування",

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Zap, Mic, Loader, Wrench, Headphones } from 'lucide-react';
+import { X, Zap, Mic, Loader, Wrench, Headphones, ArrowLeft, ArrowRight, ArrowRightLeft, type LucideIcon } from 'lucide-react';
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
@@ -10,7 +10,8 @@ import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { LanguagePair } from '../../../lib/provider/types';
-import { arrowBetween } from '../../../lib/language/arrowBetween';
+import { LanguagePairText } from '../../LanguagePairText/LanguagePairText';
+import { parseCode } from '../../../lib/language/code';
 
 export interface PanelFooterProps {
   site: 'basic' | 'advanced';
@@ -142,10 +143,25 @@ function ControlFooter(props: PanelFooterProps) {
   // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`. Otherwise my language stays first, as
   // the pair is chosen, and the arrow points the way the mode translates (owner, 2026-11-18): "Other" translates the other
   // side into mine, "Both" (face to face too) each way.
-  let arrow = '→';
-  if (mode === 'participant') arrow = '←';
-  else if (mode === 'both' || faceToFace) arrow = '⇄';
-  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : arrowBetween(label(pair.source), arrow, label(pair.target));
+  let arrow: LucideIcon = ArrowRight;
+  let arrowSaid = t('common.translatedInto', 'translated into');
+  if (mode === 'participant') {
+    arrow = ArrowLeft;
+    arrowSaid = t('common.translatedFrom', 'translated from');
+  } else if (mode === 'both' || faceToFace) {
+    arrow = ArrowRightLeft;
+    arrowSaid = t('common.translatedBothWays', 'translated both ways');
+  }
+  let pairShown: ReactNode = null;
+  if (pair && pair.source === pair.target) {
+    // A bidirectional pair names its two languages each way, with the drawn arrow too (review); one language, once.
+    const both = parseCode(pair.source);
+    pairShown = both?.kind === 'pair'
+      ? <LanguagePairText left={label(both.a)} arrow={ArrowRightLeft} label={t('common.translatedBothWays', 'translated both ways')} right={label(both.b)} />
+      : label(pair.source);
+  } else if (pair) {
+    pairShown = <LanguagePairText left={label(pair.source)} arrow={arrow} label={arrowSaid} right={label(pair.target)} />;
+  }
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 
@@ -213,7 +229,7 @@ function ControlFooter(props: PanelFooterProps) {
             onClick={onLanguages}
             title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
           >
-            {languagePairText}
+            {pairShown}
           </span>
           {isRunning && duration && (
             <span className="session-duration">{duration}</span>
@@ -303,7 +319,7 @@ function ControlFooter(props: PanelFooterProps) {
           onClick={onLanguages}
           title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
         >
-          {languagePairText}
+          {pairShown}
         </span>
         {isRunning && duration && (
           <span className="session-duration">{duration}</span>

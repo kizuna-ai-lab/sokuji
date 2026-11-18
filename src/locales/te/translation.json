@@ -15,7 +15,10 @@
     "dismiss": "విస్మరించు",
     "none": "ఏదీ లేదు",
     "retry": "మళ్ళీ ప్రయత్నించండి",
-    "topUp": "టాప్ అప్"
+    "topUp": "టాప్ అప్",
+    "translatedInto": "అనువాద లక్ష్య భాష",
+    "translatedFrom": "అనువాద మూల భాష",
+    "translatedBothWays": "రెండు వైపులా అనువాదం"
   },
   "settings": {
     "title": "సెట్టింగ్స్",

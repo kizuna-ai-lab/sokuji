@@ -15,7 +15,10 @@
     "dismiss": "Bỏ qua",
     "none": "Không có",
     "retry": "Thử lại",
-    "topUp": "Nạp tiền"
+    "topUp": "Nạp tiền",
+    "translatedInto": "dịch sang",
+    "translatedFrom": "dịch từ",
+    "translatedBothWays": "dịch hai chiều"
   },
   "settings": {
     "title": "Cài đặt",

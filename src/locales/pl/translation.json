@@ -15,7 +15,10 @@
     "dismiss": "Odrzuć",
     "none": "Brak",
     "retry": "Ponów",
-    "topUp": "Doładuj"
+    "topUp": "Doładuj",
+    "translatedInto": "tłumaczone na",
+    "translatedFrom": "tłumaczone z",
+    "translatedBothWays": "tłumaczone w obie strony"
   },
   "settings": {
     "title": "Ustawienia",

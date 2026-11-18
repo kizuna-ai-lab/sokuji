@@ -1,0 +1,9 @@
+// The language pair's arrow (LanguagePairText.tsx). Measured in the app (Ubuntu, the footer's 12 px): 1.2em square,
+// 0.25em below the baseline, it is 9.8 px wide with its middle within 0.25 px of Chinese, Japanese and English names'
+// (owner, 2026-11-19; the font's arrow was 7 px wide and 0.6 px low, or 3 px tall and 2.6 px low).
+.language-pair-text__arrow {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.25em;
+  flex: none;
+}

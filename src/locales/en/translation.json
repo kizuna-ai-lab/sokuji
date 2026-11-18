@@ -15,7 +15,10 @@
     "dismiss": "Dismiss",
     "none": "None",
     "retry": "Retry",
-    "topUp": "Top up"
+    "topUp": "Top up",
+    "translatedInto": "translated into",
+    "translatedFrom": "translated from",
+    "translatedBothWays": "translated both ways"
   },
   "settings": {
     "title": "Settings",

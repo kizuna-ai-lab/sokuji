@@ -15,7 +15,10 @@
     "dismiss": "بستن",
     "none": "هیچ‌کدام",
     "retry": "تلاش مجدد",
-    "topUp": "شارژ موجودی"
+    "topUp": "شارژ موجودی",
+    "translatedInto": "ترجمه به",
+    "translatedFrom": "ترجمه از",
+    "translatedBothWays": "ترجمهٔ دوطرفه"
   },
   "settings": {
     "title": "تنظیمات",

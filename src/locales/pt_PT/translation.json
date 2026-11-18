@@ -15,7 +15,10 @@
     "dismiss": "Ignorar",
     "none": "Nenhum",
     "retry": "Tentar novamente",
-    "topUp": "Carregar saldo"
+    "topUp": "Carregar saldo",
+    "translatedInto": "traduzido para",
+    "translatedFrom": "traduzido de",
+    "translatedBothWays": "traduzido nos dois sentidos"
   },
   "settings": {
     "title": "Definições",

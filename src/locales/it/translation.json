@@ -15,7 +15,10 @@
     "dismiss": "Ignora",
     "none": "Nessuno",
     "retry": "Riprova",
-    "topUp": "Ricarica"
+    "topUp": "Ricarica",
+    "translatedInto": "tradotto in",
+    "translatedFrom": "tradotto da",
+    "translatedBothWays": "tradotto in entrambe le direzioni"
   },
   "settings": {
     "title": "Impostazioni",

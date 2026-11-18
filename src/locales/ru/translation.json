@@ -15,7 +15,10 @@
     "dismiss": "Скрыть",
     "none": "Нет",
     "retry": "Повторить",
-    "topUp": "Пополнить"
+    "topUp": "Пополнить",
+    "translatedInto": "перевод на",
+    "translatedFrom": "перевод с",
+    "translatedBothWays": "перевод в обе стороны"
   },
   "settings": {
     "title": "Настройки",

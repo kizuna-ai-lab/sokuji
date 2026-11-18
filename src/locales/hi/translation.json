@@ -15,7 +15,10 @@
     "dismiss": "खारिज करें",
     "none": "कोई नहीं",
     "retry": "पुनः प्रयास करें",
-    "topUp": "टॉप अप"
+    "topUp": "टॉप अप",
+    "translatedInto": "अनुवाद की लक्ष्य भाषा",
+    "translatedFrom": "अनुवाद की स्रोत भाषा",
+    "translatedBothWays": "दोनों ओर अनुवाद"
   },
   "settings": {
     "title": "सेटिंग्स",

@@ -15,7 +15,10 @@
     "dismiss": "Abaikan",
     "none": "Tidak ada",
     "retry": "Coba lagi",
-    "topUp": "Isi ulang"
+    "topUp": "Isi ulang",
+    "translatedInto": "diterjemahkan ke",
+    "translatedFrom": "diterjemahkan dari",
+    "translatedBothWays": "diterjemahkan dua arah"
   },
   "settings": {
     "title": "Pengaturan",

@@ -6,7 +6,6 @@ import { render, screen, fireEvent, cleanup, within, act } from '@testing-librar
 import { createVirtualClock } from '../../lib/contract/clock';
 import { createHistoryPageStore } from '../../lib/history/historyPageStore';
 import { realStorePort, type RealStorePort } from '../../lib/history/testing/realStorePort';
-import { arrowBetween } from '../../lib/language/arrowBetween';
 import '../../locales';
 import { HistoryPageContext } from './historyContext';
 import RecordPage from './RecordPage';
@@ -140,7 +139,9 @@ describe('an imported record\'s speakers', () => {
     await act(() => store.getState().openRecord(A));
     await settle();
     expect(document.querySelector('.record-page__asked')).toBeNull();
-    expect(document.querySelector('.record-page__head')?.textContent).toContain(arrowBetween('English', '⇄', 'Chinese'));
+    expect(document.querySelector('.record-page__head')?.textContent).toContain('English');
+    expect([...document.querySelectorAll('.record-page__head .language-pair-text bdi')].map((b) => b.textContent)).toEqual(['English', 'Chinese']);
+    expect(document.querySelector('.record-page__head svg.language-pair-text__arrow')).toHaveClass('lucide-arrow-right-left');
   });
 
   // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.

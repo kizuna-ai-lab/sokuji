@@ -17,6 +17,7 @@ import { useHistoryPageContext } from './historyContext';
 import { ImportPanel, myLanguageNow } from './FileJobs';
 import { dayLabel, formatBytes, formatDateTime, formatLength, formatTime, isComposing } from './format';
 import { useWideForm } from '../SettingsPage/useWideForm';
+import { LanguagePairText } from '../LanguagePairText/LanguagePairText';
 import '../SettingsPage/SettingsPage.scss';
 import './History.scss';
 
@@ -161,7 +162,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
       {r.state === 'open' || r.endedAt === null
         ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
         : <span>{t('history.length', 'Length {{length}}', { length: formatLength(r.endedAt - r.startedAt) })}</span>}
-      {r.mode !== 'import' && <span>{languageDirection(r, language)}</span>}
+      {r.mode !== 'import' && <span><LanguagePairText {...languageDirection(r, language, t)} /></span>}
     </span>
   );
 
