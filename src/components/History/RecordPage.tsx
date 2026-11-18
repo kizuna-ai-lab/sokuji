@@ -525,6 +525,9 @@ export const RecordPage: React.FC = () => {
             {/* A session's languages; an imported file's are what each transcript was asked for, said above its transcript. */}
             {record.mode !== 'import' && <span>{`${languageLabel(record.myLanguage, language)} → ${languageLabel(record.targetLanguage, language)}`}</span>}
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
+            {/* Which transcript the page shows, when there is more than one: the notes and the speakers follow it, so it
+                is the record's, on the record's line (owner, 2026-11-18), not a bar over the columns. */}
+            <TranscriptChooser />
           </span>
         </div>
         <div className="record-page__actions" ref={actionsRef}>
@@ -610,7 +613,6 @@ export const RecordPage: React.FC = () => {
         </div>
       )}
       {transcribing && <TranscribePanel onClose={() => setTranscribing(false)} />}
-      <TranscriptChooser />
       {!wide && (
         <div className="record-page__panes" role="tablist">
           <button type="button" role="tab" aria-selected={pane === 'notes'} onClick={() => setPane('notes')}>{t('history.notes', 'Notes')}</button>

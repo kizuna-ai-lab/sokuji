@@ -786,6 +786,17 @@ describe('a record transcribed again', () => {
     expect(screen.queryByRole('dialog', { name: 'Transcribe again' })).toBeNull();
   });
 
+  // Owner, 2026-11-18: the version a record is shown in sits at the end of its date-and-length line, not as a bar of its
+  // own over the columns (that bar pushed the notes, the transcript and the side panel down, each by a strip).
+  it('offers its transcript versions on the line with its date and length, not as a bar over the columns', async () => {
+    record.transcripts.push({ id: 2, origin: { service: 'soniox', kind: 'file' }, textKind: 'original', createdAt: START + 1000, sentences: 3 });
+    await renderRecord();
+    const chooser = screen.getByLabelText('Transcript version').closest('label')!;
+    expect(chooser.parentElement?.classList.contains('history-row__meta')).toBe(true);
+    expect(chooser.closest('.record-page__heading')).not.toBeNull();
+    expect(document.querySelectorAll('.history-file__versions')).toHaveLength(1);
+  });
+
   it('opens a search hit in the older transcript it was found in, and marks it there', async () => {
     record.transcripts.push({ id: 2, origin: { service: 'soniox', kind: 'file' }, textKind: 'original', createdAt: START + 1000, sentences: 3 });
     await renderRecord({ kind: 'sentence', transcriptId: 1, n: 2 });
