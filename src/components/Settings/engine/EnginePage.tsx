@@ -9,6 +9,7 @@ import { SP, TL, TR, type RunStage } from '../../../lib/lineup/types';
 const SLOT_STAGES: Readonly<Record<string, readonly RunStage[]>> = { asr: TR, translation: TL, tts: SP };
 import type { AudioMode } from '../../../stores/audioStore';
 import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
+import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import './Engine.scss';
 
 /** Short stage labels (ASR / MT / TTS) — used where space is tight: the
@@ -135,7 +136,7 @@ export const EnginePage: React.FC<{
                     // async); surface it instead of leaving an unhandled
                     // rejection with no recovery path.
                     Promise.resolve(adapter.select(slot, picked)).catch((err) => {
-                      console.error('[Sokuji] [EnginePage] selection write failed:', err);
+                      reportError('EnginePage', `Engine selection could not be saved: ${describeCause(err)}`, { cause: err });
                     });
                   }}
                 >

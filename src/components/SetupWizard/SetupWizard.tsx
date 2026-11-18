@@ -32,6 +32,7 @@ import StepCredentials from './steps/StepCredentials';
 import StepLanguagePair from './steps/StepLanguagePair';
 import StepFinish from './steps/StepFinish';
 import Button from '../Settings/shared/Button';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
 import './SetupWizard.scss';
 
 const STEP_IDS = ['language', 'scenario', 'path', 'credentials', 'language-pair', 'finish'] as const;
@@ -142,7 +143,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
       });
       onClose?.();
     } catch (err) {
-      console.error('[SetupWizard] Finish failed:', err);
+      reportError('SetupWizard', `Finish failed: ${describeCause(err)}`, { cause: err });
       // A failed write is the one failure with copy of its own; everything else
       // reaching here is a store/provider error whose message is the best
       // description available.

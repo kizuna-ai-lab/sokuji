@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { INTERFACE_LANGUAGES } from '../../Settings/sections/interfaceLanguages';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useSetUILanguage } from '../../../stores/settingsStore';
+import { describeCause, reportError } from '../../../lib/diagnostics/report';
 
 // The one setting applied DURING the wizard (spec §1.2 step 0): the rest of it
 // has to be read in the chosen language.
@@ -27,7 +28,7 @@ const StepLanguage: React.FC = () => {
       if (mine !== pick.current) return;
       await setUILanguage(next);
     } catch (err) {
-      console.error('[SetupWizard] Could not change the interface language:', err);
+      reportError('SetupWizard', `Could not change the interface language: ${describeCause(err)}`, { cause: err });
     }
   };
 

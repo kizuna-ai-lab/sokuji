@@ -164,12 +164,10 @@ const LEDGER: Record<string, number> = {
   // `console.warn('Rename failed:', err)`. The delete now reports in
   // VoiceDeleteModal and the rename in the picker row, so in both cases
   // there is nothing left to swallow and no breadcrumb to leave.
-  'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
   // SettingsInitializer.tsx's row (3) is gone, not lowered to 0: the switch
   // cut it to two jobs (plan 1e-3b-2 ruling 10), each reporting through
   // report.ts.
-  'src/components/Tour/TourProvider.tsx': 3,
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
   // ModelManagementSection.tsx's row (2) is gone, not lowered to 0: the in-panel
   // model library it drew was removed (B-20); its voices moved to LocalVoices,
@@ -182,16 +180,12 @@ const LEDGER: Record<string, number> = {
   // AdvancedSettings.tsx's row (1) is gone, not lowered to 0: its one call
   // warned of an unknown provider in the old provider config memo, which the
   // switch removed with the old provider sections.
-  'src/components/Settings/engine/EnginePage.tsx': 1,
-  'src/components/SetupWizard/SetupWizard.tsx': 1,
   // applySetup.ts's row is gone, not lowered to 0: its one call —
   // `console.warn('[applySetup] Post-finish validation failed:', err)` — was
   // the re-validation for an unchanged provider. The switch's applyProvider
   // (useApplySetup.ts) binds straight to providerStore, whose own readiness
   // driver (attach()'s driveReadiness) re-checks automatically, so
   // there is nothing left here to swallow — the call is gone, not moved.
-  'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
-  'src/components/Subtitle/ChildWindowPopover.tsx': 1,
   // ToastContext.tsx's row (1) is gone, not lowered to 0: spec 2026-10-05 removed the toast; its uses became panel notes, the status line, or the control's own state.
   // subtitle-overlay-entry.tsx's row (1) is gone, not lowered to 0: plan 1e-4
   // rewrote the overlay page over the wire; its one failure (no #root) reports

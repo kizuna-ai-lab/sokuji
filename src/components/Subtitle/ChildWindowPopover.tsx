@@ -1,7 +1,7 @@
 // src/components/Subtitle/ChildWindowPopover.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { reportError, describeCause } from '../../lib/diagnostics/report';
+import { reportError, reportWarning, describeCause } from '../../lib/diagnostics/report';
 import { registerThemeDocument } from '../../lib/theme/theme';
 
 /**
@@ -144,7 +144,8 @@ export const ChildWindowPopover: React.FC<ChildWindowPopoverProps> = ({
     const win = window.open('', name, features);
     if (!win) {
       // Outside Electron (or blocked) — nothing to host the popover in.
-      console.warn('[ChildWindowPopover] window.open refused; popover unavailable');
+      // A warning: the window is built ahead of any toggle, so nothing the user asked for has failed yet.
+      reportWarning('ChildWindowPopover', 'window.open refused; popover unavailable', { dedupeKey: 'popover.windowOpenRefused' });
       return;
     }
     winRef.current = win;

@@ -21,6 +21,7 @@ import type { TourActions, TourStep } from './steps';
 import { waitForAnchor } from './dom';
 import type { WaitOptions } from './dom';
 import type { TourCtx } from './tourContext';
+import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 
 const CHAPTER = 'basics' as const;
 
@@ -91,7 +92,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
       steps_completed: method === 'finished' ? s.steps.length : Math.max(0, s.index),
       total_steps: s.steps.length, duration_ms: Date.now() - s.startedAt, onboarding_version: TOUR_VERSION,
     });
-    useSetupStore.getState().completeTour(CHAPTER, method).catch((err) => console.error('[Tour] Could not persist tour completion:', err));
+    useSetupStore.getState().completeTour(CHAPTER, method).catch((err) => reportWarning('Tour', `Could not persist tour completion: ${describeCause(err)}`, { cause: err }));
   }, [commit, trackEvent]);
 
   // Move to `index`, resolving its anchor; on a missing anchor, keep moving in
@@ -108,7 +109,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
       try {
         step.prepare?.(s.ctx!, actions);
       } catch (err) {
-        console.warn(`[Tour] prepare failed for step "${step.id}":`, err);
+        reportWarning('Tour', `Step "${step.id}" skipped: its preparation failed: ${describeCause(err)}`, { cause: err });
         trackEvent('onboarding_step_skipped', { chapter: CHAPTER, step_id: step.id, reason: 'target-missing' });
         i += dir;
         continue;
@@ -116,7 +117,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode; waitOptions?: W
       const target = step.anchor ? await waitForAnchor(step.anchor, waitOptions) : null;
       if (gen !== generation.current) return;
       if (step.anchor && !target) {
-        console.warn(`[Tour] Anchor "${step.anchor}" for step "${step.id}" did not appear; skipping.`);
+        reportWarning('Tour', `Step "${step.id}" skipped: its anchor "${step.anchor}" did not appear`);
         trackEvent('onboarding_step_skipped', { chapter: CHAPTER, step_id: step.id, reason: 'target-missing' });
         i += dir;
         continue;

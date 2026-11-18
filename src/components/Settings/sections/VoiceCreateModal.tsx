@@ -4,6 +4,7 @@ import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { Plus, Mic, Square, X } from 'lucide-react';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import SonioxCloneReviewStep, { type VoiceReviewLanguage } from './SonioxCloneReviewStep';
+import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import './VoiceCreateModal.scss';
 
 /** The post-acquisition confirmation phase, when the provider has one. Passing
@@ -216,7 +217,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         // `t('voiceLibrary.clipTooLong' | 'decodeFailed' | ...)` before
         // rethrowing.
         setError(err instanceof Error ? err.message : String(err));
-        console.warn('Voice import failed:', err);
+        reportError('VoiceCreateModal', `Voice import failed: ${describeCause(err)}`, { cause: err });
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -286,7 +287,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         if (left <= 0) void stopRecordingRef.current?.();
       }, 250);
     } catch (err) {
-      console.warn('Recording failed to start:', err);
+      reportError('VoiceCreateModal', `Recording failed to start: ${describeCause(err)}`, { cause: err });
     }
   }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
 
@@ -328,7 +329,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     } catch (err) {
       // Same reason as handleFiles: the parent's banner is behind this modal.
       setError(err instanceof Error ? err.message : String(err));
-      console.warn('Recording handler failed:', err);
+      reportError('VoiceCreateModal', `Recorded voice could not be saved: ${describeCause(err)}`, { cause: err });
     }
   }, [onRecord, capability.transcriptRequired, transcript, close]);
   // Keep the auto-stop ref pointing at the latest committed closure — written

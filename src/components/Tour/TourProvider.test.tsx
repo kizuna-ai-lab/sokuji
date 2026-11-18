@@ -125,7 +125,7 @@ describe('TourProvider', () => {
     fireEvent.click(screen.getByText('next')); await flush();
     expect(state()).toBe('3:subtitle:on');
     expect(trackEvent).toHaveBeenCalledWith('onboarding_step_skipped', { chapter: 'basics', step_id: 'participant-source', reason: 'target-missing' });
-    expect(warn).toHaveBeenCalledWith('[Tour] prepare failed for step "participant-source":', expect.any(Error));
+    expect(warn).toHaveBeenCalledWith('[Sokuji] [Tour] Step "participant-source" skipped: its preparation failed: panel exploded', expect.any(Error));
   });
 
   it('back goes to the previous visible step', async () => {
