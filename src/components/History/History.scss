@@ -912,6 +912,10 @@
     }
   }
 
+  // The "add another language" list's own words: shown on the closed list, not offered in the open one (a themed
+  // list draws a hidden option all the same).
+  .select-dropdown option.history-file__placeholder { display: none; }
+
   &__remove {
     display: inline-flex;
     align-items: center;

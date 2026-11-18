@@ -210,7 +210,8 @@ export const FileOptionsFields: React.FC<FileOptionsFieldsProps> = ({ value, onC
           </ul>
         )}
         <select className="select-dropdown" aria-label={add} value="" onChange={(e) => { if (e.target.value) onChange(withOther(value, e.target.value)); }}>
-          <option value="">{add}</option>
+          {/* The closed list's own words, not a choice in the open one. */}
+          <option value="" className="history-file__placeholder" disabled hidden>{add}</option>
           {choices(all.filter((o) => !value.languages.includes(o.value)))}
         </select>
       </div>
