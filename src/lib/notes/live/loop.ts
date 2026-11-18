@@ -124,7 +124,10 @@ export function createLiveNotes(d: LiveNotesDeps): LiveNotes {
     u.cancelTimeout = d.clock.setTimeout(() => { if (!u.done) { u.givenUp = true; controller.abort(); } }, LIVE_TIMEOUT_MS);
     u.promise = d.chat({
       system: livePrompt(d.language.name, prompts), prompt: 'live-update', promptVersion: prompts.version,
-      user: payload, effort: 'none', maxTokens: LIVE_TOKENS, signal: controller.signal,
+      // A little reasoning keeps the notes in the language asked for when the speech is in another (owner, 2026-11-18):
+      // with none, Japanese speech asked for in Chinese came out in Japanese in about half the runs. It answers in about
+      // 5 s instead of 2, well within the 20 s an update may take.
+      user: payload, effort: 'low', maxTokens: LIVE_TOKENS, signal: controller.signal,
       onAnswered: (info) => { if (info.usage) d.onUsage?.(info.usage); },
     })
       .then((answer) => finish(u, answer), (error: unknown) => {

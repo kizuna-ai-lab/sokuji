@@ -267,7 +267,9 @@ export async function writeNotes(o: WriteNotesOptions): Promise<WriteNotesResult
       candidates: [],
       ...withNames,
     },
-    effort: 'none',
+    // A little reasoning keeps the notes in the language asked for when the speech is in another (owner, 2026-11-18):
+    // with none, Japanese speech asked for in Chinese came out in Japanese or Traditional Chinese in most runs.
+    effort: 'low',
     maxTokens: PART_TOKENS,
     signal,
     onAnswered,

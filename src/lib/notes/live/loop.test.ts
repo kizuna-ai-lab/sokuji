@@ -48,6 +48,15 @@ describe('the live notes loop', () => {
     expect(model.calls).toHaveLength(0);
   });
 
+  // Owner, 2026-11-18: with no reasoning, live notes of Japanese speech asked for in Chinese came out in Japanese in
+  // about half the runs; a little reasoning kept them in the language asked for in all of them.
+  it('asks each update with a little reasoning, so the notes keep to the language asked for', async () => {
+    const { clock, model, live } = setup();
+    live.sentences([s(1)]);
+    clock.advance(LIVE_INTERVAL_MS);
+    expect(model.calls[0].r.effort).toBe('low');
+  });
+
   it('sends the new sentences at most every 20 seconds, and shows each answer it can use', async () => {
     const { clock, model, live, states } = setup();
     live.sentences([s(1)]);

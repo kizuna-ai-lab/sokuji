@@ -5,7 +5,7 @@
 // limit is waited out the way the measuring scripts did (15 s, then 30, 45, 60); anything else the service refuses
 // comes back as a ChatError carrying the service's own message, for the user to read.
 
-export type ChatEffort = 'none' | 'medium';
+export type ChatEffort = 'none' | 'low' | 'medium';
 
 /** Which prompt a call is: the relay puts in its own copy of it by this name and version. */
 /** What one answer used, as OpenAI reports it (`usage`). */
@@ -102,7 +102,7 @@ export function takesReasoningEffort(model: string): boolean {
 }
 
 /** The `reasoning_effort` sent to `model` for `effort`, or null for none. */
-function effortFor(model: string, effort: ChatEffort): ChatEffort | 'low' | null {
+function effortFor(model: string, effort: ChatEffort): ChatEffort | null {
   if (!takesReasoningEffort(model)) return null;
   const refusesNone = REFUSE_NONE.some((m) => model === m || model.startsWith(`${m}-`));
   return effort === 'none' && refusesNone ? 'low' : effort;
