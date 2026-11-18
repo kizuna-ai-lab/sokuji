@@ -2181,6 +2181,8 @@
     "editCancelHint": "Cancelar (Esc)",
     "speakersHint": "Clique num nome para mudar o nome do orador. Para atribuir uma frase a outra pessoa, use o botão «Mudar de orador» ao lado dela na transcrição.",
     "sidePanel": "Painel lateral",
+    "resizeNotes": "Redimensionar as notas",
+    "resizeSidePanel": "Redimensionar o painel lateral",
     "openSidePanel": "Abrir o painel lateral",
     "closeSidePanel": "Fechar o painel lateral",
     "selectRecords": "Selecionar registos",

@@ -2181,6 +2181,8 @@
     "editCancelHint": "Cancelar (Esc)",
     "speakersHint": "Clique em um nome para renomear o falante. Para passar uma frase para outra pessoa, use o botão “Trocar falante” ao lado dela na transcrição.",
     "sidePanel": "Painel lateral",
+    "resizeNotes": "Redimensionar as notas",
+    "resizeSidePanel": "Redimensionar o painel lateral",
     "openSidePanel": "Abrir o painel lateral",
     "closeSidePanel": "Fechar o painel lateral",
     "selectRecords": "Selecionar registros",

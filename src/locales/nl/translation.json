@@ -2181,6 +2181,8 @@
     "editCancelHint": "Annuleren (Esc)",
     "speakersHint": "Klik op een naam om de spreker te hernoemen. Wil je één zin aan iemand anders geven, gebruik dan in de transcriptie de knop ‘Spreker wijzigen’ ernaast.",
     "sidePanel": "Zijpaneel",
+    "resizeNotes": "Grootte van notities aanpassen",
+    "resizeSidePanel": "Grootte van zijpaneel aanpassen",
     "openSidePanel": "Zijpaneel openen",
     "closeSidePanel": "Zijpaneel sluiten",
     "selectRecords": "Opnames selecteren",

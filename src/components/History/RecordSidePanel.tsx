@@ -2,8 +2,8 @@
 //
 // A record's side panel, at the right of its transcript (owner, 2026-11-17): the speakers now (who spoke, how many
 // sentences each, their names), more tools later, each in a part of its own. A switch in the page's toolbar shows and
-// hides it (the page's, with `id` naming it); Escape hides it too. The panel covers the transcript, in wide and narrow
-// windows alike, so the transcript keeps its width.
+// hides it (the page's, with `id` naming it); Escape hides it too. It is a column of the page beside the transcript, as
+// the notes are, never over it (owner, 2026-11-18): it is to hold tools that edit the transcript. The page lays it out.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isComposing } from './format';
@@ -15,11 +15,13 @@ export interface RecordSidePanelProps {
   onToggle(): void | Promise<void>;
   /** Something is being typed in the panel: Escape is the field's (it cancels the typing), not the panel's. */
   editing: boolean;
+  /** Beside the transcript with no divider between them (a narrow page): its own edge marks where it starts. */
+  edge?: boolean;
   /** The panel's parts. */
   children: ReactNode;
 }
 
-export function RecordSidePanel({ id, open, onToggle, editing, children }: RecordSidePanelProps) {
+export function RecordSidePanel({ id, open, onToggle, editing, edge = false, children }: RecordSidePanelProps) {
   const { t } = useTranslation();
   const editingRef = useRef(editing);
   editingRef.current = editing;
@@ -42,13 +44,10 @@ export function RecordSidePanel({ id, open, onToggle, editing, children }: Recor
     return () => document.removeEventListener('keydown', onKey, true);
   }, [open]);
 
+  if (!open) return null;
   return (
-    <div className={`record-side${open ? ' is-open' : ''}`}>
-      {open && (
-        <aside className="record-side__panel" id={id} aria-label={t('history.sidePanel', 'Side panel')}>
-          {children}
-        </aside>
-      )}
-    </div>
+    <aside className={`record-side${edge ? ' record-side--edge' : ''}`} id={id} aria-label={t('history.sidePanel', 'Side panel')}>
+      {children}
+    </aside>
   );
 }

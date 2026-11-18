@@ -2181,6 +2181,8 @@
     "editCancelHint": "Anuluj (Esc)",
     "speakersHint": "Kliknij imię, aby zmienić nazwę mówcy. Aby przypisać jedno zdanie komuś innemu, użyj przycisku „Zmień mówcę” obok niego w transkrypcji.",
     "sidePanel": "Panel boczny",
+    "resizeNotes": "Zmień rozmiar notatek",
+    "resizeSidePanel": "Zmień rozmiar panelu bocznego",
     "openSidePanel": "Otwórz panel boczny",
     "closeSidePanel": "Zamknij panel boczny",
     "selectRecords": "Zaznacz zapisy",

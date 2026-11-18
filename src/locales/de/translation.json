@@ -2181,6 +2181,8 @@
     "editCancelHint": "Abbrechen (Esc)",
     "speakersHint": "Klicken Sie auf einen Namen, um den Sprecher umzubenennen. Um einen Satz jemand anderem zuzuordnen, nutzen Sie im Transkript die Schaltfläche „Sprecher ändern“ daneben.",
     "sidePanel": "Seitenleiste",
+    "resizeNotes": "Größe der Notizen ändern",
+    "resizeSidePanel": "Größe der Seitenleiste ändern",
     "openSidePanel": "Seitenleiste öffnen",
     "closeSidePanel": "Seitenleiste schließen",
     "selectRecords": "Aufzeichnungen auswählen",

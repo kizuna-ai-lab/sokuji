@@ -2181,6 +2181,8 @@
     "editCancelHint": "Annulla (Esc)",
     "speakersHint": "Fai clic su un nome per rinominare l’interlocutore. Per assegnare una frase a qualcun altro, usa il pulsante «Cambia interlocutore» accanto a essa nella trascrizione.",
     "sidePanel": "Pannello laterale",
+    "resizeNotes": "Ridimensiona le note",
+    "resizeSidePanel": "Ridimensiona il pannello laterale",
     "openSidePanel": "Apri il pannello laterale",
     "closeSidePanel": "Chiudi il pannello laterale",
     "selectRecords": "Seleziona registrazioni",

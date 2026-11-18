@@ -31,6 +31,7 @@ import { InlineEdit } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
 import { labelsFit } from './panelSwitchFit';
 import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
+import { SIDE_MIN_PX, readSideWidth, sideFitsBeside, sideWidthWithin, writeSideWidth } from './sideColumn';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -197,6 +198,8 @@ export const RecordPage: React.FC = () => {
   // kept for the next record (owner, 2026-11-17; B-31, B-40). Hidden, the transcript takes the whole width.
   const [notesOpen, setNotesOpen] = useState(readNotesOpen);
   const [notesWidth, setNotesWidth] = useState(readNotesWidth);
+  // The side panel's column at the right of the transcript, its width dragged too and kept (owner, 2026-11-18).
+  const [sideWidth, setSideWidth] = useState(readSideWidth);
   const notesId = useId();
   const sideId = useId();
   // The switches' words, kept while the heading has its room beside the actions (panelSwitchFit.ts).
@@ -293,8 +296,6 @@ export const RecordPage: React.FC = () => {
     />
   );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
-  // The width shown fits this page; the one kept stays as the user left it, for a wider window later.
-  const shownNotesWidth = notesWidthWithin(notesWidth, pageWidth);
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
 
@@ -343,6 +344,25 @@ export const RecordPage: React.FC = () => {
 
   const speakerCount = speakersOf('mine').length + speakersOf('other').length;
   const sideShown = speakerCount > 0 && (wide || pane === 'transcript');
+  // The columns as they fit this page; the widths kept stay as the user left them, for a wider window later. The side
+  // panel is fitted first, beside notes at their narrowest, and the notes in what it leaves; on a page too narrow for the
+  // transcript beside it, the open side panel takes the page and the transcript gives way. Unmeasured (no layout yet),
+  // nothing gives way.
+  const sideColumn = sideShown && sideOpen;
+  const sideRoom = Math.max(0, pageWidth - (wide && notesOpen ? NOTES_MIN_PX + DIVIDER_PX : 0));
+  const sideTakesAll = sideColumn && pageWidth > 0 && !sideFitsBeside(sideRoom);
+  const shownSideWidth = pageWidth > 0 ? sideWidthWithin(sideWidth, sideRoom) : Math.max(SIDE_MIN_PX, sideWidth);
+  const notesRoom = sideColumn && !sideTakesAll ? pageWidth - shownSideWidth - DIVIDER_PX : pageWidth;
+  const shownNotesWidth = notesWidthWithin(notesWidth, notesRoom);
+  // Dividers to drag on a wide page only: a narrow one may sit in a window under 768 px, where none shows. There the
+  // column keeps its width as far as the page allows, behind an edge of its own.
+  const sideDivider = sideColumn && !sideTakesAll && wide;
+  const tracks = [
+    ...(wide && notesOpen ? [`${shownNotesWidth}px`, `${DIVIDER_PX}px`] : []),
+    'minmax(0, 1fr)',
+    ...(sideDivider ? [`${DIVIDER_PX}px`] : []),
+    ...(sideColumn && !sideTakesAll ? [`${shownSideWidth}px`] : []),
+  ];
   // Hiding the side panel with a name being typed saves it first, a newer one typed while an earlier save ran as well
   // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
   const toggleSide = async () => {
@@ -623,7 +643,7 @@ export const RecordPage: React.FC = () => {
       <div className="record-page__body">
       <div
         className={`record-page__columns${wide ? ' is-wide' : ''}`}
-        style={wide ? { gridTemplateColumns: notesOpen ? `${shownNotesWidth}px ${DIVIDER_PX}px minmax(0, 1fr)` : 'minmax(0, 1fr)' } : undefined}
+        style={wide || sideColumn ? { gridTemplateColumns: tracks.join(' ') } : undefined}
       >
         <div className="record-page__notes-col" hidden={wide ? !notesOpen : pane !== 'notes'}>
           <div className="record-page__notes" id={notesId} hidden={wide && !notesOpen}>{notesView}</div>
@@ -633,26 +653,41 @@ export const RecordPage: React.FC = () => {
             side="left"
             width={shownNotesWidth}
             min={NOTES_MIN_PX}
-            max={notesWidthWithin(Number.POSITIVE_INFINITY, pageWidth)}
-            onResize={(next) => setNotesWidth(notesWidthWithin(next, pageWidth))}
+            max={notesWidthWithin(Number.POSITIVE_INFINITY, notesRoom)}
+            label={t('history.resizeNotes', 'Resize the notes')}
+            onResize={(next) => setNotesWidth(notesWidthWithin(next, notesRoom))}
             onCommit={(next) => {
-              const width = notesWidthWithin(next, pageWidth);
+              const width = notesWidthWithin(next, notesRoom);
               setNotesWidth(width);
               writeNotesWidth(width);
             }}
           />
         )}
-        <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={(!wide && pane !== 'transcript') || sideTakesAll}>
           <TranscriptAsked />
           {transcript}
         </div>
-      </div>
-        {/* The side panel over the transcript (owner, 2026-11-17): the speakers have no column of their own. Closing it
+        {/* The side panel, a column at the right of the transcript (owner, 2026-11-18), with its own divider. Closing it
             while a name is typed saves the name, as a click elsewhere does. */}
+        {sideDivider && (
+          <PanelResizer
+            width={shownSideWidth}
+            min={SIDE_MIN_PX}
+            max={sideWidthWithin(Number.POSITIVE_INFINITY, sideRoom)}
+            label={t('history.resizeSidePanel', 'Resize the side panel')}
+            onResize={(next) => setSideWidth(sideWidthWithin(next, sideRoom))}
+            onCommit={(next) => {
+              const width = sideWidthWithin(next, sideRoom);
+              setSideWidth(width);
+              writeSideWidth(width);
+            }}
+          />
+        )}
         {sideShown && (
           <RecordSidePanel
             id={sideId}
             open={sideOpen}
+            edge={sideColumn && !sideTakesAll && !sideDivider}
             // A name or the title being typed: Escape is the field's, not the panel's.
             editing={nameDraft !== null || titleDraft !== null}
             onToggle={toggleSide}
@@ -666,6 +701,7 @@ export const RecordPage: React.FC = () => {
             </section>
           </RecordSidePanel>
         )}
+      </div>
       </div>
       <div className="record-page__player">
         {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}

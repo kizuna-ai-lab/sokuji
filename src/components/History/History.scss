@@ -428,7 +428,7 @@
     color: vars.$text-secondary;
   }
 
-  // The columns' frame: the speakers' drawer is placed against it, not against the columns (which scroll when narrow).
+  // The columns' frame, between the head and the player.
   &__body {
     position: relative;
     display: flex;
@@ -443,8 +443,8 @@
     grid-template-columns: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
-    // Wide (the page is 1000 px or more): the notes stand left of the transcript. The speakers have no column of their
-    // own: a button over the transcript opens them (owner, 2026-11-17).
+    // Wide (the page is 1000 px or more): the notes stand left of the transcript; the side panel, when open, right of it
+    // (owner, 2026-11-18). The page sets the widths.
     &.is-wide { grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); }
   }
 
@@ -999,35 +999,16 @@
   }
 }
 
-// The record's side panel (RecordSidePanel): at the right of the record's columns, over the transcript. Closed, it
-// waits past the right edge and only its handle shows, against the transcript's right edge; open, it slides in and the
-// handle rides on its left edge. The handle is a small tab: the chevrons alone, its name in its tooltip.
+// The record's side panel (RecordSidePanel): a column of the record's columns at the right of the transcript, as the
+// notes are at its left (owner, 2026-11-18); the page sets its width and the divider beside it. It scrolls on its own.
 .record-side {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5;
-  // Shown and hidden from the toolbar's switch, so it may take the whole width of a narrow window.
-  width: min(320px, 100%);
-  transform: translateX(100%);
-  transition: transform vars.$transition-normal;
-  pointer-events: none;
-  &.is-open { transform: none; }
-  @media (prefers-reduced-motion: reduce) { transition: none; }
-
-
-
-  &__panel {
-    height: 100%;
-    box-sizing: border-box;
-    overflow-y: auto;
-    padding: vars.$space-3 vars.$space-4;
-    background: vars.$bg-surface;
-    border-left: 1px solid vars.$border-default;
-    box-shadow: -6px 0 16px vars.$shadow;
-    pointer-events: auto;
-  }
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: vars.$space-3 vars.$space-4;
+  // Beside the transcript with no divider (a narrow page): a line of its own where it starts.
+  &--edge { border-left: 1px solid vars.$border-subtle; }
 
   // One part of the panel per tool: the speakers now, more later, one under another.
   &__part {

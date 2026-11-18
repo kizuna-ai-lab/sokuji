@@ -2181,6 +2181,8 @@
     "editCancelHint": "Kanselahin (Esc)",
     "speakersHint": "I-click ang pangalan para palitan ang pangalan ng nagsasalita. Para ibigay ang isang pangungusap sa iba, gamitin ang button na “Palitan ang nagsasalita” sa tabi nito sa transcript.",
     "sidePanel": "Side panel",
+    "resizeNotes": "Baguhin ang laki ng mga tala",
+    "resizeSidePanel": "Baguhin ang laki ng side panel",
     "openSidePanel": "Buksan ang side panel",
     "closeSidePanel": "Isara ang side panel",
     "selectRecords": "Pumili ng mga record",

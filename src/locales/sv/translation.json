@@ -2181,6 +2181,8 @@
     "editCancelHint": "Avbryt (Esc)",
     "speakersHint": "Klicka på ett namn för att byta namn på talaren. Om du vill ge en mening till någon annan använder du knappen ”Byt talare” bredvid den i transkriptionen.",
     "sidePanel": "Sidopanel",
+    "resizeNotes": "Ändra storlek på anteckningar",
+    "resizeSidePanel": "Ändra storlek på sidopanelen",
     "openSidePanel": "Öppna sidopanelen",
     "closeSidePanel": "Stäng sidopanelen",
     "selectRecords": "Markera poster",

@@ -827,6 +827,8 @@ describe('the notes column on a wide page', () => {
     if (done) act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: to })); });
   };
   afterEach(() => { vi.unstubAllGlobals(); });
+  // The side panel has a column of its own on a wide page too (below); closed here, these are about the notes alone.
+  beforeEach(() => { localStorage.setItem('history.sidePanelClosed', '1'); });
 
   const notesSwitch = () => screen.getByRole('button', { name: 'Notes' });
 
@@ -954,5 +956,82 @@ describe('the notes column on a wide page', () => {
     expect(within(columns()).queryByRole('separator')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Notes' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+  });
+});
+
+// Owner, 2026-11-18: the side panel is not a drawer over the transcript any more but a column of the page, as the notes
+// are: it is to hold tools that edit the transcript, which a drawer would cover. No sliding in; a divider sets its width,
+// kept for the next record.
+describe("the side panel's column", () => {
+  let width = 1200;
+  function page(px: number) {
+    width = px;
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width);
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private readonly cb: () => void) {}
+      observe() { this.cb(); }
+      unobserve() {}
+      disconnect() {}
+    });
+  }
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+  const columns = () => document.querySelector('.record-page__columns') as HTMLElement;
+  const side = () => screen.queryByRole('complementary', { name: 'Side panel' });
+  const sideDivider = () => within(columns()).queryByRole('separator', { name: 'Resize the side panel' });
+  const transcript = () => document.querySelector('.record-page__transcript') as HTMLElement;
+
+  it('stands at the right of the transcript, in the page\'s columns, with a divider of its own beside the notes\'', async () => {
+    page(1200);
+    await renderRecord();
+    expect(side()).not.toBeNull();
+    expect(side()!.parentElement).toBe(columns());
+    expect(transcript().compareDocumentPosition(side()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(columns()).getByRole('separator', { name: 'Resize the notes' })).toBeInTheDocument();
+    expect(sideDivider()).toBeInTheDocument();
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr) 1px 300px');
+  });
+
+  it('follows its divider, and opens the next record at the width it was left at', async () => {
+    page(1200);
+    await renderRecord();
+    const sep = sideDivider()!;
+    act(() => { sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 900, button: 0 }), { pointerType: 'mouse' })); });
+    act(() => { window.dispatchEvent(new MouseEvent('pointermove', { clientX: 820 })); });
+    act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: 820 })); });
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr) 1px 380px');
+    expect(localStorage.getItem('history.sideWidth')).toBe('380');
+    cleanup();
+    page(1200);
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr) 1px 380px');
+  });
+
+  it('closed, gives its room back to the transcript and leaves nothing in its place', async () => {
+    page(1200);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'Side panel' }));
+    expect(side()).toBeNull();
+    expect(sideDivider()).toBeNull();
+    expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
+  });
+
+  // A narrow page has no dividers to drag (the window may be under 768 px, where none shows): the column keeps the width
+  // it was left at, as far as the page allows, with an edge of its own.
+  it('on a narrow page stands beside the transcript when both fit, and takes the page while open when they do not', async () => {
+    page(700);
+    await renderRecord();
+    expect(side()!.parentElement).toBe(columns());
+    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr) 299px');
+    expect(sideDivider()).toBeNull();
+    expect(side()).toHaveClass('record-side--edge');
+    expect(transcript()).not.toHaveAttribute('hidden');
+    cleanup();
+    page(500);
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr)');
+    expect(transcript()).toHaveAttribute('hidden');
+    expect(sideDivider()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Side panel' }));
+    expect(transcript()).not.toHaveAttribute('hidden');
   });
 });

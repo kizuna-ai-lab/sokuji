@@ -2181,6 +2181,8 @@
     "editCancelHint": "Hủy (Esc)",
     "speakersHint": "Nhấp vào tên để đổi tên người nói. Để chuyển một câu cho người khác, dùng nút “Đổi người nói” bên cạnh câu đó trong bản ghi lời.",
     "sidePanel": "Bảng bên",
+    "resizeNotes": "Thay đổi kích thước ghi chú",
+    "resizeSidePanel": "Thay đổi kích thước bảng bên",
     "openSidePanel": "Mở bảng bên",
     "closeSidePanel": "Đóng bảng bên",
     "selectRecords": "Chọn bản ghi",

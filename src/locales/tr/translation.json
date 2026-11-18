@@ -2181,6 +2181,8 @@
     "editCancelHint": "İptal (Esc)",
     "speakersHint": "Konuşmacının adını değiştirmek için ada tıklayın. Bir cümleyi başkasına vermek için dökümde yanındaki “Konuşmacıyı değiştir” düğmesini kullanın.",
     "sidePanel": "Yan panel",
+    "resizeNotes": "Notların boyutunu değiştir",
+    "resizeSidePanel": "Yan panelin boyutunu değiştir",
     "openSidePanel": "Yan paneli aç",
     "closeSidePanel": "Yan paneli kapat",
     "selectRecords": "Kayıtları seç",

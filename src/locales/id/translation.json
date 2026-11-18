@@ -2181,6 +2181,8 @@
     "editCancelHint": "Batal (Esc)",
     "speakersHint": "Klik nama untuk mengganti nama pembicara. Untuk memberikan satu kalimat kepada orang lain, gunakan tombol “Ganti pembicara” di sebelahnya dalam transkrip.",
     "sidePanel": "Panel samping",
+    "resizeNotes": "Ubah ukuran catatan",
+    "resizeSidePanel": "Ubah ukuran panel samping",
     "openSidePanel": "Buka panel samping",
     "closeSidePanel": "Tutup panel samping",
     "selectRecords": "Pilih rekaman",

@@ -2181,6 +2181,8 @@
     "editCancelHint": "キャンセル（Esc）",
     "speakersHint": "名前をクリックすると話者の名前を変えられます。ある一文を別の人に移すには、文字起こしでその文の横にある「話者を変更」ボタンを使います。",
     "sidePanel": "サイドパネル",
+    "resizeNotes": "メモのサイズを変更",
+    "resizeSidePanel": "サイドパネルのサイズを変更",
     "openSidePanel": "サイドパネルを開く",
     "closeSidePanel": "サイドパネルを閉じる",
     "selectRecords": "記録を選択",

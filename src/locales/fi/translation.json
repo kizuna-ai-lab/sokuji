@@ -2181,6 +2181,8 @@
     "editCancelHint": "Peruuta (Esc)",
     "speakersHint": "Nimeä puhuja uudelleen napsauttamalla nimeä. Jos haluat antaa yhden lauseen jollekulle toiselle, käytä litteroinnissa sen vieressä olevaa Vaihda puhuja -painiketta.",
     "sidePanel": "Sivupaneeli",
+    "resizeNotes": "Muuta muistiinpanojen kokoa",
+    "resizeSidePanel": "Muuta sivupaneelin kokoa",
     "openSidePanel": "Avaa sivupaneeli",
     "closeSidePanel": "Sulje sivupaneeli",
     "selectRecords": "Valitse tallenteita",

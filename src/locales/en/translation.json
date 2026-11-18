@@ -2181,6 +2181,8 @@
     "editCancelHint": "Cancel (Esc)",
     "speakersHint": "Click a name to rename the speaker. To give one sentence to someone else, use the “Change speaker” button beside it in the transcript.",
     "sidePanel": "Side panel",
+    "resizeNotes": "Resize the notes",
+    "resizeSidePanel": "Resize the side panel",
     "openSidePanel": "Open the side panel",
     "closeSidePanel": "Close the side panel",
     "selectRecords": "Select records",

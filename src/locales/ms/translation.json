@@ -2181,6 +2181,8 @@
     "editCancelHint": "Batal (Esc)",
     "speakersHint": "Klik nama untuk menamakan semula penutur. Untuk memberi satu ayat kepada orang lain, gunakan butang “Tukar penutur” di sebelahnya dalam transkrip.",
     "sidePanel": "Panel sisi",
+    "resizeNotes": "Ubah saiz nota",
+    "resizeSidePanel": "Ubah saiz panel sisi",
     "openSidePanel": "Buka panel sisi",
     "closeSidePanel": "Tutup panel sisi",
     "selectRecords": "Pilih rekod",
