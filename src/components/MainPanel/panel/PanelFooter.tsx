@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Zap, Mic, Loader, Wrench, Headphones } from 'lucide-react';
+import { X, Zap, Mic, Loader, Wrench, Headphones, ArrowLeft, ArrowRight, ArrowRightLeft, type LucideIcon } from 'lucide-react';
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
@@ -10,7 +10,7 @@ import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { LanguagePair } from '../../../lib/provider/types';
-import { LanguagePairText, type LanguageArrow } from '../../LanguagePairText/LanguagePairText';
+import { LanguagePairText } from '../../LanguagePairText/LanguagePairText';
 
 export interface PanelFooterProps {
   site: 'basic' | 'advanced';
@@ -142,12 +142,18 @@ function ControlFooter(props: PanelFooterProps) {
   // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`. Otherwise my language stays first, as
   // the pair is chosen, and the arrow points the way the mode translates (owner, 2026-11-18): "Other" translates the other
   // side into mine, "Both" (face to face too) each way.
-  let arrow: LanguageArrow = '→';
-  if (mode === 'participant') arrow = '←';
-  else if (mode === 'both' || faceToFace) arrow = '⇄';
+  let arrow: LucideIcon = ArrowRight;
+  let arrowSaid = t('common.translatedInto', 'translated into');
+  if (mode === 'participant') {
+    arrow = ArrowLeft;
+    arrowSaid = t('common.translatedFrom', 'translated from');
+  } else if (mode === 'both' || faceToFace) {
+    arrow = ArrowRightLeft;
+    arrowSaid = t('common.translatedBothWays', 'translated both ways');
+  }
   let pairShown: ReactNode = null;
   if (pair && pair.source === pair.target) pairShown = label(pair.source);
-  else if (pair) pairShown = <LanguagePairText left={label(pair.source)} arrow={arrow} right={label(pair.target)} />;
+  else if (pair) pairShown = <LanguagePairText left={label(pair.source)} arrow={arrow} label={arrowSaid} right={label(pair.target)} />;
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 

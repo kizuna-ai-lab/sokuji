@@ -15,7 +15,10 @@
     "dismiss": "Avfärda",
     "none": "Ingen",
     "retry": "Försök igen",
-    "topUp": "Fyll på"
+    "topUp": "Fyll på",
+    "translatedInto": "översatt till",
+    "translatedFrom": "översatt från",
+    "translatedBothWays": "översatt åt båda hållen"
   },
   "settings": {
     "title": "Inställningar",

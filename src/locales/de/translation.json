@@ -15,7 +15,10 @@
     "dismiss": "Ausblenden",
     "none": "Keine",
     "retry": "Wiederholen",
-    "topUp": "Aufladen"
+    "topUp": "Aufladen",
+    "translatedInto": "übersetzt nach",
+    "translatedFrom": "übersetzt aus",
+    "translatedBothWays": "in beide Richtungen übersetzt"
   },
   "settings": {
     "title": "Einstellungen",

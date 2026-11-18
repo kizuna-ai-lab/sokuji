@@ -15,7 +15,10 @@
     "dismiss": "닫기",
     "none": "없음",
     "retry": "재시도",
-    "topUp": "충전"
+    "topUp": "충전",
+    "translatedInto": "번역 대상",
+    "translatedFrom": "번역 원본",
+    "translatedBothWays": "양방향 번역"
   },
   "settings": {
     "title": "설정",

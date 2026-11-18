@@ -15,7 +15,10 @@
     "dismiss": "ปิด",
     "none": "ไม่มี",
     "retry": "ลองใหม่",
-    "topUp": "เติมเงิน"
+    "topUp": "เติมเงิน",
+    "translatedInto": "แปลเป็น",
+    "translatedFrom": "แปลจาก",
+    "translatedBothWays": "แปลทั้งสองทาง"
   },
   "settings": {
     "title": "การตั้งค่า",

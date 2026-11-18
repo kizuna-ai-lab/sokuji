@@ -197,7 +197,7 @@ describe('PanelFooter — language pair', () => {
       <PanelFooter {...baseProps(site, { pair: { source: 'ja', target: 'en' }, onLanguages })} />,
     );
     const el = container.querySelector('.language-pair') as HTMLElement;
-    expect(el.textContent).toBe(`${languageLabel('ja', 'en')} → ${languageLabel('en', 'en')}`);
+    expect([...el.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([languageLabel('ja', 'en'), languageLabel('en', 'en')]);
     fireEvent.click(el);
     expect(onLanguages).toHaveBeenCalledTimes(1);
   });
@@ -210,14 +210,15 @@ describe('PanelFooter — language pair', () => {
     const shown = (over: Partial<PanelFooterProps>) => {
       const { container } = render(<PanelFooter {...baseProps(site, { pair: { source: 'ja', target: 'zh' }, ...over })} />);
       const el = container.querySelector('.language-pair') as HTMLElement;
-      const result = { text: el.textContent, icon: el.querySelector('svg.language-pair-text__arrow')?.getAttribute('class') };
+      const icon = [...(el.querySelector('svg.language-pair-text__arrow')?.classList ?? [])].find((c) => c.startsWith('lucide-'));
+      const result = { names: [...el.querySelectorAll('bdi')].map((b) => b.textContent), icon, said: el.querySelector('svg')?.getAttribute('aria-label') };
       cleanup();
       return result;
     };
-    expect(shown({ mode: 'speaker' })).toEqual({ text: `${ja} → ${zh}`, icon: expect.stringContaining('lucide-arrow-right') });
-    expect(shown({ mode: 'participant' })).toEqual({ text: `${ja} ← ${zh}`, icon: expect.stringContaining('lucide-arrow-left') });
-    expect(shown({ mode: 'both' })).toEqual({ text: `${ja} ⇄ ${zh}`, icon: expect.stringContaining('lucide-arrow-right-left') });
-    expect(shown({ mode: 'both', faceToFace: true })).toEqual({ text: `${ja} ⇄ ${zh}`, icon: expect.stringContaining('lucide-arrow-right-left') });
+    expect(shown({ mode: 'speaker' })).toEqual({ names: [ja, zh], icon: 'lucide-arrow-right', said: 'common.translatedInto' });
+    expect(shown({ mode: 'participant' })).toEqual({ names: [ja, zh], icon: 'lucide-arrow-left', said: 'common.translatedFrom' });
+    expect(shown({ mode: 'both' })).toEqual({ names: [ja, zh], icon: 'lucide-arrow-right-left', said: 'common.translatedBothWays' });
+    expect(shown({ mode: 'both', faceToFace: true })).toEqual({ names: [ja, zh], icon: 'lucide-arrow-right-left', said: 'common.translatedBothWays' });
   });
 
   // Owner, 2026-11-19: the arrow is drawn (LanguagePairText), not taken from a font that lacks it; mine stays first in a

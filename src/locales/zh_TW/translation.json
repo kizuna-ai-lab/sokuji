@@ -15,7 +15,10 @@
     "dismiss": "關閉",
     "none": "無",
     "retry": "重試",
-    "topUp": "儲值"
+    "topUp": "儲值",
+    "translatedInto": "譯為",
+    "translatedFrom": "譯自",
+    "translatedBothWays": "互譯"
   },
   "settings": {
     "title": "設定",

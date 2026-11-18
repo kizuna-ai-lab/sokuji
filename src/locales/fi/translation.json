@@ -15,7 +15,10 @@
     "dismiss": "Hylkää",
     "none": "Ei mitään",
     "retry": "Yritä uudelleen",
-    "topUp": "Lataa saldoa"
+    "topUp": "Lataa saldoa",
+    "translatedInto": "käännöksen kohdekieli",
+    "translatedFrom": "käännöksen lähdekieli",
+    "translatedBothWays": "käännös molempiin suuntiin"
   },
   "settings": {
     "title": "Asetukset",

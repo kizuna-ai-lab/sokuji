@@ -115,8 +115,8 @@ describe('the History list', () => {
     // Said as a length: under a day heading the start time is a clock time too.
     expect(within(row).getByText('Length 1:02:03')).toBeInTheDocument();
     // The rows' session translated both sides: each way (languageDirection.ts).
-    expect(row.querySelector('.language-pair-text')).toHaveTextContent('Chinese ⇄ English');
-    expect(row.querySelector('svg.language-pair-text__arrow')).not.toBeNull();
+    expect([...row.querySelectorAll('.language-pair-text bdi')].map((b) => b.textContent)).toEqual(['Chinese', 'English']);
+    expect(within(row).getByRole('img', { name: 'translated both ways' })).toHaveClass('lucide-arrow-right-left');
     expect(within(row).getByText('Transcript')).toBeInTheDocument();
     expect(within(row).getByText('Notes')).toBeInTheDocument();
     expect(within(row).queryByText('Recording')).toBeNull();

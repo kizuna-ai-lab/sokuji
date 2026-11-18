@@ -15,7 +15,10 @@
     "dismiss": "Ketepikan",
     "none": "Tiada",
     "retry": "Cuba lagi",
-    "topUp": "Tambah nilai"
+    "topUp": "Tambah nilai",
+    "translatedInto": "diterjemahkan ke",
+    "translatedFrom": "diterjemahkan daripada",
+    "translatedBothWays": "diterjemahkan dua hala"
   },
   "settings": {
     "title": "Tetapan",

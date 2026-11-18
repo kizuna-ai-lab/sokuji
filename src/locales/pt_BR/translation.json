@@ -15,7 +15,10 @@
     "dismiss": "Dispensar",
     "none": "Nenhum",
     "retry": "Tentar novamente",
-    "topUp": "Recarregar"
+    "topUp": "Recarregar",
+    "translatedInto": "traduzido para",
+    "translatedFrom": "traduzido de",
+    "translatedBothWays": "traduzido nos dois sentidos"
   },
   "settings": {
     "title": "Configurações",

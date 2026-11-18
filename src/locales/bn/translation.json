@@ -15,7 +15,10 @@
     "dismiss": "বন্ধ করুন",
     "none": "কোনোটি নয়",
     "retry": "পুনরায় চেষ্টা করুন",
-    "topUp": "টপ আপ"
+    "topUp": "টপ আপ",
+    "translatedInto": "অনুবাদের লক্ষ্য ভাষা",
+    "translatedFrom": "অনুবাদের উৎস ভাষা",
+    "translatedBothWays": "উভয় দিকে অনুবাদ"
   },
   "settings": {
     "title": "সেটিংস",

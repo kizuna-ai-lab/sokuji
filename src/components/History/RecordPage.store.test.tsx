@@ -139,8 +139,9 @@ describe('an imported record\'s speakers', () => {
     await act(() => store.getState().openRecord(A));
     await settle();
     expect(document.querySelector('.record-page__asked')).toBeNull();
-    expect(document.querySelector('.record-page__head')?.textContent).toContain('English ⇄ Chinese');
-    expect(document.querySelector('.record-page__head svg.language-pair-text__arrow')).not.toBeNull();
+    expect(document.querySelector('.record-page__head')?.textContent).toContain('English');
+    expect([...document.querySelectorAll('.record-page__head .language-pair-text bdi')].map((b) => b.textContent)).toEqual(['English', 'Chinese']);
+    expect(document.querySelector('.record-page__head svg.language-pair-text__arrow')).toHaveClass('lucide-arrow-right-left');
   });
 
   // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.

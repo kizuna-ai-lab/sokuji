@@ -21,14 +21,4 @@ describe("the language pair's arrow", () => {
     expect(arrow).toMatch(/height:\s*1\.2em/);
     expect(arrow).toMatch(/vertical-align:\s*-0\.25em/);
   });
-
-  it('keeps the arrow character for a screen reader without showing it', () => {
-    // Placed within the pair, so its 1px box adds nothing to a scrolling row or footer around it.
-    expect(ruleBody('.language-pair-text')).toMatch(/position:\s*relative/);
-    const said = ruleBody('.language-pair-text__said');
-    expect(said).toMatch(/margin:\s*-1px/);
-    expect(said).toMatch(/position:\s*absolute/);
-    expect(said).toMatch(/clip:\s*rect\(0,? 0,? 0,? 0\)/);
-    expect(said).toMatch(/width:\s*1px/);
-  });
 });

@@ -15,7 +15,10 @@
     "dismiss": "I-dismiss",
     "none": "Wala",
     "retry": "Subukang muli",
-    "topUp": "Mag-top up"
+    "topUp": "Mag-top up",
+    "translatedInto": "isinalin sa",
+    "translatedFrom": "isinalin mula sa",
+    "translatedBothWays": "isinalin sa magkabilang direksyon"
   },
   "settings": {
     "title": "Mga Setting",
