@@ -147,8 +147,8 @@ export interface HistoryPageActions {
   showTranscript(id: number): Promise<void>;
   /** Why an import or a transcription cannot start now, or null. */
   fileJobBlocked(kind: 'import' | 'transcribe'): Promise<FileJobBlock | null>;
-  /** The languages a file can be transcribed in and translated into: the file service's; none without one. */
-  fileLanguages(): Promise<readonly string[]>;
+  /** The languages a file can be transcribed in and translated into: the file service's; none without one; null when the service could not be asked. */
+  fileLanguages(): Promise<readonly string[] | null>;
   /** Imports a file as a new record, transcribed as `options` say: one job at a time. */
   importFile(file: File, o: { options: FileTranscriptionOptions; myLanguage: string }): Promise<void>;
   /** Transcribes the open record (again) as `options` say: a new transcript, shown once made. */
@@ -525,7 +525,7 @@ export function createHistoryPageStore(
           const service = await files.service();
           return 'missing' in service ? [] : service.languages ?? [];
         } catch {
-          return [];
+          return null;
         }
       },
 

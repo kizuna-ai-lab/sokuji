@@ -129,16 +129,19 @@ function useBlocked(kind: 'import' | 'transcribe'): { known: boolean; blocked: F
   return state;
 }
 
-/** The languages the file service transcribes in and translates into, once known. */
-function useFileLanguages(): readonly string[] {
+/**
+ * The languages the file service transcribes in and translates into, once known; `unchecked` when the service could
+ * not be asked for them (the panel then says so, as when it could not be checked at all).
+ */
+function useFileLanguages(): { offered: readonly string[]; unchecked: boolean } {
   const { store } = useHistoryPageContext();
-  const [languages, setLanguages] = useState<readonly string[]>([]);
+  const [languages, setLanguages] = useState<readonly string[] | null>([]);
   useEffect(() => {
     let live = true;
     void store.getState().fileLanguages().then((l) => { if (live) setLanguages(l); });
     return () => { live = false; };
   }, [store]);
-  return languages;
+  return { offered: languages ?? [], unchecked: languages === null };
 }
 
 const SEPARATOR = '──────────';
@@ -237,9 +240,11 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
   const { t } = useTranslation();
   const { store } = useHistoryPageContext();
   const texts = useFileTexts();
-  const { known, blocked } = useBlocked('import');
+  const checked = useBlocked('import');
   const panel = usePanel(onClose);
-  const offered = useFileLanguages();
+  const { offered, unchecked } = useFileLanguages();
+  const { known } = checked;
+  const blocked = checked.blocked ?? (unchecked ? 'unchecked' : null);
   const [chosen, setChosen] = useState(() => importOptions(myLanguage));
   // As the service can take them: "automatic" or a language it does not have is never sent.
   const options = fitOptions(chosen, offered, myLanguage, false);
@@ -267,9 +272,11 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
   const { store } = useHistoryPageContext();
   const open = useStore(store, (s) => s.open);
   const texts = useFileTexts();
-  const { known, blocked } = useBlocked('transcribe');
+  const checked = useBlocked('transcribe');
   const panel = usePanel(onClose);
-  const offered = useFileLanguages();
+  const { offered, unchecked } = useFileLanguages();
+  const { known } = checked;
+  const blocked = checked.blocked ?? (unchecked ? 'unchecked' : null);
   // Chosen here for the record open, or else what the record was last transcribed with (or its languages).
   const [chosen, setChosen] = useState<{ recordId: string; options: FileTranscriptionOptions } | null>(null);
   if (!open) return null;

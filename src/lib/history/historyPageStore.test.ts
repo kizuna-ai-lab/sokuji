@@ -566,6 +566,11 @@ describe('transcripts and file jobs', () => {
     expect(await store.getState().fileLanguages()).toEqual([]);
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, null);
     expect(await store.getState().fileLanguages()).toEqual([]);
+    // Asked and not answered: said apart from "none", so the panel can tell the service was not checked.
+    const failing = fakeJobs();
+    failing.jobs.service.mockRejectedValueOnce(new Error('The key store could not be read'));
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, failing.jobs as never);
+    expect(await store.getState().fileLanguages()).toBeNull();
   });
 
   it('imports one file at a time, shows its phase, then lists it and writes its notes', async () => {

@@ -117,6 +117,20 @@ describe('importing a file', () => {
 
   // B-35 (owner, 2026-11-17): only the reason and what to do, then a link to the setting to change; the line that
   // names the service only when the service can do it.
+  it('says the service could not be checked when its languages could not be read, and cannot be started', async () => {
+    const { jobs } = fakeJobs();
+    // The check that the import can start answers; asking the service for its languages then fails.
+    const service = jobs.service as ReturnType<typeof vi.fn>;
+    service.mockImplementationOnce(async () => ({ service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'zh'] }))
+      .mockRejectedValueOnce(new Error('The key store could not be read'));
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('The transcription service could not be checked. Close this and try again.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
+  });
+
   it('says why it cannot start and what to do, links to the setting, and cannot be started', async () => {
     for (const [o, text, link, target, serviceLine] of [
       [{ missing: 'no-file-service' }, 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.', 'Open Languages and line-up', 'lineup', false],
@@ -313,7 +327,8 @@ describe('transcribing a record again', () => {
     expect([...into.options].map((o) => o.value)).not.toContain('each-side');
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();
-    expect(vi.mocked(jobs.transcribe).mock.calls.at(-1)![0].options.translateTo).not.toBe('each-side');
+    const calls = vi.mocked(jobs.transcribe).mock.calls;
+    expect(calls[calls.length - 1][0].options.translateTo).not.toBe('each-side');
   });
 
   it('a session that said "automatic" starts from languages the service has', async () => {

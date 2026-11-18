@@ -71,12 +71,17 @@ test('@real a Japanese file imported through Soniox is transcribed and translate
     await page.locator('.history-list [data-record] .history-row__open').first().click();
     const transcript = page.locator('.record-page__transcript');
     await expect(transcript.locator('.record-row').first()).toBeVisible();
-    const said = (await transcript.locator('.record-row__text, .record-row p:not(.record-row__translation)').allInnerTexts()).join('\n');
-    const translated = (await transcript.locator('.record-row__translation').allInnerTexts()).join('\n');
-    test.info().annotations.push({ type: 'heard', description: said }, { type: 'translated', description: translated });
+    // Each row: what was heard, and the translation under it. A sentence's translation must be in its own row (rows
+    // may hold more than one sentence), so two rows' translations swapped do not pass.
+    const rows = await transcript.locator('.record-row').evaluateAll((els) => els.map((el) => ({
+      heard: el.querySelector('.record-row__text')?.textContent ?? '',
+      translated: el.querySelector('.record-row__translation')?.textContent ?? '',
+    })));
+    test.info().annotations.push({ type: 'rows', description: rows.map((r) => `${r.heard} → ${r.translated}`).join('\n') });
     for (const s of SENTENCES) {
-      expect(said, s.file).toMatch(s.heard);
-      expect(translated, s.file).toMatch(s.said);
+      const row = rows.find((r) => s.heard.test(r.heard));
+      expect(row, `${s.file}: heard`).toBeTruthy();
+      expect(row!.translated, `${s.file}: translated in its own row`).toMatch(s.said);
     }
     expect(sokuji.errors).toEqual([]);
   } finally {
