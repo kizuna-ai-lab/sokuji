@@ -349,7 +349,7 @@ test('with a transcription service that does not transcribe files, an import can
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await page.locator('input[type="file"][accept="audio/*,video/*"]').setInputFiles(path.join(FIXTURES, 'sample.wav'));
   const panel = page.getByRole('dialog', { name: 'Import “sample.wav”' });
-  await expect(panel).toContainText('Files are transcribed only by Soniox with your own key.');
+  await expect(panel).toContainText('Files are transcribed only by Soniox. Choose it for transcription in the line-up.');
   await expect(panel.getByRole('button', { name: 'Start' })).toBeDisabled();
   expect(sokuji.errors).toEqual([]);
 });
