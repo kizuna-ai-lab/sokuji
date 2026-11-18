@@ -218,7 +218,7 @@ export const FileOptionsFields: React.FC<FileOptionsFieldsProps> = ({ value, onC
       <label className="history-file__field">
         <span>{t('history.file.translateInto', 'Translate into')}</span>
         <select className="select-dropdown" value={value.translateTo} onChange={(e) => onChange({ ...value, translateTo: e.target.value })}>
-          {eachSide && <option value={EACH_SIDE}>{t('history.file.eachSide', 'Each side into the other’s language, as in the session')}</option>}
+          {eachSide && <option value={EACH_SIDE}>{t('history.file.eachSide', 'Each side into the other’s language')}</option>}
           {choices(all)}
         </select>
       </label>

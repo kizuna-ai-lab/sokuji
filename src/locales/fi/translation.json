@@ -2151,7 +2151,7 @@
       "addLanguage": "Lisää toinen kieli",
       "removeLanguage": "Poista {{language}}",
       "translateInto": "Käännä kielelle",
-      "eachSide": "Kumpikin puoli toisen kielelle, kuten istunnossa",
+      "eachSide": "Kumpikin puoli toisen kielelle",
       "asked": "Pääkieli: {{main}} · Käännetty kielelle: {{target}}",
       "askedEachSide": "Pääkieli: {{main}} · Kumpikin puoli käännetty toisen kielelle"
     },

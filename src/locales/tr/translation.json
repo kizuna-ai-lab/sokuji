@@ -2151,7 +2151,7 @@
       "addLanguage": "Başka bir dil ekle",
       "removeLanguage": "{{language}} dilini kaldır",
       "translateInto": "Çeviri dili",
-      "eachSide": "Her taraf diğerinin diline, oturumdaki gibi",
+      "eachSide": "Her taraf diğerinin diline",
       "asked": "Ana dil: {{main}} · Çeviri dili: {{target}}",
       "askedEachSide": "Ana dil: {{main}} · Her taraf diğerinin diline çevrildi"
     },

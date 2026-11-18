@@ -2151,7 +2151,7 @@
       "addLanguage": "הוספת שפה נוספת",
       "removeLanguage": "הסרת {{language}}",
       "translateInto": "שפת התרגום",
-      "eachSide": "כל צד לשפה של הצד השני, כמו בהפעלה",
+      "eachSide": "כל צד לשפה של הצד השני",
       "asked": "השפה העיקרית: {{main}} · שפת התרגום: {{target}}",
       "askedEachSide": "השפה העיקרית: {{main}} · כל צד תורגם לשפה של הצד השני"
     },

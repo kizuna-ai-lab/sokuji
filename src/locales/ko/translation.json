@@ -2151,7 +2151,7 @@
       "addLanguage": "다른 언어 추가",
       "removeLanguage": "{{language}} 빼기",
       "translateInto": "번역 언어",
-      "eachSide": "각자 상대방 언어로 (세션과 같이)",
+      "eachSide": "각자 상대방 언어로",
       "asked": "주 언어: {{main}} · 번역 언어: {{target}}",
       "askedEachSide": "주 언어: {{main}} · 각자 상대방 언어로 번역"
     },

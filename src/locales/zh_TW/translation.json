@@ -2151,7 +2151,7 @@
       "addLanguage": "新增其他語言",
       "removeLanguage": "移除{{language}}",
       "translateInto": "翻譯成",
-      "eachSide": "各自譯成對方的語言（和工作階段時一樣）",
+      "eachSide": "各自譯成對方語言",
       "asked": "主要語言：{{main}} · 譯為：{{target}}",
       "askedEachSide": "主要語言：{{main}} · 各自譯成對方的語言"
     },

@@ -2151,7 +2151,7 @@
       "addLanguage": "Magdagdag ng isa pang wika",
       "removeLanguage": "Alisin ang {{language}}",
       "translateInto": "Isalin sa",
-      "eachSide": "Bawat panig sa wika ng kabila, gaya sa session",
+      "eachSide": "Bawat panig sa wika ng kabila",
       "asked": "Pangunahing wika: {{main}} · Isinalin sa: {{target}}",
       "askedEachSide": "Pangunahing wika: {{main}} · Isinalin ang bawat panig sa wika ng kabila"
     },

@@ -2151,7 +2151,7 @@
       "addLanguage": "افزودن زبان دیگر",
       "removeLanguage": "حذف {{language}}",
       "translateInto": "ترجمه به",
-      "eachSide": "هر طرف به زبان طرف دیگر، مانند جلسه",
+      "eachSide": "هر طرف به زبان طرف دیگر",
       "asked": "زبان اصلی: {{main}} · ترجمه به: {{target}}",
       "askedEachSide": "زبان اصلی: {{main}} · هر طرف به زبان طرف دیگر ترجمه شده"
     },

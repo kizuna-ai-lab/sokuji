@@ -2151,7 +2151,7 @@
       "addLanguage": "添加其他语言",
       "removeLanguage": "移除{{language}}",
       "translateInto": "翻译成",
-      "eachSide": "各自译成对方的语言（和会话时一样）",
+      "eachSide": "各自译成对方语言",
       "asked": "主要语言：{{main}} · 译为：{{target}}",
       "askedEachSide": "主要语言：{{main}} · 各自译成对方的语言"
     },

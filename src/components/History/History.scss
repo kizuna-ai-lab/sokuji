@@ -892,6 +892,16 @@
 
   &__blocked { color: vars.$color-error; }
 
+  // Open, the lists keep the scale of the settings page's language lists and the player's speed list: 30px rows of
+  // 12.5px text; the line between the likely languages and the rest stays a thin rule.
+  @supports (appearance: base-select) {
+    &__field .select-dropdown {
+      &::picker(select) { padding: 4px; }
+      option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
+      option[value='__pin-separator__'] { height: 1px; min-height: 0; padding: 0; }
+    }
+  }
+
   // The other languages chosen: one tag each, with its own way out; the "add" dropdown under them.
   &__languages {
     display: flex;

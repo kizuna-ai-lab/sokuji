@@ -2151,7 +2151,7 @@
       "addLanguage": "Thêm ngôn ngữ khác",
       "removeLanguage": "Bỏ {{language}}",
       "translateInto": "Dịch sang",
-      "eachSide": "Mỗi bên sang ngôn ngữ của bên kia, như trong phiên",
+      "eachSide": "Mỗi bên sang ngôn ngữ của bên kia",
       "asked": "Ngôn ngữ chính: {{main}} · Dịch sang: {{target}}",
       "askedEachSide": "Ngôn ngữ chính: {{main}} · Mỗi bên được dịch sang ngôn ngữ của bên kia"
     },

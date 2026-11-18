@@ -289,7 +289,7 @@ describe('transcribing a record again', () => {
     await settle();
     const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
     expect(into.value).toBe('each-side');
-    expect(into.options[0].textContent).toBe('Each side into the other’s language, as in the session');
+    expect(into.options[0].textContent).toBe('Each side into the other’s language');
     expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('ja');
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();

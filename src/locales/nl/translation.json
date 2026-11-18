@@ -2151,7 +2151,7 @@
       "addLanguage": "Nog een taal toevoegen",
       "removeLanguage": "{{language}} verwijderen",
       "translateInto": "Vertalen naar",
-      "eachSide": "Elke kant naar de taal van de ander, zoals in de sessie",
+      "eachSide": "Elke kant naar de taal van de ander",
       "asked": "Hoofdtaal: {{main}} · Vertaald naar: {{target}}",
       "askedEachSide": "Hoofdtaal: {{main}} · Elke kant vertaald naar de taal van de ander"
     },

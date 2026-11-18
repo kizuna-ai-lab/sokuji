@@ -2151,7 +2151,7 @@
       "addLanguage": "Tambah bahasa lain",
       "removeLanguage": "Buang {{language}}",
       "translateInto": "Terjemah ke",
-      "eachSide": "Setiap pihak ke bahasa pihak lain, seperti dalam sesi",
+      "eachSide": "Setiap pihak ke bahasa pihak lain",
       "asked": "Bahasa utama: {{main}} · Diterjemah ke: {{target}}",
       "askedEachSide": "Bahasa utama: {{main}} · Setiap pihak diterjemah ke bahasa pihak lain"
     },

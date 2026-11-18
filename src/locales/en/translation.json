@@ -2151,7 +2151,7 @@
       "addLanguage": "Add another language",
       "removeLanguage": "Remove {{language}}",
       "translateInto": "Translate into",
-      "eachSide": "Each side into the other’s language, as in the session",
+      "eachSide": "Each side into the other’s language",
       "asked": "Main language: {{main}} · Translated into: {{target}}",
       "askedEachSide": "Main language: {{main}} · Each side translated into the other’s language"
     },
