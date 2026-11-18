@@ -47,9 +47,10 @@ const head = (page: Page) => page.evaluate(() => {
 type Box = { left: number; right: number; top: number; bottom: number };
 const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
-/** The record page's buttons: one height, set evenly apart, an icon alone centred; none cut, none off the window. */
+/** The record page's buttons: one height, set evenly apart, an icon alone centred; none cut, none off the window. Export
+ *  and More at least: on a page too narrow for two columns the panels are tabs, and their switches give way (#792). */
 function expectEvenButtons(layout: Awaited<ReturnType<typeof head>>) {
-  expect(layout.buttons.length).toBeGreaterThanOrEqual(3);
+  expect(layout.buttons.length).toBeGreaterThanOrEqual(2);
   for (const b of layout.buttons) {
     expect(b.height).toBeCloseTo(30, 0);
     expect(b.cut).toBe(false);
@@ -140,17 +141,17 @@ test('a History row lights up as a whole, under the pointer and from the keyboar
   expect(sokuji.errors).toEqual([]);
 });
 
-// The side panel is open at first; closed, it stays closed for the next record and after a restart. The notes column's
-// divider drags between 240 px and 60 % of the window.
-test('the side panel stays as it was left, and the notes column drags between its limits', async ({ launchApp }) => {
+// The edit panel (named "Edit" since #792) is open at first; closed, it stays closed for the next record and after a
+// restart. The notes column's divider drags between 240 px and 60 % of the window.
+test('the edit panel stays as it was left, and the notes column drags between its limits', async ({ launchApp }) => {
   const userData = twoRecords();
   const first = await launchApp({ userData, seed: { storage: storage() } });
   const { page, app } = first;
   await widthTo(app, page, 1200);
   await openHistory(page);
   await openRow(page, 0);
-  const panel = page.getByRole('complementary', { name: 'Side panel' });
-  const sideSwitch = page.getByRole('button', { name: 'Side panel' });
+  const panel = page.getByRole('complementary', { name: 'Edit', exact: true });
+  const sideSwitch = page.getByRole('button', { name: 'Edit', exact: true });
   await expect(panel).toBeVisible();
   await expect(sideSwitch).toHaveAttribute('aria-pressed', 'true');
   await sideSwitch.click();
@@ -166,7 +167,7 @@ test('the side panel stays as it was left, and the notes column drags between it
   await expect(panel).toBeHidden();
 
   // The notes column's divider: as far as it goes each way.
-  const divider = page.getByRole('separator', { name: 'Resize panel' });
+  const divider = page.getByRole('separator', { name: 'Resize the notes' });
   const notesWidth = () => page.locator('.record-page__notes-col').evaluate((el) => el.getBoundingClientRect().width);
   const drag = async (dx: number) => {
     const b = (await divider.boundingBox())!;
@@ -184,11 +185,11 @@ test('the side panel stays as it was left, and the notes column drags between it
   expect(first.errors).toEqual([]);
   await first.close();
 
-  // After a restart: the side panel still closed.
+  // After a restart: the edit panel still closed.
   const again = await launchApp({ userData });
   await openHistory(again.page);
   await openRow(again.page, 0);
-  await expect(again.page.getByRole('button', { name: 'Side panel' })).toHaveAttribute('aria-pressed', 'false');
-  await expect(again.page.getByRole('complementary', { name: 'Side panel' })).toBeHidden();
+  await expect(again.page.getByRole('button', { name: 'Edit', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(again.page.getByRole('complementary', { name: 'Edit', exact: true })).toBeHidden();
   expect(again.errors).toEqual([]);
 });

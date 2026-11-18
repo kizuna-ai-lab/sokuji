@@ -245,7 +245,7 @@ test('a record transcribed again shows the new transcript, keeps the old one, an
   await importFile(page, 'sample.wav', { translateTo: 'zh' });
   await importEnded(page);
   await page.locator('.history-list [data-record]').first().locator('.history-row__open').click();
-  const drawer = page.getByRole('complementary', { name: 'Side panel' });
+  const drawer = page.getByRole('complementary', { name: 'Edit', exact: true });
   const transcript = page.locator('.record-page__transcript');
   await drawer.getByRole('button', { name: 'Rename Speaker 1' }).click();
   await drawer.getByRole('textbox', { name: 'Name' }).fill('Mina');
