@@ -430,12 +430,13 @@ export async function syncDistinctIdToBackground(posthogInstance?: any): Promise
       type: 'UPDATE_UNINSTALL_URL',
       distinct_id: distinctId
     }, (response: any) => {
-      if ((window as any).chrome.runtime.lastError) {
-        console.error('[Sokuji] [Analytics] Error syncing distinct_id to background:', (window as any).chrome.runtime.lastError);
+      const lastError = (window as any).chrome.runtime.lastError;
+      if (lastError) {
+        reportWarning('Analytics', `Failed to sync the analytics identity to the background: ${describeCause(lastError)}`, { cause: lastError, dedupeKey: 'analytics.syncDistinctId' });
       }
     });
   } catch (error) {
-    console.error('[Sokuji] [Analytics] Error syncing distinct_id to background:', error);
+    reportWarning('Analytics', `Failed to sync the analytics identity to the background: ${describeCause(error)}`, { cause: error, dedupeKey: 'analytics.syncDistinctId' });
   }
 }
 
@@ -478,7 +479,8 @@ export function useAnalytics() {
         }, 100);
       }
     } catch (error) {
-      console.error('[Sokuji] [Analytics] Analytics tracking error:', error);
+      // Every event passes through here, so a broken client would fail on each one.
+      reportWarning('Analytics', `Failed to track an analytics event: ${describeCause(error)}`, { cause: error, dedupeKey: 'analytics.trackEvent' });
     }
   };
 
@@ -500,7 +502,7 @@ export function useAnalytics() {
         }, 100);
       }
     } catch (error) {
-      console.error('[Sokuji] [Analytics] User identification error:', error);
+      reportWarning('Analytics', `Failed to identify the user for analytics: ${describeCause(error)}`, { cause: error });
     }
   };
 
@@ -542,7 +544,7 @@ export function useAnalytics() {
         posthog.identify(posthog.getDistinctId(), { $set: sanitizedProperties });
       }
     } catch (error) {
-      console.error('[Sokuji] [Analytics] Set user properties error:', error);
+      reportWarning('Analytics', `Failed to set analytics user properties: ${describeCause(error)}`, { cause: error });
     }
   };
 
@@ -573,7 +575,7 @@ export function useAnalytics() {
       }
       return null;
     } catch (error) {
-      console.error('[Sokuji] [Analytics] Error getting distinct_id:', error);
+      reportWarning('Analytics', `Failed to read the analytics identity: ${describeCause(error)}`, { cause: error });
       return null;
     }
   };

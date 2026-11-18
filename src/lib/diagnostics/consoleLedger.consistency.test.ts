@@ -199,7 +199,6 @@ const LEDGER: Record<string, number> = {
   // --- Later, under the ledger: src/lib (audio pipeline and helpers) ---
   'src/lib/modern-audio/AppAudioRecorder.ts': 9,
   'src/lib/modern-audio/ModernAudioRecorder.ts': 8,
-  'src/lib/analytics.ts': 6,
   'src/lib/modern-audio/LoopbackRecorder.ts': 3,
   'src/lib/modern-audio/BaseAudioRecorder.ts': 2,
   'src/lib/modern-audio/TabAudioRecorder.ts': 2,
