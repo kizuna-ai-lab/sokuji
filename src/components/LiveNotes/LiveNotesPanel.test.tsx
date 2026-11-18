@@ -398,6 +398,11 @@ describe('the live notes panel', () => {
   describe('its height, above the conversation in a narrow window', () => {
     let column = 600;
     let tall = 150;
+    let watchers: Array<() => void> = [];
+    /** The area grows or shrinks (the window resized), as a ResizeObserver tells it. */
+    const resizeColumn = (px: number) => { column = px; act(() => watchers.forEach((tell) => tell())); };
+    const press = (divider: Element, type: string, clientY: number, target: EventTarget = window) =>
+      (type === 'pointerdown' ? divider : target).dispatchEvent(Object.assign(new MouseEvent(type, { bubbles: true, clientY, button: 0 }), { pointerType: 'mouse' }));
     function renderStacked(columnPx = 600, tallPx = 150) {
       column = columnPx;
       tall = tallPx;
@@ -407,6 +412,12 @@ describe('the live notes panel', () => {
       });
       vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
         return this.classList.contains('live-notes') ? tall : 0;
+      });
+      watchers = [];
+      vi.stubGlobal('ResizeObserver', class {
+        constructor(private readonly told: () => void) { watchers.push(() => this.told()); }
+        observe() {}
+        disconnect() {}
       });
       return render(<div className="conversation-area"><div className="conversation-column" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
     }
@@ -462,6 +473,36 @@ describe('the live notes panel', () => {
       window.dispatchEvent(new MouseEvent('pointerup', { clientY: 300 }));
       expect(aside()).not.toHaveClass('live-notes--sized');
       expect(localStorage.getItem('liveNotes.height')).toBeNull();
+    });
+
+    // Review (PR #789): from notes shorter than the least height, a key that makes them taller gives them the least.
+    it('from notes shorter than the least height, ArrowDown gives them the least, and ArrowUp changes nothing', () => {
+      renderStacked(600, 50);
+      fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowUp' });
+      expect(localStorage.getItem('liveNotes.height')).toBeNull();
+      fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowDown' });
+      expect(localStorage.getItem('liveNotes.height')).toBe('80');
+      expect(aside().style.getPropertyValue('--live-notes-height')).toBe('80px');
+    });
+
+    // Review (PR #789): a release where the drag began is a click, whatever the window did meanwhile.
+    it('a release where the drag began keeps the height kept from a taller window, even if the window grew meanwhile', () => {
+      localStorage.setItem('liveNotes.height', '700');
+      renderStacked(600);
+      const divider = screen.getByRole('separator');
+      expect(divider).toHaveAttribute('aria-valuenow', '479');
+      press(divider, 'pointerdown', 300);
+      resizeColumn(900);
+      press(divider, 'pointerup', 300);
+      expect(localStorage.getItem('liveNotes.height')).toBe('700');
+      expect(aside().style.getPropertyValue('--live-notes-height')).toBe('700px');
+    });
+
+    it('a key at the limit keeps the height kept from a taller window', () => {
+      localStorage.setItem('liveNotes.height', '700');
+      renderStacked(600);
+      fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowDown' });
+      expect(localStorage.getItem('liveNotes.height')).toBe('700');
     });
 
     it('alone in the area, or hidden, has no divider', () => {

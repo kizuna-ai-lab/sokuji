@@ -8,8 +8,11 @@ interface PanelResizerProps {
   max: number;
   /** Live updates during drag / keypress. Caller clamps. */
   onResize: (next: number) => void;
-  /** On pointerup / keypress. Caller clamps + persists. */
-  onCommit: (next: number) => void;
+  /**
+   * On pointerup / keypress. Caller clamps + persists. `from` is the size the gesture started from (the `width` at
+   * pointerdown, or at the key), so a release where it began (a click) can be told from a change.
+   */
+  onCommit: (next: number, from: number) => void;
   /** Which side of the seam the panel is on: 'right' (the default) widens when dragged left, 'left' when dragged right. */
   side?: 'left' | 'right';
   /**
@@ -57,7 +60,7 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
       drag.current = null;
       cleanupRef.current = null;
     }
-    const onUp = (ev: PointerEvent) => { onCommit(widthFrom(at(ev))); teardown(); };
+    const onUp = (ev: PointerEvent) => { onCommit(widthFrom(at(ev)), start.startWidth); teardown(); };
     const onCancelled = () => { teardown(); onCancel?.(); };
 
     window.addEventListener('pointermove', onMove);
@@ -79,7 +82,7 @@ const PanelResizer: React.FC<PanelResizerProps> = ({ width, min, max, onResize, 
     if (next !== null) {
       e.preventDefault();
       onResize(next);
-      onCommit(next);
+      onCommit(next, width);
     }
   }, [width, onResize, onCommit, side, axis]);
 

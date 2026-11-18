@@ -36,7 +36,7 @@ describe('PanelResizer', () => {
     render(<PanelResizer {...base} onResize={onResize} onCommit={onCommit} />);
     fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowLeft' });
     expect(onResize).toHaveBeenCalledWith(466);
-    expect(onCommit).toHaveBeenCalledWith(466);
+    expect(onCommit).toHaveBeenCalledWith(466, 450);
   });
 
   it('ArrowRight narrows by 16 (resize + commit)', () => {
@@ -44,16 +44,16 @@ describe('PanelResizer', () => {
     render(<PanelResizer {...base} onResize={onResize} onCommit={onCommit} />);
     fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowRight' });
     expect(onResize).toHaveBeenCalledWith(434);
-    expect(onCommit).toHaveBeenCalledWith(434);
+    expect(onCommit).toHaveBeenCalledWith(434, 450);
   });
 
   it('for a panel on the left (side="left"), ArrowRight widens and ArrowLeft narrows', () => {
     const onResize = vi.fn(); const onCommit = vi.fn();
     render(<PanelResizer {...base} side="left" onResize={onResize} onCommit={onCommit} />);
     fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowRight' });
-    expect(onCommit).toHaveBeenLastCalledWith(466);
+    expect(onCommit).toHaveBeenLastCalledWith(466, 450);
     fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowLeft' });
-    expect(onCommit).toHaveBeenLastCalledWith(434);
+    expect(onCommit).toHaveBeenLastCalledWith(434, 450);
   });
 
   it('for a panel on the left, dragging right widens it', () => {
@@ -64,7 +64,19 @@ describe('PanelResizer', () => {
     window.dispatchEvent(new MouseEvent('pointermove', { clientX: 560 }));
     expect(onResize).toHaveBeenLastCalledWith(510);
     window.dispatchEvent(new MouseEvent('pointerup', { clientX: 580 }));
-    expect(onCommit).toHaveBeenLastCalledWith(530);
+    expect(onCommit).toHaveBeenLastCalledWith(530, 450);
+  });
+
+  // Review (PR #789): a commit says where its gesture started, so the caller can tell a click from a change.
+  it('commits with the size the gesture started from, for a drag and for a key', () => {
+    const onCommit = vi.fn();
+    render(<PanelResizer {...base} onResize={() => {}} onCommit={onCommit} />);
+    const sep = screen.getByRole('separator');
+    sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 500, button: 0 }), { pointerType: 'mouse' }));
+    window.dispatchEvent(new MouseEvent('pointerup', { clientX: 500 }));
+    expect(onCommit).toHaveBeenLastCalledWith(450, 450);
+    fireEvent.keyDown(sep, { key: 'ArrowLeft' });
+    expect(onCommit).toHaveBeenLastCalledWith(466, 450);
   });
 
   // Owner, 2026-11-19: a seam between rows (the live notes above the conversation in a narrow window).
@@ -86,7 +98,7 @@ describe('PanelResizer', () => {
       window.dispatchEvent(new MouseEvent('pointermove', { clientX: 900, clientY: 340 }));
       expect(onResize).toHaveBeenLastCalledWith(490);
       window.dispatchEvent(new MouseEvent('pointerup', { clientX: 900, clientY: 280 }));
-      expect(onCommit).toHaveBeenLastCalledWith(430);
+      expect(onCommit).toHaveBeenLastCalledWith(430, 450);
       expect(document.body.classList.contains('is-resizing-rows')).toBe(false);
     });
 
@@ -95,9 +107,9 @@ describe('PanelResizer', () => {
       render(<PanelResizer {...base} axis="y" side="left" onResize={() => {}} onCommit={onCommit} />);
       const sep = screen.getByRole('separator');
       fireEvent.keyDown(sep, { key: 'ArrowDown' });
-      expect(onCommit).toHaveBeenLastCalledWith(466);
+      expect(onCommit).toHaveBeenLastCalledWith(466, 450);
       fireEvent.keyDown(sep, { key: 'ArrowUp' });
-      expect(onCommit).toHaveBeenLastCalledWith(434);
+      expect(onCommit).toHaveBeenLastCalledWith(434, 450);
       fireEvent.keyDown(sep, { key: 'ArrowLeft' });
       expect(onCommit).toHaveBeenCalledTimes(2);
     });

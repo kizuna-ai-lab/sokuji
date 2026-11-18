@@ -155,13 +155,15 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
         label={t('liveNotes.resize', 'Resize live notes')}
         onResize={setPreviewHeight}
         onCancel={() => setPreviewHeight(null)}
-        onCommit={(next) => {
+        onCommit={(next, from) => {
           setPreviewHeight(null);
           const fitted = liveNotesHeightWithin(next, columnNow.current);
-          // Ending where they already were (a click, a key at the limit, a drag back) changes nothing: a height never
-          // dragged stays unset, and one kept from a taller window stays, for when there is room again.
-          const was = liveNotesHeightWithin(keptHeight ?? tall, columnNow.current);
-          if (fitted === was) return;
+          // Only a change the way it was asked for is kept (review, PR #789), judged from the height the gesture began
+          // at: a release where it began (a click, a drag back), or a key at the limit, changes nothing, so a height
+          // never dragged stays unset and one kept from a taller window stays, for when there is room again, whatever
+          // the window did meanwhile. From notes shorter than the least, a step taller gives them the least.
+          const asked = Math.sign(next - from);
+          if (asked === 0 || Math.sign(fitted - from) !== asked) return;
           setKeptHeight(fitted);
           writeLiveNotesHeight(fitted);
         }}
