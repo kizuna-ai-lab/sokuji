@@ -54,6 +54,30 @@ describe('kizunaSonioxProvider', () => {
       expect(kizunaSonioxProvider[member], member).toBe(sonioxProvider[member]);
     }
     expect(kizunaSonioxProvider.session!.startBoth).toBe(sonioxProvider.session!.startBoth);
+    // Its file recognition is its own, never the base's: Soniox's needs the user's key, which the twin does not have.
+    expect(kizunaSonioxProvider.fileRecognition).toBeTypeOf('function');
+    expect(kizunaSonioxProvider.fileRecognition).not.toBe(sonioxProvider.fileRecognition);
+  });
+
+  it('transcribes a file through the Kizuna AI service, in the region its settings name, with the sign-in and no key', () => {
+    const words = { entries: [{ written: 'Sokuji' }, { written: 'Kizuna', translation: '絆' }], background: 'A weekly meeting.' };
+    const settings = { ...SONIOX_DEFAULTS, region: 'jp' as const };
+    const spec = kizunaSonioxProvider.fileRecognition!(settings, {} as never, words);
+    const own = sonioxProvider.fileRecognition!(settings, { apiKeyJp: 'sk-jp' } as never, words);
+    if ('missing' in spec || 'missing' in own) throw new Error('no spec');
+    // Soniox's own languages, codes and word list: the same definition, not a copy.
+    expect(spec).toEqual({
+      service: 'kizunaai_soniox', hosted: true, region: 'jp', languageHint: own.languageHint, languages: own.languages, context: own.context,
+    });
+    expect(spec).not.toHaveProperty('apiKey');
+    expect(spec.context).toEqual({ terms: ['Sokuji', 'Kizuna'], translation_terms: [{ source: 'Kizuna', target: '絆' }], text: 'A weekly meeting.' });
+    // The app's codes as Soniox writes them, as with the user's own key.
+    expect(spec.languageHint?.('fil')).toBe('tl');
+    expect(spec.languageHint?.('auto')).toBeNull();
+    // No word list, no context; a region it does not know is Soniox's default.
+    const plain = kizunaSonioxProvider.fileRecognition!({ ...SONIOX_DEFAULTS, region: 'mars' as never }, {} as never, { entries: [], background: '' });
+    expect(plain).not.toHaveProperty('context');
+    expect(plain).toMatchObject({ service: 'kizunaai_soniox', hosted: true, region: 'us' });
   });
 
   it('adds the voice claim, the lease and the floor', () => {

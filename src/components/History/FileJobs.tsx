@@ -34,21 +34,22 @@ function useFileTexts() {
   return useMemo(() => {
     const blocks: Record<FileJobBlock | 'no-recording', string> = {
       'no-file-service': t('history.file.blockedNotSoniox', 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.'),
-      'hosted-soniox': t('history.file.blockedHostedSoniox', 'Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.'),
       'no-key': t('history.file.blockedNoKey', 'Your Soniox key is not filled in yet.'),
+      'sign-in': t('history.file.blockedSignIn', 'Sign in to Kizuna AI to transcribe files with it.'),
       session: t('history.file.blockedSession', 'Available when no session is running.'),
       busy: t('history.file.blockedBusy', 'Another import or transcription is running.'),
       unchecked: t('history.file.blockedUnchecked', 'The transcription service could not be checked. Close this and try again.'),
       'no-recording': t('history.file.blockedNoRecording', 'This record keeps no recording.'),
     };
-    // What to change, as a link to it in Settings (owner, 2026-11-17; B-35): the line-up, or the key.
+    // What to change, as a link to it in Settings (owner, 2026-11-17; B-35): the line-up, the key, or the sign-in.
     const open = (category: 'lineup' | 'accounts', fallback: string) =>
       t('history.file.openSettings', 'Open {{place}}', { place: t(`settingsPage.categories.${category}`, fallback) });
     const fixes: Partial<Record<FileJobBlock, { label: string; target: string }>> = {
       'no-file-service': { label: open('lineup', 'Languages and line-up'), target: 'lineup' },
-      'hosted-soniox': { label: open('lineup', 'Languages and line-up'), target: 'lineup' },
       // Soniox's own key: its row, not the row of the provider the session runs on.
       'no-key': { label: open('accounts', 'Accounts and keys'), target: providerTarget('soniox') },
+      // Kizuna AI's sign-in: the account's row.
+      'sign-in': { label: open('accounts', 'Accounts and keys'), target: 'user-account' },
     };
     const phases: Record<string, string> = {
       reading: t('history.file.phase.reading', 'Reading the file'),

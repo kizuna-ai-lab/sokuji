@@ -1,5 +1,5 @@
 import { SonioxIcon } from '../../components/Icons/ProviderIcons';
-import type { Provider } from '../../lib/provider/types';
+import type { FileRecognitionBase, Provider, SessionWords } from '../../lib/provider/types';
 import { createSonioxAdapter } from './adapter';
 import { checkSoniox } from './check';
 import { buildSoniox, describeSoniox, sonioxContext, type SonioxConfig } from './config';
@@ -13,6 +13,27 @@ import { AUTO } from '../../lib/provider/languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 
 const adapter = createSonioxAdapter();
+
+/** An app language code as Soniox writes it, or null when Soniox has none. */
+function sonioxLanguageHint(code: string): string | null {
+  // "Automatic" is no language to hint or translate into.
+  if (code === AUTO) return null;
+  try {
+    return sonioxWire.toWire(code);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What a file recognition at Soniox asks with, however it is reached (the user's own key here, the sign-in through
+ * Kizuna AI's service in `kizuna.ts`): the app's codes as Soniox writes them, Soniox's languages, and the word list in
+ * Soniox's context shape, as a live session sends it.
+ */
+export function sonioxFileRecognitionBase(words?: SessionWords): Omit<FileRecognitionBase, 'region'> {
+  const context = sonioxContext(words);
+  return { languageHint: sonioxLanguageHint, languages: SONIOX_LANGUAGES.map((l) => l.value), ...(context ? { context } : {}) };
+}
 
 /**
  * Soniox with the user's own key (survey §2.1): real-time STT and
@@ -30,17 +51,7 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
     const region = asSonioxRegion(settings.region);
     const apiKey = String((credentials as unknown as Record<string, unknown>)[sonioxKeyField(region)] ?? '').trim();
     if (!apiKey) return { missing: 'no-key' };
-    const languageHint = (code: string): string | null => {
-      // "Automatic" is no language to hint or translate into.
-      if (code === AUTO) return null;
-      try {
-        return sonioxWire.toWire(code);
-      } catch {
-        return null;
-      }
-    };
-    const context = sonioxContext(words);
-    return { service: 'soniox', apiKey, region, languageHint, languages: SONIOX_LANGUAGES.map((l) => l.value), ...(context ? { context } : {}) };
+    return { service: 'soniox', apiKey, region, ...sonioxFileRecognitionBase(words) };
   },
   platforms: ['electron', 'extension', 'web'],
   icon: SonioxIcon,

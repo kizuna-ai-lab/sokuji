@@ -14,7 +14,7 @@ const OPTIONS = { languages: ['en', 'zh'], translateTo: 'zh' };
 const said = (text: string, at: number): FileToken[] => [{ text, start_ms: at, end_ms: at + 500, speaker: '1', language: 'en' }];
 const translated = (text: string): FileToken[] => [{ text, translation_status: 'translation', language: 'zh', source_language: 'en' }];
 
-function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?: number | null }>; sameInput?: boolean } = {}): HistoryRecord {
+function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?: number | null; durationMs?: number }>; sameInput?: boolean } = {}): HistoryRecord {
   const mic = { input: 'microphone', inputName: 'Mic', inputId: 'mic-1' };
   return {
     id: ID,
@@ -28,14 +28,16 @@ function record(o: { tracks?: Array<{ source: string; offsetMs: number; goneAt?:
   } as unknown as HistoryRecord;
 }
 
-function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string; writeFails?: boolean; deleteFails?: boolean } = {}) {
+function fakePort(o: { record?: HistoryRecord; words?: Record<string, FileToken[]>; fail?: string; failCode?: string; writeFails?: boolean; deleteFails?: boolean } = {}) {
   const asked: HistoryRecognizeRequest[] = [];
   const written: unknown[] = [];
   const port = {
     getRecord: vi.fn(async () => o.record ?? record()),
     recognize: vi.fn(async (r: HistoryRecognizeRequest) => {
       asked.push(r);
-      if (o.fail === r.source) throw new HistoryUnavailable('Soniox refused the key (401)', 'NO_KEY');
+      if (o.fail === r.source) {
+        throw o.failCode ? new HistoryUnavailable(`The service refused the track (${o.failCode})`, o.failCode) : new HistoryUnavailable('Soniox refused the key (401)', 'NO_KEY');
+      }
       return { tokens: o.words?.[r.source] ?? [], audioMs: 60_000 };
     }),
     cancelRecognition: vi.fn(async () => true),
@@ -184,5 +186,76 @@ describe('transcribing a record again', () => {
     await expect(transcribeRecord({ options: OPTIONS, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0), signal: controller.signal })).rejects.toMatchObject({ code: 'CANCELLED' });
     expect(raw.cancelRecognition).toHaveBeenCalled();
     expect(written).toEqual([]);
+  });
+});
+
+// Kizuna AI's Soniox: each track a file job of the signed-in account at the Kizuna AI service, never with a key.
+describe('transcribing a record through the Kizuna AI service', () => {
+  const API_URL = 'https://service.example/api';
+  const hosted = (token: () => Promise<string | null>, payer?: 'organization' | 'personal') => ({
+    service: 'kizunaai_soniox' as const, hosted: true as const, region: 'jp', languages: ['en', 'zh', 'ja'],
+    access: { apiUrl: API_URL, token, ...(payer ? { payer } : {}) },
+  });
+  /** Two kept tracks of different lengths, the speaker's first. */
+  const twoTracks = () => record({ tracks: [{ source: 'speaker', offsetMs: 0, durationMs: 90_000 }, { source: 'participant', offsetMs: 1000, durationMs: 45_000 }] });
+  const words = { speaker: said('Mine first.', 0), participant: said('Then theirs.', 200) };
+
+  it('sends each track with the sign-in, the service’s address, the region, the payer and the audio still to come; no key', async () => {
+    const token = vi.fn<() => Promise<string | null>>().mockResolvedValueOnce('tok-1').mockResolvedValueOnce('tok-2');
+    const { port, asked, written } = fakePort({ record: twoTracks(), words });
+    const result = await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(token, 'organization'), newJobId, clock: createVirtualClock(0) });
+    const sent = { recordId: ID, service: 'kizunaai_soniox', region: 'jp', apiUrl: API_URL, payer: 'organization', languageHints: ['en', 'zh'], translateTo: 'zh', jobId: expect.any(String) };
+    // The token as it is when each track starts; the first track tells the service the second is still to come.
+    expect(asked).toEqual([
+      { ...sent, source: 'speaker', token: 'tok-1', laterAudioMs: 45_000 },
+      { ...sent, source: 'participant', token: 'tok-2', laterAudioMs: 0 },
+    ]);
+    expect(asked.every((r) => !('apiKey' in r))).toBe(true);
+    expect(token).toHaveBeenCalledTimes(2);
+    // The new version names the service that made it.
+    expect(written[0]).toEqual(['createTranscript', { recordId: ID, origin: { service: 'kizunaai_soniox', kind: 'file', options: OPTIONS }, textKind: 'original' }]);
+    expect(result).toEqual({ transcriptId: 7, sentences: 2 });
+  });
+
+  it('names no payer when there is none to name, and the word list goes with every track', async () => {
+    const context = { terms: ['Sokuji'] };
+    const { port, asked } = fakePort({ record: twoTracks(), words });
+    await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: { ...hosted(async () => 'tok'), context }, newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => ['payer' in r, r.context])).toEqual([[false, context], [false, context]]);
+  });
+
+  it('says to sign in, and sends nothing, when there is no sign-in', async () => {
+    const { port, raw, written } = fakePort({ record: twoTracks(), words });
+    const error = await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(async () => null), newJobId, clock: createVirtualClock(0) }).catch((e) => e);
+    expect(error).toBeInstanceOf(TranscribeError);
+    expect(error).toMatchObject({ code: 'SIGN_IN' });
+    expect(raw.recognize).not.toHaveBeenCalled();
+    expect(written).toEqual([]);
+  });
+
+  it('a sign-out between tracks stops the next one, and writes nothing', async () => {
+    const token = vi.fn<() => Promise<string | null>>().mockResolvedValueOnce('tok').mockResolvedValueOnce(null);
+    const { port, raw } = fakePort({ record: twoTracks(), words });
+    await expect(transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(token), newJobId, clock: createVirtualClock(0) })).rejects.toMatchObject({ code: 'SIGN_IN' });
+    expect(raw.recognize).toHaveBeenCalledTimes(1);
+    expect(raw.createTranscript).not.toHaveBeenCalled();
+  });
+
+  // The first track's words are paid for, but a record is never left with half a transcript.
+  it('passes on the service’s refusal of the second track and writes nothing', async () => {
+    const { port, raw } = fakePort({ record: twoTracks(), words, fail: 'participant', failCode: 'NO_BALANCE' });
+    await expect(transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(async () => 'tok'), newJobId, clock: createVirtualClock(0) })).rejects.toMatchObject({ code: 'NO_BALANCE' });
+    expect(raw.recognize).toHaveBeenCalledTimes(2);
+    expect(raw.createTranscript).not.toHaveBeenCalled();
+  });
+
+  it('a cancel while the sign-in is read sends nothing', async () => {
+    const controller = new AbortController();
+    const { port, raw } = fakePort({ record: twoTracks(), words });
+    const token = async () => { controller.abort(); return 'tok'; };
+    await expect(transcribeRecord({ options: OPTIONS, port, recordId: ID, service: hosted(token), newJobId, clock: createVirtualClock(0), signal: controller.signal }))
+      .rejects.toMatchObject({ code: 'CANCELLED' });
+    expect(raw.recognize).not.toHaveBeenCalled();
+    expect(raw.createTranscript).not.toHaveBeenCalled();
   });
 });

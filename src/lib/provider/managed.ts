@@ -8,7 +8,7 @@
  */
 import type { ComponentType } from 'react';
 import type { SessionHooks } from '../session/types';
-import type { AuthContext, CredentialsMissing, Provider, SettingsProps, VoiceSummaryProps } from './types';
+import type { AuthContext, CredentialsMissing, FileRecognitionSpec, Provider, SessionWords, SettingsProps, VoiceSummaryProps } from './types';
 import type { RunStage } from '../lineup/types';
 
 /** What a managed `read` answers (the read type `R`, choice 1): the sign-in, never a key — the lease mints those. */
@@ -42,6 +42,8 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   participantSpeech?: boolean;
   /** The twin is flagged on its own; the base's flag never carries over. */
   flagged?: true;
+  /** The twin's own file recognition, through the sign-in; absent, it transcribes no file (the base's needs a key). */
+  fileRecognition?: (settings: S, credentials: K, words?: SessionWords) => FileRecognitionSpec | { missing: 'no-key' };
   /** Added to the base's hooks. `acquire` is required: a twin's `R` is not its `K`. */
   session: SessionHooks<S, K, C> & Required<Pick<SessionHooks<S, K, C>, 'acquire'>>;
 }
@@ -77,6 +79,8 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     turns: base.turns,
     ...(participantSpeech === undefined ? {} : { participantSpeech }),
     ...(base.faceToFace ? { faceToFace: base.faceToFace } : {}),
+    // The twin's own, never the base's: the base's asks for the user's key, which a twin does not hold.
+    ...(o.fileRecognition ? { fileRecognition: o.fileRecognition } : {}),
     build: base.build,
     describe: base.describe,
     start: base.start,

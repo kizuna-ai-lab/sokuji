@@ -18,7 +18,7 @@ export const STATUS_EVERY_MS = 1000;
 const WRITE_BATCH = 500;
 
 export type TranscribePhase = HistoryRecognizePhase | 'writing';
-export type TranscribeCode = 'NO_RECORD' | 'NO_TRACK' | 'NO_SPEECH' | 'CANCELLED';
+export type TranscribeCode = 'NO_RECORD' | 'NO_TRACK' | 'NO_SPEECH' | 'CANCELLED' | 'SIGN_IN';
 
 export class TranscribeError extends Error {
   readonly code: TranscribeCode;
@@ -75,8 +75,24 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     };
   };
 
+  // How a track's call reaches the service. With the user's own key: the key, in its region. Through Kizuna AI's
+  // service: the region, the service's address, the sign-in's token as it is when the track starts (so a sign-out
+  // between tracks stops the next one), who pays, and the length of the tracks still to come after this one, so the
+  // service can tell at the first whether all of them fit.
+  const reachFor = async (index: number) => {
+    const s = o.service;
+    if (!('hosted' in s)) return { apiKey: s.apiKey, ...(s.region ? { region: s.region } : {}) };
+    const token = s.access ? await s.access.token() : null;
+    if (!s.access || !token) throw new TranscribeError('SIGN_IN', 'Sign in to Kizuna AI to transcribe with it');
+    const laterAudioMs = tracks.slice(index + 1).reduce((sum, t) => sum + t.durationMs, 0);
+    return { region: s.region, apiUrl: s.access.apiUrl, token, ...(s.access.payer ? { payer: s.access.payer } : {}), laterAudioMs };
+  };
+
   const lists: FileSentence[][] = [];
-  for (const track of tracks) {
+  for (const [index, track] of tracks.entries()) {
+    if (o.signal?.aborted) throw cancelled();
+    const reach = await reachFor(index);
+    // Cancelled while the sign-in was read: nothing is sent.
     if (o.signal?.aborted) throw cancelled();
     const jobId = o.newJobId();
     o.onProgress?.({ phase: 'uploading', track: track.source });
@@ -96,8 +112,7 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     let tokens;
     try {
       ({ tokens } = await o.port.recognize({
-        recordId: o.recordId, service: o.service.service, source: track.source, apiKey: o.service.apiKey,
-        ...(o.service.region ? { region: o.service.region } : {}), ...askedFor(track.source), jobId,
+        recordId: o.recordId, service: o.service.service, source: track.source, ...reach, ...askedFor(track.source), jobId,
       }));
     } catch (error) {
       if (o.signal?.aborted) {

@@ -519,7 +519,7 @@ describe('transcripts and file jobs', () => {
     expect(runner.start).toHaveBeenCalledWith(A, undefined, 1);
   });
 
-  function fakeJobs(o: { missing?: 'no-file-service' | 'hosted-soniox' | 'no-key'; session?: boolean } = {}) {
+  function fakeJobs(o: { missing?: 'no-file-service' | 'no-key' | 'sign-in'; session?: boolean } = {}) {
     let finishImport!: (r: unknown) => void;
     let finishTranscribe!: (r: unknown) => void;
     const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
@@ -616,10 +616,10 @@ describe('transcripts and file jobs', () => {
     void first.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(ok.jobs.importFile).toHaveBeenCalled());
     expect(await first.getState().fileJobBlocked('import')).toBe('busy');
-    const hosted = fakeJobs({ missing: 'hosted-soniox' });
-    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...hosted.jobs, state: shared } as never);
+    const signedOut = fakeJobs({ missing: 'sign-in' });
+    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...signedOut.jobs, state: shared } as never);
     second.getState().follow();
-    expect(await second.getState().fileJobBlocked('import')).toBe('hosted-soniox');
+    expect(await second.getState().fileJobBlocked('import')).toBe('sign-in');
     first.getState().dispose();
     second.getState().dispose();
   });

@@ -1,10 +1,11 @@
 import { kizunaHostedIcon, SonioxIcon } from '../../components/Icons/ProviderIcons';
 import { managed } from '../../lib/provider/managed';
+import { asSonioxRegion } from '../../lib/soniox/regions';
 import { kizunaSonioxMinimumBalance } from './kizunaBudget';
 import { createKizunaLease } from './lease';
 import { getApiUrl } from '../../utils/environment';
 import { useManagedVoiceSource } from './managedVoiceSource';
-import { sonioxProvider } from './provider';
+import { sonioxFileRecognitionBase, sonioxProvider } from './provider';
 import { createSonioxSettingsView } from './SonioxSettings';
 import { createSonioxVoiceSummary } from './SonioxVoiceSummary';
 import { createKizunaVoiceClaim } from './voiceClaim';
@@ -41,6 +42,12 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     VoiceSummary: KizunaSonioxVoiceSummary,
     signedOut: 'Sign in to use Kizuna AI Soniox.',
     participantSpeech,
+    // A saved recording as a file job of the signed-in account at the Kizuna AI service, which runs it at Soniox in the
+    // region the settings name, the same one live sessions use (owner, 2026-11-18). No key: the History page attaches
+    // the service's address and the sign-in.
+    fileRecognition: (settings, _credentials, words) => ({
+      service: 'kizunaai_soniox', hosted: true, region: asSonioxRegion(settings.region), ...sonioxFileRecognitionBase(words),
+    }),
     session: {
       prepare: createKizunaVoiceClaim(),
       acquire: createKizunaLease({ participantSpeech, apiUrl: getApiUrl }),

@@ -222,10 +222,8 @@ export interface ProviderRefusal {
  * is the sign-in (`managed.ts`), its `K` the lease's per-leg keys (Stage 2
  * Kizuna Soniox, choice 1).
  */
-/** What a provider's file recognition needs: which service runs it, with which key, in which of its regions. */
-export interface FileRecognitionSpec {
-  service: string;
-  apiKey: string;
+/** What any file recognition asks with: the region, the languages in the service's codes, the word list. */
+export interface FileRecognitionBase {
   region?: string;
   /** The service's code for an app language code, or null when it has none (the hint is then not sent). */
   languageHint?: (code: string) => string | null;
@@ -234,6 +232,15 @@ export interface FileRecognitionSpec {
   /** The word list in the service's context shape, sent with every file; absent when there is nothing to send. */
   context?: object;
 }
+
+/**
+ * What a provider's file recognition needs: which service runs it, with the user's own key, in which of its regions;
+ * or, `hosted`, Kizuna AI's service, which runs it at Soniox in `region` for the signed-in account. The History page
+ * attaches how to reach a hosted one (the service's address, the sign-in, the payer); the provider holds no key for it.
+ */
+export type FileRecognitionSpec =
+  | (FileRecognitionBase & { service: string; apiKey: string })
+  | (FileRecognitionBase & { service: 'kizunaai_soniox'; hosted: true; region: string });
 
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object, R extends { missing?: never } & object = K> {
   // identity and presence

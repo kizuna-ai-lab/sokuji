@@ -42,7 +42,7 @@ function fakePort() {
   return { port: port as unknown as HistoryPort, calls };
 }
 
-function fakeJobs(o: { missing?: 'no-file-service' | 'hosted-soniox' | 'no-key'; session?: boolean; serviceFails?: boolean } = {}) {
+function fakeJobs(o: { missing?: 'no-file-service' | 'no-key' | 'sign-in'; session?: boolean; serviceFails?: boolean } = {}) {
   const pending: { resolve?: (v: unknown) => void; reject?: (e: unknown) => void } = {};
   const jobs: FileJobs = {
     service: vi.fn(async () => {
@@ -134,7 +134,8 @@ describe('importing a file', () => {
   it('says why it cannot start and what to do, links to the setting, and cannot be started', async () => {
     for (const [o, text, link, target, serviceLine] of [
       [{ missing: 'no-file-service' }, 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.', 'Open Languages and line-up', 'lineup', false],
-      [{ missing: 'hosted-soniox' }, 'Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.', 'Open Languages and line-up', 'lineup', false],
+      // Kizuna AI's Soniox signed out: the link opens the Kizuna AI account's row.
+      [{ missing: 'sign-in' }, 'Sign in to Kizuna AI to transcribe files with it.', 'Open Accounts and keys', 'user-account', false],
       // The key missing is Soniox's: the link opens Soniox's row, whatever provider the session runs on.
       [{ missing: 'no-key' }, 'Your Soniox key is not filled in yet.', 'Open Accounts and keys', 'provider:soniox', false],
       [{ session: true }, 'Available when no session is running.', null, null, true],
@@ -365,7 +366,7 @@ describe('transcribing a record again', () => {
   // No setting brings back a recording: the reason stands alone, whatever the line-up's transcription is (B-35 review).
   it('says a record without a recording keeps none, with no link to Settings', async () => {
     record = { ...record, tracks: record.tracks.map((t) => ({ ...t, goneAt: START })) };
-    const { jobs } = fakeJobs({ missing: 'hosted-soniox' });
+    const { jobs } = fakeJobs({ missing: 'sign-in' });
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
     await act(() => store.getState().openRecord(A));
@@ -376,19 +377,19 @@ describe('transcribing a record again', () => {
     expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('says the same reason and link as the import when Kizuna AI\'s Soniox transcribes the line-up', async () => {
+  it('says the same reason and link as the import when Kizuna AI\'s Soniox transcribes the line-up signed out', async () => {
     useSettingsStore.setState({ settingsNavigationTarget: null });
-    const { jobs } = fakeJobs({ missing: 'hosted-soniox' });
+    const { jobs } = fakeJobs({ missing: 'sign-in' });
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
     await act(() => store.getState().openRecord(A));
     show(<TranscribePanel onClose={() => {}} />);
     await settle();
-    expect(screen.getByText('Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.')).toBeTruthy();
+    expect(screen.getByText('Sign in to Kizuna AI to transcribe files with it.')).toBeTruthy();
     expect(screen.queryByText('Transcribed by Soniox, with your own key.')).toBeNull();
     expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Open Languages and line-up' }));
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('lineup');
+    fireEvent.click(screen.getByRole('button', { name: 'Open Accounts and keys' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('user-account');
   });
 
   it('lets another transcript be chosen, newest first', async () => {

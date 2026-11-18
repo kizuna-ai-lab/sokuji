@@ -1,6 +1,6 @@
 // Soniox declares it can transcribe a saved recording, with the key of the region its settings name.
 import { describe, it, expect } from 'vitest';
-import { sonioxProvider } from './provider';
+import { sonioxFileRecognitionBase, sonioxProvider } from './provider';
 import { buildSoniox } from './config';
 import { SONIOX_LANGUAGES } from './languages';
 import type { SharedSettings } from '../../lib/provider/types';
@@ -39,6 +39,14 @@ describe('Soniox file recognition', () => {
     const none = sonioxProvider.fileRecognition!({ ...sonioxProvider.settings.defaults, region: 'us' }, { apiKey: 'k' } as never, { entries: [], background: ' ' });
     if ('missing' in none) throw new Error('no spec');
     expect(none.context).toBeUndefined();
+  });
+
+  // Kizuna AI's Soniox builds its file recognition on the same parts, reached with the sign-in instead of the key.
+  it('is the key and the region over what any Soniox file recognition asks with: the languages, their codes, the word list', () => {
+    const words = { entries: [{ written: 'Sokuji' }], background: '' };
+    const spec = sonioxProvider.fileRecognition!({ ...sonioxProvider.settings.defaults, region: 'us' }, { apiKey: 'k' } as never, words);
+    expect(spec).toEqual({ service: 'soniox', apiKey: 'k', region: 'us', ...sonioxFileRecognitionBase(words) });
+    expect(sonioxFileRecognitionBase()).not.toHaveProperty('context');
   });
 
   it('writes the app’s language codes as Soniox writes them, and drops what it does not know', () => {
