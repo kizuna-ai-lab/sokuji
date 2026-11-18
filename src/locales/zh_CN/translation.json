@@ -2121,7 +2121,7 @@
       "transcribe": "转写",
       "transcribeAgain": "重新转写",
       "transcribeNote": "把保存的录音重新转写一次，生成一个新版本；现有的转写都保留。",
-      "blockedNotSoniox": "文件只能由 Soniox（用你自己的密钥）转写。请在会话组成的转写里选它。",
+      "blockedNotSoniox": "文件只能由 Soniox 转写。请在会话组成的转写里选它。",
       "blockedNoKey": "还没有填 Soniox 的密钥。",
       "blockedSession": "没有会话进行时才能用。",
       "blockedBusy": "已经有一个导入或转写在进行。",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "已取消。",
         "SERVICE": "Soniox 没能转写这段录音，请稍后再试。",
         "RECORD_TOO_LONG": "录音超过五小时，超出了 Soniox 一次能转写的长度。",
-        "LOCAL": "没能保存到这台电脑上，请再试一次。"
+        "LOCAL": "没能保存到这台电脑上，请再试一次。",
+        "JOB_RUNNING": "这个账号正在转写另一个文件，等它完成后再试。"
       },
       "kept": "录音已经保存，打开这条记录就可以转写。",
       "notTranscribed": "未转写",
@@ -2159,7 +2160,6 @@
       "versionLive": "实时 · {{time}}",
       "versionFile": "Soniox 文件 · {{time}}",
       "blockedUnchecked": "没能检查转写服务。请关掉这里再试一次。",
-      "blockedHostedSoniox": "文件要用你自己的 Soniox 密钥转写：Kizuna AI 的 Soniox 目前只用于实时会话。",
       "openSettings": "去{{place}}",
       "mainLanguage": "主要语言",
       "otherLanguages": "可能含有的其他语言",
@@ -2168,7 +2168,15 @@
       "translateInto": "翻译成",
       "eachSide": "各自译成对方语言",
       "asked": "主要语言：{{main}} · 译为：{{target}}",
-      "askedEachSide": "主要语言：{{main}} · 各自译成对方的语言"
+      "askedEachSide": "主要语言：{{main}} · 各自译成对方的语言",
+      "serviceHosted": "由 Soniox 经 Kizuna AI 转写，从你的余额扣费。",
+      "estimate": "约 {{price}}。",
+      "blockedSignIn": "登录 Kizuna AI 后才能用它转写文件。",
+      "blockedNoBalance": "你的 Kizuna AI 余额不够这次转写。",
+      "blockedFrozen": "你的 Kizuna AI 钱包已冻结。",
+      "blockedHostedTooLong": "这段录音超过了 Kizuna AI 一次能转写的长度（{{hours}} 小时）。请联系我们，我们来帮你：",
+      "blockedHostedUnavailable": "Kizuna AI 的文件转写暂时还不能用。",
+      "cancelCharged": "Soniox 已经开始转写：现在取消仍会计费。"
     },
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "notesAddToWords": "加入词表",

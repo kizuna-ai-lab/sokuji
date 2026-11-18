@@ -2121,7 +2121,7 @@
       "transcribe": "תמלל",
       "transcribeAgain": "תמלל שוב",
       "transcribeNote": "ההקלטה השמורה מתומללת שוב. נוצרת גרסה חדשה; התמלולים הקיימים נשארים.",
-      "blockedNotSoniox": "רק Soniox עם המפתח שלך מתמלל קבצים. בחר בו לתמלול במערך.",
+      "blockedNotSoniox": "רק Soniox מתמלל קבצים. בחר בו לתמלול במערך.",
       "blockedNoKey": "עדיין לא הוזן מפתח Soniox שלך.",
       "blockedSession": "זמין כשאין שיחה פעילה.",
       "blockedBusy": "ייבוא או תמלול אחר פועל כעת.",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "בוטל.",
         "SERVICE": "Soniox לא הצליח לתמלל את ההקלטה. נסה שוב מאוחר יותר.",
         "RECORD_TOO_LONG": "ההקלטה ארוכה מחמש שעות, יותר ממה ש־Soniox מתמלל בבת אחת.",
-        "LOCAL": "לא ניתן היה לשמור במחשב הזה. נסה שוב."
+        "LOCAL": "לא ניתן היה לשמור במחשב הזה. נסה שוב.",
+        "JOB_RUNNING": "קובץ אחר כבר מתומלל בחשבון הזה. נסה שוב כשהוא יסתיים."
       },
       "kept": "ההקלטה נשמרה. פתח את הרשומה כדי לתמלל אותה.",
       "notTranscribed": "לא תומלל",
@@ -2159,7 +2160,6 @@
       "versionLive": "חי · {{time}}",
       "versionFile": "קובץ Soniox · {{time}}",
       "blockedUnchecked": "לא ניתן היה לבדוק את שירות התמלול. סגור את החלון ונסה שוב.",
-      "blockedHostedSoniox": "קבצים מתומללים רק עם מפתח Soniox משלך: ה-Soniox של Kizuna AI מיועד כרגע לסשנים חיים בלבד.",
       "openSettings": "פתיחת {{place}}",
       "mainLanguage": "השפה העיקרית",
       "otherLanguages": "שפות נוספות שייתכן שיש בו",
@@ -2168,7 +2168,15 @@
       "translateInto": "שפת התרגום",
       "eachSide": "כל צד לשפה של הצד השני",
       "asked": "השפה העיקרית: {{main}} · שפת התרגום: {{target}}",
-      "askedEachSide": "השפה העיקרית: {{main}} · כל צד תורגם לשפה של הצד השני"
+      "askedEachSide": "השפה העיקרית: {{main}} · כל צד תורגם לשפה של הצד השני",
+      "serviceHosted": "התמלול נעשה על ידי Soniox דרך Kizuna AI, בתשלום מהיתרה שלך.",
+      "estimate": "כ־{{price}}.",
+      "blockedSignIn": "יש להתחבר ל-Kizuna AI כדי לתמלל איתו קבצים.",
+      "blockedNoBalance": "היתרה שלך ב-Kizuna AI לא מספיקה לתמלול הזה.",
+      "blockedFrozen": "הארנק שלך ב-Kizuna AI מוקפא.",
+      "blockedHostedTooLong": "ההקלטה הזאת ארוכה ממה ש-Kizuna AI מתמלל בבת אחת ({{hours}} שעות). צור איתנו קשר ונעזור לך:",
+      "blockedHostedUnavailable": "תמלול קבצים עם Kizuna AI עדיין לא זמין.",
+      "cancelCharged": "Soniox כבר מתמלל: גם אם תבטל עכשיו, התמלול יחויב."
     },
     "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
     "notesAddToWords": "הוספה לרשימת המילים",

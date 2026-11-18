@@ -2121,7 +2121,7 @@
       "transcribe": "Transcrever",
       "transcribeAgain": "Transcrever de novo",
       "transcribeNote": "A gravação salva é transcrita de novo. Uma nova versão é criada; as transcrições que já existem continuam.",
-      "blockedNotSoniox": "Só o Soniox com a sua própria chave transcreve arquivos. Escolha-o para a transcrição na sua configuração.",
+      "blockedNotSoniox": "Só o Soniox transcreve arquivos. Escolha-o para a transcrição na sua configuração.",
       "blockedNoKey": "Sua chave do Soniox ainda não foi preenchida.",
       "blockedSession": "Disponível quando nenhuma sessão estiver em andamento.",
       "blockedBusy": "Outra importação ou transcrição está em andamento.",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "Cancelado.",
         "SERVICE": "O Soniox não conseguiu transcrever a gravação. Tente mais tarde.",
         "RECORD_TOO_LONG": "A gravação tem mais de cinco horas, mais do que o Soniox transcreve de uma vez.",
-        "LOCAL": "Não foi possível salvar neste computador. Tente novamente."
+        "LOCAL": "Não foi possível salvar neste computador. Tente novamente.",
+        "JOB_RUNNING": "Outro arquivo está sendo transcrito nesta conta. Tente novamente quando ele terminar."
       },
       "kept": "A gravação foi mantida. Abra o registro para transcrevê-la.",
       "notTranscribed": "Não transcrito",
@@ -2159,7 +2160,6 @@
       "versionLive": "Ao vivo · {{time}}",
       "versionFile": "Arquivo Soniox · {{time}}",
       "blockedUnchecked": "Não foi possível verificar o serviço de transcrição. Feche e tente novamente.",
-      "blockedHostedSoniox": "Os arquivos só são transcritos com a sua própria chave do Soniox: o Soniox da Kizuna AI, por enquanto, é só para sessões ao vivo.",
       "openSettings": "Abrir {{place}}",
       "mainLanguage": "Idioma principal",
       "otherLanguages": "Outros idiomas que podem aparecer",
@@ -2168,7 +2168,15 @@
       "translateInto": "Traduzir para",
       "eachSide": "Cada lado para o idioma do outro",
       "asked": "Idioma principal: {{main}} · Traduzido para: {{target}}",
-      "askedEachSide": "Idioma principal: {{main}} · Cada lado traduzido para o idioma do outro"
+      "askedEachSide": "Idioma principal: {{main}} · Cada lado traduzido para o idioma do outro",
+      "serviceHosted": "Transcrito pelo Soniox por meio do Kizuna AI, pago com o seu saldo.",
+      "estimate": "Cerca de {{price}}.",
+      "blockedSignIn": "Entre no Kizuna AI para transcrever arquivos com ele.",
+      "blockedNoBalance": "Seu saldo do Kizuna AI não é suficiente para esta transcrição.",
+      "blockedFrozen": "Sua carteira do Kizuna AI está congelada.",
+      "blockedHostedTooLong": "Esta gravação é mais longa do que o Kizuna AI transcreve de uma vez ({{hours}} horas). Entre em contato conosco e vamos ajudar:",
+      "blockedHostedUnavailable": "A transcrição de arquivos com o Kizuna AI ainda não está disponível.",
+      "cancelCharged": "O Soniox já está transcrevendo: se cancelar agora, a cobrança será feita mesmo assim."
     },
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser salva: não foi possível gravá-la no disco.",
     "notesAddToWords": "Adicionar à lista de palavras",

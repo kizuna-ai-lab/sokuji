@@ -2121,7 +2121,7 @@
       "transcribe": "文字起こし",
       "transcribeAgain": "もう一度文字起こし",
       "transcribeNote": "保存された録音をもう一度文字起こしします。新しい版が作られ、今ある文字起こしはそのまま残ります。",
-      "blockedNotSoniox": "ファイルの文字起こしは、ご自身のキーを使う Soniox だけが行えます。構成の文字起こしで選んでください。",
+      "blockedNotSoniox": "ファイルの文字起こしは Soniox だけが行えます。構成の文字起こしで選んでください。",
       "blockedNoKey": "Soniox のキーがまだ入力されていません。",
       "blockedSession": "セッション中でないときに使えます。",
       "blockedBusy": "別の取り込みか文字起こしが進行中です。",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "キャンセルしました。",
         "SERVICE": "Soniox が録音を文字起こしできませんでした。後でもう一度お試しください。",
         "RECORD_TOO_LONG": "録音が 5 時間を超えていて、Soniox が一度に文字起こしできる長さを超えています。",
-        "LOCAL": "このコンピューターに保存できませんでした。もう一度お試しください。"
+        "LOCAL": "このコンピューターに保存できませんでした。もう一度お試しください。",
+        "JOB_RUNNING": "このアカウントで別のファイルを文字起こし中です。終わってからもう一度お試しください。"
       },
       "kept": "録音は残っています。記録を開いて文字起こしできます。",
       "notTranscribed": "未文字起こし",
@@ -2159,7 +2160,6 @@
       "versionLive": "ライブ · {{time}}",
       "versionFile": "Soniox ファイル · {{time}}",
       "blockedUnchecked": "文字起こしサービスを確認できませんでした。閉じてからもう一度お試しください。",
-      "blockedHostedSoniox": "ファイルはご自身の Soniox キーでのみ文字起こしできます。Kizuna AI の Soniox は今のところライブセッション専用です。",
       "openSettings": "{{place}}を開く",
       "mainLanguage": "主な言語",
       "otherLanguages": "ほかに含まれていそうな言語",
@@ -2168,7 +2168,15 @@
       "translateInto": "翻訳先の言語",
       "eachSide": "それぞれ相手の言語へ",
       "asked": "主な言語：{{main}} · 翻訳先：{{target}}",
-      "askedEachSide": "主な言語：{{main}} · それぞれ相手の言語へ翻訳"
+      "askedEachSide": "主な言語：{{main}} · それぞれ相手の言語へ翻訳",
+      "serviceHosted": "Kizuna AI 経由で Soniox が文字起こしします。料金は残高から支払われます。",
+      "estimate": "約 {{price}}。",
+      "blockedSignIn": "Kizuna AI でファイルを文字起こしするには、Kizuna AI にサインインしてください。",
+      "blockedNoBalance": "Kizuna AI の残高がこの文字起こしには足りません。",
+      "blockedFrozen": "Kizuna AI のウォレットは凍結されています。",
+      "blockedHostedTooLong": "この録音は、Kizuna AI が一度に文字起こしできる長さ（{{hours}} 時間）を超えています。ご連絡いただければお手伝いします：",
+      "blockedHostedUnavailable": "Kizuna AI でのファイルの文字起こしはまだ利用できません。",
+      "cancelCharged": "Soniox がすでに文字起こし中です。今キャンセルしても料金はかかります。"
     },
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "notesAddToWords": "単語リストに追加",

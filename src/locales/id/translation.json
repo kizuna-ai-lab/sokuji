@@ -2121,7 +2121,7 @@
       "transcribe": "Transkripsikan",
       "transcribeAgain": "Transkripsikan ulang",
       "transcribeNote": "Rekaman yang tersimpan ditranskripsikan ulang. Versi baru dibuat; transkrip yang sudah ada tetap ada.",
-      "blockedNotSoniox": "File hanya ditranskripsi oleh Soniox dengan kunci Anda sendiri. Pilih untuk transkripsi di susunan Anda.",
+      "blockedNotSoniox": "File hanya ditranskripsi oleh Soniox. Pilih untuk transkripsi di susunan Anda.",
       "blockedNoKey": "Kunci Soniox Anda belum diisi.",
       "blockedSession": "Tersedia saat tidak ada sesi yang berjalan.",
       "blockedBusy": "Impor atau transkripsi lain sedang berjalan.",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "Dibatalkan.",
         "SERVICE": "Soniox tidak dapat mentranskripsi rekaman. Coba lagi nanti.",
         "RECORD_TOO_LONG": "Rekaman lebih dari lima jam, lebih panjang dari yang ditranskripsikan Soniox sekaligus.",
-        "LOCAL": "Tidak dapat disimpan di komputer ini. Coba lagi."
+        "LOCAL": "Tidak dapat disimpan di komputer ini. Coba lagi.",
+        "JOB_RUNNING": "File lain sedang ditranskripsi di akun ini. Coba lagi setelah selesai."
       },
       "kept": "Rekaman disimpan. Buka catatan untuk mentranskripsinya.",
       "notTranscribed": "Belum ditranskripsi",
@@ -2159,7 +2160,6 @@
       "versionLive": "Langsung · {{time}}",
       "versionFile": "File Soniox · {{time}}",
       "blockedUnchecked": "Layanan transkripsi tidak dapat diperiksa. Tutup ini dan coba lagi.",
-      "blockedHostedSoniox": "File hanya ditranskripsi dengan kunci Soniox Anda sendiri: Soniox dari Kizuna AI untuk saat ini hanya untuk sesi langsung.",
       "openSettings": "Buka {{place}}",
       "mainLanguage": "Bahasa utama",
       "otherLanguages": "Bahasa lain yang mungkin ada di dalamnya",
@@ -2168,7 +2168,15 @@
       "translateInto": "Terjemahkan ke",
       "eachSide": "Tiap sisi ke bahasa sisi lain",
       "asked": "Bahasa utama: {{main}} · Diterjemahkan ke: {{target}}",
-      "askedEachSide": "Bahasa utama: {{main}} · Tiap sisi diterjemahkan ke bahasa sisi lain"
+      "askedEachSide": "Bahasa utama: {{main}} · Tiap sisi diterjemahkan ke bahasa sisi lain",
+      "serviceHosted": "Ditranskripsi oleh Soniox melalui Kizuna AI, dibayar dari saldo Anda.",
+      "estimate": "Sekitar {{price}}.",
+      "blockedSignIn": "Masuk ke Kizuna AI untuk mentranskripsi file dengannya.",
+      "blockedNoBalance": "Saldo Kizuna AI Anda tidak cukup untuk transkripsi ini.",
+      "blockedFrozen": "Dompet Kizuna AI Anda dibekukan.",
+      "blockedHostedTooLong": "Rekaman ini lebih panjang dari yang dapat ditranskripsi Kizuna AI sekaligus ({{hours}} jam). Hubungi kami, kami akan membantu:",
+      "blockedHostedUnavailable": "Transkripsi file dengan Kizuna AI belum tersedia.",
+      "cancelCharged": "Soniox sudah mulai mentranskripsi: membatalkan sekarang tetap dikenakan biaya."
     },
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "notesAddToWords": "Tambahkan ke daftar kata",

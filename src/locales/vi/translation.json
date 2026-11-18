@@ -2121,7 +2121,7 @@
       "transcribe": "Chép lời",
       "transcribeAgain": "Chép lời lại",
       "transcribeNote": "Bản ghi âm đã lưu sẽ được chép lời lại. Một phiên bản mới được tạo; các bản chép lời hiện có vẫn giữ nguyên.",
-      "blockedNotSoniox": "Chỉ Soniox dùng khóa của riêng bạn mới chép lời tệp. Hãy chọn nó cho phần chép lời trong cấu hình.",
+      "blockedNotSoniox": "Chỉ Soniox mới chép lời tệp. Hãy chọn nó cho phần chép lời trong cấu hình.",
       "blockedNoKey": "Bạn chưa điền khóa Soniox.",
       "blockedSession": "Dùng được khi không có phiên nào đang chạy.",
       "blockedBusy": "Một lần nhập hoặc chép lời khác đang chạy.",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "Đã hủy.",
         "SERVICE": "Soniox không chép lời được bản ghi âm. Hãy thử lại sau.",
         "RECORD_TOO_LONG": "Bản ghi dài hơn năm giờ, vượt quá lượng Soniox chép lời được trong một lần.",
-        "LOCAL": "Không lưu được trên máy tính này. Hãy thử lại."
+        "LOCAL": "Không lưu được trên máy tính này. Hãy thử lại.",
+        "JOB_RUNNING": "Một tệp khác đang được chép lời trên tài khoản này. Hãy thử lại khi tệp đó xong."
       },
       "kept": "Bản ghi âm đã được giữ lại. Mở bản ghi để chép lời.",
       "notTranscribed": "Chưa chép lời",
@@ -2159,7 +2160,6 @@
       "versionLive": "Trực tiếp · {{time}}",
       "versionFile": "Tệp Soniox · {{time}}",
       "blockedUnchecked": "Không kiểm tra được dịch vụ chép lời. Hãy đóng mục này và thử lại.",
-      "blockedHostedSoniox": "Tệp chỉ được chép lời bằng khóa Soniox của riêng bạn: Soniox của Kizuna AI hiện chỉ dùng cho phiên trực tiếp.",
       "openSettings": "Mở {{place}}",
       "mainLanguage": "Ngôn ngữ chính",
       "otherLanguages": "Ngôn ngữ khác có thể xuất hiện",
@@ -2168,7 +2168,15 @@
       "translateInto": "Dịch sang",
       "eachSide": "Mỗi bên sang ngôn ngữ của bên kia",
       "asked": "Ngôn ngữ chính: {{main}} · Dịch sang: {{target}}",
-      "askedEachSide": "Ngôn ngữ chính: {{main}} · Mỗi bên được dịch sang ngôn ngữ của bên kia"
+      "askedEachSide": "Ngôn ngữ chính: {{main}} · Mỗi bên được dịch sang ngôn ngữ của bên kia",
+      "serviceHosted": "Do Soniox chép lời qua Kizuna AI, trả từ số dư của bạn.",
+      "estimate": "Khoảng {{price}}.",
+      "blockedSignIn": "Hãy đăng nhập Kizuna AI để chép lời tệp bằng Kizuna AI.",
+      "blockedNoBalance": "Số dư Kizuna AI của bạn không đủ cho lần chép lời này.",
+      "blockedFrozen": "Ví Kizuna AI của bạn đang bị đóng băng.",
+      "blockedHostedTooLong": "Bản ghi âm này dài hơn mức Kizuna AI chép lời được trong một lần ({{hours}} giờ). Hãy liên hệ với chúng tôi, chúng tôi sẽ giúp bạn:",
+      "blockedHostedUnavailable": "Chép lời tệp bằng Kizuna AI hiện chưa khả dụng.",
+      "cancelCharged": "Soniox đã bắt đầu chép lời: hủy bây giờ vẫn bị tính phí."
     },
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "notesAddToWords": "Thêm vào danh sách từ",

@@ -2121,7 +2121,7 @@
       "transcribe": "Transkrip",
       "transcribeAgain": "Transkrip semula",
       "transcribeNote": "Rakaman yang disimpan ditranskrip semula. Versi baharu dibuat; transkrip yang sedia ada kekal.",
-      "blockedNotSoniox": "Fail hanya ditranskrip oleh Soniox dengan kunci anda sendiri. Pilihnya untuk transkripsi dalam susunan anda.",
+      "blockedNotSoniox": "Fail hanya ditranskrip oleh Soniox. Pilihnya untuk transkripsi dalam susunan anda.",
       "blockedNoKey": "Kunci Soniox anda belum diisi.",
       "blockedSession": "Tersedia apabila tiada sesi berjalan.",
       "blockedBusy": "Import atau transkrip lain sedang berjalan.",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "Dibatalkan.",
         "SERVICE": "Soniox tidak dapat mentranskrip rakaman. Cuba lagi nanti.",
         "RECORD_TOO_LONG": "Rakaman ini lebih daripada lima jam, melebihi apa yang Soniox transkripsikan sekali gus.",
-        "LOCAL": "Tidak dapat disimpan pada komputer ini. Cuba lagi."
+        "LOCAL": "Tidak dapat disimpan pada komputer ini. Cuba lagi.",
+        "JOB_RUNNING": "Fail lain sedang ditranskrip pada akaun ini. Cuba lagi selepas ia selesai."
       },
       "kept": "Rakaman disimpan. Buka rekod untuk mentranskripnya.",
       "notTranscribed": "Belum ditranskrip",
@@ -2159,7 +2160,6 @@
       "versionLive": "Langsung · {{time}}",
       "versionFile": "Fail Soniox · {{time}}",
       "blockedUnchecked": "Perkhidmatan transkripsi tidak dapat disemak. Tutup ini dan cuba lagi.",
-      "blockedHostedSoniox": "Fail hanya ditranskrip dengan kunci Soniox anda sendiri: Soniox Kizuna AI buat masa ini hanya untuk sesi langsung.",
       "openSettings": "Buka {{place}}",
       "mainLanguage": "Bahasa utama",
       "otherLanguages": "Bahasa lain yang mungkin ada di dalamnya",
@@ -2168,7 +2168,15 @@
       "translateInto": "Terjemah ke",
       "eachSide": "Setiap pihak ke bahasa pihak lain",
       "asked": "Bahasa utama: {{main}} · Diterjemah ke: {{target}}",
-      "askedEachSide": "Bahasa utama: {{main}} · Setiap pihak diterjemah ke bahasa pihak lain"
+      "askedEachSide": "Bahasa utama: {{main}} · Setiap pihak diterjemah ke bahasa pihak lain",
+      "serviceHosted": "Ditranskrip oleh Soniox melalui Kizuna AI, dibayar daripada baki anda.",
+      "estimate": "Kira-kira {{price}}.",
+      "blockedSignIn": "Log masuk ke Kizuna AI untuk mentranskrip fail dengannya.",
+      "blockedNoBalance": "Baki Kizuna AI anda tidak mencukupi untuk transkripsi ini.",
+      "blockedFrozen": "Dompet Kizuna AI anda dibekukan.",
+      "blockedHostedTooLong": "Rakaman ini lebih panjang daripada yang Kizuna AI transkripsikan sekali gus ({{hours}} jam). Hubungi kami dan kami akan membantu:",
+      "blockedHostedUnavailable": "Transkripsi fail dengan Kizuna AI belum tersedia.",
+      "cancelCharged": "Soniox sudah mula mentranskrip: membatalkan sekarang tetap dicaj."
     },
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "notesAddToWords": "Tambah ke senarai perkataan",

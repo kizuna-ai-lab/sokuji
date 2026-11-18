@@ -2121,7 +2121,7 @@
       "transcribe": "Yazıya dök",
       "transcribeAgain": "Yeniden yazıya dök",
       "transcribeNote": "Kaydedilen ses yeniden yazıya dökülür. Yeni bir sürüm oluşur; mevcut dökümler kalır.",
-      "blockedNotSoniox": "Dosyaları yalnızca kendi anahtarınızla Soniox yazıya döker. Dizilimde transkripsiyon için onu seçin.",
+      "blockedNotSoniox": "Dosyaları yalnızca Soniox yazıya döker. Dizilimde transkripsiyon için onu seçin.",
       "blockedNoKey": "Soniox anahtarınız henüz girilmedi.",
       "blockedSession": "Çalışan bir oturum yokken kullanılabilir.",
       "blockedBusy": "Başka bir içe aktarma ya da döküm sürüyor.",
@@ -2151,7 +2151,8 @@
         "CANCELLED": "İptal edildi.",
         "SERVICE": "Soniox kaydı yazıya dökemedi. Daha sonra yeniden dene.",
         "RECORD_TOO_LONG": "Kayıt beş saatten uzun; Soniox’un tek seferde yazıya döktüğünden fazla.",
-        "LOCAL": "Bu bilgisayara kaydedilemedi. Yeniden deneyin."
+        "LOCAL": "Bu bilgisayara kaydedilemedi. Yeniden deneyin.",
+        "JOB_RUNNING": "Bu hesapta başka bir dosya yazıya dökülüyor. O bittiğinde yeniden deneyin."
       },
       "kept": "Kayıt saklandı. Yazıya dökmek için kaydı aç.",
       "notTranscribed": "Yazıya dökülmedi",
@@ -2159,7 +2160,6 @@
       "versionLive": "Canlı · {{time}}",
       "versionFile": "Soniox dosyası · {{time}}",
       "blockedUnchecked": "Transkripsiyon hizmeti denetlenemedi. Bunu kapatıp yeniden deneyin.",
-      "blockedHostedSoniox": "Dosyalar yalnızca kendi Soniox anahtarınızla yazıya dökülür: Kizuna AI'ın Soniox'u şimdilik yalnızca canlı oturumlar içindir.",
       "openSettings": "{{place}} bölümünü aç",
       "mainLanguage": "Ana dil",
       "otherLanguages": "İçinde geçebilecek diğer diller",
@@ -2168,7 +2168,15 @@
       "translateInto": "Çeviri dili",
       "eachSide": "Her taraf diğerinin diline",
       "asked": "Ana dil: {{main}} · Çeviri dili: {{target}}",
-      "askedEachSide": "Ana dil: {{main}} · Her taraf diğerinin diline çevrildi"
+      "askedEachSide": "Ana dil: {{main}} · Her taraf diğerinin diline çevrildi",
+      "serviceHosted": "Kizuna AI üzerinden Soniox tarafından yazıya dökülür; bakiyenizden ödenir.",
+      "estimate": "Yaklaşık {{price}}.",
+      "blockedSignIn": "Kizuna AI ile dosyaları yazıya dökmek için Kizuna AI'da oturum açın.",
+      "blockedNoBalance": "Kizuna AI bakiyeniz bu döküm için yeterli değil.",
+      "blockedFrozen": "Kizuna AI cüzdanınız donduruldu.",
+      "blockedHostedTooLong": "Bu kayıt, Kizuna AI'ın tek seferde yazıya döktüğünden uzun ({{hours}} saat). Bize ulaşın, yardımcı olalım:",
+      "blockedHostedUnavailable": "Kizuna AI ile dosya dökümü henüz kullanılamıyor.",
+      "cancelCharged": "Soniox yazıya dökmeye başladı: şimdi iptal etseniz de ücretlendirilir."
     },
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "notesAddToWords": "Kelime listesine ekle",
