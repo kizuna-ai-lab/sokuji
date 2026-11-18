@@ -202,6 +202,13 @@ describe('the live notes panel', () => {
       expect(body.scrollTop).toBe(300);
     });
 
+    it('hidden, leaves no divider beside the conversation either', () => {
+      render(<div className="main-panel-row"><div className="main-panel-container" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
+      expect(screen.getByRole('separator')).toBeInTheDocument();
+      act(() => useLiveNotesShown.getState().setShown(false));
+      expect(screen.queryByRole('separator')).toBeNull();
+    });
+
     // Review: the panel stays up between sessions while live notes are on; a new session's notes start at the top,
     // not where the reader was in the last one.
     it('starts a new session\'s notes at the top, hidden in between or not', () => {
@@ -214,6 +221,62 @@ describe('the live notes panel', () => {
       act(() => { useLiveNotes.getState().end('run-0001-aaaa'); useLiveNotes.getState().begin('run-0002-bbbb'); useLiveNotes.getState().update('run-0002-bbbb', notes); });
       act(() => useLiveNotesShown.getState().setShown(true));
       expect(body.scrollTop).toBe(0);
+    });
+  });
+  // Owner, 2026-11-18: the panel's width can be dragged, at a divider on its left between it and the conversation, and
+  // is kept for the next session (liveNotesWidth.ts).
+  describe('its width', () => {
+    /** The panel in the conversation's row, as MainLayout docks it, the row `row` px wide. */
+    function renderInRow(row = 1400) {
+      vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.classList.contains('main-panel-row') ? row : 0;
+      });
+      return render(<div className="main-panel-row"><div className="main-panel-container" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
+    }
+    const panelWidth = () => (document.querySelector('.live-notes') as HTMLElement).style.getPropertyValue('--live-notes-width');
+    afterEach(() => vi.restoreAllMocks());
+
+    it('has a divider on its left, between the conversation and the notes, at the width kept from last time', () => {
+      localStorage.setItem('liveNotes.width', '400');
+      const { container } = renderInRow();
+      const row = container.querySelector('.main-panel-row')!;
+      expect([...row.children].map((c) => c.className)).toEqual(['main-panel-container', 'panel-resizer', 'live-notes']);
+      const divider = screen.getByRole('separator');
+      expect(divider).toHaveAttribute('aria-valuenow', '400');
+      expect(divider).toHaveAttribute('aria-valuemin', '240');
+      expect(divider).toHaveAttribute('aria-valuemax', '840'); // 60% of 1400
+      expect(panelWidth()).toBe('400px');
+    });
+
+    it('is 324px the first time', () => {
+      renderInRow();
+      expect(panelWidth()).toBe('324px');
+    });
+
+    it('moved at the divider, takes the new width and keeps it for the next session', () => {
+      renderInRow();
+      // The notes are on the divider's right: the arrow away from them widens them.
+      fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowLeft' });
+      expect(panelWidth()).toBe('340px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('340');
+      fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowRight' });
+      expect(panelWidth()).toBe('324px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('324');
+    });
+
+    it('stops where the conversation keeps its 400px', () => {
+      localStorage.setItem('liveNotes.width', '490');
+      renderInRow(900);
+      fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowLeft' });
+      expect(panelWidth()).toBe('499px'); // 900 − 400 − the 1px divider
+      expect(localStorage.getItem('liveNotes.width')).toBe('499');
+    });
+
+    it('shows a width kept from a wider window within a narrower one, and keeps the wider one', () => {
+      localStorage.setItem('liveNotes.width', '700');
+      renderInRow(1000);
+      expect(panelWidth()).toBe('599px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('700');
     });
   });
 });

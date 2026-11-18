@@ -52,11 +52,12 @@ describe('the live notes dock beside the conversation, and above it in a narrow 
     expect([...row.children].map((c) => c.className)).toEqual(['main-panel-container', 'live-notes']);
   });
 
-  it('in a wide window take a fixed column on the right of a row that may shrink', () => {
+  it('in a wide window take a column of their own width on the right of a row that may shrink', () => {
     expect(rule(layoutCss, '.main-layout .main-panel-row')).toMatch(/display:\s*flex/);
     expect(rule(layoutCss, '.main-layout .main-panel-row')).not.toMatch(/flex-direction:\s*column/);
     expect(rule(layoutCss, '.main-layout .main-panel-row')).toMatch(/min-width:\s*0/);
-    expect(rule(layoutCss, '.main-layout .main-panel-row > .live-notes')).toMatch(/flex:\s*0 0 324px/);
+    // The width the panel was dragged to (LiveNotesPanel sets it), 324px until it is.
+    expect(rule(layoutCss, '.main-layout .main-panel-row > .live-notes')).toMatch(/flex:\s*0 0 var\(--live-notes-width, 324px\)/);
     // The conversation takes what is left and may shrink, so the row does not push past the window.
     expect(rule(layoutCss, '.main-layout .main-panel-container')).toMatch(/min-width:\s*0/);
   });
@@ -67,6 +68,14 @@ describe('the live notes dock beside the conversation, and above it in a narrow 
     expect(narrow).toMatch(/order:\s*-1/);
     expect(narrow).toMatch(/max-height:\s*40vh/);
     expect(narrow).toMatch(/border-left:\s*none/);
+  });
+
+  // Owner, 2026-11-18: the divider on the notes' left drags their width. Where it shows (wider than 768 px, as the main
+  // layout hides every divider at 768 px and below), it is the seam, in place of the notes' own border.
+  it('take the divider as their seam where it shows, and keep their own border where it does not', () => {
+    expect(rule(layoutCss, '.main-layout .main-panel-row > .panel-resizer + .live-notes', '(min-width: 769px)')).toMatch(/border-left:\s*none/);
+    expect(rule(layoutCss, '.main-layout .panel-resizer', '(max-width: 768px)')).toMatch(/display:\s*none/);
+    expect(rule(panelCss, '.live-notes')).toMatch(/border-left:\s*1px solid/);
   });
 
   it('switch at the same width as the toolbar\'s icon (useNarrowWindow)', () => {
