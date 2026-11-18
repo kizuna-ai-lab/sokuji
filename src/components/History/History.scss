@@ -898,7 +898,8 @@
     &__field .select-dropdown {
       &::picker(select) { padding: 4px; }
       option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
-      option[value='__pin-separator__'] { height: 1px; min-height: 0; padding: 0; }
+      // The row rule above must not give the line its text back: its dashes would show, as wide as the font draws them.
+      option[value='__pin-separator__'] { height: 1px; min-height: 0; padding: 0; font-size: 0; line-height: 0; }
     }
   }
 
