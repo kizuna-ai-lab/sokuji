@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Brak działającego klucza dla {{region}}",
         "keyRefused": "Klucz odrzucony",
         "keyNotVerified": "Klucz niezweryfikowany",
-        "checkingKey": "Sprawdzanie klucza…"
+        "checkingKey": "Sprawdzanie klucza…",
+        "notUsed": "Tym razem nieużywane"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI pisze notatki przez Kizuna AI, płatne z Twojego salda.",
       "notesOpenAiLine": "Pisze notatki z Twoim własnym kluczem OpenAI.",
       "notesNeedSignInOrChoose": "Zaloguj się albo wybierz tutaj OpenAI, aby notatki były pisane.",
-      "notesNeedSignInOrKeyAndChoose": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze” i wybierz tutaj OpenAI, aby notatki były pisane."
+      "notesNeedSignInOrKeyAndChoose": "Zaloguj się albo dodaj klucz OpenAI w „Konta i klucze” i wybierz tutaj OpenAI, aby notatki były pisane.",
+      "speechNotUsed": "Tym razem nic nie jest czytane na głos: tłumaczenie widać tylko jako tekst.",
+      "speechHowToHear": "Aby było czytane, wybierz „słyszeć” w zdaniu powyżej."
     },
     "display": {
       "surface": "Który widok",

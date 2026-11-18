@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Không có khóa dùng được cho {{region}}",
         "keyRefused": "Khóa không được chấp nhận",
         "keyNotVerified": "Chưa xác minh khóa",
-        "checkingKey": "Đang kiểm tra khóa…"
+        "checkingKey": "Đang kiểm tra khóa…",
+        "notUsed": "Lần này không dùng"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI viết ghi chú qua Kizuna AI, trả từ số dư của bạn.",
       "notesOpenAiLine": "Viết ghi chú bằng khóa OpenAI của chính bạn.",
       "notesNeedSignInOrChoose": "Đăng nhập, hoặc chọn OpenAI ở đây, để ghi chú được viết.",
-      "notesNeedSignInOrKeyAndChoose": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa” rồi chọn OpenAI ở đây, để ghi chú được viết."
+      "notesNeedSignInOrKeyAndChoose": "Đăng nhập, hoặc thêm khóa OpenAI trong “Tài khoản và khóa” rồi chọn OpenAI ở đây, để ghi chú được viết.",
+      "speechNotUsed": "Lần này không có gì được đọc to: bản dịch chỉ hiện dạng chữ.",
+      "speechHowToHear": "Muốn được đọc to, hãy chọn “nghe” trong câu ở trên."
     },
     "display": {
       "surface": "Hiển thị nào",

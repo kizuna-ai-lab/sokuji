@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "{{region}}で使えるキーがありません",
         "keyRefused": "キーが受け付けられません",
         "keyNotVerified": "キー未確認",
-        "checkingKey": "キーを確認しています…"
+        "checkingKey": "キーを確認しています…",
+        "notUsed": "今回は使わない"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
       "hint": "各段階をどのサービスが担当するか",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "Kizuna AI 経由で OpenAI がメモを書きます。料金は残高から支払われます。",
       "notesOpenAiLine": "あなた自身の OpenAI キーでメモを書きます。",
       "notesNeedSignInOrChoose": "メモを書くには、サインインするか、ここで OpenAI を選んでください。",
-      "notesNeedSignInOrKeyAndChoose": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加して、ここで OpenAI を選んでください。"
+      "notesNeedSignInOrKeyAndChoose": "メモを書くには、サインインするか、「アカウントとキー」で OpenAI のキーを追加して、ここで OpenAI を選んでください。",
+      "speechNotUsed": "今回は訳を読み上げず、文字だけを表示します。",
+      "speechHowToHear": "読み上げるには、上の文で「聞く」を選んでください。"
     },
     "display": {
       "surface": "どの表示",

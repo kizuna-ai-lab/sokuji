@@ -16,7 +16,7 @@ import type { LocalInferenceSettings } from './settings';
  * the directions a start would run (roadmap 1e-2 → 1e-3).
  */
 export function LocalInferenceEngine({
-  settings, update, disabled = false, pair = FALLBACK_PAIR, legs, initialSlot, onInitialSlotConsumed, participantSpeaks = false,
+  settings, update, disabled = false, pair = FALLBACK_PAIR, legs, initialSlot, onInitialSlotConsumed, participantSpeaks = false, speakerSpeaks = true,
 }: EngineProps<LocalInferenceSettings>) {
   // A fresh object literal every render would defeat useWasmEngineAdapter's
   // own useMemo (its deps array holds this `override` reference). Keyed on
@@ -24,8 +24,8 @@ export function LocalInferenceEngine({
   // settings write.
   const { source, target } = pair;
   const override = useMemo(
-    () => ({ settings, update, pair: { source, target }, participantSpeaks }),
-    [settings, update, source, target, participantSpeaks],
+    () => ({ settings, update, pair: { source, target }, participantSpeaks, speakerSpeaks }),
+    [settings, update, source, target, participantSpeaks, speakerSpeaks],
   );
   const adapter = useWasmEngineAdapter(disabled, override);
   return (

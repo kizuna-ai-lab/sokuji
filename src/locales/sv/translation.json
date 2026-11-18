@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Ingen fungerande nyckel för {{region}}",
         "keyRefused": "Nyckeln godtogs inte",
         "keyNotVerified": "Nyckeln inte kontrollerad",
-        "checkingKey": "Kontrollerar nyckeln…"
+        "checkingKey": "Kontrollerar nyckeln…",
+        "notUsed": "Används inte den här gången"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
       "hint": "Vilken tjänst som gör varje steg",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI skriver anteckningarna via Kizuna AI, betalas från ditt saldo.",
       "notesOpenAiLine": "Skriver anteckningarna med din egen OpenAI-nyckel.",
       "notesNeedSignInOrChoose": "Logga in, eller välj OpenAI här, så skrivs anteckningar.",
-      "notesNeedSignInOrKeyAndChoose": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar” och välj OpenAI här, så skrivs anteckningar."
+      "notesNeedSignInOrKeyAndChoose": "Logga in, eller lägg till en OpenAI-nyckel under ”Konton och nycklar” och välj OpenAI här, så skrivs anteckningar.",
+      "speechNotUsed": "Den här gången läses inget upp: översättningen visas bara som text.",
+      "speechHowToHear": "Välj ”höra” i meningen ovan för att få den uppläst."
     },
     "display": {
       "surface": "Vilken visning",

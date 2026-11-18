@@ -1,6 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { useTextOnly } from '../../stores/settingsStore';
+import { legSpeaks } from '../../lib/session/shape';
 import { appVoicePreview } from '../../app/voicePreview';
 import { useFaceToFace } from '../MainPanel/useFaceToFace';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
@@ -82,17 +84,21 @@ interface ProviderEngineProps {
 export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlotConsumed, providerId }: ProviderEngineProps) {
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
+  const textOnly = useTextOnly();
   const selection = useSelectedProvider(providers, providerId);
   if (!selection?.entry) return null;
   const Engine = selection.provider.Engine;
   if (!Engine) return null;
   // As for Settings above: the switch, unless the provider never speaks the participant.
   const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
+  // My side: the provider's own rule, else Translation the other side hears (the text-only switch, owner 2026-11-18).
+  const speakerSpeaks = legSpeaks(selection.provider, 'speaker', { textOnly, participantSpeech: false });
   return (
     <Engine
       {...ownProps(selection, selection.entry, disabled)}
       legs={legs}
       participantSpeaks={participantSpeaks}
+      speakerSpeaks={speakerSpeaks}
       initialSlot={initialSlot}
       onInitialSlotConsumed={onInitialSlotConsumed}
     />

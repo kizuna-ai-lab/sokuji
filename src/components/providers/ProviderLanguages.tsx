@@ -6,7 +6,7 @@ import { languageContext } from '../../lib/session/shape';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { LanguagePairSection } from './LanguagePairSection';
+import { LanguagePairSection, type ReceiveChoices } from './LanguagePairSection';
 import { useSelectedProvider } from './useSelectedProvider';
 
 interface ProviderLanguagesProps {
@@ -17,6 +17,8 @@ interface ProviderLanguagesProps {
   sentence?: { mode: AudioMode; textOnly: boolean };
   /** False: the pair without its own heading (the settings page, where the page names it). */
   heading?: boolean;
+  /** The sentence's "hear / read" words as choices (the line-up page); see `LanguagePairSection`. */
+  receive?: ReceiveChoices;
 }
 
 /**
@@ -25,7 +27,7 @@ interface ProviderLanguagesProps {
  * AST2, choice 1). Tracks each side that changed with today's
  * `language_changed` (ruling 14) before persisting the new pair.
  */
-export function ProviderLanguages({ providers, disabled, sentence, heading }: ProviderLanguagesProps) {
+export function ProviderLanguages({ providers, disabled, sentence, heading, receive }: ProviderLanguagesProps) {
   const { trackEvent } = useAnalytics();
   const selection = useSelectedProvider(providers);
   const legs = useProviderStore((st) => st.legs);
@@ -49,6 +51,7 @@ export function ProviderLanguages({ providers, disabled, sentence, heading }: Pr
       pair={entry.pair}
       disabled={disabled}
       heading={heading}
+      receive={receive}
       sentence={sentence && { ...sentence, participantSpeaks: runSpeech !== false && speechFromStores(provider).them }}
       context={languageContext(provider, legs, speech)}
       onChange={(pair) => {

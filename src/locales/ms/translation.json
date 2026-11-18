@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Tiada kunci yang berfungsi untuk {{region}}",
         "keyRefused": "Kunci ditolak",
         "keyNotVerified": "Kunci belum disahkan",
-        "checkingKey": "Menyemak kunci…"
+        "checkingKey": "Menyemak kunci…",
+        "notUsed": "Tidak digunakan kali ini"
       },
       "speechModeHint": "Bila sepotong pertuturan dihantar untuk diterjemah; tetap semasa sesi",
       "hint": "Perkhidmatan mana yang membuat setiap peringkat",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI menulis nota melalui Kizuna AI, dibayar daripada baki anda.",
       "notesOpenAiLine": "Menulis nota dengan kunci OpenAI anda sendiri.",
       "notesNeedSignInOrChoose": "Log masuk, atau pilih OpenAI di sini, supaya nota ditulis.",
-      "notesNeedSignInOrKeyAndChoose": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci” dan pilih OpenAI di sini, supaya nota ditulis."
+      "notesNeedSignInOrKeyAndChoose": "Log masuk, atau tambah kunci OpenAI dalam “Akaun dan kunci” dan pilih OpenAI di sini, supaya nota ditulis.",
+      "speechNotUsed": "Kali ini tiada apa-apa yang dibacakan: terjemahan hanya dipaparkan sebagai teks.",
+      "speechHowToHear": "Untuk dibacakan, pilih “dengar” dalam ayat di atas."
     },
     "display": {
       "surface": "Paparan mana",

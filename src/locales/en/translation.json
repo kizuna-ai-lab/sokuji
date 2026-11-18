@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "No working key for {{region}}",
         "keyRefused": "Key not accepted",
         "keyNotVerified": "Key not verified",
-        "checkingKey": "Checking the key…"
+        "checkingKey": "Checking the key…",
+        "notUsed": "Not used this time"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI writes the notes through Kizuna AI, paid from your balance.",
       "notesOpenAiLine": "Writes the notes with your own OpenAI key.",
       "notesNeedSignInOrChoose": "Sign in, or choose OpenAI here, to have notes written.",
-      "notesNeedSignInOrKeyAndChoose": "Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written."
+      "notesNeedSignInOrKeyAndChoose": "Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written.",
+      "speechNotUsed": "Nothing is read aloud this time: the translation shows as text only.",
+      "speechHowToHear": "To have it read aloud, choose “hear” in the sentence above."
     },
     "display": {
       "surface": "Which display",

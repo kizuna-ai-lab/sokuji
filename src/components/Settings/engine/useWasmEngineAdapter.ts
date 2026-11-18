@@ -24,6 +24,8 @@ export interface WasmEngineAdapterOverride {
   pair: LanguagePair;
   /** The participant leg would speak (#619): its direction shows a TTS slot too. */
   participantSpeaks?: boolean;
+  /** My leg would speak; absent, it does. False: my direction shows no TTS slot either (owner, 2026-11-18). */
+  speakerSpeaks?: boolean;
 }
 
 /** LOCAL_INFERENCE's EngineAdapter — resolve() for display, selections for writes. */
@@ -103,8 +105,11 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
         }
         await override.update({ selections: next });
       },
-      // The participant direction's TTS slot shows only while that leg speaks (#619).
-      stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker || override.participantSpeaks ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
+      // A direction's TTS slot shows only while that leg speaks: the participant's (#619), and mine (owner, 2026-11-18).
+      stagesFor: (_dir, isSpeaker): Stage[] => {
+        const speaks = isSpeaker ? override.speakerSpeaks !== false : Boolean(override.participantSpeaks);
+        return speaks ? ['asr', 'translation', 'tts'] : ['asr', 'translation'];
+      },
       disabled: isSessionActive,
     };
   }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, override, isSessionActive, stages]);

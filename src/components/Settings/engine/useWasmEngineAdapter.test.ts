@@ -16,10 +16,10 @@ const ZH_KO: LanguagePair = { source: 'zh', target: 'ko' };
 /** The adapter over LocalInference's own settings, held in React state as
  *  `LocalInferenceEngine` holds them: the override every mount passes
  *  (Stage 2 deletion, ruling 3). */
-function useHeldAdapter(pair: LanguagePair = JA_EN, participantSpeaks = false) {
+function useHeldAdapter(pair: LanguagePair = JA_EN, participantSpeaks = false, speakerSpeaks?: boolean) {
   const [settings, setSettings] = useState<LocalInferenceSettings>({ ...LOCAL_INFERENCE_DEFAULTS, selections: {} });
   const update = useCallback((patch: Partial<LocalInferenceSettings>) => setSettings((s) => ({ ...s, ...patch })), []);
-  const override = useMemo(() => ({ settings, update, pair, participantSpeaks }), [settings, update, pair, participantSpeaks]);
+  const override = useMemo(() => ({ settings, update, pair, participantSpeaks, speakerSpeaks }), [settings, update, pair, participantSpeaks, speakerSpeaks]);
   return { adapter: useWasmEngineAdapter(false, override), settings };
 }
 
@@ -85,6 +85,13 @@ describe('useWasmEngineAdapter', () => {
     const { result } = renderHook(() => useHeldAdapter(JA_EN, true));
     expect(result.current.adapter.stagesFor('en→ja', false)).toEqual(['asr', 'translation', 'tts']);
     expect(result.current.adapter.stagesFor('ja→en', true)).toEqual(['asr', 'translation', 'tts']);
+  });
+
+  // Owner, 2026-11-18: a direction that will not be read aloud this time shows no speech slot, mine included.
+  it("leaves out my direction's TTS slot while my translation is not read aloud", () => {
+    const { result } = renderHook(() => useHeldAdapter(JA_EN, true, false));
+    expect(result.current.adapter.stagesFor('ja→en', true)).toEqual(['asr', 'translation']);
+    expect(result.current.adapter.stagesFor('en→ja', false)).toEqual(['asr', 'translation', 'tts']);
   });
 
   it('participant direction renders asr+translation only', () => {

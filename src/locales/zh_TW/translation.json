@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "{{region}} 沒有可用的金鑰",
         "keyRefused": "金鑰無法使用",
         "keyNotVerified": "金鑰未驗證",
-        "checkingKey": "正在驗證金鑰…"
+        "checkingKey": "正在驗證金鑰…",
+        "notUsed": "本次不使用"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
       "hint": "每個階段由哪個服務來做",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "經 Kizuna AI 由 OpenAI 寫紀要，從餘額扣費。",
       "notesOpenAiLine": "用你自己的 OpenAI 金鑰寫紀要。",
       "notesNeedSignInOrChoose": "登入，或在這裡選 OpenAI，才能寫紀要。",
-      "notesNeedSignInOrKeyAndChoose": "登入，或在「帳號與金鑰」裡新增 OpenAI 的金鑰並在這裡選 OpenAI，才能寫紀要。"
+      "notesNeedSignInOrKeyAndChoose": "登入，或在「帳號與金鑰」裡新增 OpenAI 的金鑰並在這裡選 OpenAI，才能寫紀要。",
+      "speechNotUsed": "這次沒有譯文要讀出來，只顯示文字。",
+      "speechHowToHear": "要讀出來，在上面那句話裡選「聽到」。"
     },
     "display": {
       "surface": "哪個介面",

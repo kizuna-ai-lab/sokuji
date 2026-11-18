@@ -3,7 +3,7 @@ import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
-import { normalizePair, swapped } from '../../lib/provider/languages';
+import { AUTO, normalizePair, reversedPair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
@@ -11,6 +11,42 @@ import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } fro
 import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
 
 const SEPARATOR = '──────────';
+
+/** A select's options: the pinned ones above the separator, then the whole list. */
+interface OptionLists { pinned: LanguageOption[]; ordered: LanguageOption[] }
+
+/** The lists seen through `code`: each option under its code there, the first of each code kept. */
+function viewThrough({ pinned, ordered }: OptionLists, code: (value: string) => string): OptionLists {
+  const once = (list: LanguageOption[]) => {
+    const seen = new Set<string>();
+    return list.flatMap((o) => {
+      const value = code(o.value);
+      if (seen.has(value)) return [];
+      seen.add(value);
+      return [{ value }];
+    });
+  };
+  return { pinned: once(pinned), ordered: once(ordered) };
+}
+
+/**
+ * One side's way of getting the translation, chosen in the sentence (owner, 2026-11-18, design 1): heard (read aloud
+ * too) or read. The caller wires it to the audio page's switch it stands for.
+ */
+export interface ReceiveChoice {
+  hears: boolean;
+  onChange(hears: boolean): void;
+  /** Why it cannot be changed now, said beside it; null when it can. */
+  blocked: string | null;
+}
+
+/** The sentence's two words as choices: the other side's (my leg) and mine (theirs), and the way to the audio settings. */
+export interface ReceiveChoices {
+  theirs?: ReceiveChoice;
+  mine?: ReceiveChoice;
+  /** Opens the audio settings at the switch behind that side's word. */
+  onOpenAudio?(side: 'theirs' | 'mine'): void;
+}
 
 interface LanguagePairSectionProps {
   provider: AnyProvider;
@@ -29,6 +65,12 @@ interface LanguagePairSectionProps {
   context?: LanguageContext;
   /** Absent or true: the section's own heading. False where the page names the languages already (the settings page). */
   heading?: boolean;
+  /**
+   * The sentence's "hear / read" words as choices (the line-up page): `theirs` the other side's (my leg, shown in the
+   * Me and Both modes), `mine` my own (the other side's leg: the Other mode's first word, Both's second line).
+   * `onOpenAudio` is the way to the audio settings a blocked choice offers. Absent: the words are plain labels.
+   */
+  receive?: ReceiveChoices;
 }
 
 /**
@@ -37,7 +79,7 @@ interface LanguagePairSectionProps {
  * allowed whenever the provider supports the reversed pair. Markup is
  * LanguageSection's translation-languages block.
  */
-export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, heading = true }: LanguagePairSectionProps) {
+export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, heading = true, receive }: LanguagePairSectionProps) {
   const { t, i18n } = useTranslation();
   const id = useId();
   const label = useLanguageLabel();
@@ -58,7 +100,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
     () => ({ pinned: pinnedLanguages(targets, pair, ctx), ordered: orderLanguages(targets, ctx) }),
     [targets, pair, ctx],
   );
-  const options = ({ pinned, ordered }: { pinned: LanguageOption[]; ordered: LanguageOption[] }) => (
+  const options = ({ pinned, ordered }: OptionLists) => (
     <>
       {pinned.map((o) => <option key={`pin:${o.value}`} value={o.value}>{label(o.value)}</option>)}
       {pinned.length > 0 && <option key="pin-separator" value={PIN_SEPARATOR} disabled>{SEPARATOR}</option>}
@@ -82,6 +124,120 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   const sourceLanguageName = label(pair.source);
   const targetLanguageName = label(pair.target);
 
+  // The choices this mode shows: the other side's on my leg, mine on theirs.
+  const theirs = sentence && sentence.mode !== 'participant' ? receive?.theirs : undefined;
+  const mine = sentence && sentence.mode !== 'speaker' ? receive?.mine : undefined;
+  const words = {
+    theirs: [t('settings.langSentence.theyHear', 'they hear'), t('settings.langSentence.theyRead', 'they read')] as const,
+    mine: [t('settings.langSentence.iHear', 'I hear'), t('settings.langSentence.iRead', 'I read')] as const,
+  };
+  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, [hear, read]: readonly [string, string]) => (
+    <select
+      className="language-receive"
+      value={choice.hears ? 'hear' : 'read'}
+      aria-label={`${hear} / ${read}`}
+      title={choice.blocked ?? undefined}
+      aria-describedby={choice.blocked ? `${id}-reason-${side}` : undefined}
+      // Its own lock, not the section's: the session's lock is in `blocked` where it applies (Translation I hear stays
+      // switchable during a run that speaks it, as on the Audio page).
+      disabled={Boolean(choice.blocked)}
+      onChange={(e) => choice.onChange(e.target.value === 'hear')}
+    >
+      <option value="hear">{hear}</option>
+      <option value="read">{read}</option>
+    </select>
+  );
+  // Why a side's word cannot change, under the row it belongs to; its link opens that side's switch.
+  const reasonFor = (side: 'theirs' | 'mine') => {
+    const text = (side === 'theirs' ? theirs : mine)?.blocked;
+    if (!text) return null;
+    return (
+      <p className="language-receive-reason" id={`${id}-reason-${side}`} data-side={side}>
+        <span>{text}</span>
+        {receive?.onOpenAudio && (
+          <button type="button" className="language-receive-reason__link" onClick={() => receive.onOpenAudio?.(side)}>
+            {t('mainPanel.audioSettings', 'Audio settings')}
+          </button>
+        )}
+      </p>
+    );
+  };
+  // The Other mode: my word leads the first row.
+  const mineLeads = Boolean(mine) && sentence?.mode === 'participant';
+  const chooseSource = (source: string) => onChange(normalizePair(provider, settings, { source, target: pair.target }, context));
+  const chooseTarget = (target: string) => onChange({ source: pair.source, target });
+  const sourceSelect = (selectId: string, ariaLabel?: string) => (
+    <select
+      id={selectId}
+      className="language-select"
+      aria-label={ariaLabel}
+      value={pair.source}
+      onChange={(e) => chooseSource(e.target.value)}
+      disabled={disabled}
+    >
+      {options(sourceOptions)}
+    </select>
+  );
+  const targetSelect = (selectId: string, ariaLabel?: string) => (
+    <select
+      id={selectId}
+      className="language-select"
+      aria-label={ariaLabel}
+      value={pair.target}
+      onChange={(e) => chooseTarget(e.target.value)}
+      disabled={disabled}
+    >
+      {options(targetOptions)}
+    </select>
+  );
+  // The other side's leg runs the pair's reverse as the provider states it (`reversedPair`: Palabra's is its own codes,
+  // not a swap), so their row shows that leg's languages. Each stands for the choice of the pair it comes from, and a
+  // change there is that choice: one pair either way, so a change in one row is the other's too.
+  const leg = (p: LanguagePair) => reversedPair(provider, settings, p) ?? { source: p.target, target: p.source };
+  const theySpeak = (target: string) => leg({ source: pair.source, target }).source;
+  const iGet = (source: string) => leg({ source, target: pair.target }).target;
+  const legSelect = (selectId: string, lists: OptionLists, code: (value: string) => string, current: string, choose: (value: string) => void, ariaLabel?: string) => {
+    const value = code(current);
+    return (
+      <select
+        id={selectId}
+        className="language-select"
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(e) => {
+          const chosen = [...lists.pinned, ...lists.ordered].find((o) => code(o.value) === e.target.value);
+          if (chosen) choose(chosen.value);
+        }}
+        disabled={disabled}
+      >
+        {/* The language I get is never "detect automatically": with an automatic source it says so, unchosen. */}
+        {value === AUTO && <option value={AUTO} disabled>{label(AUTO)}</option>}
+        {options(viewThrough(lists, code))}
+      </select>
+    );
+  };
+  const namedSources = useMemo<OptionLists>(() => ({
+    pinned: sourceOptions.pinned.filter((o) => o.value !== AUTO),
+    ordered: sourceOptions.ordered.filter((o) => o.value !== AUTO),
+  }), [sourceOptions]);
+  const swap = (
+    <div className="language-arrow">
+      <button
+        type="button"
+        className="language-swap-btn"
+        onClick={() => reversed && onChange(reversed)}
+        disabled={disabled || !reversed}
+        title={t('simpleConfig.swapLanguages')}
+      >
+        <ArrowLeftRight size={18} />
+      </button>
+    </div>
+  );
+  // Both, with my word a choice: the other side's leg is a row of its own, drawn as the first (owner, 2026-11-18): two
+  // legs of equal weight, each language shown where it comes from and where it goes.
+  const theirRow = Boolean(mine) && sentence?.mode === 'both';
+  const theySpeakLabel = t('settings.langSentence.theySpeak', 'they speak');
+
   return (
     <div className="config-section" id="languages-section">
       {heading && (
@@ -97,42 +253,37 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       )}
       <div className="language-pair-row">
         <div className="language-select-group">
-          <label htmlFor={`${id}-source`}>{sourceLabel}</label>
-          <select
-            id={`${id}-source`}
-            className="language-select"
-            value={pair.source}
-            onChange={(e) => onChange(normalizePair(provider, settings, { source: e.target.value, target: pair.target }, context))}
-            disabled={disabled}
-          >
-            {options(sourceOptions)}
-          </select>
+          {mineLeads && mine
+            ? <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
+            : <label htmlFor={`${id}-source`}>{sourceLabel}</label>}
+          {sourceSelect(`${id}-source`, mineLeads ? sourceLabel : undefined)}
         </div>
-        <div className="language-arrow">
-          <button
-            type="button"
-            className="language-swap-btn"
-            onClick={() => reversed && onChange(reversed)}
-            disabled={disabled || !reversed}
-            title={t('simpleConfig.swapLanguages')}
-          >
-            <ArrowLeftRight size={18} />
-          </button>
-        </div>
+        {swap}
         <div className="language-select-group">
-          <label htmlFor={`${id}-target`}>{targetLabel}</label>
-          <select
-            id={`${id}-target`}
-            className="language-select"
-            value={pair.target}
-            onChange={(e) => onChange({ source: pair.source, target: e.target.value })}
-            disabled={disabled}
-          >
-            {options(targetOptions)}
-          </select>
+          {theirs
+            ? <span className="language-receive-label">{receiveSelect('theirs', theirs, words.theirs)}</span>
+            : <label htmlFor={`${id}-target`}>{targetLabel}</label>}
+          {targetSelect(`${id}-target`, theirs ? targetLabel : undefined)}
         </div>
       </div>
-      {resolved?.showMirror && (
+      {/* Each reason under the row its word is in: theirs in the first; mine there in Other, under its own row in Both. */}
+      {reasonFor('theirs')}
+      {mineLeads && reasonFor('mine')}
+      {theirRow && mine && (
+        <div className="language-pair-row" data-testid="language-their-row">
+          <div className="language-select-group">
+            <label htmlFor={`${id}-their-target`}>{theySpeakLabel}</label>
+            {legSelect(`${id}-their-target`, targetOptions, theySpeak, pair.target, chooseTarget)}
+          </div>
+          {swap}
+          <div className="language-select-group">
+            <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
+            {legSelect(`${id}-their-source`, namedSources, iGet, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
+          </div>
+        </div>
+      )}
+      {theirRow && reasonFor('mine')}
+      {!theirRow && resolved?.showMirror && (
         <div className="language-mirror-line" data-testid="language-mirror-line">
           {t(resolved.mirror.key, resolved.mirror.fallback, {
             their: targetLanguageName,

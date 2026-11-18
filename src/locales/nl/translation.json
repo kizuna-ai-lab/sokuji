@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Geen werkende sleutel voor {{region}}",
         "keyRefused": "Sleutel geweigerd",
         "keyNotVerified": "Sleutel niet gecontroleerd",
-        "checkingKey": "Sleutel controleren…"
+        "checkingKey": "Sleutel controleren…",
+        "notUsed": "Deze keer niet gebruikt"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
       "hint": "Welke dienst elke stap doet",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI schrijft de notities via Kizuna AI, betaald uit je saldo.",
       "notesOpenAiLine": "Schrijft de notities met je eigen OpenAI-sleutel.",
       "notesNeedSignInOrChoose": "Log in, of kies hier OpenAI, om notities te laten schrijven.",
-      "notesNeedSignInOrKeyAndChoose": "Log in, of voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’ en kies hier OpenAI, om notities te laten schrijven."
+      "notesNeedSignInOrKeyAndChoose": "Log in, of voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’ en kies hier OpenAI, om notities te laten schrijven.",
+      "speechNotUsed": "Deze keer wordt niets voorgelezen: de vertaling verschijnt alleen als tekst.",
+      "speechHowToHear": "Wil je dat ze wordt voorgelezen, kies dan ‘horen’ in de zin hierboven."
     },
     "display": {
       "surface": "Welke weergave",

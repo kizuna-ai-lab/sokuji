@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "No hay una clave que funcione en {{region}}",
         "keyRefused": "Clave no aceptada",
         "keyNotVerified": "Clave sin verificar",
-        "checkingKey": "Comprobando la clave…"
+        "checkingKey": "Comprobando la clave…",
+        "notUsed": "Sin usar esta vez"
       },
       "speechModeHint": "Cuándo se envía un tramo de voz a traducir; fijo durante la sesión",
       "hint": "Qué servicio hace cada etapa",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI escribe las notas a través de Kizuna AI, pagadas con tu saldo.",
       "notesOpenAiLine": "Escribe las notas con tu propia clave de OpenAI.",
       "notesNeedSignInOrChoose": "Inicia sesión, o elige OpenAI aquí, para que se escriban las notas.",
-      "notesNeedSignInOrKeyAndChoose": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves» y elige OpenAI aquí, para que se escriban las notas."
+      "notesNeedSignInOrKeyAndChoose": "Inicia sesión, o añade una clave de OpenAI en «Cuentas y claves» y elige OpenAI aquí, para que se escriban las notas.",
+      "speechNotUsed": "Esta vez no se lee nada en voz alta: la traducción solo aparece como texto.",
+      "speechHowToHear": "Para que se lea, elige «escuchar» en la frase de arriba."
     },
     "display": {
       "surface": "Qué visualización",

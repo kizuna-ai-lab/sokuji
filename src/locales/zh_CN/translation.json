@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "{{region}} 没有可用的密钥",
         "keyRefused": "密钥不可用",
         "keyNotVerified": "密钥未验证",
-        "checkingKey": "正在验证密钥…"
+        "checkingKey": "正在验证密钥…",
+        "notUsed": "本次不使用"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
       "hint": "每个阶段由哪个服务来做",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "经 Kizuna AI 由 OpenAI 写纪要，从余额扣费。",
       "notesOpenAiLine": "用你自己的 OpenAI key 写纪要。",
       "notesNeedSignInOrChoose": "登录，或在这里选 OpenAI，才能写纪要。",
-      "notesNeedSignInOrKeyAndChoose": "登录，或在“账号与密钥”里添加 OpenAI 的 key 并在这里选 OpenAI，才能写纪要。"
+      "notesNeedSignInOrKeyAndChoose": "登录，或在“账号与密钥”里添加 OpenAI 的 key 并在这里选 OpenAI，才能写纪要。",
+      "speechNotUsed": "这次没有译文要读出来，只显示文字。",
+      "speechHowToHear": "要读出来，在上面那句话里选「听到」。"
     },
     "display": {
       "surface": "哪个界面",

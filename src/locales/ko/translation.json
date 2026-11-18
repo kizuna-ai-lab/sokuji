@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "{{region}}에서 쓸 수 있는 키가 없음",
         "keyRefused": "키가 거부됨",
         "keyNotVerified": "키 확인 안 됨",
-        "checkingKey": "키 확인 중…"
+        "checkingKey": "키 확인 중…",
+        "notUsed": "이번에는 사용 안 함"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "Kizuna AI를 통해 OpenAI가 메모를 작성하며, 비용은 잔액에서 지불됩니다.",
       "notesOpenAiLine": "본인의 OpenAI 키로 메모를 작성합니다.",
       "notesNeedSignInOrChoose": "메모를 작성하려면 로그인하거나 여기에서 OpenAI를 선택하세요.",
-      "notesNeedSignInOrKeyAndChoose": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가한 뒤 여기에서 OpenAI를 선택하세요."
+      "notesNeedSignInOrKeyAndChoose": "메모를 작성하려면 로그인하거나 ‘계정과 키’에서 OpenAI 키를 추가한 뒤 여기에서 OpenAI를 선택하세요.",
+      "speechNotUsed": "이번에는 번역을 읽어 주지 않고 글자로만 보여 줍니다.",
+      "speechHowToHear": "읽어 주게 하려면 위 문장에서 ‘듣는’을 고르세요."
     },
     "display": {
       "surface": "어느 화면",
