@@ -193,6 +193,12 @@
     &:hover { color: vars.$text-primary; border-bottom-color: vars.$text-secondary; }
     &:focus-visible { @include vars.focus-ring; }
     &:dir(rtl) { background-position: left 2px center, left 6px center; }
+    // Its list is the app's own, as every other select's (Settings.scss: the picker, its options, the check) — not the
+    // system's (owner, 2026-11-19, #124). The word keeps its small chevron above, so the picker's own icon is left out.
+    @supports (appearance: base-select) {
+      &, &::picker(select) { appearance: base-select; }
+      &::picker-icon { display: none; }
+    }
   }
   // Why a word cannot be changed now, and the way to the audio settings.
   .language-receive-reason {
