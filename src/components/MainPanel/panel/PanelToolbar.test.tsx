@@ -262,7 +262,7 @@ describe('PanelToolbar — live notes switch', () => {
     // Side by side.
     expect(liveSwitch()).toHaveAttribute('aria-pressed', 'true');
     expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.showAlone');
-    expect(liveSwitch()!.querySelector('.lucide-panel-right')).not.toBeNull();
+    expect(liveSwitch()!.querySelector('.lucide-columns-2')).not.toBeNull();
     fireEvent.click(liveSwitch()!);
     // The notes alone.
     expect(useLiveNotesLayout.getState().layout).toBe('notes');
@@ -274,20 +274,20 @@ describe('PanelToolbar — live notes switch', () => {
     expect(useLiveNotesLayout.getState().layout).toBe('conversation');
     expect(liveSwitch()).toHaveAttribute('aria-pressed', 'false');
     expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.showWriting');
-    expect(liveSwitch()!.querySelector('.lucide-panel-right')).not.toBeNull();
+    expect(liveSwitch()!.querySelector('.lucide-message-square-text')).not.toBeNull();
     act(() => useLiveNotes.getState().end('run-0001-aaaa'));
     expect(liveSwitch()).toHaveAttribute('title', 'liveNotes.show');
     fireEvent.click(liveSwitch()!);
     expect(useLiveNotesLayout.getState().layout).toBe('both');
   });
 
-  it('shows the panel above the conversation in a narrow window', () => {
+  it('draws two rows in a narrow window when both are shown (the notes above the conversation)', () => {
     vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(max-width: 767px)', media: query, addEventListener: () => {}, removeEventListener: () => {} }));
     env.electron = true;
     useSettingsStore.setState({ liveNotes: true } as never);
     useLiveNotes.getState().begin('run-0001-aaaa');
     renderToolbar(['speaker']);
-    expect(liveSwitch()!.querySelector('.lucide-panel-top')).not.toBeNull();
+    expect(liveSwitch()!.querySelector('.lucide-rows-2')).not.toBeNull();
   });
 });
 

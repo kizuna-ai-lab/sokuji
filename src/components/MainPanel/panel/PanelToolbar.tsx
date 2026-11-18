@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, NotebookText, PanelRight, PanelTop, Settings, Trash2 } from 'lucide-react';
+import { AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, Columns2, MessageSquareText, NotebookText, Rows2, Settings, Trash2 } from 'lucide-react';
 import {
   useFloating,
   autoUpdate,
@@ -113,12 +113,12 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
   if (liveNotesLayout === 'both') liveNotesSwitchTitle = t('liveNotes.showAlone', 'Show only the live notes');
   else if (liveNotesLayout === 'notes') liveNotesSwitchTitle = t('liveNotes.hide', 'Hide live notes');
   else if (liveNotesRunning) liveNotesSwitchTitle = t('liveNotes.showWriting', 'Show live notes (still being written)');
-  // The icon says what the area shows: the notes beside the conversation in a wide window, above it in a narrow one
-  // (MainPanel), or the notes alone.
+  // The icon draws what the area shows, one for each layout (owner, 2026-11-18): two columns, or two rows in a narrow
+  // window where the notes are above the conversation (MainPanel); the notes alone; the conversation alone.
   const narrowWindow = useNarrowWindow();
-  let liveNotesIcon = <PanelRight size={14} aria-hidden="true" />;
+  let liveNotesIcon = narrowWindow ? <Rows2 size={14} aria-hidden="true" /> : <Columns2 size={14} aria-hidden="true" />;
   if (liveNotesLayout === 'notes') liveNotesIcon = <NotebookText size={14} aria-hidden="true" />;
-  else if (narrowWindow) liveNotesIcon = <PanelTop size={14} aria-hidden="true" />;
+  else if (liveNotesLayout === 'conversation') liveNotesIcon = <MessageSquareText size={14} aria-hidden="true" />;
 
   return (
     <>
