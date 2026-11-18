@@ -5,7 +5,7 @@
 // for the three OpenAI providers (Plan 4), one row each for the other
 // providers with a key, and the ones that need none. Which provider serves a
 // stage is chosen in "Languages and line-up", never here.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,7 @@ import { formatBytes } from '../../lib/local-inference/formatBytes';
 import { formatUsdFloor } from '../../utils/formatters';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { CredentialForm } from '../providers/CredentialForm';
+import { BingIcon, EdgeIcon, KizunaAIIcon } from '../Icons/ProviderIcons';
 import { SonioxKeyForm } from './SonioxKeyForm';
 import { ManagedAccountRow } from '../providers/ManagedAccountRow';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
@@ -45,6 +46,8 @@ interface Account {
   serves: readonly string[];
   /** The provider's setup guide on the website, when it has one. */
   guide?: string;
+  /** Its logo, the one the line-up's service picker shows (owner, 2026-11-19: found at a glance in the list). */
+  icon?: ComponentType<{ size?: string | number }>;
 }
 
 export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps) {
@@ -92,12 +95,13 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   const accounts = useMemo<Account[]>(() => {
     const list: Account[] = [];
     const managed = providers.filter((p) => p.kind === 'managed');
-    if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id), guide: managed.find((p) => p.guideUrl)?.guideUrl });
+    if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id), guide: managed.find((p) => p.guideUrl)?.guideUrl, icon: KizunaAIIcon });
     // The accounts that need no key come first (the mock's order), then the providers with a key.
-    if (providers.some((p) => p.id === 'local_inference')) {
-      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: providers.find((p) => p.id === 'local_inference')?.guideUrl });
-      list.push({ key: 'bing', name: t('providers.bing.name', 'Bing'), kind: 'online', serves: ['bing'] });
-      list.push({ key: 'edge', name: t('providers.edge.name', 'Edge'), kind: 'online', serves: ['edge'] });
+    const local = providers.find((p) => p.id === 'local_inference');
+    if (local) {
+      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: local.guideUrl, icon: local.icon });
+      list.push({ key: 'bing', name: t('providers.bing.name', 'Bing'), kind: 'online', serves: ['bing'], icon: BingIcon });
+      list.push({ key: 'edge', name: t('providers.edge.name', 'Edge'), kind: 'online', serves: ['edge'], icon: EdgeIcon });
     }
     const openai = providers.filter((p) => OPENAI_IDS.includes(p.id));
     let openaiListed = false;
@@ -107,10 +111,10 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         if (openaiListed) continue;
         openaiListed = true;
         // One key for the three (Plan 4): the row edits it through the first present OpenAI provider.
-        list.push({ key: 'openai', name: 'OpenAI', kind: 'key', provider: openai[0], serves: openai.map((x) => x.id), guide: openai.find((x) => x.guideUrl)?.guideUrl });
+        list.push({ key: 'openai', name: 'OpenAI', kind: 'key', provider: openai[0], serves: openai.map((x) => x.id), guide: openai.find((x) => x.guideUrl)?.guideUrl, icon: openai[0].icon });
         continue;
       }
-      list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'key', provider: p, serves: [p.id], guide: p.guideUrl });
+      list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'key', provider: p, serves: [p.id], guide: p.guideUrl, icon: p.icon });
     }
     return list;
   }, [providers, t]);
@@ -178,11 +182,13 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         const p = a.provider;
         const entry = p ? entries[p.id] : undefined;
         const isOpen = open === a.key;
+        const Icon = a.icon;
         return (
           <div className="accounts-row" role="group" aria-label={a.name} key={a.key} id={`${accountAnchor(a.key)}-section`}>
             {/* The mock's row: the name with what the account can do beside it (owner, 2026-11-15: no need to open
                 the row to see them), its state under it, one button. */}
             <div className="accounts-row__head">
+              {Icon && <span className="accounts-row__icon" aria-hidden="true"><Icon size={20} /></span>}
               <div className="accounts-row__main">
                 <span className="accounts-row__title">
                   <span className="accounts-row__name">{a.name}</span>

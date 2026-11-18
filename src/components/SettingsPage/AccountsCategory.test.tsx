@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
+import type { ComponentType } from 'react';
+import { BingIcon, KizunaAIIcon, OpenAIIcon, SonioxIcon } from '../Icons/ProviderIcons';
 
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
@@ -93,6 +95,26 @@ describe('accounts and keys', () => {
     const names = screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
     expect(names.slice(0, 4)).toEqual(['Kizuna AI', 'This device', 'Bing', 'Edge']);
     expect(names).toContain('OpenAI');
+  });
+
+  // Owner, 2026-11-19: each row shows its service's logo, the line-up picker's, so the list is found at a glance.
+  it("shows each account's logo before its name, the one the line-up's picker shows", () => {
+    render(<AccountsCategory locked={false} />);
+    const logoOf = (name: string) => within(screen.getByRole('group', { name })).getByText((_, el) => el?.classList.contains('accounts-row__icon') ?? false);
+    // Drawn on its own, off the page; the ids a logo makes for its gradients differ per drawing.
+    const shape = (html: string) => html.replace(/(id|href)="[^"]*"|url\(#[^)]*\)/g, '');
+    const drawn = (Icon: ComponentType<{ size?: number }>) => shape(render(<Icon size={20} />, { container: document.createElement('div') }).container.innerHTML);
+    expect(shape(logoOf('Kizuna AI').innerHTML)).toBe(drawn(KizunaAIIcon));
+    expect(shape(logoOf('Bing').innerHTML)).toBe(drawn(BingIcon));
+    expect(shape(logoOf('OpenAI').innerHTML)).toBe(drawn(OpenAIIcon));
+    expect(shape(logoOf('Soniox').innerHTML)).toBe(drawn(SonioxIcon));
+    // Before the name, and not read out: the name says it.
+    for (const row of screen.getAllByRole('group')) {
+      const logo = row.querySelector('.accounts-row__head > .accounts-row__icon');
+      expect(logo).not.toBeNull();
+      expect(logo!.getAttribute('aria-hidden')).toBe('true');
+      expect(logo!.nextElementSibling).toHaveClass('accounts-row__main');
+    }
   });
 
   // The tour's key step points at the account rows.
