@@ -138,8 +138,13 @@ function ControlFooter(props: PanelFooterProps) {
   const startingRun: RunState = isChecking ? { phase: 'starting', participantSpeech: false, step: 'checking' } : run;
 
   const statusDotClass = `status-dot ${isReconnecting ? 'reconnecting' : isRunning ? 'active' : ''}`;
-  // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`.
-  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : `${label(pair.source)} → ${label(pair.target)}`;
+  // A bidirectional pair (`zh+en`) is both ends at once: name it once, not `X → X`. Otherwise my language stays first, as
+  // the pair is chosen, and the arrow points the way the mode translates (owner, 2026-11-18): "Other" translates the other
+  // side into mine, "Both" (face to face too) each way.
+  let arrow = '→';
+  if (mode === 'participant') arrow = '←';
+  else if (mode === 'both' || faceToFace) arrow = '⇄';
+  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : `${label(pair.source)} ${arrow} ${label(pair.target)}`;
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 

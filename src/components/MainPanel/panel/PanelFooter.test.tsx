@@ -202,6 +202,23 @@ describe('PanelFooter — language pair', () => {
     expect(onLanguages).toHaveBeenCalledTimes(1);
   });
 
+  // Owner, 2026-11-18: the languages stay where they are (mine first, as the pair is chosen); the arrow says which way
+  // the session translates. "Other" translates the other side into mine; "Both" and face to face, each way.
+  it.each(SITES)('%s: points the arrow the way the mode translates, mine always first', (site) => {
+    const ja = languageLabel('ja', 'en');
+    const zh = languageLabel('zh', 'en');
+    const text = (over: Partial<PanelFooterProps>) => {
+      const { container } = render(<PanelFooter {...baseProps(site, { pair: { source: 'ja', target: 'zh' }, ...over })} />);
+      const shown = (container.querySelector('.language-pair') as HTMLElement).textContent;
+      cleanup();
+      return shown;
+    };
+    expect(text({ mode: 'speaker' })).toBe(`${ja} → ${zh}`);
+    expect(text({ mode: 'participant' })).toBe(`${ja} ← ${zh}`);
+    expect(text({ mode: 'both' })).toBe(`${ja} ⇄ ${zh}`);
+    expect(text({ mode: 'both', faceToFace: true })).toBe(`${ja} ⇄ ${zh}`);
+  });
+
   it.each(SITES)('%s: a bidirectional pair (source === target) is named once', (site) => {
     const { container } = render(
       <PanelFooter {...baseProps(site, { pair: { source: 'zh+en', target: 'zh+en' } })} />,

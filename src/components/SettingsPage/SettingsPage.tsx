@@ -19,6 +19,7 @@ import { GeneralCategory } from './GeneralCategory';
 import { HistoryCategory } from './HistoryCategory';
 import { WordsCategory } from './WordsCategory';
 import { useWideForm } from './useWideForm';
+import { reveal } from './reveal';
 // Today's sections (rows, selects, key fields) are styled there; the old panel that loaded it is gone.
 import '../Settings/Settings.scss';
 import './SettingsPage.scss';
@@ -111,7 +112,7 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
         navigateToSettings(null);
         return;
       }
-      element.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      reveal(element);
       element.classList.add('highlight');
       highlighted = element;
       highlightTimer = setTimeout(() => {
