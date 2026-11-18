@@ -67,6 +67,42 @@ describe('PanelResizer', () => {
     expect(onCommit).toHaveBeenLastCalledWith(530);
   });
 
+  // Owner, 2026-11-19: a seam between rows (the live notes above the conversation in a narrow window).
+  describe('across rows (axis="y")', () => {
+    it('is a horizontal separator, its value the height', () => {
+      render(<PanelResizer {...base} axis="y" side="left" onResize={() => {}} onCommit={() => {}} />);
+      const sep = screen.getByRole('separator');
+      expect(sep).toHaveAttribute('aria-orientation', 'horizontal');
+      expect(sep).toHaveClass('panel-resizer--y');
+      expect(sep).toHaveAttribute('aria-valuenow', '450');
+    });
+
+    it('for a panel above the seam, dragging down makes it taller, and the drag reads the pointer\'s height, not its x', () => {
+      const onResize = vi.fn(); const onCommit = vi.fn();
+      render(<PanelResizer {...base} axis="y" side="left" onResize={onResize} onCommit={onCommit} />);
+      const sep = screen.getByRole('separator');
+      sep.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 10, clientY: 300, button: 0 }), { pointerType: 'mouse' }));
+      expect(document.body.classList.contains('is-resizing-rows')).toBe(true);
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 900, clientY: 340 }));
+      expect(onResize).toHaveBeenLastCalledWith(490);
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 900, clientY: 280 }));
+      expect(onCommit).toHaveBeenLastCalledWith(430);
+      expect(document.body.classList.contains('is-resizing-rows')).toBe(false);
+    });
+
+    it('for a panel above the seam, ArrowDown makes it taller and ArrowUp shorter', () => {
+      const onCommit = vi.fn();
+      render(<PanelResizer {...base} axis="y" side="left" onResize={() => {}} onCommit={onCommit} />);
+      const sep = screen.getByRole('separator');
+      fireEvent.keyDown(sep, { key: 'ArrowDown' });
+      expect(onCommit).toHaveBeenLastCalledWith(466);
+      fireEvent.keyDown(sep, { key: 'ArrowUp' });
+      expect(onCommit).toHaveBeenLastCalledWith(434);
+      fireEvent.keyDown(sep, { key: 'ArrowLeft' });
+      expect(onCommit).toHaveBeenCalledTimes(2);
+    });
+  });
+
   // Note: jsdom doesn't propagate clientX on synthetic pointer events, so this
   // asserts the drag wiring + listener lifecycle, not the pixel arithmetic
   // (the exact +/-16 math is covered by the keyboard tests above).

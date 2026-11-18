@@ -4,7 +4,8 @@
 // with its points and what they are; the newest topic is the one being written. Between the conversation's toolbar and
 // its footer (owner, 2026-11-18): beside the conversation on the right of a window at least 768 px wide, above it when
 // narrower (MainPanel's styles), or alone in the area (livePanel.ts). Beside it, its width is dragged at the divider on
-// its left and kept for the next session (owner, 2026-11-18; liveNotesWidth.ts). Not shown in caption mode, nor when
+// its left and kept for the next session (owner, 2026-11-18; liveNotesWidth.ts); above it, its height at the divider under
+// it (owner, 2026-11-19; liveNotesHeight.ts). Not shown in caption mode, nor when
 // live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
 // notes will come. After Stop the notes stay until the next start or Clear, with the way to History, where the full
 // notes are written. Live notes are never kept (ruling 16).
@@ -22,6 +23,8 @@ import PanelResizer from '../MainLayout/PanelResizer';
 import { useFollowLatest } from '../Conversation/useFollowLatest';
 import { FollowDock } from '../Conversation/FollowDock';
 import { LIVE_NOTES_MIN_PX, liveNotesWidthWithin, readLiveNotesWidth, writeLiveNotesWidth } from './liveNotesWidth';
+import { LIVE_NOTES_MIN_HEIGHT_PX, liveNotesHeightWithin, readLiveNotesHeight, writeLiveNotesHeight } from './liveNotesHeight';
+import { useNarrowWindow } from '../../lib/notes/live/useNarrowWindow';
 import './LiveNotesPanel.scss';
 
 export interface LiveNotesPanelProps {
@@ -84,18 +87,37 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const [row, setRow] = useState(0);
   // Read when a drag ends: its handlers were made when it began, and the row may have changed since.
   const rowNow = useRef(0);
+  // Above the conversation in a narrow window (owner, 2026-11-19): the height kept (null: never dragged, they take what
+  // they need up to 40%), what a drag shows, the column they share and how tall they are now, as for the width.
+  const narrow = useNarrowWindow();
+  const [keptHeight, setKeptHeight] = useState(readLiveNotesHeight);
+  const [previewHeight, setPreviewHeight] = useState<number | null>(null);
+  const [column, setColumn] = useState(0);
+  const columnNow = useRef(0);
+  const [tall, setTall] = useState(0);
   useLayoutEffect(() => {
-    const el = asideRef.current?.parentElement;
-    if (!el) return undefined;
-    const measure = () => { rowNow.current = el.clientWidth; setRow(el.clientWidth); };
+    const aside = asideRef.current;
+    const el = aside?.parentElement;
+    if (!aside || !el) return undefined;
+    const measure = () => {
+      rowNow.current = el.clientWidth;
+      setRow(el.clientWidth);
+      columnNow.current = el.clientHeight;
+      setColumn(el.clientHeight);
+      setTall(aside.offsetHeight);
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
     const watch = new ResizeObserver(measure);
     watch.observe(el);
+    watch.observe(aside);
     return () => watch.disconnect();
   }, [present]);
-  // Hidden, alone or gone in the middle of a drag, the divider goes, and what it showed with it.
-  useEffect(() => { if (!shown || alone || !present) setPreview(null); }, [shown, alone, present]);
+  // Hidden, alone, gone or turned the other way in the middle of a drag, the divider goes, and what it showed with it.
+  useEffect(() => {
+    if (!shown || alone || !present) { setPreview(null); setPreviewHeight(null); }
+  }, [shown, alone, present]);
+  useEffect(() => { setPreview(null); setPreviewHeight(null); }, [narrow]);
   const { recordId, state, hint, running, off, ended, history, fullNotes, stopped, used, balanceMicroUsd } = useLiveNotes();
   // With Kizuna AI the panel's foot says what this session's live notes have used, at the published rates.
   const hosted = useLineUpStore((s) => notesServiceOf(s.lineUp) === KIZUNA_NOTES);
@@ -108,6 +130,8 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   );
   if (!present) return null;
   const shownWidth = liveNotesWidthWithin(preview ?? kept, row);
+  const sizedHeight = previewHeight ?? keptHeight;
+  const shownHeight = narrow && sizedHeight !== null ? liveNotesHeightWithin(sizedHeight, column) : null;
 
   const kindWord: Record<NoteKind, string> = {
     decision: t('history.notesKind.decision', 'Decision'),
@@ -120,8 +144,30 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
 
   return (
     <>
-    {/* Hidden or alone, the notes have no divider: nothing is beside them. */}
-    {shown && !alone && (
+    {/* Hidden or alone, the notes have no divider: nothing is beside them. Above the conversation, it is under them. */}
+    {shown && !alone && narrow && (
+      <PanelResizer
+        axis="y"
+        side="left"
+        width={shownHeight ?? tall}
+        min={LIVE_NOTES_MIN_HEIGHT_PX}
+        max={liveNotesHeightWithin(Number.POSITIVE_INFINITY, column)}
+        label={t('liveNotes.resize', 'Resize live notes')}
+        onResize={setPreviewHeight}
+        onCancel={() => setPreviewHeight(null)}
+        onCommit={(next) => {
+          setPreviewHeight(null);
+          const fitted = liveNotesHeightWithin(next, columnNow.current);
+          // Ending where they already were (a click, a key at the limit, a drag back) changes nothing: a height never
+          // dragged stays unset, and one kept from a taller window stays, for when there is room again.
+          const was = liveNotesHeightWithin(keptHeight ?? tall, columnNow.current);
+          if (fitted === was) return;
+          setKeptHeight(fitted);
+          writeLiveNotesHeight(fitted);
+        }}
+      />
+    )}
+    {shown && !alone && !narrow && (
       <PanelResizer
         width={shownWidth}
         min={LIVE_NOTES_MIN_PX}
@@ -142,11 +188,11 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
     )}
     <aside
       ref={asideRef}
-      className={alone ? 'live-notes live-notes--alone' : 'live-notes'}
+      className={['live-notes', alone && 'live-notes--alone', shownHeight !== null && 'live-notes--sized'].filter(Boolean).join(' ')}
       id="live-notes-panel"
       aria-label={t('liveNotes.title', 'Live notes')}
       hidden={!shown}
-      style={{ '--live-notes-width': `${shownWidth}px` } as CSSProperties}
+      style={{ '--live-notes-width': `${shownWidth}px`, ...(shownHeight !== null && { '--live-notes-height': `${shownHeight}px` }) } as CSSProperties}
     >
       <div className="live-notes__head">{t('liveNotes.title', 'Live notes')}</div>
       {/* A new session's notes start at the top, following: the panel stays up between sessions while live notes are on. */}

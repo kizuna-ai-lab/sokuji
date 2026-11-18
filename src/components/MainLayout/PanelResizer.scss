@@ -29,10 +29,18 @@
   @media (max-width: 768px) {
     display: none;
   }
+
+  // A seam between rows (`axis="y"`): 1px tall, the hit area straddling it above and below. Shown where rows stack, which
+  // is in a narrow window: the stack sets where (MainPanel.scss, the live notes above the conversation).
+  &--y {
+    cursor: row-resize;
+    &::before { inset: -3px 0; }
+  }
 }
 
 body.is-resizing-panel {
   cursor: col-resize;
+  &.is-resizing-rows { cursor: row-resize; }
   user-select: none;
 
   // Accent the seam only while a drag is actually in progress.
