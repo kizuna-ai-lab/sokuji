@@ -788,8 +788,37 @@ describe('transcripts and file jobs', () => {
       expect(await blocked('import')).toBe('busy');
       state.setState({ job: null });
       expect(await blocked('import')).toBe('session');
+      // The service could do the job: the panel names Kizuna AI beside the reason.
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: 'session', hosted: true, maxAudioMs: null });
       expect(f.jobs.hostedTerms).not.toHaveBeenCalled();
       expect(f.jobs.account).not.toHaveBeenCalled();
+    });
+
+    // What a panel shows before Start, from one read of the service and of the terms.
+    it('answers the block, the service and its limit in one check', async () => {
+      const f = hostedStore({ account: known(10_000_000) });
+      await openWith([track('speaker', TERMS.maxAudioMs + 1)]);
+      expect(await store.getState().fileJobCheck('transcribe')).toEqual({ blocked: 'hosted-too-long', hosted: true, maxAudioMs: TERMS.maxAudioMs });
+      expect(f.jobs.service).toHaveBeenCalledTimes(1);
+      expect(f.jobs.hostedTerms).toHaveBeenCalledTimes(1);
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: null, hosted: true, maxAudioMs: TERMS.maxAudioMs });
+      hostedStore({ terms: null });
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: 'hosted-unavailable', hosted: true, maxAudioMs: null });
+      const own = fakeJobs();
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, own.jobs as never);
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: null, hosted: false, maxAudioMs: null });
+    });
+
+    it('answers "unchecked" when the service cannot be read, or its terms', async () => {
+      const unchecked = { blocked: 'unchecked', hosted: false, maxAudioMs: null };
+      const f = hostedStore({ account: known(10_000_000) });
+      f.jobs.service.mockRejectedValueOnce(new Error('The key store could not be read'));
+      expect(await store.getState().fileJobCheck('import')).toEqual(unchecked);
+      expect(f.jobs.hostedTerms).not.toHaveBeenCalled();
+      hostedStore({ terms: new Error('offline'), account: known(10_000_000) });
+      await openWith();
+      expect(await store.getState().fileJobCheck('transcribe')).toEqual(unchecked);
+      expect(await store.getState().fileJobCheck('import')).toEqual(unchecked);
     });
 
     // Offline as the panel opens: it says the service could not be checked, and nothing starts without the limits.

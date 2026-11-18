@@ -67,6 +67,16 @@ export interface FileJob {
 export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy' | 'unchecked'
   | 'hosted-unavailable' | 'wallet-frozen' | 'hosted-too-long' | 'no-balance';
 
+/**
+ * What a panel shows before Start, read once: why the job cannot start (null when it can), whether Kizuna AI's service
+ * would run it, and the longest track that service takes, in ms (null unless its terms were read).
+ */
+export interface FileJobCheck {
+  blocked: FileJobBlock | null;
+  hosted: boolean;
+  maxAudioMs: number | null;
+}
+
 /** The running file job and how the last one ended: kept outside any page, so a job outlives the page that began it. */
 export interface FileJobState {
   job: FileJob | null;
@@ -165,15 +175,18 @@ export interface HistoryPageActions {
   reassign(n: number, speaker: string | null): Promise<void>;
   /** Shows another transcript of the open record, with its own notes. */
   showTranscript(id: number): Promise<void>;
-  /** Why an import or a transcription cannot start now, or null. */
+  /**
+   * Why an import or a transcription cannot start now, through which service, and the longest track it takes: from one
+   * read of the service (and, through Kizuna AI, of its terms). A read that fails answers `unchecked`.
+   */
+  fileJobCheck(kind: 'import' | 'transcribe'): Promise<FileJobCheck>;
+  /** Why an import or a transcription cannot start now, or null: `fileJobCheck`'s block. */
   fileJobBlocked(kind: 'import' | 'transcribe'): Promise<FileJobBlock | null>;
   /**
    * What transcribing the open record as `options` say is estimated to cost through Kizuna AI, in USD; null with the
    * user's own key (no price is shown), for an import (its length is not known before it is read), or without the terms.
    */
   fileEstimate(kind: 'import' | 'transcribe', options: FileTranscriptionOptions): Promise<number | null>;
-  /** Whether files are transcribed through Kizuna AI's service; false with the user's own key, with none, or when it could not be checked. */
-  fileHosted(): Promise<boolean>;
   /** Kizuna AI's terms for a file job (what it takes at most); null without file jobs, or when it has none or they cannot be read. */
   hostedTerms(): Promise<HostedFileTerms | null>;
   /** The languages a file can be transcribed in and translated into: the file service's; none without one; null when the service could not be asked. */
@@ -233,8 +246,9 @@ export function createHistoryPageStore(
   };
   const setJobPhase = (phase: ImportPhase) => changeJob({ phase });
   /**
-   * A job through Kizuna AI has ended, however it ended: the wallet is read again, so the balance shown counts what it
-   * spent (or held and gave back), as after a refused session start.
+   * A job through Kizuna AI has ended here, however it ended: the wallet is read again, as after a refused session start.
+   * After a cancel this can run before the service has ended the job, so the balance read may still count what the job
+   * held.
    */
   const refreshBalance = () => { void useAccountStore.getState().refreshAccount?.().catch(() => {}); };
 
@@ -554,48 +568,57 @@ export function createHistoryPageStore(
         if (open) await fetchRecord(open.record.id, null, id);
       }),
 
-      async fileJobBlocked(kind) {
-        if (!files) return 'no-file-service';
+      async fileJobCheck(kind) {
+        const check = (blocked: FileJobBlock | null, hosted = false, maxAudioMs: number | null = null): FileJobCheck => ({ blocked, hosted, maxAudioMs });
+        if (!files) return check('no-file-service');
         let service: Awaited<ReturnType<FileJobs['service']>>;
         try {
           service = await files.service();
         } catch {
-          return 'unchecked';
+          return check('unchecked');
         }
         // What the line-up cannot do comes first: "busy" would let the panel name a service that cannot do the job.
-        if ('missing' in service) return service.missing;
-        if (jobs.getState().job) return 'busy';
-        if (kind === 'import' && files.sessionRunning()) return 'session';
-        if (!('hosted' in service)) return null;
+        if ('missing' in service) return check(service.missing);
+        const hosted = 'hosted' in service;
+        // The service could do the job: the panel names it beside these.
+        if (jobs.getState().job) return check('busy', hosted);
+        if (kind === 'import' && files.sessionRunning()) return check('session', hosted);
+        if (!hosted) return check(null);
         // Through Kizuna AI, nothing starts without its terms: they say how long a recording may be.
         let terms: HostedFileTerms | null;
         try {
           terms = await files.hostedTerms();
         } catch {
-          return 'unchecked';
+          return check('unchecked');
         }
-        if (!terms) return 'hosted-unavailable';
+        if (!terms) return check('hosted-unavailable', true);
+        const { maxAudioMs } = terms;
+        const blocked = (reason: FileJobBlock | null) => check(reason, true, maxAudioMs);
         // The wallet the payer spends, read as the main panel's balance gate reads it. An account not known, or still
         // loading, blocks nothing: the service decides.
         const account = files.account();
         const known = account?.status === 'known' ? account : null;
         const payer = known ? accountPayer(known) : undefined;
         const wallet = known ? payerBalance(known, payer) : null;
-        if (wallet?.frozen) return 'wallet-frozen';
+        if (wallet?.frozen) return blocked('wallet-frozen');
         // A transcription sends the open record's kept tracks. An import's length is not known until the file is read
         // (it is checked then).
         const open = get().open;
         const tracks = kind === 'transcribe' && open ? transcribedTracks(open.record) : [];
-        if (!fitsHosted(tracks, terms)) return 'hosted-too-long';
+        if (!fitsHosted(tracks, terms)) return blocked('hosted-too-long');
         // An organization that pays is not refused for its balance, as the main panel's gate does not refuse it: what
         // the page holds can be minutes old and cannot tell money held by colleagues' running jobs from an empty
         // wallet, so the service answers precisely. Its frozen wallet is refused above.
         const organizationPays = payer === 'organization' && known?.organization !== undefined;
-        if (!wallet || wallet.microUsd === undefined || organizationPays) return null;
+        if (!wallet || wallet.microUsd === undefined || organizationPays) return blocked(null);
         // An import costs more than nothing, whatever its length. A transcription costs at least its untranslated
         // price (the translation is not chosen yet when the panel asks), in whole micro-USD as the service counts.
         const short = kind === 'import' ? wallet.microUsd <= 0 : wallet.microUsd < hostedEstimateMicroUsd(tracks, false, terms);
-        return short ? 'no-balance' : null;
+        return blocked(short ? 'no-balance' : null);
+      },
+
+      async fileJobBlocked(kind) {
+        return (await get().fileJobCheck(kind)).blocked;
       },
 
       async fileEstimate(kind, options) {
@@ -614,15 +637,6 @@ export function createHistoryPageStore(
           return hostedEstimateUsd(tracks, translated, terms);
         } catch {
           return null;
-        }
-      },
-
-      async fileHosted() {
-        if (!files) return false;
-        try {
-          return 'hosted' in (await files.service());
-        } catch {
-          return false;
         }
       },
 

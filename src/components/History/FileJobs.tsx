@@ -10,7 +10,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { useStore } from 'zustand';
-import type { FileJobBlock } from '../../lib/history/historyPageStore';
+import type { FileJobBlock, FileJobCheck } from '../../lib/history/historyPageStore';
 import { EACH_SIDE, eachSideOffered, fitOptions, importOptions, optionsFor, withMain, withOther, withoutOther } from '../../lib/history/file/options';
 import type { FileTranscriptionOptions } from '../../lib/history/types';
 import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
@@ -41,13 +41,15 @@ const SUPPORT_ADDRESS = 'support@kizuna.ai';
 /** The longest recording Kizuna AI transcribes at once as published today, in hours: said when its terms cannot be read. */
 const HOSTED_HOURS = 4;
 const HOUR_MS = 3_600_000;
+/** The longest track the service takes, in hours, whole ones without decimals (4, not 4.00); the published four when not known. */
+const hoursOf = (maxAudioMs: number | null) => (maxAudioMs === null ? HOSTED_HOURS : Number((maxAudioMs / HOUR_MS).toFixed(2)));
 
 /** What to do about a reason: open the setting to change, or write to us. */
 type Fix = { label: string; target: string } | { mail: string };
 
 /**
  * The words of the file panels and the job's line. `hours` is the longest recording Kizuna AI transcribes at once,
- * said when one is longer (`useHostedHours`).
+ * said when one is longer (`hoursOf`).
  */
 function useFileTexts(hours: number) {
   const { t } = useTranslation();
@@ -70,7 +72,8 @@ function useFileTexts(hours: number) {
       unchecked: t('history.file.blockedUnchecked', 'The transcription service could not be checked. Close this and try again.'),
       'no-balance': t('history.file.blockedNoBalance', 'Your Kizuna AI balance does not cover this transcription.'),
       'wallet-frozen': payer === 'organization' ? orgWords(ORG_WALLET_FROZEN) : ownWalletFrozen,
-      'hosted-too-long': t('history.file.blockedHostedTooLong', 'This recording is longer than Kizuna AI transcribes at once ({{hours}} hours). Contact us and we will help:', { hours }),
+      // `count` too, so a catalog can give the hours their plural forms.
+      'hosted-too-long': t('history.file.blockedHostedTooLong', 'This recording is longer than Kizuna AI transcribes at once ({{hours}} hours). Contact us and we will help:', { hours, count: hours }),
       'hosted-unavailable': t('history.file.blockedHostedUnavailable', 'Transcribing files with Kizuna AI is not available yet.'),
       'no-recording': t('history.file.blockedNoRecording', 'This record keeps no recording.'),
     };
@@ -200,22 +203,26 @@ const Blocked: React.FC<{ text: string; fix: Fix | null; onClose(): void }> = ({
   </p>
 );
 
-/** Why the job cannot start, and whether Kizuna AI's service would run it, asked once the panel shows. */
-function useBlocked(kind: 'import' | 'transcribe'): { known: boolean; blocked: FileJobBlock | null; hosted: boolean } {
+/** A check that could not be made: the panel says the service could not be checked, never waits for ever. */
+const UNCHECKED: FileJobCheck = { blocked: 'unchecked', hosted: false, maxAudioMs: null };
+
+/** Why the job cannot start, through which service, and the longest recording it takes: asked once as the panel shows. */
+function useBlocked(kind: 'import' | 'transcribe'): { known: boolean } & FileJobCheck {
   const { store } = useHistoryPageContext();
-  const [state, setState] = useState<{ known: boolean; blocked: FileJobBlock | null; hosted: boolean }>({ known: false, blocked: null, hosted: false });
+  const [state, setState] = useState<{ known: boolean } & FileJobCheck>({ known: false, blocked: null, hosted: false, maxAudioMs: null });
   useEffect(() => {
     let live = true;
-    const page = store.getState();
-    void Promise.all([page.fileJobBlocked(kind), page.fileHosted()]).then(([blocked, hosted]) => { if (live) setState({ known: true, blocked, hosted }); });
+    void store.getState().fileJobCheck(kind)
+      .catch(() => UNCHECKED)
+      .then((check) => { if (live) setState({ known: true, ...check }); });
     return () => { live = false; };
   }, [store, kind]);
   return state;
 }
 
 /**
- * The longest recording Kizuna AI transcribes at once, in hours, from the terms it publishes (asked only when
- * `wanted`); the published four when they cannot be read.
+ * For a failure said after the fact: the longest recording Kizuna AI transcribes at once, in hours, from the terms it
+ * publishes (asked only when `wanted`); the published four when they cannot be read.
  */
 function useHostedHours(wanted: boolean): number {
   const { store } = useHistoryPageContext();
@@ -223,10 +230,9 @@ function useHostedHours(wanted: boolean): number {
   useEffect(() => {
     if (!wanted) return;
     let live = true;
-    void store.getState().hostedTerms().then((terms) => {
-      // Whole hours without decimals: 4, not 4.00.
-      if (live) setHours(terms ? Number((terms.maxAudioMs / HOUR_MS).toFixed(2)) : HOSTED_HOURS);
-    });
+    void store.getState().hostedTerms()
+      .catch(() => null)
+      .then((terms) => { if (live) setHours(hoursOf(terms?.maxAudioMs ?? null)); });
     return () => { live = false; };
   }, [store, wanted]);
   return hours;
@@ -372,7 +378,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
   const { offered, unchecked } = useFileLanguages();
   const { known, hosted } = checked;
   const blocked = checked.blocked ?? (unchecked ? 'unchecked' : null);
-  const texts = useFileTexts(useHostedHours(blocked === 'hosted-too-long'));
+  const texts = useFileTexts(hoursOf(checked.maxAudioMs));
   const [chosen, setChosen] = useState(() => importOptions(myLanguage));
   // As the service can take them: "automatic" or a language it does not have is never sent.
   const options = fitOptions(chosen, offered, myLanguage, false);
@@ -404,7 +410,7 @@ export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
   const { offered, unchecked } = useFileLanguages();
   const { known, hosted } = checked;
   const blocked = checked.blocked ?? (unchecked ? 'unchecked' : null);
-  const texts = useFileTexts(useHostedHours(blocked === 'hosted-too-long'));
+  const texts = useFileTexts(hoursOf(checked.maxAudioMs));
   // Chosen here for the record open, or else what the record was last transcribed with (or its languages).
   const [chosen, setChosen] = useState<{ recordId: string; options: FileTranscriptionOptions } | null>(null);
   if (!open) return null;

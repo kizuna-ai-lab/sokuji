@@ -148,11 +148,9 @@ describe('importing a file', () => {
   // names the service only when the service can do it.
   it('says the service could not be checked when its languages could not be read, and cannot be started', async () => {
     const { jobs } = fakeJobs();
-    // The checks that the import can start, and through which service, answer; asking the service for its languages
-    // then fails.
+    // The check that the import can start answers; asking the service for its languages then fails.
     const service = jobs.service as ReturnType<typeof vi.fn>;
-    const answers = async () => ({ service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'zh'] });
-    service.mockImplementationOnce(answers).mockImplementationOnce(answers)
+    service.mockImplementationOnce(async () => ({ service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'zh'] }))
       .mockRejectedValueOnce(new Error('The key store could not be read'));
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
@@ -559,11 +557,13 @@ describe('through Kizuna AI’s Soniox', () => {
   it('says a recording is longer than Kizuna AI transcribes at once, and offers our address', async () => {
     useAccountStore.setState({ account: known(10_000_000) });
     keeping(5 * HOUR);
-    hosted();
+    const { jobs } = hosted();
     await act(() => store.getState().openRecord(A));
     show(<TranscribePanel onClose={() => {}} />);
     await settle();
     expect(screen.getByText(TOO_LONG)).toBeTruthy();
+    // The limit said comes with the reason, from the one check: no second read, no default shown first.
+    expect(jobs.hostedTerms).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
     expect(screen.queryByText(/own key/)).toBeNull();
@@ -578,6 +578,17 @@ describe('through Kizuna AI’s Soniox', () => {
     show(<TranscribePanel onClose={() => {}} />);
     await settle();
     expect(screen.getByText('This recording is longer than Kizuna AI transcribes at once (2 hours). Contact us and we will help:')).toBeTruthy();
+  });
+
+  // The panel never waits for ever with Start disabled and no reason.
+  it('says the service could not be checked when the check itself fails', async () => {
+    hosted();
+    store.setState({ fileJobCheck: vi.fn(async () => { throw new Error('unexpected'); }) });
+    show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('The transcription service could not be checked. Close this and try again.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
+    expect(screen.queryByText(SERVICE_HOSTED)).toBeNull();
   });
 
   it('says file transcription is not available yet from a service without it, with nothing to open', async () => {
@@ -677,6 +688,25 @@ describe('through Kizuna AI’s Soniox', () => {
       await act(async () => { pending.resolve!({ transcriptId: 1, sentences: 3 }); await started; });
       cleanup();
     }
+  });
+
+  it('says so for a hosted import too, only once Soniox is transcribing it', async () => {
+    const { jobs, pending } = hosted();
+    show(<FileJobLine />);
+    let started!: Promise<void>;
+    act(() => { started = store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
+    await settle();
+    const at = (phase: 'reading' | 'decoding' | 'saving' | 'uploading' | 'queued' | 'processing') =>
+      act(() => { vi.mocked(jobs.importFile).mock.calls[0][0].onProgress({ phase }); });
+    for (const phase of ['reading', 'decoding', 'saving', 'uploading', 'queued'] as const) {
+      at(phase);
+      expect(screen.queryByText(CHARGED), phase).toBeNull();
+    }
+    at('processing');
+    expect(screen.getByText('Importing “Team sync.mp4”: Soniox is transcribing')).toBeTruthy();
+    expect(screen.getByText(CHARGED)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    await act(async () => { pending.resolve!({ recordId: A, transcribed: true }); await started; });
   });
 
   // The balance in the title bar follows what a hosted job spent, however it ended.
