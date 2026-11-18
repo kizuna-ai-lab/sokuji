@@ -803,7 +803,8 @@
     .select-dropdown:not(.provider-select),
     .language-select {
       &::picker(select) { padding: 4px; }
-      option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
+      // The pinned-languages separator stays the thin rule Settings.scss draws, not a 30px row (owner, 2026-11-18).
+      option:not([value='__pin-separator__']) { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
     }
   }
 }
