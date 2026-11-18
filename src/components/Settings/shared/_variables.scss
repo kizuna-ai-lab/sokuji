@@ -158,20 +158,35 @@ $toggle-bg-on:    $color-primary;
 // Where a link into the settings landed: SettingsPage marks its target `.highlight` for a while (owner and design
 // review, 2026-11-19, #121). One quiet locator for every target, in the theme's green: a faint tint and a 1px line on
 // one layer with one 6px corner, 6px clear of the content, under it (no click or focus ring is covered); in over 120ms,
-// held about a second, out over a second, once (`@keyframes jump-hint`, which each stylesheet drawing it includes
+// three blinks, held a moment, out over half a second, once (`@keyframes jump-hint`, which each stylesheet drawing it includes
 // through `jump-hint-keyframes`). Under reduced motion it is
 // shown still while the target is marked.
+// It blinks to catch the eye (owner, 2026-11-19: fading in alone was too quiet; the rhythm from the design review): in,
+// then bright → dim → bright three times, half a second each, held a moment, and out. Dimmed, it keeps 30%, so the
+// place it marks stays in view throughout.
 $jump-hint-in: 120ms;
-$jump-hint-hold: 1000ms;
-$jump-hint-out: 1000ms;
-$jump-hint-run: $jump-hint-in + $jump-hint-hold + $jump-hint-out;
+$jump-hint-blink: 500ms;
+$jump-hint-blinks: 3;
+$jump-hint-dim: 0.3;
+$jump-hint-hold: 350ms;
+$jump-hint-out: 500ms;
+$jump-hint-run: $jump-hint-in + $jump-hint-blinks * $jump-hint-blink + $jump-hint-hold + $jump-hint-out;
+
+// A point of the run, as a keyframe percentage.
+@function jump-hint-at($t) {
+  @return math.div(math.round(math.div($t, $jump-hint-run) * 10000), 100) * 1%;
+}
 
 // The locator's run, at a stylesheet's root, in each that draws it: so it never depends on another being loaded.
 @mixin jump-hint-keyframes {
   @keyframes jump-hint {
     0% { opacity: 0; }
-    #{math.div(math.round(math.div($jump-hint-in, $jump-hint-run) * 10000), 100)}%,
-    #{math.div(math.round(math.div($jump-hint-in + $jump-hint-hold, $jump-hint-run) * 10000), 100)}% { opacity: 1; }
+    #{jump-hint-at($jump-hint-in)} { opacity: 1; }
+    @for $i from 1 through $jump-hint-blinks {
+      #{jump-hint-at($jump-hint-in + ($i - 0.5) * $jump-hint-blink)} { opacity: $jump-hint-dim; }
+      #{jump-hint-at($jump-hint-in + $i * $jump-hint-blink)} { opacity: 1; }
+    }
+    #{jump-hint-at($jump-hint-in + $jump-hint-blinks * $jump-hint-blink + $jump-hint-hold)} { opacity: 1; }
     100% { opacity: 0; }
   }
 }

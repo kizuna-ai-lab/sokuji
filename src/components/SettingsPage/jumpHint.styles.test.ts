@@ -1,7 +1,7 @@
 // Where a link into the settings landed (SettingsPage adds `.highlight` to its target for a while): one quiet locator
 // for every target (owner and design review, 2026-11-19, #121). The theme's green, never the info blue; a faint tint and
 // a 1px line on one layer with one 6px corner, 6px clear of the content, under it so no click or focus ring is covered;
-// in quickly, held, then out, once, with no glow, thick outline or pulses; under reduced motion, shown still.
+// in quickly, three blinks, held, then out, once, with no glow or thick outline; under reduced motion, shown still.
 import { describe, expect, it } from 'vitest';
 import { compile } from 'sass';
 import { resolve } from 'node:path';
@@ -46,18 +46,25 @@ describe('the settings page\'s jump locator', () => {
     expect(layer).toMatch(/border-radius:\s*6px/);
     expect(layer).toMatch(/background:\s*color-mix\(in srgb, var\(--sk-primary\) 8%, transparent\)/);
     expect(layer).toMatch(/pointer-events:\s*none/);
-    expect(layer).toMatch(/animation:\s*jump-hint 2120ms/);
+    expect(layer).toMatch(/animation:\s*jump-hint \d+ms ease-out/);
   });
 
-  // The run's points come from its three parts (vars: 120ms in, 1000ms held, 1000ms out).
-  it.each([['Settings.scss', settings], ['SettingsPage.scss', page], ['Engine.scss', engine]])('comes in over 120ms, holds a second, fades over a second, once, in %s', (_name, sheet) => {
+  // Owner, 2026-11-19: it blinks to catch the eye; the rhythm from the design review: in over 120ms, then bright → dim
+  // → bright three times, half a second each, dimmed to 30% (never gone), held 350ms, out over 500ms: 2470ms in all.
+  it.each([['Settings.scss', settings], ['SettingsPage.scss', page], ['Engine.scss', engine]])('blinks three times, then holds and fades, once, in %s', (_name, sheet) => {
     const frames = sheet.match(/@keyframes jump-hint\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/)?.[1] ?? '';
-    expect(frames).toMatch(/0%\s*\{\s*opacity:\s*0;?\s*\}/);
-    expect(frames).toMatch(/5\.66%,\s*52\.83%\s*\{\s*opacity:\s*1;?\s*\}/);
-    expect(frames).toMatch(/100%\s*\{\s*opacity:\s*0;?\s*\}/);
+    const points = [...frames.matchAll(/([\d.]+)%\s*\{\s*opacity:\s*([\d.]+);?\s*\}/g)].map((m) => [Number(m[1]), Number(m[2])]);
+    expect(points).toEqual([
+      [0, 0], [4.86, 1],
+      [14.98, 0.3], [25.1, 1],
+      [35.22, 0.3], [45.34, 1],
+      [55.47, 0.3], [65.59, 1],
+      [79.76, 1], [100, 0],
+    ]);
+    expect(sheet).toMatch(/animation:\s*jump-hint 2470ms ease-out/);
   });
 
-  it('leaves no info blue glow, outline or pulses', () => {
+  it('leaves no info blue glow and none of the old pulse', () => {
     expect(all).not.toMatch(/pulse-highlight/);
     expect(all).not.toMatch(/@keyframes [a-z-]*highlight/);
   });
