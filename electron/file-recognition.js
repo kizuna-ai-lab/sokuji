@@ -29,6 +29,8 @@ const SONIOX_REGIONS = Object.freeze(['us', 'eu', 'jp', 'in']);
 const REGIONS = new Set(SONIOX_REGIONS);
 /** Ending a file job at the Kizuna AI service is asked again this many times after a network failure or a 5xx. */
 const END_RETRIES = 3;
+/** A file job's state not had (a network failure or a 5xx) is asked again at the next poll, this many times in a row. */
+const POLL_RETRIES = 3;
 /** Whose balance pays a file job at the Kizuna AI service; absent, the service's own choice. */
 const PAYERS = new Set(['organization', 'personal']);
 
@@ -127,9 +129,11 @@ function hostedRefusal(status, answer, { starting, payer, token }) {
   return as('SERVICE', 'refused the request');
 }
 
-/** A file job the Kizuna AI service gave up on, by Soniox's `error_type`: the audio's fault, or the service's. */
+/** A file job the Kizuna AI service gave up on, by Soniox's `error_type`: too long, the audio's fault, or the service's. */
 function failedFileJob(errorType, token) {
   const said = `Kizuna AI's Soniox could not transcribe the recording (${spoken(errorType, token) || 'error'})`;
+  // The length first: a type such as `audio_duration_exceeded` names the audio too.
+  if (/duration|too_long|length/i.test(errorType)) return new HistoryError('HOSTED_TOO_LONG', said);
   return new HistoryError(/audio|decod|format|file/i.test(errorType) ? 'BAD_AUDIO' : 'SERVICE', said);
 }
 
@@ -340,7 +344,14 @@ function createFileRecognizer({
         throw Object.assign(hostedRefusal(response.status, answer, { starting, payer, token }), { status: response.status });
       }
       if (response.status === 204) return null;
-      return response.json();
+      // A success whose body is no JSON (a proxy's page, a connection dropped mid-body) is the service's failure; a
+      // cancel landing while it is read is a cancel.
+      try {
+        return await response.json();
+      } catch (error) {
+        if ((cancellable && controller.signal.aborted) || (error && error.name === 'AbortError')) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
+        throw new HistoryError('SERVICE', `The Kizuna AI service sent an unreadable answer (${response.status}): ${spoken(error && error.message, token)}`);
+      }
     }
     const checkCancelled = () => {
       if (controller.signal.aborted) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
@@ -383,6 +394,8 @@ function createFileRecognizer({
         },
       });
       let state;
+      /** Polls in a row whose state could not be had; a passing failure is asked again at the next poll. */
+      let failedPolls = 0;
       for (;;) {
         checkCancelled();
         try {
@@ -390,7 +403,16 @@ function createFileRecognizer({
         } catch {
           checkCancelled();
         }
-        state = await call('GET', at);
+        try {
+          state = await call('GET', at);
+        } catch (error) {
+          if (failedPolls < POLL_RETRIES && (error.code === 'NETWORK' || error.status >= 500)) {
+            failedPolls += 1;
+            continue;
+          }
+          throw error;
+        }
+        failedPolls = 0;
         checkCancelled();
         const status = state && state.status;
         if (status === 'completed') break;

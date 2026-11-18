@@ -291,11 +291,12 @@ const TRANSCRIPT = 'GET /soniox/file-jobs/job-1/transcript';
 const END = 'DELETE /soniox/file-jobs/job-1';
 
 /**
- * The Kizuna AI service answering each call from a script: `statuses` are what successive state calls see, `ends` what
- * successive ends answer (a status, or 'throw' for a network failure). Every call is recorded with its path below the
- * service's address, its query, auth and content type, and its body: the bytes of an upload, the parsed JSON of a
- * request. `onCall(key)` runs as a call arrives; a call in `hangs` never answers (only its signal ends it), one in
- * `holds` waits until the test rejects it through `pending`.
+ * The Kizuna AI service answering each call from a script: `statuses` are what successive state calls see (a state,
+ * or a failed poll: an HTTP status, or 'throw' for a network failure), `ends` what successive ends answer (a status,
+ * or 'throw'). Every call is recorded with its path below the service's address, its query, auth and content type, and
+ * its body: the bytes of an upload, the parsed JSON of a request. `onCall(key)` runs as a call arrives; a call in
+ * `hangs` never answers (only its signal ends it), one in `holds` waits until the test rejects it through `pending`,
+ * one in `bodies` is answered by `bodies[key](signal)`.
  */
 function fakeService(o = {}) {
   const calls = [];
@@ -326,10 +327,13 @@ function fakeService(o = {}) {
     }
     if (holds.has(key)) return new Promise((_, reject) => { pending.set(key, reject); });
     if (refusals[key]) return json(refusals[key].status, refusals[key].body);
+    if (o.bodies?.[key]) return o.bodies[key](init.signal);
     if (key === START) return json(201, { id: 'job-1', estimateMicroUsd: 56, region: 'jp' });
     if (key === TRANSCRIBE) return json(201, { id: 'job-1', status: 'queued' });
     if (key === STATE) {
       const status = statuses.length > 1 ? statuses.shift() : statuses[0];
+      if (status === 'throw') throw new TypeError('fetch failed');
+      if (typeof status === 'number') return json(status, { error: 'Unavailable', code: 'service_unavailable' });
       return json(200, { id: 'job-1', status, audio_duration_ms: 1000, ...(status === 'error' ? o.error : {}) });
     }
     if (key === TRANSCRIPT) return json(200, { id: 'job-1', text: 'Hello.', tokens: TOKENS });
@@ -417,7 +421,9 @@ describe('through the Kizuna AI service', () => {
       [{ [TRANSCRIBE]: refused(422, { code: 'bad_audio' }) }, 'BAD_AUDIO', [START, TRANSCRIBE, END]],
       [{ [START]: refused(400, { code: 'invalid_request' }) }, 'SERVICE', [START]],
       [{ [START]: refused(503, { code: 'region_unavailable' }) }, 'SERVICE', [START]],
-      [{ [STATE]: refused(503, { code: 'service_unavailable' }) }, 'SERVICE', [START, TRANSCRIBE, STATE, END]],
+      // A 5xx to the state is asked again at the next polls: the fourth in a row ends the job.
+      [{ [STATE]: refused(503, { code: 'service_unavailable' }) }, 'SERVICE', [START, TRANSCRIBE, STATE, STATE, STATE, STATE, END]],
+      [{ [STATE]: refused(404) }, 'SERVICE', [START, TRANSCRIBE, STATE, END]],
     ];
     for (const [refusals, code, paths, over] of cases) {
       const service = fakeService({ refusals });
@@ -445,6 +451,16 @@ describe('through the Kizuna AI service', () => {
       const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
       const error = await recognizer.recognize(hostedRequest()).then(() => null, (e) => e);
       expect(error, errorType).toMatchObject({ code });
+      expect(service.paths(), errorType).toEqual([START, TRANSCRIBE, STATE, STATE, END]);
+    }
+  });
+
+  it('a job the service gave up on for its length: HOSTED_TOO_LONG, though the type names the audio too; the job ended', async () => {
+    for (const errorType of ['audio_duration_exceeded', 'file_too_long', 'max_length']) {
+      const service = fakeService({ statuses: ['processing', 'error'], error: { error_type: errorType } });
+      const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
+      const error = await recognizer.recognize(hostedRequest()).then(() => null, (e) => e);
+      expect(error, errorType).toMatchObject({ code: 'HOSTED_TOO_LONG' });
       expect(service.paths(), errorType).toEqual([START, TRANSCRIBE, STATE, STATE, END]);
     }
   });
@@ -501,16 +517,97 @@ describe('through the Kizuna AI service', () => {
   });
 
   it('ends the job at the service though nobody awaits the result (the page went away)', async () => {
-    const service = fakeService({ holds: [STATE] });
+    const service = fakeService({ holds: [TRANSCRIPT] });
     const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
     // The caller is gone: nothing awaits this recognition.
     void recognizer.recognize(hostedRequest()).catch(() => {});
-    await vi.waitUntil(() => service.pending.has(STATE));
-    service.pending.get(STATE)(new TypeError('fetch failed'));
+    await vi.waitUntil(() => service.pending.has(TRANSCRIPT));
+    service.pending.get(TRANSCRIPT)(new TypeError('fetch failed'));
     // Once the job is over its end is under way, and settled() awaits it.
     await vi.waitUntil(() => recognizer.status(JOB) === null);
     await recognizer.settled();
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, STATE, STATE, TRANSCRIPT, END]);
+  });
+
+  it('asks for the state again at the next poll after a network failure or a 5xx, and forgets them once it is had', async () => {
+    for (const statuses of [
+      [503, 'throw', 'completed'],
+      ['throw', 503, 'throw', 'queued', 503, 'throw', 503, 'completed'],
+    ]) {
+      const service = fakeService({ statuses });
+      const waits = [];
+      const recognizer = createFileRecognizer({ fetch: service.fetch, wait: async (ms) => { waits.push(ms); } });
+      const result = await recognizer.recognize(hostedRequest());
+      expect(result, JSON.stringify(statuses)).toEqual({ tokens: TOKENS, audioMs: 1000 });
+      expect(service.paths(), JSON.stringify(statuses)).toEqual([START, TRANSCRIBE, ...statuses.map(() => STATE), TRANSCRIPT, END]);
+      expect(waits, JSON.stringify(statuses)).toEqual(statuses.map(() => 5000));
+    }
+  });
+
+  it('gives up at the fourth failed poll in a row, and ends the job', async () => {
+    for (const [failure, code] of [['throw', 'NETWORK'], [503, 'SERVICE']]) {
+      const service = fakeService({ statuses: ['queued', failure] });
+      const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
+      await expect(recognizer.recognize(hostedRequest()), code).rejects.toMatchObject({ code });
+      expect(service.paths(), code).toEqual([START, TRANSCRIBE, STATE, STATE, STATE, STATE, STATE, END]);
+    }
+  });
+
+  it('a success whose answer cannot be read: SERVICE, its text without the token; at the start nothing more is asked', async () => {
+    const html = () => new Response(`<html>Bad gateway ${TOKEN}</html>`, { status: 201, headers: { 'Content-Type': 'text/html' } });
+    // The connection drops halfway through the body.
+    const dropped = () => new Response(new ReadableStream({
+      start(c) { c.enqueue(new TextEncoder().encode('{"id":"job-1","tok')); c.error(new TypeError(`terminated ${TOKEN}`)); },
+    }), { status: 200 });
+    for (const [bodies, paths] of [
+      [{ [START]: html }, [START]],
+      [{ [TRANSCRIPT]: dropped }, [START, TRANSCRIBE, STATE, STATE, STATE, TRANSCRIPT, END]],
+    ]) {
+      const service = fakeService({ bodies });
+      const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
+      const error = await recognizer.recognize(hostedRequest()).then(() => null, (e) => e);
+      expect(error).toMatchObject({ code: 'SERVICE' });
+      expect(error.message).toContain('unreadable answer');
+      expect(error.message).not.toContain(TOKEN);
+      await recognizer.settled();
+      expect(service.paths()).toEqual(paths);
+    }
+  });
+
+  it('a cancel landing while an answer is read: CANCELLED, and the job ended', async () => {
+    // The state's body never ends on its own: only the call's signal ends it, as fetch's own body does.
+    const stalled = (signal) => new Response(new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode('{"id":"job-1",'));
+        signal.addEventListener('abort', () => c.error(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true });
+      },
+    }), { status: 200 });
+    const service = fakeService({ bodies: { [STATE]: stalled } });
+    const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant });
+    const outcome = recognizer.recognize(hostedRequest()).then(() => 'done', (e) => e.code);
+    await vi.waitUntil(() => service.paths().includes(STATE));
+    recognizer.cancel(JOB);
+    expect(await outcome).toBe('CANCELLED');
+    await recognizer.settled();
     expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
+  });
+
+  it('a cancel landing while the poll waits: CANCELLED, and the job ended', async () => {
+    let recognizer;
+    let waits = 0;
+    // The second wait is cut short by the cancel, as the real wait is by its signal.
+    const wait = (ms, signal) => new Promise((resolve, reject) => {
+      waits += 1;
+      if (waits < 2) { resolve(); return; }
+      signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true });
+      recognizer.cancel(JOB);
+    });
+    const service = fakeService();
+    recognizer = createFileRecognizer({ fetch: service.fetch, wait });
+    await expect(recognizer.recognize(hostedRequest())).rejects.toMatchObject({ code: 'CANCELLED' });
+    await recognizer.settled();
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
+    expect(recognizer.status(JOB)).toBeNull();
   });
 
   it('asks again to end the job after a 5xx or a network failure, three times at most, then gives up with one warning', async () => {
