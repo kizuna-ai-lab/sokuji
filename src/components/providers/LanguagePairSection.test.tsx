@@ -236,6 +236,31 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     expect(onChange).toHaveBeenLastCalledWith({ source: 'en', target: 'en-GB' });
   });
 
+  // Review (PR #784): a choice there whose leg would not run (the provider's reverse is null for it) is not offered; it
+  // would write a pair Start then refuses.
+  it("'both': the other side's row offers only languages their leg runs in, and shows one it does not, unchosen", () => {
+    // Basque has no reverse (as Palabra's `eu`): eu → es cannot run the other way.
+    const provider = {
+      ...fakeProvider,
+      languages: {
+        ...fakeProvider.languages,
+        sources: () => [{ value: 'en' }, { value: 'eu' }, { value: 'es' }],
+        targets: () => [{ value: 'es' }, { value: 'en' }],
+        reverse: ({ source, target }: { source: string; target: string }) => (source === 'eu' ? null : { source: target, target: source }),
+      },
+    } as unknown as typeof fakeProvider;
+    const receive = { theirs: choice(true), mine: choice(false) };
+    draw({ source: 'en', target: 'es' }, undefined, { provider, sentence: { mode: 'both', textOnly: false }, receive });
+    let myLanguage = screen.getByTestId('language-their-row').querySelectorAll('select.language-select')[1] as HTMLSelectElement;
+    expect(codesOf(myLanguage)).toEqual(['en', 'es']);
+    cleanup();
+    // A pair already set that way (from the first row): its language shows, but is not a choice.
+    draw({ source: 'eu', target: 'es' }, undefined, { provider, sentence: { mode: 'both', textOnly: false }, receive });
+    myLanguage = screen.getByTestId('language-their-row').querySelectorAll('select.language-select')[1] as HTMLSelectElement;
+    expect(myLanguage.value).toBe('eu');
+    expect([...myLanguage.options].filter((o) => o.value === 'eu').map((o) => o.disabled)).toEqual([true]);
+  });
+
   it("each reason's link opens the switch of the side it explains", () => {
     const openAudio = vi.fn();
     draw({ source: 'ja', target: 'en' }, undefined, {

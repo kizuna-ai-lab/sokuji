@@ -3,7 +3,7 @@ import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
-import { AUTO, normalizePair, reversedPair, swapped } from '../../lib/provider/languages';
+import { normalizePair, reverseSupported, reversedPair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
@@ -14,6 +14,11 @@ const SEPARATOR = '──────────';
 
 /** A select's options: the pinned ones above the separator, then the whole list. */
 interface OptionLists { pinned: LanguageOption[]; ordered: LanguageOption[] }
+
+/** The lists, only the options `keep` keeps. */
+function only({ pinned, ordered }: OptionLists, keep: (option: LanguageOption) => boolean): OptionLists {
+  return { pinned: pinned.filter(keep), ordered: ordered.filter(keep) };
+}
 
 /** The lists seen through `code`: each option under its code there, the first of each code kept. */
 function viewThrough({ pinned, ordered }: OptionLists, code: (value: string) => string): OptionLists {
@@ -195,12 +200,21 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   );
   // The other side's leg runs the pair's reverse as the provider states it (`reversedPair`: Palabra's is its own codes,
   // not a swap), so their row shows that leg's languages. Each stands for the choice of the pair it comes from, and a
-  // change there is that choice: one pair either way, so a change in one row is the other's too.
+  // change there is that choice: one pair either way, so a change in one row is the other's too. Only choices their
+  // leg runs in are offered (`reverseSupported`: a provider's reverse can be null, and an automatic source never
+  // reverses, D20); review, PR #784: one that does not is a pair Start refuses.
   const leg = (p: LanguagePair) => reversedPair(provider, settings, p) ?? { source: p.target, target: p.source };
-  const theySpeak = (target: string) => leg({ source: pair.source, target }).source;
-  const iGet = (source: string) => leg({ source, target: pair.target }).target;
+  const runs = (p: LanguagePair) => reverseSupported(provider, settings, p, context);
+  const theirPair = (target: string) => ({ source: pair.source, target });
+  const myPair = (source: string) => ({ source, target: pair.target });
+  const theyRun = only(targetOptions, (o) => runs(theirPair(o.value)));
+  // With a language I get that runs with none of them (an automatic one), their language is the pair's target as it is.
+  const theyCanSpeak = theyRun.ordered.length > 0 ? theyRun : targetOptions;
+  const iCanGet = only(sourceOptions, (o) => runs(myPair(o.value)));
   const legSelect = (selectId: string, lists: OptionLists, code: (value: string) => string, current: string, choose: (value: string) => void, ariaLabel?: string) => {
+    const shown = viewThrough(lists, code);
     const value = code(current);
+    const offered = shown.ordered.some((o) => o.value === value);
     return (
       <select
         id={selectId}
@@ -208,21 +222,17 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
         aria-label={ariaLabel}
         value={value}
         onChange={(e) => {
-          const chosen = [...lists.pinned, ...lists.ordered].find((o) => code(o.value) === e.target.value);
+          const chosen = lists.ordered.find((o) => code(o.value) === e.target.value);
           if (chosen) choose(chosen.value);
         }}
         disabled={disabled}
       >
-        {/* The language I get is never "detect automatically": with an automatic source it says so, unchosen. */}
-        {value === AUTO && <option value={AUTO} disabled>{label(AUTO)}</option>}
-        {options(viewThrough(lists, code))}
+        {/* What it is now when that is not a choice here (an automatic source, a leg that would not run): shown, unchosen. */}
+        {!offered && <option value={value} disabled>{label(value)}</option>}
+        {options(shown)}
       </select>
     );
   };
-  const namedSources = useMemo<OptionLists>(() => ({
-    pinned: sourceOptions.pinned.filter((o) => o.value !== AUTO),
-    ordered: sourceOptions.ordered.filter((o) => o.value !== AUTO),
-  }), [sourceOptions]);
   const swap = (
     <div className="language-arrow">
       <button
@@ -276,12 +286,12 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
         <div className="language-pair-row" data-testid="language-their-row">
           <div className="language-select-group">
             <label htmlFor={`${id}-their-target`}>{theySpeakLabel}</label>
-            {legSelect(`${id}-their-target`, targetOptions, theySpeak, pair.target, chooseTarget)}
+            {legSelect(`${id}-their-target`, theyCanSpeak, (target) => leg(theirPair(target)).source, pair.target, chooseTarget)}
           </div>
           {swap}
           <div className="language-select-group">
             <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
-            {legSelect(`${id}-their-source`, namedSources, iGet, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
+            {legSelect(`${id}-their-source`, iCanGet, (source) => leg(myPair(source)).target, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
           </div>
         </div>
       )}
