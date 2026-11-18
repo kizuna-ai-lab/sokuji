@@ -2207,6 +2207,7 @@
     "costSoFar": "Nota langsung setakat ini: kira-kira {{cost}}",
     "lowBalance": "Baki anda rendah: tinggal {{balance}}.",
     "hide": "Sembunyikan nota langsung",
+    "showAlone": "Tunjukkan nota langsung sahaja",
     "show": "Tunjukkan nota langsung",
     "showWriting": "Tunjukkan nota langsung (masih ditulis)"
   }

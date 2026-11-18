@@ -2207,6 +2207,7 @@
     "costSoFar": "Catatan langsung sejauh ini: sekitar {{cost}}",
     "lowBalance": "Saldo Anda rendah: tersisa {{balance}}.",
     "hide": "Sembunyikan catatan langsung",
+    "showAlone": "Tampilkan catatan langsung saja",
     "show": "Tampilkan catatan langsung",
     "showWriting": "Tampilkan catatan langsung (masih ditulis)"
   }

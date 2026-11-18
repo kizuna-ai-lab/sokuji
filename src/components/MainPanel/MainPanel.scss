@@ -22,6 +22,44 @@
   min-height: 0;
 }
 
+// ─── Conversation Area ─────────────────────────────
+
+// Between the toolbar and the footer, the conversation and the live notes (owner, 2026-11-18): the notes on the right
+// in a wide window, above in a narrow one, or either alone (livePanel.ts).
+.conversation-area {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+
+  // The conversation's list and, below it, the way back to the newest line.
+  > .conversation-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    &[hidden] { display: none; }
+  }
+  // The width the notes were dragged to (LiveNotesPanel, liveNotesWidth.ts); until then 300px of notes and their 12px
+  // sides, as before the panel's padding moved inside it (B-30).
+  // At no less than its width either: a long word in a title would otherwise push it wider (review).
+  > .live-notes { flex: 0 0 var(--live-notes-width, 324px); min-width: 0; }
+  // Alone, the notes take the area.
+  > .live-notes--alone { flex: 1 1 auto; border-left: none; }
+  // Where the divider on the notes' left shows (the main layout hides every divider at 768px and below; fractional
+  // widths just above count as wider), it is the seam, in place of the notes' own border.
+  @media (width > 768px) {
+    > .panel-resizer + .live-notes { border-left: none; }
+  }
+  // The same width as useNarrowWindow.ts, which picks the live notes switch's icon: change both together.
+  @media (max-width: 767px) {
+    flex-direction: column;
+    > .live-notes { order: -1; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
+    > .live-notes--alone { flex: 1 1 auto; max-height: none; border-bottom: none; }
+  }
+}
+
 // ─── Conversation Display ──────────────────────────
 
 .conversation-display {

@@ -11,7 +11,7 @@ import type { LiveState } from '../../lib/notes/live/state';
 import useSettingsStore from '../../stores/settingsStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import LiveNotesPanel from './LiveNotesPanel';
-import { readLiveNotesShown, useLiveNotesShown } from '../../lib/notes/live/livePanel';
+import { readLiveNotesLayout, useLiveNotesLayout } from '../../lib/notes/live/livePanel';
 
 const notesPricing = vi.hoisted(() => ({ value: { inputPerMTok: 0.2, cachedInputPerMTok: 0.02, outputPerMTok: 1, liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 } as null | Record<string, number> }));
 vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({
@@ -32,7 +32,7 @@ beforeEach(() => {
   useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
   useLiveNotes.getState().begin('run-0001-aaaa');
 });
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); useLiveNotesShown.setState({ shown: true }); });
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); useLiveNotesLayout.setState({ layout: 'both' }); });
 
 describe('the live notes panel', () => {
   it('with Kizuna AI, shows what the live notes have used so far, and says when the balance is low', () => {
@@ -166,24 +166,24 @@ describe('the live notes panel', () => {
       render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
       expect(document.querySelector('.live-notes__handle')).toBeNull();
       expect(screen.queryByRole('button', { name: /live notes/i })).toBeNull();
-      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => useLiveNotesLayout.getState().setLayout('conversation'));
       expect(panel()).toBeNull();
       expect(document.querySelector('.live-notes')).toHaveAttribute('hidden');
       // Hiding is not stopping: the loop runs and the setting is untouched.
       expect(useLiveNotes.getState().running).toBe(true);
       expect(useSettingsStore.getState().liveNotes).toBe(true);
-      act(() => useLiveNotesShown.getState().setShown(true));
+      act(() => useLiveNotesLayout.getState().setLayout('both'));
       expect(panel()).not.toBeNull();
       expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeVisible();
     });
 
     it('stays hidden when new notes come in, and for the next session', () => {
-      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => useLiveNotesLayout.getState().setLayout('conversation'));
       render(<LiveNotesPanel onOpenHistory={vi.fn()} />);
       act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
       expect(panel()).toBeNull();
-      expect(localStorage.getItem('liveNotes.hidden')).toBe('1');
-      expect(readLiveNotesShown()).toBe(false);
+      expect(localStorage.getItem('liveNotes.layout')).toBe('conversation');
+      expect(readLiveNotesLayout()).toBe('conversation');
     });
 
     // Review: a scroll that lands after the panel is hidden reads 0 from a box with no layout; it must not replace
@@ -194,19 +194,48 @@ describe('the live notes panel', () => {
       const body = document.querySelector('.live-notes__body') as HTMLElement;
       body.scrollTop = 300;
       fireEvent.scroll(body);
-      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => useLiveNotesLayout.getState().setLayout('conversation'));
       body.scrollTop = 0;
       fireEvent.scroll(body);
       body.scrollTop = 0;
-      act(() => useLiveNotesShown.getState().setShown(true));
+      act(() => useLiveNotesLayout.getState().setLayout('both'));
       expect(body.scrollTop).toBe(300);
     });
 
     it('hidden, leaves no divider beside the conversation either', () => {
-      render(<div className="main-panel-row"><div className="main-panel-container" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
+      render(<div className="conversation-area"><div className="conversation-column" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
       expect(screen.getByRole('separator')).toBeInTheDocument();
-      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => useLiveNotesLayout.getState().setLayout('conversation'));
       expect(screen.queryByRole('separator')).toBeNull();
+    });
+
+    // Owner, 2026-11-18: the switch also shows the notes alone in the conversation's area.
+    it('alone, takes the area with no divider, and keeps where the reader was', () => {
+      act(() => useLiveNotes.getState().update('run-0001-aaaa', notes));
+      render(<div className="conversation-area"><div className="conversation-column" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
+      const body = document.querySelector('.live-notes__body') as HTMLElement;
+      body.scrollTop = 300;
+      fireEvent.scroll(body);
+      act(() => useLiveNotesLayout.getState().setLayout('notes'));
+      expect(panel()).not.toBeNull();
+      expect(panel()).toHaveClass('live-notes--alone');
+      expect(screen.queryByRole('separator')).toBeNull();
+      expect(body.scrollTop).toBe(300);
+      act(() => useLiveNotesLayout.getState().setLayout('both'));
+      expect(panel()).not.toHaveClass('live-notes--alone');
+      expect(screen.getByRole('separator')).toBeInTheDocument();
+    });
+
+    it('opens as it was left before there were three layouts: hidden, the conversation alone', () => {
+      localStorage.setItem('liveNotes.hidden', '1');
+      expect(readLiveNotesLayout()).toBe('conversation');
+      localStorage.removeItem('liveNotes.hidden');
+      expect(readLiveNotesLayout()).toBe('both');
+      // Chosen once, the new layout is what is kept, and the old mark goes.
+      localStorage.setItem('liveNotes.hidden', '1');
+      act(() => useLiveNotesLayout.getState().setLayout('notes'));
+      expect(localStorage.getItem('liveNotes.hidden')).toBeNull();
+      expect(readLiveNotesLayout()).toBe('notes');
     });
 
     // Review: the panel stays up between sessions while live notes are on; a new session's notes start at the top,
@@ -217,9 +246,9 @@ describe('the live notes panel', () => {
       const body = document.querySelector('.live-notes__body') as HTMLElement;
       body.scrollTop = 300;
       fireEvent.scroll(body);
-      act(() => useLiveNotesShown.getState().setShown(false));
+      act(() => useLiveNotesLayout.getState().setLayout('conversation'));
       act(() => { useLiveNotes.getState().end('run-0001-aaaa'); useLiveNotes.getState().begin('run-0002-bbbb'); useLiveNotes.getState().update('run-0002-bbbb', notes); });
-      act(() => useLiveNotesShown.getState().setShown(true));
+      act(() => useLiveNotesLayout.getState().setLayout('both'));
       expect(body.scrollTop).toBe(0);
     });
   });
@@ -234,14 +263,14 @@ describe('the live notes panel', () => {
       rowWidth = row;
       rowWatchers = [];
       vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
-        return this.classList.contains('main-panel-row') ? rowWidth : 0;
+        return this.classList.contains('conversation-area') ? rowWidth : 0;
       });
       vi.stubGlobal('ResizeObserver', class {
         constructor(private readonly told: () => void) { rowWatchers.push(() => this.told()); }
         observe() {}
         disconnect() {}
       });
-      return render(<div className="main-panel-row"><div className="main-panel-container" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
+      return render(<div className="conversation-area"><div className="conversation-column" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
     }
     const resizeRow = (row: number) => { rowWidth = row; act(() => rowWatchers.forEach((tell) => tell())); };
     const pointer = (type: string, clientX: number, target: EventTarget = window) =>
@@ -252,8 +281,8 @@ describe('the live notes panel', () => {
     it('has a divider on its left, between the conversation and the notes, at the width kept from last time', () => {
       localStorage.setItem('liveNotes.width', '400');
       const { container } = renderInRow();
-      const row = container.querySelector('.main-panel-row')!;
-      expect([...row.children].map((c) => c.className)).toEqual(['main-panel-container', 'panel-resizer', 'live-notes']);
+      const row = container.querySelector('.conversation-area')!;
+      expect([...row.children].map((c) => c.className)).toEqual(['conversation-column', 'panel-resizer', 'live-notes']);
       const divider = screen.getByRole('separator');
       expect(divider).toHaveAttribute('aria-valuenow', '400');
       expect(divider).toHaveAttribute('aria-valuemin', '240');

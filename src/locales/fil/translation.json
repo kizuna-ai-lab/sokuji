@@ -2207,6 +2207,7 @@
     "costSoFar": "Live na tala sa ngayon: mga {{cost}}",
     "lowBalance": "Mababa na ang balanse mo: {{balance}} na lang ang natitira.",
     "hide": "Itago ang live na tala",
+    "showAlone": "Ang live na tala lang ang ipakita",
     "show": "Ipakita ang live na tala",
     "showWriting": "Ipakita ang live na tala (isinusulat pa)"
   }

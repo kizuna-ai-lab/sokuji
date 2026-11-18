@@ -1,15 +1,16 @@
 // src/components/LiveNotes/LiveNotesPanel.tsx
 //
-// The live notes beside the conversation (stage 4, desktop): the title, then the topics in the order they came, each
-// with its points and what they are; the newest topic is the one being written. Docked on the right of a window at
-// least 768 px wide, above the conversation when narrower (MainLayout's styles); docked on the right, its width is
-// dragged at the divider on its left and kept for the next session (owner, 2026-11-18; liveNotesWidth.ts). Not shown in
-// caption mode, nor when live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
+// The live notes in the conversation's area (stage 4, desktop): the title, then the topics in the order they came, each
+// with its points and what they are; the newest topic is the one being written. Between the conversation's toolbar and
+// its footer (owner, 2026-11-18): beside the conversation on the right of a window at least 768 px wide, above it when
+// narrower (MainPanel's styles), or alone in the area (livePanel.ts). Beside it, its width is dragged at the divider on
+// its left and kept for the next session (owner, 2026-11-18; liveNotesWidth.ts). Not shown in caption mode, nor when
+// live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
 // notes will come. After Stop the notes stay until the next start or Clear, with the way to History, where the full
 // notes are written. Live notes are never kept (ruling 16).
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLiveNotesPresent, useLiveNotesShown } from '../../lib/notes/live/livePanel';
+import { useLiveNotesLayout, useLiveNotesPresent } from '../../lib/notes/live/livePanel';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
 import { LIVE_FULL } from '../../lib/notes/live/state';
 import type { NoteKind } from '../../lib/notes/write';
@@ -28,9 +29,11 @@ export interface LiveNotesPanelProps {
 
 export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const { t } = useTranslation();
-  // Hidden for a while from the switch in the conversation's toolbar (livePanel.ts): kept, so it comes back where the
-  // reader left it.
-  const shown = useLiveNotesShown((x) => x.shown);
+  // Beside the conversation, alone in its area, or hidden for a while, from the switch in the conversation's toolbar
+  // (livePanel.ts). Hidden, it is kept, so it comes back where the reader left it.
+  const layout = useLiveNotesLayout((x) => x.layout);
+  const shown = layout !== 'conversation';
+  const alone = layout === 'notes';
   const present = useLiveNotesPresent();
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrolledTo = useRef(0);
@@ -53,8 +56,8 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
     watch.observe(el);
     return () => watch.disconnect();
   }, [present]);
-  // Hidden or gone in the middle of a drag, the divider goes, and what it showed with it.
-  useEffect(() => { if (!shown || !present) setPreview(null); }, [shown, present]);
+  // Hidden, alone or gone in the middle of a drag, the divider goes, and what it showed with it.
+  useEffect(() => { if (!shown || alone || !present) setPreview(null); }, [shown, alone, present]);
   // A new session's notes start at the top: the panel stays up between sessions while live notes are on.
   const liveRecordId = useLiveNotes((x) => x.recordId);
   const readingRecord = useRef(liveRecordId);
@@ -89,8 +92,8 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
 
   return (
     <>
-    {/* Hidden, the notes leave no divider either. */}
-    {shown && (
+    {/* Hidden or alone, the notes have no divider: nothing is beside them. */}
+    {shown && !alone && (
       <PanelResizer
         width={shownWidth}
         min={LIVE_NOTES_MIN_PX}
@@ -111,7 +114,7 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
     )}
     <aside
       ref={asideRef}
-      className="live-notes"
+      className={alone ? 'live-notes live-notes--alone' : 'live-notes'}
       id="live-notes-panel"
       aria-label={t('liveNotes.title', 'Live notes')}
       hidden={!shown}

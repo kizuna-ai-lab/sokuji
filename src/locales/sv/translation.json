@@ -2207,6 +2207,7 @@
     "costSoFar": "Liveanteckningar hittills: cirka {{cost}}",
     "lowBalance": "Ditt saldo är lågt: {{balance}} kvar.",
     "hide": "Dölj liveanteckningarna",
+    "showAlone": "Visa bara liveanteckningarna",
     "show": "Visa liveanteckningarna",
     "showWriting": "Visa liveanteckningarna (skrivs fortfarande)"
   }

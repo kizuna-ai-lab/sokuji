@@ -1,9 +1,9 @@
 @use '../Settings/shared/variables' as vars;
 @use '../../styles/tokens' as tk;
 
-// Docked beside the conversation; MainLayout puts it on the right, or above the conversation when narrow. A switch in
-// the conversation's toolbar hides it for a while (owner and design review, 2026-11-17; B-30, B-40): hidden, it leaves
-// nothing in its place.
+// In the conversation's area; MainPanel puts it on the right, above the conversation when narrow, or alone in the area.
+// A switch in the conversation's toolbar goes round these and hides it for a while (owner and design review, 2026-11-17
+// and 2026-11-18; B-30, B-40): hidden, it leaves nothing in its place.
 .live-notes {
   position: relative;
   display: flex;

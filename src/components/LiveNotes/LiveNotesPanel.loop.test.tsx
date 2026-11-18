@@ -13,7 +13,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import type { ChatPort, ChatRequest } from '../../lib/notes/chat';
 import { createLiveNotes, LIVE_INTERVAL_MS } from '../../lib/notes/live/loop';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
-import { useLiveNotesShown } from '../../lib/notes/live/livePanel';
+import { useLiveNotesLayout } from '../../lib/notes/live/livePanel';
 import { applyLive, type LiveSentence, type LiveState } from '../../lib/notes/live/state';
 import useSettingsStore from '../../stores/settingsStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
@@ -65,7 +65,7 @@ function wired() {
 beforeEach(() => {
   useSettingsStore.setState({ liveNotes: true, notesAfterSession: false } as never);
   useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' } } as never);
-  useLiveNotesShown.setState({ shown: true });
+  useLiveNotesLayout.setState({ layout: 'both' });
 });
 afterEach(async () => {
   dispose?.();

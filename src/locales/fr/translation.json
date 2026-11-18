@@ -2207,6 +2207,7 @@
     "costSoFar": "Notes en direct jusqu’ici : environ {{cost}}",
     "lowBalance": "Votre solde est bas : il reste {{balance}}.",
     "hide": "Masquer les notes en direct",
+    "showAlone": "Afficher seulement les notes en direct",
     "show": "Afficher les notes en direct",
     "showWriting": "Afficher les notes en direct (toujours en cours de rédaction)"
   }

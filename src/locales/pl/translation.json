@@ -2207,6 +2207,7 @@
     "costSoFar": "Notatki na żywo do tej pory: około {{cost}}",
     "lowBalance": "Saldo jest niskie: zostało {{balance}}.",
     "hide": "Ukryj notatki na żywo",
+    "showAlone": "Pokaż tylko notatki na żywo",
     "show": "Pokaż notatki na żywo",
     "showWriting": "Pokaż notatki na żywo (nadal są pisane)"
   }

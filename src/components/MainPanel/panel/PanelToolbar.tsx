@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, PanelRight, PanelTop, Settings, Trash2 } from 'lucide-react';
+import { AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown, NotebookText, PanelRight, PanelTop, Settings, Trash2 } from 'lucide-react';
 import {
   useFloating,
   autoUpdate,
@@ -22,7 +22,7 @@ import { HearingButton } from '../HearingButton';
 import { useReadingTargets } from '../../../lib/reading/useReadingTargets';
 import { isElectron } from '../../../utils/environment';
 import { useLiveNotes } from '../../../lib/notes/live/liveStore';
-import { useLiveNotesPresent, useLiveNotesShown } from '../../../lib/notes/live/livePanel';
+import { NEXT_LAYOUT, useLiveNotesLayout, useLiveNotesPresent } from '../../../lib/notes/live/livePanel';
 import { useNarrowWindow } from '../../../lib/notes/live/useNarrowWindow';
 import {
   useSpeakerDisplayMode,
@@ -104,15 +104,21 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
   ]);
 
   const liveNotesPresent = useLiveNotesPresent();
-  const liveNotesShown = useLiveNotesShown((x) => x.shown);
-  const setLiveNotesShown = useLiveNotesShown((x) => x.setShown);
+  const liveNotesLayout = useLiveNotesLayout((x) => x.layout);
+  const setLiveNotesLayout = useLiveNotesLayout((x) => x.setLayout);
   const liveNotesRunning = useLiveNotes((x) => x.running);
-  // What a click does; hidden while the session runs, it says the notes are still being written.
+  // What a click does, going round side by side, the notes alone, the conversation alone (owner, 2026-11-18); hidden
+  // while the session runs, it says the notes are still being written.
   let liveNotesSwitchTitle = t('liveNotes.show', 'Show live notes');
-  if (liveNotesShown) liveNotesSwitchTitle = t('liveNotes.hide', 'Hide live notes');
+  if (liveNotesLayout === 'both') liveNotesSwitchTitle = t('liveNotes.showAlone', 'Show only the live notes');
+  else if (liveNotesLayout === 'notes') liveNotesSwitchTitle = t('liveNotes.hide', 'Hide live notes');
   else if (liveNotesRunning) liveNotesSwitchTitle = t('liveNotes.showWriting', 'Show live notes (still being written)');
-  // Beside the conversation in a wide window, above it in a narrow one (MainLayout): the icon says which.
+  // The icon says what the area shows: the notes beside the conversation in a wide window, above it in a narrow one
+  // (MainPanel), or the notes alone.
   const narrowWindow = useNarrowWindow();
+  let liveNotesIcon = <PanelRight size={14} aria-hidden="true" />;
+  if (liveNotesLayout === 'notes') liveNotesIcon = <NotebookText size={14} aria-hidden="true" />;
+  else if (narrowWindow) liveNotesIcon = <PanelTop size={14} aria-hidden="true" />;
 
   return (
     <>
@@ -219,19 +225,19 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
         >
           <Trash2 size={14} />
         </button>
-        {/* The live notes beside the conversation are shown and hidden here, the switch staying while they are hidden;
-            hiding does not stop them (owner and design review, 2026-11-17; B-30, B-40). */}
+        {/* The live notes in the conversation's area are shown beside it, alone or hidden here, the switch staying while
+            they are hidden; hiding does not stop them (owner and design review, 2026-11-17 and 2026-11-18; B-30, B-40). */}
         {liveNotesPresent && (
           <button
             className="font-size-btn live-notes-switch"
-            onClick={() => setLiveNotesShown(!liveNotesShown)}
+            onClick={() => setLiveNotesLayout(NEXT_LAYOUT[liveNotesLayout])}
             title={liveNotesSwitchTitle}
             aria-label={t('liveNotes.title', 'Live notes')}
-            aria-pressed={liveNotesShown}
+            aria-pressed={liveNotesLayout !== 'conversation'}
             aria-controls="live-notes-panel"
             type="button"
           >
-            {narrowWindow ? <PanelTop size={14} aria-hidden="true" /> : <PanelRight size={14} aria-hidden="true" />}
+            {liveNotesIcon}
           </button>
         )}
       </div>

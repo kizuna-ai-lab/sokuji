@@ -2207,6 +2207,7 @@
     "costSoFar": "Live-Notizen bisher: etwa {{cost}}",
     "lowBalance": "Ihr Guthaben ist niedrig: noch {{balance}}.",
     "hide": "Live-Notizen ausblenden",
+    "showAlone": "Nur die Live-Notizen anzeigen",
     "show": "Live-Notizen einblenden",
     "showWriting": "Live-Notizen einblenden (werden weiter geschrieben)"
   }

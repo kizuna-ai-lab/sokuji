@@ -1,6 +1,6 @@
 // src/lib/notes/live/useNarrowWindow.ts
 //
-// Whether the window is as narrow as the one MainLayout puts the live notes above the conversation in (its
+// Whether the window is as narrow as the one MainPanel puts the live notes above the conversation in (its
 // `max-width: 767px`), as it changes.
 import { useEffect, useState } from 'react';
 
