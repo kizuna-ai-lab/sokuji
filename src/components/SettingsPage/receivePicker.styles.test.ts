@@ -38,3 +38,18 @@ describe('the hear-or-read word\'s sentence', () => {
     expect(rule(page, '.lineup-category .language-receive-label')).toMatch(/white-space:\s*pre/);
   });
 });
+
+describe('the hear-or-read word as a label', () => {
+  // Owner, 2026-11-19: the subject lost the label look once the verb alone became the choice; the whole word is one
+  // label, in its neighbours' size and colour (12px, the tertiary text), only the verb marked as the choice.
+  it('is set in the labels\' size and colour, the verb taking them from it', () => {
+    const label = rule(page, '.lineup-category .language-receive-label');
+    expect(label).toMatch(/font-size:\s*12px/);
+    expect(label).toMatch(/color:\s*var\(--sk-text-tertiary\)/);
+    expect(rule(page, '.lineup-category .language-pair-row .language-select-group label')).toMatch(/font-size:\s*12px;\s*color:\s*var\(--sk-text-tertiary\)/);
+    const verb = rule(page, '.lineup-category .language-receive');
+    expect(verb).toMatch(/color:\s*inherit/);
+    expect(verb).toMatch(/font:\s*inherit/);
+    expect(verb).not.toMatch(/font-size:/);
+  });
+});
