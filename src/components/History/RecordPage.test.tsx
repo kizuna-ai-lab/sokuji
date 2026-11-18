@@ -988,21 +988,27 @@ describe('the notes column on a wide page', () => {
 // kept for the next record.
 describe("the side panel's column", () => {
   let width = 1200;
+  let watchers: (() => void)[] = [];
   function page(px: number) {
     width = px;
+    watchers = [];
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width);
     vi.stubGlobal('ResizeObserver', class {
-      constructor(private readonly cb: () => void) {}
+      constructor(private readonly cb: () => void) { watchers.push(cb); }
       observe() { this.cb(); }
       unobserve() {}
       disconnect() {}
     });
   }
+  /** The window resized: the page is `px` wide now. */
+  const resize = (px: number) => { width = px; act(() => { for (const cb of watchers) cb(); }); };
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
   const columns = () => document.querySelector('.record-page__columns') as HTMLElement;
   const side = () => screen.queryByRole('complementary', { name: 'Edit' });
   const sideDivider = () => within(columns()).queryByRole('separator', { name: 'Resize the edit panel' });
   const transcript = () => document.querySelector('.record-page__transcript') as HTMLElement;
+  const leftColumn = () => document.querySelector('.record-page__notes-col') as HTMLElement;
+  const notesPart = () => document.querySelector('.record-page__notes') as HTMLElement;
 
   it('stands at the right of the transcript, in the page\'s columns, with a divider of its own beside the notes\'', async () => {
     page(1200);
@@ -1039,10 +1045,112 @@ describe("the side panel's column", () => {
     expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
   });
 
-  // Owner, 2026-11-18: on a narrow page the three are tabs, as the notes and the transcript were: Notes | Transcript |
-  // Edit, each taking the page; the toolbar has no switch for them there.
+  // Owner, 2026-11-19: with room for two columns and not three, the transcript keeps its column and has the one panel
+  // switched on beside it, where that panel stands with room for three.
+  it('with room for two columns, stands beside the transcript when the notes are hidden', async () => {
+    localStorage.setItem('history.notesClosed', '1');
+    page(760);
+    await renderRecord();
+    expect(screen.queryAllByRole('tab')).toEqual([]);
+    expect(side()!.parentElement).toBe(columns());
+    expect(sideDivider()).toBeInTheDocument();
+    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr) 1px 300px');
+    expect(screen.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('with room for two columns, leaves the notes beside the transcript when it is hidden', async () => {
+    localStorage.setItem('history.sidePanelClosed', '1');
+    page(760);
+    await renderRecord();
+    expect(screen.queryAllByRole('tab')).toEqual([]);
+    expect(side()).toBeNull();
+    expect(notesPart()).not.toHaveAttribute('hidden');
+    expect(columns().style.gridTemplateColumns).toBe('359px 1px minmax(0, 1fr)');
+  });
+
+  // Owner, 2026-11-19: both switched on with room for two columns only: the notes and the edit panel share the left
+  // column, a tab each; the transcript keeps its own.
+  it('with both switched on and room for two columns, shares the left column with the notes, a tab each', async () => {
+    page(760);
+    await renderRecord();
+    expect(columns().style.gridTemplateColumns).toBe('359px 1px minmax(0, 1fr)');
+    expect(sideDivider()).toBeNull();
+    expect(within(columns()).getByRole('separator', { name: 'Resize the notes' })).toBeInTheDocument();
+    const tabs = within(leftColumn()).getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Notes', 'Edit']);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    expect(notesPart()).not.toHaveAttribute('hidden');
+    expect(side()).toBeNull();
+    expect(transcript()).not.toHaveAttribute('hidden');
+    // Both switches stay on: each panel is still shown, in its tab.
+    expect(screen.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Edit' }));
+    await settle();
+    expect(within(leftColumn()).getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()!.parentElement).toBe(leftColumn());
+    expect(notesPart()).toHaveAttribute('hidden');
+    expect(transcript()).not.toHaveAttribute('hidden');
+    // The edit panel switched off: the notes have the column to themselves again, without tabs.
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(side()).toBeNull();
+    expect(within(leftColumn()).queryAllByRole('tab')).toEqual([]);
+    expect(notesPart()).not.toHaveAttribute('hidden');
+  });
+
+  it('shows in the shared column the panel just switched on', async () => {
+    localStorage.setItem('history.sidePanelClosed', '1');
+    page(760);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(within(leftColumn()).getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notes' }));
+    await settle();
+    expect(within(leftColumn()).getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()).toBeNull();
+  });
+
+  it('saves a name being typed before the shared column turns to the notes', async () => {
+    page(760);
+    await renderRecord();
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Edit' }));
+    await settle();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Notes' }));
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+    expect(side()).toBeNull();
+  });
+
+  // Review: the edit panel moves between the shared column and its own as the window is resized; a name being typed
+  // in it is the page's, and stays typed.
+  it('keeps a name being typed when the window is resized from two columns to three and back', async () => {
+    page(760);
+    await renderRecord();
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Edit' }));
+    await settle();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(1200);
+    await settle();
+    expect(side()!.parentElement).toBe(columns());
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+    resize(760);
+    await settle();
+    expect(side()!.parentElement).toBe(leftColumn());
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+  });
+
+  // Owner, 2026-11-18/19: on a page too narrow even for two columns, the three are tabs, as the notes and the transcript
+  // were: Notes | Transcript | Edit, each taking the page; the toolbar has no switch for them there.
   it('on a narrow page is a third tab, "Edit", taking the page when chosen', async () => {
-    page(700);
+    page(600);
     await renderRecord();
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Notes', 'Transcript', 'Edit']);
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();

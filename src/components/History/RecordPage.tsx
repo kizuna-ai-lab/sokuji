@@ -32,6 +32,7 @@ import PanelResizer from '../MainLayout/PanelResizer';
 import { labelsFit } from './panelSwitchFit';
 import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
 import { SIDE_MIN_PX, readSideWidth, sideWidthWithin, writeSideWidth } from './sideColumn';
+import { layoutFor } from './recordLayout';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -48,9 +49,6 @@ const spaceBetween = (before: string, after: string) => {
   const b = [...after][0];
   return !(a && b && UNSPACED.test(a) && UNSPACED.test(b));
 };
-
-/** From this width of the page the notes stand beside the transcript; narrower, each has its tab. */
-const NOTES_WIDE_PX = 1000;
 
 /** A value inside a quoted attribute selector. */
 const quoted = (value: string) => value.replace(/["\\]/g, '\\$&');
@@ -189,11 +187,12 @@ export const RecordPage: React.FC = () => {
     transcriptRef.current?.querySelector<HTMLElement>(`[data-row="${quoted(playingKey)}"]`)?.scrollIntoView?.({ block: 'nearest' });
   }, [playingKey]);
 
-  // The notes: beside the transcript on a wide page, in a tab of their own on a narrow one.
+  // The notes, the transcript and the edit panel: columns as the page has room for them, else tabs (recordLayout.ts).
   const notesRunning = useStore(store, (s) => s.notesRunning);
   const pageRef = useRef<HTMLDivElement>(null);
-  const [wide, setWide] = useState(false);
   const [pageWidth, setPageWidth] = useState(0);
+  const layout = layoutFor(pageWidth);
+  const columned = layout !== 'tabs';
   // Wide: the notes column's width, dragged at the divider, and whether it is shown, from a switch in the toolbar; both
   // kept for the next record (owner, 2026-11-17; B-31, B-40). Hidden, the transcript takes the whole width.
   const [notesOpen, setNotesOpen] = useState(readNotesOpen);
@@ -210,24 +209,23 @@ export const RecordPage: React.FC = () => {
   const wordsWidth = useRef(0);
   const wordsAdd = useRef<number | null>(null);
   const [switchWords, setSwitchWords] = useState(true);
-  // Narrow: one of the three at a time, as tabs (owner, 2026-11-18). Wide: all three as columns.
+  // Tabs: one of the three at a time (owner, 2026-11-18).
   const [pane, setPane] = useState<'notes' | 'transcript' | 'edit'>('transcript');
+  // Two columns with both panels switched on: which of the two the left column they share shows (owner, 2026-11-19).
+  const [shared, setShared] = useState<'notes' | 'edit'>('notes');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
   useEffect(() => {
     if (!hitKind) return;
     setPane(hitKind === 'notes' ? 'notes' : 'transcript');
-    // A hit in the notes shows them on a wide page too; the closed choice stays saved for ordinary openings.
-    if (hitKind === 'notes') setNotesOpen(true);
+    // A hit in the notes shows them in columns too; the closed choice stays saved for ordinary openings.
+    if (hitKind === 'notes') { setNotesOpen(true); setShared('notes'); }
   }, [open?.record.id, hitKind]);
   const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
   useEffect(() => {
     const el = pageRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const watch = new ResizeObserver(() => {
-      setWide(el.clientWidth >= NOTES_WIDE_PX);
-      setPageWidth(el.clientWidth);
-    });
+    const watch = new ResizeObserver(() => setPageWidth(el.clientWidth));
     watch.observe(el);
     return () => watch.disconnect();
   }, [open !== null]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -344,20 +342,25 @@ export const RecordPage: React.FC = () => {
   };
 
   const speakerCount = speakersOf('mine').length + speakersOf('other').length;
-  // The edit panel (the speakers now, fixing the transcript later; owner, 2026-11-18): wide, a column at the right of the
-  // transcript, shown and hidden from the toolbar; narrow, the third tab. Only with speakers to edit.
+  // The edit panel (the speakers now, fixing the transcript later; owner, 2026-11-18): in columns, at the right of the
+  // transcript, shown and hidden from the toolbar; as tabs, the third tab. Only with speakers to edit.
   const editable = speakerCount > 0;
   const shownPane = pane === 'edit' && !editable ? 'transcript' : pane;
-  const sideColumn = wide && editable && sideOpen;
-  const sideShown = wide ? sideColumn : editable && shownPane === 'edit';
+  const editOn = editable && sideOpen;
+  // Room for two columns and both panels switched on: they share the left column, a tab each (owner, 2026-11-19).
+  const sharing = layout === 'two' && notesOpen && editOn;
+  const notesColumn = columned && notesOpen;
+  const sideColumn = columned && editOn && !sharing;
+  const notesShown = columned ? notesOpen && (!sharing || shared === 'notes') : shownPane === 'notes';
+  const sideShown = columned ? editOn && (!sharing || shared === 'edit') : editable && shownPane === 'edit';
   // The columns as they fit this page; the widths kept stay as the user left them, for a wider window later. The edit
   // panel is fitted first, beside notes at their narrowest, and the notes in what it leaves.
-  const sideRoom = Math.max(0, pageWidth - (notesOpen ? NOTES_MIN_PX + DIVIDER_PX : 0));
+  const sideRoom = Math.max(0, pageWidth - (notesColumn ? NOTES_MIN_PX + DIVIDER_PX : 0));
   const shownSideWidth = pageWidth > 0 ? sideWidthWithin(sideWidth, sideRoom) : Math.max(SIDE_MIN_PX, sideWidth);
   const notesRoom = sideColumn ? pageWidth - shownSideWidth - DIVIDER_PX : pageWidth;
   const shownNotesWidth = notesWidthWithin(notesWidth, notesRoom);
   const tracks = [
-    ...(notesOpen ? [`${shownNotesWidth}px`, `${DIVIDER_PX}px`] : []),
+    ...(notesColumn ? [`${shownNotesWidth}px`, `${DIVIDER_PX}px`] : []),
     'minmax(0, 1fr)',
     ...(sideColumn ? [`${DIVIDER_PX}px`, `${shownSideWidth}px`] : []),
   ];
@@ -371,28 +374,41 @@ export const RecordPage: React.FC = () => {
   };
   // Nothing being typed or saved: at once, with nothing to wait for.
   const nameBusy = () => Boolean(nameDraftRef.current || nameSave.current);
+  // A panel switched on is the one shown where the two share a column.
   const toggleSide = async () => {
     if (sideOpen && nameBusy() && !(await nameSettled())) return;
     writeSideOpen(!sideOpen);
     setSideOpen(!sideOpen);
+    if (!sideOpen) setShared('edit');
   };
-  // Narrow: Escape on the Edit tab, or another tab chosen, leaves it as hiding it does on a wide page.
+  const toggleNotes = async () => {
+    // The notes switched on over the edit panel in the column they then share: a name typed there is saved first.
+    if (!notesOpen && layout === 'two' && editOn && nameBusy() && !(await nameSettled())) return;
+    writeNotesOpen(!notesOpen);
+    setNotesOpen(!notesOpen);
+    if (!notesOpen) setShared('notes');
+  };
+  // Tabs: Escape on the Edit tab, or another tab chosen, leaves it as hiding it does in columns. The tab chosen is the
+  // one a shared column shows too, should the page widen.
   const choosePane = async (next: 'notes' | 'transcript' | 'edit') => {
     if (shownPane === 'edit' && next !== 'edit' && nameBusy() && !(await nameSettled())) return;
     setPane(next);
+    if (next !== 'transcript') setShared(next);
+  };
+  const chooseShared = async (next: 'notes' | 'edit') => {
+    if (shared === 'edit' && next !== 'edit' && nameBusy() && !(await nameSettled())) return;
+    setShared(next);
   };
   // The two panels' switches, together in the toolbar before Export: the icon says which side, the pressed state that
   // the panel is shown, the tooltip what a click does (design review, 2026-11-17; B-40).
-  const panelSwitches = wide && (
+  const panelSwitches = columned && (
     <span className="record-page__panels" data-compact={switchWords ? undefined : ''}>
-      {wide && (
-        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
-          title={notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes')}
-          aria-pressed={notesOpen} aria-controls={notesId} onClick={() => { writeNotesOpen(!notesOpen); setNotesOpen(!notesOpen); }}>
-          <PanelLeft size={16} aria-hidden="true" />
-          <span className="record-page__panel-word">{t('history.notes', 'Notes')}</span>
-        </button>
-      )}
+      <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
+        title={notesOpen ? t('history.hideNotes', 'Hide the notes') : t('history.showNotes', 'Show the notes')}
+        aria-pressed={notesOpen} aria-controls={notesId} onClick={() => void toggleNotes()}>
+        <PanelLeft size={16} aria-hidden="true" />
+        <span className="record-page__panel-word">{t('history.notes', 'Notes')}</span>
+      </button>
       {editable && (
         <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.sidePanel', 'Edit')}
           title={sideOpen ? t('history.closeSidePanel', 'Hide the edit panel') : t('history.openSidePanel', 'Show the edit panel')}
@@ -518,6 +534,26 @@ export const RecordPage: React.FC = () => {
       );
     });
 
+  // The edit panel: a column at the right of the transcript, the left column's second tab when it shares that column
+  // with the notes, or a tab of the page. Closing it while a name is typed saves the name, as a click elsewhere does.
+  const sidePanel = editable && (
+    <RecordSidePanel
+      id={sideId}
+      open={sideShown}
+      // A name or the title being typed: Escape is the field's, not the panel's.
+      editing={nameDraft !== null || titleDraft !== null}
+      onToggle={columned ? toggleSide : () => choosePane('transcript')}
+    >
+      <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
+        <h3>{t('history.speakers', 'Speakers')}</h3>
+        <p className="record-side__hint">
+          {t('history.speakersHint', 'Click a name to rename the speaker. To give one sentence to someone else, use the “Change speaker” button beside it in the transcript.')}
+        </p>
+        {speakersPanel}
+      </section>
+    </RecordSidePanel>
+  );
+
   return (
     <div className="record-page" ref={pageRef}>
       <header className="record-page__head" ref={headRef}>
@@ -639,7 +675,7 @@ export const RecordPage: React.FC = () => {
         </div>
       )}
       {transcribing && <TranscribePanel onClose={() => setTranscribing(false)} />}
-      {!wide && (
+      {!columned && (
         <div className="record-page__panes" role="tablist">
           <button type="button" role="tab" aria-selected={shownPane === 'notes'} onClick={() => void choosePane('notes')}>{t('history.notes', 'Notes')}</button>
           <button type="button" role="tab" aria-selected={shownPane === 'transcript'} onClick={() => void choosePane('transcript')}>{t('history.transcript', 'Transcript')}</button>
@@ -651,13 +687,21 @@ export const RecordPage: React.FC = () => {
       {/* The columns, in a frame that does not scroll: the speakers' drawer stays put over them. */}
       <div className="record-page__body">
       <div
-        className={`record-page__columns${wide ? ' is-wide' : ''}`}
-        style={wide ? { gridTemplateColumns: tracks.join(' ') } : undefined}
+        className={`record-page__columns${columned ? ' has-columns' : ''}`}
+        style={columned ? { gridTemplateColumns: tracks.join(' ') } : undefined}
       >
-        <div className="record-page__notes-col" hidden={wide ? !notesOpen : shownPane !== 'notes'}>
-          <div className="record-page__notes" id={notesId} hidden={wide && !notesOpen}>{notesView}</div>
+        {/* The left column: the notes, or the notes and the edit panel a tab each when the two share it. */}
+        <div className="record-page__notes-col" hidden={columned ? !notesColumn : shownPane !== 'notes'}>
+          {sharing && (
+            <div className="record-page__panes" role="tablist">
+              <button type="button" role="tab" aria-selected={shared === 'notes'} aria-controls={notesId} onClick={() => void chooseShared('notes')}>{t('history.notes', 'Notes')}</button>
+              <button type="button" role="tab" aria-selected={shared === 'edit'} aria-controls={sideId} onClick={() => void chooseShared('edit')}>{t('history.sidePanel', 'Edit')}</button>
+            </div>
+          )}
+          <div className="record-page__notes" id={notesId} hidden={!notesShown}>{notesView}</div>
+          {sharing && sidePanel}
         </div>
-        {wide && notesOpen && (
+        {notesColumn && (
           <PanelResizer
             side="left"
             width={shownNotesWidth}
@@ -672,12 +716,11 @@ export const RecordPage: React.FC = () => {
             }}
           />
         )}
-        <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && shownPane !== 'transcript'}>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={!columned && shownPane !== 'transcript'}>
           <TranscriptAsked />
           {transcript}
         </div>
-        {/* The side panel, a column at the right of the transcript (owner, 2026-11-18), with its own divider. Closing it
-            while a name is typed saves the name, as a click elsewhere does. */}
+        {/* The edit panel's column at the right of the transcript (owner, 2026-11-18), with its own divider. */}
         {sideColumn && (
           <PanelResizer
             width={shownSideWidth}
@@ -692,23 +735,7 @@ export const RecordPage: React.FC = () => {
             }}
           />
         )}
-        {editable && (
-          <RecordSidePanel
-            id={sideId}
-            open={sideShown}
-            // A name or the title being typed: Escape is the field's, not the panel's.
-            editing={nameDraft !== null || titleDraft !== null}
-            onToggle={wide ? toggleSide : () => choosePane('transcript')}
-          >
-            <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
-              <h3>{t('history.speakers', 'Speakers')}</h3>
-              <p className="record-side__hint">
-                {t('history.speakersHint', 'Click a name to rename the speaker. To give one sentence to someone else, use the “Change speaker” button beside it in the transcript.')}
-              </p>
-              {speakersPanel}
-            </section>
-          </RecordSidePanel>
-        )}
+        {!sharing && sidePanel}
       </div>
       </div>
       <div className="record-page__player">

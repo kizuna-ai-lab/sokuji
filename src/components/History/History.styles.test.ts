@@ -32,6 +32,17 @@ describe('the record page\'s notes column', () => {
   });
 });
 
+// Owner, 2026-11-19: the record page has two columns down to 641 px, on a window MainLayout already counts as narrow
+// (768 px and below), where it hides .panel-resizer because its own panels stack. The record page's columns still stand
+// side by side there, so their dividers are kept.
+describe("the record page's dividers", () => {
+  it('stay on a window too narrow for the main layout\'s dividers', () => {
+    // Three classes: it outranks both rules that hide the divider there, PanelResizer's own (.panel-resizer) and
+    // MainLayout's (.main-layout .panel-resizer).
+    expect(ruleBody('.record-page .record-page__columns > .panel-resizer') ?? '').toMatch(/display:\s*block/);
+  });
+});
+
 // Owner, 2026-11-18: the version dropdown's chevron sits at its right edge, as on every other dropdown. A base-select
 // control lays its chevron out after the text (pushed to the end), so the right padding the classic background arrow
 // needed would leave an empty strip after the chevron.
