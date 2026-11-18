@@ -487,6 +487,13 @@
   &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
 
 
+  // What a file transcript was asked for: a quiet caption at the top of its transcript, scrolling with it.
+  &__asked {
+    margin: 0 0 vars.$space-2;
+    font-size: vars.$font-caption;
+    color: vars.$text-tertiary;
+  }
+
   &__transcript {
     min-height: 0;
     overflow-y: auto;
@@ -884,6 +891,58 @@
   }
 
   &__blocked { color: vars.$color-error; }
+
+  // Open, the lists keep the scale of the settings page's language lists and the player's speed list: 30px rows of
+  // 12.5px text; the line between the likely languages and the rest stays a thin rule.
+  @supports (appearance: base-select) {
+    &__field .select-dropdown {
+      &::picker(select) { padding: 4px; }
+      option { min-height: 30px; padding: 0 8px; font-size: 12.5px; }
+      // The row rule above must not give the line its text back: its dashes would show, as wide as the font draws them.
+      option[value='__pin-separator__'] { height: 1px; min-height: 0; padding: 0; font-size: 0; line-height: 0; }
+    }
+  }
+
+  // The other languages chosen: one tag each, with its own way out; the "add" dropdown under them.
+  &__languages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: vars.$space-1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 2px 0 6px;
+      border: 1px solid vars.$border-subtle;
+      border-radius: vars.$radius-sm;
+      line-height: 22px;
+    }
+  }
+
+  // The "add another language" list's own words: shown on the closed list, not offered in the open one (a themed
+  // list draws a hidden option all the same).
+  .select-dropdown option.history-file__placeholder { display: none; }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: none;
+    color: vars.$text-tertiary;
+    cursor: pointer;
+
+    &:hover { color: vars.$text-secondary; }
+    &:focus-visible { outline: 2px solid vars.$color-info-border; outline-offset: 1px; }
+  }
 
   &__line { margin: vars.$space-2 vars.$space-4; }
 

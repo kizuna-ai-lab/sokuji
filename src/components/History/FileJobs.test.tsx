@@ -8,6 +8,16 @@ import { createHistoryPageStore, type FileJobs } from '../../lib/history/history
 import '../../locales';
 import { HistoryPageContext } from './historyContext';
 import { FileJobLine, ImportPanel, TranscribePanel, TranscriptChooser } from './FileJobs';
+import { PIN_SEPARATOR } from '../../lib/language/order';
+
+/** A language list's two parts, as the source and target lists have them: the likely languages, a line, then all. */
+function parts(select: HTMLSelectElement) {
+  const values = [...select.options].map((o) => o.value).filter(Boolean);
+  const line = values.indexOf(PIN_SEPARATOR);
+  expect(line, 'the line between the two parts').toBeGreaterThan(0);
+  expect(select.querySelector(`option[value="${PIN_SEPARATOR}"]`)).toBeDisabled();
+  return { likely: values.slice(0, line), all: values.slice(line + 1) };
+}
 import { useSettingsStore } from '../../stores/settingsStore';
 import en from '../../locales/en/translation.json';
 import zhCN from '../../locales/zh_CN/translation.json';
@@ -37,7 +47,7 @@ function fakeJobs(o: { missing?: 'no-file-service' | 'hosted-soniox' | 'no-key';
   const jobs: FileJobs = {
     service: vi.fn(async () => {
       if (o.serviceFails) throw new Error('The key store could not be read');
-      return o.missing ? { missing: o.missing } : { service: 'soniox' as const, apiKey: 'k', region: 'us' as const };
+      return o.missing ? { missing: o.missing } : { service: 'soniox' as const, apiKey: 'k', region: 'us' as const, languages: ['en', 'fr', 'ja', 'zh'] };
     }),
     sessionRunning: () => o.session ?? false,
     importFile: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['importFile'],
@@ -64,7 +74,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('importing a file', () => {
-  it('names the service and its stage, asks the language, and starts the import', async () => {
+  it('names the service and its stage, asks the languages and the translation, and starts the import', async () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
@@ -75,17 +85,52 @@ describe('importing a file', () => {
     expect(screen.getByText('Transcribed by Soniox, with your own key.')).toBeTruthy();
     // With the user's own key there is no price to show (owner, 2026-11-16).
     expect(screen.queryByText(/USD/)).toBeNull();
-    // The app's own dropdown, as every other one.
-    expect(screen.getByLabelText('Language spoken in it')).toHaveClass('select-dropdown');
-    fireEvent.change(screen.getByLabelText('Language spoken in it'), { target: { value: 'ja' } });
+    // The app's own dropdowns, as every other one, offering the service's languages; the user's language to start.
+    const main = screen.getByLabelText<HTMLSelectElement>('Main language');
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect(main).toHaveClass('select-dropdown');
+    expect(into).toHaveClass('select-dropdown');
+    expect([main.value, into.value]).toEqual(['zh', 'zh']);
+    // The language chosen and the interface's first, then every language the service has.
+    expect(parts(main)).toEqual({ likely: ['zh', 'en'], all: expect.arrayContaining(['en', 'fr', 'ja', 'zh']) });
+    expect(parts(main).all).toHaveLength(4);
+    expect(parts(into).likely).toEqual(['zh', 'en']);
+    fireEvent.change(main, { target: { value: 'ja' } });
+    // Other languages it may contain: added one by one, each shown with a way to take it out again; the ones already
+    // chosen are not offered.
+    const add = screen.getByLabelText<HTMLSelectElement>('Add another language');
+    expect(parts(add)).toEqual({ likely: ['zh', 'en'], all: expect.arrayContaining(['en', 'fr', 'zh']) });
+    expect(parts(add).all).toHaveLength(3);
+    fireEvent.change(add, { target: { value: 'en' } });
+    fireEvent.change(add, { target: { value: 'fr' } });
+    expect(screen.getByRole('button', { name: 'Remove English' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove French' }));
+    expect(screen.queryByRole('button', { name: 'Remove French' })).toBeNull();
+    fireEvent.change(into, { target: { value: 'en' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();
-    expect(jobs.importFile).toHaveBeenCalledWith(expect.objectContaining({ file, language: 'ja', myLanguage: 'zh' }));
+    expect(jobs.importFile).toHaveBeenCalledWith(expect.objectContaining({ file, options: { languages: ['ja', 'en'], translateTo: 'en' }, myLanguage: 'zh' }));
     expect(onClose).toHaveBeenCalled();
+    // A file has no sides: no "each side" to choose.
+    expect([...into.options].map((o) => o.value)).not.toContain('each-side');
   });
 
   // B-35 (owner, 2026-11-17): only the reason and what to do, then a link to the setting to change; the line that
   // names the service only when the service can do it.
+  it('says the service could not be checked when its languages could not be read, and cannot be started', async () => {
+    const { jobs } = fakeJobs();
+    // The check that the import can start answers; asking the service for its languages then fails.
+    const service = jobs.service as ReturnType<typeof vi.fn>;
+    service.mockImplementationOnce(async () => ({ service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'zh'] }))
+      .mockRejectedValueOnce(new Error('The key store could not be read'));
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText('The transcription service could not be checked. Close this and try again.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
+  });
+
   it('says why it cannot start and what to do, links to the setting, and cannot be started', async () => {
     for (const [o, text, link, target, serviceLine] of [
       [{ missing: 'no-file-service' }, 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.', 'Open Languages and line-up', 'lineup', false],
@@ -121,7 +166,7 @@ describe('importing a file', () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
-    act(() => { void store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    act(() => { void store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
     await settle();
     show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
     await settle();
@@ -147,7 +192,7 @@ describe('a file job running, and how it ended', () => {
     store.getState().follow();
     show(<FileJobLine />);
     let started!: Promise<void>;
-    act(() => { started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    act(() => { started = store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
     await settle();
     expect(screen.getByText('Importing “Team sync.mp4”: Reading the file')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -166,7 +211,7 @@ describe('the line of a file job, in each case', () => {
     store.getState().follow();
     show(<FileJobLine />);
     let started!: Promise<void>;
-    act(() => { started = store.getState().importFile(file, { language: 'en', myLanguage: 'zh' }); });
+    act(() => { started = store.getState().importFile(file, { options: { languages: ['en'], translateTo: 'zh' }, myLanguage: 'zh' }); });
     await settle();
     return { jobs, pending, started: () => started };
   };
@@ -213,7 +258,7 @@ describe('the line of a file job, in each case', () => {
     await act(async () => { await store.getState().openRecord(A); });
     show(<FileJobLine />);
     let started!: Promise<void>;
-    act(() => { started = store.getState().transcribeOpen(); });
+    act(() => { started = store.getState().transcribeOpen({ languages: ['en'], translateTo: 'zh' }); });
     await settle();
     await act(async () => { pending.reject!(Object.assign(new Error('too long'), { code: 'TOO_LONG' })); await started; });
     expect(screen.getByText('The recording is longer than five hours, more than Soniox transcribes at once.')).toBeTruthy();
@@ -221,7 +266,7 @@ describe('the line of a file job, in each case', () => {
 });
 
 describe('transcribing a record again', () => {
-  it('says a new version is made, and starts it', async () => {
+  it('says a new version is made, asks the same as an import, and starts it', async () => {
     const { jobs } = fakeJobs();
     store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
     store.getState().follow();
@@ -232,10 +277,89 @@ describe('transcribing a record again', () => {
     expect(screen.getByRole('dialog', { name: 'Transcribe again' })).toBeTruthy();
     expect(screen.getByText('The saved recording is transcribed again. A new version is made; the transcripts already here stay.')).toBeTruthy();
     expect(screen.queryByText(/USD/)).toBeNull();
+    // A session: the other side's language first, the user's among the others, translated into the user's.
+    expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('zh');
+    expect(screen.getByRole('button', { name: 'Remove English' })).toBeTruthy();
+    expect(screen.getByLabelText<HTMLSelectElement>('Translate into').value).toBe('en');
+    fireEvent.change(screen.getByLabelText('Translate into'), { target: { value: 'ja' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     await settle();
-    expect(jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A }));
+    expect(jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A, options: { languages: ['zh', 'en'], translateTo: 'ja' } }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('a session with both sides kept: each side into the other\u2019s language, as in the session, unless one is chosen', async () => {
+    const leg = (name: 'speaker' | 'participant', source: string, target: string) => ({ leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: true, spoken: false });
+    record = {
+      ...record, myLanguage: 'en', targetLanguage: 'ja',
+      legs: [leg('speaker', 'en', 'ja'), leg('participant', 'ja', 'en')],
+      tracks: [...record.tracks, { ...record.tracks[0], source: 'speaker', file: 'speaker.opus' }],
+    } as typeof record;
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect(into.value).toBe('each-side');
+    expect(into.options[0].textContent).toBe('Each side into the other’s language');
+    expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('ja');
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await settle();
+    expect(jobs.transcribe).toHaveBeenLastCalledWith(expect.objectContaining({ options: { languages: ['ja', 'en'], translateTo: 'each-side' } }));
+  });
+
+  it('a session whose other side the service cannot translate into offers no "each side"', async () => {
+    const leg = (name: 'speaker' | 'participant', source: string, target: string) => ({ leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: true, spoken: false });
+    record = {
+      ...record, myLanguage: 'en', targetLanguage: 'am',
+      legs: [leg('speaker', 'en', 'am'), leg('participant', 'am', 'en')],
+      tracks: [...record.tracks, { ...record.tracks[0], source: 'speaker', file: 'speaker.opus' }],
+    } as typeof record;
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect([...into.options].map((o) => o.value)).not.toContain('each-side');
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await settle();
+    const calls = vi.mocked(jobs.transcribe).mock.calls;
+    expect(calls[calls.length - 1][0].options.translateTo).not.toBe('each-side');
+  });
+
+  it('a session that said "automatic" starts from languages the service has', async () => {
+    record = { ...record, myLanguage: 'auto', targetLanguage: 'auto' };
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    const main = screen.getByLabelText<HTMLSelectElement>('Main language');
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect(['en', 'fr', 'ja', 'zh']).toContain(main.value);
+    expect(['en', 'fr', 'ja', 'zh']).toContain(into.value);
+    expect(screen.queryByText('Auto Detect')).toBeNull();
+  });
+
+  it('starts from what the newest file transcript was asked for', async () => {
+    record = {
+      ...record,
+      transcripts: [...record.transcripts, { id: 2, origin: { service: 'soniox', kind: 'file', options: { languages: ['fr'], translateTo: 'ja' } }, textKind: 'original', createdAt: START + 1, sentences: 3 }],
+    };
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('fr');
+    expect(screen.queryByRole('button', { name: /^Remove / })).toBeNull();
+    expect(screen.getByLabelText<HTMLSelectElement>('Translate into').value).toBe('ja');
   });
 
   // No setting brings back a recording: the reason stands alone, whatever the line-up's transcription is (B-35 review).

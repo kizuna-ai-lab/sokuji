@@ -8,6 +8,7 @@
 import { SAMPLE_RATE } from '../../contract/adapter';
 import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
+import type { FileTranscriptionOptions } from '../types';
 import { createTrack, type OpusEncoderFactory, type TrackPiece } from '../recording/track';
 import type { FileRecognitionService } from './service';
 import { transcribeRecord, type TranscribePhase } from './transcribe';
@@ -46,8 +47,8 @@ export interface ImportOptions {
   file: File;
   /** The user's language: what the notes are written in. */
   myLanguage: string;
-  /** The language spoken in the file. */
-  language: string;
+  /** What the transcription is asked for: the languages spoken in the file (the main one first), the translation. */
+  options: FileTranscriptionOptions;
   service: FileRecognitionService;
   appVersion: string;
   /** The file's length in ms (NaN or Infinity when it cannot be told). */
@@ -99,8 +100,8 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
   const recordId = o.newId();
   const startedAt = Math.round((o.file.lastModified || o.clock.now()) - audio.durationMs);
   await o.port.openRecord({
-    id: recordId, startedAt, mode: 'import', myLanguage: o.myLanguage, targetLanguage: o.language,
-    services: { provider: o.service.service, models: { transcription: FILE_MODEL } }, appVersion: o.appVersion,
+    id: recordId, startedAt, mode: 'import', myLanguage: o.myLanguage, targetLanguage: o.options.languages[0],
+    services: { provider: o.service.service, models: { transcription: FILE_MODEL }, options: o.options }, appVersion: o.appVersion,
   });
   // Closed first (the bin takes closed records only; one with nothing stored is dropped there), then through the bin,
   // as any record is removed: the folder and its files go with the row.
@@ -113,7 +114,7 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
   };
   try {
     await o.port.putLeg({
-      recordId, leg: 'participant', languages: { source: o.language, target: o.myLanguage },
+      recordId, leg: 'participant', languages: { source: o.options.languages[0], target: o.options.translateTo },
       input: null, inputName: null, inputId: null, translated: false, spoken: false,
     });
     const track = createTrack({ startedAt, encoder: o.encoder, serial: 1 });
@@ -165,7 +166,7 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
   let result: ImportResult;
   try {
     await transcribeRecord({
-      port: o.port, recordId, service: o.service, clock: o.clock, newJobId: o.newJobId, signal: o.signal,
+      port: o.port, recordId, service: o.service, options: o.options, clock: o.clock, newJobId: o.newJobId, signal: o.signal,
       onProgress: (p) => progress(p.phase),
     });
     result = { recordId, transcribed: true };

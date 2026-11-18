@@ -1,17 +1,21 @@
 // src/components/History/FileJobs.tsx
 //
 // Importing a file and transcribing a record again, on the History screens (desktop): the panel that asks before an
-// import, the one that asks before a transcription again, the line that follows the running job and says how it
-// ended, and the choice between a record's transcripts. Each names the service; the stage of the line-up it belongs to
+// import, the one that asks before a transcription again (both ask the same: the languages spoken and the language to
+// translate into, with one set of fields), the line that follows the running job and says how it ended, and the
+// choice between a record's transcripts. Each names the service; the stage of the line-up it belongs to
 // is called transcription, as the line-up calls it (B-35). With the user's own key no price is shown (owner, 2026-11-16).
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { X } from 'lucide-react';
 import { useStore } from 'zustand';
 import type { FileJobBlock } from '../../lib/history/historyPageStore';
-import { languageLabel } from '../../lib/language/label';
+import { EACH_SIDE, eachSideOffered, fitOptions, importOptions, optionsFor, withMain, withOther, withoutOther } from '../../lib/history/file/options';
+import type { FileTranscriptionOptions } from '../../lib/history/types';
+import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
+import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { INTERFACE_LANGUAGES } from '../Settings/sections/interfaceLanguages';
 import { useHistoryPageContext } from './historyContext';
 import { formatDateTime } from './format';
 import { providerTarget } from '../SettingsPage/accountRows';
@@ -125,6 +129,106 @@ function useBlocked(kind: 'import' | 'transcribe'): { known: boolean; blocked: F
   return state;
 }
 
+/**
+ * The languages the file service transcribes in and translates into, once known; `unchecked` when the service could
+ * not be asked for them (the panel then says so, as when it could not be checked at all).
+ */
+function useFileLanguages(): { offered: readonly string[]; unchecked: boolean } {
+  const { store } = useHistoryPageContext();
+  const [languages, setLanguages] = useState<readonly string[] | null>([]);
+  useEffect(() => {
+    let live = true;
+    void store.getState().fileLanguages().then((l) => { if (live) setLanguages(l); });
+    return () => { live = false; };
+  }, [store]);
+  return { offered: languages ?? [], unchecked: languages === null };
+}
+
+const SEPARATOR = '──────────';
+
+export interface FileOptionsFieldsProps {
+  value: FileTranscriptionOptions;
+  onChange(value: FileTranscriptionOptions): void;
+  /** The languages the file service offers (none yet while they are asked for). */
+  offered: readonly string[];
+  /** A session with both sides kept: "each side into the other's language" is offered first. */
+  eachSide?: boolean;
+}
+
+/**
+ * What a file transcription is asked for, the same for an import and a transcription again: the main language spoken,
+ * the others it may contain (each added on its own and taken out again), and the language to translate into. Each
+ * list is drawn as the source and target lists are: the likely languages first (the ones chosen, the interface's),
+ * a line, then every language in the app's order.
+ */
+export const FileOptionsFields: React.FC<FileOptionsFieldsProps> = ({ value, onChange, offered, eachSide = false }) => {
+  const { t, i18n } = useTranslation();
+  const labelOf = useLanguageLabel();
+  const othersId = useId();
+  const ui = i18n?.language ?? 'en';
+  const browser = typeof navigator !== 'undefined' ? navigator.languages ?? [] : [];
+  const browserKey = browser.join(',');
+  const ctx: OrderContext = useMemo(() => ({ ui, browser }), [ui, browserKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [main = '', ...others] = value.languages;
+  // The service's languages, and any chosen that it does not list (so a choice is never hidden).
+  const all = useMemo(
+    () => [...new Set([...offered, ...value.languages, value.translateTo])].filter((code) => code && code !== EACH_SIDE).map((code) => ({ value: code })),
+    [offered, value],
+  );
+  const likelyPair = { source: main, target: value.translateTo };
+  const choices = (options: readonly { value: string }[]) => {
+    const pinned = pinnedLanguages(options, likelyPair, ctx);
+    return (
+      <>
+        {pinned.map((o) => <option key={`pin:${o.value}`} value={o.value}>{labelOf(o.value)}</option>)}
+        {pinned.length > 0 && <option key="pin-separator" value={PIN_SEPARATOR} disabled>{SEPARATOR}</option>}
+        {orderLanguages(options, ctx).map((o) => <option key={o.value} value={o.value}>{labelOf(o.value)}</option>)}
+      </>
+    );
+  };
+  const add = t('history.file.addLanguage', 'Add another language');
+  return (
+    <>
+      <label className="history-file__field">
+        <span>{t('history.file.mainLanguage', 'Main language')}</span>
+        <select className="select-dropdown" value={main} onChange={(e) => onChange(withMain(value, e.target.value))}>{choices(all)}</select>
+      </label>
+      <div className="history-file__field" role="group" aria-labelledby={othersId}>
+        <span id={othersId}>{t('history.file.otherLanguages', 'Other languages it may contain')}</span>
+        {others.length > 0 && (
+          <ul className="history-file__languages">
+            {others.map((code) => (
+              <li key={code}>
+                <span>{labelOf(code)}</span>
+                <button
+                  type="button"
+                  className="history-file__remove"
+                  aria-label={t('history.file.removeLanguage', 'Remove {{language}}', { language: labelOf(code) })}
+                  onClick={() => onChange(withoutOther(value, code))}
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <select className="select-dropdown" aria-label={add} value="" onChange={(e) => { if (e.target.value) onChange(withOther(value, e.target.value)); }}>
+          {/* The closed list's own words, not a choice in the open one. */}
+          <option value="" className="history-file__placeholder" disabled hidden>{add}</option>
+          {choices(all.filter((o) => !value.languages.includes(o.value)))}
+        </select>
+      </div>
+      <label className="history-file__field">
+        <span>{t('history.file.translateInto', 'Translate into')}</span>
+        <select className="select-dropdown" value={value.translateTo} onChange={(e) => onChange({ ...value, translateTo: e.target.value })}>
+          {eachSide && <option value={EACH_SIDE}>{t('history.file.eachSide', 'Each side into the other’s language')}</option>}
+          {choices(all)}
+        </select>
+      </label>
+    </>
+  );
+};
+
 export interface ImportPanelProps {
   file: File;
   /** The user's language: preselected, and the notes' language. */
@@ -133,31 +237,30 @@ export interface ImportPanelProps {
 }
 
 export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onClose }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { store } = useHistoryPageContext();
   const texts = useFileTexts();
-  const { known, blocked } = useBlocked('import');
+  const checked = useBlocked('import');
   const panel = usePanel(onClose);
-  const [language, setLanguage] = useState(myLanguage);
-  const codes = useMemo(() => [...new Set([myLanguage, ...INTERFACE_LANGUAGES.map((l) => baseOf(l.value))])], [myLanguage]);
+  const { offered, unchecked } = useFileLanguages();
+  const { known } = checked;
+  const blocked = checked.blocked ?? (unchecked ? 'unchecked' : null);
+  const [chosen, setChosen] = useState(() => importOptions(myLanguage));
+  // As the service can take them: "automatic" or a language it does not have is never sent.
+  const options = fitOptions(chosen, offered, myLanguage, false);
   const title = t('history.file.importTitle', 'Import “{{name}}”', { name: file.name });
   const start = () => {
-    void store.getState().importFile(file, { language, myLanguage });
+    void store.getState().importFile(file, { options, myLanguage });
     onClose();
   };
   return (
     <div className="history-confirm history-file" role="dialog" aria-label={title} {...panel}>
       <p className="history-file__title">{title}</p>
-      <label className="history-file__field">
-        <span>{t('history.file.language', 'Language spoken in it')}</span>
-        <select className="select-dropdown" value={language} onChange={(e) => setLanguage(e.target.value)}>
-          {codes.map((c) => <option key={c} value={c}>{languageLabel(c, i18n.language)}</option>)}
-        </select>
-      </label>
+      <FileOptionsFields value={options} onChange={setChosen} offered={offered} />
       {serviceFine(known, blocked) && <p>{texts.service}</p>}
       {blocked && <Blocked text={texts.block(blocked)} fix={texts.fix(blocked)} onClose={onClose} />}
       <div className="history-confirm__actions">
-        <button type="button" className="history-button" disabled={!known || blocked !== null} onClick={start}>{t('history.file.start', 'Start')}</button>
+        <button type="button" className="history-button" disabled={!known || blocked !== null || offered.length === 0} onClick={start}>{t('history.file.start', 'Start')}</button>
         <button type="button" className="history-button history-button--quiet" onClick={onClose}>{t('history.cancel', 'Cancel')}</button>
       </div>
     </div>
@@ -165,28 +268,40 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ file, myLanguage, onCl
 };
 
 export const TranscribePanel: React.FC<{ onClose(): void }> = ({ onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { store } = useHistoryPageContext();
   const open = useStore(store, (s) => s.open);
   const texts = useFileTexts();
-  const { known, blocked } = useBlocked('transcribe');
+  const checked = useBlocked('transcribe');
   const panel = usePanel(onClose);
+  const { offered, unchecked } = useFileLanguages();
+  const { known } = checked;
+  const blocked = checked.blocked ?? (unchecked ? 'unchecked' : null);
+  // Chosen here for the record open, or else what the record was last transcribed with (or its languages).
+  const [chosen, setChosen] = useState<{ recordId: string; options: FileTranscriptionOptions } | null>(null);
   if (!open) return null;
-  const kept = open.record.tracks.filter((tr) => tr.goneAt === null);
-  const title = open.record.transcripts.length > 0 ? t('history.file.transcribeAgain', 'Transcribe again') : t('history.file.transcribe', 'Transcribe');
+  const record = open.record;
+  // Only when the service translates into both sides' languages: else a side would go untranslated.
+  const eachSide = eachSideOffered(record, offered);
+  const asked = chosen?.recordId === record.id ? chosen.options : optionsFor(record);
+  // As the service can take them: "automatic" or a language it does not have is never sent.
+  const options = fitOptions(asked, offered, myLanguageNow(i18n?.language ?? 'en'), eachSide);
+  const kept = record.tracks.filter((tr) => tr.goneAt === null);
+  const title = record.transcripts.length > 0 ? t('history.file.transcribeAgain', 'Transcribe again') : t('history.file.transcribe', 'Transcribe');
   const why = kept.length === 0 ? texts.block('no-recording') : blocked ? texts.block(blocked) : null;
   const start = () => {
-    void store.getState().transcribeOpen();
+    void store.getState().transcribeOpen(options);
     onClose();
   };
   return (
     <div className="history-confirm history-file record-page__confirm" role="dialog" aria-label={title} {...panel}>
       <p className="history-file__title">{title}</p>
       <p>{t('history.file.transcribeNote', 'The saved recording is transcribed again. A new version is made; the transcripts already here stay.')}</p>
+      <FileOptionsFields value={options} onChange={(o) => setChosen({ recordId: record.id, options: o })} offered={offered} eachSide={eachSide} />
       {serviceFine(known, blocked) && <p>{texts.service}</p>}
       {why && <Blocked text={why} fix={kept.length === 0 ? null : texts.fix(blocked)} onClose={onClose} />}
       <div className="history-confirm__actions">
-        <button type="button" className="history-button" disabled={!known || why !== null} onClick={start}>{t('history.file.start', 'Start')}</button>
+        <button type="button" className="history-button" disabled={!known || why !== null || offered.length === 0} onClick={start}>{t('history.file.start', 'Start')}</button>
         <button type="button" className="history-button history-button--quiet" onClick={onClose}>{t('history.cancel', 'Cancel')}</button>
       </div>
     </div>
@@ -222,6 +337,28 @@ export const FileJobLine: React.FC = () => {
       {kept && <p>{t('history.file.kept', 'The recording was kept. Open the record to transcribe it.')}</p>}
       <button type="button" className="history-button" onClick={() => store.getState().clearJobFailure()}>{t('history.gotIt', 'Got it')}</button>
     </div>
+  );
+};
+
+/**
+ * What the transcript shown was asked for, when it is a file transcript that kept its options: the main language and
+ * the translation, each version its own (the other languages are in the "transcribe again" panel).
+ */
+export const TranscriptAsked: React.FC = () => {
+  const { t } = useTranslation();
+  const labelOf = useLanguageLabel();
+  const { store } = useHistoryPageContext();
+  const open = useStore(store, (s) => s.open);
+  const shown = open?.record.transcripts.find((tr) => tr.id === open.transcriptId);
+  const asked = shown?.origin.kind === 'file' ? shown.origin.options : undefined;
+  if (!asked || !Array.isArray(asked.languages) || !asked.languages[0] || !asked.translateTo) return null;
+  const main = labelOf(asked.languages[0]);
+  return (
+    <p className="record-page__asked">
+      {asked.translateTo === EACH_SIDE
+        ? t('history.file.askedEachSide', 'Main language: {{main}} · Each side translated into the other’s language', { main })
+        : t('history.file.asked', 'Main language: {{main}} · Translated into: {{target}}', { main, target: labelOf(asked.translateTo) })}
+    </p>
   );
 };
 

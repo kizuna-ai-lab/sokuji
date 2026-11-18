@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Nhập tệp",
       "importTitle": "Nhập “{{name}}”",
-      "language": "Ngôn ngữ được nói",
       "service": "Do Soniox chép lời, bằng khóa của riêng bạn.",
       "start": "Bắt đầu",
       "transcribe": "Chép lời",
@@ -2146,7 +2145,15 @@
       "versionFile": "Tệp Soniox · {{time}}",
       "blockedUnchecked": "Không kiểm tra được dịch vụ chép lời. Hãy đóng mục này và thử lại.",
       "blockedHostedSoniox": "Tệp chỉ được chép lời bằng khóa Soniox của riêng bạn: Soniox của Kizuna AI hiện chỉ dùng cho phiên trực tiếp.",
-      "openSettings": "Mở {{place}}"
+      "openSettings": "Mở {{place}}",
+      "mainLanguage": "Ngôn ngữ chính",
+      "otherLanguages": "Ngôn ngữ khác có thể xuất hiện",
+      "addLanguage": "Thêm ngôn ngữ khác",
+      "removeLanguage": "Bỏ {{language}}",
+      "translateInto": "Dịch sang",
+      "eachSide": "Mỗi bên sang ngôn ngữ của bên kia",
+      "asked": "Ngôn ngữ chính: {{main}} · Dịch sang: {{target}}",
+      "askedEachSide": "Ngôn ngữ chính: {{main}} · Mỗi bên được dịch sang ngôn ngữ của bên kia"
     },
     "transcriptStopped": "Không lưu được một phần bản ghi lời của phiên này: không ghi được vào ổ đĩa.",
     "notesAddToWords": "Thêm vào danh sách từ",

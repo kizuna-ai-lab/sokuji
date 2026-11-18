@@ -11,7 +11,7 @@ const JA = { code: 'ja', name: 'Japanese' };
 
 const sentence = (n: number, o: Partial<HistorySentence> = {}): HistorySentence => ({
   n, segmentId: null, side: 'other', sideCertain: true, track: 'other', speaker: '1.1', speakerByUser: null, speakerName: null,
-  startMs: (n - 1) * 30_000, endMs: (n - 1) * 30_000 + 10_000, text: `sentence ${n}`, language: 'ja', timeKind: 'given', ...o,
+  startMs: (n - 1) * 30_000, endMs: (n - 1) * 30_000 + 10_000, text: `sentence ${n}`, language: 'ja', timeKind: 'given', translation: null, ...o,
 });
 const SENTENCES = [1, 2, 3, 4, 5].map((n) => sentence(n));
 

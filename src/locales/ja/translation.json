@@ -2101,7 +2101,6 @@
     "file": {
       "import": "ファイルを取り込む",
       "importTitle": "「{{name}}」を取り込む",
-      "language": "話されている言語",
       "service": "ご自身のキーで Soniox が文字起こしします。",
       "start": "開始",
       "transcribe": "文字起こし",
@@ -2146,7 +2145,15 @@
       "versionFile": "Soniox ファイル · {{time}}",
       "blockedUnchecked": "文字起こしサービスを確認できませんでした。閉じてからもう一度お試しください。",
       "blockedHostedSoniox": "ファイルはご自身の Soniox キーでのみ文字起こしできます。Kizuna AI の Soniox は今のところライブセッション専用です。",
-      "openSettings": "{{place}}を開く"
+      "openSettings": "{{place}}を開く",
+      "mainLanguage": "主な言語",
+      "otherLanguages": "ほかに含まれていそうな言語",
+      "addLanguage": "言語を追加",
+      "removeLanguage": "{{language}}を外す",
+      "translateInto": "翻訳先の言語",
+      "eachSide": "それぞれ相手の言語へ",
+      "asked": "主な言語：{{main}} · 翻訳先：{{target}}",
+      "askedEachSide": "主な言語：{{main}} · それぞれ相手の言語へ翻訳"
     },
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "notesAddToWords": "単語リストに追加",

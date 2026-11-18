@@ -128,6 +128,8 @@ function setupHistoryHandlers({
     apiKey: payload.apiKey,
     region: payload.region,
     languageHints: payload.languageHints,
+    translateTo: payload.translateTo,
+    context: payload.context,
     jobId: payload.jobId,
   })));
   ipcMain.handle('history:recognize-cancel', answer((_store, payload) => recognizer.cancel(payload.jobId)));

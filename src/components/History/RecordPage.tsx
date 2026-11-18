@@ -20,7 +20,7 @@ import { formatBytes, formatDateTime, formatLength, isComposing } from './format
 import RecordExportMenu from './RecordExportMenu';
 import RecordPlayer, { type SeekFn } from './RecordPlayer';
 import RecordNotes from './RecordNotes';
-import { TranscribePanel, TranscriptChooser } from './FileJobs';
+import { TranscribePanel, TranscriptAsked, TranscriptChooser } from './FileJobs';
 import { notesLanguagesOf } from './notesLanguages';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsStore';
@@ -522,7 +522,8 @@ export const RecordPage: React.FC = () => {
             {live || record.endedAt === null
               ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
               : <span>{t('history.length', 'Length {{length}}', { length: formatLength(record.endedAt - record.startedAt) })}</span>}
-            <span>{`${languageLabel(record.myLanguage, language)} → ${languageLabel(record.targetLanguage, language)}`}</span>
+            {/* A session's languages; an imported file's are what each transcript was asked for, said above its transcript. */}
+            {record.mode !== 'import' && <span>{`${languageLabel(record.myLanguage, language)} → ${languageLabel(record.targetLanguage, language)}`}</span>}
             <span>{formatBytes(record.audioBytes + record.textBytes)}</span>
           </span>
         </div>
@@ -640,6 +641,7 @@ export const RecordPage: React.FC = () => {
           />
         )}
         <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && pane !== 'transcript'}>
+          <TranscriptAsked />
           {transcript}
         </div>
       </div>

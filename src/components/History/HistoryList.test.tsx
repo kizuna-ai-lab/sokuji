@@ -360,7 +360,7 @@ describe('the History list', () => {
 
 describe('importing from the list', () => {
   const jobs = () => ({
-    service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const }),
+    service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const, languages: ['en', 'zh'] }),
     sessionRunning: () => false,
     importFile: vi.fn(() => new Promise<never>(() => {})),
     transcribe: vi.fn(() => new Promise<never>(() => {})),

@@ -39,8 +39,8 @@ beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'sokuji-import-store-')); st
 afterEach(() => { store.close(); rmSync(dir, { recursive: true, force: true }); });
 
 const run = (port: HistoryPort, silent: boolean) => importFile({
-  port, file: { name: 'Talk.m4a', size: 10, lastModified: 1_800_000_000_000 } as unknown as File, myLanguage: 'en', language: 'en',
-  service: { service: 'soniox', apiKey: 'k', region: 'us' }, appVersion: '1', readDuration: async () => 2000, decode: async () => decoded(silent),
+  port, file: { name: 'Talk.m4a', size: 10, lastModified: 1_800_000_000_000 } as unknown as File, myLanguage: 'en', options: { languages: ['en'], translateTo: 'en' },
+  service: { service: 'soniox', apiKey: 'k', region: 'us', languages: ['en'] }, appVersion: '1', readDuration: async () => 2000, decode: async () => decoded(silent),
   encoder, clock: createVirtualClock(0), newId: () => 'imp-0001-aaaa', newJobId: () => 'job', pause: async () => {},
 });
 

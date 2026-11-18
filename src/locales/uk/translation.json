@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Імпортувати файл",
       "importTitle": "Імпортувати «{{name}}»",
-      "language": "Мова запису",
       "service": "Розшифрує Soniox — з вашим власним ключем.",
       "start": "Почати",
       "transcribe": "Розшифрувати",
@@ -2146,7 +2145,15 @@
       "versionFile": "Файл Soniox · {{time}}",
       "blockedUnchecked": "Не вдалося перевірити сервіс транскрипції. Закрийте це вікно й спробуйте ще раз.",
       "blockedHostedSoniox": "Файли розшифровуються лише з вашим власним ключем Soniox: Soniox від Kizuna AI поки що працює лише в сеансах у реальному часі.",
-      "openSettings": "Відкрити {{place}}"
+      "openSettings": "Відкрити {{place}}",
+      "mainLanguage": "Основна мова",
+      "otherLanguages": "Інші мови, які можуть траплятися",
+      "addLanguage": "Додати ще мову",
+      "removeLanguage": "Прибрати: {{language}}",
+      "translateInto": "Перекладати на",
+      "eachSide": "Кожна сторона мовою іншої",
+      "asked": "Основна мова: {{main}} · Переклад на: {{target}}",
+      "askedEachSide": "Основна мова: {{main}} · Кожну сторону перекладено мовою іншої"
     },
     "transcriptStopped": "Частину розшифровки цього сеансу не вдалося зберегти: не вдалося записати її на диск.",
     "notesAddToWords": "Додати до списку слів",

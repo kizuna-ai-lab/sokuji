@@ -8,6 +8,18 @@ export interface TranscribedSentence {
   startMs: number;
   endMs: number;
   speaker?: string;
+  /** Its translation, returned when one is asked for; none: it is taken as already in that language. */
+  translation?: string;
+}
+
+/** What a transcription was asked for, in no particular service's words. */
+export interface AskedOptions {
+  /** The languages hinted, in the service's codes, the main one first. */
+  languages: string[];
+  /** The language translated into, in the service's code; null when none was asked for. */
+  translateTo: string | null;
+  /** The word list sent with it; null when none was. */
+  words: { terms: string[]; translations: Array<[string, string]>; background: string | null } | null;
 }
 
 /**
@@ -36,6 +48,8 @@ export interface FakeTranscription {
   kept(): Promise<number>;
   /** Requests from the main process that no fake answered (they were refused, not sent). */
   refused(): Promise<string[]>;
+  /** What the last transcription was asked for; null before any. */
+  options(): Promise<AskedOptions | null>;
 }
 
 type Control = {
@@ -43,6 +57,7 @@ type Control = {
   release(): void;
   asked(): string[];
   kept(): number;
+  options(): AskedOptions | null;
 };
 /** The fakes the main process was given at launch (e2e/support/main/fake-services.cjs), by service id. */
 type Fakes = { refused: string[]; services: Record<string, Control> };
@@ -71,6 +86,7 @@ export async function fakeTranscription(sokuji: Sokuji): Promise<FakeTranscripti
     asked: () => app.evaluate((_e, id) => (globalThis as Main).e2eFakes.services[id].asked(), service),
     kept: () => app.evaluate((_e, id) => (globalThis as Main).e2eFakes.services[id].kept(), service),
     refused: () => app.evaluate(() => [...(globalThis as Main).e2eFakes.refused]),
+    options: () => app.evaluate((_e, id) => (globalThis as Main).e2eFakes.services[id].options(), service),
   };
 }
 

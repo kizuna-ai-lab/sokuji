@@ -12,6 +12,7 @@ import type { FileRecognitionMissing, FileRecognitionService } from './file/serv
 import type { TranscribePhase } from './file/transcribe';
 import type { HistoryPort } from './port';
 import type {
+  FileTranscriptionOptions,
   HistoryNotes, HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
 } from './types';
 
@@ -69,11 +70,11 @@ export interface FileJobs {
   /** A session is running: importing waits (decoding is heavy). */
   sessionRunning(): boolean;
   importFile(o: {
-    file: File; language: string; myLanguage: string; service: FileRecognitionService;
+    file: File; options: FileTranscriptionOptions; myLanguage: string; service: FileRecognitionService;
     onProgress(p: { phase: ImportPhase }): void; signal: AbortSignal;
   }): Promise<ImportResult>;
   transcribe(o: {
-    recordId: string; service: FileRecognitionService; onProgress(p: { phase: TranscribePhase }): void; signal: AbortSignal;
+    recordId: string; options: FileTranscriptionOptions; service: FileRecognitionService; onProgress(p: { phase: TranscribePhase }): void; signal: AbortSignal;
   }): Promise<{ transcriptId: number; sentences: number }>;
   /** An imported record is transcribed: its notes, as after a session. */
   notesAfterImport(recordId: string): void;
@@ -146,10 +147,12 @@ export interface HistoryPageActions {
   showTranscript(id: number): Promise<void>;
   /** Why an import or a transcription cannot start now, or null. */
   fileJobBlocked(kind: 'import' | 'transcribe'): Promise<FileJobBlock | null>;
-  /** Imports a file as a new record: one job at a time. */
-  importFile(file: File, o: { language: string; myLanguage: string }): Promise<void>;
-  /** Transcribes the open record (again): a new transcript, shown once made. */
-  transcribeOpen(): Promise<void>;
+  /** The languages a file can be transcribed in and translated into: the file service's; none without one; null when the service could not be asked. */
+  fileLanguages(): Promise<readonly string[] | null>;
+  /** Imports a file as a new record, transcribed as `options` say: one job at a time. */
+  importFile(file: File, o: { options: FileTranscriptionOptions; myLanguage: string }): Promise<void>;
+  /** Transcribes the open record (again) as `options` say: a new transcript, shown once made. */
+  transcribeOpen(options: FileTranscriptionOptions): Promise<void>;
   cancelJob(): void;
   /** The failure line goes. */
   clearJobFailure(): void;
@@ -516,6 +519,16 @@ export function createHistoryPageStore(
         return null;
       },
 
+      async fileLanguages() {
+        if (!files) return [];
+        try {
+          const service = await files.service();
+          return 'missing' in service ? [] : service.languages ?? [];
+        } catch {
+          return null;
+        }
+      },
+
       async importFile(file, o) {
         // The job is taken before anything is awaited: a second start finds it.
         if (!files || jobs.getState().job) return;
@@ -525,7 +538,7 @@ export function createHistoryPageStore(
           const service = await files.service();
           if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
           const result = await files.importFile({
-            file, language: o.language, myLanguage: o.myLanguage, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
+            file, options: o.options, myLanguage: o.myLanguage, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           });
           if (result.transcribed) files.notesAfterImport(result.recordId);
           else jobs.setState({ jobFailure: result.failure, jobKept: true });
@@ -537,7 +550,7 @@ export function createHistoryPageStore(
         await act(reload);
       },
 
-      async transcribeOpen() {
+      async transcribeOpen(options) {
         const open = get().open;
         if (!files || jobs.getState().job || !open) return;
         const recordId = open.record.id;
@@ -548,7 +561,7 @@ export function createHistoryPageStore(
           const service = await files.service();
           if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
           ({ transcriptId: made } = await files.transcribe({
-            recordId, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
+            recordId, options, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           }));
         } catch (error) {
           // Too long for the service: the record's recording, not a file, is what is too long.

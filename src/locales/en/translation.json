@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Import a file",
       "importTitle": "Import “{{name}}”",
-      "language": "Language spoken in it",
       "service": "Transcribed by Soniox, with your own key.",
       "start": "Start",
       "transcribe": "Transcribe",
@@ -2146,7 +2145,15 @@
       "versionFile": "Soniox file · {{time}}",
       "blockedUnchecked": "The transcription service could not be checked. Close this and try again.",
       "blockedHostedSoniox": "Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.",
-      "openSettings": "Open {{place}}"
+      "openSettings": "Open {{place}}",
+      "mainLanguage": "Main language",
+      "otherLanguages": "Other languages it may contain",
+      "addLanguage": "Add another language",
+      "removeLanguage": "Remove {{language}}",
+      "translateInto": "Translate into",
+      "eachSide": "Each side into the other’s language",
+      "asked": "Main language: {{main}} · Translated into: {{target}}",
+      "askedEachSide": "Main language: {{main}} · Each side translated into the other’s language"
     },
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "notesAddToWords": "Add to word list",

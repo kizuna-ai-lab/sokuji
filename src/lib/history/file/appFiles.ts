@@ -28,11 +28,13 @@ export function appFileJobs(): FileJobs {
     service: fileRecognitionFromStores,
     sessionRunning: () => currentRunPhase() !== 'idle',
     importFile: (o) => importFile({
-      port, file: o.file, myLanguage: o.myLanguage, language: o.language, service: o.service, appVersion: getAppVersion() ?? '',
+      port, file: o.file, myLanguage: o.myLanguage, options: o.options, service: o.service, appVersion: getAppVersion() ?? '',
       readDuration, decode: decodeFile, encoder: webCodecsOpusEncoder, clock: realClock,
       newId: () => crypto.randomUUID(), newJobId, onProgress: o.onProgress, signal: o.signal,
     }),
-    transcribe: (o) => transcribeRecord({ port, recordId: o.recordId, service: o.service, clock: realClock, newJobId, onProgress: o.onProgress, signal: o.signal }),
+    transcribe: (o) => transcribeRecord({
+      port, recordId: o.recordId, service: o.service, options: o.options, clock: realClock, newJobId, onProgress: o.onProgress, signal: o.signal,
+    }),
     notesAfterImport(recordId) {
       if (useSettingsStore.getState().notesAfterSession) appNotesRunner().start(recordId);
     },

@@ -1,13 +1,15 @@
 // src/lib/history/file/transcribe.ts
 //
 // A record transcribed (again) from its kept recording: each kept track goes through the file recognition in turn,
-// its words become sentences on the track's side, the tracks' sentences are merged by time, and one new transcript
-// holds them. The transcript is made only once every track has its words, so a failure or a cancel leaves the record
+// asked for what the user chose (the languages spoken, the language to translate into) with the app's word list; its
+// words become sentences on the track's side, each with the translation that began in it (sentences.ts), the tracks'
+// sentences are merged by time, and one new transcript holds them. The transcript is made only once every track has its words, so a failure or a cancel leaves the record
 // as it was. A new transcript never replaces another (spec: several transcripts per record).
 import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
-import type { HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource } from '../types';
+import type { FileTranscriptionOptions, HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource } from '../types';
 import type { FileRecognitionService } from './service';
+import { EACH_SIDE } from './options';
 import { fileSentences, numberSentences, type FileSentence } from './sentences';
 
 /** How often the page asks main for a running recognition's phase. */
@@ -31,6 +33,7 @@ export interface TranscribeOptions {
   port: HistoryPort;
   recordId: string;
   service: FileRecognitionService;
+  options: FileTranscriptionOptions;
   clock: Clock;
   newJobId: () => string;
   onProgress?(p: { phase: TranscribePhase; track?: HistoryTrackSource }): void;
@@ -38,19 +41,6 @@ export interface TranscribeOptions {
 }
 
 const SIDE_OF: Record<HistoryTrackSource, HistorySentenceSide> = { speaker: 'mine', participant: 'other' };
-
-/** The languages to expect: every language the record's legs named, in order, without automatic or mixed values. */
-function hintsOf(languages: ReadonlyArray<{ source: string; target: string }>): string[] {
-  const out: string[] = [];
-  for (const l of languages) {
-    for (const code of [l.source, l.target]) {
-      for (const one of String(code ?? '').split('+')) {
-        if (one && one !== 'auto' && !out.includes(one)) out.push(one);
-      }
-    }
-  }
-  return out;
-}
 
 export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcriptId: number; sentences: number }> {
   const cancelled = () => new TranscribeError('CANCELLED', 'The transcription was cancelled');
@@ -66,10 +56,24 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   // everyone on one track, so who is on which side is not known.
   const sideCertain = record.mode !== 'import'
     && !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
-  // In the service's own codes; one it does not know is not sent.
-  const hint = o.service.languageHint;
-  const languageHints = hintsOf(record.legs.map((l) => l.languages))
-    .map((code) => (hint ? hint(code) : code)).filter((code): code is string => !!code);
+  // In the service's own codes, a regional code as its language when only that is known; a language it does not know
+  // at all is not sent, nor a translation into one.
+  const exact = (code: string) => (o.service.languageHint ? o.service.languageHint(code) : code);
+  const wire = (code: string) => exact(code) ?? exact(code.split(/[-_]/)[0].toLowerCase());
+  const languageHints = [...new Set(o.options.languages.map(wire).filter((code): code is string => !!code))];
+  // Each side into the other's language: every track into what its own side was translated into in the session.
+  const translateToFor = (source: HistoryTrackSource) => {
+    const into = o.options.translateTo === EACH_SIDE ? legOf(source)?.languages.target : o.options.translateTo;
+    return into ? wire(into) : null;
+  };
+  const askedFor = (source: HistoryTrackSource) => {
+    const translateTo = translateToFor(source);
+    return {
+      languageHints,
+      ...(translateTo ? { translateTo } : {}),
+      ...(o.service.context ? { context: o.service.context } : {}),
+    };
+  };
 
   const lists: FileSentence[][] = [];
   for (const track of tracks) {
@@ -93,7 +97,7 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     try {
       ({ tokens } = await o.port.recognize({
         recordId: o.recordId, service: o.service.service, source: track.source, apiKey: o.service.apiKey,
-        ...(o.service.region ? { region: o.service.region } : {}), languageHints, jobId,
+        ...(o.service.region ? { region: o.service.region } : {}), ...askedFor(track.source), jobId,
       }));
     } catch (error) {
       if (o.signal?.aborted) {
@@ -118,7 +122,9 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   if (sentences.length === 0) throw new TranscribeError('NO_SPEECH', 'No speech was recognized in the recording');
   if (o.signal?.aborted) throw cancelled();
   o.onProgress?.({ phase: 'writing' });
-  const transcriptId = await o.port.createTranscript({ recordId: o.recordId, origin: { service: o.service.service, kind: 'file' }, textKind: 'original' });
+  const transcriptId = await o.port.createTranscript({
+    recordId: o.recordId, origin: { service: o.service.service, kind: 'file', options: o.options }, textKind: 'original',
+  });
   try {
     for (let i = 0; i < sentences.length; i += WRITE_BATCH) {
       await o.port.appendSentences({ transcriptId, sentences: sentences.slice(i, i + WRITE_BATCH) });

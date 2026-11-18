@@ -2,13 +2,14 @@ import { SonioxIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createSonioxAdapter } from './adapter';
 import { checkSoniox } from './check';
-import { buildSoniox, describeSoniox, type SonioxConfig } from './config';
+import { buildSoniox, describeSoniox, sonioxContext, type SonioxConfig } from './config';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxVoiceSummary } from './SonioxVoiceSummary';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
 import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxKeyField, sonioxLanguages, type SonioxCredentials, type SonioxSettings } from './settings';
 import { asSonioxRegion } from '../../lib/soniox/regions';
-import { sonioxWire } from './languages';
+import { SONIOX_LANGUAGES, sonioxWire } from './languages';
+import { AUTO } from '../../lib/provider/languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 
 const adapter = createSonioxAdapter();
@@ -25,18 +26,21 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   id: 'soniox',
   kind: 'own-key',
   // A saved recording through Soniox's file recognition, in the project of the region the settings name.
-  fileRecognition(settings, credentials) {
+  fileRecognition(settings, credentials, words) {
     const region = asSonioxRegion(settings.region);
     const apiKey = String((credentials as unknown as Record<string, unknown>)[sonioxKeyField(region)] ?? '').trim();
     if (!apiKey) return { missing: 'no-key' };
     const languageHint = (code: string): string | null => {
+      // "Automatic" is no language to hint or translate into.
+      if (code === AUTO) return null;
       try {
         return sonioxWire.toWire(code);
       } catch {
         return null;
       }
     };
-    return { service: 'soniox', apiKey, region, languageHint };
+    const context = sonioxContext(words);
+    return { service: 'soniox', apiKey, region, languageHint, languages: SONIOX_LANGUAGES.map((l) => l.value), ...(context ? { context } : {}) };
   },
   platforms: ['electron', 'extension', 'web'],
   icon: SonioxIcon,

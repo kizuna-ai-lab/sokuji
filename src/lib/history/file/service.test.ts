@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useProviderStore } from '../../../stores/providerStore';
+import { useWordList } from '../../words/list';
 import { fileRecognitionFromStores } from './service';
 
 const lineUp = (transcription: string) => ({ transcription, translation: transcription, speech: transcription, summarisation: null });
@@ -11,13 +12,20 @@ const soniox = (settings: Record<string, unknown>, credentials: Record<string, s
 beforeEach(() => {
   useLineUpStore.setState({ lineUp: lineUp('soniox'), stored: true } as never);
   soniox({ region: 'us' }, { apiKey: ' sk-us ' });
+  useWordList.setState({ entries: [], background: '', loaded: true });
 });
 
 describe('the file recognition service', () => {
   it('is Soniox with the key of the selected region', async () => {
-    expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-us', region: 'us', languageHint: expect.any(Function) });
+    const named = { service: 'soniox', languageHint: expect.any(Function), languages: expect.any(Array) };
+    expect(await fileRecognitionFromStores()).toEqual({ ...named, apiKey: 'sk-us', region: 'us' });
     soniox({ region: 'eu' }, { apiKey: 'sk-us', apiKeyEu: 'sk-eu' });
-    expect(await fileRecognitionFromStores()).toEqual({ service: 'soniox', apiKey: 'sk-eu', region: 'eu', languageHint: expect.any(Function) });
+    expect(await fileRecognitionFromStores()).toEqual({ ...named, apiKey: 'sk-eu', region: 'eu' });
+  });
+
+  it('carries the app\u2019s word list, as the service sends it', async () => {
+    useWordList.setState({ entries: [{ written: 'Sokuji' }], background: 'A weekly meeting.', loaded: true });
+    expect(await fileRecognitionFromStores()).toMatchObject({ context: { terms: ['Sokuji'], text: 'A weekly meeting.' } });
   });
 
   it('is missing when the recognition service cannot transcribe files, or the region has no key', async () => {

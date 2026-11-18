@@ -212,6 +212,14 @@ describe('transcripts and sentences', () => {
     expect(() => s.reviseSentences({ transcriptId: t, revisions: [{ n: 1, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
   });
 
+  it('a sentence keeps the translation that began in it; one where none began, and a session\u2019s, have none', () => {
+    s.appendSentences({ transcriptId: t, sentences: [
+      sent(1, { segmentId: 'f-1', translation: '你好。你好吗？' }), sent(2, { segmentId: 'f-1' }), sent(3, { segmentId: 'f-2', translation: '再见。' }),
+    ] });
+    expect(s.getSentences({ transcriptId: t }).map((x) => [x.n, x.translation])).toEqual([[1, '你好。你好吗？'], [2, null], [3, '再见。']]);
+    expect(() => s.appendSentences({ transcriptId: t, sentences: [sent(4, { translation: 5 })] })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+  });
+
   it('a record with a sentence is kept when closed', () => {
     s.appendSentences({ transcriptId: t, sentences: [sent(1)] });
     expect(s.closeRecord({ id: ID, endedAt: 99 })).toEqual({ kept: true });
@@ -430,6 +438,20 @@ describe('search', () => {
     expect(s.search({ query: 'plan' }).map((r) => r.recordId)).toEqual([B]);
   });
 
+  it('finds a file transcript\u2019s translation, at the sentence that carries it', () => {
+    s.openRecord(rec({ id: A, startedAt: 1000 }));
+    const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'file' } });
+    s.appendSentences({ transcriptId: t, sentences: [
+      sent(1, 'Hello.', { segmentId: 'file-participant-1', side: 'other', track: 'other', translation: '你好。' }),
+      sent(2, 'The budget is tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other', translation: '预算很紧，非常紧。' }),
+      sent(3, 'Very tight.', { segmentId: 'file-participant-2', side: 'other', track: 'other' }),
+    ] });
+    expect(s.search({ query: '预算' })).toEqual([expect.objectContaining({ recordId: A, hits: 1, first: { kind: 'sentence', transcriptId: t, n: 2, text: '预算很紧，非常紧。' } })]);
+    // A sentence found by its text and by its translation counts once; the text is what is shown.
+    s.appendSentences({ transcriptId: t, sentences: [sent(4, 'Budget again.', { segmentId: 'file-participant-3', side: 'other', track: 'other', translation: 'Budget 再说一次。' })] });
+    expect(s.search({ query: 'budget' })).toEqual([expect.objectContaining({ recordId: A, hits: 2, first: { kind: 'sentence', transcriptId: t, n: 2, text: 'The budget is tight.' } })]);
+  });
+
   it('counts a sentence cut from the translation once, not again as its translation segment', () => {
     s.openRecord(rec({ id: A, startedAt: 1000 }));
     s.putLeg({ recordId: A, leg: 'participant', languages: { source: 'ja', target: 'zh' } });
@@ -541,6 +563,10 @@ describe('bin, purge and space', () => {
     const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'live' } });
     s.appendSentences({ transcriptId: t, sentences: [sent(1, 'Hello.')] });
     expect(s.getRecord(A).textBytes).toBe(12);
+    // A file transcript's translations count too.
+    const file = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'file' } });
+    s.appendSentences({ transcriptId: file, sentences: [{ ...sent(1, 'Hi.'), translation: '嗨。' }] });
+    expect(s.getRecord(A).textBytes).toBe(12 + 3 + 6);
   });
 
   it('at launch an empty folder without a record is removed and one with files is only named', () => {

@@ -1,23 +1,27 @@
 // A file transcription service in Soniox's shape (its async API: files, transcriptions, the transcript), answering
 // what the test asked for in the service-neutral words of e2e/support/transcription.ts:
-//   { sentences: [{ text, startMs, endMs, speaker? }] }  the transcription returns these sentences
+//   { sentences: [{ text, startMs, endMs, speaker?, translation? }] }  the transcription returns these sentences
 //   { hold: true }                                         it stays at "transcribing" until `release()`
 //   { fail: 'no-credit' | 'bad-key' | 'unreadable' | 'service', message? }  it fails, for that reason
 // An answer is for the transcriptions started after it: each keeps the one it started with, whatever is answered later.
+// A transcription asked for a translation returns each sentence's translation after it, as Soniox does: translated
+// words with times of 0; a sentence with none is taken as already in that language (Soniox's "none").
 // Each upload and transcription is kept until the app deletes it, as Soniox keeps them: `kept()` is what is left.
 // Every app launch is a new main process, so nothing carries over from one test to the next.
 'use strict';
 
 const DEFAULT = {
   sentences: [
-    { text: 'This is the first sentence of the imported file.', startMs: 200, endMs: 1300 },
-    { text: 'And this is the second one.', startMs: 1500, endMs: 2600 },
+    { text: 'This is the first sentence of the imported file.', startMs: 200, endMs: 1300, translation: '这是导入文件的第一句。' },
+    { text: 'And this is the second one.', startMs: 1500, endMs: 2600, translation: '这是第二句。' },
   ],
 };
 
 const files = new Map();
 const jobs = new Map();
 const asked = [];
+/** The last transcription asked for, as sent. */
+let lastRequest = null;
 let next = DEFAULT;
 let ids = 0;
 
@@ -27,6 +31,20 @@ const control = {
   release() { for (const job of jobs.values()) job.released = true; },
   asked: () => [...asked],
   kept: () => files.size + jobs.size,
+  /** What the last transcription was asked for, in no particular service's words; null before any. */
+  options() {
+    if (!lastRequest) return null;
+    const c = lastRequest.context;
+    return {
+      languages: lastRequest.language_hints ?? [],
+      translateTo: lastRequest.translation?.target_language ?? null,
+      words: c ? {
+        terms: c.terms ?? [],
+        translations: (c.translation_terms ?? []).map((t) => [t.source, t.target]),
+        background: c.text ?? null,
+      } : null,
+    };
+  },
 };
 
 const json = (status, body) => new Response(body === undefined ? null : JSON.stringify(body), {
@@ -34,19 +52,31 @@ const json = (status, body) => new Response(body === undefined ? null : JSON.str
 });
 const refuse = (status, errorType, message) => json(status, { error_type: errorType, message });
 
-/** The words of the sentences, one token each, spread over each sentence's time. */
-function tokens(sentences) {
+/**
+ * The words of the sentences, one token each, spread over each sentence's time; with a translation asked for, each
+ * sentence's translation after its words.
+ */
+function tokens(sentences, translateTo) {
   const out = [];
+  let spoken = 0;
+  let translated = 0;
   for (const s of sentences) {
     const words = s.text.split(' ');
     const step = (s.endMs - s.startMs) / words.length;
+    const status = translateTo ? (s.translation ? 'original' : 'none') : undefined;
     words.forEach((word, i) => {
       out.push({
         // A space before every word but the transcript's first, as the service writes them.
-        text: out.length === 0 ? word : ` ${word}`, start_ms: Math.round(s.startMs + i * step), end_ms: Math.round(s.startMs + (i + 1) * step),
-        speaker: s.speaker ?? '1', language: 'en', confidence: 0.99,
+        text: spoken++ === 0 ? word : ` ${word}`, start_ms: Math.round(s.startMs + i * step), end_ms: Math.round(s.startMs + (i + 1) * step),
+        speaker: s.speaker ?? '1', language: 'en', confidence: 0.99, ...(status ? { translation_status: status } : {}),
       });
     });
+    if (translateTo && s.translation) {
+      out.push({
+        text: translated++ === 0 ? s.translation : ` ${s.translation}`, start_ms: 0, end_ms: 0, speaker: s.speaker ?? '1',
+        language: translateTo, confidence: 0.99, translation_status: 'translation',
+      });
+    }
   }
   return out;
 }
@@ -72,22 +102,23 @@ async function answer(request, url) {
     if (next.fail === 'bad-key') return badKey();
     if (next.fail === 'no-credit') return refuse(402, 'insufficient_balance', next.message ?? 'Your account has no credit left.');
     const body = await request.json();
+    lastRequest = body;
     const id = `transcription-${++ids}`;
-    jobs.set(id, { fileId: body.file_id, answer: next, released: false });
+    jobs.set(id, { fileId: body.file_id, answer: next, released: false, translateTo: body.translation?.target_language });
     return json(201, { id, status: 'queued' });
   }
   const job = path.match(/^\/v1\/transcriptions\/([^/]+)(\/transcript)?$/);
   if (job && method === 'GET') {
     const found = jobs.get(job[1]);
     if (!found) return refuse(404, 'not_found', 'No such transcription.');
-    const { answer: given, released } = found;
+    const { answer: given, released, translateTo } = found;
     // A held transcription, released, returns the default sentences.
     const sentences = given.sentences ?? DEFAULT.sentences;
     const status = given.fail === 'service' ? 'error' : given.hold && !released ? 'processing' : 'completed';
     // The transcript only once the transcription is complete, as the service answers.
     if (job[2]) {
       return status === 'completed'
-        ? json(200, { id: job[1], text: '', tokens: tokens(sentences) })
+        ? json(200, { id: job[1], text: '', tokens: tokens(sentences, translateTo) })
         : refuse(409, 'invalid_state', `The transcription is ${status}, not completed.`);
     }
     if (status === 'error') return json(200, { id: job[1], status, error_type: 'internal_error', error_message: given.message ?? 'Transcription failed.' });

@@ -2101,7 +2101,6 @@
     "file": {
       "import": "استيراد ملف",
       "importTitle": "استيراد «{{name}}»",
-      "language": "اللغة المنطوقة فيه",
       "service": "يحوّله Soniox إلى نص، بمفتاحك الخاص.",
       "start": "ابدأ",
       "transcribe": "تحويل إلى نص",
@@ -2146,7 +2145,15 @@
       "versionFile": "ملف Soniox · {{time}}",
       "blockedUnchecked": "تعذّر التحقق من خدمة النسخ. أغلق هذه النافذة وحاول مرة أخرى.",
       "blockedHostedSoniox": "تُحوَّل الملفات إلى نص بمفتاح Soniox الخاص بك فقط: Soniox من Kizuna AI مخصّص للجلسات المباشرة فقط حاليًا.",
-      "openSettings": "فتح {{place}}"
+      "openSettings": "فتح {{place}}",
+      "mainLanguage": "اللغة الرئيسية",
+      "otherLanguages": "لغات أخرى قد يتضمنها",
+      "addLanguage": "إضافة لغة أخرى",
+      "removeLanguage": "إزالة {{language}}",
+      "translateInto": "الترجمة إلى",
+      "eachSide": "كل طرف إلى لغة الطرف الآخر",
+      "asked": "اللغة الرئيسية: {{main}} · مترجم إلى: {{target}}",
+      "askedEachSide": "اللغة الرئيسية: {{main}} · كل طرف مترجم إلى لغة الطرف الآخر"
     },
     "transcriptStopped": "تعذّر حفظ جزء من النص المفرغ لهذه الجلسة: تعذّرت كتابته على القرص.",
     "notesAddToWords": "إضافة إلى قائمة الكلمات",

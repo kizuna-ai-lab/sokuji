@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -8,11 +8,16 @@ import { expect, test } from '../support/test';
 import { addTranscriptionKey, fakeTranscription, transcriptionLineUp } from '../support/transcription';
 
 const FIXTURES = path.join(REPO, 'e2e/fixtures/audio');
+/** The word list a session sends with its words; a file's transcription sends it too. */
+const WORDS = {
+  'settings.words': JSON.stringify({ version: 1, entries: [{ written: 'Sokuji' }, { written: 'Kizuna', translation: '絆' }] }),
+  'settings.sessionBackground': 'A weekly team meeting.',
+};
 /** The app with the transcription service faked, its key put in, and History open. */
 async function readyToImport(launchApp: Parameters<Parameters<typeof test>[2]>[0]['launchApp']) {
   const sokuji = await launchApp({
     fakeServices: true,
-    seed: { storage: { ...baseStorage('soniox'), 'settings.lineup': JSON.stringify(transcriptionLineUp) } },
+    seed: { storage: { ...baseStorage('soniox'), 'settings.lineup': JSON.stringify(transcriptionLineUp), ...WORDS } },
   });
   const transcription = await fakeTranscription(sokuji);
   await addTranscriptionKey(sokuji);
@@ -34,11 +39,19 @@ async function watchProgress(page: Page) {
 }
 const progress = (page: Page) => page.evaluate(() => (window as unknown as { e2eProgress: string[] }).e2eProgress);
 
-/** The file chosen with "Import a file", its language set, and Start. A bare name is one of the fixtures. */
-async function importFile(page: Page, file: string, language = 'English') {
+/** What the import is asked for, by language code: the main language, others it may contain, the translation. */
+interface Asked { main?: string; others?: string[]; translateTo?: string }
+/** The panel's fields set as `asked` says (the main language English unless said; the rest left as they start). */
+async function choose(panel: Locator, asked: Asked) {
+  await panel.getByLabel('Main language').selectOption(asked.main ?? 'en');
+  for (const code of asked.others ?? []) await panel.getByLabel('Add another language').selectOption(code);
+  if (asked.translateTo) await panel.getByLabel('Translate into').selectOption(asked.translateTo);
+}
+/** The file chosen with "Import a file", its options set, and Start. A bare name is one of the fixtures. */
+async function importFile(page: Page, file: string, asked: Asked = {}) {
   await page.locator('input[type="file"][accept="audio/*,video/*"]').setInputFiles(path.isAbsolute(file) ? file : path.join(FIXTURES, file));
   const panel = page.getByRole('dialog', { name: `Import “${path.basename(file)}”` });
-  await panel.getByLabel('Language spoken in it').selectOption({ label: language });
+  await choose(panel, asked);
   await panel.getByRole('button', { name: 'Start' }).click();
 }
 
@@ -48,18 +61,23 @@ const PHASES = [
 ];
 
 // An imported file goes through every step in order, and becomes a record like any other: its sentences are there,
-// with no side of the conversation given to them, it plays, it is found by a word, and it exports. The service keeps
-// nothing of it afterwards.
+// with no side of the conversation given to them, each with its translation, it plays, it is found by a word of
+// either, and it exports with its translations. The service is asked for exactly the languages and the translation
+// chosen, with the word list, and keeps nothing of it afterwards.
 test('a file imports through every step and becomes a record that plays, is found and exports', async ({ launchApp }) => {
   const { sokuji, transcription } = await readyToImport(launchApp);
-  const { page, userData } = sokuji;
+  const { page, userData, app } = sokuji;
   await watchProgress(page);
   // Held at "transcribing" until seen there, so that the step is not over between two looks at the service.
   await transcription.answerWith({ hold: true });
-  await importFile(page, 'sample.wav');
+  await importFile(page, 'sample.wav', { main: 'en', others: ['ja'], translateTo: 'zh' });
   await expect(page.getByText(/^Importing “sample\.wav”: Soniox is transcribing$/)).toBeVisible({ timeout: 30_000 });
   await transcription.release();
   await expect(page.locator('.history-file__line')).toHaveCount(0, { timeout: 30_000 });
+  expect(await transcription.options()).toEqual({
+    languages: ['en', 'ja'], translateTo: 'zh',
+    words: { terms: ['Sokuji', 'Kizuna'], translations: [['Kizuna', '絆']], background: 'A weekly team meeting.' },
+  });
 
   // Each step shown in its place, none out of order; the waits at the service are long enough to be seen for sure.
   const shown = (await progress(page)).map((line) => line.replace(/^Importing “sample\.wav”: /, ''));
@@ -73,6 +91,8 @@ test('a file imports through every step and becomes a record that plays, is foun
   const transcript = page.locator('.record-page__transcript');
   await expect(transcript.getByText('This is the first sentence of the imported file.')).toBeVisible();
   await expect(transcript.getByText('And this is the second one.')).toBeVisible();
+  // The translation under them: the two sentences are one turn (one speaker, no pause), shown as one row.
+  await expect(transcript.locator('.record-row__translation')).toHaveText(['这是导入文件的第一句。这是第二句。']);
   await expect(transcript.locator('.record-row__speaker').first()).not.toHaveText(/^(Me|Other)$/);
   // It plays.
   const player = page.getByRole('group', { name: 'Recording' });
@@ -84,12 +104,21 @@ test('a file imports through every step and becomes a record that plays, is foun
   await page.getByRole('searchbox', { name: 'Search History' }).fill('imported');
   await expect(page.locator('.history-list [data-record]')).toHaveCount(1);
   await expect(page.locator('.history-list .history-row__snippet').first()).toContainText('imported file');
-  // It exports.
+  // And by a word of its translation.
+  await page.getByRole('searchbox', { name: 'Search History' }).fill('第二句');
+  await expect(page.locator('.history-list [data-record]')).toHaveCount(1);
+  await expect(page.locator('.history-list .history-row__snippet').first()).toContainText('这是第二句。');
+  // It exports, the translations with it.
   await page.getByRole('searchbox', { name: 'Search History' }).fill('');
   await row.locator('.history-row__open').click();
+  await app.evaluate(({ clipboard }) => clipboard.writeText(''));
   await page.getByRole('button', { name: 'Export', exact: true }).click();
-  await expect(page.getByRole('menuitem', { name: 'Copy the conversation', exact: true })).toBeEnabled();
-  await page.keyboard.press('Escape');
+  await page.getByRole('menuitem', { name: 'Copy the conversation', exact: true }).click();
+  let copied = '';
+  await expect.poll(async () => (copied = await app.evaluate(({ clipboard }) => clipboard.readText())), { timeout: 5_000 }).not.toBe('');
+  for (const text of ['This is the first sentence of the imported file.', '这是导入文件的第一句。', 'And this is the second one.', '这是第二句。']) {
+    expect(copied).toContain(text);
+  }
 
   expect(await transcription.kept()).toBe(0);
   expect(await transcription.refused()).toEqual([]);
@@ -213,7 +242,7 @@ test('an import goes on away from History, and its progress shows on coming back
 test('a record transcribed again shows the new transcript, keeps the old one, and carries no name across', async ({ launchApp }) => {
   const { sokuji, transcription } = await readyToImport(launchApp);
   const { page } = sokuji;
-  await importFile(page, 'sample.wav');
+  await importFile(page, 'sample.wav', { translateTo: 'zh' });
   await importEnded(page);
   await page.locator('.history-list [data-record]').first().locator('.history-row__open').click();
   const drawer = page.getByRole('complementary', { name: 'Side panel' });
@@ -223,10 +252,15 @@ test('a record transcribed again shows the new transcript, keeps the old one, an
   await page.keyboard.press('Enter');
   await expect(transcript.locator('.record-row__speaker').first()).toHaveText('Mina');
 
-  await transcription.answerWith({ sentences: [{ text: 'A second transcript, made again.', startMs: 300, endMs: 2000 }] });
+  await transcription.answerWith({ sentences: [{ text: 'A second transcript, made again.', startMs: 300, endMs: 2000, translation: 'もう一度作った文字起こし。' }] });
   await page.locator('.record-page__more > button').click();
   await page.getByRole('menuitem', { name: 'Transcribe again' }).click();
-  await page.getByRole('dialog', { name: 'Transcribe again' }).getByRole('button', { name: 'Start' }).click();
+  // It asks what an import asks, starting from what the import was asked for.
+  const again = page.getByRole('dialog', { name: 'Transcribe again' });
+  await expect(again.getByLabel('Main language')).toHaveValue('en');
+  await expect(again.getByLabel('Translate into')).toHaveValue('zh');
+  await choose(again, { others: ['fr'], translateTo: 'ja' });
+  await again.getByRole('button', { name: 'Start' }).click();
   await expect(page.getByText(/^Transcribing: /)).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('.history-file__line[role="status"]')).toHaveCount(0, { timeout: 60_000 });
 
@@ -234,6 +268,8 @@ test('a record transcribed again shows the new transcript, keeps the old one, an
   const versions = page.getByLabel('Transcript version');
   await expect(versions.locator('option')).toHaveCount(2);
   await expect(transcript.getByText('A second transcript, made again.')).toBeVisible();
+  await expect(transcript.locator('.record-row__translation')).toHaveText(['もう一度作った文字起こし。']);
+  expect(await transcription.options()).toMatchObject({ languages: ['en', 'fr'], translateTo: 'ja' });
   await expect(transcript.getByText('This is the first sentence of the imported file.')).toHaveCount(0);
   await expect(transcript.locator('.record-row__speaker').first()).toHaveText('Speaker 1');
   await versions.selectOption({ index: 1 });

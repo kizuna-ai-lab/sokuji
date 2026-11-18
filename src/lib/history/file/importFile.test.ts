@@ -21,7 +21,7 @@ const encoder: OpusEncoderFactory = (onPacket, onHead) => {
   };
 };
 
-const SERVICE = { service: 'soniox' as const, apiKey: 'sk-test', region: 'us' as const };
+const SERVICE = { service: 'soniox' as const, apiKey: 'sk-test', region: 'us' as const, languages: ['en', 'zh', 'ja'] };
 const SAID: FileToken[] = [{ text: 'Welcome to the meeting.', start_ms: 100, end_ms: 2000, speaker: '1', language: 'en' }];
 const SECOND = 24_000;
 
@@ -66,7 +66,7 @@ function fakePort(o: { recognize?: (r: HistoryRecognizeRequest) => Promise<{ tok
 }
 
 const base = (port: HistoryPort, over: Partial<Parameters<typeof importFile>[0]> = {}) => ({
-  port, file: file(), myLanguage: 'zh', language: 'en', service: SERVICE, appVersion: '9.9.9',
+  port, file: file(), myLanguage: 'zh', options: { languages: ['en'], translateTo: 'zh' }, service: SERVICE, appVersion: '9.9.9',
   readDuration: async () => 3000, decode: async () => decoded(3), encoder, clock: createVirtualClock(0),
   newId: () => 'import-0001', newJobId: () => 'job-1', pause: async () => {}, ...over,
 });
@@ -112,7 +112,7 @@ describe('importing a file', () => {
     const startedAt = 1_800_000_100_000 - 3000;
     expect(calls[0]).toEqual(['openRecord', {
       id: 'import-0001', startedAt, mode: 'import', myLanguage: 'zh', targetLanguage: 'en',
-      services: { provider: 'soniox', models: { transcription: 'stt-async-v6' } }, appVersion: '9.9.9',
+      services: { provider: 'soniox', models: { transcription: 'stt-async-v6' }, options: { languages: ['en'], translateTo: 'zh' } }, appVersion: '9.9.9',
     }]);
     expect(calls[1]).toEqual(['putLeg', {
       recordId: 'import-0001', leg: 'participant', languages: { source: 'en', target: 'zh' }, input: null, inputName: null, inputId: null, translated: false, spoken: false,
@@ -129,6 +129,17 @@ describe('importing a file', () => {
     expect(phases).toContain('decoding');
     expect(phases).toContain('saving');
     expect(phases[phases.length - 1]).toBe('writing');
+  });
+
+  it('is transcribed as chosen: the main language is the record\u2019s, the others hinted too, translated into the language asked', async () => {
+    const { port, calls } = fakePort();
+    const options = { languages: ['ja', 'en'], translateTo: 'zh' };
+    await importFile(base(port, { options }));
+    // Kept with the record, so a transcription that fails can be tried again as it was asked.
+    expect(calls.find((c) => c[0] === 'openRecord')![1]).toMatchObject({ myLanguage: 'zh', targetLanguage: 'ja', services: { options } });
+    expect(calls.find((c) => c[0] === 'putLeg')![1]).toMatchObject({ languages: { source: 'ja', target: 'zh' } });
+    expect(vi.mocked(port.recognize).mock.calls[0][0]).toMatchObject({ languageHints: ['ja', 'en'], translateTo: 'zh' });
+    expect(calls.find((c) => c[0] === 'createTranscript')![1]).toMatchObject({ origin: { service: 'soniox', kind: 'file', options } });
   });
 
   // Review: a decoder's length is in fractions of a millisecond; the store takes whole ones only.

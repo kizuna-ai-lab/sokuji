@@ -2101,7 +2101,6 @@
     "file": {
       "import": "وارد کردن فایل",
       "importTitle": "وارد کردن «{{name}}»",
-      "language": "زبان گفت‌وگو در آن",
       "service": "Soniox با کلید خودتان آن را رونویسی می‌کند.",
       "start": "شروع",
       "transcribe": "رونویسی",
@@ -2146,7 +2145,15 @@
       "versionFile": "فایل Soniox · {{time}}",
       "blockedUnchecked": "سرویس رونویسی بررسی نشد. این را ببندید و دوباره امتحان کنید.",
       "blockedHostedSoniox": "فایل‌ها فقط با کلید Soniox خودتان رونویسی می‌شوند: Soniox متعلق به Kizuna AI فعلاً فقط برای جلسه‌های زنده است.",
-      "openSettings": "باز کردن {{place}}"
+      "openSettings": "باز کردن {{place}}",
+      "mainLanguage": "زبان اصلی",
+      "otherLanguages": "زبان‌های دیگری که ممکن است در آن باشد",
+      "addLanguage": "افزودن زبان دیگر",
+      "removeLanguage": "حذف {{language}}",
+      "translateInto": "ترجمه به",
+      "eachSide": "هر طرف به زبان طرف دیگر",
+      "asked": "زبان اصلی: {{main}} · ترجمه به: {{target}}",
+      "askedEachSide": "زبان اصلی: {{main}} · هر طرف به زبان طرف دیگر ترجمه شده"
     },
     "transcriptStopped": "بخشی از رونوشت این جلسه ذخیره نشد: روی دیسک نوشته نشد.",
     "notesAddToWords": "افزودن به فهرست واژه‌ها",

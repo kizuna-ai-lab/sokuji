@@ -2101,7 +2101,6 @@
     "file": {
       "import": "파일 가져오기",
       "importTitle": "“{{name}}” 가져오기",
-      "language": "사용된 언어",
       "service": "직접 입력한 키로 Soniox가 받아 적습니다.",
       "start": "시작",
       "transcribe": "받아 적기",
@@ -2146,7 +2145,15 @@
       "versionFile": "Soniox 파일 · {{time}}",
       "blockedUnchecked": "전사 서비스를 확인하지 못했습니다. 닫고 다시 시도하세요.",
       "blockedHostedSoniox": "파일은 직접 입력한 Soniox 키로만 받아 적을 수 있습니다. Kizuna AI의 Soniox는 지금은 실시간 세션 전용입니다.",
-      "openSettings": "{{place}} 열기"
+      "openSettings": "{{place}} 열기",
+      "mainLanguage": "주 언어",
+      "otherLanguages": "함께 나올 수 있는 다른 언어",
+      "addLanguage": "다른 언어 추가",
+      "removeLanguage": "{{language}} 빼기",
+      "translateInto": "번역 언어",
+      "eachSide": "각자 상대방 언어로",
+      "asked": "주 언어: {{main}} · 번역 언어: {{target}}",
+      "askedEachSide": "주 언어: {{main}} · 각자 상대방 언어로 번역"
     },
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "notesAddToWords": "단어 목록에 추가",

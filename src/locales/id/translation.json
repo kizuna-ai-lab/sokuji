@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Impor file",
       "importTitle": "Impor “{{name}}”",
-      "language": "Bahasa yang diucapkan",
       "service": "Ditranskripsi oleh Soniox, dengan kunci Anda sendiri.",
       "start": "Mulai",
       "transcribe": "Transkripsikan",
@@ -2146,7 +2145,15 @@
       "versionFile": "File Soniox · {{time}}",
       "blockedUnchecked": "Layanan transkripsi tidak dapat diperiksa. Tutup ini dan coba lagi.",
       "blockedHostedSoniox": "File hanya ditranskripsi dengan kunci Soniox Anda sendiri: Soniox dari Kizuna AI untuk saat ini hanya untuk sesi langsung.",
-      "openSettings": "Buka {{place}}"
+      "openSettings": "Buka {{place}}",
+      "mainLanguage": "Bahasa utama",
+      "otherLanguages": "Bahasa lain yang mungkin ada di dalamnya",
+      "addLanguage": "Tambahkan bahasa lain",
+      "removeLanguage": "Hapus {{language}}",
+      "translateInto": "Terjemahkan ke",
+      "eachSide": "Tiap sisi ke bahasa sisi lain",
+      "asked": "Bahasa utama: {{main}} · Diterjemahkan ke: {{target}}",
+      "askedEachSide": "Bahasa utama: {{main}} · Tiap sisi diterjemahkan ke bahasa sisi lain"
     },
     "transcriptStopped": "Sebagian transkrip sesi ini tidak bisa disimpan: tidak bisa ditulis ke disk.",
     "notesAddToWords": "Tambahkan ke daftar kata",

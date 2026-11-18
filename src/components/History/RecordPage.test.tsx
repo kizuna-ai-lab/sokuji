@@ -48,7 +48,7 @@ const legs: Leg[] = [
 ];
 const sentence = (n: number, segmentId: string, text: string, over: Partial<HistorySentence> = {}): HistorySentence => ({
   n, segmentId, side: 'other', sideCertain: true, track: 'other', speaker: '1.1', speakerByUser: null, speakerName: null,
-  startMs: n * 1000, endMs: n * 1000 + 900, text, language: null, timeKind: 'given', ...over,
+  startMs: n * 1000, endMs: n * 1000 + 900, text, language: null, timeKind: 'given', translation: null, ...over,
 });
 const sentences: HistorySentence[] = [
   sentence(1, `${A}:participant:1`, '下周三之前能交货吗？', { timeKind: 'estimated' }),
@@ -771,7 +771,7 @@ describe('a record transcribed again', () => {
     record.hasRecording = true;
     record.tracks = [{ source: 'participant', file: 'participant.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 10, offsetMs: 0, goneAt: null }];
     const jobs = {
-      service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const }),
+      service: async () => ({ service: 'soniox' as const, apiKey: 'k', region: 'us' as const, languages: ['en', 'zh'] }),
       sessionRunning: () => false, importFile: vi.fn(), transcribe: vi.fn(() => new Promise<never>(() => {})), notesAfterImport: vi.fn(),
     };
     store = createHistoryPageStore(port, createVirtualClock(0), () => 'That did not work.', null, jobs as never);

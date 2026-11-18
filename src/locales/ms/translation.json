@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Import fail",
       "importTitle": "Import “{{name}}”",
-      "language": "Bahasa yang dituturkan",
       "service": "Ditranskrip oleh Soniox, dengan kunci anda sendiri.",
       "start": "Mula",
       "transcribe": "Transkrip",
@@ -2146,7 +2145,15 @@
       "versionFile": "Fail Soniox · {{time}}",
       "blockedUnchecked": "Perkhidmatan transkripsi tidak dapat disemak. Tutup ini dan cuba lagi.",
       "blockedHostedSoniox": "Fail hanya ditranskrip dengan kunci Soniox anda sendiri: Soniox Kizuna AI buat masa ini hanya untuk sesi langsung.",
-      "openSettings": "Buka {{place}}"
+      "openSettings": "Buka {{place}}",
+      "mainLanguage": "Bahasa utama",
+      "otherLanguages": "Bahasa lain yang mungkin ada di dalamnya",
+      "addLanguage": "Tambah bahasa lain",
+      "removeLanguage": "Buang {{language}}",
+      "translateInto": "Terjemah ke",
+      "eachSide": "Setiap pihak ke bahasa pihak lain",
+      "asked": "Bahasa utama: {{main}} · Diterjemah ke: {{target}}",
+      "askedEachSide": "Bahasa utama: {{main}} · Setiap pihak diterjemah ke bahasa pihak lain"
     },
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "notesAddToWords": "Tambah ke senarai perkataan",

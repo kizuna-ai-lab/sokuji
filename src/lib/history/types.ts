@@ -9,6 +9,8 @@ export interface HistoryServices {
   provider: string;
   models: Record<string, string>;
   stages?: Record<string, { provider: string; ability: string }>;
+  /** An imported file's: what its transcription was asked for, kept even when that transcription failed. */
+  options?: FileTranscriptionOptions;
 }
 
 export interface HistoryRecordInput {
@@ -97,9 +99,17 @@ export interface HistoryLegInput {
   spoken?: boolean;
 }
 
+/** What a file transcription is asked for: the languages spoken (the main one first), and the one to translate into. */
+export interface FileTranscriptionOptions {
+  languages: string[];
+  translateTo: string;
+}
+
 export interface HistoryTranscriptOrigin {
   service: string;
   kind: 'live' | 'file';
+  /** A file transcript's: what it was asked for. */
+  options?: FileTranscriptionOptions;
 }
 
 export interface HistoryTranscriptRow {
@@ -111,15 +121,23 @@ export interface HistoryTranscriptRow {
   sentences: number;
 }
 
-/** A word of a file transcript: every file recognition service answers in this shape (Soniox's own). */
+/**
+ * A word of a file transcript: every file recognition service answers in this shape (Soniox's own). A translated word
+ * says so (`translation_status: 'translation'`) and has no time: it follows the words it translates.
+ */
 export interface FileToken {
   text: string;
-  start_ms: number;
-  end_ms: number;
+  start_ms?: number;
+  end_ms?: number;
   speaker?: string;
   language?: string;
   confidence?: number;
+  translation_status?: 'original' | 'translation' | 'none';
+  source_language?: string;
 }
+
+/** The app's word list in the file recognition service's own context shape: sent as it is. */
+export type FileRecognitionContext = object;
 
 /** A kept track sent to file recognition: the service, its key and region, the languages to expect, the job's id. */
 export interface HistoryRecognizeRequest {
@@ -129,6 +147,10 @@ export interface HistoryRecognizeRequest {
   apiKey: string;
   region?: string;
   languageHints: string[];
+  /** The service's code of the language to translate into; absent, nothing is translated. */
+  translateTo?: string;
+  /** The word list, in the service's own shape; absent, none is sent. */
+  context?: FileRecognitionContext;
   jobId: string;
 }
 
@@ -175,6 +197,8 @@ export interface HistorySentenceInput {
   text: string;
   language?: string;
   timeKind: HistoryTimeKind;
+  /** A file transcript's translation of what the service translated starting in this sentence; absent where none began. */
+  translation?: string;
 }
 
 export interface HistorySentence {
@@ -194,6 +218,8 @@ export interface HistorySentence {
   text: string;
   language: string | null;
   timeKind: HistoryTimeKind;
+  /** A file transcript's translation of what the service translated starting in this sentence; null where none began, and in a session's. */
+  translation: string | null;
 }
 
 export interface HistorySpeaker {

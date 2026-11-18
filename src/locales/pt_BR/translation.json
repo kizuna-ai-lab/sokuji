@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Importar um arquivo",
       "importTitle": "Importar “{{name}}”",
-      "language": "Idioma falado",
       "service": "Transcrito pelo Soniox, com a sua própria chave.",
       "start": "Iniciar",
       "transcribe": "Transcrever",
@@ -2146,7 +2145,15 @@
       "versionFile": "Arquivo Soniox · {{time}}",
       "blockedUnchecked": "Não foi possível verificar o serviço de transcrição. Feche e tente novamente.",
       "blockedHostedSoniox": "Os arquivos só são transcritos com a sua própria chave do Soniox: o Soniox da Kizuna AI, por enquanto, é só para sessões ao vivo.",
-      "openSettings": "Abrir {{place}}"
+      "openSettings": "Abrir {{place}}",
+      "mainLanguage": "Idioma principal",
+      "otherLanguages": "Outros idiomas que podem aparecer",
+      "addLanguage": "Adicionar outro idioma",
+      "removeLanguage": "Remover {{language}}",
+      "translateInto": "Traduzir para",
+      "eachSide": "Cada lado para o idioma do outro",
+      "asked": "Idioma principal: {{main}} · Traduzido para: {{target}}",
+      "askedEachSide": "Idioma principal: {{main}} · Cada lado traduzido para o idioma do outro"
     },
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser salva: não foi possível gravá-la no disco.",
     "notesAddToWords": "Adicionar à lista de palavras",

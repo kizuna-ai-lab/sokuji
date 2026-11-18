@@ -2101,7 +2101,6 @@
     "file": {
       "import": "นำเข้าไฟล์",
       "importTitle": "นำเข้า “{{name}}”",
-      "language": "ภาษาที่พูดในไฟล์",
       "service": "ถอดความโดย Soniox ด้วยคีย์ของคุณเอง",
       "start": "เริ่ม",
       "transcribe": "ถอดความ",
@@ -2146,7 +2145,15 @@
       "versionFile": "ไฟล์ Soniox · {{time}}",
       "blockedUnchecked": "ตรวจสอบบริการถอดความไม่ได้ ปิดหน้านี้แล้วลองอีกครั้ง",
       "blockedHostedSoniox": "ไฟล์ถอดความได้ด้วยคีย์ Soniox ของคุณเองเท่านั้น: Soniox ของ Kizuna AI ตอนนี้ใช้ได้เฉพาะเซสชันสด",
-      "openSettings": "เปิด{{place}}"
+      "openSettings": "เปิด{{place}}",
+      "mainLanguage": "ภาษาหลัก",
+      "otherLanguages": "ภาษาอื่นที่อาจมีอยู่",
+      "addLanguage": "เพิ่มภาษาอื่น",
+      "removeLanguage": "นำ {{language}} ออก",
+      "translateInto": "แปลเป็น",
+      "eachSide": "แต่ละฝ่ายเป็นภาษาของอีกฝ่าย",
+      "asked": "ภาษาหลัก: {{main}} · แปลเป็น: {{target}}",
+      "askedEachSide": "ภาษาหลัก: {{main}} · แต่ละฝ่ายแปลเป็นภาษาของอีกฝ่าย"
     },
     "transcriptStopped": "บันทึกบทถอดความบางส่วนของเซสชันนี้ไม่ได้: เขียนลงดิสก์ไม่ได้",
     "notesAddToWords": "เพิ่มในรายการคำ",

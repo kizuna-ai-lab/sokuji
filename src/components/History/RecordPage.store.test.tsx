@@ -105,6 +105,32 @@ describe('an imported record\'s speakers', () => {
     expect(within(drawer()).queryByText('Your side')).toBeNull();
   });
 
+  // A file transcribed with a translation: each turn's translation under its first row, as a session's.
+  it('show each turn\u2019s translation under it', async () => {
+    const I = 'import-0002-aaaa';
+    real.store.openRecord({ id: I, startedAt: START, mode: 'import', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const transcriptId = real.store.createTranscript({ recordId: I, origin: { service: 'soniox', kind: 'file', options: { languages: ['en'], translateTo: 'zh' } } });
+    real.store.appendSentences({ transcriptId, sentences: [
+      { ...sentence(1, 'other', 'Welcome, everyone.'), sideCertain: false, track: 'other', segmentId: 'file-participant-1', translation: '欢迎大家。' },
+      { ...sentence(2, 'other', 'Thanks for having me.', '2'), sideCertain: false, track: 'other', segmentId: 'file-participant-2', translation: '谢谢邀请我。' },
+    ] });
+    real.store.closeRecord({ id: I, endedAt: START + 10_000 });
+    await act(() => store.getState().openRecord(I));
+    await settle();
+    expect(row(1)?.querySelector('.record-row__translation')?.textContent).toBe('欢迎大家。');
+    expect(row(2)?.querySelector('.record-row__translation')?.textContent).toBe('谢谢邀请我。');
+    // What this version was asked for, at the top of its transcript; no "my language → its language" in the head.
+    expect(document.querySelector('.record-page__transcript > .record-page__asked')?.textContent).toBe('Main language: English · Translated into: Chinese');
+    expect(document.querySelector('.record-page__head')?.textContent).not.toContain('→');
+  });
+
+  it('a session\u2019s transcript says nothing of options, and its head keeps its languages', async () => {
+    await act(() => store.getState().openRecord(A));
+    await settle();
+    expect(document.querySelector('.record-page__asked')).toBeNull();
+    expect(document.querySelector('.record-page__head')?.textContent).toContain('English → Chinese');
+  });
+
   // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.
   it('a session whose sides were only inferred keeps them, under their headings', async () => {
     const F = 'run-0009-ffff';

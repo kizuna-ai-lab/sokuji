@@ -227,6 +227,10 @@ export interface FileRecognitionSpec {
   region?: string;
   /** The service's code for an app language code, or null when it has none (the hint is then not sent). */
   languageHint?: (code: string) => string | null;
+  /** The languages, as app codes, it transcribes a file in and translates it into: the choices offered. */
+  languages: readonly string[];
+  /** The word list in the service's context shape, sent with every file; absent when there is nothing to send. */
+  context?: object;
 }
 
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object, R extends { missing?: never } & object = K> {
@@ -421,7 +425,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * of a saved recording needs, from its own settings and credentials. Absent when it cannot transcribe files. The
    * main process runs the job by `service` (electron/file-recognition.js); every service answers in one word shape.
    */
-  fileRecognition?: (settings: S, credentials: K) => FileRecognitionSpec | { missing: 'no-key' };
+  fileRecognition?: (settings: S, credentials: K, words?: SessionWords) => FileRecognitionSpec | { missing: 'no-key' };
   /**
    * Whether Both may run face-to-face (spec 2026-10-08, slice 3): two people
    * at one microphone, attributed by speaker label and language on one

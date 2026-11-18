@@ -2101,7 +2101,6 @@
     "file": {
       "import": "Mag-import ng file",
       "importTitle": "I-import ang “{{name}}”",
-      "language": "Wikang ginamit dito",
       "service": "Isasalin sa teksto ng Soniox, gamit ang sarili mong key.",
       "start": "Simulan",
       "transcribe": "I-transcribe",
@@ -2146,7 +2145,15 @@
       "versionFile": "Soniox file · {{time}}",
       "blockedUnchecked": "Hindi masuri ang serbisyo ng transkripsyon. Isara ito at subukang muli.",
       "blockedHostedSoniox": "Sa sarili mong Soniox key lang nata-transcribe ang mga file: ang Soniox ng Kizuna AI ay para lang sa mga live session sa ngayon.",
-      "openSettings": "Buksan ang {{place}}"
+      "openSettings": "Buksan ang {{place}}",
+      "mainLanguage": "Pangunahing wika",
+      "otherLanguages": "Iba pang wikang maaaring nasa loob nito",
+      "addLanguage": "Magdagdag ng isa pang wika",
+      "removeLanguage": "Alisin ang {{language}}",
+      "translateInto": "Isalin sa",
+      "eachSide": "Bawat panig sa wika ng kabila",
+      "asked": "Pangunahing wika: {{main}} · Isinalin sa: {{target}}",
+      "askedEachSide": "Pangunahing wika: {{main}} · Isinalin ang bawat panig sa wika ng kabila"
     },
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "notesAddToWords": "Idagdag sa listahan ng salita",
