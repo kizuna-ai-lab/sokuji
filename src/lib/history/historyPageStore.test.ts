@@ -533,17 +533,25 @@ describe('transcripts and file jobs', () => {
     missing?: 'no-file-service' | 'no-key' | 'sign-in'; session?: boolean;
     /** Kizuna AI's Soniox, with these terms (an Error: they cannot be read) and this account. */
     hosted?: boolean; terms?: HostedFileTerms | null | Error; account?: AccountState | null;
+    /** The account once read again (unchanged when not given); or a reading again that fails, or never answers. */
+    refreshed?: AccountState | null; refresh?: 'fails' | 'hangs';
   } = {}) {
     let finishImport!: (r: unknown) => void;
     let finishTranscribe!: (r: unknown) => void;
     const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
+    let account = o.account ?? null;
     const jobs = {
       service: vi.fn(async () => (o.missing ? { missing: o.missing } : o.hosted ? HOSTED : { service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'ja', 'zh'] })),
       hostedTerms: vi.fn(async () => {
         if (o.terms instanceof Error) throw o.terms;
         return o.terms === undefined ? TERMS : o.terms;
       }),
-      account: vi.fn(() => o.account ?? null),
+      account: vi.fn(() => account),
+      refreshAccount: vi.fn(async () => {
+        if (o.refresh === 'fails') throw new Error('offline');
+        if (o.refresh === 'hangs') await new Promise<never>(() => {});
+        if (o.refreshed !== undefined) account = o.refreshed;
+      }),
       sessionRunning: vi.fn(() => o.session ?? false),
       importFile: vi.fn((a: { onProgress(p: { phase: string }): void; signal: AbortSignal }) => {
         progress.cb = a.onProgress;
@@ -918,6 +926,71 @@ describe('transcripts and file jobs', () => {
         hostedStore({ account });
         expect(await blocked('import'), JSON.stringify(account)).toBe(reason);
       }
+    });
+
+    // The account as last polled can be minutes old: a block for money is decided on the account read again.
+    it('reads the account again before saying the balance does not cover the job or the wallet is frozen', async () => {
+      for (const stale of [known(0), known(10_000_000, { frozen: true }), member(10_000_000, 10_000_000, true)]) {
+        const f = hostedStore({ account: stale, refreshed: known(10_000_000) });
+        await openWith();
+        expect(await blocked('transcribe'), JSON.stringify(stale)).toBeNull();
+        expect(f.jobs.refreshAccount, JSON.stringify(stale)).toHaveBeenCalledTimes(1);
+      }
+      hostedStore({ account: known(0), refreshed: known(1) });
+      expect(await blocked('import')).toBeNull();
+      // Read again and still short: it blocks.
+      hostedStore({ account: known(0), refreshed: known(399_999) });
+      await openWith();
+      expect(await blocked('transcribe')).toBe('no-balance');
+    });
+
+    it('reads the account again only when it would block for money', async () => {
+      const f = hostedStore({ account: known(10_000_000) });
+      await openWith();
+      expect(await blocked('transcribe')).toBeNull();
+      await openWith([track('speaker', TERMS.maxAudioMs + 1)]);
+      expect(await blocked('transcribe')).toBe('hosted-too-long');
+      expect(f.jobs.refreshAccount).not.toHaveBeenCalled();
+    });
+
+    it('decides on the account at hand when it cannot be read again', async () => {
+      const f = hostedStore({ account: known(0), refresh: 'fails' });
+      await openWith();
+      expect(await blocked('transcribe')).toBe('no-balance');
+      expect(f.jobs.refreshAccount).toHaveBeenCalledTimes(1);
+    });
+
+    it('decides on the account at hand when it is not read again within 3 seconds', async () => {
+      const f = hostedStore({ account: known(0, { frozen: true }), refresh: 'hangs' });
+      await openWith();
+      let answer: string | null | undefined;
+      void blocked('transcribe').then((b) => { answer = b; });
+      await vi.waitFor(() => expect(f.jobs.refreshAccount).toHaveBeenCalled());
+      clock.advance(2999);
+      await flush();
+      expect(answer).toBeUndefined();
+      clock.advance(1);
+      await vi.waitFor(() => expect(answer).toBe('wallet-frozen'));
+    });
+
+    // Through the file jobs (the app's account), never past them.
+    it('reads the account again once a hosted job ends, and never after a job with the user’s own key', async () => {
+      const f = hostedStore();
+      store.getState().follow();
+      const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+      expect(f.jobs.refreshAccount).not.toHaveBeenCalled();
+      f.finishImport({ recordId: B, transcribed: true });
+      await started;
+      expect(f.jobs.refreshAccount).toHaveBeenCalledTimes(1);
+      const own = fakeJobs();
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, own.jobs as never);
+      store.getState().follow();
+      const ownStarted = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(own.jobs.importFile).toHaveBeenCalled());
+      own.finishImport({ recordId: B, transcribed: true });
+      await ownStarted;
+      expect(own.jobs.refreshAccount).not.toHaveBeenCalled();
     });
 
     it('an account not known, or still loading, does not block: the service decides', async () => {

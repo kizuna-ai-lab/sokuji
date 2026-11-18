@@ -72,6 +72,18 @@ describe('the terms from the service', () => {
     expect(await fetchHostedFileTerms(vi.fn(async () => json({ fileTranscription: { ...TERMS, maxAudioMs: 'x' } })))).toBeNull();
   });
 
+  // A limit of nothing would refuse every recording, and a negative rate is no price: such a block is no terms.
+  it('are none when a limit is not above zero or a rate is negative', async () => {
+    for (const over of [
+      { maxAudioMs: 0 }, { maxAudioMs: -1 }, { maxBytes: 0 }, { maxBytes: -1 }, { usdPerHour: -0.2 }, { translatedUsdPerHour: -0.32 },
+    ]) {
+      expect(await fetchHostedFileTerms(vi.fn(async () => json({ fileTranscription: { ...TERMS, ...over } }))), JSON.stringify(over)).toBeNull();
+    }
+    // Free is a price.
+    const free = { ...TERMS, usdPerHour: 0, translatedUsdPerHour: 0 };
+    expect(await fetchHostedFileTerms(vi.fn(async () => json({ fileTranscription: free })))).toEqual(free);
+  });
+
   it('cannot be read without an answer, or from a refusal', async () => {
     await expect(fetchHostedFileTerms(vi.fn(async () => { throw new TypeError('offline'); }))).rejects.toThrow();
     await expect(fetchHostedFileTerms(vi.fn(async () => json({}, 500)))).rejects.toThrow();

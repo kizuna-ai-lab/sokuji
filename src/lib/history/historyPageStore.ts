@@ -4,14 +4,13 @@
 // shown as a line in the interface's words (`errorText`) and leaves what was shown; nothing is retried by itself.
 import { addWord, useWordList } from '../words/list';
 import { createStore, type StoreApi } from 'zustand/vanilla';
-import { useAccountStore } from '../../stores/accountStore';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
 import type { NotesLanguage, NotesRunner } from '../notes/runner';
 import { payerBalance } from '../session/orgNotice';
 import { accountPayer } from '../session/payerChoice';
 import type { AccountState } from '../session/types';
-import { fitsHosted, hostedEstimateMicroUsd, hostedEstimateUsd, type HostedFileTerms } from './file/hostedFile';
+import { fitsHosted, hostedEstimateMicroUsd, hostedEstimateUsd, type HostedFileTerms, type TrackSize } from './file/hostedFile';
 import type { ImportPhase, ImportResult } from './file/importFile';
 import type { FileRecognitionMissing, FileRecognitionService } from './file/service';
 import { trackTranslation, transcribedTracks, type TranscribePhase } from './file/transcribe';
@@ -97,6 +96,11 @@ export interface FileJobs {
   hostedTerms(): Promise<HostedFileTerms | null>;
   /** The Kizuna AI account as the app last read it: which wallet pays a hosted job, what it holds, whether it is frozen. */
   account(): AccountState | null;
+  /**
+   * Reads the Kizuna AI account again: resolves once `account()` answers what was read, rejects when it could not be
+   * read. Asked before a hosted job is refused for money, and after one ends.
+   */
+  refreshAccount(): Promise<void>;
   /** A session is running: importing waits (decoding is heavy). */
   sessionRunning(): boolean;
   importFile(o: {
@@ -206,6 +210,33 @@ const codeOf = (error: unknown): string => {
   return typeof code === 'string' ? code : 'LOCAL';
 };
 
+/**
+ * Why a job through Kizuna AI cannot start for this account (its wallet read as the main panel's balance gate reads it)
+ * or for these tracks: the paying wallet frozen, a track longer or larger than the service takes, or a balance short of
+ * the job; null when none of these. An account not known, or still loading, blocks nothing: the service decides.
+ */
+function hostedBlock(
+  kind: 'import' | 'transcribe', account: AccountState | null, tracks: readonly TrackSize[], terms: HostedFileTerms,
+): FileJobBlock | null {
+  const known = account?.status === 'known' ? account : null;
+  const payer = known ? accountPayer(known) : undefined;
+  const wallet = known ? payerBalance(known, payer) : null;
+  if (wallet?.frozen) return 'wallet-frozen';
+  if (!fitsHosted(tracks, terms)) return 'hosted-too-long';
+  // An organization that pays is not refused for its balance, as the main panel's gate does not refuse it: what the
+  // page holds can be minutes old and cannot tell money held by colleagues' running jobs from an empty wallet, so the
+  // service answers precisely. Its frozen wallet is refused above.
+  const organizationPays = payer === 'organization' && known?.organization !== undefined;
+  if (!wallet || wallet.microUsd === undefined || organizationPays) return null;
+  // An import costs more than nothing, whatever its length. A transcription costs at least its untranslated price (the
+  // translation is not chosen yet when the panel asks), in whole micro-USD as the service counts.
+  const short = kind === 'import' ? wallet.microUsd <= 0 : wallet.microUsd < hostedEstimateMicroUsd(tracks, false, terms);
+  return short ? 'no-balance' : null;
+}
+
+/** How long the account is waited for when it is read again before a refusal for money: past this, it is not. */
+export const ACCOUNT_REFRESH_MS = 3000;
+
 /** Search runs this long after the last keystroke. */
 export const SEARCH_DELAY_MS = 250;
 /** The list is read this many records at a time; "Show older records" reads the next page. */
@@ -246,11 +277,19 @@ export function createHistoryPageStore(
   };
   const setJobPhase = (phase: ImportPhase) => changeJob({ phase });
   /**
-   * A job through Kizuna AI has ended here, however it ended: the wallet is read again, as after a refused session start.
-   * After a cancel this can run before the service has ended the job, so the balance read may still count what the job
-   * held.
+   * A job through Kizuna AI has ended here, however it ended: the account is read again through the file jobs, as after
+   * a refused session start. After a cancel this can run before the service has ended the job, so the balance read may
+   * still count what the job held.
    */
-  const refreshBalance = () => { void useAccountStore.getState().refreshAccount?.().catch(() => {}); };
+  const refreshBalance = () => { void files?.refreshAccount().catch(() => {}); };
+  /**
+   * The account read again through `from`, waited for at most ACCOUNT_REFRESH_MS: a reading that fails, or has not
+   * settled by then, is not waited for (the account at hand is then decided on).
+   */
+  const readAccountAgain = (from: FileJobs): Promise<void> => new Promise((resolve) => {
+    const cancel = clock.setTimeout(resolve, ACCOUNT_REFRESH_MS);
+    void from.refreshAccount().catch(() => {}).finally(() => { cancel(); resolve(); });
+  });
 
   const store = createStore<HistoryPageState & HistoryPageActions>()((set, get) => {
     /** One action: busy while it runs, a rejection shown and nothing else changed. */
@@ -592,29 +631,18 @@ export function createHistoryPageStore(
           return check('unchecked');
         }
         if (!terms) return check('hosted-unavailable', true);
-        const { maxAudioMs } = terms;
-        const blocked = (reason: FileJobBlock | null) => check(reason, true, maxAudioMs);
-        // The wallet the payer spends, read as the main panel's balance gate reads it. An account not known, or still
-        // loading, blocks nothing: the service decides.
-        const account = files.account();
-        const known = account?.status === 'known' ? account : null;
-        const payer = known ? accountPayer(known) : undefined;
-        const wallet = known ? payerBalance(known, payer) : null;
-        if (wallet?.frozen) return blocked('wallet-frozen');
         // A transcription sends the open record's kept tracks. An import's length is not known until the file is read
         // (it is checked then).
         const open = get().open;
         const tracks = kind === 'transcribe' && open ? transcribedTracks(open.record) : [];
-        if (!fitsHosted(tracks, terms)) return blocked('hosted-too-long');
-        // An organization that pays is not refused for its balance, as the main panel's gate does not refuse it: what
-        // the page holds can be minutes old and cannot tell money held by colleagues' running jobs from an empty
-        // wallet, so the service answers precisely. Its frozen wallet is refused above.
-        const organizationPays = payer === 'organization' && known?.organization !== undefined;
-        if (!wallet || wallet.microUsd === undefined || organizationPays) return blocked(null);
-        // An import costs more than nothing, whatever its length. A transcription costs at least its untranslated
-        // price (the translation is not chosen yet when the panel asks), in whole micro-USD as the service counts.
-        const short = kind === 'import' ? wallet.microUsd <= 0 : wallet.microUsd < hostedEstimateMicroUsd(tracks, false, terms);
-        return blocked(short ? 'no-balance' : null);
+        let reason = hostedBlock(kind, files.account(), tracks, terms);
+        // The account as last read can be minutes old (topped up, unfrozen since): a refusal for money is decided on the
+        // account read again, or on the one at hand when it cannot be read again in time.
+        if (reason === 'wallet-frozen' || reason === 'no-balance') {
+          await readAccountAgain(files);
+          reason = hostedBlock(kind, files.account(), tracks, terms);
+        }
+        return check(reason, true, terms.maxAudioMs);
       },
 
       async fileJobBlocked(kind) {

@@ -61,6 +61,19 @@ describe('the file recognition service', () => {
       setUseOwnBalance(false);
     });
 
+    // Kizuna AI's Soniox holds no key: its settings not loaded is a lookup that failed, which the page says could not
+    // be checked, never a key not filled in.
+    it('fails the lookup when its settings cannot be loaded, rather than asking for a key', async () => {
+      registerAuth(() => ({ signedIn: true, getToken: async () => 'tok' }));
+      const load = useProviderStore.getState().load;
+      useProviderStore.setState({ entries: {}, load: async () => {} } as never);
+      try {
+        await expect(fileRecognitionFromStores()).rejects.toThrow();
+      } finally {
+        useProviderStore.setState({ load } as never);
+      }
+    });
+
     it('asks for the sign-in when signed out', async () => {
       registerAuth(() => ({ signedIn: false, getToken: async () => null }));
       expect(await fileRecognitionFromStores()).toEqual({ missing: 'sign-in' });
@@ -76,9 +89,9 @@ describe('the file recognition service', () => {
       if ('missing' in service || !('hosted' in service)) throw new Error('not hosted');
       expect(service).toMatchObject({ service: 'kizunaai_soniox', hosted: true, region: 'jp', context: { terms: ['Sokuji'] } });
       expect(service).not.toHaveProperty('apiKey');
-      expect(service.access?.apiUrl).toBe(getApiUrl());
+      expect(service.access.apiUrl).toBe(getApiUrl());
       // A non-member has no payer to name.
-      expect(service.access?.payer).toBeUndefined();
+      expect(service.access.payer).toBeUndefined();
     });
 
     // The token is read when a track is sent, not when the service is looked up: a sign-out in between is seen.
@@ -86,23 +99,22 @@ describe('the file recognition service', () => {
       registerAuth(() => ({ signedIn: true, getToken: async () => 'tok' }));
       const service = await fileRecognitionFromStores();
       if ('missing' in service || !('hosted' in service)) throw new Error('not hosted');
-      await expect(service.access!.token()).resolves.toBe('tok');
+      await expect(service.access.token()).resolves.toBe('tok');
       registerAuth(() => ({ signedIn: true, getToken: async () => 'tok-2' }));
-      await expect(service.access!.token()).resolves.toBe('tok-2');
+      await expect(service.access.token()).resolves.toBe('tok-2');
       registerAuth(() => ({ signedIn: false, getToken: async () => null }));
-      await expect(service.access!.token()).resolves.toBeNull();
+      await expect(service.access.token()).resolves.toBeNull();
       registerAuth(() => undefined);
-      await expect(service.access!.token()).resolves.toBeNull();
+      await expect(service.access.token()).resolves.toBeNull();
     });
 
     it('names the payer as hosted notes do: the organization, or the person when the switch says so', async () => {
       registerAuth(() => ({ signedIn: true, getToken: async () => 'tok' }));
       useAccountStore.setState({ account: member });
-      const asOrg = await fileRecognitionFromStores();
-      expect('missing' in asOrg ? null : asOrg.access?.payer).toBe('organization');
+      const payerOf = (s: Awaited<ReturnType<typeof fileRecognitionFromStores>>) => ('missing' in s || !('hosted' in s) ? null : s.access.payer);
+      expect(payerOf(await fileRecognitionFromStores())).toBe('organization');
       setUseOwnBalance(true);
-      const asPerson = await fileRecognitionFromStores();
-      expect('missing' in asPerson ? null : asPerson.access?.payer).toBe('personal');
+      expect(payerOf(await fileRecognitionFromStores())).toBe('personal');
     });
   });
 

@@ -27,15 +27,20 @@ const HOUR_MS = 3_600_000;
 export const TERMS_TIMEOUT_MS = 10_000;
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+const positive = (v: unknown): v is number => finite(v) && v > 0;
 
-/** The table's block; null when it has none, or one this app cannot use (the service does not offer file jobs yet). */
+/**
+ * The table's block; null when it has none, or one this app cannot use (the service does not offer file jobs yet): a
+ * figure that is not a number, a negative rate, or a longest length or a largest size of nothing, which would refuse
+ * every recording.
+ */
 async function readTerms(send: typeof fetch): Promise<HostedFileTerms | null> {
   const response = await send(`${getApiUrl()}/pricing`, { method: 'GET', signal: AbortSignal.timeout(TERMS_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`The pricing could not be read (${response.status})`);
   const block = ((await response.json()) as { fileTranscription?: Record<keyof HostedFileTerms, unknown> } | null)?.fileTranscription;
   if (!block) return null;
   const { usdPerHour, translatedUsdPerHour, maxAudioMs, maxBytes, maxBytesPerMs, bytesSlack } = block;
-  if (![usdPerHour, translatedUsdPerHour, maxAudioMs, maxBytes, maxBytesPerMs, bytesSlack].every(finite)) return null;
+  if (![usdPerHour, translatedUsdPerHour, maxBytesPerMs, bytesSlack].every(finite) || ![maxAudioMs, maxBytes].every(positive)) return null;
   return { usdPerHour, translatedUsdPerHour, maxAudioMs, maxBytes, maxBytesPerMs, bytesSlack } as HostedFileTerms;
 }
 

@@ -24,6 +24,7 @@ const jobsMissing = (missing: 'no-file-service' | 'no-key' | 'sign-in'): FileJob
   service: vi.fn(async () => ({ missing })),
   hostedTerms: vi.fn(async () => null),
   account: () => null,
+  refreshAccount: vi.fn(async () => {}),
   sessionRunning: () => false,
   importFile: vi.fn(async () => undefined) as unknown as FileJobs['importFile'],
   transcribe: vi.fn(async () => undefined) as unknown as FileJobs['transcribe'],

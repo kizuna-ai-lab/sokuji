@@ -1,5 +1,5 @@
 // The desktop app's file jobs: an import through Kizuna AI is checked against the service's terms, asked for as it starts.
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import type { ImportOptions } from './importFile';
 
 const { importFile, fetchHostedFileTerms } = vi.hoisted(() => ({
@@ -49,10 +49,16 @@ describe('the app’s file jobs', () => {
     expect(importFile).not.toHaveBeenCalled();
   });
 
-  it('does not start an import through Kizuna AI without its terms', async () => {
-    for (const answer of [() => Promise.reject(new TypeError('offline')), () => Promise.resolve(null)]) {
+  // Terms that could not be had say the service could not be checked; a service that answers without them has no
+  // file jobs yet.
+  it('does not start an import through Kizuna AI without its terms, saying why', async () => {
+    for (const [answer, code] of [
+      [() => Promise.reject(new TypeError('offline')), 'unchecked'],
+      [() => Promise.reject(new DOMException('The operation timed out.', 'TimeoutError')), 'unchecked'],
+      [() => Promise.resolve(null), 'HOSTED_UNAVAILABLE'],
+    ] as const) {
       fetchHostedFileTerms.mockImplementationOnce(answer);
-      await expect(start(HOSTED)).rejects.toMatchObject({ code: 'HOSTED_UNAVAILABLE' });
+      await expect(start(HOSTED), code).rejects.toMatchObject({ code });
     }
     expect(importFile).not.toHaveBeenCalled();
   });
@@ -61,6 +67,44 @@ describe('the app’s file jobs', () => {
     await start(OWN_KEY);
     expect(fetchHostedFileTerms).not.toHaveBeenCalled();
     expect(importFile.mock.calls[0][0].hostedTerms).toBeUndefined();
+  });
+
+  // The profile writes the wallet it fetched into the account store a render after its fetch resolves: the page decides
+  // on the account only once the store holds what was read.
+  describe('reads the account again', () => {
+    const before = { status: 'known' as const, balanceMicroUsd: 0, frozen: false };
+    const fresh = { status: 'known' as const, balanceMicroUsd: 5, frozen: false };
+    afterEach(() => {
+      vi.useRealTimers();
+      useAccountStore.setState({ account: null, refreshAccount: null });
+    });
+
+    it('and answers once the app holds what was read', async () => {
+      const refreshAccount = vi.fn(async () => { setTimeout(() => useAccountStore.setState({ account: fresh }), 0); });
+      useAccountStore.setState({ account: before, refreshAccount });
+      await appFileJobs().refreshAccount();
+      expect(refreshAccount).toHaveBeenCalledTimes(1);
+      expect(appFileJobs().account()).toBe(fresh);
+    });
+
+    it('passes on a reading that fails, and answers at once when nothing can read it', async () => {
+      useAccountStore.setState({ account: before, refreshAccount: vi.fn(async () => { throw new Error('offline'); }) });
+      await expect(appFileJobs().refreshAccount()).rejects.toThrow('offline');
+      useAccountStore.setState({ refreshAccount: null });
+      await expect(appFileJobs().refreshAccount()).resolves.toBeUndefined();
+    });
+
+    it('does not wait past three seconds for a reading that writes nothing', async () => {
+      vi.useFakeTimers();
+      useAccountStore.setState({ account: before, refreshAccount: vi.fn(async () => {}) });
+      let answered = false;
+      void appFileJobs().refreshAccount().then(() => { answered = true; });
+      await vi.advanceTimersByTimeAsync(2999);
+      expect(answered).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(answered).toBe(true);
+      expect(appFileJobs().account()).toBe(before);
+    });
   });
 
   it('gives the page the terms and the account as the app holds it', async () => {

@@ -112,8 +112,8 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   const reachFor = async (index: number) => {
     const s = o.service;
     if (!('hosted' in s)) return { apiKey: s.apiKey, ...(s.region ? { region: s.region } : {}) };
-    const token = s.access ? await s.access.token() : null;
-    if (!s.access || !token) {
+    const token = await s.access.token();
+    if (!token) {
       // Cancelled while the sign-in was read: the cancel is what happened, not a missing sign-in.
       if (o.signal?.aborted) throw cancelled();
       throw new TranscribeError('SIGN_IN', 'Sign in to Kizuna AI to transcribe with it');

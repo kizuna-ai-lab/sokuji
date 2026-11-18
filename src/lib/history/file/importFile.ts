@@ -24,8 +24,12 @@ const PIECE_BYTES = 1024 * 1024;
 const LOUD = 64;
 const FILE_MODEL = 'stt-async-v6';
 
-/** `HOSTED_TOO_LONG`: longer than Kizuna AI's service takes; `HOSTED_UNAVAILABLE`: its terms could not be read. */
-export type ImportCode = 'TOO_LONG' | 'TOO_BIG' | 'UNSUPPORTED' | 'NO_AUDIO' | 'CANCELLED' | 'HOSTED_TOO_LONG' | 'HOSTED_UNAVAILABLE';
+/**
+ * `HOSTED_TOO_LONG`: longer than Kizuna AI's service takes; `HOSTED_UNAVAILABLE`: its service publishes no terms for a
+ * file job (it has none yet); `unchecked`: its terms could not be had (no answer, a refusal), as the panel's block of
+ * that name says.
+ */
+export type ImportCode = 'TOO_LONG' | 'TOO_BIG' | 'UNSUPPORTED' | 'NO_AUDIO' | 'CANCELLED' | 'HOSTED_TOO_LONG' | 'HOSTED_UNAVAILABLE' | 'unchecked';
 
 export class ImportError extends Error {
   readonly code: ImportCode;

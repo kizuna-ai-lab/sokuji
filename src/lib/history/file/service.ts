@@ -22,17 +22,31 @@ export interface HostedAccess {
   payer?: 'organization' | 'personal';
 }
 
-/** A provider's file recognition, with how to reach it: `access` is present exactly when the spec is `hosted`. */
-export type FileRecognitionService = FileRecognitionSpec & { access?: HostedAccess };
+/**
+ * A provider's file recognition, with how to reach it: with the user's own key, nothing more; through Kizuna AI's
+ * service (`hosted`), always with its `access`.
+ */
+export type FileRecognitionService =
+  | Exclude<FileRecognitionSpec, { hosted: true }>
+  | (Extract<FileRecognitionSpec, { hosted: true }> & { access: HostedAccess });
 export interface FileRecognitionMissing { missing: 'no-file-service' | 'no-key' | 'sign-in' }
 
+/**
+ * The line-up's file recognition, or what it is missing. Rejects when it cannot be looked up: the store's settings
+ * could not be read, or (for a provider reached through the sign-in, which holds no key) not loaded.
+ */
 export async function fileRecognitionFromStores(): Promise<FileRecognitionService | FileRecognitionMissing> {
   const id = useLineUpStore.getState().lineUp?.transcription;
   const provider = id ? getProvider(id) : undefined;
   if (!id || !provider?.fileRecognition) return { missing: 'no-file-service' };
   if (!useProviderStore.getState().entries[id]) await useProviderStore.getState().load(provider);
   const entry = useProviderStore.getState().entries[id];
-  if (!entry) return { missing: 'no-key' };
+  if (!entry) {
+    // Kizuna AI's twin holds no key: its settings not there is a lookup that failed (the page says the service could
+    // not be checked), never a key not filled in.
+    if (provider.kind === 'managed') throw new Error(`The settings of ${id} could not be loaded`);
+    return { missing: 'no-key' };
+  }
   // The word list as a session reads it at start: what the user has now.
   if (!useWordList.getState().loaded) await useWordList.getState().load();
   const { entries, background } = useWordList.getState();

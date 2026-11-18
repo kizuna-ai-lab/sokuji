@@ -72,8 +72,9 @@ function fakeJobs(o: {
       if (o.terms instanceof Error) throw o.terms;
       return o.terms === undefined ? TERMS : o.terms;
     }),
-    // As the app reads it: the account the title bar shows.
+    // As the app reads it: the account the title bar shows, read again through the app's account.
     account: () => useAccountStore.getState().account,
+    refreshAccount: async () => { await useAccountStore.getState().refreshAccount?.(); },
     sessionRunning: () => o.session ?? false,
     importFile: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['importFile'],
     transcribe: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['transcribe'],
@@ -658,6 +659,8 @@ describe('through Kizuna AI’s Soniox', () => {
   for (const [code, text] of [
     ['HOSTED_UNAVAILABLE', 'Transcribing files with Kizuna AI is not available yet.'],
     ['JOB_RUNNING', 'Another file is being transcribed on this account. Try again when it has finished.'],
+    // An import whose terms could not be had as it started: the block's words, through the codes' fallback to them.
+    ['unchecked', 'The transcription service could not be checked. Close this and try again.'],
   ] as const) {
     it(`says ${code} as “${text}”, with nothing to open`, async () => {
       await failWith(code);
