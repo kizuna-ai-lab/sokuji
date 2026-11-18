@@ -65,10 +65,7 @@
     }
   }
 
-  &.highlight {
-    animation: pulse-highlight 2s ease-out;
-    border-radius: vars.$radius-lg;
-  }
+  &.highlight { @include vars.jump-hint; }
 
   &.disabled {
     opacity: 0.5;
@@ -637,10 +634,7 @@
 // Controls have nothing to tune, and hidden then (the section before it
 // takes the `:last-child` resets, above).
 .turn-detection-tuning-block {
-  &.highlight {
-    animation: pulse-highlight 2s ease-out;
-    border-radius: vars.$radius-lg;
-  }
+  &.highlight { @include vars.jump-hint; }
 
   &:empty {
     display: none;
@@ -1819,33 +1813,8 @@
   to { transform: rotate(360deg); }
 }
 
-@keyframes pulse-highlight {
-  0%, 100% {
-    background-color: transparent;
-    box-shadow: none;
-    outline: none;
-  }
-  20%, 40%, 60% {
-    background-color: color-mix(in srgb, tk.$color-info 25%, transparent);
-    box-shadow: 0 0 40px color-mix(in srgb, tk.$color-info 80%, transparent),
-                0 0 20px color-mix(in srgb, tk.$color-info 60%, transparent) inset;
-    outline: 3px solid color-mix(in srgb, tk.$color-info 70%, transparent);
-    outline-offset: 8px;
-  }
-  30%, 50%, 70% {
-    background-color: color-mix(in srgb, tk.$color-info 15%, transparent);
-    box-shadow: 0 0 25px color-mix(in srgb, tk.$color-info 60%, transparent),
-                0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent) inset;
-    outline: 2px solid color-mix(in srgb, tk.$color-info 50%, transparent);
-    outline-offset: 6px;
-  }
-  90% {
-    background-color: color-mix(in srgb, tk.$color-info 5%, transparent);
-    box-shadow: 0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent);
-    outline: 1px solid color-mix(in srgb, tk.$color-info 20%, transparent);
-    outline-offset: 4px;
-  }
-}
+// The jump locator's run (vars.jump-hint).
+@include vars.jump-hint-keyframes;
 
 // Animated trailing dots for the LOCAL_NATIVE "Starting the local engine" line.
 @keyframes local-native-dots {

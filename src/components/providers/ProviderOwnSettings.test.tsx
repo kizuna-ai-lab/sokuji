@@ -197,9 +197,10 @@ describe('ProviderTurnDetectionControls', () => {
 
   // A plain wrapper, not a section: `.settings-section.highlight` does not
   // reach it, so it carries the sections' highlight itself.
-  it('the wrapper takes the sections\' navigation highlight (compiled Settings.scss)', () => {
+  it('the wrapper takes the sections\' jump locator (compiled Settings.scss)', () => {
     const { css } = compile(resolve(__dirname, '../Settings/Settings.scss'));
-    expect(css).toMatch(/\.turn-detection-tuning-block\.highlight\s*\{[^}]*animation:\s*pulse-highlight 2s ease-out;/);
+    // Its timing is the locator's own (jumpHint.styles.test.ts).
+    expect(css).toMatch(/\.turn-detection-tuning-block\.highlight::after\s*\{[^}]*animation:\s*jump-hint \d+ms ease-out;/);
   });
 });
 

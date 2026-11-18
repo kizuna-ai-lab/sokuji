@@ -772,8 +772,8 @@
   &__caption { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed vars.$border-subtle; font-size: 11.5px; color: vars.$text-muted; }
   .models-group__fold { border-top: none; }
   .models-stage__shown + .models-group__fold { border-top: 1px solid vars.$border-subtle; }
-  // Where an engine slot's "Browse library…" lands (B-20): the sections' pulse, on that stage's group.
-  &.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }
+  // Where an engine slot's "Browse library…" lands (B-20): the sections' jump locator, on that stage's group.
+  &.highlight { @include vars.jump-hint; }
   // The model library's cards (B-20), a little apart; a card's "Delete …?" right under it.
   .models-card { margin-top: 6px; }
   .models-card > .model-row__confirm { margin-top: 6px; }
@@ -957,7 +957,10 @@
   }
 }
 .settings-page--narrow .sound-flow { display: none; }
-// A row the page went to (B-27: from the drawing above): the sections' pulse, on that row alone.
-// A target's landing: the row a link named (an account's row), pulsing once as the sections do.
+// A row the page went to (B-27: from the drawing above), or the row a link named (an account's row): the sections'
+// jump locator, on that row alone.
 .settings-page .setting-row.highlight,
-.settings-page .accounts-row.highlight { animation: pulse-highlight 2s ease-out; border-radius: vars.$radius-md; }
+.settings-page .accounts-row.highlight { @include vars.jump-hint; }
+
+// The jump locator's run (vars.jump-hint), for this stylesheet's targets.
+@include vars.jump-hint-keyframes;
