@@ -9,7 +9,7 @@ import type { HostedFileTerms } from '../../lib/history/file/hostedFile';
 import type { AccountState } from '../../lib/session/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { openExternalUrl } from '../../utils/openExternalUrl';
-import '../../locales';
+import i18n from '../../locales';
 import { HistoryPageContext } from './historyContext';
 import { FileJobLine, ImportPanel, TranscribePanel, TranscriptChooser } from './FileJobs';
 import { PIN_SEPARATOR } from '../../lib/language/order';
@@ -26,6 +26,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import en from '../../locales/en/translation.json';
 import zhCN from '../../locales/zh_CN/translation.json';
 import zhTW from '../../locales/zh_TW/translation.json';
+import he from '../../locales/he/translation.json';
 
 vi.mock('../../utils/openExternalUrl', () => ({ openExternalUrl: vi.fn() }));
 
@@ -473,6 +474,8 @@ describe('through Kizuna AI’s Soniox', () => {
     return f;
   };
   const translateInto = (code: string) => fireEvent.change(screen.getByLabelText('Translate into'), { target: { value: code } });
+  /** The estimate as shown: the price set apart from the words around it (U+2068 … U+2069), as right-to-left text needs. */
+  const about = (price: string) => `About \u2068${price}\u2069.`;
 
   it('names Kizuna AI as the service in both panels, and what a transcription is estimated to cost as the options change', async () => {
     useAccountStore.setState({ account: known(10_000_000) });
@@ -497,12 +500,55 @@ describe('through Kizuna AI’s Soniox', () => {
     expect(screen.queryByText(SERVICE_OWN_KEY)).toBeNull();
     expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('zh');
     expect(screen.getByLabelText<HTMLSelectElement>('Translate into').value).toBe('zh');
-    expect(screen.getByText('About $0.20.')).toBeTruthy();
+    expect(screen.getByText(about('$0.20'))).toBeTruthy();
     translateInto('ja');
     await settle();
-    expect(screen.getByText('About $0.32.')).toBeTruthy();
-    expect(screen.queryByText('About $0.20.')).toBeNull();
+    expect(screen.getByText(about('$0.32'))).toBeTruthy();
+    expect(screen.queryByText(about('$0.20'))).toBeNull();
     expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
+  });
+
+  // A price asked for other choices is never shown beside these.
+  it('drops the price shown as soon as the options change, until the new one is known; none when there is none', async () => {
+    useAccountStore.setState({ account: known(10_000_000) });
+    keeping(HOUR);
+    hosted();
+    await act(() => store.getState().openRecord(A));
+    const answers: Array<(amount: number | null) => void> = [];
+    store.setState({ fileEstimate: vi.fn(() => new Promise<number | null>((resolve) => { answers.push(resolve); })) });
+    /** Answers the estimate asked for last, as the options are now. */
+    const answer = (amount: number | null) => act(async () => { answers[answers.length - 1](amount); });
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    await answer(0.2);
+    expect(screen.getByText(about('$0.20'))).toBeTruthy();
+    translateInto('ja');
+    await settle();
+    expect(screen.queryByText(/^About /)).toBeNull();
+    await answer(0.32);
+    expect(screen.getByText(about('$0.32'))).toBeTruthy();
+    translateInto('fr');
+    await settle();
+    await answer(null);
+    expect(screen.queryByText(/^About /)).toBeNull();
+  });
+
+  // In a right-to-left language the dollar sign stays with its digits.
+  it('sets the price apart from the words around it in a right-to-left language', async () => {
+    useAccountStore.setState({ account: known(10_000_000) });
+    keeping(HOUR);
+    hosted();
+    await act(() => store.getState().openRecord(A));
+    i18n.addResourceBundle('he', 'translation', he, true, true);
+    await act(async () => { await i18n.changeLanguage('he'); });
+    try {
+      show(<TranscribePanel onClose={() => {}} />);
+      await settle();
+      expect(screen.getByText(he.history.file.estimate.replace('{{price}}', '\u2068$0.32\u2069'))).toBeTruthy();
+    } finally {
+      cleanup();
+      await act(async () => { await i18n.changeLanguage('en'); });
+    }
   });
 
   it('shows no estimate with the user’s own key', async () => {

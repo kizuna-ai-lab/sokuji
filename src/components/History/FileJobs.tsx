@@ -152,7 +152,9 @@ function useFileTexts(hours: number) {
       failureFix: (code: string): Fix | null => failureFixes[code] ?? null,
       service: t('history.file.service', 'Transcribed by Soniox, with your own key.'),
       serviceHosted: t('history.file.serviceHosted', 'Transcribed by Soniox through Kizuna AI, paid from your balance.'),
-      estimate: (amount: number) => t('history.file.estimate', 'About {{price}}.', { price: usd(amount) }),
+      // The price set apart from the sentence (first strong isolate … pop directional isolate), so in a right-to-left
+      // language its dollar sign stays with its digits; left-to-right text looks the same.
+      estimate: (amount: number) => t('history.file.estimate', 'About {{price}}.', { price: `\u2068${usd(amount)}\u2069` }),
       cancelCharged: t('history.file.cancelCharged', 'Soniox is already transcribing: cancelling now is still charged.'),
     };
   }, [t, account, payer, hours]);
@@ -241,7 +243,8 @@ function useHostedHours(wanted: boolean): number {
 /**
  * Which service transcribes the file and, through Kizuna AI, what the job is estimated to cost: asked again whenever
  * the options change (a translation is priced higher), shown when there is a figure (none for an import, whose length
- * is not known before it is read).
+ * is not known before it is read). A price asked for other choices is dropped as the new one is asked for, so it is
+ * never shown beside these.
  */
 const ServiceLine: React.FC<{ kind: 'import' | 'transcribe'; options: FileTranscriptionOptions; hosted: boolean; texts: FileTexts }> = ({ kind, options, hosted, texts }) => {
   const { store } = useHistoryPageContext();
@@ -250,6 +253,7 @@ const ServiceLine: React.FC<{ kind: 'import' | 'transcribe'; options: FileTransc
   // The options are made anew at each render: compared by what they say.
   const asked = JSON.stringify(options);
   useEffect(() => {
+    setEstimate(null);
     if (!hosted) return;
     let live = true;
     void store.getState().fileEstimate(kind, options).then((amount) => { if (live) setEstimate(amount); });
