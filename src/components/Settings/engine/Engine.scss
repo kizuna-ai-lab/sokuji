@@ -1,5 +1,4 @@
 @use '../shared/variables' as vars;
-@use '../../../styles/tokens' as tk;
 
 // EngineSurface's own outer shell reuses `.config-section` (Settings.scss)
 // for the section chrome (border, spacing, the `.highlight` hook, and —
@@ -42,13 +41,8 @@
   gap: 10px;
   margin-bottom: 8px;
 
-  // A chip click deep-links here and flashes THIS row. Replicates
-  // Settings.scss's .config-section.highlight / @keyframes pulse-highlight —
-  // same look, its own name since .engine-slot isn't a .config-section.
-  &.highlight {
-    animation: engine-pulse-highlight 2s ease-out;
-    border-radius: vars.$radius-md;
-  }
+  // A chip click deep-links here and marks THIS row: the settings' jump locator (vars.jump-hint), as on the sections.
+  &.highlight { @include vars.jump-hint; }
 
   // Full stage names ("Speech Recognition (ASR)"), matching the standalone
   // sections' group titles. A fixed basis keeps the select column aligned
@@ -263,34 +257,6 @@
   }
 }
 
-@keyframes engine-pulse-highlight {
-  0%, 100% {
-    background-color: transparent; // frameless rows rest with no background
-    box-shadow: none;
-    outline: none;
-  }
-  20%, 40%, 60% {
-    background-color: color-mix(in srgb, tk.$color-info 25%, transparent);
-    box-shadow: 0 0 40px color-mix(in srgb, tk.$color-info 80%, transparent),
-                0 0 20px color-mix(in srgb, tk.$color-info 60%, transparent) inset;
-    outline: 3px solid color-mix(in srgb, tk.$color-info 70%, transparent);
-    outline-offset: 4px;
-  }
-  30%, 50%, 70% {
-    background-color: color-mix(in srgb, tk.$color-info 15%, transparent);
-    box-shadow: 0 0 25px color-mix(in srgb, tk.$color-info 60%, transparent),
-                0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent) inset;
-    outline: 2px solid color-mix(in srgb, tk.$color-info 50%, transparent);
-    outline-offset: 3px;
-  }
-  90% {
-    background-color: color-mix(in srgb, tk.$color-info 5%, transparent);
-    box-shadow: 0 0 10px color-mix(in srgb, tk.$color-info 30%, transparent);
-    outline: 1px solid color-mix(in srgb, tk.$color-info 20%, transparent);
-    outline-offset: 2px;
-  }
-}
-
 // Narrow settings panel: abbreviations (ASR / MT / TTS) in a short label
 // column, and the per-slot extras indent to match. The engine surface is
 // the query container so the threshold follows the panel, not the window.
@@ -301,3 +267,6 @@
   .engine-slot__label-long { display: none; }
   .engine-slot__label-short { display: inline; }
 }
+
+// The jump locator's run (vars.jump-hint), for this stylesheet's targets.
+@include vars.jump-hint-keyframes;

@@ -1,3 +1,4 @@
+@use 'sass:math';
 @use '../../../styles/tokens' as tk;
 
 // ============================================================
@@ -152,6 +153,47 @@ $toggle-bg-on:    $color-primary;
 @mixin disabled-state {
   opacity: $disabled-opacity;
   cursor: not-allowed;
+}
+
+// Where a link into the settings landed: SettingsPage marks its target `.highlight` for a while (owner and design
+// review, 2026-11-19, #121). One quiet locator for every target, in the theme's green: a faint tint and a 1px line on
+// one layer with one 6px corner, 6px clear of the content, under it (no click or focus ring is covered); in over 120ms,
+// held about a second, out over a second, once (`@keyframes jump-hint`, which each stylesheet drawing it includes
+// through `jump-hint-keyframes`). Under reduced motion it is
+// shown still while the target is marked.
+$jump-hint-in: 120ms;
+$jump-hint-hold: 1000ms;
+$jump-hint-out: 1000ms;
+$jump-hint-run: $jump-hint-in + $jump-hint-hold + $jump-hint-out;
+
+// The locator's run, at a stylesheet's root, in each that draws it: so it never depends on another being loaded.
+@mixin jump-hint-keyframes {
+  @keyframes jump-hint {
+    0% { opacity: 0; }
+    #{math.div(math.round(math.div($jump-hint-in, $jump-hint-run) * 10000), 100)}%,
+    #{math.div(math.round(math.div($jump-hint-in + $jump-hint-hold, $jump-hint-run) * 10000), 100)}% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+}
+
+@mixin jump-hint {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    z-index: -1;
+    border: 1px solid color-mix(in srgb, $color-primary 40%, transparent);
+    border-radius: 6px;
+    background: color-mix(in srgb, $color-primary 8%, transparent);
+    pointer-events: none;
+    opacity: 0;
+    animation: jump-hint $jump-hint-run ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after { animation: none; opacity: 1; }
+  }
 }
 
 @mixin focus-ring {
