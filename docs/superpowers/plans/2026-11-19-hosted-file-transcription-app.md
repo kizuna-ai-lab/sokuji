@@ -10,6 +10,19 @@
 
 **Spec:** this plan carries its own requirements: the service contract below and the owner's decisions listed under Global Constraints. There is no separate spec file in this repository.
 
+## Amended while building
+
+The code does these things differently from the tasks below, which are left as they were written.
+
+- When an organization pays, the page does not refuse a hosted job for its balance: the service decides. A frozen organization wallet is still refused.
+- Money is compared in whole micro-USD, the estimate rounded up, as the service counts it.
+- An import paid from a personal wallet that holds nothing is refused before it starts.
+- A hosted job whose translation target is the recording's only spoken language asks for no translation and is priced at the untranslated rate (owner, 2026-11-19). The user's own key is still asked exactly what was chosen.
+- A 403 the service does not explain as `wallet_frozen` (or `not_org_member`) is a service failure, not a frozen wallet.
+- The sign-in token is sent only over https; plain http is accepted only for `localhost`, `127.0.0.1` and `[::1]`, for development.
+- Polling a hosted job stops after 60 minutes without an outcome, as a service failure (the job is still ended), and it carries on through up to three failed polls in a row.
+- Review Focus 2 is narrowed: when the app quits in the middle of a hosted job, the End call is not sent. The service ends a job it has not heard from for 90 seconds and deletes what it holds. A page reload or a cancel still ends the job from the main process.
+
 ## The service contract
 
 Base: `<apiUrl>/soniox/file-jobs`, where `apiUrl` is what `getApiUrl()` returns in the page. Every call carries `Authorization: Bearer <sign-in token>`.
