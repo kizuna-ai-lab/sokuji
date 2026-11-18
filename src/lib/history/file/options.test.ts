@@ -65,6 +65,9 @@ describe('the options a file transcription starts from', () => {
     // From before the options were kept with the record: its language and the translation its leg names.
     const older = record({ mode: 'import', targetLanguage: 'ja', legs: [leg('participant', 'ja', 'fr')], tracks: [track('participant')] } as never);
     expect(optionsFor(older)).toEqual({ languages: ['ja'], translateTo: 'fr' });
+    // One whose language was "automatic": the user's language, so there is always a main one.
+    const unknown = record({ mode: 'import', targetLanguage: 'auto', legs: [], tracks: [track('participant')] } as never);
+    expect(optionsFor(unknown)).toEqual({ languages: ['zh'], translateTo: 'zh' });
   });
 
   it('a session whose sides say "automatic" or a two-way pair offers no "each side"', () => {

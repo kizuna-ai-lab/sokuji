@@ -56,7 +56,8 @@ export function optionsFor(record: HistoryRecord): FileTranscriptionOptions {
     const atImport = asOptions(record.services.options);
     if (atImport) return atImport;
     const target = record.legs.find((l) => l.leg === 'participant')?.languages.target;
-    return { languages: languagesOf(record.targetLanguage), translateTo: isOne(target) ? target : mine };
+    const spoken = languagesOf(record.targetLanguage);
+    return { languages: spoken.length > 0 ? spoken : [mine], translateTo: isOne(target) ? target : mine };
   }
   if (eachSideOffered(record)) {
     const [speaker, participant] = (['speaker', 'participant'] as const).map((name) => record.legs.find((l) => l.leg === name)!);
@@ -86,8 +87,8 @@ export function fitOptions(o: FileTranscriptionOptions, offered: readonly string
   const first = pick(fallback) ?? offered[0];
   const languages = [...new Set(o.languages.flatMap(languagesOf).map(pick).filter((c): c is string => c !== null))];
   if (languages.length === 0) languages.push(first);
-  const translateTo = o.translateTo === EACH_SIDE ? (eachSide ? EACH_SIDE : first) : pick(o.translateTo) ?? first;
-  return { languages, translateTo };
+  if (o.translateTo === EACH_SIDE) return { languages, translateTo: eachSide ? EACH_SIDE : first };
+  return { languages, translateTo: pick(o.translateTo) ?? first };
 }
 
 export function withMain(o: FileTranscriptionOptions, main: string): FileTranscriptionOptions {

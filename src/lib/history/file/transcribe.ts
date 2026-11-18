@@ -56,8 +56,10 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   // everyone on one track, so who is on which side is not known.
   const sideCertain = record.mode !== 'import'
     && !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
-  // In the service's own codes; a language it does not know is not sent, nor a translation into one.
-  const wire = (code: string) => (o.service.languageHint ? o.service.languageHint(code) : code);
+  // In the service's own codes, a regional code as its language when only that is known; a language it does not know
+  // at all is not sent, nor a translation into one.
+  const exact = (code: string) => (o.service.languageHint ? o.service.languageHint(code) : code);
+  const wire = (code: string) => exact(code) ?? exact(code.split(/[-_]/)[0].toLowerCase());
   const languageHints = [...new Set(o.options.languages.map(wire).filter((code): code is string => !!code))];
   // Each side into the other's language: every track into what its own side was translated into in the session.
   const translateToFor = (source: HistoryTrackSource) => {
