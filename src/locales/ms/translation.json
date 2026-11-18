@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Nota langsung",
+    "resize": "Ubah saiz nota langsung",
     "hint": "Nota langsung tidak dapat dikemas kini. Akan dicuba lagi.",
     "off": "Nota langsung dimatikan.",
     "waiting": "Nota muncul di sini semasa perbualan berjalan.",

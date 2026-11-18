@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Notes en direct",
+    "resize": "Redimensionner les notes en direct",
     "hint": "Les notes en direct n’ont pas pu être mises à jour. Nouvel essai à venir.",
     "off": "Les notes en direct sont désactivées.",
     "waiting": "Les notes apparaissent ici au fil de la conversation.",

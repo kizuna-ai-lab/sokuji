@@ -108,10 +108,11 @@
     min-width: 0;
     // The width the notes were dragged to (LiveNotesPanel, liveNotesWidth.ts); until then 300px of notes and their 12px
     // sides, as before the panel's padding moved inside it (B-30).
-    > .live-notes { flex: 0 0 var(--live-notes-width, 324px); }
-    // Where the divider on the notes' left shows (the main layout hides every divider at 768px and below), it is the
-    // seam, in place of the notes' own border.
-    @media (min-width: 769px) {
+    // At no less than its width either: a long word in a title would otherwise push it wider (review).
+    > .live-notes { flex: 0 0 var(--live-notes-width, 324px); min-width: 0; }
+    // Where the divider on the notes' left shows (the main layout hides every divider at 768px and below; fractional
+    // widths just above count as wider), it is the seam, in place of the notes' own border.
+    @media (width > 768px) {
       > .panel-resizer + .live-notes { border-left: none; }
     }
     // The same width as useNarrowWindow.ts, which picks the live notes switch's icon: change both together.

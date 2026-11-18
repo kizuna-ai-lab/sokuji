@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Liveanteckningar",
+    "resize": "Ändra storlek på liveanteckningar",
     "hint": "Liveanteckningarna kunde inte uppdateras. Ett nytt försök görs.",
     "off": "Liveanteckningar är avstängda.",
     "waiting": "Anteckningar visas här medan samtalet pågår.",

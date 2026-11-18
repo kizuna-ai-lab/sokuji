@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Live notities",
+    "resize": "Grootte van live notities aanpassen",
     "hint": "De live notities konden niet worden bijgewerkt. Er wordt opnieuw geprobeerd.",
     "off": "Live notities staan uit.",
     "waiting": "Notities verschijnen hier naarmate het gesprek vordert.",

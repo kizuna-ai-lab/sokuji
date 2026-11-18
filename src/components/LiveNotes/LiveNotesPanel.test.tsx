@@ -226,13 +226,26 @@ describe('the live notes panel', () => {
   // Owner, 2026-11-18: the panel's width can be dragged, at a divider on its left between it and the conversation, and
   // is kept for the next session (liveNotesWidth.ts).
   describe('its width', () => {
+    /** The row's width, and what is told when it changes (the window resized, a side panel opened). */
+    let rowWidth = 1400;
+    let rowWatchers: Array<() => void> = [];
     /** The panel in the conversation's row, as MainLayout docks it, the row `row` px wide. */
     function renderInRow(row = 1400) {
+      rowWidth = row;
+      rowWatchers = [];
       vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
-        return this.classList.contains('main-panel-row') ? row : 0;
+        return this.classList.contains('main-panel-row') ? rowWidth : 0;
+      });
+      vi.stubGlobal('ResizeObserver', class {
+        constructor(private readonly told: () => void) { rowWatchers.push(() => this.told()); }
+        observe() {}
+        disconnect() {}
       });
       return render(<div className="main-panel-row"><div className="main-panel-container" /><LiveNotesPanel onOpenHistory={vi.fn()} /></div>);
     }
+    const resizeRow = (row: number) => { rowWidth = row; act(() => rowWatchers.forEach((tell) => tell())); };
+    const pointer = (type: string, clientX: number, target: EventTarget = window) =>
+      target.dispatchEvent(Object.assign(new MouseEvent(type, { bubbles: true, clientX, button: 0 }), { pointerType: 'mouse' }));
     const panelWidth = () => (document.querySelector('.live-notes') as HTMLElement).style.getPropertyValue('--live-notes-width');
     afterEach(() => vi.restoreAllMocks());
 
@@ -291,6 +304,63 @@ describe('the live notes panel', () => {
       fireEvent.keyDown(divider, { key: 'ArrowRight' });
       expect(panelWidth()).toBe('583px');
       expect(localStorage.getItem('liveNotes.width')).toBe('583');
+    });
+
+    it('has a divider named after the live notes, so it is told apart from the Logs one', () => {
+      renderInRow();
+      expect(screen.getByRole('separator', { name: 'Resize live notes' })).toBeInTheDocument();
+    });
+
+    it('goes back to the width it had when a drag is cancelled, and keeps nothing of it', () => {
+      localStorage.setItem('liveNotes.width', '400');
+      renderInRow();
+      const divider = screen.getByRole('separator');
+      act(() => { pointer('pointerdown', 600, divider); pointer('pointermove', 500); });
+      expect(panelWidth()).toBe('500px');
+      act(() => { window.dispatchEvent(new Event('pointercancel')); });
+      expect(panelWidth()).toBe('400px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('400');
+    });
+
+    it('drops a drag in progress when the panel goes away, and comes back at the width it had', () => {
+      localStorage.setItem('liveNotes.width', '400');
+      renderInRow();
+      act(() => { pointer('pointerdown', 600, screen.getByRole('separator')); pointer('pointermove', 500); });
+      expect(panelWidth()).toBe('500px');
+      const before = useLiveNotes.getState();
+      act(() => {
+        useSettingsStore.setState({ liveNotes: false } as never);
+        useLiveNotes.setState({ recordId: null, state: null, running: false, ended: false, off: false, hint: false });
+      });
+      expect(screen.queryByRole('separator')).toBeNull();
+      act(() => { useSettingsStore.setState({ liveNotes: true } as never); useLiveNotes.setState(before); });
+      expect(panelWidth()).toBe('400px');
+    });
+
+    it('keeps the width the row allows when the drag ends, if the row changed during it', () => {
+      localStorage.setItem('liveNotes.width', '500');
+      renderInRow(1000);
+      const divider = screen.getByRole('separator');
+      act(() => { pointer('pointerdown', 600, divider); pointer('pointermove', 500); });
+      expect(panelWidth()).toBe('599px'); // the most a 1000px row allows
+      resizeRow(1400);
+      act(() => { pointer('pointerup', 400); });
+      expect(panelWidth()).toBe('700px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('700');
+    });
+
+    it('keeps the width it was moved to for this session when it could not be saved', () => {
+      localStorage.setItem('liveNotes.width', '700');
+      renderInRow(1000);
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+      const divider = screen.getByRole('separator');
+      fireEvent.keyDown(divider, { key: 'ArrowRight' });
+      expect(panelWidth()).toBe('583px');
+      resizeRow(950);
+      expect(panelWidth()).toBe('549px');
+      fireEvent.keyDown(divider, { key: 'ArrowLeft' }); // at the most a 950px row allows: nothing changes
+      resizeRow(1400);
+      expect(panelWidth()).toBe('583px');
     });
 
     it('dragged and brought back to where it started, shows and keeps the width it had', () => {

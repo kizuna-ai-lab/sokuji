@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Notas em direto",
+    "resize": "Redimensionar as notas em direto",
     "hint": "Não foi possível atualizar as notas em direto. Será feita nova tentativa.",
     "off": "As notas em direto estão desativadas.",
     "waiting": "As notas aparecem aqui à medida que a conversa avança.",

@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Catatan langsung",
+    "resize": "Ubah ukuran catatan langsung",
     "hint": "Catatan langsung tidak bisa diperbarui. Akan dicoba lagi.",
     "off": "Catatan langsung dimatikan.",
     "waiting": "Catatan muncul di sini seiring berjalannya percakapan.",

@@ -7,7 +7,7 @@
 // caption mode, nor when live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
 // notes will come. After Stop the notes stay until the next start or Clear, with the way to History, where the full
 // notes are written. Live notes are never kept (ruling 16).
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveNotesPresent, useLiveNotesShown } from '../../lib/notes/live/livePanel';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
@@ -34,20 +34,27 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const present = useLiveNotesPresent();
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrolledTo = useRef(0);
-  // The width the reader left it at, and the conversation's row it shares, measured before it paints: the width shown
-  // fits the row, and the one kept stays as it was left, for a wider window later.
+  // The width the reader left it at (kept on this computer, and held here too, so one that could not be saved still
+  // holds for this session); what a drag shows until it ends; and the conversation's row it shares, measured before it
+  // paints. The width shown fits the row; the one kept stays as it was left, for a wider window later.
   const asideRef = useRef<HTMLElement>(null);
-  const [width, setWidth] = useState(readLiveNotesWidth);
+  const [kept, setKept] = useState(readLiveNotesWidth);
+  const [preview, setPreview] = useState<number | null>(null);
   const [row, setRow] = useState(0);
+  // Read when a drag ends: its handlers were made when it began, and the row may have changed since.
+  const rowNow = useRef(0);
   useLayoutEffect(() => {
     const el = asideRef.current?.parentElement;
     if (!el) return undefined;
-    setRow(el.clientWidth);
+    const measure = () => { rowNow.current = el.clientWidth; setRow(el.clientWidth); };
+    measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
-    const watch = new ResizeObserver(() => setRow(el.clientWidth));
+    const watch = new ResizeObserver(measure);
     watch.observe(el);
     return () => watch.disconnect();
   }, [present]);
+  // Hidden or gone in the middle of a drag, the divider goes, and what it showed with it.
+  useEffect(() => { if (!shown || !present) setPreview(null); }, [shown, present]);
   // A new session's notes start at the top: the panel stays up between sessions while live notes are on.
   const liveRecordId = useLiveNotes((x) => x.recordId);
   const readingRecord = useRef(liveRecordId);
@@ -69,7 +76,7 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const hosted = useLineUpStore((s) => notesServiceOf(s.lineUp) === KIZUNA_NOTES);
   const pricing = useNotesPricing(hosted && isElectron());
   if (!present) return null;
-  const shownWidth = liveNotesWidthWithin(width, row);
+  const shownWidth = liveNotesWidthWithin(preview ?? kept, row);
 
   const kindWord: Record<NoteKind, string> = {
     decision: t('history.notesKind.decision', 'Decision'),
@@ -88,14 +95,16 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
         width={shownWidth}
         min={LIVE_NOTES_MIN_PX}
         max={liveNotesWidthWithin(Number.POSITIVE_INFINITY, row)}
-        onResize={(next) => setWidth(liveNotesWidthWithin(next, row))}
+        label={t('liveNotes.resize', 'Resize live notes')}
+        onResize={setPreview}
+        onCancel={() => setPreview(null)}
         onCommit={(next) => {
-          const fitted = liveNotesWidthWithin(next, row);
+          setPreview(null);
+          const fitted = liveNotesWidthWithin(next, rowNow.current);
           // Ending where the kept width shows (a click, a key at the limit, a drag back to the start) changes nothing:
           // the width kept from a wider window stays, for when there is room again (review).
-          const kept = readLiveNotesWidth();
-          if (fitted === liveNotesWidthWithin(kept, row)) { setWidth(kept); return; }
-          setWidth(fitted);
+          if (fitted === liveNotesWidthWithin(kept, rowNow.current)) return;
+          setKept(fitted);
           writeLiveNotesWidth(fitted);
         }}
       />

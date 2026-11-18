@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Notas ao vivo",
+    "resize": "Redimensionar as notas ao vivo",
     "hint": "Não foi possível atualizar as notas ao vivo. Uma nova tentativa será feita.",
     "off": "As notas ao vivo estão desativadas.",
     "waiting": "As notas aparecem aqui conforme a conversa avança.",

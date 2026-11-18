@@ -2192,6 +2192,7 @@
   },
   "liveNotes": {
     "title": "Ghi chú trực tiếp",
+    "resize": "Thay đổi kích thước ghi chú trực tiếp",
     "hint": "Không cập nhật được ghi chú trực tiếp. Sẽ thử lại.",
     "off": "Ghi chú trực tiếp đang tắt.",
     "waiting": "Ghi chú xuất hiện ở đây khi cuộc trò chuyện diễn ra.",
