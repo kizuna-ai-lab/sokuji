@@ -131,6 +131,13 @@ describe('transcribing a record again', () => {
     expect(asked.map((r) => [r.source, r.translateTo])).toEqual([['speaker', 'en'], ['participant', 'zh']]);
   });
 
+  it('each side: a side the session translated into nothing is sent without a translation', async () => {
+    const legs = record().legs.map((l) => (l.leg === 'participant' ? { ...l, languages: { source: 'en', target: '' } } : l));
+    const { port, asked } = fakePort({ record: { ...record(), legs } as HistoryRecord, words: { speaker: said('Mine.', 0), participant: said('Theirs.', 200) } });
+    await transcribeRecord({ options: { languages: ['en', 'zh'], translateTo: EACH_SIDE }, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
+    expect(asked.map((r) => [r.source, 'translateTo' in r, r.translateTo])).toEqual([['speaker', true, 'en'], ['participant', false, undefined]]);
+  });
+
   it('keeps each turn\u2019s translation on its first sentence, in the new transcript', async () => {
     const { port, written } = fakePort({ words: { speaker: [...said('Mine.', 0), ...translated('我的。')], participant: [...said('Theirs.', 200), ...translated('他们的。')] } });
     await transcribeRecord({ options: OPTIONS, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });

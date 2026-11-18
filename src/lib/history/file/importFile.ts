@@ -24,7 +24,7 @@ const PIECE_BYTES = 1024 * 1024;
 const LOUD = 64;
 const FILE_MODEL = 'stt-async-v6';
 
-/** `HOSTED_TOO_LONG`: longer than Kizuna AI's service takes; `HOSTED_UNAVAILABLE`: its terms could not be had. */
+/** `HOSTED_TOO_LONG`: longer than Kizuna AI's service takes; `HOSTED_UNAVAILABLE`: its terms could not be read. */
 export type ImportCode = 'TOO_LONG' | 'TOO_BIG' | 'UNSUPPORTED' | 'NO_AUDIO' | 'CANCELLED' | 'HOSTED_TOO_LONG' | 'HOSTED_UNAVAILABLE';
 
 export class ImportError extends Error {
@@ -89,7 +89,7 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
   if (durationMs <= 0) throw new ImportError('NO_AUDIO', 'The file holds no audio');
   // Through Kizuna AI, the service's own limit is the one the user is told of: never the one of Soniox with a key.
   if (o.hostedTerms && durationMs > o.hostedTerms.maxAudioMs) {
-    throw new ImportError('HOSTED_TOO_LONG', `The file is longer than ${o.hostedTerms.maxAudioMs / 60_000} minutes`);
+    throw new ImportError('HOSTED_TOO_LONG', `The file is longer than ${Math.floor(o.hostedTerms.maxAudioMs / 60_000)} minutes`);
   }
   if (durationMs > MAX_IMPORT_MS) throw new ImportError('TOO_LONG', `The file is longer than ${MAX_IMPORT_MS / 60_000} minutes`);
   if (o.signal?.aborted) throw cancelled();

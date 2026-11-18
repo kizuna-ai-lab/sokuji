@@ -22,12 +22,19 @@ const newJobId = () => `job-${crypto.randomUUID()}`;
 
 /**
  * The terms an import through Kizuna AI is checked against, asked for once as it starts; none for the user's own key.
- * Without them the import does not start: its length could not be checked against the service's limit.
+ * Without them the import does not start: its length could not be checked against the service's limit. A cancel while
+ * they are asked for ends the import as cancelled.
  */
-async function importTerms(service: FileRecognitionService): Promise<HostedFileTerms | undefined> {
+async function importTerms(service: FileRecognitionService, signal: AbortSignal): Promise<HostedFileTerms | undefined> {
   if (!('hosted' in service)) return undefined;
-  const terms = await fetchHostedFileTerms().catch(() => null);
-  if (!terms) throw new ImportError('HOSTED_UNAVAILABLE', 'The terms for transcribing a file through Kizuna AI could not be had');
+  let terms: HostedFileTerms | null;
+  try {
+    terms = await fetchHostedFileTerms(undefined, signal);
+  } catch {
+    if (signal.aborted) throw new ImportError('CANCELLED', 'The import was cancelled');
+    terms = null;
+  }
+  if (!terms) throw new ImportError('HOSTED_UNAVAILABLE', 'The terms for transcribing a file through Kizuna AI could not be read');
   return terms;
 }
 
@@ -44,7 +51,7 @@ export function appFileJobs(): FileJobs {
     account: () => useAccountStore.getState().account,
     sessionRunning: () => currentRunPhase() !== 'idle',
     importFile: async (o) => importFile({
-      port, file: o.file, myLanguage: o.myLanguage, options: o.options, service: o.service, hostedTerms: await importTerms(o.service),
+      port, file: o.file, myLanguage: o.myLanguage, options: o.options, service: o.service, hostedTerms: await importTerms(o.service, o.signal),
       appVersion: getAppVersion() ?? '', readDuration, decode: decodeFile, encoder: webCodecsOpusEncoder, clock: realClock,
       newId: () => crypto.randomUUID(), newJobId, onProgress: o.onProgress, signal: o.signal,
     }),

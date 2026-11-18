@@ -23,12 +23,14 @@ export interface HostedFileTerms {
 export interface TrackSize { durationMs: number; bytes: number }
 
 const HOUR_MS = 3_600_000;
+/** How long the pricing table is waited for: past this, the terms cannot be read. */
+export const TERMS_TIMEOUT_MS = 10_000;
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 
 /** The table's block; null when it has none, or one this app cannot use (the service does not offer file jobs yet). */
 async function readTerms(send: typeof fetch): Promise<HostedFileTerms | null> {
-  const response = await send(`${getApiUrl()}/pricing`, { method: 'GET' });
+  const response = await send(`${getApiUrl()}/pricing`, { method: 'GET', signal: AbortSignal.timeout(TERMS_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`The pricing could not be read (${response.status})`);
   const block = ((await response.json()) as { fileTranscription?: Record<keyof HostedFileTerms, unknown> } | null)?.fileTranscription;
   if (!block) return null;
@@ -40,17 +42,32 @@ async function readTerms(send: typeof fetch): Promise<HostedFileTerms | null> {
 /** The terms asked for, or being asked for: only an answer that has them is kept. */
 let asked: Promise<HostedFileTerms | null> | null = null;
 
+/** `promise`, or its caller's abort once `signal` aborts first. */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => { signal.removeEventListener('abort', onAbort); resolve(value); },
+      (error: unknown) => { signal.removeEventListener('abort', onAbort); reject(error); },
+    );
+  });
+}
+
 /**
- * The terms from `<apiUrl>/pricing`; null when the service has none; rejects when they cannot be read (no answer, a
- * refusal, not JSON). Kept once had, as the notes' prices are; a failure or an answer without them is asked again
- * next time, so a connection back or a service that gained the feature is seen.
+ * The terms from `<apiUrl>/pricing`; null when the service has none; rejects when they cannot be read (no answer
+ * within `TERMS_TIMEOUT_MS`, a refusal, not JSON). Kept once read, as the notes' prices are; a failure or an answer
+ * without them is asked again next time, so a connection back or a service that gained the feature is seen.
+ * `signal` (a job's cancel) ends the caller's wait at once; the request itself goes on, bounded by its timeout, since
+ * another caller may be waiting on the same answer.
  */
-export function fetchHostedFileTerms(send: typeof fetch = (input, init) => fetch(input, init)): Promise<HostedFileTerms | null> {
+export function fetchHostedFileTerms(send: typeof fetch = (input, init) => fetch(input, init), signal?: AbortSignal): Promise<HostedFileTerms | null> {
+  if (signal?.aborted) return Promise.reject(signal.reason);
   asked ??= readTerms(send).then(
     (terms) => { if (!terms) asked = null; return terms; },
     (error: unknown) => { asked = null; throw error; },
   );
-  return asked;
+  return signal ? untilAborted(asked, signal) : asked;
 }
 
 /** Forgets the terms kept, for tests. */
@@ -64,8 +81,27 @@ export function fitsHosted(tracks: readonly TrackSize[], terms: HostedFileTerms)
     && t.bytes <= t.durationMs * terms.maxBytesPerMs + terms.bytesSlack);
 }
 
-/** The estimated price in USD of transcribing the tracks: their length at the published rate. */
-export function hostedEstimateUsd(tracks: readonly TrackSize[], translated: boolean, terms: HostedFileTerms): number {
-  const ms = tracks.reduce((sum, t) => sum + t.durationMs, 0);
-  return (ms / HOUR_MS) * (translated ? terms.translatedUsdPerHour : terms.usdPerHour);
+/** Whether the tracks are translated: one answer for all of them, or one per track, in order. */
+export type TracksTranslated = boolean | readonly boolean[];
+
+/** A published rate per hour in whole micro-USD (the table's dollars carry no finer fraction). */
+const microUsdPerHour = (usd: number) => Math.round(usd * 1_000_000);
+
+/**
+ * The estimated price in micro-USD of transcribing the tracks: each one's length at its rate, translated or not,
+ * rounded up to a whole micro-USD as the service rounds its estimate. Worked in whole numbers (a length in ms times
+ * micro-USD an hour stays exact far beyond any recording), so no fraction drifts in: 90 minutes at $0.20 an hour is
+ * 300 000, never 300 001.
+ */
+export function hostedEstimateMicroUsd(tracks: readonly TrackSize[], translated: TracksTranslated, terms: HostedFileTerms): number {
+  const plain = microUsdPerHour(terms.usdPerHour);
+  const withTranslation = microUsdPerHour(terms.translatedUsdPerHour);
+  const translatedAt = (i: number) => (typeof translated === 'boolean' ? translated : translated[i] === true);
+  const scaled = tracks.reduce((sum, t, i) => sum + t.durationMs * (translatedAt(i) ? withTranslation : plain), 0);
+  return Math.ceil(scaled / HOUR_MS);
+}
+
+/** The estimated price in USD of transcribing the tracks: `hostedEstimateMicroUsd`, in dollars. */
+export function hostedEstimateUsd(tracks: readonly TrackSize[], translated: TracksTranslated, terms: HostedFileTerms): number {
+  return hostedEstimateMicroUsd(tracks, translated, terms) / 1_000_000;
 }

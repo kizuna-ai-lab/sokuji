@@ -5,6 +5,7 @@ import type { HistoryPort } from './port';
 import type { HistoryNotes, HistoryRecord, HistoryRecordRow } from './types';
 import { createFileJobState, createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
 import type { HostedFileTerms } from './file/hostedFile';
+import { EACH_SIDE } from './file/options';
 import type { AccountState } from '../session/types';
 import { setUseOwnBalance } from '../session/payerChoice';
 import { useWordList } from '../words/list';
@@ -760,9 +761,9 @@ describe('transcripts and file jobs', () => {
     /** A kept recording at 48 kbit/s (6 bytes a millisecond); `goneAt` set, deleted. */
     const track = (source: string, durationMs: number, goneAt: number | null = null) =>
       ({ source, file: `${source}.opus`, format: 'ogg-opus', durationMs, bytes: durationMs * 6, offsetMs: 0, goneAt });
-    /** Opens a record keeping these tracks: an hour of each side unless said otherwise. */
-    const openWith = async (tracks = [track('speaker', HOUR), track('participant', HOUR)]) => {
-      port.getRecord = async () => ({ ...recordOf(A, [1]), tracks });
+    /** Opens a record keeping these tracks (an hour of each side unless said otherwise), with these legs. */
+    const openWith = async (tracks = [track('speaker', HOUR), track('participant', HOUR)], legs: HistoryRecord['legs'] = []) => {
+      port.getRecord = async () => ({ ...recordOf(A, [1]), tracks, legs });
       await store.getState().openRecord(A);
     };
     const known = (balanceMicroUsd: number, over: Partial<Extract<AccountState, { status: 'known' }>> = {}): AccountState =>
@@ -777,6 +778,19 @@ describe('transcripts and file jobs', () => {
       return f;
     };
     const blocked = (kind: 'import' | 'transcribe') => store.getState().fileJobBlocked(kind);
+
+    it('says a job is running, or a session, before asking anything of Kizuna AI', async () => {
+      const f = fakeJobs({ hosted: true, session: true, terms: new Error('offline'), account: known(0, { frozen: true }) });
+      const state = createFileJobState();
+      state.setState({ job: { kind: 'transcribe', recordId: B, name: null, phase: 'processing' } });
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...f.jobs, state } as never);
+      expect(await blocked('transcribe')).toBe('busy');
+      expect(await blocked('import')).toBe('busy');
+      state.setState({ job: null });
+      expect(await blocked('import')).toBe('session');
+      expect(f.jobs.hostedTerms).not.toHaveBeenCalled();
+      expect(f.jobs.account).not.toHaveBeenCalled();
+    });
 
     // Offline as the panel opens: it says the service could not be checked, and nothing starts without the limits.
     it('cannot start while the terms cannot be read', async () => {
@@ -793,14 +807,19 @@ describe('transcripts and file jobs', () => {
       expect(await blocked('import')).toBe('hosted-unavailable');
     });
 
-    it('says the wallet is frozen: the account’s own, or the organization’s when it pays', async () => {
+    it('says the wallet is frozen', async () => {
       hostedStore({ account: known(0, { frozen: true }) });
       await openWith([track('speaker', 5 * HOUR)]);
       expect(await blocked('transcribe')).toBe('wallet-frozen');
       expect(await blocked('import')).toBe('wallet-frozen');
-      hostedStore({ account: member(10_000_000, 10_000_000, true) });
+    });
+
+    // Its balance is not weighed (below), but a frozen organization is refused, as the main panel's gate refuses it.
+    it('says the organization’s wallet is frozen when it pays', async () => {
+      hostedStore({ account: member(0, 10_000_000, true) });
       await openWith();
       expect(await blocked('transcribe')).toBe('wallet-frozen');
+      expect(await blocked('import')).toBe('wallet-frozen');
     });
 
     it('says a recording is longer than Kizuna AI takes, counting only the tracks kept; at the limit it starts', async () => {
@@ -828,19 +847,47 @@ describe('transcripts and file jobs', () => {
       hostedStore({ account: known(400_000) });
       await openWith();
       expect(await blocked('transcribe')).toBeNull();
-      // A member's organization pays: its balance counts, not the member's own.
-      hostedStore({ account: member(100_000, 10_000_000) });
-      await openWith();
-      expect(await blocked('transcribe')).toBe('no-balance');
-      // Unless the member chose to pay from their own balance.
+      // A member who chose to pay from their own balance: theirs is weighed.
       hostedStore({ account: member(10_000_000, 100_000) });
       await openWith();
-      expect(await blocked('transcribe')).toBeNull();
       setUseOwnBalance(true);
       try {
         expect(await blocked('transcribe')).toBe('no-balance');
       } finally {
         setUseOwnBalance(false);
+      }
+    });
+
+    // As the main panel's gate: an organization's balance in the page can be minutes old, and the service answers precisely.
+    it('does not refuse an organization that pays for its balance', async () => {
+      hostedStore({ account: member(100_000, 10_000_000) });
+      await openWith();
+      expect(await blocked('transcribe')).toBeNull();
+      hostedStore({ account: member(0, 0) });
+      expect(await blocked('import')).toBeNull();
+    });
+
+    // In floating dollars 1.5 h × $0.20 comes to a hair over $0.30, and exactly $0.30 would fall short.
+    it('weighs the wallet against the estimate in whole micro-USD: exactly enough starts', async () => {
+      const ninetyMinutes = [track('speaker', HOUR), track('participant', HOUR / 2)];
+      hostedStore({ account: known(300_000) });
+      await openWith(ninetyMinutes);
+      expect(await blocked('transcribe')).toBeNull();
+      hostedStore({ account: known(299_999) });
+      await openWith(ninetyMinutes);
+      expect(await blocked('transcribe')).toBe('no-balance');
+      hostedStore({ account: known(600_000) });
+      await openWith([track('speaker', 3 * HOUR)]);
+      expect(await blocked('transcribe')).toBeNull();
+    });
+
+    // Its length is not known before the file is read, but any import costs more than nothing.
+    it('refuses an import from a wallet that holds nothing', async () => {
+      for (const [account, reason] of [
+        [known(0), 'no-balance'], [known(-5), 'no-balance'], [known(1), null], [member(0, 0), null], [{ status: 'unknown' }, null],
+      ] as const) {
+        hostedStore({ account });
+        expect(await blocked('import'), JSON.stringify(account)).toBe(reason);
       }
     });
 
@@ -867,12 +914,22 @@ describe('transcripts and file jobs', () => {
       hostedStore();
       // An hour and a half kept: $0.30, or $0.48 translated; the deleted hour is not sent.
       await openWith([track('speaker', HOUR), track('participant', HOUR / 2), track('participant', HOUR, 5)]);
-      expect(await store.getState().fileEstimate('transcribe', { languages: ['en'], translateTo: '' })).toBeCloseTo(0.3, 12);
-      expect(await store.getState().fileEstimate('transcribe', { languages: ['en'], translateTo: 'zh' })).toBeCloseTo(0.48, 12);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['en'], translateTo: '' })).toBe(0.3);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['en'], translateTo: 'zh' })).toBe(0.48);
       expect(await store.getState().fileEstimate('import', OPTS)).toBeNull();
     });
 
-    it('has no estimate when the terms cannot be had', async () => {
+    // Priced as the job sends it: a side the session translated into nothing is sent, and priced, without a translation.
+    it('prices each side as it will be sent when each side goes into the other’s language', async () => {
+      hostedStore();
+      const leg = (name: 'speaker' | 'participant', source: string, target: string) =>
+        ({ leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: target !== '', spoken: false });
+      await openWith([track('speaker', HOUR), track('participant', HOUR)], [leg('speaker', 'zh', 'en'), leg('participant', 'en', '')]);
+      // An hour translated ($0.32) and an hour not ($0.20).
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['en', 'zh'], translateTo: EACH_SIDE })).toBe(0.52);
+    });
+
+    it('has no estimate when the terms cannot be read', async () => {
       for (const terms of [new Error('offline'), null]) {
         hostedStore({ terms });
         await openWith();

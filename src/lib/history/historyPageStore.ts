@@ -10,10 +10,10 @@ import type { NotesLanguage, NotesRunner } from '../notes/runner';
 import { payerBalance } from '../session/orgNotice';
 import { accountPayer } from '../session/payerChoice';
 import type { AccountState } from '../session/types';
-import { fitsHosted, hostedEstimateUsd, type HostedFileTerms } from './file/hostedFile';
+import { fitsHosted, hostedEstimateMicroUsd, hostedEstimateUsd, type HostedFileTerms } from './file/hostedFile';
 import type { ImportPhase, ImportResult } from './file/importFile';
 import type { FileRecognitionMissing, FileRecognitionService } from './file/service';
-import { transcribedTracks, type TranscribePhase } from './file/transcribe';
+import { trackTranslation, transcribedTracks, type TranscribePhase } from './file/transcribe';
 import type { HistoryPort } from './port';
 import type {
   FileTranscriptionOptions,
@@ -55,7 +55,8 @@ export interface FileJob {
  * Why a file job cannot start now. `unchecked`: the line-up's recognition service, or Kizuna AI's terms for a file job,
  * could not be looked up. Through Kizuna AI: `hosted-unavailable`, its service has no file jobs (yet); `wallet-frozen`,
  * the paying wallet is frozen; `hosted-too-long`, a kept track is longer or larger than the service takes;
- * `no-balance`, the paying wallet holds less than the estimate.
+ * `no-balance`, the paying wallet (not an organization's: the service judges that one) holds less than the estimate,
+ * or nothing at all for an import.
  */
 export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy' | 'unchecked'
   | 'hosted-unavailable' | 'wallet-frozen' | 'hosted-too-long' | 'no-balance';
@@ -561,16 +562,24 @@ export function createHistoryPageStore(
         // The wallet the payer spends, read as the main panel's balance gate reads it. An account not known, or still
         // loading, blocks nothing: the service decides.
         const account = files.account();
-        const wallet = account?.status === 'known' ? payerBalance(account, accountPayer(account)) : null;
+        const known = account?.status === 'known' ? account : null;
+        const payer = known ? accountPayer(known) : undefined;
+        const wallet = known ? payerBalance(known, payer) : null;
         if (wallet?.frozen) return 'wallet-frozen';
         // A transcription sends the open record's kept tracks. An import's length is not known until the file is read
-        // (it is checked then): here it weighs nothing.
+        // (it is checked then).
         const open = get().open;
         const tracks = kind === 'transcribe' && open ? transcribedTracks(open.record) : [];
         if (!fitsHosted(tracks, terms)) return 'hosted-too-long';
-        // Untranslated, the lower price: the translation is not chosen yet when the panel asks.
-        if (wallet && wallet.microUsd !== undefined && wallet.microUsd / 1_000_000 < hostedEstimateUsd(tracks, false, terms)) return 'no-balance';
-        return null;
+        // An organization that pays is not refused for its balance, as the main panel's gate does not refuse it: what
+        // the page holds can be minutes old and cannot tell money held by colleagues' running jobs from an empty
+        // wallet, so the service answers precisely. Its frozen wallet is refused above.
+        const organizationPays = payer === 'organization' && known?.organization !== undefined;
+        if (!wallet || wallet.microUsd === undefined || organizationPays) return null;
+        // An import costs more than nothing, whatever its length. A transcription costs at least its untranslated
+        // price (the translation is not chosen yet when the panel asks), in whole micro-USD as the service counts.
+        const short = kind === 'import' ? wallet.microUsd <= 0 : wallet.microUsd < hostedEstimateMicroUsd(tracks, false, terms);
+        return short ? 'no-balance' : null;
       },
 
       async fileEstimate(kind, options) {
@@ -583,7 +592,10 @@ export function createHistoryPageStore(
           // With the user's own key no price is shown (owner, 2026-11-16).
           if ('missing' in service || !('hosted' in service)) return null;
           const terms = await files.hostedTerms();
-          return terms ? hostedEstimateUsd(tracks, !!options.translateTo, terms) : null;
+          if (!terms) return null;
+          // Each track priced as the job will send it: translated exactly when a translation is asked for it.
+          const translated = tracks.map((t) => trackTranslation(open.record, t.source, options, service) !== null);
+          return hostedEstimateUsd(tracks, translated, terms);
         } catch {
           return null;
         }

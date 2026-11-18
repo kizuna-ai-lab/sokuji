@@ -48,6 +48,30 @@ export function transcribedTracks(record: Pick<HistoryRecord, 'tracks'>): Array<
     t.goneAt === null && (t.source === 'speaker' || t.source === 'participant'));
 }
 
+type LanguageCodes = Pick<FileRecognitionService, 'languageHint'>;
+
+/**
+ * An app language code in the service's own codes: its own, or for a regional code its language's when only that is
+ * known; null when the service has neither (the language is then not sent, nor a translation into it).
+ */
+function serviceLanguage(service: LanguageCodes, code: string): string | null {
+  const exact = (c: string) => (service.languageHint ? service.languageHint(c) : c);
+  return exact(code) ?? exact(code.split(/[-_]/)[0].toLowerCase());
+}
+
+/**
+ * What a track is translated into, in the service's code; null when no translation is asked for it: none chosen;
+ * "each side into the other's language" for a side the session translated into nothing; or a language the service has
+ * no code for. Each side goes into what its own side was translated into in the session. The job sends, and the
+ * estimate prices, every track by this one answer.
+ */
+export function trackTranslation(
+  record: Pick<HistoryRecord, 'legs'>, source: HistoryTrackSource, options: FileTranscriptionOptions, service: LanguageCodes,
+): string | null {
+  const into = options.translateTo === EACH_SIDE ? record.legs.find((l) => l.leg === source)?.languages.target : options.translateTo;
+  return into ? serviceLanguage(service, into) : null;
+}
+
 export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcriptId: number; sentences: number }> {
   const cancelled = () => new TranscribeError('CANCELLED', 'The transcription was cancelled');
   const record = await o.port.getRecord(o.recordId);
@@ -61,18 +85,10 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   // everyone on one track, so who is on which side is not known.
   const sideCertain = record.mode !== 'import'
     && !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
-  // In the service's own codes, a regional code as its language when only that is known; a language it does not know
-  // at all is not sent, nor a translation into one.
-  const exact = (code: string) => (o.service.languageHint ? o.service.languageHint(code) : code);
-  const wire = (code: string) => exact(code) ?? exact(code.split(/[-_]/)[0].toLowerCase());
-  const languageHints = [...new Set(o.options.languages.map(wire).filter((code): code is string => !!code))];
-  // Each side into the other's language: every track into what its own side was translated into in the session.
-  const translateToFor = (source: HistoryTrackSource) => {
-    const into = o.options.translateTo === EACH_SIDE ? legOf(source)?.languages.target : o.options.translateTo;
-    return into ? wire(into) : null;
-  };
+  // In the service's own codes; a language it does not know at all is not sent.
+  const languageHints = [...new Set(o.options.languages.map((code) => serviceLanguage(o.service, code)).filter((code): code is string => !!code))];
   const askedFor = (source: HistoryTrackSource) => {
-    const translateTo = translateToFor(source);
+    const translateTo = trackTranslation(record, source, o.options, o.service);
     return {
       languageHints,
       ...(translateTo ? { translateTo } : {}),
