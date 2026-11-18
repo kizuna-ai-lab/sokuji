@@ -195,6 +195,8 @@ export interface EngineSlot { dir: string; stage: 'asr' | 'translation' | 'tts' 
 export interface EngineProps<S> extends SettingsProps<S> {
   /** The legs a start would open (the audio mode's): the directions it shows. */
   legs: readonly LegName[];
+  /** My leg would speak; absent, it does. False: my direction shows no speech model (owner, 2026-11-18). */
+  speakerSpeaks?: boolean;
   /** Open this slot on mount — a chip's deep link; `onInitialSlotConsumed` says it was. */
   initialSlot?: EngineSlot | null;
   onInitialSlotConsumed?(): void;

@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Ei toimivaa avainta alueelle {{region}}",
         "keyRefused": "Avainta ei hyväksytty",
         "keyNotVerified": "Avainta ei tarkistettu",
-        "checkingKey": "Tarkistetaan avainta…"
+        "checkingKey": "Tarkistetaan avainta…",
+        "notUsed": "Ei käytössä tällä kertaa"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI kirjoittaa muistiinpanot Kizuna AI:n kautta, maksetaan saldostasi.",
       "notesOpenAiLine": "Kirjoittaa muistiinpanot omalla OpenAI-avaimellasi.",
       "notesNeedSignInOrChoose": "Kirjaudu sisään tai valitse tästä OpenAI, niin muistiinpanot kirjoitetaan.",
-      "notesNeedSignInOrKeyAndChoose": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet” ja valitse tästä OpenAI, niin muistiinpanot kirjoitetaan."
+      "notesNeedSignInOrKeyAndChoose": "Kirjaudu sisään tai lisää OpenAI-avain kohdassa ”Tilit ja avaimet” ja valitse tästä OpenAI, niin muistiinpanot kirjoitetaan.",
+      "speechNotUsed": "Tällä kertaa mitään ei lueta ääneen: käännös näkyy vain tekstinä.",
+      "speechHowToHear": "Jos haluat sen luettavan, valitse yllä olevasta lauseesta ”kuulla”."
     },
     "display": {
       "surface": "Mikä näkymä",

@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "{{region}}-এর জন্য কোনো কার্যকর কী নেই",
         "keyRefused": "কী গৃহীত হয়নি",
         "keyNotVerified": "কী যাচাই হয়নি",
-        "checkingKey": "কী যাচাই করা হচ্ছে…"
+        "checkingKey": "কী যাচাই করা হচ্ছে…",
+        "notUsed": "এবার ব্যবহার হবে না"
       },
       "speechModeHint": "কথার একটি অংশ কখন অনুবাদে যায়; সেশনের মধ্যে বদলানো যায় না",
       "hint": "প্রতিটি ধাপ কোন সেবা করে",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "Kizuna AI-এর মাধ্যমে OpenAI নোট লেখে, খরচ আপনার ব্যালান্স থেকে।",
       "notesOpenAiLine": "আপনার নিজের OpenAI কী দিয়ে নোট লেখে।",
       "notesNeedSignInOrChoose": "নোট লেখাতে সাইন ইন করুন, অথবা এখানে OpenAI বেছে নিন।",
-      "notesNeedSignInOrKeyAndChoose": "নোট লেখাতে সাইন ইন করুন, অথবা “অ্যাকাউন্ট ও কী”-তে একটি OpenAI কী যোগ করে এখানে OpenAI বেছে নিন।"
+      "notesNeedSignInOrKeyAndChoose": "নোট লেখাতে সাইন ইন করুন, অথবা “অ্যাকাউন্ট ও কী”-তে একটি OpenAI কী যোগ করে এখানে OpenAI বেছে নিন।",
+      "speechNotUsed": "এবার কিছুই জোরে পড়ে শোনানো হবে না: অনুবাদ শুধু লেখা হিসেবে দেখাবে।",
+      "speechHowToHear": "পড়ে শোনাতে চাইলে ওপরের বাক্যে “শোনা” বেছে নিন।"
     },
     "display": {
       "surface": "কোন প্রদর্শন",

@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "{{region}} için çalışan anahtar yok",
         "keyRefused": "Anahtar kabul edilmedi",
         "keyNotVerified": "Anahtar doğrulanmadı",
-        "checkingKey": "Anahtar kontrol ediliyor…"
+        "checkingKey": "Anahtar kontrol ediliyor…",
+        "notUsed": "Bu sefer kullanılmıyor"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI notları Kizuna AI üzerinden yazar; bakiyenizden ödenir.",
       "notesOpenAiLine": "Notları kendi OpenAI anahtarınızla yazar.",
       "notesNeedSignInOrChoose": "Notların yazılması için oturum açın veya burada OpenAI'ı seçin.",
-      "notesNeedSignInOrKeyAndChoose": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyip burada OpenAI'ı seçin."
+      "notesNeedSignInOrKeyAndChoose": "Notların yazılması için oturum açın veya “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyip burada OpenAI'ı seçin.",
+      "speechNotUsed": "Bu sefer hiçbir şey sesli okunmuyor: çeviri yalnızca metin olarak görünür.",
+      "speechHowToHear": "Sesli okunması için yukarıdaki cümlede “duymak”ı seç."
     },
     "display": {
       "surface": "Hangi görünüm",

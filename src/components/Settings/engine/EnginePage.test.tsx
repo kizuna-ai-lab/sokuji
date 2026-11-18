@@ -158,6 +158,17 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
   });
 
+  // Review (PR #784): a same-language pair's two legs share one direction key; each row is still told by its position.
+  it('tells the speaker row from the participant row by position when both legs share one direction key', () => {
+    const stagesFor = vi.fn((_dir: string, isSpeaker: boolean) => (isSpeaker ? ['asr', 'translation'] as const : ['asr', 'translation', 'tts'] as const));
+    surface(adapter({
+      directions: [{ dir: 'en→en', src: 'en', tgt: 'en' }, { dir: 'en→en', src: 'en', tgt: 'en' }],
+      stagesFor: stagesFor as unknown as EngineAdapter['stagesFor'],
+    }));
+    expect(stagesFor.mock.calls.map(([, isSpeaker]) => isSpeaker)).toEqual([true, false]);
+    expect(screen.getAllByRole('combobox', { name: /TTS/ })).toHaveLength(1);
+  });
+
   it('participant mode shows only the reverse direction, with its 2-stage set', () => {
     surface(adapter(), 'participant');
     expect(screen.queryByText('ja → en')).not.toBeInTheDocument();

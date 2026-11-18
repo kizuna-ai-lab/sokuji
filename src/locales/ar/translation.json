@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "لا يوجد مفتاح صالح لـ {{region}}",
         "keyRefused": "المفتاح غير مقبول",
         "keyNotVerified": "لم يُتحقَّق من المفتاح",
-        "checkingKey": "جارٍ التحقق من المفتاح…"
+        "checkingKey": "جارٍ التحقق من المفتاح…",
+        "notUsed": "غير مستخدم هذه المرة"
       },
       "speechModeHint": "متى يُرسَل مقطع من الكلام للترجمة؛ لا يتغير أثناء الجلسة",
       "hint": "أي خدمة تتولى كل مرحلة",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "تكتب OpenAI الملاحظات عبر Kizuna AI، وتُدفع من رصيدك.",
       "notesOpenAiLine": "يكتب الملاحظات بمفتاح OpenAI الخاص بك.",
       "notesNeedSignInOrChoose": "سجّل الدخول، أو اختر OpenAI هنا، لتُكتب الملاحظات.",
-      "notesNeedSignInOrKeyAndChoose": "سجّل الدخول، أو أضف مفتاح OpenAI في «الحسابات والمفاتيح» ثم اختر OpenAI هنا، لتُكتب الملاحظات."
+      "notesNeedSignInOrKeyAndChoose": "سجّل الدخول، أو أضف مفتاح OpenAI في «الحسابات والمفاتيح» ثم اختر OpenAI هنا، لتُكتب الملاحظات.",
+      "speechNotUsed": "لا يُقرأ شيء بصوت عالٍ هذه المرة: تظهر الترجمة نصًّا فقط.",
+      "speechHowToHear": "لتُقرأ بصوت عالٍ، اختر «السماع» في الجملة أعلاه."
     },
     "display": {
       "surface": "أي عرض",

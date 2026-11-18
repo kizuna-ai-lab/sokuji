@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Walang gumaganang key para sa {{region}}",
         "keyRefused": "Hindi tinanggap ang key",
         "keyNotVerified": "Hindi pa beripikado ang key",
-        "checkingKey": "Sinusuri ang key…"
+        "checkingKey": "Sinusuri ang key…",
+        "notUsed": "Hindi gagamitin ngayon"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "Isinusulat ng OpenAI ang mga tala sa pamamagitan ng Kizuna AI, bayad mula sa iyong balanse.",
       "notesOpenAiLine": "Isinusulat ang mga tala gamit ang sarili mong OpenAI key.",
       "notesNeedSignInOrChoose": "Mag-sign in, o piliin ang OpenAI dito, para maisulat ang mga tala.",
-      "notesNeedSignInOrKeyAndChoose": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key” at piliin ang OpenAI dito, para maisulat ang mga tala."
+      "notesNeedSignInOrKeyAndChoose": "Mag-sign in, o magdagdag ng OpenAI key sa “Mga account at key” at piliin ang OpenAI dito, para maisulat ang mga tala.",
+      "speechNotUsed": "Walang babasahin nang malakas ngayon: teksto lang ang salin.",
+      "speechHowToHear": "Para mabasa nang malakas, piliin ang “naririnig” sa pangungusap sa itaas."
     },
     "display": {
       "surface": "Aling display",

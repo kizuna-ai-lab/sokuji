@@ -21,12 +21,16 @@ import { presentProviders } from '../../providers/registry';
 import { lineUpChangedEvent, useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useMode } from '../../stores/audioStore';
-import { useEngineSlotTarget, useNavigateToSettings, useSetEngineSlotTarget, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
+import { useEngineSlotTarget, useNavigateToSettings, useSetEngineSlotTarget, useSetTextOnly, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { isElectron } from '../../utils/environment';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, type Selections } from '../../lib/local-inference/selection/types';
 import { ProviderLanguages } from '../providers/ProviderLanguages';
+import type { ReceiveChoice } from '../providers/LanguagePairSection';
+import { useHearingRows } from '../MainPanel/useHearingRows';
+import { useSelectedProvider } from '../providers/useSelectedProvider';
+import { AudioModeSwitch } from './AudioModeSwitch';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
 import { KizunaAIIcon } from '../Icons/ProviderIcons';
@@ -88,6 +92,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const readiness = useProviderStore((s) => s.readiness);
   const target = useSettingsNavigationTarget();
   const navigateToSettings = useNavigateToSettings();
+  // Who hears and who reads (owner, 2026-11-18, design 1): the sentence's words are the audio page's two switches, by
+  // the same rules (useHearingRows); the speech stage is used only while a running leg is read aloud.
+  const hearing = useHearingRows(locked);
+  // The sentence shows once its provider's entry has loaded (ProviderLanguages); until then nothing points to it.
+  const sentenceShown = Boolean(useSelectedProvider(providers)?.entry);
+  const setTextOnly = useSetTextOnly();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
   // Which stage cards have their provider's options open (mock v19: each card its own).
@@ -335,9 +345,55 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     return Boolean(id) && chosen?.translation.modelId === id && getManifestEntry(id!)?.asrEngine === 'granite-speech';
   })();
 
+  // Why a hear-or-read word cannot be changed now: the Audio page's reasons, by useHearingRows' rules.
+  const lockedByRun = () => t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.');
+  const serviceRule = (): string | null => {
+    if (hearing.speech === 'always') return t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.');
+    if (hearing.speech === 'never') return t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.');
+    return null;
+  };
+  const theirsBlocked = (): string | null => {
+    if (locked) return lockedByRun();
+    return serviceRule();
+  };
+  const mineBlocked = (): string | null => {
+    if (hearing.themLocked) return lockedByRun();
+    if (!hearing.participantOffered) return t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.");
+    if (hearing.recaptured) return t('audioPanel.blockedWholeSystem', 'All system sound is being captured: these playback options are off, so the translation is not translated again.');
+    return serviceRule();
+  };
+  const theirs: ReceiveChoice = {
+    hears: hearing.otherOn,
+    onChange: (hears) => { if (hears !== hearing.otherOn) setTextOnly(!hears); },
+    blocked: theirsBlocked(),
+  };
+  const mine: ReceiveChoice = {
+    hears: hearing.themOn,
+    onChange: (hears) => { if (hears !== hearing.themOn) hearing.toggleThem(); },
+    blocked: mineBlocked(),
+  };
+  const openAudio = (side: 'theirs' | 'mine') => navigateToSettings(side === 'mine' ? 'speech-i-hear' : 'speech-other-hears');
+  // Speech is used this time when a running leg is read aloud; idle, its stage says why and, when a word above can
+  // still be switched to hearing, how.
+  const speechIdle = !((hearing.myLegRuns && hearing.otherOn) || (hearing.theirLegRuns && hearing.themOn));
+  const canHear = sentenceShown && ((hearing.myLegRuns && !theirs.blocked) || (hearing.theirLegRuns && !mine.blocked));
+  const speechUnusedNote = (
+    <p className="lineup-stage__unused">
+      <span>{t('settingsPage.lineup.speechNotUsed', 'Nothing is read aloud this time: the translation shows as text only.')}</span>
+      {canHear && <span>{t('settingsPage.lineup.speechHowToHear', 'To have it read aloud, choose “hear” in the sentence above.')}</span>}
+    </p>
+  );
+
   return (
     <div className="lineup-category">
-      <ProviderLanguages providers={providers} disabled={locked} sentence={{ mode, textOnly }} heading={false} />
+      <AudioModeSwitch locked={locked} />
+      <ProviderLanguages
+        providers={providers}
+        disabled={locked}
+        sentence={{ mode, textOnly }}
+        heading={false}
+        receive={{ theirs, mine, onOpenAudio: openAudio }}
+      />
       <SpeechSection locked={locked} />
       <div className="config-section lineup-section" id="lineup-section">
         <h3 className="settings-subhead">
@@ -353,14 +409,27 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const joint = stages.length > 1;
           const titleOf = (stage: RunStage) => t(`settingsPage.lineup.stages.${stage}`, STAGE_TITLES[stage]);
           const title = joint ? [titleOf(first), ...stages.slice(1).map(stageName)].join(t('settingsPage.lineup.and', ' and ')) : titleOf(first);
+          // The speech stage, not used this time (nothing a running leg says is read aloud).
+          const idle = (stage: RunStage) => stage === 'speech' && speechIdle;
+          const movedLine = (stage: RunStage) => moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>;
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>
-              {stateTag(id)}
+              {idle(stage)
+                ? <em className="lineup-stage__state is-unused">{t('settingsPage.lineup.state.notUsed', 'Not used this time')}</em>
+                : stateTag(id)}
             </div>
           );
-          // What one stage of the card says about itself, then its own options.
-          const stageBody = (stage: RunStage) => (
+          // Idle: what moved with a choice, and why it is not used; no options (the choice stays for next time).
+          const idleBody = (stage: RunStage) => (
+            <>
+              {movedLine(stage)}
+              {speechUnusedNote}
+            </>
+          );
+          // What one stage of the card says about itself, then its own options. Speech not used this time: why, and
+          // no options (the choice stays, for when something is read aloud again).
+          const stageBody = (stage: RunStage) => (idle(stage) ? idleBody(stage) : (
             <>
               {stage === 'transcription' && graniteDirect && (
                 <p className="lineup-stage__joint">
@@ -399,10 +468,10 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                   </p>
                 );
               })()}
-              {moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>}
+              {movedLine(stage)}
               {stageOptions(stage, id, stages)}
             </>
-          );
+          ));
           const select = (
             <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
               onChange={(e) => void choose(first, e.target.value)}>

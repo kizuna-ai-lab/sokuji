@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Tidak ada kunci yang berfungsi untuk {{region}}",
         "keyRefused": "Kunci ditolak",
         "keyNotVerified": "Kunci belum diverifikasi",
-        "checkingKey": "Memeriksa kunci…"
+        "checkingKey": "Memeriksa kunci…",
+        "notUsed": "Tidak dipakai kali ini"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
       "hint": "Layanan mana yang mengerjakan tiap tahap",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI menulis catatan melalui Kizuna AI, dibayar dari saldo Anda.",
       "notesOpenAiLine": "Menulis catatan dengan kunci OpenAI Anda sendiri.",
       "notesNeedSignInOrChoose": "Masuk, atau pilih OpenAI di sini, agar catatan ditulis.",
-      "notesNeedSignInOrKeyAndChoose": "Masuk, atau tambahkan kunci OpenAI di “Akun dan kunci” lalu pilih OpenAI di sini, agar catatan ditulis."
+      "notesNeedSignInOrKeyAndChoose": "Masuk, atau tambahkan kunci OpenAI di “Akun dan kunci” lalu pilih OpenAI di sini, agar catatan ditulis.",
+      "speechNotUsed": "Kali ini tidak ada yang dibacakan: terjemahan hanya tampil sebagai teks.",
+      "speechHowToHear": "Agar dibacakan, pilih “mendengar” di kalimat di atas."
     },
     "display": {
       "surface": "Tampilan mana",

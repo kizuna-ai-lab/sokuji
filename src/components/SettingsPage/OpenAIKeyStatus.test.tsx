@@ -28,7 +28,7 @@ vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({
 }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../Auth/UserAccountInfo', () => ({ UserAccountInfo: () => <div /> }));
-vi.mock('../../app/useRun', () => ({ useRunState: () => ({ phase: 'idle' }) }));
+vi.mock('../../app/useRun', () => ({ useRunState: () => ({ phase: 'idle' }), useRunParticipantSpeech: () => null }));
 vi.mock('../providers/ManagedAccountRow', () => ({ ManagedAccountRow: () => <div /> }));
 vi.mock('../../contexts/UserProfileContext', () => ({ useOptionalUserProfile: () => ({ quota: null }) }));
 vi.mock('../../utils/openExternalUrl', () => ({ openExternalUrl: () => {} }));

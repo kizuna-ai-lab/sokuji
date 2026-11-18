@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "אין מפתח תקין עבור {{region}}",
         "keyRefused": "המפתח לא התקבל",
         "keyNotVerified": "המפתח לא אומת",
-        "checkingKey": "בודקים את המפתח…"
+        "checkingKey": "בודקים את המפתח…",
+        "notUsed": "לא בשימוש הפעם"
       },
       "speechModeHint": "מתי קטע דיבור נשלח לתרגום; קבוע במהלך הסשן",
       "hint": "איזה שירות מבצע כל שלב",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI כותבת את ההערות דרך Kizuna AI, בתשלום מהיתרה שלך.",
       "notesOpenAiLine": "כותב את ההערות עם מפתח OpenAI משלך.",
       "notesNeedSignInOrChoose": "כדי שייכתבו הערות, היכנסו לחשבון או בחרו כאן ב-OpenAI.",
-      "notesNeedSignInOrKeyAndChoose": "כדי שייכתבו הערות, היכנסו לחשבון או הוסיפו מפתח OpenAI ב„חשבונות ומפתחות” ובחרו כאן ב-OpenAI."
+      "notesNeedSignInOrKeyAndChoose": "כדי שייכתבו הערות, היכנסו לחשבון או הוסיפו מפתח OpenAI ב„חשבונות ומפתחות” ובחרו כאן ב-OpenAI.",
+      "speechNotUsed": "הפעם שום דבר לא מוקרא: התרגום מוצג כטקסט בלבד.",
+      "speechHowToHear": "כדי שיוקרא, בחר „לשמוע” במשפט שלמעלה."
     },
     "display": {
       "surface": "איזו תצוגה",

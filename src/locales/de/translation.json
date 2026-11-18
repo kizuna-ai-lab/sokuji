@@ -1837,7 +1837,8 @@
         "noKeyForRegion": "Kein gültiger Schlüssel für {{region}}",
         "keyRefused": "Schlüssel abgelehnt",
         "keyNotVerified": "Schlüssel nicht geprüft",
-        "checkingKey": "Schlüssel wird geprüft …"
+        "checkingKey": "Schlüssel wird geprüft …",
+        "notUsed": "Diesmal nicht verwendet"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",
@@ -1867,7 +1868,9 @@
       "notesKizunaLine": "OpenAI schreibt die Notizen über Kizuna AI, bezahlt aus Ihrem Guthaben.",
       "notesOpenAiLine": "Schreibt die Notizen mit Ihrem eigenen OpenAI-Schlüssel.",
       "notesNeedSignInOrChoose": "Melden Sie sich an oder wählen Sie hier OpenAI, damit Notizen geschrieben werden.",
-      "notesNeedSignInOrKeyAndChoose": "Melden Sie sich an oder fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu und wählen Sie hier OpenAI, damit Notizen geschrieben werden."
+      "notesNeedSignInOrKeyAndChoose": "Melden Sie sich an oder fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu und wählen Sie hier OpenAI, damit Notizen geschrieben werden.",
+      "speechNotUsed": "Diesmal wird nichts vorgelesen: Die Übersetzung erscheint nur als Text.",
+      "speechHowToHear": "Damit sie vorgelesen wird, wähle oben im Satz „hören“."
     },
     "display": {
       "surface": "Welche Anzeige",
