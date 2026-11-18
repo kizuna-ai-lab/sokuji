@@ -7,9 +7,13 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
 import type { NotesLanguage, NotesRunner } from '../notes/runner';
+import { payerBalance } from '../session/orgNotice';
+import { accountPayer } from '../session/payerChoice';
+import type { AccountState } from '../session/types';
+import { fitsHosted, hostedEstimateUsd, type HostedFileTerms } from './file/hostedFile';
 import type { ImportPhase, ImportResult } from './file/importFile';
 import type { FileRecognitionMissing, FileRecognitionService } from './file/service';
-import type { TranscribePhase } from './file/transcribe';
+import { transcribedTracks, type TranscribePhase } from './file/transcribe';
 import type { HistoryPort } from './port';
 import type {
   FileTranscriptionOptions,
@@ -47,9 +51,14 @@ export interface FileJob {
   phase: ImportPhase;
 }
 
-/** Why a file job cannot start now. */
-/** `unchecked`: the line-up's recognition service could not be looked up. */
-export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy' | 'unchecked';
+/**
+ * Why a file job cannot start now. `unchecked`: the line-up's recognition service, or Kizuna AI's terms for a file job,
+ * could not be looked up. Through Kizuna AI: `hosted-unavailable`, its service has no file jobs (yet); `wallet-frozen`,
+ * the paying wallet is frozen; `hosted-too-long`, a kept track is longer or larger than the service takes;
+ * `no-balance`, the paying wallet holds less than the estimate.
+ */
+export type FileJobBlock = FileRecognitionMissing['missing'] | 'session' | 'busy' | 'unchecked'
+  | 'hosted-unavailable' | 'wallet-frozen' | 'hosted-too-long' | 'no-balance';
 
 /** The running file job and how the last one ended: kept outside any page, so a job outlives the page that began it. */
 export interface FileJobState {
@@ -67,6 +76,10 @@ export interface FileJobs {
   /** Shared by every page (the app keeps one); a page makes its own when none is given. */
   state?: StoreApi<FileJobState>;
   service(): Promise<FileRecognitionService | FileRecognitionMissing>;
+  /** Kizuna AI's terms for a file job (`fetchHostedFileTerms`): asked for a hosted service only. */
+  hostedTerms(): Promise<HostedFileTerms | null>;
+  /** The Kizuna AI account as the app last read it: which wallet pays a hosted job, what it holds, whether it is frozen. */
+  account(): AccountState | null;
   /** A session is running: importing waits (decoding is heavy). */
   sessionRunning(): boolean;
   importFile(o: {
@@ -147,6 +160,11 @@ export interface HistoryPageActions {
   showTranscript(id: number): Promise<void>;
   /** Why an import or a transcription cannot start now, or null. */
   fileJobBlocked(kind: 'import' | 'transcribe'): Promise<FileJobBlock | null>;
+  /**
+   * What transcribing the open record as `options` say is estimated to cost through Kizuna AI, in USD; null with the
+   * user's own key (no price is shown), for an import (its length is not known before it is read), or without the terms.
+   */
+  fileEstimate(kind: 'import' | 'transcribe', options: FileTranscriptionOptions): Promise<number | null>;
   /** The languages a file can be transcribed in and translated into: the file service's; none without one; null when the service could not be asked. */
   fileLanguages(): Promise<readonly string[] | null>;
   /** Imports a file as a new record, transcribed as `options` say: one job at a time. */
@@ -531,7 +549,44 @@ export function createHistoryPageStore(
         if ('missing' in service) return service.missing;
         if (jobs.getState().job) return 'busy';
         if (kind === 'import' && files.sessionRunning()) return 'session';
+        if (!('hosted' in service)) return null;
+        // Through Kizuna AI, nothing starts without its terms: they say how long a recording may be.
+        let terms: HostedFileTerms | null;
+        try {
+          terms = await files.hostedTerms();
+        } catch {
+          return 'unchecked';
+        }
+        if (!terms) return 'hosted-unavailable';
+        // The wallet the payer spends, read as the main panel's balance gate reads it. An account not known, or still
+        // loading, blocks nothing: the service decides.
+        const account = files.account();
+        const wallet = account?.status === 'known' ? payerBalance(account, accountPayer(account)) : null;
+        if (wallet?.frozen) return 'wallet-frozen';
+        // A transcription sends the open record's kept tracks. An import's length is not known until the file is read
+        // (it is checked then): here it weighs nothing.
+        const open = get().open;
+        const tracks = kind === 'transcribe' && open ? transcribedTracks(open.record) : [];
+        if (!fitsHosted(tracks, terms)) return 'hosted-too-long';
+        // Untranslated, the lower price: the translation is not chosen yet when the panel asks.
+        if (wallet && wallet.microUsd !== undefined && wallet.microUsd / 1_000_000 < hostedEstimateUsd(tracks, false, terms)) return 'no-balance';
         return null;
+      },
+
+      async fileEstimate(kind, options) {
+        const open = get().open;
+        if (!files || kind !== 'transcribe' || !open) return null;
+        const tracks = transcribedTracks(open.record);
+        if (tracks.length === 0) return null;
+        try {
+          const service = await files.service();
+          // With the user's own key no price is shown (owner, 2026-11-16).
+          if ('missing' in service || !('hosted' in service)) return null;
+          const terms = await files.hostedTerms();
+          return terms ? hostedEstimateUsd(tracks, !!options.translateTo, terms) : null;
+        } catch {
+          return null;
+        }
       },
 
       async fileLanguages() {

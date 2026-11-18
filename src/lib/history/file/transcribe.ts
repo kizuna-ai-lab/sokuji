@@ -7,7 +7,7 @@
 // as it was. A new transcript never replaces another (spec: several transcripts per record).
 import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
-import type { FileTranscriptionOptions, HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource } from '../types';
+import type { FileTranscriptionOptions, HistoryRecognizePhase, HistoryRecord, HistorySentenceSide, HistoryTrack, HistoryTrackSource } from '../types';
 import type { FileRecognitionService } from './service';
 import { EACH_SIDE } from './options';
 import { fileSentences, numberSentences, type FileSentence } from './sentences';
@@ -42,12 +42,17 @@ export interface TranscribeOptions {
 
 const SIDE_OF: Record<HistoryTrackSource, HistorySentenceSide> = { speaker: 'mine', participant: 'other' };
 
+/** The tracks a transcription sends, in the record's order: the speaker's and the participant's recordings still kept. */
+export function transcribedTracks(record: Pick<HistoryRecord, 'tracks'>): Array<HistoryTrack & { source: HistoryTrackSource }> {
+  return record.tracks.filter((t): t is HistoryTrack & { source: HistoryTrackSource } =>
+    t.goneAt === null && (t.source === 'speaker' || t.source === 'participant'));
+}
+
 export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcriptId: number; sentences: number }> {
   const cancelled = () => new TranscribeError('CANCELLED', 'The transcription was cancelled');
   const record = await o.port.getRecord(o.recordId);
   if (!record) throw new TranscribeError('NO_RECORD', `No record ${o.recordId}`);
-  const tracks = record.tracks.filter((t): t is typeof t & { source: HistoryTrackSource } =>
-    t.goneAt === null && (t.source === 'speaker' || t.source === 'participant'));
+  const tracks = transcribedTracks(record);
   if (tracks.length === 0) throw new TranscribeError('NO_TRACK', `Record ${o.recordId} keeps no recording`);
   const legOf = (source: HistoryTrackSource) => record.legs.find((l) => l.leg === source);
   const speaker = legOf('speaker');

@@ -49,6 +49,8 @@ function fakeJobs(o: { missing?: 'no-file-service' | 'no-key' | 'sign-in'; sessi
       if (o.serviceFails) throw new Error('The key store could not be read');
       return o.missing ? { missing: o.missing } : { service: 'soniox' as const, apiKey: 'k', region: 'us' as const, languages: ['en', 'fr', 'ja', 'zh'] };
     }),
+    hostedTerms: vi.fn(async () => null),
+    account: () => null,
     sessionRunning: () => o.session ?? false,
     importFile: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['importFile'],
     transcribe: vi.fn(() => new Promise((resolve, reject) => { pending.resolve = resolve; pending.reject = reject; })) as FileJobs['transcribe'],

@@ -22,6 +22,8 @@ const port = {
 
 const jobsMissing = (missing: 'no-file-service' | 'no-key' | 'sign-in'): FileJobs => ({
   service: vi.fn(async () => ({ missing })),
+  hostedTerms: vi.fn(async () => null),
+  account: () => null,
   sessionRunning: () => false,
   importFile: vi.fn(async () => undefined) as unknown as FileJobs['importFile'],
   transcribe: vi.fn(async () => undefined) as unknown as FileJobs['transcribe'],

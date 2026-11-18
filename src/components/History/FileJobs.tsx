@@ -39,6 +39,10 @@ function useFileTexts() {
       session: t('history.file.blockedSession', 'Available when no session is running.'),
       busy: t('history.file.blockedBusy', 'Another import or transcription is running.'),
       unchecked: t('history.file.blockedUnchecked', 'The transcription service could not be checked. Close this and try again.'),
+      'no-balance': t('history.file.blockedNoBalance', 'Your Kizuna AI balance does not cover this transcription.'),
+      'wallet-frozen': t('history.file.blockedFrozen', 'Your Kizuna AI wallet is frozen.'),
+      'hosted-too-long': t('history.file.blockedHostedTooLong', 'This recording is longer than Kizuna AI transcribes at once.'),
+      'hosted-unavailable': t('history.file.blockedHostedUnavailable', 'Transcribing files with Kizuna AI is not available yet.'),
       'no-recording': t('history.file.blockedNoRecording', 'This record keeps no recording.'),
     };
     // What to change, as a link to it in Settings (owner, 2026-11-17; B-35): the line-up, the key, or the sign-in.
