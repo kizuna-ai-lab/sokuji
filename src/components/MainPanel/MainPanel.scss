@@ -53,9 +53,14 @@
     > .panel-resizer + .live-notes { border-left: none; }
   }
   // The same width as useNarrowWindow.ts, which picks the live notes switch's icon: change both together.
+  // Above the conversation, the divider under the notes drags their height (owner, 2026-11-19; LiveNotesPanel): the notes
+  // first, the divider, then the conversation; never dragged, the notes take what they need up to 40%.
   @media (max-width: 767px) {
     flex-direction: column;
-    > .live-notes { order: -1; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
+    > .live-notes { order: -2; flex: 0 1 auto; max-height: 40vh; border-left: none; border-bottom: 1px solid vars.$border-subtle; }
+    > .live-notes--sized { flex: 0 0 var(--live-notes-height); max-height: none; }
+    > .panel-resizer.panel-resizer--y { display: block; order: -1; }
+    > .panel-resizer--y + .live-notes { border-bottom: none; }
     > .live-notes--alone { flex: 1 1 auto; max-height: none; border-bottom: none; }
   }
 }

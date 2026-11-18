@@ -85,9 +85,21 @@ describe('the live notes dock in the conversation\'s area, beside it, above it i
   it('below 768 px stack the row and put the notes first, at most 40% of the height', () => {
     expect(rule(areaCss, '.conversation-area', '(max-width: 767px)')).toMatch(/flex-direction:\s*column/);
     const narrow = rule(areaCss, '.conversation-area > .live-notes', '(max-width: 767px)');
-    expect(narrow).toMatch(/order:\s*-1/);
+    expect(narrow).toMatch(/order:\s*-2/);
     expect(narrow).toMatch(/max-height:\s*40vh/);
     expect(narrow).toMatch(/border-left:\s*none/);
+  });
+
+  // Owner, 2026-11-19: above the conversation, the divider under the notes drags their height.
+  it('below 768 px draw the height divider between the notes and the conversation, and a dragged height in place of 40%', () => {
+    const divider = rule(areaCss, '.conversation-area > .panel-resizer.panel-resizer--y', '(max-width: 767px)');
+    expect(divider).toMatch(/display:\s*block/);
+    expect(divider).toMatch(/order:\s*-1/);
+    const sized = rule(areaCss, '.conversation-area > .live-notes--sized', '(max-width: 767px)');
+    expect(sized).toMatch(/flex:\s*0 0 var\(--live-notes-height\)/);
+    expect(sized).toMatch(/max-height:\s*none/);
+    // The divider is the seam there, in place of the notes' bottom border.
+    expect(rule(areaCss, '.conversation-area > .panel-resizer--y + .live-notes', '(max-width: 767px)')).toMatch(/border-bottom:\s*none/);
   });
 
   // Owner, 2026-11-18: the toolbar's switch shows the notes alone; the conversation is then hidden, kept.
