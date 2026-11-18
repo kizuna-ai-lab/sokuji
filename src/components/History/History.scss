@@ -511,13 +511,15 @@
     background: vars.$bg-surface;
   }
 
+  // A small window, the tabs: the part shown scrolls with its frame. Columns side by side (641 px and up, which a window
+  // under 768 px can still give) each scroll on their own, as on a wide window (review).
   @media (max-width: 767px) {
-    &__columns {
+    &__columns:not(.has-columns) {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto minmax(0, 1fr);
       overflow-y: auto;
     }
-    &__transcript { overflow-y: visible; }
+    &__columns:not(.has-columns) &__transcript { overflow-y: visible; }
   }
 }
 
