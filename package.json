@@ -204,7 +204,6 @@
     "build:audio-host": "node scripts/build-audio-host.js",
     "preview": "vite preview",
     "test": "vitest",
-    "test:ui": "vitest --ui",
     "electron:dev": "vite",
     "electron:build": "npm run build && npm run make",
     "electron:start": "electron .",

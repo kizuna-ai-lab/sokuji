@@ -26,9 +26,6 @@ npm run electron:build
 # Run tests
 npm run test
 
-# Run tests with UI
-npm run test:ui
-
 # Run specific test
 npm run test -- path/to/test
 ```
