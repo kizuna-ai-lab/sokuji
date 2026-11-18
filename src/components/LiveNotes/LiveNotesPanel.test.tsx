@@ -278,5 +278,36 @@ describe('the live notes panel', () => {
       expect(panelWidth()).toBe('599px');
       expect(localStorage.getItem('liveNotes.width')).toBe('700');
     });
+
+    // Review: a click on the divider, or an arrow key at the widest, changes nothing shown; it must not replace the
+    // wider width kept from a wider window with the one this window allows.
+    it('keeps the wider width when a click or a key at the limit changes nothing', () => {
+      localStorage.setItem('liveNotes.width', '700');
+      renderInRow(1000);
+      const divider = screen.getByRole('separator');
+      fireEvent.keyDown(divider, { key: 'ArrowLeft' });
+      expect(panelWidth()).toBe('599px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('700');
+      fireEvent.keyDown(divider, { key: 'ArrowRight' });
+      expect(panelWidth()).toBe('583px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('583');
+    });
+
+    it('dragged and brought back to where it started, shows and keeps the width it had', () => {
+      localStorage.setItem('liveNotes.width', '700');
+      renderInRow(1000);
+      const divider = screen.getByRole('separator');
+      act(() => {
+        divider.dispatchEvent(Object.assign(new MouseEvent('pointerdown', { bubbles: true, clientX: 400, button: 0 }), { pointerType: 'mouse' }));
+        window.dispatchEvent(new MouseEvent('pointermove', { clientX: 450 }));
+      });
+      expect(panelWidth()).toBe('549px');
+      act(() => {
+        window.dispatchEvent(new MouseEvent('pointermove', { clientX: 400 }));
+        window.dispatchEvent(new MouseEvent('pointerup', { clientX: 400 }));
+      });
+      expect(panelWidth()).toBe('599px');
+      expect(localStorage.getItem('liveNotes.width')).toBe('700');
+    });
   });
 });

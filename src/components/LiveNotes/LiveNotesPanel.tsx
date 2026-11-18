@@ -91,6 +91,10 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
         onResize={(next) => setWidth(liveNotesWidthWithin(next, row))}
         onCommit={(next) => {
           const fitted = liveNotesWidthWithin(next, row);
+          // Ending where the kept width shows (a click, a key at the limit, a drag back to the start) changes nothing:
+          // the width kept from a wider window stays, for when there is room again (review).
+          const kept = readLiveNotesWidth();
+          if (fitted === liveNotesWidthWithin(kept, row)) { setWidth(kept); return; }
           setWidth(fitted);
           writeLiveNotesWidth(fitted);
         }}
