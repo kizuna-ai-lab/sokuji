@@ -95,6 +95,28 @@ describe('the settings page — a navigation target never outlives the page', ()
   const flushMicrotasks = () => act(async () => { await Promise.resolve(); });
   const target = () => useSettingsStore.getState().settingsNavigationTarget;
 
+  // Owner, 2026-11-18: the setting a navigation lands on comes to the middle of the page, not to its top edge (reveal.ts).
+  it('brings the element it lands on to the middle of the page', () => {
+    vi.useFakeTimers();
+    const scroll = vi.fn();
+    const proto = HTMLElement.prototype as unknown as { scrollIntoView?: unknown; getBoundingClientRect: () => DOMRect };
+    const before = { scroll: proto.scrollIntoView, rect: proto.getBoundingClientRect };
+    proto.scrollIntoView = scroll;
+    proto.getBoundingClientRect = function (this: HTMLElement) {
+      return (this.id === 'microphone-section' ? { top: 2000, bottom: 2040, height: 40 } : { top: 0, bottom: 0, height: 0 }) as DOMRect;
+    };
+    try {
+      render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+      act(() => { useSettingsStore.getState().navigateToSettings('microphone'); });
+      act(() => { vi.advanceTimersByTime(200); });
+      expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+      expect(document.getElementById('microphone-section')).toHaveClass('highlight');
+    } finally {
+      proto.scrollIntoView = before.scroll;
+      proto.getBoundingClientRect = before.rect;
+    }
+  });
+
   it('closing mid-highlight clears the target, so the same target can open the page again', async () => {
     vi.useFakeTimers();
     const { unmount } = render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
