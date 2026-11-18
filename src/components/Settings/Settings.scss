@@ -1273,7 +1273,8 @@
 @supports (appearance: base-select) {
   .language-select,
   .select-dropdown,
-  .provider-select {
+  .provider-select,
+  .language-receive {
     &,
     &::picker(select) {
       appearance: base-select;
