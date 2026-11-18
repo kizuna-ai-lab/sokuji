@@ -8,10 +8,20 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { PIN_SEPARATOR } from '../../lib/language/order';
 import { LanguagePairSection } from './LanguagePairSection';
+import { aroundVerb, VERB_MARK } from './receiveWords';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
-  return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
+  // The key itself; with a `verb` it says where the verb goes, after the key (as a sentence template would).
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, a?: unknown, b?: unknown) => {
+        const options = (typeof a === 'object' ? a : b) as { verb?: string } | undefined;
+        return options?.verb ? `${key} ${options.verb}` : key;
+      },
+    }),
+  };
 });
 
 const draw = (
@@ -170,7 +180,11 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'speaker', textOnly: false }, receive: { theirs } });
     const [select] = receiveSelects();
     expect(select.value).toBe('hear');
-    expect([...select.options].map((o) => o.textContent)).toEqual(['settings.langSentence.theyHear', 'settings.langSentence.theyRead']);
+    // Only the verb is the choice (owner, 2026-11-19): the subject stays plain text before it, as the sentence puts it.
+    expect([...select.options].map((o) => o.textContent)).toEqual(['settings.langSentence.theyHearVerb', 'settings.langSentence.theyReadVerb']);
+    const word = select.closest('.language-receive-label')!;
+    expect(word.firstChild?.textContent).toBe('settings.langSentence.theyReceive ');
+    expect(select.getAttribute('aria-label')).toBe('settings.langSentence.theyHear / settings.langSentence.theyRead');
     fireEvent.change(select, { target: { value: 'read' } });
     expect(theirs.onChange).toHaveBeenCalledWith(false);
   });
@@ -179,7 +193,8 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     const mine = choice(false);
     draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'participant', textOnly: false }, receive: { mine } });
     const [select] = receiveSelects();
-    expect([...select.options].map((o) => o.textContent)).toEqual(['settings.langSentence.iHear', 'settings.langSentence.iRead']);
+    expect([...select.options].map((o) => o.textContent)).toEqual(['settings.langSentence.iHearVerb', 'settings.langSentence.iReadVerb']);
+    expect(select.closest('.language-receive-label')!.firstChild?.textContent).toBe('settings.langSentence.iReceive ');
     expect(select.value).toBe('read');
     fireEvent.change(select, { target: { value: 'hear' } });
     expect(mine.onChange).toHaveBeenCalledWith(true);
@@ -417,5 +432,22 @@ describe('LanguagePairSection — a language context (Stage 2 Volcengine AST2, c
     cleanup();
     drawIn({ speech: true }, { source: 'en', target: 'ko' });
     expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeDisabled();
+  });
+});
+
+// Owner, 2026-11-19: only the verb is the choice, set in its sentence as the language orders it.
+describe('aroundVerb', () => {
+  it('gives the text before the verb, and after it where the language puts some there', () => {
+    expect(aroundVerb(`they ${VERB_MARK}`)).toEqual(['they ', '']);
+    expect(aroundVerb(`相手が${VERB_MARK}言語`)).toEqual(['相手が', '言語']);
+    expect(aroundVerb(`${VERB_MARK} nila sa`)).toEqual(['', ' nila sa']);
+  });
+
+  it('gives nothing either side where the verb carries its subject', () => {
+    expect(aroundVerb(VERB_MARK)).toEqual(['', '']);
+  });
+
+  it('leaves out a sentence that lost its verb, rather than showing it beside one it does not hold', () => {
+    expect(aroundVerb('they hear')).toEqual(['', '']);
   });
 });

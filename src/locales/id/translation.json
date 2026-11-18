@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "Saya berbicara",
       "iRead": "Saya membaca",
+      "theyReceive": "mereka {{verb}}",
+      "theyHearVerb": "mendengar",
+      "theyReadVerb": "membaca",
+      "iReceive": "Saya {{verb}}",
+      "iHearVerb": "mendengar",
+      "iReadVerb": "membaca",
       "iHear": "Saya mendengar",
       "theyHear": "mereka mendengar",
       "theyRead": "mereka membaca",

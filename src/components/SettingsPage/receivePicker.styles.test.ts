@@ -31,3 +31,10 @@ describe('the hear-or-read word\'s list', () => {
     expect(rule(shared, '.language-receive option:disabled')).toMatch(/cursor:\s*not-allowed/);
   });
 });
+
+describe('the hear-or-read word\'s sentence', () => {
+  // Owner, 2026-11-19: only the verb is the choice; the subject is text beside it, its space kept ("they hear").
+  it('keeps the spaces either side of the choice', () => {
+    expect(rule(page, '.lineup-category .language-receive-label')).toMatch(/white-space:\s*pre/);
+  });
+});

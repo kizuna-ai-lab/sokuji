@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "я говорю на",
       "iRead": "я читаю",
+      "theyReceive": "собеседник {{verb}}",
+      "theyHearVerb": "слышит",
+      "theyReadVerb": "читает",
+      "iReceive": "я {{verb}}",
+      "iHearVerb": "слышу",
+      "iReadVerb": "читаю",
       "iHear": "я слышу",
       "theyHear": "собеседник слышит",
       "theyRead": "собеседник читает",

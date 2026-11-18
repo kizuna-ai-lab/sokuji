@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "Ben konuşuyorum",
       "iRead": "Ben okuyorum",
+      "theyReceive": "onlar {{verb}}",
+      "theyHearVerb": "duyuyor",
+      "theyReadVerb": "okuyor",
+      "iReceive": "Ben {{verb}}",
+      "iHearVerb": "duyuyorum",
+      "iReadVerb": "okuyorum",
       "iHear": "Ben duyuyorum",
       "theyHear": "onlar duyuyor",
       "theyRead": "onlar okuyor",

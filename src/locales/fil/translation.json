@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "Nagsasalita ako ng",
       "iRead": "Binabasa ko",
+      "theyReceive": "{{verb}} nila sa",
+      "theyHearVerb": "naririnig",
+      "theyReadVerb": "binabasa",
+      "iReceive": "{{verb}} ko",
+      "iHearVerb": "Naririnig",
+      "iReadVerb": "Binabasa",
       "iHear": "Naririnig ko",
       "theyHear": "naririnig nila sa",
       "theyRead": "binabasa nila sa",

@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "ฉันพูด",
       "iRead": "ฉันอ่าน",
+      "theyReceive": "พวกเขา{{verb}}",
+      "theyHearVerb": "ได้ยิน",
+      "theyReadVerb": "อ่าน",
+      "iReceive": "ฉัน{{verb}}",
+      "iHearVerb": "ได้ยิน",
+      "iReadVerb": "อ่าน",
       "iHear": "ฉันได้ยิน",
       "theyHear": "พวกเขาได้ยิน",
       "theyRead": "พวกเขาอ่าน",

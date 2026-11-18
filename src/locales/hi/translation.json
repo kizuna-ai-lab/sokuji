@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "मैं बोलता/बोलती हूं",
       "iRead": "मैं पढ़ता/पढ़ती हूं",
+      "theyReceive": "वे {{verb}} हैं",
+      "theyHearVerb": "सुनते",
+      "theyReadVerb": "पढ़ते",
+      "iReceive": "मैं {{verb}} हूं",
+      "iHearVerb": "सुनता/सुनती",
+      "iReadVerb": "पढ़ता/पढ़ती",
       "iHear": "मैं सुनता/सुनती हूं",
       "theyHear": "वे सुनते हैं",
       "theyRead": "वे पढ़ते हैं",

@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "我说",
       "iRead": "我阅读",
+      "theyReceive": "对方{{verb}}",
+      "theyHearVerb": "听到",
+      "theyReadVerb": "读到",
+      "iReceive": "我{{verb}}",
+      "iHearVerb": "听到",
+      "iReadVerb": "阅读",
       "iHear": "我听到",
       "theyHear": "对方听到",
       "theyRead": "对方读到",

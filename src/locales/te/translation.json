@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "నేను మాట్లాడతాను",
       "iRead": "నేను చదువుతాను",
+      "theyReceive": "వారు {{verb}}",
+      "theyHearVerb": "వింటారు",
+      "theyReadVerb": "చదువుతారు",
+      "iReceive": "నేను {{verb}}",
+      "iHearVerb": "వింటాను",
+      "iReadVerb": "చదువుతాను",
       "iHear": "నేను వింటాను",
       "theyHear": "వారు వింటారు",
       "theyRead": "వారు చదువుతారు",

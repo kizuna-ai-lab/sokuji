@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "Ich spreche",
       "iRead": "Ich lese",
+      "theyReceive": "sie {{verb}}",
+      "theyHearVerb": "hören",
+      "theyReadVerb": "lesen",
+      "iReceive": "Ich {{verb}}",
+      "iHearVerb": "höre",
+      "iReadVerb": "lese",
       "iHear": "Ich höre",
       "theyHear": "sie hören",
       "theyRead": "sie lesen",

@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "நான் பேசுவது",
       "iRead": "நான் படிப்பது",
+      "theyReceive": "அவர்கள் {{verb}}",
+      "theyHearVerb": "கேட்பது",
+      "theyReadVerb": "படிப்பது",
+      "iReceive": "நான் {{verb}}",
+      "iHearVerb": "கேட்பது",
+      "iReadVerb": "படிப்பது",
       "iHear": "நான் கேட்பது",
       "theyHear": "அவர்கள் கேட்பது",
       "theyRead": "அவர்கள் படிப்பது",

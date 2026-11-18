@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "אני מדבר",
       "iRead": "אני קורא",
+      "theyReceive": "הם {{verb}}",
+      "theyHearVerb": "שומעים",
+      "theyReadVerb": "קוראים",
+      "iReceive": "אני {{verb}}",
+      "iHearVerb": "שומע",
+      "iReadVerb": "קורא",
       "iHear": "אני שומע",
       "theyHear": "הם שומעים",
       "theyRead": "הם קוראים",

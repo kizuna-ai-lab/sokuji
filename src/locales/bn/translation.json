@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "আমি বলি",
       "iRead": "আমি পড়ি",
+      "theyReceive": "তারা {{verb}}",
+      "theyHearVerb": "শোনে",
+      "theyReadVerb": "পড়ে",
+      "iReceive": "আমি {{verb}}",
+      "iHearVerb": "শুনি",
+      "iReadVerb": "পড়ি",
       "iHear": "আমি শুনি",
       "theyHear": "তারা শোনে",
       "theyRead": "তারা পড়ে",

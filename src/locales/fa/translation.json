@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "صحبت می‌کنم",
       "iRead": "می‌خوانم",
+      "theyReceive": "آن‌ها {{verb}}",
+      "theyHearVerb": "می‌شنوند",
+      "theyReadVerb": "می‌خوانند",
+      "iReceive": "{{verb}}",
+      "iHearVerb": "می‌شنوم",
+      "iReadVerb": "می‌خوانم",
       "iHear": "می‌شنوم",
       "theyHear": "آن‌ها می‌شنوند",
       "theyRead": "آن‌ها می‌خوانند",

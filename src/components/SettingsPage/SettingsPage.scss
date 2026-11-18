@@ -171,7 +171,9 @@
   .language-mirror-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11.5px; color: vars.$text-muted; }
   // The sentence's "hear / read" words as choices (owner, 2026-11-18, design 1): a word, not a field — the label's
   // size and colour, a dashed underline and a small chevron (drawn in the text's own colour) to show it can be changed.
-  .language-receive-label { display: inline-flex; margin-bottom: 4px; }
+  // The word's sentence around its choice (owner, 2026-11-19: only the verb is the choice). Its spaces are the
+  // language's own ("they hear"), kept at the edges of the text either side of the choice.
+  .language-receive-label { display: inline-flex; align-items: baseline; margin-bottom: 4px; white-space: pre; }
   .language-receive {
     appearance: none;
     width: auto;

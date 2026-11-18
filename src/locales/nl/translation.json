@@ -325,6 +325,12 @@
     "langSentence": {
       "iSpeak": "Ik spreek",
       "iRead": "Ik lees",
+      "theyReceive": "{{verb}} zij",
+      "theyHearVerb": "horen",
+      "theyReadVerb": "lezen",
+      "iReceive": "Ik {{verb}}",
+      "iHearVerb": "hoor",
+      "iReadVerb": "lees",
       "iHear": "Ik hoor",
       "theyHear": "horen zij",
       "theyRead": "lezen zij",

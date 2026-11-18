@@ -9,6 +9,7 @@ import type { AudioMode } from '../../stores/audioStore';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
 import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
+import { aroundVerb, VERB_MARK } from './receiveWords';
 
 const SEPARATOR = '──────────';
 
@@ -162,27 +163,44 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   // The choices this mode shows: the other side's on my leg, mine on theirs.
   const theirs = sentence && sentence.mode !== 'participant' ? receive?.theirs : undefined;
   const mine = sentence && sentence.mode !== 'speaker' ? receive?.mine : undefined;
+  // Each side's word: the whole phrases name it to a screen reader; only the verb is the choice, set in its sentence as
+  // the language orders it (owner, 2026-11-19: the subject is not part of the choice). Where the subject is in the verb
+  // itself (Arabic), the whole word is.
+  const around = (key: string, fallback: string) => aroundVerb(t(key, fallback, { verb: VERB_MARK }));
   const words = {
-    theirs: [t('settings.langSentence.theyHear', 'they hear'), t('settings.langSentence.theyRead', 'they read')] as const,
-    mine: [t('settings.langSentence.iHear', 'I hear'), t('settings.langSentence.iRead', 'I read')] as const,
+    theirs: {
+      named: [t('settings.langSentence.theyHear', 'they hear'), t('settings.langSentence.theyRead', 'they read')] as const,
+      verbs: [t('settings.langSentence.theyHearVerb', 'hear'), t('settings.langSentence.theyReadVerb', 'read')] as const,
+      around: around('settings.langSentence.theyReceive', 'they {{verb}}'),
+    },
+    mine: {
+      named: [t('settings.langSentence.iHear', 'I hear'), t('settings.langSentence.iRead', 'I read')] as const,
+      verbs: [t('settings.langSentence.iHearVerb', 'hear'), t('settings.langSentence.iReadVerb', 'read')] as const,
+      around: around('settings.langSentence.iReceive', 'I {{verb}}'),
+    },
   };
+  type Word = (typeof words)['theirs'];
   // A choice that cannot change still opens, the way it cannot go greyed, so the choice is seen to be there (owner,
   // 2026-11-18). Its own lock, not the section's: the session's lock is in `blocked` where it applies (Translation I
   // hear stays switchable during a run that speaks it, as on the Audio page).
-  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, [hear, read]: readonly [string, string]) => {
+  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, { named: [hear, read], verbs, around: [before, after] }: Word) => {
     const locked = Boolean(choice.blocked);
     return (
-      <select
-        className="language-receive"
-        value={choice.hears ? 'hear' : 'read'}
-        aria-label={`${hear} / ${read}`}
-        title={choice.blocked ?? undefined}
-        aria-describedby={locked ? `${id}-reason-${side}` : undefined}
-        onChange={(e) => choice.onChange(e.target.value === 'hear')}
-      >
-        <option value="hear" disabled={locked && !choice.hears}>{hear}</option>
-        <option value="read" disabled={locked && choice.hears}>{read}</option>
-      </select>
+      <span className="language-receive-label">
+        {before}
+        <select
+          className="language-receive"
+          value={choice.hears ? 'hear' : 'read'}
+          aria-label={`${hear} / ${read}`}
+          title={choice.blocked ?? undefined}
+          aria-describedby={locked ? `${id}-reason-${side}` : undefined}
+          onChange={(e) => choice.onChange(e.target.value === 'hear')}
+        >
+          <option value="hear" disabled={locked && !choice.hears}>{verbs[0]}</option>
+          <option value="read" disabled={locked && choice.hears}>{verbs[1]}</option>
+        </select>
+        {after}
+      </span>
     );
   };
   // Why a side's word cannot change, under the row it belongs to; its link opens that side's switch.
@@ -305,14 +323,14 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       <div className="language-pair-row">
         <div className="language-select-group">
           {mineLeads && mine
-            ? <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
+            ? receiveSelect('mine', mine, words.mine)
             : <label htmlFor={`${id}-source`}>{sourceLabel}</label>}
           {sourceSelect(`${id}-source`, mineLeads ? sourceLabel : undefined)}
         </div>
         {swap}
         <div className="language-select-group">
           {theirs
-            ? <span className="language-receive-label">{receiveSelect('theirs', theirs, words.theirs)}</span>
+            ? receiveSelect('theirs', theirs, words.theirs)
             : <label htmlFor={`${id}-target`}>{targetLabel}</label>}
           {targetSelect(`${id}-target`, theirs ? targetLabel : undefined)}
         </div>
@@ -328,7 +346,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
           </div>
           {swap}
           <div className="language-select-group">
-            <span className="language-receive-label">{receiveSelect('mine', mine, words.mine)}</span>
+            {receiveSelect('mine', mine, words.mine)}
             {legSelect(`${id}-their-source`, theirChoices.iCanGet, theirChoices.iGet, pair.source, chooseSource, t('settings.sourceLanguage', 'My Language'))}
           </div>
         </div>
