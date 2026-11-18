@@ -46,6 +46,16 @@ describe('the options a file transcription starts from', () => {
     expect(optionsFor(record())).toEqual({ languages: ['en', 'zh'], translateTo: EACH_SIDE });
   });
 
+  it('"each side" kept with a version, one side’s recording since deleted: the side left is translated as it was', () => {
+    const asked = { languages: ['en', 'zh'], translateTo: EACH_SIDE };
+    const r = record({
+      tracks: [track('speaker'), track('participant', 5)],
+      transcripts: [transcript(1, 10, { service: 'soniox', kind: 'file', options: asked })],
+    } as never);
+    // Only my own side is left: Chinese, which the session translated into English.
+    expect(optionsFor(r)).toEqual({ languages: ['en', 'zh'], translateTo: 'en' });
+  });
+
   it('a session with one track: that side’s language, translated as it was in the session', () => {
     // Only my own speech was kept (subtitles of myself): Chinese, translated into English, never into Chinese.
     const mine = record({ tracks: [track('speaker'), track('participant', 5)], legs: [leg('speaker', 'zh', 'en')] } as never);

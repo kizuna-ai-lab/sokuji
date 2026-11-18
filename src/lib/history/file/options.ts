@@ -50,8 +50,14 @@ export function optionsFor(record: HistoryRecord): FileTranscriptionOptions {
     .sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
     .map((t) => asOptions(t.origin.options))
     .find((o) => o !== null);
-  if (asked) return asked;
   const mine = record.myLanguage;
+  if (asked) {
+    if (asked.translateTo !== EACH_SIDE || eachSideOffered(record)) return asked;
+    // "Each side" with one side's recording since deleted: the side left is translated as it was in the session.
+    const left = keptLegs(record);
+    const target = left.length === 1 ? left[0].languages.target : undefined;
+    return { ...asked, translateTo: isOne(target) ? target : mine };
+  }
   if (record.mode === 'import') {
     const atImport = asOptions(record.services.options);
     if (atImport) return atImport;
