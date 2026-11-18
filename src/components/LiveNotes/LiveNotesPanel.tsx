@@ -97,14 +97,15 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   // Hidden, alone or gone in the middle of a drag, the divider goes, and what it showed with it.
   useEffect(() => { if (!shown || alone || !present) setPreview(null); }, [shown, alone, present]);
   const { recordId, state, hint, running, off, ended, history, fullNotes, stopped, used, balanceMicroUsd } = useLiveNotes();
-  // Everything the body may add to: the newest stays in view as any of it comes in.
-  const followed = useMemo(
-    () => [state, hint, off, stopped, ended, history, fullNotes, used, balanceMicroUsd],
-    [state, hint, off, stopped, ended, history, fullNotes, used, balanceMicroUsd],
-  );
   // With Kizuna AI the panel's foot says what this session's live notes have used, at the published rates.
   const hosted = useLineUpStore((s) => notesServiceOf(s.lineUp) === KIZUNA_NOTES);
   const pricing = useNotesPricing(hosted && isElectron());
+  // Everything the body may add to, the cost line too (review, PR #787: Kizuna AI chosen or its rates loaded, it comes
+  // in with nothing else changing): the newest stays in view as any of it comes in.
+  const followed = useMemo(
+    () => [state, hint, off, stopped, ended, history, fullNotes, used, balanceMicroUsd, hosted, pricing],
+    [state, hint, off, stopped, ended, history, fullNotes, used, balanceMicroUsd, hosted, pricing],
+  );
   if (!present) return null;
   const shownWidth = liveNotesWidthWithin(preview ?? kept, row);
 

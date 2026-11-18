@@ -353,6 +353,18 @@ describe('the live notes panel', () => {
       expect(box2.top).toBe(300);
     });
 
+    // Review (PR #787): the cost line can come in with nothing else changing (Kizuna AI chosen, or its rates loaded late).
+    it('keeps following when the cost line comes in on its own', () => {
+      const { box, update } = mountBody();
+      act(() => useLiveNotes.getState().addUsage('run-0001-aaaa', { prompt_tokens: 9000, completion_tokens: 3000 }));
+      update(1200, 1);
+      expect(box.top).toBe(900);
+      box.height = 1250;
+      act(() => useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'kizunaai' } } as never));
+      expect(screen.getByText(/Live notes so far/)).toBeInTheDocument();
+      expect(box.top).toBe(950);
+    });
+
     it('hidden and shown again, is at the newest if it was following, and where the reader was if not', () => {
       const { body, box, update, resized } = mountBody();
       update(1200, 1);
