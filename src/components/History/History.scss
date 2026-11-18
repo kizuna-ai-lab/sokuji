@@ -965,6 +965,11 @@
       line-height: 18px;
       background-position: right 8px center;
       background-size: 10px;
+
+      // The customizable select draws its chevron after the text and pushes it to the end, not as a background at the
+      // right edge: the 24px kept for the classic arrow would leave a strip after it. Right padding as on the left, so
+      // the chevron sits at the edge as on every other dropdown (owner, 2026-11-18).
+      @supports (appearance: base-select) { padding-right: 8px; }
     }
   }
 }

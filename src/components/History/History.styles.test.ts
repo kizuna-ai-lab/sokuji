@@ -31,3 +31,13 @@ describe('the record page\'s notes column', () => {
     expect(ruleBody('.record-page__notes-col[hidden]') ?? '').toMatch(/display:\s*none/);
   });
 });
+
+// Owner, 2026-11-18: the version dropdown's chevron sits at its right edge, as on every other dropdown. A base-select
+// control lays its chevron out after the text (pushed to the end), so the right padding the classic background arrow
+// needed would leave an empty strip after the chevron.
+describe("the transcript version dropdown", () => {
+  it('keeps its chevron at the right edge where the customizable select draws it', () => {
+    const block = /@supports \(appearance: base-select\) \{\s*\.history-file__versions \.select-dropdown \{([^}]*)\}/.exec(css);
+    expect(block?.[1] ?? '').toMatch(/padding-right:\s*8px/);
+  });
+});
