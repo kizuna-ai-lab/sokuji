@@ -165,26 +165,28 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   const mine = sentence && sentence.mode !== 'speaker' ? receive?.mine : undefined;
   // Each side's word: the whole phrases name it to a screen reader; only the verb is the choice, set in its sentence as
   // the language orders it (owner, 2026-11-19: the subject is not part of the choice). Where the subject is in the verb
-  // itself (Arabic), the whole word is.
+  // itself (Arabic), the whole word is. Each choice has its own sentence, for a subject that changes with the verb
+  // (French: j'[entends], je [lis]; review, PR #797).
   const around = (key: string, fallback: string) => aroundVerb(t(key, fallback, { verb: VERB_MARK }));
   const words = {
     theirs: {
       named: [t('settings.langSentence.theyHear', 'they hear'), t('settings.langSentence.theyRead', 'they read')] as const,
       verbs: [t('settings.langSentence.theyHearVerb', 'hear'), t('settings.langSentence.theyReadVerb', 'read')] as const,
-      around: around('settings.langSentence.theyReceive', 'they {{verb}}'),
+      around: { hear: around('settings.langSentence.theyReceiveHear', 'they {{verb}}'), read: around('settings.langSentence.theyReceiveRead', 'they {{verb}}') },
     },
     mine: {
       named: [t('settings.langSentence.iHear', 'I hear'), t('settings.langSentence.iRead', 'I read')] as const,
       verbs: [t('settings.langSentence.iHearVerb', 'hear'), t('settings.langSentence.iReadVerb', 'read')] as const,
-      around: around('settings.langSentence.iReceive', 'I {{verb}}'),
+      around: { hear: around('settings.langSentence.iReceiveHear', 'I {{verb}}'), read: around('settings.langSentence.iReceiveRead', 'I {{verb}}') },
     },
   };
   type Word = (typeof words)['theirs'];
   // A choice that cannot change still opens, the way it cannot go greyed, so the choice is seen to be there (owner,
   // 2026-11-18). Its own lock, not the section's: the session's lock is in `blocked` where it applies (Translation I
   // hear stays switchable during a run that speaks it, as on the Audio page).
-  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, { named: [hear, read], verbs, around: [before, after] }: Word) => {
+  const receiveSelect = (side: 'theirs' | 'mine', choice: ReceiveChoice, { named: [hear, read], verbs, around: sentences }: Word) => {
     const locked = Boolean(choice.blocked);
+    const [before, after] = choice.hears ? sentences.hear : sentences.read;
     return (
       <span className="language-receive-label">
         {before}

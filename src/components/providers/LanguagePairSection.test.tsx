@@ -183,10 +183,17 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     // Only the verb is the choice (owner, 2026-11-19): the subject stays plain text before it, as the sentence puts it.
     expect([...select.options].map((o) => o.textContent)).toEqual(['settings.langSentence.theyHearVerb', 'settings.langSentence.theyReadVerb']);
     const word = select.closest('.language-receive-label')!;
-    expect(word.firstChild?.textContent).toBe('settings.langSentence.theyReceive ');
+    expect(word.firstChild?.textContent).toBe('settings.langSentence.theyReceiveHear ');
     expect(select.getAttribute('aria-label')).toBe('settings.langSentence.theyHear / settings.langSentence.theyRead');
     fireEvent.change(select, { target: { value: 'read' } });
     expect(theirs.onChange).toHaveBeenCalledWith(false);
+  });
+
+  // Review (PR #797): the sentence is the chosen verb's, as the subject can change with the verb (French: j'[entends],
+  // je [lis]).
+  it("sets the word in the sentence of the verb chosen", () => {
+    draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'speaker', textOnly: false }, receive: { theirs: choice(false) } });
+    expect(receiveSelects()[0].closest('.language-receive-label')!.firstChild?.textContent).toBe('settings.langSentence.theyReceiveRead ');
   });
 
   it("'participant': my word is the choice, and choosing hearing turns it on", () => {
@@ -194,7 +201,7 @@ describe('LanguagePairSection — hearing or reading, chosen in the sentence', (
     draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'participant', textOnly: false }, receive: { mine } });
     const [select] = receiveSelects();
     expect([...select.options].map((o) => o.textContent)).toEqual(['settings.langSentence.iHearVerb', 'settings.langSentence.iReadVerb']);
-    expect(select.closest('.language-receive-label')!.firstChild?.textContent).toBe('settings.langSentence.iReceive ');
+    expect(select.closest('.language-receive-label')!.firstChild?.textContent).toBe('settings.langSentence.iReceiveRead ');
     expect(select.value).toBe('read');
     fireEvent.change(select, { target: { value: 'hear' } });
     expect(mine.onChange).toHaveBeenCalledWith(true);
