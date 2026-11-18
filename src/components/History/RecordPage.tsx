@@ -31,7 +31,7 @@ import { InlineEdit } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
 import { labelsFit } from './panelSwitchFit';
 import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
-import { SIDE_MIN_PX, readSideWidth, sideFitsBeside, sideWidthWithin, writeSideWidth } from './sideColumn';
+import { SIDE_MIN_PX, readSideWidth, sideWidthWithin, writeSideWidth } from './sideColumn';
 import './History.scss';
 
 /** A search hit stays marked this long. */
@@ -210,7 +210,8 @@ export const RecordPage: React.FC = () => {
   const wordsWidth = useRef(0);
   const wordsAdd = useRef<number | null>(null);
   const [switchWords, setSwitchWords] = useState(true);
-  const [pane, setPane] = useState<'notes' | 'transcript'>('transcript');
+  // Narrow: one of the three at a time, as tabs (owner, 2026-11-18). Wide: all three as columns.
+  const [pane, setPane] = useState<'notes' | 'transcript' | 'edit'>('transcript');
   // A search hit opens on its own tab: the notes for a hit in the notes, else the transcript.
   const hitKind = open?.at?.kind;
   useEffect(() => {
@@ -343,41 +344,46 @@ export const RecordPage: React.FC = () => {
   };
 
   const speakerCount = speakersOf('mine').length + speakersOf('other').length;
-  const sideShown = speakerCount > 0 && (wide || pane === 'transcript');
-  // The columns as they fit this page; the widths kept stay as the user left them, for a wider window later. The side
-  // panel is fitted first, beside notes at their narrowest, and the notes in what it leaves; on a page too narrow for the
-  // transcript beside it, the open side panel takes the page and the transcript gives way. Unmeasured (no layout yet),
-  // nothing gives way.
-  const sideColumn = sideShown && sideOpen;
-  const sideRoom = Math.max(0, pageWidth - (wide && notesOpen ? NOTES_MIN_PX + DIVIDER_PX : 0));
-  const sideTakesAll = sideColumn && pageWidth > 0 && !sideFitsBeside(sideRoom);
+  // The edit panel (the speakers now, fixing the transcript later; owner, 2026-11-18): wide, a column at the right of the
+  // transcript, shown and hidden from the toolbar; narrow, the third tab. Only with speakers to edit.
+  const editable = speakerCount > 0;
+  const shownPane = pane === 'edit' && !editable ? 'transcript' : pane;
+  const sideColumn = wide && editable && sideOpen;
+  const sideShown = wide ? sideColumn : editable && shownPane === 'edit';
+  // The columns as they fit this page; the widths kept stay as the user left them, for a wider window later. The edit
+  // panel is fitted first, beside notes at their narrowest, and the notes in what it leaves.
+  const sideRoom = Math.max(0, pageWidth - (notesOpen ? NOTES_MIN_PX + DIVIDER_PX : 0));
   const shownSideWidth = pageWidth > 0 ? sideWidthWithin(sideWidth, sideRoom) : Math.max(SIDE_MIN_PX, sideWidth);
-  const notesRoom = sideColumn && !sideTakesAll ? pageWidth - shownSideWidth - DIVIDER_PX : pageWidth;
+  const notesRoom = sideColumn ? pageWidth - shownSideWidth - DIVIDER_PX : pageWidth;
   const shownNotesWidth = notesWidthWithin(notesWidth, notesRoom);
-  // Dividers to drag on a wide page only: a narrow one may sit in a window under 768 px, where none shows. There the
-  // column keeps its width as far as the page allows, behind an edge of its own.
-  const sideDivider = sideColumn && !sideTakesAll && wide;
   const tracks = [
-    ...(wide && notesOpen ? [`${shownNotesWidth}px`, `${DIVIDER_PX}px`] : []),
+    ...(notesOpen ? [`${shownNotesWidth}px`, `${DIVIDER_PX}px`] : []),
     'minmax(0, 1fr)',
-    ...(sideDivider ? [`${DIVIDER_PX}px`] : []),
-    ...(sideColumn && !sideTakesAll ? [`${shownSideWidth}px`] : []),
+    ...(sideColumn ? [`${DIVIDER_PX}px`, `${shownSideWidth}px`] : []),
   ];
-  // Hiding the side panel with a name being typed saves it first, a newer one typed while an earlier save ran as well
+  // Leaving the edit panel with a name being typed saves it first, a newer one typed while an earlier save ran as well
   // (review); a name that fails to save, or is still unsaved, keeps the panel open with it.
-  const toggleSide = async () => {
-    if (sideOpen) {
-      for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
-        if (!(await saveName())) return;
-      }
-      if (nameDraftRef.current) return;
+  const nameSettled = async (): Promise<boolean> => {
+    for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
+      if (!(await saveName())) return false;
     }
+    return !nameDraftRef.current;
+  };
+  // Nothing being typed or saved: at once, with nothing to wait for.
+  const nameBusy = () => Boolean(nameDraftRef.current || nameSave.current);
+  const toggleSide = async () => {
+    if (sideOpen && nameBusy() && !(await nameSettled())) return;
     writeSideOpen(!sideOpen);
     setSideOpen(!sideOpen);
   };
+  // Narrow: Escape on the Edit tab, or another tab chosen, leaves it as hiding it does on a wide page.
+  const choosePane = async (next: 'notes' | 'transcript' | 'edit') => {
+    if (shownPane === 'edit' && next !== 'edit' && nameBusy() && !(await nameSettled())) return;
+    setPane(next);
+  };
   // The two panels' switches, together in the toolbar before Export: the icon says which side, the pressed state that
   // the panel is shown, the tooltip what a click does (design review, 2026-11-17; B-40).
-  const panelSwitches = (wide || sideShown) && (
+  const panelSwitches = wide && (
     <span className="record-page__panels" data-compact={switchWords ? undefined : ''}>
       {wide && (
         <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.notes', 'Notes')}
@@ -387,12 +393,12 @@ export const RecordPage: React.FC = () => {
           <span className="record-page__panel-word">{t('history.notes', 'Notes')}</span>
         </button>
       )}
-      {sideShown && (
-        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.sidePanel', 'Side panel')}
-          title={sideOpen ? t('history.closeSidePanel', 'Close the side panel') : t('history.openSidePanel', 'Open the side panel')}
+      {editable && (
+        <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.sidePanel', 'Edit')}
+          title={sideOpen ? t('history.closeSidePanel', 'Hide the edit panel') : t('history.openSidePanel', 'Show the edit panel')}
           aria-pressed={sideOpen} aria-controls={sideId} onClick={() => void toggleSide()}>
           <PanelRight size={16} aria-hidden="true" />
-          <span className="record-page__panel-word">{t('history.sidePanel', 'Side panel')}</span>
+          <span className="record-page__panel-word">{t('history.sidePanel', 'Edit')}</span>
         </button>
       )}
     </span>
@@ -635,17 +641,20 @@ export const RecordPage: React.FC = () => {
       {transcribing && <TranscribePanel onClose={() => setTranscribing(false)} />}
       {!wide && (
         <div className="record-page__panes" role="tablist">
-          <button type="button" role="tab" aria-selected={pane === 'notes'} onClick={() => setPane('notes')}>{t('history.notes', 'Notes')}</button>
-          <button type="button" role="tab" aria-selected={pane === 'transcript'} onClick={() => setPane('transcript')}>{t('history.transcript', 'Transcript')}</button>
+          <button type="button" role="tab" aria-selected={shownPane === 'notes'} onClick={() => void choosePane('notes')}>{t('history.notes', 'Notes')}</button>
+          <button type="button" role="tab" aria-selected={shownPane === 'transcript'} onClick={() => void choosePane('transcript')}>{t('history.transcript', 'Transcript')}</button>
+          {editable && (
+            <button type="button" role="tab" aria-selected={shownPane === 'edit'} aria-controls={sideId} onClick={() => void choosePane('edit')}>{t('history.sidePanel', 'Edit')}</button>
+          )}
         </div>
       )}
       {/* The columns, in a frame that does not scroll: the speakers' drawer stays put over them. */}
       <div className="record-page__body">
       <div
         className={`record-page__columns${wide ? ' is-wide' : ''}`}
-        style={wide || sideColumn ? { gridTemplateColumns: tracks.join(' ') } : undefined}
+        style={wide ? { gridTemplateColumns: tracks.join(' ') } : undefined}
       >
-        <div className="record-page__notes-col" hidden={wide ? !notesOpen : pane !== 'notes'}>
+        <div className="record-page__notes-col" hidden={wide ? !notesOpen : shownPane !== 'notes'}>
           <div className="record-page__notes" id={notesId} hidden={wide && !notesOpen}>{notesView}</div>
         </div>
         {wide && notesOpen && (
@@ -663,18 +672,18 @@ export const RecordPage: React.FC = () => {
             }}
           />
         )}
-        <div className="record-page__transcript" ref={transcriptRef} hidden={(!wide && pane !== 'transcript') || sideTakesAll}>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={!wide && shownPane !== 'transcript'}>
           <TranscriptAsked />
           {transcript}
         </div>
         {/* The side panel, a column at the right of the transcript (owner, 2026-11-18), with its own divider. Closing it
             while a name is typed saves the name, as a click elsewhere does. */}
-        {sideDivider && (
+        {sideColumn && (
           <PanelResizer
             width={shownSideWidth}
             min={SIDE_MIN_PX}
             max={sideWidthWithin(Number.POSITIVE_INFINITY, sideRoom)}
-            label={t('history.resizeSidePanel', 'Resize the side panel')}
+            label={t('history.resizeSidePanel', 'Resize the edit panel')}
             onResize={(next) => setSideWidth(sideWidthWithin(next, sideRoom))}
             onCommit={(next) => {
               const width = sideWidthWithin(next, sideRoom);
@@ -683,14 +692,13 @@ export const RecordPage: React.FC = () => {
             }}
           />
         )}
-        {sideShown && (
+        {editable && (
           <RecordSidePanel
             id={sideId}
-            open={sideOpen}
-            edge={sideColumn && !sideTakesAll && !sideDivider}
+            open={sideShown}
             // A name or the title being typed: Escape is the field's, not the panel's.
             editing={nameDraft !== null || titleDraft !== null}
-            onToggle={toggleSide}
+            onToggle={wide ? toggleSide : () => choosePane('transcript')}
           >
             <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
               <h3>{t('history.speakers', 'Speakers')}</h3>

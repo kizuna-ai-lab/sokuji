@@ -999,16 +999,15 @@
   }
 }
 
-// The record's side panel (RecordSidePanel): a column of the record's columns at the right of the transcript, as the
-// notes are at its left (owner, 2026-11-18); the page sets its width and the divider beside it. It scrolls on its own.
+// The record's edit panel (RecordSidePanel): on a wide page a column of the record's columns at the right of the
+// transcript, as the notes are at its left; on a narrow one the third tab (owner, 2026-11-18). The page sets its width and
+// the divider beside it. It scrolls on its own.
 .record-side {
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
   overflow-y: auto;
   padding: vars.$space-3 vars.$space-4;
-  // Beside the transcript with no divider (a narrow page): a line of its own where it starts.
-  &--edge { border-left: 1px solid vars.$border-subtle; }
 
   // One part of the panel per tool: the speakers now, more later, one under another.
   &__part {

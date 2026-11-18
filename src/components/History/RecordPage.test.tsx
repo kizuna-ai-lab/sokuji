@@ -117,9 +117,21 @@ beforeEach(() => {
   vi.mocked(downloadFile).mockClear();
   vi.mocked(copyToClipboard).mockClear();
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 const openExport = () => fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+
+/** A page 1200 px wide, as the ResizeObserver the record page watches it with reports: the edit panel is a column there
+ *  (owner, 2026-11-18); on a narrow page it is a tab. */
+function widePage(width = 1200) {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(private readonly cb: () => void) {}
+    observe() { this.cb(); }
+    unobserve() {}
+    disconnect() {}
+  });
+}
 
 describe('a record', () => {
   it('shows the transcript with speakers, times and translations', async () => {
@@ -262,10 +274,11 @@ describe('a record', () => {
   // Owner, 2026-11-17: the speakers are not a column of their own any more; a button over the transcript opens them.
   // Owner, 2026-11-17: a side panel over the transcript, for the speakers now and more later; the transcript keeps its
   // width under it. It is shown and hidden from a switch in the page's toolbar (B-40 redone: no handle on its edge).
-  const drawer = () => screen.queryByRole('complementary', { name: 'Side panel' });
-  const toggle = () => screen.getByRole('button', { name: 'Side panel' });
+  const drawer = () => screen.queryByRole('complementary', { name: 'Edit' });
+  const toggle = () => screen.getByRole('button', { name: 'Edit' });
 
   it('keeps the speakers in a side panel shown and hidden from a switch in the toolbar, and gives their column to the transcript', async () => {
+    widePage();
     await renderRecord();
     expect(document.querySelector('.record-page__side')).toBeNull();
     expect(document.querySelector('.record-page__transcript-head')).toBeNull();
@@ -273,14 +286,14 @@ describe('a record', () => {
     // Open the first time (owner, 2026-11-17: what it holds is seen at once); closed here to start from closed.
     fireEvent.click(toggle());
     expect(drawer()).toBeNull();
-    expect(toggle()).toHaveAttribute('title', 'Open the side panel');
+    expect(toggle()).toHaveAttribute('title', 'Show the edit panel');
     expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     expect(toggle().querySelector('.lucide-panel-right')).not.toBeNull();
     // The icon and its word, as the title bar's buttons have while there is room (owner, 2026-11-17).
-    expect(toggle().textContent).toBe('Side panel');
+    expect(toggle().textContent).toBe('Edit');
     expect(toggle().closest('.record-page__actions')).not.toBeNull();
     fireEvent.click(toggle());
-    expect(toggle()).toHaveAttribute('title', 'Close the side panel');
+    expect(toggle()).toHaveAttribute('title', 'Hide the edit panel');
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
     // The speakers are its first part, under their own heading.
     const speakers = within(drawer()!).getByRole('region', { name: 'Speakers' });
@@ -293,6 +306,7 @@ describe('a record', () => {
   });
 
   it('is open the first time, and remembers the last choice for the next record', async () => {
+    widePage();
     await renderRecord();
     expect(drawer()).not.toBeNull();
     expect(toggle()).toHaveAttribute('aria-pressed', 'true');
@@ -308,6 +322,7 @@ describe('a record', () => {
   });
 
   it('closes the drawer on Escape, but drops only the name while one is typed, and stays on the record', async () => {
+    widePage();
     render(<HistoryPage onClose={() => {}} />);
     await settle();
     fireEvent.click(screen.getByText(/^Session at /));
@@ -325,6 +340,7 @@ describe('a record', () => {
   });
 
   it('Escape in the title field cancels the title edit and leaves the side panel open', async () => {
+    widePage();
     await renderRecord();
     expect(drawer()).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: when() }));
@@ -337,6 +353,7 @@ describe('a record', () => {
   });
 
   it('keeps a name that failed to save, and offers no other rename while one is saving', async () => {
+    widePage();
     let fail: () => void = () => {};
     port.renameSpeaker = (async () => { await new Promise<void>((_, reject) => { fail = () => reject(new Error('disk full')); }); }) as never;
     await renderRecord();
@@ -352,6 +369,7 @@ describe('a record', () => {
   });
 
   it('stays open, the name kept, when the name being typed fails to save as the panel is closed', async () => {
+    widePage();
     port.renameSpeaker = (async () => { throw new Error('disk full'); }) as never;
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
@@ -364,6 +382,7 @@ describe('a record', () => {
 
   // Review: a save already under way is waited for, not taken as done.
   it('stays open when closed while a started name save is still running, and that save then fails', async () => {
+    widePage();
     let fail: () => void = () => {};
     port.renameSpeaker = (async () => { await new Promise<void>((_, reject) => { fail = () => reject(new Error('disk full')); }); }) as never;
     await renderRecord();
@@ -380,6 +399,7 @@ describe('a record', () => {
 
   // Review: a newer name typed while a save ran is saved too before the panel closes, not left hidden.
   it('saves the newer name as well before closing, when more was typed while a save ran', async () => {
+    widePage();
     let finish: () => void = () => {};
     const names: string[] = [];
     port.renameSpeaker = (async (arg: { name: string }) => {
@@ -401,6 +421,7 @@ describe('a record', () => {
 
   // Review: Escape is the open sentence menu's first; the panel closes only on an Escape nothing else took.
   it('Escape in an open sentence menu closes the menu and leaves the side panel open', async () => {
+    widePage();
     await renderRecord();
     expect(drawer()).not.toBeNull();
     const second = document.querySelector('[data-n="2"]') as HTMLElement;
@@ -412,6 +433,7 @@ describe('a record', () => {
   });
 
   it('saves a name being typed when the drawer is closed', async () => {
+    widePage();
     await renderRecord();
     fireEvent.click(within(drawer()!).getByRole('button', { name: 'Rename Other' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
@@ -421,6 +443,7 @@ describe('a record', () => {
   });
 
   it('renames a speaker and moves one sentence to a new speaker', async () => {
+    widePage();
     await renderRecord();
     const panel = drawer()!;
     expect(within(panel).getByText('2 sentences')).toBeInTheDocument();
@@ -859,7 +882,7 @@ describe('the notes column on a wide page', () => {
     expect(notesSwitch().querySelector('.lucide-panel-left')).not.toBeNull();
     // The two switches together, before Export.
     const group = notesSwitch().closest('.record-page__panels')!;
-    expect(within(group as HTMLElement).getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+    expect(within(group as HTMLElement).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     const actions = [...document.querySelectorAll('.record-page__actions > *')];
     const exportAt = actions.findIndex((el) => el.textContent?.includes('Export'));
     expect(actions.indexOf(group)).toBeLessThan(exportAt);
@@ -950,12 +973,13 @@ describe('the notes column on a wide page', () => {
     expect(group()).not.toHaveAttribute('data-compact');
   });
 
-  it('on a narrow page keeps the two tabs, with no divider and no notes switch (the side panel\'s stays)', async () => {
+  // Owner, 2026-11-18: the edit panel is the third tab there, so neither panel has a switch in the toolbar.
+  it('on a narrow page keeps the tabs (the edit panel the third), with no divider and no switches', async () => {
     await renderRecord();
-    expect(screen.getByRole('tab', { name: 'Notes' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Notes', 'Transcript', 'Edit']);
     expect(within(columns()).queryByRole('separator')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Notes' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Side panel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
   });
 });
 
@@ -976,8 +1000,8 @@ describe("the side panel's column", () => {
   }
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
   const columns = () => document.querySelector('.record-page__columns') as HTMLElement;
-  const side = () => screen.queryByRole('complementary', { name: 'Side panel' });
-  const sideDivider = () => within(columns()).queryByRole('separator', { name: 'Resize the side panel' });
+  const side = () => screen.queryByRole('complementary', { name: 'Edit' });
+  const sideDivider = () => within(columns()).queryByRole('separator', { name: 'Resize the edit panel' });
   const transcript = () => document.querySelector('.record-page__transcript') as HTMLElement;
 
   it('stands at the right of the transcript, in the page\'s columns, with a divider of its own beside the notes\'', async () => {
@@ -1009,29 +1033,34 @@ describe("the side panel's column", () => {
   it('closed, gives its room back to the transcript and leaves nothing in its place', async () => {
     page(1200);
     await renderRecord();
-    fireEvent.click(screen.getByRole('button', { name: 'Side panel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(side()).toBeNull();
     expect(sideDivider()).toBeNull();
     expect(columns().style.gridTemplateColumns).toBe('380px 1px minmax(0, 1fr)');
   });
 
-  // A narrow page has no dividers to drag (the window may be under 768 px, where none shows): the column keeps the width
-  // it was left at, as far as the page allows, with an edge of its own.
-  it('on a narrow page stands beside the transcript when both fit, and takes the page while open when they do not', async () => {
+  // Owner, 2026-11-18: on a narrow page the three are tabs, as the notes and the transcript were: Notes | Transcript |
+  // Edit, each taking the page; the toolbar has no switch for them there.
+  it('on a narrow page is a third tab, "Edit", taking the page when chosen', async () => {
     page(700);
     await renderRecord();
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Notes', 'Transcript', 'Edit']);
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    expect(side()).toBeNull();
+    expect(columns().style.gridTemplateColumns).toBe('');
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
     expect(side()!.parentElement).toBe(columns());
-    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr) 299px');
-    expect(sideDivider()).toBeNull();
-    expect(side()).toHaveClass('record-side--edge');
-    expect(transcript()).not.toHaveAttribute('hidden');
-    cleanup();
-    page(500);
-    await renderRecord();
-    expect(columns().style.gridTemplateColumns).toBe('minmax(0, 1fr)');
     expect(transcript()).toHaveAttribute('hidden');
     expect(sideDivider()).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Side panel' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Transcript' }));
+    expect(side()).toBeNull();
     expect(transcript()).not.toHaveAttribute('hidden');
+    // Escape on the Edit tab leaves it for the transcript, as it hides the column on a wide page.
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await act(async () => {});
+    expect(side()).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Transcript' })).toHaveAttribute('aria-selected', 'true');
   });
 });
