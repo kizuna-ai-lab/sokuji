@@ -1,6 +1,6 @@
 import { Fragment, memo, useCallback, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Play, User, Users, VolumeX } from 'lucide-react';
+import { Play, User, Users, VolumeX } from 'lucide-react';
 import type { Ear } from '../MainPanel/useFaceToFace';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
 import type { DisplayItem, NoticeEntry } from '../../lib/view/filter';
@@ -10,6 +10,7 @@ import type { ReadingLanguage, RubyPiece } from '../../lib/reading/types';
 import { useReading } from '../../lib/reading/useReading';
 import { SystemRow, type NoticeAction } from './SystemRow';
 import { useFollowLatest } from './useFollowLatest';
+import { FollowDock } from './FollowDock';
 import '../MainPanel/MainPanel.scss';
 import '../MainPanel/ConversationRow.scss';
 import '../../styles/karaoke.scss';
@@ -165,16 +166,6 @@ export function ConversationList({
           own height from the bottom, so the line being read does not move. */}
       {docked && <FollowDock onClick={resume} />}
     </>
-  );
-}
-
-function FollowDock({ onClick }: { onClick(): void }) {
-  const { t } = useTranslation();
-  return (
-    <button type="button" className="follow-dock" onClick={onClick}>
-      <ArrowDown size={14} aria-hidden="true" />
-      <span className="follow-dock__label">{t('mainPanel.backToLatest', 'Back to latest')}</span>
-    </button>
   );
 }
 

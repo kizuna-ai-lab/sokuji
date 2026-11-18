@@ -8,7 +8,7 @@
 // live notes are off and nothing was written. With live notes on it is there before a session too, saying where the
 // notes will come. After Stop the notes stay until the next start or Clear, with the way to History, where the full
 // notes are written. Live notes are never kept (ruling 16).
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLiveNotesLayout, useLiveNotesPresent } from '../../lib/notes/live/livePanel';
 import { useLiveNotes } from '../../lib/notes/live/liveStore';
@@ -19,12 +19,52 @@ import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { liveCostUsd, LOW_BALANCE_MICRO_USD, usd, useNotesPricing } from '../../lib/notes/notesPricing';
 import { isElectron } from '../../utils/environment';
 import PanelResizer from '../MainLayout/PanelResizer';
+import { useFollowLatest } from '../Conversation/useFollowLatest';
+import { FollowDock } from '../Conversation/FollowDock';
 import { LIVE_NOTES_MIN_PX, liveNotesWidthWithin, readLiveNotesWidth, writeLiveNotesWidth } from './liveNotesWidth';
 import './LiveNotesPanel.scss';
 
 export interface LiveNotesPanelProps {
   /** Opens History at the record the notes are of. */
   onOpenHistory(recordId: string): void;
+}
+
+/**
+ * The notes' scrolling body. It follows the newest notes as the conversation's list follows its newest line
+ * (useFollowLatest; owner, 2026-11-19): kept at the bottom as they come in, unless the reader has scrolled up to read
+ * back, and again once they are back at the bottom or click the row that then shows below them ("Back to latest", as
+ * under the conversation). Hidden and shown again, it is where the reader left it: at the
+ * newest while following, else where they were reading. Drawn anew for each session (its record is the key), so a new
+ * session's notes start following, at the top, however the last one was left. Drawn only while there is a panel, so
+ * following holds the element it watches from the start.
+ */
+function LiveNotesBody({ shown, content, empty, children }: {
+  shown: boolean;
+  /** What changes as notes come in. */
+  content: unknown;
+  /** No notes yet (a new session): following starts again. */
+  empty: boolean;
+  children: ReactNode;
+}) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const scrolledTo = useRef(0);
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    // Hidden, it keeps where the reader was: a scroll that lands then reads 0 from a box with no layout. Following, the
+    // box coming back pins it to the newest again (useFollowLatest watches its size).
+    if (!body || !shown) return undefined;
+    body.scrollTop = scrolledTo.current;
+    const onScroll = () => { scrolledTo.current = body.scrollTop; };
+    body.addEventListener('scroll', onScroll);
+    return () => body.removeEventListener('scroll', onScroll);
+  }, [shown]);
+  const { docked, resume } = useFollowLatest(bodyRef, content, empty);
+  return (
+    <>
+      <div className="live-notes__body" ref={bodyRef}>{children}</div>
+      {docked && <FollowDock onClick={resume} />}
+    </>
+  );
 }
 
 export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
@@ -35,8 +75,6 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   const shown = layout !== 'conversation';
   const alone = layout === 'notes';
   const present = useLiveNotesPresent();
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const scrolledTo = useRef(0);
   // The width the reader left it at (kept on this computer, and held here too, so one that could not be saved still
   // holds for this session); what a drag shows until it ends; and the conversation's row it shares, measured before it
   // paints. The width shown fits the row; the one kept stays as it was left, for a wider window later.
@@ -58,23 +96,12 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
   }, [present]);
   // Hidden, alone or gone in the middle of a drag, the divider goes, and what it showed with it.
   useEffect(() => { if (!shown || alone || !present) setPreview(null); }, [shown, alone, present]);
-  // A new session's notes start at the top: the panel stays up between sessions while live notes are on.
-  const liveRecordId = useLiveNotes((x) => x.recordId);
-  const readingRecord = useRef(liveRecordId);
-  useLayoutEffect(() => {
-    if (readingRecord.current !== liveRecordId) {
-      readingRecord.current = liveRecordId;
-      scrolledTo.current = 0;
-    }
-    const body = bodyRef.current;
-    // Hidden, it keeps where the reader was: a scroll that lands then reads 0 from a box with no layout.
-    if (!body || !shown) return undefined;
-    body.scrollTop = scrolledTo.current;
-    const onScroll = () => { scrolledTo.current = body.scrollTop; };
-    body.addEventListener('scroll', onScroll);
-    return () => body.removeEventListener('scroll', onScroll);
-  }, [shown, present, liveRecordId]);
   const { recordId, state, hint, running, off, ended, history, fullNotes, stopped, used, balanceMicroUsd } = useLiveNotes();
+  // Everything the body may add to: the newest stays in view as any of it comes in.
+  const followed = useMemo(
+    () => [state, hint, off, stopped, ended, history, fullNotes, used, balanceMicroUsd],
+    [state, hint, off, stopped, ended, history, fullNotes, used, balanceMicroUsd],
+  );
   // With Kizuna AI the panel's foot says what this session's live notes have used, at the published rates.
   const hosted = useLineUpStore((s) => notesServiceOf(s.lineUp) === KIZUNA_NOTES);
   const pricing = useNotesPricing(hosted && isElectron());
@@ -121,7 +148,8 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
       style={{ '--live-notes-width': `${shownWidth}px` } as CSSProperties}
     >
       <div className="live-notes__head">{t('liveNotes.title', 'Live notes')}</div>
-      <div className="live-notes__body" ref={bodyRef}>
+      {/* A new session's notes start at the top, following: the panel stays up between sessions while live notes are on. */}
+      <LiveNotesBody key={recordId ?? ''} shown={shown} content={followed} empty={!state}>
         {hint && <p className="live-notes__line" role="status">{t('liveNotes.hint', 'Live notes could not be updated. They will try again.')}</p>}
         {off && <p className="live-notes__line">{t('liveNotes.off', 'Live notes are off.')}</p>}
         {stopped && (
@@ -168,7 +196,7 @@ export function LiveNotesPanel({ onOpenHistory }: LiveNotesPanelProps) {
         {hosted && balanceMicroUsd !== null && balanceMicroUsd < LOW_BALANCE_MICRO_USD && (
           <p className="live-notes__line" role="status">{t('liveNotes.lowBalance', 'Your balance is low: {{balance}} left.', { balance: usd(Math.max(0, balanceMicroUsd) / 1e6) })}</p>
         )}
-      </div>
+      </LiveNotesBody>
     </aside>
     </>
   );
