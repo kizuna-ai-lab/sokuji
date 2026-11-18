@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { PanelFooter, type PanelFooterProps } from './PanelFooter';
 import { languageLabel } from '../../../lib/language/label';
+import { arrowBetween } from '../../../lib/language/arrowBetween';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { RunState } from '../../../lib/session/types';
 import type { ScreenContextChipProps } from './ScreenContextChip';
@@ -197,7 +198,7 @@ describe('PanelFooter — language pair', () => {
       <PanelFooter {...baseProps(site, { pair: { source: 'ja', target: 'en' }, onLanguages })} />,
     );
     const el = container.querySelector('.language-pair') as HTMLElement;
-    expect(el.textContent).toBe(`${languageLabel('ja', 'en')} → ${languageLabel('en', 'en')}`);
+    expect(el.textContent).toBe(arrowBetween(languageLabel('ja', 'en'), '→', languageLabel('en', 'en')));
     fireEvent.click(el);
     expect(onLanguages).toHaveBeenCalledTimes(1);
   });
@@ -213,10 +214,19 @@ describe('PanelFooter — language pair', () => {
       cleanup();
       return shown;
     };
-    expect(text({ mode: 'speaker' })).toBe(`${ja} → ${zh}`);
-    expect(text({ mode: 'participant' })).toBe(`${ja} ← ${zh}`);
-    expect(text({ mode: 'both' })).toBe(`${ja} ⇄ ${zh}`);
-    expect(text({ mode: 'both', faceToFace: true })).toBe(`${ja} ⇄ ${zh}`);
+    expect(text({ mode: 'speaker' })).toBe(arrowBetween(ja, '→', zh));
+    expect(text({ mode: 'participant' })).toBe(arrowBetween(ja, '←', zh));
+    expect(text({ mode: 'both' })).toBe(arrowBetween(ja, '⇄', zh));
+    expect(text({ mode: 'both', faceToFace: true })).toBe(arrowBetween(ja, '⇄', zh));
+  });
+
+  // Review, 2026-11-18: in Hebrew, Arabic and Persian the two names were swapped around an arrow that was not, so it
+  // pointed the wrong way; marks on each side of the arrow keep mine first, at the left (arrowBetween.ts).
+  it.each(SITES)('%s: marks each side of the arrow, so a right-to-left script keeps mine first and the arrow right', (site) => {
+    const { container } = render(<PanelFooter {...baseProps(site, { pair: { source: 'ja', target: 'zh' }, mode: 'speaker' })} />);
+    const ja = languageLabel('ja', 'en');
+    const zh = languageLabel('zh', 'en');
+    expect((container.querySelector('.language-pair') as HTMLElement).textContent).toBe(`\u2066${ja}\u200E → \u200E${zh}\u2069`);
   });
 
   it.each(SITES)('%s: a bidirectional pair (source === target) is named once', (site) => {

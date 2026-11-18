@@ -5,6 +5,7 @@ import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock'
 import type { HistoryPort } from '../../lib/history/port';
 import type { HistoryRecord, HistoryRecordRow, HistorySearchResult, HistoryStatus } from '../../lib/history/types';
 import { createHistoryPageStore } from '../../lib/history/historyPageStore';
+import { arrowBetween } from '../../lib/language/arrowBetween';
 
 const env = vi.hoisted(() => ({ port: null as unknown }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
@@ -115,7 +116,7 @@ describe('the History list', () => {
     // Said as a length: under a day heading the start time is a clock time too.
     expect(within(row).getByText('Length 1:02:03')).toBeInTheDocument();
     // The rows' session translated both sides: each way (languageDirection.ts).
-    expect(within(row).getByText('Chinese ⇄ English')).toBeInTheDocument();
+    expect(within(row).getByText(arrowBetween('Chinese', '⇄', 'English'))).toBeInTheDocument();
     expect(within(row).getByText('Transcript')).toBeInTheDocument();
     expect(within(row).getByText('Notes')).toBeInTheDocument();
     expect(within(row).queryByText('Recording')).toBeNull();

@@ -10,6 +10,7 @@ import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { LanguagePair } from '../../../lib/provider/types';
+import { arrowBetween } from '../../../lib/language/arrowBetween';
 
 export interface PanelFooterProps {
   site: 'basic' | 'advanced';
@@ -144,7 +145,7 @@ function ControlFooter(props: PanelFooterProps) {
   let arrow = '→';
   if (mode === 'participant') arrow = '←';
   else if (mode === 'both' || faceToFace) arrow = '⇄';
-  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : `${label(pair.source)} ${arrow} ${label(pair.target)}`;
+  const languagePairText = !pair ? '' : pair.source === pair.target ? label(pair.source) : arrowBetween(label(pair.source), arrow, label(pair.target));
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 
