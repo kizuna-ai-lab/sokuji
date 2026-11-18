@@ -7,7 +7,7 @@
  * unversioned open and verify the stores it needs actually exist.
  */
 import 'fake-indexeddb/auto'; // installs IDBRequest/IDBDatabase/etc. globals idb needs
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import { openDB } from 'idb';
 
@@ -45,9 +45,15 @@ describe('getDb version resilience', () => {
 
   it('falls back to an unversioned open when the DB is a newer superset (v3)', async () => {
     await seedDb(3, ['files', 'metadata', 'voice_styles', 'native_voices']);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const storage = await freshModelStorage();
     const db = await storage.getDb();
     expect(db.version).toBe(3);
+    // The fallback is reported, not silent.
+    expect(warn).toHaveBeenCalledWith(
+      "[Sokuji] [ModelStorage] 'sokuji-models' is at newer version 3 (this build expects 2); opened unversioned since all required stores exist",
+    );
+    warn.mockRestore();
     // Still usable through the normal API (string payload: fake-indexeddb's
     // structured clone does not round-trip jsdom Blobs faithfully)
     await db.put('files', 'payload', 'm/f.bin');

@@ -14,6 +14,7 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
+import { reportWarning } from '../diagnostics/report';
 import type { ModelStatus } from './modelManifest';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -89,9 +90,10 @@ async function openModelsDb(): Promise<IDBPDatabase<SokujiModelsDB>> {
       db.close();
       throw err;
     }
-    console.warn(
-      `[Sokuji] [ModelStorage] '${DB_NAME}' is at newer version ${db.version} ` +
-      `(this build expects ${DB_VERSION}); opened unversioned since all required stores exist`
+    reportWarning(
+      'ModelStorage',
+      `'${DB_NAME}' is at newer version ${db.version} ` +
+      `(this build expects ${DB_VERSION}); opened unversioned since all required stores exist`,
     );
     return db;
   }
