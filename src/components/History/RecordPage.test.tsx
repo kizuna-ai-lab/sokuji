@@ -1147,6 +1147,61 @@ describe("the side panel's column", () => {
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
   });
 
+  // Review: a name being typed keeps the edit panel in view whatever layout the window changes to; it is leaving the
+  // panel that saves the name, and the window resized is not leaving it.
+  it('keeps the edit panel shown, a name typed in it, when the window narrows to two columns with the notes on', async () => {
+    page(1200);
+    await renderRecord();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(760);
+    await settle();
+    expect(side()!.parentElement).toBe(leftColumn());
+    expect(within(leftColumn()).getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+    expect(calls('renameSpeaker')).toEqual([]);
+    // Leaving it for the notes saves the name, then shows them.
+    fireEvent.click(within(leftColumn()).getByRole('tab', { name: 'Notes' }));
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+    expect(side()).toBeNull();
+    expect(notesPart()).not.toHaveAttribute('hidden');
+  });
+
+  it('keeps the edit panel shown, a name typed in it, when the window narrows to tabs', async () => {
+    page(1200);
+    await renderRecord();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(600);
+    await settle();
+    expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+    expect(side()).not.toBeNull();
+    expect(transcript()).toHaveAttribute('hidden');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+  });
+
+  it('keeps the edit panel shown, a name typed in its tab, when the window widens with the panel switched off', async () => {
+    localStorage.setItem('history.sidePanelClosed', '1');
+    page(600);
+    await renderRecord();
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    await settle();
+    fireEvent.click(within(side()!).getByRole('button', { name: 'Rename Other' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Mina' } });
+    resize(1200);
+    await settle();
+    expect(side()!.parentElement).toBe(columns());
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Mina');
+    // Hidden from its switch: the name is saved first, and the panel stays hidden as it was chosen.
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(calls('renameSpeaker')).toEqual([{ transcriptId: 1, side: 'other', speaker: '1.1', name: 'Mina' }]);
+    expect(side()).toBeNull();
+    expect(localStorage.getItem('history.sidePanelClosed')).toBe('1');
+  });
+
   // Owner, 2026-11-18/19: on a page too narrow even for two columns, the three are tabs, as the notes and the transcript
   // were: Notes | Transcript | Edit, each taking the page; the toolbar has no switch for them there.
   it('on a narrow page is a third tab, "Edit", taking the page when chosen', async () => {

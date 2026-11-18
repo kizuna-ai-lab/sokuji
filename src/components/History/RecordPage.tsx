@@ -345,14 +345,18 @@ export const RecordPage: React.FC = () => {
   // The edit panel (the speakers now, fixing the transcript later; owner, 2026-11-18): in columns, at the right of the
   // transcript, shown and hidden from the toolbar; as tabs, the third tab. Only with speakers to edit.
   const editable = speakerCount > 0;
-  const shownPane = pane === 'edit' && !editable ? 'transcript' : pane;
-  const editOn = editable && sideOpen;
+  // A speaker's name being typed keeps the edit panel in view whatever layout the window changes to: leaving the panel
+  // is what saves the name, and a window resized is not leaving it (review).
+  const typingName = editable && nameDraft !== null;
+  const shownPane = typingName ? 'edit' : pane === 'edit' && !editable ? 'transcript' : pane;
+  const editOn = editable && (sideOpen || typingName);
   // Room for two columns and both panels switched on: they share the left column, a tab each (owner, 2026-11-19).
   const sharing = layout === 'two' && notesOpen && editOn;
+  const sharedPane = typingName ? 'edit' : shared;
   const notesColumn = columned && notesOpen;
   const sideColumn = columned && editOn && !sharing;
-  const notesShown = columned ? notesOpen && (!sharing || shared === 'notes') : shownPane === 'notes';
-  const sideShown = columned ? editOn && (!sharing || shared === 'edit') : editable && shownPane === 'edit';
+  const notesShown = columned ? notesOpen && (!sharing || sharedPane === 'notes') : shownPane === 'notes';
+  const sideShown = columned ? editOn && (!sharing || sharedPane === 'edit') : editable && shownPane === 'edit';
   // The columns as they fit this page; the widths kept stay as the user left them, for a wider window later. The edit
   // panel is fitted first, beside notes at their narrowest, and the notes in what it leaves.
   const sideRoom = Math.max(0, pageWidth - (notesColumn ? NOTES_MIN_PX + DIVIDER_PX : 0));
@@ -374,12 +378,17 @@ export const RecordPage: React.FC = () => {
   };
   // Nothing being typed or saved: at once, with nothing to wait for.
   const nameBusy = () => Boolean(nameDraftRef.current || nameSave.current);
-  // A panel switched on is the one shown where the two share a column.
+  // A panel switched on is the one shown where the two share a column. The switch follows the panel as shown.
   const toggleSide = async () => {
-    if (sideOpen && nameBusy() && !(await nameSettled())) return;
-    writeSideOpen(!sideOpen);
-    setSideOpen(!sideOpen);
-    if (!sideOpen) setShared('edit');
+    if (editOn) {
+      if (nameBusy() && !(await nameSettled())) return;
+      writeSideOpen(false);
+      setSideOpen(false);
+      return;
+    }
+    writeSideOpen(true);
+    setSideOpen(true);
+    setShared('edit');
   };
   const toggleNotes = async () => {
     // The notes switched on over the edit panel in the column they then share: a name typed there is saved first.
@@ -396,7 +405,7 @@ export const RecordPage: React.FC = () => {
     if (next !== 'transcript') setShared(next);
   };
   const chooseShared = async (next: 'notes' | 'edit') => {
-    if (shared === 'edit' && next !== 'edit' && nameBusy() && !(await nameSettled())) return;
+    if (sharedPane === 'edit' && next !== 'edit' && nameBusy() && !(await nameSettled())) return;
     setShared(next);
   };
   // The two panels' switches, together in the toolbar before Export: the icon says which side, the pressed state that
@@ -411,8 +420,8 @@ export const RecordPage: React.FC = () => {
       </button>
       {editable && (
         <button type="button" className="history-button record-page__panel-switch" aria-label={t('history.sidePanel', 'Edit')}
-          title={sideOpen ? t('history.closeSidePanel', 'Hide the edit panel') : t('history.openSidePanel', 'Show the edit panel')}
-          aria-pressed={sideOpen} aria-controls={sideId} onClick={() => void toggleSide()}>
+          title={editOn ? t('history.closeSidePanel', 'Hide the edit panel') : t('history.openSidePanel', 'Show the edit panel')}
+          aria-pressed={editOn} aria-controls={sideId} onClick={() => void toggleSide()}>
           <PanelRight size={16} aria-hidden="true" />
           <span className="record-page__panel-word">{t('history.sidePanel', 'Edit')}</span>
         </button>
@@ -694,8 +703,8 @@ export const RecordPage: React.FC = () => {
         <div className="record-page__notes-col" hidden={columned ? !notesColumn : shownPane !== 'notes'}>
           {sharing && (
             <div className="record-page__panes" role="tablist">
-              <button type="button" role="tab" aria-selected={shared === 'notes'} aria-controls={notesId} onClick={() => void chooseShared('notes')}>{t('history.notes', 'Notes')}</button>
-              <button type="button" role="tab" aria-selected={shared === 'edit'} aria-controls={sideId} onClick={() => void chooseShared('edit')}>{t('history.sidePanel', 'Edit')}</button>
+              <button type="button" role="tab" aria-selected={sharedPane === 'notes'} aria-controls={notesId} onClick={() => void chooseShared('notes')}>{t('history.notes', 'Notes')}</button>
+              <button type="button" role="tab" aria-selected={sharedPane === 'edit'} aria-controls={sideId} onClick={() => void chooseShared('edit')}>{t('history.sidePanel', 'Edit')}</button>
             </div>
           )}
           <div className="record-page__notes" id={notesId} hidden={!notesShown}>{notesView}</div>
