@@ -43,10 +43,14 @@ beforeEach(() => {
 describe('UserAccountInfo top-up', () => {
   it('offers a top-up button that opens the billing page', async () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     render(<UserAccountInfo />);
     fireEvent.click(screen.getByRole('button', { name: /top up/i }));
     await waitFor(() => expect(open).toHaveBeenCalled());
     expect(String(open.mock.calls[0][0])).toContain('/dashboard/billing');
+    // The mocked token endpoint answers with an error, so the page opens without a token, and says so.
+    expect(warn).toHaveBeenCalledWith('[Sokuji] [UserAccountInfo] Could not get a sign-in token; opening the page without one: x', 'x');
+    warn.mockRestore();
     open.mockRestore();
   });
 

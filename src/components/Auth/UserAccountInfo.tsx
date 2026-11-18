@@ -400,9 +400,15 @@ export function UserAccountInfo({
           // Use our GET wrapper endpoint that internally calls POST /api/auth/one-time-token/verify
           // The after hook sets the signed cookie, and this endpoint forwards it with redirect
           url = `${apiUrl}/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
+        } else {
+          // Any other failure — the token endpoint down, a network blip — is not
+          // evidence about the session. Fall through and open the plain URL.
+          reportWarning(
+            'UserAccountInfo',
+            `Could not get a sign-in token; opening the page without one: ${error ? describeCause(error) : 'no token in the response'}`,
+            {cause: error ?? undefined},
+          );
         }
-        // Any other failure — the token endpoint down, a network blip — is not
-        // evidence about the session. Fall through and open the plain URL.
       } catch (e) {
         // Token generation failed, use original URL (user needs to sign in manually)
         reportWarning('UserAccountInfo', `Could not get a sign-in token; opening the page without one: ${describeCause(e)}`, {cause: e});
