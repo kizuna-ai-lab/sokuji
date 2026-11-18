@@ -92,6 +92,10 @@
   }
 }
 
+// No group headings above them: History's items are the first level, on the line of the Back arrow (owner, 2026-11-19).
+// Both classes, so it holds over the settings item's padding whatever order the stylesheets load in.
+.settings-page__item.history-nav__item { padding-inline-start: vars.$space-3; }
+
 .history-nav {
   &__item {
     flex-direction: row;
@@ -107,7 +111,8 @@
     align-items: flex-start;
     gap: 2px;
     margin-top: auto;
-    padding: vars.$space-2;
+    // On the items' text line, as in the settings nav (owner, 2026-11-19).
+    padding: vars.$space-2 vars.$space-3;
     font-size: 11.5px;
     color: vars.$text-muted;
   }
