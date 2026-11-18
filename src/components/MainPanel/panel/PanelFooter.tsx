@@ -11,6 +11,7 @@ import type { AudioMode } from '../../../stores/audioStore';
 import type { EarsLegendEntry } from '../useFaceToFace';
 import type { LanguagePair } from '../../../lib/provider/types';
 import { LanguagePairText } from '../../LanguagePairText/LanguagePairText';
+import { parseCode } from '../../../lib/language/code';
 
 export interface PanelFooterProps {
   site: 'basic' | 'advanced';
@@ -152,8 +153,15 @@ function ControlFooter(props: PanelFooterProps) {
     arrowSaid = t('common.translatedBothWays', 'translated both ways');
   }
   let pairShown: ReactNode = null;
-  if (pair && pair.source === pair.target) pairShown = label(pair.source);
-  else if (pair) pairShown = <LanguagePairText left={label(pair.source)} arrow={arrow} label={arrowSaid} right={label(pair.target)} />;
+  if (pair && pair.source === pair.target) {
+    // A bidirectional pair names its two languages each way, with the drawn arrow too (review); one language, once.
+    const both = parseCode(pair.source);
+    pairShown = both?.kind === 'pair'
+      ? <LanguagePairText left={label(both.a)} arrow={ArrowRightLeft} label={t('common.translatedBothWays', 'translated both ways')} right={label(both.b)} />
+      : label(pair.source);
+  } else if (pair) {
+    pairShown = <LanguagePairText left={label(pair.source)} arrow={arrow} label={arrowSaid} right={label(pair.target)} />;
+  }
   const handleActionClick = isIdle ? onStart : onStop;
   const actionDisabled = (isIdle && !canStart) || run.phase === 'stopping' || isChecking;
 

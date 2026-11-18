@@ -230,12 +230,25 @@ describe('PanelFooter — language pair', () => {
     expect([...pair.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([languageLabel('ja', 'en'), languageLabel('zh', 'en')]);
   });
 
-  it.each(SITES)('%s: a bidirectional pair (source === target) is named once', (site) => {
+  // Review: the two languages of a bidirectional pair are named with the drawn arrow too, not the font's ⇄.
+  it.each(SITES)('%s: a bidirectional pair (source === target) is named once, its two languages each way', (site) => {
     const { container } = render(
       <PanelFooter {...baseProps(site, { pair: { source: 'zh+en', target: 'zh+en' } })} />,
     );
     const el = container.querySelector('.language-pair') as HTMLElement;
-    expect(el.textContent).toBe(languageLabel('zh+en', 'en'));
+    expect([...el.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([languageLabel('zh', 'en'), languageLabel('en', 'en')]);
+    expect(el.querySelector('svg')).toHaveClass('lucide-arrow-right-left');
+    expect(el.querySelector('svg')).toHaveAttribute('aria-label', 'common.translatedBothWays');
+    expect(el.textContent).not.toMatch(/⇄/);
+  });
+
+  it.each(SITES)('%s: one language on both ends is named once, without an arrow', (site) => {
+    const { container } = render(
+      <PanelFooter {...baseProps(site, { pair: { source: 'en', target: 'en' } })} />,
+    );
+    const el = container.querySelector('.language-pair') as HTMLElement;
+    expect(el.textContent).toBe(languageLabel('en', 'en'));
+    expect(el.querySelector('svg')).toBeNull();
   });
 });
 

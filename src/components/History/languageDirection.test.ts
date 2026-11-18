@@ -24,6 +24,13 @@ describe("a session's languages, as the History list and the record page show th
     expect(languageDirection({ ...record, mode: 'face-to-face' }, 'en')).toEqual({ left: 'Chinese', arrow: ArrowRightLeft, label: 'translated both ways', right: 'Japanese' });
   });
 
+  // Review: a bidirectional pair (`zh+en`) is kept as both languages of the record; its two languages are named once,
+  // each way, as the footer names them.
+  it('names a bidirectional pair\'s two languages once, each way', () => {
+    expect(languageDirection({ myLanguage: 'zh+en', targetLanguage: 'zh+en', mode: 'both' }, 'en'))
+      .toEqual({ left: 'Chinese', arrow: ArrowRightLeft, label: 'translated both ways', right: 'English' });
+  });
+
   it('names the languages in the interface language', () => {
     expect(languageDirection({ ...record, mode: 'participant' }, 'zh_CN')).toMatchObject({ left: '日语', right: '中文' });
   });
