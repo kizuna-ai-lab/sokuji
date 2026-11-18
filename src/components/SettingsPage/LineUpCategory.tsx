@@ -29,6 +29,7 @@ import { directionKey, type Selections } from '../../lib/local-inference/selecti
 import { ProviderLanguages } from '../providers/ProviderLanguages';
 import type { ReceiveChoice } from '../providers/LanguagePairSection';
 import { useHearingRows } from '../MainPanel/useHearingRows';
+import { useSelectedProvider } from '../providers/useSelectedProvider';
 import { AudioModeSwitch } from './AudioModeSwitch';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
@@ -94,6 +95,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // Who hears and who reads (owner, 2026-11-18, design 1): the sentence's words are the audio page's two switches, by
   // the same rules (useHearingRows); the speech stage is used only while a running leg is read aloud.
   const hearing = useHearingRows(locked);
+  // The sentence shows once its provider's entry has loaded (ProviderLanguages); until then nothing points to it.
+  const sentenceShown = Boolean(useSelectedProvider(providers)?.entry);
   const setTextOnly = useSetTextOnly();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
@@ -373,7 +376,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // Speech is used this time when a running leg is read aloud; idle, its stage says why and, when a word above can
   // still be switched to hearing, how.
   const speechIdle = !((hearing.myLegRuns && hearing.otherOn) || (hearing.theirLegRuns && hearing.themOn));
-  const canHear = (hearing.myLegRuns && !theirs.blocked) || (hearing.theirLegRuns && !mine.blocked);
+  const canHear = sentenceShown && ((hearing.myLegRuns && !theirs.blocked) || (hearing.theirLegRuns && !mine.blocked));
   const speechUnusedNote = (
     <p className="lineup-stage__unused">
       <span>{t('settingsPage.lineup.speechNotUsed', 'Nothing is read aloud this time: the translation shows as text only.')}</span>

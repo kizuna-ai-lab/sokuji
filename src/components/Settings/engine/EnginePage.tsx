@@ -75,21 +75,22 @@ export const EnginePage: React.FC<{
   // reverse, both shows both — a mode that doesn't run a leg has no business
   // configuring it here (the chips and the LanguageSection warning are
   // mode-scoped the same way). directions[0] is the speaker (forward) leg
-  // by the adapter contract.
-  const visibleDirections = adapter.directions.filter((_, i) =>
-    effectiveMode === 'both' || (effectiveMode === 'participant' ? i === 1 : i === 0));
+  // by the adapter contract — by position, not key: a same-language pair's two legs share one (review, PR #784).
+  const visibleDirections = adapter.directions
+    .map((d, i) => ({ ...d, isSpeaker: i === 0 }))
+    .filter(({ isSpeaker }) => effectiveMode === 'both' || (effectiveMode === 'participant' ? !isSpeaker : isSpeaker));
 
   return (
     <div className="engine-page">
       {adapter.gate}
-      {visibleDirections.map(({ dir, src, tgt }, blockIndex) => (
-        <div key={dir} className="engine-direction">
+      {visibleDirections.map(({ dir, src, tgt, isSpeaker }, blockIndex) => (
+        <div key={isSpeaker ? 'speaker' : 'participant'} className="engine-direction">
           <div className="engine-direction__title">
             {t('engineUi.speakerHeading', '{{src}} → {{tgt}}', {
               src: adapter.languageName(src), tgt: adapter.languageName(tgt),
             })}
           </div>
-          {adapter.stagesFor(dir, dir === adapter.directions[0]?.dir).map((stage) => {
+          {adapter.stagesFor(dir, isSpeaker).map((stage) => {
             const slot: SlotId = { dir, stage };
             const resolved = adapter.resolved(slot);
             const label = t(STAGE_FULL_LABEL_KEY[stage][0], STAGE_FULL_LABEL_KEY[stage][1]);

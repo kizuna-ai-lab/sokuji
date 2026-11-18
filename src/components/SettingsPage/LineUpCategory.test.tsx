@@ -115,6 +115,9 @@ describe('the translation mode and the speech stage', () => {
     const parts = [...document.querySelectorAll('.lineup-stage__part')].map((p) => p.querySelector('.lineup-stage__state')?.textContent);
     expect(parts).toHaveLength(3);
     expect(parts.filter((text) => text !== 'Not used this time')).toHaveLength(2);
+    // Review (PR #784): until the sentence's provider has loaded there is no sentence above to point to.
+    expect(screen.queryByText('To have it read aloud, choose “hear” in the sentence above.')).toBeNull();
+    act(() => useProviderStore.setState({ entries: { gemini: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } } as never }));
     // Gemini leaves speaking to the switch: the reason is the switch, so the note says how to hear.
     expect(screen.getByText('To have it read aloud, choose “hear” in the sentence above.')).toBeTruthy();
   });
