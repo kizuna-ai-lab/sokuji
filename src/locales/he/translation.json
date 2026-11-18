@@ -2150,7 +2150,10 @@
       "otherLanguages": "שפות נוספות שייתכן שיש בו",
       "addLanguage": "הוספת שפה נוספת",
       "removeLanguage": "הסרת {{language}}",
-      "translateInto": "שפת התרגום"
+      "translateInto": "שפת התרגום",
+      "eachSide": "כל צד לשפה של הצד השני, כמו בהפעלה",
+      "asked": "השפה העיקרית: {{main}} · שפת התרגום: {{target}}",
+      "askedEachSide": "השפה העיקרית: {{main}} · כל צד תורגם לשפה של הצד השני"
     },
     "transcriptStopped": "חלק מהתמלול של הסשן הזה לא נשמר: לא ניתן היה לכתוב אותו לדיסק.",
     "notesAddToWords": "הוספה לרשימת המילים",

@@ -2150,7 +2150,10 @@
       "otherLanguages": "함께 나올 수 있는 다른 언어",
       "addLanguage": "다른 언어 추가",
       "removeLanguage": "{{language}} 빼기",
-      "translateInto": "번역 언어"
+      "translateInto": "번역 언어",
+      "eachSide": "각자 상대방 언어로 (세션과 같이)",
+      "asked": "주 언어: {{main}} · 번역 언어: {{target}}",
+      "askedEachSide": "주 언어: {{main}} · 각자 상대방 언어로 번역"
     },
     "transcriptStopped": "이 세션 전사의 일부를 저장하지 못했습니다. 디스크에 쓸 수 없었습니다.",
     "notesAddToWords": "단어 목록에 추가",

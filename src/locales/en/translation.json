@@ -2150,7 +2150,10 @@
       "otherLanguages": "Other languages it may contain",
       "addLanguage": "Add another language",
       "removeLanguage": "Remove {{language}}",
-      "translateInto": "Translate into"
+      "translateInto": "Translate into",
+      "eachSide": "Each side into the other’s language, as in the session",
+      "asked": "Main language: {{main}} · Translated into: {{target}}",
+      "askedEachSide": "Main language: {{main}} · Each side translated into the other’s language"
     },
     "transcriptStopped": "Part of this session’s transcript could not be saved: it could not be written to disk.",
     "notesAddToWords": "Add to word list",

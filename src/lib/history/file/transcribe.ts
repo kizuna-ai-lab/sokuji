@@ -2,13 +2,14 @@
 //
 // A record transcribed (again) from its kept recording: each kept track goes through the file recognition in turn,
 // asked for what the user chose (the languages spoken, the language to translate into) with the app's word list; its
-// words become sentences on the track's side, the tracks' sentences are merged by time, and one new transcript holds
-// them, each turn's translation on its first sentence. The transcript is made only once every track has its words, so a failure or a cancel leaves the record
+// words become sentences on the track's side, each with the translation that began in it (sentences.ts), the tracks'
+// sentences are merged by time, and one new transcript holds them. The transcript is made only once every track has its words, so a failure or a cancel leaves the record
 // as it was. A new transcript never replaces another (spec: several transcripts per record).
 import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
 import type { FileTranscriptionOptions, HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource } from '../types';
 import type { FileRecognitionService } from './service';
+import { EACH_SIDE } from './options';
 import { fileSentences, numberSentences, type FileSentence } from './sentences';
 
 /** How often the page asks main for a running recognition's phase. */
@@ -58,11 +59,18 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   // In the service's own codes; a language it does not know is not sent, nor a translation into one.
   const wire = (code: string) => (o.service.languageHint ? o.service.languageHint(code) : code);
   const languageHints = [...new Set(o.options.languages.map(wire).filter((code): code is string => !!code))];
-  const translateTo = wire(o.options.translateTo);
-  const asked = {
-    languageHints,
-    ...(translateTo ? { translateTo } : {}),
-    ...(o.service.context ? { context: o.service.context } : {}),
+  // Each side into the other's language: every track into what its own side was translated into in the session.
+  const translateToFor = (source: HistoryTrackSource) => {
+    const into = o.options.translateTo === EACH_SIDE ? legOf(source)?.languages.target : o.options.translateTo;
+    return into ? wire(into) : null;
+  };
+  const askedFor = (source: HistoryTrackSource) => {
+    const translateTo = translateToFor(source);
+    return {
+      languageHints,
+      ...(translateTo ? { translateTo } : {}),
+      ...(o.service.context ? { context: o.service.context } : {}),
+    };
   };
 
   const lists: FileSentence[][] = [];
@@ -87,7 +95,7 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     try {
       ({ tokens } = await o.port.recognize({
         recordId: o.recordId, service: o.service.service, source: track.source, apiKey: o.service.apiKey,
-        ...(o.service.region ? { region: o.service.region } : {}), ...asked, jobId,
+        ...(o.service.region ? { region: o.service.region } : {}), ...askedFor(track.source), jobId,
       }));
     } catch (error) {
       if (o.signal?.aborted) {

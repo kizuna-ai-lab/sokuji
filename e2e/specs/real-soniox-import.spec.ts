@@ -44,38 +44,45 @@ test('@real a Japanese file imported through Soniox is transcribed and translate
   test.setTimeout(5 * 60_000);
   const file = conversation(testInfo.outputPath());
   const sokuji = await launchApp({ seed: { storage: { ...baseStorage('soniox'), 'settings.lineup': JSON.stringify(transcriptionLineUp) } } });
-  const { page } = sokuji;
+  const { page, userData } = sokuji;
 
-  // The key goes in the way a user puts it in: Settings, Accounts and keys, Soniox.
-  await page.locator('[data-tour="settings-button"]').click();
-  await page.getByRole('navigation').getByRole('button', { name: /^Accounts and keys/ }).click();
-  await page.getByRole('group', { name: 'Soniox', exact: true }).getByRole('button', { name: 'Add key' }).click();
-  await page.getByPlaceholder('Soniox API key').fill(KEY);
-  await page.getByRole('button', { name: 'Save and find its region' }).click();
-  await expect(page.locator('.soniox-key__line')).toContainText(/Key works · Belongs to /, { timeout: 60_000 });
-  await page.keyboard.press('Escape');
-  // Finding the key's region asks every region, and the ones the key does not belong to refuse it: those refusals are expected.
-  expect(sokuji.errors.filter((e) => !/status of 401/.test(e))).toEqual([]);
-  sokuji.errors.length = 0;
+  try {
+    // The key goes in the way a user puts it in: Settings, Accounts and keys, Soniox.
+    await page.locator('[data-tour="settings-button"]').click();
+    await page.getByRole('navigation').getByRole('button', { name: /^Accounts and keys/ }).click();
+    await page.getByRole('group', { name: 'Soniox', exact: true }).getByRole('button', { name: 'Add key' }).click();
+    await page.getByPlaceholder('Soniox API key').fill(KEY);
+    await page.getByRole('button', { name: 'Save and find its region' }).click();
+    await expect(page.locator('.soniox-key__line')).toContainText(/Key works · Belongs to /, { timeout: 60_000 });
+    await page.keyboard.press('Escape');
+    // Finding the key's region asks every region, and the ones the key does not belong to refuse it: those refusals are expected.
+    expect(sokuji.errors.filter((e) => !/status of 401/.test(e))).toEqual([]);
+    sokuji.errors.length = 0;
 
-  await page.getByRole('button', { name: 'History', exact: true }).click();
-  await page.locator('input[type="file"][accept="audio/*,video/*"]').setInputFiles(file);
-  const panel = page.getByRole('dialog', { name: 'Import “japanese-conversation.wav”' });
-  await panel.getByLabel('Main language').selectOption('ja');
-  await panel.getByLabel('Translate into').selectOption('en');
-  await panel.getByRole('button', { name: 'Start' }).click();
-  await expect(page.locator('.history-file__line[role="status"]')).toHaveCount(0, { timeout: 4 * 60_000 });
-  await expect(page.locator('.history-file__line[role="alert"]')).toHaveCount(0);
+    await page.getByRole('button', { name: 'History', exact: true }).click();
+    await page.locator('input[type="file"][accept="audio/*,video/*"]').setInputFiles(file);
+    const panel = page.getByRole('dialog', { name: 'Import “japanese-conversation.wav”' });
+    await panel.getByLabel('Main language').selectOption('ja');
+    await panel.getByLabel('Translate into').selectOption('en');
+    await panel.getByRole('button', { name: 'Start' }).click();
+    await expect(page.locator('.history-file__line[role="status"]')).toHaveCount(0, { timeout: 4 * 60_000 });
+    await expect(page.locator('.history-file__line[role="alert"]')).toHaveCount(0);
 
-  await page.locator('.history-list [data-record] .history-row__open').first().click();
-  const transcript = page.locator('.record-page__transcript');
-  await expect(transcript.locator('.record-row').first()).toBeVisible();
-  const said = (await transcript.locator('.record-row__text, .record-row p:not(.record-row__translation)').allInnerTexts()).join('\n');
-  const translated = (await transcript.locator('.record-row__translation').allInnerTexts()).join('\n');
-  test.info().annotations.push({ type: 'heard', description: said }, { type: 'translated', description: translated });
-  for (const s of SENTENCES) {
-    expect(said, s.file).toMatch(s.heard);
-    expect(translated, s.file).toMatch(s.said);
+    await page.locator('.history-list [data-record] .history-row__open').first().click();
+    const transcript = page.locator('.record-page__transcript');
+    await expect(transcript.locator('.record-row').first()).toBeVisible();
+    const said = (await transcript.locator('.record-row__text, .record-row p:not(.record-row__translation)').allInnerTexts()).join('\n');
+    const translated = (await transcript.locator('.record-row__translation').allInnerTexts()).join('\n');
+    test.info().annotations.push({ type: 'heard', description: said }, { type: 'translated', description: translated });
+    for (const s of SENTENCES) {
+      expect(said, s.file).toMatch(s.heard);
+      expect(translated, s.file).toMatch(s.said);
+    }
+    expect(sokuji.errors).toEqual([]);
+  } finally {
+    // The app keeps the key in its settings: whatever happened, it does not stay on disk. The rest of a failed run's
+    // directory is left to be looked at.
+    await sokuji.kill();
+    fs.rmSync(path.join(userData, 'Local Storage'), { recursive: true, force: true });
   }
-  expect(sokuji.errors).toEqual([]);
 });

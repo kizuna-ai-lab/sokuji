@@ -2150,7 +2150,10 @@
       "otherLanguages": "Andere talen die erin kunnen voorkomen",
       "addLanguage": "Nog een taal toevoegen",
       "removeLanguage": "{{language}} verwijderen",
-      "translateInto": "Vertalen naar"
+      "translateInto": "Vertalen naar",
+      "eachSide": "Elke kant naar de taal van de ander, zoals in de sessie",
+      "asked": "Hoofdtaal: {{main}} · Vertaald naar: {{target}}",
+      "askedEachSide": "Hoofdtaal: {{main}} · Elke kant vertaald naar de taal van de ander"
     },
     "transcriptStopped": "Een deel van de transcriptie van deze sessie kon niet worden bewaard: het kon niet naar de schijf worden geschreven.",
     "notesAddToWords": "Toevoegen aan woordenlijst",

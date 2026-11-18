@@ -112,7 +112,7 @@ describe('importing a file', () => {
     const startedAt = 1_800_000_100_000 - 3000;
     expect(calls[0]).toEqual(['openRecord', {
       id: 'import-0001', startedAt, mode: 'import', myLanguage: 'zh', targetLanguage: 'en',
-      services: { provider: 'soniox', models: { transcription: 'stt-async-v6' } }, appVersion: '9.9.9',
+      services: { provider: 'soniox', models: { transcription: 'stt-async-v6' }, options: { languages: ['en'], translateTo: 'zh' } }, appVersion: '9.9.9',
     }]);
     expect(calls[1]).toEqual(['putLeg', {
       recordId: 'import-0001', leg: 'participant', languages: { source: 'en', target: 'zh' }, input: null, inputName: null, inputId: null, translated: false, spoken: false,
@@ -135,7 +135,8 @@ describe('importing a file', () => {
     const { port, calls } = fakePort();
     const options = { languages: ['ja', 'en'], translateTo: 'zh' };
     await importFile(base(port, { options }));
-    expect(calls.find((c) => c[0] === 'openRecord')![1]).toMatchObject({ myLanguage: 'zh', targetLanguage: 'ja' });
+    // Kept with the record, so a transcription that fails can be tried again as it was asked.
+    expect(calls.find((c) => c[0] === 'openRecord')![1]).toMatchObject({ myLanguage: 'zh', targetLanguage: 'ja', services: { options } });
     expect(calls.find((c) => c[0] === 'putLeg')![1]).toMatchObject({ languages: { source: 'ja', target: 'zh' } });
     expect(vi.mocked(port.recognize).mock.calls[0][0]).toMatchObject({ languageHints: ['ja', 'en'], translateTo: 'zh' });
     expect(calls.find((c) => c[0] === 'createTranscript')![1]).toMatchObject({ origin: { service: 'soniox', kind: 'file', options } });

@@ -122,6 +122,15 @@ describe('translations from a file transcript', () => {
     expect(carried(words('No translation asked.', { at: 0 }))).toEqual([['file-participant-1', 'No translation asked.', undefined]]);
   });
 
+  // Soniox sends a lone space as a word of its own at times (see the test data): it begins no round of its own.
+  it('a lone space before a sentence does not take the sentence\u2019s translation to the one before', () => {
+    const [one] = spoken('One.', { at: 0 });
+    const [two] = spoken('Two.', { at: 600 });
+    const space: FileToken = { text: ' ', start_ms: 450, end_ms: 500, speaker: '1', language: 'en', translation_status: 'original' };
+    expect(carried([one, ...translated('一。'), space, { ...two, text: ' Two.' }, ...translated('二。')]))
+      .toEqual([['file-participant-1', 'One.', '一。'], ['file-participant-1', 'Two.', '二。']]);
+  });
+
   it('translated words with nothing before them to translate are left out', () => {
     expect(carried([...translated('孤独。'), ...spoken('Hi.', { at: 0 })])).toEqual([['file-participant-1', 'Hi.', undefined]]);
   });

@@ -56,6 +56,7 @@ export function recordRows(o: {
   // own, carried by its sentences, when it has them: a row shows its sentences' translations. A transcript cut from the
   // translation has none: its sentences already are the translation.
   const translationOf = new Map<string, string>();
+  // A transcript is a file's (its sentences carry translations) or a session's (they never do), never a mix of the two.
   const carried = o.textKind === 'original' && o.sentences.some((s) => s.translation);
   if (o.textKind === 'original' && !carried && o.legs.length > 0) {
     for (const e of createProjector().project(o.legs, DEFAULT_PROJECTION)) {

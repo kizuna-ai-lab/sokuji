@@ -81,8 +81,8 @@ function turnsOf(tokens: readonly FileToken[]): Turn[] {
     const last = turn?.words[turn.words.length - 1];
     if (turn && last && (t.speaker ?? '1') === (last.speaker ?? '1') && t.start_ms - last.end_ms < TURN_GAP_MS) turn.words.push(t);
     else turns.push({ words: [t], rounds: [] });
-    // A word already in the language asked for is not translated: it begins no round.
-    if (t.translation_status !== 'none') roundBegan ??= { turn: turns[turns.length - 1], at: t.start_ms };
+    // A word already in the language asked for is not translated, and a lone space is no word: neither begins a round.
+    if (t.translation_status !== 'none' && t.text.trim()) roundBegan ??= { turn: turns[turns.length - 1], at: t.start_ms };
   }
   return turns;
 }
@@ -108,6 +108,7 @@ export function fileSentences(tokens: readonly FileToken[], o: FileSentenceOptio
     // Each round to the sentence its first word is in: the last that began by then.
     const translations: string[][] = added.map(() => []);
     for (const round of rounds) {
+      if (added.length === 0) break;
       let i = 0;
       while (i + 1 < added.length && Math.round(added[i + 1].startAt) <= o.offsetMs + round.at) i += 1;
       translations[i].push(round.text);

@@ -2150,7 +2150,10 @@
       "otherLanguages": "Weitere Sprachen darin",
       "addLanguage": "Weitere Sprache hinzufügen",
       "removeLanguage": "{{language}} entfernen",
-      "translateInto": "Übersetzen in"
+      "translateInto": "Übersetzen in",
+      "eachSide": "Jede Seite in die Sprache der anderen, wie in der Sitzung",
+      "asked": "Hauptsprache: {{main}} · Übersetzt in: {{target}}",
+      "askedEachSide": "Hauptsprache: {{main}} · Jede Seite in die Sprache der anderen übersetzt"
     },
     "transcriptStopped": "Ein Teil des Transkripts dieser Sitzung konnte nicht gespeichert werden: Er konnte nicht auf die Festplatte geschrieben werden.",
     "notesAddToWords": "Zur Wortliste hinzufügen",

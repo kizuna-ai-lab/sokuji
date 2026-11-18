@@ -5,6 +5,7 @@ import type { HistoryPort } from '../port';
 import { HistoryUnavailable } from '../port';
 import type { HistoryRecord, HistoryRecognizeRequest, FileToken } from '../types';
 import { transcribeRecord, TranscribeError } from './transcribe';
+import { EACH_SIDE } from './options';
 
 const ID = 'run-0001-aaaa';
 const SERVICE = { service: 'soniox' as const, apiKey: 'sk-test', region: 'eu' as const, languages: ['en', 'zh', 'ja'] };
@@ -102,6 +103,13 @@ describe('transcribing a record again', () => {
     const none = fakePort({ words: { speaker: said('One.', 0), participant: said('Two.', 0) } });
     await transcribeRecord({ options: { languages: ['en'], translateTo: 'ja' }, port: none.port, recordId: ID, service, newJobId, clock: createVirtualClock(0) });
     expect(none.asked.map((r) => ['translateTo' in r, 'context' in r])).toEqual([[false, true], [false, true]]);
+  });
+
+  it('each side into the other\u2019s language: every track translated as its own side was in the session', async () => {
+    const { port, asked } = fakePort({ words: { speaker: said('Mine.', 0), participant: said('Theirs.', 200) } });
+    await transcribeRecord({ options: { languages: ['en', 'zh'], translateTo: EACH_SIDE }, port, recordId: ID, service: SERVICE, newJobId, clock: createVirtualClock(0) });
+    // The speaker side was Chinese into English; the other side English into Chinese.
+    expect(asked.map((r) => [r.source, r.translateTo])).toEqual([['speaker', 'en'], ['participant', 'zh']]);
   });
 
   it('keeps each turn\u2019s translation on its first sentence, in the new transcript', async () => {

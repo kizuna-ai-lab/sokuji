@@ -2150,7 +2150,10 @@
       "otherLanguages": "Altre lingue che può contenere",
       "addLanguage": "Aggiungi un’altra lingua",
       "removeLanguage": "Rimuovi {{language}}",
-      "translateInto": "Traduci in"
+      "translateInto": "Traduci in",
+      "eachSide": "Ogni lato nella lingua dell’altro, come nella sessione",
+      "asked": "Lingua principale: {{main}} · Tradotto in: {{target}}",
+      "askedEachSide": "Lingua principale: {{main}} · Ogni lato tradotto nella lingua dell’altro"
     },
     "transcriptStopped": "Una parte della trascrizione di questa sessione non è stata salvata: non è stato possibile scriverla sul disco.",
     "notesAddToWords": "Aggiungi all’elenco di parole",

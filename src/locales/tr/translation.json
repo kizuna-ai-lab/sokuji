@@ -2150,7 +2150,10 @@
       "otherLanguages": "İçinde geçebilecek diğer diller",
       "addLanguage": "Başka bir dil ekle",
       "removeLanguage": "{{language}} dilini kaldır",
-      "translateInto": "Çeviri dili"
+      "translateInto": "Çeviri dili",
+      "eachSide": "Her taraf diğerinin diline, oturumdaki gibi",
+      "asked": "Ana dil: {{main}} · Çeviri dili: {{target}}",
+      "askedEachSide": "Ana dil: {{main}} · Her taraf diğerinin diline çevrildi"
     },
     "transcriptStopped": "Bu oturumun dökümünün bir kısmı kaydedilemedi: diske yazılamadı.",
     "notesAddToWords": "Kelime listesine ekle",

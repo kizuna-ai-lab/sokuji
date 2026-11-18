@@ -9,6 +9,7 @@ import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './Sonio
 import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxKeyField, sonioxLanguages, type SonioxCredentials, type SonioxSettings } from './settings';
 import { asSonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_LANGUAGES, sonioxWire } from './languages';
+import { AUTO } from '../../lib/provider/languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 
 const adapter = createSonioxAdapter();
@@ -30,6 +31,8 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
     const apiKey = String((credentials as unknown as Record<string, unknown>)[sonioxKeyField(region)] ?? '').trim();
     if (!apiKey) return { missing: 'no-key' };
     const languageHint = (code: string): string | null => {
+      // "Automatic" is no language to hint or translate into.
+      if (code === AUTO) return null;
       try {
         return sonioxWire.toWire(code);
       } catch {

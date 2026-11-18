@@ -47,5 +47,7 @@ describe('Soniox file recognition', () => {
     expect(spec.languageHint?.('fil')).toBe('tl');
     expect(spec.languageHint?.('ja')).toBe('ja');
     expect(spec.languageHint?.('xx')).toBeNull();
+    // "Automatic" is no language to hint or translate into.
+    expect(spec.languageHint?.('auto')).toBeNull();
   });
 });

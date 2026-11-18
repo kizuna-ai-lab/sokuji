@@ -31,6 +31,8 @@ function sonioxApiHost(region) {
 const isString = (v) => typeof v === 'string' && v.length > 0;
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isText = (v) => typeof v === 'string';
+/** The word list's parts Soniox takes, as the live session sends them. */
+const CONTEXT_PARTS = new Set(['terms', 'translation_terms', 'text']);
 
 /**
  * The word list in Soniox's context shape, as the live session sends it: terms, term translations, background text.
@@ -38,8 +40,7 @@ const isText = (v) => typeof v === 'string';
  */
 function isSonioxContext(c) {
   if (!isPlainObject(c)) return false;
-  const known = new Set(['terms', 'translation_terms', 'text']);
-  if (Object.keys(c).some((k) => !known.has(k))) return false;
+  if (Object.keys(c).some((k) => !CONTEXT_PARTS.has(k))) return false;
   if (c.terms !== undefined && !(Array.isArray(c.terms) && c.terms.every(isText))) return false;
   if (c.translation_terms !== undefined
     && !(Array.isArray(c.translation_terms) && c.translation_terms.every((t) => isPlainObject(t) && isText(t.source) && isText(t.target)))) return false;

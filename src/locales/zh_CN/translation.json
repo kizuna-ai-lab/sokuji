@@ -2150,7 +2150,10 @@
       "otherLanguages": "可能含有的其他语言",
       "addLanguage": "添加其他语言",
       "removeLanguage": "移除{{language}}",
-      "translateInto": "翻译成"
+      "translateInto": "翻译成",
+      "eachSide": "各自译成对方的语言（和会话时一样）",
+      "asked": "主要语言：{{main}} · 译为：{{target}}",
+      "askedEachSide": "主要语言：{{main}} · 各自译成对方的语言"
     },
     "transcriptStopped": "这次会话的部分转写没能保存：无法写入磁盘。",
     "notesAddToWords": "加入词表",

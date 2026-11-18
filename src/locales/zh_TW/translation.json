@@ -2150,7 +2150,10 @@
       "otherLanguages": "可能含有的其他語言",
       "addLanguage": "新增其他語言",
       "removeLanguage": "移除{{language}}",
-      "translateInto": "翻譯成"
+      "translateInto": "翻譯成",
+      "eachSide": "各自譯成對方的語言（和工作階段時一樣）",
+      "asked": "主要語言：{{main}} · 譯為：{{target}}",
+      "askedEachSide": "主要語言：{{main}} · 各自譯成對方的語言"
     },
     "transcriptStopped": "這次工作階段的部分轉寫沒能保存：無法寫入磁碟。",
     "notesAddToWords": "加入詞表",

@@ -2150,7 +2150,10 @@
       "otherLanguages": "Iba pang wikang maaaring nasa loob nito",
       "addLanguage": "Magdagdag ng isa pang wika",
       "removeLanguage": "Alisin ang {{language}}",
-      "translateInto": "Isalin sa"
+      "translateInto": "Isalin sa",
+      "eachSide": "Bawat panig sa wika ng kabila, gaya sa session",
+      "asked": "Pangunahing wika: {{main}} · Isinalin sa: {{target}}",
+      "askedEachSide": "Pangunahing wika: {{main}} · Isinalin ang bawat panig sa wika ng kabila"
     },
     "transcriptStopped": "Hindi na-save ang bahagi ng transcript ng session na ito: hindi ito maisulat sa disk.",
     "notesAddToWords": "Idagdag sa listahan ng salita",

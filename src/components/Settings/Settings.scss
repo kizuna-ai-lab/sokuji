@@ -1261,8 +1261,10 @@
 // in-window top layer. @supports guards it: the extension's floor is Chrome
 // 116, and anything older keeps today's classic popup untouched (rich option
 // markup is likewise gated in TSX — see supportsBaseSelect()).
-// The line between the pinned languages and the rest of the list: a thin rule in the open list, not a whole row.
-.language-select option[value='__pin-separator__'] {
+// The line between the pinned languages and the rest of the list: a thin rule in the open list, not a whole row. The
+// History file options' language lists (the app's .select-dropdown) draw it the same way.
+.language-select option[value='__pin-separator__'],
+.select-dropdown option[value='__pin-separator__'] {
   height: 1px;
   min-height: 0;
   margin: 4px 6px;

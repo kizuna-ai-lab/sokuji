@@ -162,7 +162,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({ hidden = false }) => {
       {r.state === 'open' || r.endedAt === null
         ? <span className="history-row__live">{t('history.inProgress', 'In progress')}</span>
         : <span>{t('history.length', 'Length {{length}}', { length: formatLength(r.endedAt - r.startedAt) })}</span>}
-      <span>{languagesOf(r)}</span>
+      {r.mode !== 'import' && <span>{languagesOf(r)}</span>}
     </span>
   );
 

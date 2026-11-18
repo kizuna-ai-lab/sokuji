@@ -2150,7 +2150,10 @@
       "otherLanguages": "لغات أخرى قد يتضمنها",
       "addLanguage": "إضافة لغة أخرى",
       "removeLanguage": "إزالة {{language}}",
-      "translateInto": "الترجمة إلى"
+      "translateInto": "الترجمة إلى",
+      "eachSide": "كل طرف إلى لغة الطرف الآخر، كما في الجلسة",
+      "asked": "اللغة الرئيسية: {{main}} · مترجم إلى: {{target}}",
+      "askedEachSide": "اللغة الرئيسية: {{main}} · كل طرف مترجم إلى لغة الطرف الآخر"
     },
     "transcriptStopped": "تعذّر حفظ جزء من النص المفرغ لهذه الجلسة: تعذّرت كتابته على القرص.",
     "notesAddToWords": "إضافة إلى قائمة الكلمات",

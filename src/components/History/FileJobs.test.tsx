@@ -111,6 +111,8 @@ describe('importing a file', () => {
     await settle();
     expect(jobs.importFile).toHaveBeenCalledWith(expect.objectContaining({ file, options: { languages: ['ja', 'en'], translateTo: 'en' }, myLanguage: 'zh' }));
     expect(onClose).toHaveBeenCalled();
+    // A file has no sides: no "each side" to choose.
+    expect([...into.options].map((o) => o.value)).not.toContain('each-side');
   });
 
   // B-35 (owner, 2026-11-17): only the reason and what to do, then a link to the setting to change; the line that
@@ -270,6 +272,43 @@ describe('transcribing a record again', () => {
     await settle();
     expect(jobs.transcribe).toHaveBeenCalledWith(expect.objectContaining({ recordId: A, options: { languages: ['zh', 'en'], translateTo: 'ja' } }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('a session with both sides kept: each side into the other\u2019s language, as in the session, unless one is chosen', async () => {
+    const leg = (name: 'speaker' | 'participant', source: string, target: string) => ({ leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: true, spoken: false });
+    record = {
+      ...record, myLanguage: 'en', targetLanguage: 'ja',
+      legs: [leg('speaker', 'en', 'ja'), leg('participant', 'ja', 'en')],
+      tracks: [...record.tracks, { ...record.tracks[0], source: 'speaker', file: 'speaker.opus' }],
+    } as typeof record;
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect(into.value).toBe('each-side');
+    expect(into.options[0].textContent).toBe('Each side into the other’s language, as in the session');
+    expect(screen.getByLabelText<HTMLSelectElement>('Main language').value).toBe('ja');
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await settle();
+    expect(jobs.transcribe).toHaveBeenLastCalledWith(expect.objectContaining({ options: { languages: ['ja', 'en'], translateTo: 'each-side' } }));
+  });
+
+  it('a session that said "automatic" starts from languages the service has', async () => {
+    record = { ...record, myLanguage: 'auto', targetLanguage: 'auto' };
+    const { jobs } = fakeJobs();
+    store = createHistoryPageStore(fakePort().port, createVirtualClock(0), () => 'x', null, jobs);
+    store.getState().follow();
+    await act(() => store.getState().openRecord(A));
+    show(<TranscribePanel onClose={() => {}} />);
+    await settle();
+    const main = screen.getByLabelText<HTMLSelectElement>('Main language');
+    const into = screen.getByLabelText<HTMLSelectElement>('Translate into');
+    expect(['en', 'fr', 'ja', 'zh']).toContain(main.value);
+    expect(['en', 'fr', 'ja', 'zh']).toContain(into.value);
+    expect(screen.queryByText('Auto Detect')).toBeNull();
   });
 
   it('starts from what the newest file transcript was asked for', async () => {

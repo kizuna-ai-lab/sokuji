@@ -2150,7 +2150,10 @@
       "otherLanguages": "Outros idiomas que podem aparecer",
       "addLanguage": "Adicionar outro idioma",
       "removeLanguage": "Remover {{language}}",
-      "translateInto": "Traduzir para"
+      "translateInto": "Traduzir para",
+      "eachSide": "Cada lado para o idioma do outro, como na sessão",
+      "asked": "Idioma principal: {{main}} · Traduzido para: {{target}}",
+      "askedEachSide": "Idioma principal: {{main}} · Cada lado traduzido para o idioma do outro"
     },
     "transcriptStopped": "Parte da transcrição desta sessão não pôde ser salva: não foi possível gravá-la no disco.",
     "notesAddToWords": "Adicionar à lista de palavras",

@@ -212,7 +212,7 @@ describe('transcripts and sentences', () => {
     expect(() => s.reviseSentences({ transcriptId: t, revisions: [{ n: 1, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'RECORD_CLOSED' }));
   });
 
-  it('a sentence keeps the translation of the turn it begins; the others of the turn and a session\u2019s have none', () => {
+  it('a sentence keeps the translation that began in it; one where none began, and a session\u2019s, have none', () => {
     s.appendSentences({ transcriptId: t, sentences: [
       sent(1, { segmentId: 'f-1', translation: '你好。你好吗？' }), sent(2, { segmentId: 'f-1' }), sent(3, { segmentId: 'f-2', translation: '再见。' }),
     ] });
@@ -563,6 +563,10 @@ describe('bin, purge and space', () => {
     const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'live' } });
     s.appendSentences({ transcriptId: t, sentences: [sent(1, 'Hello.')] });
     expect(s.getRecord(A).textBytes).toBe(12);
+    // A file transcript's translations count too.
+    const file = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'file' } });
+    s.appendSentences({ transcriptId: file, sentences: [{ ...sent(1, 'Hi.'), translation: '嗨。' }] });
+    expect(s.getRecord(A).textBytes).toBe(12 + 3 + 6);
   });
 
   it('at launch an empty folder without a record is removed and one with files is only named', () => {

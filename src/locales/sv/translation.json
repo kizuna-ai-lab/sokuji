@@ -2150,7 +2150,10 @@
       "otherLanguages": "Andra språk som kan förekomma",
       "addLanguage": "Lägg till ett språk till",
       "removeLanguage": "Ta bort {{language}}",
-      "translateInto": "Översätt till"
+      "translateInto": "Översätt till",
+      "eachSide": "Varje sida till den andras språk, som i sessionen",
+      "asked": "Huvudspråk: {{main}} · Översatt till: {{target}}",
+      "askedEachSide": "Huvudspråk: {{main}} · Varje sida översatt till den andras språk"
     },
     "transcriptStopped": "En del av transkriptionen av den här sessionen kunde inte sparas: den kunde inte skrivas till disken.",
     "notesAddToWords": "Lägg till i ordlistan",

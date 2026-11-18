@@ -9,6 +9,8 @@ export interface HistoryServices {
   provider: string;
   models: Record<string, string>;
   stages?: Record<string, { provider: string; ability: string }>;
+  /** An imported file's: what its transcription was asked for, kept even when that transcription failed. */
+  options?: FileTranscriptionOptions;
 }
 
 export interface HistoryRecordInput {
@@ -195,7 +197,7 @@ export interface HistorySentenceInput {
   text: string;
   language?: string;
   timeKind: HistoryTimeKind;
-  /** A file transcript's translation of the turn this sentence begins; absent on the turn's other sentences. */
+  /** A file transcript's translation of what the service translated starting in this sentence; absent where none began. */
   translation?: string;
 }
 
@@ -216,7 +218,7 @@ export interface HistorySentence {
   text: string;
   language: string | null;
   timeKind: HistoryTimeKind;
-  /** A file transcript's translation of the turn this sentence begins; null on its other sentences and in a session's. */
+  /** A file transcript's translation of what the service translated starting in this sentence; null where none began, and in a session's. */
   translation: string | null;
 }
 

@@ -256,7 +256,8 @@ function openHistory({ dir, now = () => Date.now() }) {
         textBytes: one(
           `select
              (select coalesce(sum(length(cast(text as blob))), 0) from segments where record_id = ?1)
-           + (select coalesce(sum(length(cast(s.text as blob))), 0) from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ?1)
+           + (select coalesce(sum(length(cast(s.text as blob)) + coalesce(length(cast(s.translation as blob)), 0)), 0)
+                from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ?1)
            + (select coalesce(sum(length(cast(body as blob))), 0) from notes where record_id = ?1) as bytes`,
           id,
         ).bytes,

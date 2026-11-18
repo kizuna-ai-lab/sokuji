@@ -119,6 +119,16 @@ describe('an imported record\'s speakers', () => {
     await settle();
     expect(row(1)?.querySelector('.record-row__translation')?.textContent).toBe('欢迎大家。');
     expect(row(2)?.querySelector('.record-row__translation')?.textContent).toBe('谢谢邀请我。');
+    // What this version was asked for, at the top of its transcript; no "my language → its language" in the head.
+    expect(document.querySelector('.record-page__transcript > .record-page__asked')?.textContent).toBe('Main language: English · Translated into: Chinese');
+    expect(document.querySelector('.record-page__head')?.textContent).not.toContain('→');
+  });
+
+  it('a session\u2019s transcript says nothing of options, and its head keeps its languages', async () => {
+    await act(() => store.getState().openRecord(A));
+    await settle();
+    expect(document.querySelector('.record-page__asked')).toBeNull();
+    expect(document.querySelector('.record-page__head')?.textContent).toContain('English → Chinese');
   });
 
   // Face to face, both people on one microphone: the sides were inferred, and still say who spoke.

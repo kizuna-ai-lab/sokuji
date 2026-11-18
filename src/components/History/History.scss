@@ -487,6 +487,13 @@
   &__columns:not(.is-wide) &__notes-col { grid-column: 1 / -1; }
 
 
+  // What a file transcript was asked for: a quiet caption at the top of its transcript, scrolling with it.
+  &__asked {
+    margin: 0 0 vars.$space-2;
+    font-size: vars.$font-caption;
+    color: vars.$text-tertiary;
+  }
+
   &__transcript {
     min-height: 0;
     overflow-y: auto;

@@ -1,10 +1,19 @@
 // What a file transcription is asked for, as the import and the "transcribe again" panels start it.
 import { describe, it, expect } from 'vitest';
 import type { HistoryRecord } from '../types';
-import { importOptions, optionsFor, withMain, withOther, withoutOther } from './options';
+import { EACH_SIDE, eachSideOffered, fitOptions, importOptions, optionsFor, withMain, withOther, withoutOther } from './options';
 
+const leg = (name: 'speaker' | 'participant', source: string, target: string) => ({
+  leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: true, spoken: false,
+});
+const track = (source: 'speaker' | 'participant', goneAt: number | null = null) => ({ source, file: `${source}.opus`, format: 'ogg-opus', durationMs: 1, bytes: 1, offsetMs: 0, goneAt });
+/** A session: I speak Chinese and hear English (the default here: both tracks kept). */
 const record = (o: Partial<HistoryRecord> = {}): HistoryRecord => ({
-  id: 'r', mode: 'both', myLanguage: 'zh', targetLanguage: 'ja', transcripts: [], ...o,
+  id: 'r', mode: 'both', myLanguage: 'zh', targetLanguage: 'en', transcripts: [],
+  services: { provider: 'soniox', models: {} },
+  legs: [leg('speaker', 'zh', 'en'), leg('participant', 'en', 'zh')],
+  tracks: [track('speaker'), track('participant')],
+  ...o,
 } as unknown as HistoryRecord);
 const transcript = (id: number, createdAt: number, origin: object) => ({ id, origin, textKind: 'original', createdAt, sentences: 1 });
 
@@ -25,18 +34,67 @@ describe('the options a file transcription starts from', () => {
     expect(optionsFor(r)).toEqual(asked);
   });
 
-  it('a session never transcribed from a file: the other side’s language first, then the user’s, translated into the user’s', () => {
-    expect(optionsFor(record())).toEqual({ languages: ['ja', 'zh'], translateTo: 'zh' });
-    expect(optionsFor(record({ targetLanguage: 'zh' }))).toEqual({ languages: ['zh'], translateTo: 'zh' });
+  it('options kept in a shape it cannot use are passed over', () => {
+    const r = record({ transcripts: [transcript(1, 10, { service: 'soniox', kind: 'file', options: { languages: [], translateTo: 'ja' } })] } as never);
+    expect(optionsFor(r)).toEqual({ languages: ['en', 'zh'], translateTo: EACH_SIDE });
+    const bad = record({ transcripts: [transcript(1, 10, { service: 'soniox', kind: 'file', options: { languages: 'en', translateTo: 7 } })] } as never);
+    expect(optionsFor(bad)).toEqual({ languages: ['en', 'zh'], translateTo: EACH_SIDE });
   });
 
-  it('an import from before the options were kept: its own language, translated into the user’s', () => {
-    expect(optionsFor(record({ mode: 'import', targetLanguage: 'en' }))).toEqual({ languages: ['en'], translateTo: 'zh' });
+  it('a session with both its tracks: both languages, each side translated into the other’s, as in the session', () => {
+    expect(eachSideOffered(record())).toBe(true);
+    expect(optionsFor(record())).toEqual({ languages: ['en', 'zh'], translateTo: EACH_SIDE });
   });
 
-  it('leaves out "automatic" and splits a two-way pair into its two languages', () => {
-    expect(optionsFor(record({ targetLanguage: 'auto' }))).toEqual({ languages: ['zh'], translateTo: 'zh' });
-    expect(optionsFor(record({ targetLanguage: 'en+ja' }))).toEqual({ languages: ['en', 'ja', 'zh'], translateTo: 'zh' });
+  it('a session with one track: that side’s language, translated as it was in the session', () => {
+    // Only my own speech was kept (subtitles of myself): Chinese, translated into English, never into Chinese.
+    const mine = record({ tracks: [track('speaker'), track('participant', 5)], legs: [leg('speaker', 'zh', 'en')] } as never);
+    expect(eachSideOffered(mine)).toBe(false);
+    expect(optionsFor(mine)).toEqual({ languages: ['zh'], translateTo: 'en' });
+    const theirs = record({ tracks: [track('participant')], legs: [leg('participant', 'en', 'zh')] } as never);
+    expect(optionsFor(theirs)).toEqual({ languages: ['en'], translateTo: 'zh' });
+  });
+
+  it('an import whose transcription failed: what it was asked for at import', () => {
+    const imported = record({
+      mode: 'import', targetLanguage: 'ja', myLanguage: 'zh', legs: [leg('participant', 'ja', 'fr')], tracks: [track('participant')],
+      services: { provider: 'soniox', models: {}, options: { languages: ['ja', 'en'], translateTo: 'fr' } },
+    } as never);
+    expect(eachSideOffered(imported)).toBe(false);
+    expect(optionsFor(imported)).toEqual({ languages: ['ja', 'en'], translateTo: 'fr' });
+    // From before the options were kept with the record: its language and the translation its leg names.
+    const older = record({ mode: 'import', targetLanguage: 'ja', legs: [leg('participant', 'ja', 'fr')], tracks: [track('participant')] } as never);
+    expect(optionsFor(older)).toEqual({ languages: ['ja'], translateTo: 'fr' });
+  });
+
+  it('a session whose sides say "automatic" or a two-way pair offers no "each side"', () => {
+    const auto = record({ myLanguage: 'auto', legs: [leg('speaker', 'auto', 'en'), leg('participant', 'en', 'auto')] } as never);
+    expect(eachSideOffered(auto)).toBe(false);
+    const pair = record({ legs: [leg('speaker', 'zh+en', 'en'), leg('participant', 'en', 'zh')] } as never);
+    expect(eachSideOffered(pair)).toBe(false);
+  });
+});
+
+describe('the options fitted to what the service offers', () => {
+  const offered = ['en', 'ja', 'pt', 'zh'];
+  it('leaves out "automatic", splits a two-way pair, and takes a regional code’s language', () => {
+    expect(fitOptions({ languages: ['en', 'auto', 'ja+zh', 'pt-BR'], translateTo: 'zh-Hant' }, offered, 'en', false))
+      .toEqual({ languages: ['en', 'ja', 'zh', 'pt'], translateTo: 'zh' });
+  });
+
+  it('falls back to the user’s language, else the service’s first, when nothing chosen is offered', () => {
+    expect(fitOptions({ languages: ['auto'], translateTo: 'auto' }, offered, 'ja', false)).toEqual({ languages: ['ja'], translateTo: 'ja' });
+    expect(fitOptions({ languages: ['xx'], translateTo: 'yy' }, offered, 'auto', false)).toEqual({ languages: ['en'], translateTo: 'en' });
+  });
+
+  it('keeps "each side" only where it is offered', () => {
+    expect(fitOptions({ languages: ['en', 'zh'], translateTo: EACH_SIDE }, offered, 'zh', true)).toEqual({ languages: ['en', 'zh'], translateTo: EACH_SIDE });
+    expect(fitOptions({ languages: ['en', 'zh'], translateTo: EACH_SIDE }, offered, 'zh', false)).toEqual({ languages: ['en', 'zh'], translateTo: 'zh' });
+  });
+
+  it('changes nothing until the service’s languages are known', () => {
+    const o = { languages: ['en'], translateTo: 'zh' };
+    expect(fitOptions(o, [], 'en', false)).toBe(o);
   });
 });
 

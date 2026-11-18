@@ -95,8 +95,8 @@ create table sentences (
   text text not null,
   language text,
   time_kind text not null check (time_kind in ('given', 'spread', 'estimated')),
-  -- A file transcript's translation of the turn (segment) this sentence begins; null on its other sentences, and on a
-  -- session's transcript, whose translation is the conversation's (segments).
+  -- A file transcript's translation of what the service translated starting in this sentence (a clause or a sentence);
+  -- null where none began here, and on a session's transcript, whose translation is the conversation's (segments).
   translation text,
   primary key (transcript_id, n)
 ) strict;

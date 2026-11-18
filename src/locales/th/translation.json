@@ -2150,7 +2150,10 @@
       "otherLanguages": "ภาษาอื่นที่อาจมีอยู่",
       "addLanguage": "เพิ่มภาษาอื่น",
       "removeLanguage": "นำ {{language}} ออก",
-      "translateInto": "แปลเป็น"
+      "translateInto": "แปลเป็น",
+      "eachSide": "แต่ละฝ่ายเป็นภาษาของอีกฝ่าย เหมือนในเซสชัน",
+      "asked": "ภาษาหลัก: {{main}} · แปลเป็น: {{target}}",
+      "askedEachSide": "ภาษาหลัก: {{main}} · แต่ละฝ่ายแปลเป็นภาษาของอีกฝ่าย"
     },
     "transcriptStopped": "บันทึกบทถอดความบางส่วนของเซสชันนี้ไม่ได้: เขียนลงดิสก์ไม่ได้",
     "notesAddToWords": "เพิ่มในรายการคำ",

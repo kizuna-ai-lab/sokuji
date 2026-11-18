@@ -2150,7 +2150,10 @@
       "otherLanguages": "Bahasa lain yang mungkin ada di dalamnya",
       "addLanguage": "Tambah bahasa lain",
       "removeLanguage": "Buang {{language}}",
-      "translateInto": "Terjemah ke"
+      "translateInto": "Terjemah ke",
+      "eachSide": "Setiap pihak ke bahasa pihak lain, seperti dalam sesi",
+      "asked": "Bahasa utama: {{main}} · Diterjemah ke: {{target}}",
+      "askedEachSide": "Bahasa utama: {{main}} · Setiap pihak diterjemah ke bahasa pihak lain"
     },
     "transcriptStopped": "Sebahagian transkrip sesi ini tidak dapat disimpan: ia tidak dapat ditulis ke cakera.",
     "notesAddToWords": "Tambah ke senarai perkataan",

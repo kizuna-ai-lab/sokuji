@@ -2150,7 +2150,10 @@
       "otherLanguages": "ほかに含まれていそうな言語",
       "addLanguage": "言語を追加",
       "removeLanguage": "{{language}}を外す",
-      "translateInto": "翻訳先の言語"
+      "translateInto": "翻訳先の言語",
+      "eachSide": "それぞれ相手の言語へ（セッションと同じ）",
+      "asked": "主な言語：{{main}} · 翻訳先：{{target}}",
+      "askedEachSide": "主な言語：{{main}} · それぞれ相手の言語へ翻訳"
     },
     "transcriptStopped": "このセッションの文字起こしの一部を保存できませんでした。ディスクに書き込めませんでした。",
     "notesAddToWords": "単語リストに追加",

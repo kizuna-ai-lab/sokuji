@@ -101,7 +101,7 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
   const startedAt = Math.round((o.file.lastModified || o.clock.now()) - audio.durationMs);
   await o.port.openRecord({
     id: recordId, startedAt, mode: 'import', myLanguage: o.myLanguage, targetLanguage: o.options.languages[0],
-    services: { provider: o.service.service, models: { transcription: FILE_MODEL } }, appVersion: o.appVersion,
+    services: { provider: o.service.service, models: { transcription: FILE_MODEL }, options: o.options }, appVersion: o.appVersion,
   });
   // Closed first (the bin takes closed records only; one with nothing stored is dropped there), then through the bin,
   // as any record is removed: the folder and its files go with the row.
