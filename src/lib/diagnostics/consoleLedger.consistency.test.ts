@@ -149,7 +149,6 @@ const LEDGER: Record<string, number> = {
   // MainPanel.tsx's row (43) is gone, not lowered to 0: plan 1e-3b-2's switch
   // replaced the old panel with the app session's, which reports through
   // report.ts only.
-  'src/components/Auth/UserAccountInfo.tsx': 5,
   // `Rename failed:` and `Delete failed:` — the picker takes `onRename`/
   // `onAskDelete` and VoiceDeleteModal takes `onConfirm` as props, so the
   // composition root is what reports a failed commit. The other three calls
@@ -170,15 +169,12 @@ const LEDGER: Record<string, number> = {
   // cut it to two jobs (plan 1e-3b-2 ruling 10), each reporting through
   // report.ts.
   'src/components/Tour/TourProvider.tsx': 3,
-  'src/components/Auth/ForgotPasswordForm.tsx': 2,
   // ModelManagementSection.tsx's row (2) is gone, not lowered to 0: the in-panel
   // model library it drew was removed (B-20); its voices moved to LocalVoices,
   // which reports through report.ts.
   // ProviderSpecificSettings.tsx's row (2) is gone, not lowered to 0: both of
   // its calls sat in the other providers' branches, which the Stage 2
   // deletion removed; the Local Native branch it keeps has none.
-  'src/components/Auth/SignInForm.tsx': 1,
-  'src/components/Auth/SignUpForm.tsx': 1,
   // AdvancedSettings.tsx's row (1) is gone, not lowered to 0: its one call
   // warned of an unknown provider in the old provider config memo, which the
   // switch removed with the old provider sections.

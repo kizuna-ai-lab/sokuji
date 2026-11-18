@@ -9,6 +9,7 @@ import { useAuthOverlayReason, useSetAuthOverlay } from '../../stores/settingsSt
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
 import './SignInForm.scss';
 
 export function SignInForm() {
@@ -36,7 +37,7 @@ export function SignInForm() {
     });
 
     if (error) {
-      console.error('Sign in error:', error);
+      reportError('SignInForm', `Sign-in failed: ${describeCause(error)}`, { cause: error });
 
       // Determine error type for analytics
       let errorType: 'invalid_credentials' | 'network' | 'rate_limit' | 'server' = 'server';

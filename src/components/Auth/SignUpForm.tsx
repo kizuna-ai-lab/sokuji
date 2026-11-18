@@ -9,6 +9,7 @@ import { useSetAuthOverlay } from '../../stores/settingsStore';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
 import './SignUpForm.scss';
 
 export function SignUpForm() {
@@ -50,7 +51,7 @@ export function SignUpForm() {
     });
 
     if (error) {
-      console.error('Sign up error:', error);
+      reportError('SignUpForm', `Sign-up failed: ${describeCause(error)}`, { cause: error });
 
       // Determine error type for analytics
       let errorType = 'unknown';

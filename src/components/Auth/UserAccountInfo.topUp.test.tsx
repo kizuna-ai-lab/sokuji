@@ -65,14 +65,17 @@ describe('UserAccountInfo top-up', () => {
   // callers of openExternalWithAuth, not just top-up.
   it('survives the desktop open-external call rejecting', async () => {
     electron = true;
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // An error: the page the user asked for did not open.
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     (window as any).electron = {
       invoke: vi.fn().mockRejectedValue(new Error('no main process')),
     };
     render(<UserAccountInfo />);
     fireEvent.click(screen.getByRole('button', { name: /top up/i }));
-    await waitFor(() => expect(warn).toHaveBeenCalled());
+    await waitFor(() => expect(error).toHaveBeenCalledWith(
+      '[Sokuji] [UserAccountInfo] Could not open the external page: no main process', expect.any(Error),
+    ));
     delete (window as any).electron;
-    warn.mockRestore();
+    error.mockRestore();
   });
 });

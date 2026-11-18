@@ -11,6 +11,7 @@ import { useSetAuthOverlay } from '../../stores/settingsStore';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
 import './ForgotPasswordForm.scss';
 
 type Step = 'email' | 'otp';
@@ -63,7 +64,7 @@ export function ForgotPasswordForm() {
     });
 
     if (result?.error) {
-      console.error('Send OTP error:', result.error);
+      reportError('ForgotPasswordForm', `Failed to send the reset code: ${describeCause(result.error)}`, { cause: result.error });
 
       // Determine error type for analytics
       let errorType: 'rate_limit' | 'invalid_email' | 'network' | 'server' = 'server';
@@ -153,7 +154,7 @@ export function ForgotPasswordForm() {
     });
 
     if (result?.error) {
-      console.error('Reset password error:', result.error);
+      reportError('ForgotPasswordForm', `Password reset failed: ${describeCause(result.error)}`, { cause: result.error });
 
       // Determine error type for analytics
       let errorType: 'invalid_otp' | 'expired_otp' | 'validation_error' | 'network' = 'validation_error';

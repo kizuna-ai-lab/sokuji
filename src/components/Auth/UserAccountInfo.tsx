@@ -29,7 +29,7 @@ import {
 import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
-import {reportError} from '../../lib/diagnostics/report';
+import {describeCause, reportError, reportWarning} from '../../lib/diagnostics/report';
 import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
 import {useSetAuthOverlay} from '../../stores/settingsStore';
 import './UserAccountInfo.scss';
@@ -326,7 +326,7 @@ export function UserAccountInfo({
 
       // Check if request failed (Better Auth returns { error } instead of throwing)
       if (result?.error) {
-        console.error('Failed to send verification email:', result.error);
+        reportError('UserAccountInfo', `Failed to send the verification email: ${describeCause(result.error)}`, {cause: result.error});
         // Check if rate limited by server (status 429 or message contains "Too many")
         if (result.error.status === 429 || result.error.message?.includes('Too many')) {
           setVerificationMessage({ text: t('auth.rateLimitExceeded'), tone: 'error' });
@@ -347,7 +347,7 @@ export function UserAccountInfo({
       startCooldown(60); // Start 60-second cooldown
       setTimeout(() => setVerificationMessage(null), 5000);
     } catch (error: any) {
-      console.error('Failed to send verification email:', error);
+      reportError('UserAccountInfo', `Failed to send the verification email: ${describeCause(error)}`, {cause: error});
       // Check if rate limited by server
       if (error?.status === 429 || error?.message?.includes('Too many')) {
         setVerificationMessage({ text: t('auth.rateLimitExceeded'), tone: 'error' });
@@ -405,7 +405,7 @@ export function UserAccountInfo({
         // evidence about the session. Fall through and open the plain URL.
       } catch (e) {
         // Token generation failed, use original URL (user needs to sign in manually)
-        console.warn('Failed to generate OTT token:', e);
+        reportWarning('UserAccountInfo', `Could not get a sign-in token; opening the page without one: ${describeCause(e)}`, {cause: e});
       }
     }
 
@@ -417,7 +417,7 @@ export function UserAccountInfo({
       void (window as any).electron
         .invoke('open-external', url)
         .catch((e: unknown) => {
-          console.warn('[UserAccountInfo] Could not open the external page:', e);
+          reportError('UserAccountInfo', `Could not open the external page: ${describeCause(e)}`, {cause: e});
         });
     } else {
       window.open(url, '_blank');
@@ -552,7 +552,7 @@ export function UserAccountInfo({
                 }
               } catch (error: any) {
                 // Transport-level only; an HTTP error is handled above.
-                console.error('Sign out error:', error);
+                reportError('UserAccountInfo', `Sign-out failed: ${describeCause(error)}`, {cause: error});
                 // Track sign out failure
                 trackEvent('sign_out_failed', {error_code: error?.status});
               } finally {
