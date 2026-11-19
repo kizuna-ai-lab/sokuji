@@ -8,11 +8,10 @@ import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
+import { planFromStores } from '../plan/fromStores';
 import { accountOf, capabilitiesOf, transcriptionProvider } from '../plan/read';
-import { wholePlan } from '../plan/wholeUnit';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
-import { presentProviders } from '../../providers/registry';
 import { accountPayer } from './payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
@@ -30,13 +29,12 @@ export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
   return mode === 'both' ? ['speaker', 'participant'] : [mode];
 }
 
-/** The provider a start would run and its loaded entry, as `readShapeFromStores` finds them; null until the entry has loaded. */
+/** The provider a start would run and its loaded entry: the plan's transcription provider, as `planFromStores` finds it; null until the plan is ready. */
 export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
-  const { selected, entries } = useProviderStore.getState();
-  const providers = presentProviders();
-  const provider = providers.find((p) => p.id === selected) ?? providers[0];
-  const entry = provider ? entries[provider.id] : undefined;
-  return provider && entry ? { provider, entry } : null;
+  const found = planFromStores();
+  if (found.state !== 'ready') return null;
+  const provider = transcriptionProvider(found.plan);
+  return { provider, entry: found.accounts[provider.id] };
 }
 
 /** The providers that take a capture area: Qwen, with your own key and managed; they share one settings shape. */
@@ -145,16 +143,17 @@ export function watchSpeechFromStores(): () => void {
 }
 
 /**
- * The plan a start would run and its providers' accounts, as the stores
- * stand: the selected provider as one whole-provider unit, until the
- * line-up decides the plan. Null until its entry has loaded. The run's
- * shape, the live gate and the account button's floor all read it.
+ * The plan a start would run and its providers' accounts, as
+ * `planFromStores` finds them, with the transcription provider's entry.
+ * Null until the plan is ready. The run's shape, the live gate and the
+ * account button's floor all read it.
  */
 export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
-  const selected = selectedFromStores();
-  if (!selected) return null;
-  const { provider, entry } = selected;
-  return { plan: wholePlan(provider), accounts: { [provider.id]: { settings: entry.settings, credentials: entry.credentials } }, entry };
+  const found = planFromStores();
+  if (found.state !== 'ready') return null;
+  // A run's account is a provider's settings and credentials; its pair is the shape's own.
+  const accounts = Object.fromEntries(Object.entries(found.accounts).map(([id, { settings, credentials }]) => [id, { settings, credentials }]));
+  return { plan: found.plan, accounts, entry: found.accounts[transcriptionProvider(found.plan).id] };
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {
