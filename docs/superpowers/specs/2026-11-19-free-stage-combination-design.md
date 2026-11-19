@@ -1,6 +1,6 @@
 # Free combination of stages — design
 
-Date: 2026-11-19. Status: draft for review. No product code has changed.
+Date: 2026-11-19. Status: approved; step 1 is under way (see the plan beside it).
 
 ## 1. Goal
 
