@@ -196,6 +196,8 @@ export function createHistoryPageStore(
   const jobs = files?.state ?? createFileJobState();
   /** Unsubscribes from the file job. */
   let offJobs: (() => void) | null = null;
+  /** The page's reading again after the last file job ended: the action that began the job waits for it. */
+  let afterJob: Promise<void> | null = null;
   const setJobPhase = (phase: ImportPhase) => {
     const job = jobs.getState().job;
     if (job) jobs.setState({ job: { ...job, phase } });
@@ -450,9 +452,22 @@ export function createHistoryPageStore(
       }),
 
       follow() {
-        // The file job as this page shows it.
+        // The file job as this page shows it. A job that ends shows itself on the page shown then, which is not the
+        // page that began it when History was closed and opened again meanwhile: after an import, ended either way
+        // (a failed one may keep its record), the list is read again; after a transcription that made a transcript,
+        // the record, when it is the one open, shows it (the newest), and the list is read again.
         if (!offJobs) {
-          const shown = (j: ReturnType<typeof jobs.getState>) => set({ job: j.job, jobFailure: j.jobFailure, jobKept: j.jobKept });
+          const shown = (j: FileJobState, before?: FileJobState) => {
+            set({ job: j.job, jobFailure: j.jobFailure, jobKept: j.jobKept });
+            const ended = before?.job && !j.job ? before.job : null;
+            if (!ended) return;
+            if (ended.kind === 'transcribe' && j.jobFailure !== null) { afterJob = null; return; }
+            afterJob = act(async () => {
+              const { recordId } = ended;
+              if (ended.kind === 'transcribe' && recordId && get().open?.record.id === recordId) await fetchRecord(recordId, null, null);
+              await reload();
+            });
+          };
           offJobs = jobs.subscribe(shown);
           shown(jobs.getState());
         }
@@ -545,9 +560,10 @@ export function createHistoryPageStore(
         } catch (error) {
           jobs.setState({ jobFailure: codeOf(error) });
         } finally {
+          // The page shown now (this one, or the next if History was closed meanwhile) reads the list again.
           jobs.setState({ job: null, controller: null });
         }
-        await act(reload);
+        await afterJob;
       },
 
       async transcribeOpen(options) {
@@ -556,25 +572,21 @@ export function createHistoryPageStore(
         const recordId = open.record.id;
         const controller = new AbortController();
         jobs.setState({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading' }, jobFailure: null, jobKept: false, controller });
-        let made: number | null = null;
         try {
           const service = await files.service();
           if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
-          ({ transcriptId: made } = await files.transcribe({
+          await files.transcribe({
             recordId, options, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
-          }));
+          });
         } catch (error) {
           // Too long for the service: the record's recording, not a file, is what is too long.
           const code = codeOf(error);
           jobs.setState({ jobFailure: code === 'TOO_LONG' ? 'RECORD_TOO_LONG' : code });
         } finally {
+          // The page shown now shows the new transcript (see follow()).
           jobs.setState({ job: null, controller: null });
         }
-        if (made === null) return;
-        await act(async () => {
-          if (get().open?.record.id === recordId) await fetchRecord(recordId, null, made);
-          await reload();
-        });
+        await afterJob;
       },
 
       cancelJob() {

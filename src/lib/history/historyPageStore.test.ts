@@ -644,6 +644,49 @@ describe('transcripts and file jobs', () => {
     expect(second.getState()).toMatchObject({ job: null, jobFailure: 'CANCELLED' });
   });
 
+  // History closed and opened again while a file is imported: the page shown when the import ends lists its record.
+  it('an import that ends under the next page shows its record there', async () => {
+    const f = fakeJobs();
+    const jobs = { ...f.jobs, state: createFileJobState() };
+    const first = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+    first.getState().follow();
+    await first.getState().load();
+    const started = first.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+    await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+    first.getState().dispose();
+    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+    second.getState().follow();
+    await second.getState().load();
+    expect(second.getState().rows.map((r) => r.id)).toEqual([A]);
+    port.listRecords = async () => [rowOf(B), rowOf(A)];
+    f.finishImport({ recordId: B, transcribed: true });
+    await started;
+    await vi.waitFor(() => expect(second.getState().rows.map((r) => r.id)).toEqual([B, A]));
+    second.getState().dispose();
+  });
+
+  // The same for a record transcribed again: the next page, showing that record, shows the new transcript.
+  it('a transcription that ends under the next page shows its transcript there', async () => {
+    const f = fakeJobs();
+    const jobs = { ...f.jobs, state: createFileJobState() };
+    port.getRecord = async () => recordOf(A, [1]);
+    const first = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+    first.getState().follow();
+    await first.getState().openRecord(A);
+    const started = first.getState().transcribeOpen(OPTS);
+    await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalled());
+    first.getState().dispose();
+    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+    second.getState().follow();
+    await second.getState().openRecord(A);
+    expect(second.getState().open).toMatchObject({ transcriptId: 1 });
+    port.getRecord = async () => recordOf(A, [1, 2]);
+    f.finishTranscribe({ transcriptId: 2, sentences: 1 });
+    await started;
+    await vi.waitFor(() => expect(second.getState().open).toMatchObject({ transcriptId: 2 }));
+    second.getState().dispose();
+  });
+
   it('two quick starts make one job', async () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
