@@ -616,8 +616,6 @@
 
   &__text {
     margin: 2px 0 0;
-    // Room at the end of every line for a sentence's buttons, which sit where the sentence ends (below).
-    padding-inline-end: 20px;
     color: vars.$text-source;
     overflow-wrap: anywhere;
   }
@@ -639,14 +637,13 @@
 
   &.is-hit { background: color-mix(in srgb, #{tk.$color-primary} 22%, transparent); }
 
-  // A sentence's buttons take no room in its lines, hidden or shown: placed out of the flow, they stay where the
-  // sentence ends, in the room every line keeps at its end. So no line is added for them, and nothing moves under the
-  // pointer when they show.
+  // A sentence's buttons keep their room after its text (hidden until pointed at), but never go to a line of their own:
+  // a word joiner (U+2060) binds them to the sentence's last word, so when they do not fit, the line breaks before that
+  // word, as it does before a word and the punctuation after it. Generated, the joiner is not copied with the text.
   &__more {
-    position: absolute;
-    display: inline-flex;
-    align-items: center;
+    position: relative;
     white-space: nowrap;
+    &::before { content: '\2060'; }
   }
 
   &__menu-button {
