@@ -11,11 +11,12 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
-// The providers offered here are the registry's, unless a case offers none.
-const offered = vi.hoisted(() => ({ none: false }));
+// The providers offered here are the registry's, unless a case offers none or offers another object under one's id.
+const offered = vi.hoisted(() => ({ none: false, instead: null as { id: string } | null }));
 vi.mock('../../providers/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../providers/registry')>();
-  return { ...actual, presentProviders: () => (offered.none ? [] : actual.presentProviders()) };
+  const swap = (p: { id: string }) => (offered.instead?.id === p.id ? offered.instead : p);
+  return { ...actual, presentProviders: () => (offered.none ? [] : actual.presentProviders().map(swap)) };
 });
 
 import { presentProviders } from '../../providers/registry';
@@ -35,6 +36,7 @@ const geminiEntry = { settings: geminiProvider.settings.defaults, credentials: {
 
 beforeEach(() => {
   offered.none = false;
+  offered.instead = null;
   useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
   useLineUpStore.setState({ lineUp: null, stored: false });
 });
@@ -71,6 +73,18 @@ describe('planFromStores', () => {
     expect(found.plan).toEqual(planOf(localInferenceProvider));
     expect(providersIn(found.plan)).toEqual([localInferenceProvider]);
     expect(storedLocalStages()).toBeNull();
+  });
+
+  it('answers a new plan for another provider object offered under the same id, with the same entry', () => {
+    useProviderStore.setState({ selected: 'soniox', entries: { soniox: sonioxEntry } });
+    const before = planFromStores();
+    const other = { ...sonioxProvider };
+    offered.instead = other;
+    const after = planFromStores();
+    if (after.state !== 'ready') throw new Error(`expected a ready plan, got ${after.state}`);
+    expect(after).not.toBe(before);
+    expect(transcriptionProvider(after.plan)).toBe(other);
+    expect(after.accounts.soniox).toBe(sonioxEntry);
   });
 
   it('runs the first offered provider for a retired id when nothing is stored', () => {

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { createVirtualClock } from '../lib/contract/clock';
-import { planOf } from '../lib/plan/testing';
 import type { PlannedUnit, RunPlan } from '../lib/plan/types';
 import { unitsOf } from '../lib/plan/wholeUnit';
 import type { AnyProvider } from '../lib/provider/types';
@@ -12,7 +11,8 @@ import { useProviderStore } from '../stores/providerStore';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 import { readinessPlan } from './session';
 
-// The providers offered here, as the app's plan reads them (`readinessPlan`): none unless a case offers some.
+// The providers offered here, as the app's plan reads them (`readinessPlan`): those `setupStore` loads, unless a case
+// offers others.
 const offered = vi.hoisted(() => ({ list: [] as Array<{ id: string }> }));
 vi.mock('../providers/registry', () => ({ presentProviders: () => offered.list }));
 
@@ -50,21 +50,13 @@ function makeProbe(id = 'probe', kind: 'local' | 'own-key' | 'managed' = 'local'
 }
 
 function setupStore(...providers: Array<{ id: string }>) {
+  offered.list = providers;
   useProviderStore.setState({
     entries: Object.fromEntries(providers.map((p) => [p.id, { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } }])),
     readiness: {},
     selected: providers[0]?.id ?? null,
     legs: ['speaker'],
   });
-}
-
-/** The plan as the store stands: the selected one of `list`, as one whole-provider unit, once its entry has loaded. */
-function selectedPlan(...list: AnyProvider[]): () => RunPlan | null {
-  return () => {
-    const { selected, entries } = useProviderStore.getState();
-    const p = list.find((candidate) => candidate.id === selected);
-    return p && entries[p.id] ? planOf(p) : null;
-  };
 }
 
 /** A plan of two providers, built by hand: `a` transcribes and translates, `b` speaks. */
@@ -103,7 +95,7 @@ describe('driveReadiness', () => {
     setupStore(provider);
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(READINESS_DELAY_MS - 1);
     await flush();
@@ -122,7 +114,7 @@ describe('driveReadiness', () => {
     setupStore(provider);
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(READINESS_DELAY_MS);
     await flush();
@@ -150,7 +142,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -165,7 +157,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -193,7 +185,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -215,7 +207,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     useProviderStore.setState({ legs: ['speaker'] }); // a notification that changes nothing
     clock.advance(0);
@@ -232,7 +224,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [o1.provider, o2.provider], plan: selectedPlan(o1.provider, o2.provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [o1.provider, o2.provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -255,7 +247,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [o1.provider, o2.provider], plan: selectedPlan(o1.provider, o2.provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [o1.provider, o2.provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -279,7 +271,7 @@ describe('driveReadiness', () => {
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [n.provider, l.provider], plan: selectedPlan(n.provider, l.provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [n.provider, l.provider], plan: readinessPlan, auth: () => auth, clock });
 
     useProviderStore.setState({ selected: 'l' }); // the same turn: n's at-once check is still pending
     clock.advance(0);
@@ -303,9 +295,10 @@ describe('driveReadiness', () => {
       selected: 'fake',
       refreshReadiness: refresh,
     });
+    offered.list = [fakeProvider];
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [fakeProvider], plan: selectedPlan(fakeProvider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [fakeProvider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -323,10 +316,11 @@ describe('driveReadiness', () => {
     const y = makeProbe('y', 'own-key');
     const x = makeProbe('x', 'own-key');
     setupStore(y.provider); // x is never loaded
+    offered.list = [y.provider, x.provider];
     const { calls } = spyRefresh();
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [y.provider, x.provider], plan: selectedPlan(y.provider, x.provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [y.provider, x.provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(0);
     await flush();
@@ -354,7 +348,7 @@ describe('driveReadiness', () => {
     const clock = createVirtualClock(0);
     let flipped: (() => void) | undefined;
     const watchSignIn = (fn: () => void) => { flipped = fn; return () => {}; };
-    const detach = driveReadiness({ runner, providers: () => [m.provider, m2.provider, o.provider], plan: selectedPlan(m.provider, m2.provider, o.provider), auth: () => auth, clock, watchSignIn });
+    const detach = driveReadiness({ runner, providers: () => [m.provider, m2.provider, o.provider], plan: readinessPlan, auth: () => auth, clock, watchSignIn });
 
     flipped!();
     const { readiness } = useProviderStore.getState();
@@ -376,7 +370,7 @@ describe('driveReadiness', () => {
     setupStore(provider);
     spyRefresh();
     const off = vi.fn();
-    const detach = driveReadiness({ runner: idleRunner(), providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock: createVirtualClock(0), watchSignIn: () => off });
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [provider], plan: readinessPlan, auth: () => auth, clock: createVirtualClock(0), watchSignIn: () => off });
 
     expect(off).not.toHaveBeenCalled();
     detach();
@@ -389,7 +383,7 @@ describe('driveReadiness', () => {
     const runnerStore = createStore<RunState>(() => ({ phase: 'starting', participantSpeech: false, step: 'checking' }));
     const runner = { state: runnerStore };
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(1000);
     await flush();
@@ -410,7 +404,7 @@ describe('driveReadiness', () => {
     setupStore(provider);
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(READINESS_DELAY_MS);
     await flush();
@@ -430,7 +424,7 @@ describe('driveReadiness', () => {
     const runnerStore = createStore<RunState>(() => ({ phase: 'idle' }));
     const runner = { state: runnerStore };
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [provider], plan: selectedPlan(provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [provider], plan: readinessPlan, auth: () => auth, clock });
 
     clock.advance(READINESS_DELAY_MS);
     await flush();
@@ -456,7 +450,7 @@ describe('driveReadiness', () => {
     setupStore(probe1.provider, probe2.provider);
     const runner = idleRunner();
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner, providers: () => [probe1.provider, probe2.provider], plan: selectedPlan(probe1.provider, probe2.provider), auth: () => auth, clock });
+    const detach = driveReadiness({ runner, providers: () => [probe1.provider, probe2.provider], plan: readinessPlan, auth: () => auth, clock });
 
     expect(probe1.off).not.toHaveBeenCalled();
 
@@ -701,8 +695,8 @@ describe("readinessPlan: the plan the app's driver checks", () => {
   it('checks the first provider offered when the selection is not offered here: the fallback the plan uses (ruling 22)', async () => {
     const first = makeProbe('first', 'own-key');
     const second = makeProbe('second', 'own-key');
-    offered.list = [first.provider, second.provider];
     setupStore(first.provider);
+    offered.list = [first.provider, second.provider];
     useProviderStore.setState({ selected: 'not_offered_here' });
     const { calls } = spyRefresh();
     const clock = createVirtualClock(0);
@@ -718,8 +712,8 @@ describe("readinessPlan: the plan the app's driver checks", () => {
 
   it('is none while nothing is selected, even with the first offered provider loaded', () => {
     const first = makeProbe('first', 'own-key');
-    offered.list = [first.provider];
     setupStore(first.provider);
+    offered.list = [first.provider];
     useProviderStore.setState({ selected: null });
     expect(readinessPlan()).toBeNull();
   });

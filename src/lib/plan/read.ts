@@ -27,9 +27,15 @@ export function transcriptionProvider(plan: RunPlan): AnyProvider {
   return plan.byStage.transcription.provider;
 }
 
-/** The transcription provider's entry in a plan's accounts: the run's pair and settings where one provider's are asked for. */
+/**
+ * The transcription provider's entry in a plan's accounts: the run's pair and settings where one provider's are asked
+ * for. Throws when the accounts hold none for it.
+ */
 export function transcriptionAccount<A>(found: { plan: RunPlan; accounts: Readonly<Record<string, A>> }): A {
-  return found.accounts[transcriptionProvider(found.plan).id];
+  const { id } = transcriptionProvider(found.plan);
+  const account: A | undefined = found.accounts[id];
+  if (account === undefined) throw new Error(`No account was found for ${id}, the plan's transcription provider.`);
+  return account;
 }
 
 /** A provider's settings and saved credential values at start. Throws for a provider that is not in the plan. */

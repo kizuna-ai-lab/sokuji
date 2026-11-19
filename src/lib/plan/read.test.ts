@@ -37,6 +37,11 @@ describe('reading a plan', () => {
     expect(transcriptionAccount({ plan: planOf(local), accounts: { local_inference: spoken, soniox: heard } })).toBe(spoken);
   });
 
+  it('throws when the transcribing provider has no account', () => {
+    const accounts = { openai: { pair: { source: 'ja', target: 'en' } } };
+    expect(() => transcriptionAccount({ plan: planOf(stubProvider('soniox')), accounts })).toThrow(/soniox/);
+  });
+
   it("asks a stage's unit for its capabilities under its own provider's settings", () => {
     const local = stubProvider('local_inference', { speech: 'always', turns: (s: { manual: boolean }) => (s.manual ? ['manual'] : ['auto']) });
     const soniox = stubProvider('soniox', { turns: (s: { manual: boolean }) => (s.manual ? ['auto', 'manual'] : ['auto']) });

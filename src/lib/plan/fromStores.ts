@@ -4,7 +4,7 @@
 // start, the start gate and every surface. Until the stored line-up decides
 // it, the plan is the selected provider's, as one whole-provider unit.
 // Nothing the provider registry imports may import this file: it imports the
-// registry.
+// registry (`fromStores.cycle.test.ts` checks it).
 import { useMemo } from 'react';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider, LanguagePair } from '../provider/types';
@@ -27,20 +27,16 @@ export type PlanState =
 /** One object for every loading answer, so a hook that reads it does not re-render. */
 const LOADING: PlanState = { state: 'loading' };
 
-/**
- * The last ready answer, kept while its provider and entry stand: one object for every reader of the same stores.
- * It is keyed on the provider's id and its entry object, not on the provider object, so a test that swaps a mocked
- * registry's provider under the same id, with the same entry object, gets the earlier plan.
- */
-let last: { id: string; entry: ProviderEntry; found: PlanState } | null = null;
+/** The last ready answer, kept while its provider object and entry object stand: one object for every reader of the same stores. */
+let last: { provider: AnyProvider; entry: ProviderEntry; found: PlanState } | null = null;
 
 function planIn({ selected, entries }: Pick<ProviderStore, 'selected' | 'entries'>): PlanState {
   const providers = presentProviders();
   const provider: AnyProvider | undefined = providers.find((p) => p.id === selected) ?? providers[0];
   const entry = provider ? entries[provider.id] : undefined;
   if (!provider || !entry) return LOADING;
-  if (last?.id !== provider.id || last.entry !== entry) {
-    last = { id: provider.id, entry, found: { state: 'ready', plan: wholePlan(provider), accounts: { [provider.id]: entry } } };
+  if (last?.provider !== provider || last.entry !== entry) {
+    last = { provider, entry, found: { state: 'ready', plan: wholePlan(provider), accounts: { [provider.id]: entry } } };
   }
   return last.found;
 }

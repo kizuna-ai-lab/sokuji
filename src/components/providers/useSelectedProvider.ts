@@ -38,7 +38,11 @@ function updateFor(provider: AnyProvider): (patch: Readonly<Record<string, unkno
   return update;
 }
 
-/** The provider a piece shows (`providers.find(...) ?? providers[0]`), its loaded entry and readiness, loading the entry when missing. Null when `providers` is empty. */
+/**
+ * The provider a piece shows (`providers.find(...) ?? providers[0]`), its loaded entry and readiness, loading the entry
+ * when missing. Null when `providers` is empty. `providers` must be the offered list (`presentProviders()`), because the
+ * provider shown comes from the plan and is then looked up in it.
+ */
 export function useSelectedProvider(providers: readonly AnyProvider[], providerId?: string): SelectedProvider | null {
   const plan = usePlan();
   const selected = useProviderStore((st) => st.selected);

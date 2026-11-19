@@ -29,6 +29,8 @@ interface ProviderLanguagesProps {
  * its legs and whether the speech unit speaks them (Stage 2 Volcengine
  * AST2, choice 1). Tracks each side that changed with today's
  * `language_changed` (ruling 14) before persisting the new pair.
+ * `providers` must be the offered list (`presentProviders()`), because the
+ * provider shown comes from the plan and is then looked up in it.
  */
 export function ProviderLanguages({ providers, disabled, sentence, heading, receive }: ProviderLanguagesProps) {
   const { trackEvent } = useAnalytics();

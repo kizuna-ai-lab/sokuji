@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { stubProvider } from '../../lib/plan/testing';
 import { useProviderStore as useProviderStoreMock } from '../../stores/providerStore';
 import ModeDevicePopover from './ModeDevicePopover';
 
@@ -97,11 +98,18 @@ const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
 vi.mock('../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
 const providerState = { participantSpeech: undefined as boolean | undefined };
 vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => (faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:')) && !widened.value }));
-// The speech unit of a whole-provider plan over `providerState`'s flags, re-read on a provider store change as `usePlan` re-renders.
-vi.mock('../../lib/plan/fromStores', async () => {
+// A case that runs the real speech unit turns `on` and offers its providers here; the plan reads them.
+const realUnit = vi.hoisted(() => ({ on: false, offered: [] as unknown[] }));
+vi.mock('../../providers/registry', () => ({ presentProviders: () => realUnit.offered }));
+// The speech unit of a whole-provider plan over `providerState`'s flags, re-read on a provider store change as `usePlan`
+// re-renders; the real one, from the plan as the provider store stands, in a case that turns `realUnit` on.
+vi.mock('../../lib/plan/fromStores', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/plan/fromStores')>();
   const { useProviderStore } = await import('../../stores/providerStore');
   return {
-    useStageUnit: () => {
+    ...actual,
+    useStageUnit: (stage: Parameters<typeof actual.useStageUnit>[0]) => {
+      if (realUnit.on) return actual.useStageUnit(stage);
       useProviderStore((s: { entries: unknown }) => s.entries);
       return { capabilities: { speech: 'optional', participantSpeech: providerState.participantSpeech !== false } };
     },
@@ -119,6 +127,9 @@ beforeEach(() => {
   store.otherSide = 'meeting';
   Object.assign(f2f, { offered: true, active: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true }, ears: {}, outletDevices: { other: 'AirPods Pro', them: 'AirPods Pro' } });
   providerState.participantSpeech = undefined;
+  realUnit.on = false;
+  realUnit.offered = [];
+  useProviderStoreMock.setState({ selected: 'p', entries: {} });
   runSpeech.value = null;
   settings.textOnly = false;
   settings.navigate.mockReset();
@@ -431,13 +442,16 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     expect(button.getAttribute('title')).toMatch(/does not speak/);
   });
 
+  // The real speech unit: the popover's own subscription to the plan carries the change.
   it('a provider change while the popover stays mounted updates the switch', () => {
     store.selected = CHROMIUM;
-    providerState.participantSpeech = true;
+    realUnit.on = true;
+    realUnit.offered = [stubProvider('p'), stubProvider('q', { participantSpeech: false })];
+    const entry = { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } };
+    useProviderStoreMock.setState({ selected: 'p', entries: { p: entry, q: entry } });
     mount('participant');
     expect(screen.getByRole('button', { name: 'Turn on Translation I hear' })).toBeEnabled();
-    providerState.participantSpeech = false;
-    act(() => useProviderStoreMock.setState({ entries: { ...useProviderStoreMock.getState().entries } }));
+    act(() => useProviderStoreMock.setState({ selected: 'q' })); // q does not speak the other side
     const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
     expect(button).toBeDisabled();
     expect(button.getAttribute('title')).toMatch(/does not speak/);
