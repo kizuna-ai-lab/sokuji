@@ -22,17 +22,16 @@ const isExactly = (want: ReadonlySet<RunStage>, got: readonly RunStage[] | null)
 
 /**
  * Why no unit of a host serves the stages it is asked for: an option there whose joint stages
- * this host was given only part of, or else no unit for the smallest group of stages.
+ * this host was given only part of, or else no unit for them, named by the first of them.
  */
-function noUnit(asked: readonly RunStage[], options: Readonly<Record<RunStage, ProviderCaps>>, groups: ReadonlyMap<string, RunStage[]>): PlanRefusal {
+function noUnit(asked: readonly RunStage[], options: Readonly<Record<RunStage, ProviderCaps>>): PlanRefusal {
   for (const stage of asked) {
     const joint = options[stage].joint;
     if (!joint || !joint.some((st) => asked.includes(st))) continue;
     const missing = joint.find((st) => !asked.includes(st));
     if (missing) return { refused: 'lineup_stage_split', stage: missing };
   }
-  const smallest = [...groups.values()].reduce((a, b) => (b.length < a.length ? b : a));
-  return { refused: 'lineup_no_unit', stage: smallest[0] };
+  return { refused: 'lineup_no_unit', stage: asked[0] };
 }
 
 /** The plan that runs this line-up on the providers offered here, or the first reason it cannot run. */
@@ -74,7 +73,7 @@ export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): Ru
         break;
       }
     }
-    if (!planned) return noUnit(asked, options, groups);
+    if (!planned) return noUnit(asked, options);
     units.push(planned);
     for (const stage of asked) byStage[stage] = planned;
   }

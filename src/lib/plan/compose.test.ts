@@ -25,6 +25,7 @@ const cases: Array<[string, Pick<LineUp, RunStage>, 'ok' | PlanRefusalCode, RunS
   ['an unknown id', { ...all('soniox'), speech: 'nope' }, 'lineup_incomplete', 'speech'],
   ['Bing asked to transcribe', { ...all('local_inference'), transcription: 'bing' }, 'lineup_incomplete', 'transcription'],
   ['a provider this build does not offer', all('palabraai'), 'lineup_not_offered', 'transcription'],
+  ['a stage unset beside one not offered: the unset stage first', { ...all('palabraai'), speech: null }, 'lineup_incomplete', 'speech'],
   ['Soniox text with Edge speech', { transcription: 'soniox', translation: 'soniox', speech: 'edge' }, 'lineup_no_unit', 'speech'],
   ['Soniox transcribes, Bing translates', { transcription: 'soniox', translation: 'bing', speech: 'soniox' }, 'lineup_stage_split', 'translation'],
   ['two end-to-end providers', { transcription: 'openai', translation: 'openai', speech: 'gemini' }, 'lineup_stage_split', 'transcription'],
@@ -44,6 +45,12 @@ describe('compose', () => {
     expect(plan.byStage.transcription).toBe(plan.byStage.speech);
     expect(plan.units[0].provider.id).toBe(host);
     expect(plan).toEqual(planOf(offered.find((p) => p.id === host)!));
+  });
+
+  it('names the first stage of the host that could not serve its stages, not of another host', () => {
+    // A local provider that always speaks has no unit for recognition and translation alone; Soniox can speak alone.
+    const speaking: ComposeInput = { providers: offered.map((p) => (p.id === 'local_inference' ? stubProvider('local_inference', { speech: 'always' }) : p)), settings: () => undefined };
+    expect(compose({ transcription: 'local_inference', translation: 'local_inference', speech: 'soniox' }, speaking)).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
   });
 
   it('names the option whose provider this build does not offer', () =>
