@@ -2126,6 +2126,7 @@
       "blockedSession": "Magagamit kapag walang tumatakbong session.",
       "blockedBusy": "May isa pang import o transcription na tumatakbo.",
       "blockedNoRecording": "Walang naka-save na recording ang rekord na ito.",
+      "blockedTranscribing": "Magagamit kapag hindi tina-transcribe ang record na ito.",
       "phase": {
         "reading": "Binabasa ang file",
         "decoding": "Dine-decode ang audio",

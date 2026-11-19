@@ -2126,6 +2126,7 @@
       "blockedSession": "Çalışan bir oturum yokken kullanılabilir.",
       "blockedBusy": "Başka bir içe aktarma ya da döküm sürüyor.",
       "blockedNoRecording": "Bu kayıtta ses kaydı tutulmuyor.",
+      "blockedTranscribing": "Bu kaydın dökümü sürmüyorken kullanılabilir.",
       "phase": {
         "reading": "Dosya okunuyor",
         "decoding": "Ses çözülüyor",

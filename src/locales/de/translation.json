@@ -2126,6 +2126,7 @@
       "blockedSession": "Verfügbar, wenn keine Sitzung läuft.",
       "blockedBusy": "Ein anderer Import oder eine andere Transkription läuft gerade.",
       "blockedNoRecording": "Dieser Eintrag hat keine Aufnahme gespeichert.",
+      "blockedTranscribing": "Verfügbar, wenn diese Aufzeichnung nicht transkribiert wird.",
       "phase": {
         "reading": "Datei wird gelesen",
         "decoding": "Audio wird dekodiert",

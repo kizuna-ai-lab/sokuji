@@ -2126,6 +2126,7 @@
       "blockedSession": "진행 중인 세션이 없을 때 쓸 수 있습니다.",
       "blockedBusy": "다른 가져오기나 받아 적기가 진행 중입니다.",
       "blockedNoRecording": "이 기록에는 녹음이 남아 있지 않습니다.",
+      "blockedTranscribing": "이 기록을 받아 적는 중이 아닐 때 쓸 수 있습니다.",
       "phase": {
         "reading": "파일 읽는 중",
         "decoding": "오디오 디코딩 중",

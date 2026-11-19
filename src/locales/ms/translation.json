@@ -2126,6 +2126,7 @@
       "blockedSession": "Tersedia apabila tiada sesi berjalan.",
       "blockedBusy": "Import atau transkrip lain sedang berjalan.",
       "blockedNoRecording": "Rekod ini tidak menyimpan rakaman.",
+      "blockedTranscribing": "Tersedia apabila rekod ini tidak sedang ditranskrip.",
       "phase": {
         "reading": "Membaca fail",
         "decoding": "Menyahkod audio",

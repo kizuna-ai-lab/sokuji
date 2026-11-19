@@ -16,6 +16,8 @@ export interface SeedSentence {
   text: string;
   startMs: number;
   endMs: number;
+  /** Sentences of one side with the same segment show in one row of the record page. */
+  segmentId?: string;
 }
 
 export interface SeedRecord {
@@ -57,7 +59,7 @@ export function seedHistory(userData: string, records: SeedRecord[]): void {
         transcriptId,
         sentences: record.sentences.map((s, i) => ({
           n: i + 1, side: s.side, sideCertain: true, track: s.side === 'mine' ? 'microphone' : 'other', speaker: '1',
-          startMs: s.startMs, endMs: s.endMs, text: s.text, timeKind: 'given',
+          startMs: s.startMs, endMs: s.endMs, text: s.text, timeKind: 'given', ...(s.segmentId ? { segmentId: s.segmentId } : {}),
         })),
       });
       store.closeRecord({ id: record.id, endedAt: record.startedAt + record.durationMs });

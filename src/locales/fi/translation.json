@@ -2126,6 +2126,7 @@
       "blockedSession": "Käytettävissä, kun istunto ei ole käynnissä.",
       "blockedBusy": "Toinen tuonti tai litterointi on käynnissä.",
       "blockedNoRecording": "Tähän tallenteeseen ei ole säilytetty äänitettä.",
+      "blockedTranscribing": "Käytettävissä, kun tätä tallennetta ei litteroida.",
       "phase": {
         "reading": "Luetaan tiedostoa",
         "decoding": "Puretaan ääntä",

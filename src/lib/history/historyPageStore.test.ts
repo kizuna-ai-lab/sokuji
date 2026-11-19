@@ -725,6 +725,33 @@ describe('transcripts and file jobs', () => {
     expect(store.getState()).toMatchObject({ job: null, jobFailure: 'CANCELLED', open: { transcriptId: 5 } });
   });
 
+  // A recording deleted before its upload has read it quits the app: while a record is transcribed, its recording is
+  // not deleted, nor the record moved to the bin (from where it could be deleted for good); the others still go.
+  it('neither deletes the recording of a record being transcribed nor bins it, until the transcription ends', async () => {
+    const f = fakeJobs();
+    store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+    store.getState().follow();
+    const track = { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 10, bytes: 1, offsetMs: 0, goneAt: null };
+    port.getRecord = async () => ({ ...recordOf(A, [1]), tracks: [track] });
+    await store.getState().openRecord(A);
+    const started = store.getState().transcribeOpen(OPTS);
+    await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalled());
+
+    await store.getState().dropRecording();
+    await store.getState().binRecord(A);
+    store.setState({ rows: [rowOf(A), rowOf(B)] });
+    store.getState().toggle(A);
+    store.getState().toggle(B);
+    await store.getState().binSelected();
+    expect(calls('dropTrack')).toEqual([]);
+    expect(calls('binRecords')).toEqual([{ ids: [B] }]);
+
+    f.finishTranscribe({ transcriptId: 2, sentences: 1 });
+    await started;
+    await store.getState().dropRecording();
+    expect(calls('dropTrack')).toEqual([{ recordId: A, source: 'speaker' }]);
+  });
+
   // Kizuna AI's Soniox: its limits and its price are known before Start, and so is whether the payer can pay.
   describe('through Kizuna AI', () => {
     const HOUR = 3_600_000;

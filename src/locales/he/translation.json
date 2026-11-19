@@ -2126,6 +2126,7 @@
       "blockedSession": "זמין כשאין שיחה פעילה.",
       "blockedBusy": "ייבוא או תמלול אחר פועל כעת.",
       "blockedNoRecording": "הרשומה הזו לא שומרת הקלטה.",
+      "blockedTranscribing": "זמין כשהרשומה הזו לא מתומללת.",
       "phase": {
         "reading": "קורא את הקובץ",
         "decoding": "מפענח את השמע",

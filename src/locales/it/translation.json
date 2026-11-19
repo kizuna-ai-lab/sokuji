@@ -2126,6 +2126,7 @@
       "blockedSession": "Disponibile quando non c’è una sessione in corso.",
       "blockedBusy": "È già in corso un’altra importazione o trascrizione.",
       "blockedNoRecording": "Questo record non conserva alcuna registrazione.",
+      "blockedTranscribing": "Disponibile quando questa registrazione non è in trascrizione.",
       "phase": {
         "reading": "Lettura del file",
         "decoding": "Decodifica dell’audio",
