@@ -500,8 +500,24 @@ History's `services` gains `stages`; a record written before this has none, and 
 
 ---
 
+## Decisions made while Part A was built
+
+They replace the text of Tasks A3 and A4 where the two differ; Parts B to D build on them.
+
+- **The present providers reach a store through a hook, never an import of the registry.** `src/lib/plan/present.ts` has `registerPresentProviders(read)` and `presentHosts()`; the registry registers itself at the end of its module, and `presentHosts()` throws when nothing is registered. A store that imports the registry closes an import cycle (the registry loads the local provider, which reads the line-up store). `fromStores.ts` (Task C1) uses `presentHosts()`.
+- **`soleHost` and `optionFor` live in `src/lib/lineup/catalog.ts`.** They are catalog questions; `src/lib/plan/read.ts` holds `providersIn`, `unitFor`, `transcriptionProvider`. Under `src/lib/lineup/` only `choose.ts` imports from `src/lib/plan/`.
+- **`soleHost` is pure catalog**: all three stages name a known option that serves them, and the three share one host. It does not call `compose`. A test pins it to the rule it replaced, for every triple of ids.
+- **A choice follows the catalog when a provider is not offered.** `choose` moves the other stages when `compose` refuses, except that a refusal only for presence (`lineup_not_offered`) moves them exactly when `soleHost` of the new line-up is null. The rule it replaced never looked at presence.
+- **`lineup_no_unit` names the first stage of the host that could not serve**, not of the smallest group.
+- **The rule as it was** (`oldRunOf`, `oldChoose`) is kept in `src/lib/lineup/oldRules.testing.ts`, for the property tests only. It reads today's catalog, so it pins the rule, not the catalog's data.
+- **The type check** has errors in a local worktree that do not come from this work (library typings); the gate used locally is "none in a touched file, and the count does not rise". CI's own check decides.
+
+---
+
 ## What this step leaves for step 2
 
+- `compose` and `soleHost` can disagree once a provider has several units: `soleHost`'s callers move to the plan then.
+- `noUnit`'s split attribution when one host has several options with a `joint` (none has today).
 - `startComposite` over more than one unit: ref mapping, event tagging, the wiring of §7 of the spec.
 - Composer checks 3 to 5 inside `compose`; refusal words on the line-up card and on Start; removal of `settingsPage.lineup.moved`.
 - `units` on provider definitions; options ownership on a card by unit (`LineUpCategory.tsx:197-209`).
