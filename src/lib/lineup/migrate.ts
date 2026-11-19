@@ -5,7 +5,7 @@
 // the selected provider on the stages it serves; for the local provider, Bing
 // and Edge where today's choices resolve to them, this machine's models
 // otherwise. Granite Speech is a local model, so it stays `local_inference`.
-import { caps, familyDefaults } from './catalog';
+import { caps, hostDefaults } from './catalog';
 import type { LineUp } from './types';
 
 export interface TodayValues {
@@ -24,6 +24,6 @@ export function lineUpFromToday(v: TodayValues): LineUp {
       summarisation: null,
     };
   }
-  const family = caps(v.selected)?.family ?? 'local_inference';
-  return { ...familyDefaults(family), summarisation: null };
+  const host = caps(v.selected)?.host ?? 'local_inference';
+  return { ...hostDefaults(host), summarisation: null };
 }

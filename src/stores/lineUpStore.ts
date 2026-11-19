@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
-import { caps, familyDefaults, runOf } from '../lib/lineup/catalog';
+import { caps, hostDefaults, runOf } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
@@ -117,7 +117,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       if (!selected) return;
       // Stored, but not something this build can use (another version, a provider it does not know): shown as
       // today's values, never overwritten by the migration; a session resolves as today.
-      set({ lineUp: selected === 'local_inference' ? { ...familyDefaults('local_inference'), summarisation: null } : lineUpFromToday({ selected, local: null }), stored: false });
+      set({ lineUp: selected === 'local_inference' ? { ...hostDefaults('local_inference'), summarisation: null } : lineUpFromToday({ selected, local: null }), stored: false });
       return;
     }
     if (!selected) return;
@@ -127,7 +127,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     }
     // The local provider: what today's automatic choices pick is known only after the scan of downloaded
     // models. Until then the settings show the family's defaults and a session resolves as today.
-    set({ lineUp: { ...familyDefaults('local_inference'), summarisation: null }, stored: false });
+    set({ lineUp: { ...hostDefaults('local_inference'), summarisation: null }, stored: false });
     void (async () => {
       await useModelStore.getState().initialize();
       // A failed scan reports no downloaded model: worked out now, every local choice would read as Bing and

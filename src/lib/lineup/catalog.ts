@@ -1,6 +1,6 @@
 // src/lib/lineup/catalog.ts
 //
-// What each provider can serve and what it binds together, and which of
+// What each option can serve, who runs it and which stages go together, and which of
 // today's providers runs a line-up. Pure data and pure functions; the stores
 // read it, nothing here reads a store.
 import { RUN_STAGES } from './types';
@@ -9,16 +9,16 @@ import type { LineUp, ProviderCaps, RunStage, RunTarget } from './types';
 const ALL: readonly RunStage[] = RUN_STAGES;
 const JOINT: readonly RunStage[] = ['transcription', 'translation'];
 
-/** One provider that does every stage over one connection (an end-to-end service), in its own family. */
-const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, binds: [ALL], family: id, account });
+/** One provider that does every stage over one connection (an end-to-end service), run by itself. */
+const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, host: id, joint: ALL, account });
 
 export const CAPS: readonly ProviderCaps[] = [
-  { id: 'kizunaai_soniox', stages: ALL, binds: [JOINT], family: 'kizunaai_soniox', account: 'kizuna' },
+  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', joint: JOINT, account: 'kizuna' },
   endToEnd('kizunaai_qwen', 'kizuna'),
-  { id: 'local_inference', stages: ALL, binds: [], family: 'local_inference', account: 'none' },
-  { id: 'bing', stages: ['translation'], binds: [], family: 'local_inference', account: 'none' },
-  { id: 'edge', stages: ['speech'], binds: [], family: 'local_inference', account: 'none' },
-  { id: 'soniox', stages: ALL, binds: [JOINT], family: 'soniox', account: 'key' },
+  { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none' },
+  { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none' },
+  { id: 'edge', stages: ['speech'], host: 'local_inference', account: 'none' },
+  { id: 'soniox', stages: ALL, host: 'soniox', joint: JOINT, account: 'key' },
   endToEnd('gemini', 'key'),
   endToEnd('volcengine_ast2', 'key'),
   endToEnd('openai', 'key'),
@@ -39,24 +39,24 @@ export function caps(id: string): ProviderCaps | undefined {
 export function runOf(lineUp: LineUp): RunTarget {
   const used = RUN_STAGES.map((stage) => ({ stage, c: lineUp[stage] === null ? undefined : caps(lineUp[stage]!) }));
   if (used.some(({ stage, c }) => !c || !c.stages.includes(stage))) return { ok: false, reason: 'incomplete' };
-  const family = used[0].c!.family;
-  if (used.some(({ c }) => c!.family !== family)) return { ok: false, reason: 'mixed' };
+  const host = used[0].c!.host;
+  if (used.some(({ c }) => c!.host !== host)) return { ok: false, reason: 'mixed' };
   for (const { c } of used) {
-    for (const group of c!.binds) {
-      const usedHere = group.filter((stage) => lineUp[stage] === c!.id);
-      if (usedHere.length > 0 && usedHere.length < group.length) return { ok: false, reason: 'unbound' };
-    }
+    const group = c!.joint;
+    if (!group) continue;
+    const usedHere = group.filter((stage) => lineUp[stage] === c!.id);
+    if (usedHere.length > 0 && usedHere.length < group.length) return { ok: false, reason: 'unbound' };
   }
-  return { ok: true, provider: family };
+  return { ok: true, provider: host };
 }
 
-/** The line-up a family runs when nothing finer is chosen. */
-export function familyDefaults(family: string): Pick<LineUp, RunStage> {
-  if (family === 'local_inference') return { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
-  return { transcription: family, translation: family, speech: family };
+/** The line-up a host runs when nothing finer is chosen. */
+export function hostDefaults(host: string): Pick<LineUp, RunStage> {
+  if (host === 'local_inference') return { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
+  return { transcription: host, translation: host, speech: host };
 }
 
 /** Today's default for a new user: Kizuna AI where the build offers it, otherwise the free set. */
 export function defaultLineUp(o: { managedOffered: boolean }): LineUp {
-  return { ...familyDefaults(o.managedOffered ? 'kizunaai_soniox' : 'local_inference'), summarisation: null };
+  return { ...hostDefaults(o.managedOffered ? 'kizunaai_soniox' : 'local_inference'), summarisation: null };
 }

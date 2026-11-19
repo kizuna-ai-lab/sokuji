@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { CAPS, familyDefaults, runOf } from './catalog';
+import { CAPS, hostDefaults, runOf } from './catalog';
 import type { LineUp } from './types';
 
 const L = (t: string | null, tl: string | null, s: string | null): LineUp => ({ transcription: t, translation: tl, speech: s, summarisation: null });
@@ -18,7 +18,16 @@ describe('the line-up catalog', () => {
   });
 
   it('every family default runs on its family', () => {
-    for (const family of new Set(CAPS.map((c) => c.family))) expect(runOf({ ...familyDefaults(family), summarisation: null })).toEqual({ ok: true, provider: family });
+    for (const family of new Set(CAPS.map((c) => c.host))) expect(runOf({ ...hostDefaults(family), summarisation: null })).toEqual({ ok: true, provider: family });
+  });
+
+  it('every option names a provider definition as its host', () => {
+    for (const c of CAPS) expect(c.host === c.id || (c.host === 'local_inference' && ['bing', 'edge'].includes(c.id))).toBe(true);
+  });
+
+  it('hostDefaults answers what familyDefaults answered', () => {
+    expect(hostDefaults('local_inference')).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+    expect(hostDefaults('soniox')).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'soniox' });
   });
 
   it('covers every released provider, plus Bing and Edge', () => {

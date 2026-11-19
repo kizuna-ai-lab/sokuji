@@ -177,7 +177,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (!choice || !before) return;
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
     // The stages the chosen provider binds are said by the joint line; say only what else moved (owner, 2026-11-15).
-    const group = caps(id)?.binds.find((g) => g.includes(stage)) ?? [stage];
+    const group = caps(id)?.joint?.includes(stage) ? caps(id)!.joint! : [stage];
     const extra = choice.moved.filter((s) => !group.includes(s as RunStage));
     if (!extra.length) { setMoved(null); return; }
     const names = extra.map((s, i) => (i === 0 ? t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage]) : stageName(s)));
@@ -194,7 +194,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
 
   // Each card's options (mock v19): the provider family serving the card's stage (Bing and Edge belong to this
   // device's), and the stages that family serves; Bing has no options.
-  const familyOf = (id: string) => caps(id)?.family ?? id;
+  const familyOf = (id: string) => caps(id)?.host ?? id;
   const ownerOf = (stage: RunStage): string | null => {
     const id = lineUp?.[stage];
     return !id || id === 'bing' ? null : familyOf(id);
@@ -281,7 +281,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   for (let i = 0; i < RUN_STAGES.length; ) {
     const stage = RUN_STAGES[i];
     const id = lineUp?.[stage] ?? '';
-    const group = caps(id)?.binds.find((g) => g.includes(stage) && g.length > 1);
+    const group = caps(id)?.joint?.includes(stage) && caps(id)!.joint!.length > 1 ? caps(id)!.joint : undefined;
     let j = i + 1;
     while (group && j < RUN_STAGES.length && group.includes(RUN_STAGES[j]) && (lineUp?.[RUN_STAGES[j]] ?? '') === id) j += 1;
     cards.push(RUN_STAGES.slice(i, j) as RunStage[]);
@@ -291,7 +291,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work, or a sign-in it waits for, takes you to
    *  that provider's row in Accounts and keys. */
   const stateOf = (id: string): { ok: boolean; text: string; toAccount?: boolean } => {
-    const p = providers.find((x) => x.id === id) ?? (caps(id)?.family === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
+    const p = providers.find((x) => x.id === id) ?? (caps(id)?.host === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
     // Bing and Edge are online services of the local family: no key and no model.
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
@@ -403,7 +403,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         {cards.map((stages) => {
           const first = stages[0];
           const id = lineUp?.[first] ?? '';
-          const group = caps(id)?.binds.find((g) => g.includes(first) && g.length > 1);
+          const group = caps(id)?.joint?.includes(first) && caps(id)!.joint!.length > 1 ? caps(id)!.joint : undefined;
           // Partners the card does not hold (bound, but not next to it): named under the choice, as before.
           const partners = group?.filter((s) => !stages.includes(s as RunStage)) ?? [];
           const joint = stages.length > 1;

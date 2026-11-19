@@ -26,13 +26,14 @@ export interface LineUp {
   summarisation: string | null;
 }
 
-/** What one provider can serve, which of those stages it binds into one connection, and who it bills through. */
+/** What one option can serve, who runs it, which of those stages go together, and who it bills through. */
 export interface ProviderCaps {
   id: string;
   stages: readonly RunStage[];
-  binds: readonly (readonly RunStage[])[];
-  /** Providers of one family can be combined in one session today; across families, not yet. */
-  family: string;
+  /** The provider definition that runs this option: itself, or `local_inference` for `bing` and `edge`. */
+  host: string;
+  /** The stages one connection of it carries together; choosing it for one of them chooses it for all (the vendor's interface). Absent: each stage alone. */
+  joint?: readonly RunStage[];
   account: 'kizuna' | 'key' | 'none';
 }
 
