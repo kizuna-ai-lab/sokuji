@@ -116,3 +116,38 @@ describe('a word handed to the fix', () => {
     expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+// Option C: the notes' names hand their word over; one fixed elsewhere shows "Fixed" (owner, 2026-11-19).
+describe('the notes\' names to check', () => {
+  const withNames = (names: Array<Record<string, unknown>>) => {
+    const t = real.store.getRecord(A) as { transcripts: Array<{ id: number }> };
+    real.store.saveNotes({ recordId: A, transcriptId: t.transcripts[0].id, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete',
+      body: { title: '周会', overview: { text: '上线', format: 'plain' }, topics: [], points: [], names } });
+  };
+  const names = () => screen.getByRole('region', { name: 'Names to check' });
+
+  it('Go fix hands the name to the edit panel, with its suggestion', async () => {
+    withNames([{ written: '搜库机', likely: 'Sokuji', sentences: [1] }, { written: 'Mr Kawase', likely: null, sentences: [2] }]);
+    await show();
+    fireEvent.click(within(names()).getAllByRole('button', { name: 'Go fix' })[0]);
+    await settle();
+    const part = screen.getByRole('region', { name: 'Fix words' });
+    expect((within(part).getByRole('textbox', { name: 'Heard as' }) as HTMLInputElement).value).toBe('搜库机');
+    expect((within(part).getByRole('textbox', { name: 'Change to' }) as HTMLInputElement).value).toBe('Sokuji');
+    expect(within(part).getByText('From the notes’ names to check')).toBeInTheDocument();
+    expect(textOf(1)).toContain('搜库机');
+    fireEvent.click(within(names()).getAllByRole('button', { name: 'Go fix' })[1]);
+    await settle();
+    expect((within(part).getByRole('textbox', { name: 'Change to' }) as HTMLInputElement).value).toBe('');
+  });
+
+  it('a name fixed elsewhere shows Fixed; one never seen as written keeps Go fix', async () => {
+    withNames([{ written: '搜库机', likely: 'Sokuji', sentences: [1] }, { written: '苏库吉', likely: 'Sokuji', sentences: [2] }]);
+    await show();
+    await act(async () => { await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: false }); });
+    await settle();
+    const [fixed, unseen] = within(names()).getAllByRole('listitem');
+    expect(fixed).toHaveTextContent('Fixed');
+    expect(within(unseen).getByRole('button', { name: 'Go fix' })).toBeInTheDocument();
+  });
+});

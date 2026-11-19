@@ -16,7 +16,6 @@ import { readNotesBody, type NoteKind } from '../../lib/notes/write';
 import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
-import FormInput from '../Settings/shared/FormInput';
 import { selectChrome, selectMinWidth } from './selectWidth';
 
 export interface RecordNotesProps {
@@ -36,8 +35,10 @@ export interface RecordNotesProps {
   onJump(n: number): void;
   /** Dismisses name `index` of the version's names to check. */
   onDismissName(index: number): void;
-  /** Adds name `index` to the word list, spelled `spelling`, and dismisses it (desktop, stage 5). */
-  onAddName?(index: number, spelling: string): Promise<'added' | 'known' | null>;
+  /** Hands name `index` to the edit panel's "Fix words" (option C, owner 2026-11-19); it fixes nothing itself. */
+  onFixName?(index: number): void;
+  /** The names whose heard form was in the transcript and no longer is: shown "Fixed", without buttons. */
+  fixedNames?: ReadonlySet<number>;
   /** The newest attempt when it is newer than the version shown (it failed or was stopped). */
   latest?: HistoryNotes | null;
   /** The notes service (its line-up id) the once-only explanation is about, while it is still owed (ruling 37); null when not. */
@@ -70,18 +71,6 @@ type Filter = 'all' | NoteKind;
 
 export function RecordNotes(p: RecordNotesProps) {
   const { t, i18n } = useTranslation();
-  // A name without a suggestion asks for its spelling first; what adding one did is said once below the list.
-  const [asking, setAsking] = useState<number | null>(null);
-  const [spelling, setSpelling] = useState('');
-  const [nameNote, setNameNote] = useState<string | null>(null);
-  const addName = async (i: number, written: string) => {
-    if (!p.onAddName) return;
-    const result = await p.onAddName(i, written);
-    setAsking(null);
-    setNameNote(result === 'known'
-      ? t('history.notesNameKnown', '“{{name}}” is already in the word list.', { name: written.trim() })
-      : result === 'added' ? t('history.notesNameAdded', '“{{name}}” was added to the word list.', { name: written.trim() }) : null);
-  };
   const ui = i18n.language;
   const [filter, setFilter] = useState<Filter>('all');
   const [choice, setChoice] = useState(p.languages[0]?.code ?? '');
@@ -291,28 +280,23 @@ export function RecordNotes(p: RecordNotesProps) {
               {body.names.map((n, i) => (n.dismissed ? null : (
                 <li key={i} className="record-notes__point">
                   <button type="button" className="record-notes__jump" onClick={() => p.onJump(n.sentences[0])}>{`${n.written} → ${n.likely ?? '?'}`}</button>
-                  {p.onAddName && (asking === i ? (
-                    <span className="record-notes__spell">
-                      <FormInput aria-label={t('history.notesNameSpelling', 'How it is spelled')} value={spelling} spellCheck={false}
-                        onChange={(e) => setSpelling(e.target.value)} />
-                      <button type="button" className="record-notes__dismiss" disabled={!spelling.trim()} onClick={() => void addName(i, spelling)}>
-                        {t('history.notesNameAdd', 'Add')}
-                      </button>
-                    </span>
+                  {p.fixedNames?.has(i) ? (
+                    <span className="record-notes__fixed">{t('history.notesFixed', 'Fixed')}</span>
                   ) : (
-                    <button type="button" className="record-notes__dismiss"
-                      onClick={() => { if (n.likely) void addName(i, n.likely); else { setAsking(i); setSpelling(''); } }}>
-                      {t('history.notesAddToWords', 'Add to word list')}
-                    </button>
-                  ))}
-                  <button type="button" className="record-notes__dismiss" onClick={() => p.onDismissName(i)}>{t('history.notesDismiss', 'Dismiss')}</button>
+                    <>
+                      {p.onFixName && (
+                        <button type="button" className="record-notes__dismiss record-notes__go" onClick={() => p.onFixName!(i)}>
+                          {t('history.notesGoFix', 'Go fix')}
+                        </button>
+                      )}
+                      <button type="button" className="record-notes__dismiss" onClick={() => p.onDismissName(i)}>{t('history.notesDismiss', 'Dismiss')}</button>
+                    </>
+                  )}
                 </li>
               )))}
             </ul>
           </section>
         )}
-        {/* Outside the list: adding its last name dismisses it, and the list goes. */}
-        {nameNote && <p className="record-notes__summary" role="status">{nameNote}</p>}
         {writeControls(t('history.notesWriteAgain', 'Write a new version'))}
       </>
     );

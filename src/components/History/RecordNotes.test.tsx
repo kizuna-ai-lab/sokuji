@@ -36,7 +36,7 @@ const complete: HistoryNotes = {
 const props = (over: Partial<RecordNotesProps> = {}): RecordNotesProps => ({
   record: record([{ id: 7, transcriptId: 1, language: 'en', createdAt: 0, state: 'complete' }]), notes: complete, writing: false, tooShort: false,
   languages: [{ code: 'zh', name: 'Chinese' }, { code: 'ja', name: 'Japanese' }],
-  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(), onAddName: vi.fn(async () => 'added' as const),
+  onWrite: vi.fn(), onCancel: vi.fn(), onShowVersion: vi.fn(), onJump: vi.fn(), onDismissName: vi.fn(), onFixName: vi.fn(),
   explainWith: null, onExplained: vi.fn(), latest: null, ...over,
 });
 afterEach(() => cleanup());
@@ -258,39 +258,31 @@ describe("a record's notes", () => {
     expect(p.onDismissName).toHaveBeenCalledWith(2);
   });
 
-  it('adds a name with a suggestion to the word list at once, and asks for the spelling of one without', async () => {
+  // Option C (owner, 2026-11-19): a name to check hands its word to the edit panel's "Fix words"; it fixes nothing itself.
+  it('a name hands its word to the fix', () => {
     const p = props({ notes: { ...complete, body: { ...complete.body!, names: [
       { written: 'Soku G', likely: 'Sokuji', sentences: [4] }, { written: 'Mr Kawase', likely: null, sentences: [7] },
     ] } } });
     render(<RecordNotes {...p} />);
     const names = screen.getByRole('region', { name: 'Names to check' });
-    fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[0]);
-    expect(p.onAddName).toHaveBeenCalledWith(0, 'Sokuji');
-    fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[1]);
-    const spelling = within(names).getByLabelText('How it is spelled');
-    // The settings' own text field, as every other field in the app.
-    expect(spelling).toHaveClass('settings-input');
-    fireEvent.change(spelling, { target: { value: 'Mr Kawase' } });
-    fireEvent.click(within(names).getByRole('button', { name: 'Add' }));
-    expect(p.onAddName).toHaveBeenCalledWith(1, 'Mr Kawase');
+    expect(within(names).queryByRole('button', { name: 'Add to word list' })).toBeNull();
+    fireEvent.click(within(names).getAllByRole('button', { name: 'Go fix' })[0]);
+    expect(p.onFixName).toHaveBeenCalledWith(0);
+    fireEvent.click(within(names).getAllByRole('button', { name: 'Go fix' })[1]);
+    expect(p.onFixName).toHaveBeenCalledWith(1);
+    expect(within(names).getAllByRole('button', { name: 'Dismiss' })).toHaveLength(2);
   });
 
-  it('says when a name was already in the word list', async () => {
-    const p = props({ onAddName: vi.fn(async () => 'known' as const) });
+  it('a name already fixed shows Fixed', () => {
+    const p = props({ fixedNames: new Set([0]), notes: { ...complete, body: { ...complete.body!, names: [
+      { written: 'Soku G', likely: 'Sokuji', sentences: [4] }, { written: 'Mr Kawase', likely: null, sentences: [7] },
+    ] } } });
     render(<RecordNotes {...p} />);
-    const names = screen.getByRole('region', { name: 'Names to check' });
-    await act(async () => { fireEvent.click(within(names).getAllByRole('button', { name: 'Add to word list' })[0]); });
-    expect(screen.getByRole('status')).toHaveTextContent('“Sokuji” is already in the word list.');
-  });
-
-  it('keeps saying what happened when the last name to check was added and its list is gone', async () => {
-    const one = { ...complete, body: { ...complete.body!, names: [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }] } };
-    const p = props({ notes: one, onAddName: vi.fn(async () => 'added' as const) });
-    const { rerender } = render(<RecordNotes {...p} />);
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Add to word list' })); });
-    rerender(<RecordNotes {...p} notes={{ ...one, body: { ...one.body!, names: [{ ...one.body!.names[0], dismissed: true }] } }} />);
-    expect(screen.queryByRole('region', { name: 'Names to check' })).toBeNull();
-    expect(screen.getByRole('status')).toHaveTextContent('“Sokuji” was added to the word list.');
+    const [first, second] = within(screen.getByRole('region', { name: 'Names to check' })).getAllByRole('listitem');
+    expect(first).toHaveTextContent('Fixed');
+    expect(within(first).queryByRole('button', { name: 'Go fix' })).toBeNull();
+    expect(within(first).queryByRole('button', { name: 'Dismiss' })).toBeNull();
+    expect(within(second).getByRole('button', { name: 'Go fix' })).toBeInTheDocument();
   });
 
   it('keeps the complete notes in view when a newer attempt failed, and says so above them', () => {

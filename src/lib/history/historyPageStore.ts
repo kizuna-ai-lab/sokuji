@@ -197,11 +197,6 @@ export interface HistoryPageActions {
   dismissName(index: number): Promise<void>;
   /** Follows the notes runner and the file job while the page is shown: what they do, and each version that ends. */
   follow(): void;
-  /**
-   * Adds name `index` to the word list, spelled `spelling` and often heard as the notes found it written, then
-   * dismisses it (stage 5). 'known' when the word list already had that spelling; null when there is no such name.
-   */
-  addName(index: number, spelling: string): Promise<'added' | 'known' | null>;
   /** Stops following the notes runner (the page is gone). */
   dispose(): void;
   renameSpeaker(side: 'mine' | 'other', speaker: string, name: string): Promise<void>;
@@ -613,17 +608,6 @@ export function createHistoryPageStore(
       generateNotes(language) {
         const open = get().open;
         if (open && notes) notes.start(open.record.id, language, open.transcriptId ?? undefined);
-      },
-
-      async addName(index, spelling) {
-        const name = get().open?.notes?.body?.names?.[index];
-        const written = spelling.trim();
-        if (!name || typeof name.written !== 'string' || !written) return null;
-        const known = useWordList.getState().entries.some((e) => e.written === written);
-        // Not saved (the warning says why): the name stays to check.
-        if (!(await addWord({ written, heardAs: name.written }))) return null;
-        await get().dismissName(index);
-        return known ? 'known' : 'added';
       },
 
       dismissName: (index) => act(async () => {

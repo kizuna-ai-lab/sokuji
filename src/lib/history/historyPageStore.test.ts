@@ -8,7 +8,6 @@ import type { HostedFileTerms } from './file/hostedFile';
 import { EACH_SIDE } from './file/options';
 import type { AccountState } from '../session/types';
 import { setUseOwnBalance } from '../session/payerChoice';
-import { useWordList } from '../words/list';
 
 const { settingsStored } = vi.hoisted(() => ({ settingsStored: new Map<string, unknown>() }));
 vi.mock('../../services/ServiceFactory', () => ({
@@ -387,44 +386,6 @@ describe("a record's notes", () => {
     await second;
     expect(calls('updateNotesNames')).toHaveLength(1);
     expect(names[0]).toMatchObject({ dismissed: true });
-  });
-
-  it('adds a name to the word list as it is often heard, says when it was already there, and dismisses it', async () => {
-    withNotes([7]);
-    const names = [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }, { written: 'Ozaka', likely: 'Osaka', sentences: [9] }];
-    const getNotes = port.getNotes;
-    port.getNotes = (async (arg: { id: number }) => {
-      const n = await (getNotes as (a: { id: number }) => Promise<HistoryNotes>)(arg);
-      return { ...n, body: { ...n.body!, names } };
-    }) as never;
-    port.updateNotesNames = (async (arg: unknown) => { port.calls.push(['updateNotesNames', arg]); }) as never;
-    useWordList.setState({ entries: [{ written: 'Osaka' }], background: '', loaded: true });
-    await store.getState().openRecord(A);
-    expect(await store.getState().addName(0, 'Sokuji')).toBe('added');
-    expect(await store.getState().addName(1, ' Osaka ')).toBe('known');
-    expect(useWordList.getState().entries).toEqual([{ written: 'Osaka', heardAs: 'Ozaka' }, { written: 'Sokuji', heardAs: 'Soku G' }]);
-    expect(calls('updateNotesNames')).toHaveLength(2);
-  });
-
-  it('keeps a name to check when the word list could not be saved', async () => {
-    withNotes([7]);
-    const names = [{ written: 'Soku G', likely: 'Sokuji', sentences: [4] }];
-    const getNotes = port.getNotes;
-    port.getNotes = (async (arg: { id: number }) => {
-      const n = await (getNotes as (a: { id: number }) => Promise<HistoryNotes>)(arg);
-      return { ...n, body: { ...n.body!, names } };
-    }) as never;
-    port.updateNotesNames = (async (arg: unknown) => { port.calls.push(['updateNotesNames', arg]); }) as never;
-    useWordList.setState({ entries: [], background: '', loaded: true });
-    await store.getState().openRecord(A);
-    const save = useWordList.getState().setEntries;
-    useWordList.setState({ setEntries: async () => false });
-    try {
-      expect(await store.getState().addName(0, 'Sokuji')).toBeNull();
-    } finally {
-      useWordList.setState({ setEntries: save });
-    }
-    expect(calls('updateNotesNames')).toEqual([]);
   });
 
   it('opens on the newest complete version when a newer attempt failed or was stopped', async () => {

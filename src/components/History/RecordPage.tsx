@@ -28,6 +28,7 @@ import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
 import FixWordsPart from './FixWordsPart';
+import { findWord } from '../../lib/history/wordFix';
 import EditToast from './EditToast';
 import { InlineEdit } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
@@ -310,6 +311,25 @@ export const RecordPage: React.FC = () => {
   const notesExplained = useNotesExplained();
   const setNotesExplained = useSetNotesExplained();
 
+  // The notes' names to check, as the shown transcript has them (option C, owner 2026-11-19): one whose heard form was
+  // heard and no longer is shows "Fixed"; one never seen as written keeps "Go fix" (the notes may spell it otherwise).
+  const fixedNames = useMemo(() => {
+    const fixed = new Set<number>();
+    for (const [i, n] of (open?.notes?.body?.names ?? []).entries()) {
+      const word = typeof n.written === 'string' ? n.written : '';
+      if (!word || !open) continue;
+      const now = open.sentences.some((s) => findWord(s.text, word).length > 0);
+      const heard = open.sentences.some((s) => findWord(s.heard ?? s.text, word).length > 0);
+      if (!now && heard) fixed.add(i);
+    }
+    return fixed;
+  }, [open]);
+  const fixName = (i: number) => {
+    const n = open?.notes?.body?.names?.[i];
+    if (!n || typeof n.written !== 'string') return;
+    actions.openFix({ heard: n.written, suggestion: typeof n.likely === 'string' ? n.likely : null, source: 'notes' });
+  };
+
   if (!open) return null;
   const { record } = open;
   const span = open.sentences.length > 0
@@ -318,7 +338,7 @@ export const RecordPage: React.FC = () => {
     <RecordNotes
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
-      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onAddName={(i, spelling) => actions.addName(i, spelling)}
+      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onFixName={fixName} fixedNames={fixedNames}
       latest={open.latest ?? null} explainWith={!notesExplained && notesService ? notesService : null}
       onExplained={() => void setNotesExplained(true)}
     />

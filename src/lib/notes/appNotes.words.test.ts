@@ -24,7 +24,7 @@ describe('notes reuse the word list spellings', () => {
     appNotesRunner();
     const names = () => notesNames(captured.deps!.names!() as never);
     expect(names()).toEqual([{ written: 'Kizuna AI', heard_as: 'kizuna eye' }]);
-    // A name added from "names to check" (historyPageStore.addName does this) is in the next version's names.
+    // A word added to the word list from a fix (historyPageStore.fixWords does this) is in the next version's names.
     await addWord({ written: 'Sokuji', heardAs: 'Soku G' });
     expect(names()).toEqual([{ written: 'Kizuna AI', heard_as: 'kizuna eye' }, { written: 'Sokuji', heard_as: 'Soku G' }]);
   });
