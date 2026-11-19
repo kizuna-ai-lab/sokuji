@@ -10,6 +10,8 @@ const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox
 const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
 /** Every host offered: the choices below are made where every option can run. */
 const allPresent = stubHosts();
+/** Only the local host offered: every other option names a provider this build does not offer. */
+const onlyLocal = { ...allPresent, providers: allPresent.providers.filter((p) => p.id === 'local_inference') };
 
 /** Every triple of options in the catalog, without notes. */
 function everyLineUp(): LineUp[] {
@@ -44,11 +46,18 @@ describe('choosing a provider for a stage', () => {
     expect(choice.lineUp.speech).toBe('local_inference');
   });
 
-  it('moves exactly the stages the old rule moved, for every line-up and every choice', () => {
+  it('moves the others to the chosen host when a provider the line-up keeps is not offered here and the catalog says it does not run', () => {
+    const kizuna = { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null };
+    const noKizuna = { ...allPresent, providers: allPresent.providers.filter((p) => p.id !== 'kizunaai_soniox') };
+    expect(choose(kizuna, 'speech', 'edge', noKizuna)).toEqual({ lineUp: local, moved: ['transcription', 'translation'] });
+    expect(choose(kizuna, 'speech', 'edge', noKizuna)).toEqual(oldChoose(kizuna, 'speech', 'edge'));
+  });
+
+  it.each([['every host', allPresent], ['only the local host', onlyLocal]] as const)('moves exactly the stages the old rule moved, for every line-up and every choice, with %s offered', (_offered, input) => {
     expect(everyRunnableLineUp().length).toBeGreaterThan(10);
     for (const from of everyLineUp()) for (const stage of RUN_STAGES) for (const c of CAPS) {
       if (!c.stages.includes(stage)) continue;
-      expect(choose(from, stage, c.id, allPresent), JSON.stringify({ from, stage, id: c.id })).toEqual(oldChoose(from, stage, c.id));
+      expect(choose(from, stage, c.id, input), JSON.stringify({ from, stage, id: c.id })).toEqual(oldChoose(from, stage, c.id));
     }
   });
 });

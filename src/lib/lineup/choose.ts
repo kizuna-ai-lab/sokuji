@@ -7,7 +7,7 @@
 import { compose } from '../plan/compose';
 import type { ComposeInput } from '../plan/compose';
 import { isRefusal } from '../plan/types';
-import { caps, hostDefaults } from './catalog';
+import { caps, hostDefaults, soleHost } from './catalog';
 import { RUN_STAGES } from './types';
 import type { LineUp, RunStage, StageName } from './types';
 
@@ -38,10 +38,12 @@ export function choose(lineUp: LineUp, stage: StageName, providerId: string | nu
     if (lostPartner) next[s] = defaults[s];
   }
 
-  // A line-up the composer cannot run: the rest follows the chosen provider. A refusal for a provider this build
-  // does not offer moves nothing: which providers are offered never moves a stage (the page lists only those).
+  // A line-up the composer cannot run: the rest follows the chosen provider. Which providers are offered never
+  // moves a stage: a refusal only for a provider not offered here moves the rest when the catalog alone says the
+  // line-up does not run, as it would with every provider offered.
   const plan = compose(next, input);
-  if (isRefusal(plan) && plan.refused !== 'lineup_not_offered') for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
+  const runs = !isRefusal(plan) || (plan.refused === 'lineup_not_offered' && soleHost(next) !== null);
+  if (!runs) for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
 
   return { lineUp: next, moved: RUN_STAGES.filter((s) => s !== stage && next[s] !== lineUp[s]) };
 }
