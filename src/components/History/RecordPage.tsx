@@ -623,25 +623,24 @@ export const RecordPage: React.FC = () => {
                 <span className={`record-sentence${hit === `[data-n="${s.n}"]` ? ' is-hit' : ''}`} data-n={s.n}>
                   {editingSentence === s.n ? <SentenceEditor n={s.n} text={s.text} onDone={() => setEditingSentence(null)} /> : s.text}
                   {editingSentence !== s.n && heardOf.get(s.n) != null && (
-                    <span className="record-sentence__edited-wrap">
-                      <button type="button" className="record-sentence__edited" aria-expanded={originalOf === s.n}
-                        title={t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}
-                        onClick={() => setOriginalOf(originalOf === s.n ? null : s.n)}>
-                        {t('history.edited', 'Edited')}
-                      </button>
-                      {originalOf === s.n && (
-                        <span className="record-sentence__original" role="group" aria-label={t('history.original', 'Original')}>
-                          <span>{t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}</span>
-                          {canFix && (
-                            <button type="button" className="history-button" onClick={() => { setOriginalOf(null); void actions.restoreSentence(s.n); }}>
-                              {t('history.restoreOriginal', 'Restore original')}
-                            </button>
-                          )}
-                        </span>
+                    <button type="button" className="record-sentence__edited" aria-expanded={originalOf === s.n}
+                      title={t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}
+                      onClick={() => setOriginalOf(originalOf === s.n ? null : s.n)}>
+                      {t('history.edited', 'Edited')}
+                    </button>
+                  )}
+                  {editingSentence !== s.n && sentenceMenu(row, s.n)}
+                  {/* The original opens under the sentence, after its buttons, which stay beside the mark. */}
+                  {editingSentence !== s.n && originalOf === s.n && heardOf.get(s.n) != null && (
+                    <span className="record-sentence__original" role="group" aria-label={t('history.original', 'Original')}>
+                      <span>{t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}</span>
+                      {canFix && (
+                        <button type="button" className="history-button" onClick={() => { setOriginalOf(null); void actions.restoreSentence(s.n); }}>
+                          {t('history.restoreOriginal', 'Restore original')}
+                        </button>
                       )}
                     </span>
                   )}
-                  {editingSentence !== s.n && sentenceMenu(row, s.n)}
                 </span>
               </React.Fragment>
             ))}

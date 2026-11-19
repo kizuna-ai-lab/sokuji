@@ -873,6 +873,13 @@
     &:hover { color: vars.$text-primary; }
     &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
   }
+  // A name whose misheard form is gone from the transcript: said where its buttons were.
+  &__fixed {
+    margin-left: vars.$space-2;
+    padding: 0 vars.$space-1;
+    color: vars.$text-tertiary;
+    font-size: vars.$font-caption;
+  }
   &__kind--decision { color: tk.$color-primary; border-color: tk.$color-primary; }
   &__kind--risk { color: vars.$color-error; border-color: vars.$color-error-border; }
 }
@@ -1130,7 +1137,7 @@
   }
   &__keys { display: block; margin-top: vars.$space-1; font-size: 11px; color: vars.$text-tertiary; }
 }
-.record-sentence__edited-wrap { position: relative; }
+// The original opens under the sentence, in place like the editor, so it never runs out of the column.
 .record-sentence__edited {
   margin-left: 6px;
   padding: 0 6px;
@@ -1145,23 +1152,18 @@
   &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
 }
 .record-sentence__original {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 10;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: vars.$space-2;
-  width: 300px;
-  margin-top: vars.$space-1;
-  padding: vars.$space-2 10px;
-  border: 1px solid vars.$border-default;
+  margin: 6px 0 vars.$space-1;
+  padding: vars.$space-2;
+  border: 1px solid vars.$border-subtle;
   border-radius: vars.$radius-md;
-  background: vars.$bg-popover;
-  box-shadow: vars.$shadow;
-  color: vars.$text-primary;
+  color: vars.$text-secondary;
   font-size: vars.$font-caption;
-  button { align-self: flex-end; }
+  > span { flex: 1 1 16em; min-width: 0; }
 }
 
 // What an edit did, above the player, with Undo (EditToast; design draft P0 §3.6).
