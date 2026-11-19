@@ -401,4 +401,32 @@ describe('VoiceCreateModal — a recording that cannot start', () => {
     expect(onRecord).not.toHaveBeenCalled();
     warn.mockRestore();
   });
+
+  it('says so when the page has no microphone API at all', async () => {
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });
+    render(<VoiceCreateModal {...base} capability={{ importModes: ['record'] }} onRecord={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not start recording/i);
+  });
+
+  // The dialog stays mounted while closed, so a refusal that lands after
+  // Cancel would otherwise be the first thing shown on the next open.
+  it('says nothing for an attempt the dialog was closed on', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let refuse!: (e: unknown) => void;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn(() => new Promise((_, reject) => { refuse = reject; })) },
+    });
+    const props = { ...base, capability: { importModes: ['record'] as ('upload' | 'record')[] }, onRecord: vi.fn() };
+    const { rerender } = render(<VoiceCreateModal {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    rerender(<VoiceCreateModal {...props} isOpen={false} />);
+    await act(async () => { refuse(new DOMException('Permission denied', 'NotAllowedError')); });
+    rerender(<VoiceCreateModal {...props} isOpen />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
 });
