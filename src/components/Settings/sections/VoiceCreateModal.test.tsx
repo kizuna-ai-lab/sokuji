@@ -406,7 +406,10 @@ describe('VoiceCreateModal — a recording that cannot start', () => {
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: undefined });
     render(<VoiceCreateModal {...base} capability={{ importModes: ['record'] }} onRecord={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not start recording/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/could not start recording/i);
+    // The class the dialog's smaller failure size hangs on.
+    expect(alert).toHaveClass('voice-capture-error', 'voice-create-modal__error');
   });
 
   // The dialog stays mounted while closed, so a refusal that lands after
