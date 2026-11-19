@@ -1353,11 +1353,11 @@
       },
       "two-way-voice": {
         "title": "Họp online hai chiều",
-        "desc": "Người kia nghe giọng đọc bản dịch lời bạn; bạn đọc phụ đề dịch lời họ, và nghe giọng đọc nếu muốn."
+        "desc": "Người kia nghe giọng đọc bản dịch lời của bạn; bạn đọc phụ đề dịch lời của họ, và nghe giọng đọc nếu muốn."
       },
       "two-way-text": {
         "title": "Họp online hai chiều, chỉ phụ đề",
-        "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên chỉ hiện chữ, không có giọng đọc máy."
+        "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên chỉ hiện chữ, không có giọng đọc của máy."
       },
       "setsBeside": "Áp dụng: chế độ {{mode}}, người kia ngồi cạnh bạn · {{output}}",
       "face-to-face-voice": {
@@ -1381,10 +1381,10 @@
       "managed": {
         "title": "Bắt đầu ngay",
         "desc": "Kizuna AI xử lý việc dịch cho bạn.",
-        "cost": "Đăng ký bằng email và xác minh — tài khoản đã xác minh được tặng tiền dùng thử. Sau đó bạn nạp tiền vào tài khoản, dùng bao nhiêu trả bấy nhiêu.",
+        "cost": "Đăng ký bằng email và xác minh — tài khoản đã xác minh được tặng tín dụng dùng thử. Sau đó bạn nạp tiền vào tài khoản, dùng bao nhiêu trả bấy nhiêu.",
         "options": {
-          "kizunaai_soniox": "Chuyển giọng nói thành chữ tức thì, dịch nhanh.",
-          "kizunaai_qwen": "Có thể xem màn hình của bạn; nhận dạng và dịch rất chính xác."
+          "kizunaai_soniox": "Chép lời theo thời gian thực, dịch nhanh.",
+          "kizunaai_qwen": "Có thể xem màn hình của bạn; chép lời và dịch rất chính xác."
         }
       },
       "own-key": {
@@ -1399,8 +1399,8 @@
         "native": "Bộ máy Native — nhanh hơn, dùng GPU nếu máy có.",
         "wasm": "Bộ máy chạy trong ứng dụng — chạy được ở mọi nơi nhưng chậm hơn."
       },
-      "ownKeyNote": "Chọn nhà cung cấp bạn đã có tài khoản. Mỗi nơi cấp khóa API riêng:",
-      "ownKeyGuides": "xem cách lấy khóa của từng nơi",
+      "ownKeyNote": "Chọn nhà cung cấp bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
+      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp",
       "managedPick": "Chọn dịch vụ nào?"
     },
     "fit": {
@@ -1421,13 +1421,13 @@
       "signIn": "Đăng nhập",
       "createAccount": "Tạo tài khoản",
       "signedIn": "Đã đăng nhập. Bạn có thể tiếp tục.",
-      "managedDesc": "Đăng ký bằng email và bấm liên kết xác minh trong hộp thư; tài khoản đã xác minh được tặng tiền dùng thử. Sau đó bạn nạp tiền vào tài khoản, dùng bao nhiêu trả bấy nhiêu.",
+      "managedDesc": "Đăng ký bằng email và bấm liên kết xác minh trong hộp thư; tài khoản đã xác minh được tặng tín dụng dùng thử. Sau đó bạn nạp tiền vào tài khoản, dùng bao nhiêu trả bấy nhiêu.",
       "offlineNotice": "Mô hình nhận dạng sẽ được tải sau khi cài đặt xong, trong Cài đặt → Mô hình và bộ nhớ. Phần dịch dùng Bing và giọng đọc dùng Edge: không cần tải gì, không cần tài khoản; nội dung cần dịch và bản dịch cần đọc sẽ được gửi tới Microsoft.",
       "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Tài khoản và khóa. Nút Bắt đầu chưa bấm được cho đến khi khóa hợp lệ.",
       "pendingSignIn": "Bạn có thể đăng nhập sau bằng nút tài khoản. Trước đó, nút Bắt đầu chưa bấm được.",
       "ownKeyDesc": "Khóa chỉ lưu trên máy này, ứng dụng gọi thẳng tới nhà cung cấp — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức dùng.",
       "guide": "Cách lấy khóa này",
-      "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi gửi qua email để xác minh — tiền dùng thử sẽ được cộng ngay sau đó.",
+      "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi gửi qua email để xác minh — tín dụng dùng thử sẽ được cộng ngay sau đó.",
       "onFile": "Đã lưu một khóa — để trống nếu muốn giữ khóa cũ.",
       "offlineHardware": "Sokuji chạy tốt nếu có GPU và đủ VRAM; chỉ có CPU thì chậm hơn nhiều.",
       "openaiOneKey": "Một khóa này dùng chung cho OpenAI Realtime, Translate và Live."
