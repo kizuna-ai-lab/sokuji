@@ -3,6 +3,8 @@ import type { Playback } from '../../lib/audio/playback';
 import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
+import { usePlan } from '../../lib/plan/fromStores';
+import { transcriptionProvider } from '../../lib/plan/read';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
 import type { FramePort } from '../../lib/session/ports';
@@ -323,7 +325,8 @@ export function SpinePreview() {
   const { runner } = session;
   const phase = useRunPhase();
   const turnMode = useTurnModeStore((s) => s.turnMode);
-  const entry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
+  // The plan a start would run, ready once its provider's entry has loaded: the gate of the URL's settings and of autostart.
+  const plan = usePlan();
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
   const autostarted = useRef(false);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);
@@ -376,15 +379,15 @@ export function SpinePreview() {
   // The page's stored settings from the URL, applied once — with or without
   // `&autostart=1`, since the panel's probe starts by clicking (plan 1e-3b-1
   // Task 13). After the stores' load, so the load cannot overwrite them (the
-  // turn mode's migration writes too), and once the selected provider's entry
+  // turn mode's migration writes too), and once the plan's provider's entry
   // is there (`&script=` is the fake's own setting).
   useEffect(() => {
-    if (urlApplied || !storesLoaded || !entry) return;
+    if (urlApplied || !storesLoaded || plan.state !== 'ready') return;
     const params = new URLSearchParams(window.location.search);
-    // `&script=<name>`: which script the selected fake plays (`fake` or `fake_leased`; `fake` otherwise).
+    // `&script=<name>`: which script the plan's fake plays (`fake` or `fake_leased`; `fake` otherwise).
     const script = params.get('script');
-    const selected = useProviderStore.getState().selected;
-    const fake = providers.find((p) => p.id === (selected === 'fake_leased' ? 'fake_leased' : 'fake'));
+    const running = transcriptionProvider(plan.plan).id;
+    const fake = providers.find((p) => p.id === (running === 'fake_leased' ? 'fake_leased' : 'fake'));
     if (fake && script && (FAKE_SCRIPT_NAMES as readonly string[]).includes(script)) {
       useProviderStore.getState().updateSettings(fake, { script });
     }
@@ -408,10 +411,10 @@ export function SpinePreview() {
     // &monitor=1: the speaker's translation reaches the real bus (the monitor is off by default), for the probe's tap on a bus.
     if (params.get('monitor') === '1') useAudioStore.getState().setMonitorMuted(false);
     setUrlApplied(true);
-  }, [urlApplied, storesLoaded, entry, providers]);
+  }, [urlApplied, storesLoaded, plan, providers]);
 
   useEffect(() => {
-    if (autostarted.current || !entry || !audio || !urlApplied || new URLSearchParams(window.location.search).get('autostart') !== '1') return;
+    if (autostarted.current || plan.state !== 'ready' || !audio || !urlApplied || new URLSearchParams(window.location.search).get('autostart') !== '1') return;
     autostarted.current = true;
     const params = new URLSearchParams(window.location.search);
     // `&models=<id>,<id>…` (LocalInference's live probe, task 9): download
@@ -493,7 +496,7 @@ export function SpinePreview() {
       }
       void runner.start();
     })();
-  }, [entry, audio, runner, providers, urlApplied]);
+  }, [plan, audio, runner, providers, urlApplied]);
 
   const sealProbe = useSealProbe();
   const settingsMode = param('settings');
