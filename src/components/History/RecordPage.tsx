@@ -28,6 +28,7 @@ import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
 import FixWordsPart from './FixWordsPart';
+import SentenceEditor from './SentenceEditor';
 import { findWord } from '../../lib/history/wordFix';
 import EditToast from './EditToast';
 import { InlineEdit } from './InlineEdit';
@@ -242,6 +243,9 @@ export const RecordPage: React.FC = () => {
   // which hands it to the edit panel's "Fix words" with that sentence (option C, owner 2026-11-19).
   const canFix = useStore(store, (s) => s.canEdit());
   const [selectedWord, setSelectedWord] = useState<{ text: string; n: number; top: number; left: number } | null>(null);
+  // The sentence being rewritten in place, and the one whose original is shown (design draft P0 §3.4–3.5).
+  const [editingSentence, setEditingSentence] = useState<number | null>(null);
+  const [originalOf, setOriginalOf] = useState<number | null>(null);
   useEffect(() => {
     const onSelection = () => {
       const column = transcriptRef.current;
@@ -557,6 +561,17 @@ export const RecordPage: React.FC = () => {
       // Escape closes the menu, from its button or from inside it, and goes no further.
       onKeyDown={(e) => { if (e.key === 'Escape' && menuFor === n && !isComposing(e.nativeEvent)) { e.preventDefault(); setMenuFor(null); } }}
     >
+      {canFix && (
+        <button
+          type="button"
+          className="record-sentence__menu-button"
+          aria-label={t('history.editSentence', 'Edit this sentence')}
+          title={t('history.editSentence', 'Edit this sentence')}
+          onClick={() => { setMenuFor(null); setOriginalOf(null); setEditingSentence(n); }}
+        >
+          <Pencil size={12} />
+        </button>
+      )}
       <button
         type="button"
         className="record-sentence__menu-button"
@@ -580,6 +595,7 @@ export const RecordPage: React.FC = () => {
     </span>
   );
 
+  const heardOf = new Map(open.sentences.map((x) => [x.n, x.heard]));
   const transcript = rows.length === 0
     ? <p className="history-list__empty">{t('history.noTranscript', 'Nothing was said in this record.')}</p>
     : rows.map((row) => {
@@ -605,8 +621,27 @@ export const RecordPage: React.FC = () => {
               <React.Fragment key={s.n}>
                 {i > 0 && spaceBetween(row.sentences[i - 1].text, s.text) ? ' ' : null}
                 <span className={`record-sentence${hit === `[data-n="${s.n}"]` ? ' is-hit' : ''}`} data-n={s.n}>
-                  {s.text}
-                  {sentenceMenu(row, s.n)}
+                  {editingSentence === s.n ? <SentenceEditor n={s.n} text={s.text} onDone={() => setEditingSentence(null)} /> : s.text}
+                  {editingSentence !== s.n && heardOf.get(s.n) != null && (
+                    <span className="record-sentence__edited-wrap">
+                      <button type="button" className="record-sentence__edited" aria-expanded={originalOf === s.n}
+                        title={t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}
+                        onClick={() => setOriginalOf(originalOf === s.n ? null : s.n)}>
+                        {t('history.edited', 'Edited')}
+                      </button>
+                      {originalOf === s.n && (
+                        <span className="record-sentence__original" role="group" aria-label={t('history.original', 'Original')}>
+                          <span>{t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}</span>
+                          {canFix && (
+                            <button type="button" className="history-button" onClick={() => { setOriginalOf(null); void actions.restoreSentence(s.n); }}>
+                              {t('history.restoreOriginal', 'Restore original')}
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {editingSentence !== s.n && sentenceMenu(row, s.n)}
                 </span>
               </React.Fragment>
             ))}

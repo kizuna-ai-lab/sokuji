@@ -1098,6 +1098,72 @@
 .record-page__transcript { position: relative; }
 .record-page__fix-chip { position: absolute; z-index: 5; }
 
+// One sentence rewritten in place (SentenceEditor; design draft P0 §3.4), and the mark of one rewritten (§3.5).
+.record-sentence-edit {
+  display: block;
+  margin: vars.$space-1 0;
+  &__field {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid tk.$color-primary;
+    border-radius: vars.$radius-md;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+  }
+  &__swap {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-1;
+    margin-top: 6px;
+    padding: vars.$space-2;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-md;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    label { display: flex; align-items: center; gap: 6px; color: vars.$text-primary; }
+  }
+  &__keys { display: block; margin-top: vars.$space-1; font-size: 11px; color: vars.$text-tertiary; }
+}
+.record-sentence__edited-wrap { position: relative; }
+.record-sentence__edited {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid vars.$border-default;
+  border-radius: 9px;
+  background: none;
+  color: vars.$text-secondary;
+  font-size: 11px;
+  line-height: 18px;
+  vertical-align: middle;
+  cursor: pointer;
+  &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+}
+.record-sentence__original {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
+  width: 300px;
+  margin-top: vars.$space-1;
+  padding: vars.$space-2 10px;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  background: vars.$bg-popover;
+  box-shadow: vars.$shadow;
+  color: vars.$text-primary;
+  font-size: vars.$font-caption;
+  button { align-self: flex-end; }
+}
+
 // What an edit did, above the player, with Undo (EditToast; design draft P0 §3.6).
 .record-edit-toast {
   display: flex;

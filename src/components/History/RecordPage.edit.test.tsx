@@ -201,3 +201,69 @@ describe('a word selected in the transcript', () => {
     expect(fixButton()).toBeNull();
   });
 });
+
+// Design draft P0 §3.4–3.5: one sentence edited in place; a one-word swap seen elsewhere may be made everywhere; an
+// edited sentence is marked and can go back to what was heard.
+describe('editing one sentence', () => {
+  const editButton = (n: number) => within(document.querySelector(`[data-n="${n}"]`) as HTMLElement).queryByRole('button', { name: 'Edit this sentence' });
+  const field = () => screen.getByRole('textbox', { name: 'Sentence' }) as HTMLTextAreaElement;
+
+  it('edits a sentence in place: Enter saves, Shift+Enter is a new line, Escape cancels, a click elsewhere saves', async () => {
+    await show();
+    const edit = vi.spyOn(store.getState(), 'editSentence');
+    fireEvent.click(editButton(3)!);
+    expect(field().value).toBe('Sokuji 已经上线');
+    fireEvent.change(field(), { target: { value: 'Sokuji 已上线' } });
+    fireEvent.keyDown(field(), { key: 'Enter', shiftKey: true });
+    expect(edit).not.toHaveBeenCalled();
+    fireEvent.keyDown(field(), { key: 'Enter' });
+    await settle();
+    expect(edit).toHaveBeenCalledWith(3, 'Sokuji 已上线', { everywhere: false, words: false });
+    fireEvent.click(editButton(3)!);
+    fireEvent.change(field(), { target: { value: '不要这个' } });
+    fireEvent.keyDown(field(), { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'Sentence' })).toBeNull();
+    expect(edit).toHaveBeenCalledTimes(1);
+    fireEvent.click(editButton(3)!);
+    fireEvent.change(field(), { target: { value: 'Sokuji 上线了' } });
+    fireEvent.blur(field());
+    await settle();
+    expect(edit).toHaveBeenLastCalledWith(3, 'Sokuji 上线了', { everywhere: false, words: false });
+  });
+
+  it('offers everywhere for a one-word swap seen elsewhere', async () => {
+    await show();
+    const edit = vi.spyOn(store.getState(), 'editSentence');
+    fireEvent.click(editButton(1)!);
+    fireEvent.change(field(), { target: { value: '我们用Sokuji开会' } });
+    expect(screen.getByText('Heard as 搜库机 · 1 more places')).toBeInTheDocument();
+    const editor = document.querySelector('.record-sentence-edit') as HTMLElement;
+    expect(within(editor).getByRole('radio', { name: 'Change everywhere' })).toBeChecked();
+    expect(within(editor).getByRole('checkbox', { name: 'Add to the word list' })).toBeChecked();
+    fireEvent.keyDown(field(), { key: 'Enter' });
+    await settle();
+    expect(edit).toHaveBeenCalledWith(1, '我们用Sokuji开会', { everywhere: true, words: true });
+  });
+
+  it('marks an edited sentence and restores it', async () => {
+    await show();
+    await act(async () => { await store.getState().editSentence(1, '我们开会', { everywhere: false, words: false }); });
+    await settle();
+    const mark = within(document.querySelector('[data-n="1"]') as HTMLElement).getByRole('button', { name: 'Edited' });
+    expect(mark).toHaveAttribute('title', 'Original: 我们用搜库机开会');
+    fireEvent.click(mark);
+    fireEvent.click(screen.getByRole('button', { name: 'Restore original' }));
+    await settle();
+    expect(textOf(1)).toContain('我们用搜库机开会');
+    expect(within(document.querySelector('[data-n="1"]') as HTMLElement).queryByRole('button', { name: 'Edited' })).toBeNull();
+  });
+
+  it('no editing on a live record', async () => {
+    const B = 'run-0003-cccc';
+    real.store.openRecord({ id: B, startedAt: START, mode: 'both', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const t = real.store.createTranscript({ recordId: B, origin: { service: 'soniox', kind: 'live' } });
+    real.store.appendSentences({ transcriptId: t, sentences: [sent(1, '搜库机很快')] });
+    await show(B);
+    expect(editButton(1)).toBeNull();
+  });
+});
