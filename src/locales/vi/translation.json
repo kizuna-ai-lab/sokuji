@@ -1352,11 +1352,11 @@
         "desc": "Thuyết trình, hội thảo, livestream — khán giả đọc phụ đề đã dịch; không phát ra giọng đọc."
       },
       "two-way-voice": {
-        "title": "Họp online hai chiều",
+        "title": "Trò chuyện online hai chiều",
         "desc": "Người kia nghe giọng đọc bản dịch lời của bạn; bạn đọc phụ đề dịch lời của họ, và nghe giọng đọc nếu muốn."
       },
       "two-way-text": {
-        "title": "Họp online hai chiều, chỉ phụ đề",
+        "title": "Trò chuyện online hai chiều, chỉ phụ đề",
         "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên chỉ hiện chữ, không có giọng đọc của máy."
       },
       "setsBeside": "Áp dụng: chế độ {{mode}}, người kia ngồi cạnh bạn · {{output}}",
