@@ -214,7 +214,8 @@ test('a file whose sound the app cannot decode is refused, says what to convert 
   expect(recordFolders(userData)).toEqual([]);
 });
 
-// An import goes on while the user is elsewhere in the app; back in History its progress is still shown, and it ends.
+// An import goes on while the user is elsewhere in the app; back in History its progress is still shown, and it ends
+// there: the list shows the record transcribed without History being opened again.
 test('an import goes on away from History, and its progress shows on coming back', async ({ launchApp }) => {
   const { sokuji, transcription } = await readyToImport(launchApp);
   const { page } = sokuji;
@@ -232,6 +233,7 @@ test('an import goes on away from History, and its progress shows on coming back
   await expect(page.locator('.history-list [data-record]')).toHaveCount(1);
   await transcription.release();
   await importEnded(page);
+  await expect(page.locator('.history-list [data-record]').first().locator('.history-tag', { hasText: 'Transcript' })).toBeVisible();
   await page.locator('.history-list [data-record]').first().locator('.history-row__open').click();
   await expect(page.locator('.record-page__transcript').getByText('This is the first sentence of the imported file.')).toBeVisible();
   expect(sokuji.errors).toEqual([]);
