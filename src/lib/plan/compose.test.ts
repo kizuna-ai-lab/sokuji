@@ -1,32 +1,19 @@
 // src/lib/plan/compose.test.ts
 import { describe, expect, it, vi } from 'vitest';
-import { CAPS, caps, runOf } from '../lineup/catalog';
+import { CAPS, caps } from '../lineup/catalog';
+import { oldRunOf } from '../lineup/oldRules.testing';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, RunStage } from '../lineup/types';
-import type { AnyProvider } from '../provider/types';
 import { compose } from './compose';
 import type { ComposeInput } from './compose';
-import { planOf } from './testing';
+import { planOf, stubHosts, stubProvider } from './testing';
 import { isRefusal } from './types';
 import type { PlanRefusalCode, RunPlan } from './types';
-
-/** A provider definition with only what its whole-provider unit reads; the real registry stays out of these tests. */
-const stub = (id: string, over: Record<string, unknown> = {}): AnyProvider => ({
-  id,
-  speech: 'optional',
-  turns: () => ['auto'],
-  boundaries: () => 'silence',
-  textInput: () => false,
-  build: () => ({}),
-  describe: () => ({}),
-  start: () => undefined,
-  ...over,
-}) as unknown as AnyProvider;
 
 const all = (id: string): Pick<LineUp, RunStage> => ({ transcription: id, translation: id, speech: id });
 
 // palabraai is left out: the build does not offer it.
-const offered = ['openai', 'soniox', 'local_inference', 'gemini'].map((id) => stub(id));
+const offered = ['openai', 'soniox', 'local_inference', 'gemini'].map((id) => stubProvider(id));
 const input: ComposeInput = { providers: offered, settings: () => undefined };
 
 const cases: Array<[string, Pick<LineUp, RunStage>, 'ok' | PlanRefusalCode, RunStage?]> = [
@@ -65,7 +52,7 @@ describe('compose', () => {
   it("takes the first of the host's units that occupies exactly the stages asked, asking with the host's settings", () => {
     const part = { id: 'part', occupies: vi.fn(() => ['transcription']) };
     const whole = { id: 'whole', occupies: vi.fn(() => RUN_STAGES) };
-    const soniox = stub('soniox', { units: [part, whole] });
+    const soniox = stubProvider('soniox', { units: [part, whole] });
     const settings = { of: 'soniox' };
     const plan = compose(all('soniox'), { providers: [soniox], settings: (id) => (id === 'soniox' ? settings : undefined) }) as RunPlan;
     expect(part.occupies).toHaveBeenCalledWith(settings, new Set(RUN_STAGES));
@@ -73,11 +60,11 @@ describe('compose', () => {
   });
 
   it('runs exactly the line-ups the old rule ran, on the same provider', () => {
-    const allPresent: ComposeInput = { providers: [...new Set(CAPS.map((c) => c.host))].map((id) => stub(id)), settings: () => undefined };
+    const allPresent = stubHosts();
     for (const t of CAPS) for (const tl of CAPS) for (const s of CAPS) {
       const l = { transcription: t.id, translation: tl.id, speech: s.id };
       const got = compose(l, allPresent);
-      const old = runOf({ ...l, summarisation: null });
+      const old = oldRunOf({ ...l, summarisation: null });
       expect(!isRefusal(got), JSON.stringify(l)).toBe(old.ok);
       if (old.ok && !isRefusal(got)) expect(got.units.map((u) => u.provider.id), JSON.stringify(l)).toEqual([old.provider]);
     }

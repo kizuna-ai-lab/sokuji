@@ -2,9 +2,12 @@
 //
 // Choosing a provider for one stage keeps the line-up runnable: the provider
 // takes the stages it holds jointly, a provider that loses part of a joint group
-// loses all of it, and in phase 1 a choice that cannot run with the other
-// stages moves them to the chosen provider's host (design section 11).
-import { caps, hostDefaults, runOf } from './catalog';
+// loses all of it, and a choice the composer cannot run with the other stages
+// moves them to the chosen provider's host (design section 11).
+import { compose } from '../plan/compose';
+import type { ComposeInput } from '../plan/compose';
+import { isRefusal } from '../plan/types';
+import { caps, hostDefaults } from './catalog';
 import { RUN_STAGES } from './types';
 import type { LineUp, RunStage, StageName } from './types';
 
@@ -14,7 +17,8 @@ export interface Choice {
   moved: readonly StageName[];
 }
 
-export function choose(lineUp: LineUp, stage: StageName, providerId: string | null): Choice {
+/** The line-up after choosing `providerId` for `stage`, and what else that moved; `input` is what the composer runs it on. */
+export function choose(lineUp: LineUp, stage: StageName, providerId: string | null, input: ComposeInput): Choice {
   if (stage === 'summarisation') return { lineUp: { ...lineUp, summarisation: providerId }, moved: [] };
   if (providerId === null) throw new Error(`The ${stage} stage cannot be switched off.`);
   const chosen = caps(providerId);
@@ -34,8 +38,8 @@ export function choose(lineUp: LineUp, stage: StageName, providerId: string | nu
     if (lostPartner) next[s] = defaults[s];
   }
 
-  // Phase 1 runs one host at a time: the rest follows the chosen provider.
-  if (!runOf(next).ok) for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
+  // A line-up the composer cannot run: the rest follows the chosen provider.
+  if (isRefusal(compose(next, input))) for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
 
   return { lineUp: next, moved: RUN_STAGES.filter((s) => s !== stage && next[s] !== lineUp[s]) };
 }

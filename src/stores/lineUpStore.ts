@@ -8,12 +8,14 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
-import { caps, hostDefaults, runOf } from '../lib/lineup/catalog';
+import { caps, hostDefaults } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { Selections } from '../lib/local-inference/selection/types';
+import { presentHosts } from '../lib/plan/present';
+import { soleHost } from '../lib/plan/read';
 import { guardAstCrossStage } from '../services/providers/astGuard';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
@@ -108,8 +110,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       // The provider is stored before the line-up, so a save cut short by a restart leaves an older line-up
       // beside a newer provider (as does a provider changed in an older version of the app). The provider is the
       // newer choice: a line-up it does not run is worked out again from it, as on the first start.
-      const run = runOf(value.stages);
-      if (!selected || (run.ok && run.provider === selected)) {
+      if (!selected || soleHost(value.stages) === selected) {
         set({ lineUp: value.stages, stored: true });
         return;
       }
@@ -177,20 +178,20 @@ async function chooseNow(stage: StageName, providerId: string | null): Promise<C
   const { getState: get, setState: set } = useLineUpStore;
   const { lineUp, stored } = get();
   if (useProviderStore.getState().selectionLocked || !stored || !lineUp) return null;
-  const choice = chooseIn(lineUp, stage, providerId);
-  const run = runOf(choice.lineUp);
+  const choice = chooseIn(lineUp, stage, providerId, { providers: presentHosts(), settings: (id) => useProviderStore.getState().entries[id]?.settings });
+  const host = soleHost(choice.lineUp);
   const before = useProviderStore.getState().selected;
-  const moves = run.ok && before !== run.provider;
+  const moves = host !== null && before !== host;
   set({ lineUp: choice.lineUp });
   // The provider before the save: a run starting while the line-up is being written finds the two in step.
-  if (moves) useProviderStore.getState().select(run.provider, 'pick');
+  if (moves) useProviderStore.getState().select(host, 'pick');
   if (await write(choice.lineUp)) return choice;
   // Not stored: the choice is undone, the provider with it, so what is kept stays one line-up and its provider.
   // A run that started meanwhile locks the provider: both stay what it started with until it ends.
   const undo = () => {
     if (get().lineUp !== choice.lineUp) return;
     set({ lineUp });
-    if (moves && before && useProviderStore.getState().selected === run.provider) useProviderStore.getState().select(before, 'pick');
+    if (moves && before && useProviderStore.getState().selected === host) useProviderStore.getState().select(before, 'pick');
   };
   if (!useProviderStore.getState().selectionLocked) undo();
   else {

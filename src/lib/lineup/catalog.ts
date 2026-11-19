@@ -1,10 +1,10 @@
 // src/lib/lineup/catalog.ts
 //
-// What each option can serve, who runs it and which stages go together, and which of
-// today's providers runs a line-up. Pure data and pure functions; the stores
+// What each option can serve, who runs it and which stages go together, and the
+// line-up each host runs by default. Pure data and pure functions; the stores
 // read it, nothing here reads a store.
 import { RUN_STAGES } from './types';
-import type { LineUp, ProviderCaps, RunStage, RunTarget } from './types';
+import type { LineUp, ProviderCaps, RunStage } from './types';
 
 const ALL: readonly RunStage[] = RUN_STAGES;
 const JOINT: readonly RunStage[] = ['transcription', 'translation'];
@@ -33,21 +33,6 @@ export const CAPS: readonly ProviderCaps[] = [
 
 export function caps(id: string): ProviderCaps | undefined {
   return CAPS.find((c) => c.id === id);
-}
-
-/** The provider of today's code that runs this line-up, or why none can. */
-export function runOf(lineUp: LineUp): RunTarget {
-  const used = RUN_STAGES.map((stage) => ({ stage, c: lineUp[stage] === null ? undefined : caps(lineUp[stage]!) }));
-  if (used.some(({ stage, c }) => !c || !c.stages.includes(stage))) return { ok: false, reason: 'incomplete' };
-  const host = used[0].c!.host;
-  if (used.some(({ c }) => c!.host !== host)) return { ok: false, reason: 'mixed' };
-  for (const { c } of used) {
-    const group = c!.joint;
-    if (!group) continue;
-    const usedHere = group.filter((stage) => lineUp[stage] === c!.id);
-    if (usedHere.length > 0 && usedHere.length < group.length) return { ok: false, reason: 'unbound' };
-  }
-  return { ok: true, provider: host };
 }
 
 /** The line-up a host runs when nothing finer is chosen. */

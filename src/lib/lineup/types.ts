@@ -36,5 +36,3 @@ export interface ProviderCaps {
   joint?: readonly RunStage[];
   account: 'kizuna' | 'key' | 'none';
 }
-
-export type RunTarget = { ok: true; provider: string } | { ok: false; reason: 'incomplete' | 'mixed' | 'unbound' };

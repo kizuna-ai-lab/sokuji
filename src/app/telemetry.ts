@@ -6,7 +6,7 @@
 import type { AnalyticsEvents } from '../lib/analytics';
 import { useLineUpStore } from '../stores/lineUpStore';
 import type { LineUp } from '../lib/lineup/types';
-import { runOf } from '../lib/lineup/catalog';
+import { soleHost } from '../lib/plan/read';
 import { useProviderStore } from '../stores/providerStore';
 import type { LegName } from '../lib/conversation/types';
 import { OUTLET_NAMES, resolveOutlet, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';
@@ -218,8 +218,8 @@ export function sessionEndProperties(tally: SessionTally, run: RunFacts): Pick<
 function lineUpInUse(): LineUp | null {
   const { lineUp, stored } = useLineUpStore.getState();
   if (!stored || !lineUp) return null;
-  const run = runOf(lineUp);
-  return run.ok && run.provider === useProviderStore.getState().selected ? lineUp : null;
+  const host = soleHost(lineUp);
+  return host !== null && host === useProviderStore.getState().selected ? lineUp : null;
 }
 
 export function appStartInputs(punctuationActive: boolean): StartInputs {

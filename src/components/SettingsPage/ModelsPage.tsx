@@ -18,7 +18,7 @@ import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { storedLocalStages, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
-import { runOf } from '../../lib/lineup/catalog';
+import { soleHost } from '../../lib/plan/read';
 import { MODEL_MANIFEST, deviceReady, getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../lib/local-inference/selection/candidates.wasm';
 import { resolveWasmDirection } from '../../lib/local-inference/selection/resolveWithStages';
@@ -104,8 +104,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const chosen = useProviderStore((s) => s.selected);
   const runsHere = useMemo(() => {
     if (!lineUpStored || !lineUp) return chosen === 'local_inference';
-    const run = runOf(lineUp);
-    return run.ok && run.provider === 'local_inference';
+    return soleHost(lineUp) === 'local_inference';
   }, [lineUp, lineUpStored, chosen]);
 
   const [asking, setAsking] = useState<string | null>(null);
