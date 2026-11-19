@@ -362,7 +362,11 @@ function createFileRecognizer({
         let answer = null;
         try {
           answer = await response.json();
-        } catch { /* no body */ }
+        } catch {
+          // No body is a refusal without words; a body cut short by the wait running out, or by a cancel, is that.
+          if (overdue()) throw unfinished();
+          if (cancellable && controller.signal.aborted) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
+        }
         throw Object.assign(hostedRefusal(response.status, answer, { starting, payer, token }), { status: response.status });
       }
       if (response.status === 204) return null;

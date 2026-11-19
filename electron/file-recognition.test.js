@@ -620,6 +620,32 @@ describe('through the Kizuna AI service', () => {
     expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
   });
 
+  it('a refusal whose answer never ends is not read as the refusal: SERVICE when the wait runs out, CANCELLED on a cancel', async () => {
+    // A 401 that begins its body and never ends it: read as a refusal it would say "sign in".
+    const stalled = (signal) => new Response(new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode('{"code":'));
+        signal.addEventListener('abort', () => c.error(signal.reason), { once: true });
+      },
+    }), { status: 401 });
+    const late = fakeService({ bodies: { [STATE]: stalled } });
+    const waiting = createFileRecognizer({ fetch: late.fetch, wait: instant, later: instant, hostedMaxWaitMs: 40 });
+    const error = await waiting.recognize(hostedRequest()).then(() => null, (e) => e);
+    expect(error).toMatchObject({ code: 'SERVICE' });
+    expect(error.message).toContain('did not finish the transcription');
+    await waiting.settled();
+    expect(late.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
+
+    const service = fakeService({ bodies: { [STATE]: stalled } });
+    const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant, later: instant });
+    const outcome = recognizer.recognize(hostedRequest()).then(() => 'done', (e) => e.code);
+    await vi.waitUntil(() => service.paths().includes(STATE));
+    recognizer.cancel(JOB);
+    expect(await outcome).toBe('CANCELLED');
+    await recognizer.settled();
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
+  });
+
   it('a state call that never answers is given up when the wait runs out: SERVICE, and the job ended', async () => {
     const service = fakeService({ hangs: [STATE] });
     const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant, later: instant, hostedMaxWaitMs: 40 });
