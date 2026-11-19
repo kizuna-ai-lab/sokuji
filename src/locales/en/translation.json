@@ -1486,6 +1486,7 @@
     "previewChargedToBalance": "Previewing synthesizes a short sample and is charged to your account balance.",
     "previewFailed": "Could not synthesize a preview for this voice.",
     "renameFailed": "Could not rename this voice.",
+    "recordStartFailed": "Could not start recording. Check that a microphone is connected and that Sokuji may use it.",
     "previewLanguageUnsupported": "This model has no sample sentence in a language it speaks.",
     "previewNeedsBalance": "Top up your balance to preview this voice.",
     "previewNeedsSessionStopped": "Stop the session to preview this voice.",

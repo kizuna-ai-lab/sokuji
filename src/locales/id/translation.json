@@ -1169,6 +1169,7 @@
     "previewChargedToBalance": "Pratinjau mensintesis klip pendek dan dikenakan biaya dari saldo akun Anda.",
     "previewFailed": "Tidak dapat membuat pratinjau untuk suara ini.",
     "renameFailed": "Tidak dapat mengganti nama suara ini.",
+    "recordStartFailed": "Tidak dapat mulai merekam. Pastikan mikrofon terhubung dan Sokuji diizinkan menggunakannya.",
     "previewLanguageUnsupported": "Model ini tidak memiliki kalimat contoh dalam bahasa yang dapat diucapkannya.",
     "previewNeedsBalance": "Isi ulang saldo Anda untuk mendengarkan pratinjau suara ini.",
     "previewNeedsSessionStopped": "Akhiri sesi untuk mendengarkan pratinjau suara ini.",

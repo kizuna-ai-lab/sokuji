@@ -286,9 +286,12 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         if (left <= 0) void stopRecordingRef.current?.();
       }, 250);
     } catch (err) {
+      // Same reason as handleFiles: without this a denied or missing
+      // microphone left the Record button as it was, as if nothing happened.
+      setError(t('voiceLibrary.recordStartFailed', 'Could not start recording. Check that a microphone is connected and that Sokuji may use it.'));
       console.warn('Recording failed to start:', err);
     }
-  }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
+  }, [onRecord, transcriptMissing, capability.maxClipSeconds, t]);
 
   const stopRecording = useCallback(async () => {
     clearRecTimer();

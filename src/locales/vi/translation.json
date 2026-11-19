@@ -1169,6 +1169,7 @@
     "previewChargedToBalance": "Nghe thử sẽ tổng hợp một đoạn mẫu ngắn và trừ vào số dư tài khoản của bạn.",
     "previewFailed": "Không thể tạo bản nghe thử cho giọng nói này.",
     "renameFailed": "Không thể đổi tên giọng nói này.",
+    "recordStartFailed": "Không thể bắt đầu ghi âm. Hãy kiểm tra micro đã được kết nối và Sokuji được phép dùng micro.",
     "previewLanguageUnsupported": "Mô hình này không có câu mẫu bằng ngôn ngữ mà nó có thể nói.",
     "previewNeedsBalance": "Nạp thêm số dư để nghe thử giọng nói này.",
     "previewNeedsSessionStopped": "Kết thúc phiên để nghe thử giọng nói này.",

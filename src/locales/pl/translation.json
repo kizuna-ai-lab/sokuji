@@ -1169,6 +1169,7 @@
     "previewChargedToBalance": "Odsłuchanie podglądu generuje krótką próbkę i jest rozliczane z salda Twojego konta.",
     "previewFailed": "Nie udało się wygenerować podglądu dla tego głosu.",
     "renameFailed": "Nie udało się zmienić nazwy tego głosu.",
+    "recordStartFailed": "Nie udało się rozpocząć nagrywania. Sprawdź, czy mikrofon jest podłączony i czy Sokuji ma pozwolenie na jego użycie.",
     "previewLanguageUnsupported": "Ten model nie ma przykładowego zdania w języku, którym mówi.",
     "previewNeedsBalance": "Doładuj saldo, aby odsłuchać podgląd tego głosu.",
     "previewNeedsSessionStopped": "Zakończ sesję, aby odsłuchać podgląd tego głosu.",

@@ -377,3 +377,28 @@ describe('VoiceCreateModal — closes after a successful recording', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+describe('VoiceCreateModal — a recording that cannot start', () => {
+  const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+  afterEach(() => {
+    if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+    else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+  });
+
+  // The parent's banner sits behind this modal, so a denied microphone used
+  // to leave the Record button as it was, with nothing said.
+  it('says so in the dialog when the microphone is refused', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError')) },
+    });
+    const onRecord = vi.fn();
+    render(<VoiceCreateModal {...base} capability={{ importModes: ['record'] }} onRecord={onRecord} />);
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not start recording/i);
+    expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
+    expect(onRecord).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
