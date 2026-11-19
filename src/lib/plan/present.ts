@@ -3,7 +3,9 @@
 // The providers offered here, for code the registry's own imports reach (the
 // line-up store, read by the local provider): importing the registry from there
 // would close a cycle, so the registry registers its reader here as it loads.
-// Nothing here imports the registry or a store.
+// A test that replaces the registry's `presentProviders` must also call
+// `registerPresentProviders` with its replacement, or the store and the page
+// see different lists. Nothing here imports the registry or a store.
 import type { AnyProvider } from '../provider/types';
 
 let read: (() => readonly AnyProvider[]) | null = null;

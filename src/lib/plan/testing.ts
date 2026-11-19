@@ -22,9 +22,9 @@ export const stubProvider = (id: string, over: Record<string, unknown> = {}): An
   ...over,
 }) as unknown as AnyProvider;
 
-/** A composer input that offers a stub provider for every host in the catalog, so every option is offered. */
-export function stubHosts(): ComposeInput {
-  return { providers: [...new Set(CAPS.map((c) => c.host))].map((id) => stubProvider(id)), settings: () => undefined };
+/** A composer input that offers a stub provider for every host in the catalog, so every option is offered; `over` goes to each stub. */
+export function stubHosts(over: Record<string, unknown> = {}): ComposeInput {
+  return { providers: [...new Set(CAPS.map((c) => c.host))].map((id) => stubProvider(id, over)), settings: () => undefined };
 }
 
 /** The plan of a line-up that names `p` on every stage, built without the catalog (a test's stub provider is not in it). */

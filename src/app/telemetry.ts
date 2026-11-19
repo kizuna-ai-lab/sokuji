@@ -6,7 +6,7 @@
 import type { AnalyticsEvents } from '../lib/analytics';
 import { useLineUpStore } from '../stores/lineUpStore';
 import type { LineUp } from '../lib/lineup/types';
-import { soleHost } from '../lib/plan/read';
+import { soleHost } from '../lib/lineup/catalog';
 import { useProviderStore } from '../stores/providerStore';
 import type { LegName } from '../lib/conversation/types';
 import { OUTLET_NAMES, resolveOutlet, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';

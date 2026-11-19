@@ -3,7 +3,7 @@
 // What the local provider reads from a stored line-up: whether translation
 // and speech go to Bing and Edge (providers of their own) or to a model on
 // this machine.
-import { soleHost } from '../plan/read';
+import { soleHost } from './catalog';
 import type { LineUp } from './types';
 
 export interface LocalStages { translation: 'bing' | 'local'; speech: 'edge' | 'local' }

@@ -38,8 +38,10 @@ export function choose(lineUp: LineUp, stage: StageName, providerId: string | nu
     if (lostPartner) next[s] = defaults[s];
   }
 
-  // A line-up the composer cannot run: the rest follows the chosen provider.
-  if (isRefusal(compose(next, input))) for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
+  // A line-up the composer cannot run: the rest follows the chosen provider. A refusal for a provider this build
+  // does not offer moves nothing: which providers are offered never moves a stage (the page lists only those).
+  const plan = compose(next, input);
+  if (isRefusal(plan) && plan.refused !== 'lineup_not_offered') for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
 
   return { lineUp: next, moved: RUN_STAGES.filter((s) => s !== stage && next[s] !== lineUp[s]) };
 }

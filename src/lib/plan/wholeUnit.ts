@@ -3,20 +3,17 @@
 // A provider seen as one unit: it serves every stage together, as it does
 // today. Pure functions over the provider definition.
 import { RUN_STAGES } from '../lineup/types';
-import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
+import { sameStages } from './types';
 import type { UnitDefinition } from './types';
-
-const sameStages = (want: ReadonlySet<RunStage>, stages: readonly RunStage[]): boolean =>
-  want.size === stages.length && stages.every(st => want.has(st));
 
 /** The unit that is the whole provider: all three stages, or recognition and translation when it need not speak. */
 export function wholeUnit(p: AnyProvider): UnitDefinition {
   return {
     id: 'whole',
     occupies: (_s, want) => {
-      if (sameStages(want, RUN_STAGES)) return RUN_STAGES;
-      if (p.speech !== 'always' && sameStages(want, ['transcription', 'translation'])) return ['transcription', 'translation'];
+      if (sameStages(RUN_STAGES, want)) return RUN_STAGES;
+      if (p.speech !== 'always' && sameStages(['transcription', 'translation'], want)) return ['transcription', 'translation'];
       return null;
     },
     capabilities: s => ({

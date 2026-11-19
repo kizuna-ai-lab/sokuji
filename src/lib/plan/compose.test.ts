@@ -66,8 +66,14 @@ describe('compose', () => {
     expect(plan.byStage.speech.unit).toBe(whole);
   });
 
-  it('runs exactly the line-ups the old rule ran, on the same provider', () => {
-    const allPresent = stubHosts();
+  it('does not take a unit whose answer repeats a stage: it holds fewer stages than were asked', () => {
+    const repeats = { id: 'repeats', occupies: () => ['transcription', 'transcription', 'speech'] };
+    expect(compose(all('soniox'), { providers: [stubProvider('soniox', { units: [repeats] })], settings: () => undefined }))
+      .toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
+  });
+
+  it.each(['optional', 'always'] as const)('runs exactly the line-ups the old rule ran, on the same provider, with every provider\'s speech %s', (speech) => {
+    const allPresent = stubHosts({ speech });
     for (const t of CAPS) for (const tl of CAPS) for (const s of CAPS) {
       const l = { transcription: t.id, translation: tl.id, speech: s.id };
       const got = compose(l, allPresent);

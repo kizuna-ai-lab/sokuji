@@ -18,7 +18,7 @@ import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { storedLocalStages, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
-import { soleHost } from '../../lib/plan/read';
+import { soleHost } from '../../lib/lineup/catalog';
 import { MODEL_MANIFEST, deviceReady, getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../lib/local-inference/selection/candidates.wasm';
 import { resolveWasmDirection } from '../../lib/local-inference/selection/resolveWithStages';

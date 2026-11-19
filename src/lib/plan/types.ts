@@ -2,7 +2,8 @@
 //
 // The unit and the run plan under every session: a unit is one piece of a
 // provider that serves some of the run stages; a plan says which unit serves
-// each stage. Types only; the composer that builds a plan lives elsewhere.
+// each stage. Types and two small checks on them; the composer that builds a
+// plan lives elsewhere.
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider, ProviderRefusal, SharedSettings } from '../provider/types';
@@ -20,7 +21,10 @@ export interface UnitCapabilities {
   participantSpeech: boolean;
 }
 
-/** One piece of a provider that serves some stages of a run. */
+/**
+ * One piece of a provider that serves some stages of a run.
+ * `any` by default: units of different providers are held together, so their settings, key and config types are erased, as `AnyProvider` does.
+ */
 export interface UnitDefinition<S = any, K = any, C = any> {
   /** 'whole' in step 1. */
   id: string;
@@ -48,3 +52,8 @@ export type PlanRefusalCode = 'lineup_incomplete' | 'lineup_not_offered' | 'line
 export interface PlanRefusal { refused: PlanRefusalCode; stage: RunStage; provider?: string }
 
 export const isRefusal = (p: RunPlan | PlanRefusal): p is PlanRefusal => 'refused' in p;
+
+/** Whether a list of stages holds exactly the stages of a set, each once: a list that repeats a stage does not. */
+export function sameStages(a: readonly RunStage[], b: ReadonlySet<RunStage>): boolean {
+  return a.length === b.size && new Set(a).size === a.length && a.every((stage) => b.has(stage));
+}

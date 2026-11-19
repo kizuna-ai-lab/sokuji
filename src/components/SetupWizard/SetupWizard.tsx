@@ -22,7 +22,7 @@ import type { SetupDraft } from './setupDraft';
 import { useApplySetup } from './useApplySetup';
 import { lineUpOf, offersRecord, pathOf, providerFits } from './providerPaths';
 import { useLineUpStore } from '../../stores/lineUpStore';
-import { soleHost } from '../../lib/plan/read';
+import { soleHost } from '../../lib/lineup/catalog';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import type { ProviderType } from '../../types/Provider';
 import StepLanguage from './steps/StepLanguage';

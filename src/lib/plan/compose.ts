@@ -2,10 +2,11 @@
 //
 // The composer: turns a line-up into the plan that runs it, or the first
 // reason it cannot run. Pure; nothing here connects or reads a store.
-import { caps } from '../lineup/catalog';
+import { optionFor } from '../lineup/catalog';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, ProviderCaps, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
+import { sameStages } from './types';
 import type { PlannedUnit, PlanRefusal, RunPlan } from './types';
 import { unitsOf } from './wholeUnit';
 
@@ -16,9 +17,6 @@ export interface ComposeInput {
   /** A provider's settings; undefined while its entry has not loaded. */
   settings(providerId: string): unknown;
 }
-
-const isExactly = (want: ReadonlySet<RunStage>, got: readonly RunStage[] | null): got is readonly RunStage[] =>
-  got !== null && got.length === want.size && got.every((st) => want.has(st));
 
 /**
  * Why no unit of a host serves the stages it is asked for: an option there whose joint stages
@@ -38,9 +36,8 @@ function noUnit(asked: readonly RunStage[], options: Readonly<Record<RunStage, P
 export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): RunPlan | PlanRefusal {
   const options = {} as Record<RunStage, ProviderCaps>;
   for (const stage of RUN_STAGES) {
-    const id = lineUp[stage];
-    const option = id === null ? undefined : caps(id);
-    if (!option || !option.stages.includes(stage)) return { refused: 'lineup_incomplete', stage };
+    const option = optionFor(lineUp, stage);
+    if (!option) return { refused: 'lineup_incomplete', stage };
     options[stage] = option;
   }
 
@@ -68,7 +65,7 @@ export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): Ru
     let planned: PlannedUnit | undefined;
     for (const unit of unitsOf(provider)) {
       const got = unit.occupies(s, want);
-      if (isExactly(want, got)) {
+      if (got !== null && sameStages(got, want)) {
         planned = { provider, unit, stages: got };
         break;
       }

@@ -1,8 +1,9 @@
 // src/lib/lineup/catalog.ts
 //
-// What each option can serve, who runs it and which stages go together, and the
-// line-up each host runs by default. Pure data and pure functions; the stores
-// read it, nothing here reads a store.
+// What each option can serve, who runs it and which stages go together, the
+// line-up each host runs by default, and the one host a line-up runs on by
+// this data alone. Pure data and pure functions; the stores read it, nothing
+// here reads a store.
 import { RUN_STAGES } from './types';
 import type { LineUp, ProviderCaps, RunStage } from './types';
 
@@ -33,6 +34,27 @@ export const CAPS: readonly ProviderCaps[] = [
 
 export function caps(id: string): ProviderCaps | undefined {
   return CAPS.find((c) => c.id === id);
+}
+
+/** The option a line-up names for a stage, when it is known and serves that stage; undefined otherwise (unset, unknown, or not for that stage). */
+export function optionFor(lineUp: Pick<LineUp, RunStage>, stage: RunStage): ProviderCaps | undefined {
+  const id = lineUp[stage];
+  const option = id === null ? undefined : caps(id);
+  return option?.stages.includes(stage) ? option : undefined;
+}
+
+/**
+ * The host that runs this line-up by the catalog alone, for code that has no providers at hand: every run stage
+ * names an option that serves it, and all three share one host. Null otherwise.
+ */
+export function soleHost(lineUp: Pick<LineUp, RunStage>): string | null {
+  let host: string | null = null;
+  for (const stage of RUN_STAGES) {
+    const option = optionFor(lineUp, stage);
+    if (!option || (host !== null && option.host !== host)) return null;
+    host = option.host;
+  }
+  return host;
 }
 
 /** The line-up a host runs when nothing finer is chosen. */

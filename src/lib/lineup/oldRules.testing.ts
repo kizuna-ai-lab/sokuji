@@ -1,9 +1,9 @@
 // src/lib/lineup/oldRules.testing.ts
 //
-// The line-up rules from before the composer, frozen: which one provider ran a
-// line-up, and what a choice moved. Copied verbatim from `catalog.ts` and
-// `choose.ts` before their removal, so the tests can hold the composer's answers
-// to them. Imported by tests only.
+// The line-up rules as they were before the composer: which one provider ran a
+// line-up (`oldRunOf`) and what a choice moved (`oldChoose`). They read today's
+// catalog data (`caps`, `hostDefaults`), so a test that holds the composer to
+// them pins the rule, not the catalog's data. Imported by tests only.
 import { caps, hostDefaults } from './catalog';
 import type { Choice } from './choose';
 import { RUN_STAGES } from './types';
@@ -47,7 +47,7 @@ export function oldChoose(lineUp: LineUp, stage: StageName, providerId: string |
     if (lostPartner) next[s] = defaults[s];
   }
 
-  // Phase 1 runs one host at a time: the rest follows the chosen provider.
+  // The old rule ran one host at a time: the rest follows the chosen provider.
   if (!oldRunOf(next).ok) for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
 
   return { lineUp: next, moved: RUN_STAGES.filter((s) => s !== stage && next[s] !== lineUp[s]) };

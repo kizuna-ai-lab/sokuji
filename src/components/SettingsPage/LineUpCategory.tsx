@@ -62,6 +62,12 @@ const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', tr
 import { stageInSentence } from '../../lib/lineup/stageWords';
 export { stageInSentence };
 
+/** The stages `id` carries over one connection together with `stage`, when that is more than `stage` alone. */
+function jointOf(id: string, stage: RunStage): readonly RunStage[] | undefined {
+  const joint = caps(id)?.joint;
+  return joint && joint.length > 1 && joint.includes(stage) ? joint : undefined;
+}
+
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
 function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key' | 'sign-in' | null {
   if (!p) return null;
@@ -176,8 +182,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const choice = await useLineUpStore.getState().choose(stage, id);
     if (!choice || !before) return;
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
-    // The stages the chosen provider binds are said by the joint line; say only what else moved (owner, 2026-11-15).
-    const group = caps(id)?.joint?.includes(stage) ? caps(id)!.joint! : [stage];
+    // The stages the chosen provider holds jointly are said by the joint line; say only what else moved (owner, 2026-11-15).
+    const group = jointOf(id, stage) ?? [stage];
     const extra = choice.moved.filter((s) => !group.includes(s as RunStage));
     if (!extra.length) { setMoved(null); return; }
     const names = extra.map((s, i) => (i === 0 ? t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage]) : stageName(s)));
@@ -192,12 +198,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (target) navigateToSettings(null);
   };
 
-  // Each card's options (mock v19): the provider family serving the card's stage (Bing and Edge belong to this
-  // device's), and the stages that family serves; Bing has no options.
-  const familyOf = (id: string) => caps(id)?.host ?? id;
+  // Each card's options (mock v19): the host serving the card's stage (Bing and Edge run on this device's
+  // provider), and the stages that host serves; Bing has no options.
+  const hostOf = (id: string) => caps(id)?.host ?? id;
   const ownerOf = (stage: RunStage): string | null => {
     const id = lineUp?.[stage];
-    return !id || id === 'bing' ? null : familyOf(id);
+    return !id || id === 'bing' ? null : hostOf(id);
   };
   const servedBy = (owner: string) => RUN_STAGES.filter((s) => ownerOf(s) === owner);
   const optionsOf = (stage: RunStage) => {
@@ -276,12 +282,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     );
   };
 
-  /** The line-up's cards: one per stage, but the stages one provider binds, next to each other, in one (owner, 2026-11-17). */
+  /** The line-up's cards: one per stage, but the stages one provider holds jointly, next to each other, in one (owner, 2026-11-17). */
   const cards: RunStage[][] = [];
   for (let i = 0; i < RUN_STAGES.length; ) {
     const stage = RUN_STAGES[i];
     const id = lineUp?.[stage] ?? '';
-    const group = caps(id)?.joint?.includes(stage) && caps(id)!.joint!.length > 1 ? caps(id)!.joint : undefined;
+    const group = jointOf(id, stage);
     let j = i + 1;
     while (group && j < RUN_STAGES.length && group.includes(RUN_STAGES[j]) && (lineUp?.[RUN_STAGES[j]] ?? '') === id) j += 1;
     cards.push(RUN_STAGES.slice(i, j) as RunStage[]);
@@ -292,7 +298,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
    *  that provider's row in Accounts and keys. */
   const stateOf = (id: string): { ok: boolean; text: string; toAccount?: boolean } => {
     const p = providers.find((x) => x.id === id) ?? (caps(id)?.host === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
-    // Bing and Edge are online services of the local family: no key and no model.
+    // Bing and Edge are online services the local provider runs: no key and no model.
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
@@ -403,8 +409,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         {cards.map((stages) => {
           const first = stages[0];
           const id = lineUp?.[first] ?? '';
-          const group = caps(id)?.joint?.includes(first) && caps(id)!.joint!.length > 1 ? caps(id)!.joint : undefined;
-          // Partners the card does not hold (bound, but not next to it): named under the choice, as before.
+          const group = jointOf(id, first);
+          // Partners the card does not hold (joint, but not next to it): named under the choice.
           const partners = group?.filter((s) => !stages.includes(s as RunStage)) ?? [];
           const joint = stages.length > 1;
           const titleOf = (stage: RunStage) => t(`settingsPage.lineup.stages.${stage}`, STAGE_TITLES[stage]);
@@ -488,7 +494,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           );
           return (
             // A card per stage (the mock's): its name and state on one line, the choice under them. The stages one
-            // provider binds over one connection share one card (owner, 2026-11-17): the line saying so and the one
+            // provider carries over one connection share one card (owner, 2026-11-17): the line saying so and the one
             // choice on top, then a part per stage, each with its name and state and its own options under them (the
             // options are not merged). Stages that merely use the same provider keep their own cards.
             <div className={`lineup-stage${joint || partners.length > 0 ? ' is-joint' : ''}`} key={stages.join('+')}>
