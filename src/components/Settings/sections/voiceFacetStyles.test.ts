@@ -106,4 +106,17 @@ describe('voice create/delete modal styling', () => {
   ])('styles .%s where the element lives', (cls) => {
     expect(createModalCss).toMatch(styled(cls));
   });
+
+  // The dialog's own failure line is smaller than the shared
+  // `.voice-capture-error`. The override exists only as a two-class selector
+  // (the shared rule lives in another stylesheet), so a typo in either half
+  // would silently leave the message at the shared size; jsdom has no layout
+  // to show that.
+  it('sizes the create dialog failure line apart from the shared error style', () => {
+    const rule = createModalCss.match(
+      /\.voice-capture-error\.voice-create-modal__error\s*\{([^}]*)\}/,
+    );
+    expect(rule?.[1]).toMatch(/font-size:\s*11px/);
+    expect(rule?.[1]).toMatch(/line-height:\s*16px/);
+  });
 });

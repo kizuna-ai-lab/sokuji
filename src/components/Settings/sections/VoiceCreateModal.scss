@@ -181,6 +181,17 @@
   &.is-dragging { color: vars.$color-primary; }
 }
 
+// The shared `.voice-capture-error` is 12px, the size of the note below it;
+// here a failure wraps to two red lines between the muted drop hint and that
+// note, and at 12px it outweighed both. Both steps of the dialog use it (the
+// review step renders its own failure line). Two classes on purpose: the
+// shared rule comes from another stylesheet, so this must not depend on load
+// order.
+.voice-capture-error.voice-create-modal__error {
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .voice-create-modal__note {
   font-size: vars.$font-caption;
   color: vars.$text-muted;

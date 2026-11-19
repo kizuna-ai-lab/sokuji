@@ -243,7 +243,8 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
         <span>{t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}</span>
       </label>
       {error && (
-        <div className="voice-capture-error" role="alert">{error}</div>
+        // The dialog's smaller failure size, as on its first step.
+        <div className="voice-capture-error voice-create-modal__error" role="alert">{error}</div>
       )}
       <div className="voice-review__actions">
         <button

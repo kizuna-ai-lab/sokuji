@@ -520,7 +520,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
 
             {/* Above the note, not below it: this is the thing the user needs to
                 read after an action failed, and the note is standing advice. */}
-            {error && <div className="voice-capture-error" role="alert">{error}</div>}
+            {error && <div className="voice-capture-error voice-create-modal__error" role="alert">{error}</div>}
 
             {note && <div className="voice-create-modal__note">{note}</div>}
             </>

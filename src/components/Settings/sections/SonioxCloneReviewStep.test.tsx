@@ -52,3 +52,14 @@ describe('SonioxCloneReviewStep: the sample language', () => {
     expect(screen.getByRole('combobox')).toBeDisabled();
   });
 });
+
+describe('SonioxCloneReviewStep: a failure', () => {
+  // Same size as the failure line on the dialog's first step; the class is
+  // what that size hangs on.
+  it("shows it at the add-voice dialog's failure size", () => {
+    render(<SonioxCloneReviewStep {...base} error="Cloning failed." />);
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Cloning failed.');
+    expect(alert).toHaveClass('voice-capture-error', 'voice-create-modal__error');
+  });
+});
