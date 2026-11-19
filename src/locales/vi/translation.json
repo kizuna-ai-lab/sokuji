@@ -1377,7 +1377,7 @@
     "paths": {
       "recommended": "Nên dùng",
       "pickProvider": "Nhà cung cấp nào?",
-      "offlineFlavor": "Dùng bộ máy nào?",
+      "offlineFlavor": "Dùng công cụ nào?",
       "managed": {
         "title": "Bắt đầu ngay",
         "desc": "Kizuna AI xử lý việc dịch cho bạn.",
@@ -1396,8 +1396,8 @@
         "title": "Không cần khóa",
         "desc": "Miễn phí. Nhận dạng giọng nói chạy ngay trên máy này; phần dịch dùng Bing và giọng đọc dùng Edge (dịch vụ online của Microsoft).",
         "cost": "Cần tải mô hình nhận dạng về máy trước. Chạy tốt nếu có GPU; chỉ có CPU thì chậm hơn nhiều.",
-        "native": "Bộ máy Native — nhanh hơn, dùng GPU nếu máy có.",
-        "wasm": "Bộ máy chạy trong ứng dụng — chạy được ở mọi nơi nhưng chậm hơn."
+        "native": "Công cụ Native — nhanh hơn, dùng GPU nếu máy có.",
+        "wasm": "Công cụ chạy trong ứng dụng — chạy được ở mọi nơi nhưng chậm hơn."
       },
       "ownKeyNote": "Chọn nhà cung cấp bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
       "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp",
