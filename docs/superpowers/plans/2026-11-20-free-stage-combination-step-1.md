@@ -479,6 +479,8 @@ Rule for a file not listed that reads the selected provider (`git grep -n "useSe
 
 ### Task D1: conversations, History, export and telemetry carry `stages`
 
+> **Built with two differences**, see "Decisions made while Part D was built": telemetry did not change, and the shape's `lineUp` is `StageIds`.
+
 **Files:**
 - Modify: `src/lib/session/run.ts:343` (`host.conversations`), the `ConversationInfo` type, `src/lib/history/capture/{writer.ts:227-250,facts.ts:39}`, `src/lib/export/exporter.ts:77-87,125`, `src/app/telemetry.ts:144-152,218-223`, `src/lib/analytics.ts` (event types)
 - Test: the existing tests beside each
@@ -540,6 +542,17 @@ They replace the text of Tasks A3 and A4 where the two differ; Parts B to D buil
 - **The readiness driver** takes `plan()` and keeps its state per provider; the app passes `readinessPlan()` (`src/app/session.ts`). Start needs every provider of the plan ready; a provider whose readiness is still unknown does not block Start, as today: the run checks it when it starts.
 - **Notice targets did not change.** `credentials_missing` and `sign_in_required` keep the target `'provider'` and carry no provider id: the only target that names a provider also scrolls to and highlights its row, a visible change. The per-provider target belongs to step 2.
 - **The `providers` prop** of `useSelectedProvider` and `ProviderLanguages` must be the offered list: the provider shown comes from the plan and is looked up in it.
+
+---
+
+## Decisions made while Part D was built
+
+- **Which ids a record names.** `stageIdsFor(lineUp, stored, providerId)` (`src/lib/lineup/catalog.ts`): the stored line-up's ids when a line-up is stored and its sole host is the provider that runs; otherwise that provider's id on all three stages. While the selection runs the session, a line-up that is not stored, or not what runs, is not evidence of what ran. The cost: a local run started before a line-up is stored records `local_inference` for translation and speech even where Bing or Edge served (`services.models` still names what ran). Step 2 must not read `stages` on a local record of this step as proof that local models served.
+- **Frozen at start.** `RunShape.lineUp` is a `StageIds` (no null), set once by `readShapeFromStores`; the conversation's info and the History record are written from it, never from the store.
+- **Telemetry did not change.** `translation_session_start.stages` is still left out when the line-up is not stored or is not what runs: two existing tests pin it, and the reason the plan gave for sending it always ("can no longer happen") does not hold while Tasks C4 and C5 wait for step 2.
+- **Three existing expectations gained the `stages` key and nothing else** (`runner.test.ts`, `writer.test.ts`, `conversationSet.test.ts`): they compared a whole object that this task adds a field to.
+- **Reading a record.** `recordStages(services)` (`src/lib/history/services.ts`) is the one reader of a stored `stages`; an absent value reads as all three by `provider`. Its only caller today feeds the exporter, which does not print it: the field is recorded now and shown by step 2. The History store keeps `services` as written and checks only `provider` and `models`; an older version of the app ignores the field.
+- **For step 2:** the rule "stored and the sole host is the provider that runs" lives in three places (`stageIdsFor`, `lineUpInUse` in `src/app/telemetry.ts`, `localStagesOf`): change them together. The local provider reads the line-up store when it builds, not the frozen shape; it should read `shape.lineUp`.
 
 ---
 
