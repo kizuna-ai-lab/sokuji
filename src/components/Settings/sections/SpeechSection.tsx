@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useAnalytics } from '../../../lib/analytics';
+import { useStageUnit } from '../../../lib/plan/fromStores';
 import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
 import { useProviderStore } from '../../../stores/providerStore';
@@ -47,9 +48,10 @@ export function TurnModeControl({ locked, title }: { locked: boolean; title?: st
 }
 
 /**
- * The selected provider's own tuning of automatic turn detection (its
- * `TurnDetection`, D18: settings belong to the provider), under Auto only —
- * push-to-talk and push-to-translate detect nothing. The Summary is one line,
+ * The tuning of automatic turn detection of the provider whose unit
+ * transcribes (its own `TurnDetection`, D18: settings belong to the
+ * provider), under Auto only — push-to-talk and push-to-translate detect
+ * nothing. The Summary is one line,
  * a link; the Controls are a block of their own among the provider's options
  * (`ProviderTurnDetectionControls`), never drawn here. The link is the
  * settings deep link (`navigateToSettings`, target `'turn-detection-tuning'`),
@@ -70,10 +72,12 @@ function ProviderTurnDetection({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const providers = useMemo(() => presentProviders(), []);
-  const selection = useSelectedProvider(providers);
+  // The transcription unit's provider, with its entry; until the plan is ready, the hook's own (it loads the entry).
+  const transcription = useStageUnit('transcription');
+  const selection = useSelectedProvider(providers, transcription?.provider.id);
   const navigateToSettings = useNavigateToSettings();
 
-  if (turnMode !== 'auto' || !selection?.entry) return null;
+  if (turnMode !== 'auto' || !transcription || !selection?.entry) return null;
   const tuning = selection.provider.TurnDetection;
   if (!tuning) return null;
   const { Summary, Help } = tuning;

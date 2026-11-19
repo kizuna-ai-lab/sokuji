@@ -75,10 +75,10 @@ vi.mock('../../../lib/view/appViewSettings', () => ({
   offerFor: () => mockOffer,
 }));
 
-// The re-render selector only; its shape is irrelevant here since the offer
+// The re-render subscription only; its shape is irrelevant here since the offer
 // itself comes straight from the mock above.
-vi.mock('../../../stores/providerStore', () => ({
-  useProviderStore: () => undefined,
+vi.mock('../../../lib/plan/fromStores', () => ({
+  useStageUnit: () => null,
 }));
 
 // The real store never reaches the disk here: its four actions are replaced

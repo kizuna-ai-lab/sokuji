@@ -13,7 +13,7 @@ import {
   useSegmentationTranslationPause,
   useSetSegmentationTranslationPause,
 } from '../../../stores/settingsStore';
-import { useProviderStore } from '../../../stores/providerStore';
+import { useStageUnit } from '../../../lib/plan/fromStores';
 import { offerFor, selectedBoundaries } from '../../../lib/view/appViewSettings';
 import {
   MAX_SEGMENT_PAUSE_SECONDS,
@@ -79,13 +79,13 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { trackEvent } = useAnalytics();
 
-  // What this provider offers, and therefore what the stored mode and size
-  // mean here. `offerFor`/`selectedBoundaries` read the provider store
+  // What the transcription unit offers, and therefore what the stored mode
+  // and size mean here. `offerFor`/`selectedBoundaries` read the plan
   // directly (appViewSettings.ts), so this component only needs a
-  // subscription to force a re-render when the selected provider or its
-  // entry changes — the offer itself is not read from the selector.
-  const selectedEntry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
-  const offer = useMemo(() => offerFor(selectedBoundaries()), [selectedEntry]);
+  // subscription to force a re-render when that unit's provider or its
+  // settings change — the offer itself is not read from the subscription.
+  const transcription = useStageUnit('transcription');
+  const offer = useMemo(() => offerFor(selectedBoundaries()), [transcription?.provider.id, transcription?.settings]);
 
   const mode = resolveSegmentationMode(storedMode, offer);
   const size = resolveSegmentationSize(storedSize, offer);

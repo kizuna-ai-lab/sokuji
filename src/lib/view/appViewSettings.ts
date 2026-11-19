@@ -1,14 +1,15 @@
 /**
  * The stored segmentation choice as the projection's cut (spec:
- * "Segmentation is one fact"): the cut resolves through the running
- * provider's `boundaries(s)`, via the same per-provider clamp the Settings
+ * "Segmentation is one fact"): the cut resolves through the `boundaries` of
+ * the plan's transcription unit, via the same per-provider clamp the Settings
  * section will use (`resolveSegmentationMode` / `resolveSegmentationSize`):
  * pause is the user's choice where the provider's boundaries come from our
  * silence timers (`boundaries(s) === 'silence'`), Auto is kept where the
  * provider decides (`'provider'`), and sentences survive everywhere. The
  * only module under `src/lib/view` that reads a store.
  */
-import { getProvider } from '../../providers/registry';
+import { planFromStores } from '../plan/fromStores';
+import { capabilitiesOf } from '../plan/read';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { DEFAULT_PAIRING } from '../projection/pair';
@@ -58,15 +59,13 @@ export function projectionFrom(s: StoredSegmentation, boundaries: 'provider' | '
   };
 }
 
-/** The selected provider's `boundaries(s)`; `'provider'` when none is selected or it has not loaded — nothing here for the cut to time itself against. */
+/** The `boundaries` of the plan's transcription unit; `'provider'` until the plan is ready — nothing here for the cut to time itself against. */
 export function selectedBoundaries(): 'provider' | 'silence' {
-  const { selected, entries } = useProviderStore.getState();
-  const provider = selected ? getProvider(selected) : undefined;
-  const entry = selected ? entries[selected] : undefined;
-  return provider && entry ? provider.boundaries(entry.settings) : 'provider';
+  const found = planFromStores();
+  return found.state === 'ready' ? capabilitiesOf(found, 'transcription').boundaries : 'provider';
 }
 
-/** The app's cut, live from the settings store and the selected provider: the same object until one of the inputs changes. */
+/** The app's cut, live from the settings store and the plan's transcription unit: the same object until one of the inputs changes. */
 export function appProjectionSettings(): Readable<ProjectionSettings> {
   let key = '';
   let cached: ProjectionSettings | null = null;

@@ -9,7 +9,7 @@ import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { planFromStores } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, transcriptionProvider, unitFor } from '../plan/read';
 import type { UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -41,38 +41,47 @@ export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEn
 /** The providers that take a capture area: Qwen, with your own key and managed; they share one settings shape. */
 const SCREEN_CONTEXT_PROVIDERS: ReadonlySet<string> = new Set(['qwen_livetranslate', 'kizunaai_qwen']);
 
-/**
- * The selected provider is a Qwen provider with its Screen context switch on
- * (spec 2026-10-22 §3.1): the provider a start would run, as
- * `selectedFromStores` finds it, so a Qwen slice under another provider, or
- * where Qwen is not offered, wants nothing.
- */
-export function screenContextWanted(): boolean {
-  const selected = selectedFromStores();
-  if (!selected || !SCREEN_CONTEXT_PROVIDERS.has(selected.provider.id)) return false;
-  return (selected.entry.settings as { screenContext?: unknown }).screenContext === true;
+/** The provider whose unit transcribes in the plan as the stores stand, and its settings; null until the plan is ready. */
+function transcriptionFromStores(): { provider: AnyProvider; settings: unknown } | null {
+  const found = planFromStores();
+  if (found.state !== 'ready') return null;
+  const { provider } = unitFor(found.plan, 'transcription');
+  return { provider, settings: found.accounts[provider.id].settings };
 }
 
 /**
- * Start without screen context, chosen in the Start-time picker (owner, 2026-10-22, ruling 3): the selected Qwen
- * provider's switch written off, so the setting and the run agree; turning it on again asks again. Nothing under
+ * The provider whose unit transcribes is a Qwen provider with its Screen
+ * context switch on (spec 2026-10-22 §3.1): in the plan a start would run, as
+ * `planFromStores` finds it, so a Qwen slice under another provider, or
+ * where Qwen is not offered, wants nothing.
+ */
+export function screenContextWanted(): boolean {
+  const transcription = transcriptionFromStores();
+  if (!transcription || !SCREEN_CONTEXT_PROVIDERS.has(transcription.provider.id)) return false;
+  return (transcription.settings as { screenContext?: unknown }).screenContext === true;
+}
+
+/**
+ * Start without screen context, chosen in the Start-time picker (owner, 2026-10-22, ruling 3): the transcribing
+ * Qwen provider's switch written off, so the setting and the run agree; turning it on again asks again. Nothing under
  * another provider.
  */
 export function turnScreenContextOff(): void {
-  const selected = selectedFromStores();
-  if (!selected || !SCREEN_CONTEXT_PROVIDERS.has(selected.provider.id)) return;
-  useProviderStore.getState().updateSettings(selected.provider, { screenContext: false });
+  const transcription = transcriptionFromStores();
+  if (!transcription || !SCREEN_CONTEXT_PROVIDERS.has(transcription.provider.id)) return;
+  useProviderStore.getState().updateSettings(transcription.provider, { screenContext: false });
 }
 
 /**
  * Face-to-face (spec 2026-10-08, slice 3): Both, the other side beside me,
- * under a provider that offers it. The one predicate the run's shape, the
- * capture, the routing and every surface read, so they never disagree; a
- * stored "beside me" under a provider without it is ordinary Both.
+ * under a transcription unit that offers it. The one predicate the run's
+ * shape, the capture, the routing and every surface read, so they never
+ * disagree; a stored "beside me" under a unit without it is ordinary Both.
  */
 export function faceToFaceFromStores(): boolean {
   const { mode, otherSide } = useAudioStore.getState();
-  return isFaceToFace(selectedFromStores()?.provider, mode, otherSide);
+  const found = planFromStores();
+  return isFaceToFace(found.state === 'ready' ? capabilitiesOf(found, 'transcription') : undefined, mode, otherSide);
 }
 
 /** `faceToFaceFromStores`' rule over given values, for a surface that subscribes to them. */
