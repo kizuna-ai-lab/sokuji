@@ -2126,6 +2126,7 @@
       "blockedSession": "Tillgängligt när ingen session pågår.",
       "blockedBusy": "En annan import eller transkribering pågår.",
       "blockedNoRecording": "Den här posten har ingen sparad inspelning.",
+      "blockedTranscribing": "Tillgängligt när posten inte transkriberas.",
       "phase": {
         "reading": "Läser filen",
         "decoding": "Avkodar ljudet",

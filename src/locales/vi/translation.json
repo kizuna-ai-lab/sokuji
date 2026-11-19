@@ -2126,6 +2126,7 @@
       "blockedSession": "Dùng được khi không có phiên nào đang chạy.",
       "blockedBusy": "Một lần nhập hoặc chép lời khác đang chạy.",
       "blockedNoRecording": "Bản ghi này không giữ bản ghi âm.",
+      "blockedTranscribing": "Dùng được khi bản ghi này không đang được chép lời.",
       "phase": {
         "reading": "Đang đọc tệp",
         "decoding": "Đang giải mã âm thanh",

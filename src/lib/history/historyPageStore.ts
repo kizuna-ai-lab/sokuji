@@ -277,6 +277,15 @@ export function createHistoryPageStore(
   };
   const setJobPhase = (phase: ImportPhase) => changeJob({ phase });
   /**
+   * The record a transcription is reading now. Its recording is not deleted under it, nor is the record moved to the
+   * bin (from where it could be deleted for good): a recording gone before its upload began quits the app (the upload's
+   * read of the file fails where nothing can catch it).
+   */
+  const beingTranscribed = (): string | null => {
+    const job = jobs.getState().job;
+    return job?.kind === 'transcribe' ? job.recordId : null;
+  };
+  /**
    * A job through Kizuna AI has ended here, however it ended: the account is read again through the file jobs, as after
    * a refused session start. After a cancel this can run before the service has ended the job, so the balance read may
    * still count what the job held.
@@ -418,9 +427,11 @@ export function createHistoryPageStore(
       clearSelection: () => set({ selected: new Set() }),
 
       binSelected: () => act(async () => {
-        // A record still being written stays out of the bin until its session ends.
+        // A record still being written stays out of the bin until its session ends, one being transcribed until its
+        // transcription ends.
         const open = new Set(get().rows.filter((r) => r.state === 'open').map((r) => r.id));
-        const ids = [...get().selected].filter((id) => !open.has(id));
+        const reading = beingTranscribed();
+        const ids = [...get().selected].filter((id) => !open.has(id) && id !== reading);
         if (ids.length > 0) await port.binRecords({ ids });
         set({ selected: new Set() });
         await reload();
@@ -429,7 +440,7 @@ export function createHistoryPageStore(
       binRecord: (id) => act(async () => {
         const open = get().open;
         const record = open?.record.id === id ? open.record : get().rows.find((r) => r.id === id);
-        if (!record || record.state === 'open') return;
+        if (!record || record.state === 'open' || id === beingTranscribed()) return;
         await port.binRecords({ ids: [id] });
         // Closed like any closing: a read of it still on its way is not shown.
         if (get().open?.record.id === id) get().closeRecord();
@@ -469,7 +480,7 @@ export function createHistoryPageStore(
 
       dropRecording: () => act(async () => {
         const open = get().open;
-        if (!open) return;
+        if (!open || open.record.id === beingTranscribed()) return;
         for (const t of open.record.tracks) {
           if (t.goneAt === null) await port.dropTrack({ recordId: open.record.id, source: t.source });
         }
