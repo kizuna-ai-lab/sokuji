@@ -13,7 +13,7 @@
  *    kills detection, because it demands the user stay silent for the whole
  *    window. Hence the vote histogram: short windows, agreement over time.
  *
- * Run: npx vitest run src/lib/modern-audio/__spike__/echoDetector.spike.test.ts
+ * Run (after removing `.skip`): npx vitest run src/lib/modern-audio/echoDetector.sweep.test.ts
  */
 import { describe, it, expect } from 'vitest';
 import {
