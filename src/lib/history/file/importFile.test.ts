@@ -175,6 +175,25 @@ describe('importing a file', () => {
     }
   });
 
+  // Through Kizuna AI, the service's own limit, before anything is decoded or stored.
+  it('refuses a file longer than Kizuna AI takes, before decoding it, and keeps nothing', async () => {
+    const terms = { usdPerHour: 0.2, translatedUsdPerHour: 0.32, maxAudioMs: 14_400_000, maxBytes: 100_663_296, maxBytesPerMs: 8, bytesSlack: 65_536 };
+    const { port, calls } = fakePort();
+    const decode = vi.fn(async () => decoded(3));
+    const error = await importFile(base(port, { decode, hostedTerms: terms, readDuration: async () => terms.maxAudioMs + 1 })).catch((e) => e);
+    expect(error).toBeInstanceOf(ImportError);
+    expect(error.code).toBe('HOSTED_TOO_LONG');
+    expect(decode).not.toHaveBeenCalled();
+    expect(calls).toEqual([]);
+    // At the limit it goes on.
+    const atLimit = fakePort();
+    expect(await importFile(base(atLimit.port, { hostedTerms: terms, readDuration: async () => terms.maxAudioMs }))).toMatchObject({ transcribed: true });
+    // Without the terms (the user's own key), the five-hours limit is the only one.
+    const ownKey = fakePort();
+    expect(await importFile(base(ownKey.port, { readDuration: async () => terms.maxAudioMs + 1 }))).toMatchObject({ transcribed: true });
+    await expect(importFile(base(fakePort().port, { readDuration: async () => MAX_IMPORT_MS + 1 }))).rejects.toMatchObject({ code: 'TOO_LONG' });
+  });
+
   it('refuses a file the decoder cannot read, before making a record', async () => {
     const { port, calls } = fakePort();
     await expect(importFile(base(port, { decode: async () => { throw new Error('EncodingError'); } }))).rejects.toMatchObject({ code: 'UNSUPPORTED' });

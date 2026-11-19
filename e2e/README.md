@@ -119,3 +119,4 @@ conversation shows does not depend on the injected sound; the recording does.
 
 Not covered here: the other side's audio (system capture), sign-in and balance,
 Kizuna AI's own notes service, real providers other than Soniox.
+Transcribing files through Kizuna AI's Soniox is not covered end to end, because the suite has no sign-in; unit tests cover the main-process path against a faked service.

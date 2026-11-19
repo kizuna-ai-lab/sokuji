@@ -10,6 +10,7 @@ import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
 import type { FileTranscriptionOptions } from '../types';
 import { createTrack, type OpusEncoderFactory, type TrackPiece } from '../recording/track';
+import type { HostedFileTerms } from './hostedFile';
 import type { FileRecognitionService } from './service';
 import { transcribeRecord, type TranscribePhase } from './transcribe';
 
@@ -23,7 +24,12 @@ const PIECE_BYTES = 1024 * 1024;
 const LOUD = 64;
 const FILE_MODEL = 'stt-async-v6';
 
-export type ImportCode = 'TOO_LONG' | 'TOO_BIG' | 'UNSUPPORTED' | 'NO_AUDIO' | 'CANCELLED';
+/**
+ * `HOSTED_TOO_LONG`: longer than Kizuna AI's service takes; `HOSTED_UNAVAILABLE`: its service publishes no terms for a
+ * file job (it has none yet); `unchecked`: its terms could not be had (no answer, a refusal), as the panel's block of
+ * that name says.
+ */
+export type ImportCode = 'TOO_LONG' | 'TOO_BIG' | 'UNSUPPORTED' | 'NO_AUDIO' | 'CANCELLED' | 'HOSTED_TOO_LONG' | 'HOSTED_UNAVAILABLE' | 'unchecked';
 
 export class ImportError extends Error {
   readonly code: ImportCode;
@@ -50,6 +56,8 @@ export interface ImportOptions {
   /** What the transcription is asked for: the languages spoken in the file (the main one first), the translation. */
   options: FileTranscriptionOptions;
   service: FileRecognitionService;
+  /** Kizuna AI's terms, for a file transcribed through its service: a file longer than it takes is refused first. */
+  hostedTerms?: HostedFileTerms;
   appVersion: string;
   /** The file's length in ms (NaN or Infinity when it cannot be told). */
   readDuration(file: File): Promise<number>;
@@ -83,6 +91,10 @@ export async function importFile(o: ImportOptions): Promise<ImportResult> {
   }
   if (!Number.isFinite(durationMs)) throw new ImportError('UNSUPPORTED', 'The length of the file could not be told');
   if (durationMs <= 0) throw new ImportError('NO_AUDIO', 'The file holds no audio');
+  // Through Kizuna AI, the service's own limit is the one the user is told of: never the one of Soniox with a key.
+  if (o.hostedTerms && durationMs > o.hostedTerms.maxAudioMs) {
+    throw new ImportError('HOSTED_TOO_LONG', `The file is longer than ${Math.floor(o.hostedTerms.maxAudioMs / 60_000)} minutes`);
+  }
   if (durationMs > MAX_IMPORT_MS) throw new ImportError('TOO_LONG', `The file is longer than ${MAX_IMPORT_MS / 60_000} minutes`);
   if (o.signal?.aborted) throw cancelled();
 

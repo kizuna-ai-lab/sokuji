@@ -125,6 +125,17 @@ describe('the history channels', () => {
     expect(await call('history:recognize-status', { jobId: 'job-2' })).toEqual({ ok: true, value: null });
   });
 
+  it('hands a recognition through the Kizuna AI service its address, sign-in, payer and the audio still to come', async () => {
+    const asked = [];
+    register({ recognizer: { recognize: async (r) => { asked.push(r); return { tokens: [], audioMs: 5 }; }, cancel: () => false, status: () => null } });
+    const payload = {
+      recordId: 'run-0001-aaaa', service: 'kizunaai_soniox', source: 'speaker', region: 'jp', languageHints: ['zh'], jobId: 'job-1',
+      apiUrl: 'https://service.test/api', token: 'session-token', payer: 'personal', laterAudioMs: 2500,
+    };
+    expect(await call('history:recognize', payload)).toEqual({ ok: true, value: { tokens: [], audioMs: 5 } });
+    expect(asked).toEqual([{ ...payload, store }]);
+  });
+
   it('says the store is there when it is', async () => {
     expect(await call('history:status', {})).toEqual({ ok: true, value: { available: true, dir } });
   });

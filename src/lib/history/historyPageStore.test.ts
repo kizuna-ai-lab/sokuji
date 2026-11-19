@@ -4,6 +4,10 @@ import { createVirtualClock, type VirtualClock } from '../contract/clock';
 import type { HistoryPort } from './port';
 import type { HistoryNotes, HistoryRecord, HistoryRecordRow } from './types';
 import { createFileJobState, createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
+import type { HostedFileTerms } from './file/hostedFile';
+import { EACH_SIDE } from './file/options';
+import type { AccountState } from '../session/types';
+import { setUseOwnBalance } from '../session/payerChoice';
 import { useWordList } from '../words/list';
 
 const { settingsStored } = vi.hoisted(() => ({ settingsStored: new Map<string, unknown>() }));
@@ -519,12 +523,35 @@ describe('transcripts and file jobs', () => {
     expect(runner.start).toHaveBeenCalledWith(A, undefined, 1);
   });
 
-  function fakeJobs(o: { missing?: 'no-file-service' | 'hosted-soniox' | 'no-key'; session?: boolean } = {}) {
+  /** Kizuna AI's published terms: 4 hours at most, $0.20 an hour, $0.32 translated. */
+  const TERMS: HostedFileTerms = { usdPerHour: 0.2, translatedUsdPerHour: 0.32, maxAudioMs: 14_400_000, maxBytes: 100_663_296, maxBytesPerMs: 8, bytesSlack: 65_536 };
+  const HOSTED = {
+    service: 'kizunaai_soniox', hosted: true, region: 'jp', languages: ['en', 'ja', 'zh'],
+    access: { apiUrl: 'https://service.example/api', token: async () => 'tok' },
+  };
+  function fakeJobs(o: {
+    missing?: 'no-file-service' | 'no-key' | 'sign-in'; session?: boolean;
+    /** Kizuna AI's Soniox, with these terms (an Error: they cannot be read) and this account. */
+    hosted?: boolean; terms?: HostedFileTerms | null | Error; account?: AccountState | null;
+    /** The account once read again (unchanged when not given); or a reading again that fails, or never answers. */
+    refreshed?: AccountState | null; refresh?: 'fails' | 'hangs';
+  } = {}) {
     let finishImport!: (r: unknown) => void;
     let finishTranscribe!: (r: unknown) => void;
     const progress: { cb?: (p: { phase: string }) => void; signal?: AbortSignal } = {};
+    let account = o.account ?? null;
     const jobs = {
-      service: vi.fn(async () => (o.missing ? { missing: o.missing } : { service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'ja', 'zh'] })),
+      service: vi.fn(async () => (o.missing ? { missing: o.missing } : o.hosted ? HOSTED : { service: 'soniox', apiKey: 'k', region: 'us', languages: ['en', 'ja', 'zh'] })),
+      hostedTerms: vi.fn(async () => {
+        if (o.terms instanceof Error) throw o.terms;
+        return o.terms === undefined ? TERMS : o.terms;
+      }),
+      account: vi.fn(() => account),
+      refreshAccount: vi.fn(async () => {
+        if (o.refresh === 'fails') throw new Error('offline');
+        if (o.refresh === 'hangs') await new Promise<never>(() => {});
+        if (o.refreshed !== undefined) account = o.refreshed;
+      }),
       sessionRunning: vi.fn(() => o.session ?? false),
       importFile: vi.fn((a: { onProgress(p: { phase: string }): void; signal: AbortSignal }) => {
         progress.cb = a.onProgress;
@@ -616,10 +643,10 @@ describe('transcripts and file jobs', () => {
     void first.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
     await vi.waitFor(() => expect(ok.jobs.importFile).toHaveBeenCalled());
     expect(await first.getState().fileJobBlocked('import')).toBe('busy');
-    const hosted = fakeJobs({ missing: 'hosted-soniox' });
-    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...hosted.jobs, state: shared } as never);
+    const signedOut = fakeJobs({ missing: 'sign-in' });
+    const second = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...signedOut.jobs, state: shared } as never);
     second.getState().follow();
-    expect(await second.getState().fileJobBlocked('import')).toBe('hosted-soniox');
+    expect(await second.getState().fileJobBlocked('import')).toBe('sign-in');
     first.getState().dispose();
     second.getState().dispose();
   });
@@ -734,5 +761,302 @@ describe('transcripts and file jobs', () => {
     f.finishTranscribe(Object.assign(new Error('cancelled'), { code: 'CANCELLED' }));
     await again;
     expect(store.getState()).toMatchObject({ job: null, jobFailure: 'CANCELLED', open: { transcriptId: 5 } });
+  });
+
+  // Kizuna AI's Soniox: its limits and its price are known before Start, and so is whether the payer can pay.
+  describe('through Kizuna AI', () => {
+    const HOUR = 3_600_000;
+    /** A kept recording at 48 kbit/s (6 bytes a millisecond); `goneAt` set, deleted. */
+    const track = (source: string, durationMs: number, goneAt: number | null = null) =>
+      ({ source, file: `${source}.opus`, format: 'ogg-opus', durationMs, bytes: durationMs * 6, offsetMs: 0, goneAt });
+    /** Opens a record keeping these tracks (an hour of each side unless said otherwise), with these legs. */
+    const openWith = async (tracks = [track('speaker', HOUR), track('participant', HOUR)], legs: HistoryRecord['legs'] = []) => {
+      port.getRecord = async () => ({ ...recordOf(A, [1]), tracks, legs });
+      await store.getState().openRecord(A);
+    };
+    const known = (balanceMicroUsd: number, over: Partial<Extract<AccountState, { status: 'known' }>> = {}): AccountState =>
+      ({ status: 'known', balanceMicroUsd, frozen: false, ...over });
+    /** A member of an organization: its balance, and the member's own. */
+    const member = (orgMicroUsd: number, ownMicroUsd: number, orgFrozen = false) => known(ownMicroUsd, {
+      organization: { name: 'Org', availableMicroUsd: orgMicroUsd, frozen: orgFrozen }, personal: { balanceMicroUsd: ownMicroUsd, frozen: false },
+    });
+    const hostedStore = (o: Parameters<typeof fakeJobs>[0] = {}) => {
+      const f = fakeJobs({ hosted: true, ...o });
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+      return f;
+    };
+    const blocked = (kind: 'import' | 'transcribe') => store.getState().fileJobBlocked(kind);
+
+    it('says a job is running, or a session, before asking anything of Kizuna AI', async () => {
+      const f = fakeJobs({ hosted: true, session: true, terms: new Error('offline'), account: known(0, { frozen: true }) });
+      const state = createFileJobState();
+      state.setState({ job: { kind: 'transcribe', recordId: B, name: null, phase: 'processing', hosted: true } });
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, { ...f.jobs, state } as never);
+      expect(await blocked('transcribe')).toBe('busy');
+      expect(await blocked('import')).toBe('busy');
+      state.setState({ job: null });
+      expect(await blocked('import')).toBe('session');
+      // The service could do the job: the panel names Kizuna AI beside the reason.
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: 'session', hosted: true, maxAudioMs: null });
+      expect(f.jobs.hostedTerms).not.toHaveBeenCalled();
+      expect(f.jobs.account).not.toHaveBeenCalled();
+    });
+
+    // What a panel shows before Start, from one read of the service and of the terms.
+    it('answers the block, the service and its limit in one check', async () => {
+      const f = hostedStore({ account: known(10_000_000) });
+      await openWith([track('speaker', TERMS.maxAudioMs + 1)]);
+      expect(await store.getState().fileJobCheck('transcribe')).toEqual({ blocked: 'hosted-too-long', hosted: true, maxAudioMs: TERMS.maxAudioMs });
+      expect(f.jobs.service).toHaveBeenCalledTimes(1);
+      expect(f.jobs.hostedTerms).toHaveBeenCalledTimes(1);
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: null, hosted: true, maxAudioMs: TERMS.maxAudioMs });
+      hostedStore({ terms: null });
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: 'hosted-unavailable', hosted: true, maxAudioMs: null });
+      const own = fakeJobs();
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, own.jobs as never);
+      expect(await store.getState().fileJobCheck('import')).toEqual({ blocked: null, hosted: false, maxAudioMs: null });
+    });
+
+    it('answers "unchecked" when the service cannot be read, or its terms', async () => {
+      const unchecked = { blocked: 'unchecked', hosted: false, maxAudioMs: null };
+      const f = hostedStore({ account: known(10_000_000) });
+      f.jobs.service.mockRejectedValueOnce(new Error('The key store could not be read'));
+      expect(await store.getState().fileJobCheck('import')).toEqual(unchecked);
+      expect(f.jobs.hostedTerms).not.toHaveBeenCalled();
+      hostedStore({ terms: new Error('offline'), account: known(10_000_000) });
+      await openWith();
+      expect(await store.getState().fileJobCheck('transcribe')).toEqual(unchecked);
+      expect(await store.getState().fileJobCheck('import')).toEqual(unchecked);
+    });
+
+    // Offline as the panel opens: it says the service could not be checked, and nothing starts without the limits.
+    it('cannot start while the terms cannot be read', async () => {
+      hostedStore({ terms: new Error('offline'), account: known(0, { frozen: true }) });
+      await openWith([track('speaker', 5 * HOUR)]);
+      expect(await blocked('transcribe')).toBe('unchecked');
+      expect(await blocked('import')).toBe('unchecked');
+    });
+
+    it('is not available yet from a service without the terms', async () => {
+      hostedStore({ terms: null, account: known(0, { frozen: true }) });
+      await openWith([track('speaker', 5 * HOUR)]);
+      expect(await blocked('transcribe')).toBe('hosted-unavailable');
+      expect(await blocked('import')).toBe('hosted-unavailable');
+    });
+
+    it('says the wallet is frozen', async () => {
+      hostedStore({ account: known(0, { frozen: true }) });
+      await openWith([track('speaker', 5 * HOUR)]);
+      expect(await blocked('transcribe')).toBe('wallet-frozen');
+      expect(await blocked('import')).toBe('wallet-frozen');
+    });
+
+    // Its balance is not weighed (below), but a frozen organization is refused, as the main panel's gate refuses it.
+    it('says the organization’s wallet is frozen when it pays', async () => {
+      hostedStore({ account: member(0, 10_000_000, true) });
+      await openWith();
+      expect(await blocked('transcribe')).toBe('wallet-frozen');
+      expect(await blocked('import')).toBe('wallet-frozen');
+    });
+
+    it('says a recording is longer than Kizuna AI takes, counting only the tracks kept; at the limit it starts', async () => {
+      hostedStore({ account: known(10_000_000) });
+      await openWith([track('speaker', TERMS.maxAudioMs + 1), track('participant', HOUR)]);
+      expect(await blocked('transcribe')).toBe('hosted-too-long');
+      // An import's length is not known until the file is read: it is checked then.
+      expect(await blocked('import')).toBeNull();
+      await openWith([track('speaker', TERMS.maxAudioMs)]);
+      expect(await blocked('transcribe')).toBeNull();
+      // A deleted recording is not sent.
+      await openWith([track('speaker', TERMS.maxAudioMs + 1, 5), track('participant', HOUR)]);
+      expect(await blocked('transcribe')).toBeNull();
+      // Too long is said before the balance.
+      hostedStore({ account: known(0) });
+      await openWith([track('speaker', TERMS.maxAudioMs + 1)]);
+      expect(await blocked('transcribe')).toBe('hosted-too-long');
+    });
+
+    it('says the balance does not cover the recording at the untranslated price, from the wallet that pays', async () => {
+      // Two hours at $0.20 an hour: $0.40.
+      hostedStore({ account: known(399_999) });
+      await openWith();
+      expect(await blocked('transcribe')).toBe('no-balance');
+      hostedStore({ account: known(400_000) });
+      await openWith();
+      expect(await blocked('transcribe')).toBeNull();
+      // A member who chose to pay from their own balance: theirs is weighed.
+      hostedStore({ account: member(10_000_000, 100_000) });
+      await openWith();
+      setUseOwnBalance(true);
+      try {
+        expect(await blocked('transcribe')).toBe('no-balance');
+      } finally {
+        setUseOwnBalance(false);
+      }
+    });
+
+    // As the main panel's gate: an organization's balance in the page can be minutes old, and the service answers precisely.
+    it('does not refuse an organization that pays for its balance', async () => {
+      hostedStore({ account: member(100_000, 10_000_000) });
+      await openWith();
+      expect(await blocked('transcribe')).toBeNull();
+      hostedStore({ account: member(0, 0) });
+      expect(await blocked('import')).toBeNull();
+    });
+
+    // In floating dollars 1.5 h × $0.20 comes to a hair over $0.30, and exactly $0.30 would fall short.
+    it('weighs the wallet against the estimate in whole micro-USD: exactly enough starts', async () => {
+      const ninetyMinutes = [track('speaker', HOUR), track('participant', HOUR / 2)];
+      hostedStore({ account: known(300_000) });
+      await openWith(ninetyMinutes);
+      expect(await blocked('transcribe')).toBeNull();
+      hostedStore({ account: known(299_999) });
+      await openWith(ninetyMinutes);
+      expect(await blocked('transcribe')).toBe('no-balance');
+      hostedStore({ account: known(600_000) });
+      await openWith([track('speaker', 3 * HOUR)]);
+      expect(await blocked('transcribe')).toBeNull();
+    });
+
+    // Its length is not known before the file is read, but any import costs more than nothing.
+    it('refuses an import from a wallet that holds nothing', async () => {
+      for (const [account, reason] of [
+        [known(0), 'no-balance'], [known(-5), 'no-balance'], [known(1), null], [member(0, 0), null], [{ status: 'unknown' }, null],
+      ] as const) {
+        hostedStore({ account });
+        expect(await blocked('import'), JSON.stringify(account)).toBe(reason);
+      }
+    });
+
+    // The account as last polled can be minutes old: a block for money is decided on the account read again.
+    it('reads the account again before saying the balance does not cover the job or the wallet is frozen', async () => {
+      for (const stale of [known(0), known(10_000_000, { frozen: true }), member(10_000_000, 10_000_000, true)]) {
+        const f = hostedStore({ account: stale, refreshed: known(10_000_000) });
+        await openWith();
+        expect(await blocked('transcribe'), JSON.stringify(stale)).toBeNull();
+        expect(f.jobs.refreshAccount, JSON.stringify(stale)).toHaveBeenCalledTimes(1);
+      }
+      hostedStore({ account: known(0), refreshed: known(1) });
+      expect(await blocked('import')).toBeNull();
+      // Read again and still short: it blocks.
+      hostedStore({ account: known(0), refreshed: known(399_999) });
+      await openWith();
+      expect(await blocked('transcribe')).toBe('no-balance');
+    });
+
+    it('reads the account again only when it would block for money', async () => {
+      const f = hostedStore({ account: known(10_000_000) });
+      await openWith();
+      expect(await blocked('transcribe')).toBeNull();
+      await openWith([track('speaker', TERMS.maxAudioMs + 1)]);
+      expect(await blocked('transcribe')).toBe('hosted-too-long');
+      expect(f.jobs.refreshAccount).not.toHaveBeenCalled();
+    });
+
+    it('decides on the account at hand when it cannot be read again', async () => {
+      const f = hostedStore({ account: known(0), refresh: 'fails' });
+      await openWith();
+      expect(await blocked('transcribe')).toBe('no-balance');
+      expect(f.jobs.refreshAccount).toHaveBeenCalledTimes(1);
+    });
+
+    it('decides on the account at hand when it is not read again within 3 seconds', async () => {
+      const f = hostedStore({ account: known(0, { frozen: true }), refresh: 'hangs' });
+      await openWith();
+      let answer: string | null | undefined;
+      void blocked('transcribe').then((b) => { answer = b; });
+      await vi.waitFor(() => expect(f.jobs.refreshAccount).toHaveBeenCalled());
+      clock.advance(2999);
+      await flush();
+      expect(answer).toBeUndefined();
+      clock.advance(1);
+      await vi.waitFor(() => expect(answer).toBe('wallet-frozen'));
+    });
+
+    // Through the file jobs (the app's account), never past them.
+    it('reads the account again once a hosted job ends, and never after a job with the user’s own key', async () => {
+      const f = hostedStore();
+      store.getState().follow();
+      const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+      expect(f.jobs.refreshAccount).not.toHaveBeenCalled();
+      f.finishImport({ recordId: B, transcribed: true });
+      await started;
+      expect(f.jobs.refreshAccount).toHaveBeenCalledTimes(1);
+      const own = fakeJobs();
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, own.jobs as never);
+      store.getState().follow();
+      const ownStarted = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(own.jobs.importFile).toHaveBeenCalled());
+      own.finishImport({ recordId: B, transcribed: true });
+      await ownStarted;
+      expect(own.jobs.refreshAccount).not.toHaveBeenCalled();
+    });
+
+    it('an account not known, or still loading, does not block: the service decides', async () => {
+      for (const account of [null, { status: 'unknown' }, { status: 'loading' }] as const) {
+        hostedStore({ account });
+        await openWith();
+        expect(await blocked('transcribe'), String(account?.status)).toBeNull();
+      }
+    });
+
+    it('never asks for the terms or the account for the user’s own key', async () => {
+      const f = fakeJobs({ account: known(0, { frozen: true }) });
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);
+      await openWith([track('speaker', 5 * HOUR)]);
+      expect(await blocked('transcribe')).toBeNull();
+      expect(await blocked('import')).toBeNull();
+      expect(await store.getState().fileEstimate('transcribe', OPTS)).toBeNull();
+      expect(f.jobs.hostedTerms).not.toHaveBeenCalled();
+      expect(f.jobs.account).not.toHaveBeenCalled();
+    });
+
+    it('estimates what transcribing the open record costs, translated or not; none for an import', async () => {
+      hostedStore();
+      // An hour and a half kept: $0.30, or $0.48 translated; the deleted hour is not sent.
+      await openWith([track('speaker', HOUR), track('participant', HOUR / 2), track('participant', HOUR, 5)]);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['en'], translateTo: '' })).toBe(0.3);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['en'], translateTo: 'zh' })).toBe(0.48);
+      expect(await store.getState().fileEstimate('import', OPTS)).toBeNull();
+    });
+
+    // The job asks for no translation into the only language spoken (owner, 2026-11-19), so none is priced.
+    it('prices one language translated into itself as not translated', async () => {
+      hostedStore();
+      await openWith([track('speaker', HOUR)]);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['zh'], translateTo: 'zh' })).toBe(0.2);
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['zh'], translateTo: 'en' })).toBe(0.32);
+    });
+
+    // Priced as the job sends it: a side the session translated into nothing is sent, and priced, without a translation.
+    it('prices each side as it will be sent when each side goes into the other’s language', async () => {
+      hostedStore();
+      const leg = (name: 'speaker' | 'participant', source: string, target: string) =>
+        ({ leg: name, languages: { source, target }, input: null, inputName: null, inputId: null, translated: target !== '', spoken: false });
+      await openWith([track('speaker', HOUR), track('participant', HOUR)], [leg('speaker', 'zh', 'en'), leg('participant', 'en', '')]);
+      // An hour translated ($0.32) and an hour not ($0.20).
+      expect(await store.getState().fileEstimate('transcribe', { languages: ['en', 'zh'], translateTo: EACH_SIDE })).toBe(0.52);
+    });
+
+    it('has no estimate when the terms cannot be read', async () => {
+      for (const terms of [new Error('offline'), null]) {
+        hostedStore({ terms });
+        await openWith();
+        expect(await store.getState().fileEstimate('transcribe', OPTS)).toBeNull();
+      }
+    });
+
+    // Signed out between the panel saying it could start and Start: the sign-in is the reason, and nothing is sent.
+    it('a sign-out before Start ends the job asking to sign in, and sends nothing', async () => {
+      const f = hostedStore({ account: known(10_000_000) });
+      store.getState().follow();
+      await openWith();
+      expect(await blocked('transcribe')).toBeNull();
+      f.jobs.service.mockResolvedValue({ missing: 'sign-in' });
+      await store.getState().transcribeOpen(OPTS);
+      expect(store.getState()).toMatchObject({ job: null, jobFailure: 'sign-in' });
+      expect(f.jobs.transcribe).not.toHaveBeenCalled();
+    });
   });
 });

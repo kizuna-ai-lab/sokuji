@@ -7,7 +7,7 @@
 // as it was. A new transcript never replaces another (spec: several transcripts per record).
 import type { Clock } from '../../contract/clock';
 import type { HistoryPort } from '../port';
-import type { FileTranscriptionOptions, HistoryRecognizePhase, HistorySentenceSide, HistoryTrackSource } from '../types';
+import type { FileTranscriptionOptions, HistoryRecognizePhase, HistoryRecord, HistorySentenceSide, HistoryTrack, HistoryTrackSource } from '../types';
 import type { FileRecognitionService } from './service';
 import { EACH_SIDE } from './options';
 import { fileSentences, numberSentences, type FileSentence } from './sentences';
@@ -18,7 +18,7 @@ export const STATUS_EVERY_MS = 1000;
 const WRITE_BATCH = 500;
 
 export type TranscribePhase = HistoryRecognizePhase | 'writing';
-export type TranscribeCode = 'NO_RECORD' | 'NO_TRACK' | 'NO_SPEECH' | 'CANCELLED';
+export type TranscribeCode = 'NO_RECORD' | 'NO_TRACK' | 'NO_SPEECH' | 'CANCELLED' | 'SIGN_IN';
 
 export class TranscribeError extends Error {
   readonly code: TranscribeCode;
@@ -42,12 +42,50 @@ export interface TranscribeOptions {
 
 const SIDE_OF: Record<HistoryTrackSource, HistorySentenceSide> = { speaker: 'mine', participant: 'other' };
 
+/** The tracks a transcription sends, in the record's order: the speaker's and the participant's recordings still kept. */
+export function transcribedTracks(record: Pick<HistoryRecord, 'tracks'>): Array<HistoryTrack & { source: HistoryTrackSource }> {
+  return record.tracks.filter((t): t is HistoryTrack & { source: HistoryTrackSource } =>
+    t.goneAt === null && (t.source === 'speaker' || t.source === 'participant'));
+}
+
+type LanguageCodes = Pick<FileRecognitionService, 'languageHint'>;
+
+/**
+ * An app language code in the service's own codes: its own, or for a regional code its language's when only that is
+ * known; null when the service has neither (the language is then not sent, nor a translation into it).
+ */
+function serviceLanguage(service: LanguageCodes, code: string): string | null {
+  const exact = (c: string) => (service.languageHint ? service.languageHint(c) : c);
+  return exact(code) ?? exact(code.split(/[-_]/)[0].toLowerCase());
+}
+
+/**
+ * What a track is translated into, in the service's code; null when no translation is asked for it: none chosen;
+ * "each side into the other's language" for a side the session translated into nothing; a language the service has
+ * no code for; or, through Kizuna AI's service, the only language spoken (owner, 2026-11-19). Each side goes into what
+ * its own side was translated into in the session. The job sends, and the estimate prices, every track by this one
+ * answer.
+ */
+export function trackTranslation(
+  record: Pick<HistoryRecord, 'legs'>, source: HistoryTrackSource, options: FileTranscriptionOptions,
+  service: LanguageCodes & { hosted?: true },
+): string | null {
+  const into = options.translateTo === EACH_SIDE ? record.legs.find((l) => l.leg === source)?.languages.target : options.translateTo;
+  const translateTo = into ? serviceLanguage(service, into) : null;
+  // The panels always name a language to translate into, an import's own by default. Kizuna AI's service charges a
+  // translation: into the only language spoken there is nothing to translate, so it is not asked for, nor paid for.
+  // Compared in the service's codes; "automatic" is never translated into, so never matches. The user's own key is
+  // asked exactly as chosen.
+  const spokenOnly = options.languages.length === 1 ? serviceLanguage(service, options.languages[0]) : null;
+  if (service.hosted && translateTo !== null && translateTo === spokenOnly) return null;
+  return translateTo;
+}
+
 export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcriptId: number; sentences: number }> {
   const cancelled = () => new TranscribeError('CANCELLED', 'The transcription was cancelled');
   const record = await o.port.getRecord(o.recordId);
   if (!record) throw new TranscribeError('NO_RECORD', `No record ${o.recordId}`);
-  const tracks = record.tracks.filter((t): t is typeof t & { source: HistoryTrackSource } =>
-    t.goneAt === null && (t.source === 'speaker' || t.source === 'participant'));
+  const tracks = transcribedTracks(record);
   if (tracks.length === 0) throw new TranscribeError('NO_TRACK', `Record ${o.recordId} keeps no recording`);
   const legOf = (source: HistoryTrackSource) => record.legs.find((l) => l.leg === source);
   const speaker = legOf('speaker');
@@ -56,18 +94,10 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
   // everyone on one track, so who is on which side is not known.
   const sideCertain = record.mode !== 'import'
     && !(speaker && participant && speaker.input === participant.input && speaker.inputId === participant.inputId);
-  // In the service's own codes, a regional code as its language when only that is known; a language it does not know
-  // at all is not sent, nor a translation into one.
-  const exact = (code: string) => (o.service.languageHint ? o.service.languageHint(code) : code);
-  const wire = (code: string) => exact(code) ?? exact(code.split(/[-_]/)[0].toLowerCase());
-  const languageHints = [...new Set(o.options.languages.map(wire).filter((code): code is string => !!code))];
-  // Each side into the other's language: every track into what its own side was translated into in the session.
-  const translateToFor = (source: HistoryTrackSource) => {
-    const into = o.options.translateTo === EACH_SIDE ? legOf(source)?.languages.target : o.options.translateTo;
-    return into ? wire(into) : null;
-  };
+  // In the service's own codes; a language it does not know at all is not sent.
+  const languageHints = [...new Set(o.options.languages.map((code) => serviceLanguage(o.service, code)).filter((code): code is string => !!code))];
   const askedFor = (source: HistoryTrackSource) => {
-    const translateTo = translateToFor(source);
+    const translateTo = trackTranslation(record, source, o.options, o.service);
     return {
       languageHints,
       ...(translateTo ? { translateTo } : {}),
@@ -75,8 +105,28 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     };
   };
 
+  // How a track's call reaches the service. With the user's own key: the key, in its region. Through Kizuna AI's
+  // service: the region, the service's address, the sign-in's token as it is when the track starts (so a sign-out
+  // between tracks stops the next one), who pays, and the length of the tracks still to come after this one, so the
+  // service can tell at the first whether all of them fit.
+  const reachFor = async (index: number) => {
+    const s = o.service;
+    if (!('hosted' in s)) return { apiKey: s.apiKey, ...(s.region ? { region: s.region } : {}) };
+    const token = await s.access.token();
+    if (!token) {
+      // Cancelled while the sign-in was read: the cancel is what happened, not a missing sign-in.
+      if (o.signal?.aborted) throw cancelled();
+      throw new TranscribeError('SIGN_IN', 'Sign in to Kizuna AI to transcribe with it');
+    }
+    const laterAudioMs = tracks.slice(index + 1).reduce((sum, t) => sum + t.durationMs, 0);
+    return { region: s.region, apiUrl: s.access.apiUrl, token, ...(s.access.payer ? { payer: s.access.payer } : {}), laterAudioMs };
+  };
+
   const lists: FileSentence[][] = [];
-  for (const track of tracks) {
+  for (const [index, track] of tracks.entries()) {
+    if (o.signal?.aborted) throw cancelled();
+    const reach = await reachFor(index);
+    // Cancelled while the sign-in was read: nothing is sent.
     if (o.signal?.aborted) throw cancelled();
     const jobId = o.newJobId();
     o.onProgress?.({ phase: 'uploading', track: track.source });
@@ -96,8 +146,7 @@ export async function transcribeRecord(o: TranscribeOptions): Promise<{ transcri
     let tokens;
     try {
       ({ tokens } = await o.port.recognize({
-        recordId: o.recordId, service: o.service.service, source: track.source, apiKey: o.service.apiKey,
-        ...(o.service.region ? { region: o.service.region } : {}), ...askedFor(track.source), jobId,
+        recordId: o.recordId, service: o.service.service, source: track.source, ...reach, ...askedFor(track.source), jobId,
       }));
     } catch (error) {
       if (o.signal?.aborted) {

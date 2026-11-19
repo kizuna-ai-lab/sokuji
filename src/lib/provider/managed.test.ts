@@ -93,6 +93,15 @@ describe('managed', () => {
     expect(twin.session).toEqual({ acquire });
   });
 
+  it("carries a file recognition only when it gives its own: the base's needs a key the twin does not have", () => {
+    const baseFiles = vi.fn();
+    const twinFiles = vi.fn();
+    const base = { ...fakeProvider, fileRecognition: baseFiles } as unknown as Provider<FakeSettings, FakeCredentials, FakeConfig>;
+    expect(managed(base, OVERRIDES)).not.toHaveProperty('fileRecognition');
+    expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('fileRecognition');
+    expect(managed(base, { ...OVERRIDES, fileRecognition: twinFiles }).fileRecognition).toBe(twinFiles);
+  });
+
   it("carries its own voice summary, else the base's, else none", () => {
     const BaseSummary = () => null;
     const TwinSummary = () => null;

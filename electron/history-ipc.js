@@ -119,7 +119,9 @@ function setupHistoryHandlers({
     title: payload.title,
     defaultName: payload.defaultName,
   })));
-  // A kept track sent to Soniox's file recognition; the page asks for its phase while it waits.
+  // A kept track sent to Soniox's file recognition, with the user's own key or through the Kizuna AI service (its
+  // address, the sign-in token, the payer and the length of the record's tracks still to come); the page asks for its
+  // phase while it waits.
   ipcMain.handle('history:recognize', answer((store, payload) => recognizer.recognize({
     store,
     recordId: payload.recordId,
@@ -131,6 +133,10 @@ function setupHistoryHandlers({
     translateTo: payload.translateTo,
     context: payload.context,
     jobId: payload.jobId,
+    apiUrl: payload.apiUrl,
+    token: payload.token,
+    payer: payload.payer,
+    laterAudioMs: payload.laterAudioMs,
   })));
   ipcMain.handle('history:recognize-cancel', answer((_store, payload) => recognizer.cancel(payload.jobId)));
   ipcMain.handle('history:recognize-status', answer((_store, payload) => recognizer.status(payload.jobId)));

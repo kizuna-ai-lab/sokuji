@@ -142,13 +142,26 @@ export interface FileToken {
 /** The app's word list in the file recognition service's own context shape: sent as it is. */
 export type FileRecognitionContext = object;
 
-/** A kept track sent to file recognition: the service, its key and region, the languages to expect, the job's id. */
+/**
+ * A kept track sent to file recognition: the service, its key and region, the languages to expect, the job's id.
+ * Through Kizuna AI's service (`kizunaai_soniox`) no key: the service's address, the sign-in's token, who pays, and the
+ * length of the record's tracks still to come after this one.
+ */
 export interface HistoryRecognizeRequest {
   recordId: string;
   service: string;
   source: HistoryTrackSource;
-  apiKey: string;
+  /** The user's own key; absent through Kizuna AI's service. */
+  apiKey?: string;
   region?: string;
+  /** Kizuna AI's service address (`getApiUrl()`), its file jobs under `/soniox/file-jobs`. */
+  apiUrl?: string;
+  /** The sign-in's token, for this job's calls only. */
+  token?: string;
+  /** Who pays, for an organization member; absent otherwise. */
+  payer?: 'organization' | 'personal';
+  /** The summed length of the record's tracks sent after this one, in milliseconds. */
+  laterAudioMs?: number;
   languageHints: string[];
   /** The service's code of the language to translate into; absent, nothing is translated. */
   translateTo?: string;

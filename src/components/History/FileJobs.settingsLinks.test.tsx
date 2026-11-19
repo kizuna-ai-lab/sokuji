@@ -20,8 +20,11 @@ const port = {
   usage: async () => ({ dbBytes: 0, audioBytes: 0, records: 0, binned: 0 }),
 } as unknown as HistoryPort;
 
-const jobsMissing = (missing: 'no-file-service' | 'hosted-soniox' | 'no-key'): FileJobs => ({
+const jobsMissing = (missing: 'no-file-service' | 'no-key' | 'sign-in'): FileJobs => ({
   service: vi.fn(async () => ({ missing })),
+  hostedTerms: vi.fn(async () => null),
+  account: () => null,
+  refreshAccount: vi.fn(async () => {}),
   sessionRunning: () => false,
   importFile: vi.fn(async () => undefined) as unknown as FileJobs['importFile'],
   transcribe: vi.fn(async () => undefined) as unknown as FileJobs['transcribe'],
@@ -38,7 +41,7 @@ const file = new File([new Uint8Array(4)], 'Team sync.mp4', { type: 'video/mp4' 
 const settle = () => act(async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); });
 
 /** The import panel over History, the settings page mounted beside it (as the layout keeps it), and what happened in order. */
-async function scene(missing: 'no-file-service' | 'hosted-soniox' | 'no-key') {
+async function scene(missing: 'no-file-service' | 'no-key' | 'sign-in') {
   const events: string[] = [];
   const unsubscribe = useSettingsStore.subscribe((s, prev) => {
     if (s.settingsNavigationTarget !== prev.settingsNavigationTarget && s.settingsNavigationTarget) events.push(`navigate:${s.settingsNavigationTarget}`);
@@ -76,9 +79,18 @@ describe('from the History page red notices into Settings', () => {
     s.unsubscribe();
   });
 
+  it('"sign in": closes the panel, then opens Accounts and keys at the Kizuna AI account', async () => {
+    const s = await scene('sign-in');
+    expect(screen.getByText('Sign in to Kizuna AI to transcribe files with it.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Accounts and keys' }));
+    expect(s.events).toEqual(['close', 'navigate:user-account']);
+    expect(s.isPanelOpen()).toBe(false);
+    expect(screen.getByRole('heading', { level: 2, name: 'Accounts and keys' })).toBeInTheDocument();
+    s.unsubscribe();
+  });
+
   for (const [missing, text] of [
-    ['no-file-service', 'Files are transcribed only by Soniox with your own key. Choose it for transcription in the line-up.'],
-    ['hosted-soniox', 'Files are transcribed only with your own Soniox key: Kizuna AI’s Soniox is for live sessions only, for now.'],
+    ['no-file-service', 'Files are transcribed only by Soniox. Choose it for transcription in the line-up.'],
   ] as const) {
     it(`"${missing}": closes the panel, then opens Languages and line-up, scrolled to the line-up and lit for 3 seconds`, async () => {
       const s = await scene(missing);
