@@ -238,6 +238,30 @@ export const RecordPage: React.FC = () => {
       setPane('edit');
     }
   }, [fixDraftSeq]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A word selected in one sentence of the transcript (at most 40 characters, not only spaces) offers "Fix…", above it,
+  // which hands it to the edit panel's "Fix words" with that sentence (option C, owner 2026-11-19).
+  const canFix = useStore(store, (s) => s.canEdit());
+  const [selectedWord, setSelectedWord] = useState<{ text: string; n: number; top: number; left: number } | null>(null);
+  useEffect(() => {
+    const onSelection = () => {
+      const column = transcriptRef.current;
+      const sel = document.getSelection();
+      if (!column || !sel || sel.isCollapsed || sel.rangeCount === 0) { setSelectedWord(null); return; }
+      const range = sel.getRangeAt(0);
+      const sentenceOf = (node: Node) => (node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement)?.closest('.record-sentence') ?? null;
+      const start = sentenceOf(range.startContainer);
+      const text = sel.toString().trim();
+      if (!start || start !== sentenceOf(range.endContainer) || !column.contains(start) || !text || [...text].length > 40) {
+        setSelectedWord(null);
+        return;
+      }
+      const at = range.getBoundingClientRect?.() ?? { top: 0, left: 0 };
+      const box = column.getBoundingClientRect();
+      setSelectedWord({ text, n: Number(start.getAttribute('data-n')), top: at.top - box.top + column.scrollTop, left: at.left - box.left + column.scrollLeft });
+    };
+    document.addEventListener('selectionchange', onSelection);
+    return () => document.removeEventListener('selectionchange', onSelection);
+  }, []);
   // Ctrl/⌘+Z undoes the last edit of this record, except in a field, whose own undo it is (design draft P0 §3.6).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -775,7 +799,20 @@ export const RecordPage: React.FC = () => {
             }}
           />
         )}
-        <div className="record-page__transcript" ref={transcriptRef} hidden={!columned && shownPane !== 'transcript'}>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={!columned && shownPane !== 'transcript'}
+          onScroll={() => setSelectedWord(null)}>
+          {selectedWord && canFix && (
+            <button type="button" className="history-button record-page__fix-chip" style={{ top: Math.max(0, selectedWord.top - 34), left: selectedWord.left }}
+              // Pressed, the selection stays: the click is the button's.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                actions.openFix({ heard: selectedWord.text, only: selectedWord.n, source: 'selection' });
+                setSelectedWord(null);
+                document.getSelection()?.removeAllRanges();
+              }}>
+              {t('history.fix.selection', 'Fix…')}
+            </button>
+          )}
           <TranscriptAsked />
           {transcript}
         </div>

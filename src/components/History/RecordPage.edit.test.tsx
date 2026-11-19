@@ -30,8 +30,8 @@ const settle = () => act(async () => { for (let i = 0; i < 30; i++) await Promis
 const textOf = (n: number) => document.querySelector(`[data-n="${n}"]`)?.textContent ?? '';
 const panel = () => screen.queryByRole('complementary', { name: 'Edit' });
 
-async function show() {
-  await store.getState().openRecord(A);
+async function show(id = A) {
+  await store.getState().openRecord(id);
   render(
     <HistoryPageContext.Provider value={{ store, onClose: () => {} }}>
       <RecordPage />
@@ -55,7 +55,9 @@ beforeEach(() => {
   const s = real.store;
   s.openRecord({ id: A, startedAt: START, mode: 'both', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
   const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'live' } });
-  s.appendSentences({ transcriptId: t, sentences: [sent(1, '我们用搜库机开会'), sent(2, '搜库机很快'), sent(3, 'Sokuji 已经上线')] });
+  s.appendSentences({ transcriptId: t, sentences: [
+    sent(1, '我们用搜库机开会'), sent(2, '搜库机很快'), sent(3, 'Sokuji 已经上线'), sent(4, '这是一句很长很长的话，长到选中它整句的时候已经超过了四十个字，不该给出改正的按钮。'),
+  ] });
   s.closeRecord({ id: A, endedAt: START + 10_000 });
   store = createHistoryPageStore(real.port, createVirtualClock(0), (e) => `failed: ${(e as Error).message}`);
 });
@@ -149,5 +151,53 @@ describe('the notes\' names to check', () => {
     const [fixed, unseen] = within(names()).getAllByRole('listitem');
     expect(fixed).toHaveTextContent('Fixed');
     expect(within(unseen).getByRole('button', { name: 'Go fix' })).toBeInTheDocument();
+  });
+});
+
+// Option C: a word selected in one sentence of the transcript is handed to "Fix words", where it may be fixed alone.
+describe('a word selected in the transcript', () => {
+  const select = (from: [number, number], to: [number, number]) => {
+    const node = (n: number) => [...document.querySelector(`[data-n="${n}"]`)!.childNodes].find((c) => c.nodeType === Node.TEXT_NODE)!;
+    const r = document.createRange();
+    r.setStart(node(from[0]), from[1]);
+    r.setEnd(node(to[0]), to[1]);
+    const sel = document.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(r);
+    act(() => { document.dispatchEvent(new Event('selectionchange')); });
+  };
+  const fixButton = () => screen.queryByRole('button', { name: 'Fix…' });
+
+  it('a word selected in one sentence offers Fix…, which hands it over', async () => {
+    await show();
+    select([2, 0], [2, 3]);
+    fireEvent.click(fixButton()!);
+    await settle();
+    const part = screen.getByRole('region', { name: 'Fix words' });
+    expect((within(part).getByRole('textbox', { name: 'Heard as' }) as HTMLInputElement).value).toBe('搜库机');
+    expect(within(part).getByRole('radio', { name: 'Only the selected one' })).toBeInTheDocument();
+    expect(fixButton()).toBeNull();
+  });
+
+  it('no Fix… for a selection across sentences, of spaces only, or longer than 40 characters', async () => {
+    await show();
+    select([1, 3], [2, 2]);
+    expect(fixButton()).toBeNull();
+    select([3, 6], [3, 7]);
+    expect(fixButton()).toBeNull();
+    select([4, 0], [4, 41]);
+    expect(fixButton()).toBeNull();
+    select([3, 0], [3, 6]);
+    expect(fixButton()).not.toBeNull();
+  });
+
+  it('no Fix… on a live record', async () => {
+    const B = 'run-0002-bbbb';
+    real.store.openRecord({ id: B, startedAt: START, mode: 'both', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const t = real.store.createTranscript({ recordId: B, origin: { service: 'soniox', kind: 'live' } });
+    real.store.appendSentences({ transcriptId: t, sentences: [sent(1, '搜库机很快')] });
+    await show(B);
+    select([1, 0], [1, 3]);
+    expect(fixButton()).toBeNull();
   });
 });

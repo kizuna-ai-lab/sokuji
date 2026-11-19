@@ -1094,6 +1094,10 @@
   }
 }
 
+// "Fix…" above a word selected in the transcript (design draft P0 §3.2): it hands the word to the edit panel.
+.record-page__transcript { position: relative; }
+.record-page__fix-chip { position: absolute; z-index: 5; }
+
 // What an edit did, above the player, with Undo (EditToast; design draft P0 §3.6).
 .record-edit-toast {
   display: flex;
