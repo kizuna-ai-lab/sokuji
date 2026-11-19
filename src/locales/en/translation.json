@@ -2118,6 +2118,7 @@
       "importTitle": "Import “{{name}}”",
       "service": "Transcribed by Soniox, with your own key.",
       "serviceHosted": "Transcribed by Soniox through Kizuna AI, paid from your balance.",
+      "serviceHostedOrg": "Transcribed by Soniox through Kizuna AI, paid from your organization's balance.",
       "estimate": "About {{price}}.",
       "start": "Start",
       "transcribe": "Transcribe",

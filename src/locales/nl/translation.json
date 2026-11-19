@@ -2170,6 +2170,7 @@
       "asked": "Hoofdtaal: {{main}} · Vertaald naar: {{target}}",
       "askedEachSide": "Hoofdtaal: {{main}} · Elke kant vertaald naar de taal van de ander",
       "serviceHosted": "Getranscribeerd door Soniox via Kizuna AI, betaald uit je tegoed.",
+      "serviceHostedOrg": "Getranscribeerd door Soniox via Kizuna AI, betaald uit het tegoed van je organisatie.",
       "estimate": "Ongeveer {{price}}.",
       "blockedSignIn": "Meld je aan bij Kizuna AI om er bestanden mee te transcriberen.",
       "blockedNoBalance": "Je tegoed bij Kizuna AI is niet genoeg voor deze transcriptie.",

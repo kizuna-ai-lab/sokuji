@@ -2170,6 +2170,7 @@
       "asked": "Huvudspråk: {{main}} · Översatt till: {{target}}",
       "askedEachSide": "Huvudspråk: {{main}} · Varje sida översatt till den andras språk",
       "serviceHosted": "Transkriberas av Soniox via Kizuna AI, betalas från ditt saldo.",
+      "serviceHostedOrg": "Transkriberas av Soniox via Kizuna AI, betalas från din organisations saldo.",
       "estimate": "Cirka {{price}}.",
       "blockedSignIn": "Logga in på Kizuna AI för att transkribera filer med det.",
       "blockedNoBalance": "Ditt saldo hos Kizuna AI räcker inte till den här transkriberingen.",

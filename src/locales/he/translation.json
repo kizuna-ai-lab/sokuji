@@ -2170,6 +2170,7 @@
       "asked": "השפה העיקרית: {{main}} · שפת התרגום: {{target}}",
       "askedEachSide": "השפה העיקרית: {{main}} · כל צד תורגם לשפה של הצד השני",
       "serviceHosted": "התמלול נעשה על ידי Soniox דרך Kizuna AI, בתשלום מהיתרה שלך.",
+      "serviceHostedOrg": "התמלול נעשה על ידי Soniox דרך Kizuna AI, בתשלום מיתרת הארגון שלך.",
       "estimate": "כ־{{price}}.",
       "blockedSignIn": "יש להתחבר ל-Kizuna AI כדי לתמלל איתו קבצים.",
       "blockedNoBalance": "היתרה שלך ב-Kizuna AI לא מספיקה לתמלול הזה.",

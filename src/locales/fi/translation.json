@@ -2170,6 +2170,7 @@
       "asked": "Pääkieli: {{main}} · Käännetty kielelle: {{target}}",
       "askedEachSide": "Pääkieli: {{main}} · Kumpikin puoli käännetty toisen kielelle",
       "serviceHosted": "Litteroijana Soniox Kizuna AI:n kautta, maksetaan saldostasi.",
+      "serviceHostedOrg": "Litteroijana Soniox Kizuna AI:n kautta, maksetaan organisaatiosi saldosta.",
       "estimate": "Noin {{price}}.",
       "blockedSignIn": "Kirjaudu Kizuna AI:hin, jotta voit litteroida tiedostoja sillä.",
       "blockedNoBalance": "Kizuna AI -saldosi ei riitä tähän litterointiin.",

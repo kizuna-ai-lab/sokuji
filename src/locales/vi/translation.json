@@ -2170,6 +2170,7 @@
       "asked": "Ngôn ngữ chính: {{main}} · Dịch sang: {{target}}",
       "askedEachSide": "Ngôn ngữ chính: {{main}} · Mỗi bên được dịch sang ngôn ngữ của bên kia",
       "serviceHosted": "Do Soniox chép lời qua Kizuna AI, trả từ số dư của bạn.",
+      "serviceHostedOrg": "Do Soniox chép lời qua Kizuna AI, trả từ số dư của tổ chức bạn.",
       "estimate": "Khoảng {{price}}.",
       "blockedSignIn": "Hãy đăng nhập Kizuna AI để chép lời tệp bằng Kizuna AI.",
       "blockedNoBalance": "Số dư Kizuna AI của bạn không đủ cho lần chép lời này.",

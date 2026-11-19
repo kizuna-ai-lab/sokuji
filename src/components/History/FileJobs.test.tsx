@@ -477,6 +477,16 @@ describe('through Kizuna AI’s Soniox', () => {
   /** The estimate as shown: the price set apart from the words around it (U+2068 … U+2069), as right-to-left text needs. */
   const about = (price: string) => `About \u2068${price}\u2069.`;
 
+  // The line names who pays: an organization that pays is not called the user's own balance.
+  it('says the organization pays when it does, and the user when the organization does not', async () => {
+    useAccountStore.setState({ account: member() });
+    hosted();
+    show(<ImportPanel file={file} myLanguage="zh" onClose={() => {}} />);
+    await settle();
+    expect(screen.getByText("Transcribed by Soniox through Kizuna AI, paid from your organization's balance.")).toBeTruthy();
+    expect(screen.queryByText(SERVICE_HOSTED)).toBeNull();
+  });
+
   it('names Kizuna AI as the service in both panels, and what a transcription is estimated to cost as the options change', async () => {
     useAccountStore.setState({ account: known(10_000_000) });
     keeping(HOUR);

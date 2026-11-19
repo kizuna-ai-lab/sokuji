@@ -2170,6 +2170,7 @@
       "asked": "Основна мова: {{main}} · Переклад на: {{target}}",
       "askedEachSide": "Основна мова: {{main}} · Кожну сторону перекладено мовою іншої",
       "serviceHosted": "Розшифрує Soniox через Kizuna AI — оплата з вашого балансу.",
+      "serviceHostedOrg": "Розшифрує Soniox через Kizuna AI — оплата з балансу вашої організації.",
       "estimate": "Близько {{price}}.",
       "blockedSignIn": "Увійдіть у Kizuna AI, щоб розшифровувати файли з його допомогою.",
       "blockedNoBalance": "Вашого балансу Kizuna AI не вистачить на цю розшифровку.",

@@ -2170,6 +2170,7 @@
       "asked": "Pangunahing wika: {{main}} · Isinalin sa: {{target}}",
       "askedEachSide": "Pangunahing wika: {{main}} · Isinalin ang bawat panig sa wika ng kabila",
       "serviceHosted": "Isasalin sa teksto ng Soniox sa pamamagitan ng Kizuna AI, bayad mula sa iyong balanse.",
+      "serviceHostedOrg": "Isasalin sa teksto ng Soniox sa pamamagitan ng Kizuna AI, bayad mula sa balanse ng iyong organisasyon.",
       "estimate": "Humigit-kumulang {{price}}.",
       "blockedSignIn": "Mag-sign in sa Kizuna AI para makapag-transcribe ng mga file gamit ito.",
       "blockedNoBalance": "Hindi sapat ang balanse mo sa Kizuna AI para sa transcription na ito.",

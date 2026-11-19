@@ -108,6 +108,18 @@ describe('the file recognition service', () => {
       await expect(service.access.token()).resolves.toBeNull();
     });
 
+    // The payer was read for the first account: a second account's token must never travel with it.
+    it('hands out no token once another account is signed in, and again the first account’s when it is back', async () => {
+      registerAuth(() => ({ signedIn: true, userId: 'user-1', getToken: async () => 'tok-1' }));
+      const service = await fileRecognitionFromStores();
+      if ('missing' in service || !('hosted' in service)) throw new Error('not hosted');
+      await expect(service.access.token()).resolves.toBe('tok-1');
+      registerAuth(() => ({ signedIn: true, userId: 'user-2', getToken: async () => 'tok-2' }));
+      await expect(service.access.token()).resolves.toBeNull();
+      registerAuth(() => ({ signedIn: true, userId: 'user-1', getToken: async () => 'tok-1b' }));
+      await expect(service.access.token()).resolves.toBe('tok-1b');
+    });
+
     it('names the payer as hosted notes do: the organization, or the person when the switch says so', async () => {
       registerAuth(() => ({ signedIn: true, getToken: async () => 'tok' }));
       useAccountStore.setState({ account: member });

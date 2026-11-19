@@ -2170,6 +2170,7 @@
       "asked": "主要语言：{{main}} · 译为：{{target}}",
       "askedEachSide": "主要语言：{{main}} · 各自译成对方的语言",
       "serviceHosted": "由 Soniox 经 Kizuna AI 转写，从你的余额扣费。",
+      "serviceHostedOrg": "由 Soniox 经 Kizuna AI 转写，从你所在组织的余额扣费。",
       "estimate": "约 {{price}}。",
       "blockedSignIn": "登录 Kizuna AI 后才能用它转写文件。",
       "blockedNoBalance": "你的 Kizuna AI 余额不够这次转写。",

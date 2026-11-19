@@ -2170,6 +2170,7 @@
       "asked": "मुख्य भाषा: {{main}} · अनुवाद की भाषा: {{target}}",
       "askedEachSide": "मुख्य भाषा: {{main}} · हर पक्ष दूसरे पक्ष की भाषा में अनूदित",
       "serviceHosted": "Soniox, Kizuna AI के ज़रिए ट्रांसक्राइब करेगा; भुगतान आपके बैलेंस से।",
+      "serviceHostedOrg": "Soniox, Kizuna AI के ज़रिए ट्रांसक्राइब करेगा; भुगतान आपके संगठन के बैलेंस से।",
       "estimate": "लगभग {{price}}।",
       "blockedSignIn": "Kizuna AI से फ़ाइलें ट्रांसक्राइब करने के लिए उसमें साइन इन करें।",
       "blockedNoBalance": "आपका Kizuna AI बैलेंस इस ट्रांसक्रिप्शन के लिए काफ़ी नहीं है।",

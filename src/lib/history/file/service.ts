@@ -17,7 +17,10 @@ import type { SessionWords } from '../../provider/types';
 /** How a hosted service is reached: its address, the sign-in's token as it is when asked, and who pays. */
 export interface HostedAccess {
   apiUrl: string;
-  /** Read just before each track is sent, so a sign-out between tracks is seen; null signed out. */
+  /**
+   * Read just before each track is sent, so a sign-out between tracks is seen; null signed out, and null once another
+   * account is signed in (the payer is the first account's).
+   */
   token(): Promise<string | null>;
   payer?: 'organization' | 'personal';
 }
@@ -54,12 +57,20 @@ export async function fileRecognitionFromStores(): Promise<FileRecognitionServic
   const spec = (provider.fileRecognition as (s: unknown, k: unknown, w: SessionWords) => FileRecognitionSpec | { missing: 'no-key' })(entry.settings, entry.credentials, words);
   if ('missing' in spec || !('hosted' in spec)) return spec;
   // Kizuna AI's service takes the sign-in for a key, and charges the payer hosted notes name.
-  if (currentAuth()?.signedIn !== true) return { missing: 'sign-in' };
+  const auth = currentAuth();
+  if (auth?.signedIn !== true) return { missing: 'sign-in' };
+  // The payer is this account's. Another account signed in before a later track would send its own token with this
+  // payer, so its token is not handed out: the job stops there, as at a sign-out.
+  const userId = auth.userId ?? null;
   return {
     ...spec,
     access: {
       apiUrl: getApiUrl(),
-      token: async () => (await currentAuth()?.getToken()) ?? null,
+      token: async () => {
+        const now = currentAuth();
+        if (userId !== null && (now?.userId ?? null) !== userId) return null;
+        return (await now?.getToken()) ?? null;
+      },
       payer: accountPayer(useAccountStore.getState().account),
     },
   };

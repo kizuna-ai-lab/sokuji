@@ -2170,6 +2170,7 @@
       "asked": "Idioma principal: {{main}} · Traducido a: {{target}}",
       "askedEachSide": "Idioma principal: {{main}} · Cada lado traducido al idioma del otro",
       "serviceHosted": "Lo transcribe Soniox a través de Kizuna AI y se paga con tu saldo.",
+      "serviceHostedOrg": "Lo transcribe Soniox a través de Kizuna AI y se paga con el saldo de tu organización.",
       "estimate": "Unos {{price}}.",
       "blockedSignIn": "Inicia sesión en Kizuna AI para transcribir archivos con él.",
       "blockedNoBalance": "Tu saldo de Kizuna AI no alcanza para esta transcripción.",

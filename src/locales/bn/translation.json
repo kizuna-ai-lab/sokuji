@@ -2170,6 +2170,7 @@
       "asked": "প্রধান ভাষা: {{main}} · অনুবাদ: {{target}}",
       "askedEachSide": "প্রধান ভাষা: {{main}} · প্রতিটি পক্ষ অন্য পক্ষের ভাষায় অনূদিত",
       "serviceHosted": "Kizuna AI-এর মাধ্যমে Soniox প্রতিলিপি করবে, খরচ আপনার ব্যালান্স থেকে।",
+      "serviceHostedOrg": "Kizuna AI-এর মাধ্যমে Soniox প্রতিলিপি করবে, খরচ আপনার সংস্থার ব্যালান্স থেকে।",
       "estimate": "প্রায় {{price}}।",
       "blockedSignIn": "Kizuna AI দিয়ে ফাইলের প্রতিলিপি করতে এতে সাইন ইন করুন।",
       "blockedNoBalance": "এই প্রতিলিপির জন্য আপনার Kizuna AI ব্যালান্স যথেষ্ট নয়।",

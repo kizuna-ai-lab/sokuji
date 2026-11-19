@@ -2170,6 +2170,7 @@
       "asked": "Bahasa utama: {{main}} · Diterjemah ke: {{target}}",
       "askedEachSide": "Bahasa utama: {{main}} · Setiap pihak diterjemah ke bahasa pihak lain",
       "serviceHosted": "Ditranskrip oleh Soniox melalui Kizuna AI, dibayar daripada baki anda.",
+      "serviceHostedOrg": "Ditranskrip oleh Soniox melalui Kizuna AI, dibayar daripada baki organisasi anda.",
       "estimate": "Kira-kira {{price}}.",
       "blockedSignIn": "Log masuk ke Kizuna AI untuk mentranskrip fail dengannya.",
       "blockedNoBalance": "Baki Kizuna AI anda tidak mencukupi untuk transkripsi ini.",

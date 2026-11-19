@@ -2170,6 +2170,7 @@
       "asked": "Ana dil: {{main}} · Çeviri dili: {{target}}",
       "askedEachSide": "Ana dil: {{main}} · Her taraf diğerinin diline çevrildi",
       "serviceHosted": "Kizuna AI üzerinden Soniox tarafından yazıya dökülür; bakiyenizden ödenir.",
+      "serviceHostedOrg": "Kizuna AI üzerinden Soniox tarafından yazıya dökülür; kuruluşunuzun bakiyesinden ödenir.",
       "estimate": "Yaklaşık {{price}}.",
       "blockedSignIn": "Kizuna AI ile dosyaları yazıya dökmek için Kizuna AI'da oturum açın.",
       "blockedNoBalance": "Kizuna AI bakiyeniz bu döküm için yeterli değil.",

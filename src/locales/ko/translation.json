@@ -2170,6 +2170,7 @@
       "asked": "주 언어: {{main}} · 번역 언어: {{target}}",
       "askedEachSide": "주 언어: {{main}} · 각자 상대방 언어로 번역",
       "serviceHosted": "Kizuna AI를 통해 Soniox가 받아 적으며, 비용은 잔액에서 지불됩니다.",
+      "serviceHostedOrg": "Kizuna AI를 통해 Soniox가 받아 적으며, 비용은 조직의 잔액에서 지불됩니다.",
       "estimate": "약 {{price}}.",
       "blockedSignIn": "Kizuna AI로 파일을 받아 적으려면 Kizuna AI에 로그인하세요.",
       "blockedNoBalance": "Kizuna AI 잔액이 부족해 이 파일을 받아 적을 수 없습니다.",

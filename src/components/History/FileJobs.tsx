@@ -151,7 +151,10 @@ function useFileTexts(hours: number) {
       failure: (code: string) => failures[code] ?? blocks[(code === 'NO_TRACK' ? 'no-recording' : code) as FileJobBlock] ?? failures.LOCAL,
       failureFix: (code: string): Fix | null => failureFixes[code] ?? null,
       service: t('history.file.service', 'Transcribed by Soniox, with your own key.'),
-      serviceHosted: t('history.file.serviceHosted', 'Transcribed by Soniox through Kizuna AI, paid from your balance.'),
+      // Who pays is said as it is: the organization's balance when it pays, else the user's own.
+      serviceHosted: payer === 'organization'
+        ? t('history.file.serviceHostedOrg', "Transcribed by Soniox through Kizuna AI, paid from your organization's balance.")
+        : t('history.file.serviceHosted', 'Transcribed by Soniox through Kizuna AI, paid from your balance.'),
       // The price set apart from the sentence (first strong isolate … pop directional isolate), so in a right-to-left
       // language its dollar sign stays with its digits; left-to-right text looks the same.
       estimate: (amount: number) => t('history.file.estimate', 'About {{price}}.', { price: `\u2068${usd(amount)}\u2069` }),

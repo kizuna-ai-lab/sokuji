@@ -2170,6 +2170,7 @@
       "asked": "اللغة الرئيسية: {{main}} · مترجم إلى: {{target}}",
       "askedEachSide": "اللغة الرئيسية: {{main}} · كل طرف مترجم إلى لغة الطرف الآخر",
       "serviceHosted": "يحوّله Soniox إلى نص عبر Kizuna AI، ويُدفع من رصيدك.",
+      "serviceHostedOrg": "يحوّله Soniox إلى نص عبر Kizuna AI، ويُدفع من رصيد مؤسستك.",
       "estimate": "نحو {{price}}.",
       "blockedSignIn": "سجّل الدخول إلى Kizuna AI لتحويل الملفات إلى نص به.",
       "blockedNoBalance": "رصيدك في Kizuna AI لا يكفي لتحويل هذا التسجيل إلى نص.",

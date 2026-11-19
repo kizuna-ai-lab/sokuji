@@ -603,6 +603,31 @@ describe('through the Kizuna AI service', () => {
     expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
   });
 
+  it('a state answer that never ends is given up when the wait runs out: SERVICE, not a cancel, and the job ended', async () => {
+    // As fetch's own body does: only the call's signal ends it, with the signal's reason.
+    const stalled = (signal) => new Response(new ReadableStream({
+      start(c) {
+        c.enqueue(new TextEncoder().encode('{"id":"job-1",'));
+        signal.addEventListener('abort', () => c.error(signal.reason), { once: true });
+      },
+    }), { status: 200 });
+    const service = fakeService({ bodies: { [STATE]: stalled } });
+    const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant, later: instant, hostedMaxWaitMs: 40 });
+    const error = await recognizer.recognize(hostedRequest()).then(() => null, (e) => e);
+    expect(error).toMatchObject({ code: 'SERVICE' });
+    expect(error.message).toContain('did not finish the transcription');
+    await recognizer.settled();
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
+  });
+
+  it('a state call that never answers is given up when the wait runs out: SERVICE, and the job ended', async () => {
+    const service = fakeService({ hangs: [STATE] });
+    const recognizer = createFileRecognizer({ fetch: service.fetch, wait: instant, later: instant, hostedMaxWaitMs: 40 });
+    await expect(recognizer.recognize(hostedRequest())).rejects.toMatchObject({ code: 'SERVICE' });
+    await recognizer.settled();
+    expect(service.paths()).toEqual([START, TRANSCRIBE, STATE, END]);
+  });
+
   it('a cancel landing while the poll waits: CANCELLED, and the job ended', async () => {
     let recognizer;
     let waits = 0;

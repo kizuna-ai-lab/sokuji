@@ -2170,6 +2170,7 @@
       "asked": "ภาษาหลัก: {{main}} · แปลเป็น: {{target}}",
       "askedEachSide": "ภาษาหลัก: {{main}} · แต่ละฝ่ายแปลเป็นภาษาของอีกฝ่าย",
       "serviceHosted": "ถอดความโดย Soniox ผ่าน Kizuna AI ชำระจากยอดเงินของคุณ",
+      "serviceHostedOrg": "ถอดความโดย Soniox ผ่าน Kizuna AI ชำระจากยอดเงินขององค์กรของคุณ",
       "estimate": "ราว {{price}}",
       "blockedSignIn": "ลงชื่อเข้าใช้ Kizuna AI เพื่อถอดความไฟล์ด้วย Kizuna AI",
       "blockedNoBalance": "ยอดเงินคงเหลือ Kizuna AI ของคุณไม่พอสำหรับการถอดความครั้งนี้",

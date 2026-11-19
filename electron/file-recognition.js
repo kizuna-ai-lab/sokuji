@@ -151,11 +151,11 @@ function failedFileJob(errorType, token) {
 
 /**
  * `fetch`, `wait(ms, signal)`, `later(ms)` (the clean-up's pause) and `now()` (the clock a file job's polling is timed
- * by) are the outside world; `openBlob(path, options)` reads a file from disk as a Blob without loading it all.
+ * by) are the outside world; `hostedMaxWaitMs` is how long a file job's transcription is waited for; `openBlob(path, options)` reads a file from disk as a Blob without loading it all.
  */
 function createFileRecognizer({
   fetch = globalThis.fetch, wait = waitFor, later = (ms) => waitFor(ms), now = Date.now, openBlob = fs.openAsBlob, logger = console,
-  cleanupTimeoutMs = CLEANUP_TIMEOUT_MS,
+  cleanupTimeoutMs = CLEANUP_TIMEOUT_MS, hostedMaxWaitMs = HOSTED_MAX_WAIT_MS,
 } = {}) {
   /** jobId → { phase, controller } while a recognition runs. */
   const jobs = new Map();
@@ -331,10 +331,16 @@ function createFileRecognizer({
     /**
      * One call; a refusal becomes its HistoryError (with the HTTP status), a cancel CANCELLED, anything else NETWORK.
      * `starting` marks the start call, whose 404 means the service has no file jobs. The end passes
-     * `cancellable: false`: it must still run after a cancel, and is given up after `cleanupTimeoutMs`.
+     * `cancellable: false`: it must still run after a cancel, and is given up after `cleanupTimeoutMs`. `withinMs`
+     * (a poll's) is what is left of the wait for the transcription: the call, and the reading of its answer, are given
+     * up then, so an answer that never ends cannot hold the job past the wait.
      */
-    async function call(method, path, { json, blob, starting = false, cancellable = true } = {}) {
-      const signal = cancellable ? controller.signal : AbortSignal.timeout(cleanupTimeoutMs);
+    async function call(method, path, { json, blob, starting = false, cancellable = true, withinMs } = {}) {
+      const limit = cancellable && withinMs !== undefined ? AbortSignal.timeout(withinMs) : null;
+      let signal = cancellable ? controller.signal : AbortSignal.timeout(cleanupTimeoutMs);
+      if (limit) signal = AbortSignal.any([controller.signal, limit]);
+      /** The wait ran out during this call (and the user did not cancel): the service's failure, not a cancel. */
+      const overdue = () => limit !== null && limit.aborted && !controller.signal.aborted;
       let contentType = null;
       if (json !== undefined) contentType = 'application/json';
       else if (blob !== undefined) contentType = 'audio/ogg';
@@ -348,6 +354,7 @@ function createFileRecognizer({
           signal,
         });
       } catch (error) {
+        if (overdue()) throw unfinished();
         if ((cancellable && controller.signal.aborted) || (error && error.name === 'AbortError')) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
         throw new HistoryError('NETWORK', `The Kizuna AI service could not be reached: ${spoken(error && error.message, token)}`);
       }
@@ -364,6 +371,7 @@ function createFileRecognizer({
       try {
         return await response.json();
       } catch (error) {
+        if (overdue()) throw unfinished();
         if ((cancellable && controller.signal.aborted) || (error && error.name === 'AbortError')) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
         throw new HistoryError('SERVICE', `The Kizuna AI service sent an unreadable answer (${response.status}): ${spoken(error && error.message, token)}`);
       }
@@ -371,6 +379,7 @@ function createFileRecognizer({
     const checkCancelled = () => {
       if (controller.signal.aborted) throw new HistoryError('CANCELLED', 'The recognition was cancelled');
     };
+    const unfinished = () => new HistoryError('SERVICE', `The Kizuna AI service did not finish the transcription within ${hostedMaxWaitMs / 60_000} minutes`);
 
     /** Ends the job, asking again after a network failure or a 5xx; one the service no longer has is ended. */
     async function endFileJob(id) {
@@ -415,16 +424,15 @@ function createFileRecognizer({
       for (;;) {
         checkCancelled();
         // A job the service never finishes is not waited for for ever; the job is still ended there below.
-        if (now() - pollingSince > HOSTED_MAX_WAIT_MS) {
-          throw new HistoryError('SERVICE', `The Kizuna AI service did not finish the transcription within ${HOSTED_MAX_WAIT_MS / 60_000} minutes`);
-        }
+        if (now() - pollingSince > hostedMaxWaitMs) throw unfinished();
         try {
           await wait(POLL_MS, controller.signal);
         } catch {
           checkCancelled();
         }
         try {
-          state = await call('GET', at);
+          // The wait bounds the call too: an answer begun and never ended would otherwise be read for ever.
+          state = await call('GET', at, { withinMs: Math.max(1, hostedMaxWaitMs - (now() - pollingSince)) });
         } catch (error) {
           if (failedPolls < POLL_RETRIES && (error.code === 'NETWORK' || error.status >= 500)) {
             failedPolls += 1;

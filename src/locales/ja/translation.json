@@ -2170,6 +2170,7 @@
       "asked": "主な言語：{{main}} · 翻訳先：{{target}}",
       "askedEachSide": "主な言語：{{main}} · それぞれ相手の言語へ翻訳",
       "serviceHosted": "Kizuna AI 経由で Soniox が文字起こしします。料金は残高から支払われます。",
+      "serviceHostedOrg": "Kizuna AI 経由で Soniox が文字起こしします。料金は組織の残高から支払われます。",
       "estimate": "約 {{price}}。",
       "blockedSignIn": "Kizuna AI でファイルを文字起こしするには、Kizuna AI にサインインしてください。",
       "blockedNoBalance": "Kizuna AI の残高がこの文字起こしには足りません。",

@@ -2170,6 +2170,7 @@
       "asked": "زبان اصلی: {{main}} · ترجمه به: {{target}}",
       "askedEachSide": "زبان اصلی: {{main}} · هر طرف به زبان طرف دیگر ترجمه شده",
       "serviceHosted": "Soniox از طریق Kizuna AI آن را رونویسی می‌کند و هزینه از موجودی شما کم می‌شود.",
+      "serviceHostedOrg": "Soniox از طریق Kizuna AI آن را رونویسی می‌کند و هزینه از موجودی سازمان شما کم می‌شود.",
       "estimate": "حدود {{price}}.",
       "blockedSignIn": "برای رونویسی فایل‌ها با Kizuna AI وارد آن شوید.",
       "blockedNoBalance": "موجودی Kizuna AI شما برای این رونویسی کافی نیست.",
