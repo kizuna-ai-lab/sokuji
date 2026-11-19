@@ -13,19 +13,22 @@ import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } f
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
+import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../plan/composite';
+import { accountOf, providersIn, transcriptionProvider } from '../plan/read';
+import type { PlannedUnit } from '../plan/types';
 import { isMissing, readCredentials } from '../provider/credentials';
-import type { SharedSettings } from '../provider/types';
+import type { AnyProvider, ModelOption, SharedSettings } from '../provider/types';
 import { AgentTextFeed } from './agentText';
 import type { RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
 import { FLAP_WINDOW_MS } from './reconnect';
 import { reconnectClient } from './reconnectEvents';
-import { contextsFor, gate, type Refusal } from './shape';
+import { capabilitiesOf, contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
-import type { Budget, LegState, LoadingProgress, Prepared, ReconnectProgress, Resources, RunEnd, RunNotice, RunShape } from './types';
+import type { Budget, LegState, LoadingProgress, PlanAccount, Prepared, ReconnectProgress, Resources, RunEnd, RunNotice, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const API_ERROR_TYPES = ['auth', 'rate_limit', 'network', 'server', 'client'] as const;
@@ -82,6 +85,8 @@ export interface RunHost {
 
 export class Run {
   readonly id: string;
+  /** The run's identity where one provider id is asked for (analytics, the conversation, error reports): the transcription provider's. */
+  readonly providerId: string;
   /** When the run was created — Start — on the run's clock: what each leg's `session.stopped` counts from. */
   readonly startedAt: number;
   readonly legStates = new Map<LegName, LegState>();
@@ -135,6 +140,7 @@ export class Run {
   /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
     this.id = deps.newSessionId();
+    this.providerId = transcriptionProvider(shape.plan).id;
     this.startedAt = deps.clock.now();
     this.host = host(this);
     this.stack = new ResourceStack(deps.clock, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS, (f) =>
@@ -182,51 +188,67 @@ export class Run {
 
   private async runOpen(): Promise<void> {
     const { shape, deps, host } = this;
-    const p = shape.provider;
+    const { plan } = shape;
+    const providers = providersIn(plan);
 
     const refusal = gate(shape, deps.platform);
     if (refusal) throw new RefusedError(refusal);
 
     host.step('checking');
-    const credentials = readCredentials(p, shape.settings, shape.credentials, shape.auth);
-    if (isMissing(credentials)) {
-      throw new RefusedError({
-        code: credentials.code ?? ('credentials_missing' satisfies RunNoticeCode),
-        message: credentials.missing,
-        ...(credentials.params ? { params: credentials.params } : {}),
-      });
+    // Each provider's credentials, read from its own account; a leased one's are replaced by its lease's below.
+    const keys = new Map<string, (leg: LegName) => unknown>();
+    for (const p of providers) {
+      const account = accountOf(shape, p);
+      const credentials = readCredentials(p, account.settings, account.credentials, shape.auth);
+      if (isMissing(credentials)) {
+        throw new RefusedError({
+          code: credentials.code ?? ('credentials_missing' satisfies RunNoticeCode),
+          message: credentials.missing,
+          ...(credentials.params ? { params: credentials.params } : {}),
+        });
+      }
+      keys.set(p.id, () => credentials);
     }
-    const readiness = await this.untilAborted(deps.ensureReady(shape, this.signal));
-    this.throwIfAborted();
-    if (readiness.state !== 'ready') {
-      throw new RefusedError(readiness.state === 'not-ready'
-        // The provider's own code puts its reason into words; `not_ready` wraps an uncoded one.
-        ? { code: readiness.code ?? ('not_ready' satisfies RunNoticeCode), message: readiness.reason, ...(readiness.params ? { params: readiness.params } : {}) }
-        : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
+    const keyFor = (p: AnyProvider, leg: LegName): unknown => keys.get(p.id)!(leg);
+    const models = new Map<string, readonly ModelOption[]>();
+    for (const p of providers) {
+      const readiness = await this.untilAborted(deps.ensureReady(p, shape, this.signal));
+      this.throwIfAborted();
+      if (readiness.state !== 'ready') {
+        throw new RefusedError(readiness.state === 'not-ready'
+          // The provider's own code puts its reason into words; `not_ready` wraps an uncoded one.
+          ? { code: readiness.code ?? ('not_ready' satisfies RunNoticeCode), message: readiness.reason, ...(readiness.params ? { params: readiness.params } : {}) }
+          : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
+      }
+      models.set(p.id, readiness.models);
     }
     // The run's own answer (F2): a model-choosing builder reads the list its settings component was shown.
 
-    let settings = shape.settings;
-    let prepared: Prepared<unknown> = {};
-    if (p.session?.prepare) {
+    // Each provider's settings for this run: its account's, with what its `prepare` overrides.
+    const accounts: Record<string, PlanAccount> = { ...shape.accounts };
+    const notices: RunNotice[] = [];
+    for (const p of providers) {
+      if (!p.session?.prepare) continue;
       host.step('preparing');
+      const settings = accountOf(shape, p).settings;
       // A `prepare` that ignores its signal no longer holds a stop. It holds
       // nothing to release, and `persist` applies only once it has returned.
-      prepared = await this.untilAborted(p.session.prepare(shape, settings, this.signal));
+      const prepared: Prepared<unknown> = await this.untilAborted(p.session.prepare(shape, settings, this.signal));
       this.throwIfAborted();
-      if (prepared.override) settings = { ...(settings as object), ...prepared.override };
-      if (prepared.persist) deps.persistIfUnchanged(p, shape.settings, prepared.persist);
+      if (prepared.override) accounts[p.id] = { ...accounts[p.id], settings: { ...(settings as object), ...prepared.override } };
+      if (prepared.persist) deps.persistIfUnchanged(p, settings, prepared.persist);
+      if (prepared.notice) notices.push(prepared.notice);
     }
 
     const contexts = contextsFor(shape);
     // Whether any leg speaks, told to every builder: Soniox asks for agent text on it when its own setting is on (spec 2026-11-05 §4.3).
-    const shared: SharedSettings = { ...shape.shared, models: readiness.models, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
-    const configs: Partial<Record<LegName, unknown>> = {};
+    // One `shared` for every unit: its models are the transcription provider's answer, the plan's one provider in step 1.
+    const shared: SharedSettings = { ...shape.shared, models: models.get(this.providerId)!, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
+    const configs: Partial<Record<LegName, PlanConfigs>> = {};
     for (const leg of shape.legs) {
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
-      const built = p.build(contexts[leg]!, settings, { ...shared, reversed: () => leg === 'participant' });
-      // `C` has no `refused` member (the provider type's constraint), so this tells a refusal from a config.
-      if (typeof built?.refused === 'string') {
+      const built = buildPlan(plan, contexts[leg]!, { accounts }, { ...shared, reversed: () => leg === 'participant' });
+      if ('refused' in built) {
         throw new RefusedError({
           code: built.code ?? ('build_refused' satisfies RunNoticeCode),
           message: built.refused,
@@ -236,8 +258,11 @@ export class Run {
       }
       configs[leg] = built;
     }
-    if (p.session?.admit) {
-      const admitted = p.session.admit(configs);
+    // Each provider's cross-leg checks, over its own unit's configs.
+    for (const planned of plan.units) {
+      const session = planned.provider.session;
+      if (!session?.admit) continue;
+      const admitted = session.admit(Object.fromEntries(shape.legs.map((leg) => [leg, configs[leg]!.get(planned)])));
       if (admitted !== true && 'refused' in admitted) {
         throw new RefusedError({
           code: admitted.code ?? ('admit_refused' satisfies RunNoticeCode),
@@ -249,11 +274,11 @@ export class Run {
       if (admitted !== true && 'configs' in admitted) {
         for (const leg of shape.legs) {
           const adjusted = admitted.configs[leg];
-          if (adjusted) configs[leg] = adjusted;
+          if (adjusted) configs[leg] = new Map(configs[leg]!).set(planned, adjusted);
         }
       }
     }
-    this.models = p.describe(configs.speaker ?? configs.participant);
+    this.models = describePlan(plan, (configs.speaker ?? configs.participant)!);
 
     host.step('opening');
     // A voice's queue going idle ends its agent text segment. The runner calls `playback.clear()` before
@@ -272,33 +297,35 @@ export class Run {
         onDiagnostic: (d) => reportWarning('SessionRunner', `${leg}: ${d.message}`, { dedupeKey: `conversation:${d.code}` }),
       }));
     }
-    if (prepared.notice) this.conversations.get(shape.legs[0])!.notice({ severity: 'warning', ...prepared.notice });
+    for (const notice of notices) this.conversations.get(shape.legs[0])!.notice({ severity: 'warning', ...notice });
 
-    const together = shape.legs.length === 2 && !!p.session?.startBoth;
-    // The lease's release slot, reserved beneath the sources it follows: the
+    // Both legs at once (D23) where the plan is one unit and its provider starts both; otherwise the composite adapter per leg.
+    const sole = plan.units.length === 1 ? plan.units[0] : undefined;
+    const together = shape.legs.length === 2 && !!sole?.provider.session?.startBoth;
+    // Each lease's release slot, reserved beneath the sources it follows: the
     // stack unwinds last in first out, so the legs' sessions and then their
     // sources — the microphone, the system audio, the tab — close before the
     // lease's release goes out (spec: "released after they have closed"). A
     // lease never acquired releases nothing.
-    let lease: Resources<unknown> | undefined;
-    let leaseSlotRan = false;
-    if (p.session?.acquire) {
+    const leases = providers.filter((p) => p.session?.acquire).map((provider) => {
+      const slot: { provider: AnyProvider; lease?: Resources<unknown>; ran: boolean } = { provider, ran: false };
       this.stack.defer('lease', () => {
-        leaseSlotRan = true;
-        return lease?.release();
+        slot.ran = true;
+        return slot.lease?.release();
       });
-    }
+      return slot;
+    });
     // Every leg's source before a lease is minted (Stage 2 Kizuna Soniox,
     // ruling 9): a source that fails after `acquire` would leave a lease no
     // stream ever started, which the backend's sweeps never reach — the next
     // Start 409-locked until its initial expiry (75 s, 195 s with `par_stt`).
     // Opened first, it fails before any key is minted. `startBoth` takes
     // both sources at once, so it opens them first too.
-    const sources = p.session?.acquire || together ? await this.openSources() : null;
+    const sources = leases.length > 0 || together ? await this.openSources() : null;
 
-    let credentialsFor = (_leg: LegName): unknown => credentials;
-    if (p.session?.acquire) {
-      const resources = await p.session.acquire(shape, settings, {
+    for (const slot of leases) {
+      const p = slot.provider;
+      const resources = await p.session!.acquire!(shape, accountOf({ accounts }, p).settings, {
         signal: this.signal,
         cancellationCause: () => this.cancellationCause,
         clock: deps.clock,
@@ -316,7 +343,7 @@ export class Run {
           // old client deliberately never tracked (`:158-161`).
           if (!o?.expected) {
             deps.analytics.track('api_error', {
-              provider: shape.provider.id, error_message: redact(notice.message), error_code: notice.code,
+              provider: this.providerId, error_message: redact(notice.message), error_code: notice.code,
               error_type: apiErrorType(notice.code), channel: shape.legs[0],
             });
           }
@@ -328,36 +355,38 @@ export class Run {
         // The lease runs inside `opening`, so that is the step it returns to.
         waiting: (on) => host.step(on ? 'waiting' : 'opening'),
       });
-      lease = resources;
+      slot.lease = resources;
       // An `acquire` that outlived `close()`'s bounded wait finds its slot
       // already run: a `defer` on an unwound stack releases it at once.
-      if (leaseSlotRan) this.stack.defer('lease', () => resources.release());
+      if (slot.ran) this.stack.defer('lease', () => resources.release());
       this.throwIfAborted();
-      credentialsFor = (leg) => resources.credentials(leg);
-      this.budget = resources.budget ?? null;
+      keys.set(p.id, (leg) => resources.credentials(leg));
+      if (resources.budget) this.budget = resources.budget;
     }
     // The run's legs become the conversation once nothing before the adapters
     // can refuse the start: a refused lease leaves the last conversation on
     // screen (choice 3). A provider with neither a lease nor `startBoth` hands
     // them over before its legs open, as before.
-    host.conversations(this.conversations, { provider: this.shape.provider.id, models: this.models, startedAt: this.startedAt });
+    host.conversations(this.conversations, { provider: this.providerId, models: this.models, startedAt: this.startedAt });
 
-    const requests = Object.fromEntries(shape.legs.map((leg) => [leg, {
+    const request = <C, K>(leg: LegName, config: C, credentials: K): StartRequest<C, K> => ({
       context: contexts[leg]!,
-      config: configs[leg],
-      credentials: credentialsFor(leg),
+      config,
+      credentials,
       clock: deps.clock,
       signal: this.signal,
       punctuate,
       // One source for both legs: in Both either side may refer to the screen (spec 2026-10-22 §3.1).
       ...(shape.frames ? { frames: shape.frames } : {}),
-    }])) as Record<LegName, StartRequest<unknown, unknown>>;
+    });
 
     if (together) {
+      const unit = sole!;
+      const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(unit), keyFor(unit.provider, leg))])) as Record<LegName, StartRequest<unknown, unknown>>;
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
-        sessions = await p.session!.startBoth!(requests, events);
+        sessions = await unit.provider.session!.startBoth!(requests, events);
       } catch (error) {
         // A provider that knows which leg failed says so; otherwise the start is the first leg's.
         if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause, 'adapter');
@@ -368,7 +397,7 @@ export class Run {
       this.throwIfAborted();
       shape.legs.forEach((leg, i) => this.connect(leg, sources![i], sessions[leg]));
     } else {
-      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, requests[leg], sources?.[i]))));
+      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, request(leg, configs[leg]!, (unit: PlannedUnit) => keyFor(unit.provider, leg)), sources?.[i]))));
     }
     this.throwIfAborted();
     // The network back (spec 2026-11-05 reconnect §4.2): a session waiting out a reconnect's backoff tries now. Undone as the run unwinds.
@@ -503,12 +532,12 @@ export class Run {
     this.sessions.get('participant')?.setSpeech?.(on);
   }
 
-  /** Typed text for the speaker leg, when the provider takes text. Blank once trimmed: nothing to send, for any provider. */
+  /** Typed text for the speaker leg, when the transcribing unit takes text. Blank once trimmed: nothing to send, for any provider. */
   sendText(text: string): void {
     const session = this.sessions.get('speaker');
-    if (this.ending || this.liveSince === null || !this.shape.provider.textInput(this.shape.settings) || !session || !text.trim()) return;
+    if (this.ending || this.liveSince === null || !capabilitiesOf(this.shape, 'transcription').textInput || !session || !text.trim()) return;
     session.appendText(text);
-    this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.shape.provider.id, text_length: text.length });
+    this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.providerId, text_length: text.length });
   }
 
   /** A manual turn's key gates the original-voice route: push-to-translate closes it while held, push-to-talk opens it only while held (the routing's `gate`). */
@@ -540,13 +569,13 @@ export class Run {
     })())));
   }
 
-  private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>, opened?: Source): Promise<void> {
+  private async openLeg(leg: LegName, request: StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown>, opened?: Source): Promise<void> {
     let stage: LegOpenError['stage'] = 'source';
     try {
       const source = opened ?? await this.openSource(leg);
       stage = 'adapter';
       this.setLegState(leg, 'opening');
-      const session = await this.shape.provider.start(request, this.eventsFor(leg));
+      const session = await startComposite(this.shape.plan, request, this.eventsFor(leg));
       this.stack.defer(`${leg} session`, () => session.stop());
       this.throwIfAborted();
       this.connect(leg, source, session);
@@ -582,7 +611,7 @@ export class Run {
     // socket opened before the other leg's did) is not live yet: its own
     // `reconnected` says when it is.
     if (this.legStates.get(leg) !== 'reconnecting') this.setLegState(leg, 'live');
-    this.deps.analytics.track('connection_status', { status: 'connected', provider: this.shape.provider.id, channel: leg });
+    this.deps.analytics.track('connection_status', { status: 'connected', provider: this.providerId, channel: leg });
   }
 
   /** The participant leg and automatic turns stream everything; manual turns send only while the key is held. */
@@ -620,7 +649,7 @@ export class Run {
     this.conversations.get(leg)?.apply(event);
     if (this.ending) return;
     const { playback, analytics } = this.deps;
-    const provider = this.shape.provider.id;
+    const provider = this.providerId;
     switch (event.kind) {
       case 'loading':
         this.host.loading(leg, event.payload);
@@ -712,7 +741,7 @@ export class Run {
   private reconnectEvent(leg: LegName, managed: boolean) {
     const region = this.sessions.get(leg)?.info.region;
     return {
-      session_id: this.id, provider: this.shape.provider.id, managed, channel: this.channel(leg), client: reconnectClient(this.deps.platform),
+      session_id: this.id, provider: this.providerId, managed, channel: this.channel(leg), client: reconnectClient(this.deps.platform),
       ...(region !== undefined ? { region } : {}),
     };
   }
@@ -731,7 +760,7 @@ export class Run {
     const drop: Drop = { since: this.deps.clock.now(), ...(e ? { attempt: e.attempt } : {}) };
     this.drops.set(leg, drop);
     this.setLegState(leg, 'reconnecting');
-    this.deps.analytics.track('connection_status', { status: 'reconnecting', provider: this.shape.provider.id, channel: leg });
+    this.deps.analytics.track('connection_status', { status: 'reconnecting', provider: this.providerId, channel: leg });
     if (e?.drop && this.counts(leg)) drop.sent = this.dropped(leg, e.drop, e.drop.retryable);
   }
 

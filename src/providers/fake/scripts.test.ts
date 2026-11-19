@@ -1,12 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import type { SessionContext } from '../../lib/contract/adapter';
+import type { AdapterEvents, SessionContext, StartRequest } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { driveAdapter } from '../../lib/contract/testing/drive';
 import { eventsFrom, type AdapterEvent } from '../../lib/contract/events';
 import { Conversation } from '../../lib/conversation/Conversation';
+import { startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { planOf } from '../../lib/plan/testing';
+import type { PlannedUnit } from '../../lib/plan/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { createFakeAdapter } from './adapter';
 import { reflessStreamScript } from './generate';
+import { fakeProvider } from './provider';
 import { FAKE_SCRIPT_NAMES, fakeScript, type FakeScriptName } from './scripts';
 
 const auto: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
@@ -18,6 +22,17 @@ describe('the fake\'s scripts', () => {
     expect(FAKE_SCRIPT_NAMES).toEqual(ALL);
     for (const name of ALL) {
       const result = await play(name);
+      expect(result.violations).toEqual([]);
+      expect(result.startError).toBeUndefined();
+    }
+  });
+
+  it("plays every script conformant through the composite adapter over the fake's plan, as through its own adapter", async () => {
+    const plan = planOf(fakeProvider);
+    const [unit] = plan.units;
+    const composite = { start: (request: StartRequest<PlanConfigs, (u: PlannedUnit) => unknown>, events: AdapterEvents) => startComposite(plan, request, events) };
+    for (const name of FAKE_SCRIPT_NAMES) {
+      const result = await driveAdapter(composite, { context: auto, config: new Map([[unit, { script: fakeScript(name) }]]), credentials: () => ({}), steps: [{ advance: 40_000 }] });
       expect(result.violations).toEqual([]);
       expect(result.startError).toBeUndefined();
     }

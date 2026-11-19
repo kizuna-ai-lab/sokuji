@@ -10,6 +10,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
+import { shapeWith } from '../../lib/plan/testing';
 import { fakeProvider } from '../fake/provider';
 import { FAKE_DEFAULTS } from '../fake/settings';
 import { createFakeSource } from '../fake/source';
@@ -111,8 +112,7 @@ describe('kizunaSonioxProvider', () => {
       : new Response(JSON.stringify({ ok: true }), { status: 200 })));
     vi.stubGlobal('fetch', fetch);
     const clock = createVirtualClock(0);
-    const shape: RunShape = {
-      provider,
+    const shape: RunShape = shapeWith(provider, {
       // The claim skips the built-in voice Soniox's defaults name: nothing to claim, nothing called.
       settings: { ...FAKE_DEFAULTS, ...SONIOX_DEFAULTS },
       credentials: {},
@@ -124,7 +124,7 @@ describe('kizunaSonioxProvider', () => {
       keepReplayAudio: true,
       shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
       auth: signedIn,
-    };
+    });
     const frames = { frame: vi.fn() };
     const runner = createRunner({
       clock, platform: 'electron', readShape: () => shape,

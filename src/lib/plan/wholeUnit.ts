@@ -1,13 +1,18 @@
 // src/lib/plan/wholeUnit.ts
 //
 // A provider seen as one unit: it serves every stage together, as it does
-// today. Pure functions over the provider definition.
+// today, and the plan of a run on it alone. Pure functions over the provider
+// definition.
 import { RUN_STAGES } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import { sameStages } from './types';
-import type { UnitDefinition } from './types';
+import type { PlannedUnit, RunPlan, UnitDefinition } from './types';
 
-/** The unit that is the whole provider: all three stages, or recognition and translation when it need not speak. */
+/**
+ * The unit that is the whole provider: all three stages, or recognition and translation when it need not speak.
+ * A view of the definition, not a copy: every member reads the definition when it is used, so the unit runs
+ * what the definition holds then, and a read asks the definition exactly what generic code asked it before.
+ */
 export function wholeUnit(p: AnyProvider): UnitDefinition {
   return {
     id: 'whole',
@@ -16,18 +21,19 @@ export function wholeUnit(p: AnyProvider): UnitDefinition {
       if (p.speech !== 'always' && sameStages(['transcription', 'translation'], want)) return ['transcription', 'translation'];
       return null;
     },
+    // A capability backed by a function is asked when it is read: a reader of one capability calls that function only.
     capabilities: s => ({
       speech: p.speech,
-      turns: p.turns(s),
+      get turns() { return p.turns(s); },
       turnOwner: 'either',
-      boundaries: p.boundaries(s),
-      textInput: p.textInput(s),
+      get boundaries() { return p.boundaries(s); },
+      get textInput() { return p.textInput(s); },
       faceToFace: p.faceToFace === true,
       participantSpeech: p.participantSpeech !== false,
     }),
     build: (context, s, shared) => p.build(context, s, shared),
-    describe: p.describe,
-    start: p.start,
+    get describe() { return p.describe; },
+    get start() { return p.start; },
   };
 }
 
@@ -41,4 +47,10 @@ export function unitsOf(p: AnyProvider): readonly UnitDefinition[] {
     cache.set(p, units);
   }
   return units;
+}
+
+/** The plan in which a provider's first unit serves all three stages: a run of that provider alone. */
+export function wholePlan(p: AnyProvider): RunPlan {
+  const u: PlannedUnit = { provider: p, unit: unitsOf(p)[0], stages: RUN_STAGES };
+  return { units: [u], byStage: { transcription: u, translation: u, speech: u } };
 }

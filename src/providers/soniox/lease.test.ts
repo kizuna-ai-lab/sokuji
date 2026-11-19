@@ -6,6 +6,7 @@ import { recordEvents } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
+import { shapeWith, stubProvider } from '../../lib/plan/testing';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox } from './config';
 import {
@@ -40,8 +41,8 @@ const grant = (roles: string[], over: Record<string, unknown> = {}) => ({
   leaseId: 'lease-1', clientReferenceId: `ref-${roles[0]}`, region: 'us', streams: roles.map(stream), ...over,
 });
 
-const shapeFor = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; token?: string | null } = {}): RunShape => ({
-  provider: {} as RunShape['provider'], settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
+const shapeFor = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; token?: string | null } = {}): RunShape => shapeWith(stubProvider('kizunaai_soniox'), {
+  settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
   turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true,
   shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: { signedIn: o.token !== null, userId: 'u1', getToken: vi.fn(async () => (o.token === undefined ? 'tok' : o.token)) },

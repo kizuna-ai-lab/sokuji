@@ -7,6 +7,7 @@ import type { LegName } from '../../lib/conversation/types';
 import type { AnyProvider, SharedSettings } from '../../lib/provider/types';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
+import { shapeWith } from '../../lib/plan/testing';
 import { fakeLeasedProvider, type FakeLeasedConfig, type FakeLeasedCredentials } from './leased';
 import { FAKE_LEASED_DEFAULTS, migrateFakeLeasedSettings, type FakeLeasedSettings } from './settings';
 import { createFakeSource } from './source';
@@ -20,8 +21,7 @@ const session = fakeLeasedProvider.session!;
 const live = () => new AbortController().signal;
 
 /** A frozen shape for the hooks that only pass it through. */
-const shapeFor = (settings: FakeLeasedSettings): RunShape => ({
-  provider: fakeLeasedProvider as AnyProvider,
+const shapeFor = (settings: FakeLeasedSettings): RunShape => shapeWith(fakeLeasedProvider as AnyProvider, {
   settings,
   credentials: {},
   pair: { source: 'en', target: 'ja' },
@@ -229,8 +229,7 @@ describe('the leased fake', () => {
 
   it('runs end to end through the runner', async () => {
     const clock = createVirtualClock(0);
-    const shape: RunShape = {
-      provider: fakeLeasedProvider as AnyProvider,
+    const shape: RunShape = shapeWith(fakeLeasedProvider as AnyProvider, {
       settings: s({ prepareFallback: true, leaseEndsAfterMs: 3000 }),
       credentials: {},
       pair: { source: 'en', target: 'ja' },
@@ -241,7 +240,7 @@ describe('the leased fake', () => {
       keepReplayAudio: true,
       shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
       auth: signedIn,
-    };
+    });
     const runner = createRunner({
       clock, platform: 'electron', readShape: () => shape,
       ensureReady: async () => ({ state: 'ready', models: [] }),

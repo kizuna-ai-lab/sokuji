@@ -18,6 +18,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 import { GeminiIcon } from '../../components/Icons/ProviderIcons';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
+import { planOf } from '../../lib/plan/testing';
 import { contextsFor } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
@@ -77,7 +78,7 @@ describe('the Gemini definition', () => {
 
   it("lets the participant speak when its switch is on, voiced in its own voice (ruling 5; the participant voice, 2026-10-12)", () => {
     expect(geminiProvider.participantSpeech).toBeUndefined();
-    const shape = { provider: geminiProvider, pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
+    const shape = { plan: planOf(geminiProvider), accounts: { [geminiProvider.id]: { settings: undefined, credentials: {} } }, pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
     const participant = contextsFor(shape).participant!;
     expect(participant).toEqual({ direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' });
     expect(contextsFor({ ...shape, participantSpeech: false }).participant!.speech).toBe(false);

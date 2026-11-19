@@ -1,7 +1,7 @@
 // src/lib/plan/read.test.ts
 import { describe, expect, it } from 'vitest';
 import { RUN_STAGES } from '../lineup/types';
-import { providersIn, transcriptionProvider, unitFor } from './read';
+import { accountOf, providersIn, transcriptionProvider, unitFor } from './read';
 import { planOf, stubProvider } from './testing';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -16,5 +16,12 @@ describe('reading a plan', () => {
     expect(providersIn(planOf(soniox))).toEqual([soniox]);
     expect(RUN_STAGES.map((stage) => unitFor(plan, stage))).toEqual([text, text, voice]);
     expect(transcriptionProvider(plan)).toBe(soniox);
+  });
+
+  it("answers a provider's account as the run froze it, and throws for a provider not in the plan", () => {
+    const account = { settings: { region: 'eu' }, credentials: { apiKey: 'k' } };
+    const shape = { accounts: { soniox: account } };
+    expect(accountOf(shape, stubProvider('soniox'))).toBe(account);
+    expect(() => accountOf(shape, stubProvider('openai'))).toThrow(/openai/);
   });
 });

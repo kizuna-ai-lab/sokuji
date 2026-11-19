@@ -75,8 +75,8 @@ export interface RunnerDeps {
   platform: Platform;
   /** Everything a run freezes; null when no provider is chosen or it has not loaded. */
   readShape(): RunShape | null;
-  /** Readiness of the run's own shape (settings, credentials, pair), through the shared cache; honours `signal`. */
-  ensureReady(shape: RunShape, signal: AbortSignal): Promise<Readiness>;
+  /** Readiness of one provider of the run's plan, on the run's own shape (its settings and credentials there, the pair), through the shared cache; honours `signal`. */
+  ensureReady(provider: AnyProvider, shape: RunShape, signal: AbortSignal): Promise<Readiness>;
   /** Writes a `prepare` patch field by field, only where the stored value still equals the run's snapshot. */
   persistIfUnchanged(p: AnyProvider, snapshot: unknown, patch: Readonly<Record<string, unknown>>): void;
   openSource: OpenSource;

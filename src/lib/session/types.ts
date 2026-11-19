@@ -4,7 +4,8 @@
 import type { AdapterEvents, AdapterFrame, AdapterSession, FrameSource, StartRequest } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
-import type { AnyProvider, AuthContext, LanguagePair, ProviderRefusal, SharedSettings } from '../provider/types';
+import type { RunPlan } from '../plan/types';
+import type { AuthContext, LanguagePair, ProviderRefusal, SharedSettings } from '../provider/types';
 
 /** One global setting (D15). Push-to-talk and push-to-translate are the same to an adapter: manual turns. */
 export type TurnMode = 'auto' | 'push-to-talk' | 'push-to-translate';
@@ -34,13 +35,20 @@ export interface PayerWallets {
 /** Who pays for a session an organization member starts; on the wire exactly these two values. */
 export type Payer = 'organization' | 'personal';
 
-/** Everything a run reads, frozen once at start (spec: "A run"); later steps read this, never the live stores. */
-export interface RunShape {
-  provider: AnyProvider;
+/** One provider of a run's plan as it stood at start. */
+export interface PlanAccount {
   /** The provider's settings at start. */
   settings: unknown;
   /** Its saved credential values at start: every key in `credentials.keys`. */
   credentials: Readonly<Record<string, string>>;
+}
+
+/** Everything a run reads, frozen once at start (spec: "A run"); later steps read this, never the live stores. */
+export interface RunShape {
+  /** Which unit serves each stage of the run. */
+  plan: RunPlan;
+  /** Settings and saved credential values at start, by provider id: every provider in the plan. */
+  accounts: Readonly<Record<string, PlanAccount>>;
   /** The speaker's pair; the participant leg runs its reverse. */
   pair: LanguagePair;
   /** The legs asked for, speaker first. */

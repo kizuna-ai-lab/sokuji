@@ -5,6 +5,7 @@ import type { Punctuator } from '../conversation/fillIn';
 import type { AnyProvider, Readiness, SharedSettings } from '../provider/types';
 import { createVirtualClock } from '../contract/clock';
 import { fakeFrameSource } from '../contract/testing/fakeFrames';
+import { shapeWith } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
@@ -50,7 +51,8 @@ function hangingStop() {
 }
 
 interface Options {
-  shape?: Partial<RunShape>;
+  /** The shape's own fields, and the provider the run plans alone (absent: the fake). */
+  shape?: Partial<Omit<RunShape, 'plan' | 'accounts'>> & { provider?: AnyProvider };
   settings?: Partial<FakeSettings>;
   openSource?: OpenSource;
   ready?: Readiness;
@@ -79,8 +81,15 @@ function setup(o: Options = {}) {
   const tracked: Array<[string, unknown]> = [];
   // Every request the provider's `start` receives, in order: what each leg was handed.
   const startRequests: StartRequest<unknown, unknown>[] = [];
-  const provider = (o.shape?.provider ?? fakeProvider) as AnyProvider;
-  const shape: RunShape = {
+  const { provider: given, ...patch } = o.shape ?? {};
+  const provider = (given ?? fakeProvider) as AnyProvider;
+  const shape: RunShape = shapeWith({
+    ...provider,
+    start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
+      startRequests.push(request);
+      return provider.start(request as never, events);
+    },
+  } as AnyProvider, {
     settings: { ...FAKE_DEFAULTS, ...o.settings },
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -95,15 +104,8 @@ function setup(o: Options = {}) {
       segmentation: { mode: 'off', sentencesPerRow: 0 },
     },
     auth: { signedIn: false, getToken: async () => null },
-    ...o.shape,
-    provider: {
-      ...provider,
-      start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
-        startRequests.push(request);
-        return provider.start(request as never, events);
-      },
-    } as AnyProvider,
-  };
+    ...patch,
+  });
   let runs = 0;
   const persistIfUnchanged = vi.fn();
   const runner = createRunner({

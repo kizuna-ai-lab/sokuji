@@ -5,6 +5,8 @@ import { createKizunaLease, SESSION_KEY_TIMEOUT_MS } from '../../providers/sonio
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
+import { accountOf } from '../plan/read';
+import { shapeWith } from '../plan/testing';
 import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { fakeScript } from '../../providers/fake/scripts';
@@ -26,8 +28,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], open
   const clock = createVirtualClock(0);
   const sources: FakeSource[] = [];
   const persistIfUnchanged = vi.fn();
-  const shape: RunShape = {
-    provider,
+  const shape: RunShape = shapeWith(provider, {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -42,7 +43,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], open
       segmentation: { mode: 'off', sentencesPerRow: 0 },
     },
     auth: { signedIn: false, getToken: async () => null },
-  };
+  });
   const runner = createRunner({
     clock,
     platform: 'electron',
@@ -71,7 +72,7 @@ describe('runner — prepare', () => {
     const provider = withHooks({ prepare: async () => ({ persist: { script: 'long' } }) });
     const { runner, persistIfUnchanged, shape } = setup(provider);
     await runner.start();
-    expect(persistIfUnchanged).toHaveBeenCalledWith(provider, shape.settings, { script: 'long' });
+    expect(persistIfUnchanged).toHaveBeenCalledWith(provider, accountOf(shape, provider).settings, { script: 'long' });
   });
 
   it("records prepare's notice on the first leg", async () => {
@@ -93,7 +94,7 @@ describe('runner — prepare', () => {
     await runner.start();
     clock.advance(600);
     expect(runner.conversation.snapshot()[0].segments[0].text).toBe('今日は');
-    expect(persistIfUnchanged).toHaveBeenCalledWith(provider, shape.settings, { script: 'long' });
+    expect(persistIfUnchanged).toHaveBeenCalledWith(provider, accountOf(shape, provider).settings, { script: 'long' });
   });
 });
 

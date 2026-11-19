@@ -5,12 +5,17 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { LegName } from '../conversation/types';
-import type { LanguageContext } from '../provider/types';
+import type { RunStage } from '../lineup/types';
+import { planOf, shapeWith, stubProvider } from '../plan/testing';
+import type { PlannedUnit } from '../plan/types';
+import type { AnyProvider, LanguageContext } from '../provider/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
 import type { BalanceShape, RunShape } from './types';
 
-const shape = (patch: Partial<RunShape> = {}): RunShape => ({
-  provider: fakeProvider,
+/** A shape's fields as a test patches them: the provider it runs on alone, and that provider's settings and credentials. */
+type Patch = Partial<Omit<RunShape, 'plan' | 'accounts'>> & { provider?: AnyProvider; settings?: unknown; credentials?: Record<string, string> };
+
+const shape = ({ provider = fakeProvider, ...patch }: Patch = {}): RunShape => shapeWith(provider, {
   settings: FAKE_DEFAULTS,
   credentials: { apiKey: '' },
   pair: { source: 'en', target: 'ja' },
@@ -147,7 +152,7 @@ describe('gate', () => {
   });
 
   it('gates the narrower input the stores give as well as a run\'s shape', () => {
-    expect(gate({ provider: fakeProvider, settings: FAKE_DEFAULTS, pair: { source: 'en', target: 'ja' }, legs: ['participant'], turnMode: 'auto' }, 'web'))
+    expect(gate({ plan: planOf(fakeProvider), accounts: { fake: { settings: FAKE_DEFAULTS, credentials: {} } }, pair: { source: 'en', target: 'ja' }, legs: ['participant'], turnMode: 'auto' }, 'web'))
       .toMatchObject({ code: 'participant_source_unavailable', leg: 'participant' });
   });
 });
@@ -164,9 +169,9 @@ describe('microphoneMissing (1e-3 ruling 5)', () => {
 
 describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', () => {
   // A floor that rises with each speaking leg, as a lease's does.
-  const leased = { ...fakeProvider, session: { minimumBalance: (s: BalanceShape) => 100 + (s.textOnly ? 0 : 100) + (s.participantSpeech ? 100 : 0) } } as unknown as RunShape['provider'];
+  const leased = { ...fakeProvider, session: { minimumBalance: (s: BalanceShape) => 100 + (s.textOnly ? 0 : 100) + (s.participantSpeech ? 100 : 0) } } as unknown as AnyProvider;
   const known = (balanceMicroUsd: number, frozen = false) => ({ status: 'known' as const, balanceMicroUsd, frozen });
-  const input = (patch: Partial<RunShape> = {}) => ({ provider: leased, settings: FAKE_DEFAULTS, legs: ['speaker'] as const, textOnly: false, participantSpeech: false, account: known(150), ...patch });
+  const input = ({ provider = leased, ...patch }: Patch = {}) => ({ plan: planOf(provider), accounts: { [provider.id]: { settings: FAKE_DEFAULTS, credentials: {} } }, legs: ['speaker'] as const, textOnly: false, participantSpeech: false, account: known(150), ...patch });
 
   it('gates nothing without an account (signed out, or none wired), or for a provider with no floor', () => {
     expect(balanceRefusal(input({ account: null }))).toBeNull();
@@ -343,5 +348,43 @@ describe('speakFor — who hears what (spec 2026-10-10 §4)', () => {
     expect(participantSpeechInput({ participantSpeech: null, faceToFace: true, heard: true })).toBe(true);
     expect(participantSpeechInput({ participantSpeech: null, faceToFace: false, heard: true })).toBe(false);
     expect(participantSpeechInput({ participantSpeech: true, faceToFace: false, heard: false })).toBe(false);
+  });
+});
+
+// Task B1's table, over a plan built by hand (`compose` makes none in step 1): transcription on one provider,
+// translation on a second, speech on a third. Each question is asked of the unit that answers it.
+describe('a plan of several units: each question asked of the unit that answers it', () => {
+  const opt = (value: string) => ({ value });
+  const languages = (sources: string[], targets: string[]) => ({ wire: fakeProvider.languages.wire, sources: () => sources.map(opt), targets: () => targets.map(opt) });
+  const floor = (microUsd: number) => ({ minimumBalance: () => microUsd });
+  const heard = stubProvider('heard', { turns: () => ['auto'], languages: languages(['en', 'ja'], []), session: floor(100) });
+  const voice = stubProvider('voice', { speech: 'never', session: floor(300) });
+  const planned = (p: AnyProvider, stage: RunStage): PlannedUnit => ({ ...planOf(p).units[0], stages: [stage] });
+  /** The shape over the three providers, translating into `targets`. */
+  const several = (targets: string[], patch: Patch = {}): RunShape => {
+    const translated = stubProvider('translated', { languages: languages([], targets) });
+    const [a, b, c] = [planned(heard, 'transcription'), planned(translated, 'translation'), planned(voice, 'speech')];
+    const accounts = Object.fromEntries([heard, translated, voice].map((p) => [p.id, { settings: undefined, credentials: {} }]));
+    return { ...shape(patch), plan: { units: [a, b, c], byStage: { transcription: a, translation: b, speech: c } }, accounts };
+  };
+
+  it('asks the speech unit whether a leg speaks', () => {
+    expect(contextsFor(several(['en'])).speaker?.speech).toBe(false);
+  });
+
+  it('asks the transcription unit for its turns, and names its provider', () => {
+    expect(gate(several(['en'], { turnMode: 'push-to-talk' }), 'electron'))
+      .toMatchObject({ code: 'turn_mode_unsupported', leg: 'speaker', message: 'heard does not offer manual turns with these settings.' });
+  });
+
+  it("reverses the pair in the transcription provider's sources and the translation provider's targets", () => {
+    expect(gate(several(['ja'], { legs: ['speaker', 'participant'] }), 'electron'))
+      .toMatchObject({ code: 'participant_unsupported', leg: 'participant', message: 'heard does not offer ja → en.' });
+    expect(gate(several(['en'], { legs: ['speaker', 'participant'] }), 'electron')).toBeNull();
+  });
+
+  it("takes the highest floor among the plan's providers", () => {
+    const below = balanceRefusal({ ...several(['en']), account: { status: 'known', balanceMicroUsd: 200, frozen: false } });
+    expect(below).toMatchObject({ code: BALANCE_BELOW_FLOOR, message: "The balance (200 µUSD) is below this start's floor (300 µUSD)." });
   });
 });

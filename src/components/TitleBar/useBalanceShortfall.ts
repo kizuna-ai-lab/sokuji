@@ -6,6 +6,7 @@
  * frozen wallet is not a low balance. For an organization payer the dot is only a
  * hint: Start itself is not refused below the floor, the server answers it.
  */
+import { wholePlan } from '../../lib/plan/wholeUnit';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';
 import { ORG_INSUFFICIENT_BALANCE } from '../../lib/session/orgNotice';
@@ -36,6 +37,8 @@ export function useBalanceShortfall(): boolean {
   if (!found) return false;
   const { provider, entry } = found;
   const participantSpeech = speechFromStores(provider).them;
-  const code = balanceRefusal({ provider, settings: entry.settings, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer })?.code;
+  // The selected provider as the plan a start would run, as the live gate builds it.
+  const accounts = { [provider.id]: { settings: entry.settings, credentials: entry.credentials } };
+  const code = balanceRefusal({ plan: wholePlan(provider), accounts, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer })?.code;
   return code === BALANCE_BELOW_FLOOR || code === ORG_INSUFFICIENT_BALANCE;
 }

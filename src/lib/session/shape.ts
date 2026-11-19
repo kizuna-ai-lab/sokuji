@@ -1,6 +1,9 @@
 import type { SessionContext } from '../contract/adapter';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
+import type { RunStage } from '../lineup/types';
+import { accountOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
+import type { UnitCapabilities } from '../plan/types';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
@@ -76,26 +79,55 @@ export function languageContext(p: Speaking, legs: readonly LegName[], inputs: S
   return { speech: legs.some((leg) => legSpeaks(p, leg, inputs)) };
 }
 
+/** What the unit that serves `stage` can do, under its provider's settings in `accounts`. */
+export function capabilitiesOf(shape: Pick<RunShape, 'plan' | 'accounts'>, stage: RunStage): UnitCapabilities {
+  const { provider, unit } = unitFor(shape.plan, stage);
+  return unit.capabilities(accountOf(shape, provider).settings);
+}
+
+/**
+ * The plan's languages in one provider's shape, each list from the provider
+ * that answers it: the sources and the reverse of a pair from the
+ * transcription provider, the targets from the translation provider, each
+ * under its own settings at start (the settings argument is not read).
+ */
+function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProvider, 'languages'> {
+  const heard = transcriptionProvider(shape.plan);
+  const translated = unitFor(shape.plan, 'translation').provider;
+  const sHeard = accountOf(shape, heard).settings;
+  const sTranslated = accountOf(shape, translated).settings;
+  const reverse = heard.languages.reverse;
+  return {
+    languages: {
+      ...heard.languages,
+      sources: (_s, context) => heard.languages.sources(sHeard, context),
+      targets: (source, _s, context) => translated.languages.targets(source, sTranslated, context),
+      reverse: reverse && ((pair) => reverse(pair, sHeard)),
+    },
+  };
+}
+
 /**
  * What each leg's adapter is told (spec: "The session request"). The
  * participant leg runs the reverse — the provider's own where it states one
  * (Stage 2 Palabra, ruling 9) — always with automatic turns.
  */
 export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionContext>> {
-  const { provider: p, pair } = shape;
+  const { pair } = shape;
+  const speaking = capabilitiesOf(shape, 'speech');
   const contexts: Partial<Record<LegName, SessionContext>> = {};
   if (shape.legs.includes('speaker')) {
     contexts.speaker = {
       direction: { source: pair.source, target: pair.target },
-      speech: legSpeaks(p, 'speaker', shape),
+      speech: legSpeaks(speaking, 'speaker', shape),
       turns: shape.turnMode === 'auto' ? 'auto' : 'manual',
     };
   }
   if (shape.legs.includes('participant')) {
     contexts.participant = {
       // The gate refused a pair with no reverse before anything asks (D20); the plain swap only answers a shape nothing gated.
-      direction: reversedPair(p, shape.settings, pair) ?? { source: pair.target, target: pair.source },
-      speech: legSpeaks(p, 'participant', shape),
+      direction: reversedPair(planLanguages(shape), undefined, pair) ?? { source: pair.target, target: pair.source },
+      speech: legSpeaks(speaking, 'participant', shape),
       turns: 'auto',
     };
   }
@@ -103,7 +135,7 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
 }
 
 /** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. */
-export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>>;
+export type GateInput = Pick<RunShape, 'plan' | 'accounts' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>>;
 
 /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
 export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
@@ -116,15 +148,17 @@ export const QUOTA_UNKNOWN = 'quota_unknown';
  * A managed provider's balance check over the account as the client
  * knows it (Stage 2 Kizuna Soniox, rulings 5 and 6): the wallet still
  * loading, a wallet that failed to load, a frozen wallet, or a balance
- * below the floor the provider names for this start (`minimumBalance`).
- * Nothing without an account — signed out, where the sign-in check
- * speaks, or none wired — or when the provider names no floor. The
- * backend's 402 still words a balance that changed since the fetch.
+ * below the floor for this start: the highest the plan's providers name
+ * (`minimumBalance`). Nothing without an account — signed out, where the
+ * sign-in check speaks, or none wired — or when no provider of the plan
+ * names a floor. The backend's 402 still words a balance that changed
+ * since the fetch.
  */
-export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>): Refusal | null {
-  const floorFor = input.provider.session?.minimumBalance;
+export function balanceRefusal(input: Pick<GateInput, 'plan' | 'accounts' | 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>): Refusal | null {
+  // The plan's providers that name a floor: the start's floor is the highest of theirs.
+  const floored = providersIn(input.plan).filter((p) => p.session?.minimumBalance);
   const account = input.account;
-  if (!floorFor || !account) return null;
+  if (floored.length === 0 || !account) return null;
   if (account.status === 'loading') return { code: QUOTA_PENDING, message: 'The wallet is still loading.' };
   if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
   // The wallet the chosen payer spends: a member's organization or own balance, a non-member's only one.
@@ -138,7 +172,8 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
       ? { code: ORG_WALLET_FROZEN, message: 'The organization wallet is frozen.', ...(orgParams ? { params: orgParams } : {}) }
       : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
   }
-  const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false }, input.settings);
+  const balanceShape = { legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false };
+  const floor = Math.max(...floored.map((p) => p.session!.minimumBalance!(balanceShape, accountOf(input, p).settings)));
   // No balance known for the chosen wallet: the server checks it, as it does an organization below the floor.
   if (wallet.microUsd === undefined || wallet.microUsd >= floor) return null;
   return {
@@ -159,29 +194,32 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
  * unknown, frozen, or below the floor.
  */
 export function gate(shape: GateInput, platform: Platform): Refusal | null {
-  const { provider: p, settings: s, legs } = shape;
+  const { legs } = shape;
   if (legs.length === 0) return { code: 'no_legs' satisfies RunNoticeCode, message: 'The audio mode asks for no leg.' };
-  const offered = p.turns(s);
+  // Turns are the transcribing unit's to offer; a refusal names its provider.
+  const heard = transcriptionProvider(shape.plan);
+  const offered = capabilitiesOf(shape, 'transcription').turns;
   const speakerTurns = shape.turnMode === 'auto' ? 'auto' : 'manual';
   if (legs.includes('speaker') && !offered.includes(speakerTurns)) {
-    return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${p.id} does not offer ${speakerTurns} turns with these settings.`, leg: 'speaker' };
+    return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${heard.id} does not offer ${speakerTurns} turns with these settings.`, leg: 'speaker' };
   }
   if (legs.includes('participant')) {
     if (!offered.includes('auto')) {
-      return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${p.id} does not offer automatic turns, which the participant leg needs.`, leg: 'participant' };
+      return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${heard.id} does not offer automatic turns, which the participant leg needs.`, leg: 'participant' };
     }
     // Face-to-face's participant hears through my microphone: its source is silent, and the web can open it.
     if (platform === 'web' && !shape.faceToFace) {
       return { code: 'participant_source_unavailable' satisfies RunNoticeCode, message: 'This build has no participant source.', leg: 'participant' };
     }
     // D20: the participant leg runs the reversed pair, in the languages its own speech offers (Stage 2 Volcengine AST2, choice 1); an auto source never reverses.
-    const participant = { speech: legSpeaks(p, 'participant', { textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false }) };
-    if (!reverseSupported(p, s, shape.pair, participant)) {
+    const participant = { speech: legSpeaks(capabilitiesOf(shape, 'speech'), 'participant', { textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false }) };
+    const languages = planLanguages(shape);
+    if (!reverseSupported(languages, undefined, shape.pair, participant)) {
       // Worded from the pair actually checked (Stage 2 Palabra, ruling 9; choice 3): a hooked provider's reverse of `shape.pair`, not the plain swap.
-      const reversed = reversedPair(p, s, shape.pair);
+      const reversed = reversedPair(languages, undefined, shape.pair);
       const message = reversed === null
-        ? `${p.id} has no reverse of ${shape.pair.source} → ${shape.pair.target}.`
-        : `${p.id} does not offer ${reversed.source} → ${reversed.target}.`;
+        ? `${heard.id} has no reverse of ${shape.pair.source} → ${shape.pair.target}.`
+        : `${heard.id} does not offer ${reversed.source} → ${reversed.target}.`;
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message, leg: 'participant' };
     }
   }
