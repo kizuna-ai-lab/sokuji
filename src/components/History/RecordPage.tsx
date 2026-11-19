@@ -27,6 +27,8 @@ import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsSt
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
+import FixWordsPart from './FixWordsPart';
+import EditToast from './EditToast';
 import { InlineEdit } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
 import { labelsFit } from './panelSwitchFit';
@@ -222,6 +224,32 @@ export const RecordPage: React.FC = () => {
     // A hit in the notes shows them in columns too; the closed choice stays saved for ordinary openings.
     if (hitKind === 'notes') { setNotesOpen(true); setShared('notes'); }
   }, [open?.record.id, hitKind]);
+  // A word handed to "Fix words" (option C: from a name to check or a selection) shows the edit panel, wherever it
+  // stands in this layout; the part fills itself from it.
+  const fixDraftSeq = useStore(store, (s) => s.fixDraft?.seq ?? null);
+  useEffect(() => {
+    if (fixDraftSeq === null) return;
+    if (columned) {
+      writeSideOpen(true);
+      setSideOpen(true);
+      setShared('edit');
+    } else {
+      setPane('edit');
+    }
+  }, [fixDraftSeq]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Ctrl/⌘+Z undoes the last edit of this record, except in a field, whose own undo it is (design draft P0 §3.6).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'z' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || isComposing(e)) return;
+      const at = e.target as Element | null;
+      if (at?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+      if (!store.getState().canUndo) return;
+      e.preventDefault();
+      void store.getState().undo();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [store]);
   const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
   useEffect(() => {
     const el = pageRef.current;
@@ -561,6 +589,7 @@ export const RecordPage: React.FC = () => {
         </p>
         {speakersPanel}
       </section>
+      <FixWordsPart onJump={(n) => setJumpTo({ n })} />
     </RecordSidePanel>
   );
 
@@ -748,6 +777,7 @@ export const RecordPage: React.FC = () => {
         {!sharing && sidePanel}
       </div>
       </div>
+      <EditToast />
       <div className="record-page__player">
         {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}
       </div>
