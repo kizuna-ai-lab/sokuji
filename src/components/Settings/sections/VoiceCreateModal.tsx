@@ -240,12 +240,19 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   };
 
   const startRecording = useCallback(async () => {
-    if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
+    if (!onRecord || transcriptMissing) return;
+    const startFailed = t('voiceLibrary.recordStartFailed', 'Could not start recording. Check that a microphone is connected and that Sokuji may use it.');
+    // No microphone API at all (an insecure page, an old browser) is the same
+    // failure to the user as a refused one.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(startFailed);
+      return;
+    }
     // Same reason as handleFiles: starting a new capture clears the last one's
     // failure.
     setError(null);
+    const generation = recGenerationRef.current;
     try {
-      const generation = recGenerationRef.current;
       // Voice-cloning reference audio must be captured RAW: the cloning
       // model mimics everything in the clip, so browser echo-cancellation /
       // noise-suppression / AGC artifacts get baked into the cloned voice
@@ -286,9 +293,16 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         if (left <= 0) void stopRecordingRef.current?.();
       }, 250);
     } catch (err) {
+      // Same reason as handleFiles: without this a denied or missing
+      // microphone left the Record button as it was, as if nothing happened.
+      // An attempt the dialog was closed on says nothing: close() already
+      // cleared the error, and this one would show on the next open.
+      if (generation === recGenerationRef.current) {
+        setError(startFailed);
+      }
       console.warn('Recording failed to start:', err);
     }
-  }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
+  }, [onRecord, transcriptMissing, capability.maxClipSeconds, t]);
 
   const stopRecording = useCallback(async () => {
     clearRecTimer();

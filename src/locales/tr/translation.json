@@ -1169,6 +1169,7 @@
     "previewChargedToBalance": "Önizlemeyi dinlemek kısa bir örnek sentezler ve hesap bakiyenizden düşülür.",
     "previewFailed": "Bu ses için önizleme oluşturulamadı.",
     "renameFailed": "Bu ses yeniden adlandırılamadı.",
+    "recordStartFailed": "Kayıt başlatılamadı. Bir mikrofonun bağlı olduğunu ve Sokuji'nin onu kullanmasına izin verildiğini kontrol edin.",
     "previewLanguageUnsupported": "Bu modelin konuştuğu bir dilde örnek cümlesi yok.",
     "previewNeedsBalance": "Bu sesin önizlemesini dinlemek için bakiyenizi yükleyin.",
     "previewNeedsSessionStopped": "Bu sesin önizlemesini dinlemek için oturumu sonlandırın.",

@@ -1169,6 +1169,7 @@
     "previewChargedToBalance": "Esikatselu syntetisoi lyhyen näytteen, ja sen hinta veloitetaan saldostasi.",
     "previewFailed": "Tämän äänen esikatselua ei voitu luoda.",
     "renameFailed": "Tämän äänen nimeä ei voitu muuttaa.",
+    "recordStartFailed": "Tallennusta ei voitu aloittaa. Tarkista, että mikrofoni on liitetty ja että Sokuji saa käyttää sitä.",
     "previewLanguageUnsupported": "Tällä mallilla ei ole esimerkkilausetta kielellä, jota se puhuu.",
     "previewNeedsBalance": "Lataa saldoasi kuunnellaksesi tämän äänen esikatselun.",
     "previewNeedsSessionStopped": "Lopeta istunto kuunnellaksesi tämän äänen esikatselun.",
