@@ -770,6 +770,39 @@ describe('editing a finished record', () => {
     expect(s.getNotes({ id: notesId }).body.overview.text).toBe('搜库机上线');
   });
 
+  // Final review I-3: the notes go back field by field; a name dismissed since, or another fix of other words, does not
+  // stop it, and a field changed since is kept and counted.
+  it('reverts the notes field by field', () => {
+    const body = { ...BODY, title: '搜库机周会', overview: { text: '搜库机和佐藤米崎上线', format: 'plain' }, names: [{ written: '佐藤米崎' }] };
+    const notesId = s.saveNotes({ recordId: ID, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body });
+    const first = { ...body, title: 'Sokuji周会', overview: { text: 'Sokuji和佐藤米崎上线', format: 'plain' } };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(first) } }));
+    s.updateNotesNames({ notesId, names: [{ written: '佐藤米崎', dismissed: true }] });
+    const now = s.getNotes({ id: notesId }).body;
+    const second = { ...now, overview: { text: 'Sokuji和佐藤美咲上线', format: 'plain' } };
+    s.applyCorrection({ transcriptId: t, from: '佐藤米崎', to: '佐藤美咲', sentences: [], notes: { id: notesId, before: JSON.stringify(now), after: JSON.stringify(second) } });
+    expect(s.revertCorrection({ id })).toEqual({ restored: 2, kept: 1 });
+    const back = s.getNotes({ id: notesId }).body;
+    expect(back.title).toBe('搜库机周会');
+    expect(back.overview.text).toBe('Sokuji和佐藤美咲上线');
+    expect(back.names).toEqual([{ written: '佐藤米崎', dismissed: true }]);
+  });
+
+  // Final review I-7: the record's title is the notes' title copied; it is fixed and reverted with it, unless the user
+  // named the record.
+  it('fixes the record title copied from the notes', () => {
+    const body = { ...BODY, title: '搜库机周会' };
+    const notesId = s.saveNotes({ recordId: ID, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body });
+    const after = { ...body, title: 'Sokuji周会' };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(after) } }));
+    expect(s.getRecord(ID).title).toBe('Sokuji周会');
+    s.revertCorrection({ id });
+    expect(s.getRecord(ID).title).toBe('搜库机周会');
+    s.renameRecord({ id: ID, title: '我的周会' });
+    s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(after) } }));
+    expect(s.getRecord(ID).title).toBe('我的周会');
+  });
+
   it('opens a version 1 file and adds the columns', () => {
     s.close();
     rmSync(dir, { recursive: true, force: true });

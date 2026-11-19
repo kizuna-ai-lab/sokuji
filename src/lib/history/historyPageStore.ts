@@ -308,9 +308,13 @@ export function createHistoryPageStore(
   let notesSeq = 0;
   /** A dismissal being written: the next waits for it rather than writing the names it read before. */
   let dismissing = false;
+  /** What a fix added to the word list: the entry written so, as it was before (null when the fix made it). */
+  type WordsAdded = { written: string; was: WordEntry | null };
   /** What undo takes back on the record shown, last first; cleared when the record or transcript shown changes. */
   type UndoStep =
-    | { kind: 'fix'; id: number; words: WordEntry[] | null }
+    | { kind: 'fix'; id: number; words: WordsAdded | null }
+    /** A fix reverted from the list: undoing it writes the fix again where its sentences read as heard. */
+    | { kind: 'revert'; id: number; from: string; to: string; sentences: number[]; notesId: number | null }
     | { kind: 'sentence'; n: number; text: string }
     | { kind: 'name'; side: 'mine' | 'other'; speaker: string; name: string }
     | { kind: 'move'; n: number; speaker: string | null };
@@ -403,6 +407,13 @@ export function createHistoryPageStore(
     const remember = (step: UndoStep) => {
       undoSteps = [...undoSteps, step].slice(-UNDO_STEPS);
       set({ canUndo: true });
+    };
+
+    /** The change a fix makes to a notes version (as the store takes it), or null when the notes do not hold the word. */
+    const notesFix = (notes: OpenRecord['notes'], from: string, to: string) => {
+      if (!notes?.body) return null;
+      const fixed = replaceInNotes(notes.body, from, to);
+      return fixed.count > 0 ? { id: notes.id, before: JSON.stringify(notes.body), after: JSON.stringify(fixed.body) } : null;
     };
 
     /** The open record read again after an edit, its notes version kept. */
@@ -700,23 +711,29 @@ export function createHistoryPageStore(
         const word = from.trim();
         const written = to.trim();
         if (!open || open.transcriptId === null || !editable() || !word || !written || word === written) return 0;
+        // A place already written right is not one to fix (final review I-2).
         const sentences = open.sentences
-          .filter((x) => (o.only == null || x.n === o.only) && findWord(x.text, word).length > 0)
-          .map((x) => ({ n: x.n, before: x.text, after: replaceWord(x.text, word, written).text }));
+          .filter((x) => (o.only == null || x.n === o.only) && findWord(x.text, word, written).length > 0)
+          .map((x) => ({ n: x.n, before: x.text, after: replaceWord(x.text, word, written).text }))
+          .filter((x) => x.after !== x.before);
         if (sentences.length === 0) return 0;
-        const body = o.notes && o.only == null ? open.notes?.body ?? null : null;
-        const fixed = body ? replaceInNotes(body, word, written) : null;
-        const notesChange = body && fixed && fixed.count > 0 && open.notes
-          ? { id: open.notes.id, before: JSON.stringify(body), after: JSON.stringify(fixed.body) } : null;
+        const notesChange = o.notes && o.only == null ? notesFix(open.notes, word, written) : null;
         const learn = o.words && o.only == null;
         let changed = 0;
         await act(async () => {
           const id = await port.applyCorrection({ transcriptId: open.transcriptId!, from: word, to: written, sentences, notes: notesChange });
-          const words = learn ? useWordList.getState().entries.slice() : null;
-          if (learn) await addWord({ written, heardAs: word });
+          // The list read first, so one not yet loaded is not written over; what the entry was is kept for undo.
+          let words: WordsAdded | null = null;
+          if (learn) {
+            if (!useWordList.getState().loaded) await useWordList.getState().load();
+            const was = useWordList.getState().entries.find((e) => e.written === written) ?? null;
+            if (await addWord({ written, heardAs: word })) words = { written, was: was && { ...was } };
+          }
           remember({ kind: 'fix', id, words });
-          say({ kind: 'fixed', from: word, to: written, count: sentences.length, words: learn });
+          say({ kind: 'fixed', from: word, to: written, count: sentences.length, words: words !== null });
           changed = sentences.length;
+          // The record's title follows its notes' title: the list shows it (final review I-7).
+          if (notesChange) await reload();
           await reread();
         });
         return changed;
@@ -728,7 +745,7 @@ export function createHistoryPageStore(
         const was = open.sentences.find((x) => x.n === n);
         if (!was || was.text === text) return;
         const swap = o.everywhere ? swapIn(was.text, text) : null;
-        if (swap && open.sentences.some((x) => x.n !== n && findWord(x.text, swap.from).length > 0)) {
+        if (swap && open.sentences.some((x) => x.n !== n && findWord(x.text, swap.from, swap.to).length > 0)) {
           await get().fixWords(swap.from, swap.to, { notes: false, words: o.words });
           return;
         }
@@ -755,7 +772,9 @@ export function createHistoryPageStore(
         const c = get().open?.corrections.find((x) => x.id === id);
         if (!c || !editable()) return;
         const { restored, kept } = await port.revertCorrection({ id });
+        remember({ kind: 'revert', id, from: c.from, to: c.to, sentences: c.sentences, notesId: c.notesId });
         say({ kind: 'reverted', from: c.from, to: c.to, count: restored, kept });
+        if (c.notesId !== null) await reload();
         await reread();
       }),
 
@@ -767,7 +786,25 @@ export function createHistoryPageStore(
         set({ canUndo: undoSteps.length > 0 });
         if (step.kind === 'fix') {
           await port.revertCorrection({ id: step.id, forget: true });
-          if (step.words) await useWordList.getState().setEntries(step.words);
+          // Only what the fix added comes out of the word list; what was added since stays (final review M-8).
+          if (step.words) {
+            const { written, was } = step.words;
+            const now = useWordList.getState().entries;
+            await useWordList.getState().setEntries(was
+              ? now.map((e) => (e.written === written ? was : e))
+              : now.filter((e) => e.written !== written));
+          }
+        } else if (step.kind === 'revert') {
+          const sentences = open.sentences
+            .filter((x) => step.sentences.includes(x.n))
+            .map((x) => ({ n: x.n, before: x.text, after: replaceWord(x.text, step.from, step.to).text }))
+            .filter((x) => x.after !== x.before);
+          const notes = step.notesId !== null && open.notes?.id === step.notesId ? notesFix(open.notes, step.from, step.to) : null;
+          if (sentences.length > 0 || notes) {
+            const again = await port.applyCorrection({ transcriptId: open.transcriptId, from: step.from, to: step.to, sentences, notes });
+            // The fix written again is the one its own undo step now takes back.
+            undoSteps = undoSteps.map((x) => (x.kind === 'fix' && x.id === step.id ? { ...x, id: again } : x));
+          }
         } else if (step.kind === 'sentence') {
           await port.editSentences({ transcriptId: open.transcriptId, edits: [{ n: step.n, text: step.text }] });
         } else if (step.kind === 'name') {
@@ -776,6 +813,7 @@ export function createHistoryPageStore(
           await port.reassignSentence({ transcriptId: open.transcriptId, n: step.n, speaker: step.speaker });
         }
         say({ kind: 'undone' });
+        if (step.kind === 'fix' || step.kind === 'revert') await reload();
         await reread();
       }),
 

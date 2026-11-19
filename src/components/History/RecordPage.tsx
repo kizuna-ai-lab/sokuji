@@ -346,8 +346,10 @@ export const RecordPage: React.FC = () => {
     for (const [i, n] of (open?.notes?.body?.names ?? []).entries()) {
       const word = typeof n.written === 'string' ? n.written : '';
       if (!word || !open) continue;
-      const now = open.sentences.some((s) => findWord(s.text, word).length > 0);
-      const heard = open.sentences.some((s) => findWord(s.heard ?? s.text, word).length > 0);
+      // A place reading the likely form is not the misheard one ("搜库" inside "搜库机").
+      const right = typeof n.likely === 'string' && n.likely ? n.likely : undefined;
+      const now = open.sentences.some((s) => findWord(s.text, word, right).length > 0);
+      const heard = open.sentences.some((s) => findWord(s.heard ?? s.text, word, right).length > 0);
       if (!now && heard) fixed.add(i);
     }
     return fixed;
@@ -621,7 +623,7 @@ export const RecordPage: React.FC = () => {
               <React.Fragment key={s.n}>
                 {i > 0 && spaceBetween(row.sentences[i - 1].text, s.text) ? ' ' : null}
                 <span className={`record-sentence${hit === `[data-n="${s.n}"]` ? ' is-hit' : ''}`} data-n={s.n}>
-                  {editingSentence === s.n ? <SentenceEditor n={s.n} text={s.text} onDone={() => setEditingSentence(null)} /> : s.text}
+                  {editingSentence === s.n ? <SentenceEditor n={s.n} text={s.text} onDone={() => setEditingSentence((at) => (at === s.n ? null : at))} /> : s.text}
                   {editingSentence !== s.n && heardOf.get(s.n) != null && (
                     <button type="button" className="record-sentence__edited" aria-expanded={originalOf === s.n}
                       title={t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}

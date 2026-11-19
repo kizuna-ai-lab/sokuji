@@ -90,6 +90,34 @@ describe('fixing a misheard word', () => {
     expect(store.getState().toast).toMatchObject({ kind: 'reverted', from: '搜库机', to: 'Sokuji', count: 2, kept: 0 });
   });
 
+  // Final review I-7: the record's title, the notes' title copied, is fixed with the notes, in the list too.
+  it('fixes the record title with the notes, in the list too', async () => {
+    const t = (real.store.getRecord(A) as { transcripts: Array<{ id: number }> }).transcripts[0].id;
+    real.store.saveNotes({ recordId: A, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body: { ...BODY, title: '搜库机周会' } });
+    await store.getState().load();
+    await store.getState().openRecord(A);
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: true, words: false });
+    expect(store.getState().open!.record.title).toBe('Sokuji周会');
+    expect(store.getState().rows.find((r) => r.id === A)?.title).toBe('Sokuji周会');
+    await store.getState().undo();
+    expect(store.getState().rows.find((r) => r.id === A)?.title).toBe('搜库机周会');
+  });
+
+  // Final review I-2: a place already written right is not a place to fix.
+  it('does not count a place already written right', async () => {
+    expect(await store.getState().fixWords('搜库', '搜库机', { notes: true, words: false })).toBe(0);
+    expect(texts()).toEqual(['我们用搜库机开会', '搜库机很快', 'Sokuji 已经上线']);
+    expect(store.getState().open!.corrections).toEqual([]);
+  });
+
+  // Final review M-8: the word list is read before a fix adds to it, so a list not yet loaded is not written over.
+  it('reads the word list before adding to it', async () => {
+    settingsStored.set('settings.words', { version: 1, entries: [{ written: 'Palabra' }] });
+    useWordList.setState({ entries: [], loaded: false });
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: true });
+    expect(useWordList.getState().entries).toEqual([{ written: 'Palabra' }, { written: 'Sokuji', heardAs: '搜库机' }]);
+  });
+
   // Owner, 2026-11-19: no fix to an empty word (deleting a word goes through editing its sentence).
   it('no fix to nothing, nor to the same word', async () => {
     expect(await store.getState().fixWords('搜库机', '  ', { notes: true, words: true })).toBe(0);
@@ -141,6 +169,42 @@ describe('undo', () => {
     expect(texts()[0]).toBe('我们用搜库机开会');
     await store.getState().openRecord(A);
     expect(texts()[0]).toBe('我们用Sokuji开会');
+  });
+
+  // Final review I-1: the "Reverted" line has Undo too; it brings the fix back, and leaves earlier changes alone.
+  it('undo right after a revert brings the fix back', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: true, words: true });
+    await store.getState().renameSpeaker('other', '1.1', 'Mina');
+    await store.getState().revertCorrection(store.getState().open!.corrections[0].id);
+    expect(texts()[0]).toBe('我们用搜库机开会');
+    await store.getState().undo();
+    expect(texts()).toEqual(['我们用Sokuji开会', 'Sokuji很快', 'Sokuji 已经上线']);
+    expect(store.getState().open!.notes!.body!.overview.text).toBe('Sokuji上线');
+    expect(store.getState().open!.corrections.filter((c) => c.revertedAt === null)).toHaveLength(1);
+    expect(store.getState().open!.speakers.find((x) => x.speaker === '1.1')?.name).toBe('Mina');
+    expect(useWordList.getState().entries).toEqual([{ written: 'Sokuji', heardAs: '搜库机' }]);
+  });
+
+  // The fix brought back by undoing its revert is the one the next undo takes back: nothing is left listed.
+  it('undo, then undo again, after a revert takes the fix back without a trace', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: true, words: true });
+    await store.getState().revertCorrection(store.getState().open!.corrections[0].id);
+    await store.getState().undo();
+    await store.getState().undo();
+    expect(texts()).toEqual(['我们用搜库机开会', '搜库机很快', 'Sokuji 已经上线']);
+    expect(store.getState().open!.notes!.body!.overview.text).toBe('搜库机上线');
+    expect(store.getState().open!.corrections.filter((c) => c.revertedAt === null)).toEqual([]);
+    expect(useWordList.getState().entries).toEqual([]);
+  });
+
+  // Final review M-8: undo takes out what the fix added to the word list, and nothing added since.
+  it('undo takes out only what the fix added to the word list', async () => {
+    useWordList.setState({ entries: [{ written: 'Sokuji', heardAs: '搜酷鸡' }] });
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: true });
+    expect(useWordList.getState().entries).toEqual([{ written: 'Sokuji', heardAs: '搜酷鸡, 搜库机' }]);
+    await useWordList.getState().setEntries([...useWordList.getState().entries, { written: 'Palabra' }]);
+    await store.getState().undo();
+    expect(useWordList.getState().entries).toEqual([{ written: 'Sokuji', heardAs: '搜酷鸡' }, { written: 'Palabra' }]);
   });
 
   it('keeps 20 steps', async () => {

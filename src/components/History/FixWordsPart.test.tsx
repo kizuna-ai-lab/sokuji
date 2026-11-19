@@ -101,6 +101,16 @@ describe('fixing words in the edit panel', () => {
     expect(store.getState().open!.sentences[0].text).toBe('我们用搜库机开会');
   });
 
+  // Final review I-2: the count is what a fix would change; places already written right are not in it.
+  it('counts only the places not yet written right', async () => {
+    await show();
+    fireEvent.change(heard(), { target: { value: '搜库' } });
+    expect(screen.getByText('2 places')).toBeInTheDocument();
+    fireEvent.change(changeTo(), { target: { value: '搜库机' } });
+    expect(screen.getByText('Not found')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /Fix in the notes too/ })).toBeNull();
+  });
+
   // Design draft P0 §4: notes being written are about to be replaced, so they are not fixed.
   it('does not offer the notes while they are being written', async () => {
     await show();

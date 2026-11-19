@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from 'zustand';
 import { findWord, swapIn } from '../../lib/history/wordFix';
 import { useHistoryPageContext } from './historyContext';
+import { isComposing } from './format';
 
 export interface SentenceEditorProps {
   n: number;
@@ -29,7 +30,7 @@ export function SentenceEditor({ n, text, onDone }: SentenceEditorProps) {
   useEffect(() => { fieldRef.current?.focus(); }, []);
 
   const swap = swapIn(text, value);
-  const more = swap && open ? open.sentences.filter((s) => s.n !== n && findWord(s.text, swap.from).length > 0).length : 0;
+  const more = swap && open ? open.sentences.filter((s) => s.n !== n && findWord(s.text, swap.from, swap.to).length > 0).length : 0;
   const offered = swap !== null && more > 0;
 
   // One ending: the blur after Enter or Escape is not a second one. An emptied sentence is left as it was.
@@ -47,8 +48,25 @@ export function SentenceEditor({ n, text, onDone }: SentenceEditorProps) {
   };
 
   return (
-    // Escape is the editor's: the edit panel leaves it alone (data-escape-own), and the page does not go back.
-    <span className="record-sentence-edit" ref={boxRef} data-escape-own="">
+    // The keys and the click elsewhere are the whole editor's, its choices included, as InlineEdit's are (final review
+    // I-5). Escape is the editor's: the edit panel leaves it alone (data-escape-own), and the page does not go back.
+    <span
+      className="record-sentence-edit"
+      ref={boxRef}
+      data-escape-own=""
+      onBlur={(e) => { if (!boxRef.current?.contains(e.relatedTarget as Node | null)) void save(); }}
+      onKeyDown={(e) => {
+        if (isComposing(e.nativeEvent)) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cancel();
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          void save();
+        }
+      }}
+    >
       <textarea
         ref={fieldRef}
         className="record-sentence-edit__field"
@@ -57,11 +75,6 @@ export function SentenceEditor({ n, text, onDone }: SentenceEditorProps) {
         rows={Math.max(2, Math.ceil(value.length / 60))}
         spellCheck={false}
         onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing) return;
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void save(); } else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
-        }}
-        onBlur={(e) => { if (!boxRef.current?.contains(e.relatedTarget as Node | null)) void save(); }}
       />
       {offered && (
         <span className="record-sentence-edit__swap">

@@ -57,6 +57,7 @@ beforeEach(() => {
   const t = s.createTranscript({ recordId: A, origin: { service: 'soniox', kind: 'live' } });
   s.appendSentences({ transcriptId: t, sentences: [
     sent(1, '我们用搜库机开会'), sent(2, '搜库机很快'), sent(3, 'Sokuji 已经上线'), sent(4, '这是一句很长很长的话，长到选中它整句的时候已经超过了四十个字，不该给出改正的按钮。'),
+    sent(5, '搜库上线'),
   ] });
   s.closeRecord({ id: A, endedAt: START + 10_000 });
   store = createHistoryPageStore(real.port, createVirtualClock(0), (e) => `failed: ${(e as Error).message}`);
@@ -152,6 +153,17 @@ describe('the notes\' names to check', () => {
     expect(fixed).toHaveTextContent('Fixed');
     expect(within(unseen).getByRole('button', { name: 'Go fix' })).toBeInTheDocument();
   });
+
+  // Final review I-2: a name whose right form holds it ("搜库" → "搜库机") is Fixed once only the right form is left.
+  it('a name inside its right form shows Fixed once fixed', async () => {
+    withNames([{ written: '搜库', likely: '搜库机', sentences: [5] }]);
+    await show();
+    expect(within(names()).getByRole('button', { name: 'Go fix' })).toBeInTheDocument();
+    await act(async () => { await store.getState().fixWords('搜库', '搜库机', { notes: false, words: false }); });
+    expect(textOf(5)).toContain('搜库机上线');
+    await settle();
+    expect(within(names()).getByRole('listitem')).toHaveTextContent('Fixed');
+  });
 });
 
 // Option C: a word selected in one sentence of the transcript is handed to "Fix words", where it may be fixed alone.
@@ -243,6 +255,45 @@ describe('editing one sentence', () => {
     fireEvent.keyDown(field(), { key: 'Enter' });
     await settle();
     expect(edit).toHaveBeenCalledWith(1, '我们用Sokuji开会', { everywhere: true, words: true });
+  });
+
+  // Final review I-5: once the editor's own choices have the focus, a click elsewhere still saves, and Escape still
+  // cancels the edit only (the page does not take it as a way back).
+  it('the editor keeps its exits when its choices have the focus', async () => {
+    await show();
+    const edit = vi.spyOn(store.getState(), 'editSentence');
+    const pageKeys = vi.fn();
+    document.addEventListener('keydown', pageKeys);
+    fireEvent.click(editButton(1)!);
+    fireEvent.change(field(), { target: { value: '我们用Sokuji开会' } });
+    const only = within(document.querySelector('.record-sentence-edit') as HTMLElement).getByRole('radio', { name: 'Only this sentence' });
+    fireEvent.blur(field(), { relatedTarget: only });
+    fireEvent.click(only);
+    fireEvent.keyDown(only, { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'Sentence' })).toBeNull();
+    expect(pageKeys).not.toHaveBeenCalled();
+    expect(edit).not.toHaveBeenCalled();
+    fireEvent.click(editButton(1)!);
+    fireEvent.change(field(), { target: { value: '我们用Sokuji开会' } });
+    const only2 = within(document.querySelector('.record-sentence-edit') as HTMLElement).getByRole('radio', { name: 'Only this sentence' });
+    fireEvent.blur(field(), { relatedTarget: only2 });
+    fireEvent.click(only2);
+    fireEvent.blur(only2, { relatedTarget: document.body });
+    await settle();
+    expect(edit).toHaveBeenCalledWith(1, '我们用Sokuji开会', { everywhere: false, words: false });
+    document.removeEventListener('keydown', pageKeys);
+  });
+
+  // Final review M-9: a save ending after another sentence's editor opened does not close that one.
+  it('a save does not close the next sentence\'s editor', async () => {
+    await show();
+    fireEvent.click(editButton(1)!);
+    fireEvent.change(field(), { target: { value: '我们开会' } });
+    fireEvent.blur(field(), { relatedTarget: editButton(3) });
+    fireEvent.click(editButton(3)!);
+    await settle();
+    expect(field().value).toBe('Sokuji 已经上线');
+    expect(textOf(1)).toContain('我们开会');
   });
 
   it('marks an edited sentence and restores it', async () => {

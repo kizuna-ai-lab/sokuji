@@ -185,6 +185,28 @@ function openHistory({ dir, now = () => Date.now() }) {
     run('update notes set body = ?, search_text = ? where id = ?', bodyJson, notesSearchText(body), notesId);
   }
 
+  /** Where people read text in a notes body (the names to check are not among them), as paths into it. */
+  function notesTextPaths(body) {
+    return [
+      ['title'], ['overview', 'text'],
+      ...(Array.isArray(body.topics) ? body.topics : []).flatMap((_, i) => [['topics', i, 'title'], ['topics', i, 'summary']]),
+      ...(Array.isArray(body.points) ? body.points : []).flatMap((x, i) => (typeof x?.owner === 'string'
+        ? [['points', i, 'text'], ['points', i, 'owner']] : [['points', i, 'text']])),
+    ];
+  }
+  const textAt = (body, path) => path.reduce((x, k) => (x === null || x === undefined ? undefined : x[k]), body);
+  function putText(body, path, value) {
+    const holder = textAt(body, path.slice(0, -1));
+    if (holder !== null && typeof holder === 'object') holder[path[path.length - 1]] = value;
+  }
+
+  /** The record's title follows its notes' title (as saveNotes copies it) unless the user named the record. */
+  function followTitle(recordId, was, now) {
+    const from = was.trim();
+    const to = now.trim();
+    if (from !== to && to) run('update records set title = ? where id = ? and title_by_user = 0 and title = ?', to, recordId, from);
+  }
+
   function checkSentence(x) {
     if (!isPlainObject(x) || !isInt(x.n) || !SENTENCE_SIDES.has(x.side) || typeof x.sideCertain !== 'boolean' || !TRACKS.has(x.track)
       || !isString(x.speaker) || !isInt(x.startMs) || !isInt(x.endMs) || !isString(x.text) || !TIME_KINDS.has(x.timeKind)
@@ -504,6 +526,7 @@ function openHistory({ dir, now = () => Date.now() }) {
           if (!n || n.body === null) fail('NO_NOTES', `No notes ${notes.id}`);
           if (n.body !== notes.before) fail('STALE', `Notes ${notes.id} changed`);
           writeNotesBody(notes.id, notes.after);
+          followTitle(t.record_id, JSON.parse(notes.before).title ?? '', JSON.parse(notes.after).title ?? '');
         }
         const { lastInsertRowid } = run(
           'insert into corrections (transcript_id, from_text, to_text, sentences, notes, created_at) values (?, ?, ?, ?, ?, ?)',
@@ -525,10 +548,27 @@ function openHistory({ dir, now = () => Date.now() }) {
           const row = one('select text from sentences where transcript_id = ? and n = ?', t.id, x.n);
           if (row && row.text === x.after) { writeSentence(t.id, x.n, x.before); restored += 1; } else kept += 1;
         }
+        // The notes go back field by field: a field changed since keeps its change (and is counted kept); the names to
+        // check, dismissed or not since, are never touched.
         if (c.notes !== null) {
           const notes = JSON.parse(c.notes);
-          const n = one('select body from notes where id = ?', notes.id);
-          if (n && n.body === notes.after) writeNotesBody(notes.id, notes.before);
+          const n = one('select body from notes where id = ? and record_id = ?', notes.id, t.record_id);
+          if (n && n.body !== null) {
+            const before = JSON.parse(notes.before);
+            const after = JSON.parse(notes.after);
+            const body = JSON.parse(n.body);
+            let back = 0;
+            for (const path of notesTextPaths(after)) {
+              const was = textAt(before, path);
+              const wrote = textAt(after, path);
+              if (typeof was !== 'string' || was === wrote) continue;
+              if (textAt(body, path) === wrote) { putText(body, path, was); back += 1; } else kept += 1;
+            }
+            if (back > 0) {
+              writeNotesBody(notes.id, JSON.stringify(body));
+              if (body.title === before.title) followTitle(t.record_id, after.title ?? '', before.title ?? '');
+            }
+          }
         }
         if (forget) run('delete from corrections where id = ?', c.id);
         else run('update corrections set reverted_at = ? where id = ?', now(), c.id);

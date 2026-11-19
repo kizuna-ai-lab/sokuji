@@ -60,12 +60,16 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
 
   const word = heard.trim();
   const target = to.trim();
-  const hits = useMemo(() => (word && open ? open.sentences.filter((s) => findWord(s.text, word).length > 0) : []), [open, word]);
+  // Counted as a fix writes: places already reading "Change to" are not in it.
+  const hits = useMemo(
+    () => (word && open ? open.sentences.filter((s) => findWord(s.text, word, target || undefined).length > 0) : []),
+    [open, word, target],
+  );
   // Notes being written are about to be replaced: they are not offered (design draft P0 §4).
   const writing = open ? notesRunning.includes(open.record.id) : false;
   const notesHits = useMemo(
-    () => (word && open?.notes?.body && !writing ? replaceInNotes(open.notes.body, word, word).count : 0),
-    [open, word, writing],
+    () => (word && open?.notes?.body && !writing ? replaceInNotes(open.notes.body, word, target || word).count : 0),
+    [open, word, target, writing],
   );
   if (!editable || !open) return null;
 
