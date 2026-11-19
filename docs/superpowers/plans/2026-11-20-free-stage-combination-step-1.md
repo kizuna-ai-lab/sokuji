@@ -386,7 +386,7 @@ export function usePlan(): PlanState;                 // re-renders when the lin
 export function useStageUnit(stage: RunStage): { provider: AnyProvider; unit: UnitDefinition; settings: unknown; capabilities: UnitCapabilities } | null;
 ```
 
-Before a line-up is stored (`lineUpStore.stored === false`): the plan is that of `lineUpStore.lineUp` as shown (the migration's values), as a session resolves today.
+Before a line-up is stored (`lineUpStore.stored === false`): the plan is the whole-provider plan of the provider `settings.common.provider` names, exactly what runs today. It is **not** composed from `lineUpStore.lineUp`, which then holds values for display only (the local host's defaults while its scan runs). `storedLocalStages()` keeps answering `null` until a line-up is stored, so a local session started during the scan resolves its translation and speech as it does today, and never through the displayed Bing and Edge. A test pins it: local provider selected, nothing stored, displayed line-up `{ local_inference, bing, edge }` → the plan's provider is `local_inference` and `storedLocalStages()` is `null`.
 
 `selectedFromStores()` and `useSelectedProvider()` keep their names and return shapes in this task and answer `transcriptionProvider(plan)` and its entry. They are the compatibility seam: Task C2 moves their callers to the right unit; Task C5 deletes what is left.
 
