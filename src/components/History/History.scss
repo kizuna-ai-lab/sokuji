@@ -616,6 +616,8 @@
 
   &__text {
     margin: 2px 0 0;
+    // Room at the end of every line for a sentence's buttons, which sit where the sentence ends (below).
+    padding-inline-end: 20px;
     color: vars.$text-source;
     overflow-wrap: anywhere;
   }
@@ -637,7 +639,15 @@
 
   &.is-hit { background: color-mix(in srgb, #{tk.$color-primary} 22%, transparent); }
 
-  &__more { position: relative; }
+  // A sentence's buttons take no room in its lines, hidden or shown: placed out of the flow, they stay where the
+  // sentence ends, in the room every line keeps at its end. So no line is added for them, and nothing moves under the
+  // pointer when they show.
+  &__more {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
 
   &__menu-button {
     display: inline-flex;
@@ -651,6 +661,8 @@
     vertical-align: middle;
     cursor: pointer;
     opacity: 0;
+    // A screen with no pointer to hover with (touch only) shows them always, to be tapped.
+    @media (hover: none) { opacity: 1; }
     &:hover { color: vars.$text-primary; background: vars.$bg-hover; }
     &:focus-visible { opacity: 1; outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
     &[aria-expanded='true'] { opacity: 1; }
