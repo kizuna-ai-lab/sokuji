@@ -148,6 +148,50 @@
     .conversation-display {
       background: transparent;
       padding: 0;
+      // The rows' cap below is a share of this scroller's height (#652).
+      container-type: size;
+    }
+
+    // A long turn is one row (segmentation is held at Off, #580), and the list
+    // follows its newest text: an uncapped translation row grows past the
+    // window and pushes its own source row out of view (#652). Each row is
+    // capped at a share of the list's height, never under two lines (the
+    // overlay opens 140 px high at 24 px text), and shows its tail, as a compact
+    // band does, so a source row and its translation both stay on screen.
+    .row-text {
+      // column-reverse pins the flow to the bottom and makes what overflows
+      // above it the row's scroll range (flex-end would leave it unreachable);
+      // the row never scrolls (overflow: hidden), a wheel over it still
+      // scrolls the list.
+      display: flex;
+      flex-direction: column-reverse;
+      min-width: 0;
+      max-height: max(40cqh, 2.8em);
+      overflow: hidden;
+    }
+
+    // Whether a row is clipped is its text's scroll range, named so the row
+    // can read it too. A row with no scroll range has an inactive timeline, so
+    // the animations below do not apply to it: an unclipped row draws as it
+    // always has. Behind @supports: where the timeline properties are ignored,
+    // each animation would run with no timeline, zero seconds long, and fill
+    // forwards onto every row; there a capped row clips with no fade and its
+    // badge stays on the first line.
+    @supports (animation-timeline: scroll()) and (timeline-scope: none) {
+      .row-body {
+        timeline-scope: --subtitle-row;
+        // Beside a clipped row the badge goes with the newest line, not the
+        // first one hidden above it.
+        animation: subtitle-row-clipped-badge linear both;
+        animation-timeline: --subtitle-row;
+      }
+
+      .row-text {
+        scroll-timeline: --subtitle-row block;
+        // A clipped row's top line fades, as a compact band's does.
+        animation: subtitle-row-clipped linear both;
+        animation-timeline: --subtitle-row;
+      }
     }
 
     // The list's Back to live row spans the window: out through this stream's
@@ -169,6 +213,21 @@
         color: color-mix(in srgb, vars.$overlay-fg 90%, transparent);
       }
     }
+  }
+}
+
+// A clipped subtitle row's top line (#652): the same fade as a compact band's,
+// held for the whole of the row's scroll range.
+@keyframes subtitle-row-clipped {
+  from, to {
+    mask-image: linear-gradient(to bottom, transparent 0, vars.$bg-base 1.4em, vars.$bg-base 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, vars.$bg-base 1.4em, vars.$bg-base 100%);
+  }
+}
+
+@keyframes subtitle-row-clipped-badge {
+  from, to {
+    align-items: last baseline;
   }
 }
 
