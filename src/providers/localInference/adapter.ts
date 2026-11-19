@@ -47,9 +47,12 @@ interface Job {
   fill: boolean;
 }
 
-/** A manual turn's release: this many 100 ms frames of silence at 24 kHz, then a flush. */
-const FLUSH_FRAMES = 7;
-const FLUSH_FRAME_SAMPLES = SAMPLE_RATE / 10;
+/**
+ * A manual turn's release: 700 ms of silence at 24 kHz, then a flush. One buffer, not seven: a worker drops audio that
+ * arrives while its VAD is still busy with the last buffer, and a burst of seven would lose most of them — leaving the
+ * audio it counted behind what `fed` counted, and every later result's time early.
+ */
+const FLUSH_SAMPLES = (SAMPLE_RATE * 7) / 10;
 
 /** The recognizers count the audio they were fed at their VAD's 16 kHz: a result's `startSample` is in those samples. */
 const ASR_SAMPLE_RATE = 16000;
@@ -448,10 +451,10 @@ class LocalSession implements AdapterSession {
   endTurn(): void { this.flushTurn(); }
   cancelTurn(): void { this.flushTurn(); }
 
-  /** Today's manual-turn release: a 700 ms zero tail (seven 100 ms frames at 24 kHz), then flush. */
+  /** The manual-turn release: a 700 ms zero tail at 24 kHz, as one buffer (`FLUSH_SAMPLES`), then flush. */
   private flushTurn(): void {
     if (this.ended) return;
-    for (let i = 0; i < FLUSH_FRAMES; i++) this.feedAsr(new Int16Array(FLUSH_FRAME_SAMPLES));
+    this.feedAsr(new Int16Array(FLUSH_SAMPLES));
     this.asr.flush();
   }
 

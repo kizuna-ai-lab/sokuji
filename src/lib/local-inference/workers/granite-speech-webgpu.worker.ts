@@ -35,6 +35,7 @@ import type {
   SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
+import { segmentStartSample } from './_shared/segmentStart';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -108,7 +109,6 @@ const GRANITE_TRANSLATE_MAX_SPEECH_SECONDS = 20;
 const GRANITE_TOKENS_PER_SECOND = 14;
 const GRANITE_MIN_NEW_TOKENS = 256;
 let totalSamplesFed = 0;
-let speechStartSample = 0;
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
   if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
@@ -171,7 +171,6 @@ async function initVad(
   frameProcessor.resume();
 
   totalSamplesFed = 0;
-  speechStartSample = 0;
   speechFramesSinceStart = 0;
 }
 
@@ -368,7 +367,6 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             break;
 
           case Message.SpeechStart:
-            speechStartSample = totalSamplesFed - VAD_FRAME_SAMPLES;
             speechFramesSinceStart = 0;
             post({ type: 'speech_start' });
             break;
@@ -378,13 +376,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleGraniteInference` serializes decodes via
             // `pendingGraniteDecode`.
-            void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'silence' });
+            void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'silence' });
             break;
           case Message.VADMisfire: {
             speechFramesSinceStart = 0;
             // Kept when it follows a Smart end inside the wait Normal would have spanned.
             const rescued = turnLink?.rescue();
-            if (rescued) void scheduleGraniteInference(rescued, speechStartSample, { endedBy: 'kept' });
+            if (rescued) void scheduleGraniteInference(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
             break;
           }
         }
@@ -395,7 +393,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
         const endEvents: FrameProcessorEvent[] = [];
         frameProcessor.endSegment((ev) => endEvents.push(ev));
         for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'smart', smartTurnProbability });
+          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -408,7 +406,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'cap' });
+              void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'cap' });
             }
           }
           turnLink?.reset();
@@ -496,10 +494,10 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleGraniteInference(ev.audio, speechStartSample, { endedBy: 'flush' });
+        void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'flush' });
       } else if (ev.msg === Message.VADMisfire) {
         const rescued = turnLink?.rescue();
-        if (rescued) void scheduleGraniteInference(rescued, speechStartSample, { endedBy: 'kept' });
+        if (rescued) void scheduleGraniteInference(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
       }
     }
     turnLink?.reset();

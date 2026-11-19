@@ -252,12 +252,13 @@ describe('the LocalInference adapter — segments and jobs', () => {
 });
 
 describe('the LocalInference adapter — turns', () => {
-  it('endTurn feeds seven 2400-sample silences at 24 kHz, then flushes', async () => {
+  it('endTurn feeds 700 ms of silence at 24 kHz as one buffer, then flushes', async () => {
+    // One buffer: a worker drops audio arriving while its VAD is busy, so a burst would lose most of it.
     const t = await open();
     t.session.endTurn();
-    expect(t.asr.fed).toHaveLength(7);
-    expect(t.asr.fed.every((a) => a.length === 2400 && a.every((v) => v === 0))).toBe(true);
-    expect(t.asr.rates).toEqual(new Array(7).fill(24000));
+    expect(t.asr.fed).toHaveLength(1);
+    expect(t.asr.fed.every((a) => a.length === 16800 && a.every((v) => v === 0))).toBe(true);
+    expect(t.asr.rates).toEqual([24000]);
     expect(t.asr.flushes).toBe(1);
     expectConformant(t.log, t.context);
   });
@@ -265,9 +266,9 @@ describe('the LocalInference adapter — turns', () => {
   it('cancelTurn does the same as endTurn: no worker can discard a VAD segment or acknowledge a flush', async () => {
     const t = await open();
     t.session.cancelTurn();
-    expect(t.asr.fed).toHaveLength(7);
-    expect(t.asr.fed.every((a) => a.length === 2400 && a.every((v) => v === 0))).toBe(true);
-    expect(t.asr.rates).toEqual(new Array(7).fill(24000));
+    expect(t.asr.fed).toHaveLength(1);
+    expect(t.asr.fed.every((a) => a.length === 16800 && a.every((v) => v === 0))).toBe(true);
+    expect(t.asr.rates).toEqual([24000]);
     expect(t.asr.flushes).toBe(1);
     expectConformant(t.log, t.context);
   });
