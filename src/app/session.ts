@@ -50,7 +50,7 @@ import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
 import { createBrowserNetwork } from './network';
-import { driveReadiness } from './readiness';
+import { driveReadiness, readinessPlan } from './readiness';
 import { registerAuth } from './currentAuth';
 import { registerRunPhase } from './runPhase';
 import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
@@ -615,7 +615,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         // The languages on offer follow whether a start would speak (Stage 2 Volcengine AST2, choice 1).
         watchSpeechFromStores(),
         driveReadiness({
-          runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
+          runner, providers: () => presentProviders(), plan: readinessPlan, auth: () => bridges.auth, clock,
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
         }),
         // A custom voice filed under the previous account is checked against the new one (voice reconcile).

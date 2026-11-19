@@ -8,7 +8,7 @@
  */
 import { describeCause, reportError } from '../diagnostics/report';
 import { planOnceSelected } from '../plan/fromStores';
-import { transcriptionProvider } from '../plan/read';
+import { providersIn, transcriptionProvider } from '../plan/read';
 import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
 import { microphoneMissing } from '../session/shape';
@@ -32,10 +32,15 @@ export function appSubtitleSession(
 ): Readable<SubtitleSession> & { dispose(): void } {
   const read = (): SubtitleSession => {
     // The plan a start would run: loaded once a provider is selected and every provider of the plan has its entry.
-    // Its readiness and pair are the transcription provider's, the one provider of a plan in this step.
+    // Its pair is the transcription provider's.
     const found = planOnceSelected();
     const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : undefined;
     const pair = found.state === 'ready' && id ? found.accounts[id].pair : null;
+    // Start needs every provider of the plan ready: the readiness the gate reads is the first one not ready (its
+    // reason shown before a check under way), else the transcription provider's.
+    const all = useProviderStore.getState().readiness;
+    const each = found.state === 'ready' ? providersIn(found.plan).map((p) => all[p.id]) : [];
+    const readiness = each.find((r) => r?.state === 'not-ready') ?? each.find((r) => r?.state === 'checking') ?? (id ? all[id] : undefined);
     const audio = useAudioStore.getState();
     // The display-mode buttons follow the audio mode's intent as well as the
     // conversation on screen: before the first run, and after the mode
@@ -44,7 +49,7 @@ export function appSubtitleSession(
     const shown = view.get().legs.map((leg) => leg.leg);
     return subtitleSession({
       run: runner.state.getState(),
-      readiness: id ? useProviderStore.getState().readiness[id] : undefined,
+      readiness,
       pair,
       turnMode: useTurnModeStore.getState().turnMode,
       legs: (['speaker', 'participant'] as const).filter((leg) => intent.includes(leg) || shown.includes(leg)),
