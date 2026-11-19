@@ -28,6 +28,12 @@ vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
 });
+// The build offers the fake alone, as the panel is given it: the plan the language pair reads is the fake's.
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../providers/registry')>();
+  const { fakeProvider } = await import('../../providers/fake/provider');
+  return { ...actual, presentProviders: () => [fakeProvider] };
+});
 
 import { fakeProvider } from '../../providers/fake/provider';
 import type { FakeSettings } from '../../providers/fake/settings';

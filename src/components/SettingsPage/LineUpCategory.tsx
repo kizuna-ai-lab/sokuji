@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
+import { usePlan } from '../../lib/plan/fromStores';
 import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
@@ -29,7 +30,6 @@ import { directionKey, type Selections } from '../../lib/local-inference/selecti
 import { ProviderLanguages } from '../providers/ProviderLanguages';
 import type { ReceiveChoice } from '../providers/LanguagePairSection';
 import { useHearingRows } from '../MainPanel/useHearingRows';
-import { useSelectedProvider } from '../providers/useSelectedProvider';
 import { AudioModeSwitch } from './AudioModeSwitch';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
@@ -101,8 +101,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // Who hears and who reads (owner, 2026-11-18, design 1): the sentence's words are the audio page's two switches, by
   // the same rules (useHearingRows); the speech stage is used only while a running leg is read aloud.
   const hearing = useHearingRows(locked);
-  // The sentence shows once its provider's entry has loaded (ProviderLanguages); until then nothing points to it.
-  const sentenceShown = Boolean(useSelectedProvider(providers)?.entry);
+  // The sentence shows once the plan is ready, its providers' entries loaded (ProviderLanguages); until then nothing points to it.
+  const sentenceShown = usePlan().state === 'ready';
   const setTextOnly = useSetTextOnly();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
