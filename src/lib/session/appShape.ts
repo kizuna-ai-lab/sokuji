@@ -10,6 +10,7 @@ import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { planFromStores } from '../plan/fromStores';
 import { accountOf, capabilitiesOf, transcriptionProvider } from '../plan/read';
+import type { UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { accountPayer } from './payerChoice';
@@ -91,18 +92,24 @@ export function heardFromStores(faceToFace: boolean): boolean {
   return participantSpeechHeard(getEnvironment(), audio.selectedParticipantSource?.deviceId, faceToFace) && !audio.participantCaptureWidened;
 }
 
+/** What the unit that speaks can do, in the plan as the stores stand; undefined until the plan is ready. */
+function speechUnitFromStores(): UnitCapabilities | undefined {
+  const found = planFromStores();
+  return found.state === 'ready' ? capabilitiesOf(found, 'speech') : undefined;
+}
+
 /**
- * Who hears what, as the stores stand (spec 2026-10-10 §4): the selected
- * provider's flags over the switches, the mode, face-to-face and the
+ * Who hears what, as the stores stand (spec 2026-10-10 §4): the speech
+ * unit's flags (by default) over the switches, the mode, face-to-face and the
  * recapture rule. The run's shape, the live gate's floor, the account
  * button's floor, the routing and every surface read it, so they price
- * and play the same legs. Before a provider has loaded it answers as an
+ * and play the same legs. Before the plan is ready it answers as an
  * optional-speech provider would.
  */
-export function speechFromStores(provider: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = selectedFromStores()?.provider): Speak {
+export function speechFromStores(speaking: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = speechUnitFromStores()): Speak {
   const audio = useAudioStore.getState();
   const faceToFace = faceToFaceFromStores();
-  return speakFor(provider ?? { speech: 'optional' }, {
+  return speakFor(speaking ?? { speech: 'optional' }, {
     textOnly: useSettingsStore.getState().textOnly,
     participantSpeech: useRoutingStore.getState().participantSpeech,
     isMonitorMuted: audio.isMonitorMuted,

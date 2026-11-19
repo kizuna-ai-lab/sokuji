@@ -96,7 +96,17 @@ vi.mock('../../stores/providerStore', async () => {
 const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
 vi.mock('../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
 const providerState = { participantSpeech: undefined as boolean | undefined };
-vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => (faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:')) && !widened.value, selectedFromStores: () => ({ provider: { speech: 'optional', participantSpeech: providerState.participantSpeech } }) }));
+vi.mock('../../lib/session/appShape', () => ({ heardFromStores: (faceToFace: boolean) => (faceToFace || env.extension || (store.selected?.deviceId ?? '').startsWith('app:')) && !widened.value }));
+// The speech unit of a whole-provider plan over `providerState`'s flags, re-read on a provider store change as `usePlan` re-renders.
+vi.mock('../../lib/plan/fromStores', async () => {
+  const { useProviderStore } = await import('../../stores/providerStore');
+  return {
+    useStageUnit: () => {
+      useProviderStore((s: { entries: unknown }) => s.entries);
+      return { capabilities: { speech: 'optional', participantSpeech: providerState.participantSpeech !== false } };
+    },
+  };
+});
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const CHROMIUM = { deviceId: 'app:pid:205', label: 'Chromium' };

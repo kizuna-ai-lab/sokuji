@@ -12,9 +12,8 @@ import { virtualMicrophoneName } from '../../../lib/audio/virtualSpeaker';
 import type { LegName } from '../../../lib/conversation/types';
 import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { useAnalytics } from '../../../lib/analytics';
-import { selectedFromStores } from '../../../lib/session/appShape';
+import { useStageUnit } from '../../../lib/plan/fromStores';
 import { useAudioContext, useMode } from '../../../stores/audioStore';
-import { useProviderStore } from '../../../stores/providerStore';
 import { presentProviders } from '../../../providers/registry';
 import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
@@ -35,9 +34,9 @@ export interface SpeechOutputSectionProps {
 }
 
 /**
- * The voice a spoken row reads in (the provider's `VoiceSummary`), as a link
- * to the voice settings on Advanced's Provider tab: the turn-detection
- * summary's pattern (`SpeechSection.tsx`), its `settings_mode_switched`
+ * The voice a spoken row reads in (the `VoiceSummary` of the provider whose
+ * unit speaks), as a link to the voice settings on Advanced's Provider tab:
+ * the turn-detection summary's pattern (`SpeechSection.tsx`), its `settings_mode_switched`
  * event included when it leaves Simple. Nothing for a provider without one;
  * a summary that renders nothing leaves the link empty, and Settings.scss
  * hides the line. A provider whose voices sit with its engine (`voicesInEngine`)
@@ -47,10 +46,12 @@ export interface SpeechOutputSectionProps {
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   const { t } = useTranslation();
   const providers = useMemo(() => presentProviders(), []);
-  const selection = useSelectedProvider(providers);
+  // The speech unit's provider, with its entry; until the plan is ready, the hook's own (it loads the entry).
+  const speechUnit = useStageUnit('speech');
+  const selection = useSelectedProvider(providers, speechUnit?.provider.id);
   const navigateToSettings = useNavigateToSettings();
   const Summary = selection?.provider.VoiceSummary;
-  if (!selection?.entry || !Summary) return null;
+  if (!speechUnit || !selection?.entry || !Summary) return null;
 
   const openVoices = () => {
     if (selection.provider.voicesInEngine) {
@@ -85,12 +86,10 @@ const SpeechOutputSection: React.FC<SpeechOutputSectionProps> = ({ isSessionActi
   const f2f = useFaceToFace();
   const faceToFace = f2f.active;
   const languageName = useLanguageLabel();
-  // Subscribed to what the provider lookup reads, so the rows follow a selection or a load.
-  useProviderStore((s) => s.selected);
-  useProviderStore((s) => s.entries);
-  const provider = selectedFromStores()?.provider;
-  const speech = provider?.speech ?? 'optional';
-  const participantOffered = provider?.participantSpeech !== false;
+  // The speech unit's rules, as the plan stands: the rows follow a change of the plan or of its provider's settings.
+  const speechUnit = useStageUnit('speech');
+  const speech = speechUnit?.capabilities.speech ?? 'optional';
+  const participantOffered = speechUnit ? speechUnit.capabilities.participantSpeech : true;
 
   const textOnly = useTextOnly();
   const setTextOnly = useSetTextOnly();

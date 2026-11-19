@@ -29,8 +29,8 @@ import { getAppAudio } from '../../lib/audio/appAudio';
 import { entryValue, outletEntries, outletSelectValue, parseEntryValue } from '../../lib/audio/outletOptions';
 import type { OutletName } from '../../lib/audio/outlets';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { heardFromStores, selectedFromStores } from '../../lib/session/appShape';
-import { useProviderStore } from '../../stores/providerStore';
+import { useStageUnit } from '../../lib/plan/fromStores';
+import { heardFromStores } from '../../lib/session/appShape';
 import { useRoutingStore } from '../../stores/routingStore';
 import { isExtension } from '../../utils/environment';
 import { useNavigateToSettings, useSettingsStore } from '../../stores/settingsStore';
@@ -109,10 +109,10 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   const setOutletDevice = useSetOutletDevice();
   const setOutletChannel = useSetOutletChannel();
   const defaultDevice = useSelectedMonitorDevice();
-  // Subscribed so a provider change in settings reaches a popover that stays mounted while closed.
-  useProviderStore((s) => s.selected);
-  useProviderStore((s) => s.entries);
-  const provider = selectedFromStores()?.provider;
+  // The speech unit's rules, subscribed so a change of the plan in settings reaches a popover that stays mounted while closed.
+  const speechUnit = useStageUnit('speech');
+  const speech = speechUnit?.capabilities.speech ?? 'optional';
+  const participantOffered = speechUnit ? speechUnit.capabilities.participantSpeech : true;
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);
   const textOnly = useSettingsStore((s) => s.textOnly);
@@ -232,7 +232,6 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
     if (mode === 'speaker') {
       // The twin of SpeechOutputSection's I hear it too row: off while the translation is not spoken (`otherOn` there).
-      const speech = provider?.speech ?? 'optional';
       const otherOn = speech === 'always' ? true : speech === 'never' ? false : !textOnly;
       list.push(outletRow('me', 'me', t('audioPanel.meToo', 'I hear it too'), {
         isMuted: isMonitorMuted || !otherOn,
@@ -270,12 +269,10 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
 
     if (mode === 'participant') {
       // The twin of SpeechOutputSection's Translation I hear switch: keep the two in step.
-      const speech = provider?.speech ?? 'optional';
-      const offered = provider?.participantSpeech !== false;
-      const on = runSpeech !== false && offered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false));
+      const on = runSpeech !== false && participantOffered && heard && speech !== 'never' && (speech === 'always' || (participantSpeech ?? false));
       const disabledReason = !heard ? blockedReason
         : locked && runSpeech !== true ? t('audioPanel.rowLockedByRun', 'Fixed for this session; stop it to change.')
-        : !offered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.")
+        : !participantOffered ? t('audioPanel.iHearNotOffered', "This service does not speak the other side's translation.")
         : speech !== 'optional' ? (speech === 'always' ? t('audioPanel.otherHearsAlwaysSpeaks', 'This service always speaks.') : t('audioPanel.otherHearsNeverSpeaks', 'This service never speaks.'))
         : undefined;
       list.push(outletRow('them', 'them', t('audioPanel.iHear', 'Translation I hear'), {
@@ -294,7 +291,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
     // outletRow and previewOn close over the values listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mode, beside, f2f.me, f2f.other, languageName, locked, provider, textOnly, outlets, defaultDevice, participantSpeech, heard, runSpeech,
+    mode, beside, f2f.me, f2f.other, languageName, locked, speech, participantOffered, textOnly, outlets, defaultDevice, participantSpeech, heard, runSpeech,
     audioInputDevices, selectedInputDevice, isMicMuted,
     audioMonitorDevices, isMonitorMuted,
     isParticipantMuted, participantSources, selectedParticipantSource,
