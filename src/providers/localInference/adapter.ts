@@ -454,7 +454,9 @@ class LocalSession implements AdapterSession {
   /** The manual-turn release: a 700 ms zero tail at 24 kHz, as one buffer (`FLUSH_SAMPLES`), then flush. */
   private flushTurn(): void {
     if (this.ended) return;
-    this.feedAsr(new Int16Array(FLUSH_SAMPLES));
+    // Made-up silence: it moves the ASR's stream on, but nobody said it, so it claims no time of its own.
+    this.fed.padded(FLUSH_SAMPLES, SAMPLE_RATE);
+    this.asr.feedAudio(new Int16Array(FLUSH_SAMPLES), SAMPLE_RATE);
     this.asr.flush();
   }
 

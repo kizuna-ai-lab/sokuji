@@ -1474,6 +1474,14 @@ describe('the LocalInference adapter — when an utterance was heard', () => {
     expectConformant(t.log, t.context);
   });
 
+  it('a result that comes after a manual turn’s release keeps its own times: the release tail is heard nowhere', async () => {
+    const t = await open(offline());
+    feedSecond(t);
+    t.session.endTurn();
+    t.asr.onResult?.({ text: '晴れ', startSample: 0, durationMs: 1000, recognitionTimeMs: 300 });
+    expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[0, 500], [500, 1000]]);
+  });
+
   it('says it even when the final repeats the last partial, the text unchanged', async () => {
     const t = await open();
     feedSecond(t);
