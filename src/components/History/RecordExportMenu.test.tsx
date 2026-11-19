@@ -5,6 +5,7 @@ import { changeLanguageWithLoad } from '../../locales';
 import RecordExportMenu from './RecordExportMenu';
 import type { HistoryNotes, HistoryRecord, HistoryTranscriptRow as HistoryTranscript } from '../../lib/history/types';
 import type { RecordRow } from '../../lib/history/recordView';
+import type { Leg, Segment } from '../../lib/conversation/types';
 
 afterEach(() => cleanup());
 
@@ -54,6 +55,49 @@ describe("a record's export", () => {
       const [txt, json] = await Promise.all(saved.map((s) => read(s.blob)));
       expect(txt.split('\n').slice(1, 3)).toEqual(['Session started: 2026-01-15 09:00:00', 'Exported: 2026-02-03 18:30:00']);
       expect(JSON.parse(json)).toMatchObject({ sessionStartedAt: new Date(START).toISOString(), exportedAt: new Date(EXPORTED).toISOString() });
+    } finally {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+      vi.restoreAllMocks();
+    }
+  });
+
+  // A record names the provider of each stage; its export prints what it printed before it did (ruling 26).
+  it('saves the same bytes for a record that names its stages as for the same record without them', async () => {
+    const live: HistoryTranscript = { id: 1, origin: { service: 'local_inference', kind: 'live' }, textKind: 'original', createdAt: START, sentences: 1 };
+    const seg = (over: Partial<Segment>): Segment => ({ id: 'x', ref: 1, side: 'source', text: '', final: true, openedAt: START + 5000, marks: [], speech: [], ...over });
+    const legs: Leg[] = [{
+      leg: 'speaker', session: 'run-1', languages: { source: 'en', target: 'ja' }, notices: [],
+      segments: [seg({ id: 'run-1:speaker:1', text: 'Hello.' }), seg({ id: 'run-1:speaker:2', side: 'translation', text: 'こんにちは。' })],
+    }];
+    const without = {
+      ...record, id: 'run-1', mode: 'speaker', transcripts: [live],
+      services: { provider: 'local_inference', models: { asrModel: 'a', translationModel: 't' } },
+    } as unknown as HistoryRecord;
+    const named = { ...without, services: { ...without.services, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } } };
+    const { createObjectURL, revokeObjectURL } = URL;
+    vi.spyOn(Date, 'now').mockReturnValue(START + 120_000);
+    let made: Blob | null = null;
+    URL.createObjectURL = ((blob: Blob) => { made = blob; return 'blob:saved'; }) as typeof URL.createObjectURL;
+    URL.revokeObjectURL = () => {};
+    const saved: Blob[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => { saved.push(made!); });
+    const read = (blob: Blob) => new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.readAsText(blob); });
+    const files = async (r: HistoryRecord) => {
+      saved.length = 0;
+      render(<RecordExportMenu record={r} legs={legs} rows={[]} transcript={live} />);
+      for (const name of ['Save the conversation (.txt)', 'Save the conversation (.json)']) {
+        fireEvent.click(screen.getByRole('button', { name: /Export/ }));
+        fireEvent.click(screen.getByRole('menuitem', { name }));
+      }
+      cleanup();
+      return Promise.all(saved.map(read));
+    };
+    try {
+      const before = await files(without);
+      expect(before).toHaveLength(2);
+      expect(before[0]).toContain('Provider: local_inference');
+      expect(await files(named)).toEqual(before);
     } finally {
       URL.createObjectURL = createObjectURL;
       URL.revokeObjectURL = revokeObjectURL;

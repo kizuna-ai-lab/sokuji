@@ -7,6 +7,7 @@
 import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
+import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { planFromStores } from '../plan/fromStores';
 import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
@@ -16,6 +17,7 @@ import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/
 import { accountPayer } from './payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -184,9 +186,12 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const account = useAccountStore.getState().account;
   const payer = accountPayer(account);
   const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
+  // The selected provider runs the session; the stored line-up names its stages only when it runs on that provider.
+  const { lineUp, stored } = useLineUpStore.getState();
   return {
     plan,
     accounts,
+    lineUp: stageIdsFor(lineUp, stored, heard.id),
     pair: entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
