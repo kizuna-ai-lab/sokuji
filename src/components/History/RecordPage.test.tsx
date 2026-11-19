@@ -518,7 +518,7 @@ describe('a record', () => {
     const exportedAt = START + 3_600_000;
     const now = vi.spyOn(Date, 'now').mockReturnValue(exportedAt);
     const expectedTxt = conversationExporter({
-      entries: createProjector().project(legs, DEFAULT_PROJECTION), legs, info: { provider: 'soniox', models: {}, startedAt: START },
+      entries: createProjector().project(legs, DEFAULT_PROJECTION), legs, info: { provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'soniox' }, models: {}, startedAt: START },
       words: exportWords(i18n.t.bind(i18n) as never), appVersion: '1.2.3', now: () => exportedAt,
     }).text(FULL_SCOPE, true);
     openExport();

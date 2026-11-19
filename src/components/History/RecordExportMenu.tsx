@@ -15,6 +15,8 @@ import type { Leg } from '../../lib/conversation/types';
 import { conversationExporter, exportWords, rowsExporter } from '../../lib/export/exporter';
 import { FULL_SCOPE, type TranscriptScope } from '../../lib/export/transcript';
 import { recordCues, type RecordRow } from '../../lib/history/recordView';
+import { recordStages } from '../../lib/history/services';
+import { allStagesBy } from '../../lib/lineup/catalog';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
 import type { HistoryNotes, HistoryRecord, HistoryTranscriptRow } from '../../lib/history/types';
 import { notesHtml, notesMarkdown, notesText, type NotesWords } from '../../lib/notes/exportNotes';
@@ -75,8 +77,8 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
     };
     // The session's own service and models for a transcript made live; a file transcript names its service.
     const info = fromFile && shown
-      ? { provider: shown.origin.service, models: {}, startedAt: record.startedAt }
-      : { provider: record.services.provider, models: record.services.models, startedAt: record.startedAt };
+      ? { provider: shown.origin.service, stages: allStagesBy(shown.origin.service), models: {}, startedAt: record.startedAt }
+      : { provider: record.services.provider, stages: recordStages(record.services), models: record.services.models, startedAt: record.startedAt };
     return shown
       ? rowsExporter({ ...common, rows, startedAt: record.startedAt, info })
       : conversationExporter({ ...common, entries: createProjector().project(legs, DEFAULT_PROJECTION), info });

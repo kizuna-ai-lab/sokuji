@@ -367,7 +367,7 @@ export class Run {
     // can refuse the start: a refused lease leaves the last conversation on
     // screen (choice 3). A provider with neither a lease nor `startBoth` hands
     // them over before its legs open, as before.
-    host.conversations(this.conversations, { provider: this.providerId, models: this.models, startedAt: this.startedAt });
+    host.conversations(this.conversations, { provider: this.providerId, stages: shape.lineUp, models: this.models, startedAt: this.startedAt });
 
     // Every leg's credentials from every provider, read before any leg starts: a lease that cannot give one fails
     // the start, not a leg.

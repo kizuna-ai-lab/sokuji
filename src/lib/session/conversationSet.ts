@@ -1,12 +1,16 @@
 import type { Conversation } from '../conversation/Conversation';
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
+import type { StageIds } from '../lineup/types';
 
 const ORDER: readonly LegName[] = ['speaker', 'participant'];
 
 /** Which provider and models a conversation's run used: what its export says about itself (plan 1d-3). */
 export interface ConversationInfo {
+  /** The transcription provider's id: the run's one provider where one id is asked for. */
   provider: string;
+  /** The line-up id that served each stage, as the run's shape froze it. */
+  stages: StageIds;
   models: { asrModel?: string; translationModel?: string; ttsModel?: string };
   /** When the run started (ms since the epoch): the session start an export names. */
   startedAt: number;

@@ -1327,7 +1327,14 @@ describe('runner — the conversation', () => {
     const startedAt = clock.now();
     await runner.start();
     // The fake describes every stage as 'fake' (`src/providers/fake/provider.ts`).
-    expect(runner.conversation.info).toEqual({ provider: 'fake', models: { asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' }, startedAt });
+    expect(runner.conversation.info).toEqual({ provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, models: { asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' }, startedAt });
+  });
+
+  it('records on the conversation the line-up id that served each stage, as the shape froze it', async () => {
+    const stages = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
+    const { runner } = setup({ shape: { lineUp: stages } });
+    await runner.start();
+    expect(runner.conversation.info?.stages).toEqual(stages);
   });
 
   it('keeps no replay audio when keepReplayAudio is off', async () => {
