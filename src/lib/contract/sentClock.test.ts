@@ -83,4 +83,33 @@ describe('the table from stream time to clock time', () => {
     expect(t.at(750)).toBe(750);
     expect(Math.abs(t.at(50)! - 50)).toBeLessThanOrEqual(40);
   });
+
+  it('padding nobody said moves the stream on without claiming time: the audio before it keeps its times', () => {
+    const clock = createVirtualClock(0);
+    const table = createSentClock(clock);
+    for (let i = 0; i < 10; i++) { clock.advance(100); table.sent(2400, 24000); }
+    // A release tail of 700 ms, added at once at clock 1000.
+    table.padded(16800, 24000);
+    expect(table.at(0)).toBe(0);
+    expect(table.at(1000)).toBe(1000);
+    expect(table.at(1350)).toBe(1000);
+    expect(table.at(1700)).toBe(1000);
+    // Speech resumes later: its audio maps where it was heard, after the padding.
+    clock.advance(5000);
+    table.sent(2400, 24000);
+    expect(table.at(1800)).toBe(6000);
+    expect(table.at(1750)).toBe(5950);
+  });
+
+  it('a chunk sent right after padding does not join across it', () => {
+    const clock = createVirtualClock(0);
+    const table = createSentClock(clock);
+    for (let i = 0; i < 3; i++) { clock.advance(100); table.sent(2400, 24000); }
+    table.padded(2400, 24000);
+    clock.advance(100);
+    table.sent(2400, 24000);
+    expect(table.at(300)).toBe(300);
+    expect(table.at(400)).toBe(300);
+    expect(table.at(450)).toBe(350);
+  });
 });

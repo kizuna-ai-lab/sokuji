@@ -4,9 +4,12 @@ import {
   type Adapter,
   type AdapterEvents,
   type AdapterSession,
+  type Heard,
+  type HeardPiece,
   type Ref,
   type StartRequest,
 } from '../../lib/contract/adapter';
+import { createSentClock, type SentClock } from '../../lib/contract/sentClock';
 import { framePayload } from '../../lib/contract/framePayload';
 import { fillIn, type Punctuator } from '../../lib/conversation/fillIn';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
@@ -16,11 +19,10 @@ import { countSkeleton } from '../../lib/segmentation/sealCursor';
 import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
-import { defaultEngines, type AsrInit, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
+import { defaultEngines, type AsrInit, type AsrLike, type AsrResult, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
 import { SentenceCut, runtimeOver } from './sentenceCut';
 import { speakTranslation } from './speech';
 import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
-import type { SegmentEnd } from '../../lib/local-inference/types';
 
 /**
  * LocalInference on the new contract (spec: "L0 — the client contract"): ASR,
@@ -43,6 +45,70 @@ interface Job {
   origin: string;
   /** Punctuate the text before translating: per-final and typed-text jobs under a sentences display; never a seal. */
   fill: boolean;
+}
+
+/**
+ * A manual turn's release: 700 ms of silence at 24 kHz, then a flush. One buffer, not seven: a worker drops audio that
+ * arrives while its VAD is still busy with the last buffer, and a burst of seven would lose most of them — leaving the
+ * audio it counted behind what `fed` counted, and every later result's time early.
+ */
+const FLUSH_SAMPLES = (SAMPLE_RATE * 7) / 10;
+
+/** The recognizers count the audio they were fed at their VAD's 16 kHz: a result's `startSample` is in those samples. */
+const ASR_SAMPLE_RATE = 16000;
+
+const CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const LETTER_RE = /[\p{L}\p{N}]/u;
+/** A Latin letter or digit, against a CJK character's syllable: about a third of one. */
+const LETTER_WEIGHT = 1 / 3;
+
+/**
+ * How long a character takes to say, against a CJK character's syllable: an
+ * offline recognizer gives an utterance's span and no word times, so its text
+ * shares the span by this. Punctuation and spaces take no time.
+ */
+function weightOf(ch: string): number {
+  if (CJK_RE.test(ch)) return 1;
+  return LETTER_RE.test(ch) ? LETTER_WEIGHT : 0;
+}
+function weightOfText(text: string): number {
+  let total = 0;
+  for (const ch of text) total += weightOf(ch);
+  return total;
+}
+/** The weight of `text`'s first `letters` letters and digits: what seals before the final already took of its span. */
+function weightOfLetters(text: string, letters: number): number {
+  let total = 0;
+  let seen = 0;
+  for (const ch of text) {
+    if (seen >= letters) break;
+    if (!LETTER_RE.test(ch)) continue;
+    total += weightOf(ch);
+    seen++;
+  }
+  return total;
+}
+
+/** An utterance heard from `startAt` to `endAt` on the run's clock: `total` its text's weight, `taken` what earlier chunks of it have had. */
+interface HeardSpan { startAt: number; endAt: number; total: number; taken: number }
+
+/** When each letter of `text` was heard: its share of the span after what earlier chunks took. None for a span with no letters. */
+function heardIn(text: string, span: HeardSpan): Heard | undefined {
+  // Nothing left of it: the cut started over and seals again what it had sealed, which has its times already.
+  if (!(span.total > 0) || span.taken >= span.total) return undefined;
+  const per = (span.endAt - span.startAt) / span.total;
+  const timeAt = (weight: number) => span.startAt + Math.min(weight, span.total) * per;
+  const pieces: HeardPiece[] = [];
+  let at = 0;
+  for (const ch of text) {
+    const weight = weightOf(ch);
+    if (weight > 0) {
+      pieces.push({ at, len: ch.length, startAt: timeAt(span.taken), endAt: timeAt(span.taken + weight) });
+      span.taken += weight;
+    }
+    at += ch.length;
+  }
+  return pieces.length > 0 ? { pieces, stableLen: text.length } : undefined;
 }
 
 /** Worded as today's `errors.gpuOutOfMemory`; surfaces put `gpu_out_of_memory` into words by code. */
@@ -141,6 +207,13 @@ class LocalSession implements AdapterSession {
    * every N sentences inside the utterance; null — one job per final.
    */
   private readonly cut: SentenceCut | null;
+  /**
+   * When each stretch of the audio handed to the ASR was heard: a result's start sample answers to a time on the run's
+   * clock. The recognizers count from their `init`, and every sample this session hands over after it is counted here.
+   */
+  private readonly fed: SentClock;
+  /** The stream shape: the utterance whose final is being sealed, so each chunk it seals is given its part of the span. */
+  private sealing: HeardSpan | null = null;
 
   constructor(
     private readonly request: StartRequest<LocalInferenceConfig, LocalCredentials>,
@@ -148,6 +221,7 @@ class LocalSession implements AdapterSession {
     engines: LocalEngines,
   ) {
     this.config = request.config;
+    this.fed = createSentClock(request.clock);
     this.asr = engines.asr(this.config.asr);
     this.connectTurn = engines.turn;
     this.translation = this.config.translation.kind === 'engine' ? engines.translation() : null;
@@ -340,7 +414,7 @@ class LocalSession implements AdapterSession {
   appendAudio(pcm: Int16Array): void {
     if (this.ended) return;
     // The engine transfers the buffer to its worker, and the runner hands this same array to others.
-    this.asr.feedAudio(pcm.slice(), SAMPLE_RATE);
+    this.feedAsr(pcm.slice());
   }
 
   /**
@@ -366,15 +440,23 @@ class LocalSession implements AdapterSession {
     }
   }
 
+  /** Audio to the ASR at the contract's rate, kept in `fed` so a result's start sample finds when it was heard. */
+  private feedAsr(pcm: Int16Array): void {
+    this.fed.sent(pcm.length, SAMPLE_RATE);
+    this.asr.feedAudio(pcm, SAMPLE_RATE);
+  }
+
   beginTurn(): void {}
   /** No worker can discard a VAD segment or acknowledge a flush (ruling 5): both end a turn the same way. */
   endTurn(): void { this.flushTurn(); }
   cancelTurn(): void { this.flushTurn(); }
 
-  /** Today's manual-turn release: a 700 ms zero tail (seven 100 ms frames at 24 kHz), then flush. */
+  /** The manual-turn release: a 700 ms zero tail at 24 kHz, as one buffer (`FLUSH_SAMPLES`), then flush. */
   private flushTurn(): void {
     if (this.ended) return;
-    for (let i = 0; i < 7; i++) this.asr.feedAudio(new Int16Array(2400), SAMPLE_RATE);
+    // Made-up silence: it moves the ASR's stream on, but nobody said it, so it claims no time of its own.
+    this.fed.padded(FLUSH_SAMPLES, SAMPLE_RATE);
+    this.asr.feedAudio(new Int16Array(FLUSH_SAMPLES), SAMPLE_RATE);
     this.asr.flush();
   }
 
@@ -450,16 +532,40 @@ class LocalSession implements AdapterSession {
    * (cohere, voxtral-3b) would make the final a rewrite rather than a growth
    * of the partials.
    */
-  private show(raw: string): void {
+  private show(raw: string, heard?: Heard): void {
     const text = raw.trim();
     if (countSkeleton(text) === 0) return;
     if (!this.utterance) {
       this.utterance = { ref: this.nextRef++, origin: this.nextOrigin(), text: '' };
       this.emit('segmentOpened', { ref: this.utterance.ref, side: 'source', origin: this.utterance.origin });
     }
-    if (text === this.utterance.text) return;
+    if (text === this.utterance.text && !heard) return;
     this.utterance.text = text;
-    this.emit('segmentText', { ref: this.utterance.ref, text });
+    this.emit('segmentText', { ref: this.utterance.ref, text, ...(heard ? { heard } : {}) });
+  }
+
+  /**
+   * When the utterance a result ends was heard, on the run's clock: from its
+   * start sample, through the audio handed to the ASR. Failing that, an
+   * offline recognizer's result comes after recognition, so its span ends when
+   * recognition began and starts its length before. A streaming recognizer
+   * without a start sample gives none: its timers run from its last reset, not
+   * from speech, so its fields cover idle time too — while its partials arrive
+   * as the words are said, and the times they arrive at are History's estimate.
+   */
+  private heardSpan(result: AsrResult, text: string): HeardSpan | null {
+    const duration = Math.max(0, result.durationMs);
+    const total = weightOfText(text);
+    if (result.startSample !== undefined) {
+      const startMs = (result.startSample / ASR_SAMPLE_RATE) * 1000;
+      const startAt = this.fed.at(startMs);
+      const endAt = this.fed.at(startMs + duration);
+      if (startAt !== undefined && endAt !== undefined && endAt >= startAt) return { startAt, endAt, total, taken: 0 };
+    }
+    if (this.config.asr.streaming || !(duration > 0)) return null;
+    const recognition = Number.isFinite(result.recognitionTimeMs) ? Math.max(0, result.recognitionTimeMs) : 0;
+    const endAt = this.request.clock.now() - recognition;
+    return { startAt: endAt - duration, endAt, total, taken: 0 };
   }
 
   /**
@@ -475,7 +581,9 @@ class LocalSession implements AdapterSession {
     this.frame('out', 'local.segmentation.seal', { reason, text });
     const sealed = text.trim();
     if (countSkeleton(sealed) === 0) return;
-    this.show(sealed); // opens the segment for an end() sealing a tail no pending showed
+    // Opens the segment for an end() sealing a tail no pending showed. A chunk the final seals is given its part of when
+    // the utterance was heard; one sealed from a partial keeps the times its text arrived at, which follow the speech.
+    this.show(sealed, this.sealing ? heardIn(sealed, this.sealing) : undefined);
     const segment = this.utterance!;
     this.utterance = null;
     this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
@@ -489,7 +597,7 @@ class LocalSession implements AdapterSession {
    * closing a segment its partials opened with its last text. AST: the final
    * already is the translation — no source segment.
    */
-  private final(result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>): void {
+  private final(result: AsrResult): void {
     if (this.ended) return;
     const text = result.text.trim();
     if (!text) {
@@ -507,13 +615,20 @@ class LocalSession implements AdapterSession {
         ? { smartTurnProbability: Math.round(result.smartTurnProbability * 100) / 100 }
         : {}),
     });
+    const span = this.heardSpan(result, text);
     if (this.cut) {
       // The utterance is over whatever the cut did, so a segment still open
       // closes as it stands, without a job: after a truncated re-decode of
       // text already sealed (`final()` false), or when the tail the end seal
       // held was letterless and replaced nothing. Otherwise the end seal has
-      // closed it already.
-      this.cut.final(text);
+      // closed it already. The end seal is synchronous: the chunks it seals
+      // share the span in order, after what partials already sealed.
+      this.sealing = span ? { ...span, taken: weightOfLetters(text, this.cut.sealedBefore(text)) } : null;
+      try {
+        this.cut.final(text);
+      } finally {
+        this.sealing = null;
+      }
       this.abandonUtterance();
       return;
     }
@@ -527,7 +642,9 @@ class LocalSession implements AdapterSession {
     }
     const segment = current ?? { ref: this.nextRef++, origin: this.nextOrigin(), text: '' };
     if (!current) this.emit('segmentOpened', { ref: segment.ref, side: 'source', origin: segment.origin });
-    if (text !== segment.text) this.emit('segmentText', { ref: segment.ref, text });
+    // When it was heard, once known, even for a text the partials already showed: History times its sentences by it.
+    const heard = span ? heardIn(text, span) : undefined;
+    if (text !== segment.text || heard) this.emit('segmentText', { ref: segment.ref, text, ...(heard ? { heard } : {}) });
     this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
     if (kind === 'engine') this.enqueue({ text, origin: segment.origin, fill });
   }

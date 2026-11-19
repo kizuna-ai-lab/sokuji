@@ -7,11 +7,14 @@ import { Conversation } from '../../lib/conversation/Conversation';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { gateChars } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
+import { createSegmentCut } from '../../lib/history/capture/cut';
 import { createLocalInferenceAdapter } from './adapter';
 import { createFakeEngines, type FakeAsr } from './fakeEngines';
 import type { LocalInferenceConfig } from './config';
 
 const auto: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: false, turns: 'auto' };
+/** English source: the sentence cut's gates and casing rule read the source language. */
+const enSource: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: false, turns: 'auto' };
 
 function makeConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceConfig {
   return {
@@ -60,7 +63,14 @@ async function open(
 
 const last = <T>(items: T[]): T | undefined => items[items.length - 1];
 const events = (log: ConformanceLog) => log.filter((e): e is AdapterEvent => e.kind !== 'marker');
-const content = (log: ConformanceLog) => events(log).filter((e) => e.kind.startsWith('segment') || e.kind === 'audio');
+/** The segments and audio, without when a final's words were heard: that has tests of its own below. */
+const content = (log: ConformanceLog) => events(log)
+  .filter((e) => e.kind.startsWith('segment') || e.kind === 'audio')
+  .map((e) => {
+    if (e.kind !== 'segmentText' || !e.payload.heard) return e;
+    const { heard: _heard, ...payload } = e.payload;
+    return { ...e, payload };
+  });
 const ofKind = <K extends AdapterEvent['kind']>(log: ConformanceLog, kind: K) =>
   events(log).filter((e) => e.kind === kind).map((e) => e.payload as Extract<AdapterEvent, { kind: K }>['payload']);
 
@@ -220,7 +230,7 @@ describe('the LocalInference adapter — segments and jobs', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('sends no second segmentText when the final equals the last partial', async () => {
+  it('sends no second segmentText when the final equals the last partial and says nothing new of when it was heard', async () => {
     const t = await open();
     t.asr.partial('はい');
     t.asr.final(' はい ');
@@ -241,12 +251,13 @@ describe('the LocalInference adapter — segments and jobs', () => {
 });
 
 describe('the LocalInference adapter — turns', () => {
-  it('endTurn feeds seven 2400-sample silences at 24 kHz, then flushes', async () => {
+  it('endTurn feeds 700 ms of silence at 24 kHz as one buffer, then flushes', async () => {
+    // One buffer: a worker drops audio arriving while its VAD is busy, so a burst would lose most of it.
     const t = await open();
     t.session.endTurn();
-    expect(t.asr.fed).toHaveLength(7);
-    expect(t.asr.fed.every((a) => a.length === 2400 && a.every((v) => v === 0))).toBe(true);
-    expect(t.asr.rates).toEqual(new Array(7).fill(24000));
+    expect(t.asr.fed).toHaveLength(1);
+    expect(t.asr.fed.every((a) => a.length === 16800 && a.every((v) => v === 0))).toBe(true);
+    expect(t.asr.rates).toEqual([24000]);
     expect(t.asr.flushes).toBe(1);
     expectConformant(t.log, t.context);
   });
@@ -254,9 +265,9 @@ describe('the LocalInference adapter — turns', () => {
   it('cancelTurn does the same as endTurn: no worker can discard a VAD segment or acknowledge a flush', async () => {
     const t = await open();
     t.session.cancelTurn();
-    expect(t.asr.fed).toHaveLength(7);
-    expect(t.asr.fed.every((a) => a.length === 2400 && a.every((v) => v === 0))).toBe(true);
-    expect(t.asr.rates).toEqual(new Array(7).fill(24000));
+    expect(t.asr.fed).toHaveLength(1);
+    expect(t.asr.fed.every((a) => a.length === 16800 && a.every((v) => v === 0))).toBe(true);
+    expect(t.asr.rates).toEqual([24000]);
     expect(t.asr.flushes).toBe(1);
     expectConformant(t.log, t.context);
   });
@@ -1392,5 +1403,134 @@ describe('the LocalInference adapter — how a segment ended', () => {
     const end = ofKind(t.log, 'frame').find((f) => f.type === 'local.asr.end')!.payload;
     expect(end).not.toHaveProperty('endedBy');
     expect(end).not.toHaveProperty('smartTurnProbability');
+  });
+});
+
+describe('the LocalInference adapter — when an utterance was heard', () => {
+  /** Ten 100 ms chunks at 24 kHz, one per 100 ms of the clock: stream time s was heard at clock time s. */
+  function feedSecond(t: Awaited<ReturnType<typeof open>>) {
+    for (let i = 0; i < 10; i++) {
+      t.clock.advance(100);
+      t.session.appendAudio(new Int16Array(2400));
+    }
+  }
+  const heardOf = (log: ConformanceLog) => last(ofKind(log, 'segmentText'))?.heard;
+  const offline = () => makeConfig({ asr: { modelId: 'whisper', streaming: false } });
+
+  // An offline recognizer gives a whole utterance at once, after it was said: the time its text arrives is the
+  // utterance's end, so History stamped every sentence of it at that end (#132). The result says where in the audio
+  // it was heard; its letters share that span, a CJK character counting as a syllable.
+  it('gives the final the span its audio was heard over, shared out by its characters, punctuation taking none', async () => {
+    const t = await open(offline());
+    feedSecond(t);
+    t.asr.onResult?.({ text: '今日は。晴れ。', startSample: 3200, durationMs: 600, recognitionTimeMs: 50 });
+    expect(heardOf(t.log)).toEqual({
+      pieces: [
+        { at: 0, len: 1, startAt: 200, endAt: 320 },
+        { at: 1, len: 1, startAt: 320, endAt: 440 },
+        { at: 2, len: 1, startAt: 440, endAt: 560 },
+        { at: 4, len: 1, startAt: 560, endAt: 680 },
+        { at: 5, len: 1, startAt: 680, endAt: 800 },
+      ],
+      stableLen: 7,
+    });
+    expectConformant(t.log, t.context);
+  });
+
+  it('so History starts each sentence where it was said, not where the utterance ended', async () => {
+    const t = await open(offline());
+    feedSecond(t);
+    t.asr.onResult?.({ text: '今日は。晴れ。', startSample: 3200, durationMs: 600, recognitionTimeMs: 50 });
+    const cut = createSegmentCut();
+    const text = '今日は。晴れ。';
+    // The text arrived at once, at 1000: without the heard span both sentences would start there.
+    const { added } = cut.update({ text, final: true, openedAt: 1000, marks: [{ len: text.length, at: 1000 }], heard: heardOf(t.log), now: 1000 });
+    expect(added.map((s) => [s.startAt, s.endAt, s.timeKind])).toEqual([[200, 560, 'given'], [560, 800, 'given']]);
+  });
+
+  it('a Latin letter counts as a third of a CJK character', async () => {
+    const t = await open(offline());
+    feedSecond(t);
+    t.asr.onResult?.({ text: 'abc日', startSample: 0, durationMs: 400, recognitionTimeMs: 0 });
+    const pieces = heardOf(t.log)!.pieces;
+    expect(pieces.map((p) => [p.at, Math.round(p.startAt), Math.round(p.endAt)])).toEqual([[0, 0, 67], [1, 67, 133], [2, 133, 200], [3, 200, 400]]);
+  });
+
+  it('without a start sample, ends the span when recognition began and starts it the utterance’s length before', async () => {
+    const t = await open(offline());
+    t.clock.advance(5000);
+    t.asr.onResult?.({ text: '晴れ', durationMs: 1000, recognitionTimeMs: 300 });
+    expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[3700, 4200], [4200, 4700]]);
+  });
+
+  it('a streaming recognizer without a start sample says nothing of when: its partials arrived as the words were said', async () => {
+    // Its workers' timers run from their last reset, idle time included: a user who waited 10 s, then spoke 5 s, gets
+    // 15 s in durationMs (and recognitionTimeMs the same, or the run's).
+    const t = await open(makeConfig({ asr: { modelId: 'streaming-zipformer', streaming: true } }));
+    t.clock.advance(15_000);
+    t.asr.partial('晴');
+    t.asr.onResult?.({ text: '晴れ', durationMs: 15_000, recognitionTimeMs: 15_000 });
+    expect(ofKind(t.log, 'segmentText').map((p) => [p.text, p.heard])).toEqual([['晴', undefined], ['晴れ', undefined]]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a result that comes after a manual turn’s release keeps its own times: the release tail is heard nowhere', async () => {
+    const t = await open(offline());
+    feedSecond(t);
+    t.session.endTurn();
+    t.asr.onResult?.({ text: '晴れ', startSample: 0, durationMs: 1000, recognitionTimeMs: 300 });
+    expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[0, 500], [500, 1000]]);
+  });
+
+  it('says it even when the final repeats the last partial, the text unchanged', async () => {
+    const t = await open();
+    feedSecond(t);
+    t.asr.partial('はい');
+    t.asr.onResult?.({ text: ' はい ', startSample: 1600, durationMs: 200, recognitionTimeMs: 10 });
+    const texts = ofKind(t.log, 'segmentText');
+    expect(texts.map((p) => p.text)).toEqual(['はい', 'はい']);
+    expect(texts[1].heard?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[100, 200], [200, 300]]);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['はい']);
+    expectConformant(t.log, t.context);
+  });
+
+  it('in the stream shape, each chunk the final seals gets its own part of the span', async () => {
+    const t = await open(makeConfig({ asr: { modelId: 'whisper', streaming: false }, jobSentences: 1 }), enSource, async () => null);
+    feedSecond(t);
+    t.asr.onResult?.({ text: 'One is done. Two is done and over.', startSample: 0, durationMs: 900, recognitionTimeMs: 0 });
+    const byRef = new Map<number, { startAt: number; endAt: number }[]>();
+    for (const p of ofKind(t.log, 'segmentText')) if (p.heard) byRef.set(p.ref, p.heard.pieces.map(({ startAt, endAt }) => ({ startAt, endAt })));
+    expect(byRef.size).toBe(2);
+    const spans = [...byRef.values()].map((pieces) => [Math.round(pieces[0].startAt), Math.round(pieces[pieces.length - 1].endAt)]);
+    // 'One is done' has 9 of the utterance's 25 letters, each weighing the same: the first chunk takes 900 × 9/25 ms.
+    expect(spans).toEqual([[0, 324], [324, 900]]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('in the stream shape, a chunk sealed from a partial keeps the times its text arrived at; the final gives the rest', async () => {
+    const t = await open(makeConfig({ jobSentences: 1 }), enSource, async () => null);
+    feedSecond(t);
+    t.asr.partial('One is done. Two is done and');
+    const sealedEarly = ofKind(t.log, 'segmentText').filter((p) => p.text === 'One is done.');
+    expect(sealedEarly.length).toBeGreaterThan(0);
+    expect(sealedEarly.every((p) => !p.heard)).toBe(true);
+    t.asr.onResult?.({ text: 'One is done. Two is done and over.', startSample: 0, durationMs: 900, recognitionTimeMs: 0 });
+    const tail = last(ofKind(t.log, 'segmentText').filter((p) => p.heard));
+    expect(tail?.text).toBe('Two is done and over.');
+    // What the partial sealed took its 9 of the 25 letters' share, 900 × 9/25 ms: the tail starts after it.
+    expect(tail?.heard?.pieces.map((p) => Math.round(p.startAt))[0]).toBe(324);
+    expectConformant(t.log, t.context);
+  });
+
+  it('in the stream shape, a final that starts the cut over takes the whole span from its start', async () => {
+    const t = await open(makeConfig({ jobSentences: 1 }), enSource, async () => null);
+    feedSecond(t);
+    t.asr.partial('One is done. Two is done and');
+    // A rewrite with fewer letters than were sealed, not a prefix of the partial: the cut seals it all again.
+    t.asr.onResult?.({ text: 'Won.', startSample: 0, durationMs: 900, recognitionTimeMs: 0 });
+    const tail = last(ofKind(t.log, 'segmentText').filter((p) => p.heard));
+    expect(tail?.text).toBe('Won.');
+    expect(tail?.heard?.pieces.map((p) => [Math.round(p.startAt), Math.round(p.endAt)])).toEqual([[0, 300], [300, 600], [600, 900]]);
+    expectConformant(t.log, t.context);
   });
 });

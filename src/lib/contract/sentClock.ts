@@ -13,6 +13,12 @@ import type { Clock } from './clock';
 export interface SentClock {
   /** Audio just handed to the connection: `samples` at `sampleRate`, sent now. */
   sent(samples: number, sampleRate: number): void;
+  /**
+   * Audio nobody said — silence the app made up, such as a manual turn's release tail — handed over now: it moves the
+   * stream on without claiming any clock time. A time inside it answers as now, and the audio heard before it keeps
+   * its own times.
+   */
+  padded(samples: number, sampleRate: number): void;
   /** The clock time at which stream time `streamMs` was heard; undefined when it lies outside what was sent. */
   at(streamMs: number): number | undefined;
 }
@@ -27,8 +33,11 @@ const JOIN_BACK = 64;
 /** A time this little past the audio sent answers as its end: the service's last word may end after the last chunk. */
 const PAST_END_MS = 500;
 
-/** Stream [streamStart, streamEnd] heard over clock [clockStart, clockEnd]; inside it, times count back from the end. */
-interface Span { streamStart: number; streamEnd: number; clockStart: number; clockEnd: number }
+/**
+ * Stream [streamStart, streamEnd] heard over clock [clockStart, clockEnd]; inside it, times count back from the end.
+ * `made`: padding nobody said, all of it at `clockEnd`; nothing joins across it.
+ */
+interface Span { streamStart: number; streamEnd: number; clockStart: number; clockEnd: number; made?: true }
 
 export function createSentClock(clock: Pick<Clock, 'now'>): SentClock {
   // Ordered by stream time; the times asked for are recent, so lookups go from the end.
@@ -46,19 +55,28 @@ export function createSentClock(clock: Pick<Clock, 'now'>): SentClock {
       // chunks a stalled page sent late, together, rejoin the audio before them once the sending has caught up, while
       // a pause (mute, key up) never rejoins, so the audio before it keeps the times at which it was heard.
       const last = spans.length - 1;
-      for (let j = Math.max(0, last - JOIN_BACK); j < last; j++) {
+      let from = Math.max(0, last - JOIN_BACK);
+      for (let k = last - 1; k >= from; k--) if (spans[k].made) { from = k + 1; break; }
+      for (let j = from; j < last; j++) {
         const a = spans[j];
         if (Math.abs((t - a.clockStart) - (total - a.streamStart)) > SENT_SLACK_MS) continue;
         spans.splice(j, spans.length - j, { streamStart: a.streamStart, streamEnd: total, clockStart: a.clockStart, clockEnd: t });
         break;
       }
     },
+    padded(samples, sampleRate) {
+      if (!(samples > 0) || !(sampleRate > 0)) return;
+      const d = (samples * 1000) / sampleRate;
+      const t = clock.now();
+      spans.push({ streamStart: total, streamEnd: total + d, clockStart: t, clockEnd: t, made: true });
+      total += d;
+    },
     at(streamMs) {
       if (!(streamMs >= 0) || spans.length === 0) return undefined;
       if (streamMs > total) return streamMs - total <= PAST_END_MS ? spans[spans.length - 1].clockEnd : undefined;
       for (let i = spans.length - 1; i >= 0; i--) {
         const s = spans[i];
-        if (s.streamStart <= streamMs && streamMs <= s.streamEnd) return s.clockEnd - (s.streamEnd - streamMs);
+        if (s.streamStart <= streamMs && streamMs <= s.streamEnd) return s.made ? s.clockEnd : s.clockEnd - (s.streamEnd - streamMs);
       }
       return undefined;
     },

@@ -35,6 +35,7 @@ import type {
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 import { whisperLanguage } from './whisperLanguage';
+import { segmentStartSample } from './_shared/segmentStart';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -104,7 +105,6 @@ const WHISPER_MAX_SEGMENT_SAMPLES = 29 * VAD_SAMPLE_RATE;
 
 // For startSample tracking in result messages
 let totalSamplesFed = 0;
-let speechStartSample = 0;
 
 // ─── VAD Diagnostic Logging ─────────────────────────────────────────────────
 const VAD_DEBUG = false;
@@ -182,7 +182,6 @@ async function initVad(config?: WhisperAsrInitMessage['vadConfig'], vadModelUrl?
 
   // Reset tracking state
   totalSamplesFed = 0;
-  speechStartSample = 0;
   speechFramesSinceStart = 0;
 
   vadLog('INIT posThreshold=', positiveSpeechThreshold,
@@ -399,7 +398,6 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             break;
 
           case Message.SpeechStart:
-            speechStartSample = totalSamplesFed - VAD_FRAME_SAMPLES;
             speechFramesSinceStart = 0;
             post({ type: 'speech_start' });
             vadLog('SPEECH_START');
@@ -412,14 +410,14 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
             // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
             // and the guard at the top of this function would drop the audio arriving
             // meanwhile (#470). `scheduleWhisper` serializes decodes via `pendingWhisperDecode`.
-            void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'silence' });
+            void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'silence' });
             break;
 
           case Message.VADMisfire: {
             speechFramesSinceStart = 0;
             // Kept when it follows a Smart end inside the wait Normal would have spanned.
             const rescued = turnLink?.rescue();
-            if (rescued) void scheduleWhisper(rescued, speechStartSample, { endedBy: 'kept' });
+            if (rescued) void scheduleWhisper(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
             vadLog(rescued ? 'VAD_MISFIRE (kept after a Smart end)' : 'VAD_MISFIRE (too short, discarded)');
             break;
           }
@@ -431,7 +429,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
         const endEvents: FrameProcessorEvent[] = [];
         frameProcessor.endSegment((ev) => endEvents.push(ev));
         for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'smart', smartTurnProbability });
+          if (ev.msg === Message.SpeechEnd) void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'smart', smartTurnProbability });
         }
       }
 
@@ -445,7 +443,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'cap' });
+              void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'cap' });
             }
           }
           turnLink?.reset();
@@ -560,10 +558,10 @@ async function handleFlush(): Promise<void> {
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        void scheduleWhisper(ev.audio, speechStartSample, { endedBy: 'flush' });
+        void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'flush' });
       } else if (ev.msg === Message.VADMisfire) {
         const rescued = turnLink?.rescue();
-        if (rescued) void scheduleWhisper(rescued, speechStartSample, { endedBy: 'kept' });
+        if (rescued) void scheduleWhisper(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
       }
     }
     turnLink?.reset();

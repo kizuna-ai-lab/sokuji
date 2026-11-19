@@ -117,6 +117,16 @@ export class SentenceCut {
     return sealsTail;
   }
 
+  /**
+   * How many letters and digits of `text`, the final about to be given, seals already hold: what `final(text)` will not
+   * seal again. None for a new utterance, or a final that starts the cursor over.
+   */
+  sealedBefore(text: string): number {
+    if (!this.stream) return 0;
+    if (this.coversNothingNew(text) && !isTruncationOf(text, this.lastRaw)) return 0;
+    return this.sealed;
+  }
+
   /** Drops the utterance in progress: its stream (a late model answer seals nothing) and the cursor. */
   reset(): void {
     this.stream?.dispose();
