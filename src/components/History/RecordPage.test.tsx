@@ -589,6 +589,20 @@ describe('a record', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete the recording' })).toBeDisabled();
   });
 
+  it('while its recording is transcribed, neither deletes it nor moves the record to the bin; both come back after', async () => {
+    record = { ...record, tracks: [{ source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 1000, offsetMs: 0, goneAt: null }] };
+    await renderRecord();
+    act(() => { store.setState({ job: { kind: 'transcribe', recordId: A, name: null, phase: 'uploading', hosted: false } }); });
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    for (const name of ['Delete the recording', 'Move to bin']) {
+      expect(screen.getByRole('menuitem', { name })).toBeDisabled();
+      expect(screen.getByRole('menuitem', { name })).toHaveAttribute('title', 'Available when this record is not being transcribed.');
+    }
+    act(() => { store.setState({ job: null }); });
+    expect(screen.getByRole('menuitem', { name: 'Delete the recording' })).toBeEnabled();
+    expect(screen.getByRole('menuitem', { name: 'Move to bin' })).toBeEnabled();
+  });
+
   it('saves the recording through the system dialog, one file per track, each titled with its side', async () => {
     record = { ...record, tracks: [
       { source: 'speaker', file: 'speaker.opus', format: 'ogg-opus', durationMs: 60_000, bytes: 3, offsetMs: 0, goneAt: null },

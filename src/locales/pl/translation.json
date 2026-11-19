@@ -2126,6 +2126,7 @@
       "blockedSession": "Dostępne, gdy nie trwa żadna sesja.",
       "blockedBusy": "Trwa już inny import lub transkrypcja.",
       "blockedNoRecording": "Ten zapis nie przechowuje nagrania.",
+      "blockedTranscribing": "Dostępne, gdy ten zapis nie jest transkrybowany.",
       "phase": {
         "reading": "Odczytywanie pliku",
         "decoding": "Dekodowanie dźwięku",

@@ -2126,6 +2126,7 @@
       "blockedSession": "没有会话进行时才能用。",
       "blockedBusy": "已经有一个导入或转写在进行。",
       "blockedNoRecording": "这条记录没有保存录音。",
+      "blockedTranscribing": "这条记录没在转写时才能用。",
       "phase": {
         "reading": "正在读取文件",
         "decoding": "正在解码音频",

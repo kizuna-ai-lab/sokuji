@@ -105,6 +105,7 @@ export const RecordPage: React.FC = () => {
   const [confirmDrop, setConfirmDrop] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const filesOffered = useStore(store, (s) => s.filesOffered);
+  const job = useStore(store, (s) => s.job);
   /** The recording is being deleted: the player is taken down first so the files are not held open. */
   const [releasing, setReleasing] = useState(false);
   const cancelDropRef = useRef<HTMLButtonElement>(null);
@@ -298,6 +299,9 @@ export const RecordPage: React.FC = () => {
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;
   const title = record.title ?? formatDateTime(record.startedAt, language);
   const live = record.state === 'open';
+  // Its recording is being transcribed: it is not deleted, nor the record moved to the bin, until that ends.
+  const inTranscription = job?.kind === 'transcribe' && job.recordId === record.id;
+  const whileTranscribed = inTranscription ? t('history.file.blockedTranscribing', 'Available when this record is not being transcribed.') : undefined;
 
   // A title or a name stays in its field until it is saved: a save that fails keeps what was typed (the page says why).
   const saveTitle = async (): Promise<boolean> => {
@@ -633,8 +637,8 @@ export const RecordPage: React.FC = () => {
                 <button
                   type="button"
                   role="menuitem"
-                  disabled={busy || live}
-                  title={live ? t('history.binWhenEnded', 'A record can move to the bin once its session has ended.') : undefined}
+                  disabled={busy || live || inTranscription}
+                  title={live ? t('history.binWhenEnded', 'A record can move to the bin once its session has ended.') : whileTranscribed}
                   onClick={() => { setMoreOpen(false); void actions.binRecord(record.id); }}
                 >
                   <Trash2 size={14} aria-hidden="true" />
@@ -643,7 +647,8 @@ export const RecordPage: React.FC = () => {
                 <button
                   type="button"
                   role="menuitem"
-                  disabled={busy || live || !hasPlayer}
+                  disabled={busy || live || inTranscription || !hasPlayer}
+                  title={whileTranscribed}
                   onClick={() => { setMoreOpen(false); setConfirmDrop(true); }}
                 >
                   <MicOff size={14} aria-hidden="true" />

@@ -2126,6 +2126,7 @@
       "blockedSession": "沒有工作階段進行時才能用。",
       "blockedBusy": "已經有一個匯入或轉寫在進行。",
       "blockedNoRecording": "這筆紀錄沒有保存錄音。",
+      "blockedTranscribing": "這筆記錄沒在轉寫時才能用。",
       "phase": {
         "reading": "正在讀取檔案",
         "decoding": "正在解碼音訊",

@@ -2126,6 +2126,7 @@
       "blockedSession": "Tersedia saat tidak ada sesi yang berjalan.",
       "blockedBusy": "Impor atau transkripsi lain sedang berjalan.",
       "blockedNoRecording": "Catatan ini tidak menyimpan rekaman.",
+      "blockedTranscribing": "Tersedia saat rekaman ini tidak sedang ditranskripsi.",
       "phase": {
         "reading": "Membaca file",
         "decoding": "Mendekode audio",

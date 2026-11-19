@@ -2126,6 +2126,7 @@
       "blockedSession": "Beschikbaar als er geen sessie loopt.",
       "blockedBusy": "Er loopt al een andere import of transcriptie.",
       "blockedNoRecording": "Dit verslag bewaart geen opname.",
+      "blockedTranscribing": "Beschikbaar als deze opname niet wordt getranscribeerd.",
       "phase": {
         "reading": "Bestand lezen",
         "decoding": "Audio decoderen",
