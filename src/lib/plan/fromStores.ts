@@ -27,7 +27,11 @@ export type PlanState =
 /** One object for every loading answer, so a hook that reads it does not re-render. */
 const LOADING: PlanState = { state: 'loading' };
 
-/** The last ready answer, kept while its provider and entry stand: one object for every reader of the same stores. */
+/**
+ * The last ready answer, kept while its provider and entry stand: one object for every reader of the same stores.
+ * It is keyed on the provider's id and its entry object, not on the provider object, so a test that swaps a mocked
+ * registry's provider under the same id, with the same entry object, gets the earlier plan.
+ */
 let last: { id: string; entry: ProviderEntry; found: PlanState } | null = null;
 
 function planIn({ selected, entries }: Pick<ProviderStore, 'selected' | 'entries'>): PlanState {
@@ -49,7 +53,10 @@ export function planFromStores(): PlanState {
   return planIn(useProviderStore.getState());
 }
 
-/** `planFromStores` for a component: it re-renders when the selection or the plan's entry changes, and only then. */
+/**
+ * `planFromStores` for a component: it re-renders when the resolved provider or its entry changes. The list of
+ * offered providers is read on each store update.
+ */
 export function usePlan(): PlanState {
   return useProviderStore(planIn);
 }

@@ -180,6 +180,19 @@ describe('accounts and keys — opened from a notice or the tour', () => {
     authState.signedIn = true;
   });
 
+  // A selection not offered here falls back, as the plan does, to the first provider offered (Kizuna AI's Soniox) once
+  // its entry has loaded: its account is the one shown.
+  it("opened by the 'provider' target with a selection not offered here, shows the first offered provider's account once it has loaded", () => {
+    authState.signedIn = false;
+    useProviderStore.setState((st) => ({
+      selected: 'not_offered_here',
+      entries: { ...st.entries, kizunaai_soniox: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,
+    }));
+    render(<AccountsCategory locked={false} openedBy="provider" />);
+    expect(within(row('Kizuna AI')).getByText('account row')).toBeInTheDocument();
+    authState.signedIn = true;
+  });
+
   it('opened, Kizuna AI shows the account panel signed in: balances, dashboard, sign out, feedback, top up', () => {
     authState.signedIn = true;
     runState.value = { phase: 'running', payer: 'personal' };

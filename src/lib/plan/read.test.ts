@@ -1,7 +1,7 @@
 // src/lib/plan/read.test.ts
 import { describe, expect, it } from 'vitest';
 import { RUN_STAGES } from '../lineup/types';
-import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from './read';
+import { accountOf, capabilitiesOf, providersIn, transcriptionAccount, transcriptionProvider, unitFor } from './read';
 import { planOf, stubProvider } from './testing';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -23,6 +23,18 @@ describe('reading a plan', () => {
     const shape = { accounts: { soniox: account } };
     expect(accountOf(shape, stubProvider('soniox'))).toBe(account);
     expect(() => accountOf(shape, stubProvider('openai'))).toThrow(/openai/);
+  });
+
+  it("answers the transcribing provider's account, whatever else the accounts hold", () => {
+    const local = stubProvider('local_inference');
+    const soniox = stubProvider('soniox');
+    const text: PlannedUnit = { ...planOf(soniox).units[0], stages: ['transcription', 'translation'] };
+    const voice: PlannedUnit = { ...planOf(local).units[0], stages: ['speech'] };
+    const plan: RunPlan = { units: [voice, text], byStage: { transcription: text, translation: text, speech: voice } };
+    const heard = { pair: { source: 'ja', target: 'en' } };
+    const spoken = { pair: { source: 'en', target: 'ja' } };
+    expect(transcriptionAccount({ plan, accounts: { local_inference: spoken, soniox: heard } })).toBe(heard);
+    expect(transcriptionAccount({ plan: planOf(local), accounts: { local_inference: spoken, soniox: heard } })).toBe(spoken);
   });
 
   it("asks a stage's unit for its capabilities under its own provider's settings", () => {

@@ -11,7 +11,7 @@ import type { RunState } from '../lib/session/types';
 import type { Readable } from '../lib/view/conversationView';
 import { describeCause, reportError } from '../lib/diagnostics/report';
 import { planOnceSelected } from '../lib/plan/fromStores';
-import { transcriptionProvider } from '../lib/plan/read';
+import { transcriptionAccount } from '../lib/plan/read';
 import { startSharePublisher, type SharePort } from '../lib/share/publisher';
 import type { ShareState, ShareStatus } from '../lib/share/types';
 import { useCaptionShareStore, type ShareError, type WifiHintState } from '../stores/captionShareStore';
@@ -176,7 +176,7 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
 export const sharedPair: CaptionShareDeps['pair'] = {
   get: () => {
     const found = planOnceSelected();
-    return found.state === 'ready' ? found.accounts[transcriptionProvider(found.plan).id].pair : null;
+    return found.state === 'ready' ? transcriptionAccount(found).pair : null;
   },
   subscribe: (listener) => useProviderStore.subscribe(() => listener()),
 };

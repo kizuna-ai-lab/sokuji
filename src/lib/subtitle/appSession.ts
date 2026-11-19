@@ -8,7 +8,7 @@
  */
 import { describeCause, reportError } from '../diagnostics/report';
 import { planOnceSelected } from '../plan/fromStores';
-import { providersIn, transcriptionProvider } from '../plan/read';
+import { providersIn, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
 import { microphoneMissing } from '../session/shape';
@@ -35,7 +35,7 @@ export function appSubtitleSession(
     // Its pair is the transcription provider's.
     const found = planOnceSelected();
     const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : undefined;
-    const pair = found.state === 'ready' && id ? found.accounts[id].pair : null;
+    const pair = found.state === 'ready' ? transcriptionAccount(found).pair : null;
     // Start needs every provider of the plan ready: the readiness the gate reads is the first one not ready (its
     // reason shown before a check under way), else the transcription provider's.
     const all = useProviderStore.getState().readiness;

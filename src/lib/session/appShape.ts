@@ -9,7 +9,7 @@ import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { planFromStores } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, transcriptionProvider, unitFor } from '../plan/read';
+import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -45,7 +45,7 @@ const SCREEN_CONTEXT_PROVIDERS: ReadonlySet<string> = new Set(['qwen_livetransla
 function transcriptionFromStores(): { provider: AnyProvider; settings: unknown } | null {
   const found = planFromStores();
   if (found.state !== 'ready') return null;
-  const { provider } = unitFor(found.plan, 'transcription');
+  const provider = transcriptionProvider(found.plan);
   return { provider, settings: found.accounts[provider.id].settings };
 }
 
@@ -169,7 +169,7 @@ export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { ent
   if (found.state !== 'ready') return null;
   // A run's account is a provider's settings and credentials; its pair is the shape's own.
   const accounts = Object.fromEntries(Object.entries(found.accounts).map(([id, { settings, credentials }]) => [id, { settings, credentials }]));
-  return { plan: found.plan, accounts, entry: found.accounts[transcriptionProvider(found.plan).id] };
+  return { plan: found.plan, accounts, entry: transcriptionAccount(found) };
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {

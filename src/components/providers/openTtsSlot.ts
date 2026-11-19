@@ -1,7 +1,7 @@
 import type { LegName } from '../../lib/conversation/types';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import { planFromStores } from '../../lib/plan/fromStores';
-import { transcriptionProvider, unitFor } from '../../lib/plan/read';
+import { transcriptionAccount, unitFor } from '../../lib/plan/read';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
@@ -24,7 +24,7 @@ export function openTtsSlot(leg: LegName): void {
   }
   const found = planFromStores();
   if (found.state === 'ready' && unitFor(found.plan, 'speech').provider.Engine) {
-    const { source, target } = found.accounts[transcriptionProvider(found.plan).id].pair;
+    const { source, target } = transcriptionAccount(found).pair;
     setEngineSlotTarget({ dir: leg === 'speaker' ? directionKey(source, target) : directionKey(target, source), stage: 'tts' });
   } else {
     setEngineSlotTarget(null);

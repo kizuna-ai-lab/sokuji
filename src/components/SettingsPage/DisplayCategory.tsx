@@ -15,7 +15,7 @@ import useSettingsStore from '../../stores/settingsStore';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
 import { usePlanOnceSelected } from '../../lib/plan/fromStores';
-import { transcriptionProvider } from '../../lib/plan/read';
+import { transcriptionAccount } from '../../lib/plan/read';
 import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import { isElectron } from '../../utils/environment';
 import { DisplayPreview, type PreviewValues } from './DisplayPreview';
@@ -84,7 +84,7 @@ export function DisplayCategory(_props: CategoryBodyProps) {
   // The sample speaks the run's pair, the plan's transcription provider's once a provider is selected, as the surfaces
   // do (B-22); a side without a sample takes the interface language.
   const plan = usePlanOnceSelected();
-  const pair = plan.state === 'ready' ? plan.accounts[transcriptionProvider(plan.plan).id].pair : null;
+  const pair = plan.state === 'ready' ? transcriptionAccount(plan).pair : null;
   const source = pair?.source ?? null;
   const target = pair?.target ?? null;
   const ui = i18n.resolvedLanguage ?? i18n.language;

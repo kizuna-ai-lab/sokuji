@@ -20,7 +20,6 @@
  *   plan's managed providers are re-checked once idle, after the edit delay.
  */
 import type { Clock } from '../lib/contract/clock';
-import { planOnceSelected } from '../lib/plan/fromStores';
 import { providersIn } from '../lib/plan/read';
 import type { RunPlan } from '../lib/plan/types';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
@@ -43,15 +42,6 @@ export interface ReadinessDriverDeps {
   watchSignIn?(onChange: () => void): () => void;
   delayMs?: number;
   networkDelayMs?: number;
-}
-
-/**
- * The plan the app's driver checks: the plan as the stores stand once a provider is selected (`planOnceSelected`),
- * else none. A selection this build does not offer falls back, as the plan does, to the first provider offered.
- */
-export function readinessPlan(): RunPlan | null {
-  const found = planOnceSelected();
-  return found.state === 'ready' ? found.plan : null;
 }
 
 export function driveReadiness({ runner, providers, plan, auth, clock, watchSignIn, delayMs = READINESS_DELAY_MS, networkDelayMs = NETWORK_READINESS_DELAY_MS }: ReadinessDriverDeps): () => void {
@@ -149,6 +139,5 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
     for (const off of watched.values()) off();
     watched.clear();
     for (const id of [...cancel.keys()]) drop(id);
-    pendingAtOnce.clear();
   };
 }

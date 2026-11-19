@@ -35,7 +35,8 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { presentProviders } from '../../providers/registry';
+import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, planFromSelection, readShapeFromStores, screenContextWanted, selectedFromStores, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import { setUseOwnBalance } from './payerChoice';
 import type { RunShape } from './types';
 
@@ -58,6 +59,41 @@ describe('legsFor', () => {
     expect(legsFor('speaker')).toEqual(['speaker']);
     expect(legsFor('participant')).toEqual(['participant']);
     expect(legsFor('both')).toEqual(['speaker', 'participant']);
+  });
+});
+
+// The provider a start would run, in each state the stores can be in: the plan's, as the selection was read before it.
+describe('selectedFromStores and planFromSelection', () => {
+  const pair = { source: 'en', target: 'ja' };
+  const entryOf = (p: AnyProvider) => ({ settings: p.settings.defaults, credentials: { apiKey: 'k' }, pair });
+
+  it('are null while nothing is selected and nothing has loaded', () => {
+    expect(selectedFromStores()).toBeNull();
+    expect(planFromSelection()).toBeNull();
+  });
+
+  it("are the first offered provider while nothing is selected, once its entry has loaded: the fallback they always had", () => {
+    const first = presentProviders()[0];
+    const entry = entryOf(first);
+    useProviderStore.setState({ selected: null, entries: { [first.id]: entry } });
+    expect(selectedFromStores()).toEqual({ provider: first, entry });
+    expect(selectedFromStores()!.entry).toBe(entry);
+    expect(planFromSelection()).toEqual({ plan: planOf(first), accounts: { [first.id]: { settings: entry.settings, credentials: entry.credentials } }, entry });
+  });
+
+  it('are null while the selected provider has not loaded, whatever else has', () => {
+    const first = presentProviders()[0];
+    useProviderStore.setState({ selected: 'fake', entries: { [first.id]: entryOf(first) } });
+    expect(selectedFromStores()).toBeNull();
+    expect(planFromSelection()).toBeNull();
+  });
+
+  it('are the selected provider and its entry once it has loaded', () => {
+    const entry = { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair };
+    useProviderStore.setState({ selected: 'fake', entries: { fake: entry } });
+    expect(selectedFromStores()).toEqual({ provider: fakeProvider, entry });
+    expect(selectedFromStores()!.entry).toBe(entry);
+    expect(planFromSelection()).toEqual({ plan: planOf(fakeProvider), accounts: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' } } }, entry });
   });
 });
 

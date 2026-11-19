@@ -9,7 +9,8 @@ import type { RunState } from '../lib/session/types';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
-import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS, readinessPlan } from './readiness';
+import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
+import { readinessPlan } from './session';
 
 // The providers offered here, as the app's plan reads them (`readinessPlan`): none unless a case offers some.
 const offered = vi.hoisted(() => ({ list: [] as Array<{ id: string }> }));
@@ -626,14 +627,15 @@ describe('driveReadiness over a plan of two providers', () => {
     detach();
   });
 
-  it('stops watching a provider that leaves the plan, and every one on detach', () => {
+  it('stops watching a provider that leaves the plan, and every one on detach', async () => {
     const a = makeProbe('a', 'local');
     const b = makeProbe('b', 'local');
     const c = makeProbe('c', 'local');
     setupStore(a.provider, b.provider, c.provider);
-    spyRefresh();
+    const { calls } = spyRefresh();
+    const clock = createVirtualClock(0);
     let current = planOfTwo(a.provider, b.provider);
-    const detach = driveReadiness({ runner: idleRunner(), providers: () => [a.provider, b.provider, c.provider], plan: () => current, auth: () => auth, clock: createVirtualClock(0) });
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [a.provider, b.provider, c.provider], plan: () => current, auth: () => auth, clock });
 
     current = planOfTwo(a.provider, c.provider);
     useProviderStore.setState({ legs: ['speaker'] }); // a notification: the driver reads the plan again
@@ -641,10 +643,57 @@ describe('driveReadiness over a plan of two providers', () => {
     expect(b.off).toHaveBeenCalledTimes(1);
     expect(c.off).not.toHaveBeenCalled();
 
+    // The timer armed for b when it joined went with it: past both delays, a and c were checked and b never was.
+    clock.advance(Math.max(READINESS_DELAY_MS, NETWORK_READINESS_DELAY_MS));
+    await flush();
+    expect(calls('b')).toBe(0);
+    expect(calls('a')).toBe(1);
+    expect(calls('c')).toBe(1);
+
     detach();
     expect(a.off).toHaveBeenCalledTimes(1);
     expect(b.off).toHaveBeenCalledTimes(1);
     expect(c.off).toHaveBeenCalledTimes(1);
+  });
+
+  // A local provider's check runs whatever it knows, so a dropped timer that still fired would check it once it is back.
+  it('a local provider leaves the plan with a timer armed, then rejoins while ready: it is checked once, by the new timer only', async () => {
+    const a = makeProbe('a', 'local');
+    const b = makeProbe('b', 'local');
+    const c = makeProbe('c', 'local');
+    setupStore(a.provider, b.provider, c.provider);
+    useProviderStore.setState({ readiness: { a: ready, b: ready, c: ready } });
+    const { calls } = spyRefresh();
+    const clock = createVirtualClock(0);
+    let current = planOfTwo(a.provider, b.provider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [a.provider, b.provider, c.provider], plan: () => current, auth: () => auth, clock });
+
+    b.fire(); // its own inputs changed: a check armed for READINESS_DELAY_MS from now
+    clock.advance(50);
+    current = planOfTwo(a.provider, c.provider);
+    useProviderStore.setState({ legs: ['speaker'] }); // b leaves the plan with its timer armed
+    clock.advance(50);
+    current = planOfTwo(a.provider, b.provider);
+    useProviderStore.setState({ legs: ['speaker'] }); // b rejoins, still ready: rejoining arms nothing by itself
+
+    clock.advance(READINESS_DELAY_MS); // past the time the dropped timer was armed for
+    await flush();
+    expect(calls('b')).toBe(0);
+
+    b.fire(); // the new timer, through the watch b got back when it rejoined
+    clock.advance(READINESS_DELAY_MS - 1);
+    await flush();
+    expect(calls('b')).toBe(0);
+
+    clock.advance(1);
+    await flush();
+    expect(calls('b')).toBe(1);
+
+    clock.advance(10_000);
+    await flush();
+    expect(calls('b')).toBe(1);
+
+    detach();
   });
 });
 
