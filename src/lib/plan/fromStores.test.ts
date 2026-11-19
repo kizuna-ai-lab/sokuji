@@ -24,7 +24,7 @@ import { localInferenceProvider } from '../../providers/localInference/provider'
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { storedLocalStages, useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { planFromStores, usePlan, useStageUnit } from './fromStores';
+import { planFromStores, planOnceSelected, usePlan, usePlanOnceSelected, useStageUnit, useStageUnitOnceSelected } from './fromStores';
 import { providersIn, transcriptionProvider } from './read';
 import { planOf } from './testing';
 import { unitsOf } from './wholeUnit';
@@ -118,5 +118,48 @@ describe('useStageUnit', () => {
     act(() => useProviderStore.setState({ entries: { soniox: sonioxEntry } }));
     expect(result.current).toMatchObject({ provider: sonioxProvider, unit: unitsOf(sonioxProvider)[0], settings: sonioxEntry.settings });
     expect(result.current!.capabilities.speech).toBe(sonioxProvider.speech);
+  });
+});
+
+// Before the launch load selects a provider, a reader that never fell back to the first offered one answers nothing,
+// even once that provider's entry has loaded.
+describe('the plan once a provider is selected', () => {
+  const firstLoaded = () => {
+    const first = presentProviders()[0];
+    useProviderStore.setState({ selected: null, entries: { [first.id]: { settings: first.settings.defaults, credentials: {}, pair } } });
+    return first;
+  };
+
+  it("planOnceSelected is loading while nothing is selected, where planFromStores falls back to the first offered provider", () => {
+    firstLoaded();
+    expect(planFromStores().state).toBe('ready');
+    expect(planOnceSelected()).toEqual({ state: 'loading' });
+  });
+
+  it('planOnceSelected answers the same object as planFromStores once a provider is selected', () => {
+    const first = firstLoaded();
+    useProviderStore.setState({ selected: first.id });
+    const found = planOnceSelected();
+    expect(found.state).toBe('ready');
+    expect(found).toBe(planFromStores());
+  });
+
+  it('usePlanOnceSelected is loading while nothing is selected, then the same object usePlan returns', () => {
+    const first = firstLoaded();
+    const { result } = renderHook(() => ({ once: usePlanOnceSelected(), plan: usePlan() }));
+    expect(result.current.plan.state).toBe('ready');
+    expect(result.current.once).toEqual({ state: 'loading' });
+    act(() => useProviderStore.setState({ selected: first.id }));
+    expect(result.current.once.state).toBe('ready');
+    expect(result.current.once).toBe(result.current.plan);
+  });
+
+  it('useStageUnitOnceSelected is null while nothing is selected, then the unit useStageUnit gives', () => {
+    const first = firstLoaded();
+    const { result } = renderHook(() => ({ once: useStageUnitOnceSelected('transcription'), unit: useStageUnit('transcription') }));
+    expect(result.current.unit).not.toBeNull();
+    expect(result.current.once).toBeNull();
+    act(() => useProviderStore.setState({ selected: first.id }));
+    expect(result.current.once).toMatchObject({ provider: first, unit: unitsOf(first)[0], settings: first.settings.defaults });
   });
 });

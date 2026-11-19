@@ -18,6 +18,19 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   getEnvironment: () => environment.value,
 }));
 
+// The providers offered here are the registry's, unless a case offers the fake first.
+const offered = vi.hoisted(() => ({ fakeFirst: false }));
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../providers/registry')>();
+  return {
+    ...actual,
+    presentProviders: () => {
+      const present = actual.presentProviders();
+      return offered.fakeFirst ? [...present.filter((p) => p.id === 'fake'), ...present.filter((p) => p.id !== 'fake')] : present;
+    },
+  };
+});
+
 import { createStore } from 'zustand/vanilla';
 import type { Leg } from '../conversation/types';
 import type { Runner } from '../session/runner';
@@ -51,6 +64,7 @@ afterEach(() => {
   useSettingsStore.setState(settingsBefore, true);
   useRoutingStore.setState(routingBefore, true);
   environment.value = 'electron';
+  offered.fakeFirst = false;
 });
 
 function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; view?: Readable<ConversationViewState> }) {
@@ -248,6 +262,16 @@ describe('appSubtitleSession — providerLoaded (1e-3b-1 ruling 11)', () => {
     session.subscribe(listener);
     await useProviderStore.getState().load(fakeProvider);
     expect(listener).toHaveBeenCalled();
+    expect(session.get().canStart).toBe(true);
+  });
+
+  it('keeps Start off while no provider is selected yet, even once the first offered provider has loaded', () => {
+    offered.fakeFirst = true;
+    useProviderStore.setState({ selected: null, entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
+    const { session } = setup({ provider: false });
+    expect(session.get().canStart).toBe(false);
+    // The launch load selects it: Start turns on, so it was the selection that held it off.
+    useProviderStore.setState({ selected: 'fake' });
     expect(session.get().canStart).toBe(true);
   });
 });

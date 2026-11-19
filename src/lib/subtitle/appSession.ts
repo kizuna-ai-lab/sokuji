@@ -7,7 +7,7 @@
  * The only module under `src/lib/subtitle` that reads a store.
  */
 import { describeCause, reportError } from '../diagnostics/report';
-import { planFromStores } from '../plan/fromStores';
+import { planOnceSelected } from '../plan/fromStores';
 import { transcriptionProvider } from '../plan/read';
 import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
@@ -31,9 +31,9 @@ export function appSubtitleSession(
   } = {},
 ): Readable<SubtitleSession> & { dispose(): void } {
   const read = (): SubtitleSession => {
-    // The plan a start would run: loaded once every provider of it has its entry. Its readiness and pair are the
-    // transcription provider's, the one provider of a plan in this step.
-    const found = planFromStores();
+    // The plan a start would run: loaded once a provider is selected and every provider of the plan has its entry.
+    // Its readiness and pair are the transcription provider's, the one provider of a plan in this step.
+    const found = planOnceSelected();
     const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : undefined;
     const pair = found.state === 'ready' && id ? found.accounts[id].pair : null;
     const audio = useAudioStore.getState();

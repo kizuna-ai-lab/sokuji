@@ -8,7 +8,7 @@
  * provider decides (`'provider'`), and sentences survive everywhere. The
  * only module under `src/lib/view` that reads a store.
  */
-import { planFromStores } from '../plan/fromStores';
+import { planOnceSelected } from '../plan/fromStores';
 import { capabilitiesOf } from '../plan/read';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -59,9 +59,9 @@ export function projectionFrom(s: StoredSegmentation, boundaries: 'provider' | '
   };
 }
 
-/** The `boundaries` of the plan's transcription unit; `'provider'` until the plan is ready — nothing here for the cut to time itself against. */
+/** The `boundaries` of the plan's transcription unit; `'provider'` until a provider is selected and the plan is ready — nothing here for the cut to time itself against. */
 export function selectedBoundaries(): 'provider' | 'silence' {
-  const found = planFromStores();
+  const found = planOnceSelected();
   return found.state === 'ready' ? capabilitiesOf(found, 'transcription').boundaries : 'provider';
 }
 

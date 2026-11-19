@@ -54,13 +54,44 @@ export function usePlan(): PlanState {
   return useProviderStore(planIn);
 }
 
-/** The unit that serves `stage` in the plan as the stores stand, with its provider, settings and capabilities; null while the plan is not ready. */
-export function useStageUnit(stage: RunStage): { provider: AnyProvider; unit: UnitDefinition; settings: unknown; capabilities: UnitCapabilities } | null {
-  const found = usePlan();
+/** `planIn`, but loading until the provider store has a selection: no fallback to the first offered provider before it. */
+function planOnceSelectedIn(st: Pick<ProviderStore, 'selected' | 'entries'>): PlanState {
+  return st.selected === null ? LOADING : planIn(st);
+}
+
+/**
+ * `planFromStores`, but loading while the provider store has selected nothing yet (before the launch load picks
+ * one), where `planFromStores` falls back to the first offered provider once its entry has loaded. For a reader
+ * that answered nothing then; once a provider is selected, the same object `planFromStores` answers.
+ */
+export function planOnceSelected(): PlanState {
+  return planOnceSelectedIn(useProviderStore.getState());
+}
+
+/** `planOnceSelected` for a component, as `usePlan` is `planFromStores`'. */
+export function usePlanOnceSelected(): PlanState {
+  return useProviderStore(planOnceSelectedIn);
+}
+
+/** The unit that serves a stage, with its provider, its provider's settings and what it can do under them. */
+export interface StageUnit { provider: AnyProvider; unit: UnitDefinition; settings: unknown; capabilities: UnitCapabilities }
+
+/** A stage's unit in a plan state, the same object while the state is. */
+function useUnitIn(found: PlanState, stage: RunStage): StageUnit | null {
   return useMemo(() => {
     if (found.state !== 'ready') return null;
     const { provider, unit } = unitFor(found.plan, stage);
     const { settings } = found.accounts[provider.id];
     return { provider, unit, settings, capabilities: unit.capabilities(settings) };
   }, [found, stage]);
+}
+
+/** The unit that serves `stage` in the plan as the stores stand, with its provider, settings and capabilities; null while the plan is not ready. */
+export function useStageUnit(stage: RunStage): StageUnit | null {
+  return useUnitIn(usePlan(), stage);
+}
+
+/** `useStageUnit` over `usePlanOnceSelected`: null too while the provider store has selected nothing yet. */
+export function useStageUnitOnceSelected(stage: RunStage): StageUnit | null {
+  return useUnitIn(usePlanOnceSelected(), stage);
 }

@@ -14,7 +14,7 @@ import { FONT_SIZE_MAX, FONT_SIZE_MIN, useSubtitleStore, type DisplayMode } from
 import useSettingsStore from '../../stores/settingsStore';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
-import { usePlan } from '../../lib/plan/fromStores';
+import { usePlanOnceSelected } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import { isElectron } from '../../utils/environment';
@@ -81,9 +81,9 @@ export function DisplayCategory(_props: CategoryBodyProps) {
   // Readings follow each surface's own rule: always in the main window; in caption mode on the desktop, not compact.
   const readingTargets = useReadingTargets();
   const readingsHere = surface === 'conversation' || (isElectron() && !s.compact) ? readingTargets : undefined;
-  // The sample speaks the run's pair, the plan's transcription provider's, as the surfaces do (B-22); a side without
-  // a sample takes the interface language.
-  const plan = usePlan();
+  // The sample speaks the run's pair, the plan's transcription provider's once a provider is selected, as the surfaces
+  // do (B-22); a side without a sample takes the interface language.
+  const plan = usePlanOnceSelected();
   const pair = plan.state === 'ready' ? plan.accounts[transcriptionProvider(plan.plan).id].pair : null;
   const source = pair?.source ?? null;
   const target = pair?.target ?? null;

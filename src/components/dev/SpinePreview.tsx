@@ -3,7 +3,7 @@ import type { Playback } from '../../lib/audio/playback';
 import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { usePlan } from '../../lib/plan/fromStores';
+import { usePlanOnceSelected } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
@@ -325,8 +325,9 @@ export function SpinePreview() {
   const { runner } = session;
   const phase = useRunPhase();
   const turnMode = useTurnModeStore((s) => s.turnMode);
-  // The plan a start would run, ready once its provider's entry has loaded: the gate of the URL's settings and of autostart.
-  const plan = usePlan();
+  // The plan a start would run, ready once a provider is selected and its entry has loaded: the gate of the URL's
+  // settings and of autostart.
+  const plan = usePlanOnceSelected();
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
   const autostarted = useRef(false);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);

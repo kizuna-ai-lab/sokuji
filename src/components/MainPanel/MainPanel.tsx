@@ -13,7 +13,7 @@ import { isDevelopment } from '../../config/analytics';
 import { useAnalytics } from '../../lib/analytics';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
-import { useStageUnit } from '../../lib/plan/fromStores';
+import { useStageUnitOnceSelected } from '../../lib/plan/fromStores';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
@@ -180,8 +180,8 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
   const micMuted = useIsMicMuted();
   const participantSources = useParticipantSources();
   const participantSource = useSelectedParticipantSource();
-  // The unit that transcribes: whether typed text reaches it.
-  const transcription = useStageUnit('transcription');
+  // The unit that transcribes, once a provider is selected: whether typed text reaches it.
+  const transcription = useStageUnitOnceSelected('transcription');
   // Face-to-face and whether each leg is voiced, from one source: the replay gate, the strip and the tags.
   const f2f = useFaceToFace();
   const ears = earsLegend(f2f);

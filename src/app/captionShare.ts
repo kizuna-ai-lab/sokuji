@@ -10,7 +10,7 @@ import type { ConversationResetReason } from '../lib/session/conversationSet';
 import type { RunState } from '../lib/session/types';
 import type { Readable } from '../lib/view/conversationView';
 import { describeCause, reportError } from '../lib/diagnostics/report';
-import { planFromStores } from '../lib/plan/fromStores';
+import { planOnceSelected } from '../lib/plan/fromStores';
 import { transcriptionProvider } from '../lib/plan/read';
 import { startSharePublisher, type SharePort } from '../lib/share/publisher';
 import type { ShareState, ShareStatus } from '../lib/share/types';
@@ -175,7 +175,7 @@ export function createCaptionShareController(deps: CaptionShareDeps): CaptionSha
  */
 export const sharedPair: CaptionShareDeps['pair'] = {
   get: () => {
-    const found = planFromStores();
+    const found = planOnceSelected();
     return found.state === 'ready' ? found.accounts[transcriptionProvider(found.plan).id].pair : null;
   },
   subscribe: (listener) => useProviderStore.subscribe(() => listener()),

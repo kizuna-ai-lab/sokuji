@@ -78,7 +78,7 @@ vi.mock('../../../lib/view/appViewSettings', () => ({
 // The re-render subscription only; its shape is irrelevant here since the offer
 // itself comes straight from the mock above.
 vi.mock('../../../lib/plan/fromStores', () => ({
-  useStageUnit: () => null,
+  useStageUnitOnceSelected: () => null,
 }));
 
 // The real store never reaches the disk here: its four actions are replaced
