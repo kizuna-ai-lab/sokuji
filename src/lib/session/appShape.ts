@@ -8,7 +8,7 @@ import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
-import { accountOf, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, transcriptionProvider } from '../plan/read';
 import { wholePlan } from '../plan/wholeUnit';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -23,7 +23,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
-import { capabilitiesOf, gate, participantSpeechInput, speakFor, type Refusal, type SpeechInputs } from './shape';
+import { gate, participantSpeechInput, speakFor, type Refusal, type SpeechInputs } from './shape';
 import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
@@ -147,9 +147,10 @@ export function watchSpeechFromStores(): () => void {
 /**
  * The plan a start would run and its providers' accounts, as the stores
  * stand: the selected provider as one whole-provider unit, until the
- * line-up decides the plan. Null until its entry has loaded.
+ * line-up decides the plan. Null until its entry has loaded. The run's
+ * shape, the live gate and the account button's floor all read it.
  */
-function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
+export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
   const selected = selectedFromStores();
   if (!selected) return null;
   const { provider, entry } = selected;

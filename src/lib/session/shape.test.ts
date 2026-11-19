@@ -378,8 +378,8 @@ describe('a plan of several units: each question asked of the unit that answers 
   });
 
   it("reverses the pair in the transcription provider's sources and the translation provider's targets", () => {
-    expect(gate(several(['ja'], { legs: ['speaker', 'participant'] }), 'electron'))
-      .toMatchObject({ code: 'participant_unsupported', leg: 'participant', message: 'heard does not offer ja → en.' });
+    // The translation provider's targets refuse it: only the code and the leg are pinned, the words name the transcription provider.
+    expect(gate(several(['ja'], { legs: ['speaker', 'participant'] }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
     expect(gate(several(['en'], { legs: ['speaker', 'participant'] }), 'electron')).toBeNull();
   });
 

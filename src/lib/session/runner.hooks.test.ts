@@ -16,7 +16,7 @@ import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
 import type { FramePort } from './ports';
 import { createRunner } from './runner';
 import { SourceOpenError, type Source } from './source';
-import type { LeaseContext, RunNotice, RunShape, SessionHooks } from './types';
+import type { LeaseContext, RunEnd, RunNotice, RunShape, SessionHooks } from './types';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -295,6 +295,20 @@ describe('runner — acquire', () => {
     expect(release).toHaveBeenCalledTimes(1);
     await flush();
     expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads every leg's credentials from the lease before any leg starts: one it cannot give fails the start, naming no leg", async () => {
+    const start = vi.fn();
+    const provider = withHooks(
+      { acquire: async () => ({ credentials: () => { throw new Error('no key for this leg'); }, release: async () => {} }) },
+      { start },
+    );
+    const { runner } = setup(provider, ['speaker', 'participant']);
+    await runner.start();
+    expect(start).not.toHaveBeenCalled();
+    const lastEnd = (runner.state.getState() as { lastEnd?: RunEnd }).lastEnd;
+    expect(lastEnd).toMatchObject({ reason: 'start-failed', notice: { code: 'start_failed', message: 'no key for this leg' } });
+    expect(lastEnd?.notice).not.toHaveProperty('leg');
   });
 
   it("hands acquire the run's clock", async () => {

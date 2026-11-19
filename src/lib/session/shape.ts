@@ -1,9 +1,7 @@
 import type { SessionContext } from '../contract/adapter';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
-import type { RunStage } from '../lineup/types';
-import { accountOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
-import type { UnitCapabilities } from '../plan/types';
+import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
@@ -77,12 +75,6 @@ export function speakFor(p: Speaking, i: SpeakInputs): Speak {
 /** The language context of a run over these legs (Stage 2 Volcengine AST2, choice 1): it speaks when any leg it opens does. */
 export function languageContext(p: Speaking, legs: readonly LegName[], inputs: SpeechInputs): LanguageContext {
   return { speech: legs.some((leg) => legSpeaks(p, leg, inputs)) };
-}
-
-/** What the unit that serves `stage` can do, under its provider's settings in `accounts`. */
-export function capabilitiesOf(shape: Pick<RunShape, 'plan' | 'accounts'>, stage: RunStage): UnitCapabilities {
-  const { provider, unit } = unitFor(shape.plan, stage);
-  return unit.capabilities(accountOf(shape, provider).settings);
 }
 
 /**

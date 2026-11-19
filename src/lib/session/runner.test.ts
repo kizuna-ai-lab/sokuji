@@ -5,13 +5,14 @@ import type { Punctuator } from '../conversation/fillIn';
 import type { AnyProvider, Readiness, SharedSettings } from '../provider/types';
 import { createVirtualClock } from '../contract/clock';
 import { fakeFrameSource } from '../contract/testing/fakeFrames';
+import { transcriptionProvider } from '../plan/read';
 import { shapeWith } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
 import { RUN_NOTICE_CODES } from './codes';
 import { SourceOpenError, type OpenSource, type Source } from './source';
-import type { FramePort, PlaybackPort } from './ports';
+import type { FramePort, PlaybackPort, RunnerDeps } from './ports';
 import { createRunner } from './runner';
 import { buildSharedSettings } from './shared';
 import type { LeaseContext, RunEnd, RunNotice, RunShape } from './types';
@@ -56,7 +57,7 @@ interface Options {
   settings?: Partial<FakeSettings>;
   openSource?: OpenSource;
   ready?: Readiness;
-  ensureReady?: () => Promise<Readiness>;
+  ensureReady?: RunnerDeps['ensureReady'];
   onRunEnded?: (legs: readonly Leg[]) => void;
   punctuate?: Punctuator;
   punctuationReady?: () => boolean;
@@ -136,6 +137,17 @@ function setup(o: Options = {}) {
 }
 
 describe('runner — starting', () => {
+  it("checks the readiness of the plan's provider on the frozen shape, with the run's signal", async () => {
+    const ensureReady = vi.fn<RunnerDeps['ensureReady']>(async () => ({ state: 'ready', models: [] }));
+    const { runner, shape } = setup({ ensureReady });
+    await runner.start();
+    expect(ensureReady).toHaveBeenCalledTimes(1);
+    const [provider, frozen, signal] = ensureReady.mock.calls[0];
+    expect(provider).toBe(transcriptionProvider(shape.plan));
+    expect(frozen).toBe(shape);
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
   it('tells every builder whether some leg of the run speaks, fixed at start (shared.speaks: Soniox asks for agent text on it with its own setting, spec 2026-11-05 §4.3)', async () => {
     const cases = [
       // textOnly, participantSpeech, legs, expected

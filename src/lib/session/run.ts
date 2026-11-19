@@ -14,7 +14,7 @@ import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../plan/composite';
-import { accountOf, providersIn, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, providersIn, transcriptionProvider } from '../plan/read';
 import type { PlannedUnit } from '../plan/types';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { AnyProvider, ModelOption, SharedSettings } from '../provider/types';
@@ -24,7 +24,7 @@ import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
 import { FLAP_WINDOW_MS } from './reconnect';
 import { reconnectClient } from './reconnectEvents';
-import { capabilitiesOf, contextsFor, gate, type Refusal } from './shape';
+import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
@@ -369,6 +369,10 @@ export class Run {
     // them over before its legs open, as before.
     host.conversations(this.conversations, { provider: this.providerId, models: this.models, startedAt: this.startedAt });
 
+    // Every leg's credentials from every provider, read before any leg starts: a lease that cannot give one fails
+    // the start, not a leg.
+    const legKeys = new Map<LegName, ReadonlyMap<string, unknown>>();
+    for (const leg of shape.legs) legKeys.set(leg, new Map(providers.map((p): [string, unknown] => [p.id, keyFor(p, leg)])));
     const request = <C, K>(leg: LegName, config: C, credentials: K): StartRequest<C, K> => ({
       context: contexts[leg]!,
       config,
@@ -382,7 +386,7 @@ export class Run {
 
     if (together) {
       const unit = sole!;
-      const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(unit), keyFor(unit.provider, leg))])) as Record<LegName, StartRequest<unknown, unknown>>;
+      const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(unit), legKeys.get(leg)!.get(unit.provider.id))])) as Record<LegName, StartRequest<unknown, unknown>>;
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
@@ -397,7 +401,7 @@ export class Run {
       this.throwIfAborted();
       shape.legs.forEach((leg, i) => this.connect(leg, sources![i], sessions[leg]));
     } else {
-      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, request(leg, configs[leg]!, (unit: PlannedUnit) => keyFor(unit.provider, leg)), sources?.[i]))));
+      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, request(leg, configs[leg]!, (unit: PlannedUnit) => legKeys.get(leg)!.get(unit.provider.id)), sources?.[i]))));
     }
     this.throwIfAborted();
     // The network back (spec 2026-11-05 reconnect §4.2): a session waiting out a reconnect's backoff tries now. Undone as the run unwinds.

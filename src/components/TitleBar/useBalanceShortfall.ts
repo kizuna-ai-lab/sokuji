@@ -6,9 +6,9 @@
  * frozen wallet is not a low balance. For an organization payer the dot is only a
  * hint: Start itself is not refused below the floor, the server answers it.
  */
-import { wholePlan } from '../../lib/plan/wholeUnit';
+import { capabilitiesOf } from '../../lib/plan/read';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
-import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../lib/session/appShape';
+import { faceToFaceFromStores, legsFor, planFromSelection, speechFromStores } from '../../lib/session/appShape';
 import { ORG_INSUFFICIENT_BALANCE } from '../../lib/session/orgNotice';
 import { useAccountPayer } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
@@ -32,13 +32,10 @@ export function useBalanceShortfall(): boolean {
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
   useAudioStore((s) => s.participantCaptureWidened);
-  // The provider exactly as the live gate finds it (`selectedFromStores`: the selected one, else the first present), so before the load selects one the dot and Start still agree.
-  const found = selectedFromStores();
+  // The plan exactly as the live gate finds it (`planFromSelection`: the selected provider, else the first present), so before the load selects one the dot and Start still agree.
+  const found = planFromSelection();
   if (!found) return false;
-  const { provider, entry } = found;
-  const participantSpeech = speechFromStores(provider).them;
-  // The selected provider as the plan a start would run, as the live gate builds it.
-  const accounts = { [provider.id]: { settings: entry.settings, credentials: entry.credentials } };
-  const code = balanceRefusal({ plan: wholePlan(provider), accounts, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer })?.code;
+  const participantSpeech = speechFromStores(capabilitiesOf(found, 'speech')).them;
+  const code = balanceRefusal({ plan: found.plan, accounts: found.accounts, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer })?.code;
   return code === BALANCE_BELOW_FLOOR || code === ORG_INSUFFICIENT_BALANCE;
 }
