@@ -131,7 +131,29 @@ create index notes_record on notes (record_id);
 create index notes_transcript on notes (transcript_id);
 `;
 
-const MIGRATIONS = [V1];
+// Version 2 (2026-11-19): a finished record's text can be fixed. A sentence keeps what was heard (null until it is
+// changed); each fix keeps what it found and what it wrote, per sentence and for the notes version it changed, so it is
+// reverted exactly.
+const V2 = `
+alter table sentences add column heard text;
+
+create table corrections (
+  id integer primary key autoincrement,
+  transcript_id integer not null references transcripts(id) on delete cascade,
+  from_text text not null,
+  to_text text not null,
+  -- JSON [{ n, before, after }]
+  sentences text not null,
+  -- JSON { id, before, after } (the notes body as JSON text), or null
+  notes text,
+  created_at integer not null,
+  reverted_at integer
+) strict;
+
+create index corrections_transcript on corrections (transcript_id);
+`;
+
+const MIGRATIONS = [V1, V2];
 const SCHEMA_VERSION = MIGRATIONS.length;
 
 module.exports = { MIGRATIONS, SCHEMA_VERSION };

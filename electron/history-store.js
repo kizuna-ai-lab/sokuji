@@ -164,6 +164,27 @@ function openHistory({ dir, now = () => Date.now() }) {
     return t;
   }
 
+  /** A transcript of a finished record: only those are edited by hand (a live one is still being written). */
+  function finishedTranscript(transcriptId) {
+    const t = transcriptOrFail(transcriptId);
+    if (t.state !== 'closed') fail('RECORD_OPEN', `Record ${t.record_id} is not finished`);
+    return { id: Number(transcriptId), record_id: t.record_id };
+  }
+
+  /** A sentence's shown text set, keeping what was heard the first time it changes, and forgetting it once they agree. */
+  function writeSentence(transcriptId, n, text) {
+    const { changes } = run('update sentences set heard = coalesce(heard, text), text = ? where transcript_id = ? and n = ?', text, transcriptId, n);
+    if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${n}`);
+    run('update sentences set heard = null where transcript_id = ? and n = ? and heard = text', transcriptId, n);
+  }
+
+  /** A notes version's body set (as JSON text), and what search reads of it with it. */
+  function writeNotesBody(notesId, bodyJson) {
+    const body = JSON.parse(bodyJson);
+    if (!isNotesBody(body)) fail('BAD_NOTES', 'A notes body needs title, overview, topics, points and names');
+    run('update notes set body = ?, search_text = ? where id = ?', bodyJson, notesSearchText(body), notesId);
+  }
+
   function checkSentence(x) {
     if (!isPlainObject(x) || !isInt(x.n) || !SENTENCE_SIDES.has(x.side) || typeof x.sideCertain !== 'boolean' || !TRACKS.has(x.track)
       || !isString(x.speaker) || !isInt(x.startMs) || !isInt(x.endMs) || !isString(x.text) || !TIME_KINDS.has(x.timeKind)
@@ -452,7 +473,87 @@ function openHistory({ dir, now = () => Date.now() }) {
         language: x.language,
         timeKind: x.time_kind,
         translation: x.translation,
+        heard: x.heard ?? null,
       }));
+    },
+
+    /** A finished record's sentences, rewritten; each keeps what was heard until it reads the same again. */
+    editSentences({ transcriptId, edits } = {}) {
+      const t = finishedTranscript(transcriptId);
+      if (!Array.isArray(edits) || edits.some((e) => !isPlainObject(e) || !isInt(e.n) || !isString(e.text))) fail('BAD_INPUT', 'edits must be { n, text }');
+      transaction(db, () => { for (const e of edits) writeSentence(t.id, e.n, e.text); });
+    },
+
+    /** One fix: its sentences (and notes version) as found, then as written; refused when any is no longer as found. */
+    applyCorrection({ transcriptId, from, to, sentences, notes = null } = {}) {
+      const t = finishedTranscript(transcriptId);
+      if (!isString(from) || !from || !isString(to) || !Array.isArray(sentences)
+        || sentences.some((x) => !isPlainObject(x) || !isInt(x.n) || !isString(x.before) || !isString(x.after))
+        || !(notes === null || (isPlainObject(notes) && isInt(notes.id) && isString(notes.before) && isString(notes.after)))) {
+        fail('BAD_INPUT', 'A fix needs from, to, its sentences as { n, before, after } and notes as { id, before, after } or null');
+      }
+      return transaction(db, () => {
+        for (const x of sentences) {
+          const row = one('select text from sentences where transcript_id = ? and n = ?', t.id, x.n);
+          if (!row) fail('NO_SENTENCE', `No sentence ${x.n}`);
+          if (row.text !== x.before) fail('STALE', `Sentence ${x.n} changed`);
+          writeSentence(t.id, x.n, x.after);
+        }
+        if (notes) {
+          const n = one('select body from notes where id = ? and record_id = ?', notes.id, t.record_id);
+          if (!n || n.body === null) fail('NO_NOTES', `No notes ${notes.id}`);
+          if (n.body !== notes.before) fail('STALE', `Notes ${notes.id} changed`);
+          writeNotesBody(notes.id, notes.after);
+        }
+        const { lastInsertRowid } = run(
+          'insert into corrections (transcript_id, from_text, to_text, sentences, notes, created_at) values (?, ?, ?, ?, ?, ?)',
+          t.id, from, to, JSON.stringify(sentences), notes === null ? null : JSON.stringify(notes), now(),
+        );
+        return Number(lastInsertRowid);
+      });
+    },
+
+    /** A fix taken back: what it wrote goes back to what it found; what changed since stays. `forget`: no trace left. */
+    revertCorrection({ id, forget = false } = {}) {
+      const c = isInt(id) ? one('select * from corrections where id = ?', id) : undefined;
+      if (!c) fail('NO_CORRECTION', `No correction ${id}`);
+      const t = finishedTranscript(c.transcript_id);
+      return transaction(db, () => {
+        let restored = 0;
+        let kept = 0;
+        for (const x of JSON.parse(c.sentences)) {
+          const row = one('select text from sentences where transcript_id = ? and n = ?', t.id, x.n);
+          if (row && row.text === x.after) { writeSentence(t.id, x.n, x.before); restored += 1; } else kept += 1;
+        }
+        if (c.notes !== null) {
+          const notes = JSON.parse(c.notes);
+          const n = one('select body from notes where id = ?', notes.id);
+          if (n && n.body === notes.after) writeNotesBody(notes.id, notes.before);
+        }
+        if (forget) run('delete from corrections where id = ?', c.id);
+        else run('update corrections set reverted_at = ? where id = ?', now(), c.id);
+        return { restored, kept };
+      });
+    },
+
+    listCorrections({ transcriptId } = {}) {
+      transcriptOrFail(transcriptId);
+      return all('select * from corrections where transcript_id = ? order by id desc', transcriptId).map((c) => ({
+        id: c.id,
+        from: c.from_text,
+        to: c.to_text,
+        sentences: JSON.parse(c.sentences).map((x) => x.n),
+        notesId: c.notes === null ? null : JSON.parse(c.notes).id,
+        createdAt: c.created_at,
+        revertedAt: c.reverted_at,
+      }));
+    },
+
+    /** A sentence back to what was heard. */
+    restoreSentence({ transcriptId, n } = {}) {
+      const t = finishedTranscript(transcriptId);
+      if (!isInt(n)) fail('BAD_INPUT', 'A restore needs n');
+      run('update sentences set text = heard, heard = null where transcript_id = ? and n = ? and heard is not null', t.id, n);
     },
 
     renameSpeaker({ transcriptId, side, speaker, name } = {}) {
