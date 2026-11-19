@@ -637,7 +637,14 @@
 
   &.is-hit { background: color-mix(in srgb, #{tk.$color-primary} 22%, transparent); }
 
-  &__more { position: relative; }
+  // A sentence's buttons keep their room after its text (hidden until pointed at), but never go to a line of their own:
+  // a word joiner (U+2060) binds them to the sentence's last word, so when they do not fit, the line breaks before that
+  // word, as it does before a word and the punctuation after it. Generated, the joiner is not copied with the text.
+  &__more {
+    position: relative;
+    white-space: nowrap;
+    &::before { content: '\2060'; }
+  }
 
   &__menu-button {
     display: inline-flex;
@@ -651,6 +658,8 @@
     vertical-align: middle;
     cursor: pointer;
     opacity: 0;
+    // A screen with no pointer to hover with (touch only) shows them always, to be tapped.
+    @media (hover: none) { opacity: 1; }
     &:hover { color: vars.$text-primary; background: vars.$bg-hover; }
     &:focus-visible { opacity: 1; outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
     &[aria-expanded='true'] { opacity: 1; }

@@ -193,3 +193,97 @@ test('the edit panel stays as it was left, and the notes column drags between it
   await expect(again.page.getByRole('complementary', { name: 'Edit', exact: true })).toBeHidden();
   expect(again.errors).toEqual([]);
 });
+
+// A sentence's buttons ("Change speaker") stay hidden until the sentence is pointed at. A row's last sentence gets no
+// empty line under it for them at any width (the transcript column is swept across the two-column layout's widths, with
+// sentences of many lengths, one to three to a row), and shown, they cover no text.
+test('a sentence\'s hidden buttons add no empty line under it', async ({ launchApp }) => {
+  const userData = newUserData();
+  const words = 'the quick brown fox jumps over a lazy dog and keeps running far away from the river bank'.split(' ');
+  seedHistory(userData, [{
+    id: 'run-e2e-layout-lines', startedAt: Date.now() - HOUR, durationMs: 300_000,
+    sentences: Array.from({ length: 30 }, (_, i) => {
+      // Rows of one, two and three sentences: a segment's sentences, on one side.
+      const segment = Math.floor(i / 6) * 3 + [0, 1, 1, 2, 2, 2][i % 6];
+      return {
+        side: segment % 2 === 0 ? 'mine' as const : 'other' as const,
+        text: `${words.slice(0, 3 + ((i * 7) % 15)).join(' ')} ${i + 1}.`,
+        startMs: i * 10_000,
+        endMs: i * 10_000 + 9_000,
+        segmentId: `seg-${segment}`,
+      };
+    }),
+  }]);
+  const { page, app } = await launchApp({ userData, seed: { storage: storage() } });
+  await widthTo(app, page, 900);
+  await openHistory(page);
+  await openRow(page, 0);
+  await page.mouse.move(1, 1);
+  const extra: string[] = [];
+  for (let width = 641; width <= 880; width += 3) {
+    await widthTo(app, page, width);
+    // A line of a row with no sentence's text on it.
+    const lonely = await page.evaluate(() => [...document.querySelectorAll('.record-row__text')].filter((row) => {
+      const tops = (rects: DOMRectList | DOMRect[]) => new Set([...rects].map((r) => Math.round(r.top)));
+      const text = new Set<number>();
+      const lines = new Set<number>();
+      for (const sentence of row.querySelectorAll('.record-sentence')) {
+        const range = document.createRange();
+        range.selectNodeContents(sentence.firstChild!);
+        for (const t of tops(range.getClientRects())) text.add(t);
+        for (const t of tops(sentence.getClientRects())) lines.add(t);
+      }
+      return [...lines].some((t) => !text.has(t));
+    }).length);
+    if (lonely > 0) extra.push(`${width}px: ${lonely}`);
+  }
+  expect(extra).toEqual([]);
+
+  // Pointed at, the buttons take their room again, after the text: the text stays where it was, under the pointer.
+  const moved: string[] = [];
+  const misplaced: string[] = [];
+  const covering: string[] = [];
+  for (const width of [641, 700, 760, 820, 880]) {
+    await widthTo(app, page, width);
+    const count = await page.locator('.record-sentence').count();
+    for (let i = 0; i < count; i++) {
+      const sentence = page.locator('.record-sentence').nth(i);
+      await sentence.scrollIntoViewIfNeeded();
+      const lastLine = () => sentence.evaluate((el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el.firstChild!);
+        const rects = [...range.getClientRects()];
+        const r = rects[rects.length - 1];
+        return { x: r.right - 2, y: r.top + r.height / 2, top: r.top, right: r.right };
+      });
+      const before = await lastLine();
+      await page.mouse.move(before.x, before.y);
+      const after = await lastLine();
+      const hovered = await sentence.evaluate((el) => el.matches(':hover'));
+      if (after.top !== before.top || after.right !== before.right || !hovered) moved.push(`${width}px #${i + 1}`);
+      // Shown, the button is on the sentence's last line, after its text, inside the row.
+      const button = await sentence.evaluate((el) => {
+        const b = el.querySelector('.record-sentence__menu-button')!.getBoundingClientRect();
+        const row = el.closest('.record-row__text')!.getBoundingClientRect();
+        return { left: b.left, right: b.right, middle: b.top + b.height / 2, rowRight: row.right };
+      });
+      if (button.left < after.right - 1 || button.right > button.rowRight + 1 || Math.abs(button.middle - after.y) > after.y - after.top) {
+        misplaced.push(`${width}px #${i + 1}`);
+      }
+      // Nor over the next sentence of its row.
+      const covers = await sentence.evaluate((el) => {
+        const next = el.nextElementSibling;
+        if (!next?.classList.contains('record-sentence')) return false;
+        const b = el.querySelector('.record-sentence__menu-button')!.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(next.firstChild!);
+        return [...range.getClientRects()].some((r) => b.left < r.right - 1 && r.left < b.right - 1 && b.top < r.bottom - 1 && r.top < b.bottom - 1);
+      });
+      if (covers) covering.push(`${width}px #${i + 1}`);
+    }
+    await page.mouse.move(1, 1);
+  }
+  expect(moved).toEqual([]);
+  expect(misplaced).toEqual([]);
+  expect(covering).toEqual([]);
+});
