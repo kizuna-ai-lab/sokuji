@@ -16,7 +16,7 @@
   </a>
   <img alt="Platforms" src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Chrome%20%7C%20Edge-grey?style=flat-square" />
   <a href="https://deepwiki.com/kizuna-ai-lab/sokuji" target="_blank">
-    <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" />
+    <img alt="Ask DeepWiki" src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" />
   </a>
 </p>
 
