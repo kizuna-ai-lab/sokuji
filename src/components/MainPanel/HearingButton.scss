@@ -60,6 +60,8 @@
   &__link {
     align-self: flex-start;
     padding: 0;
+    // The popover's 12px, not the browser's own size for buttons.
+    font: inherit;
     border: none;
     background: transparent;
     color: vars.$color-primary;
