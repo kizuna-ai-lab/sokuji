@@ -1,12 +1,14 @@
 /**
  * The app's subtitle session, live from the runner, the conversation view and
- * several stores (the selected provider's readiness and pair, the turn mode,
+ * several stores (the plan's readiness and pair, the turn mode,
  * the audio store's mode and chosen microphone for the microphone gate, and
  * the account's wallet, the text-only switch and the participant-speech
  * switch, for the balance floor), and the start gate over them (F7).
  * The only module under `src/lib/subtitle` that reads a store.
  */
 import { describeCause, reportError } from '../diagnostics/report';
+import { planFromStores } from '../plan/fromStores';
+import { transcriptionProvider } from '../plan/read';
 import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
 import { microphoneMissing } from '../session/shape';
@@ -29,8 +31,11 @@ export function appSubtitleSession(
   } = {},
 ): Readable<SubtitleSession> & { dispose(): void } {
   const read = (): SubtitleSession => {
-    const providers = useProviderStore.getState();
-    const id = providers.selected;
+    // The plan a start would run: loaded once every provider of it has its entry. Its readiness and pair are the
+    // transcription provider's, the one provider of a plan in this step.
+    const found = planFromStores();
+    const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : undefined;
+    const pair = found.state === 'ready' && id ? found.accounts[id].pair : null;
     const audio = useAudioStore.getState();
     // The display-mode buttons follow the audio mode's intent as well as the
     // conversation on screen: before the first run, and after the mode
@@ -39,12 +44,12 @@ export function appSubtitleSession(
     const shown = view.get().legs.map((leg) => leg.leg);
     return subtitleSession({
       run: runner.state.getState(),
-      readiness: id ? providers.readiness[id] : undefined,
-      pair: id ? providers.entries[id]?.pair ?? null : null,
+      readiness: id ? useProviderStore.getState().readiness[id] : undefined,
+      pair,
       turnMode: useTurnModeStore.getState().turnMode,
       legs: (['speaker', 'participant'] as const).filter((leg) => intent.includes(leg) || shown.includes(leg)),
       microphoneMissing: (options.microphoneRequired?.() ?? false) && microphoneMissing(intent, audio.selectedInputDevice?.deviceId),
-      providerLoaded: !!(id && providers.entries[id]),
+      providerLoaded: found.state === 'ready',
       refusal: liveGate(),
     });
   };
