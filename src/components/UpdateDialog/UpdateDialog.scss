@@ -105,6 +105,19 @@
         }
       }
 
+      // A release note's own section headings ("## Fixes" on GitHub) sit under the version heading above, in the
+      // notes' size: unstyled they were the browser's 18px over 12px items.
+      h1, h2, h4, h5, h6 {
+        margin: 8px 0 4px;
+        color: vars.$text-primary;
+        font-size: inherit;
+        font-weight: 600;
+
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+
       hr {
         border: none;
         border-top: 1px solid vars.$border-subtle;
@@ -185,7 +198,8 @@
       border-radius: 6px;
       background: color-mix(in srgb, tk.$color-primary 8%, transparent);
       color: vars.$text-secondary;
-      font-size: 0.9em;
+      // The caption size: 0.9em of the page's 16px came to 14.4px, off the app's sizes.
+      font-size: vars.$font-caption;
       line-height: 1.5;
     }
   }
