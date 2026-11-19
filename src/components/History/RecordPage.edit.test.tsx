@@ -236,7 +236,7 @@ describe('editing one sentence', () => {
     const edit = vi.spyOn(store.getState(), 'editSentence');
     fireEvent.click(editButton(1)!);
     fireEvent.change(field(), { target: { value: '我们用Sokuji开会' } });
-    expect(screen.getByText('Heard as 搜库机 · 1 more places')).toBeInTheDocument();
+    expect(screen.getByText('Heard as 搜库机 · 1 more place')).toBeInTheDocument();
     const editor = document.querySelector('.record-sentence-edit') as HTMLElement;
     expect(within(editor).getByRole('radio', { name: 'Change everywhere' })).toBeChecked();
     expect(within(editor).getByRole('checkbox', { name: 'Add to the word list' })).toBeChecked();

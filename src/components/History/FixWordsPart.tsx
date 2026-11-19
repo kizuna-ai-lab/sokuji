@@ -24,6 +24,7 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
   const open = useStore(store, (s) => s.open);
   const draft = useStore(store, (s) => s.fixDraft);
   const editable = useStore(store, (s) => s.canEdit());
+  const notesRunning = useStore(store, (s) => s.notesRunning);
   const [heard, setHeard] = useState('');
   const [to, setTo] = useState('');
   /** The sentence a selection was handed over from, which may be fixed alone. */
@@ -60,7 +61,12 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
   const word = heard.trim();
   const target = to.trim();
   const hits = useMemo(() => (word && open ? open.sentences.filter((s) => findWord(s.text, word).length > 0) : []), [open, word]);
-  const notesHits = useMemo(() => (word && open?.notes?.body ? replaceInNotes(open.notes.body, word, word).count : 0), [open, word]);
+  // Notes being written are about to be replaced: they are not offered (design draft P0 §4).
+  const writing = open ? notesRunning.includes(open.record.id) : false;
+  const notesHits = useMemo(
+    () => (word && open?.notes?.body && !writing ? replaceInNotes(open.notes.body, word, word).count : 0),
+    [open, word, writing],
+  );
   if (!editable || !open) return null;
 
   const one = scope === 'one' && only !== null && hits.some((s) => s.n === only);

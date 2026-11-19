@@ -101,6 +101,14 @@ describe('fixing words in the edit panel', () => {
     expect(store.getState().open!.sentences[0].text).toBe('我们用搜库机开会');
   });
 
+  // Design draft P0 §4: notes being written are about to be replaced, so they are not fixed.
+  it('does not offer the notes while they are being written', async () => {
+    await show();
+    act(() => store.setState({ notesRunning: [A] }));
+    fireEvent.change(heard(), { target: { value: '搜库机' } });
+    expect(screen.queryByRole('checkbox', { name: 'Fix in the notes too (1)' })).toBeNull();
+  });
+
   it('hidden on a live record', async () => {
     lay(B, false);
     await show(B);
